@@ -11,12 +11,7 @@ use clap::{Args, Parser, Subcommand};
 /// # Private members
 /// - `command`: Product mode selected by the caller.
 #[derive(Debug, Parser)]
-#[command(
-    name = "srig",
-    version,
-    about = "Universal semantic knowledge and agent runtime",
-    arg_required_else_help = true
-)]
+#[command(name = "srig", version, about = "Universal semantic knowledge and agent runtime", arg_required_else_help = true)]
 struct Cli {
     /// Product mode selected by the caller.
     #[command(subcommand)]
