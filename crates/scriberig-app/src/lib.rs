@@ -13,6 +13,7 @@ mod guarded_query_support;
 pub mod operation;
 pub mod promotion;
 pub mod query;
+pub mod read_backend;
 pub mod request;
 pub mod result;
 pub mod service;
@@ -47,6 +48,7 @@ pub use promotion::{
     evaluate_promotion, promote_candidate,
 };
 pub use query::{DetailLevel, InspectRequest, InspectResult, QueryService, SnapshotResolution};
+pub use read_backend::UniversalReadBackend;
 pub use request::{
     ApplicationRequest, ApplyRequest, BranchRequest, CommitRequest, DiffRequest, HistoryRequest,
     RenderRequest, SnapshotSelector,

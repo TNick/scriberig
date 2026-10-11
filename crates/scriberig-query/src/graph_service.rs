@@ -1,9 +1,10 @@
 //! Implements universal reads over a snapshot-bound graph view.
 
 use crate::{
-    ContinuationToken, DetailLevel, EntityInSnapshot, FollowDirection, FollowRequest, FollowResult,
-    InspectRequest, InspectService, Inspection, ListRequest, ListResult, NavigationEntry, Page,
-    QueryError, ReadCapability, TargetRef, TraverseService,
+    ContinuationToken, DetailLevel, EntityInSnapshot, FindRequest, FindResult, FindService,
+    FollowDirection, FollowRequest, FollowResult, InspectRequest, InspectService, Inspection,
+    ListRequest, ListResult, NavigationEntry, Page, QueryError, QueryResult, QuerySpec,
+    ReadCapability, StructuredQueryService, TargetRef, TraverseService,
 };
 use scriberig_core::{EntityId, SnapshotId};
 use scriberig_graph::{CollectionValue, KnowledgeView};
@@ -237,6 +238,46 @@ impl<V: KnowledgeView> TraverseService for GraphReadService<V> {
                 items,
                 next: (end < targets.len()).then(|| ContinuationToken::new(end.to_string())),
             },
+        })
+    }
+}
+
+impl<V: KnowledgeView> FindService for GraphReadService<V> {
+    /// Reports that discovery requires an indexed provider.
+    ///
+    /// # Parameters
+    /// - `self`: Graph-backed read service.
+    /// - `request`: Discovery request that cannot be evaluated by this view.
+    ///
+    /// # Returns
+    /// Never returns a discovery result.
+    ///
+    /// # Errors
+    /// Returns an unsupported-capability error for the requested strategy.
+    fn find(&self, request: &FindRequest) -> Result<FindResult, QueryError> {
+        Err(QueryError::UnsupportedCapability {
+            operation: crate::ReadOperation::Find,
+            capability: format!("find:{:?}", request.strategy),
+        })
+    }
+}
+
+impl<V: KnowledgeView> StructuredQueryService for GraphReadService<V> {
+    /// Reports that structural queries require an indexed provider.
+    ///
+    /// # Parameters
+    /// - `self`: Graph-backed read service.
+    /// - `_specification`: Query request that cannot be evaluated by this view.
+    ///
+    /// # Returns
+    /// Never returns query rows.
+    ///
+    /// # Errors
+    /// Returns an unsupported-capability error for structural queries.
+    fn query(&self, _specification: &QuerySpec) -> Result<QueryResult, QueryError> {
+        Err(QueryError::UnsupportedCapability {
+            operation: crate::ReadOperation::Query,
+            capability: "structured_query".to_owned(),
         })
     }
 }
