@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="690" viewBox="0 0 1200 690" role="img" aria-labelledby="title desc">
+  <title id="title">Reachability and garbage collection</title>
+  <desc id="desc">Protected roots such as main, a feature branch, and a pinned historical snapshot reach immutable snapshots and revisions that must be kept. Separate unreachable old revisions are candidates for garbage collection. Derived caches sit outside canonical retention and may use independent eviction policies. Garbage collection removes only unreachable physical objects and never changes retained semantic history.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>.title{font:700 29px system-ui,sans-serif;fill:#0f172a}.label{font:700 20px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}.keep{stroke:#0f766e;stroke-width:4;fill:none;marker-end:url(#arrow)}.dead{stroke:#b91c1c;stroke-width:3;stroke-dasharray:8 7;fill:none}</style>
+  </defs>
+  <rect width="1200" height="690" fill="#ffffff"/>
+  <text x="600" y="46" text-anchor="middle" class="title">Retention is reachability from protected roots</text>
+
+  <text x="165" y="102" text-anchor="middle" class="label">Protected roots</text>
+  <rect x="55" y="130" width="220" height="68" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/><text x="165" y="171" text-anchor="middle" class="body">main</text>
+  <rect x="55" y="225" width="220" height="68" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/><text x="165" y="266" text-anchor="middle" class="body">feature branch</text>
+  <rect x="55" y="320" width="220" height="68" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/><text x="165" y="361" text-anchor="middle" class="body">pinned history</text>
+
+  <text x="560" y="102" text-anchor="middle" class="label">Reachable canonical state — keep</text>
+  <rect x="420" y="130" width="220" height="68" rx="14" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/><text x="530" y="171" text-anchor="middle" class="body">Snapshot S43</text>
+  <rect x="420" y="245" width="220" height="68" rx="14" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/><text x="530" y="286" text-anchor="middle" class="body">Snapshot S44</text>
+  <rect x="420" y="360" width="220" height="68" rx="14" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/><text x="530" y="401" text-anchor="middle" class="body">Snapshot S12</text>
+
+  <rect x="740" y="118" width="200" height="58" rx="13" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/><text x="840" y="154" text-anchor="middle" class="body">Revision A7</text>
+  <rect x="740" y="203" width="200" height="58" rx="13" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/><text x="840" y="239" text-anchor="middle" class="body">Revision B2</text>
+  <rect x="740" y="288" width="200" height="58" rx="13" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/><text x="840" y="324" text-anchor="middle" class="body">Revision C9</text>
+  <rect x="740" y="373" width="200" height="58" rx="13" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/><text x="840" y="409" text-anchor="middle" class="body">Revision D4</text>
+
+  <path d="M275 164 L420 164" class="keep"/><path d="M275 259 L420 279" class="keep"/><path d="M275 354 L420 394" class="keep"/>
+  <path d="M640 164 L740 147" class="keep"/><path d="M640 164 L740 232" class="keep"/><path d="M640 279 L740 317" class="keep"/><path d="M640 394 L740 402" class="keep"/>
+
+  <text x="1050" y="102" text-anchor="middle" class="label">Unreachable</text>
+  <rect x="975" y="145" width="160" height="58" rx="13" fill="#fef2f2" stroke="#b91c1c" stroke-width="3"/><text x="1055" y="181" text-anchor="middle" class="body">Revision X1</text>
+  <rect x="975" y="235" width="160" height="58" rx="13" fill="#fef2f2" stroke="#b91c1c" stroke-width="3"/><text x="1055" y="271" text-anchor="middle" class="body">Snapshot S3</text>
+  <path d="M975 174 L940 174" class="dead"/><path d="M975 264 L940 264" class="dead"/>
+  <text x="1055" y="326" text-anchor="middle" class="small" fill="#991b1b">eligible only after retention policy</text>
+
+  <rect x="175" y="505" width="400" height="105" rx="18" fill="#fff7ed" stroke="#d97706" stroke-width="3"/>
+  <text x="375" y="543" text-anchor="middle" class="label">Derived caches</text>
+  <text x="375" y="575" text-anchor="middle" class="body">Rebuildable; independent eviction policy</text>
+  <text x="375" y="598" text-anchor="middle" class="small">Not authority for canonical history</text>
+
+  <rect x="650" y="505" width="375" height="105" rx="18" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+  <text x="838" y="543" text-anchor="middle" class="label">Garbage collection</text>
+  <text x="838" y="575" text-anchor="middle" class="body">Mark from protected roots, then sweep</text>
+  <text x="838" y="598" text-anchor="middle" class="small">Never make a retained snapshot unreadable</text>
+
+  <text x="600" y="657" text-anchor="middle" class="body">GC changes physical retention, not the semantic meaning of any retained snapshot.</text>
+</svg>
