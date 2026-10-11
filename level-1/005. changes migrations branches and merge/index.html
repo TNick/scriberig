@@ -5532,6 +5532,9 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>S1 --Migration M1--&gt; S2
 </code></pre></div>
 <p>The state and the explanation of the state transition are distinct objects.</p>
+<p>The important point in the following figure is that a semantic edit does not collapse entity identity, revision identity, snapshot identity, and history into one thing. The paragraph remains entity <code>P</code>; only its exact revision changes, the enclosing world receives a new snapshot identity, and the migration records why the transition occurred.</p>
+<p><img alt="Snapshot S1 resolves Paragraph P to revision PR1 while other entities resolve to unchanged revisions; Migration M1 records P changing from PR1 to PR2; Snapshot S2 resolves the same Paragraph P to PR2 and keeps unrelated mappings unchanged." src="../assets/005-changes-migrations-branches-and-merge/001-migration-transition.svg" /></p>
+<p><em>Figure 1. A migration connects two exact immutable worlds while preserving stable semantic identity and unchanged local state.</em></p>
 <hr />
 <h2 id="3-state-does-not-explain-history-by-itself">3. State Does Not Explain History by Itself<a class="headerlink" href="#3-state-does-not-explain-history-by-itself" title="Permanent link">&para;</a></h2>
 <p>Two snapshots can be compared to discover that they differ, but snapshot contents alone do not explain why one state followed another.</p>
@@ -5775,6 +5778,9 @@
 </code></pre></div>
 <p>History is therefore a directed acyclic graph of immutable states and explicit transitions, subject to the semantics of retained history.</p>
 <p>A linear presentation may be useful for a UI, but it must not replace the actual topology.</p>
+<p>The figure below makes the topology explicit. The reader should notice that immutable snapshots and migration edges form the durable history graph, while names such as <code>main</code> or <code>feature</code> are merely movable references into that graph. Branching therefore does not copy the database, and merging adds another descendant instead of rewriting either parent line.</p>
+<p><img alt="Directed history graph where S1 branches to S2 and S3, S2 advances to S4, and S3 plus S4 merge into S5; migrations label the edges while movable names main and feature point to snapshots." src="../assets/005-changes-migrations-branches-and-merge/002-history-branches-and-merge.svg" /></p>
+<p><em>Figure 2. Canonical history is a DAG of immutable snapshots and explicit transitions; branch names point into that graph rather than defining it.</em></p>
 <hr />
 <h2 id="14-branches-are-named-lines-of-work-over-snapshots">14. Branches Are Named Lines of Work Over Snapshots<a class="headerlink" href="#14-branches-are-named-lines-of-work-over-snapshots" title="Permanent link">&para;</a></h2>
 <p>A branch is not a copy of the database.</p>
@@ -5891,6 +5897,9 @@
 <li>create another branch.</li>
 </ul>
 <p>This is a semantic concurrency boundary, not a low-level locking failure.</p>
+<p>The workspace model is easiest to understand as a prepare-and-promote flow. The failed candidates in the next figure are legitimate immutable states but never become current; the successful candidate only becomes current if an atomic compare-and-promote confirms that the named root still points to the expected base.</p>
+<p><img alt="Named root main points to base S1; workspace attempts S2 and S3 fail validation while S4 passes; atomic promotion changes main from S1 to S4 only if the expected current root still matches, otherwise a concurrency event is reported." src="../assets/005-changes-migrations-branches-and-merge/003-workspace-promotion.svg" /></p>
+<p><em>Figure 3. Workspaces isolate speculative attempts, and optimistic promotion is the boundary where accepted work becomes current.</em></p>
 <hr />
 <h2 id="20-concurrent-work-is-normal">20. Concurrent Work Is Normal<a class="headerlink" href="#20-concurrent-work-is-normal" title="Permanent link">&para;</a></h2>
 <p>Scriberig should assume that multiple actors may work from the same snapshot.</p>
@@ -6024,6 +6033,9 @@
 <p>A document conflict may refer to a section, paragraph, row, or cell.</p>
 <p>A session conflict may refer to a decision, task, branch outcome, or other structured object.</p>
 <p>Text conflict markers may be rendered for compatibility, but they are not the canonical conflict representation.</p>
+<p>The merge pipeline below shows why a changed entity is not itself a conflict. Scriberig first compares each branch with the common base, combines independent changes directly, and progressively inspects overlapping changes at finer semantic scopes. Only an ambiguity that cannot be resolved safely becomes a conflict object.</p>
+<p><img alt="Three-way merge starts at common base S1 and compares left S2 and right S3; disjoint changes merge automatically, overlapping changes are inspected at field, relation, collection, and domain levels, and unresolved ambiguity becomes a structured conflict before a new merged snapshot S4 is created." src="../assets/005-changes-migrations-branches-and-merge/004-three-way-merge-and-conflict.svg" /></p>
+<p><em>Figure 4. Three-way semantic merge delays conflict until the smallest scope where the system cannot combine changes with confidence.</em></p>
 <hr />
 <h2 id="27-conflict-scope-should-be-minimal">27. Conflict Scope Should Be Minimal<a class="headerlink" href="#27-conflict-scope-should-be-minimal" title="Permanent link">&para;</a></h2>
 <p>A conflict affecting one entity should not make unrelated merged state unusable.</p>
@@ -6106,6 +6118,9 @@
 </code></pre></div>
 <p>But reconciliation still has an additional responsibility: inferring semantic correspondence from an external representation.</p>
 <p>The concepts should share merge infrastructure where appropriate without being treated as identical operations.</p>
+<p>The next figure separates the two responsibilities. Reconciliation converts an edited representation back into a semantic candidate and must recover correspondence with canonical objects; only after that step can the ordinary three-way merge machinery combine the candidate with concurrent database changes.</p>
+<p><img alt="Base semantic snapshot B renders a file; the user edits the file and reconciliation parses it into semantic candidate F while the database may advance to current semantic state D; semantic three-way merge combines base B, current D, and candidate F to produce a new canonical state before rendering again." src="../assets/005-changes-migrations-branches-and-merge/005-reconciliation-vs-merge.svg" /></p>
+<p><em>Figure 5. Projection reconciliation infers semantic intent from an external representation, while merge combines already-semantic descendants of a common base.</em></p>
 <hr />
 <h2 id="31-rebase-re-expresses-work-against-a-new-base">31. Rebase Re-Expresses Work Against a New Base<a class="headerlink" href="#31-rebase-re-expresses-work-against-a-new-base" title="Permanent link">&para;</a></h2>
 <p>A consumer may prefer to re-express a line of work on top of a newer base rather than create an explicit merge result.</p>
@@ -6234,6 +6249,9 @@
 <a id="__codelineno-67-7" name="__codelineno-67-7" href="#__codelineno-67-7"></a>promotion
 </code></pre></div>
 <p>This makes behavior consistent across product surfaces and ensures that history, merge, provenance, and validation do not depend on which interface initiated the change.</p>
+<p>The system-level consequence is shown below: every write surface converges on the same semantic pipeline. Interfaces can offer very different interaction models, but none may bypass revision creation, migration/provenance, validation policy, and atomic promotion with a hidden direct-update path.</p>
+<p><img alt="Web editor, CLI and TUI, API clients, agents, external projection reconciliation, and import or refactoring tools all converge on a semantic change step that creates revisions and a candidate snapshot, records a migration, performs optional validation, and atomically promotes a named root." src="../assets/005-changes-migrations-branches-and-merge/006-unified-write-paths.svg" /></p>
+<p><em>Figure 6. All product surfaces share one canonical write model, which keeps history, merge, validation, and concurrency behavior consistent.</em></p>
 <hr />
 <h2 id="39-validation-and-change-are-separate-concerns">39. Validation and Change Are Separate Concerns<a class="headerlink" href="#39-validation-and-change-are-separate-concerns" title="Permanent link">&para;</a></h2>
 <p>A migration describes a transition.</p>
