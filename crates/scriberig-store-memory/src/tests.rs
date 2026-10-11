@@ -4,6 +4,9 @@ use crate::{MemoryRevisionStore, MemoryRootStore, MemoryStore};
 use scriberig_core::{EntityId, RevisionId, RootName, SnapshotId};
 use scriberig_store::{CasOutcome, RootStore, SnapshotChange, SnapshotStore};
 
+#[path = "../../scriberig-store/tests/conformance.rs"]
+mod shared_conformance;
+
 /// Confirms named roots support atomic stale detection.
 #[test]
 fn root_store_cas_is_atomic() {
@@ -50,6 +53,12 @@ fn snapshots_branch_and_converge() {
 #[test]
 fn shared_conformance_passes() {
     scriberig_store::run_core_conformance(&MemoryStore::new()).expect("conformance");
+}
+
+/// Confirms the memory backend passes the complete shared contract.
+#[test]
+fn full_shared_conformance_passes() {
+    shared_conformance::assert_backend_conformance(&MemoryStore::new());
 }
 
 /// Verifies observability reports counts without changing immutable state.

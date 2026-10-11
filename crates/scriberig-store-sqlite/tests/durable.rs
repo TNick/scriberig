@@ -8,6 +8,9 @@ use scriberig_store_sqlite::SqliteStore;
 use std::fs;
 use std::path::PathBuf;
 
+#[path = "../../scriberig-store/tests/conformance.rs"]
+mod shared_conformance;
+
 /// Verifies revisions, snapshots, and root CAS work in SQLite.
 #[test]
 fn sqlite_round_trip_and_stale_cas() {
@@ -168,6 +171,13 @@ fn missing_referenced_revision_is_corruption() {
 fn sqlite_shared_conformance_passes() {
     let store = SqliteStore::open_in_memory().expect("open");
     scriberig_store::run_core_conformance(&store).expect("conformance");
+}
+
+/// Confirms SQLite passes the complete shared contract.
+#[test]
+fn sqlite_full_shared_conformance_passes() {
+    let store = SqliteStore::open_in_memory().expect("open");
+    shared_conformance::assert_backend_conformance(&store);
 }
 
 /// Verifies SQLite observability reports counts without changing state.

@@ -2,6 +2,8 @@
 
 use scriberig_core::{RootName, SnapshotId};
 
+use crate::ProtectedRoots;
+
 /// Machine-readable category for a storage failure.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StoreErrorCategory {
@@ -19,6 +21,75 @@ pub enum StoreErrorCategory {
     InvalidOperation,
     /// The backend could not complete an I/O or transaction operation.
     Backend,
+}
+
+/// Describes a failure from a backend-neutral observability operation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct StoreOperationError {
+    /// Machine-readable failure category.
+    pub category: StoreErrorCategory,
+    /// Human-readable diagnostic detail.
+    pub message: String,
+}
+
+impl StoreOperationError {
+    /// Creates a backend failure with diagnostic detail.
+    ///
+    /// # Parameters
+    /// - `message`: Human-readable backend diagnostic.
+    ///
+    /// # Returns
+    /// A categorized backend operation error.
+    #[must_use]
+    pub fn backend(message: impl Into<String>) -> Self {
+        Self {
+            category: StoreErrorCategory::Backend,
+            message: message.into(),
+        }
+    }
+}
+
+impl std::fmt::Display for StoreOperationError {
+    /// Formats the diagnostic detail for a human reader.
+    ///
+    /// # Parameters
+    /// - `formatter`: Output formatter.
+    ///
+    /// # Returns
+    /// Formatting result.
+    ///
+    /// # Errors
+    /// Returns a formatting error when the formatter rejects the output.
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{}: {}", self.category, self.message)
+    }
+}
+
+impl std::error::Error for StoreOperationError {}
+
+impl std::fmt::Display for StoreErrorCategory {
+    /// Formats a stable category name.
+    ///
+    /// # Parameters
+    /// - `formatter`: Output formatter.
+    ///
+    /// # Returns
+    /// Formatting result.
+    ///
+    /// # Errors
+    /// Returns a formatting error when the formatter rejects the output.
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            Self::NotFound => "not_found",
+            Self::InvalidEncoding => "invalid_encoding",
+            Self::UnsupportedVersion => "unsupported_version",
+            Self::StaleRoot => "stale_root",
+            Self::Integrity => "integrity",
+            Self::InvalidOperation => "invalid_operation",
+            Self::Backend => "backend",
+        };
+        formatter.write_str(name)
+    }
 }
 
 impl crate::StoreError {
@@ -107,6 +178,17 @@ pub struct GcReport {
     pub deleted: u64,
 }
 
+impl GcReport {
+    /// Returns the number of objects considered by the report.
+    ///
+    /// # Returns
+    /// Candidate object count.
+    #[must_use]
+    pub const fn candidates(&self) -> u64 {
+        self.candidates
+    }
+}
+
 /// Status of backend-derived indexes.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct IndexStatus {
@@ -123,7 +205,22 @@ pub trait StoreObservability {
     ///
     /// # Errors
     /// Returns a backend error when statistics cannot be read.
-    fn stats(&self) -> Result<StoreStats, String>;
+    fn stats(&self) -> Result<StoreStats, StoreOperationError>;
+
+    /// Returns statistics annotated with reachability from protected roots.
+    ///
+    /// # Parameters
+    /// - `protected`: Stable roots used for reachability counts.
+    /// - `_protected`: Ignored by the default implementation.
+    ///
+    /// # Returns
+    /// Available storage measurements and reachability counts.
+    ///
+    /// # Errors
+    /// Returns a backend error when statistics cannot be read.
+    fn stats_for(&self, _protected: &ProtectedRoots) -> Result<StoreStats, StoreOperationError> {
+        self.stats()
+    }
 
     /// Lists named roots without exposing backend handles.
     ///
@@ -132,7 +229,7 @@ pub trait StoreObservability {
     ///
     /// # Errors
     /// Returns a backend error when roots cannot be read.
-    fn root_statuses(&self) -> Result<Vec<RootStatus>, String>;
+    fn root_statuses(&self) -> Result<Vec<RootStatus>, StoreOperationError>;
 
     /// Rebuilds derived indexes without changing canonical objects.
     ///
@@ -141,5 +238,5 @@ pub trait StoreObservability {
     ///
     /// # Errors
     /// Returns a backend error when rebuild fails.
-    fn rebuild_indexes(&self) -> Result<IndexStatus, String>;
+    fn rebuild_indexes(&self) -> Result<IndexStatus, StoreOperationError>;
 }

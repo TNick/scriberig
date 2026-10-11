@@ -2,7 +2,7 @@
 
 use scriberig_core::{RevisionId, SnapshotId};
 
-use crate::SnapshotNodeId;
+use crate::{GcReport, SnapshotNodeId};
 
 /// Machine-readable integrity issue.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -30,6 +30,8 @@ pub struct IntegrityReport {
     pub corrupt: Vec<IntegrityIssue>,
     /// Valid immutable objects not protected by roots.
     pub unreachable: crate::UnreachableObjects,
+    /// Candidate and deletion counts for the maintenance operation.
+    pub gc: GcReport,
 }
 
 impl IntegrityReport {

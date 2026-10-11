@@ -1,9 +1,9 @@
 //! Rebuilds SQLite indexes derived from canonical snapshot-map nodes.
 
-use rusqlite::params;
+use rusqlite::{OptionalExtension, params};
 use scriberig_core::SnapshotId;
 
-use crate::{SqliteStore, snapshot_integrity};
+use crate::{SqliteStore, integrity, snapshot_integrity};
 
 impl SqliteStore {
     /// Rebuilds the flat snapshot-entry index from persistent map nodes.
@@ -14,30 +14,47 @@ impl SqliteStore {
     /// # Errors
     /// Returns an error when canonical nodes cannot be inspected or the index
     /// transaction cannot commit.
+    ///
+    /// # Panics
+    /// Panics only if a checked SQLite identifier length changes before the
+    /// identifier conversion.
     pub fn rebuild_derived_indexes(&self) -> rusqlite::Result<()> {
         let connection = self
             .connection
             .lock()
             .map_err(|_| rusqlite::Error::InvalidQuery)?;
         let mut rebuilt = Vec::new();
-        let mut statement = connection
-            .prepare("SELECT snapshot_id, node_id FROM snapshot_node_roots ORDER BY snapshot_id")?;
-        let roots = statement.query_map([], |row| {
-            Ok((row.get::<_, Vec<u8>>(0)?, row.get::<_, Vec<u8>>(1)?))
-        })?;
-        for root in roots {
-            let (snapshot, node) = root?;
+        let mut statement = connection.prepare("SELECT id FROM snapshots ORDER BY id")?;
+        let snapshots = statement.query_map([], |row| row.get::<_, Vec<u8>>(0))?;
+        for snapshot in snapshots {
+            let snapshot = snapshot?;
             if snapshot.len() != 32 {
                 return Err(rusqlite::Error::InvalidQuery);
             }
-            let walk = snapshot_integrity::inspect_nodes(&connection, &node).map_err(|error| {
-                rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(format!(
-                    "invalid snapshot index source: {error:?}"
-                ))))
-            })?;
+            let node: Option<Vec<u8>> = connection
+                .query_row(
+                    "SELECT node_id FROM snapshot_node_roots WHERE snapshot_id=?",
+                    rusqlite::params![&snapshot],
+                    |row| row.get(0),
+                )
+                .optional()?;
+            let entries = if let Some(node) = node {
+                snapshot_integrity::inspect_nodes(&connection, &node)
+                    .map_err(|error| {
+                        rusqlite::Error::ToSqlConversionFailure(Box::new(std::io::Error::other(
+                            format!("invalid snapshot index source: {error:?}"),
+                        )))
+                    })?
+                    .entries
+            } else {
+                let mut snapshot_bytes = [0; 32];
+                snapshot_bytes.copy_from_slice(&snapshot);
+                let snapshot_id = SnapshotId::new(snapshot_bytes);
+                integrity::load_legacy_entries(&connection, snapshot_id)?
+            };
             let mut snapshot_bytes = [0; 32];
             snapshot_bytes.copy_from_slice(&snapshot);
-            rebuilt.push((SnapshotId::new(snapshot_bytes), walk.entries));
+            rebuilt.push((SnapshotId::new(snapshot_bytes), entries));
         }
         drop(statement);
         let transaction = connection.unchecked_transaction()?;

@@ -3,7 +3,7 @@
 use rusqlite::params;
 use scriberig_store::{IntegrityReport, ProtectedRoots};
 
-use crate::SqliteStore;
+use crate::{SqliteStore, integrity::integrity_check_connection};
 
 impl SqliteStore {
     /// Computes immutable objects that are not protected by a stable root set.
@@ -31,15 +31,15 @@ impl SqliteStore {
     /// # Errors
     /// Returns an error when inspection or the sweep transaction fails.
     pub fn gc_sweep(&self, protected: &ProtectedRoots) -> rusqlite::Result<IntegrityReport> {
-        let report = self.integrity_check(protected)?;
-        if report.is_corrupt() {
-            return Ok(report);
-        }
         let connection = self
             .connection
             .lock()
             .map_err(|_| rusqlite::Error::InvalidQuery)?;
         let transaction = connection.unchecked_transaction()?;
+        let mut report = integrity_check_connection(&transaction, protected)?;
+        if report.is_corrupt() {
+            return Ok(report);
+        }
         for snapshot_id in &report.unreachable.snapshots {
             transaction.execute(
                 "DELETE FROM snapshot_entries WHERE snapshot_id=?",
@@ -66,6 +66,7 @@ impl SqliteStore {
                 params![node_id.as_bytes().as_slice()],
             )?;
         }
+        report.gc.deleted = report.gc.candidates;
         transaction.commit()?;
         Ok(report)
     }

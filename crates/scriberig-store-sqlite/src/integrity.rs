@@ -6,7 +6,7 @@ use rusqlite::{OptionalExtension, params};
 use scriberig_core::{EncodingVersion, ObjectType, RevisionId, SnapshotId};
 use scriberig_store::{
     IndexStatus, IntegrityIssue, IntegrityReport, MaintenanceStore, ProtectedRoots, Revision,
-    Snapshot, SnapshotNodeId, UnreachableObjects,
+    Snapshot, SnapshotNodeId, StoreOperationError, UnreachableObjects,
 };
 
 use crate::{SqliteStore, integrity_nodes, reachability, snapshot_integrity};
@@ -22,8 +22,12 @@ impl MaintenanceStore for SqliteStore {
     ///
     /// # Errors
     /// Returns a backend maintenance error.
-    fn integrity_check(&self, protected: &ProtectedRoots) -> Result<IntegrityReport, String> {
-        Self::integrity_check(self, protected).map_err(|error| error.to_string())
+    fn integrity_check(
+        &self,
+        protected: &ProtectedRoots,
+    ) -> Result<IntegrityReport, StoreOperationError> {
+        Self::integrity_check(self, protected)
+            .map_err(|error| StoreOperationError::backend(error.to_string()))
     }
 
     /// Reports SQLite garbage-collection candidates without deleting them.
@@ -36,8 +40,12 @@ impl MaintenanceStore for SqliteStore {
     ///
     /// # Errors
     /// Returns a backend maintenance error.
-    fn gc_dry_run(&self, protected: &ProtectedRoots) -> Result<IntegrityReport, String> {
-        Self::gc_dry_run(self, protected).map_err(|error| error.to_string())
+    fn gc_dry_run(
+        &self,
+        protected: &ProtectedRoots,
+    ) -> Result<IntegrityReport, StoreOperationError> {
+        Self::gc_dry_run(self, protected)
+            .map_err(|error| StoreOperationError::backend(error.to_string()))
     }
 
     /// Sweeps SQLite garbage-collection candidates.
@@ -50,8 +58,9 @@ impl MaintenanceStore for SqliteStore {
     ///
     /// # Errors
     /// Returns a backend maintenance error.
-    fn gc_sweep(&self, protected: &ProtectedRoots) -> Result<IntegrityReport, String> {
-        Self::gc_sweep(self, protected).map_err(|error| error.to_string())
+    fn gc_sweep(&self, protected: &ProtectedRoots) -> Result<IntegrityReport, StoreOperationError> {
+        Self::gc_sweep(self, protected)
+            .map_err(|error| StoreOperationError::backend(error.to_string()))
     }
 
     /// Rebuilds SQLite derived indexes.
@@ -61,9 +70,9 @@ impl MaintenanceStore for SqliteStore {
     ///
     /// # Errors
     /// Returns a backend maintenance error.
-    fn rebuild_indexes(&self) -> Result<IndexStatus, String> {
+    fn rebuild_indexes(&self) -> Result<IndexStatus, StoreOperationError> {
         self.rebuild_derived_indexes()
-            .map_err(|error| error.to_string())?;
+            .map_err(|error| StoreOperationError::backend(error.to_string()))?;
         Ok(IndexStatus { consistent: true })
     }
 }
@@ -84,54 +93,76 @@ impl SqliteStore {
             .connection
             .lock()
             .map_err(|_| rusqlite::Error::InvalidQuery)?;
-        let mut report = IntegrityReport::default();
-        let valid_revisions = validate_revisions(&connection, &mut report)?;
-        let mut valid_snapshots = validate_snapshots(&connection, &valid_revisions, &mut report)?;
-        valid_snapshots.insert(Snapshot::empty().id());
-        integrity_nodes::validate_orphan_nodes(&connection, &mut report)?;
-        integrity_nodes::validate_roots(&connection, &valid_snapshots, &mut report)?;
-
-        for snapshot_id in &protected.snapshots {
-            if *snapshot_id == Snapshot::empty().id() {
-                continue;
-            }
-            if !valid_snapshots.contains(snapshot_id) {
-                report
-                    .corrupt
-                    .push(IntegrityIssue::MissingSnapshot(*snapshot_id));
-            }
-        }
-
-        let valid_protected: BTreeSet<_> = protected
-            .snapshots
-            .intersection(&valid_snapshots)
-            .copied()
-            .collect();
-        let marked = reachability::mark(
-            &connection,
-            &ProtectedRoots {
-                snapshots: valid_protected,
-            },
-        )?;
-        let all_snapshots = all_snapshots(&connection)?;
-        let all_nodes = reachability::all_nodes(&connection)?;
-        report.unreachable = UnreachableObjects {
-            snapshots: all_snapshots
-                .difference(&marked.snapshots)
-                .filter(|id| valid_snapshots.contains(id))
-                .copied()
-                .collect(),
-            revisions: valid_revisions
-                .difference(&marked.revisions)
-                .copied()
-                .collect(),
-            snapshot_nodes: all_nodes
-                .difference(&marked.snapshot_nodes)
-                .copied()
-                .collect(),
-        };
-        Ok(report)
+        integrity_check_connection(&connection, protected)
     }
+}
+
+/// Verifies canonical SQLite state through one already-open connection.
+///
+/// # Parameters
+/// - `crate`: Internal module visibility context.
+/// - `connection`: SQLite connection containing canonical storage.
+/// - `protected`: Stable snapshots that maintenance must retain.
+///
+/// # Returns
+/// Structured corruption and reachability findings.
+///
+/// # Errors
+/// Returns a backend error when authoritative rows cannot be inspected.
+pub(crate) fn integrity_check_connection(
+    connection: &rusqlite::Connection,
+    protected: &ProtectedRoots,
+) -> rusqlite::Result<IntegrityReport> {
+    let mut report = IntegrityReport::default();
+    let valid_revisions = validate_revisions(connection, &mut report)?;
+    let mut valid_snapshots = validate_snapshots(connection, &valid_revisions, &mut report)?;
+    valid_snapshots.insert(Snapshot::empty().id());
+    integrity_nodes::validate_orphan_nodes(connection, &mut report)?;
+    integrity_nodes::validate_roots(connection, &valid_snapshots, &mut report)?;
+
+    for snapshot_id in &protected.snapshots {
+        if *snapshot_id == Snapshot::empty().id() {
+            continue;
+        }
+        if !valid_snapshots.contains(snapshot_id) {
+            report
+                .corrupt
+                .push(IntegrityIssue::MissingSnapshot(*snapshot_id));
+        }
+    }
+
+    let valid_protected: BTreeSet<_> = protected
+        .snapshots
+        .intersection(&valid_snapshots)
+        .copied()
+        .collect();
+    let marked = reachability::mark(
+        connection,
+        &ProtectedRoots {
+            snapshots: valid_protected,
+        },
+    )?;
+    let all_snapshots = all_snapshots(connection)?;
+    let all_nodes = reachability::all_nodes(connection)?;
+    report.unreachable = UnreachableObjects {
+        snapshots: all_snapshots
+            .difference(&marked.snapshots)
+            .filter(|id| valid_snapshots.contains(id))
+            .copied()
+            .collect(),
+        revisions: valid_revisions
+            .difference(&marked.revisions)
+            .copied()
+            .collect(),
+        snapshot_nodes: all_nodes
+            .difference(&marked.snapshot_nodes)
+            .copied()
+            .collect(),
+    };
+    report.gc.candidates = report.unreachable.snapshots.len() as u64
+        + report.unreachable.revisions.len() as u64
+        + report.unreachable.snapshot_nodes.len() as u64;
+    Ok(report)
 }
 
 /// Validates all persisted revision identities.
@@ -293,6 +324,7 @@ fn all_snapshots(connection: &rusqlite::Connection) -> rusqlite::Result<BTreeSet
 /// Loads an old-format snapshot while preserving compatibility with schema 1.
 ///
 /// # Parameters
+/// - `crate`: Internal module visibility context.
 /// - `connection`: SQLite connection containing legacy entries.
 /// - `snapshot`: Snapshot whose entries are loaded.
 ///
@@ -301,7 +333,7 @@ fn all_snapshots(connection: &rusqlite::Connection) -> rusqlite::Result<BTreeSet
 ///
 /// # Errors
 /// Returns a SQLite query or identifier-shape error.
-fn load_legacy_entries(
+pub(crate) fn load_legacy_entries(
     connection: &rusqlite::Connection,
     snapshot: SnapshotId,
 ) -> rusqlite::Result<BTreeMap<scriberig_core::EntityId, RevisionId>> {

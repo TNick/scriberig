@@ -165,3 +165,50 @@ fn derived_snapshot_index_rebuild_preserves_identity() {
     drop(store);
     fs::remove_file(path).expect("cleanup");
 }
+
+/// Verifies legacy snapshots are included in derived-index rebuilding.
+#[test]
+fn derived_snapshot_index_rebuild_preserves_legacy_snapshots() {
+    let path = temporary_database_path("legacy-index");
+    let (snapshot, entity, revision) = {
+        let store = SqliteStore::open(&path).expect("open");
+        let revision = store
+            .put(
+                Revision::new(
+                    EncodingVersion::V1,
+                    ObjectType::new("test.legacy-index").expect("type"),
+                    vec![8],
+                )
+                .expect("revision"),
+            )
+            .expect("put");
+        let entity = EntityId::new([8; 16]);
+        let snapshot = store
+            .apply_changes(
+                scriberig_store::Snapshot::empty().id(),
+                &[SnapshotChange::Set(entity, revision)],
+            )
+            .expect("snapshot");
+        (snapshot, entity, revision)
+    };
+    let connection = rusqlite::Connection::open(&path).expect("connection");
+    connection
+        .execute(
+            "DELETE FROM snapshot_node_roots WHERE snapshot_id=?",
+            rusqlite::params![snapshot.as_bytes().as_slice()],
+        )
+        .expect("remove persistent root");
+    drop(connection);
+
+    let store = SqliteStore::open(&path).expect("reopen");
+    store.rebuild_derived_indexes().expect("rebuild");
+    assert_eq!(store.resolve(snapshot, entity), Ok(Some(revision)));
+    let report = store
+        .integrity_check(&ProtectedRoots {
+            snapshots: [snapshot].into_iter().collect(),
+        })
+        .expect("integrity");
+    assert_eq!(report.corrupt, []);
+    drop(store);
+    fs::remove_file(path).expect("cleanup");
+}

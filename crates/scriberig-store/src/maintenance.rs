@@ -1,6 +1,6 @@
 //! Defines backend-neutral maintenance operations for immutable storage.
 
-use crate::{IndexStatus, IntegrityReport, ProtectedRoots};
+use crate::{IndexStatus, IntegrityReport, ProtectedRoots, StoreOperationError};
 
 /// Provides integrity, reachability, garbage collection, and index rebuilds.
 pub trait MaintenanceStore {
@@ -14,7 +14,10 @@ pub trait MaintenanceStore {
     ///
     /// # Errors
     /// Returns a backend maintenance error.
-    fn integrity_check(&self, protected: &ProtectedRoots) -> Result<IntegrityReport, String>;
+    fn integrity_check(
+        &self,
+        protected: &ProtectedRoots,
+    ) -> Result<IntegrityReport, StoreOperationError>;
 
     /// Reports valid objects unreachable from protected roots.
     ///
@@ -26,7 +29,10 @@ pub trait MaintenanceStore {
     ///
     /// # Errors
     /// Returns a backend maintenance error.
-    fn gc_dry_run(&self, protected: &ProtectedRoots) -> Result<IntegrityReport, String>;
+    fn gc_dry_run(
+        &self,
+        protected: &ProtectedRoots,
+    ) -> Result<IntegrityReport, StoreOperationError>;
 
     /// Sweeps valid objects unreachable from protected roots.
     ///
@@ -38,7 +44,7 @@ pub trait MaintenanceStore {
     ///
     /// # Errors
     /// Returns a backend maintenance error.
-    fn gc_sweep(&self, protected: &ProtectedRoots) -> Result<IntegrityReport, String>;
+    fn gc_sweep(&self, protected: &ProtectedRoots) -> Result<IntegrityReport, StoreOperationError>;
 
     /// Rebuilds all backend-derived indexes from canonical data.
     ///
@@ -47,5 +53,5 @@ pub trait MaintenanceStore {
     ///
     /// # Errors
     /// Returns a backend maintenance error.
-    fn rebuild_indexes(&self) -> Result<IndexStatus, String>;
+    fn rebuild_indexes(&self) -> Result<IndexStatus, StoreOperationError>;
 }

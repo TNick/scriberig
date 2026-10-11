@@ -4,7 +4,7 @@ use std::collections::BTreeSet;
 
 use scriberig_store::{
     IndexStatus, IntegrityIssue, IntegrityReport, MaintenanceStore, ProtectedRoots,
-    UnreachableObjects,
+    StoreOperationError, UnreachableObjects,
 };
 
 use crate::MemoryStore;
@@ -20,20 +20,23 @@ impl MaintenanceStore for MemoryStore {
     ///
     /// # Errors
     /// Returns a lock-poisoning maintenance error.
-    fn integrity_check(&self, protected: &ProtectedRoots) -> Result<IntegrityReport, String> {
+    fn integrity_check(
+        &self,
+        protected: &ProtectedRoots,
+    ) -> Result<IntegrityReport, StoreOperationError> {
         let snapshots = self
             .snapshots
             .read()
-            .map_err(|_| "snapshot lock poisoned".to_owned())?;
+            .map_err(|_| StoreOperationError::backend("snapshot lock poisoned"))?;
         let revisions = self
             .revisions
             .revisions
             .read()
-            .map_err(|_| "revision lock poisoned".to_owned())?;
+            .map_err(|_| StoreOperationError::backend("revision lock poisoned"))?;
         let roots = self
             .roots
             .read()
-            .map_err(|_| "root lock poisoned".to_owned())?;
+            .map_err(|_| StoreOperationError::backend("root lock poisoned"))?;
         let mut report = IntegrityReport::default();
         for snapshot_id in &protected.snapshots {
             if !snapshots.contains_key(snapshot_id) {
@@ -79,6 +82,8 @@ impl MaintenanceStore for MemoryStore {
                 .collect(),
             snapshot_nodes: BTreeSet::new(),
         };
+        report.gc.candidates =
+            report.unreachable.snapshots.len() as u64 + report.unreachable.revisions.len() as u64;
         Ok(report)
     }
 
@@ -92,7 +97,10 @@ impl MaintenanceStore for MemoryStore {
     ///
     /// # Errors
     /// Returns a backend maintenance error.
-    fn gc_dry_run(&self, protected: &ProtectedRoots) -> Result<IntegrityReport, String> {
+    fn gc_dry_run(
+        &self,
+        protected: &ProtectedRoots,
+    ) -> Result<IntegrityReport, StoreOperationError> {
         self.integrity_check(protected)
     }
 
@@ -106,20 +114,21 @@ impl MaintenanceStore for MemoryStore {
     ///
     /// # Errors
     /// Returns a lock-poisoning or integrity error.
-    fn gc_sweep(&self, protected: &ProtectedRoots) -> Result<IntegrityReport, String> {
-        let report = self.integrity_check(protected)?;
+    fn gc_sweep(&self, protected: &ProtectedRoots) -> Result<IntegrityReport, StoreOperationError> {
+        let mut report = self.integrity_check(protected)?;
         if report.is_corrupt() {
             return Ok(report);
         }
         let mut snapshots = self
             .snapshots
             .write()
-            .map_err(|_| "snapshot lock poisoned".to_owned())?;
+            .map_err(|_| StoreOperationError::backend("snapshot lock poisoned"))?;
         let mut revisions = self
             .revisions
             .revisions
             .write()
-            .map_err(|_| "revision lock poisoned".to_owned())?;
+            .map_err(|_| StoreOperationError::backend("revision lock poisoned"))?;
+        report.gc.deleted = report.gc.candidates;
         for snapshot in &report.unreachable.snapshots {
             snapshots.remove(snapshot);
         }
@@ -136,7 +145,7 @@ impl MaintenanceStore for MemoryStore {
     ///
     /// # Errors
     /// This backend has no derived indexes and cannot fail this operation.
-    fn rebuild_indexes(&self) -> Result<IndexStatus, String> {
+    fn rebuild_indexes(&self) -> Result<IndexStatus, StoreOperationError> {
         Ok(IndexStatus { consistent: true })
     }
 }

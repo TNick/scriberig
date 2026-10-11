@@ -13,7 +13,10 @@ pub mod snapshot_store;
 pub mod stats;
 
 pub use collection::Collection;
-pub use conformance::{ConformanceStore, run_core_conformance};
+pub use conformance::{
+    ConformanceFixture, ConformanceStore, FullConformanceStore, load_fixture, run_core_conformance,
+    run_full_conformance,
+};
 pub use integrity::{IntegrityIssue, IntegrityReport};
 pub use maintenance::MaintenanceStore;
 pub use reachability::{ProtectedRoots, ReachableObjects, SnapshotNodeId, UnreachableObjects};
@@ -23,5 +26,6 @@ pub use roots::{CasOutcome, RootError, RootStore};
 pub use snapshot::{Snapshot, SnapshotChange, SnapshotError};
 pub use snapshot_store::SnapshotStore;
 pub use stats::{
-    GcReport, IndexStatus, RootStatus, StoreErrorCategory, StoreObservability, StoreStats,
+    GcReport, IndexStatus, RootStatus, StoreErrorCategory, StoreObservability, StoreOperationError,
+    StoreStats,
 };

@@ -1,6 +1,9 @@
 //! Provides observability for the in-memory storage backend.
 
-use scriberig_store::{IndexStatus, RootStatus, StoreObservability, StoreStats};
+use scriberig_store::{
+    IndexStatus, MaintenanceStore, ProtectedRoots, RootStatus, StoreObservability,
+    StoreOperationError, StoreStats,
+};
 
 use crate::MemoryStore;
 
@@ -12,22 +15,22 @@ impl StoreObservability for MemoryStore {
     ///
     /// # Errors
     /// Returns an error when a collection lock is poisoned.
-    fn stats(&self) -> Result<StoreStats, String> {
+    fn stats(&self) -> Result<StoreStats, StoreOperationError> {
         let revisions = self
             .revisions
             .revisions
             .read()
-            .map_err(|_| "revision lock poisoned".to_owned())?
+            .map_err(|_| StoreOperationError::backend("revision lock poisoned"))?
             .len() as u64;
         let snapshots = self
             .snapshots
             .read()
-            .map_err(|_| "snapshot lock poisoned".to_owned())?
+            .map_err(|_| StoreOperationError::backend("snapshot lock poisoned"))?
             .len() as u64;
         let named_roots = self
             .roots
             .read()
-            .map_err(|_| "root lock poisoned".to_owned())?
+            .map_err(|_| StoreOperationError::backend("root lock poisoned"))?
             .len() as u64;
         Ok(StoreStats {
             revisions: Some(revisions),
@@ -37,6 +40,27 @@ impl StoreObservability for MemoryStore {
         })
     }
 
+    /// Returns counts annotated with memory reachability.
+    ///
+    /// # Parameters
+    /// - `protected`: Snapshot roots used for reachability counts.
+    ///
+    /// # Returns
+    /// Authoritative counts and marked-object counts.
+    ///
+    /// # Errors
+    /// Returns a maintenance error when a collection lock is poisoned.
+    fn stats_for(&self, protected: &ProtectedRoots) -> Result<StoreStats, StoreOperationError> {
+        let mut stats = self.stats()?;
+        let report = MaintenanceStore::integrity_check(self, protected)?;
+        let total = stats.revisions.unwrap_or(0) + stats.snapshots.unwrap_or(0);
+        let unreachable =
+            (report.unreachable.revisions.len() + report.unreachable.snapshots.len()) as u64;
+        stats.reachable_objects = Some(total.saturating_sub(unreachable));
+        stats.unreachable_objects = Some(unreachable);
+        Ok(stats)
+    }
+
     /// Lists in-memory roots in deterministic order.
     ///
     /// # Returns
@@ -44,11 +68,11 @@ impl StoreObservability for MemoryStore {
     ///
     /// # Errors
     /// Returns an error when the root lock is poisoned.
-    fn root_statuses(&self) -> Result<Vec<RootStatus>, String> {
+    fn root_statuses(&self) -> Result<Vec<RootStatus>, StoreOperationError> {
         Ok(self
             .roots
             .read()
-            .map_err(|_| "root lock poisoned".to_owned())?
+            .map_err(|_| StoreOperationError::backend("root lock poisoned"))?
             .iter()
             .map(|(name, snapshot)| RootStatus {
                 name: name.clone(),
@@ -64,7 +88,7 @@ impl StoreObservability for MemoryStore {
     ///
     /// # Errors
     /// This backend has no derived indexes and does not fail this operation.
-    fn rebuild_indexes(&self) -> Result<IndexStatus, String> {
+    fn rebuild_indexes(&self) -> Result<IndexStatus, StoreOperationError> {
         Ok(IndexStatus { consistent: true })
     }
 }
