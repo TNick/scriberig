@@ -392,6 +392,7 @@ name = "scriberig"
 version = "0.1.0"
 dependencies = [
  "scriberig-agent-runtime",
+ "scriberig-app",
  "scriberig-cli",
  "scriberig-server",
  "scriberig-tui",
@@ -402,6 +403,7 @@ name = "scriberig-agent-core"
 version = "0.1.0"
 dependencies = [
  "scriberig-app",
+ "scriberig-core",
  "scriberig-protocol",
  "scriberig-session",
 ]

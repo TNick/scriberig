@@ -8,7 +8,8 @@
 /// # Errors
 /// Returns an error when the API server cannot start or serve a request.
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    match scriberig_cli::parse() {
+    let command = scriberig_cli::parse();
+    match command {
         scriberig_cli::Command::Serve(args) => {
             scriberig_server::serve(&args.host, args.port, &args.db)?;
         }
@@ -31,10 +32,19 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             println!("srig maintenance: maintenance mode is not implemented yet.");
         }
         scriberig_cli::Command::Inspect(args) => {
-            println!(
-                "srig inspect: entity {} requested at {:?}; runtime query service is not configured.",
-                args.entity, args.depth
+            let result = scriberig_cli::dispatch(
+                &scriberig_agent_runtime::UnavailableQueryService,
+                &scriberig_app::ApplicationContext::empty(),
+                scriberig_cli::Command::Inspect(args),
             );
+            match result {
+                Ok(Some(output)) => println!("{output}"),
+                Ok(None) => {}
+                Err(error) => {
+                    eprintln!("{}", error.message);
+                    return Err(format!("inspect failed with status {}", error.exit_code).into());
+                }
+            }
         }
     }
     Ok(())

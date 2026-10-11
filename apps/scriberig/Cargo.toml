@@ -14,6 +14,7 @@ path = "src/main.rs"
 
 [dependencies]
 scriberig-agent-runtime = { path = "../../crates/scriberig-agent-runtime" }
+scriberig-app = { path = "../../crates/scriberig-app" }
 scriberig-cli = { path = "../../crates/scriberig-cli" }
 scriberig-server = { path = "../../crates/scriberig-server" }
 scriberig-tui = { path = "../../crates/scriberig-tui" }

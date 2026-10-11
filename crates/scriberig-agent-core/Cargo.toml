@@ -8,6 +8,7 @@ description = "Reusable agent-facing tools, capabilities, semantic navigation, a
 repository.workspace = true
 
 [dependencies]
+scriberig-core = { path = "../scriberig-core" }
 scriberig-app = { path = "../scriberig-app" }
 scriberig-protocol = { path = "../scriberig-protocol" }
 scriberig-session = { path = "../scriberig-session" }

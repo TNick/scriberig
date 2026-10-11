@@ -2,7 +2,58 @@
 
 use clap::{Args, Parser, Subcommand};
 
+pub mod inspect;
+pub mod output;
 pub mod trust;
+
+/// Reports a CLI dispatch failure while preserving its process status.
+#[derive(Debug)]
+pub struct DispatchError {
+    /// Human-readable safe failure text.
+    pub message: String,
+    /// Process status associated with the failure.
+    pub exit_code: i32,
+}
+
+/// Dispatches an inspect command through an injected application service.
+///
+/// # Parameters
+/// - `service`: Application query service supplied by composition.
+/// - `context`: Caller and capability context.
+/// - `command`: Parsed product command.
+///
+/// # Returns
+/// Optional output for commands handled by this dispatcher.
+///
+/// # Errors
+/// Returns a structured dispatch failure for unsupported or denied commands.
+pub fn dispatch<S: scriberig_app::QueryService>(
+    service: &S,
+    context: &scriberig_app::ApplicationContext,
+    command: Command,
+) -> Result<Option<String>, DispatchError> {
+    match command {
+        Command::Inspect(args) => {
+            inspect::run(service, context, &args)
+                .map(Some)
+                .map_err(|error| DispatchError {
+                    message: match &error {
+                        trust::TrustCommandError::AuthorizationDenied(denial) => {
+                            trust::render_denial(denial)
+                        }
+                        trust::TrustCommandError::Application(application) => {
+                            application.to_string()
+                        }
+                    },
+                    exit_code: error.exit_code(),
+                })
+        }
+        _ => Err(DispatchError {
+            message: "command is not available in this composition".to_owned(),
+            exit_code: 1,
+        }),
+    }
+}
 
 /// Parse the command line accepted by the `srig` executable.
 ///
