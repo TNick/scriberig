@@ -150,6 +150,24 @@ impl OperationFixture {
 }
 
 impl OperationProvider for OperationFixture {
+    /// Resolves every fixture root to one exact snapshot.
+    ///
+    /// # Parameters
+    /// - `self`: Recorder provider.
+    /// - `_root`: Named root requested by the test.
+    ///
+    /// # Returns
+    /// Deterministic fixture snapshot.
+    ///
+    /// # Errors
+    /// This fixture does not fail.
+    fn resolve_root(
+        &self,
+        _root: &RootName,
+    ) -> Result<SnapshotId, scriberig_app::ApplicationError> {
+        Ok(SnapshotId::new([1; 32]))
+    }
+
     /// Records a diff request.
     ///
     /// # Parameters
@@ -284,7 +302,7 @@ fn operation_dispatch_covers_all_mutating_and_projection_operations() {
             to: snapshot,
         }),
         ApplicationRequest::History(HistoryRequest {
-            snapshot: SnapshotSelector::Exact(snapshot),
+            snapshot: SnapshotSelector::NamedRoot(RootName::new("main").expect("root")),
         }),
         ApplicationRequest::Render(RenderRequest {
             snapshot: SnapshotSelector::Exact(snapshot),

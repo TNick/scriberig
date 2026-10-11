@@ -5,13 +5,30 @@ use crate::{
     ApplicationResult, ApplyRequest, BranchRequest, CommitRequest, DiffRequest, HistoryRequest,
     OperationSummary, RenderRequest,
 };
-use scriberig_core::SnapshotId;
+use scriberig_core::{RootName, SnapshotId};
 use scriberig_query::{
     FindService, InspectService, QueryError, StructuredQueryService, TraverseService,
 };
 
 /// Owns application-level diff, history, rendering, and change semantics.
 pub trait OperationProvider {
+    /// Resolves a named root before a semantic operation starts.
+    ///
+    /// # Parameters
+    /// - `self`: Canonical operation provider.
+    /// - `_root`: Named root requested by the caller.
+    ///
+    /// # Returns
+    /// One exact immutable snapshot.
+    ///
+    /// # Errors
+    /// Returns unsupported-operation when root resolution is not configured.
+    fn resolve_root(&self, _root: &RootName) -> Result<SnapshotId, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "named root resolution".to_owned(),
+        })
+    }
+
     /// Computes a semantic diff between two exact snapshots.
     ///
     /// # Parameters
@@ -213,18 +230,24 @@ where
                 .operations
                 .diff(context, value)
                 .map(ApplicationResult::Diff),
-            ApplicationRequest::History(value) => self
-                .operations
-                .history(context, value)
-                .map(ApplicationResult::History),
-            ApplicationRequest::Render(value) => self
-                .operations
-                .render(context, value)
-                .map(ApplicationResult::Render),
-            ApplicationRequest::Branch(value) => self
-                .operations
-                .branch(context, value)
-                .map(ApplicationResult::Branch),
+            ApplicationRequest::History(value) => {
+                let value = resolve_history(&self.operations, value)?;
+                self.operations
+                    .history(context, &value)
+                    .map(ApplicationResult::History)
+            }
+            ApplicationRequest::Render(value) => {
+                let value = resolve_render(&self.operations, value)?;
+                self.operations
+                    .render(context, &value)
+                    .map(ApplicationResult::Render)
+            }
+            ApplicationRequest::Branch(value) => {
+                let value = resolve_branch(&self.operations, value)?;
+                self.operations
+                    .branch(context, &value)
+                    .map(ApplicationResult::Branch)
+            }
             ApplicationRequest::Apply(value) => self
                 .operations
                 .apply(context, value)
@@ -255,6 +278,51 @@ where
             .ok_or_else(|| ApplicationError::UnsupportedOperation {
                 operation: "current snapshot resolution".to_owned(),
             })
+    }
+}
+
+/// Resolves a history selector exactly once before delegation.
+fn resolve_history<O: OperationProvider>(
+    provider: &O,
+    request: &HistoryRequest,
+) -> Result<HistoryRequest, ApplicationError> {
+    Ok(HistoryRequest {
+        snapshot: resolve_selector(provider, &request.snapshot)?,
+    })
+}
+
+/// Resolves a render selector exactly once before delegation.
+fn resolve_render<O: OperationProvider>(
+    provider: &O,
+    request: &RenderRequest,
+) -> Result<RenderRequest, ApplicationError> {
+    Ok(RenderRequest {
+        snapshot: resolve_selector(provider, &request.snapshot)?,
+        view: request.view.clone(),
+    })
+}
+
+/// Resolves a branch selector exactly once before delegation.
+fn resolve_branch<O: OperationProvider>(
+    provider: &O,
+    request: &BranchRequest,
+) -> Result<BranchRequest, ApplicationError> {
+    Ok(BranchRequest {
+        base: resolve_selector(provider, &request.base)?,
+        name: request.name.clone(),
+    })
+}
+
+/// Converts a snapshot selector to one exact snapshot.
+fn resolve_selector<O: OperationProvider>(
+    provider: &O,
+    selector: &crate::SnapshotSelector,
+) -> Result<crate::SnapshotSelector, ApplicationError> {
+    match selector {
+        crate::SnapshotSelector::Exact(snapshot) => Ok(crate::SnapshotSelector::Exact(*snapshot)),
+        crate::SnapshotSelector::NamedRoot(root) => {
+            Ok(crate::SnapshotSelector::Exact(provider.resolve_root(root)?))
+        }
     }
 }
 
