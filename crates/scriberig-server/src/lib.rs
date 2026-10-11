@@ -1,5 +1,15 @@
 //! Adapts remote protocol requests and events onto shared Scriberig application operations.
 
+pub mod dispatch;
+pub mod operation;
+pub mod server;
+pub mod subscription;
+pub mod transport;
+
+pub use dispatch::Dispatcher;
+pub use server::ApplicationService;
+pub use transport::InProcessTransport;
+
 use std::error::Error;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};

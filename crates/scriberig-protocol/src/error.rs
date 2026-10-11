@@ -26,6 +26,8 @@ pub enum ProtocolErrorCode {
     OperationCancelled,
     /// Unexpected internal failure.
     Internal,
+    /// Client and server protocol majors are incompatible.
+    UnsupportedVersion,
 }
 
 /// Describes one failed protocol request.

@@ -7,6 +7,7 @@ pub mod operation;
 pub mod refs;
 pub mod request;
 pub mod response;
+pub mod transport;
 pub mod trust;
 pub mod version;
 
@@ -16,10 +17,11 @@ pub use event::{Event, EventKind};
 pub use operation::{Operation, OperationProgress, OperationStatus};
 pub use refs::{EntityReference, OperationReference, RevisionReference, SnapshotReference};
 pub use request::{
-    CancelOperationRequest, InspectEntityRequest, RuntimeCapabilitiesRequest, SnapshotSelector,
-    SubscribeRequest,
+    CancelOperationRequest, InspectEntityRequest, OperationStatusRequest,
+    RuntimeCapabilitiesRequest, SnapshotSelector, SubscribeRequest,
 };
 pub use response::{InspectEntityResponse, OperationStatusResponse};
+pub use transport::{ProtocolTransport, Request, RequestEnvelope, Response, ResponseEnvelope};
 pub use trust::{
     ApprovalSummary, CapabilityDenial, ConflictSummary, ExternalEffectState, ExternalEffectSummary,
     PolicyEvaluationSummary, PromotionResult, PromotionState, ProvenanceInput, TrustDetails,

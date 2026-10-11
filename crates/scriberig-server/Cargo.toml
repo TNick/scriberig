@@ -9,10 +9,15 @@ repository.workspace = true
 publish = false
 
 [dependencies]
+scriberig-core = { path = "../scriberig-core" }
 scriberig-agent-runtime = { path = "../scriberig-agent-runtime" }
 scriberig-app = { path = "../scriberig-app" }
 scriberig-protocol = { path = "../scriberig-protocol" }
 scriberig-store-sqlite = { path = "../scriberig-store-sqlite" }
+serde_json = "1.0"
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+scriberig-client = { path = "../scriberig-client" }
