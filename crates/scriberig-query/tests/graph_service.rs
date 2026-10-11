@@ -7,9 +7,10 @@ use scriberig_graph::{
     CollectionValue, KnowledgeView, RelationValue, ReverseRelation, RevisionRecord,
 };
 use scriberig_query::{
-    CollectionRef, DetailLevel, EntityInSnapshot, FollowDirection, FollowRequest, GraphReadService,
-    InspectRequest, InspectService, ListRequest, PageRequest, RelationRef, TargetRef,
-    TraverseService,
+    CollectionRef, DetailLevel, EntityInSnapshot, FindRequest, FindService, FindStrategy,
+    FollowDirection, FollowRequest, GraphReadService, InspectRequest, InspectService, ListRequest,
+    PageRequest, QueryExpr, QueryOrdering, QueryScope, QuerySpec, RelationRef,
+    StructuredQueryService, TargetRef, TraverseService,
 };
 
 /// Provides one deterministic graph record to the read service.
@@ -190,4 +191,36 @@ fn graph_traversal_is_bounded_and_typed() {
         })
         .expect("follow");
     assert_eq!(followed.page.items.len(), 1);
+}
+
+/// Verifies explicit entity scopes support discovery and structural queries.
+#[test]
+fn graph_explicit_scopes_support_find_and_query() {
+    let fixture = fixture();
+    let service = GraphReadService::new(fixture);
+    let snapshot = SnapshotId::new([3; 32]);
+    let entity = EntityId::new([1; 16]);
+    let find = service
+        .find(&FindRequest {
+            scope: QueryScope::ExplicitEntities {
+                snapshot,
+                entities: vec![entity],
+            },
+            query: "test.entity".to_owned(),
+            strategy: FindStrategy::ExactText,
+            page: PageRequest::default(),
+            detail: DetailLevel::Compact,
+        })
+        .expect("find");
+    assert_eq!(find.page.items.len(), 1);
+    let query = service
+        .query(&QuerySpec {
+            scope: QueryScope::Entity { snapshot, entity },
+            expression: QueryExpr::TypeIs(ObjectType::new("test.entity").expect("type")),
+            ordering: QueryOrdering::StableDefault,
+            page: PageRequest::default(),
+            detail: DetailLevel::Compact,
+        })
+        .expect("query");
+    assert_eq!(query.page.items.len(), 1);
 }

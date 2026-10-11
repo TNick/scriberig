@@ -3,6 +3,7 @@
 pub mod detail;
 pub mod error;
 pub mod find;
+mod graph_query;
 pub mod graph_service;
 pub mod handle;
 pub mod inspect;
