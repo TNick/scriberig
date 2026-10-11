@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">Canonical and derived knowledge with provenance</title>
+  <desc id="desc">Canonical revisions are the source of semantic history. Derived knowledge such as summaries, call graphs, validation results, and render intermediates point back to exact revision dependencies and record producer provenance.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.canon{fill:#eef2ff;stroke:#6366f1;stroke-width:2.5}.derived{fill:#fff7ed;stroke:#ea580c;stroke-width:2}.prov{fill:#f0fdf4;stroke:#16a34a;stroke-width:2}.note{fill:#fff;stroke:#cbd5e1;stroke-width:2}.title{font:700 30px system-ui,sans-serif;fill:#0f172a}.h{font:700 20px system-ui,sans-serif;fill:#0f172a}.t{font:500 17px system-ui,sans-serif;fill:#334155}.small{font:500 15px system-ui,sans-serif;fill:#475569}.line{stroke:#64748b;stroke-width:2.2;fill:none}.arrow{marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="700" rx="24"/>
+  <text class="title" x="600" y="48" text-anchor="middle">Canonical state and derived knowledge stay distinct</text>
+
+  <rect class="canon" x="80" y="100" width="410" height="455" rx="20"/>
+  <text class="h" x="285" y="140" text-anchor="middle">Canonical knowledge</text>
+  <text class="small" x="285" y="168" text-anchor="middle">participates in snapshots and semantic history</text>
+
+  <rect class="note" x="125" y="205" width="320" height="78" rx="13"/>
+  <text class="t" x="285" y="237" text-anchor="middle">Function F @ Revision R17</text>
+  <text class="small" x="285" y="262" text-anchor="middle">chosen syntax · comments · structure</text>
+
+  <rect class="note" x="125" y="310" width="320" height="78" rx="13"/>
+  <text class="t" x="285" y="342" text-anchor="middle">Paragraph P @ Revision R8</text>
+  <text class="small" x="285" y="367" text-anchor="middle">authored text · semantic placement</text>
+
+  <rect class="note" x="125" y="415" width="320" height="78" rx="13"/>
+  <text class="t" x="285" y="447" text-anchor="middle">Branch B @ Revision R5</text>
+  <text class="small" x="285" y="472" text-anchor="middle">purpose · status · durable decisions</text>
+
+  <rect class="derived" x="710" y="100" width="410" height="455" rx="20"/>
+  <text class="h" x="915" y="140" text-anchor="middle">Derived knowledge</text>
+  <text class="small" x="915" y="168" text-anchor="middle">recomputable and reusable from exact inputs</text>
+
+  <rect class="note" x="755" y="205" width="320" height="64" rx="13"/>
+  <text class="t" x="915" y="244" text-anchor="middle">Call graph</text>
+  <rect class="note" x="755" y="291" width="320" height="64" rx="13"/>
+  <text class="t" x="915" y="330" text-anchor="middle">Summary / description</text>
+  <rect class="note" x="755" y="377" width="320" height="64" rx="13"/>
+  <text class="t" x="915" y="416" text-anchor="middle">Validation result</text>
+  <rect class="note" x="755" y="463" width="320" height="64" rx="13"/>
+  <text class="t" x="915" y="502" text-anchor="middle">Render intermediate</text>
+
+  <path class="line arrow" d="M490 244 H710"/>
+  <path class="line arrow" d="M490 349 C610 349 600 323 710 323"/>
+  <path class="line arrow" d="M490 454 C620 454 610 409 710 409"/>
+  <text class="small" x="600" y="228" text-anchor="middle">exact revision dependencies</text>
+
+  <rect class="prov" x="360" y="600" width="480" height="72" rx="15"/>
+  <text class="h" x="600" y="629" text-anchor="middle">Provenance</text>
+  <text class="small" x="600" y="654" text-anchor="middle">producer · configuration/profile · exact inputs · origin</text>
+
+  <path class="line arrow" d="M285 555 V576 H470 V600"/>
+  <path class="line arrow" d="M915 555 V576 H730 V600"/>
+</svg>

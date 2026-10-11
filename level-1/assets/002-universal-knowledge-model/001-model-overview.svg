@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" role="img" aria-labelledby="title desc">
+  <title id="title">Universal knowledge model overview</title>
+  <desc id="desc">A snapshot resolves semantic entities to immutable revisions. Revisions contain typed properties, relations, and collections. Schemas specialize the universal graph into domains such as Markdown, code, PDFs, sessions, and project knowledge.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.panel{fill:#fff;stroke:#cbd5e1;stroke-width:2}.core{fill:#eef2ff;stroke:#6366f1;stroke-width:2.5}.domain{fill:#f0fdf4;stroke:#16a34a;stroke-width:2}.accent{fill:#eff6ff;stroke:#2563eb;stroke-width:2}.derived{fill:#fff7ed;stroke:#ea580c;stroke-width:2}.title{font:700 30px system-ui,sans-serif;fill:#0f172a}.h{font:700 21px system-ui,sans-serif;fill:#0f172a}.t{font:500 17px system-ui,sans-serif;fill:#334155}.small{font:500 15px system-ui,sans-serif;fill:#475569}.line{stroke:#64748b;stroke-width:2.2;fill:none}.arrow{marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="640" rx="24"/>
+  <text class="title" x="600" y="48" text-anchor="middle">One substrate, many domains</text>
+
+  <rect class="accent" x="475" y="78" width="250" height="72" rx="14"/>
+  <text class="h" x="600" y="109" text-anchor="middle">Snapshot</text>
+  <text class="small" x="600" y="133" text-anchor="middle">consistent knowledge view</text>
+
+  <path class="line arrow" d="M600 150 V190"/>
+
+  <rect class="core" x="400" y="190" width="400" height="118" rx="18"/>
+  <text class="h" x="600" y="225" text-anchor="middle">Entity → Revision</text>
+  <text class="t" x="600" y="254" text-anchor="middle">conceptual continuity → exact immutable state</text>
+  <text class="small" x="600" y="281" text-anchor="middle">resolved inside the snapshot</text>
+
+  <path class="line" d="M600 308 V348"/>
+  <path class="line" d="M600 348 H255 V378"/>
+  <path class="line" d="M600 348 V378"/>
+  <path class="line" d="M600 348 H945 V378"/>
+
+  <rect class="panel" x="95" y="378" width="320" height="122" rx="16"/>
+  <text class="h" x="255" y="412" text-anchor="middle">Canonical structure</text>
+  <text class="t" x="255" y="442" text-anchor="middle">properties · relations · collections</text>
+  <text class="small" x="255" y="470" text-anchor="middle">typed by domain schemas</text>
+
+  <rect class="derived" x="440" y="378" width="320" height="122" rx="16"/>
+  <text class="h" x="600" y="412" text-anchor="middle">Derived knowledge</text>
+  <text class="t" x="600" y="442" text-anchor="middle">summaries · analysis · indexes</text>
+  <text class="small" x="600" y="470" text-anchor="middle">exact dependencies + provenance</text>
+
+  <rect class="panel" x="785" y="378" width="320" height="122" rx="16"/>
+  <text class="h" x="945" y="412" text-anchor="middle">Universal interaction</text>
+  <text class="t" x="945" y="442" text-anchor="middle">inspect · follow · find · diff</text>
+  <text class="small" x="945" y="470" text-anchor="middle">same grammar across domains</text>
+
+  <path class="line" d="M255 500 V535 H180"/>
+  <path class="line" d="M255 535 H1020"/>
+
+  <g>
+    <rect class="domain" x="95" y="545" width="180" height="62" rx="14"/>
+    <text class="t" x="185" y="582" text-anchor="middle">Markdown</text>
+    <rect class="domain" x="302" y="545" width="180" height="62" rx="14"/>
+    <text class="t" x="392" y="582" text-anchor="middle">Code / AST</text>
+    <rect class="domain" x="509" y="545" width="180" height="62" rx="14"/>
+    <text class="t" x="599" y="582" text-anchor="middle">PDFs</text>
+    <rect class="domain" x="716" y="545" width="180" height="62" rx="14"/>
+    <text class="t" x="806" y="582" text-anchor="middle">Sessions</text>
+    <rect class="domain" x="923" y="545" width="180" height="62" rx="14"/>
+    <text class="t" x="1013" y="582" text-anchor="middle">Project knowledge</text>
+  </g>
+</svg>

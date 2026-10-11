@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">Schema specialization of the universal model</title>
+  <desc id="desc">A small universal knowledge substrate provides identity, revisions, snapshots, graph relations, provenance, queries, and navigation. Independent domain schemas specialize it for Markdown, source code, PDFs, sessions, and project knowledge.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.core{fill:#eef2ff;stroke:#6366f1;stroke-width:2.5}.domain{fill:#f0fdf4;stroke:#16a34a;stroke-width:2}.title{font:700 30px system-ui,sans-serif;fill:#0f172a}.h{font:700 20px system-ui,sans-serif;fill:#0f172a}.t{font:500 17px system-ui,sans-serif;fill:#334155}.small{font:500 15px system-ui,sans-serif;fill:#475569}.line{stroke:#64748b;stroke-width:2.2;fill:none}.arrow{marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="700" rx="24"/>
+  <text class="title" x="600" y="48" text-anchor="middle">One interaction grammar, strong domain semantics</text>
+
+  <rect class="core" x="350" y="95" width="500" height="260" rx="20"/>
+  <text class="h" x="600" y="132" text-anchor="middle">Universal knowledge substrate</text>
+  <text class="t" x="600" y="171" text-anchor="middle">Entity · Revision · Snapshot</text>
+  <text class="t" x="600" y="205" text-anchor="middle">Properties · Relations · Collections</text>
+  <text class="t" x="600" y="239" text-anchor="middle">Provenance · Descriptions · Derived knowledge</text>
+  <text class="t" x="600" y="273" text-anchor="middle">Inspect · Follow · Find · Diff · History</text>
+  <text class="small" x="600" y="316" text-anchor="middle">small shared vocabulary; no domain-specific AST or document rules here</text>
+
+  <path class="line" d="M600 355 V395"/>
+  <path class="line" d="M600 395 H120 V450"/>
+  <path class="line" d="M600 395 H360 V450"/>
+  <path class="line" d="M600 395 V450"/>
+  <path class="line" d="M600 395 H840 V450"/>
+  <path class="line" d="M600 395 H1080 V450"/>
+
+  <rect class="domain" x="35" y="450" width="170" height="165" rx="16"/>
+  <text class="h" x="120" y="486" text-anchor="middle">Markdown</text>
+  <text class="small" x="120" y="522" text-anchor="middle">Section</text>
+  <text class="small" x="120" y="548" text-anchor="middle">Paragraph</text>
+  <text class="small" x="120" y="574" text-anchor="middle">Table</text>
+
+  <rect class="domain" x="275" y="450" width="170" height="165" rx="16"/>
+  <text class="h" x="360" y="486" text-anchor="middle">Code</text>
+  <text class="small" x="360" y="522" text-anchor="middle">Function</text>
+  <text class="small" x="360" y="548" text-anchor="middle">Statement</text>
+  <text class="small" x="360" y="574" text-anchor="middle">Expression</text>
+
+  <rect class="domain" x="515" y="450" width="170" height="165" rx="16"/>
+  <text class="h" x="600" y="486" text-anchor="middle">PDF</text>
+  <text class="small" x="600" y="522" text-anchor="middle">Page</text>
+  <text class="small" x="600" y="548" text-anchor="middle">Figure</text>
+  <text class="small" x="600" y="574" text-anchor="middle">Extracted table</text>
+
+  <rect class="domain" x="755" y="450" width="170" height="165" rx="16"/>
+  <text class="h" x="840" y="486" text-anchor="middle">Session</text>
+  <text class="small" x="840" y="522" text-anchor="middle">Branch</text>
+  <text class="small" x="840" y="548" text-anchor="middle">Decision</text>
+  <text class="small" x="840" y="574" text-anchor="middle">Tool result</text>
+
+  <rect class="domain" x="995" y="450" width="170" height="165" rx="16"/>
+  <text class="h" x="1080" y="486" text-anchor="middle">Knowledge</text>
+  <text class="small" x="1080" y="522" text-anchor="middle">Fact</text>
+  <text class="small" x="1080" y="548" text-anchor="middle">Task</text>
+  <text class="small" x="1080" y="574" text-anchor="middle">Hypothesis</text>
+
+  <text class="small" x="600" y="663" text-anchor="middle">Domains extend the substrate with schemas, constraints, projections, validation, and semantic operations.</text>
+</svg>

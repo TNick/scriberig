@@ -1,0 +1,17 @@
+flowchart TB
+    E[Entity F · process_payment\nconceptual continuity]
+    E --> R1[Revision R1\ninitial implementation]
+    E --> R2[Revision R2\ntimeout handling added]
+    E --> R3[Revision R3\nretry policy changed]
+    R1 -. change .-> R2
+    R2 -. change .-> R3
+    S1[Snapshot S1\nF → R1] --> R1
+    S2[Snapshot S2\nF → R2] --> R2
+    S3[Snapshot S3\nF → R3] --> R3
+
+    classDef entity fill:#eef2ff,stroke:#6366f1,stroke-width:2px;
+    classDef rev fill:#ffffff,stroke:#64748b,stroke-width:2px;
+    classDef snap fill:#eff6ff,stroke:#2563eb,stroke-width:2px;
+    class E entity;
+    class R1,R2,R3 rev;
+    class S1,S2,S3 snap;
