@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650" role="img" aria-labelledby="title desc">
+<title id="title">History is a directed acyclic graph of immutable snapshots</title>
+<desc id="desc">Snapshot S1 branches into S2 and S3. S2 advances to S4. S3 and S4 merge into S5. Migrations label historical edges. Mutable names main and feature point at snapshots but do not change the immutable snapshots.</desc>
+<style>.title{font:700 34px Arial,sans-serif;fill:#1f2937}.subtitle{font:400 18px Arial,sans-serif;fill:#4b5563}.node{font:700 20px Arial,sans-serif;fill:#111827}.body{font:400 16px Arial,sans-serif;fill:#374151}.small{font:400 14px Arial,sans-serif;fill:#6b7280}.edge{font:600 14px Arial,sans-serif;fill:#0369a1}.root{font:700 16px Arial,sans-serif;fill:#92400e}</style>
+<defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="4" orient="auto"><path d="M0,0 L0,8 L11,4 z" fill="#6b7280"/></marker><marker id="orange" markerWidth="12" markerHeight="12" refX="10" refY="4" orient="auto"><path d="M0,0 L0,8 L11,4 z" fill="#d97706"/></marker></defs>
+<rect width="1200" height="650" fill="#fff"/>
+<text x="60" y="58" class="title">History is a graph, not a log</text>
+<text x="60" y="90" class="subtitle">Snapshots are immutable states; migrations are edges; branch names are movable references.</text>
+<circle cx="175" cy="320" r="58" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"/><text x="153" y="327" class="node">S1</text>
+<circle cx="425" cy="205" r="58" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"/><text x="403" y="212" class="node">S2</text>
+<circle cx="425" cy="435" r="58" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"/><text x="403" y="442" class="node">S3</text>
+<circle cx="700" cy="205" r="58" fill="#ede9fe" stroke="#7c3aed" stroke-width="3"/><text x="678" y="212" class="node">S4</text>
+<circle cx="970" cy="320" r="62" fill="#ecfccb" stroke="#65a30d" stroke-width="3"/><text x="948" y="327" class="node">S5</text>
+<line x1="229" y1="295" x2="365" y2="232" stroke="#6b7280" stroke-width="3" marker-end="url(#arrow)"/><text x="280" y="252" class="edge">M2</text>
+<line x1="229" y1="345" x2="365" y2="408" stroke="#6b7280" stroke-width="3" marker-end="url(#arrow)"/><text x="280" y="402" class="edge">M3</text>
+<line x1="483" y1="205" x2="632" y2="205" stroke="#6b7280" stroke-width="3" marker-end="url(#arrow)"/><text x="545" y="190" class="edge">M4</text>
+<line x1="754" y1="230" x2="909" y2="295" stroke="#6b7280" stroke-width="3" marker-end="url(#arrow)"/><text x="810" y="252" class="edge">merge</text>
+<line x1="483" y1="435" x2="909" y2="345" stroke="#6b7280" stroke-width="3" marker-end="url(#arrow)"/><text x="660" y="420" class="edge">merge</text>
+<rect x="635" y="105" width="130" height="44" rx="10" fill="#fef3c7" stroke="#d97706"/><text x="674" y="133" class="root">main</text><line x1="700" y1="149" x2="700" y2="137" stroke="#d97706" stroke-width="3" marker-end="url(#orange)"/>
+<rect x="360" y="525" width="130" height="44" rx="10" fill="#fef3c7" stroke="#d97706"/><text x="384" y="553" class="root">feature</text><line x1="425" y1="525" x2="425" y2="500" stroke="#d97706" stroke-width="3" marker-end="url(#orange)"/>
+<text x="60" y="600" class="body">Branching preserves both descendants; merge creates a new state with both parent lines. A linear UI may hide this topology, but history must not.</text>
+</svg>
