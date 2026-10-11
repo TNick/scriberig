@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">Incremental invalidation follows semantic changes</title>
+  <desc id="desc">A left-to-right flow starts with a canonical migration, creates a new snapshot, identifies changed semantic revisions, follows reverse derivation dependencies, and then splits results into unaffected reusable artifacts and affected artifacts. Affected artifacts are either recomputed eagerly or marked for lazy recomputation. File timestamps are shown crossed out beneath the flow to emphasize that invalidation is semantic, not textual.</desc>
+  <rect width="1200" height="620" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" font-family="system-ui, sans-serif" font-size="28" font-weight="700" fill="#111827">Incremental work follows semantic dependency edges</text>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#4b5563"/></marker></defs>
+
+  <g font-family="system-ui, sans-serif">
+    <rect x="40" y="170" width="175" height="100" rx="16" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+    <text x="127" y="208" text-anchor="middle" font-size="17" font-weight="700">Canonical</text><text x="127" y="232" text-anchor="middle" font-size="17" font-weight="700">migration</text><text x="127" y="256" text-anchor="middle" font-size="13" fill="#4b5563">accepted semantic edit</text>
+
+    <rect x="255" y="170" width="175" height="100" rx="16" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+    <text x="342" y="208" text-anchor="middle" font-size="17" font-weight="700">New</text><text x="342" y="232" text-anchor="middle" font-size="17" font-weight="700">SnapshotId</text><text x="342" y="256" text-anchor="middle" font-size="13" fill="#4b5563">global change signal</text>
+
+    <rect x="470" y="170" width="195" height="100" rx="16" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+    <text x="567" y="207" text-anchor="middle" font-size="17" font-weight="700">Changed semantic</text><text x="567" y="231" text-anchor="middle" font-size="17" font-weight="700">revisions / scopes</text><text x="567" y="255" text-anchor="middle" font-size="13" fill="#4b5563">exact affected inputs</text>
+
+    <rect x="705" y="170" width="195" height="100" rx="16" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+    <text x="802" y="207" text-anchor="middle" font-size="17" font-weight="700">Reverse dependency</text><text x="802" y="231" text-anchor="middle" font-size="17" font-weight="700">lookup</text><text x="802" y="255" text-anchor="middle" font-size="13" fill="#4b5563">which derivations depend on them?</text>
+
+    <rect x="950" y="100" width="205" height="100" rx="16" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+    <text x="1052" y="138" text-anchor="middle" font-size="18" font-weight="700">Unaffected</text><text x="1052" y="164" text-anchor="middle" font-size="18" font-weight="700">→ reuse</text><text x="1052" y="186" text-anchor="middle" font-size="13" fill="#166534">no work needed</text>
+
+    <rect x="950" y="245" width="205" height="100" rx="16" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+    <text x="1052" y="282" text-anchor="middle" font-size="18" font-weight="700">Affected</text><text x="1052" y="308" text-anchor="middle" font-size="18" font-weight="700">→ reconsider</text><text x="1052" y="331" text-anchor="middle" font-size="13" fill="#991b1b">validity changed</text>
+
+    <rect x="830" y="420" width="170" height="82" rx="14" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+    <text x="915" y="453" text-anchor="middle" font-size="16" font-weight="700">Eager</text><text x="915" y="477" text-anchor="middle" font-size="14" fill="#4b5563">recompute now</text>
+
+    <rect x="1030" y="420" width="170" height="82" rx="14" fill="#f9fafb" stroke="#6b7280" stroke-width="2"/>
+    <text x="1115" y="453" text-anchor="middle" font-size="16" font-weight="700">Lazy</text><text x="1115" y="477" text-anchor="middle" font-size="14" fill="#4b5563">recompute on demand</text>
+  </g>
+
+  <path d="M215 220 L255 220" stroke="#4b5563" stroke-width="3" marker-end="url(#arrow)"/><path d="M430 220 L470 220" stroke="#4b5563" stroke-width="3" marker-end="url(#arrow)"/><path d="M665 220 L705 220" stroke="#4b5563" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M900 205 C925 205 925 150 950 150" fill="none" stroke="#4b5563" stroke-width="3" marker-end="url(#arrow)"/><path d="M900 235 C925 235 925 295 950 295" fill="none" stroke="#4b5563" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M1052 345 C1052 390 915 385 915 420" fill="none" stroke="#4b5563" stroke-width="2.5" marker-end="url(#arrow)"/><path d="M1052 345 C1052 385 1115 385 1115 420" fill="none" stroke="#4b5563" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <rect x="300" y="425" width="395" height="92" rx="16" fill="#f9fafb" stroke="#9ca3af" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="497" y="458" text-anchor="middle" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#6b7280">Not the invalidation boundary</text>
+  <text x="497" y="487" text-anchor="middle" font-family="system-ui, sans-serif" font-size="15" fill="#6b7280">file timestamp • line number • whole repository by default</text>
+  <line x1="330" y1="500" x2="665" y2="440" stroke="#dc2626" stroke-width="3"/>
+  <text x="600" y="575" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="700" fill="#374151">Correctness comes from declared semantic dependencies; eager versus lazy is only scheduling policy.</text>
+</svg>
