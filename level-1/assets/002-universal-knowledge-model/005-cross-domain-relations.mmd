@@ -1,0 +1,21 @@
+flowchart LR
+    B[SessionBranch B81\ncache investigation] -->|touches| F[Function F\nrender_cached]
+    F -->|informs| D[Decision D19\ncache exact immutable inputs]
+    B -->|derived_from| D
+    P[Paragraph P\narchitecture explanation] -->|describes| D
+    T[PDFTable T\nexternal evidence] -->|supports| M[Migration M42\nsemantic project change]
+    D -->|references evidence| T
+    M -->|produced_by| B
+
+    classDef session fill:#eef2ff,stroke:#6366f1,stroke-width:2px;
+    classDef code fill:#eff6ff,stroke:#2563eb,stroke-width:2px;
+    classDef doc fill:#f0fdf4,stroke:#16a34a,stroke-width:2px;
+    classDef pdf fill:#fefce8,stroke:#ca8a04,stroke-width:2px;
+    classDef change fill:#fff7ed,stroke:#ea580c,stroke-width:2px;
+    classDef knowledge fill:#fdf2f8,stroke:#db2777,stroke-width:2px;
+    class B session;
+    class F code;
+    class P doc;
+    class T pdf;
+    class M change;
+    class D knowledge;
