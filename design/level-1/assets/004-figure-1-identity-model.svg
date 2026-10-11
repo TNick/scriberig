@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+  <title id="title">Entity, revision, and snapshot identities</title>
+  <desc id="desc">A stable entity named Function F points through two snapshots to two different immutable revisions. Snapshot S1 resolves F to revision R1, while snapshot S2 resolves the same entity F to revision R2. This separates conceptual continuity, exact state, and whole-world state.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#475569"/>
+    </marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 21px system-ui,sans-serif;fill:#0f172a}.body{font:17px system-ui,sans-serif;fill:#334155}.small{font:15px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="560" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Three identities answer three different questions</text>
+
+  <rect x="70" y="115" width="280" height="160" rx="18" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="210" y="158" text-anchor="middle" class="label">EntityId</text>
+  <text x="210" y="194" text-anchor="middle" class="body">Function F</text>
+  <text x="210" y="228" text-anchor="middle" class="small">What thing is this?</text>
+  <text x="210" y="252" text-anchor="middle" class="small">Stable conceptual continuity</text>
+
+  <rect x="460" y="95" width="280" height="92" rx="16" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="600" y="133" text-anchor="middle" class="label">Snapshot S1</text>
+  <text x="600" y="163" text-anchor="middle" class="small">Whole-world state at time 1</text>
+
+  <rect x="460" y="225" width="280" height="92" rx="16" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="600" y="263" text-anchor="middle" class="label">Snapshot S2</text>
+  <text x="600" y="293" text-anchor="middle" class="small">Whole-world state after edit</text>
+
+  <rect x="850" y="95" width="280" height="92" rx="16" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="990" y="133" text-anchor="middle" class="label">Revision R1</text>
+  <text x="990" y="163" text-anchor="middle" class="small">Exact immutable function state</text>
+
+  <rect x="850" y="225" width="280" height="92" rx="16" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="990" y="263" text-anchor="middle" class="label">Revision R2</text>
+  <text x="990" y="293" text-anchor="middle" class="small">New exact immutable state</text>
+
+  <path d="M350 174 C405 160 425 142 460 142" class="line"/>
+  <path d="M350 216 C405 230 425 270 460 270" class="line"/>
+  <path d="M740 141 L850 141" class="line"/>
+  <path d="M740 271 L850 271" class="line"/>
+
+  <text x="405" y="132" text-anchor="middle" class="small">resolve in S1</text>
+  <text x="405" y="272" text-anchor="middle" class="small">resolve in S2</text>
+  <text x="795" y="124" text-anchor="middle" class="small">F → R1</text>
+  <text x="795" y="254" text-anchor="middle" class="small">F → R2</text>
+
+  <rect x="170" y="380" width="860" height="115" rx="18" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="600" y="419" text-anchor="middle" class="label">Continuity does not erase exactness</text>
+  <text x="600" y="453" text-anchor="middle" class="body">The entity stays F; the exact revision changes from R1 to R2; the complete world changes from S1 to S2.</text>
+  <text x="600" y="481" text-anchor="middle" class="small">Local references can stay stable while historical and global references remain exact.</text>
+</svg>
