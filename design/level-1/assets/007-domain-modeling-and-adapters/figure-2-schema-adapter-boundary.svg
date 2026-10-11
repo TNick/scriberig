@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+  <title id="title">Schema and adapter responsibilities are separate</title>
+  <desc id="desc">External formats and tools connect through one or more adapters. Adapters translate into a domain schema. The schema defines types, relations, constraints, canonical structure, operations, and validation over the universal graph. The universal store remains unaware of domain-specific parser or compiler details.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.head{font:700 21px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="680" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Schema defines meaning; adapters connect the outside world</text>
+
+  <rect x="60" y="105" width="250" height="110" rx="17" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+  <text x="185" y="145" text-anchor="middle" class="head">External representation</text>
+  <text x="185" y="176" text-anchor="middle" class="body">Markdown · source · PDF</text>
+  <text x="185" y="201" text-anchor="middle" class="small">files, bytes, coordinates</text>
+
+  <rect x="60" y="420" width="250" height="110" rx="17" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+  <text x="185" y="460" text-anchor="middle" class="head">External tools</text>
+  <text x="185" y="491" text-anchor="middle" class="body">compiler · LSP · extractor</text>
+  <text x="185" y="516" text-anchor="middle" class="small">validators and analyzers</text>
+
+  <rect x="405" y="125" width="300" height="390" rx="24" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="555" y="168" text-anchor="middle" class="head">Adapter boundary</text>
+  <text x="555" y="210" text-anchor="middle" class="body">parse / import</text>
+  <text x="555" y="245" text-anchor="middle" class="body">canonicalize</text>
+  <text x="555" y="280" text-anchor="middle" class="body">render / map coordinates</text>
+  <text x="555" y="315" text-anchor="middle" class="body">reconcile external edits</text>
+  <text x="555" y="350" text-anchor="middle" class="body">validate / analyze</text>
+  <text x="555" y="385" text-anchor="middle" class="body">produce provenance</text>
+  <text x="555" y="430" text-anchor="middle" class="small">One domain may have several adapters.</text>
+  <text x="555" y="456" text-anchor="middle" class="small">No adapter owns a second source of truth.</text>
+
+  <rect x="805" y="100" width="330" height="250" rx="22" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="970" y="143" text-anchor="middle" class="head">Domain schema</text>
+  <text x="970" y="184" text-anchor="middle" class="body">entity and property types</text>
+  <text x="970" y="218" text-anchor="middle" class="body">relations and collections</text>
+  <text x="970" y="252" text-anchor="middle" class="body">canonical boundaries</text>
+  <text x="970" y="286" text-anchor="middle" class="body">validation and operations</text>
+  <text x="970" y="320" text-anchor="middle" class="small">Meaning inside Scriberig</text>
+
+  <rect x="805" y="410" width="330" height="150" rx="22" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="970" y="453" text-anchor="middle" class="head">Universal graph and store</text>
+  <text x="970" y="490" text-anchor="middle" class="body">entities · revisions · snapshots</text>
+  <text x="970" y="520" text-anchor="middle" class="small">No Markdown, Rust, or PDF logic here</text>
+
+  <path d="M310 160 L405 190" class="line"/>
+  <path d="M310 475 L405 440" class="line"/>
+  <path d="M705 240 L805 225" class="line"/>
+  <path d="M970 350 L970 410" class="line"/>
+</svg>
