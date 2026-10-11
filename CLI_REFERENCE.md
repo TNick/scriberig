@@ -109,7 +109,7 @@ The command currently parses successfully but maintenance operations are not imp
 Inspect trust metadata for one semantic entity.
 
 ```text
-srig inspect <ENTITY> [--snapshot <SNAPSHOT>] [--depth <compact|deep>] [--format <human|json>]
+srig inspect <ENTITY> [OPTIONS]
 ```
 
 | Option | Default | Meaning |
@@ -117,6 +117,12 @@ srig inspect <ENTITY> [--snapshot <SNAPSHOT>] [--depth <compact|deep>] [--format
 | `--snapshot <SNAPSHOT>` | current | Inspect an exact snapshot when supplied. |
 | `--depth <compact\|deep>` | `compact` | Include provenance and evidence handles at `deep`. |
 | `--format <human\|json>` | `human` | Select terminal text or structured JSON output. |
+| `--db <PATH>` | `playground/dev-app-runtime/scriberig.sqlite` | SQLite database used by local inspection. |
+
+The command opens the configured SQLite store and reads immutable revisions and
+snapshots through the shared application boundary. A missing entity, snapshot,
+or current `main` root is reported as a structured failure. Authorization
+denials use exit status `77`.
 
 ## Keeping this reference synchronized
 

@@ -61,6 +61,7 @@ fn inspect_dispatch_preserves_handles() {
             snapshot: Some(SnapshotId::new([3; 32])),
             depth: InspectDepth::Compact,
             format: OutputFormat::Human,
+            db: "playground/dev-app-runtime/scriberig.sqlite".into(),
         }),
     )
     .expect("dispatch")

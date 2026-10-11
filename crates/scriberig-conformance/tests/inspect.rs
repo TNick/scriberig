@@ -68,6 +68,7 @@ fn inspect_surfaces_are_semantically_equal() {
             snapshot: expected.snapshot,
             depth: InspectDepth::Compact,
             format: OutputFormat::Json,
+            db: "playground/dev-app-runtime/scriberig.sqlite".into(),
         }),
     )
     .expect("CLI inspect")

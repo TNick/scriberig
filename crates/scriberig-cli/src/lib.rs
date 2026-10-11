@@ -146,6 +146,9 @@ pub struct InspectArgs {
     /// Output representation for the trust result.
     #[arg(long, value_enum, default_value_t = trust::OutputFormat::Human)]
     pub format: trust::OutputFormat,
+    /// SQLite database path used by the local inspection composition.
+    #[arg(long, default_value = "playground/dev-app-runtime/scriberig.sqlite")]
+    pub db: std::path::PathBuf,
 }
 
 /// Parse command-line input for the `srig` executable.

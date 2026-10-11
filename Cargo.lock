@@ -459,6 +459,7 @@ dependencies = [
  "scriberig-app",
  "scriberig-cli",
  "scriberig-server",
+ "scriberig-store-sqlite",
  "scriberig-tui",
 ]
 
@@ -493,6 +494,7 @@ dependencies = [
  "scriberig-query",
  "scriberig-session",
  "scriberig-store",
+ "scriberig-store-memory",
  "sr-change",
 ]
 

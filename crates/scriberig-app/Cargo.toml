@@ -18,5 +18,8 @@ scriberig-session = { path = "../scriberig-session" }
 scriberig-store = { path = "../scriberig-store" }
 sr-change = { path = "../sr-change" }
 
+[dev-dependencies]
+scriberig-store-memory = { path = "../scriberig-store-memory" }
+
 [lints]
 workspace = true

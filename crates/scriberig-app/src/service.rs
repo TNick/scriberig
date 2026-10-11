@@ -25,6 +25,26 @@ pub trait ApplicationBackend {
         context: &ApplicationContext,
         request: &ApplicationRequest,
     ) -> Result<ApplicationResult, ApplicationError>;
+
+    /// Resolves the current accepted snapshot for the request.
+    ///
+    /// # Parameters
+    /// - `self`: Backend owning snapshot/root state.
+    /// - `_context`: Caller context.
+    ///
+    /// # Returns
+    /// The exact current snapshot.
+    ///
+    /// # Errors
+    /// Returns an unsupported-operation error when no current root exists.
+    fn current_snapshot(
+        &self,
+        _context: &ApplicationContext,
+    ) -> Result<scriberig_core::SnapshotId, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "current snapshot resolution".to_owned(),
+        })
+    }
 }
 
 /// Facade that delegates every application operation to one injected backend.
@@ -99,7 +119,11 @@ impl<B: ApplicationBackend> QueryService for ApplicationService<B> {
         context: &ApplicationContext,
         request: &InspectRequest,
     ) -> Result<InspectResult, ApplicationError> {
-        let application_request = ApplicationRequest::Inspect(query_request(request)?);
+        let current = match request.snapshot {
+            crate::SnapshotResolution::Current => Some(self.backend.current_snapshot(context)?),
+            _ => None,
+        };
+        let application_request = ApplicationRequest::Inspect(query_request(request, current)?);
         let result = self.execute(context, &application_request)?;
         let ApplicationResult::Inspect(inspection) = result else {
             return Err(ApplicationError::Internal {
@@ -165,6 +189,7 @@ fn inspect_result(
 ///
 /// # Parameters
 /// - `request`: Application inspection request.
+/// - `current`: Resolved current snapshot when the request uses `Current`.
 ///
 /// # Returns
 /// Query-layer inspection request with an exact target.
@@ -174,6 +199,7 @@ fn inspect_result(
 /// was supplied.
 fn query_request(
     request: &InspectRequest,
+    current: Option<scriberig_core::SnapshotId>,
 ) -> Result<scriberig_query::InspectRequest, ApplicationError> {
     let target = match request.snapshot {
         crate::SnapshotResolution::At(snapshot) => {
@@ -189,10 +215,12 @@ fn query_request(
             })
         }
         crate::SnapshotResolution::Current => {
-            return Err(ApplicationError::UnsupportedOperation {
-                operation: "current snapshot resolution requires an application root provider"
-                    .to_owned(),
-            });
+            TargetRef::Snapshot(scriberig_query::EntityInSnapshot {
+                entity: request.entity,
+                snapshot: current.ok_or_else(|| ApplicationError::Internal {
+                    message: "current snapshot was not resolved".to_owned(),
+                })?,
+            })
         }
     };
     Ok(scriberig_query::InspectRequest {

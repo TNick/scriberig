@@ -15,6 +15,7 @@ pub mod query;
 pub mod request;
 pub mod result;
 pub mod service;
+mod service_store;
 pub mod trust;
 pub mod validation;
 
@@ -45,6 +46,7 @@ pub use request::{
 };
 pub use result::{ApplicationResult, OperationStarted, OperationSummary};
 pub use service::{ApplicationBackend, ApplicationService};
+pub use service_store::StoreInspectionBackend;
 pub use trust::{
     ApprovalSummary, CapabilityDenial, ConflictSummary, ExternalEffectSummary, PolicyDecision,
     PolicyEvaluation, SourceKind, TrustSummary, ValidationState,
