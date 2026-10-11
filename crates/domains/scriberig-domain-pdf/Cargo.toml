@@ -15,5 +15,8 @@ scriberig-projection = { path = "../../scriberig-projection" }
 scriberig-schema = { path = "../../scriberig-schema" }
 blake3 = "1.8"
 
+[dev-dependencies]
+scriberig-domain-test-support = { path = "../test-support" }
+
 [lints]
 workspace = true

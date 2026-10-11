@@ -28,6 +28,7 @@ members = [
   "crates/domains/scriberig-domain-code",
   "crates/domains/scriberig-domain-rust",
   "crates/domains/scriberig-domain-pdf",
+  "crates/domains/test-support",
   "apps/scriberig",
 ]
 

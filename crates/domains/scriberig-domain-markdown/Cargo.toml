@@ -16,5 +16,8 @@ scriberig-projection = { path = "../../scriberig-projection" }
 scriberig-schema = { path = "../../scriberig-schema" }
 pulldown-cmark = "0.10"
 
+[dev-dependencies]
+scriberig-domain-test-support = { path = "../test-support" }
+
 [lints]
 workspace = true

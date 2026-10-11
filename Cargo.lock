@@ -469,6 +469,7 @@ version = "0.1.0"
 dependencies = [
  "scriberig-core",
  "scriberig-derive",
+ "scriberig-domain-test-support",
  "scriberig-graph",
  "scriberig-migration",
  "scriberig-projection",
@@ -482,6 +483,7 @@ dependencies = [
  "pulldown-cmark",
  "scriberig-core",
  "scriberig-derive",
+ "scriberig-domain-test-support",
  "scriberig-graph",
  "scriberig-migration",
  "scriberig-projection",
@@ -495,6 +497,7 @@ dependencies = [
  "blake3",
  "scriberig-core",
  "scriberig-derive",
+ "scriberig-domain-test-support",
  "scriberig-graph",
  "scriberig-projection",
  "scriberig-schema",
@@ -509,12 +512,20 @@ dependencies = [
  "scriberig-core",
  "scriberig-derive",
  "scriberig-domain-code",
+ "scriberig-domain-test-support",
  "scriberig-graph",
  "scriberig-migration",
  "scriberig-projection",
  "scriberig-schema",
  "sr-change",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "scriberig-domain-test-support"
+version = "0.1.0"
+dependencies = [
+ "scriberig-core",
 ]
 
 [[package]]

@@ -15,5 +15,8 @@ scriberig-migration = { path = "../../scriberig-migration" }
 scriberig-projection = { path = "../../scriberig-projection" }
 scriberig-schema = { path = "../../scriberig-schema" }
 
+[dev-dependencies]
+scriberig-domain-test-support = { path = "../test-support" }
+
 [lints]
 workspace = true

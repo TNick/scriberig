@@ -20,5 +20,8 @@ syn = { version = "2.0.110", features = ["full", "extra-traits", "visit"] }
 quote = "1.0"
 blake3 = "1.8.2"
 
+[dev-dependencies]
+scriberig-domain-test-support = { path = "../test-support" }
+
 [lints]
 workspace = true
