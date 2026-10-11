@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+<title id="title">Content change versus structural change</title>
+<desc id="desc">The left half shows content change where paragraph P keeps the same entity identity but changes from revision R1 to R2. The right half shows structural change where a section's ordered children change from P1,P2 to P1,P3,P2 while P1 and P2 remain the same entities.</desc>
+<style>
+  .title{font:700 32px Arial, sans-serif; fill:#1f2937}
+  .subtitle{font:400 18px Arial, sans-serif; fill:#4b5563}
+  .panel{fill:#fafafa;stroke:#d1d5db;stroke-width:2}
+  .h{font:700 24px Arial, sans-serif;fill:#111827}
+  .body{font:400 16px Arial, sans-serif;fill:#374151}
+  .mono{font:600 18px 'Courier New', monospace;fill:#111827}
+  .small{font:400 14px Arial, sans-serif;fill:#6b7280}
+</style>
+<rect width="100%" height="100%" fill="#fff"/>
+<text x="60" y="55" class="title">Content change and structural change are different</text>
+<text x="60" y="85" class="subtitle">The identity model preserves continuity for content edits and limits structural churn to the structure that actually changed.</text>
+
+<rect x="60" y="120" width="500" height="570" rx="16" class="panel"/>
+<text x="90" y="165" class="h">Content change</text>
+<text x="90" y="195" class="body">The paragraph is still the same entity P. Only its current revision changes.</text>
+<rect x="100" y="240" width="180" height="90" rx="12" fill="#e0f2fe" stroke="#0284c7"/>
+<text x="125" y="275" class="mono">P @ R1</text>
+<text x="120" y="305" class="small">"Objects are immutable."</text>
+<line x1="305" y1="285" x2="355" y2="285" stroke="#6b7280" stroke-width="4" marker-end="url(#arrow)"/>
+<rect x="380" y="240" width="180" height="90" rx="12" fill="#e0f2fe" stroke="#0284c7"/>
+<text x="405" y="275" class="mono">P @ R2</text>
+<text x="398" y="305" class="small">"Objects are immutable and</text>
+<text x="408" y="322" class="small">content addressed."</text>
+<rect x="120" y="400" width="380" height="140" rx="12" fill="#f3f4f6" stroke="#9ca3af"/>
+<text x="145" y="435" class="body">Section S contains the same conceptual paragraph entity P.</text>
+<text x="145" y="468" class="mono">S.children = [P]</text>
+<text x="145" y="505" class="body">Only the entity-to-revision resolution changes:</text>
+<text x="145" y="535" class="mono">resolve(S1, P) = R1</text>
+<text x="145" y="560" class="mono">resolve(S2, P) = R2</text>
+
+<rect x="640" y="120" width="500" height="570" rx="16" class="panel"/>
+<text x="670" y="165" class="h">Structural change</text>
+<text x="670" y="195" class="body">The section's child ordering changes. Existing children can keep the same identities.</text>
+<rect x="700" y="245" width="360" height="110" rx="12" fill="#eef2ff" stroke="#6366f1"/>
+<text x="725" y="285" class="mono">S.children @ RC1</text>
+<text x="740" y="325" class="mono">[ P1, P2 ]</text>
+<line x1="880" y1="370" x2="880" y2="420" stroke="#6b7280" stroke-width="4" marker-end="url(#arrow)"/>
+<rect x="700" y="440" width="360" height="140" rx="12" fill="#eef2ff" stroke="#6366f1"/>
+<text x="725" y="480" class="mono">S.children @ RC2</text>
+<text x="740" y="520" class="mono">[ P1, P3, P2 ]</text>
+<text x="725" y="555" class="small">P1 and P2 may remain unchanged; only the</text>
+<text x="725" y="575" class="small">relationship / collection state receives a new revision.</text>
+
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6b7280"/></marker></defs>
+</svg>
