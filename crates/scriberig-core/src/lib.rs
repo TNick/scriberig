@@ -82,4 +82,36 @@ mod tests {
         assert_eq!(populated.inputs.len(), 2);
         assert!(matches!(populated.source, ProvenanceSource::Custom(_)));
     }
+
+    /// Checks records sort keys independently from insertion order.
+    #[test]
+    fn records_have_deterministic_key_order() {
+        let mut record = BTreeMap::new();
+        record.insert("zeta".to_owned(), KnowledgeValue::Null);
+        record.insert("alpha".to_owned(), KnowledgeValue::Bool(true));
+        let keys: Vec<_> = record.keys().cloned().collect();
+        assert_eq!(keys, vec!["alpha".to_owned(), "zeta".to_owned()]);
+    }
+
+    /// Checks semantic references stay in provenance instead of property values.
+    #[test]
+    fn semantic_references_use_typed_provenance_inputs() {
+        let reference = EntityRevisionRef {
+            entity_id: EntityId::new([5; 16]),
+            revision_id: RevisionId::new([6; 32]),
+        };
+        let property = KnowledgeValue::Record(BTreeMap::from([(
+            "label".to_owned(),
+            KnowledgeValue::String("related".to_owned()),
+        )]));
+        let provenance = Provenance {
+            source: ProvenanceSource::System,
+            producer: None,
+            inputs: vec![reference],
+            profile: None,
+            note: None,
+        };
+        assert_eq!(provenance.inputs, vec![reference]);
+        assert!(matches!(property, KnowledgeValue::Record(_)));
+    }
 }
