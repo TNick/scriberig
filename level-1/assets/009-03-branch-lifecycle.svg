@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Lifecycle of a focused agent branch</title>
+  <desc id="desc">A parent session creates a branch with a purpose and scope. The branch inspects relevant knowledge, performs actions or proposes changes, validates the result, and either retries or abandons on failure. On success it produces a BranchResult. Only selected outcomes are promoted back to the parent, while the complete branch remains inspectable.</desc>
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <text x="600" y="50" text-anchor="middle" font-family="system-ui, sans-serif" font-size="30" font-weight="700" fill="#111827">Focused work lives in a branch</text>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6b7280"/></marker></defs>
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    <rect x="65" y="135" width="185" height="82" rx="16" fill="#e8f1ff" stroke="#2457a7" stroke-width="2.5"/>
+    <text x="158" y="170" font-size="20" font-weight="700" fill="#163b72">Parent session</text>
+    <text x="158" y="196" font-size="15" fill="#163b72">current goal + context</text>
+
+    <rect x="295" y="115" width="205" height="122" rx="16" fill="#eefbf3" stroke="#24834c" stroke-width="2.5"/>
+    <text x="398" y="150" font-size="20" font-weight="700" fill="#135c33">Create branch</text>
+    <text x="398" y="178" font-size="15" fill="#135c33">purpose</text>
+    <text x="398" y="200" font-size="15" fill="#135c33">scope + capabilities</text>
+    <text x="398" y="222" font-size="15" fill="#135c33">base state</text>
+
+    <rect x="555" y="135" width="190" height="82" rx="16" fill="#f7fafc" stroke="#4b5563" stroke-width="2"/>
+    <text x="650" y="170" font-size="20" font-weight="700" fill="#111827">Inspect</text>
+    <text x="650" y="196" font-size="15" fill="#374151">relevant knowledge</text>
+
+    <rect x="800" y="135" width="250" height="82" rx="16" fill="#f7fafc" stroke="#4b5563" stroke-width="2"/>
+    <text x="925" y="170" font-size="20" font-weight="700" fill="#111827">Act / propose</text>
+    <text x="925" y="196" font-size="15" fill="#374151">research, edits, alternatives</text>
+
+    <rect x="805" y="330" width="240" height="92" rx="16" fill="#fff7ed" stroke="#c56a16" stroke-width="2.5"/>
+    <text x="925" y="367" font-size="21" font-weight="700" fill="#7c3f0c">Validate</text>
+    <text x="925" y="394" font-size="15" fill="#7c3f0c">tests · checks · review</text>
+
+    <rect x="510" y="330" width="205" height="92" rx="16" fill="#fdf2f8" stroke="#a43c73" stroke-width="2.5"/>
+    <text x="613" y="367" font-size="20" font-weight="700" fill="#7a2854">BranchResult</text>
+    <text x="613" y="394" font-size="15" fill="#7a2854">summary + references</text>
+
+    <rect x="225" y="330" width="205" height="92" rx="16" fill="#f3f0ff" stroke="#6b4cc2" stroke-width="2.5"/>
+    <text x="328" y="367" font-size="20" font-weight="700" fill="#4d3591">Promote selected</text>
+    <text x="328" y="394" font-size="15" fill="#4d3591">migration · decision · answer</text>
+
+    <rect x="225" y="540" width="205" height="80" rx="16" fill="#f7fafc" stroke="#4b5563" stroke-width="2"/>
+    <text x="328" y="575" font-size="19" font-weight="700" fill="#111827">Parent continues</text>
+    <text x="328" y="601" font-size="15" fill="#374151">compact result in context</text>
+
+    <rect x="805" y="540" width="240" height="80" rx="16" fill="#fff1f2" stroke="#b74444" stroke-width="2"/>
+    <text x="925" y="575" font-size="19" font-weight="700" fill="#842f2f">Failure path</text>
+    <text x="925" y="601" font-size="15" fill="#842f2f">revise · retry · abandon</text>
+  </g>
+  <g stroke="#6b7280" stroke-width="2.5" fill="none" marker-end="url(#arrow)">
+    <path d="M250 176 L295 176"/><path d="M500 176 L555 176"/><path d="M745 176 L800 176"/>
+    <path d="M925 217 L925 330"/><path d="M805 376 L715 376"/><path d="M510 376 L430 376"/><path d="M328 422 L328 540"/>
+    <path d="M925 422 L925 540"/>
+    <path d="M805 580 C730 580 720 475 780 436 C820 410 860 410 875 422"/>
+  </g>
+  <g font-family="system-ui, sans-serif" font-size="14" fill="#4b5563">
+    <text x="750" y="365">pass</text>
+    <text x="945" y="488">fail</text>
+    <text x="693" y="553">retry loop</text>
+  </g>
+  <text x="600" y="678" text-anchor="middle" font-family="system-ui, sans-serif" font-size="17" fill="#374151">The branch can remain fully stored even after its parent context collapses it to a descriptor and result.</text>
+</svg>

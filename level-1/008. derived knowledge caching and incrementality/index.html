@@ -5720,6 +5720,9 @@
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>+
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>aggressive derived caching
 </code></pre></div>
+<p>The figure below should be read as an authority boundary, not as a requirement for separate physical databases. Canonical revisions and derived artifacts may share storage, but only canonical state participates in <code>SnapshotId</code>; computing or evicting a derived artifact changes availability and performance, not semantic history.</p>
+<p><img alt="Diagram showing Snapshot S1 inside the canonical knowledge boundary and summary, index, and rendering artifacts outside that boundary; arrows derive the artifacts from S1 while cache changes do not create Snapshot S2." src="../assets/008-01-canonical-derived.svg" /></p>
+<p><em>Figure 1. Canonical snapshots are independent from derived-cache population and eviction.</em></p>
 <hr />
 <h2 id="4-derived-results-are-still-immutable-objects">4. Derived Results Are Still Immutable Objects<a class="headerlink" href="#4-derived-results-are-still-immutable-objects" title="Permanent link">&para;</a></h2>
 <p>Derived does not mean mutable or disposable in representation.</p>
@@ -5785,6 +5788,9 @@
 </ul>
 <p>The exact representation is a lower-level concern.</p>
 <p>The invariant is that no input capable of changing the meaning of the result may be silently omitted.</p>
+<p>The schema view below makes the distinction concrete: the lookup key describes the computation and all meaning-changing inputs, while the immutable result has its own identity and provenance. This is why output equality alone is not sufficient evidence that two derivations are interchangeable.</p>
+<p><img alt="Schema diagram in which exact revisions, scope state, style or policy, implementation environment, and freshness state feed a DerivationKey; the key selects an immutable DerivedResult with attached provenance." src="../assets/008-02-derivation-key-schema.svg" /></p>
+<p><em>Figure 2. A derivation key records the exact semantic and computational conditions under which a cached result is reusable.</em></p>
 <hr />
 <h2 id="6-revision-identity-not-entity-identity-drives-exact-cache-reuse">6. Revision Identity, Not Entity Identity, Drives Exact Cache Reuse<a class="headerlink" href="#6-revision-identity-not-entity-identity-drives-exact-cache-reuse" title="Permanent link">&para;</a></h2>
 <p>An <code>EntityId</code> provides conceptual continuity.</p>
@@ -5917,6 +5923,9 @@
 <a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>FA + FD + FC -&gt; Module Summary M2
 </code></pre></div>
 <p>This is derived structural sharing.</p>
+<p>The key point in the next figure is that transitive derivations form a graph of reusable immutable results. A changed leaf does not force unrelated siblings to be regenerated; only nodes on a dependency path from the changed input must be reconsidered.</p>
+<p><img alt="Before-and-after dependency graphs showing F1, F2, and F3 feeding function summaries and a module summary; after F2 changes, summaries for F1 and F3 are reused while only F2's summary and the module summary are recomputed." src="../assets/008-03-transitive-reuse.svg" /></p>
+<p><em>Figure 3. Transitive derived results preserve structural sharing when only one semantic input changes.</em></p>
 <hr />
 <h2 id="11-derived-dependency-graphs-must-not-be-hidden">11. Derived Dependency Graphs Must Not Be Hidden<a class="headerlink" href="#11-derived-dependency-graphs-must-not-be-hidden" title="Permanent link">&para;</a></h2>
 <p>A cache system that knows only that "result X is stale" is less useful than one that can explain why.</p>
@@ -6025,6 +6034,9 @@
 <p>Some derived knowledge is useful enough to maintain eagerly.</p>
 <p>Other results should be lazy.</p>
 <p>The distinction belongs to policy rather than correctness.</p>
+<p>The flow below separates correctness from scheduling. Exact semantic changes and reverse dependencies determine which results remain valid; only after that decision does policy choose whether affected results should be rebuilt eagerly or left for lazy recomputation.</p>
+<p><img alt="Flow diagram from canonical migration to new snapshot, changed semantic revisions, reverse dependency lookup, then a split into unaffected reusable results and affected results that are either recomputed eagerly or lazily; file timestamps and line numbers are shown as non-authoritative invalidation boundaries." src="../assets/008-04-invalidation-flow.svg" /></p>
+<p><em>Figure 4. Incremental invalidation follows semantic dependency edges, while eager versus lazy recomputation is a scheduling choice.</em></p>
 <hr />
 <h2 id="16-eager-and-lazy-derivation-are-both-valid">16. Eager and Lazy Derivation Are Both Valid<a class="headerlink" href="#16-eager-and-lazy-derivation-are-both-valid" title="Permanent link">&para;</a></h2>
 <p>Examples of derived information that may justify eager maintenance include:</p>
@@ -6240,6 +6252,9 @@
 </ul>
 <p>Immutable storage preserves what was observed.</p>
 <p>It does not make the external world immutable.</p>
+<p>The next figure places freshness and authority side by side because they are independent questions. An old external observation may remain a perfectly accurate record of what was seen at <code>T1</code> while no longer being fresh enough to answer a current query; likewise, even a fresh derived observation does not become canonical until an explicit acceptance operation promotes it.</p>
+<p><img alt="Two-part diagram: an external source produces immutable Observation R1 and a freshness policy decides whether to reuse or revalidate it; separately, a derived observation passes through review or acceptance before becoming a canonical Decision that creates a new snapshot." src="../assets/008-05-freshness-and-promotion.svg" /></p>
+<p><em>Figure 5. External observations need freshness semantics, while promotion into canonical knowledge is an explicit authority transition.</em></p>
 <hr />
 <h2 id="26-compiler-and-tool-results-depend-on-their-environment">26. Compiler and Tool Results Depend on Their Environment<a class="headerlink" href="#26-compiler-and-tool-results-depend-on-their-environment" title="Permanent link">&para;</a></h2>
 <p>Compiler-derived facts are not determined solely by one source-code revision.</p>
@@ -6694,6 +6709,9 @@
 <a id="__codelineno-70-3" name="__codelineno-70-3" href="#__codelineno-70-3"></a>global certainty
 </code></pre></div>
 <p>This is the same separation that allows Scriberig to maintain stable entity identities while still having exact immutable snapshots.</p>
+<p>The diagram below shows why the two levels are complementary rather than competing. When <code>G</code> changes, the global snapshot must change because the canonical universe changed; a summary whose declared dependency is only the unchanged <code>F@FR1</code> remains valid, while a project-wide analysis that explicitly depended on the old snapshot must be recomputed.</p>
+<p><img alt="Before-and-after diagram where Snapshot S1 becomes S2 because Function G changes from GR1 to GR2 while Function F remains FR1; F's summary is reused, but a project-wide analysis keyed to the snapshot is recomputed." src="../assets/008-06-global-local-change.svg" /></p>
+<p><em>Figure 6. <code>SnapshotId</code> provides global certainty, while exact revision dependencies preserve local cache reuse.</em></p>
 <hr />
 <h2 id="50-example-function-edit">50. Example: Function Edit<a class="headerlink" href="#50-example-function-edit" title="Permanent link">&para;</a></h2>
 <p>Suppose a project contains:</p>
