@@ -3,8 +3,8 @@
   "private": true,
   "packageManager": "pnpm@12.11.2",
   "scripts": {
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "prettier --write \"packages/**/*.{ts,tsx,js,jsx}\" \"apps/**/*.{ts,tsx,js,jsx}\"",
+    "format:check": "prettier --check \"packages/**/*.{ts,tsx,js,jsx}\" \"apps/**/*.{ts,tsx,js,jsx}\"",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test"
   },

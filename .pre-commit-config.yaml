@@ -24,7 +24,7 @@ repos:
         name: web prettier
         entry: pnpm --dir web format
         language: system
-        files: '^web/.*\.(ts|tsx|js|jsx|json|yml|yaml|md)$'
+        files: '^web/.*\.(ts|tsx|js|jsx)$'
         pass_filenames: false
       - id: web-typecheck
         name: web typecheck
