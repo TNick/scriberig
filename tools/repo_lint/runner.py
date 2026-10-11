@@ -5,8 +5,15 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from .common import autofix_text, check_file_description, collect_paths, effective_line_count, parse_args
+from .common import (
+    autofix_text,
+    check_file_description,
+    collect_paths,
+    effective_line_count,
+    parse_args,
+)
 from .config import MAX_SOURCE_LINES
+from .declaration_comments import redundant_comment_lines
 from .languages import check_python, check_rust, check_typescript
 
 
@@ -25,18 +32,28 @@ def check_file(path: Path, fix: bool) -> list[str]:
     """
 
     # Run all applicable convention checks for one source file.
-    text = path.read_text(encoding="utf-8")
+    original = path.read_bytes()
+    text = original.decode("utf-8")
     if fix:
         fixed = autofix_text(text)
-        if fixed != text:
-            path.write_text(fixed, encoding="utf-8")
+        comment_lines = redundant_comment_lines(path.suffix, fixed)
+        if comment_lines:
+            fixed = "\n".join(
+                line
+                for index, line in enumerate(fixed.splitlines())
+                if index not in comment_lines
+            ) + "\n"
+        if fixed != text or b"\r\n" in original:
+            with path.open("w", encoding="utf-8", newline="") as source:
+                source.write(fixed)
             text = fixed
 
     issues = check_file_description(path, text)
     count = effective_line_count(path, text)
     if count > MAX_SOURCE_LINES:
         issues.append(
-            f"FILE_SIZE: {count} implementation lines exceed the {MAX_SOURCE_LINES}-line limit; split the file."
+            f"FILE_SIZE: {count} implementation lines exceed the "
+            f"{MAX_SOURCE_LINES}-line limit; split the file."
         )
     if path.suffix == ".rs":
         issues.extend(check_rust(text))
@@ -44,6 +61,11 @@ def check_file(path: Path, fix: bool) -> list[str]:
         issues.extend(check_typescript(text))
     elif path.suffix == ".py":
         issues.extend(check_python(text))
+    issues.extend(
+        f"L{index + 1} DECL_COMMENT: remove explanatory comments adjacent to "
+        "declaration documentation."
+        for index in sorted(redundant_comment_lines(path.suffix, text))
+    )
     return issues
 
 

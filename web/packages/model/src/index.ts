@@ -1,6 +1,6 @@
 /** @file Public export surface for reusable browser-side semantic state. */
 
-// Block: Re-export model areas through one stable package boundary.
+// Re-export model areas through one stable package boundary.
 export * from "./workspace-model";
 export * from "./revision-cache";
 export * from "./snapshot-state";

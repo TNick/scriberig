@@ -32,27 +32,15 @@ Do not evade the limit by compressing unrelated logic. Split by responsibility. 
 
 Keep public re-export boundaries stable when performing a split.
 
-## Logical code blocks
+## Declaration documentation and comments
 
-Every logical code block must have a one- or two-line comment explaining its purpose:
+Document each function, method, class, and type in its language's declaration
+documentation. Do not add a separate explanatory comment immediately before
+that documentation or between the documentation and the declaration. The
+repository linter removes and rejects these duplicate descriptions.
 
-```text
-// Resolve an entity at an exact snapshot before reading its revision.
-```
-
-or in Python:
-
-```text
-# Resolve an entity at an exact snapshot before reading its revision.
-```
-
-A logical block includes functions, methods, classes, structs, traits/interfaces, major implementation sections, and executable top-level sections. Comments must explain intent rather than restate syntax.
-
-For a documented declaration, write its documentation first, then a plain
-explanatory comment immediately after it, then the declaration. Do not put a
-blank line between Rust doc comments and the explanatory comment: Clippy warns
-about that layout. The explanatory comment must not precede or interrupt the
-declaration docstring. Do not add a `Block:` prefix.
+Use comments inside implementations only when they explain a non-obvious
+decision or constraint that the declaration documentation does not cover.
 
 ## File documentation
 

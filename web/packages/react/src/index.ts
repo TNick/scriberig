@@ -1,6 +1,6 @@
 /** @file Public export surface for React bindings over Scriberig model/editor state. */
 
-// Block: Re-export React bindings without introducing visual-system dependencies.
+// Re-export React bindings without introducing visual-system dependencies.
 export * from "./provider";
 export * from "./use-object";
 export * from "./use-children";

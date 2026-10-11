@@ -2,5 +2,11 @@
 
 import { defineConfig } from "vite";
 
-// Block: Export the minimal Vite configuration while product build requirements are scaffold-only.
-export default defineConfig({});
+// Proxy browser API calls to the local Rust development server.
+export default defineConfig({
+  server: {
+    proxy: {
+      "/api": "http://127.0.0.1:7337",
+    },
+  },
+});

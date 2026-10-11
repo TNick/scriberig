@@ -1,6 +1,6 @@
 /** @file Public export surface for the Scriberig TypeScript wire protocol. */
 
-// Block: Re-export protocol areas through one stable package boundary.
+// Re-export protocol areas through one stable package boundary.
 export * from "./ids";
 export * from "./objects";
 export * from "./query";

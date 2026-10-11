@@ -13,7 +13,7 @@ TS_FUNCTION = re.compile(
     r"^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+(\w+)\s*\("
 )
 TS_METHOD = re.compile(
-    r"^\s*(?:(?:public|private|protected|static|async|readonly|override)\s+)*"
+    r"^\s*(?:(?:public|private|protected|static|async|readonly|override)\s+)+"
     r"(\w+)\s*\([^;]*\)\s*(?::\s*[^=\{]+)?\s*\{"
 )
 TS_CLASS = re.compile(r"^\s*(?:export\s+)?(?:default\s+)?class\s+(\w+)")

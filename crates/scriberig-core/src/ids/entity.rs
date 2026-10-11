@@ -14,7 +14,6 @@ use std::str::FromStr;
 ///
 /// # Private members
 /// - `bytes`: Stores the identifier's 128-bit value.
-// Represent a stable conceptual entity independently of its revisions.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct EntityId {
     bytes: [u8; 16],
@@ -72,7 +71,6 @@ impl Display for EntityId {
     ///
     /// # Errors
     /// Returns a formatting error if writing to the formatter fails.
-    // Preserve the entity type prefix in every textual representation.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         write_hex("ent_", &self.bytes, formatter)
     }
@@ -92,7 +90,6 @@ impl FromStr for EntityId {
     ///
     /// # Errors
     /// Returns `InvalidFormat` for a wrong prefix, length, or hexadecimal digit.
-    // Accept only a complete entity identifier in canonical hexadecimal form.
     fn from_str(text: &str) -> Result<Self, Self::Err> {
         Ok(Self::new(parse_hex("ent_", text)?))
     }
@@ -105,7 +102,6 @@ mod tests {
     use std::str::FromStr;
 
     /// Checks round-trip display and parsing for entity identifiers.
-    // Check entity display and parsing are exact inverses.
     #[test]
 
     fn entity_id_round_trip() {

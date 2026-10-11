@@ -5,7 +5,7 @@ from __future__ import annotations
 import ast
 import re
 
-from .common import declaration_text, explanatory_comment_error
+from .common import declaration_text
 from .config import RUST_FUNCTION, RUST_TYPE, TS_CLASS, TS_FUNCTION, TS_METHOD
 
 
@@ -58,9 +58,6 @@ def check_rust(text: str) -> list[str]:
             _check_rust_function(lines, index, function_match.group(1), issues)
         elif type_match:
             name = type_match.group(2)
-            marker_issue = explanatory_comment_error(lines, index, "// ")
-            if marker_issue:
-                issues.append(f"L{index + 1} {name}: {marker_issue}")
             if not rust_docs_before(lines, index):
                 issues.append(f"L{index + 1} {name}: DOC: class-like Rust types require documentation.")
     return issues
@@ -80,9 +77,6 @@ def _check_rust_function(lines: list[str], index: int, name: str, issues: list[s
     """
 
     # Validate one Rust function declaration and its attached documentation.
-    marker_issue = explanatory_comment_error(lines, index, "// ")
-    if marker_issue:
-        issues.append(f"L{index + 1} {name}: {marker_issue}")
     docs = rust_docs_before(lines, index)
     if not docs:
         issues.append(f"L{index + 1} {name}: DOC: every function/method requires `///` documentation.")
@@ -120,6 +114,8 @@ def jsdoc_before(lines: list[str], declaration_index: int) -> str:
 
     # Collect a TypeScript or JavaScript JSDoc block attached to a declaration.
     index = declaration_index - 1
+    if index >= 0 and lines[index].strip().startswith("// "):
+        index -= 1
     if index < 0 or "*/" not in lines[index]:
         return ""
     docs: list[str] = []
@@ -169,9 +165,6 @@ def _check_typescript_function(lines: list[str], index: int, name: str, issues: 
     """
 
     # Validate one JavaScript-family function or method documentation block.
-    marker_issue = explanatory_comment_error(lines, index, "// ")
-    if marker_issue:
-        issues.append(f"L{index + 1} {name}: {marker_issue}")
     docs = jsdoc_before(lines, index)
     if not docs:
         issues.append(f"L{index + 1} {name}: DOC: every function/method requires JSDoc.")
@@ -210,9 +203,6 @@ def _check_typescript_class(lines: list[str], index: int, name: str, issues: lis
     """
 
     # Validate class documentation sections that inventory public and private members.
-    marker_issue = explanatory_comment_error(lines, index, "// ")
-    if marker_issue:
-        issues.append(f"L{index + 1} {name}: {marker_issue}")
     docs = jsdoc_before(lines, index)
     if not docs:
         issues.append(f"L{index + 1} {name}: DOC: every class requires JSDoc.")

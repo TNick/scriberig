@@ -1,6 +1,6 @@
 /** @file Public export surface for the opinionated Material UI Scriberig components. */
 
-// Block: Re-export MUI adapters without moving semantic behavior into this package.
+// Re-export MUI adapters without moving semantic behavior into this package.
 export * from "./MuiObjectTree";
 export * from "./MuiObjectInspector";
 export * from "./MuiRelationBrowser";

@@ -11,7 +11,6 @@ use std::fmt::{self, Display, Formatter};
 ///
 /// # Private members
 /// - `value`: Stores the version number.
-// Represent the version of Scriberig's canonical byte format.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct EncodingVersion {
     value: u16,
@@ -60,7 +59,6 @@ impl Display for EncodingVersion {
     ///
     /// # Errors
     /// Returns a formatting error if writing to the formatter fails.
-    // Render the version in its stable decimal form.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         write!(formatter, "{}", self.value)
     }
@@ -84,7 +82,6 @@ impl Display for EncodingVersion {
 ///
 /// # Private members
 /// - `bytes`: Accumulates the canonical output.
-// Provide an explicit writer for canonical primitives.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct CanonicalWriter {
     bytes: Vec<u8>,
@@ -108,7 +105,6 @@ impl CanonicalWriter {
     ///
     /// # Returns
     /// An empty writer with reserved capacity.
-    // Reserve output capacity before writing canonical data.
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
@@ -120,7 +116,6 @@ impl CanonicalWriter {
     ///
     /// # Parameters
     /// - `tag`: Stable bytes identifying the value domain.
-    // Append a fixed domain tag without an implicit platform format.
     pub fn write_tag(&mut self, tag: &[u8]) {
         self.bytes.extend_from_slice(tag);
     }
@@ -129,7 +124,6 @@ impl CanonicalWriter {
     ///
     /// # Parameters
     /// - `value`: Integer to encode.
-    // Encode a small integer in network byte order.
     pub fn write_u16(&mut self, value: u16) {
         self.bytes.extend_from_slice(&value.to_be_bytes());
     }
@@ -138,7 +132,6 @@ impl CanonicalWriter {
     ///
     /// # Parameters
     /// - `value`: Integer to encode.
-    // Encode a length or scalar in network byte order.
     pub fn write_u64(&mut self, value: u64) {
         self.bytes.extend_from_slice(&value.to_be_bytes());
     }
@@ -147,7 +140,6 @@ impl CanonicalWriter {
     ///
     /// # Parameters
     /// - `value`: Bytes to encode.
-    // Encode arbitrary bytes with an explicit length prefix.
     pub fn write_bytes(&mut self, value: &[u8]) {
         self.write_u64(value.len() as u64);
         self.bytes.extend_from_slice(value);
@@ -157,7 +149,6 @@ impl CanonicalWriter {
     ///
     /// # Parameters
     /// - `value`: String to encode.
-    // Encode UTF-8 text with a byte-length prefix.
     pub fn write_str(&mut self, value: &str) {
         self.write_bytes(value.as_bytes());
     }
@@ -166,7 +157,6 @@ impl CanonicalWriter {
     ///
     /// # Parameters
     /// - `value`: Boolean to encode.
-    // Encode boolean values with explicit zero and one values.
     pub fn write_bool(&mut self, value: bool) {
         self.bytes.push(u8::from(value));
     }
@@ -178,7 +168,6 @@ impl CanonicalWriter {
     ///
     /// # Parameters
     /// - `is_some`: Whether the optional value is present.
-    // Encode option presence before the caller encodes its payload.
     pub fn write_option(&mut self, is_some: bool) {
         self.bytes.push(u8::from(is_some));
     }
@@ -187,7 +176,6 @@ impl CanonicalWriter {
     ///
     /// # Parameters
     /// - `length`: Number of sequence elements.
-    // Encode a sequence length before its ordered elements.
     pub fn write_sequence_len(&mut self, length: usize) {
         self.write_u64(length as u64);
     }
@@ -196,7 +184,6 @@ impl CanonicalWriter {
     ///
     /// # Returns
     /// The current canonical byte sequence.
-    // Expose encoded bytes without transferring ownership.
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.bytes
@@ -206,7 +193,6 @@ impl CanonicalWriter {
     ///
     /// # Returns
     /// The canonical byte sequence.
-    // Transfer the completed canonical byte buffer to the caller.
     #[must_use]
     pub fn into_bytes(self) -> Vec<u8> {
         self.bytes
@@ -214,14 +200,12 @@ impl CanonicalWriter {
 }
 
 /// Encodes a value using explicit Scriberig canonical encoding rules.
-// Define the interface for deterministic canonical value encoding.
 pub trait CanonicalEncode {
     /// Appends this value's canonical representation to a writer.
     ///
     /// # Parameters
     /// - `self`: Value to encode.
     /// - `writer`: Output writer.
-    // Append one value's canonical representation to a writer.
     fn encode_canonical(&self, writer: &mut CanonicalWriter);
 }
 
@@ -231,7 +215,6 @@ mod tests {
     use super::{CanonicalEncode, CanonicalWriter, EncodingVersion};
 
     /// Checks canonical primitive output is repeatable.
-    // Check stable length-delimited canonical primitive output.
     #[test]
 
     fn canonical_writer_encodes_primitives_deterministically() {
@@ -251,12 +234,10 @@ mod tests {
     }
 
     /// Checks independently constructed equivalent values encode identically.
-    // Check independently constructed values share canonical bytes.
     #[test]
 
     fn independent_values_encode_to_the_same_bytes() {
         /// Holds the scalar used by this canonical encoding test.
-        // Define a test value with one canonical scalar field.
         #[derive(Clone, Copy)]
         struct Sample(u64);
 
@@ -266,7 +247,6 @@ mod tests {
             /// # Parameters
             /// - `self`: Sample to encode.
             /// - `writer`: Canonical byte output.
-            // Encode the sample scalar as a canonical unsigned integer.
             fn encode_canonical(&self, writer: &mut CanonicalWriter) {
                 writer.write_u64(self.0);
             }
@@ -280,7 +260,6 @@ mod tests {
     }
 
     /// Keeps the initial encoding version explicit and stable.
-    // Ensure the initial encoding version is explicit and stable.
     #[test]
     fn encoding_version_one_has_stable_value() {
         assert_eq!(EncodingVersion::V1.value(), 1);

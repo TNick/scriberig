@@ -1,13 +1,50 @@
 /** @file Defines the top-level reference Scriberig editor component. */
 
-import type { ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 
-// Block: Render a minimal product shell until the public editor packages gain concrete views.
 /**
- * Render the reference Scriberig editor scaffold.
+ * Render the reference Scriberig editor scaffold and API readiness.
  *
  * @returns The current editor application shell.
  */
 export function App(): ReactElement {
-  return <main>Scriberig editor scaffold</main>;
+  const [apiStatus, setApiStatus] = useState("Checking local API…");
+
+  useEffect(() => {
+    let mounted = true;
+    void fetch("/api/health")
+      .then((response) => {
+        if (!response.ok) {
+          return null;
+        }
+        return response.json() as Promise<{
+          status: string;
+          database: string;
+        } | null>;
+      })
+      .then((result) => {
+        if (mounted && result) {
+          setApiStatus(`API ${result.status}; database ${result.database}`);
+        } else if (mounted) {
+          setApiStatus("Local API is unavailable");
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setApiStatus("Local API is unavailable");
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return (
+    <main>
+      <h1>Scriberig</h1>
+      <p>Editor scaffold</p>
+      <p role="status">{apiStatus}</p>
+    </main>
+  );
 }

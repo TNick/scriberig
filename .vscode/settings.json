@@ -49,11 +49,16 @@
 
   "cSpell.language": "en",
   "cSpell.words": [
-    "scriberig"
+    "COMSPEC",
+    "creationflags",
+    "inspectable",
+    "killpg",
+    "rustup",
+    "scriberig",
+    "srig",
+    "taskkill",
+    "taskkill's",
+    "Vite"
   ],
-  "cSpell.ignorePaths": [
-    "Cargo.lock",
-    "**/target/**",
-    "**/node_modules/**"
-  ]
+  "cSpell.ignorePaths": ["Cargo.lock", "**/target/**", "**/node_modules/**"]
 }

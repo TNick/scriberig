@@ -67,4 +67,24 @@ Apply safe automatic fixes and formatters with:
 ./tools/fix.sh
 ```
 
+## Local app
+
+Start or reuse the API and web application, create the ignored SQLite database
+under `playground/dev-app-runtime/`, and open the editor in your browser with:
+
+```text
+make dev
+```
+
+Stop the processes started by that command with:
+
+```text
+make dev-stop
+```
+
+The Make targets work on Linux and Windows. Repeating `make dev` reuses the
+running services; `make dev-stop` stops them. The current API exposes a health
+endpoint while semantic API operations remain under development. Logs and the
+local database stay in `playground/dev-app-runtime/`.
+
 Repository-specific source and agent rules live in the top-level `AGENTS.md` and are refined by nested `AGENTS.md` files.

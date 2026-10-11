@@ -11,7 +11,6 @@ use std::fmt::{self, Formatter};
 ///
 /// # Private members
 /// None.
-// Describe failures while parsing stable public identifiers.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum IdParseError {
     /// The text does not match the identifier's required representation.
@@ -33,7 +32,6 @@ impl fmt::Display for IdParseError {
     ///
     /// # Errors
     /// Returns a formatting error if writing to the formatter fails.
-    // Keep diagnostics stable and independent of storage backends.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidFormat => formatter.write_str("invalid identifier format"),
@@ -57,7 +55,6 @@ impl std::error::Error for IdParseError {}
 ///
 /// # Errors
 /// Returns a formatting error if writing to the formatter fails.
-// Format fixed-width byte arrays as lowercase hexadecimal.
 pub fn write_hex(prefix: &str, bytes: &[u8], formatter: &mut Formatter<'_>) -> fmt::Result {
     formatter.write_str(prefix)?;
     for byte in bytes {

@@ -10,6 +10,7 @@ repository.workspace = true
 [dependencies]
 scriberig-core = { path = "../scriberig-core" }
 scriberig-store = { path = "../scriberig-store" }
+rusqlite = { version = "0.40.2", features = ["bundled"] }
 
 [lints]
 workspace = true

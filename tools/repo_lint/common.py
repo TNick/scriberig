@@ -201,33 +201,3 @@ def declaration_text(lines: list[str], start: int, limit: int = 20) -> str:
         if "{" in joined or joined.rstrip().endswith(";") or "=>" in joined:
             break
     return " ".join(parts)
-
-
-def explanatory_comment_error(lines: list[str], declaration_index: int, marker: str) -> str | None:
-    """Require an explanatory comment immediately after declaration docs.
-
-    Args:
-        lines: Complete source lines.
-        declaration_index: Zero-based declaration line.
-        marker: Language-specific comment prefix.
-
-    Returns:
-        A violation message, or `None` when the marker is valid.
-    """
-
-    # Locate the explanatory comment after decorators or Rust attributes.
-    index = declaration_index - 1
-    while index >= 0 and not lines[index].strip():
-        index -= 1
-    while index >= 0 and lines[index].strip().startswith("#["):
-        index -= 1
-    if index < 0 or not lines[index].strip().startswith(marker):
-        return "COMMENT_MISSING: add an explanatory comment after declaration docs."
-
-    # Require the explanatory comment to follow the docstring directly.
-    previous = index - 1
-    if marker == "// " and previous >= 0 and lines[previous].strip().startswith("///"):
-        return None
-    if marker == "// " and previous >= 0 and lines[previous].strip().endswith("*/"):
-        return None
-    return "COMMENT_ORDER: place the explanatory comment after declaration docs."

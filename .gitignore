@@ -23,6 +23,7 @@ __pycache__/
 # Generated documentation site and staging tree
 .pages/
 site/
+playground/
 
 # Editors and OS
 .DS_Store

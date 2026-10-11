@@ -74,7 +74,6 @@ macro_rules! digest_id {
             ///
             /// # Errors
             /// Returns a formatting error if writing to the formatter fails.
-            // Keep digest text lowercase and visibly type-specific.
             fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
                 write_hex($prefix, &self.bytes, formatter)
             }
@@ -94,7 +93,6 @@ macro_rules! digest_id {
             ///
             /// # Errors
             /// Returns `InvalidFormat` for a wrong prefix, length, or hex digit.
-            // Reject digest text whose prefix belongs to another identity type.
             fn from_str(text: &str) -> Result<Self, Self::Err> {
                 Ok(Self::new(parse_hex($prefix, text)?))
             }
@@ -122,7 +120,6 @@ mod tests {
     use std::str::FromStr;
 
     /// Checks display and parsing round-trips for both digest identifiers.
-    // Check round-trip formatting for digest identifiers.
     #[test]
 
     fn digest_ids_round_trip() {
@@ -133,7 +130,6 @@ mod tests {
     }
 
     /// Rejects malformed text and a revision ID parsed as a snapshot ID.
-    // Reject malformed and cross-type digest text.
     #[test]
 
     fn digest_parsing_rejects_invalid_text() {
@@ -148,7 +144,6 @@ mod tests {
     }
 
     /// Distinguishes digest identifiers with different underlying bytes.
-    // Ensure distinct digest bytes produce distinct strongly typed IDs.
     #[test]
 
     fn different_digest_bytes_are_different_ids() {

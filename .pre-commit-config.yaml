@@ -22,9 +22,10 @@ repos:
         pass_filenames: false
       - id: web-format
         name: web prettier write and restage
-        entry: bash tools/precommit-web-format.sh
+        entry: python tools/precommit_web_format.py
         language: system
         files: '^web/.*\.(ts|tsx|js|jsx)$'
+        require_serial: true
       - id: web-typecheck
         name: web typecheck
         entry: pnpm --dir web typecheck

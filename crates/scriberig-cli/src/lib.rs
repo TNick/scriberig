@@ -2,7 +2,6 @@
 
 use clap::{Args, Parser, Subcommand};
 
-// Block: Define the stable top-level command grammar exposed by the native executable.
 /// Parse the command line accepted by the `srig` executable.
 ///
 /// # Public members
@@ -12,16 +11,25 @@ use clap::{Args, Parser, Subcommand};
 /// - `command`: Product mode selected by the caller.
 #[derive(Debug, Parser)]
 #[command(name = "srig", version, about, arg_required_else_help = true)]
-struct Cli {
+pub struct Cli {
     /// Product mode selected by the caller.
     #[command(subcommand)]
     command: Command,
 }
 
-// Block: Enumerate product modes without implementing their runtime behavior yet.
 /// Select a native Scriberig product mode.
+///
+/// # Public members
+/// - `Tui`: Starts the terminal UI mode.
+/// - `Serve`: Starts the API server.
+/// - `Run`: Accepts one prompt in one-shot mode.
+/// - `Agent`: Accepts one prompt in agent mode.
+/// - `Maintenance`: Selects repository or database maintenance.
+///
+/// # Private members
+/// None.
 #[derive(Debug, Subcommand)]
-enum Command {
+pub enum Command {
     /// Start the interactive terminal UI.
     Tui,
     /// Start the API server.
@@ -34,68 +42,46 @@ enum Command {
     Maintenance,
 }
 
-// Block: Capture API server endpoint options while server startup remains a stub.
 /// Configure the API server startup stub.
 ///
 /// # Public members
-/// None.
+/// - `host`: Interface address that the server should bind.
+/// - `port`: TCP port that the server should bind.
+/// - `db`: SQLite database file for the server.
 ///
 /// # Private members
-/// - `host`: Interface address that the eventual server should bind.
-/// - `port`: TCP port that the eventual server should bind.
+/// None.
 #[derive(Debug, Args)]
-struct ServeArgs {
-    /// Interface address that the eventual server should bind.
+pub struct ServeArgs {
+    /// Interface address that the server should bind.
     #[arg(long, default_value = "127.0.0.1")]
-    host: String,
-    /// TCP port that the eventual server should bind.
+    pub host: String,
+    /// TCP port that the server should bind.
     #[arg(long, default_value_t = 7337)]
-    port: u16,
+    pub port: u16,
+    /// SQLite database path used by the local API server.
+    #[arg(long, default_value = "playground/dev-app-runtime/scriberig.sqlite")]
+    pub db: std::path::PathBuf,
 }
 
-// Block: Capture a prompt consistently for one-shot and integrated-agent command stubs.
 /// Store a prompt accepted by a prompt-driven command.
 ///
 /// # Public members
-/// None.
+/// - `prompt`: User prompt forwarded by a future runtime implementation.
 ///
 /// # Private members
-/// - `prompt`: User prompt forwarded by a future runtime implementation.
+/// None.
 #[derive(Debug, Args)]
-struct PromptArgs {
+pub struct PromptArgs {
     /// User prompt forwarded by a future runtime implementation.
-    prompt: String,
+    pub prompt: String,
 }
 
-// Block: Parse the process command line and dispatch to the currently selected stub.
-/// Run the `srig` command-line entry point.
-pub fn run() {
-    let cli = Cli::parse();
-    dispatch(cli.command);
-}
-
-// Block: Keep mode handling explicit while each product runtime is still unimplemented.
-/// Dispatch a parsed product mode to its current stub behavior.
+/// Parse command-line input for the `srig` executable.
 ///
-/// # Parameters
-/// - `command`: Parsed product mode and its command-specific arguments.
-fn dispatch(command: Command) {
-    match command {
-        Command::Tui => println!("srig tui: terminal UI mode is not implemented yet."),
-        Command::Serve(args) => println!(
-            "srig serve: API server mode is not implemented yet (requested {}:{}).",
-            args.host, args.port
-        ),
-        Command::Run(args) => println!(
-            "srig run: one-shot mode is not implemented yet (accepted {} prompt bytes).",
-            args.prompt.len()
-        ),
-        Command::Agent(args) => println!(
-            "srig agent: agent mode is not implemented yet (accepted {} prompt bytes).",
-            args.prompt.len()
-        ),
-        Command::Maintenance => {
-            println!("srig maintenance: maintenance mode is not implemented yet.");
-        }
-    }
+/// # Returns
+/// The selected product mode and its arguments.
+#[must_use]
+pub fn parse() -> Command {
+    Cli::parse().command
 }
