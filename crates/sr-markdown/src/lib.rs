@@ -10,6 +10,7 @@ pub mod parser;
 pub mod reconcile;
 pub mod render;
 pub mod style;
+pub mod three_way;
 
 pub use adapter::{MARKDOWN_KIND, MarkdownAdapter};
 pub use candidate::CandidateDocument;
@@ -23,3 +24,7 @@ pub use reconcile::{
 pub use render::{render, render_document};
 pub use sr_projection::ProjectionAdapter;
 pub use style::MarkdownStyle;
+pub use three_way::{
+    MarkdownConflict, MarkdownConflictKind, MarkdownSynchronizationResult, ThreeWayOutcome,
+    synchronize, three_way_merge,
+};
