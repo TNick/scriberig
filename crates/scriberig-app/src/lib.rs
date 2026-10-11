@@ -14,6 +14,7 @@ pub mod promotion;
 pub mod query;
 pub mod request;
 pub mod result;
+pub mod service;
 pub mod trust;
 pub mod validation;
 
@@ -43,6 +44,7 @@ pub use request::{
     RenderRequest, SnapshotSelector,
 };
 pub use result::{ApplicationResult, OperationStarted, OperationSummary};
+pub use service::{ApplicationBackend, ApplicationService};
 pub use trust::{
     ApprovalSummary, CapabilityDenial, ConflictSummary, ExternalEffectSummary, PolicyDecision,
     PolicyEvaluation, SourceKind, TrustSummary, ValidationState,
