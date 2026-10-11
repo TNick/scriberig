@@ -22,13 +22,14 @@ async function waitFor(url: string): Promise<void> {
 
 /** Starts and verifies the repository-managed development services. */
 export default async function globalSetup(_config: FullConfig): Promise<void> {
-  const process = spawn("python", ["tools/dev.py", "start"], {
+  const child = spawn("python", ["tools/dev.py", "start"], {
     cwd: repositoryRoot,
     detached: true,
+    env: { ...process.env, SCRIBERIG_NO_BROWSER: "1" },
     stdio: "ignore",
     windowsHide: true,
   });
-  process.unref();
+  child.unref();
   await waitFor("http://127.0.0.1:7337/api/health");
   await waitFor("http://127.0.0.1:5173");
 }

@@ -381,7 +381,7 @@ def start() -> None:
         raise RuntimeError("Development services did not start; inspect playground/dev-app-runtime logs.")
 
     browser_marker = RUNTIME / "browser-opened"
-    if not browser_marker.exists():
+    if not browser_marker.exists() and not os.environ.get("SCRIBERIG_NO_BROWSER"):
         if not webbrowser.open(WEB_URL, new=1):
             print("Could not open the browser automatically; visit " + WEB_URL)
         browser_marker.write_text("opened\n", encoding="utf-8")

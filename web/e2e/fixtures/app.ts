@@ -7,6 +7,7 @@ export interface BrowserDiagnostics {
   consoleErrors: string[];
   pageErrors: string[];
   failedRequests: string[];
+  privateRequests: string[];
 }
 
 /** Installs strict browser diagnostics and returns the collected failures. */
@@ -15,6 +16,7 @@ export function installDiagnostics(page: Page): BrowserDiagnostics {
     consoleErrors: [],
     pageErrors: [],
     failedRequests: [],
+    privateRequests: [],
   };
   page.on("console", (message) => {
     if (message.type() === "error") diagnostics.consoleErrors.push(message.text());
@@ -22,6 +24,12 @@ export function installDiagnostics(page: Page): BrowserDiagnostics {
   page.on("pageerror", (error) => diagnostics.pageErrors.push(error.message));
   page.on("requestfailed", (request) => {
     if (!request.url().includes("favicon")) diagnostics.failedRequests.push(request.url());
+  });
+  page.on("request", (request) => {
+    const url = request.url().toLowerCase();
+    if (/(sqlite|database|crates|server\/|\.rs(?:$|\?))/.test(url)) {
+      diagnostics.privateRequests.push(request.url());
+    }
   });
   return diagnostics;
 }
@@ -31,6 +39,7 @@ export function expectHealthyBrowser(diagnostics: BrowserDiagnostics): void {
   expect(diagnostics.consoleErrors).toEqual([]);
   expect(diagnostics.pageErrors).toEqual([]);
   expect(diagnostics.failedRequests).toEqual([]);
+  expect(diagnostics.privateRequests).toEqual([]);
 }
 
 /** Test fixture with the standard Scriberig browser diagnostics installed. */
