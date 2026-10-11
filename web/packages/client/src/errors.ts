@@ -1,4 +1,2 @@
-/** @file Reserves a focused package module for its owning implementation task. */
-
-// Keep the scaffold module empty until the relevant design defines its semantics.
-export {};
+/** @file Re-exports client error categories for consumers. */
+export { ServerProtocolError, TransportError } from "./transport";
