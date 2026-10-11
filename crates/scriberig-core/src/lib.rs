@@ -5,6 +5,8 @@
 pub mod encoding;
 /// Defines strongly typed universal identifiers and names.
 pub mod ids;
+/// Defines actor identity independently from authority.
+pub mod principal;
 /// Defines origin and exact-input provenance records.
 pub mod provenance;
 /// Defines domain-neutral property values and canonical/derived classification.
@@ -13,6 +15,7 @@ pub mod value;
 // Re-export the stable identifier API at the crate root.
 pub use encoding::{CanonicalEncode, CanonicalWriter, EncodingVersion};
 pub use ids::{EntityId, IdParseError, ObjectType, OperationId, RevisionId, RootName, SnapshotId};
+pub use principal::{PrincipalId, PrincipalKind};
 pub use provenance::{EntityRevisionRef, Provenance, ProvenanceSource};
 pub use value::{KnowledgeClass, KnowledgeValue};
 

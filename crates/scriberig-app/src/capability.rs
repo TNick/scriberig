@@ -1,165 +1,266 @@
 //! Defines runtime capability metadata without implementing authorization policy.
 
-use std::fmt::{self, Display, Formatter};
+use crate::operation::OperationKind;
+use std::collections::BTreeSet;
+#[path = "capability_descriptor.rs"]
+mod capability_descriptor;
 
-use scriberig_core::{ObjectType, RootName, SnapshotId};
-use scriberig_query::{QueryValue, Selection};
+pub use capability_descriptor::{
+    BranchContext, CapabilityDescriptor, CapabilityId, CapabilityKind, DomainOperationRequest,
+    RuntimeCapability,
+};
 
-/// Identifies a capability exposed by the current application configuration.
+use scriberig_core::{EntityId, ObjectType, PrincipalId, RootName, SnapshotId};
+
+/// Names an action that a capability can authorize.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct CapabilityId(String);
-
-impl CapabilityId {
-    /// Creates a capability identifier from a nonempty name.
-    ///
-    /// # Parameters
-    /// - `name`: Stable capability name.
-    ///
-    /// # Returns
-    /// The capability identifier.
-    ///
-    /// # Errors
-    /// Returns an error when `name` is empty or whitespace-only.
-    pub fn new(name: impl Into<String>) -> Result<Self, &'static str> {
-        let name = name.into();
-        if name.trim().is_empty() {
-            return Err("capability name must not be empty");
-        }
-        Ok(Self(name))
-    }
-
-    /// Borrows the stable capability name.
-    ///
-    /// # Parameters
-    /// - `self`: Capability identifier to inspect.
-    ///
-    /// # Returns
-    /// The capability name.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
+pub enum CapabilityAction {
+    /// Inspect semantic state.
+    Inspect,
+    /// Execute a structural or discovery query.
+    Query,
+    /// Render through a registered view.
+    Render,
+    /// Propose a change without applying it.
+    Propose,
+    /// Modify a branch or workspace.
+    ModifyBranch,
+    /// Run validation.
+    Validate,
+    /// Promote a candidate to canonical state.
+    Promote,
+    /// Invoke an external destination.
+    InvokeExternal,
+    /// An extensible domain action.
+    Custom(String),
 }
 
-impl Display for CapabilityId {
-    /// Formats the stable capability name.
-    ///
-    /// # Parameters
-    /// - `self`: Capability identifier to format.
-    /// - `formatter`: Destination formatter.
-    ///
-    /// # Returns
-    /// A formatting result.
-    ///
-    /// # Errors
-    /// Returns a formatting error when the destination rejects the write.
-    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
-        formatter.write_str(self.as_str())
-    }
+/// Scope over which a capability applies.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub enum CapabilityScope {
+    /// The project and its semantic descendants.
+    Project,
+    /// One session.
+    Session(String),
+    /// One named branch.
+    Branch(RootName),
+    /// One entity only.
+    Entity(EntityId),
+    /// One typed relation from an entity.
+    Relation {
+        /// Entity from which the relation is traversed.
+        entity: EntityId,
+        /// Relation name.
+        relation: String,
+    },
+    /// One projection for an entity.
+    Projection {
+        /// Entity being projected.
+        entity: EntityId,
+        /// Projection name.
+        projection: String,
+    },
+    /// One declared external destination.
+    ExternalDestination(String),
+    /// An extensible application scope.
+    Custom(String),
 }
 
-/// Describes one capability available from an application configuration.
+/// Restricts a capability to specific semantic contexts.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RuntimeCapability {
-    /// Stable capability identifier.
-    pub id: CapabilityId,
-    /// Short human-readable capability description.
-    pub description: String,
-    /// Whether the capability is available in this configuration.
-    pub available: bool,
-    /// Optional domain or scope metadata.
-    pub scope: Option<String>,
-}
-
-/// Groups capabilities that extend the universal operation grammar.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum CapabilityKind {
-    /// A typed relation traversal.
-    Relation,
-    /// A typed collection listing.
-    Collection,
-    /// A registered projection or view.
-    View,
-    /// A domain-specific semantic operation.
-    DomainOperation,
-    /// A provider-specific discovery strategy.
-    FindStrategy,
-}
-
-/// Describes an available capability without embedding executable behavior.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CapabilityDescriptor {
-    /// Stable capability identifier.
-    pub id: CapabilityId,
-    /// Capability category.
-    pub kind: CapabilityKind,
-    /// Short display label.
-    pub label: String,
-    /// Short semantic description.
-    pub description: String,
-    /// Entity types for which this capability is available.
-    pub entity_types: Vec<ObjectType>,
-    /// Whether the capability is currently available.
-    pub available: bool,
-    /// Whether the result is canonical or derived.
-    pub derived: bool,
-    /// Optional coarse information-cost estimate.
-    pub estimated_items: Option<u64>,
-}
-
-/// Identifies the branch/change context for a domain operation request.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BranchContext {
-    /// Exact snapshot on which the operation is based.
-    pub base_snapshot: SnapshotId,
-    /// Optional named branch context.
+pub struct CapabilityConstraints {
+    /// Optional exact snapshot binding.
+    pub snapshot: Option<SnapshotId>,
+    /// Optional branch binding.
     pub branch: Option<RootName>,
+    /// Optional domain/type binding.
+    pub domain: Option<ObjectType>,
+    /// Optional universal operation binding.
+    pub operation: Option<OperationKind>,
+    /// Optional external destination binding.
+    pub external_destination: Option<String>,
+    /// Optional lifetime label supplied by the authority issuer.
+    pub lifetime: Option<String>,
 }
 
-/// Describes one extensible domain operation request.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct DomainOperationRequest {
-    /// Capability implementing the domain operation.
-    pub capability: CapabilityId,
-    /// Semantic subject and optional projection context.
-    pub subject: Selection,
-    /// Branch/change context for eventual canonical application.
-    pub context: BranchContext,
-    /// Typed operation arguments.
-    pub arguments: Vec<(String, QueryValue)>,
-}
-
-impl RuntimeCapability {
-    /// Creates a runtime capability descriptor.
-    ///
-    /// # Parameters
-    /// - `id`: Stable capability identifier.
-    /// - `description`: Short capability description.
-    /// - `available`: Availability in the current configuration.
-    ///
-    /// # Returns
-    /// A capability descriptor without an optional scope.
+impl CapabilityConstraints {
+    /// Creates unconstrained capability context.
     #[must_use]
-    pub fn new(id: CapabilityId, description: impl Into<String>, available: bool) -> Self {
+    pub const fn unrestricted() -> Self {
         Self {
-            id,
-            description: description.into(),
-            available,
-            scope: None,
+            snapshot: None,
+            branch: None,
+            domain: None,
+            operation: None,
+            external_destination: None,
+            lifetime: None,
         }
     }
+}
 
-    /// Adds optional domain or scope metadata.
+/// Represents explicit authority without embedding authentication state.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Capability {
+    /// Scope covered by this capability.
+    pub scope: CapabilityScope,
+    /// Actions granted within the scope.
+    pub actions: BTreeSet<CapabilityAction>,
+    /// Additional semantic constraints.
+    pub constraints: CapabilityConstraints,
+}
+
+impl Capability {
+    /// Reports whether this capability covers an action and request context.
     ///
     /// # Parameters
-    /// - `self`: Capability descriptor to update.
-    /// - `scope`: Scope metadata shown to callers.
+    /// - `self`: Capability being checked.
+    /// - `action`: Requested action.
+    /// - `scope`: Requested scope.
+    /// - `snapshot`: Exact snapshot requested, when applicable.
+    /// - `operation`: Universal operation requested, when applicable.
     ///
     /// # Returns
-    /// The updated descriptor.
+    /// `true` only when action, scope, and constraints all match.
     #[must_use]
-    pub fn with_scope(mut self, scope: impl Into<String>) -> Self {
-        self.scope = Some(scope.into());
-        self
+    pub fn covers(
+        &self,
+        action: &CapabilityAction,
+        scope: &CapabilityScope,
+        snapshot: Option<SnapshotId>,
+        operation: Option<OperationKind>,
+    ) -> bool {
+        let external_scope = matches!(scope, CapabilityScope::ExternalDestination(_));
+        self.actions.contains(action)
+            && (!matches!(action, CapabilityAction::InvokeExternal) || external_scope)
+            && scope_covers(&self.scope, scope)
+            && self
+                .constraints
+                .snapshot
+                .is_none_or(|expected| Some(expected) == snapshot)
+            && self
+                .constraints
+                .branch
+                .as_ref()
+                .is_none_or(|expected| matches!(scope, CapabilityScope::Branch(actual) if actual == expected))
+            && self
+                .constraints
+                .external_destination
+                .as_ref()
+                .is_none_or(|expected| {
+                    matches!(scope, CapabilityScope::ExternalDestination(actual) if actual == expected)
+                })
+            && self
+                .constraints
+                .operation
+                .is_none_or(|expected| Some(expected) == operation)
     }
+
+    /// Reports whether a delegated capability is no broader than this parent.
+    ///
+    /// # Parameters
+    /// - `self`: Parent capability.
+    /// - `child`: Delegated capability to check.
+    ///
+    /// # Returns
+    /// `true` when the child grants only a subset of the parent's authority.
+    #[must_use]
+    pub fn can_delegate(&self, child: &Self) -> bool {
+        child.actions.is_subset(&self.actions)
+            && scope_covers(&self.scope, &child.scope)
+            && constraints_cover(&self.constraints, &child.constraints)
+    }
+}
+
+/// Describes a denied capability request without exposing restricted content.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AuthorizationDenial {
+    /// Principal that requested the action, when known.
+    pub principal: Option<PrincipalId>,
+    /// Action requested.
+    pub action: CapabilityAction,
+    /// Scope requested.
+    pub scope: CapabilityScope,
+    /// Structured reason for denial.
+    pub reason: String,
+    /// Narrower alternatives, when available.
+    pub alternatives: Vec<CapabilityAction>,
+    /// Whether an approval process may grant the action.
+    pub approval_possible: bool,
+}
+
+/// Reports whether a parent scope contains a requested child scope.
+///
+/// # Parameters
+/// - `parent`: Scope granted by the existing capability.
+/// - `child`: Scope requested by the operation or delegation.
+///
+/// # Returns
+/// `true` when the parent scope contains the child scope.
+fn scope_covers(parent: &CapabilityScope, child: &CapabilityScope) -> bool {
+    match (parent, child) {
+        (CapabilityScope::Project, CapabilityScope::ExternalDestination(_)) => false,
+        (CapabilityScope::Project, _) => true,
+        (CapabilityScope::Session(parent), CapabilityScope::Session(child))
+        | (
+            CapabilityScope::ExternalDestination(parent),
+            CapabilityScope::ExternalDestination(child),
+        )
+        | (CapabilityScope::Custom(parent), CapabilityScope::Custom(child)) => parent == child,
+        (CapabilityScope::Branch(parent), CapabilityScope::Branch(child)) => parent == child,
+        (CapabilityScope::Entity(parent), CapabilityScope::Entity(child)) => parent == child,
+        (
+            CapabilityScope::Relation {
+                entity: parent_entity,
+                relation: parent_relation,
+            },
+            CapabilityScope::Relation {
+                entity: child_entity,
+                relation: child_relation,
+            },
+        ) => parent_entity == child_entity && parent_relation == child_relation,
+        (
+            CapabilityScope::Projection {
+                entity: parent_entity,
+                projection: parent_projection,
+            },
+            CapabilityScope::Projection {
+                entity: child_entity,
+                projection: child_projection,
+            },
+        ) => parent_entity == child_entity && parent_projection == child_projection,
+        _ => false,
+    }
+}
+
+/// Reports whether child constraints are no broader than parent constraints.
+///
+/// # Parameters
+/// - `parent`: Constraints granted by the existing capability.
+/// - `child`: Constraints requested by the delegated capability.
+///
+/// # Returns
+/// `true` when every child constraint remains within the parent bounds.
+fn constraints_cover(parent: &CapabilityConstraints, child: &CapabilityConstraints) -> bool {
+    parent
+        .snapshot
+        .is_none_or(|value| child.snapshot == Some(value))
+        && parent
+            .branch
+            .as_ref()
+            .is_none_or(|value| child.branch.as_ref() == Some(value))
+        && parent
+            .domain
+            .as_ref()
+            .is_none_or(|value| child.domain.as_ref() == Some(value))
+        && parent
+            .operation
+            .is_none_or(|value| child.operation == Some(value))
+        && parent
+            .external_destination
+            .as_ref()
+            .is_none_or(|value| child.external_destination.as_ref() == Some(value))
+        && parent
+            .lifetime
+            .as_ref()
+            .is_none_or(|value| child.lifetime.as_ref() == Some(value))
 }

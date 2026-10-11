@@ -12,7 +12,8 @@ pub mod result;
 pub mod trust;
 
 pub use capability::{
-    BranchContext, CapabilityDescriptor, CapabilityId, CapabilityKind, DomainOperationRequest,
+    AuthorizationDenial, BranchContext, Capability, CapabilityAction, CapabilityConstraints,
+    CapabilityDescriptor, CapabilityId, CapabilityKind, CapabilityScope, DomainOperationRequest,
     RuntimeCapability,
 };
 pub use command::{CommandContext, CommandKind};
@@ -34,12 +35,31 @@ pub use trust::{
 #[cfg(test)]
 mod tests {
     use super::{
-        ApplicationError, ApplicationEvent, BranchContext, CapabilityDescriptor, CapabilityId,
-        CapabilityKind, DetailLevel, DomainOperationRequest, InspectRequest, InspectResult,
-        OperationKind, OperationStatus, SnapshotResolution, SnapshotSelector,
+        ApplicationError, ApplicationEvent, AuthorizationDenial, BranchContext, Capability,
+        CapabilityAction, CapabilityConstraints, CapabilityDescriptor, CapabilityId,
+        CapabilityKind, CapabilityScope, DetailLevel, DomainOperationRequest, InspectRequest,
+        InspectResult, OperationKind, OperationStatus, SnapshotResolution, SnapshotSelector,
     };
-    use scriberig_core::{EntityId, ObjectType, RevisionId, RootName, SnapshotId};
+    use std::collections::BTreeSet;
+
+    use scriberig_core::{EntityId, ObjectType, PrincipalId, RevisionId, RootName, SnapshotId};
     use scriberig_query::Selection;
+
+    /// Creates a one-action capability for a scope test.
+    ///
+    /// # Parameters
+    /// - `scope`: Scope granted by the test capability.
+    /// - `action`: Action granted by the test capability.
+    ///
+    /// # Returns
+    /// A capability containing the requested single action.
+    fn capability(scope: CapabilityScope, action: CapabilityAction) -> Capability {
+        Capability {
+            scope,
+            actions: [action].into_iter().collect(),
+            constraints: CapabilityConstraints::unrestricted(),
+        }
+    }
 
     /// Verifies terminal operation states remain distinguishable from active states.
     #[test]
@@ -160,5 +180,122 @@ mod tests {
         };
         assert_eq!(request.capability, capability.id);
         assert_eq!(request.subject.entity, entity);
+    }
+
+    /// Verifies read and branch changes do not imply promotion authority.
+    #[test]
+    fn capabilities_keep_mutating_actions_distinct() {
+        let inspect = capability(CapabilityScope::Project, CapabilityAction::Inspect);
+        let modify = capability(CapabilityScope::Project, CapabilityAction::ModifyBranch);
+        let project = CapabilityScope::Project;
+        assert!(!inspect.covers(&CapabilityAction::Promote, &project, None, None,));
+        assert!(!modify.covers(&CapabilityAction::Promote, &project, None, None,));
+    }
+
+    /// Verifies project reads cover entities while entity reads stay narrow.
+    #[test]
+    fn capability_scopes_preserve_least_authority() {
+        let entity = EntityId::new([10; 16]);
+        let project = capability(CapabilityScope::Project, CapabilityAction::Inspect);
+        let entity_read = capability(CapabilityScope::Entity(entity), CapabilityAction::Inspect);
+        let relation = CapabilityScope::Relation {
+            entity,
+            relation: "depends_on".to_owned(),
+        };
+        assert!(project.covers(
+            &CapabilityAction::Inspect,
+            &CapabilityScope::Entity(entity),
+            None,
+            None,
+        ));
+        assert!(!entity_read.covers(&CapabilityAction::Inspect, &relation, None, None));
+    }
+
+    /// Verifies external invocation requires an explicitly named destination.
+    #[test]
+    fn external_invocation_requires_destination_scope() {
+        let capability = capability(
+            CapabilityScope::ExternalDestination("https://example.test".to_owned()),
+            CapabilityAction::InvokeExternal,
+        );
+        assert!(!capability.covers(
+            &CapabilityAction::InvokeExternal,
+            &CapabilityScope::Project,
+            None,
+            None,
+        ));
+        assert!(capability.covers(
+            &CapabilityAction::InvokeExternal,
+            &CapabilityScope::ExternalDestination("https://example.test".to_owned()),
+            None,
+            None,
+        ));
+    }
+
+    /// Verifies delegated capabilities cannot widen scope or add actions.
+    #[test]
+    fn delegation_cannot_widen_authority() {
+        let parent = capability(CapabilityScope::Project, CapabilityAction::Inspect);
+        let child = capability(
+            CapabilityScope::Entity(EntityId::new([11; 16])),
+            CapabilityAction::Inspect,
+        );
+        let promoted = capability(CapabilityScope::Project, CapabilityAction::Promote);
+        assert!(parent.can_delegate(&child));
+        assert!(!parent.can_delegate(&promoted));
+        assert!(!child.can_delegate(&parent));
+    }
+
+    /// Verifies exact snapshot constraints reject other snapshots.
+    #[test]
+    fn snapshot_constraints_are_enforced() {
+        let snapshot = SnapshotId::new([12; 32]);
+        let constrained = Capability {
+            scope: CapabilityScope::Project,
+            actions: [CapabilityAction::Inspect].into_iter().collect(),
+            constraints: CapabilityConstraints {
+                snapshot: Some(snapshot),
+                ..CapabilityConstraints::unrestricted()
+            },
+        };
+        assert!(constrained.covers(
+            &CapabilityAction::Inspect,
+            &CapabilityScope::Project,
+            Some(snapshot),
+            None,
+        ));
+        assert!(!constrained.covers(
+            &CapabilityAction::Inspect,
+            &CapabilityScope::Project,
+            Some(SnapshotId::new([13; 32])),
+            None,
+        ));
+    }
+
+    /// Verifies denials remain structured and principal identity grants nothing.
+    #[test]
+    fn denial_is_structured_and_identity_is_not_authority() {
+        let principal = PrincipalId::new("agent-1").expect("valid principal");
+        let denial = AuthorizationDenial {
+            principal: Some(principal.clone()),
+            action: CapabilityAction::Promote,
+            scope: CapabilityScope::Project,
+            reason: "no promotion capability".to_owned(),
+            alternatives: vec![CapabilityAction::Inspect],
+            approval_possible: true,
+        };
+        assert_eq!(denial.principal, Some(principal));
+        assert_eq!(denial.alternatives, vec![CapabilityAction::Inspect]);
+        let no_capability = Capability {
+            scope: CapabilityScope::Project,
+            actions: BTreeSet::default(),
+            constraints: CapabilityConstraints::unrestricted(),
+        };
+        assert!(!no_capability.covers(
+            &CapabilityAction::Inspect,
+            &CapabilityScope::Project,
+            None,
+            None,
+        ));
     }
 }
