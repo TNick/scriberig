@@ -20,6 +20,12 @@ repos:
         language: system
         files: '(^Cargo\.toml$|\.rs$)'
         pass_filenames: false
+      - id: cargo-clippy
+        name: cargo clippy with warnings denied
+        entry: cargo clippy --workspace --all-targets -- -D warnings
+        language: system
+        files: '(^Cargo\.toml$|\.rs$)'
+        pass_filenames: false
       - id: web-format
         name: web prettier write and restage
         entry: python tools/precommit_web_format.py

@@ -37,9 +37,10 @@ rust-version = "1.85"
 repository = "https://github.com/TNick/scriberig"
 
 [workspace.lints.rust]
+warnings = "deny"
 missing_docs = "warn"
 unsafe_code = "forbid"
 
 [workspace.lints.clippy]
-all = { level = "warn", priority = -1 }
-pedantic = { level = "warn", priority = -1 }
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }

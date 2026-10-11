@@ -107,9 +107,14 @@ Before committing:
 python3 tools/lint_repo.py --fix
 cargo fmt --all
 cargo check --workspace --all-targets
+cargo clippy --workspace --all-targets -- -D warnings
 pnpm --dir web format
 pnpm --dir web typecheck
 ```
+
+Rust and Clippy warnings are errors. Fix the underlying issue instead of
+silencing an actionable warning; any exception must be narrowly scoped and
+explained next to the affected code.
 
 Run `tools/install-hooks.sh` once after cloning to install the pre-commit hooks. Hooks intentionally auto-fix safe formatting where possible and reject the commit when a convention still cannot be satisfied automatically.
 
