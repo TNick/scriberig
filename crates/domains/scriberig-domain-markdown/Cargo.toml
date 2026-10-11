@@ -14,6 +14,7 @@ scriberig-graph = { path = "../../scriberig-graph" }
 scriberig-migration = { path = "../../scriberig-migration" }
 scriberig-projection = { path = "../../scriberig-projection" }
 scriberig-schema = { path = "../../scriberig-schema" }
+pulldown-cmark = "0.10"
 
 [lints]
 workspace = true
