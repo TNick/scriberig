@@ -1,0 +1,1 @@
+//! Defines compact structural summaries.

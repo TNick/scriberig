@@ -522,6 +522,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "sr-change"
+version = "0.1.0"
+dependencies = [
+ "scriberig-core",
+ "scriberig-store",
+]
+
+[[package]]
 name = "sr-markdown"
 version = "0.1.0"
 dependencies = [

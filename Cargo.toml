@@ -3,6 +3,7 @@ resolver = "3"
 members = [
   "crates/scriberig-core",
   "crates/scriberig-store",
+  "crates/sr-change",
   "crates/scriberig-store-memory",
   "crates/scriberig-store-sqlite",
   "crates/scriberig-schema",

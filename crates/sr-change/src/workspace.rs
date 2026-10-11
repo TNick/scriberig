@@ -1,0 +1,1 @@
+//! Defines isolated speculative work.

@@ -1,0 +1,15 @@
+[package]
+name = "sr-change"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Backend-independent semantic change model for Scriberig."
+repository.workspace = true
+
+[dependencies]
+scriberig-core = { path = "../scriberig-core" }
+scriberig-store = { path = "../scriberig-store" }
+
+[lints]
+workspace = true

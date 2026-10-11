@@ -1,0 +1,1 @@
+//! Defines structured semantic conflicts.
