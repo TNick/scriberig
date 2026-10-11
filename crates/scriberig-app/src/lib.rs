@@ -6,6 +6,7 @@ pub mod context;
 pub mod error;
 pub mod event;
 pub mod operation;
+pub mod promotion;
 pub mod query;
 pub mod request;
 pub mod result;
@@ -22,6 +23,10 @@ pub use context::{ApplicationContext, CapabilityContext, Principal};
 pub use error::ApplicationError;
 pub use event::ApplicationEvent;
 pub use operation::{OperationId, OperationKind, OperationProgress, OperationStatus};
+pub use promotion::{
+    ApprovalEvidence, PromotionDecision, PromotionPolicyEvaluation, PromotionRequest,
+    evaluate_promotion, promote_candidate,
+};
 pub use query::{DetailLevel, InspectRequest, InspectResult, QueryService, SnapshotResolution};
 pub use request::{
     ApplicationRequest, ApplyRequest, BranchRequest, CommitRequest, DiffRequest, HistoryRequest,
