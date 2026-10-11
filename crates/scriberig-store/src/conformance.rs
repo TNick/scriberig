@@ -206,6 +206,8 @@ pub fn run_full_conformance<S: FullConformanceStore>(store: &S) -> Result<(), St
     if report.is_corrupt()
         || !report.unreachable.snapshots.contains(&fixture.s3)
         || report.unreachable.snapshots.contains(&fixture.s2)
+        || report.gc.candidates == 0
+        || report.gc.deleted != 0
     {
         return Err("reachability report did not preserve the protected branch".to_owned());
     }
@@ -221,6 +223,20 @@ pub fn run_full_conformance<S: FullConformanceStore>(store: &S) -> Result<(), St
         .is_empty()
     {
         return Err("statistics inspection changed snapshot semantics".to_owned());
+    }
+    let swept = store
+        .gc_sweep(&protected)
+        .map_err(|error| error.to_string())?;
+    if swept.is_corrupt() || swept.gc.deleted != swept.gc.candidates {
+        return Err("garbage collection did not report its complete sweep".to_owned());
+    }
+    if store
+        .iter(fixture.s2)
+        .map_err(|error| format!("{error:?}"))?
+        .is_empty()
+        || store.iter(fixture.s3).is_ok()
+    {
+        return Err("garbage collection did not preserve only protected history".to_owned());
     }
     let maintenance_indexes =
         MaintenanceStore::rebuild_indexes(store).map_err(|error| error.to_string())?;
