@@ -5731,6 +5731,9 @@
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>global certainty
 </code></pre></div>
 <p>This is not a compromise between two models. It is a separation of concerns.</p>
+<p>The next figure is the anchor for the whole document. The key thing to notice is that each identifier exists for a different job: entity identity preserves continuity, revision identity preserves exact local state, and snapshot identity preserves exact global state. The rest of the document keeps these concerns separate.</p>
+<p><img alt="Three stacked identity layers: EntityId preserves stable conceptual continuity and answers what thing this is; RevisionId identifies one exact immutable state of that entity; SnapshotId identifies the exact immutable state of the whole knowledge universe." src="../assets/003-identity-revisions-and-snapshots/001-identity-layers.svg" /></p>
+<p><em>Figure 1. The three identity layers: conceptual continuity, exact local state, and exact global state.</em></p>
 <hr />
 <h2 id="3-entity-identity">3. Entity Identity<a class="headerlink" href="#3-entity-identity" title="Permanent link">&para;</a></h2>
 <p>An entity represents conceptual continuity.</p>
@@ -5890,6 +5893,9 @@
 <p>The structure that owns that collection must receive a new revision.</p>
 <p><code>P1</code> and <code>P2</code> need not change.</p>
 <p>This distinction substantially reduces unnecessary revision churn and gives semantic meaning to changes.</p>
+<p>The important contrast in the next figure is that content change preserves the same conceptual entity while structural change creates new relationship or collection state around mostly unchanged children. That is the pattern that prevents unnecessary ancestor churn.</p>
+<p><img alt="Two-panel comparison: content change keeps paragraph entity P stable while its revision changes from R1 to R2; structural change updates a section's child collection from P1,P2 to P1,P3,P2 while P1 and P2 remain unchanged entities." src="../assets/003-identity-revisions-and-snapshots/002-content-vs-structure.svg" /></p>
+<p><em>Figure 2. Content change updates an entity revision; structural change updates the relationship or collection that owns ordering or membership.</em></p>
 <hr />
 <h2 id="10-semantic-containment-must-not-be-the-storage-merkle-tree">10. Semantic Containment Must Not Be the Storage Merkle Tree<a class="headerlink" href="#10-semantic-containment-must-not-be-the-storage-merkle-tree" title="Permanent link">&para;</a></h2>
 <p>Scriberig knowledge forms a semantic graph.</p>
@@ -5963,6 +5969,9 @@
 <p>The physical implementation should use persistent structural sharing so that creating <code>S2</code> does not require copying the entire map.</p>
 <p>The exact data structure is a lower-level concern.</p>
 <p>Architecturally, snapshots must behave as immutable persistent maps with efficient sharing between related states.</p>
+<p>The next figure should be read as a resolution table, not as a semantic parent-child tree. The key point is that a snapshot is a world-state map: most bindings are unchanged and structurally shared, while only the bindings whose exact local state changed need new targets.</p>
+<p><img alt="Two snapshots shown as entity-to-revision maps. S1 and S2 share the mappings for F, P1, and B; only P2 changes from revision PR8 in S1 to PR9 in S2." src="../assets/003-identity-revisions-and-snapshots/003-snapshot-map.svg" /></p>
+<p><em>Figure 3. A snapshot is a persistent map from stable entity identities to exact immutable revisions.</em></p>
 <hr />
 <h2 id="13-global-snapshot-change-is-intentional">13. Global Snapshot Change Is Intentional<a class="headerlink" href="#13-global-snapshot-change-is-intentional" title="Permanent link">&para;</a></h2>
 <p>Every canonical change must produce a different snapshot identity.</p>
@@ -6134,6 +6143,9 @@
 <a id="__codelineno-45-5" name="__codelineno-45-5" href="#__codelineno-45-5"></a>new global snapshot
 </code></pre></div>
 <p>This gives precise local invalidation and exact global change detection at the same time.</p>
+<p>The next figure contrasts the anti-pattern with the intended design. Readers should notice that the system still gets a single global change signal, but that signal comes from the snapshot layer rather than from redefining every semantic ancestor as a new conceptual object.</p>
+<p><img alt="Two-panel change propagation comparison. The left shows undesirable churn where one expression edit appears to create new statement, function, module, and project identities. The right shows the intended model: the local entity keeps its identity, its revision changes from R1 to R2, and the global snapshot changes from S1 to S2." src="../assets/003-identity-revisions-and-snapshots/004-change-propagation.svg" /></p>
+<p><em>Figure 4. Change propagation is intentionally global at the snapshot layer, not at every semantic ancestor.</em></p>
 <hr />
 <h2 id="22-caches-must-depend-on-the-smallest-exact-inputs">22. Caches Must Depend on the Smallest Exact Inputs<a class="headerlink" href="#22-caches-must-depend-on-the-smallest-exact-inputs" title="Permanent link">&para;</a></h2>
 <p>The global snapshot identity must not be used indiscriminately as a cache key.</p>
@@ -6186,7 +6198,7 @@
 <li>file layout of a projected module;</li>
 <li>membership in a conceptual group.</li>
 </ul>
-<p>Such structure may be represented as revisioned state owned by a container or by a first-class collection/relation entity.</p>
+<p>Such structure may be represented as revisioned state owned by a container or by a first-class collection or relation entity.</p>
 <p>The exact representation is domain-dependent.</p>
 <p>The important rule is:</p>
 <blockquote>
@@ -6333,6 +6345,9 @@
 <a id="__codelineno-60-3" name="__codelineno-60-3" href="#__codelineno-60-3"></a>S3 ----/
 </code></pre></div>
 <p>The exact migration and merge model is defined separately, but immutable snapshot ancestry is a prerequisite.</p>
+<p>The next figure gives the mental model for branching and merge. Readers should notice that branches do not copy the whole world; they reuse a shared base snapshot and only add the exact successor states needed for each line of work.</p>
+<p><img alt="Snapshot branching diagram: common base snapshot S1 branches into independent successor snapshots S2 and S3, which later merge into successor snapshot S4. Unchanged state is structurally shared rather than copied." src="../assets/003-identity-revisions-and-snapshots/005-branching-and-merge.svg" /></p>
+<p><em>Figure 5. Branching and merge over immutable snapshots with structural sharing.</em></p>
 <hr />
 <h2 id="34-snapshot-scope-may-be-defined-by-a-root-set">34. Snapshot Scope May Be Defined by a Root Set<a class="headerlink" href="#34-snapshot-scope-may-be-defined-by-a-root-set" title="Permanent link">&para;</a></h2>
 <p>Not every Scriberig installation must necessarily place every stored object into one monolithic visible world.</p>
@@ -6472,7 +6487,7 @@
 <a id="__codelineno-68-6" name="__codelineno-68-6" href="#__codelineno-68-6"></a>history(entity)
 </code></pre></div>
 <p>Higher-level APIs may provide convenient defaults, but exact forms must remain available.</p>
-<p>This is especially important for agents and distributed clients because implicit "current" state can change between operations.</p>
+<p>This is especially important for agents and distributed clients because implicit current state can change between operations.</p>
 <p>A sequence of reads that must be consistent should operate against one known snapshot.</p>
 <hr />
 <h2 id="43-concurrency-model">43. Concurrency Model<a class="headerlink" href="#43-concurrency-model" title="Permanent link">&para;</a></h2>
@@ -6527,7 +6542,7 @@
 <h3 id="migrations">Migrations<a class="headerlink" href="#migrations" title="Permanent link">&para;</a></h3>
 <p>Changes are transitions between snapshots and can record lineage between revisions and entities.</p>
 <h3 id="projections">Projections<a class="headerlink" href="#projections" title="Permanent link">&para;</a></h3>
-<p>Rendered files and views must record the snapshot and exact semantic/style inputs from which they were produced.</p>
+<p>Rendered files and views must record the snapshot and exact semantic or style inputs from which they were produced.</p>
 <h3 id="caching">Caching<a class="headerlink" href="#caching" title="Permanent link">&para;</a></h3>
 <p>Caches should use revision identities and exact dependency sets rather than filenames, line numbers, or global snapshot IDs unless the result genuinely depends on the whole snapshot.</p>
 <h3 id="sessions">Sessions<a class="headerlink" href="#sessions" title="Permanent link">&para;</a></h3>
