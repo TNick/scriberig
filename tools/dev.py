@@ -2,6 +2,7 @@
 
 import os
 import signal
+import shutil
 import subprocess
 import sys
 import time
@@ -15,6 +16,43 @@ RUNTIME = ROOT / "playground" / "dev-app-runtime"
 API_URL = "http://127.0.0.1:7337/api/health"
 WEB_URL = "http://127.0.0.1:5173"
 SERVICES = ("api", "web")
+
+
+def cargo_command() -> str:
+    """Return a usable Cargo executable for the local Rust toolchain.
+
+    Returns:
+        Path or command name that can launch Cargo.
+    """
+    # Prefer a normal Cargo command when the PATH entry is usable.
+    cargo = shutil.which("cargo")
+    if cargo and Path(cargo).is_file() and Path(cargo).stat().st_size > 0:
+        return cargo
+
+    # Resolve Cargo through rustup when a broken shim shadows the toolchain.
+    rustup = shutil.which("rustup")
+    if rustup is None and os.name == "nt":
+        candidate = Path.home() / ".cargo" / "bin" / "rustup.exe"
+        if candidate.is_file():
+            rustup = str(candidate)
+    if rustup:
+        try:
+            result = subprocess.run(
+                [rustup, "which", "cargo"],
+                capture_output=True,
+                check=True,
+                text=True,
+                timeout=5,
+            )
+        except (OSError, subprocess.SubprocessError):
+            pass
+        else:
+            resolved = result.stdout.strip()
+            if resolved and Path(resolved).is_file():
+                return resolved
+
+    # Let the operating system produce its usual executable-not-found error.
+    return "cargo"
 
 
 def service_paths(name: str) -> dict[str, Path]:
@@ -294,7 +332,7 @@ def start() -> None:
     RUNTIME.mkdir(parents=True, exist_ok=True)
     api_pid, api_new = ensure_service(
         "api",
-        "cargo",
+        cargo_command(),
         [
             "run",
             "-p",
