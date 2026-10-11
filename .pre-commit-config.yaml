@@ -21,11 +21,10 @@ repos:
         files: '(^Cargo\.toml$|\.rs$)'
         pass_filenames: false
       - id: web-format
-        name: web prettier
-        entry: pnpm --dir web format
+        name: web prettier write and restage
+        entry: tools/precommit-web-format.sh
         language: system
         files: '^web/.*\.(ts|tsx|js|jsx)$'
-        pass_filenames: false
       - id: web-typecheck
         name: web typecheck
         entry: pnpm --dir web typecheck
