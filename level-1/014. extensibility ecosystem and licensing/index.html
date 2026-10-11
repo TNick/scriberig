@@ -5446,6 +5446,9 @@
 <p>It must not rely on private shortcuts that are unavailable to third-party applications.</p>
 <p>This distinction is architectural before it is legal.</p>
 <p>The licensing boundary follows the same separation.</p>
+<p>Figure 1 shows the intended dependency and licensing direction. The reusable Apache-2.0 platform sits below the integrated AGPL-3.0 product, and third-party applications may stop at the platform layer. The important point is that the legal boundary follows an architectural boundary that already exists for reuse, dependency direction, and product composition.</p>
+<p><img alt="Diagram with an Apache-2.0 reusable semantic platform containing storage, graph, query, adapters, protocol, SDK, and UI libraries beneath an AGPL-3.0 integrated Scriberig product containing the reference server, agent runtime, editor, and product workflows; third-party apps connect directly to the reusable platform." src="../assets/014-figure-1-platform-product-boundary.svg" /></p>
+<p><strong>Figure 1 — The licensing split follows the platform/product architecture: reusable building blocks stay permissive while the integrated product remains AGPL-covered.</strong></p>
 <hr />
 <h2 id="3-extensibility-is-a-core-requirement">3. Extensibility Is a Core Requirement<a class="headerlink" href="#3-extensibility-is-a-core-requirement" title="Permanent link">&para;</a></h2>
 <p>Extensibility is not a later plugin feature.</p>
@@ -5563,6 +5566,9 @@
 <li>workspace abstractions.</li>
 </ul>
 <p>They should not require the integrated Scriberig orchestration runtime.</p>
+<p>Figure 2 summarizes the extension model as a composition problem rather than a plugin ownership hierarchy. Schemas, adapters, storage backends, derived analysis, projections, protocol clients, UI libraries, and agent integrations all meet at the same public semantic boundary. A new extension enriches or implements one capability without becoming the exclusive owner of the entities it touches.</p>
+<p><img alt="Diagram with the universal semantic platform in the center and eight independent extension categories around it: schemas, domain adapters, storage backends, derived analysis, projections, protocols and clients, UI libraries, and agent integrations; all connect through the same public extension boundary." src="../assets/014-figure-2-extension-ecosystem.svg" /></p>
+<p><strong>Figure 2 — Independent extension categories compose around the universal semantic platform instead of forking the architecture.</strong></p>
 <hr />
 <h2 id="5-extensions-must-use-public-semantic-boundaries">5. Extensions Must Use Public Semantic Boundaries<a class="headerlink" href="#5-extensions-must-use-public-semantic-boundaries" title="Permanent link">&para;</a></h2>
 <p>Extensions should not depend directly on database tables, private serialization details, undocumented internal identifiers, or application-specific state.</p>
@@ -5685,6 +5691,9 @@
 </ul>
 <p>This is especially important because the ecosystem may contain clients and extensions that do not upgrade at the same time as the reference product.</p>
 <p>The integrated editor must not assume that every server or adapter was compiled from the same commit.</p>
+<p>Figure 3 makes the compatibility rule concrete. Canonical encoding, schemas, adapters, query profiles, protocol, projection formats, and client APIs are separate contracts that can evolve at different rates. An internal storage-index change should therefore leave all of those public versions untouched unless their actual contract changes.</p>
+<p><img alt="Diagram of seven independently versioned compatibility layers: canonical encoding, schema, domain adapter, query and derived-analysis profile, public protocol, projection and style format, and client-library API; a side note shows that an internal SQLite index or cache-layout change does not require those versions to change." src="../assets/014-figure-4-compatibility-layers.svg" /></p>
+<p><strong>Figure 3 — Version the compatibility boundary that changed; do not use one global version number as a proxy for unrelated contracts.</strong></p>
 <hr />
 <h2 id="11-extensions-must-not-circumvent-migrations">11. Extensions Must Not Circumvent Migrations<a class="headerlink" href="#11-extensions-must-not-circumvent-migrations" title="Permanent link">&para;</a></h2>
 <p>A public extension that changes canonical knowledge must use the normal change model.</p>
@@ -5734,6 +5743,9 @@
 <p>It is a conformance test for the public platform.</p>
 </blockquote>
 <p>If the integrated product requires a private capability that third parties cannot access, the preferred response is to improve the public platform boundary rather than keep the shortcut private.</p>
+<p>Figure 4 shows why this is a strong architectural test. Third-party consumers and Scriberig's own CLI, server, editor, and agent runtime enter through the same public semantic surface. Neither side should jump directly to database details; if the reference product needs such a shortcut, the public abstraction is incomplete.</p>
+<p><img alt="Diagram with third-party consumers on the left and Scriberig reference-product consumers on the right, both entering through the same public semantic API; below it are application and domain services and then graph and storage abstractions, while crossed-out dashed paths show that neither side should access storage directly." src="../assets/014-figure-3-public-conformance-boundary.svg" /></p>
+<p><strong>Figure 4 — The reference product validates the public platform by consuming the same semantic APIs that third parties receive.</strong></p>
 <hr />
 <h2 id="14-third-party-user-interfaces-are-expected">14. Third-Party User Interfaces Are Expected<a class="headerlink" href="#14-third-party-user-interfaces-are-expected" title="Permanent link">&para;</a></h2>
 <p>Scriberig should explicitly support applications that do not look like the reference editor.</p>
@@ -5894,6 +5906,9 @@
 </ul>
 <p>The AGPL applies to the covered AGPL components and modifications or combinations governed by that license, not to every application that uses the permissively licensed platform independently.</p>
 <p>The architectural separation should make that distinction practical as well as legal.</p>
+<p>Figure 5 captures the practical consequence of the split. An independent application can build on the Apache-2.0 platform under its own license, while the integrated Scriberig server, editor, and agent runtime remain AGPL-3.0. If that integrated product is modified and offered as a hosted service, the covered AGPL modifications remain subject to the obligations of that license; the platform itself does not become AGPL merely because the product depends on it.</p>
+<p><img alt="Diagram with the Apache-2.0 reusable Scriberig platform branching to two paths: an independent third-party application that may use its own or proprietary license, and the integrated AGPL-3.0 Scriberig server, editor, and agent runtime, which can lead to a modified hosted Scriberig service whose covered modifications remain subject to AGPL obligations; the platform is shown as not depending upward on the product." src="../assets/014-figure-5-licensing-ecosystem-flow.svg" /></p>
+<p><strong>Figure 5 — Apache-licensed building blocks can support independent products, while the integrated Scriberig product remains AGPL-covered.</strong></p>
 <hr />
 <h2 id="25-protocol-interoperability-must-not-require-the-reference-product">25. Protocol Interoperability Must Not Require the Reference Product<a class="headerlink" href="#25-protocol-interoperability-must-not-require-the-reference-product" title="Permanent link">&para;</a></h2>
 <p>The protocol should be usable by independent implementations.</p>

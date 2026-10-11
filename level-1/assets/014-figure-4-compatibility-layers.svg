@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="730" viewBox="0 0 1200 730" role="img" aria-labelledby="title desc">
+  <title id="title">Independent compatibility contracts evolve at different rates</title>
+  <desc id="desc">Seven stacked horizontal compatibility contracts are shown: canonical encoding, schema, domain adapter, query and derived analysis, protocol, projection and style, and client-library API. Each has its own version marker. A note on the side states that an internal database index change affects none of them, illustrating why Scriberig should not rely on one global version number for every boundary.</desc>
+  <defs>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 18px system-ui,sans-serif;fill:#0f172a}.small{font:15px system-ui,sans-serif;fill:#475569}.badge{font:700 15px ui-monospace,SFMono-Regular,monospace;fill:#1e3a8a}
+    </style>
+  </defs>
+  <rect width="1200" height="730" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Compatibility is layered, not one global switch</text>
+
+  <g transform="translate(130,95)">
+    <rect x="0" y="0" width="720" height="70" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+    <text x="28" y="43" class="label">Canonical encoding</text><text x="650" y="43" class="badge">v3</text>
+    <rect x="0" y="82" width="720" height="70" rx="14" fill="#ecfdf5" stroke="#0f766e" stroke-width="2"/>
+    <text x="28" y="125" class="label">Schema contract</text><text x="650" y="125" class="badge">v12</text>
+    <rect x="0" y="164" width="720" height="70" rx="14" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+    <text x="28" y="207" class="label">Domain adapter</text><text x="650" y="207" class="badge">v5</text>
+    <rect x="0" y="246" width="720" height="70" rx="14" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+    <text x="28" y="289" class="label">Query / derived-analysis profile</text><text x="650" y="289" class="badge">v8</text>
+    <rect x="0" y="328" width="720" height="70" rx="14" fill="#fff7ed" stroke="#c2410c" stroke-width="2"/>
+    <text x="28" y="371" class="label">Public protocol</text><text x="650" y="371" class="badge">v4</text>
+    <rect x="0" y="410" width="720" height="70" rx="14" fill="#fefce8" stroke="#a16207" stroke-width="2"/>
+    <text x="28" y="453" class="label">Projection / style format</text><text x="650" y="453" class="badge">v9</text>
+    <rect x="0" y="492" width="720" height="70" rx="14" fill="#fdf2f8" stroke="#be185d" stroke-width="2"/>
+    <text x="28" y="535" class="label">Client-library API</text><text x="650" y="535" class="badge">v6</text>
+  </g>
+
+  <rect x="905" y="180" width="230" height="250" rx="20" fill="#f8fafc" stroke="#64748b" stroke-width="2"/>
+  <text x="1020" y="220" text-anchor="middle" class="label">Internal change</text>
+  <text x="1020" y="260" text-anchor="middle" class="small">SQLite index</text>
+  <text x="1020" y="286" text-anchor="middle" class="small">or cache layout</text>
+  <text x="1020" y="330" text-anchor="middle" class="label">does not imply</text>
+  <text x="1020" y="370" text-anchor="middle" class="small">protocol bump</text>
+  <text x="1020" y="396" text-anchor="middle" class="small">schema bump</text>
+  <text x="1020" y="422" text-anchor="middle" class="small">UI API bump</text>
+
+  <text x="600" y="690" text-anchor="middle" class="small">Prefer additive evolution at each boundary; version only the contract that actually changed.</text>
+</svg>

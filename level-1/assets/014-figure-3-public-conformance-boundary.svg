@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Reference product and third parties use the same public semantic APIs</title>
+  <desc id="desc">The diagram has third-party consumers on the left and Scriberig reference-product consumers on the right. Both point to the same public semantic API in the center. Below that API are application and domain services, then graph and storage abstractions. Dashed red lines from consumers directly to storage are crossed out to show that neither extensions nor the reference product should bypass public semantic boundaries.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 18px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}.bad{stroke:#dc2626;stroke-width:3;stroke-dasharray:8 7;fill:none}
+    </style>
+  </defs>
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">The reference product is a public-API conformance consumer</text>
+
+  <rect x="60" y="110" width="300" height="210" rx="20" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="210" y="150" text-anchor="middle" class="label">Third-party consumers</text>
+  <text x="210" y="190" text-anchor="middle" class="body">custom editors</text>
+  <text x="210" y="220" text-anchor="middle" class="body">domain adapters</text>
+  <text x="210" y="250" text-anchor="middle" class="body">independent clients / servers</text>
+  <text x="210" y="280" text-anchor="middle" class="body">alternative agents</text>
+
+  <rect x="840" y="110" width="300" height="210" rx="20" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="990" y="150" text-anchor="middle" class="label">Reference product</text>
+  <text x="990" y="190" text-anchor="middle" class="body">CLI and server</text>
+  <text x="990" y="220" text-anchor="middle" class="body">integrated editor</text>
+  <text x="990" y="250" text-anchor="middle" class="body">agent runtime</text>
+  <text x="990" y="280" text-anchor="middle" class="body">product workflows</text>
+
+  <rect x="405" y="125" width="390" height="120" rx="22" fill="#eff6ff" stroke="#2563eb" stroke-width="4"/>
+  <text x="600" y="170" text-anchor="middle" class="label">Public semantic API</text>
+  <text x="600" y="202" text-anchor="middle" class="small">capabilities · protocol · stable semantic operations</text>
+
+  <path d="M360 200 L400 190" class="line"/>
+  <path d="M840 200 L800 190" class="line"/>
+
+  <rect x="405" y="330" width="390" height="110" rx="18" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+  <text x="600" y="375" text-anchor="middle" class="label">Application &amp; domain layer</text>
+  <text x="600" y="405" text-anchor="middle" class="small">queries · migrations · projections · validation</text>
+  <path d="M600 245 L600 325" class="line"/>
+
+  <rect x="405" y="515" width="390" height="110" rx="18" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+  <text x="600" y="560" text-anchor="middle" class="label">Graph &amp; storage abstractions</text>
+  <text x="600" y="590" text-anchor="middle" class="small">backend details remain behind the boundary</text>
+  <path d="M600 440 L600 510" class="line"/>
+
+  <path d="M210 320 C230 470 330 560 400 570" class="bad"/>
+  <path d="M990 320 C970 470 870 560 800 570" class="bad"/>
+  <line x1="300" y1="460" x2="330" y2="490" stroke="#dc2626" stroke-width="5"/>
+  <line x1="330" y1="460" x2="300" y2="490" stroke="#dc2626" stroke-width="5"/>
+  <line x1="870" y1="460" x2="900" y2="490" stroke="#dc2626" stroke-width="5"/>
+  <line x1="900" y1="460" x2="870" y2="490" stroke="#dc2626" stroke-width="5"/>
+  <text x="185" y="505" text-anchor="middle" class="small" fill="#b91c1c">no direct DB shortcut</text>
+  <text x="1015" y="505" text-anchor="middle" class="small" fill="#b91c1c">no privileged shortcut</text>
+</svg>

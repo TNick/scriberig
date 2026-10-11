@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Apache platform supports independent applications while AGPL covers the integrated Scriberig product</title>
+  <desc id="desc">The Apache-2.0 reusable platform sits in the center. One branch leads to a third-party proprietary application, marked as permitted without adopting the Scriberig product license. Another branch leads to the integrated Scriberig server, editor, and agent runtime under AGPL-3.0, then to a modified hosted service whose covered modifications remain subject to AGPL source-availability obligations. Dependency arrows show the AGPL product may depend on Apache platform libraries, while reusable platform libraries should not depend on the integrated product.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 19px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">One permissive platform, two legitimate product paths</text>
+
+  <rect x="390" y="110" width="420" height="150" rx="24" fill="#eff6ff" stroke="#2563eb" stroke-width="4"/>
+  <text x="600" y="155" text-anchor="middle" class="label">Reusable Scriberig platform</text>
+  <text x="600" y="190" text-anchor="middle" class="label" fill="#1d4ed8">Apache-2.0</text>
+  <text x="600" y="225" text-anchor="middle" class="small">store · graph · adapters · protocol · SDKs · UI primitives</text>
+
+  <rect x="75" y="360" width="390" height="165" rx="22" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="270" y="405" text-anchor="middle" class="label">Independent third-party application</text>
+  <text x="270" y="442" text-anchor="middle" class="body">may be proprietary or use another license</text>
+  <text x="270" y="475" text-anchor="middle" class="small">uses Apache platform without becoming Scriberig product</text>
+  <path d="M470 260 C390 300 325 335 300 355" class="line"/>
+
+  <rect x="735" y="340" width="390" height="205" rx="22" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="930" y="385" text-anchor="middle" class="label">Integrated Scriberig product</text>
+  <text x="930" y="420" text-anchor="middle" class="label" fill="#c2410c">AGPL-3.0</text>
+  <text x="930" y="455" text-anchor="middle" class="body">reference server · editor · agent runtime</text>
+  <text x="930" y="488" text-anchor="middle" class="small">product layer intentionally depends on platform</text>
+  <path d="M730 260 C810 300 875 325 900 338" class="line"/>
+
+  <rect x="735" y="600" width="390" height="85" rx="18" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+  <text x="930" y="632" text-anchor="middle" class="label">Modified hosted Scriberig</text>
+  <text x="930" y="660" text-anchor="middle" class="small">covered AGPL modifications remain subject to AGPL obligations</text>
+  <path d="M930 545 L930 595" class="line"/>
+
+  <text x="600" y="325" text-anchor="middle" class="small">The license follows architectural responsibility, not whether code is a library or binary.</text>
+  <path d="M500 575 C565 610 635 610 700 575" stroke="#dc2626" stroke-width="3" stroke-dasharray="8 7" fill="none"/>
+  <text x="600" y="620" text-anchor="middle" class="small" fill="#b91c1c">platform should not depend upward on integrated product</text>
+</svg>

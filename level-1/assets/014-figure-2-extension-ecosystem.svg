@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Composable extension ecosystem around the universal semantic platform</title>
+  <desc id="desc">A central public semantic platform is surrounded by eight independent extension categories: schemas, domain adapters, storage backends, derived analysis, projections, protocols and clients, user-interface libraries, and agent integrations. Each connects to the public semantic boundary, showing that extensions compose around shared abstractions instead of owning the system exclusively.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 18px system-ui,sans-serif;fill:#0f172a}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#64748b;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="760" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Extensions compose around one semantic boundary</text>
+
+  <rect x="410" y="280" width="380" height="190" rx="28" fill="#eff6ff" stroke="#2563eb" stroke-width="4"/>
+  <text x="600" y="335" text-anchor="middle" class="label">Universal semantic platform</text>
+  <text x="600" y="370" text-anchor="middle" class="small">entities · revisions · relations · snapshots</text>
+  <text x="600" y="398" text-anchor="middle" class="small">queries · migrations · capabilities</text>
+  <text x="600" y="435" text-anchor="middle" class="label">Public extension boundary</text>
+
+  <g>
+    <rect x="70" y="100" width="250" height="90" rx="16" fill="#ecfdf5" stroke="#0f766e" stroke-width="2"/>
+    <text x="195" y="137" text-anchor="middle" class="label">Schemas</text>
+    <text x="195" y="165" text-anchor="middle" class="small">types · relations · constraints</text>
+    <path d="M320 160 C390 195 430 245 470 285" class="line"/>
+
+    <rect x="475" y="85" width="250" height="90" rx="16" fill="#ecfdf5" stroke="#0f766e" stroke-width="2"/>
+    <text x="600" y="122" text-anchor="middle" class="label">Domain adapters</text>
+    <text x="600" y="150" text-anchor="middle" class="small">parse · render · reconcile</text>
+    <path d="M600 175 L600 275" class="line"/>
+
+    <rect x="880" y="100" width="250" height="90" rx="16" fill="#ecfdf5" stroke="#0f766e" stroke-width="2"/>
+    <text x="1005" y="137" text-anchor="middle" class="label">Storage backends</text>
+    <text x="1005" y="165" text-anchor="middle" class="small">embedded · server · specialized</text>
+    <path d="M880 160 C810 195 770 245 730 285" class="line"/>
+
+    <rect x="35" y="330" width="260" height="90" rx="16" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+    <text x="165" y="367" text-anchor="middle" class="label">Derived analysis</text>
+    <text x="165" y="395" text-anchor="middle" class="small">indexes · summaries · compilers</text>
+    <path d="M295 375 L405 375" class="line"/>
+
+    <rect x="905" y="330" width="260" height="90" rx="16" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/>
+    <text x="1035" y="367" text-anchor="middle" class="label">Projections</text>
+    <text x="1035" y="395" text-anchor="middle" class="small">files · HTML · context · reports</text>
+    <path d="M905 375 L795 375" class="line"/>
+
+    <rect x="70" y="565" width="250" height="90" rx="16" fill="#fff7ed" stroke="#c2410c" stroke-width="2"/>
+    <text x="195" y="602" text-anchor="middle" class="label">Protocols &amp; clients</text>
+    <text x="195" y="630" text-anchor="middle" class="small">remote independent consumers</text>
+    <path d="M320 590 C390 555 430 505 470 465" class="line"/>
+
+    <rect x="475" y="585" width="250" height="90" rx="16" fill="#fff7ed" stroke="#c2410c" stroke-width="2"/>
+    <text x="600" y="622" text-anchor="middle" class="label">UI libraries</text>
+    <text x="600" y="650" text-anchor="middle" class="small">headless · React · MUI · custom</text>
+    <path d="M600 585 L600 475" class="line"/>
+
+    <rect x="880" y="565" width="250" height="90" rx="16" fill="#fff7ed" stroke="#c2410c" stroke-width="2"/>
+    <text x="1005" y="602" text-anchor="middle" class="label">Agent integrations</text>
+    <text x="1005" y="630" text-anchor="middle" class="small">tools · context · workspaces</text>
+    <path d="M880 590 C810 555 770 505 730 465" class="line"/>
+  </g>
+</svg>
