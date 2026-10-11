@@ -21,6 +21,15 @@ export function reduceEvent(
     case "operationProgress":
       operations.progress(event.operationId, event.progress);
       return observed;
+    case "operationFailed":
+      operations.fail(event.operationId, event.error);
+      return observed;
+    case "operationCancelled":
+      operations.cancel(event.operationId);
+      return observed;
+    case "agentOutput":
+      operations.output(event.operationId, event.text);
+      return observed;
     default:
       return observed;
   }

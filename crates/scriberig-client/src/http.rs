@@ -61,6 +61,12 @@ impl HttpTransport {
                 "remote endpoint is missing a host",
             ));
         }
+        if host.contains('@') {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "remote endpoints must not contain embedded credentials",
+            ));
+        }
         Ok(Self {
             host: host.to_owned(),
             port,
@@ -197,6 +203,15 @@ mod tests {
         let error = HttpTransport::from_endpoint("https://localhost:7337")
             .expect_err("https is not implemented by this transport");
         assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
+    }
+
+    /// Verifies endpoint parsing never accepts embedded authentication data.
+    #[test]
+    fn rejects_embedded_endpoint_credentials() {
+        let error = HttpTransport::from_endpoint("http://user:secret@localhost:7337")
+            .expect_err("credentials must not be accepted");
+        assert!(error.to_string().contains("credentials"));
+        assert!(!error.to_string().contains("secret"));
     }
 
     /// Verifies socket failures remain distinguishable from semantic errors.

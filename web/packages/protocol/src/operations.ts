@@ -10,6 +10,7 @@ export interface Operation {
   progress?: number;
   resultSnapshotId?: SnapshotId;
   error?: string;
+  output?: string;
 }
 /** Event envelope with exhaustive discriminant. */
 export type ProtocolEvent =

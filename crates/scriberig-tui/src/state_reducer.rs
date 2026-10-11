@@ -212,6 +212,10 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             category,
             message,
         } => {
+            if category == "transport_unavailable" {
+                state.connection = ConnectionState::Disconnected;
+                state.stale = true;
+            }
             if matches!(state.inspector, LoadState::Loading { request_id: current } if current == request_id)
             {
                 state.inspector = LoadState::Failed {

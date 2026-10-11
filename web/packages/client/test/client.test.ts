@@ -33,6 +33,34 @@ describe("ScriberigClient", () => {
     expect(calls).toEqual([["command", { kind: "apply", payload: { selection: "entity-1" } }]]);
   });
 
+  it("exposes the public application operation families", async () => {
+    const calls: Array<[string, unknown]> = [];
+    const transport = {
+      request: async <T>(operation: string, payload: unknown): Promise<T> => {
+        calls.push([operation, payload]);
+        return { operationId: "operation-1", kind: "test", status: "queued" } as T;
+      },
+      subscribe: () => () => undefined,
+    };
+    const client = new ScriberigClient(transport);
+
+    await client.branch({ branchId: "branch-1" });
+    await client.migrate({ proposalId: "proposal-1" });
+    await client.validate({ proposalId: "proposal-1" });
+    await client.render({ projectionId: "projection-1" });
+    await client.session({ sessionId: "session-1" });
+    await client.agent({ prompt: "summarize" });
+
+    expect(calls).toEqual([
+      ["command", { kind: "branch", payload: { branchId: "branch-1" } }],
+      ["command", { kind: "migrate", payload: { proposalId: "proposal-1" } }],
+      ["command", { kind: "validate", payload: { proposalId: "proposal-1" } }],
+      ["command", { kind: "render", payload: { projectionId: "projection-1" } }],
+      ["command", { kind: "session", payload: { sessionId: "session-1" } }],
+      ["command", { kind: "agent", payload: { prompt: "summarize" } }],
+    ]);
+  });
+
   it("normalizes the Rust protocol operation envelope at the web boundary", async () => {
     const transport = {
       request: async <T>(): Promise<T> =>

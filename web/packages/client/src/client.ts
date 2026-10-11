@@ -104,6 +104,30 @@ export class ScriberigClient {
   command<TPayload>(kind: string, payload: TPayload, signal?: AbortSignal): Promise<Operation> {
     return this.transport.request("command", { kind, payload }, signal).then(normalizeOperation);
   }
+  /** Opens or updates a branch through the public application boundary. */
+  branch<TPayload>(payload: TPayload, signal?: AbortSignal): Promise<Operation> {
+    return this.command("branch", payload, signal);
+  }
+  /** Proposes a migration through the public application boundary. */
+  migrate<TPayload>(payload: TPayload, signal?: AbortSignal): Promise<Operation> {
+    return this.command("migrate", payload, signal);
+  }
+  /** Validates a migration proposal through the public application boundary. */
+  validate<TPayload>(payload: TPayload, signal?: AbortSignal): Promise<Operation> {
+    return this.command("validate", payload, signal);
+  }
+  /** Renders a projection through the public application boundary. */
+  render<TPayload>(payload: TPayload, signal?: AbortSignal): Promise<Operation> {
+    return this.command("render", payload, signal);
+  }
+  /** Opens or updates a session through the public application boundary. */
+  session<TPayload>(payload: TPayload, signal?: AbortSignal): Promise<Operation> {
+    return this.command("session", payload, signal);
+  }
+  /** Starts an agent operation through the public application boundary. */
+  agent<TPayload>(payload: TPayload, signal?: AbortSignal): Promise<Operation> {
+    return this.command("agent", payload, signal);
+  }
   /** Subscribes to semantic events. */ events(
     listener: (event: ProtocolEvent) => void,
     signal?: AbortSignal,
