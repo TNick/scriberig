@@ -5,6 +5,7 @@ pub mod command;
 pub mod context;
 pub mod error;
 pub mod event;
+pub mod external_effect;
 pub mod operation;
 pub mod promotion;
 pub mod query;
@@ -22,6 +23,10 @@ pub use command::{CommandContext, CommandKind};
 pub use context::{ApplicationContext, CapabilityContext, Principal};
 pub use error::ApplicationError;
 pub use event::ApplicationEvent;
+pub use external_effect::{
+    ExternalEffectEvent, ExternalEffectHistory, ExternalEffectIntent, ExternalEffectReceipt,
+    ExternalEffectState, authorize_external_effect,
+};
 pub use operation::{OperationId, OperationKind, OperationProgress, OperationStatus};
 pub use promotion::{
     ApprovalEvidence, PromotionDecision, PromotionPolicyEvaluation, PromotionRequest,
