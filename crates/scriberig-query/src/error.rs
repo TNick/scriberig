@@ -85,4 +85,9 @@ pub enum QueryError {
         /// Relation supplied by the caller.
         relation: RelationRef,
     },
+    /// Query expression is malformed or exceeds provider limits.
+    InvalidQuery {
+        /// Safe diagnostic context.
+        message: String,
+    },
 }

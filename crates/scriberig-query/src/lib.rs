@@ -2,9 +2,11 @@
 
 pub mod detail;
 pub mod error;
+pub mod find;
 pub mod handle;
 pub mod inspect;
 pub mod pagination;
+pub mod query;
 pub mod result;
 pub mod scope;
 pub mod selection;
@@ -12,6 +14,7 @@ pub mod traverse;
 
 pub use detail::{DetailLevel, InformationCost};
 pub use error::{QueryError, ReadOperation};
+pub use find::{FindHit, FindRequest, FindResult, FindService, FindStrategy};
 pub use handle::{
     CollectionRef, EntityAtRevision, EntityInSnapshot, EntityRef, OperationRef, ProjectionRef,
     RelationRef, RevisionRef, SnapshotRef, TargetRef,
@@ -19,6 +22,10 @@ pub use handle::{
 pub use inspect::{InspectRequest, InspectService};
 pub use pagination::{
     ContinuationToken, DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT, Page, PageRequest, PageRequestError,
+};
+pub use query::{
+    QueryDirection, QueryExpr, QueryOrdering, QueryResult, QueryRow, QuerySpec, QueryValue,
+    SortDirection, StructuredQueryService,
 };
 pub use result::{Inspection, NavigationEntry, ReadCapability};
 pub use scope::QueryScope;
@@ -31,7 +38,7 @@ pub use traverse::{
 #[cfg(test)]
 mod tests {
     use super::*;
-    use scriberig_core::{EntityId, RevisionId, SnapshotId};
+    use scriberig_core::{EntityId, ObjectType, RevisionId, SnapshotId};
 
     /// Checks revision and snapshot targets remain distinct.
     #[test]
@@ -126,6 +133,33 @@ mod tests {
             view: None,
         };
         assert_eq!(request.target, target);
+    }
+
+    /// Checks find requests preserve exact scope and extensible strategies.
+    #[test]
+    fn find_request_preserves_scope_and_strategy() {
+        let scope = QueryScope::Snapshot(SnapshotId::new([11; 32]));
+        let request = FindRequest {
+            scope: scope.clone(),
+            query: "payment".to_owned(),
+            strategy: FindStrategy::DomainSpecific("code.references".to_owned()),
+            page: PageRequest::default(),
+            detail: DetailLevel::Compact,
+        };
+        assert_eq!(request.scope, scope);
+        assert!(matches!(request.strategy, FindStrategy::DomainSpecific(_)));
+    }
+
+    /// Checks structural predicates compose without storage-specific values.
+    #[test]
+    fn structured_query_ast_composes_predicates() {
+        let expression = QueryExpr::And(vec![
+            QueryExpr::TypeIs(ObjectType::new("rust.function").expect("valid type")),
+            QueryExpr::Not(Box::new(QueryExpr::PropertyExists {
+                key: "deprecated".to_owned(),
+            })),
+        ]);
+        assert!(matches!(expression, QueryExpr::And(_)));
     }
 
     /// Checks information-cost hints remain optional and domain-neutral.
