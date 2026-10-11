@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Cross-surface parity through shared application semantics</title>
+  <desc id="desc">Six client surfaces—Rust library, CLI, API server, web editor, TUI, and agent tools—feed the same universal application operations. Those operations delegate to query, history and diff, projection, and change subsystems, which all operate on the shared knowledge graph and snapshots. No client surface bypasses the common application boundary.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 20px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:15px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="760" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Every product surface consumes the same semantic operations</text>
+
+  <g fill="#f8fafc" stroke="#64748b" stroke-width="2.5">
+    <rect x="45" y="95" width="160" height="82" rx="14"/><rect x="235" y="95" width="160" height="82" rx="14"/><rect x="425" y="95" width="160" height="82" rx="14"/><rect x="615" y="95" width="160" height="82" rx="14"/><rect x="805" y="95" width="160" height="82" rx="14"/><rect x="995" y="95" width="160" height="82" rx="14"/>
+  </g>
+  <text x="125" y="145" text-anchor="middle" class="label">Rust library</text><text x="315" y="145" text-anchor="middle" class="label">CLI</text><text x="505" y="145" text-anchor="middle" class="label">API server</text><text x="695" y="145" text-anchor="middle" class="label">Web editor</text><text x="885" y="145" text-anchor="middle" class="label">TUI</text><text x="1075" y="145" text-anchor="middle" class="label">Agent tools</text>
+
+  <rect x="210" y="255" width="780" height="140" rx="22" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="600" y="297" text-anchor="middle" class="label">Universal application operations</text>
+  <text x="600" y="335" text-anchor="middle" class="body">inspect · list · follow · find · query · diff · history · render · branch · apply · commit</text>
+  <text x="600" y="369" text-anchor="middle" class="small">exact snapshot context · semantic handles · structured results and errors</text>
+
+  <g fill="#f5f3ff" stroke="#7c3aed" stroke-width="2.5">
+    <rect x="90" y="485" width="220" height="105" rx="16"/><rect x="355" y="485" width="220" height="105" rx="16"/><rect x="620" y="485" width="220" height="105" rx="16"/><rect x="885" y="485" width="220" height="105" rx="16"/>
+  </g>
+  <text x="200" y="527" text-anchor="middle" class="label">Query</text><text x="200" y="560" text-anchor="middle" class="body">inspect · find · traverse</text>
+  <text x="465" y="527" text-anchor="middle" class="label">History / diff</text><text x="465" y="560" text-anchor="middle" class="body">lineage · comparison</text>
+  <text x="730" y="527" text-anchor="middle" class="label">Projection</text><text x="730" y="560" text-anchor="middle" class="body">render · correspondence</text>
+  <text x="995" y="527" text-anchor="middle" class="label">Change</text><text x="995" y="560" text-anchor="middle" class="body">branch · migration · commit</text>
+
+  <rect x="330" y="650" width="540" height="82" rx="18" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="600" y="684" text-anchor="middle" class="label">Universal knowledge graph + snapshots</text>
+  <text x="600" y="713" text-anchor="middle" class="small">one semantic source of truth beneath every interface</text>
+
+  <path d="M125 177 L300 255" class="line"/><path d="M315 177 L390 255" class="line"/><path d="M505 177 L520 255" class="line"/><path d="M695 177 L680 255" class="line"/><path d="M885 177 L810 255" class="line"/><path d="M1075 177 L900 255" class="line"/>
+  <path d="M350 395 L220 485" class="line"/><path d="M510 395 L470 485" class="line"/><path d="M690 395 L730 485" class="line"/><path d="M850 395 L980 485" class="line"/>
+  <path d="M200 590 L420 650" class="line"/><path d="M465 590 L530 650" class="line"/><path d="M730 590 L670 650" class="line"/><path d="M995 590 L780 650" class="line"/>
+</svg>
