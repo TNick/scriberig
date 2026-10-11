@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Editable projections are reconciled through domain-aware semantic matching</title>
+  <desc id="desc">A pipeline starts with a base snapshot and its rendered projection. A user edits the external file. The domain adapter parses the edit into a candidate semantic graph, matches candidate objects against existing entities using domain evidence, reports ambiguity when identity is uncertain, and emits semantic migration operations. Validation then produces a new snapshot and re-rendered projection.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 29px system-ui,sans-serif;fill:#0f172a}.head{font:700 18px system-ui,sans-serif;fill:#0f172a}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}.warn{stroke:#be123c;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <text x="600" y="46" text-anchor="middle" class="title">Domain-aware reconciliation turns external edits into semantic migrations</text>
+
+  <rect x="55" y="120" width="200" height="105" rx="17" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="155" y="159" text-anchor="middle" class="head">Base snapshot</text>
+  <text x="155" y="190" text-anchor="middle" class="small">known entities + revisions</text>
+
+  <rect x="55" y="390" width="200" height="105" rx="17" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+  <text x="155" y="429" text-anchor="middle" class="head">Edited projection</text>
+  <text x="155" y="460" text-anchor="middle" class="small">ordinary editor or tool</text>
+
+  <rect x="330" y="255" width="220" height="120" rx="19" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="440" y="296" text-anchor="middle" class="head">Parse candidate</text>
+  <text x="440" y="329" text-anchor="middle" class="small">domain-specific parser</text>
+  <text x="440" y="354" text-anchor="middle" class="small">candidate semantic graph</text>
+
+  <rect x="625" y="225" width="250" height="180" rx="20" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="750" y="266" text-anchor="middle" class="head">Match semantic identity</text>
+  <text x="750" y="302" text-anchor="middle" class="small">exact equality · names · signatures</text>
+  <text x="750" y="328" text-anchor="middle" class="small">parent context · sibling order</text>
+  <text x="750" y="354" text-anchor="middle" class="small">text / syntax similarity</text>
+  <text x="750" y="382" text-anchor="middle" class="small">never invent continuity silently</text>
+
+  <rect x="625" y="505" width="250" height="105" rx="18" fill="#fff1f2" stroke="#be123c" stroke-width="3"/>
+  <text x="750" y="545" text-anchor="middle" class="head">Ambiguity</text>
+  <text x="750" y="576" text-anchor="middle" class="small">new entity or explicit conflict</text>
+
+  <rect x="945" y="120" width="200" height="105" rx="17" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="1045" y="159" text-anchor="middle" class="head">Migration</text>
+  <text x="1045" y="190" text-anchor="middle" class="small">semantic operations</text>
+
+  <rect x="945" y="390" width="200" height="105" rx="17" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="1045" y="429" text-anchor="middle" class="head">New snapshot</text>
+  <text x="1045" y="460" text-anchor="middle" class="small">validated canonical state</text>
+
+  <path d="M255 172 C310 180 340 230 375 255" class="line"/>
+  <path d="M255 442 C310 420 350 385 385 375" class="line"/>
+  <path d="M550 315 L625 315" class="line"/>
+  <path d="M875 280 C920 250 940 210 945 190" class="line"/>
+  <path d="M875 360 C915 390 930 420 945 435" class="line"/>
+  <path d="M750 405 L750 505" class="warn"/>
+  <path d="M1045 225 L1045 390" class="line"/>
+
+  <text x="1030" y="315" class="small">validate + apply</text>
+  <text x="600" y="666" text-anchor="middle" class="small">The universal projection layer orchestrates the flow; only the domain adapter can decide what the edit means.</text>
+</svg>
