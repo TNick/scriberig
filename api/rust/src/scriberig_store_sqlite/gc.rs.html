@@ -3,7 +3,7 @@
 <a href=#3 id=3 data-nosnippet>3</a></span><span class="kw">use </span>rusqlite::params;
 <a href=#4 id=4 data-nosnippet>4</a><span class="kw">use </span>scriberig_store::{IntegrityReport, ProtectedRoots};
 <a href=#5 id=5 data-nosnippet>5</a>
-<a href=#6 id=6 data-nosnippet>6</a><span class="kw">use </span><span class="kw">crate</span>::SqliteStore;
+<a href=#6 id=6 data-nosnippet>6</a><span class="kw">use crate</span>::{SqliteStore, integrity::integrity_check_connection};
 <a href=#7 id=7 data-nosnippet>7</a>
 <a href=#8 id=8 data-nosnippet>8</a><span class="kw">impl </span>SqliteStore {
 <a href=#9 id=9 data-nosnippet>9</a>    <span class="doccomment">/// Computes immutable objects that are not protected by a stable root set.
@@ -31,15 +31,15 @@
 <a href=#31 id=31 data-nosnippet>31</a>    /// # Errors
 <a href=#32 id=32 data-nosnippet>32</a>    /// Returns an error when inspection or the sweep transaction fails.
 <a href=#33 id=33 data-nosnippet>33</a>    </span><span class="kw">pub fn </span>gc_sweep(<span class="kw-2">&amp;</span><span class="self">self</span>, protected: <span class="kw-2">&amp;</span>ProtectedRoots) -&gt; rusqlite::Result&lt;IntegrityReport&gt; {
-<a href=#34 id=34 data-nosnippet>34</a>        <span class="kw">let </span>report = <span class="self">self</span>.integrity_check(protected)<span class="question-mark">?</span>;
-<a href=#35 id=35 data-nosnippet>35</a>        <span class="kw">if </span>report.is_corrupt() {
-<a href=#36 id=36 data-nosnippet>36</a>            <span class="kw">return </span><span class="prelude-val">Ok</span>(report);
-<a href=#37 id=37 data-nosnippet>37</a>        }
-<a href=#38 id=38 data-nosnippet>38</a>        <span class="kw">let </span>connection = <span class="self">self
-<a href=#39 id=39 data-nosnippet>39</a>            </span>.connection
-<a href=#40 id=40 data-nosnippet>40</a>            .lock()
-<a href=#41 id=41 data-nosnippet>41</a>            .map_err(|<span class="kw">_</span>| rusqlite::Error::InvalidQuery)<span class="question-mark">?</span>;
-<a href=#42 id=42 data-nosnippet>42</a>        <span class="kw">let </span>transaction = connection.unchecked_transaction()<span class="question-mark">?</span>;
+<a href=#34 id=34 data-nosnippet>34</a>        <span class="kw">let </span>connection = <span class="self">self
+<a href=#35 id=35 data-nosnippet>35</a>            </span>.connection
+<a href=#36 id=36 data-nosnippet>36</a>            .lock()
+<a href=#37 id=37 data-nosnippet>37</a>            .map_err(|<span class="kw">_</span>| rusqlite::Error::InvalidQuery)<span class="question-mark">?</span>;
+<a href=#38 id=38 data-nosnippet>38</a>        <span class="kw">let </span>transaction = connection.unchecked_transaction()<span class="question-mark">?</span>;
+<a href=#39 id=39 data-nosnippet>39</a>        <span class="kw">let </span><span class="kw-2">mut </span>report = integrity_check_connection(<span class="kw-2">&amp;</span>transaction, protected)<span class="question-mark">?</span>;
+<a href=#40 id=40 data-nosnippet>40</a>        <span class="kw">if </span>report.is_corrupt() {
+<a href=#41 id=41 data-nosnippet>41</a>            <span class="kw">return </span><span class="prelude-val">Ok</span>(report);
+<a href=#42 id=42 data-nosnippet>42</a>        }
 <a href=#43 id=43 data-nosnippet>43</a>        <span class="kw">for </span>snapshot_id <span class="kw">in </span><span class="kw-2">&amp;</span>report.unreachable.snapshots {
 <a href=#44 id=44 data-nosnippet>44</a>            transaction.execute(
 <a href=#45 id=45 data-nosnippet>45</a>                <span class="string">"DELETE FROM snapshot_entries WHERE snapshot_id=?"</span>,
@@ -66,8 +66,9 @@
 <a href=#66 id=66 data-nosnippet>66</a>                <span class="macro">params!</span>[node_id.as_bytes().as_slice()],
 <a href=#67 id=67 data-nosnippet>67</a>            )<span class="question-mark">?</span>;
 <a href=#68 id=68 data-nosnippet>68</a>        }
-<a href=#69 id=69 data-nosnippet>69</a>        transaction.commit()<span class="question-mark">?</span>;
-<a href=#70 id=70 data-nosnippet>70</a>        <span class="prelude-val">Ok</span>(report)
-<a href=#71 id=71 data-nosnippet>71</a>    }
-<a href=#72 id=72 data-nosnippet>72</a>}
+<a href=#69 id=69 data-nosnippet>69</a>        report.gc.deleted = report.gc.candidates;
+<a href=#70 id=70 data-nosnippet>70</a>        transaction.commit()<span class="question-mark">?</span>;
+<a href=#71 id=71 data-nosnippet>71</a>        <span class="prelude-val">Ok</span>(report)
+<a href=#72 id=72 data-nosnippet>72</a>    }
+<a href=#73 id=73 data-nosnippet>73</a>}
 </code></pre></div></section></main></body></html>

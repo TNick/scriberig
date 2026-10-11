@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["run_core_conformance"],"trait":["ConformanceStore"]};
+window.SIDEBAR_ITEMS = {"fn":["load_fixture","run_core_conformance","run_full_conformance"],"struct":["ConformanceFixture"],"trait":["ConformanceStore","FullConformanceStore"]};
