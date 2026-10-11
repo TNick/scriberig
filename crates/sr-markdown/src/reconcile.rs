@@ -205,6 +205,7 @@ fn block_revision(block: &MarkdownBlock) -> scriberig_core::RevisionId {
         &ObjectType::new("markdown.block").expect("static type"),
         payload.as_bytes(),
     )
+    .expect("static canonical encoding version")
 }
 
 /// Derives a stable new entity identity from a candidate path.

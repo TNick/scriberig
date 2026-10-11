@@ -29,7 +29,16 @@ impl crate::StoreError {
     #[must_use]
     pub const fn category(&self) -> StoreErrorCategory {
         match self {
-            Self::IntegrityCollision { .. } => StoreErrorCategory::Integrity,
+            Self::IntegrityCollision { .. } | Self::RevisionIdentityMismatch { .. } => {
+                StoreErrorCategory::Integrity
+            }
+            Self::InvalidCanonicalEncoding(error) => match error {
+                scriberig_core::EncodingError::UnsupportedVersion { .. } => {
+                    StoreErrorCategory::UnsupportedVersion
+                }
+            },
+            Self::NotFound { .. } => StoreErrorCategory::NotFound,
+            Self::InvalidOperation { .. } => StoreErrorCategory::InvalidOperation,
             Self::LockPoisoned | Self::Backend(_) => StoreErrorCategory::Backend,
         }
     }

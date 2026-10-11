@@ -11,6 +11,7 @@ repository.workspace = true
 scriberig-core = { path = "../scriberig-core" }
 scriberig-store = { path = "../scriberig-store" }
 rusqlite = { version = "0.40.2", features = ["bundled"] }
+blake3 = "1.8.2"
 
 [dev-dependencies]
 scriberig-store-memory = { path = "../scriberig-store-memory" }

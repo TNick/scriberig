@@ -713,6 +713,7 @@ dependencies = [
 name = "scriberig-store-sqlite"
 version = "0.1.0"
 dependencies = [
+ "blake3",
  "rusqlite",
  "scriberig-core",
  "scriberig-store",

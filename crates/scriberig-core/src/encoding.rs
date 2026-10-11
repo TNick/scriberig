@@ -16,6 +16,16 @@ pub struct EncodingVersion {
     value: u16,
 }
 
+/// Reports invalid canonical encoding configuration.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum EncodingError {
+    /// The requested version is not implemented by this build.
+    UnsupportedVersion {
+        /// Version number that was requested.
+        version: u16,
+    },
+}
+
 // Provide version construction and inspection.
 impl EncodingVersion {
     /// The initial canonical encoding version.
@@ -31,6 +41,24 @@ impl EncodingVersion {
     #[must_use]
     pub const fn new(value: u16) -> Self {
         Self { value }
+    }
+
+    /// Validates and constructs a version supported by this implementation.
+    ///
+    /// # Parameters
+    /// - `value`: Version number to validate.
+    ///
+    /// # Returns
+    /// The supported encoding version.
+    ///
+    /// # Errors
+    /// Returns `UnsupportedVersion` for versions not implemented here.
+    pub const fn try_new(value: u16) -> Result<Self, EncodingError> {
+        if value == Self::V1.value {
+            Ok(Self::V1)
+        } else {
+            Err(EncodingError::UnsupportedVersion { version: value })
+        }
     }
 
     /// Returns the stable integer value of this version.
@@ -78,6 +106,7 @@ impl Display for EncodingVersion {
 /// - `write_option`: Writes an option with explicit discriminant.
 /// - `write_sequence_len`: Writes a sequence element count.
 /// - `as_bytes`: Borrows the encoded bytes.
+/// - `write_unordered`: Writes items in canonical byte order.
 /// - `into_bytes`: Consumes the writer and returns encoded bytes.
 ///
 /// # Private members
@@ -196,6 +225,26 @@ impl CanonicalWriter {
         self.write_u64(length as u64);
     }
 
+    /// Writes an unordered collection after sorting each item's canonical bytes.
+    ///
+    /// # Parameters
+    /// - `values`: Values whose semantic order is irrelevant.
+    pub fn write_unordered<T: CanonicalEncode>(&mut self, values: impl IntoIterator<Item = T>) {
+        let mut encoded = values
+            .into_iter()
+            .map(|value| {
+                let mut writer = Self::new();
+                value.encode_canonical(&mut writer);
+                writer.into_bytes()
+            })
+            .collect::<Vec<_>>();
+        encoded.sort();
+        self.write_sequence_len(encoded.len());
+        for value in encoded {
+            self.write_bytes(&value);
+        }
+    }
+
     /// Borrows the bytes written so far.
     ///
     /// # Returns
@@ -225,6 +274,32 @@ pub trait CanonicalEncode {
     fn encode_canonical(&self, writer: &mut CanonicalWriter);
 }
 
+// Encode stable identifiers as fixed-width canonical byte values.
+impl CanonicalEncode for crate::ids::EntityId {
+    /// Encodes an entity identifier using its fixed-width bytes.
+    ///
+    /// # Parameters
+    /// - `self`: Entity identifier to encode.
+    /// - `writer`: Canonical byte output.
+    fn encode_canonical(&self, writer: &mut CanonicalWriter) {
+        writer.write_tag(b"scriberig.entity-id.v1");
+        writer.write_bytes(self.as_bytes());
+    }
+}
+
+// Encode immutable revision identifiers as fixed-width canonical byte values.
+impl CanonicalEncode for crate::ids::RevisionId {
+    /// Encodes a revision identifier using its fixed-width bytes.
+    ///
+    /// # Parameters
+    /// - `self`: Revision identifier to encode.
+    /// - `writer`: Canonical byte output.
+    fn encode_canonical(&self, writer: &mut CanonicalWriter) {
+        writer.write_tag(b"scriberig.revision-id.v1");
+        writer.write_bytes(self.as_bytes());
+    }
+}
+
 /// Hashes a complete revision envelope into an immutable revision identity.
 ///
 /// The domain tag, encoding version, object type, and payload all participate
@@ -237,103 +312,55 @@ pub trait CanonicalEncode {
 ///
 /// # Returns
 /// The BLAKE3-derived revision identifier.
-#[must_use]
+///
+/// # Errors
+/// Returns `UnsupportedVersion` when the encoding version is not implemented.
+///
+/// # Errors
+/// Returns an error when the encoding version is unsupported.
 pub fn revision_id(
     version: EncodingVersion,
     object_type: &crate::ObjectType,
     payload: &[u8],
-) -> crate::RevisionId {
+) -> Result<crate::RevisionId, EncodingError> {
+    Ok(crate::RevisionId::from_bytes(
+        *blake3::hash(&revision_envelope(version, object_type, payload)?).as_bytes(),
+    ))
+}
+
+/// Encodes the complete canonical revision envelope.
+///
+/// The bytes are a fixed domain tag, a big-endian version, a length-prefixed
+/// object type, and a length-prefixed canonical payload. Callers that accept
+/// externally supplied versions should validate them with `try_new` first.
+///
+/// # Parameters
+/// - `version`: Canonical encoding version.
+/// - `object_type`: Semantic object type.
+/// - `payload`: Already canonicalized payload bytes.
+///
+/// # Returns
+/// The deterministic canonical envelope bytes.
+///
+/// # Errors
+/// Returns `UnsupportedVersion` when the encoding version is not implemented.
+///
+/// # Errors
+/// Returns an error when the encoding version is unsupported.
+pub fn revision_envelope(
+    version: EncodingVersion,
+    object_type: &crate::ObjectType,
+    payload: &[u8],
+) -> Result<Vec<u8>, EncodingError> {
+    EncodingVersion::try_new(version.value())?;
     let mut writer = CanonicalWriter::new();
     writer.write_tag(b"scriberig.revision.v1");
     writer.write_u16(version.value());
     writer.write_str(object_type.as_str());
     writer.write_bytes(payload);
-    crate::RevisionId::from_bytes(*blake3::hash(writer.as_bytes()).as_bytes())
+    Ok(writer.into_bytes())
 }
 
-// Confirm primitive encodings and versions remain deterministic.
 #[cfg(test)]
-mod tests {
-    use super::{CanonicalEncode, CanonicalWriter, EncodingVersion, revision_id};
-    use crate::ObjectType;
-
-    /// Checks canonical primitive output is repeatable.
-    #[test]
-
-    fn canonical_writer_encodes_primitives_deterministically() {
-        let mut first = CanonicalWriter::new();
-        first.write_tag(b"test");
-        first.write_u16(1);
-        first.write_str("abc");
-        first.write_bool(true);
-
-        let mut second = CanonicalWriter::new();
-        second.write_tag(b"test");
-        second.write_u16(1);
-        second.write_str("abc");
-        second.write_bool(true);
-
-        assert_eq!(first.as_bytes(), second.as_bytes());
-        assert_eq!(
-            first.as_bytes(),
-            &[
-                116, 101, 115, 116, 0, 1, 0, 0, 0, 0, 0, 0, 0, 3, 97, 98, 99, 1
-            ]
-        );
-    }
-
-    /// Verifies revision identity includes every envelope component.
-    #[test]
-    fn revision_hash_is_deterministic_and_domain_separated() {
-        let object_type = ObjectType::new("markdown.paragraph").expect("valid type");
-        let first = revision_id(EncodingVersion::V1, &object_type, b"payload");
-        let second = revision_id(EncodingVersion::V1, &object_type, b"payload");
-        assert_eq!(first, second);
-        assert_ne!(
-            first,
-            revision_id(EncodingVersion::new(2), &object_type, b"payload")
-        );
-        let other_type = ObjectType::new("rust.function").expect("valid type");
-        assert_ne!(
-            first,
-            revision_id(EncodingVersion::V1, &other_type, b"payload")
-        );
-        assert_ne!(
-            first,
-            revision_id(EncodingVersion::V1, &object_type, b"other")
-        );
-    }
-
-    /// Checks independently constructed equivalent values encode identically.
-    #[test]
-
-    fn independent_values_encode_to_the_same_bytes() {
-        /// Holds the scalar used by this canonical encoding test.
-        #[derive(Clone, Copy)]
-        struct Sample(u64);
-
-        impl CanonicalEncode for Sample {
-            /// Encodes the sample's scalar value.
-            ///
-            /// # Parameters
-            /// - `self`: Sample to encode.
-            /// - `writer`: Canonical byte output.
-            fn encode_canonical(&self, writer: &mut CanonicalWriter) {
-                writer.write_u64(self.0);
-            }
-        }
-
-        let mut first = CanonicalWriter::new();
-        Sample(42).encode_canonical(&mut first);
-        let mut second = CanonicalWriter::new();
-        Sample(42).encode_canonical(&mut second);
-        assert_eq!(first.as_bytes(), second.as_bytes());
-    }
-
-    /// Keeps the initial encoding version explicit and stable.
-    #[test]
-    fn encoding_version_one_has_stable_value() {
-        assert_eq!(EncodingVersion::V1.value(), 1);
-        assert_eq!(EncodingVersion::new(2).to_string(), "2");
-    }
-}
+#[path = "encoding_tests.rs"]
+mod tests;

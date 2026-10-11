@@ -53,23 +53,8 @@ impl RootStore for SqliteStore {
         let transaction = connection
             .transaction()
             .map_err(|error| RootError::Backend(error.to_string()))?;
-        let current: Option<Vec<u8>> = transaction
-            .query_row(
-                "SELECT snapshot_id FROM roots WHERE name=?",
-                params![name.as_str()],
-                |row| row.get(0),
-            )
-            .optional()
+        let actual = read_root_in_transaction(&transaction, &name)
             .map_err(|error| RootError::Backend(error.to_string()))?;
-        let actual = current.and_then(|bytes| {
-            if bytes.len() == 32 {
-                let mut value = [0; 32];
-                value.copy_from_slice(&bytes);
-                Some(SnapshotId::new(value))
-            } else {
-                None
-            }
-        });
         if actual != expected {
             return Err(RootError::Conflict {
                 name,
@@ -77,9 +62,72 @@ impl RootStore for SqliteStore {
                 actual,
             });
         }
-        transaction.execute("INSERT INTO roots(name,snapshot_id) VALUES (?,?) ON CONFLICT(name) DO UPDATE SET snapshot_id=excluded.snapshot_id", params![name.as_str(), new.as_bytes().as_slice()]).map_err(|error| RootError::Backend(error.to_string()))?;
+        write_root_in_transaction(&transaction, &name, new)
+            .map_err(|error| RootError::Backend(error.to_string()))?;
         transaction
             .commit()
             .map_err(|error| RootError::Backend(error.to_string()))
     }
+}
+
+/// Reads a root inside an existing transaction.
+///
+/// # Parameters
+/// - `transaction`: Transaction containing the root table.
+/// - `name`: Root name to read.
+/// - `crate`: Internal visibility marker.
+/// - `crate`: Internal visibility marker.
+///
+/// # Returns
+/// The current snapshot assigned to the root, when present.
+///
+/// # Errors
+/// Returns the SQLite query error.
+pub(crate) fn read_root_in_transaction(
+    transaction: &rusqlite::Transaction<'_>,
+    name: &RootName,
+) -> rusqlite::Result<Option<SnapshotId>> {
+    let bytes: Option<Vec<u8>> = transaction
+        .query_row(
+            "SELECT snapshot_id FROM roots WHERE name=?",
+            params![name.as_str()],
+            |row| row.get(0),
+        )
+        .optional()?;
+    Ok(bytes.and_then(|bytes| {
+        if bytes.len() == 32 {
+            let mut value = [0; 32];
+            value.copy_from_slice(&bytes);
+            Some(SnapshotId::new(value))
+        } else {
+            None
+        }
+    }))
+}
+
+/// Writes a root inside an existing transaction.
+///
+/// # Parameters
+/// - `transaction`: Transaction receiving the root update.
+/// - `name`: Root name to update.
+/// - `snapshot`: Snapshot identity to assign.
+/// - `crate`: Internal visibility marker.
+/// - `crate`: Internal visibility marker.
+///
+/// # Returns
+/// Unit after the update is accepted.
+///
+/// # Errors
+/// Returns the SQLite update error.
+pub(crate) fn write_root_in_transaction(
+    transaction: &rusqlite::Transaction<'_>,
+    name: &RootName,
+    snapshot: SnapshotId,
+) -> rusqlite::Result<()> {
+    transaction.execute(
+        "INSERT INTO roots(name,snapshot_id) VALUES (?,?)
+         ON CONFLICT(name) DO UPDATE SET snapshot_id=excluded.snapshot_id",
+        params![name.as_str(), snapshot.as_bytes().as_slice()],
+    )?;
+    Ok(())
 }

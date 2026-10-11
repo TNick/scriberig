@@ -128,7 +128,11 @@ fn remove(node: &Arc<Node>, entity: EntityId, depth: usize) -> Arc<Node> {
     let mut children = existing.clone();
     let index = nibble(entity, depth);
     if let Some(child) = &children[index] {
-        children[index] = Some(remove(child, entity, depth + 1));
+        let replacement = remove(child, entity, depth + 1);
+        children[index] = match replacement.as_ref() {
+            Node::Empty => None,
+            Node::Branch(_) | Node::Leaf(_, _) => Some(replacement),
+        };
     }
     if children.iter().all(Option::is_none) {
         Arc::new(Node::Empty)
@@ -136,6 +140,10 @@ fn remove(node: &Arc<Node>, entity: EntityId, depth: usize) -> Arc<Node> {
         Arc::new(Node::Branch(children))
     }
 }
+
+#[cfg(test)]
+#[path = "snapshot_tests.rs"]
+mod tests;
 
 /// Internal snapshot operation.
 /// # Parameters
@@ -342,64 +350,4 @@ impl Snapshot {
         }
         changes
     }
-}
-
-/// Defines backend-neutral snapshot operations.
-pub trait SnapshotStore {
-    /// # Parameters
-    /// - `snapshot`: Operation input.
-    /// - `entity`: Operation input.
-    ///
-    /// # Returns
-    /// The requested snapshot result.
-    ///
-    /// # Errors
-    /// Returns an error when the snapshot is unavailable.
-    /// Resolves an entity in a stored snapshot.
-    fn resolve(
-        &self,
-        snapshot: SnapshotId,
-        entity: EntityId,
-    ) -> Result<Option<RevisionId>, SnapshotError>;
-    /// # Parameters
-    /// - `base`: Operation input.
-    /// - `changes`: Operation input.
-    ///
-    /// # Returns
-    /// The requested snapshot result.
-    ///
-    /// # Errors
-    /// Returns an error when the snapshot is unavailable.
-    /// Applies storage changes and returns the resulting snapshot.
-    fn apply_changes(
-        &self,
-        base: SnapshotId,
-        changes: &[SnapshotChange],
-    ) -> Result<SnapshotId, SnapshotError>;
-    /// # Parameters
-    /// - `snapshot`: Operation input.
-    ///
-    /// # Returns
-    /// The requested snapshot result.
-    ///
-    /// # Errors
-    /// Returns an error when the snapshot is unavailable.
-    /// Iterates a stored snapshot deterministically.
-    #[allow(clippy::iter_not_returning_iterator)]
-    fn iter(&self, snapshot: SnapshotId) -> Result<Vec<(EntityId, RevisionId)>, SnapshotError>;
-    /// # Parameters
-    /// - `from`: Operation input.
-    /// - `to`: Operation input.
-    ///
-    /// # Returns
-    /// The requested snapshot result.
-    ///
-    /// # Errors
-    /// Returns an error when the snapshot is unavailable.
-    /// Computes exact mapping changes between stored snapshots.
-    fn diff_snapshots(
-        &self,
-        from: SnapshotId,
-        to: SnapshotId,
-    ) -> Result<Vec<SnapshotChange>, SnapshotError>;
 }

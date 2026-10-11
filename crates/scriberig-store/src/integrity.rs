@@ -2,6 +2,8 @@
 
 use scriberig_core::{RevisionId, SnapshotId};
 
+use crate::SnapshotNodeId;
+
 /// Machine-readable integrity issue.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum IntegrityIssue {
@@ -13,6 +15,12 @@ pub enum IntegrityIssue {
     InvalidSnapshot(SnapshotId),
     /// A named root points to invalid state.
     InvalidRoot(String),
+    /// A snapshot points to a node that is absent from canonical storage.
+    MissingSnapshotNode(SnapshotNodeId),
+    /// A persistent snapshot-map node violates its content or structure rule.
+    InvalidSnapshotNode(SnapshotNodeId),
+    /// A rebuildable index disagrees with canonical snapshot-map content.
+    InvalidIndex(SnapshotId),
 }
 
 /// Separates corruption from valid unreachable maintenance candidates.

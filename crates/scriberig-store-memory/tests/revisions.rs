@@ -18,6 +18,7 @@ fn revision(payload: &[u8], object: &str) -> Revision {
         ObjectType::new(object).expect("valid type"),
         payload.to_vec(),
     )
+    .expect("supported version")
 }
 
 /// Verifies revision IDs match the shared core hash helper.
@@ -27,6 +28,7 @@ fn revision_identity_is_content_addressed() {
     assert_eq!(
         value.id(),
         revision_id(EncodingVersion::V1, value.object_type(), value.payload())
+            .expect("supported version")
     );
     assert_eq!(value.id(), revision(b"payload", "test.note").id());
     assert_ne!(value.id(), revision(b"other", "test.note").id());

@@ -47,8 +47,6 @@ pub trait DerivedRepository {
     /// # Errors
     /// This lookup is infallible and returns `None` when absent.
     ///
-    /// # Errors
-    /// This lookup is infallible and returns `None` when the record is absent.
     fn get(&self, handle: DerivedResultHandle) -> Option<&DerivedResultRecord>;
 
     /// Finds every retained record for one exact derivation key.
@@ -63,8 +61,6 @@ pub trait DerivedRepository {
     /// # Errors
     /// This lookup is infallible and returns an empty list when no key matches.
     ///
-    /// # Errors
-    /// This lookup is infallible and returns an empty list when no key matches.
     fn by_key(&self, key: &DerivationKey) -> Vec<&DerivedResultRecord>;
 
     /// Finds result handles that declare one exact dependency.

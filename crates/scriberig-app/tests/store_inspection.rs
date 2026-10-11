@@ -37,7 +37,8 @@ fn store_backed_inspection_resolves_revision_and_snapshot() {
         EncodingVersion::V1,
         ObjectType::new("test.entity").expect("valid type"),
         b"payload".to_vec(),
-    );
+    )
+    .expect("supported version");
     let revision_id = revision.id();
     store.revisions().put(revision).expect("revision");
     let snapshot = store

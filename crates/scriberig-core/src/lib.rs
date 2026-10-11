@@ -13,7 +13,10 @@ pub mod provenance;
 pub mod value;
 
 // Re-export the stable identifier API at the crate root.
-pub use encoding::{CanonicalEncode, CanonicalWriter, EncodingVersion, revision_id};
+pub use encoding::{
+    CanonicalEncode, CanonicalWriter, EncodingError, EncodingVersion, revision_envelope,
+    revision_id,
+};
 pub use ids::{
     EntityId, IdParseError, ObjectType, OperationId, RevisionId, RootName, SnapshotId, TypeId,
 };

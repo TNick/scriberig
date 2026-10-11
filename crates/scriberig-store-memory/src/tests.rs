@@ -70,7 +70,7 @@ fn revisions_are_idempotent() {
     use scriberig_store::{Revision, RevisionStore};
     let store = MemoryRevisionStore::new();
     let kind = ObjectType::new("test").expect("type");
-    let revision = Revision::new(EncodingVersion::new(1), kind, vec![1, 2]);
+    let revision = Revision::new(EncodingVersion::new(1), kind, vec![1, 2]).expect("revision");
     let id = store.put(revision.clone()).expect("put");
     assert_eq!(store.put(revision), Ok(id));
 }

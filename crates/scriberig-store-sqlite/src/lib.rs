@@ -2,106 +2,45 @@
 
 #![allow(clippy::needless_pass_by_value)]
 
+mod connection;
 mod gc;
+mod indexes;
+mod integrity;
+mod integrity_nodes;
+mod observability;
+mod reachability;
+mod recovery;
 mod revision;
 mod roots;
+mod schema;
 mod snapshot;
+mod snapshot_integrity;
+mod storage;
 
-use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::Mutex;
 
-use rusqlite::{Connection, params};
-use scriberig_core::{EntityId, RevisionId, SnapshotId};
-use scriberig_store::{
-    IndexStatus, RootStatus, Snapshot, SnapshotError, StoreError, StoreObservability, StoreStats,
-};
+use rusqlite::Connection;
+use scriberig_core::{RevisionId, SnapshotId};
+use scriberig_store::{Revision, Snapshot, SnapshotError};
 
 /// A durable SQLite-backed revision, snapshot, and root store.
+#[derive(Debug)]
 pub struct SqliteStore {
     connection: Mutex<Connection>,
 }
 
-impl StoreObservability for SqliteStore {
-    /// Returns authoritative row counts from SQLite.
-    ///
-    /// # Returns
-    /// Available SQLite storage statistics.
-    ///
-    /// # Errors
-    /// Returns a backend error when statistics cannot be read.
-    fn stats(&self) -> Result<StoreStats, String> {
-        let connection = self
-            .connection
-            .lock()
-            .map_err(|_| "lock poisoned".to_owned())?;
-        let count = |table: &str| {
-            connection
-                .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
-                    row.get::<_, i64>(0).and_then(|value| {
-                        u64::try_from(value).map_err(|_| rusqlite::Error::InvalidQuery)
-                    })
-                })
-                .map_err(|error| error.to_string())
-        };
-        Ok(StoreStats {
-            revisions: Some(count("revisions")?),
-            snapshots: Some(count("snapshots")?),
-            named_roots: Some(count("roots")?),
-            ..StoreStats::default()
-        })
-    }
-
-    /// Lists SQLite roots in deterministic name order.
-    ///
-    /// # Returns
-    /// Root status records ordered by root name.
-    ///
-    /// # Errors
-    /// Returns a backend error when roots cannot be read.
-    fn root_statuses(&self) -> Result<Vec<RootStatus>, String> {
-        let connection = self
-            .connection
-            .lock()
-            .map_err(|_| "lock poisoned".to_owned())?;
-        let mut statement = connection
-            .prepare("SELECT name, snapshot_id FROM roots ORDER BY name")
-            .map_err(|error| error.to_string())?;
-        let rows = statement
-            .query_map([], |row| {
-                let name: String = row.get(0)?;
-                let bytes: Vec<u8> = row.get(1)?;
-                Ok((name, bytes))
-            })
-            .map_err(|error| error.to_string())?;
-        let mut statuses = Vec::new();
-        for row in rows {
-            let (name, bytes) = row.map_err(|error| error.to_string())?;
-            if bytes.len() != 32 {
-                return Err("invalid root snapshot identifier".to_owned());
-            }
-            let mut id = [0; 32];
-            id.copy_from_slice(&bytes);
-            statuses.push(RootStatus {
-                name: scriberig_core::RootName::new(name).map_err(|error| format!("{error:?}"))?,
-                snapshot: Some(SnapshotId::new(id)),
-            });
-        }
-        Ok(statuses)
-    }
-
-    /// Rebuilds SQLite derived indexes.
-    ///
-    /// # Returns
-    /// A consistent index status after rebuilding.
-    ///
-    /// # Errors
-    /// Returns a backend error when rebuilding fails.
-    fn rebuild_indexes(&self) -> Result<IndexStatus, String> {
-        self.rebuild_derived_indexes()
-            .map_err(|error| error.to_string())?;
-        Ok(IndexStatus { consistent: true })
-    }
+/// Reports a failure while atomically preparing and promoting a snapshot.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PromotionError {
+    /// The base snapshot or change application was invalid.
+    Snapshot(SnapshotError),
+    /// The named root was stale or could not be updated.
+    Root(scriberig_store::RootError),
+    /// SQLite rejected the transaction.
+    Backend(String),
+    /// A snapshot refers to a revision absent from the durable store.
+    MissingRevision(RevisionId),
 }
 
 impl SqliteStore {
@@ -125,7 +64,7 @@ impl SqliteStore {
     /// # Errors
     /// Returns a SQLite initialization error.
     pub fn open(path: impl AsRef<Path>) -> rusqlite::Result<Self> {
-        Self::from_connection(Connection::open(path)?)
+        Self::from_connection(connection::configure(Connection::open(path)?)?)
     }
     /// # Parameters
     /// - `rusqlite`: Operation input.
@@ -143,7 +82,7 @@ impl SqliteStore {
     /// # Errors
     /// Returns a SQLite initialization error.
     pub fn open_in_memory() -> rusqlite::Result<Self> {
-        Self::from_connection(Connection::open_in_memory()?)
+        Self::from_connection(connection::configure(Connection::open_in_memory()?)?)
     }
     /// Internal SQLite storage operation.
     /// # Parameters
@@ -157,119 +96,148 @@ impl SqliteStore {
     /// # Errors
     /// Returns a backend error when SQLite rejects the operation.
     fn from_connection(connection: Connection) -> rusqlite::Result<Self> {
-        connection.execute_batch("PRAGMA foreign_keys = ON; CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS revisions (id BLOB PRIMARY KEY, version INTEGER NOT NULL, object_type TEXT NOT NULL, payload BLOB NOT NULL); CREATE TABLE IF NOT EXISTS snapshots (id BLOB PRIMARY KEY); CREATE TABLE IF NOT EXISTS snapshot_entries (snapshot_id BLOB NOT NULL, entity BLOB NOT NULL, revision BLOB NOT NULL, PRIMARY KEY(snapshot_id, entity)); CREATE TABLE IF NOT EXISTS roots (name TEXT PRIMARY KEY, snapshot_id BLOB NOT NULL); INSERT OR IGNORE INTO metadata(key,value) VALUES ('schema_version','1');")?;
-        let version: String = connection.query_row(
-            "SELECT value FROM metadata WHERE key='schema_version'",
-            [],
-            |row| row.get(0),
-        )?;
-        if version != "1" {
-            return Err(rusqlite::Error::InvalidQuery);
-        }
+        let mut connection = connection;
+        schema::initialize(&mut connection)?;
         Ok(Self {
             connection: Mutex::new(connection),
         })
     }
-    /// Internal SQLite storage operation.
-    /// # Parameters
-    /// - `crate`: Internal visibility marker.
-    /// - `std`: Operation input.
-    /// - `sync`: Operation input.
-    ///
-    /// # Returns
-    /// The requested storage result.
-    ///
-    /// # Errors
-    /// Returns a backend error when SQLite rejects the operation.
-    pub(crate) fn connection(&self) -> Result<std::sync::MutexGuard<'_, Connection>, StoreError> {
-        self.connection.lock().map_err(|_| StoreError::LockPoisoned)
-    }
-    /// Internal SQLite storage operation.
-    /// # Parameters
-    /// - `crate`: Internal visibility marker.
-    /// - `id`: Operation input.
-    ///
-    /// # Returns
-    /// The requested storage result.
-    ///
-    /// # Errors
-    /// Returns a backend error when SQLite rejects the operation.
-    pub(crate) fn snapshot(&self, id: SnapshotId) -> Result<Snapshot, SnapshotError> {
-        let connection = self
-            .connection
-            .lock()
-            .map_err(|_| SnapshotError::Backend("lock poisoned".to_owned()))?;
-        let mut statement = connection
-            .prepare(
-                "SELECT entity, revision FROM snapshot_entries WHERE snapshot_id=? ORDER BY entity",
-            )
-            .map_err(sql_snapshot)?;
-        let rows = statement
-            .query_map(params![id.as_bytes().as_slice()], |row| {
-                let entity: Vec<u8> = row.get(0)?;
-                let revision: Vec<u8> = row.get(1)?;
-                Ok((entity, revision))
-            })
-            .map_err(sql_snapshot)?;
-        let mut entries = BTreeMap::new();
-        for row in rows {
-            let (entity, revision) = row.map_err(sql_snapshot)?;
-            if entity.len() != 16 || revision.len() != 32 {
-                return Err(SnapshotError::Backend(
-                    "invalid stored identifier length".to_owned(),
-                ));
-            }
-            let mut e = [0; 16];
-            e.copy_from_slice(&entity);
-            let mut r = [0; 32];
-            r.copy_from_slice(&revision);
-            entries.insert(EntityId::new(e), RevisionId::new(r));
-        }
-        let snapshot = Snapshot::from_entries(entries);
-        if snapshot.id() != id {
-            return Err(SnapshotError::Backend(
-                "snapshot identity mismatch".to_owned(),
-            ));
-        }
-        Ok(snapshot)
-    }
-    /// Internal SQLite storage operation.
-    /// # Parameters
-    /// - `crate`: Internal visibility marker.
-    /// - `snapshot`: Operation input.
-    ///
-    /// # Returns
-    /// The requested storage result.
-    ///
-    /// # Errors
-    /// Returns a backend error when SQLite rejects the operation.
-    pub(crate) fn store_snapshot(&self, snapshot: &Snapshot) -> Result<(), SnapshotError> {
-        let connection = self
-            .connection
-            .lock()
-            .map_err(|_| SnapshotError::Backend("lock poisoned".to_owned()))?;
-        connection
-            .execute(
-                "INSERT OR IGNORE INTO snapshots(id) VALUES (?)",
-                params![snapshot.id().as_bytes().as_slice()],
-            )
-            .map_err(sql_snapshot)?;
-        for (entity, revision) in snapshot.iter() {
-            connection.execute("INSERT OR IGNORE INTO snapshot_entries(snapshot_id,entity,revision) VALUES (?,?,?)", params![snapshot.id().as_bytes().as_slice(), entity.as_bytes().as_slice(), revision.as_bytes().as_slice()]).map_err(sql_snapshot)?;
-        }
-        Ok(())
-    }
-}
 
-/// Converts a SQLite error to a snapshot backend error.
-///
-/// # Parameters
-/// - `error`: SQLite error.
-///
-/// # Returns
-/// A typed snapshot backend error.
-fn sql_snapshot(error: rusqlite::Error) -> SnapshotError {
-    SnapshotError::Backend(error.to_string())
+    /// Returns the detected backend storage schema version.
+    ///
+    /// # Returns
+    /// The schema version recorded in the database.
+    ///
+    /// # Errors
+    /// Returns a SQLite query error.
+    pub fn schema_version(&self) -> rusqlite::Result<u32> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        connection.query_row(
+            "SELECT value FROM metadata WHERE key='schema_version'",
+            [],
+            |row| {
+                let value: String = row.get(0)?;
+                value
+                    .parse::<u32>()
+                    .map_err(|_| rusqlite::Error::InvalidQuery)
+            },
+        )
+    }
+
+    /// Applies changes and promotes a named root in one SQLite transaction.
+    ///
+    /// # Parameters
+    /// - `name`: Named root to promote.
+    /// - `expected`: Root value required for promotion.
+    /// - `base`: Existing snapshot to change.
+    /// - `changes`: Mapping changes for the successor snapshot.
+    ///
+    /// # Returns
+    /// The promoted immutable snapshot identity.
+    ///
+    /// # Errors
+    /// Returns a snapshot, stale-root, or transaction error.
+    pub fn apply_changes_and_promote(
+        &self,
+        name: scriberig_core::RootName,
+        expected: Option<SnapshotId>,
+        base: SnapshotId,
+        changes: &[scriberig_store::SnapshotChange],
+    ) -> Result<SnapshotId, PromotionError> {
+        self.apply_revisions_and_promote(name, expected, base, &[], changes)
+    }
+
+    /// Inserts revisions, creates a snapshot, and promotes its named root atomically.
+    ///
+    /// # Parameters
+    /// - `name`: Named root to promote.
+    /// - `expected`: Root value required for promotion.
+    /// - `base`: Existing snapshot to change.
+    /// - `revisions`: New immutable revisions to insert idempotently.
+    /// - `changes`: Mapping changes for the successor snapshot.
+    ///
+    /// # Returns
+    /// The promoted immutable snapshot identity.
+    ///
+    /// # Errors
+    /// Returns a snapshot, missing-revision, stale-root, or transaction error.
+    pub fn apply_revisions_and_promote(
+        &self,
+        name: scriberig_core::RootName,
+        expected: Option<SnapshotId>,
+        base: SnapshotId,
+        revisions: &[Revision],
+        changes: &[scriberig_store::SnapshotChange],
+    ) -> Result<SnapshotId, PromotionError> {
+        let source = self.snapshot(base).map_err(PromotionError::Snapshot)?;
+        let next = source.apply(changes.iter().copied());
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| PromotionError::Backend("lock poisoned".to_owned()))?;
+        let transaction = connection
+            .transaction()
+            .map_err(|error| PromotionError::Backend(error.to_string()))?;
+        for revision in revisions {
+            revision::insert_in_transaction(&transaction, revision)
+                .map_err(|error| PromotionError::Backend(error.to_string()))?;
+        }
+        for change in changes {
+            if let scriberig_store::SnapshotChange::Set(_, revision) = change {
+                let present: bool = transaction
+                    .query_row(
+                        "SELECT EXISTS(SELECT 1 FROM revisions WHERE id=?)",
+                        rusqlite::params![revision.as_bytes().as_slice()],
+                        |row| row.get(0),
+                    )
+                    .map_err(|error| PromotionError::Backend(error.to_string()))?;
+                if !present {
+                    return Err(PromotionError::MissingRevision(*revision));
+                }
+            }
+        }
+        if let Err(error) = Self::store_snapshot_in_transaction(&transaction, &next) {
+            return Err(PromotionError::Backend(error.to_string()));
+        }
+        let actual = roots::read_root_in_transaction(&transaction, &name)
+            .map_err(|error| PromotionError::Backend(error.to_string()))?;
+        if actual != expected {
+            drop(transaction);
+            return Err(PromotionError::Root(scriberig_store::RootError::Conflict {
+                name,
+                expected,
+                actual,
+            }));
+        }
+        roots::write_root_in_transaction(&transaction, &name, next.id())
+            .map_err(|error| PromotionError::Backend(error.to_string()))?;
+        transaction
+            .commit()
+            .map_err(|error| PromotionError::Backend(error.to_string()))?;
+        Ok(next.id())
+    }
+
+    /// Stores a snapshot and its persistent map root in an open transaction.
+    ///
+    /// # Parameters
+    /// - `transaction`: Transaction receiving the immutable records.
+    /// - `snapshot`: Snapshot to persist.
+    /// - `crate`: Internal visibility marker.
+    ///
+    /// # Returns
+    /// Unit after the records are prepared.
+    ///
+    /// # Errors
+    /// Returns the SQLite insertion error.
+    pub(crate) fn store_snapshot_in_transaction(
+        transaction: &rusqlite::Transaction<'_>,
+        snapshot: &Snapshot,
+    ) -> rusqlite::Result<()> {
+        snapshot::store_in_transaction(transaction, snapshot)
+    }
 }
 
 /// Initializes a development database path and its schema.
@@ -287,3 +255,7 @@ pub fn initialize_development_database(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     SqliteStore::open(path).map(|_| ()).map_err(Into::into)
 }
+
+#[cfg(test)]
+#[path = "lib_tests.rs"]
+mod tests;

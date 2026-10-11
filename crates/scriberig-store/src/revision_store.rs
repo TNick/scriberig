@@ -1,7 +1,7 @@
 //! Defines backend-independent immutable revision storage behavior.
 
 use crate::Revision;
-use scriberig_core::RevisionId;
+use scriberig_core::{EncodingError, RevisionId};
 
 /// Reports a revision storage failure.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -10,6 +10,25 @@ pub enum StoreError {
     IntegrityCollision {
         /// Conflicting revision identity.
         id: RevisionId,
+    },
+    /// A canonical encoding version or envelope was not supported.
+    InvalidCanonicalEncoding(EncodingError),
+    /// The supplied identity does not match the canonical revision fields.
+    RevisionIdentityMismatch {
+        /// Identity recomputed from canonical fields.
+        expected: RevisionId,
+        /// Identity supplied by the caller.
+        actual: RevisionId,
+    },
+    /// A requested revision was not retained.
+    NotFound {
+        /// Missing revision identity.
+        id: RevisionId,
+    },
+    /// The requested storage operation is invalid in the current state.
+    InvalidOperation {
+        /// Machine-readable operation description.
+        operation: String,
     },
     /// A synchronization primitive could not be read or written.
     LockPoisoned,
@@ -41,6 +60,21 @@ pub trait RevisionStore {
     /// # Errors
     /// Returns a storage synchronization error.
     fn get(&self, id: RevisionId) -> Result<Option<Revision>, StoreError>;
+
+    /// Reads an immutable revision and reports absence as a typed error.
+    ///
+    /// # Parameters
+    /// - `id`: Revision identity.
+    ///
+    /// # Returns
+    /// The retained revision.
+    ///
+    /// # Errors
+    /// Returns `NotFound` when the revision is absent or propagates a backend
+    /// error from `get`.
+    fn get_required(&self, id: RevisionId) -> Result<Revision, StoreError> {
+        self.get(id)?.ok_or(StoreError::NotFound { id })
+    }
     /// Checks whether an immutable revision is retained.
     ///
     /// # Parameters

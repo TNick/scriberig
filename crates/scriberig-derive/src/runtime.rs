@@ -5,7 +5,7 @@ use crate::freshness::FreshnessPolicy;
 use crate::repository::{DerivedRepository, RepositoryError};
 use crate::result::DerivedResultRecord;
 use crate::selection::{SelectionOutcome, SelectionPolicy, select};
-use crate::{DerivationKey, DerivedResultHandle};
+use crate::{DerivationEvent, DerivationKey, DerivedResultHandle, EventReason};
 use scriberig_core::{EntityId, RevisionId};
 use std::collections::BTreeMap;
 
@@ -232,17 +232,66 @@ impl<R: DerivedRepository> DerivedRuntime<R> {
     where
         F: FnOnce(&DerivationKey) -> DerivedResultRecord,
     {
+        self.resolve_with_events(key, policy, freshness, compute)
+            .map(|(resolution, _events)| resolution)
+    }
+
+    /// Resolves a request and returns the derived lifecycle events it produces.
+    ///
+    /// # Parameters
+    /// - `key`: Exact derivation request.
+    /// - `policy`: Selection and freshness requirements.
+    /// - `freshness`: Freshness policy for stored observations.
+    /// - `compute`: Producer invoked only when no stored record qualifies.
+    ///
+    /// # Returns
+    /// The resolution and derived-only lifecycle events in emission order.
+    ///
+    /// # Errors
+    /// Returns an error if the producer returns a different key or storage
+    /// rejects the immutable result.
+    pub fn resolve_with_events<F>(
+        &mut self,
+        key: &DerivationKey,
+        policy: &SelectionPolicy,
+        freshness: &FreshnessPolicy,
+        compute: F,
+    ) -> Result<(Resolution, Vec<DerivationEvent>), RuntimeError>
+    where
+        F: FnOnce(&DerivationKey) -> DerivedResultRecord,
+    {
+        let mut events = vec![DerivationEvent::DerivationStarted {
+            profile: key.profile.clone(),
+            key: key.clone(),
+            subject: None,
+        }];
         let candidates: Vec<DerivedResultRecord> =
             self.repository.by_key(key).into_iter().cloned().collect();
-        if let SelectionOutcome::Selected { record } = select(&candidates, policy, freshness) {
-            return Ok(Resolution {
-                record: record.clone(),
-                reused: true,
+        if let SelectionOutcome::Selected { record, .. } = select(&candidates, policy, freshness) {
+            let selected = record.clone();
+            events.push(DerivationEvent::DerivedResultSelected {
+                profile: key.profile.clone(),
+                key: key.clone(),
+                result: selected.handle(),
+                subject: None,
             });
+            return Ok((
+                Resolution {
+                    record: selected,
+                    reused: true,
+                },
+                events,
+            ));
         }
 
         let produced = compute(key);
         if produced.key() != key {
+            events.push(DerivationEvent::DerivationFailed {
+                profile: key.profile.clone(),
+                key: key.clone(),
+                reason: EventReason::Extension("producer-key-mismatch".to_owned()),
+                subject: None,
+            });
             return Err(RuntimeError::KeyMismatch {
                 requested: Box::new(key.clone()),
                 produced: Box::new(produced.key().clone()),
@@ -251,9 +300,46 @@ impl<R: DerivedRepository> DerivedRuntime<R> {
         self.repository
             .insert(produced.clone())
             .map_err(RuntimeError::Repository)?;
-        Ok(Resolution {
-            record: produced,
-            reused: false,
-        })
+        match produced.status() {
+            crate::DerivedResultStatus::Succeeded => {
+                events.push(DerivationEvent::DerivedResultAvailable {
+                    profile: key.profile.clone(),
+                    key: key.clone(),
+                    result: produced.handle(),
+                    subject: None,
+                });
+            }
+            crate::DerivedResultStatus::FailedDeterministic => {
+                events.push(DerivationEvent::DerivationFailed {
+                    profile: key.profile.clone(),
+                    key: key.clone(),
+                    reason: EventReason::DeterministicFailure,
+                    subject: None,
+                });
+            }
+            crate::DerivedResultStatus::FailedTransient => {
+                events.push(DerivationEvent::DerivationFailed {
+                    profile: key.profile.clone(),
+                    key: key.clone(),
+                    reason: EventReason::TransientFailure,
+                    subject: None,
+                });
+            }
+            crate::DerivedResultStatus::Cancelled => {
+                events.push(DerivationEvent::DerivationFailed {
+                    profile: key.profile.clone(),
+                    key: key.clone(),
+                    reason: EventReason::Cancelled,
+                    subject: None,
+                });
+            }
+        }
+        Ok((
+            Resolution {
+                record: produced,
+                reused: false,
+            },
+            events,
+        ))
     }
 }

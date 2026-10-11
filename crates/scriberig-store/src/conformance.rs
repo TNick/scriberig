@@ -18,7 +18,8 @@ impl<T> ConformanceStore for T where T: RevisionStore + SnapshotStore + RootStor
 /// Returns a diagnostic when a backend violates a shared semantic invariant.
 pub fn run_core_conformance<S: ConformanceStore>(store: &S) -> Result<(), String> {
     let kind = ObjectType::new("conformance.item").map_err(|error| format!("{error:?}"))?;
-    let revision = Revision::new(EncodingVersion::V1, kind, vec![1, 2, 3]);
+    let revision = Revision::new(EncodingVersion::V1, kind, vec![1, 2, 3])
+        .map_err(|error| format!("{error:?}"))?;
     let revision_id = store
         .put(revision.clone())
         .map_err(|error| format!("{error:?}"))?;

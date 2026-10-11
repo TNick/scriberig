@@ -4,9 +4,9 @@ use scriberig_core::{
     EntityId, EntityRevisionRef, KnowledgeValue, Provenance, ProvenanceSource, RevisionId,
 };
 use scriberig_derive::{
-    Dependency, DependencySet, DerivationKey, DerivationProfile, DerivedRepository,
-    DerivedResultHandle, DerivedResultRecord, DerivedResultStatus, DerivedRuntime, FreshnessPolicy,
-    InMemoryDerivedRepository, SelectionPolicy,
+    Dependency, DependencySet, DerivationEvent, DerivationKey, DerivationProfile,
+    DerivedRepository, DerivedResultHandle, DerivedResultRecord, DerivedResultStatus,
+    DerivedRuntime, FreshnessPolicy, InMemoryDerivedRepository, SelectionPolicy,
 };
 use scriberig_graph::{DerivedArtifact, DerivedStatus};
 
@@ -149,4 +149,64 @@ fn runtime_computes_and_stores_a_missed_result() {
     assert!(!outcome.reused());
     assert_eq!(outcome.record(), &computed);
     assert_eq!(runtime.repository().get(computed.handle()), Some(&computed));
+}
+
+/// Confirms runtime resolution exposes derived lifecycle events separately.
+#[test]
+fn runtime_emits_selection_and_availability_events() {
+    let key = key();
+    let existing = record(key.clone(), 8);
+    let mut runtime = DerivedRuntime::new(InMemoryDerivedRepository::new());
+    let policy = SelectionPolicy {
+        profile: Some(key.profile.clone()),
+        include_deterministic_failures: false,
+        require_fresh: false,
+        now: 0,
+    };
+
+    let (resolution, events) = runtime
+        .resolve_with_events(&key, &policy, &FreshnessPolicy::Immutable, |_key| {
+            existing.clone()
+        })
+        .unwrap();
+
+    assert!(!resolution.reused());
+    assert!(matches!(
+        events.as_slice(),
+        [
+            DerivationEvent::DerivationStarted { key: started, .. },
+            DerivationEvent::DerivedResultAvailable { result, .. }
+        ] if *started == key && *result == existing.handle()
+    ));
+}
+
+/// Confirms reuse emits a selection event without recomputing or mutating state.
+#[test]
+fn runtime_emits_selection_event_for_reuse() {
+    let key = key();
+    let existing = record(key.clone(), 9);
+    let mut repository = InMemoryDerivedRepository::new();
+    repository.insert(existing.clone()).unwrap();
+    let mut runtime = DerivedRuntime::new(repository);
+    let policy = SelectionPolicy {
+        profile: Some(key.profile.clone()),
+        include_deterministic_failures: false,
+        require_fresh: false,
+        now: 0,
+    };
+
+    let (resolution, events) = runtime
+        .resolve_with_events(&key, &policy, &FreshnessPolicy::Immutable, |_key| {
+            panic!("reusable result must not be recomputed")
+        })
+        .unwrap();
+
+    assert!(resolution.reused());
+    assert!(matches!(
+        events.as_slice(),
+        [
+            DerivationEvent::DerivationStarted { .. },
+            DerivationEvent::DerivedResultSelected { result, .. }
+        ] if *result == existing.handle()
+    ));
 }

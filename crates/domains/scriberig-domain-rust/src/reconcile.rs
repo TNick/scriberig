@@ -199,6 +199,7 @@ fn item_revision(item: &RustItem) -> scriberig_core::RevisionId {
         &ObjectType::new("rust.item").expect("static type"),
         format!("{item:?}").as_bytes(),
     )
+    .expect("static canonical encoding version")
 }
 
 /// Produces a stable identity for one newly inserted candidate item.

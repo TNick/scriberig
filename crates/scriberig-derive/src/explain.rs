@@ -24,6 +24,16 @@ pub enum ExplanationReason {
         /// Snapshot required by the request.
         to: scriberig_core::SnapshotId,
     },
+    /// A snapshot dependency was removed from the requested key.
+    SnapshotDependencyRemoved {
+        /// Snapshot declared by the stored result.
+        from: scriberig_core::SnapshotId,
+    },
+    /// A snapshot dependency was added to the requested key.
+    SnapshotDependencyAdded {
+        /// Snapshot required by the requested result.
+        to: scriberig_core::SnapshotId,
+    },
     /// A completeness/scope dependency changed.
     ScopeChanged {
         /// Opaque completeness scope that changed.
@@ -34,6 +44,16 @@ pub enum ExplanationReason {
         /// Stored exact configuration identity.
         from: String,
         /// Requested exact configuration identity.
+        to: String,
+    },
+    /// A configuration dependency was removed from the requested key.
+    ConfigurationDependencyRemoved {
+        /// Configuration declared by the stored result.
+        from: String,
+    },
+    /// A configuration dependency was added to the requested key.
+    ConfigurationDependencyAdded {
+        /// Configuration required by the requested result.
         to: String,
     },
     /// A dependency on another result changed.
@@ -117,14 +137,12 @@ pub fn explain_key_comparison(
                 (Dependency::DerivedResult(result), _) => {
                     ExplanationReason::DerivedDependencyChanged { result: *result }
                 }
-                (Dependency::Snapshot(from), _) => ExplanationReason::SnapshotChanged {
-                    from: *from,
-                    to: *from,
-                },
-                (Dependency::Configuration(from), _) => ExplanationReason::ConfigurationChanged {
-                    from: from.clone(),
-                    to: String::new(),
-                },
+                (Dependency::Snapshot(from), _) => {
+                    ExplanationReason::SnapshotDependencyRemoved { from: *from }
+                }
+                (Dependency::Configuration(from), _) => {
+                    ExplanationReason::ConfigurationDependencyRemoved { from: from.clone() }
+                }
             };
             return ReuseExplanation {
                 reason,
@@ -141,16 +159,13 @@ pub fn explain_key_comparison(
                 Dependency::ExactRevision { entity, .. } => {
                     ExplanationReason::RevisionChanged { entity: *entity }
                 }
-                Dependency::Snapshot(to) => {
-                    ExplanationReason::SnapshotChanged { from: *to, to: *to }
-                }
+                Dependency::Snapshot(to) => ExplanationReason::SnapshotDependencyAdded { to: *to },
                 Dependency::Scope(scope) => ExplanationReason::ScopeChanged {
                     scope: scope.clone(),
                 },
-                Dependency::Configuration(to) => ExplanationReason::ConfigurationChanged {
-                    from: String::new(),
-                    to: to.clone(),
-                },
+                Dependency::Configuration(to) => {
+                    ExplanationReason::ConfigurationDependencyAdded { to: to.clone() }
+                }
                 Dependency::DerivedResult(result) => {
                     ExplanationReason::DerivedDependencyChanged { result: *result }
                 }

@@ -27,6 +27,8 @@ pub enum SelectionOutcome<'a> {
     Selected {
         /// Exact immutable record selected by candidate ranking.
         record: &'a DerivedResultRecord,
+        /// Structured reason the candidate satisfied the policy.
+        reason: SelectionReason,
     },
     /// No candidate met profile, status, and freshness requirements.
     NoMatch {
@@ -96,7 +98,10 @@ pub fn select<'a>(
         {
             continue;
         }
-        return SelectionOutcome::Selected { record };
+        return SelectionOutcome::Selected {
+            record,
+            reason: SelectionReason::ExactProfile,
+        };
     }
     let reason = if !profile_seen {
         SelectionReason::ProfileMismatch

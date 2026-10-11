@@ -81,10 +81,10 @@ fn multiple_results_coexist_and_selection_does_not_mutate_them() {
 
     assert_eq!(repository.by_key(&request).len(), 2);
     assert!(
-        matches!(selection_a, SelectionOutcome::Selected { record } if record.handle() == first.handle())
+        matches!(selection_a, SelectionOutcome::Selected { record, reason: SelectionReason::ExactProfile } if record.handle() == first.handle())
     );
     assert!(
-        matches!(selection_b, SelectionOutcome::Selected { record } if record.handle() == second.handle())
+        matches!(selection_b, SelectionOutcome::Selected { record, reason: SelectionReason::ExactProfile } if record.handle() == second.handle())
     );
     assert_eq!(repository.get(first.handle()), Some(&first));
     assert_eq!(repository.get(second.handle()), Some(&second));

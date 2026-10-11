@@ -19,9 +19,15 @@ fn identical_snapshots_are_empty() {
 fn sibling_snapshots_report_sorted_entity_deltas_and_summary() {
     let store = MemoryStore::default();
     let kind = ObjectType::new("test").expect("kind");
-    let first = Revision::new(EncodingVersion::new(1), kind.clone(), vec![1]).id();
-    let second = Revision::new(EncodingVersion::new(1), kind.clone(), vec![2]).id();
-    let third = Revision::new(EncodingVersion::new(1), kind, vec![3]).id();
+    let first = Revision::new(EncodingVersion::new(1), kind.clone(), vec![1])
+        .expect("revision")
+        .id();
+    let second = Revision::new(EncodingVersion::new(1), kind.clone(), vec![2])
+        .expect("revision")
+        .id();
+    let third = Revision::new(EncodingVersion::new(1), kind, vec![3])
+        .expect("revision")
+        .id();
     let base = scriberig_store::Snapshot::empty().id();
     let left = store
         .apply_changes(base, &[SnapshotChange::Set(EntityId::new([2; 16]), first)])

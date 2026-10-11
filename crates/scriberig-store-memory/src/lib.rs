@@ -1,5 +1,6 @@
 //! Provides the in-memory implementation of the Scriberig storage contracts.
 
+mod maintenance;
 mod observability;
 mod roots;
 pub use roots::MemoryRootStore;

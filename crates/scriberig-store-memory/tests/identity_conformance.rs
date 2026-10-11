@@ -16,19 +16,19 @@ fn identity_subsystem_conformance() {
     let second = EntityId::new([3; 16]);
     let branch = EntityId::new([4; 16]);
     let fr7 = store
-        .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![7]))
+        .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![7]).expect("revision"))
         .expect("fr7");
     let pr3 = store
-        .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![3]))
+        .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![3]).expect("revision"))
         .expect("pr3");
     let pr8 = store
-        .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![8]))
+        .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![8]).expect("revision"))
         .expect("pr8");
     let br2 = store
-        .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![2]))
+        .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![2]).expect("revision"))
         .expect("br2");
     let pr9 = store
-        .put(Revision::new(EncodingVersion::V1, kind, vec![9]))
+        .put(Revision::new(EncodingVersion::V1, kind, vec![9]).expect("revision"))
         .expect("pr9");
     let base = store.empty_snapshot();
     let s1 = store

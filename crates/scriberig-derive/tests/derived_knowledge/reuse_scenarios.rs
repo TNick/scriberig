@@ -7,6 +7,39 @@ use scriberig_derive::{
     explain_key_comparison, is_affected,
 };
 
+/// Proves exact dependency identity is stable and revision-sensitive.
+#[test]
+fn exact_revision_identity_changes_only_when_revision_changes() {
+    let first = key(
+        "summary",
+        vec![Dependency::ExactRevision {
+            entity: entity(11),
+            revision: revision(1),
+        }],
+    );
+    let same = key(
+        "summary",
+        vec![Dependency::ExactRevision {
+            entity: entity(11),
+            revision: revision(1),
+        }],
+    );
+    let changed = key(
+        "summary",
+        vec![Dependency::ExactRevision {
+            entity: entity(11),
+            revision: revision(2),
+        }],
+    );
+
+    assert_eq!(first, same);
+    assert_ne!(first, changed);
+    assert!(matches!(
+        explain_key_comparison(&first, &changed).reason,
+        ExplanationReason::RevisionChanged { entity: changed } if changed == entity(11)
+    ));
+}
+
 /// Proves local exact dependencies remain reusable after unrelated changes.
 #[test]
 fn local_result_reuses_after_unrelated_global_change() {
@@ -59,6 +92,23 @@ fn explicit_snapshot_dependency_changes_key_and_preserves_history() {
     assert!(
         matches!(explanation.reason, ExplanationReason::SnapshotChanged { from, to } if from == before && to == after)
     );
+}
+
+/// Proves one-sided snapshot dependencies retain truthful diagnostic values.
+#[test]
+fn snapshot_dependency_addition_and_removal_are_explained() {
+    let snapshot = SnapshotId::new([3; 32]);
+    let empty = key("audit", Vec::new());
+    let scoped = key("audit", vec![Dependency::Snapshot(snapshot)]);
+
+    assert!(matches!(
+        explain_key_comparison(&scoped, &empty).reason,
+        ExplanationReason::SnapshotDependencyRemoved { from } if from == snapshot
+    ));
+    assert!(matches!(
+        explain_key_comparison(&empty, &scoped).reason,
+        ExplanationReason::SnapshotDependencyAdded { to } if to == snapshot
+    ));
 }
 
 /// Proves a scope dependency detects new members when old members stay unchanged.

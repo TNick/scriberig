@@ -56,6 +56,7 @@ pub fn revision(value: &impl std::fmt::Debug) -> RevisionId {
         &ObjectType::new("markdown.block").expect("object type"),
         payload.as_bytes(),
     )
+    .expect("static canonical encoding version")
 }
 
 /// Flattens a document into canonical nodes with stable fixture identities.
@@ -117,11 +118,14 @@ pub fn persist_snapshot(store: &MemoryStore, nodes: &[CanonicalNode]) -> Snapsho
     for node in nodes {
         let value = revision(&node.block);
         store
-            .put(scriberig_store::Revision::new(
-                EncodingVersion::V1,
-                ObjectType::new("markdown.block").expect("object type"),
-                format!("{:?}", node.block).into_bytes(),
-            ))
+            .put(
+                scriberig_store::Revision::new(
+                    EncodingVersion::V1,
+                    ObjectType::new("markdown.block").expect("object type"),
+                    format!("{:?}", node.block).into_bytes(),
+                )
+                .expect("revision"),
+            )
             .expect("revision");
         changes.push(SnapshotChange::Set(node.id, value));
     }

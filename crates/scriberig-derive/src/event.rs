@@ -127,9 +127,6 @@ pub enum DerivationEvent {
 /// # Returns
 /// Stable derived lifecycle category.
 ///
-/// # Returns
-/// Stable derived lifecycle category.
-///
 /// This classification does not represent a canonical snapshot event.
 #[must_use]
 pub const fn event_kind(event: &DerivationEvent) -> DerivationEventKind {

@@ -33,19 +33,19 @@ struct Scenario {
 fn create_scenario<S: RevisionStore + SnapshotStore + RootStore>(store: &S) -> Scenario {
     let kind = ObjectType::new("persistence.item").expect("type");
     let a1 = store
-        .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![1]))
+        .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![1]).expect("revision"))
         .expect("A1");
     let a2 = store
-        .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![2]))
+        .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![2]).expect("revision"))
         .expect("A2");
     let b1 = store
-        .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![3]))
+        .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![3]).expect("revision"))
         .expect("B1");
     let b2 = store
-        .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![4]))
+        .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![4]).expect("revision"))
         .expect("B2");
     let c1 = store
-        .put(Revision::new(EncodingVersion::V1, kind, vec![5]))
+        .put(Revision::new(EncodingVersion::V1, kind, vec![5]).expect("revision"))
         .expect("C1");
     let a = EntityId::new([1; 16]);
     let b = EntityId::new([2; 16]);
