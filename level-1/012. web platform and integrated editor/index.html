@@ -5411,6 +5411,9 @@
 <a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>                                    v
 <a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>                           Full Scriberig Editor
 </code></pre></div>
+<p><img alt="Layered web platform from shared protocol through transport client, semantic model, headless and React bindings, reusable components, optional MUI integration, and finally the integrated editor; third-party applications can stop at lower reusable layers." src="../assets/012-web-platform-and-integrated-editor/figure-1-web-platform-layers.svg" /></p>
+<p><em>Figure 1 — Reusable web platform layers and the integrated editor.</em></p>
+<p>The important distinction is dependency direction: reusable protocol, client, semantic-model, and interaction layers remain independent of the reference editor and of MUI, while third parties can adopt only the lowest layer they need. The integrated editor sits at the top as a consumer and conformance test of those public layers.</p>
 <p>The full editor is therefore evidence that the public web platform is complete enough to build a serious application.</p>
 <p>If the full editor requires private protocol calls, internal server knowledge, direct database access, or components unavailable to third parties, the public web boundary is incomplete.</p>
 <hr />
@@ -5600,6 +5603,9 @@
 </ul>
 <p>Similarly, selecting a Markdown paragraph, PDF table, session branch, decision, or migration should work through the same concept.</p>
 <p>This shared selection model is one of the primary mechanisms that makes the integrated editor feel like one system rather than several tools placed beside one another.</p>
+<p><img alt="A central semantic selection containing entity, revision, snapshot, and optional relation or projection context fans out to six synchronized editor views: raw knowledge, semantic/domain, projection, history and diff, session and agent, and validation and operations." src="../assets/012-web-platform-and-integrated-editor/figure-2-integrated-editor-selection.svg" /></p>
+<p><em>Figure 2 — The integrated editor is coordinated by one semantic selection.</em></p>
+<p>The reader should notice that each panel is a different representation of the same selected semantic context. Selection identity is shared even though each view chooses its own rendering, which is what allows a source editor, raw graph browser, history panel, and agent panel to remain synchronized.</p>
 <hr />
 <h2 id="7-one-universal-command-model">7. One Universal Command Model<a class="headerlink" href="#7-one-universal-command-model" title="Permanent link">&para;</a></h2>
 <p>Commands should also be shared.</p>
@@ -5769,6 +5775,9 @@
 <a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>                                     v
 <a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>                                  snapshot
 </code></pre></div>
+<p><img alt="Web editor, agent, CLI or TUI, external projection edits, and third-party clients all converge on one shared application operation, which produces a migration proposal, validation result, and only then a new snapshot; projection edits first pass through reconciliation." src="../assets/012-web-platform-and-integrated-editor/figure-3-shared-change-path.svg" /></p>
+<p><em>Figure 3 — All mutation sources use the same semantic change path.</em></p>
+<p>The key architectural point is that the official browser is not privileged: every source may contribute provenance and richer intent, but all canonical changes still pass through shared application operations, migration construction, and validation. Projection edits additionally pass through parsing and reconciliation rather than making edited text canonical by itself.</p>
 <p>This ensures that:</p>
 <ul>
 <li>provenance remains meaningful;</li>
@@ -5841,6 +5850,9 @@
 <p>Events identify what changed.</p>
 <p>The browser can then use immutable identities and cached revisions to retain unchanged information.</p>
 <p>This mirrors the rest of Scriberig's incremental architecture: a global snapshot may change while most locally referenced immutable revisions remain reusable.</p>
+<p><img alt="Snapshot S1 resolves entities A, B, and C to revisions A1, B1, and C1; after B changes, snapshot S2 resolves A and C to the same immutable revisions but B to B2, allowing a snapshot-advanced event to preserve A1 and C1 in the browser cache and fetch only B2." src="../assets/012-web-platform-and-integrated-editor/figure-4-snapshot-incrementality.svg" /></p>
+<p><em>Figure 4 — Snapshot-aware event handling preserves unchanged client state.</em></p>
+<p>What matters is the separation between global and local identity. A new <code>SnapshotId</code> says that something in canonical state changed, but immutable <code>RevisionId</code> values let the browser prove which locally cached objects remain valid, so incremental updates do not require a full graph reload.</p>
 <hr />
 <h2 id="13-progressive-disclosure-in-the-ui">13. Progressive Disclosure in the UI<a class="headerlink" href="#13-progressive-disclosure-in-the-ui" title="Permanent link">&para;</a></h2>
 <p>The web editor should follow the same progressive-disclosure principles used for agents.</p>
@@ -5885,6 +5897,9 @@
 <li>historical inspection.</li>
 </ul>
 <p>Agent output should likewise link back to semantic objects, migrations, validation results, and branches rather than existing only as plain text.</p>
+<p><img alt="An editor selection supplies entity, revision, snapshot, session, branch, and user request to an isolated agent branch; the agent uses shared inspect, query, diff, edit, and validate operations, then returns a branch result linked to a migration, validation result, affected semantic objects, and resulting snapshot." src="../assets/012-web-platform-and-integrated-editor/figure-5-structured-agent-context.svg" /></p>
+<p><em>Figure 5 — Agent interaction is structured, scoped, and traceable back to semantic history.</em></p>
+<p>The figure emphasizes that the editor passes semantic handles rather than manufacturing brittle file-and-line prompts. The agent's exploratory branch may stay compact in the parent session, while its durable outcome remains connected to the exact migration, validation evidence, affected objects, and resulting snapshot.</p>
 <hr />
 <h2 id="15-low-level-and-high-level-operations-must-coexist">15. Low-Level and High-Level Operations Must Coexist<a class="headerlink" href="#15-low-level-and-high-level-operations-must-coexist" title="Permanent link">&para;</a></h2>
 <p>The integrated editor should not hide the low-level knowledge system in favor of simplified workflows.</p>
@@ -6007,6 +6022,9 @@
 <a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>CLI
 <a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>agent tool where appropriate
 </code></pre></div>
+<p><img alt="Semantic diff shown as one vertical capability that must pass through the application operation, protocol, server, web client and semantic model, browser interaction model, integrated editor, CLI or TUI, and agent tool; a contrasting anti-pattern shows backend features outpacing web support." src="../assets/012-web-platform-and-integrated-editor/figure-6-vertical-capability-delivery.svg" /></p>
+<p><em>Figure 6 — User-visible capabilities should be delivered vertically across product surfaces.</em></p>
+<p>The important observation is that feature completeness is cross-surface rather than backend-only. The reference editor provides a practical test of the public web stack, while CLI, API, and agent exposure should remain aligned with the same semantic operation instead of evolving as independent implementations.</p>
 <p>Not every low-level primitive requires a dedicated UI immediately.</p>
 <p>But important user-level capabilities should have an intentional path across supported surfaces.</p>
 <p>This requirement keeps the web editor, API, CLI, and agent model aligned as the system evolves.</p>
