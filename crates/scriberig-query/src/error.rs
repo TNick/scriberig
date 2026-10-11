@@ -12,6 +12,10 @@ pub enum ReadOperation {
     List,
     /// Relation traversal.
     Follow,
+    /// Ranked or approximate discovery.
+    Find,
+    /// Exact structural query.
+    Query,
 }
 
 /// Reports semantic read failures without exposing storage details.
