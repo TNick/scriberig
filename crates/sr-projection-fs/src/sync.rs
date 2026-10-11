@@ -61,6 +61,22 @@ impl MemorySyncStore {
     pub fn find_mut(&mut self, location: &ProjectionLocation) -> Option<&mut SyncState> {
         self.states.iter_mut().find(|s| &s.location == location)
     }
+
+    /// Moves a synchronization record when an editable projection is renamed.
+    ///
+    /// # Parameters
+    /// - `from`: Previous physical location.
+    /// - `to`: New physical location.
+    ///
+    /// # Returns
+    /// `true` when a record was moved.
+    pub fn rename(&mut self, from: &ProjectionLocation, to: ProjectionLocation) -> bool {
+        let Some(state) = self.states.iter_mut().find(|state| &state.location == from) else {
+            return false;
+        };
+        state.location = to;
+        true
+    }
 }
 /// Inspects one observation using exact current bytes and digest state.
 /// # Errors
@@ -75,7 +91,12 @@ pub fn inspect_observation<F: FileSystem>(
         | Observation::Modified(p)
         | Observation::Removed(p)
         | Observation::RescanRequired(p) => p,
-        Observation::Renamed { to, .. } => to,
+        Observation::Renamed { from, to } => {
+            if !store.rename(from, to.clone()) {
+                return Ok(None);
+            }
+            to
+        }
     };
     let Some(state) = store.find_mut(location) else {
         return Ok(None);
@@ -89,10 +110,7 @@ pub fn inspect_observation<F: FileSystem>(
     state.observed = Some(digest);
     if digest == state.rendered {
         state.status = ProjectionStatus::Synchronized;
-    } else if matches!(
-        state.ownership,
-        ProjectionOwnership::ManagedReadOnly | ProjectionOwnership::ManagedEditable
-    ) {
+    } else {
         state.status = ProjectionStatus::ExternallyModified;
     }
     Ok(Some(state.status))

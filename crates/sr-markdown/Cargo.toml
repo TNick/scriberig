@@ -14,5 +14,10 @@ scriberig-core = { path = "../scriberig-core" }
 sr-change = { path = "../sr-change" }
 sr-projection = { path = "../sr-projection" }
 
+[dev-dependencies]
+scriberig-store = { path = "../scriberig-store" }
+scriberig-store-memory = { path = "../scriberig-store-memory" }
+sr-projection-fs = { path = "../sr-projection-fs" }
+
 [lints]
 workspace = true

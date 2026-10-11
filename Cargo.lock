@@ -731,8 +731,11 @@ dependencies = [
  "blake3",
  "pulldown-cmark",
  "scriberig-core",
+ "scriberig-store",
+ "scriberig-store-memory",
  "sr-change",
  "sr-projection",
+ "sr-projection-fs",
 ]
 
 [[package]]

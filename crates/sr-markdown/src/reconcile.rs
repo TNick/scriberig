@@ -231,7 +231,24 @@ fn rand_bytes(path: &[usize]) -> [u8; 16] {
 fn flatten_blocks(document: &crate::MarkdownDocument) -> FlattenedBlocks {
     let mut output = Vec::new();
     for (index, block) in document.blocks.iter().enumerate() {
-        output.push((vec![index], block.clone()));
+        flatten_block(block, &[index], &mut output);
     }
     output
+}
+
+/// Adds one block and its nested sections to the operation lookup table.
+///
+/// # Parameters
+/// - `block`: Semantic block to add.
+/// - `path`: Structural path of the block.
+/// - `output`: Destination flattened blocks.
+fn flatten_block(block: &MarkdownBlock, path: &[usize], output: &mut FlattenedBlocks) {
+    output.push((path.to_owned(), block.clone()));
+    if let MarkdownBlock::Section(section) = block {
+        for (index, child) in section.blocks.iter().enumerate() {
+            let mut child_path = path.to_owned();
+            child_path.push(index);
+            flatten_block(child, &child_path, output);
+        }
+    }
 }
