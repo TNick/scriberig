@@ -125,87 +125,92 @@
 <a href=#125 id=125 data-nosnippet>125</a>             payload BLOB NOT NULL
 <a href=#126 id=126 data-nosnippet>126</a>         );
 <a href=#127 id=127 data-nosnippet>127</a>         CREATE TABLE IF NOT EXISTS snapshots (id BLOB PRIMARY KEY);
-<a href=#128 id=128 data-nosnippet>128</a>         CREATE TABLE IF NOT EXISTS snapshot_entries (
+<a href=#128 id=128 data-nosnippet>128</a>         CREATE TABLE IF NOT EXISTS snapshot_parents (
 <a href=#129 id=129 data-nosnippet>129</a>             snapshot_id BLOB NOT NULL,
-<a href=#130 id=130 data-nosnippet>130</a>             entity BLOB NOT NULL,
-<a href=#131 id=131 data-nosnippet>131</a>             revision BLOB NOT NULL,
-<a href=#132 id=132 data-nosnippet>132</a>             PRIMARY KEY(snapshot_id, entity)
-<a href=#133 id=133 data-nosnippet>133</a>         );
-<a href=#134 id=134 data-nosnippet>134</a>         CREATE TABLE IF NOT EXISTS snapshot_nodes (
-<a href=#135 id=135 data-nosnippet>135</a>             id BLOB PRIMARY KEY,
-<a href=#136 id=136 data-nosnippet>136</a>             kind INTEGER NOT NULL,
-<a href=#137 id=137 data-nosnippet>137</a>             entity BLOB,
-<a href=#138 id=138 data-nosnippet>138</a>             revision BLOB,
-<a href=#139 id=139 data-nosnippet>139</a>             left_child BLOB,
-<a href=#140 id=140 data-nosnippet>140</a>             right_child BLOB,
-<a href=#141 id=141 data-nosnippet>141</a>             item_count INTEGER NOT NULL
-<a href=#142 id=142 data-nosnippet>142</a>         );
-<a href=#143 id=143 data-nosnippet>143</a>         CREATE TABLE IF NOT EXISTS snapshot_node_roots (
-<a href=#144 id=144 data-nosnippet>144</a>             snapshot_id BLOB PRIMARY KEY,
-<a href=#145 id=145 data-nosnippet>145</a>             node_id BLOB NOT NULL
-<a href=#146 id=146 data-nosnippet>146</a>         );
-<a href=#147 id=147 data-nosnippet>147</a>         CREATE TABLE IF NOT EXISTS roots (
-<a href=#148 id=148 data-nosnippet>148</a>             name TEXT PRIMARY KEY,
-<a href=#149 id=149 data-nosnippet>149</a>             snapshot_id BLOB NOT NULL
-<a href=#150 id=150 data-nosnippet>150</a>         );
-<a href=#151 id=151 data-nosnippet>151</a>         INSERT OR IGNORE INTO metadata(key, value)
-<a href=#152 id=152 data-nosnippet>152</a>             VALUES ('schema_version', '1');
-<a href=#153 id=153 data-nosnippet>153</a>         INSERT OR IGNORE INTO metadata(key, value)
-<a href=#154 id=154 data-nosnippet>154</a>             VALUES ('integrity_format_version', '1');
-<a href=#155 id=155 data-nosnippet>155</a>         INSERT OR IGNORE INTO metadata(key, value)
-<a href=#156 id=156 data-nosnippet>156</a>             VALUES ('recovery_mode', 'transactional-root-promotion');"</span>,
-<a href=#157 id=157 data-nosnippet>157</a>    )
-<a href=#158 id=158 data-nosnippet>158</a>}
-<a href=#159 id=159 data-nosnippet>159</a>
-<a href=#160 id=160 data-nosnippet>160</a><span class="doccomment">/// Reads a numeric metadata value.
-<a href=#161 id=161 data-nosnippet>161</a>///
-<a href=#162 id=162 data-nosnippet>162</a>/// # Parameters
-<a href=#163 id=163 data-nosnippet>163</a>/// - `transaction`: Transaction containing metadata.
-<a href=#164 id=164 data-nosnippet>164</a>/// - `key`: Metadata key to read.
-<a href=#165 id=165 data-nosnippet>165</a>///
-<a href=#166 id=166 data-nosnippet>166</a>/// # Returns
-<a href=#167 id=167 data-nosnippet>167</a>/// The parsed metadata version.
-<a href=#168 id=168 data-nosnippet>168</a>///
-<a href=#169 id=169 data-nosnippet>169</a>/// # Errors
-<a href=#170 id=170 data-nosnippet>170</a>/// Returns a SQLite query or parse error.
-<a href=#171 id=171 data-nosnippet>171</a></span><span class="kw">fn </span>metadata_u32(transaction: <span class="kw-2">&amp;</span>Transaction&lt;<span class="lifetime">'_</span>&gt;, key: <span class="kw-2">&amp;</span>str) -&gt; rusqlite::Result&lt;u32&gt; {
-<a href=#172 id=172 data-nosnippet>172</a>    transaction.query_row(<span class="string">"SELECT value FROM metadata WHERE key=?"</span>, [key], |row| {
-<a href=#173 id=173 data-nosnippet>173</a>        <span class="kw">let </span>value: String = row.get(<span class="number">0</span>)<span class="question-mark">?</span>;
-<a href=#174 id=174 data-nosnippet>174</a>        value
-<a href=#175 id=175 data-nosnippet>175</a>            .parse::&lt;u32&gt;()
-<a href=#176 id=176 data-nosnippet>176</a>            .map_err(|<span class="kw">_</span>| rusqlite::Error::InvalidQuery)
-<a href=#177 id=177 data-nosnippet>177</a>    })
-<a href=#178 id=178 data-nosnippet>178</a>}
-<a href=#179 id=179 data-nosnippet>179</a>
-<a href=#180 id=180 data-nosnippet>180</a><span class="doccomment">/// Validates a required textual metadata value.
-<a href=#181 id=181 data-nosnippet>181</a>///
-<a href=#182 id=182 data-nosnippet>182</a>/// # Parameters
-<a href=#183 id=183 data-nosnippet>183</a>/// - `transaction`: Transaction containing metadata.
-<a href=#184 id=184 data-nosnippet>184</a>/// - `key`: Metadata key to validate.
-<a href=#185 id=185 data-nosnippet>185</a>/// - `expected`: Required value.
+<a href=#130 id=130 data-nosnippet>130</a>             parent_id BLOB NOT NULL,
+<a href=#131 id=131 data-nosnippet>131</a>             PRIMARY KEY(snapshot_id, parent_id)
+<a href=#132 id=132 data-nosnippet>132</a>         );
+<a href=#133 id=133 data-nosnippet>133</a>         CREATE TABLE IF NOT EXISTS snapshot_entries (
+<a href=#134 id=134 data-nosnippet>134</a>             snapshot_id BLOB NOT NULL,
+<a href=#135 id=135 data-nosnippet>135</a>             entity BLOB NOT NULL,
+<a href=#136 id=136 data-nosnippet>136</a>             revision BLOB NOT NULL,
+<a href=#137 id=137 data-nosnippet>137</a>             PRIMARY KEY(snapshot_id, entity)
+<a href=#138 id=138 data-nosnippet>138</a>         );
+<a href=#139 id=139 data-nosnippet>139</a>         CREATE TABLE IF NOT EXISTS snapshot_nodes (
+<a href=#140 id=140 data-nosnippet>140</a>             id BLOB PRIMARY KEY,
+<a href=#141 id=141 data-nosnippet>141</a>             kind INTEGER NOT NULL,
+<a href=#142 id=142 data-nosnippet>142</a>             entity BLOB,
+<a href=#143 id=143 data-nosnippet>143</a>             revision BLOB,
+<a href=#144 id=144 data-nosnippet>144</a>             left_child BLOB,
+<a href=#145 id=145 data-nosnippet>145</a>             right_child BLOB,
+<a href=#146 id=146 data-nosnippet>146</a>             item_count INTEGER NOT NULL
+<a href=#147 id=147 data-nosnippet>147</a>         );
+<a href=#148 id=148 data-nosnippet>148</a>         CREATE TABLE IF NOT EXISTS snapshot_node_roots (
+<a href=#149 id=149 data-nosnippet>149</a>             snapshot_id BLOB PRIMARY KEY,
+<a href=#150 id=150 data-nosnippet>150</a>             node_id BLOB NOT NULL
+<a href=#151 id=151 data-nosnippet>151</a>         );
+<a href=#152 id=152 data-nosnippet>152</a>         CREATE TABLE IF NOT EXISTS roots (
+<a href=#153 id=153 data-nosnippet>153</a>             name TEXT PRIMARY KEY,
+<a href=#154 id=154 data-nosnippet>154</a>             snapshot_id BLOB NOT NULL
+<a href=#155 id=155 data-nosnippet>155</a>         );
+<a href=#156 id=156 data-nosnippet>156</a>         INSERT OR IGNORE INTO metadata(key, value)
+<a href=#157 id=157 data-nosnippet>157</a>             VALUES ('schema_version', '1');
+<a href=#158 id=158 data-nosnippet>158</a>         INSERT OR IGNORE INTO metadata(key, value)
+<a href=#159 id=159 data-nosnippet>159</a>             VALUES ('integrity_format_version', '1');
+<a href=#160 id=160 data-nosnippet>160</a>         INSERT OR IGNORE INTO metadata(key, value)
+<a href=#161 id=161 data-nosnippet>161</a>             VALUES ('recovery_mode', 'transactional-root-promotion');"</span>,
+<a href=#162 id=162 data-nosnippet>162</a>    )
+<a href=#163 id=163 data-nosnippet>163</a>}
+<a href=#164 id=164 data-nosnippet>164</a>
+<a href=#165 id=165 data-nosnippet>165</a><span class="doccomment">/// Reads a numeric metadata value.
+<a href=#166 id=166 data-nosnippet>166</a>///
+<a href=#167 id=167 data-nosnippet>167</a>/// # Parameters
+<a href=#168 id=168 data-nosnippet>168</a>/// - `transaction`: Transaction containing metadata.
+<a href=#169 id=169 data-nosnippet>169</a>/// - `key`: Metadata key to read.
+<a href=#170 id=170 data-nosnippet>170</a>///
+<a href=#171 id=171 data-nosnippet>171</a>/// # Returns
+<a href=#172 id=172 data-nosnippet>172</a>/// The parsed metadata version.
+<a href=#173 id=173 data-nosnippet>173</a>///
+<a href=#174 id=174 data-nosnippet>174</a>/// # Errors
+<a href=#175 id=175 data-nosnippet>175</a>/// Returns a SQLite query or parse error.
+<a href=#176 id=176 data-nosnippet>176</a></span><span class="kw">fn </span>metadata_u32(transaction: <span class="kw-2">&amp;</span>Transaction&lt;<span class="lifetime">'_</span>&gt;, key: <span class="kw-2">&amp;</span>str) -&gt; rusqlite::Result&lt;u32&gt; {
+<a href=#177 id=177 data-nosnippet>177</a>    transaction.query_row(<span class="string">"SELECT value FROM metadata WHERE key=?"</span>, [key], |row| {
+<a href=#178 id=178 data-nosnippet>178</a>        <span class="kw">let </span>value: String = row.get(<span class="number">0</span>)<span class="question-mark">?</span>;
+<a href=#179 id=179 data-nosnippet>179</a>        value
+<a href=#180 id=180 data-nosnippet>180</a>            .parse::&lt;u32&gt;()
+<a href=#181 id=181 data-nosnippet>181</a>            .map_err(|<span class="kw">_</span>| rusqlite::Error::InvalidQuery)
+<a href=#182 id=182 data-nosnippet>182</a>    })
+<a href=#183 id=183 data-nosnippet>183</a>}
+<a href=#184 id=184 data-nosnippet>184</a>
+<a href=#185 id=185 data-nosnippet>185</a><span class="doccomment">/// Validates a required textual metadata value.
 <a href=#186 id=186 data-nosnippet>186</a>///
-<a href=#187 id=187 data-nosnippet>187</a>/// # Returns
-<a href=#188 id=188 data-nosnippet>188</a>/// Unit when the value matches.
-<a href=#189 id=189 data-nosnippet>189</a>///
-<a href=#190 id=190 data-nosnippet>190</a>/// # Errors
-<a href=#191 id=191 data-nosnippet>191</a>/// Returns a SQLite query or metadata compatibility error.
-<a href=#192 id=192 data-nosnippet>192</a></span><span class="kw">fn </span>validate_metadata(
-<a href=#193 id=193 data-nosnippet>193</a>    transaction: <span class="kw-2">&amp;</span>Transaction&lt;<span class="lifetime">'_</span>&gt;,
-<a href=#194 id=194 data-nosnippet>194</a>    key: <span class="kw-2">&amp;</span>str,
-<a href=#195 id=195 data-nosnippet>195</a>    expected: <span class="kw-2">&amp;</span>str,
-<a href=#196 id=196 data-nosnippet>196</a>) -&gt; rusqlite::Result&lt;()&gt; {
-<a href=#197 id=197 data-nosnippet>197</a>    <span class="kw">let </span>found: String =
-<a href=#198 id=198 data-nosnippet>198</a>        transaction.query_row(<span class="string">"SELECT value FROM metadata WHERE key=?"</span>, [key], |row| {
-<a href=#199 id=199 data-nosnippet>199</a>            row.get(<span class="number">0</span>)
-<a href=#200 id=200 data-nosnippet>200</a>        })<span class="question-mark">?</span>;
-<a href=#201 id=201 data-nosnippet>201</a>    <span class="kw">if </span>found != expected {
-<a href=#202 id=202 data-nosnippet>202</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(rusqlite::Error::ToSqlConversionFailure(Box::new(
-<a href=#203 id=203 data-nosnippet>203</a>            UnsupportedMetadata {
-<a href=#204 id=204 data-nosnippet>204</a>                key: key.to_owned(),
-<a href=#205 id=205 data-nosnippet>205</a>                found,
-<a href=#206 id=206 data-nosnippet>206</a>            },
-<a href=#207 id=207 data-nosnippet>207</a>        )));
-<a href=#208 id=208 data-nosnippet>208</a>    }
-<a href=#209 id=209 data-nosnippet>209</a>    <span class="prelude-val">Ok</span>(())
-<a href=#210 id=210 data-nosnippet>210</a>}
+<a href=#187 id=187 data-nosnippet>187</a>/// # Parameters
+<a href=#188 id=188 data-nosnippet>188</a>/// - `transaction`: Transaction containing metadata.
+<a href=#189 id=189 data-nosnippet>189</a>/// - `key`: Metadata key to validate.
+<a href=#190 id=190 data-nosnippet>190</a>/// - `expected`: Required value.
+<a href=#191 id=191 data-nosnippet>191</a>///
+<a href=#192 id=192 data-nosnippet>192</a>/// # Returns
+<a href=#193 id=193 data-nosnippet>193</a>/// Unit when the value matches.
+<a href=#194 id=194 data-nosnippet>194</a>///
+<a href=#195 id=195 data-nosnippet>195</a>/// # Errors
+<a href=#196 id=196 data-nosnippet>196</a>/// Returns a SQLite query or metadata compatibility error.
+<a href=#197 id=197 data-nosnippet>197</a></span><span class="kw">fn </span>validate_metadata(
+<a href=#198 id=198 data-nosnippet>198</a>    transaction: <span class="kw-2">&amp;</span>Transaction&lt;<span class="lifetime">'_</span>&gt;,
+<a href=#199 id=199 data-nosnippet>199</a>    key: <span class="kw-2">&amp;</span>str,
+<a href=#200 id=200 data-nosnippet>200</a>    expected: <span class="kw-2">&amp;</span>str,
+<a href=#201 id=201 data-nosnippet>201</a>) -&gt; rusqlite::Result&lt;()&gt; {
+<a href=#202 id=202 data-nosnippet>202</a>    <span class="kw">let </span>found: String =
+<a href=#203 id=203 data-nosnippet>203</a>        transaction.query_row(<span class="string">"SELECT value FROM metadata WHERE key=?"</span>, [key], |row| {
+<a href=#204 id=204 data-nosnippet>204</a>            row.get(<span class="number">0</span>)
+<a href=#205 id=205 data-nosnippet>205</a>        })<span class="question-mark">?</span>;
+<a href=#206 id=206 data-nosnippet>206</a>    <span class="kw">if </span>found != expected {
+<a href=#207 id=207 data-nosnippet>207</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(rusqlite::Error::ToSqlConversionFailure(Box::new(
+<a href=#208 id=208 data-nosnippet>208</a>            UnsupportedMetadata {
+<a href=#209 id=209 data-nosnippet>209</a>                key: key.to_owned(),
+<a href=#210 id=210 data-nosnippet>210</a>                found,
+<a href=#211 id=211 data-nosnippet>211</a>            },
+<a href=#212 id=212 data-nosnippet>212</a>        )));
+<a href=#213 id=213 data-nosnippet>213</a>    }
+<a href=#214 id=214 data-nosnippet>214</a>    <span class="prelude-val">Ok</span>(())
+<a href=#215 id=215 data-nosnippet>215</a>}
 </code></pre></div></section></main></body></html>

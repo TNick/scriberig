@@ -156,7 +156,7 @@
 <a href=#156 id=156 data-nosnippet>156</a>            <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
 <a href=#157 id=157 data-nosnippet>157</a>        }
 <a href=#158 id=158 data-nosnippet>158</a>        Operation::Domain { .. } =&gt; <span class="prelude-val">Err</span>(Box::new(entity_conflict(
-<a href=#159 id=159 data-nosnippet>159</a>            EntityId::new([<span class="number">0</span>; <span class="number">16</span>]),
+<a href=#159 id=159 data-nosnippet>159</a>            EntityId::from_bytes([<span class="number">0</span>; <span class="number">16</span>]),
 <a href=#160 id=160 data-nosnippet>160</a>            ConflictKind::DomainConflict,
 <a href=#161 id=161 data-nosnippet>161</a>            <span class="string">"domain replay strategy unavailable"</span>,
 <a href=#162 id=162 data-nosnippet>162</a>        ))),
@@ -284,7 +284,7 @@
 <a href=#284 id=284 data-nosnippet>284</a>        | Operation::RemoveCollectionMember { collection, .. }
 <a href=#285 id=285 data-nosnippet>285</a>        | Operation::MoveCollectionMember { collection, .. }
 <a href=#286 id=286 data-nosnippet>286</a>        | Operation::ReplaceCollectionStructure { collection, .. } =&gt; <span class="kw-2">*</span>collection,
-<a href=#287 id=287 data-nosnippet>287</a>        Operation::Domain { .. } =&gt; EntityId::new([<span class="number">0</span>; <span class="number">16</span>]),
+<a href=#287 id=287 data-nosnippet>287</a>        Operation::Domain { .. } =&gt; EntityId::from_bytes([<span class="number">0</span>; <span class="number">16</span>]),
 <a href=#288 id=288 data-nosnippet>288</a>    };
 <a href=#289 id=289 data-nosnippet>289</a>    entity_conflict(entity, ConflictKind::DomainConflict, detail)
 <a href=#290 id=290 data-nosnippet>290</a>}

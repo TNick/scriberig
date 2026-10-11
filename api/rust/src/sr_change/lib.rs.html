@@ -36,11 +36,11 @@
 <a href=#36 id=36 data-nosnippet>36</a><span class="kw">pub use </span>history::{HistoryGraph, LineageRecord, MigrationId, MigrationReference};
 <a href=#37 id=37 data-nosnippet>37</a><span class="kw">pub use </span>merge::{
 <a href=#38 id=38 data-nosnippet>38</a>    DomainMergeOutcome, DomainMergeStrategy, EntityMergeContext, MergeError, MergeInput,
-<a href=#39 id=39 data-nosnippet>39</a>    MergeResult, merge_snapshots,
+<a href=#39 id=39 data-nosnippet>39</a>    MergeResult, MergeStoreError, merge_snapshots, merge_snapshots_into_store,
 <a href=#40 id=40 data-nosnippet>40</a>};
 <a href=#41 id=41 data-nosnippet>41</a><span class="kw">pub use </span>migration::{EntityDelta, Migration, MigrationError};
 <a href=#42 id=42 data-nosnippet>42</a><span class="kw">pub use </span>operation::{CollectionPosition, Operation};
-<a href=#43 id=43 data-nosnippet>43</a><span class="kw">pub use </span>promotion::{PromotionResult, promote};
+<a href=#43 id=43 data-nosnippet>43</a><span class="kw">pub use </span>promotion::{PromotionResult, promote, promote_checked};
 <a href=#44 id=44 data-nosnippet>44</a><span class="kw">pub use </span>provenance::{Provenance, SourceKind};
 <a href=#45 id=45 data-nosnippet>45</a><span class="kw">pub use </span>query::{
 <a href=#46 id=46 data-nosnippet>46</a>    QueryPage, branches_descending_from, changed_between, common_ancestor, entity_history,

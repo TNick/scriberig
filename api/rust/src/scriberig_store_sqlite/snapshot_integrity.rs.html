@@ -191,7 +191,7 @@
 <a href=#191 id=191 data-nosnippet>191</a>            revision.copy_from_slice(row.<span class="number">2</span>.as_ref().expect(<span class="string">"checked leaf revision"</span>));
 <a href=#192 id=192 data-nosnippet>192</a>            <span class="kw">if </span>walk
 <a href=#193 id=193 data-nosnippet>193</a>                .entries
-<a href=#194 id=194 data-nosnippet>194</a>                .insert(EntityId::new(entity), RevisionId::new(revision))
+<a href=#194 id=194 data-nosnippet>194</a>                .insert(EntityId::from_bytes(entity), RevisionId::new(revision))
 <a href=#195 id=195 data-nosnippet>195</a>                .is_some()
 <a href=#196 id=196 data-nosnippet>196</a>            {
 <a href=#197 id=197 data-nosnippet>197</a>                <span class="kw">return </span><span class="prelude-val">Err</span>(NodeWalkError::Invalid(<span class="string">"duplicate entity leaf"</span>));

@@ -17,10 +17,10 @@
 <a href=#17 id=17 data-nosnippet>17</a><span class="kw">pub use </span>operation::{Operation, OperationProgress, OperationStatus};
 <a href=#18 id=18 data-nosnippet>18</a><span class="kw">pub use </span>refs::{EntityReference, OperationReference, RevisionReference, SnapshotReference};
 <a href=#19 id=19 data-nosnippet>19</a><span class="kw">pub use </span>request::{
-<a href=#20 id=20 data-nosnippet>20</a>    CancelOperationRequest, InspectEntityRequest, OperationStatusRequest,
-<a href=#21 id=21 data-nosnippet>21</a>    RuntimeCapabilitiesRequest, SnapshotSelector, SubscribeRequest,
+<a href=#20 id=20 data-nosnippet>20</a>    CancelOperationRequest, CommandRequest, InspectEntityRequest, OperationStatusRequest,
+<a href=#21 id=21 data-nosnippet>21</a>    QueryRequest, RuntimeCapabilitiesRequest, SnapshotSelector, SubscribeRequest,
 <a href=#22 id=22 data-nosnippet>22</a>};
-<a href=#23 id=23 data-nosnippet>23</a><span class="kw">pub use </span>response::{InspectEntityResponse, OperationStatusResponse};
+<a href=#23 id=23 data-nosnippet>23</a><span class="kw">pub use </span>response::{InspectEntityResponse, OperationStatusResponse, QueryResponse};
 <a href=#24 id=24 data-nosnippet>24</a><span class="kw">pub use </span>transport::{ProtocolTransport, Request, RequestEnvelope, Response, ResponseEnvelope};
 <a href=#25 id=25 data-nosnippet>25</a><span class="kw">pub use </span>trust::{
 <a href=#26 id=26 data-nosnippet>26</a>    ApprovalSummary, CapabilityDenial, ConflictSummary, ExternalEffectState, ExternalEffectSummary,
@@ -58,117 +58,124 @@
 <a href=#58 id=58 data-nosnippet>58</a>            snapshot: SnapshotSelector::Current,
 <a href=#59 id=59 data-nosnippet>59</a>            detail: request::DetailLevel::Deep,
 <a href=#60 id=60 data-nosnippet>60</a>        });
-<a href=#61 id=61 data-nosnippet>61</a>    }
-<a href=#62 id=62 data-nosnippet>62</a>
-<a href=#63 id=63 data-nosnippet>63</a>    <span class="doccomment">/// Verifies errors preserve every machine-readable category field.
-<a href=#64 id=64 data-nosnippet>64</a>    </span><span class="attr">#[test]
-<a href=#65 id=65 data-nosnippet>65</a>    </span><span class="kw">fn </span>structured_error_round_trip() {
-<a href=#66 id=66 data-nosnippet>66</a>        round_trip(<span class="kw-2">&amp;</span>ProtocolError {
-<a href=#67 id=67 data-nosnippet>67</a>            code: ProtocolErrorCode::PermissionDenied,
-<a href=#68 id=68 data-nosnippet>68</a>            message: <span class="string">"denied"</span>.to_owned(),
-<a href=#69 id=69 data-nosnippet>69</a>            details: <span class="prelude-val">Some</span>(<span class="macro">serde_json::json!</span>({<span class="string">"action"</span>: <span class="string">"inspect"</span>})),
-<a href=#70 id=70 data-nosnippet>70</a>            correlation_id: <span class="prelude-val">Some</span>(<span class="string">"request-1"</span>.to_owned()),
-<a href=#71 id=71 data-nosnippet>71</a>        });
-<a href=#72 id=72 data-nosnippet>72</a>    }
-<a href=#73 id=73 data-nosnippet>73</a>
-<a href=#74 id=74 data-nosnippet>74</a>    <span class="doccomment">/// Verifies operation, event, and version values round trip together.
-<a href=#75 id=75 data-nosnippet>75</a>    </span><span class="attr">#[test]
-<a href=#76 id=76 data-nosnippet>76</a>    </span><span class="kw">fn </span>operation_event_and_version_round_trip() {
-<a href=#77 id=77 data-nosnippet>77</a>        round_trip(<span class="kw-2">&amp;</span>VersionExchange {
-<a href=#78 id=78 data-nosnippet>78</a>            active: ProtocolVersion::default(),
-<a href=#79 id=79 data-nosnippet>79</a>            supported: <span class="macro">vec!</span>[ProtocolVersion::default()],
-<a href=#80 id=80 data-nosnippet>80</a>        });
-<a href=#81 id=81 data-nosnippet>81</a>        round_trip(<span class="kw-2">&amp;</span>Operation {
-<a href=#82 id=82 data-nosnippet>82</a>            reference: OperationReference {
-<a href=#83 id=83 data-nosnippet>83</a>                id: <span class="string">"op-1"</span>.to_owned(),
-<a href=#84 id=84 data-nosnippet>84</a>            },
-<a href=#85 id=85 data-nosnippet>85</a>            kind: operation::OperationKind::Inspect,
-<a href=#86 id=86 data-nosnippet>86</a>            status: operation::OperationStatus::Completed,
-<a href=#87 id=87 data-nosnippet>87</a>            progress: <span class="prelude-val">Some</span>(operation::OperationProgress {
-<a href=#88 id=88 data-nosnippet>88</a>                percent: <span class="number">100</span>,
-<a href=#89 id=89 data-nosnippet>89</a>                message: <span class="prelude-val">Some</span>(<span class="string">"done"</span>.to_owned()),
-<a href=#90 id=90 data-nosnippet>90</a>            }),
-<a href=#91 id=91 data-nosnippet>91</a>            result_snapshot: <span class="prelude-val">None</span>,
-<a href=#92 id=92 data-nosnippet>92</a>            result_handles: Vec::new(),
-<a href=#93 id=93 data-nosnippet>93</a>            error: <span class="prelude-val">None</span>,
-<a href=#94 id=94 data-nosnippet>94</a>        });
-<a href=#95 id=95 data-nosnippet>95</a>        round_trip(<span class="kw-2">&amp;</span>Event {
-<a href=#96 id=96 data-nosnippet>96</a>            kind: EventKind::EntityChanged,
-<a href=#97 id=97 data-nosnippet>97</a>            entity: <span class="prelude-val">Some</span>(EntityReference {
-<a href=#98 id=98 data-nosnippet>98</a>                id: <span class="string">"entity-1"</span>.to_owned(),
-<a href=#99 id=99 data-nosnippet>99</a>            }),
-<a href=#100 id=100 data-nosnippet>100</a>            revision: <span class="prelude-val">None</span>,
-<a href=#101 id=101 data-nosnippet>101</a>            snapshot: <span class="prelude-val">None</span>,
-<a href=#102 id=102 data-nosnippet>102</a>            operation: <span class="prelude-val">None</span>,
-<a href=#103 id=103 data-nosnippet>103</a>            metadata: <span class="macro">vec!</span>[(<span class="string">"source"</span>.to_owned(), <span class="string">"test"</span>.to_owned())],
-<a href=#104 id=104 data-nosnippet>104</a>        });
-<a href=#105 id=105 data-nosnippet>105</a>    }
-<a href=#106 id=106 data-nosnippet>106</a>
-<a href=#107 id=107 data-nosnippet>107</a>    <span class="doccomment">/// Verifies trust outcomes and event references round trip distinctly.
-<a href=#108 id=108 data-nosnippet>108</a>    </span><span class="attr">#[test]
-<a href=#109 id=109 data-nosnippet>109</a>    </span><span class="kw">fn </span>trust_outcomes_and_events_round_trip() {
-<a href=#110 id=110 data-nosnippet>110</a>        <span class="kw">let </span>selection = TrustSelection {
-<a href=#111 id=111 data-nosnippet>111</a>            entity: EntityReference {
-<a href=#112 id=112 data-nosnippet>112</a>                id: <span class="string">"entity-1"</span>.to_owned(),
-<a href=#113 id=113 data-nosnippet>113</a>            },
-<a href=#114 id=114 data-nosnippet>114</a>            snapshot: SnapshotReference {
-<a href=#115 id=115 data-nosnippet>115</a>                id: <span class="string">"snapshot-1"</span>.to_owned(),
-<a href=#116 id=116 data-nosnippet>116</a>            },
-<a href=#117 id=117 data-nosnippet>117</a>            revision: <span class="prelude-val">None</span>,
-<a href=#118 id=118 data-nosnippet>118</a>        };
-<a href=#119 id=119 data-nosnippet>119</a>        round_trip(<span class="kw-2">&amp;</span>CapabilityDenial {
-<a href=#120 id=120 data-nosnippet>120</a>            action: <span class="string">"promote"</span>.to_owned(),
-<a href=#121 id=121 data-nosnippet>121</a>            scope: <span class="string">"entity-1"</span>.to_owned(),
-<a href=#122 id=122 data-nosnippet>122</a>            reason: <span class="string">"approval required"</span>.to_owned(),
-<a href=#123 id=123 data-nosnippet>123</a>            alternatives: <span class="macro">vec!</span>[<span class="string">"inspect"</span>.to_owned()],
-<a href=#124 id=124 data-nosnippet>124</a>            approval_possible: <span class="bool-val">true</span>,
-<a href=#125 id=125 data-nosnippet>125</a>        });
-<a href=#126 id=126 data-nosnippet>126</a>        round_trip(<span class="kw-2">&amp;</span>TrustDetails {
-<a href=#127 id=127 data-nosnippet>127</a>            summary: TrustSummary {
-<a href=#128 id=128 data-nosnippet>128</a>                source: TrustSource::ModelGenerated,
-<a href=#129 id=129 data-nosnippet>129</a>                validation: ValidationStatus::Current,
-<a href=#130 id=130 data-nosnippet>130</a>                accepted_via: <span class="prelude-val">Some</span>(<span class="string">"approval-1"</span>.to_owned()),
-<a href=#131 id=131 data-nosnippet>131</a>                restricted: <span class="bool-val">false</span>,
-<a href=#132 id=132 data-nosnippet>132</a>            },
-<a href=#133 id=133 data-nosnippet>133</a>            provenance: <span class="macro">vec!</span>[ProvenanceInput {
-<a href=#134 id=134 data-nosnippet>134</a>                selection: selection.clone(),
-<a href=#135 id=135 data-nosnippet>135</a>                relation: <span class="string">"derived-from"</span>.to_owned(),
-<a href=#136 id=136 data-nosnippet>136</a>            }],
-<a href=#137 id=137 data-nosnippet>137</a>            validation: <span class="prelude-val">Some</span>(ValidationSummary {
-<a href=#138 id=138 data-nosnippet>138</a>                status: ValidationStatus::Failed,
-<a href=#139 id=139 data-nosnippet>139</a>                diagnostics: <span class="macro">vec!</span>[ValidationDiagnostic {
-<a href=#140 id=140 data-nosnippet>140</a>                    code: <span class="string">"schema"</span>.to_owned(),
-<a href=#141 id=141 data-nosnippet>141</a>                    message: <span class="string">"invalid value"</span>.to_owned(),
-<a href=#142 id=142 data-nosnippet>142</a>                    location: <span class="prelude-val">Some</span>(<span class="string">"field"</span>.to_owned()),
-<a href=#143 id=143 data-nosnippet>143</a>                }],
-<a href=#144 id=144 data-nosnippet>144</a>                operation: <span class="prelude-val">None</span>,
-<a href=#145 id=145 data-nosnippet>145</a>            }),
-<a href=#146 id=146 data-nosnippet>146</a>            policy: <span class="prelude-val">None</span>,
-<a href=#147 id=147 data-nosnippet>147</a>            conflict: <span class="prelude-val">None</span>,
-<a href=#148 id=148 data-nosnippet>148</a>        });
-<a href=#149 id=149 data-nosnippet>149</a>        round_trip(<span class="kw-2">&amp;</span>Event {
-<a href=#150 id=150 data-nosnippet>150</a>            kind: EventKind::SnapshotPromoted,
-<a href=#151 id=151 data-nosnippet>151</a>            entity: <span class="prelude-val">Some</span>(selection.entity),
-<a href=#152 id=152 data-nosnippet>152</a>            revision: <span class="prelude-val">None</span>,
-<a href=#153 id=153 data-nosnippet>153</a>            snapshot: <span class="prelude-val">Some</span>(selection.snapshot),
-<a href=#154 id=154 data-nosnippet>154</a>            operation: <span class="prelude-val">Some</span>(OperationReference {
-<a href=#155 id=155 data-nosnippet>155</a>                id: <span class="string">"op-1"</span>.to_owned(),
-<a href=#156 id=156 data-nosnippet>156</a>            }),
-<a href=#157 id=157 data-nosnippet>157</a>            metadata: <span class="macro">vec!</span>[(<span class="string">"candidate"</span>.to_owned(), <span class="string">"snapshot-2"</span>.to_owned())],
-<a href=#158 id=158 data-nosnippet>158</a>        });
-<a href=#159 id=159 data-nosnippet>159</a>        round_trip(<span class="kw-2">&amp;</span>PromotionResult {
-<a href=#160 id=160 data-nosnippet>160</a>            state: PromotionState::Stale,
-<a href=#161 id=161 data-nosnippet>161</a>            candidate: <span class="prelude-val">Some</span>(SnapshotReference {
-<a href=#162 id=162 data-nosnippet>162</a>                id: <span class="string">"candidate-1"</span>.to_owned(),
+<a href=#61 id=61 data-nosnippet>61</a>        round_trip(<span class="kw-2">&amp;</span>QueryRequest {
+<a href=#62 id=62 data-nosnippet>62</a>            specification: <span class="macro">serde_json::json!</span>({<span class="string">"scope"</span>: <span class="string">"snapshot"</span>}),
+<a href=#63 id=63 data-nosnippet>63</a>        });
+<a href=#64 id=64 data-nosnippet>64</a>        round_trip(<span class="kw-2">&amp;</span>CommandRequest {
+<a href=#65 id=65 data-nosnippet>65</a>            kind: <span class="string">"apply"</span>.to_owned(),
+<a href=#66 id=66 data-nosnippet>66</a>            payload: <span class="macro">serde_json::json!</span>({<span class="string">"change"</span>: <span class="string">"change-1"</span>}),
+<a href=#67 id=67 data-nosnippet>67</a>        });
+<a href=#68 id=68 data-nosnippet>68</a>    }
+<a href=#69 id=69 data-nosnippet>69</a>
+<a href=#70 id=70 data-nosnippet>70</a>    <span class="doccomment">/// Verifies errors preserve every machine-readable category field.
+<a href=#71 id=71 data-nosnippet>71</a>    </span><span class="attr">#[test]
+<a href=#72 id=72 data-nosnippet>72</a>    </span><span class="kw">fn </span>structured_error_round_trip() {
+<a href=#73 id=73 data-nosnippet>73</a>        round_trip(<span class="kw-2">&amp;</span>ProtocolError {
+<a href=#74 id=74 data-nosnippet>74</a>            code: ProtocolErrorCode::PermissionDenied,
+<a href=#75 id=75 data-nosnippet>75</a>            message: <span class="string">"denied"</span>.to_owned(),
+<a href=#76 id=76 data-nosnippet>76</a>            details: <span class="prelude-val">Some</span>(<span class="macro">serde_json::json!</span>({<span class="string">"action"</span>: <span class="string">"inspect"</span>})),
+<a href=#77 id=77 data-nosnippet>77</a>            correlation_id: <span class="prelude-val">Some</span>(<span class="string">"request-1"</span>.to_owned()),
+<a href=#78 id=78 data-nosnippet>78</a>        });
+<a href=#79 id=79 data-nosnippet>79</a>    }
+<a href=#80 id=80 data-nosnippet>80</a>
+<a href=#81 id=81 data-nosnippet>81</a>    <span class="doccomment">/// Verifies operation, event, and version values round trip together.
+<a href=#82 id=82 data-nosnippet>82</a>    </span><span class="attr">#[test]
+<a href=#83 id=83 data-nosnippet>83</a>    </span><span class="kw">fn </span>operation_event_and_version_round_trip() {
+<a href=#84 id=84 data-nosnippet>84</a>        round_trip(<span class="kw-2">&amp;</span>VersionExchange {
+<a href=#85 id=85 data-nosnippet>85</a>            active: ProtocolVersion::default(),
+<a href=#86 id=86 data-nosnippet>86</a>            supported: <span class="macro">vec!</span>[ProtocolVersion::default()],
+<a href=#87 id=87 data-nosnippet>87</a>        });
+<a href=#88 id=88 data-nosnippet>88</a>        round_trip(<span class="kw-2">&amp;</span>Operation {
+<a href=#89 id=89 data-nosnippet>89</a>            reference: OperationReference {
+<a href=#90 id=90 data-nosnippet>90</a>                id: <span class="string">"op-1"</span>.to_owned(),
+<a href=#91 id=91 data-nosnippet>91</a>            },
+<a href=#92 id=92 data-nosnippet>92</a>            kind: operation::OperationKind::Inspect,
+<a href=#93 id=93 data-nosnippet>93</a>            status: operation::OperationStatus::Completed,
+<a href=#94 id=94 data-nosnippet>94</a>            progress: <span class="prelude-val">Some</span>(operation::OperationProgress {
+<a href=#95 id=95 data-nosnippet>95</a>                percent: <span class="number">100</span>,
+<a href=#96 id=96 data-nosnippet>96</a>                message: <span class="prelude-val">Some</span>(<span class="string">"done"</span>.to_owned()),
+<a href=#97 id=97 data-nosnippet>97</a>            }),
+<a href=#98 id=98 data-nosnippet>98</a>            result_snapshot: <span class="prelude-val">None</span>,
+<a href=#99 id=99 data-nosnippet>99</a>            result_handles: Vec::new(),
+<a href=#100 id=100 data-nosnippet>100</a>            error: <span class="prelude-val">None</span>,
+<a href=#101 id=101 data-nosnippet>101</a>        });
+<a href=#102 id=102 data-nosnippet>102</a>        round_trip(<span class="kw-2">&amp;</span>Event {
+<a href=#103 id=103 data-nosnippet>103</a>            kind: EventKind::EntityChanged,
+<a href=#104 id=104 data-nosnippet>104</a>            entity: <span class="prelude-val">Some</span>(EntityReference {
+<a href=#105 id=105 data-nosnippet>105</a>                id: <span class="string">"entity-1"</span>.to_owned(),
+<a href=#106 id=106 data-nosnippet>106</a>            }),
+<a href=#107 id=107 data-nosnippet>107</a>            revision: <span class="prelude-val">None</span>,
+<a href=#108 id=108 data-nosnippet>108</a>            snapshot: <span class="prelude-val">None</span>,
+<a href=#109 id=109 data-nosnippet>109</a>            operation: <span class="prelude-val">None</span>,
+<a href=#110 id=110 data-nosnippet>110</a>            metadata: <span class="macro">vec!</span>[(<span class="string">"source"</span>.to_owned(), <span class="string">"test"</span>.to_owned())],
+<a href=#111 id=111 data-nosnippet>111</a>        });
+<a href=#112 id=112 data-nosnippet>112</a>    }
+<a href=#113 id=113 data-nosnippet>113</a>
+<a href=#114 id=114 data-nosnippet>114</a>    <span class="doccomment">/// Verifies trust outcomes and event references round trip distinctly.
+<a href=#115 id=115 data-nosnippet>115</a>    </span><span class="attr">#[test]
+<a href=#116 id=116 data-nosnippet>116</a>    </span><span class="kw">fn </span>trust_outcomes_and_events_round_trip() {
+<a href=#117 id=117 data-nosnippet>117</a>        <span class="kw">let </span>selection = TrustSelection {
+<a href=#118 id=118 data-nosnippet>118</a>            entity: EntityReference {
+<a href=#119 id=119 data-nosnippet>119</a>                id: <span class="string">"entity-1"</span>.to_owned(),
+<a href=#120 id=120 data-nosnippet>120</a>            },
+<a href=#121 id=121 data-nosnippet>121</a>            snapshot: SnapshotReference {
+<a href=#122 id=122 data-nosnippet>122</a>                id: <span class="string">"snapshot-1"</span>.to_owned(),
+<a href=#123 id=123 data-nosnippet>123</a>            },
+<a href=#124 id=124 data-nosnippet>124</a>            revision: <span class="prelude-val">None</span>,
+<a href=#125 id=125 data-nosnippet>125</a>        };
+<a href=#126 id=126 data-nosnippet>126</a>        round_trip(<span class="kw-2">&amp;</span>CapabilityDenial {
+<a href=#127 id=127 data-nosnippet>127</a>            action: <span class="string">"promote"</span>.to_owned(),
+<a href=#128 id=128 data-nosnippet>128</a>            scope: <span class="string">"entity-1"</span>.to_owned(),
+<a href=#129 id=129 data-nosnippet>129</a>            reason: <span class="string">"approval required"</span>.to_owned(),
+<a href=#130 id=130 data-nosnippet>130</a>            alternatives: <span class="macro">vec!</span>[<span class="string">"inspect"</span>.to_owned()],
+<a href=#131 id=131 data-nosnippet>131</a>            approval_possible: <span class="bool-val">true</span>,
+<a href=#132 id=132 data-nosnippet>132</a>        });
+<a href=#133 id=133 data-nosnippet>133</a>        round_trip(<span class="kw-2">&amp;</span>TrustDetails {
+<a href=#134 id=134 data-nosnippet>134</a>            summary: TrustSummary {
+<a href=#135 id=135 data-nosnippet>135</a>                source: TrustSource::ModelGenerated,
+<a href=#136 id=136 data-nosnippet>136</a>                validation: ValidationStatus::Current,
+<a href=#137 id=137 data-nosnippet>137</a>                accepted_via: <span class="prelude-val">Some</span>(<span class="string">"approval-1"</span>.to_owned()),
+<a href=#138 id=138 data-nosnippet>138</a>                restricted: <span class="bool-val">false</span>,
+<a href=#139 id=139 data-nosnippet>139</a>            },
+<a href=#140 id=140 data-nosnippet>140</a>            provenance: <span class="macro">vec!</span>[ProvenanceInput {
+<a href=#141 id=141 data-nosnippet>141</a>                selection: selection.clone(),
+<a href=#142 id=142 data-nosnippet>142</a>                relation: <span class="string">"derived-from"</span>.to_owned(),
+<a href=#143 id=143 data-nosnippet>143</a>            }],
+<a href=#144 id=144 data-nosnippet>144</a>            validation: <span class="prelude-val">Some</span>(ValidationSummary {
+<a href=#145 id=145 data-nosnippet>145</a>                status: ValidationStatus::Failed,
+<a href=#146 id=146 data-nosnippet>146</a>                diagnostics: <span class="macro">vec!</span>[ValidationDiagnostic {
+<a href=#147 id=147 data-nosnippet>147</a>                    code: <span class="string">"schema"</span>.to_owned(),
+<a href=#148 id=148 data-nosnippet>148</a>                    message: <span class="string">"invalid value"</span>.to_owned(),
+<a href=#149 id=149 data-nosnippet>149</a>                    location: <span class="prelude-val">Some</span>(<span class="string">"field"</span>.to_owned()),
+<a href=#150 id=150 data-nosnippet>150</a>                }],
+<a href=#151 id=151 data-nosnippet>151</a>                operation: <span class="prelude-val">None</span>,
+<a href=#152 id=152 data-nosnippet>152</a>            }),
+<a href=#153 id=153 data-nosnippet>153</a>            policy: <span class="prelude-val">None</span>,
+<a href=#154 id=154 data-nosnippet>154</a>            conflict: <span class="prelude-val">None</span>,
+<a href=#155 id=155 data-nosnippet>155</a>        });
+<a href=#156 id=156 data-nosnippet>156</a>        round_trip(<span class="kw-2">&amp;</span>Event {
+<a href=#157 id=157 data-nosnippet>157</a>            kind: EventKind::SnapshotPromoted,
+<a href=#158 id=158 data-nosnippet>158</a>            entity: <span class="prelude-val">Some</span>(selection.entity),
+<a href=#159 id=159 data-nosnippet>159</a>            revision: <span class="prelude-val">None</span>,
+<a href=#160 id=160 data-nosnippet>160</a>            snapshot: <span class="prelude-val">Some</span>(selection.snapshot),
+<a href=#161 id=161 data-nosnippet>161</a>            operation: <span class="prelude-val">Some</span>(OperationReference {
+<a href=#162 id=162 data-nosnippet>162</a>                id: <span class="string">"op-1"</span>.to_owned(),
 <a href=#163 id=163 data-nosnippet>163</a>            }),
-<a href=#164 id=164 data-nosnippet>164</a>            promoted_snapshot: <span class="prelude-val">None</span>,
-<a href=#165 id=165 data-nosnippet>165</a>            reason: <span class="prelude-val">Some</span>(<span class="string">"base changed"</span>.to_owned()),
-<a href=#166 id=166 data-nosnippet>166</a>        });
-<a href=#167 id=167 data-nosnippet>167</a>        round_trip(<span class="kw-2">&amp;</span>ExternalEffectSummary {
-<a href=#168 id=168 data-nosnippet>168</a>            handle: <span class="string">"receipt-1"</span>.to_owned(),
-<a href=#169 id=169 data-nosnippet>169</a>            state: ExternalEffectState::Unknown,
-<a href=#170 id=170 data-nosnippet>170</a>            operation: <span class="prelude-val">None</span>,
-<a href=#171 id=171 data-nosnippet>171</a>        });
-<a href=#172 id=172 data-nosnippet>172</a>    }
-<a href=#173 id=173 data-nosnippet>173</a>}
+<a href=#164 id=164 data-nosnippet>164</a>            metadata: <span class="macro">vec!</span>[(<span class="string">"candidate"</span>.to_owned(), <span class="string">"snapshot-2"</span>.to_owned())],
+<a href=#165 id=165 data-nosnippet>165</a>        });
+<a href=#166 id=166 data-nosnippet>166</a>        round_trip(<span class="kw-2">&amp;</span>PromotionResult {
+<a href=#167 id=167 data-nosnippet>167</a>            state: PromotionState::Stale,
+<a href=#168 id=168 data-nosnippet>168</a>            candidate: <span class="prelude-val">Some</span>(SnapshotReference {
+<a href=#169 id=169 data-nosnippet>169</a>                id: <span class="string">"candidate-1"</span>.to_owned(),
+<a href=#170 id=170 data-nosnippet>170</a>            }),
+<a href=#171 id=171 data-nosnippet>171</a>            promoted_snapshot: <span class="prelude-val">None</span>,
+<a href=#172 id=172 data-nosnippet>172</a>            reason: <span class="prelude-val">Some</span>(<span class="string">"base changed"</span>.to_owned()),
+<a href=#173 id=173 data-nosnippet>173</a>        });
+<a href=#174 id=174 data-nosnippet>174</a>        round_trip(<span class="kw-2">&amp;</span>ExternalEffectSummary {
+<a href=#175 id=175 data-nosnippet>175</a>            handle: <span class="string">"receipt-1"</span>.to_owned(),
+<a href=#176 id=176 data-nosnippet>176</a>            state: ExternalEffectState::Unknown,
+<a href=#177 id=177 data-nosnippet>177</a>            operation: <span class="prelude-val">None</span>,
+<a href=#178 id=178 data-nosnippet>178</a>        });
+<a href=#179 id=179 data-nosnippet>179</a>    }
+<a href=#180 id=180 data-nosnippet>180</a>}
 </code></pre></div></section></main></body></html>

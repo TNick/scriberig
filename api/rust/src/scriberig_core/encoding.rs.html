@@ -320,7 +320,7 @@
 <a href=#320 id=320 data-nosnippet>320</a>/// Returns an error when the encoding version is unsupported.
 <a href=#321 id=321 data-nosnippet>321</a></span><span class="kw">pub fn </span>revision_id(
 <a href=#322 id=322 data-nosnippet>322</a>    version: EncodingVersion,
-<a href=#323 id=323 data-nosnippet>323</a>    object_type: <span class="kw-2">&amp;</span><span class="kw">crate</span>::ObjectType,
+<a href=#323 id=323 data-nosnippet>323</a>    object_type: <span class="kw-2">&amp;</span><span class="kw">crate</span>::TypeId,
 <a href=#324 id=324 data-nosnippet>324</a>    payload: <span class="kw-2">&amp;</span>[u8],
 <a href=#325 id=325 data-nosnippet>325</a>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">crate</span>::RevisionId, EncodingError&gt; {
 <a href=#326 id=326 data-nosnippet>326</a>    <span class="prelude-val">Ok</span>(<span class="kw">crate</span>::RevisionId::from_bytes(
@@ -349,7 +349,7 @@
 <a href=#349 id=349 data-nosnippet>349</a>/// Returns an error when the encoding version is unsupported.
 <a href=#350 id=350 data-nosnippet>350</a></span><span class="kw">pub fn </span>revision_envelope(
 <a href=#351 id=351 data-nosnippet>351</a>    version: EncodingVersion,
-<a href=#352 id=352 data-nosnippet>352</a>    object_type: <span class="kw-2">&amp;</span><span class="kw">crate</span>::ObjectType,
+<a href=#352 id=352 data-nosnippet>352</a>    object_type: <span class="kw-2">&amp;</span><span class="kw">crate</span>::TypeId,
 <a href=#353 id=353 data-nosnippet>353</a>    payload: <span class="kw-2">&amp;</span>[u8],
 <a href=#354 id=354 data-nosnippet>354</a>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, EncodingError&gt; {
 <a href=#355 id=355 data-nosnippet>355</a>    EncodingVersion::try_new(version.value())<span class="question-mark">?</span>;

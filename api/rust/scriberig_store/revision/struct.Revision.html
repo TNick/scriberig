@@ -2,7 +2,7 @@
 </div></details><h2 id="implementations" class="section-header">Implementations<a href="#implementations" class="anchor">§</a></h2><div id="implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-Revision" class="impl"><a class="src rightside" href="../../src/scriberig_store/revision.rs.html#15-108">Source</a><a href="#impl-Revision" class="anchor">§</a><h3 class="code-header">impl <a class="struct" href="struct.Revision.html" title="struct scriberig_store::revision::Revision">Revision</a></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.from_parts" class="method"><a class="src rightside" href="../../src/scriberig_store/revision.rs.html#29-50">Source</a><h4 class="code-header">pub fn <a href="#method.from_parts" class="fn">from_parts</a>(
     id: RevisionId,
     version: EncodingVersion,
-    object_type: ObjectType,
+    object_type: TypeId,
     payload: <a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.0/std/primitive.u8.html">u8</a>&gt;,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, <a class="enum" href="../revision_store/enum.StoreError.html" title="enum scriberig_store::revision_store::StoreError">StoreError</a>&gt;</h4></section></summary><div class="docblock"><p>Validates an externally supplied revision identity against its fields.</p>
 <h5 id="parameters"><a class="doc-anchor" href="#parameters">§</a>Parameters</h5>
@@ -18,7 +18,7 @@
 <p>Returns an identity or encoding error when validation fails.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.new" class="method"><a class="src rightside" href="../../src/scriberig_store/revision.rs.html#67-80">Source</a><h4 class="code-header">pub fn <a href="#method.new" class="fn">new</a>(
     version: EncodingVersion,
-    object_type: ObjectType,
+    object_type: TypeId,
     payload: <a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.0/std/primitive.u8.html">u8</a>&gt;,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, <a class="enum" href="../revision_store/enum.StoreError.html" title="enum scriberig_store::revision_store::StoreError">StoreError</a>&gt;</h4></section></summary><div class="docblock"><p>Computes an immutable revision identity from canonical fields.</p>
 <h5 id="parameters-1"><a class="doc-anchor" href="#parameters-1">§</a>Parameters</h5>
@@ -34,7 +34,7 @@
 <h5 id="errors-2"><a class="doc-anchor" href="#errors-2">§</a>Errors</h5>
 <p>Returns an encoding error when <code>version</code> is unsupported.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.version" class="method"><a class="src rightside" href="../../src/scriberig_store/revision.rs.html#84-86">Source</a><h4 class="code-header">pub const fn <a href="#method.version" class="fn">version</a>(&amp;self) -&gt; EncodingVersion</h4></section></summary><div class="docblock"><p>Returns the canonical encoding version.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.object_type" class="method"><a class="src rightside" href="../../src/scriberig_store/revision.rs.html#92-94">Source</a><h4 class="code-header">pub fn <a href="#method.object_type" class="fn">object_type</a>(&amp;self) -&gt; &amp;ObjectType</h4></section></summary><div class="docblock"><p>Returns the semantic object type.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.object_type" class="method"><a class="src rightside" href="../../src/scriberig_store/revision.rs.html#92-94">Source</a><h4 class="code-header">pub fn <a href="#method.object_type" class="fn">object_type</a>(&amp;self) -&gt; &amp;TypeId</h4></section></summary><div class="docblock"><p>Returns the semantic object type.</p>
 <h5 id="returns-2"><a class="doc-anchor" href="#returns-2">§</a>Returns</h5>
 <p>The immutable semantic object type.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.payload" class="method"><a class="src rightside" href="../../src/scriberig_store/revision.rs.html#100-102">Source</a><h4 class="code-header">pub fn <a href="#method.payload" class="fn">payload</a>(&amp;self) -&gt; &amp;[<a class="primitive" href="https://doc.rust-lang.org/1.99.0/std/primitive.u8.html">u8</a>] <a href="#" class="tooltip" data-notable-ty="&amp;[u8]">ⓘ</a></h4></section></summary><div class="docblock"><p>Returns the canonical payload bytes.</p>

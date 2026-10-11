@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["InspectEntityResponse","OperationStatusResponse"]};
+window.SIDEBAR_ITEMS = {"struct":["InspectEntityResponse","OperationStatusResponse","QueryResponse"]};

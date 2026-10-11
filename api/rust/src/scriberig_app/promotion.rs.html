@@ -116,7 +116,7 @@
 <a href=#116 id=116 data-nosnippet>116</a>}
 <a href=#117 id=117 data-nosnippet>117</a>
 <a href=#118 id=118 data-nosnippet>118</a><span class="doccomment">/// Applies a previously evaluated promotion through atomic root CAS.
-<a href=#119 id=119 data-nosnippet>119</a></span><span class="kw">pub fn </span>promote_candidate&lt;S: scriberig_store::RootStore&gt;(
+<a href=#119 id=119 data-nosnippet>119</a></span><span class="kw">pub fn </span>promote_candidate&lt;S: scriberig_store::RootStore + scriberig_store::SnapshotStore&gt;(
 <a href=#120 id=120 data-nosnippet>120</a>    store: <span class="kw-2">&amp;</span>S,
 <a href=#121 id=121 data-nosnippet>121</a>    request: <span class="kw-2">&amp;</span>PromotionRequest,
 <a href=#122 id=122 data-nosnippet>122</a>    decision: PromotionDecision,

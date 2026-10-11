@@ -167,7 +167,7 @@
 <a href=#167 id=167 data-nosnippet>167</a>                <span class="kw">else </span>{
 <a href=#168 id=168 data-nosnippet>168</a>                    <span class="kw">continue</span>;
 <a href=#169 id=169 data-nosnippet>169</a>                };
-<a href=#170 id=170 data-nosnippet>170</a>                <span class="kw">let </span>entity = EntityId::new(rand_bytes(candidate_path));
+<a href=#170 id=170 data-nosnippet>170</a>                <span class="kw">let </span>entity = EntityId::from_bytes(rand_bytes(candidate_path));
 <a href=#171 id=171 data-nosnippet>171</a>                operations.push(Operation::CreateEntity {
 <a href=#172 id=172 data-nosnippet>172</a>                    entity,
 <a href=#173 id=173 data-nosnippet>173</a>                    revision: block_revision(block),

@@ -4,7 +4,7 @@
 <a href=#4 id=4 data-nosnippet>4</a><span class="kw">use </span>scriberig_core::{ObjectType, RevisionId, SnapshotId};
 <a href=#5 id=5 data-nosnippet>5</a>
 <a href=#6 id=6 data-nosnippet>6</a><span class="doccomment">/// Advertises a typed capability available from an inspected entity.
-<a href=#7 id=7 data-nosnippet>7</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#7 id=7 data-nosnippet>7</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 <a href=#8 id=8 data-nosnippet>8</a></span><span class="kw">pub struct </span>ReadCapability {
 <a href=#9 id=9 data-nosnippet>9</a>    <span class="doccomment">/// Stable semantic capability identifier.
 <a href=#10 id=10 data-nosnippet>10</a>    </span><span class="kw">pub </span>id: String,
@@ -13,7 +13,7 @@
 <a href=#13 id=13 data-nosnippet>13</a>}
 <a href=#14 id=14 data-nosnippet>14</a>
 <a href=#15 id=15 data-nosnippet>15</a><span class="doccomment">/// Describes one compact entity reached through a collection or relation.
-<a href=#16 id=16 data-nosnippet>16</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#16 id=16 data-nosnippet>16</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 <a href=#17 id=17 data-nosnippet>17</a></span><span class="kw">pub struct </span>NavigationEntry {
 <a href=#18 id=18 data-nosnippet>18</a>    <span class="doccomment">/// Snapshot-relative or exact-revision semantic handle.
 <a href=#19 id=19 data-nosnippet>19</a>    </span><span class="kw">pub </span>target: TargetRef,
@@ -28,7 +28,7 @@
 <a href=#28 id=28 data-nosnippet>28</a>}
 <a href=#29 id=29 data-nosnippet>29</a>
 <a href=#30 id=30 data-nosnippet>30</a><span class="doccomment">/// Returns orientation metadata for one semantic entity.
-<a href=#31 id=31 data-nosnippet>31</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#31 id=31 data-nosnippet>31</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 <a href=#32 id=32 data-nosnippet>32</a></span><span class="kw">pub struct </span>Inspection {
 <a href=#33 id=33 data-nosnippet>33</a>    <span class="doccomment">/// Entity target that was inspected.
 <a href=#34 id=34 data-nosnippet>34</a>    </span><span class="kw">pub </span>subject: TargetRef,

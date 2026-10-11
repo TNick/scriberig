@@ -59,4 +59,20 @@
 <a href=#59 id=59 data-nosnippet>59</a>    <span class="doccomment">/// Optional event names; empty means all public events.
 <a href=#60 id=60 data-nosnippet>60</a>    </span><span class="kw">pub </span>event_kinds: Vec&lt;String&gt;,
 <a href=#61 id=61 data-nosnippet>61</a>}
+<a href=#62 id=62 data-nosnippet>62</a>
+<a href=#63 id=63 data-nosnippet>63</a><span class="doccomment">/// Requests one exact structural query through the shared query model.
+<a href=#64 id=64 data-nosnippet>64</a></span><span class="attr">#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+<a href=#65 id=65 data-nosnippet>65</a></span><span class="kw">pub struct </span>QueryRequest {
+<a href=#66 id=66 data-nosnippet>66</a>    <span class="doccomment">/// Snapshot-bound structural query specification.
+<a href=#67 id=67 data-nosnippet>67</a>    </span><span class="kw">pub </span>specification: serde_json::Value,
+<a href=#68 id=68 data-nosnippet>68</a>}
+<a href=#69 id=69 data-nosnippet>69</a>
+<a href=#70 id=70 data-nosnippet>70</a><span class="doccomment">/// Requests one semantic command using a stable application operation kind.
+<a href=#71 id=71 data-nosnippet>71</a></span><span class="attr">#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+<a href=#72 id=72 data-nosnippet>72</a></span><span class="kw">pub struct </span>CommandRequest {
+<a href=#73 id=73 data-nosnippet>73</a>    <span class="doccomment">/// Command family understood by the application boundary.
+<a href=#74 id=74 data-nosnippet>74</a>    </span><span class="kw">pub </span>kind: String,
+<a href=#75 id=75 data-nosnippet>75</a>    <span class="doccomment">/// JSON representation of the typed command payload.
+<a href=#76 id=76 data-nosnippet>76</a>    </span><span class="kw">pub </span>payload: serde_json::Value,
+<a href=#77 id=77 data-nosnippet>77</a>}
 </code></pre></div></section></main></body></html>

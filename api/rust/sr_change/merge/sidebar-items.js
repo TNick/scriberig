@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["DomainMergeOutcome","MergeError"],"fn":["merge_snapshots"],"struct":["EntityMergeContext","MergeInput","MergeResult"],"trait":["DomainMergeStrategy"]};
+window.SIDEBAR_ITEMS = {"enum":["DomainMergeOutcome","MergeError","MergeStoreError"],"fn":["merge_snapshots","merge_snapshots_into_store"],"struct":["EntityMergeContext","MergeInput","MergeResult"],"trait":["DomainMergeStrategy"]};

@@ -22,8 +22,8 @@
 <a href=#22 id=22 data-nosnippet>22</a>    <span class="doccomment">/// Ordered values retain sequence while unordered values ignore insertion order.
 <a href=#23 id=23 data-nosnippet>23</a>    </span><span class="attr">#[test]
 <a href=#24 id=24 data-nosnippet>24</a>    </span><span class="kw">fn </span>collection_semantics_are_distinct() {
-<a href=#25 id=25 data-nosnippet>25</a>        <span class="kw">let </span>first = EntityId::new([<span class="number">1</span>; <span class="number">16</span>]);
-<a href=#26 id=26 data-nosnippet>26</a>        <span class="kw">let </span>second = EntityId::new([<span class="number">2</span>; <span class="number">16</span>]);
+<a href=#25 id=25 data-nosnippet>25</a>        <span class="kw">let </span>first = EntityId::from_bytes([<span class="number">1</span>; <span class="number">16</span>]);
+<a href=#26 id=26 data-nosnippet>26</a>        <span class="kw">let </span>second = EntityId::from_bytes([<span class="number">2</span>; <span class="number">16</span>]);
 <a href=#27 id=27 data-nosnippet>27</a>        <span class="macro">assert_ne!</span>(
 <a href=#28 id=28 data-nosnippet>28</a>            CollectionValue::Ordered(<span class="macro">vec!</span>[first, second]),
 <a href=#29 id=29 data-nosnippet>29</a>            CollectionValue::Ordered(<span class="macro">vec!</span>[second, first])
@@ -38,9 +38,10 @@
 <a href=#38 id=38 data-nosnippet>38</a>    </span><span class="attr">#[test]
 <a href=#39 id=39 data-nosnippet>39</a>    </span><span class="kw">fn </span>relation_targets_are_entity_ids() {
 <a href=#40 id=40 data-nosnippet>40</a>        <span class="kw">let </span>relation_type = ObjectType::new(<span class="string">"depends_on"</span>).expect(<span class="string">"type"</span>);
-<a href=#41 id=41 data-nosnippet>41</a>        <span class="kw">let </span>relation = RelationValue::new(relation_type.clone(), <span class="macro">vec!</span>[EntityId::new([<span class="number">7</span>; <span class="number">16</span>])]);
-<a href=#42 id=42 data-nosnippet>42</a>        <span class="macro">assert_eq!</span>(relation.relation_type, relation_type);
-<a href=#43 id=43 data-nosnippet>43</a>        <span class="macro">assert_eq!</span>(relation.targets.len(), <span class="number">1</span>);
-<a href=#44 id=44 data-nosnippet>44</a>    }
-<a href=#45 id=45 data-nosnippet>45</a>}
+<a href=#41 id=41 data-nosnippet>41</a>        <span class="kw">let </span>relation =
+<a href=#42 id=42 data-nosnippet>42</a>            RelationValue::new(relation_type.clone(), <span class="macro">vec!</span>[EntityId::from_bytes([<span class="number">7</span>; <span class="number">16</span>])]);
+<a href=#43 id=43 data-nosnippet>43</a>        <span class="macro">assert_eq!</span>(relation.relation_type, relation_type);
+<a href=#44 id=44 data-nosnippet>44</a>        <span class="macro">assert_eq!</span>(relation.targets.len(), <span class="number">1</span>);
+<a href=#45 id=45 data-nosnippet>45</a>    }
+<a href=#46 id=46 data-nosnippet>46</a>}
 </code></pre></div></section></main></body></html>

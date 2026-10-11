@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["execute_effect","execute_operation","execute_operation_effect"],"struct":["ApplicationAdapter","ApplicationOperationAdapter"],"trait":["TuiOperationService","TuiService"]};

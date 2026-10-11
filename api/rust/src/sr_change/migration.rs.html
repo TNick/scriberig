@@ -174,7 +174,7 @@
 <a href=#174 id=174 data-nosnippet>174</a>    <span class="doccomment">/// Verifies create, remove, and modify classifications.
 <a href=#175 id=175 data-nosnippet>175</a>    </span><span class="attr">#[test]
 <a href=#176 id=176 data-nosnippet>176</a>    </span><span class="kw">fn </span>delta_classification_is_explicit() {
-<a href=#177 id=177 data-nosnippet>177</a>        <span class="kw">let </span>entity = EntityId::new([<span class="number">1</span>; <span class="number">16</span>]);
+<a href=#177 id=177 data-nosnippet>177</a>        <span class="kw">let </span>entity = EntityId::from_bytes([<span class="number">1</span>; <span class="number">16</span>]);
 <a href=#178 id=178 data-nosnippet>178</a>        <span class="kw">let </span>before = RevisionId::new([<span class="number">2</span>; <span class="number">32</span>]);
 <a href=#179 id=179 data-nosnippet>179</a>        <span class="kw">let </span>after = RevisionId::new([<span class="number">3</span>; <span class="number">32</span>]);
 <a href=#180 id=180 data-nosnippet>180</a>        <span class="macro">assert!</span>(
@@ -201,8 +201,8 @@
 <a href=#201 id=201 data-nosnippet>201</a>    <span class="doccomment">/// Verifies migration snapshots and deterministic entity ordering.
 <a href=#202 id=202 data-nosnippet>202</a>    </span><span class="attr">#[test]
 <a href=#203 id=203 data-nosnippet>203</a>    </span><span class="kw">fn </span>migration_validates_snapshots_and_orders_deltas() {
-<a href=#204 id=204 data-nosnippet>204</a>        <span class="kw">let </span>first = EntityId::new([<span class="number">1</span>; <span class="number">16</span>]);
-<a href=#205 id=205 data-nosnippet>205</a>        <span class="kw">let </span>second = EntityId::new([<span class="number">2</span>; <span class="number">16</span>]);
+<a href=#204 id=204 data-nosnippet>204</a>        <span class="kw">let </span>first = EntityId::from_bytes([<span class="number">1</span>; <span class="number">16</span>]);
+<a href=#205 id=205 data-nosnippet>205</a>        <span class="kw">let </span>second = EntityId::from_bytes([<span class="number">2</span>; <span class="number">16</span>]);
 <a href=#206 id=206 data-nosnippet>206</a>        <span class="kw">let </span>base = SnapshotId::new([<span class="number">3</span>; <span class="number">32</span>]);
 <a href=#207 id=207 data-nosnippet>207</a>        <span class="kw">let </span>result = SnapshotId::new([<span class="number">4</span>; <span class="number">32</span>]);
 <a href=#208 id=208 data-nosnippet>208</a>        <span class="kw">let </span>deltas = <span class="macro">vec!</span>[

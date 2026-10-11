@@ -353,7 +353,7 @@
 <a href=#353 id=353 data-nosnippet>353</a>        <span class="kw">let </span><span class="kw-2">mut </span>revision_id = [<span class="number">0</span>; <span class="number">32</span>];
 <a href=#354 id=354 data-nosnippet>354</a>        revision_id.copy_from_slice(<span class="kw-2">&amp;</span>revision);
 <a href=#355 id=355 data-nosnippet>355</a>        result.insert(
-<a href=#356 id=356 data-nosnippet>356</a>            scriberig_core::EntityId::new(entity_id),
+<a href=#356 id=356 data-nosnippet>356</a>            scriberig_core::EntityId::from_bytes(entity_id),
 <a href=#357 id=357 data-nosnippet>357</a>            RevisionId::new(revision_id),
 <a href=#358 id=358 data-nosnippet>358</a>        );
 <a href=#359 id=359 data-nosnippet>359</a>    }

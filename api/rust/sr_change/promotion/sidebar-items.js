@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["PromotionResult"],"fn":["promote"]};
+window.SIDEBAR_ITEMS = {"enum":["PromotionResult"],"fn":["promote","promote_checked"]};

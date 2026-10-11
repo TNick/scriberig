@@ -124,7 +124,7 @@
 <a href=#124 id=124 data-nosnippet>124</a>    </span><span class="attr">#[test]
 <a href=#125 id=125 data-nosnippet>125</a>    </span><span class="kw">fn </span>evidence_requires_exact_dependencies() {
 <a href=#126 id=126 data-nosnippet>126</a>        <span class="kw">let </span>dependency = EntityRevisionRef {
-<a href=#127 id=127 data-nosnippet>127</a>            entity_id: EntityId::new([<span class="number">1</span>; <span class="number">16</span>]),
+<a href=#127 id=127 data-nosnippet>127</a>            entity_id: EntityId::from_bytes([<span class="number">1</span>; <span class="number">16</span>]),
 <a href=#128 id=128 data-nosnippet>128</a>            revision_id: RevisionId::new([<span class="number">2</span>; <span class="number">32</span>]),
 <a href=#129 id=129 data-nosnippet>129</a>        };
 <a href=#130 id=130 data-nosnippet>130</a>        <span class="kw">let </span>evidence = ValidationEvidence {

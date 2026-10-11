@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["LayoutClass"],"fn":["shell_layout"],"struct":["ShellLayout"]};

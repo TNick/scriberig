@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["DetailLevel","SnapshotSelector"],"struct":["CancelOperationRequest","InspectEntityRequest","OperationStatusRequest","RuntimeCapabilitiesRequest","SubscribeRequest"]};
+window.SIDEBAR_ITEMS = {"enum":["DetailLevel","SnapshotSelector"],"struct":["CancelOperationRequest","CommandRequest","InspectEntityRequest","OperationStatusRequest","QueryRequest","RuntimeCapabilitiesRequest","SubscribeRequest"]};

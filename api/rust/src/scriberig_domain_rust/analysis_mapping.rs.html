@@ -34,7 +34,7 @@
 <a href=#34 id=34 data-nosnippet>34</a>                <span class="kw">let </span>digest = hasher.finalize();
 <a href=#35 id=35 data-nosnippet>35</a>                <span class="kw">let </span><span class="kw-2">mut </span>bytes = [<span class="number">0</span>; <span class="number">16</span>];
 <a href=#36 id=36 data-nosnippet>36</a>                bytes.copy_from_slice(<span class="kw-2">&amp;</span>digest.as_bytes()[..<span class="number">16</span>]);
-<a href=#37 id=37 data-nosnippet>37</a>                (name, EntityId::new(bytes))
+<a href=#37 id=37 data-nosnippet>37</a>                (name, EntityId::from_bytes(bytes))
 <a href=#38 id=38 data-nosnippet>38</a>            })
 <a href=#39 id=39 data-nosnippet>39</a>            .collect();
 <a href=#40 id=40 data-nosnippet>40</a>        <span class="self">Self </span>{ source, symbols }

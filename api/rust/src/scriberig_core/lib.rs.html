@@ -75,11 +75,11 @@
 <a href=#75 id=75 data-nosnippet>75</a>            producer_version: <span class="prelude-val">None</span>,
 <a href=#76 id=76 data-nosnippet>76</a>            inputs: <span class="macro">vec!</span>[
 <a href=#77 id=77 data-nosnippet>77</a>                EntityRevisionRef {
-<a href=#78 id=78 data-nosnippet>78</a>                    entity_id: EntityId::new([<span class="number">1</span>; <span class="number">16</span>]),
+<a href=#78 id=78 data-nosnippet>78</a>                    entity_id: EntityId::from_bytes([<span class="number">1</span>; <span class="number">16</span>]),
 <a href=#79 id=79 data-nosnippet>79</a>                    revision_id: RevisionId::new([<span class="number">2</span>; <span class="number">32</span>]),
 <a href=#80 id=80 data-nosnippet>80</a>                },
 <a href=#81 id=81 data-nosnippet>81</a>                EntityRevisionRef {
-<a href=#82 id=82 data-nosnippet>82</a>                    entity_id: EntityId::new([<span class="number">3</span>; <span class="number">16</span>]),
+<a href=#82 id=82 data-nosnippet>82</a>                    entity_id: EntityId::from_bytes([<span class="number">3</span>; <span class="number">16</span>]),
 <a href=#83 id=83 data-nosnippet>83</a>                    revision_id: RevisionId::new([<span class="number">4</span>; <span class="number">32</span>]),
 <a href=#84 id=84 data-nosnippet>84</a>                },
 <a href=#85 id=85 data-nosnippet>85</a>            ],
@@ -104,7 +104,7 @@
 <a href=#104 id=104 data-nosnippet>104</a>    </span><span class="attr">#[test]
 <a href=#105 id=105 data-nosnippet>105</a>    </span><span class="kw">fn </span>semantic_references_use_typed_provenance_inputs() {
 <a href=#106 id=106 data-nosnippet>106</a>        <span class="kw">let </span>reference = EntityRevisionRef {
-<a href=#107 id=107 data-nosnippet>107</a>            entity_id: EntityId::new([<span class="number">5</span>; <span class="number">16</span>]),
+<a href=#107 id=107 data-nosnippet>107</a>            entity_id: EntityId::from_bytes([<span class="number">5</span>; <span class="number">16</span>]),
 <a href=#108 id=108 data-nosnippet>108</a>            revision_id: RevisionId::new([<span class="number">6</span>; <span class="number">32</span>]),
 <a href=#109 id=109 data-nosnippet>109</a>        };
 <a href=#110 id=110 data-nosnippet>110</a>        <span class="kw">let </span>property = KnowledgeValue::Record(BTreeMap::from([(

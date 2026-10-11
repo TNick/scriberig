@@ -1662,6 +1662,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#status-and-later-design-authority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status and later design authority
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2-repository-shape" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5550,6 +5561,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#status-and-later-design-authority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status and later design authority
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#2-repository-shape" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -6055,6 +6077,29 @@
 <h2 id="1-purpose">1. Purpose<a class="headerlink" href="#1-purpose" title="Permanent link">&para;</a></h2>
 <p>This document turns the architectural constraints in <code>design/level-1/001. vision and principles.md</code> into a concrete repository and package layout.</p>
 <p>It defines boundaries and dependency direction. It does not define the internal data model, persistence schema, migration algorithms, protocol payloads, or domain-specific semantics. Those require later Level 1 and Level 2 decisions.</p>
+<h2 id="status-and-later-design-authority">Status and later design authority<a class="headerlink" href="#status-and-later-design-authority" title="Permanent link">&para;</a></h2>
+<p>This document is the repository-layout baseline. Later designs intentionally
+refine parts of the scaffold and are authoritative where they conflict with
+the initial names or paths listed below.</p>
+<ul>
+<li><code>design/level-2/019. change history and merge crate design.md</code> assigns the
+  implemented change and migration layer to <code>crates/sr-change/</code>. The empty
+  <code>scriberig-migration</code> scaffold remains as a historical compatibility package
+  until a later design gives it an independent responsibility.</li>
+<li><code>design/level-2/017. web workspace packages and integrated editor.md</code> and
+  <code>design/level-2/020. repository scaffold conventions and native command
+  surface.md</code> assign the integrated browser product to
+  <code>web/apps/scriberig</code> with package identity <code>@scriberig/app</code>. The earlier
+  <code>web/apps/editor</code> scaffold is retained only for historical compatibility and
+  is not the active product composition root.</li>
+<li>The implemented projection contracts currently live in <code>sr-projection</code>,
+  while <code>scriberig-projection</code> preserves the prescribed public package path by
+  re-exporting those contracts. This avoids maintaining two independent
+  projection abstractions.</li>
+</ul>
+<p>When this baseline and a later design disagree, implementation follows the
+newer non-superseded design. The acceptance criteria below therefore apply to
+the scaffold responsibilities that remain current after this reconciliation.</p>
 <p>The layout must preserve these Level 1 requirements:</p>
 <ul>
 <li>storage and domain libraries are useful without an agent runtime;</li>
