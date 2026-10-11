@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+<title id="title">Migration connects two immutable snapshots while entity identity remains stable</title>
+<desc id="desc">Snapshot S1 resolves paragraph entity P to revision PR1. Migration M1 records the semantic change and provenance. Snapshot S2 resolves the same paragraph entity P to new revision PR2. Other unchanged entity mappings are shared.</desc>
+<style>
+.title{font:700 34px Arial,sans-serif;fill:#1f2937}.subtitle{font:400 18px Arial,sans-serif;fill:#4b5563}.boxTitle{font:700 23px Arial,sans-serif;fill:#111827}.label{font:600 16px Arial,sans-serif;fill:#111827}.body{font:400 16px Arial,sans-serif;fill:#374151}.small{font:400 14px Arial,sans-serif;fill:#6b7280}
+</style>
+<defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="4" orient="auto"><path d="M0,0 L0,8 L11,4 z" fill="#6b7280"/></marker></defs>
+<rect width="1200" height="620" fill="#fff"/>
+<text x="60" y="58" class="title">A canonical change is a snapshot transition</text>
+<text x="60" y="90" class="subtitle">Stable entity identity, immutable revisions, and an explicit migration each have a different role.</text>
+
+<rect x="60" y="145" width="330" height="330" rx="18" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+<text x="90" y="185" class="boxTitle">Snapshot S1</text>
+<text x="90" y="225" class="label">Paragraph P</text><text x="220" y="225" class="body">→ PR1</text>
+<text x="90" y="260" class="label">Function F</text><text x="220" y="260" class="body">→ FR7</text>
+<text x="90" y="295" class="label">Decision D</text><text x="220" y="295" class="body">→ DR2</text>
+<line x1="90" y1="325" x2="355" y2="325" stroke="#c4b5fd" stroke-width="2"/>
+<text x="90" y="360" class="small">Exact global state before change</text>
+<rect x="90" y="388" width="245" height="56" rx="10" fill="#ecfccb" stroke="#65a30d"/>
+<text x="110" y="422" class="body">P@PR1: “Objects are immutable.”</text>
+
+<rect x="435" y="190" width="330" height="240" rx="18" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/>
+<text x="465" y="230" class="boxTitle">Migration M1</text>
+<text x="465" y="270" class="label">Base</text><text x="555" y="270" class="body">S1</text>
+<text x="465" y="302" class="label">Result</text><text x="555" y="302" class="body">S2</text>
+<text x="465" y="334" class="label">Change</text><text x="555" y="334" class="body">P: PR1 → PR2</text>
+<text x="465" y="366" class="label">Meaning</text><text x="555" y="366" class="body">Update paragraph text</text>
+<text x="465" y="398" class="small">Also carries source, provenance, and optional validation evidence</text>
+
+<rect x="810" y="145" width="330" height="330" rx="18" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+<text x="840" y="185" class="boxTitle">Snapshot S2</text>
+<text x="840" y="225" class="label">Paragraph P</text><text x="970" y="225" class="body">→ PR2</text>
+<text x="840" y="260" class="label">Function F</text><text x="970" y="260" class="body">→ FR7</text>
+<text x="840" y="295" class="label">Decision D</text><text x="970" y="295" class="body">→ DR2</text>
+<line x1="840" y1="325" x2="1105" y2="325" stroke="#c4b5fd" stroke-width="2"/>
+<text x="840" y="360" class="small">New exact global state</text>
+<rect x="840" y="388" width="265" height="56" rx="10" fill="#ecfccb" stroke="#65a30d"/>
+<text x="860" y="412" class="body">P@PR2:</text><text x="860" y="434" class="body">“Objects are immutable and versioned.”</text>
+
+<line x1="390" y1="310" x2="425" y2="310" stroke="#6b7280" stroke-width="3" marker-end="url(#arrow)"/>
+<line x1="765" y1="310" x2="800" y2="310" stroke="#6b7280" stroke-width="3" marker-end="url(#arrow)"/>
+<text x="60" y="545" class="label">What stays stable?</text><text x="215" y="545" class="body">Entity P and every unchanged revision mapping.</text>
+<text x="60" y="578" class="label">What changes?</text><text x="190" y="578" class="body">P gets PR2, the snapshot gets a new identity, and M1 explains the transition.</text>
+</svg>
