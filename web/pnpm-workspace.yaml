@@ -1,5 +1,6 @@
 packages:
   - "packages/*"
   - "apps/*"
+  - "tools/*"
 minimumReleaseAgeExclude:
   - prettier@3.9.10

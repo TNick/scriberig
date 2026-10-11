@@ -5,6 +5,7 @@
   "scripts": {
     "format": "prettier --write \"packages/**/*.{ts,tsx,js,jsx}\" \"apps/**/*.{ts,tsx,js,jsx}\"",
     "format:check": "prettier --check \"packages/**/*.{ts,tsx,js,jsx}\" \"apps/**/*.{ts,tsx,js,jsx}\"",
+    "docs": "pnpm --filter @scriberig/typescript-docs run docs",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test"
   },

@@ -4,8 +4,8 @@ site_url: https://tnick.github.io/scriberig/
 repo_url: https://github.com/TNick/scriberig
 repo_name: TNick/scriberig
 
-# The workflow stages README.md and design/ here before building. Keeping the
-# staging directory generated means the repository's Markdown stays canonical.
+# The workflow stages canonical Markdown and generated API docs here before
+# building. Keeping the staging directory generated preserves source files.
 docs_dir: .pages/docs
 site_dir: site
 

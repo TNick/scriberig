@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help init build install format lint test check dev dev-stop
+.PHONY: help init build install docs format lint test check dev dev-stop
 
 ifeq ($(OS),Windows_NT)
 PYTHON ?= python
@@ -13,6 +13,7 @@ help:
 	@echo   make init       Install web and pre-commit dependencies.
 	@echo   make build      Build all workspace targets.
 	@echo   make install    Build and install the srig executable.
+	@echo   make docs       Build Rust and TypeScript API documentation.
 	@echo   make format     Apply repository, Rust, and web formatting.
 	@echo   make lint       Run repository and web formatting checks.
 	@echo   make test       Run Rust and web test suites.
@@ -35,6 +36,11 @@ build:
 # Build and install the srig executable into Cargo's bin directory.
 install:
 	cargo install --path apps/scriberig --locked --force
+
+# Build API documentation from Rust and TypeScript declaration docs.
+docs:
+	cargo doc --workspace --no-deps
+	pnpm --dir web docs
 
 # Apply deterministic source and language-specific formatting.
 format:
