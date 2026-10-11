@@ -37,13 +37,13 @@
   <path d="M835 505 C800 555 740 590 700 605" class="line"/>
   <path d="M455 638 C400 625 345 565 320 525" class="line"/>
   <path d="M220 425 L220 320" class="line"/>
-  <path d="M365 245 C410 195 455 170 500 160" class="line"/>
 
   <rect x="410" y="325" width="380" height="140" rx="20" fill="#f8fafc" stroke="#475569" stroke-width="2"/>
-  <text x="600" y="365" text-anchor="middle" class="label">Validation + commit</text>
+  <text x="600" y="365" text-anchor="middle" class="label">7. Validate + commit</text>
   <text x="600" y="397" text-anchor="middle" class="small">schema · syntax · compiler · tests · invariants</text>
   <text x="600" y="428" text-anchor="middle" class="small">successful migration creates a new immutable snapshot</text>
   <path d="M365 270 C430 285 475 315 500 335" class="line"/>
-  <path d="M700 335 C750 290 800 260 835 255" class="line" opacity="0"/>
+  <path d="M600 325 C600 285 600 235 600 195" class="line"/>
+  <text x="632" y="254" class="small">new snapshot</text>
   <text x="600" y="720" text-anchor="middle" class="small">After commit, canonical rendering establishes the next synchronization base; raw edited bytes never become authority directly.</text>
 </svg>
