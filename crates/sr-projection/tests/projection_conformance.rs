@@ -1,8 +1,11 @@
 //! Verifies the generic projection contracts and their domain independence.
 
+use scriberig_core::{EntityId, SnapshotId};
 use sr_projection::capabilities::CapabilityError;
 use sr_projection::{
-    ProjectionCapabilities, ProjectionFeature, ProjectionKind, ReconciliationOutcome,
+    AmbiguousMapping, CapturedObservation, ConflictId, ConflictKind, ConflictStatus, ObservationId,
+    ProjectionCapabilities, ProjectionFeature, ProjectionKind, ProjectionRef, ProjectionSpecRef,
+    ReconciliationOutcome,
 };
 
 /// Checks that editable capabilities cannot omit parsing support.
@@ -55,4 +58,38 @@ fn reconciliation_outcomes_are_typed() {
 fn generic_model_is_domain_neutral() {
     let kind = ProjectionKind::new("application/x-example").unwrap();
     assert_eq!(kind.as_str(), "application/x-example");
+}
+
+/// Checks ambiguity keeps original evidence and competing states explicit.
+#[test]
+fn conflicts_retain_evidence_and_competing_states() {
+    let entity = EntityId::new([7; 16]);
+    let observation = CapturedObservation {
+        id: ObservationId(entity),
+        projection: ProjectionRef(entity),
+        previous_rendered_revision: None,
+        observed_content: b"external".to_vec(),
+        metadata: Vec::new(),
+        semantic_snapshot: SnapshotId::new([1; 32]),
+        adapter_id: "test".to_owned(),
+        adapter_version: "1".to_owned(),
+    };
+    let conflict = sr_projection::ProjectionConflict {
+        id: ConflictId(EntityId::new([8; 16])),
+        specification: ProjectionSpecRef(entity),
+        projection: ProjectionRef(entity),
+        base_snapshot: SnapshotId::new([1; 32]),
+        current_snapshot: SnapshotId::new([2; 32]),
+        observation,
+        candidate_revision: None,
+        ambiguous_mappings: vec![AmbiguousMapping {
+            entity,
+            candidates: Vec::new(),
+        }],
+        conflicting_entities: vec![entity],
+        kind: ConflictKind::AmbiguousMapping,
+        status: ConflictStatus::Unresolved,
+    };
+    assert_eq!(conflict.observation.observed_content, b"external");
+    assert_ne!(conflict.base_snapshot, conflict.current_snapshot);
 }

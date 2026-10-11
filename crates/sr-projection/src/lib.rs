@@ -3,6 +3,7 @@
 // Keep projection concepts separated by contract responsibility.
 pub mod adapter;
 pub mod capabilities;
+pub mod conflict;
 pub mod diagnostic;
 pub mod model;
 pub mod reconcile;
@@ -13,6 +14,10 @@ pub mod style;
 // Expose the principal shared identifiers and contracts.
 pub use adapter::{ProjectionAdapter, ProjectionResult};
 pub use capabilities::{ProjectionCapabilities, ProjectionFeature};
+pub use conflict::{
+    AmbiguousMapping, CapturedObservation, ConflictId, ConflictKind, ConflictResolution,
+    ConflictStatus, ObservationId, ProjectionConflict, ProjectionConflictStore, ResolvedConflict,
+};
 pub use diagnostic::{DiagnosticDetail, DiagnosticStage, ProjectionDiagnostic};
 pub use model::{
     OwnershipClass, ProjectionClass, ProjectionKind, ProjectionRef, ProjectionSpec,
