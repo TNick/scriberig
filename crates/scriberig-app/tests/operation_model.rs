@@ -1,9 +1,11 @@
 //! Verifies tracked operation records and structured application failures.
 
 use scriberig_app::{
-    ApplicationError, ConflictDetails, OperationId, OperationKind, OperationRecord, OperationStatus,
+    ApplicationContext, ApplicationError, ConflictDetails, DiffRequest, OperationId, OperationKind,
+    OperationProvider, OperationRecord, OperationStatus, StoreOperationProvider,
 };
 use scriberig_core::{RevisionId, SnapshotId};
+use scriberig_store_memory::MemoryStore;
 
 /// Verifies terminal operation states cannot be changed.
 #[test]
@@ -43,4 +45,23 @@ fn structured_failures_preserve_handles() {
         reason: "duplicate semantic names".to_owned(),
     };
     assert_eq!(ambiguous.category(), "ambiguous");
+}
+
+/// Verifies storage-backed diff execution preserves exact snapshot identity.
+#[test]
+fn storage_diff_is_snapshot_bound() {
+    let store = MemoryStore::new();
+    let snapshot = store.empty_snapshot();
+    let provider = StoreOperationProvider::new(store);
+    let result = provider
+        .diff(
+            &ApplicationContext::empty(),
+            &DiffRequest {
+                from: snapshot,
+                to: snapshot,
+            },
+        )
+        .expect("diff");
+    assert_eq!(result.snapshot, Some(snapshot));
+    assert!(result.handle.starts_with("diff:"));
 }
