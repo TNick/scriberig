@@ -45,6 +45,8 @@ pub struct Provenance {
     pub source: ProvenanceSource,
     /// Optional producer, tool, or model identifier.
     pub producer: Option<String>,
+    /// Optional producer implementation version.
+    pub producer_version: Option<String>,
     /// Exact immutable entity revisions used as inputs.
     pub inputs: Vec<EntityRevisionRef>,
     /// Optional profile or configuration identifier.

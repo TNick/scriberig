@@ -8,6 +8,7 @@ pub mod property;
 pub mod registry;
 pub mod relation;
 pub mod validation;
+pub mod version;
 
 pub use capability::{CapabilityCategory, CapabilityDescriptor, CapabilityId, ProviderMetadata};
 pub use collection::{CollectionSchema, OrderSemantics};
@@ -20,3 +21,4 @@ pub use validation::{
     ValidationIssue, ValidationLocation, ValidationReport, ValidationSeverity, ValidationSubject,
     validate,
 };
+pub use version::{AdapterMetadata, MigrationKind, SchemaMigrationMetadata, SchemaVersion};

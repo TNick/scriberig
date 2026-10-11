@@ -199,7 +199,7 @@ mod tests {
         DomainDescriptor {
             id: DomainId::new(domain).expect("valid domain"),
             name: "Markdown".to_owned(),
-            schema_version: 1,
+            schema_version: 1.into(),
             entity_types: vec![ObjectType::new(entity_type).expect("valid type")],
             relation_types: Vec::new(),
             capabilities: vec![CapabilityDescriptor {
@@ -210,6 +210,7 @@ mod tests {
                 provider: Some(ProviderMetadata {
                     id: domain.to_owned(),
                     version: "1".to_owned(),
+                    profile: None,
                     available,
                 }),
             }],

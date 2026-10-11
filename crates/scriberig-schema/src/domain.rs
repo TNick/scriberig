@@ -1,6 +1,6 @@
 //! Defines stable descriptors for installed semantic domains.
 
-use crate::CapabilityDescriptor;
+use crate::{CapabilityDescriptor, SchemaVersion};
 use scriberig_core::ObjectType;
 
 /// Identifies an installed domain independently of its Rust crate name.
@@ -47,7 +47,7 @@ pub struct DomainDescriptor {
     /// Human-readable domain name.
     pub name: String,
     /// Version of the domain schema contract.
-    pub schema_version: u32,
+    pub schema_version: SchemaVersion,
     /// Entity types supplied by this domain.
     pub entity_types: Vec<ObjectType>,
     /// Relation identifiers supplied by this domain.

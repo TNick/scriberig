@@ -100,6 +100,43 @@ pub struct ProviderMetadata {
     pub id: String,
     /// Provider release or profile version.
     pub version: String,
+    /// Optional semantics-affecting profile identifier.
+    pub profile: Option<String>,
     /// Whether the provider is currently configured and usable.
     pub available: bool,
+}
+
+impl ProviderMetadata {
+    /// Creates provider metadata without a profile.
+    ///
+    /// # Parameters
+    /// - `id`: Stable provider or adapter identifier.
+    /// - `version`: Provider version.
+    /// - `available`: Whether the provider is usable.
+    ///
+    /// # Returns
+    /// Provider metadata with no profile binding.
+    #[must_use]
+    pub fn new(id: impl Into<String>, version: impl Into<String>, available: bool) -> Self {
+        Self {
+            id: id.into(),
+            version: version.into(),
+            profile: None,
+            available,
+        }
+    }
+
+    /// Binds a semantics-affecting provider profile.
+    ///
+    /// # Parameters
+    /// - `self`: Provider metadata to update.
+    /// - `profile`: Stable profile identifier.
+    ///
+    /// # Returns
+    /// Metadata with the profile attached.
+    #[must_use]
+    pub fn with_profile(mut self, profile: impl Into<String>) -> Self {
+        self.profile = Some(profile.into());
+        self
+    }
 }

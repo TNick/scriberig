@@ -138,6 +138,7 @@ mod tests {
             provenance: Provenance {
                 source: ProvenanceSource::System,
                 producer: None,
+                producer_version: None,
                 inputs: vec![dependency],
                 profile: None,
                 note: None,

@@ -1,7 +1,10 @@
 //! Builds the deterministic shared schema descriptor for Markdown.
 
 use crate::types::{CONTAINMENT_RELATIONS, ENTITY_TYPES, entity_type};
-use scriberig_schema::{DomainDescriptor, DomainId};
+use scriberig_schema::{
+    CapabilityCategory, CapabilityDescriptor, CapabilityId, DomainDescriptor, DomainId,
+    ProviderMetadata, SchemaVersion,
+};
 
 /// Describes one ordered Markdown containment relation.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -61,13 +64,22 @@ pub fn markdown_schema() -> (DomainDescriptor, Vec<OrderedRelation>) {
     let descriptor = DomainDescriptor {
         id: DomainId::new("markdown").expect("static domain id"),
         name: "Markdown".to_owned(),
-        schema_version: 1,
+        schema_version: SchemaVersion::new(1),
         entity_types,
         relation_types: CONTAINMENT_RELATIONS
             .iter()
             .map(|value| (*value).to_owned())
             .collect(),
-        capabilities: Vec::new(),
+        capabilities: vec![CapabilityDescriptor {
+            id: CapabilityId::new("projection.markdown").expect("static capability"),
+            entity_type: entity_type("document"),
+            category: CapabilityCategory::Projection,
+            description: "Parse and render Markdown projections".to_owned(),
+            provider: Some(
+                ProviderMetadata::new("scriberig.markdown", "1", true)
+                    .with_profile("commonmark-tables"),
+            ),
+        }],
     };
     (descriptor, relations)
 }

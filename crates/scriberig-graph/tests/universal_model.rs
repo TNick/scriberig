@@ -23,6 +23,7 @@ fn entity_continuity_and_derived_dependencies() {
     let provenance = Provenance {
         source: ProvenanceSource::User,
         producer: None,
+        producer_version: None,
         inputs: vec![input],
         profile: None,
         note: None,

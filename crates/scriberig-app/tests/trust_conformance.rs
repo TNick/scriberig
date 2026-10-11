@@ -17,6 +17,7 @@ fn fixture() -> (TrustSummary, Provenance, Capability) {
     let provenance = Provenance {
         source: ProvenanceSource::ModelGenerated,
         producer: Some("fixture-model".to_owned()),
+        producer_version: None,
         inputs: vec![EntityRevisionRef {
             entity_id: entity,
             revision_id: revision,

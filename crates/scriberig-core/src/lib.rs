@@ -58,6 +58,7 @@ mod tests {
         let empty = Provenance {
             source: ProvenanceSource::User,
             producer: None,
+            producer_version: None,
             inputs: Vec::new(),
             profile: None,
             note: None,
@@ -66,6 +67,7 @@ mod tests {
         let populated = Provenance {
             source: ProvenanceSource::Custom("review-bot".to_owned()),
             producer: Some("bot-v1".to_owned()),
+            producer_version: None,
             inputs: vec![
                 EntityRevisionRef {
                     entity_id: EntityId::new([1; 16]),
@@ -107,6 +109,7 @@ mod tests {
         let provenance = Provenance {
             source: ProvenanceSource::System,
             producer: None,
+            producer_version: None,
             inputs: vec![reference],
             profile: None,
             note: None,
