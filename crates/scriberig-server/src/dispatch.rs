@@ -219,7 +219,50 @@ fn map_error(error: &ApplicationError, correlation_id: &str) -> ProtocolError {
     ProtocolError {
         code,
         message: error.to_string(),
-        details: None,
+        details: Some(error_details(error)),
         correlation_id: Some(correlation_id.to_owned()),
+    }
+}
+
+/// Preserves safe semantic handles in protocol error details.
+///
+/// # Parameters
+/// - `error`: Application error being serialized.
+///
+/// # Returns
+/// JSON-safe structured details without backend internals.
+fn error_details(error: &ApplicationError) -> serde_json::Value {
+    match error {
+        ApplicationError::NotFound { subject } => serde_json::json!({"subject": subject}),
+        ApplicationError::InvalidRequest { operation, message }
+        | ApplicationError::OperationFailed { operation, message } => {
+            serde_json::json!({"operation": operation, "message": message})
+        }
+        ApplicationError::UnsupportedCapability {
+            operation,
+            capability,
+        } => {
+            serde_json::json!({"operation": operation, "capability": capability})
+        }
+        ApplicationError::Conflict { subject, details } => serde_json::json!({
+            "subject": subject,
+            "base_revision": details.base_revision.map(|value| value.to_string()),
+            "expected_revision": details.expected_revision.map(|value| value.to_string()),
+            "current_revision": details.current_revision.map(|value| value.to_string()),
+            "left": details.left.as_ref(),
+            "right": details.right.as_ref(),
+            "operation": details.operation,
+        }),
+        ApplicationError::Ambiguous {
+            scope,
+            candidates,
+            reason,
+        } => {
+            serde_json::json!({"scope": scope, "candidates": candidates, "reason": reason})
+        }
+        ApplicationError::SnapshotUnavailable { snapshot } => {
+            serde_json::json!({"snapshot": snapshot.to_string()})
+        }
+        _ => serde_json::json!({}),
     }
 }
