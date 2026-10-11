@@ -8,6 +8,10 @@ description = "Integrated Scriberig executable composition root."
 repository.workspace = true
 publish = false
 
+[[bin]]
+name = "srig"
+path = "src/main.rs"
+
 [dependencies]
 scriberig-agent-runtime = { path = "../../crates/scriberig-agent-runtime" }
 scriberig-cli = { path = "../../crates/scriberig-cli" }
