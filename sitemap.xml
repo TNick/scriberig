@@ -620,4 +620,20 @@
          <loc>https://tnick.github.io/scriberig/level-3/111.%20expose%20agent%20execution%20through%20application%20protocol%20server%20and%20clients/</loc>
          <lastmod>2026-10-11</lastmod>
     </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/112.%20implement%20one%20shot%20agent%20command%20through%20shared%20runtime/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/113.%20implement%20branch%20aware%20web%20agent%20experience/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/114.%20implement%20http%20protocol%20and%20event%20transport%20for%20remote%20clients/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/115.%20verify%20agent%20branch%20isolation%20and%20cross%20surface%20conformance/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
 </urlset>
