@@ -169,6 +169,14 @@
          <lastmod>2026-10-11</lastmod>
     </url>
     <url>
+         <loc>https://tnick.github.io/scriberig/level-2/023.%20agent%20runtime%20model%20provider%20and%20branch%20orchestration/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-2/024.%20agent%20operations%20protocol%20and%20cross%20surface%20product%20contract/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
          <loc>https://tnick.github.io/scriberig/level-3/001.%20bootstrap%20persistence%20workspace%20and%20core%20ids/</loc>
          <lastmod>2026-10-11</lastmod>
     </url>
@@ -590,6 +598,26 @@
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/106.%20verify%20tui%20conformance%20accessibility%20and%20terminal%20recovery/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/107.%20extend%20session%20records%20for%20model%20execution%20and%20branch%20results/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/108.%20implement%20openai%20compatible%20model%20provider%20transport/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/109.%20implement%20branch%20context%20compiler%20and%20model%20request%20cache/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/110.%20implement%20nested%20branch%20orchestrator%20and%20trusted%20tool%20loop/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/111.%20expose%20agent%20execution%20through%20application%20protocol%20server%20and%20clients/</loc>
          <lastmod>2026-10-11</lastmod>
     </url>
 </urlset>
