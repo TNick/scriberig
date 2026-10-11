@@ -528,6 +528,8 @@ dependencies = [
  "scriberig-store-memory",
  "serde",
  "serde_json",
+ "sr-change",
+ "sr-projection",
  "toml",
 ]
 
