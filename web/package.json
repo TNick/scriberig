@@ -7,8 +7,9 @@
     "format:check": "prettier --check \"packages/**/*.{ts,tsx,js,jsx}\" \"apps/**/*.{ts,tsx,js,jsx}\"",
     "docs": "pnpm --filter @scriberig/typescript-docs run docs",
     "typecheck": "pnpm -r --if-present typecheck",
-    "test": "pnpm -r --if-present test",
-    "build": "pnpm --filter @scriberig/app build"
+    "test": "pnpm -r --if-present test && pnpm test:conformance",
+    "build": "pnpm --filter @scriberig/app build",
+    "test:conformance": "vitest run --config vitest.conformance.config.ts"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",
