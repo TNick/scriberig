@@ -8,6 +8,7 @@ description = "Command parsing and dispatch for reusable Scriberig operations."
 repository.workspace = true
 
 [dependencies]
+clap = { version = "4.5", features = ["derive"] }
 scriberig-app = { path = "../scriberig-app" }
 scriberig-client = { path = "../scriberig-client" }
 
