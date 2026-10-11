@@ -128,6 +128,22 @@ impl CanonicalWriter {
         self.bytes.extend_from_slice(&value.to_be_bytes());
     }
 
+    /// Writes an 8-bit unsigned integer.
+    ///
+    /// # Parameters
+    /// - `value`: Integer to encode.
+    pub fn write_u8(&mut self, value: u8) {
+        self.bytes.push(value);
+    }
+
+    /// Writes a 32-bit unsigned integer in big-endian order.
+    ///
+    /// # Parameters
+    /// - `value`: Integer to encode.
+    pub fn write_u32(&mut self, value: u32) {
+        self.bytes.extend_from_slice(&value.to_be_bytes());
+    }
+
     /// Writes a 64-bit unsigned integer in big-endian order.
     ///
     /// # Parameters
@@ -209,10 +225,37 @@ pub trait CanonicalEncode {
     fn encode_canonical(&self, writer: &mut CanonicalWriter);
 }
 
+/// Hashes a complete revision envelope into an immutable revision identity.
+///
+/// The domain tag, encoding version, object type, and payload all participate
+/// in the digest so changes to any identity input produce a different value.
+///
+/// # Parameters
+/// - `version`: Canonical encoding version.
+/// - `object_type`: Semantic object type.
+/// - `payload`: Already canonicalized payload bytes.
+///
+/// # Returns
+/// The BLAKE3-derived revision identifier.
+#[must_use]
+pub fn revision_id(
+    version: EncodingVersion,
+    object_type: &crate::ObjectType,
+    payload: &[u8],
+) -> crate::RevisionId {
+    let mut writer = CanonicalWriter::new();
+    writer.write_tag(b"scriberig.revision.v1");
+    writer.write_u16(version.value());
+    writer.write_str(object_type.as_str());
+    writer.write_bytes(payload);
+    crate::RevisionId::from_bytes(*blake3::hash(writer.as_bytes()).as_bytes())
+}
+
 // Confirm primitive encodings and versions remain deterministic.
 #[cfg(test)]
 mod tests {
-    use super::{CanonicalEncode, CanonicalWriter, EncodingVersion};
+    use super::{CanonicalEncode, CanonicalWriter, EncodingVersion, revision_id};
+    use crate::ObjectType;
 
     /// Checks canonical primitive output is repeatable.
     #[test]
@@ -231,6 +274,28 @@ mod tests {
         second.write_bool(true);
 
         assert_eq!(first.as_bytes(), second.as_bytes());
+    }
+
+    /// Verifies revision identity includes every envelope component.
+    #[test]
+    fn revision_hash_is_deterministic_and_domain_separated() {
+        let object_type = ObjectType::new("markdown.paragraph").expect("valid type");
+        let first = revision_id(EncodingVersion::V1, &object_type, b"payload");
+        let second = revision_id(EncodingVersion::V1, &object_type, b"payload");
+        assert_eq!(first, second);
+        assert_ne!(
+            first,
+            revision_id(EncodingVersion::new(2), &object_type, b"payload")
+        );
+        let other_type = ObjectType::new("rust.function").expect("valid type");
+        assert_ne!(
+            first,
+            revision_id(EncodingVersion::V1, &other_type, b"payload")
+        );
+        assert_ne!(
+            first,
+            revision_id(EncodingVersion::V1, &object_type, b"other")
+        );
     }
 
     /// Checks independently constructed equivalent values encode identically.
