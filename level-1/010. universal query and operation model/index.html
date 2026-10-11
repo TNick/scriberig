@@ -6022,6 +6022,9 @@
 <p>Such operations extend the universal model.</p>
 <p>They must not create a separate persistence or history path.</p>
 <p>Conceptually, high-level domain operations eventually become changes expressed through the same branch, migration, validation, and commit machinery.</p>
+<p>Figure 1 is the main mental model for the document: all four operation groups act on the same semantic knowledge substrate. Domains may add vocabulary, but they do not create parallel navigation, rendering, or mutation architectures.</p>
+<p><img alt="Diagram with semantic knowledge in the center and four operation groups around it: Observe contains inspect, list, and follow; Discover and compare contains find, query, diff, and history; Project contains render; Change contains branch, apply, and commit." src="../assets/010-figure-1-universal-interaction-grammar.svg" /></p>
+<p><strong>Figure 1 — The universal interaction grammar groups all operations around one semantic knowledge substrate.</strong></p>
 <hr />
 <h2 id="4-universal-handles">4. Universal Handles<a class="headerlink" href="#4-universal-handles" title="Permanent link">&para;</a></h2>
 <p>The interaction model relies on references that preserve semantic identity.</p>
@@ -6103,6 +6106,9 @@
 <p>Projection anchors are not canonical identity.</p>
 <p>They are bridges between rendered representations and semantic objects.</p>
 <p>A line number, byte range, DOM node, page rectangle, or editor selection may be useful as an anchor, but the system should prefer semantic identity once correspondence is known.</p>
+<p>Figure 2 separates the three kinds of identity that must not be conflated: the conceptual entity, the exact snapshot in which it is resolved, and the immutable revision that contains exact content. A UI selection can additionally carry structural or rendered context without making that context part of identity.</p>
+<p><img alt="Diagram showing EntityRef E and SnapshotRef S entering a resolve operation that produces RevisionRef R; below them a Selection schema contains snapshot, entity, optional revision, optional relation path, and optional projection anchor, with the anchor labeled as context rather than identity." src="../assets/010-figure-2-handles-snapshots-and-selection.svg" /></p>
+<p><strong>Figure 2 — Entity identity, snapshot context, exact revision identity, and projection anchors play distinct roles.</strong></p>
 <hr />
 <h2 id="9-read-operations-are-snapshot-bound">9. Read Operations Are Snapshot-Bound<a class="headerlink" href="#9-read-operations-are-snapshot-bound" title="Permanent link">&para;</a></h2>
 <p>Every canonical read should be evaluated against an explicit or resolved snapshot.</p>
@@ -6320,6 +6326,9 @@
 </code></pre></div>
 <p>produces an exact structural result.</p>
 <p>Agents should often use <code>find</code> to orient themselves and <code>query</code> to establish facts.</p>
+<p>Figure 3 shows the intended progression: <code>find</code> reduces uncertainty and returns semantic handles; those handles can then anchor a structured <code>query</code> that establishes a precise graph fact. The two operations are complementary rather than competing search syntaxes.</p>
+<p><img alt="Diagram showing a broad question flowing into find, which uses text, token, name, semantic, or domain discovery strategies and returns ranked semantic handles; those handles flow into query, which applies scope, type, property, relation, membership, ordering, and limit constraints to produce an exact semantic result set." src="../assets/010-figure-3-find-and-query.svg" /></p>
+<p><strong>Figure 3 — <code>find</code> is for discovery; <code>query</code> is for precise structural selection using semantic handles.</strong></p>
 <hr />
 <h2 id="16-diff">16. <code>diff</code><a class="headerlink" href="#16-diff" title="Permanent link">&para;</a></h2>
 <p><code>diff</code> compares two exact states.</p>
@@ -6504,6 +6513,9 @@
 </code></pre></div>
 <p>must make state transitions explicit.</p>
 <p>This distinction lets applications reason clearly about safety and reproducibility.</p>
+<p>Figure 4 makes the write boundary explicit. <code>branch</code> isolates work from the current snapshot, <code>apply</code> constructs candidate state and a migration proposal, and validation either returns structured failure or allows <code>commit</code> to promote the candidate. A failed attempt never silently advances canonical state.</p>
+<p><img alt="Diagram showing Snapshot S17 branching into isolated Branch B, apply producing candidate Snapshot S18 and a migration proposal, validation producing either a structured conflict that leaves S17 current or success leading to commit and promoted Snapshot S18 with retained history." src="../assets/010-figure-5-branch-apply-commit.svg" /></p>
+<p><strong>Figure 4 — Candidate state is isolated until validation succeeds and an explicit <code>commit</code> promotes it.</strong></p>
 <hr />
 <h2 id="23-results-must-be-referential">23. Results Must Be Referential<a class="headerlink" href="#23-results-must-be-referential" title="Permanent link">&para;</a></h2>
 <p>Every result should contain handles that can be used directly for the next operation.</p>
@@ -6603,6 +6615,9 @@
 <a id="__codelineno-51-5" name="__codelineno-51-5" href="#__codelineno-51-5"></a>           -&gt; tool result
 </code></pre></div>
 <p>The consumer should not need to read the deepest representation in order to discover that the deeper representation exists.</p>
+<p>Figure 5 illustrates that progressive disclosure is a domain-independent navigation pattern. Code, documents, and sessions use different semantic types, but each lets the consumer start with a coarse object and request finer detail only when needed, keeping information cost proportional to the task.</p>
+<p><img alt="Diagram with three downward navigation ladders: code goes from Project to Module to Function to Code group to Statement to Expression; documents go from Document to Section to Paragraph or table to Inline or cell; sessions go from Session to Branch to Episode to Turn to Tool result; a side arrow shows detail and information cost increasing downward." src="../assets/010-figure-4-progressive-disclosure.svg" /></p>
+<p><strong>Figure 5 — Progressive disclosure uses the same coarse-to-fine navigation pattern across domains.</strong></p>
 <hr />
 <h2 id="26-information-cost-may-be-exposed">26. Information Cost May Be Exposed<a class="headerlink" href="#26-information-cost-may-be-exposed" title="Permanent link">&para;</a></h2>
 <p>Where practical, the system may expose approximate information cost for deeper views.</p>
@@ -6720,6 +6735,9 @@
 </code></pre></div>
 <p>without rediscovering the object through text search.</p>
 <p>This universal selection model is one of the main benefits of the shared knowledge substrate.</p>
+<p>Figure 6 shows why semantic selection is a first-class cross-view concept rather than UI-local state. Once a selection resolves to an entity in an exact snapshot, the raw database browser, semantic editor, rendered projection, history view, and agent scope can all act on the same object without searching for it again.</p>
+<p><img alt="Diagram with a central Semantic selection containing snapshot, entity, optional revision, relation path, and projection anchor connected to five surrounding views: raw database, semantic view, rendered projection, history and diff, and agent scope." src="../assets/010-figure-6-shared-semantic-selection.svg" /></p>
+<p><strong>Figure 6 — One semantic selection can coordinate raw, semantic, rendered, historical, and agent views.</strong></p>
 <hr />
 <h2 id="31-query-results-and-derived-knowledge">31. Query Results and Derived Knowledge<a class="headerlink" href="#31-query-results-and-derived-knowledge" title="Permanent link">&para;</a></h2>
 <p>Some operations depend only on canonical structure.</p>
@@ -6833,6 +6851,9 @@
 </code></pre></div>
 <p>The CLI, API server, TUI, web application, and agent runtime should observe the same operation semantics.</p>
 <p>Whether the operation is executed synchronously or asynchronously is a runtime concern.</p>
+<p>Figure 7 captures the lifecycle that every surface should observe. The important point is not whether work is implemented with threads, tasks, jobs, or remote workers; it is that one <code>OperationRef</code> provides stable identity while progress, outputs, diagnostics, completion, failure, or cancellation are reported consistently.</p>
+<p><img alt="Diagram showing an OperationRef moving from Queued to Running, with Running emitting progress, structured output, diagnostics, and produced objects, then terminating as Completed with result handles, Failed with structured error context, or Cancelled." src="../assets/010-figure-7-operation-lifecycle.svg" /></p>
+<p><strong>Figure 7 — Long-running work uses one operation identity and one observable lifecycle across interfaces.</strong></p>
 <hr />
 <h2 id="36-the-interaction-model-is-transport-independent">36. The Interaction Model Is Transport-Independent<a class="headerlink" href="#36-the-interaction-model-is-transport-independent" title="Permanent link">&para;</a></h2>
 <p>The following should be different surfaces over the same application semantics:</p>
@@ -7024,6 +7045,9 @@
 <p>The exact user experience may differ.</p>
 <p>The semantic capability should remain shared.</p>
 <p>This encourages vertical development rather than building a powerful backend with permanently lagging public surfaces.</p>
+<p>Figure 8 shows the dependency direction that makes this possible. Client surfaces differ in presentation and transport, but they all call the same application operations, which delegate to query, history/diff, projection, and change subsystems over one knowledge graph. A UI or agent that bypasses this boundary would break capability parity and semantic consistency.</p>
+<p><img alt="Architecture diagram with Rust library, CLI, API server, web editor, TUI, and agent tools all feeding the same Universal application operations layer; that layer delegates to Query, History and diff, Projection, and Change subsystems, all of which operate on the universal knowledge graph and snapshots." src="../assets/010-figure-8-cross-surface-parity.svg" /></p>
+<p><strong>Figure 8 — CLI, server, web, TUI, agents, and embedded callers are peer surfaces over shared application semantics.</strong></p>
 <hr />
 <h2 id="46-example-navigating-a-markdown-document">46. Example: Navigating a Markdown Document<a class="headerlink" href="#46-example-navigating-a-markdown-document" title="Permanent link">&para;</a></h2>
 <p>A consumer starts with a document handle.</p>
