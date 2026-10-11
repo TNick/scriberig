@@ -4,7 +4,7 @@
   "type": "module",
   "license": "Apache-2.0",
   "exports": { ".": "./src/index.ts" },
-  "scripts": { "typecheck": "tsc -p tsconfig.json --noEmit", "test": "vitest run --passWithNoTests" },
+  "scripts": { "typecheck": "tsc -p tsconfig.json --noEmit", "test": "vitest run --passWithNoTests", "build": "tsc -p tsconfig.json" },
   "dependencies": {
     "@scriberig/client": "workspace:*",
     "@scriberig/editor-core": "workspace:*",
