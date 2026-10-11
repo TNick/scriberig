@@ -1,0 +1,11 @@
+[package]
+name = "scriberig-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Universal identifiers and domain-neutral core values for Scriberig."
+repository.workspace = true
+
+[lints]
+workspace = true

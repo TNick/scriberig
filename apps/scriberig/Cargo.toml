@@ -1,0 +1,18 @@
+[package]
+name = "scriberig"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "AGPL-3.0-only"
+description = "Integrated Scriberig executable composition root."
+repository.workspace = true
+publish = false
+
+[dependencies]
+scriberig-agent-runtime = { path = "../../crates/scriberig-agent-runtime" }
+scriberig-cli = { path = "../../crates/scriberig-cli" }
+scriberig-server = { path = "../../crates/scriberig-server" }
+scriberig-tui = { path = "../../crates/scriberig-tui" }
+
+[lints]
+workspace = true

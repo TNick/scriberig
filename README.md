@@ -20,6 +20,18 @@ Key goals include:
 - reusable Rust and web libraries that remain useful without the agent runtime;
 - CLI, API, TUI, web, and agent surfaces that evolve together.
 
+## Repository layout
+
+```text
+crates/        Rust libraries and runtime crates
+apps/          Native executable composition roots
+web/packages/  Reusable TypeScript/React packages
+web/apps/      Complete browser applications
+tools/         Repository linting and developer automation
+tests/         Cross-layer conformance and end-to-end tests
+design/        Level 1-3 architecture and implementation documents
+```
+
 ## Design documents
 
 The project is currently being specified from architecture down to implementation tasks under `design/`:
@@ -29,3 +41,30 @@ The project is currently being specified from architecture down to implementatio
 - `design/level-3/` — focused implementation instructions and acceptance criteria for implementation agents.
 
 The intended result is a system where humans, agents, compilers, editors, and third-party applications can work with different views of the same persistent semantic state without each inventing a separate storage or mutation model.
+
+## Bootstrap
+
+```bash
+rustup show
+cargo check --workspace --all-targets
+corepack enable
+pnpm --dir web install
+python3 -m pip install pre-commit
+./tools/install-hooks.sh
+```
+
+## Quality checks
+
+Run the complete local quality gate with:
+
+```bash
+./tools/check.sh
+```
+
+Apply safe automatic fixes and formatters with:
+
+```bash
+./tools/fix.sh
+```
+
+Repository-specific source and agent rules live in the top-level `AGENTS.md` and are refined by nested `AGENTS.md` files.

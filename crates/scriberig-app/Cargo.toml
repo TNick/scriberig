@@ -1,0 +1,19 @@
+[package]
+name = "scriberig-app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Shared application-operation boundary used by all product and client surfaces."
+repository.workspace = true
+
+[dependencies]
+scriberig-derive = { path = "../scriberig-derive" }
+scriberig-graph = { path = "../scriberig-graph" }
+scriberig-migration = { path = "../scriberig-migration" }
+scriberig-projection = { path = "../scriberig-projection" }
+scriberig-query = { path = "../scriberig-query" }
+scriberig-session = { path = "../scriberig-session" }
+
+[lints]
+workspace = true

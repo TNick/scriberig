@@ -1,0 +1,16 @@
+[package]
+name = "scriberig-agent-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Reusable agent-facing tools, capabilities, semantic navigation, and context interfaces."
+repository.workspace = true
+
+[dependencies]
+scriberig-app = { path = "../scriberig-app" }
+scriberig-protocol = { path = "../scriberig-protocol" }
+scriberig-session = { path = "../scriberig-session" }
+
+[lints]
+workspace = true

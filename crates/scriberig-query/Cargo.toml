@@ -1,0 +1,15 @@
+[package]
+name = "scriberig-query"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Universal semantic query, traversal, scope, and pagination contracts."
+repository.workspace = true
+
+[dependencies]
+scriberig-core = { path = "../scriberig-core" }
+scriberig-graph = { path = "../scriberig-graph" }
+
+[lints]
+workspace = true

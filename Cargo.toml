@@ -1,0 +1,42 @@
+[workspace]
+resolver = "3"
+members = [
+  "crates/scriberig-core",
+  "crates/scriberig-store",
+  "crates/scriberig-store-memory",
+  "crates/scriberig-store-sqlite",
+  "crates/scriberig-schema",
+  "crates/scriberig-graph",
+  "crates/scriberig-query",
+  "crates/scriberig-migration",
+  "crates/scriberig-derive",
+  "crates/scriberig-projection",
+  "crates/scriberig-session",
+  "crates/scriberig-app",
+  "crates/scriberig-protocol",
+  "crates/scriberig-client",
+  "crates/scriberig-agent-core",
+  "crates/scriberig-agent-runtime",
+  "crates/scriberig-server",
+  "crates/scriberig-tui",
+  "crates/scriberig-cli",
+  "crates/domains/scriberig-domain-markdown",
+  "crates/domains/scriberig-domain-code",
+  "crates/domains/scriberig-domain-rust",
+  "crates/domains/scriberig-domain-pdf",
+  "apps/scriberig",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+repository = "https://github.com/TNick/scriberig"
+
+[workspace.lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }

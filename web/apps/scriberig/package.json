@@ -1,0 +1,28 @@
+{
+  "name": "@scriberig/app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^9.5.0",
+    "@scriberig/agent-ui": "workspace:*",
+    "@scriberig/client": "workspace:*",
+    "@scriberig/components": "workspace:*",
+    "@scriberig/components-mui": "workspace:*",
+    "@scriberig/editor-core": "workspace:*",
+    "@scriberig/model": "workspace:*",
+    "@scriberig/protocol": "workspace:*",
+    "@scriberig/react": "workspace:*",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  }
+}

@@ -1,0 +1,14 @@
+[package]
+name = "scriberig-client"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Reusable Rust client for the public Scriberig protocol."
+repository.workspace = true
+
+[dependencies]
+scriberig-protocol = { path = "../scriberig-protocol" }
+
+[lints]
+workspace = true

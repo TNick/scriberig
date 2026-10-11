@@ -1,0 +1,15 @@
+[package]
+name = "scriberig-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Command parsing and dispatch for reusable Scriberig operations."
+repository.workspace = true
+
+[dependencies]
+scriberig-app = { path = "../scriberig-app" }
+scriberig-client = { path = "../scriberig-client" }
+
+[lints]
+workspace = true

@@ -1,0 +1,18 @@
+[package]
+name = "scriberig-domain-pdf"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "PDF import and semantic extraction adapter."
+repository.workspace = true
+
+[dependencies]
+scriberig-core = { path = "../../scriberig-core" }
+scriberig-derive = { path = "../../scriberig-derive" }
+scriberig-graph = { path = "../../scriberig-graph" }
+scriberig-projection = { path = "../../scriberig-projection" }
+scriberig-schema = { path = "../../scriberig-schema" }
+
+[lints]
+workspace = true

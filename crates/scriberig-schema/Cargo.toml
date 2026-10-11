@@ -1,0 +1,14 @@
+[package]
+name = "scriberig-schema"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Universal entity, property, relation, and collection schema vocabulary."
+repository.workspace = true
+
+[dependencies]
+scriberig-core = { path = "../scriberig-core" }
+
+[lints]
+workspace = true

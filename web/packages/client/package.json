@@ -1,0 +1,9 @@
+{
+  "name": "@scriberig/client",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc -p tsconfig.json --noEmit", "test": "vitest run --passWithNoTests" },
+  "dependencies": { "@scriberig/protocol": "workspace:*" }
+}

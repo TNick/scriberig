@@ -1,0 +1,128 @@
+# AGENTS.md
+
+## Purpose
+
+Scriberig is a monorepo for a universal semantic knowledge platform and the integrated product built on top of it. Agents working here must preserve the architectural dependency direction described in `design/` and should prefer small, composable changes over cross-layer shortcuts.
+
+## Read design before code
+
+Before changing a subsystem, read the nearest `AGENTS.md` and the relevant `design/level-1`, `design/level-2`, and `design/level-3` documents. Lower-level design documents may refine higher-level documents but must not silently contradict their invariants.
+
+The reusable platform must remain useful without an agent runtime. Product surfaces such as CLI, API server, TUI, web editor, and agents consume shared application capabilities rather than owning duplicated business logic.
+
+## Repository map
+
+- `crates/`: reusable Rust libraries and product runtime crates.
+- `crates/domains/`: domain adapters such as Markdown, code, Rust, and PDF.
+- `apps/`: native executable composition roots.
+- `web/packages/`: reusable TypeScript/React libraries.
+- `web/apps/`: complete browser applications.
+- `tools/`: repository quality, lint, formatting, and developer automation.
+- `tests/`: cross-package conformance, protocol, fixtures, and end-to-end tests.
+- `design/`: architecture and implementation instructions; Markdown line limits do not apply here.
+
+## File-size rule
+
+Source-code files must contain no more than 400 lines after excluding the leading preamble. The preamble may contain file documentation, license headers, attributes/directives, imports, and `use` declarations. Markdown and other prose/text files are exempt from the 400-line limit.
+
+Do not evade the limit by compressing unrelated logic. Split by responsibility. One preferred split strategy is to replace an oversized file with a directory of the same stem and divide the implementation into focused files. For example:
+
+- Rust: replace `query.rs` with `query/mod.rs`, `query/parse.rs`, `query/execute.rs`, and related focused modules.
+- TypeScript: replace `query.ts` with `query/index.ts` plus focused sibling modules.
+
+Keep public re-export boundaries stable when performing a split.
+
+## Logical code blocks
+
+Every logical code block must begin after an empty line with a one- or two-line comment explaining the purpose of the block, followed by its documentation and implementation. Use a machine-recognizable `Block:` prefix where practical:
+
+```text
+// Block: Resolve an entity at an exact snapshot before reading its revision.
+```
+
+or in Python:
+
+```text
+# Block: Resolve an entity at an exact snapshot before reading its revision.
+```
+
+A logical block includes functions, methods, classes, structs, traits/interfaces, major implementation sections, and executable top-level sections. Comments must explain intent rather than restate syntax.
+
+## File documentation
+
+Every source file must begin with a description docstring/documentation comment before ordinary implementation code, excluding a shebang or license header.
+
+- Rust: use `//!` module/file documentation.
+- TypeScript/JavaScript: use a JSDoc file comment containing `@file`.
+- Python: use a module docstring.
+- Shell/config code that supports comments: start with a short file-purpose comment.
+
+## Function and method documentation
+
+Every function and method, public or private, must be documented.
+
+Documentation must contain:
+
+1. a one-line brief description;
+2. an optional extended explanation when the behavior is not obvious;
+3. documentation for every parameter;
+4. return-value documentation when a meaningful value is returned;
+5. exception/error documentation when the function can throw or return an error condition.
+
+Rust convention:
+
+```text
+/// Resolve an entity revision in a snapshot.
+///
+/// # Parameters
+/// - `entity`: Entity to resolve.
+/// - `snapshot`: Exact snapshot to read.
+///
+/// # Returns
+/// The exact revision when the entity exists.
+///
+/// # Errors
+/// Returns an error when the snapshot cannot be read.
+```
+
+TypeScript/JavaScript convention uses JSDoc `@param`, `@returns`, and `@throws` tags as applicable. Python uses `Args:`, `Returns:`, and `Raises:` sections.
+
+## Class and class-like type documentation
+
+Classes must have a one-line brief description and may have an extended description. Their class documentation must contain separate `Public members` and `Private members` sections and document every member in the applicable section. If one section is empty, state that explicitly.
+
+Apply the same intent to class-like constructs in other languages. Rust structs and similar data-bearing types must document their purpose and fields; traits/interfaces must document their contract.
+
+## Automated enforcement
+
+Repository conventions are enforced by `tools/repo_lint.py`, formatters, pre-commit hooks, and CI.
+
+Before committing:
+
+```text
+python3 tools/repo_lint.py --fix
+cargo fmt --all
+cargo check --workspace --all-targets
+pnpm --dir web format
+pnpm --dir web typecheck
+```
+
+Run `tools/install-hooks.sh` once after cloning to install the pre-commit hooks. Hooks intentionally auto-fix safe formatting where possible and reject the commit when a convention still cannot be satisfied automatically.
+
+Never bypass quality hooks to land malformed files. If a rule is producing a false positive, improve the rule or document a narrowly scoped exception in the nearest `AGENTS.md` and lint configuration.
+
+## Dependency direction
+
+The general Rust direction is reusable foundation -> application operations -> adapters/product surfaces. Foundation crates must never depend on agent runtime, server, CLI, TUI, or web concerns.
+
+The web direction is protocol -> client -> model -> editor/react layers -> reusable components -> integrated app. Public packages must never depend on `web/apps/`.
+
+All write surfaces must converge on the shared migration/change model. Do not add direct database mutations from UI, agents, CLI, or transport adapters.
+
+## Change discipline
+
+- Keep scaffolding and architecture-preserving refactors separate from semantic feature implementations where practical.
+- Prefer exact immutable IDs and snapshot-bound APIs over hidden mutable-current-state assumptions.
+- Do not create duplicate core abstractions because a provisional design used a different crate prefix.
+- Add or update tests at the lowest layer that owns a behavior.
+- Keep generated files clearly marked and out of hand-edited source paths when possible.

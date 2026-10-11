@@ -1,0 +1,17 @@
+[package]
+name = "scriberig-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "AGPL-3.0-only"
+description = "Integrated server adapter exposing application operations through the public protocol."
+repository.workspace = true
+publish = false
+
+[dependencies]
+scriberig-agent-runtime = { path = "../scriberig-agent-runtime" }
+scriberig-app = { path = "../scriberig-app" }
+scriberig-protocol = { path = "../scriberig-protocol" }
+
+[lints]
+workspace = true

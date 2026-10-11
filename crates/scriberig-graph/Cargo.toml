@@ -1,0 +1,16 @@
+[package]
+name = "scriberig-graph"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Universal semantic graph records and snapshot-bound graph views."
+repository.workspace = true
+
+[dependencies]
+scriberig-core = { path = "../scriberig-core" }
+scriberig-schema = { path = "../scriberig-schema" }
+scriberig-store = { path = "../scriberig-store" }
+
+[lints]
+workspace = true

@@ -1,0 +1,14 @@
+[package]
+name = "scriberig-tui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Terminal UI adapter over shared Scriberig application operations."
+repository.workspace = true
+
+[dependencies]
+scriberig-app = { path = "../scriberig-app" }
+
+[lints]
+workspace = true

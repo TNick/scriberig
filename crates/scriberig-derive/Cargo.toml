@@ -1,0 +1,16 @@
+[package]
+name = "scriberig-derive"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Derived-knowledge profiles, dependency keys, caching, and invalidation."
+repository.workspace = true
+
+[dependencies]
+scriberig-core = { path = "../scriberig-core" }
+scriberig-graph = { path = "../scriberig-graph" }
+scriberig-store = { path = "../scriberig-store" }
+
+[lints]
+workspace = true

@@ -1,0 +1,17 @@
+[package]
+name = "scriberig-projection"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Domain-independent rendering, import, reconciliation, and projection state."
+repository.workspace = true
+
+[dependencies]
+scriberig-core = { path = "../scriberig-core" }
+scriberig-derive = { path = "../scriberig-derive" }
+scriberig-graph = { path = "../scriberig-graph" }
+scriberig-migration = { path = "../scriberig-migration" }
+
+[lints]
+workspace = true

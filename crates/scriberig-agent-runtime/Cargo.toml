@@ -1,0 +1,17 @@
+[package]
+name = "scriberig-agent-runtime"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "AGPL-3.0-only"
+description = "Integrated agent execution, orchestration, and model-provider runtime."
+repository.workspace = true
+publish = false
+
+[dependencies]
+scriberig-agent-core = { path = "../scriberig-agent-core" }
+scriberig-app = { path = "../scriberig-app" }
+scriberig-session = { path = "../scriberig-session" }
+
+[lints]
+workspace = true

@@ -1,0 +1,16 @@
+[package]
+name = "scriberig-session"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Structured sessions, branches, goals, decisions, tool interactions, and summaries."
+repository.workspace = true
+
+[dependencies]
+scriberig-core = { path = "../scriberig-core" }
+scriberig-graph = { path = "../scriberig-graph" }
+scriberig-migration = { path = "../scriberig-migration" }
+
+[lints]
+workspace = true

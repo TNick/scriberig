@@ -1,0 +1,15 @@
+[package]
+name = "scriberig-store-memory"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "In-memory implementation of Scriberig storage contracts."
+repository.workspace = true
+
+[dependencies]
+scriberig-core = { path = "../scriberig-core" }
+scriberig-store = { path = "../scriberig-store" }
+
+[lints]
+workspace = true
