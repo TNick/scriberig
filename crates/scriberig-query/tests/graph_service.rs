@@ -23,6 +23,23 @@ struct Fixture {
 impl KnowledgeView for Fixture {
     type Error = &'static str;
 
+    /// Lists the one fixture entity.
+    ///
+    /// # Parameters
+    /// - `&self`: Fixture graph view.
+    /// - `snapshot`: Snapshot context.
+    ///
+    /// # Returns
+    /// The fixture entity for its snapshot.
+    ///
+    /// # Errors
+    /// This fixture does not produce backend errors.
+    fn entities(&self, snapshot: SnapshotId) -> Result<Vec<EntityId>, Self::Error> {
+        Ok((snapshot == self.snapshot)
+            .then_some(vec![self.entity])
+            .unwrap_or_default())
+    }
+
     /// Resolves the fixture entity at its exact snapshot.
     ///
     /// # Parameters
@@ -215,8 +232,14 @@ fn graph_explicit_scopes_support_find_and_query() {
     assert_eq!(find.page.items.len(), 1);
     let query = service
         .query(&QuerySpec {
-            scope: QueryScope::Entity { snapshot, entity },
-            expression: QueryExpr::TypeIs(ObjectType::new("test.entity").expect("type")),
+            scope: QueryScope::Snapshot(snapshot),
+            expression: QueryExpr::And(vec![
+                QueryExpr::TypeIs(ObjectType::new("test.entity").expect("type")),
+                QueryExpr::PropertyEq {
+                    key: "name".to_owned(),
+                    value: scriberig_query::QueryValue::Text("one".to_owned()),
+                },
+            ]),
             ordering: QueryOrdering::StableDefault,
             page: PageRequest::default(),
             detail: DetailLevel::Compact,

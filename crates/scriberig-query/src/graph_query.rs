@@ -22,7 +22,7 @@ impl<V: KnowledgeView> FindService for GraphReadService<V> {
     /// Returns an unsupported-capability error for whole-snapshot scopes or
     /// semantic strategies requiring an index.
     fn find(&self, request: &FindRequest) -> Result<FindResult, QueryError> {
-        let entities = scope_entities(&request.scope)?;
+        let entities = scope_entities(self.view(), &request.scope)?;
         if !matches!(
             request.strategy,
             FindStrategy::ExactText | FindStrategy::StructuredName
@@ -82,12 +82,12 @@ impl<V: KnowledgeView> StructuredQueryService for GraphReadService<V> {
     /// Returns an unsupported-capability error for whole-snapshot scopes or
     /// predicates requiring relation indexes.
     fn query(&self, specification: &QuerySpec) -> Result<QueryResult, QueryError> {
-        let entities = scope_entities(&specification.scope)?;
+        let entities = scope_entities(self.view(), &specification.scope)?;
         let snapshot = specification.scope.snapshot();
         let mut rows = Vec::new();
         for entity in entities {
             let record = self.read_record(snapshot, entity)?;
-            if matches_query(&record, &specification.expression)? {
+            if matches_query(self, snapshot, &record, &specification.expression)? {
                 rows.push(QueryRow {
                     target: TargetRef::Snapshot(EntityInSnapshot { entity, snapshot }),
                     entity_type: Some(record.entity_type),
@@ -121,14 +121,20 @@ impl<V: KnowledgeView> StructuredQueryService for GraphReadService<V> {
 ///
 /// # Errors
 /// Returns unsupported capability for a complete-snapshot scope.
-fn scope_entities(scope: &QueryScope) -> Result<Vec<EntityId>, QueryError> {
+fn scope_entities<V: KnowledgeView>(
+    view: &V,
+    scope: &QueryScope,
+) -> Result<Vec<EntityId>, QueryError> {
     match scope {
         QueryScope::Entity { entity, .. } => Ok(vec![*entity]),
         QueryScope::ExplicitEntities { entities, .. } => Ok(entities.clone()),
-        QueryScope::Snapshot(_) => Err(QueryError::UnsupportedCapability {
-            operation: crate::ReadOperation::Query,
-            capability: "graph-wide entity enumeration".to_owned(),
-        }),
+        QueryScope::Snapshot(snapshot) => {
+            view.entities(*snapshot)
+                .map_err(|_| QueryError::SnapshotUnavailable {
+                    operation: crate::ReadOperation::Query,
+                    snapshot: *snapshot,
+                })
+        }
     }
 }
 
@@ -144,25 +150,79 @@ fn scope_entities(scope: &QueryScope) -> Result<Vec<EntityId>, QueryError> {
 /// # Errors
 /// Returns unsupported capability for predicates requiring indexes or values
 /// not exposed by the graph record contract.
-fn matches_query(record: &RevisionRecord, expression: &QueryExpr) -> Result<bool, QueryError> {
+fn matches_query<V: KnowledgeView>(
+    service: &GraphReadService<V>,
+    snapshot: scriberig_core::SnapshotId,
+    record: &RevisionRecord,
+    expression: &QueryExpr,
+) -> Result<bool, QueryError> {
     match expression {
         QueryExpr::All => Ok(true),
         QueryExpr::TypeIs(expected) => Ok(&record.entity_type == expected),
         QueryExpr::PropertyExists { key } => Ok(record.properties.contains_key(key)),
         QueryExpr::And(expressions) => expressions
             .iter()
-            .map(|expression| matches_query(record, expression))
+            .map(|expression| matches_query(service, snapshot, record, expression))
             .try_fold(true, |matched, value| Ok(matched && value?)),
         QueryExpr::Or(expressions) => expressions
             .iter()
-            .map(|expression| matches_query(record, expression))
+            .map(|expression| matches_query(service, snapshot, record, expression))
             .try_fold(false, |matched, value| Ok(matched || value?)),
-        QueryExpr::Not(expression) => Ok(!matches_query(record, expression)?),
-        QueryExpr::PropertyEq { .. } | QueryExpr::Related { .. } | QueryExpr::MemberOf { .. } => {
-            Err(QueryError::InvalidQuery {
-                message: "predicate requires a value or relation index".to_owned(),
-            })
+        QueryExpr::Not(expression) => Ok(!matches_query(service, snapshot, record, expression)?),
+        QueryExpr::PropertyEq { key, value } => Ok(record
+            .properties
+            .get(key)
+            .is_some_and(|candidate| query_value_matches(candidate, value))),
+        QueryExpr::MemberOf { collection } => Ok(record.collections.contains_key(collection)),
+        QueryExpr::Related {
+            relation,
+            direction,
+            target,
+        } => {
+            if matches!(direction, crate::QueryDirection::Incoming) {
+                return Err(QueryError::UnsupportedCapability {
+                    operation: crate::ReadOperation::Query,
+                    capability: "reverse relation query".to_owned(),
+                });
+            }
+            record
+                .relations
+                .get(relation)
+                .map(|value| value.targets.clone())
+                .unwrap_or_default()
+                .into_iter()
+                .try_fold(false, |matched, entity| {
+                    let related = service.read_record(snapshot, entity)?;
+                    Ok(matched || matches_query(service, snapshot, &related, target)?)
+                })
         }
+    }
+}
+
+/// Compares a canonical scalar property with a query scalar.
+///
+/// # Parameters
+/// - `candidate`: Canonical property value.
+/// - `expected`: Query scalar value.
+///
+/// # Returns
+/// `true` when both values have equal supported scalar meaning.
+fn query_value_matches(
+    candidate: &scriberig_core::KnowledgeValue,
+    expected: &crate::QueryValue,
+) -> bool {
+    match (candidate, expected) {
+        (scriberig_core::KnowledgeValue::String(actual), crate::QueryValue::Text(expected)) => {
+            actual == expected
+        }
+        (
+            scriberig_core::KnowledgeValue::SignedInteger(actual),
+            crate::QueryValue::Integer(expected),
+        ) => actual == expected,
+        (scriberig_core::KnowledgeValue::Bool(actual), crate::QueryValue::Boolean(expected)) => {
+            actual == expected
+        }
+        _ => false,
     }
 }
 

@@ -18,6 +18,18 @@ pub struct ReverseRelation {
 pub trait KnowledgeView {
     /// Backend-specific failure type.
     type Error;
+    /// Lists entity identities visible in one exact snapshot.
+    ///
+    /// # Parameters
+    /// - `self`: Graph view.
+    /// - `snapshot`: Exact snapshot context.
+    ///
+    /// # Returns
+    /// Deterministically ordered entity identities.
+    ///
+    /// # Errors
+    /// Returns the backend error when enumeration is unavailable.
+    fn entities(&self, snapshot: SnapshotId) -> Result<Vec<EntityId>, Self::Error>;
     /// Resolves an entity to its active exact revision.
     ///
     /// # Parameters
