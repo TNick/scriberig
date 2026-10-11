@@ -67,4 +67,14 @@ pub enum Effect {
         /// Public commit request.
         request: scriberig_app::CommitRequest,
     },
+    /// Read the authoritative lifecycle record for one operation.
+    OperationStatus {
+        /// Operation identity to inspect.
+        operation: scriberig_core::OperationId,
+    },
+    /// Ask the application to cancel one operation.
+    CancelOperation {
+        /// Operation identity to cancel.
+        operation: scriberig_core::OperationId,
+    },
 }

@@ -7,7 +7,7 @@ use crate::{
     explorer::ExplorerModel,
     inspector::{InspectorModel, LoadState},
     navigation::NavigationState,
-    overlay::{Overlay, input::InputState, palette::PaletteState},
+    overlay::{input::InputState, palette::PaletteState, Overlay},
     selection::EntitySelection,
 };
 use scriberig_app::RuntimeCapability;
@@ -25,6 +25,10 @@ pub enum Focus {
 
 impl Focus {
     /// Moves focus through the shell's stable pane order.
+    /// - `reverse`: Argument named `reverse`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     fn next(self, reverse: bool) -> Self {
         let panes = [Self::Explorer, Self::Primary, Self::Inspector];
         let index = panes.iter().position(|pane| *pane == self).unwrap_or(1);
@@ -73,10 +77,15 @@ pub struct TuiState {
     pub operation_error: Option<(String, String)>,
     /// Last reviewed proposal retained after a failed confirmation.
     pub review_proposal: Option<crate::view::changes::ChangeReviewModel>,
+    /// Operation observations retained for the operations view.
+    pub operations: Vec<crate::view::operations::OperationModel>,
 }
 
 impl Default for TuiState {
     /// Creates an empty, deterministic shell state.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     fn default() -> Self {
         Self {
             should_quit: false,
@@ -98,12 +107,17 @@ impl Default for TuiState {
             review: LoadState::NotRequested,
             operation_error: None,
             review_proposal: None,
+            operations: Vec::new(),
         }
     }
 }
 
 impl TuiState {
     /// Applies one local terminal event to presentation state.
+    /// - `event`: Argument named `event`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn apply_event(&mut self, event: &TuiEvent) -> Vec<Effect> {
         match event {
             TuiEvent::Key(key) => {
@@ -124,6 +138,7 @@ impl TuiState {
             TuiEvent::Paste(text) => {
                 return reduce(self, Action::Paste(text.clone()));
             }
+            TuiEvent::Application(event) => return reduce_application_event(self, event),
             TuiEvent::Tick => {}
         }
         Vec::new()
@@ -131,12 +146,18 @@ impl TuiState {
 
     /// Reports whether a text input currently owns keyboard focus.
     #[must_use]
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn is_input_active(&self) -> bool {
         matches!(self.overlay, Some(Overlay::Input(_)))
     }
 
     /// Returns the current input text, when an input overlay is active.
     #[must_use]
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn input_text(&self) -> Option<&str> {
         match self.overlay.as_ref() {
             Some(Overlay::Input(input)) => Some(&input.text),
@@ -147,8 +168,14 @@ impl TuiState {
 
 /// Applies one action deterministically and returns work for the runtime.
 #[allow(clippy::too_many_lines)]
+/// - `state`: Argument named `state`.
+/// - `action`: Argument named `action`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
     match action {
+        Action::Noop => vec![Effect::None],
         Action::QuitRequested => {
             state.should_quit = true;
             vec![Effect::RequestQuit]
@@ -197,7 +224,19 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             state.navigation.go_forward();
             vec![Effect::None]
         }
-        Action::RefreshRequested => vec![Effect::RequestRefresh],
+        Action::RefreshRequested => {
+            let Some(selection) = state.selection else {
+                return vec![Effect::None];
+            };
+            let request_id = state.next_request_id;
+            state.next_request_id += 1;
+            state.inspector = LoadState::Loading { request_id };
+            vec![Effect::InspectEntity {
+                request_id,
+                entity: selection.entity,
+                snapshot: selection.snapshot,
+            }]
+        }
         Action::HelpOpened => {
             state.overlay = Some(Overlay::Help);
             vec![Effect::None]
@@ -484,10 +523,47 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
                 request,
             }]
         }
+        Action::OperationObserved(model) => {
+            if let Some(existing) = state.operations.iter_mut().find(|item| item.id == model.id) {
+                *existing = model;
+            } else {
+                state.operations.push(model);
+            }
+            vec![Effect::None]
+        }
+        Action::OperationStatusRequested(operation) => {
+            vec![Effect::OperationStatus { operation }]
+        }
+        Action::OperationCancelRequested(operation) => {
+            vec![Effect::CancelOperation { operation }]
+        }
     }
 }
 
+/// Converts shared events into bounded local operation observations.
+/// - `state`: Argument named `state`.
+/// - `event`: Argument named `event`.
+///
+/// # Returns
+/// The value produced by the declaration.
+fn reduce_application_event(
+    state: &mut TuiState,
+    event: &scriberig_app::ApplicationEvent,
+) -> Vec<Effect> {
+    let operation = match event {
+        scriberig_app::ApplicationEvent::OperationStarted { operation }
+        | scriberig_app::ApplicationEvent::OperationProgressed { operation, .. }
+        | scriberig_app::ApplicationEvent::OperationCompleted { operation } => operation.clone(),
+        _ => return vec![Effect::None],
+    };
+    reduce(state, Action::OperationStatusRequested(operation))
+}
+
 /// Activates the selected local palette item without invoking semantic services.
+/// - `state`: Argument named `state`.
+///
+/// # Returns
+/// The value produced by the declaration.
 fn activate_current(state: &mut TuiState) -> Vec<Effect> {
     let Some(Overlay::Palette(palette)) = state.overlay.as_ref() else {
         return vec![Effect::None];
@@ -523,11 +599,11 @@ fn activate_current(state: &mut TuiState) -> Vec<Effect> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Focus, TuiState, reduce};
+    use super::{reduce, Focus, TuiState};
     use crate::action::{Action, Direction};
     use crate::effect::Effect;
     use crate::event::{Key, KeyCode, Modifiers, TuiEvent};
-    use crate::overlay::{Overlay, palette::PaletteState};
+    use crate::overlay::{palette::PaletteState, Overlay};
 
     /// Verifies resize events update only terminal presentation state.
     #[test]
@@ -631,8 +707,58 @@ mod tests {
             Some(1)
         );
         let effects = reduce(&mut state, Action::Activated);
-        assert_eq!(effects, vec![Effect::RequestRefresh]);
+        assert_eq!(effects, vec![Effect::None]);
         assert!(state.overlay.is_none());
+    }
+
+    /// Verifies refresh re-reads the selected entity through the service port.
+    #[test]
+    fn refresh_reissues_selected_inspection() {
+        let mut state = TuiState::default();
+        let entity = scriberig_core::EntityId::from_bytes([7; 16]);
+        state.selection = Some(crate::selection::EntitySelection {
+            entity,
+            revision: None,
+            snapshot: None,
+        });
+        let effects = reduce(&mut state, Action::RefreshRequested);
+        assert!(
+            matches!(effects.as_slice(), [Effect::InspectEntity { entity: selected, .. }] if *selected == entity)
+        );
+    }
+
+    /// Verifies application lifecycle events request authoritative operation state.
+    #[test]
+    fn application_operation_event_requests_authoritative_refresh() {
+        let mut state = TuiState::default();
+        let operation = scriberig_core::OperationId::new("running").expect("operation id");
+        let effects = state.apply_event(&crate::event::TuiEvent::Application(
+            scriberig_app::ApplicationEvent::OperationStarted {
+                operation: operation.clone(),
+            },
+        ));
+        assert_eq!(effects, vec![Effect::OperationStatus { operation }]);
+    }
+
+    /// Verifies closing the operations presentation cannot cancel application work.
+    #[test]
+    fn closing_overlay_does_not_cancel_operation() {
+        let mut state = TuiState::default();
+        let operation = scriberig_core::OperationId::new("active").expect("operation id");
+        let record =
+            scriberig_app::OperationRecord::queued(operation, scriberig_app::OperationKind::Query);
+        reduce(
+            &mut state,
+            Action::OperationObserved(crate::view::operations::OperationModel::from_record(
+                &record,
+            )),
+        );
+        assert!(state.operations[0].cancellable());
+        assert_eq!(
+            reduce(&mut state, Action::OverlayClosed),
+            vec![Effect::None]
+        );
+        assert!(state.operations[0].cancellable());
     }
 
     /// Verifies resizing preserves semantic navigation history.

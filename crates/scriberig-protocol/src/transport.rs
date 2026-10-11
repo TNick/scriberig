@@ -80,4 +80,15 @@ pub trait ProtocolTransport {
     /// # Returns
     /// Correlated typed response envelope.
     fn send(&self, request: RequestEnvelope) -> ResponseEnvelope;
+
+    /// Returns and clears a transport failure from the most recent send.
+    ///
+    /// In-process transports never report one. Network transports may use this
+    /// optional side channel because the protocol response itself is semantic.
+    ///
+    /// # Returns
+    /// The most recent transport failure, if any.
+    fn take_error(&self) -> Option<String> {
+        None
+    }
 }

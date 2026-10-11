@@ -53,6 +53,13 @@ pub enum TuiError {
 
 impl std::fmt::Display for TuiError {
     /// Formats a safe terminal runtime error.
+    /// - `formatter`: Argument named `formatter`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Application(error) => error.fmt(formatter),
@@ -66,6 +73,10 @@ impl std::error::Error for TuiError {}
 
 impl From<io::Error> for TuiError {
     /// Converts terminal I/O failures into the TUI error model.
+    /// - `error`: Argument named `error`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     fn from(error: io::Error) -> Self {
         Self::Io(error)
     }
@@ -73,7 +84,8 @@ impl From<io::Error> for TuiError {
 
 /// Provides semantic operations required by the TUI shell.
 pub use service::{
-    ApplicationAdapter, ApplicationOperationAdapter, TuiOperationService, TuiService,
+    ApplicationAdapter, ApplicationOperationAdapter, RemoteAdapter, TuiOperationService,
+    TuiService,
 };
 
 /// Runs the line-oriented TUI shell over an application service.
@@ -133,6 +145,14 @@ mod tests {
 
     impl scriberig_app::QueryService for Fixture {
         /// Returns one deterministic inspection.
+        /// - `_context`: Argument named `_context`.
+        /// - `request`: Argument named `request`.
+        ///
+        /// # Returns
+        /// The value produced by the declaration.
+        ///
+        /// # Errors
+        /// Returns an error when the operation cannot complete.
         fn inspect(
             &self,
             _context: &ApplicationContext,

@@ -23,6 +23,8 @@ pub enum TuiEvent {
     Tick,
     /// A request to stop the runtime.
     Shutdown,
+    /// An observation received from the shared application event boundary.
+    Application(scriberig_app::ApplicationEvent),
 }
 
 /// A backend-independent keyboard event.
@@ -76,6 +78,10 @@ pub struct Modifiers {
 ///
 /// # Errors
 /// Returns the terminal backend error when polling or reading fails.
+/// - `timeout`: Argument named `timeout`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub fn read_event(timeout: Duration) -> io::Result<TuiEvent> {
     if !event::poll(timeout)? {
         return Ok(TuiEvent::Tick);
@@ -88,6 +94,10 @@ pub fn read_event(timeout: Duration) -> io::Result<TuiEvent> {
 ///
 /// # Errors
 /// Returns the source event error unchanged.
+/// - `crate`: Argument named `crate`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub(crate) fn translate_event(result: io::Result<Event>) -> io::Result<TuiEvent> {
     let event = result?;
     Ok(match event {
@@ -99,6 +109,10 @@ pub(crate) fn translate_event(result: io::Result<Event>) -> io::Result<TuiEvent>
 }
 
 /// Translates a Crossterm key without exposing backend types to the runtime.
+/// - `key`: Argument named `key`.
+///
+/// # Returns
+/// The value produced by the declaration.
 fn translate_key(key: KeyEvent) -> Key {
     let modifiers = Modifiers {
         control: key.modifiers.contains(KeyModifiers::CONTROL),
@@ -125,7 +139,7 @@ fn translate_key(key: KeyEvent) -> Key {
 mod tests {
     use crossterm::event::{Event, KeyCode as CrosstermKeyCode, KeyEvent};
 
-    use super::{KeyCode, TuiEvent, translate_event};
+    use super::{translate_event, KeyCode, TuiEvent};
 
     /// Verifies backend key events become stable TUI key events.
     #[test]

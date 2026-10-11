@@ -3,4 +3,5 @@
 pub mod changes;
 pub mod diff;
 pub mod history;
+pub mod operations;
 pub mod projection;

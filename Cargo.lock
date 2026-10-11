@@ -755,6 +755,7 @@ dependencies = [
  "scriberig-agent-runtime",
  "scriberig-app",
  "scriberig-cli",
+ "scriberig-client",
  "scriberig-server",
  "scriberig-store",
  "scriberig-store-sqlite",
@@ -1031,7 +1032,9 @@ dependencies = [
  "crossterm",
  "ratatui",
  "scriberig-app",
+ "scriberig-client",
  "scriberig-core",
+ "scriberig-protocol",
  "sr-change",
  "sr-projection",
 ]

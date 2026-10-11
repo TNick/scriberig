@@ -1,18 +1,22 @@
 //! Renders the deterministic presentation shell from state only.
 
 use ratatui::{
-    Frame,
     layout::Rect,
     widgets::{Block, Borders, Paragraph},
+    Frame,
 };
 
 use crate::{
     keymap,
-    layout::{LayoutClass, ShellLayout, shell_layout},
+    layout::{shell_layout, LayoutClass, ShellLayout},
     state::TuiState,
 };
 
 /// Renders one complete shell frame without semantic I/O.
+///
+/// # Parameters
+/// - `frame`: Terminal frame to draw.
+/// - `state`: Cached presentation state.
 pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     let layout = shell_layout(frame.area());
     render_context(frame, layout.context, state);
@@ -23,6 +27,11 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
 }
 
 /// Renders the active modal overlay as a visible, text-labelled panel.
+///
+/// # Parameters
+/// - `frame`: Terminal frame to draw.
+/// - `area`: Overlay rectangle.
+/// - `state`: Cached presentation state.
 fn render_overlay(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
     let Some(overlay) = state.overlay.as_ref() else {
         return;
@@ -70,6 +79,11 @@ fn render_overlay(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
 }
 
 /// Renders the context bar.
+///
+/// # Parameters
+/// - `frame`: Terminal frame to draw.
+/// - `area`: Context-bar rectangle.
+/// - `state`: Cached presentation state.
 fn render_context(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
     let overlay = if state.overlay.is_some() {
         " | OVERLAY"
@@ -87,6 +101,11 @@ fn render_context(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
 }
 
 /// Renders responsive body panes.
+///
+/// # Parameters
+/// - `frame`: Terminal frame to draw.
+/// - `layout`: Computed shell layout.
+/// - `state`: Cached presentation state.
 fn render_body(frame: &mut Frame<'_>, layout: &ShellLayout, state: &TuiState) {
     if layout.class == LayoutClass::TooSmall {
         frame.render_widget(
@@ -110,7 +129,7 @@ fn render_body(frame: &mut Frame<'_>, layout: &ShellLayout, state: &TuiState) {
     );
     if let Some(area) = layout.inspector {
         frame.render_widget(
-            Paragraph::new(primary_text(state))
+            Paragraph::new(inspector_text(state))
                 .block(Block::default().title(" Inspector ").borders(Borders::ALL)),
             area,
         );
@@ -118,6 +137,12 @@ fn render_body(frame: &mut Frame<'_>, layout: &ShellLayout, state: &TuiState) {
 }
 
 /// Formats the bounded semantic explorer model.
+///
+/// # Parameters
+/// - `state`: Cached presentation state.
+///
+/// # Returns
+/// Text representing the explorer pane.
 fn explorer_text(state: &TuiState) -> String {
     state.explorer.root.as_ref().map_or_else(
         || "Explorer\n  No semantic root entered".to_owned(),
@@ -126,6 +151,12 @@ fn explorer_text(state: &TuiState) -> String {
 }
 
 /// Renders the selected primary view from cached presentation state.
+///
+/// # Parameters
+/// - `state`: Cached presentation state.
+///
+/// # Returns
+/// Text representing the selected primary view.
 fn primary_text(state: &TuiState) -> String {
     match state.primary_view {
         crate::selection::PrimaryView::Overview => inspector_text(state),
@@ -189,6 +220,12 @@ fn primary_text(state: &TuiState) -> String {
 }
 
 /// Formats inspector loading, error, and ready states with exact identifiers.
+///
+/// # Parameters
+/// - `state`: Cached presentation state.
+///
+/// # Returns
+/// Text representing inspector state.
 fn inspector_text(state: &TuiState) -> String {
     match &state.inspector {
         crate::inspector::LoadState::NotRequested => {
@@ -222,11 +259,32 @@ fn inspector_text(state: &TuiState) -> String {
 }
 
 /// Renders the runtime status line.
+///
+/// # Parameters
+/// - `frame`: Terminal frame to draw.
+/// - `area`: Status-line rectangle.
+/// - `state`: Cached presentation state.
 fn render_status(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
-    frame.render_widget(Paragraph::new(state.shell_message.as_str()), area);
+    let running = state
+        .operations
+        .iter()
+        .filter(|operation| operation.cancellable())
+        .count();
+    let operation_status = if running == 0 {
+        "operations: idle".to_owned()
+    } else {
+        format!("operations: {running} active")
+    };
+    let message = format!("{} | {}", state.shell_message, operation_status);
+    frame.render_widget(Paragraph::new(message), area);
 }
 
 /// Renders keyboard hints shared by all responsive layouts.
+///
+/// # Parameters
+/// - `frame`: Terminal frame to draw.
+/// - `area`: Hint-line rectangle.
+/// - `state`: Cached presentation state.
 fn render_hints(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
     let hints = keymap::hints(state)
         .into_iter()
@@ -238,7 +296,7 @@ fn render_hints(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
 
 #[cfg(test)]
 mod tests {
-    use ratatui::{Terminal, backend::TestBackend};
+    use ratatui::{backend::TestBackend, Terminal};
 
     use super::render;
     use crate::state::TuiState;

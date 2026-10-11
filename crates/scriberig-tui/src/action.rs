@@ -13,6 +13,8 @@ pub enum Direction {
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Action {
+    /// Records that an effect had no stateful result.
+    Noop,
     /// Request normal runtime termination.
     QuitRequested,
     /// Close the active overlay, if any.
@@ -144,4 +146,10 @@ pub enum Action {
         /// Public apply request.
         request: scriberig_app::ApplyRequest,
     },
+    /// Applies an authoritative operation status observation.
+    OperationObserved(crate::view::operations::OperationModel),
+    /// Requests an authoritative operation status refresh.
+    OperationStatusRequested(scriberig_core::OperationId),
+    /// Requests application-owned cancellation of an operation.
+    OperationCancelRequested(scriberig_core::OperationId),
 }

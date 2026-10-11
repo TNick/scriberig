@@ -20,6 +20,7 @@ scriberig-server = { path = "../../crates/scriberig-server" }
 scriberig-store-sqlite = { path = "../../crates/scriberig-store-sqlite" }
 scriberig-store = { path = "../../crates/scriberig-store" }
 scriberig-tui = { path = "../../crates/scriberig-tui" }
+scriberig-client = { path = "../../crates/scriberig-client" }
 
 [lints]
 workspace = true

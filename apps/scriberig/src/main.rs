@@ -22,6 +22,21 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             scriberig_server::serve(&args.host, args.port, &args.db)?;
         }
         scriberig_cli::Command::Tui(args) => {
+            if let Some(endpoint) = args.connect {
+                let transport = scriberig_client::HttpTransport::from_endpoint(&endpoint)?;
+                let client = scriberig_client::Client::new(transport);
+                let service = scriberig_tui::RemoteAdapter::new(client);
+                let context = local_read_context("remote-tui");
+                scriberig_tui::run(
+                    &service,
+                    &context,
+                    &scriberig_tui::TuiConfig {
+                        interactive: true,
+                        ..scriberig_tui::TuiConfig::default()
+                    },
+                )?;
+                return Ok(());
+            }
             let store = SqliteStore::open(&args.db)?;
             let service = ApplicationService::new(StoreInspectionBackend::new(store));
             let service = GuardedQueryService::new(service);
@@ -83,6 +98,12 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 }
 
 /// Builds the least-authority context for local read-only product surfaces.
+///
+/// # Parameters
+/// - `principal`: Stable identity assigned to the local surface.
+///
+/// # Returns
+/// An application context granting inspection only.
 fn local_read_context(principal: &str) -> ApplicationContext {
     ApplicationContext {
         capabilities: CapabilityContext::with_grants([Capability {

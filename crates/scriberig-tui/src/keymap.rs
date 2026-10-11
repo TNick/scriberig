@@ -35,6 +35,7 @@ pub enum ActionId {
     CursorNext,
     CursorLeft,
     CursorRight,
+    CancelOperation,
 }
 
 /// One key binding with enough metadata for help and hints.
@@ -81,6 +82,9 @@ const CONTROL: Modifiers = Modifiers {
 /// Returns the default local keymap.
 #[must_use]
 #[allow(clippy::too_many_lines)]
+///
+/// # Returns
+/// The value produced by the declaration.
 pub fn bindings() -> &'static [Binding] {
     &[
         Binding {
@@ -249,6 +253,11 @@ pub fn bindings() -> &'static [Binding] {
 /// Resolves a terminal key into a typed action using overlay precedence.
 #[must_use]
 #[allow(clippy::too_many_lines)]
+/// - `state`: Argument named `state`.
+/// - `key`: Argument named `key`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub fn action_for(state: &TuiState, key: &Key) -> Option<Action> {
     if state.is_input_active() {
         if key.modifiers.control && key.code == KeyCode::Char('c') {
@@ -295,6 +304,13 @@ pub fn action_for(state: &TuiState, key: &Key) -> Option<Action> {
     } else {
         Context::Browse
     };
+    if key.code == KeyCode::Char('x') && key.modifiers == NONE {
+        return state
+            .operations
+            .iter()
+            .find(|operation| operation.cancellable())
+            .map(|operation| Action::OperationCancelRequested(operation.id.clone()));
+    }
     bindings()
         .iter()
         .find(|binding| {
@@ -306,6 +322,10 @@ pub fn action_for(state: &TuiState, key: &Key) -> Option<Action> {
 }
 
 /// Converts an action identifier into the reducer's typed action.
+/// - `id`: Argument named `id`.
+///
+/// # Returns
+/// The value produced by the declaration.
 fn action(id: ActionId) -> Action {
     match id {
         ActionId::Quit => Action::QuitRequested,
@@ -322,11 +342,17 @@ fn action(id: ActionId) -> Action {
         ActionId::InputSubmit => Action::InputSubmitted,
         ActionId::CursorPrevious | ActionId::CursorLeft => Action::CursorMoved(Direction::Previous),
         ActionId::CursorNext | ActionId::CursorRight => Action::CursorMoved(Direction::Next),
+        ActionId::CancelOperation => Action::OperationCancelRequested(
+            scriberig_core::OperationId::new("keymap").expect("static operation id is valid"),
+        ),
     }
 }
 
 /// Returns metadata used by help and contextual key hints.
 #[must_use]
+///
+/// # Returns
+/// The value produced by the declaration.
 pub fn metadata() -> &'static [ActionMetadata] {
     &[
         ActionMetadata {
@@ -393,11 +419,19 @@ pub fn metadata() -> &'static [ActionMetadata] {
             id: ActionId::CursorRight,
             label: "cursor right",
         },
+        ActionMetadata {
+            id: ActionId::CancelOperation,
+            label: "cancel active operation",
+        },
     ]
 }
 
 /// Returns bindings relevant to the current state for contextual hints.
 #[must_use]
+/// - `state`: Argument named `state`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub fn hints(state: &TuiState) -> Vec<(&'static str, &'static str)> {
     let context = if state.is_input_active() {
         Context::Input
@@ -419,6 +453,10 @@ pub fn hints(state: &TuiState) -> Vec<(&'static str, &'static str)> {
 }
 
 /// Formats a key for help and hints.
+/// - `crate`: Argument named `crate`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub(crate) fn key_label(chord: KeyChord) -> &'static str {
     match (chord.code, chord.modifiers) {
         (KeyCode::Char('c'), CONTROL) => "Ctrl-C",
@@ -449,6 +487,7 @@ mod tests {
         state::TuiState,
     };
     #[test]
+    /// Implements `printable_input_is_not_a_browse_command`.
     fn printable_input_is_not_a_browse_command() {
         let state = TuiState {
             overlay: Some(Overlay::Input(crate::overlay::input::InputState::default())),
@@ -466,6 +505,7 @@ mod tests {
         );
     }
     #[test]
+    /// Implements `hints_are_derived_from_bindings`.
     fn hints_are_derived_from_bindings() {
         let state = TuiState::default();
         assert!(hints(&state).iter().any(|(_, label)| *label == "help"));

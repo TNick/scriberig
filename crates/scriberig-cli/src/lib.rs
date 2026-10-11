@@ -123,8 +123,15 @@ pub struct ServeArgs {
 #[derive(Debug, Args)]
 pub struct TuiArgs {
     /// SQLite database path used by the local TUI composition.
-    #[arg(long, default_value = "playground/dev-app-runtime/scriberig.sqlite")]
+    #[arg(
+        long,
+        default_value = "playground/dev-app-runtime/scriberig.sqlite",
+        conflicts_with = "connect"
+    )]
     pub db: std::path::PathBuf,
+    /// Public protocol endpoint used by the remote TUI composition.
+    #[arg(long, conflicts_with = "db")]
+    pub connect: Option<String>,
 }
 
 /// Store a prompt accepted by a prompt-driven command.
