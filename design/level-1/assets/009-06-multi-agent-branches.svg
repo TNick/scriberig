@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Multi-agent work uses branches and semantic merge</title>
+  <desc id="desc">A shared base snapshot forks into Agent Branch A and Agent Branch B. Each branch has a compact descriptor and produces a result snapshot plus BranchResult. The two result snapshots are compared through the normal semantic merge process. Disjoint changes merge automatically; conflicting changes produce an explicit conflict-resolution branch. The merged result becomes a new snapshot.</desc>
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <text x="600" y="50" text-anchor="middle" font-family="system-ui, sans-serif" font-size="30" font-weight="700" fill="#111827">Multi-agent work is ordinary branching and merge</text>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6b7280"/></marker></defs>
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    <rect x="470" y="100" width="260" height="82" rx="18" fill="#e8f1ff" stroke="#2457a7" stroke-width="3"/>
+    <text x="600" y="135" font-size="22" font-weight="700" fill="#163b72">Base Snapshot S1</text>
+    <text x="600" y="161" font-size="15" fill="#163b72">shared known starting point</text>
+
+    <rect x="140" y="260" width="300" height="118" rx="18" fill="#eefbf3" stroke="#24834c" stroke-width="3"/>
+    <text x="290" y="298" font-size="22" font-weight="700" fill="#135c33">Agent Branch A</text>
+    <text x="290" y="327" font-size="15" fill="#135c33">descriptor: “Refactor parser errors”</text>
+    <text x="290" y="350" font-size="15" fill="#135c33">result: S2 + BranchResult A</text>
+
+    <rect x="760" y="260" width="300" height="118" rx="18" fill="#eefbf3" stroke="#24834c" stroke-width="3"/>
+    <text x="910" y="298" font-size="22" font-weight="700" fill="#135c33">Agent Branch B</text>
+    <text x="910" y="327" font-size="15" fill="#135c33">descriptor: “Update retry policy”</text>
+    <text x="910" y="350" font-size="15" fill="#135c33">result: S3 + BranchResult B</text>
+
+    <rect x="430" y="470" width="340" height="105" rx="18" fill="#fff7ed" stroke="#c56a16" stroke-width="3"/>
+    <text x="600" y="508" font-size="22" font-weight="700" fill="#7c3f0c">Semantic Merge</text>
+    <text x="600" y="536" font-size="15" fill="#7c3f0c">common base S1 · compare S2 and S3</text>
+    <text x="600" y="559" font-size="15" fill="#7c3f0c">merge disjoint work or expose conflicts</text>
+
+    <rect x="470" y="625" width="260" height="70" rx="16" fill="#f3f0ff" stroke="#6b4cc2" stroke-width="3"/>
+    <text x="600" y="668" font-size="21" font-weight="700" fill="#4d3591">Merged Snapshot S4</text>
+
+    <rect x="840" y="475" width="270" height="95" rx="16" fill="#fff1f2" stroke="#b74444" stroke-width="2"/>
+    <text x="975" y="510" font-size="19" font-weight="700" fill="#842f2f">Conflict branch if needed</text>
+    <text x="975" y="537" font-size="15" fill="#842f2f">focused resolution with provenance</text>
+  </g>
+
+  <g stroke="#6b7280" stroke-width="2.6" fill="none" marker-end="url(#arrow)">
+    <path d="M540 182 C450 205 360 225 315 260"/>
+    <path d="M660 182 C750 205 840 225 885 260"/>
+    <path d="M290 378 C330 435 420 455 500 470"/>
+    <path d="M910 378 C870 435 780 455 700 470"/>
+    <path d="M600 575 L600 625"/>
+    <path d="M770 520 L840 520"/>
+    <path d="M975 570 C930 615 790 645 730 650"/>
+  </g>
+  <text x="600" y="425" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#374151">Each parent can consume compact branch results without absorbing full child transcripts.</text>
+</svg>
