@@ -1,0 +1,23 @@
+{
+  "name": "@scriberig/editor-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./src/main.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@scriberig/client": "workspace:*",
+    "@scriberig/model": "workspace:*",
+    "@scriberig/editor-core": "workspace:*",
+    "@scriberig/react": "workspace:*",
+    "@scriberig/components": "workspace:*",
+    "@scriberig/components-mui": "workspace:*",
+    "@scriberig/agent-ui": "workspace:*"
+  }
+}

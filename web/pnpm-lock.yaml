@@ -185,6 +185,30 @@ importers:
         specifier: 5.0.3
         version: 5.0.3(vite@8.3.4(yaml@2.9.1))
 
+  apps/editor:
+    dependencies:
+      '@scriberig/agent-ui':
+        specifier: workspace:*
+        version: link:../../packages/agent-ui
+      '@scriberig/client':
+        specifier: workspace:*
+        version: link:../../packages/client
+      '@scriberig/components':
+        specifier: workspace:*
+        version: link:../../packages/components
+      '@scriberig/components-mui':
+        specifier: workspace:*
+        version: link:../../packages/components-mui
+      '@scriberig/editor-core':
+        specifier: workspace:*
+        version: link:../../packages/editor-core
+      '@scriberig/model':
+        specifier: workspace:*
+        version: link:../../packages/model
+      '@scriberig/react':
+        specifier: workspace:*
+        version: link:../../packages/react
+
   apps/scriberig:
     dependencies:
       '@emotion/react':
