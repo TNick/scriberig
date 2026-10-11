@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-python3 tools/repo_lint.py
+python3 tools/lint_repo.py
 cargo fmt --all -- --check
 cargo check --workspace --all-targets
 cargo clippy --workspace --all-targets -- -D warnings

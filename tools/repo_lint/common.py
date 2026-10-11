@@ -10,7 +10,6 @@ from pathlib import Path
 from .config import CODE_SUFFIXES, IGNORED_PARTS
 
 
-# Block: Parse command-line options for repository lint and safe auto-fix modes.
 def parse_args(argv: list[str]) -> argparse.Namespace:
     """Parse command-line arguments.
 
@@ -20,13 +19,14 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     Returns:
         Parsed command-line options.
     """
+
+    # Parse command-line options for repository lint and safe auto-fix modes.
     parser = argparse.ArgumentParser(description="Enforce Scriberig source conventions.")
     parser.add_argument("--fix", action="store_true", help="Apply conservative safe fixes.")
     parser.add_argument("paths", nargs="*", help="Optional files to check.")
     return parser.parse_args(argv)
 
 
-# Block: Discover source files while respecting generated and dependency directories.
 def collect_paths(raw_paths: list[str]) -> list[Path]:
     """Collect code files eligible for repository checks.
 
@@ -39,6 +39,8 @@ def collect_paths(raw_paths: list[str]) -> list[Path]:
     Raises:
         RuntimeError: If repository file discovery fails.
     """
+
+    # Discover source files while respecting generated and dependency directories.
     if raw_paths:
         candidates = [Path(value) for value in raw_paths]
     else:
@@ -61,7 +63,6 @@ def collect_paths(raw_paths: list[str]) -> list[Path]:
     )
 
 
-# Block: Apply only mechanical fixes that cannot invent semantic documentation content.
 def autofix_text(text: str) -> str:
     """Apply conservative whitespace and block-separation fixes.
 
@@ -71,18 +72,9 @@ def autofix_text(text: str) -> str:
     Returns:
         Safely normalized source text.
     """
-    lines = [line.rstrip() for line in text.splitlines()]
-    fixed: list[str] = []
-    for line in lines:
-        stripped = line.lstrip()
-        if (stripped.startswith("// Block:") or stripped.startswith("# Block:")) and fixed:
-            if fixed[-1].strip():
-                fixed.append("")
-        fixed.append(line)
-    return "\n".join(fixed).rstrip() + "\n"
+    return "\n".join(line.rstrip() for line in text.splitlines()).rstrip() + "\n"
 
 
-# Block: Measure implementation size while excluding language-specific leading preambles.
 def effective_line_count(path: Path, text: str) -> int:
     """Count source lines after the leading documentation/import preamble.
 
@@ -93,6 +85,8 @@ def effective_line_count(path: Path, text: str) -> int:
     Returns:
         Number of lines subject to the source-file size limit.
     """
+
+    # Measure implementation size while excluding language-specific leading preambles.
     lines = text.splitlines()
     if path.suffix == ".py":
         return _python_effective_line_count(text, lines)
@@ -129,7 +123,6 @@ def effective_line_count(path: Path, text: str) -> int:
     return max(0, len(lines) - end)
 
 
-# Block: Compute Python implementation size from the module docstring and imports.
 def _python_effective_line_count(text: str, lines: list[str]) -> int:
     """Count Python lines after the leading module documentation/import preamble.
 
@@ -140,6 +133,8 @@ def _python_effective_line_count(text: str, lines: list[str]) -> int:
     Returns:
         Number of Python lines subject to the size limit.
     """
+
+    # Compute Python implementation size from the module docstring and imports.
     try:
         tree = ast.parse(text)
     except SyntaxError:
@@ -158,7 +153,6 @@ def _python_effective_line_count(text: str, lines: list[str]) -> int:
     return max(0, len(lines) - end)
 
 
-# Block: Verify every supported source language starts with a file-purpose docstring.
 def check_file_description(path: Path, text: str) -> list[str]:
     """Validate the required source-file description documentation.
 
@@ -169,6 +163,8 @@ def check_file_description(path: Path, text: str) -> list[str]:
     Returns:
         Human-readable violations for the file-description rule.
     """
+
+    # Verify every supported source language starts with a file-purpose docstring.
     stripped = text.lstrip("\ufeff\n\r ")
     if path.suffix == ".rs" and not stripped.startswith("//!"):
         return ["FILE_DOC: Rust source must begin with `//!` file/module documentation."]
@@ -185,7 +181,6 @@ def check_file_description(path: Path, text: str) -> list[str]:
     return []
 
 
-# Block: Read a declaration that may span several physical source lines.
 def declaration_text(lines: list[str], start: int, limit: int = 20) -> str:
     """Join a declaration header across a bounded number of lines.
 
@@ -197,6 +192,8 @@ def declaration_text(lines: list[str], start: int, limit: int = 20) -> str:
     Returns:
         Joined declaration text ending near the opening body delimiter.
     """
+
+    # Read a declaration that may span several physical source lines.
     parts: list[str] = []
     for line in lines[start : start + limit]:
         parts.append(line.strip())
@@ -206,26 +203,31 @@ def declaration_text(lines: list[str], start: int, limit: int = 20) -> str:
     return " ".join(parts)
 
 
-# Block: Locate the explanatory Block comment that introduces a declaration.
-def block_marker_error(lines: list[str], declaration_index: int, marker: str) -> str | None:
-    """Check for a nearby explanatory block marker and its leading blank line.
+def explanatory_comment_error(lines: list[str], declaration_index: int, marker: str) -> str | None:
+    """Require an explanatory comment immediately after declaration docs.
 
     Args:
         lines: Complete source lines.
         declaration_index: Zero-based declaration line.
-        marker: Language-specific block-comment marker.
+        marker: Language-specific comment prefix.
 
     Returns:
         A violation message, or `None` when the marker is valid.
     """
-    for index in range(declaration_index - 1, max(-1, declaration_index - 30), -1):
-        stripped = lines[index].strip()
-        if stripped.startswith(marker):
-            if index > 0 and lines[index - 1].strip():
-                return "BLOCK_BLANK: `Block:` comments must start after an empty line."
-            return None
-        if stripped and not stripped.startswith(
-            ("///", "//!", "#[", "*", "/**", "*/", "@", "//", "#")
-        ):
-            break
-    return f"BLOCK_COMMENT: declaration requires a preceding `{marker}` explanatory comment."
+
+    # Locate the explanatory comment after decorators or Rust attributes.
+    index = declaration_index - 1
+    while index >= 0 and not lines[index].strip():
+        index -= 1
+    while index >= 0 and lines[index].strip().startswith("#["):
+        index -= 1
+    if index < 0 or not lines[index].strip().startswith(marker):
+        return "COMMENT_MISSING: add an explanatory comment after declaration docs."
+
+    # Require the explanatory comment to follow the docstring directly.
+    previous = index - 1
+    if marker == "// " and previous >= 0 and lines[previous].strip().startswith("///"):
+        return None
+    if marker == "// " and previous >= 0 and lines[previous].strip().endswith("*/"):
+        return None
+    return "COMMENT_ORDER: place the explanatory comment after declaration docs."

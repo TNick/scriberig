@@ -12,7 +12,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - run: python3 tools/repo_lint.py
+      - run: python3 tools/lint_repo.py
 
   rust:
     runs-on: ubuntu-latest

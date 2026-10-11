@@ -3,7 +3,7 @@
 
 set -euo pipefail
 
-python3 tools/repo_lint.py --fix || true
+python3 tools/lint_repo.py --fix || true
 cargo fmt --all
 pnpm --dir web format
-python3 tools/repo_lint.py
+python3 tools/lint_repo.py

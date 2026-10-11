@@ -5,11 +5,10 @@ from __future__ import annotations
 import ast
 import re
 
-from .common import block_marker_error, declaration_text
+from .common import declaration_text, explanatory_comment_error
 from .config import RUST_FUNCTION, RUST_TYPE, TS_CLASS, TS_FUNCTION, TS_METHOD
 
 
-# Block: Collect Rust documentation comments attached to a declaration.
 def rust_docs_before(lines: list[str], declaration_index: int) -> str:
     """Collect Rust `///` documentation immediately preceding a declaration.
 
@@ -20,17 +19,25 @@ def rust_docs_before(lines: list[str], declaration_index: int) -> str:
     Returns:
         Normalized documentation text without comment prefixes.
     """
+
+    # Collect Rust documentation comments attached to a declaration.
     docs: list[str] = []
     index = declaration_index - 1
-    while index >= 0 and lines[index].strip().startswith("#["):
-        index -= 1
-    while index >= 0 and lines[index].strip().startswith("///"):
-        docs.append(lines[index].strip()[3:].strip())
-        index -= 1
+    while index >= 0:
+        stripped = lines[index].strip()
+        if not stripped or stripped.startswith("#[") or (
+            stripped.startswith("// ") and not stripped.startswith("///")
+        ):
+            index -= 1
+            continue
+        if stripped.startswith("///"):
+            docs.append(stripped[3:].strip())
+            index -= 1
+            continue
+        break
     return "\n".join(reversed(docs))
 
 
-# Block: Validate Rust functions, methods, and class-like type documentation.
 def check_rust(text: str) -> list[str]:
     """Validate Rust declaration documentation and logical block boundaries.
 
@@ -40,6 +47,8 @@ def check_rust(text: str) -> list[str]:
     Returns:
         Human-readable Rust convention violations.
     """
+
+    # Validate Rust functions, methods, and class-like type documentation.
     issues: list[str] = []
     lines = text.splitlines()
     for index, line in enumerate(lines):
@@ -49,7 +58,7 @@ def check_rust(text: str) -> list[str]:
             _check_rust_function(lines, index, function_match.group(1), issues)
         elif type_match:
             name = type_match.group(2)
-            marker_issue = block_marker_error(lines, index, "// Block:")
+            marker_issue = explanatory_comment_error(lines, index, "// ")
             if marker_issue:
                 issues.append(f"L{index + 1} {name}: {marker_issue}")
             if not rust_docs_before(lines, index):
@@ -57,7 +66,6 @@ def check_rust(text: str) -> list[str]:
     return issues
 
 
-# Block: Validate one Rust function declaration and its attached documentation.
 def _check_rust_function(lines: list[str], index: int, name: str, issues: list[str]) -> None:
     """Validate one Rust function or method.
 
@@ -70,7 +78,9 @@ def _check_rust_function(lines: list[str], index: int, name: str, issues: list[s
     Returns:
         `None`; violations are appended to `issues`.
     """
-    marker_issue = block_marker_error(lines, index, "// Block:")
+
+    # Validate one Rust function declaration and its attached documentation.
+    marker_issue = explanatory_comment_error(lines, index, "// ")
     if marker_issue:
         issues.append(f"L{index + 1} {name}: {marker_issue}")
     docs = rust_docs_before(lines, index)
@@ -97,7 +107,6 @@ def _check_rust_function(lines: list[str], index: int, name: str, issues: list[s
             issues.append(f"L{index + 1} {name}: ERROR_DOC: `Result` return requires `# Errors`.")
 
 
-# Block: Collect a TypeScript or JavaScript JSDoc block attached to a declaration.
 def jsdoc_before(lines: list[str], declaration_index: int) -> str:
     """Collect the JSDoc block immediately preceding a declaration.
 
@@ -108,6 +117,8 @@ def jsdoc_before(lines: list[str], declaration_index: int) -> str:
     Returns:
         Normalized JSDoc text, or an empty string when absent.
     """
+
+    # Collect a TypeScript or JavaScript JSDoc block attached to a declaration.
     index = declaration_index - 1
     if index < 0 or "*/" not in lines[index]:
         return ""
@@ -120,7 +131,6 @@ def jsdoc_before(lines: list[str], declaration_index: int) -> str:
     return ""
 
 
-# Block: Validate TypeScript and JavaScript functions, methods, and class documentation.
 def check_typescript(text: str) -> list[str]:
     """Validate JavaScript-family documentation and logical block boundaries.
 
@@ -130,6 +140,8 @@ def check_typescript(text: str) -> list[str]:
     Returns:
         Human-readable JavaScript-family convention violations.
     """
+
+    # Validate TypeScript and JavaScript functions, methods, and class documentation.
     issues: list[str] = []
     lines = text.splitlines()
     controls = {"if", "for", "while", "switch", "catch", "with"}
@@ -143,7 +155,6 @@ def check_typescript(text: str) -> list[str]:
     return issues
 
 
-# Block: Validate one JavaScript-family function or method documentation block.
 def _check_typescript_function(lines: list[str], index: int, name: str, issues: list[str]) -> None:
     """Validate one TypeScript or JavaScript function/method.
 
@@ -156,7 +167,9 @@ def _check_typescript_function(lines: list[str], index: int, name: str, issues: 
     Returns:
         `None`; violations are appended to `issues`.
     """
-    marker_issue = block_marker_error(lines, index, "// Block:")
+
+    # Validate one JavaScript-family function or method documentation block.
+    marker_issue = explanatory_comment_error(lines, index, "// ")
     if marker_issue:
         issues.append(f"L{index + 1} {name}: {marker_issue}")
     docs = jsdoc_before(lines, index)
@@ -183,7 +196,6 @@ def _check_typescript_function(lines: list[str], index: int, name: str, issues: 
         issues.append(f"L{index + 1} {name}: THROW_DOC: throwing code requires `@throws`.")
 
 
-# Block: Validate class documentation sections that inventory public and private members.
 def _check_typescript_class(lines: list[str], index: int, name: str, issues: list[str]) -> None:
     """Validate one TypeScript or JavaScript class documentation block.
 
@@ -196,7 +208,9 @@ def _check_typescript_class(lines: list[str], index: int, name: str, issues: lis
     Returns:
         `None`; violations are appended to `issues`.
     """
-    marker_issue = block_marker_error(lines, index, "// Block:")
+
+    # Validate class documentation sections that inventory public and private members.
+    marker_issue = explanatory_comment_error(lines, index, "// ")
     if marker_issue:
         issues.append(f"L{index + 1} {name}: {marker_issue}")
     docs = jsdoc_before(lines, index)
@@ -208,7 +222,6 @@ def _check_typescript_class(lines: list[str], index: int, name: str, issues: lis
         )
 
 
-# Block: Validate Python declarations using the language AST for reliable function boundaries.
 def check_python(text: str) -> list[str]:
     """Validate Python function and class documentation conventions.
 
@@ -218,6 +231,8 @@ def check_python(text: str) -> list[str]:
     Returns:
         Human-readable Python convention violations.
     """
+
+    # Validate Python declarations using the language AST for reliable function boundaries.
     try:
         tree = ast.parse(text)
     except SyntaxError:
@@ -232,7 +247,6 @@ def check_python(text: str) -> list[str]:
     return issues
 
 
-# Block: Validate one Python function or method documentation block.
 def _check_python_function(
     lines: list[str], node: ast.FunctionDef | ast.AsyncFunctionDef, issues: list[str]
 ) -> None:
@@ -246,9 +260,8 @@ def _check_python_function(
     Returns:
         `None`; violations are appended to `issues`.
     """
-    marker_issue = block_marker_error(lines, node.lineno - 1, "# Block:")
-    if marker_issue:
-        issues.append(f"L{node.lineno} {node.name}: {marker_issue}")
+
+    # Validate one Python function or method documentation block.
     docs = ast.get_docstring(node, clean=False) or ""
     if not docs:
         issues.append(f"L{node.lineno} {node.name}: DOC: every function/method requires a docstring.")
@@ -265,7 +278,6 @@ def _check_python_function(
         issues.append(f"L{node.lineno} {node.name}: ERROR_DOC: raising code requires `Raises:`.")
 
 
-# Block: Validate one Python class and its public/private member documentation sections.
 def _check_python_class(lines: list[str], node: ast.ClassDef, issues: list[str]) -> None:
     """Validate one Python class documentation block.
 
@@ -277,9 +289,8 @@ def _check_python_class(lines: list[str], node: ast.ClassDef, issues: list[str])
     Returns:
         `None`; violations are appended to `issues`.
     """
-    marker_issue = block_marker_error(lines, node.lineno - 1, "# Block:")
-    if marker_issue:
-        issues.append(f"L{node.lineno} {node.name}: {marker_issue}")
+
+    # Validate one Python class and its public/private member documentation sections.
     docs = ast.get_docstring(node, clean=False) or ""
     if not docs:
         issues.append(f"L{node.lineno} {node.name}: DOC: every class requires a docstring.")

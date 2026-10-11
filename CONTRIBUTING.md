@@ -27,7 +27,7 @@ The pre-commit hooks reject source files that violate repository conventions. Do
 
 Source code is limited to 400 implementation lines after leading file documentation/import preambles. Markdown and prose files are exempt. Split oversized code by responsibility; a same-stem directory with focused modules is a preferred strategy.
 
-Every source file needs a file-purpose docstring/documentation comment. Every function and method, including private ones, needs parameter/return/error documentation as applicable. Classes need brief/extended documentation and separate public/private member sections. Logical code blocks start after a blank line with a short explanatory `Block:` comment.
+Every source file needs a file-purpose docstring/documentation comment. Every function and method, including private ones, needs parameter/return/error documentation as applicable. Classes need brief/extended documentation and separate public/private member sections. Logical code blocks start after a blank line with a short explanatory comment. Put declaration documentation first, followed immediately by the explanatory comment; Rust doc comments and explanatory comments must have no blank line between them. Do not use a `Block:` prefix.
 
 ## Licensing
 

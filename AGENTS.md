@@ -34,19 +34,25 @@ Keep public re-export boundaries stable when performing a split.
 
 ## Logical code blocks
 
-Every logical code block must begin after an empty line with a one- or two-line comment explaining the purpose of the block, followed by its documentation and implementation. Use a machine-recognizable `Block:` prefix where practical:
+Every logical code block must have a one- or two-line comment explaining its purpose:
 
 ```text
-// Block: Resolve an entity at an exact snapshot before reading its revision.
+// Resolve an entity at an exact snapshot before reading its revision.
 ```
 
 or in Python:
 
 ```text
-# Block: Resolve an entity at an exact snapshot before reading its revision.
+# Resolve an entity at an exact snapshot before reading its revision.
 ```
 
 A logical block includes functions, methods, classes, structs, traits/interfaces, major implementation sections, and executable top-level sections. Comments must explain intent rather than restate syntax.
+
+For a documented declaration, write its documentation first, then a plain
+explanatory comment immediately after it, then the declaration. Do not put a
+blank line between Rust doc comments and the explanatory comment: Clippy warns
+about that layout. The explanatory comment must not precede or interrupt the
+declaration docstring. Do not add a `Block:` prefix.
 
 ## File documentation
 
@@ -95,12 +101,12 @@ Apply the same intent to class-like constructs in other languages. Rust structs 
 
 ## Automated enforcement
 
-Repository conventions are enforced by `tools/repo_lint.py`, formatters, pre-commit hooks, and CI.
+Repository conventions are enforced by `tools/lint_repo.py`, formatters, pre-commit hooks, and CI.
 
 Before committing:
 
 ```text
-python3 tools/repo_lint.py --fix
+python3 tools/lint_repo.py --fix
 cargo fmt --all
 cargo check --workspace --all-targets
 pnpm --dir web format

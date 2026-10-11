@@ -5,7 +5,7 @@ repos:
     hooks:
       - id: scriberig-conventions
         name: Scriberig repository conventions
-        entry: python3 tools/repo_lint.py --fix
+        entry: python3 tools/lint_repo.py --fix
         language: system
         files: '\.(rs|ts|tsx|js|jsx|py)$'
       - id: cargo-fmt

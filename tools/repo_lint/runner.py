@@ -10,7 +10,6 @@ from .config import MAX_SOURCE_LINES
 from .languages import check_python, check_rust, check_typescript
 
 
-# Block: Run all applicable convention checks for one source file.
 def check_file(path: Path, fix: bool) -> list[str]:
     """Check one source file and optionally apply safe fixes first.
 
@@ -24,6 +23,8 @@ def check_file(path: Path, fix: bool) -> list[str]:
     Raises:
         OSError: If the source file cannot be read or rewritten.
     """
+
+    # Run all applicable convention checks for one source file.
     text = path.read_text(encoding="utf-8")
     if fix:
         fixed = autofix_text(text)
@@ -46,7 +47,6 @@ def check_file(path: Path, fix: bool) -> list[str]:
     return issues
 
 
-# Block: Execute repository checks and report all violations in one pass.
 def main(argv: list[str] | None = None) -> int:
     """Run convention checks for selected files or the repository.
 
@@ -60,6 +60,8 @@ def main(argv: list[str] | None = None) -> int:
         RuntimeError: If repository file discovery fails.
         OSError: If a source file cannot be read or safely fixed.
     """
+
+    # Execute repository checks and report all violations in one pass.
     args = parse_args(sys.argv[1:] if argv is None else argv)
     failures: list[str] = []
     for path in collect_paths(args.paths):
