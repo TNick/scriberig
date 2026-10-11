@@ -8,6 +8,11 @@ This directory contains the architectural source material for implementation age
 
 Implementation work must read upward: a Level 3 task is constrained by its Level 2 parent and the relevant Level 1 invariants. Design Markdown is exempt from the repository's 400-line source-code limit.
 
+While implementing a Level 3 task, keep its completion checklist in sync with
+the work: check off each acceptance criterion when it is implemented and
+verified, leave incomplete or unverified criteria unchecked, and review all
+checked items against the final code and validation evidence before finishing.
+
 The design filenames were renumbered to preserve unique numeric prefixes after some documents had already been written. When an older document contains a stale numbered path, identify the referenced document by title and use its current filename rather than recreating the obsolete numbering.
 
 For repository scaffold work, consult `level-2/020. repository scaffold conventions and native command surface.md` and `level-3/098. reconcile scaffold task status and supersession.md`. The reconciliation document identifies overlapping historical scaffold tasks that are Partial or Superseded and must not be treated as current implementation authority.

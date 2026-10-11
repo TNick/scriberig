@@ -10,6 +10,16 @@ Before changing a subsystem, read the nearest `AGENTS.md` and the relevant `desi
 
 The reusable platform must remain useful without an agent runtime. Product surfaces such as CLI, API server, TUI, web editor, and agents consume shared application capabilities rather than owning duplicated business logic.
 
+## Keep implementation task checklists current
+
+When implementing a `design/level-3/` task, update that task document's
+completion checklist as work progresses. Tick each item (`[x]`) as soon as its
+acceptance criterion is implemented and verified; keep incomplete or
+unverified items unchecked. Before finishing, review every checked item
+against the code and validation evidence. Do not defer checklist updates until
+the whole task is complete, and do not check items merely because related work
+was started.
+
 ## Repository map
 
 - `crates/`: reusable Rust libraries and product runtime crates.
