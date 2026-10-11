@@ -40,7 +40,7 @@ install:
 # Build API documentation from Rust and TypeScript declaration docs.
 docs:
 	cargo doc --workspace --no-deps
-	pnpm --dir web docs
+	pnpm --dir web run docs
 
 # Apply deterministic source and language-specific formatting.
 format:
