@@ -16,7 +16,10 @@ pub use error::ApplicationError;
 pub use event::ApplicationEvent;
 pub use operation::{OperationId, OperationKind, OperationProgress, OperationStatus};
 pub use query::{DetailLevel, InspectRequest, InspectResult, QueryService, SnapshotResolution};
-pub use trust::{CapabilityDenial, SourceKind, TrustSummary, ValidationState};
+pub use trust::{
+    ApprovalSummary, CapabilityDenial, ConflictSummary, ExternalEffectSummary, PolicyDecision,
+    PolicyEvaluation, SourceKind, TrustSummary, ValidationState,
+};
 
 #[cfg(test)]
 mod tests {

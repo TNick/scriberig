@@ -86,6 +86,9 @@ pub struct PromptArgs {
 pub struct InspectArgs {
     /// Entity identifier to inspect.
     pub entity: scriberig_core::EntityId,
+    /// Exact snapshot to inspect when supplied.
+    #[arg(long)]
+    pub snapshot: Option<scriberig_core::SnapshotId>,
     /// Print provenance handles and deeper trust metadata.
     #[arg(long, value_enum, default_value_t = trust::InspectDepth::Compact)]
     pub depth: trust::InspectDepth,

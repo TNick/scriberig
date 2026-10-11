@@ -30,6 +30,55 @@ pub enum ValidationState {
     Unknown,
 }
 
+/// Records the outcome of promotion or policy evaluation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PolicyDecision {
+    /// Policy permits the requested transition.
+    Allowed,
+    /// Policy rejects the requested transition.
+    Rejected,
+    /// Policy could not evaluate the requested base state.
+    Stale,
+}
+
+/// Summarizes a policy evaluation by stable decision and handle.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PolicyEvaluation {
+    /// Decision produced by policy evaluation.
+    pub decision: PolicyDecision,
+    /// Handle for the detailed evaluation evidence.
+    pub handle: Option<String>,
+}
+
+/// Summarizes approval evidence without embedding credentials or secrets.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ApprovalSummary {
+    /// Whether the operation requires an approval.
+    pub required: bool,
+    /// Whether the required approval has been recorded.
+    pub granted: bool,
+    /// Handle for the approval evidence.
+    pub handle: Option<String>,
+}
+
+/// Identifies a projection or semantic conflict and its resolution state.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConflictSummary {
+    /// Stable conflict handle.
+    pub handle: String,
+    /// Whether the conflict has a supported resolution path.
+    pub resolvable: bool,
+}
+
+/// Summarizes an external effect receipt without exposing credentials.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ExternalEffectSummary {
+    /// Stable external-effect or receipt handle.
+    pub handle: String,
+    /// Provider-neutral receipt state.
+    pub state: String,
+}
+
 /// Summarizes trust-relevant metadata without copying object content.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TrustSummary {
@@ -45,6 +94,14 @@ pub struct TrustSummary {
     pub snapshot: Option<SnapshotId>,
     /// Exact revision summarized when known.
     pub revision: Option<RevisionId>,
+    /// Policy or promotion evaluation, when one exists.
+    pub policy: Option<PolicyEvaluation>,
+    /// Approval evidence, when one exists.
+    pub approval: Option<ApprovalSummary>,
+    /// Projection or semantic conflict, when one exists.
+    pub conflict: Option<ConflictSummary>,
+    /// External-effect receipt summary, when one exists.
+    pub external_effect: Option<ExternalEffectSummary>,
 }
 
 /// Describes a capability denial without exposing restricted content.

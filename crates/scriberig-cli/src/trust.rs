@@ -17,6 +17,35 @@ pub enum InspectDepth {
     Deep,
 }
 
+/// Exit status used when application authorization denies an operation.
+pub const AUTHORIZATION_DENIED_EXIT_CODE: i32 = 77;
+
+/// Reports trust-inspection failures without flattening authorization denials.
+#[derive(Debug)]
+pub enum TrustCommandError {
+    /// The application denied the requested capability.
+    AuthorizationDenied(CapabilityDenial),
+    /// The application returned another structured failure.
+    Application(ApplicationError),
+}
+
+impl TrustCommandError {
+    /// Returns the process exit status for the failure.
+    ///
+    /// # Parameters
+    /// - `self`: Trust command failure.
+    ///
+    /// # Returns
+    /// Distinct authorization status or the generic application failure status.
+    #[must_use]
+    pub const fn exit_code(&self) -> i32 {
+        match self {
+            Self::AuthorizationDenied(_) => AUTHORIZATION_DENIED_EXIT_CODE,
+            Self::Application(_) => 1,
+        }
+    }
+}
+
 /// Executes an entity inspection through the shared application query boundary.
 ///
 /// # Parameters
@@ -36,17 +65,61 @@ pub fn inspect<S: QueryService>(
     entity: EntityId,
     depth: InspectDepth,
 ) -> Result<String, ApplicationError> {
+    inspect_at(service, context, entity, SnapshotResolution::Current, depth).map_err(|error| {
+        match error {
+            TrustCommandError::Application(error) => error,
+            TrustCommandError::AuthorizationDenied(denial) => ApplicationError::PermissionDenied {
+                action: denial.action,
+                scope: denial.scope,
+            },
+        }
+    })
+}
+
+/// Executes inspection with an explicit snapshot resolution.
+///
+/// # Parameters
+/// - `service`: Application query service selected by the product composition root.
+/// - `context`: Caller and capability context for the request.
+/// - `entity`: Entity identifier to inspect.
+/// - `snapshot`: Snapshot resolution required by the caller.
+/// - `depth`: Compact or deep trust view.
+///
+/// # Returns
+/// Rendered trust inspection output.
+///
+/// # Errors
+/// Returns a structured application failure or a distinct authorization denial.
+pub fn inspect_at<S: QueryService>(
+    service: &S,
+    context: &ApplicationContext,
+    entity: EntityId,
+    snapshot: SnapshotResolution,
+    depth: InspectDepth,
+) -> Result<String, TrustCommandError> {
     let request = InspectRequest {
         entity,
-        snapshot: SnapshotResolution::Current,
+        snapshot,
         detail: match depth {
             InspectDepth::Compact => DetailLevel::Compact,
             InspectDepth::Deep => DetailLevel::Detailed,
         },
     };
-    service
-        .inspect(context, &request)
-        .map(|result| render_inspection(&result, depth))
+    service.inspect(context, &request).map_or_else(
+        |error| match error {
+            ApplicationError::PermissionDenied { action, scope } => {
+                Err(TrustCommandError::AuthorizationDenied(CapabilityDenial {
+                    action,
+                    scope,
+                    reason: "application capability policy denied the request".to_owned(),
+                    alternatives: Vec::new(),
+                    approval_may_grant: false,
+                }))
+            }
+            other => Err(TrustCommandError::Application(other)),
+        },
+        |result| Ok(render_inspection(&result, depth)),
+    )
 }
 
 /// Renders an inspection result without exposing object content or secrets.
@@ -80,6 +153,30 @@ pub fn render_inspection(result: &InspectResult, depth: InspectDepth) -> String 
         if depth == InspectDepth::Deep {
             for handle in &trust.provenance {
                 let _ = writeln!(output, "provenance: {handle}");
+            }
+            if let Some(policy) = &trust.policy {
+                let _ = writeln!(output, "policy: {:?}", policy.decision);
+                if let Some(handle) = &policy.handle {
+                    let _ = writeln!(output, "policy evidence: {handle}");
+                }
+            }
+            if let Some(approval) = &trust.approval {
+                let _ = writeln!(output, "approval required: {}", approval.required);
+                let _ = writeln!(output, "approval granted: {}", approval.granted);
+                if let Some(handle) = &approval.handle {
+                    let _ = writeln!(output, "approval evidence: {handle}");
+                }
+            }
+            if let Some(conflict) = &trust.conflict {
+                let _ = writeln!(output, "conflict: {}", conflict.handle);
+                let _ = writeln!(output, "conflict resolvable: {}", conflict.resolvable);
+            }
+            if let Some(effect) = &trust.external_effect {
+                let _ = writeln!(
+                    output,
+                    "external effect: {} ({})",
+                    effect.handle, effect.state
+                );
             }
         }
     }
@@ -140,109 +237,5 @@ fn validation_label(validation: &ValidationState) -> &'static str {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{InspectDepth, inspect, render_denial, render_inspection};
-    use scriberig_app::{
-        ApplicationContext, ApplicationError, CapabilityDenial, InspectRequest, InspectResult,
-        QueryService, SourceKind, TrustSummary, ValidationState,
-    };
-    use scriberig_core::{EntityId, RevisionId, SnapshotId};
-
-    /// Checks compact output contains provenance summary fields.
-    #[test]
-    fn compact_provenance_summary_is_rendered() {
-        let output = render_inspection(&result(), InspectDepth::Compact);
-        assert!(output.contains("source: model_generated"));
-        assert!(output.contains("validation: current"));
-        assert!(output.contains("accepted via: mig_1"));
-        assert!(!output.contains("prov_1"));
-    }
-
-    /// Checks deep output follows provenance handles.
-    #[test]
-    fn deep_provenance_includes_handles() {
-        let output = render_inspection(&result(), InspectDepth::Deep);
-        assert!(output.contains("provenance: prov_1"));
-    }
-
-    /// Checks denials retain structured fields without secret values.
-    #[test]
-    fn denial_output_is_structured() {
-        let denial = CapabilityDenial {
-            action: "promote".to_owned(),
-            scope: "entity:ent_1".to_owned(),
-            reason: "capability missing".to_owned(),
-            alternatives: vec!["inspect".to_owned()],
-            approval_may_grant: true,
-        };
-        let output = render_denial(&denial);
-        assert!(output.contains("denied action: promote"));
-        assert!(output.contains("alternative: inspect"));
-        assert!(!output.contains("secret"));
-    }
-
-    /// Checks CLI inspection delegates through the application query service.
-    #[test]
-    fn inspect_uses_shared_query_boundary() {
-        let output = inspect(
-            &FakeService,
-            &ApplicationContext::empty(),
-            EntityId::new([1; 16]),
-            InspectDepth::Deep,
-        )
-        .expect("fake query service should succeed");
-        assert!(output.contains("provenance: prov_1"));
-    }
-
-    /// Supplies deterministic inspection data for renderer tests.
-    struct FakeService;
-
-    impl QueryService for FakeService {
-        /// Returns the deterministic inspection fixture.
-        ///
-        /// # Parameters
-        /// - `self`: Deterministic test service.
-        /// - `_context`: Unused application context.
-        /// - `_request`: Unused inspection request.
-        ///
-        /// # Returns
-        /// The inspection fixture.
-        ///
-        /// # Errors
-        /// This fixture never returns an error.
-        fn inspect(
-            &self,
-            _context: &ApplicationContext,
-            _request: &InspectRequest,
-        ) -> Result<InspectResult, ApplicationError> {
-            Ok(result())
-        }
-    }
-
-    /// Builds the inspection fixture used by renderer tests.
-    ///
-    /// # Returns
-    /// A deterministic inspection result.
-    ///
-    /// # Errors
-    /// This fixture construction cannot fail.
-    fn result() -> InspectResult {
-        InspectResult {
-            entity: EntityId::new([1; 16]),
-            revision: Some(RevisionId::new([2; 32])),
-            snapshot: Some(SnapshotId::new([3; 32])),
-            object_type: None,
-            label: None,
-            description: None,
-            capabilities: Vec::new(),
-            trust: Some(TrustSummary {
-                source: SourceKind::ModelGenerated,
-                validation: ValidationState::Current,
-                accepted_via: Some("mig_1".to_owned()),
-                provenance: vec!["prov_1".to_owned()],
-                snapshot: Some(SnapshotId::new([3; 32])),
-                revision: Some(RevisionId::new([2; 32])),
-            }),
-        }
-    }
-}
+#[path = "trust_tests.rs"]
+mod tests;
