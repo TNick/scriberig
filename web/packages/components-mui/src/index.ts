@@ -14,3 +14,5 @@ export * from "./MuiTrustSummary";
 export * from "./MuiOperationView";
 export * from "./MuiProjectionHost";
 export * from "./MuiAgentPanel";
+export * from "./MuiCommandPalette";
+export * from "./theme";

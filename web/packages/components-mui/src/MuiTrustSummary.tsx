@@ -1,12 +1,11 @@
 /** @file Provides the MUI wrapper for the public trust summary component. */
-
 import type { ReactElement } from "react";
 import { Paper, Typography } from "@mui/material";
 import { TrustSummaryView } from "@scriberig/components";
 import type { TrustSummary } from "@scriberig/protocol";
 
-/**
- * Wraps the neutral trust summary in MUI presentation.
+/** Renders a trust summary in a Material UI surface.
+ * @param summary Trust summary to render.
  * @returns A MUI trust summary element.
  */
 export function MuiTrustSummary({ summary }: { summary: TrustSummary }): ReactElement {
