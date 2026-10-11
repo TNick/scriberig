@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">Domains specialize one universal knowledge substrate</title>
+  <desc id="desc">A universal knowledge model forms the foundation. Markdown, source code, PDF, and session domains sit above it. Rust and future languages specialize the source-code domain. All domains share entities, revisions, snapshots, relations, migrations, provenance, and queries.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.head{font:700 21px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="700" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">One substrate, many domain vocabularies</text>
+
+  <rect x="250" y="535" width="700" height="115" rx="20" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="600" y="575" text-anchor="middle" class="head">Universal knowledge model</text>
+  <text x="600" y="607" text-anchor="middle" class="body">entities · revisions · snapshots · relations · collections · migrations</text>
+  <text x="600" y="633" text-anchor="middle" class="small">provenance · descriptions · queries · history · branching · merge</text>
+
+  <rect x="65" y="270" width="230" height="120" rx="18" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="180" y="312" text-anchor="middle" class="head">Markdown</text>
+  <text x="180" y="344" text-anchor="middle" class="body">sections · paragraphs</text>
+  <text x="180" y="369" text-anchor="middle" class="small">lists · tables · links</text>
+
+  <rect x="350" y="270" width="230" height="120" rx="18" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="465" y="312" text-anchor="middle" class="head">Source code</text>
+  <text x="465" y="344" text-anchor="middle" class="body">modules · functions</text>
+  <text x="465" y="369" text-anchor="middle" class="small">statements · expressions</text>
+
+  <rect x="635" y="270" width="230" height="120" rx="18" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="750" y="312" text-anchor="middle" class="head">PDF</text>
+  <text x="750" y="344" text-anchor="middle" class="body">pages · regions · tables</text>
+  <text x="750" y="369" text-anchor="middle" class="small">figures · geometry · evidence</text>
+
+  <rect x="920" y="270" width="215" height="120" rx="18" fill="#f0fdfa" stroke="#0f766e" stroke-width="3"/>
+  <text x="1027" y="312" text-anchor="middle" class="head">Sessions</text>
+  <text x="1027" y="344" text-anchor="middle" class="body">branches · goals</text>
+  <text x="1027" y="369" text-anchor="middle" class="small">turns · decisions · tools</text>
+
+  <rect x="315" y="90" width="155" height="90" rx="15" fill="#fff1f2" stroke="#be123c" stroke-width="3"/>
+  <text x="392" y="126" text-anchor="middle" class="head">Rust</text>
+  <text x="392" y="153" text-anchor="middle" class="small">patterns · macros</text>
+
+  <rect x="490" y="90" width="185" height="90" rx="15" fill="#fff1f2" stroke="#be123c" stroke-width="3"/>
+  <text x="582" y="126" text-anchor="middle" class="head">TypeScript</text>
+  <text x="582" y="153" text-anchor="middle" class="small">language-specific syntax</text>
+
+  <rect x="695" y="90" width="190" height="90" rx="15" fill="#f8fafc" stroke="#64748b" stroke-width="3" stroke-dasharray="8 6"/>
+  <text x="790" y="126" text-anchor="middle" class="head">Future languages</text>
+  <text x="790" y="153" text-anchor="middle" class="small">same code-domain contract</text>
+
+  <path d="M180 390 C180 470 330 505 430 535" class="line"/>
+  <path d="M465 390 L515 535" class="line"/>
+  <path d="M750 390 L690 535" class="line"/>
+  <path d="M1027 390 C1027 470 865 505 770 535" class="line"/>
+  <path d="M392 180 C400 220 425 245 445 270" class="line"/>
+  <path d="M582 180 C560 220 520 245 495 270" class="line"/>
+  <path d="M790 180 C690 220 575 245 520 270" class="line"/>
+</svg>
