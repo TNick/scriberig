@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Snapshot-aware browser updates reuse unchanged revisions</title>
+  <desc id="desc">The diagram compares snapshot S1 and snapshot S2. Entities A and C still resolve to the same immutable revisions in both snapshots while entity B changes from revision B1 to B2. A snapshot-advanced event tells the browser what changed, so its client cache keeps A1 and C1 and fetches only B2 instead of reloading the whole knowledge graph.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>.title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 20px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}.keep{stroke:#0f766e;stroke-width:3;fill:none}.change{stroke:#dc2626;stroke-width:4;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Global snapshot changes; unchanged local revisions remain reusable</text>
+
+  <rect x="55" y="105" width="390" height="400" rx="22" fill="#f8fafc" stroke="#475569" stroke-width="3"/>
+  <text x="250" y="145" text-anchor="middle" class="label">Snapshot S1</text>
+  <text x="250" y="173" text-anchor="middle" class="small">exact semantic world before the change</text>
+
+  <rect x="90" y="215" width="140" height="70" rx="14" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/><text x="160" y="245" text-anchor="middle" class="label">Entity A</text><text x="160" y="270" text-anchor="middle" class="small">rev A1</text>
+  <rect x="270" y="215" width="140" height="70" rx="14" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/><text x="340" y="245" text-anchor="middle" class="label">Entity B</text><text x="340" y="270" text-anchor="middle" class="small">rev B1</text>
+  <rect x="180" y="330" width="140" height="70" rx="14" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/><text x="250" y="360" text-anchor="middle" class="label">Entity C</text><text x="250" y="385" text-anchor="middle" class="small">rev C1</text>
+
+  <rect x="755" y="105" width="390" height="400" rx="22" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="950" y="145" text-anchor="middle" class="label">Snapshot S2</text>
+  <text x="950" y="173" text-anchor="middle" class="small">global root changes because one entity changed</text>
+
+  <rect x="790" y="215" width="140" height="70" rx="14" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/><text x="860" y="245" text-anchor="middle" class="label">Entity A</text><text x="860" y="270" text-anchor="middle" class="small">rev A1</text>
+  <rect x="970" y="215" width="140" height="70" rx="14" fill="#fef2f2" stroke="#dc2626" stroke-width="3"/><text x="1040" y="245" text-anchor="middle" class="label">Entity B</text><text x="1040" y="270" text-anchor="middle" class="small">rev B2</text>
+  <rect x="880" y="330" width="140" height="70" rx="14" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/><text x="950" y="360" text-anchor="middle" class="label">Entity C</text><text x="950" y="385" text-anchor="middle" class="small">rev C1</text>
+
+  <path d="M445 305 L755 305" class="change"/>
+  <text x="600" y="280" text-anchor="middle" class="label">snapshot advanced event</text>
+  <text x="600" y="330" text-anchor="middle" class="small">reports B changed; A and C are still valid</text>
+
+  <path d="M230 250 C420 100 700 100 790 250" class="keep"/>
+  <path d="M320 365 C470 560 740 560 880 365" class="keep"/>
+  <path d="M410 250 C560 190 830 190 970 250" class="change"/>
+
+  <rect x="315" y="555" width="570" height="110" rx="20" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="600" y="592" text-anchor="middle" class="label">Browser client cache after the event</text>
+  <text x="600" y="624" text-anchor="middle" class="body">reuse A1 · fetch B2 · reuse C1</text>
+  <text x="600" y="650" text-anchor="middle" class="small">Do not invalidate everything merely because SnapshotId changed.</text>
+</svg>
