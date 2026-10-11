@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">Session domain over the universal knowledge model</title>
+  <desc id="desc">A central Universal Knowledge Model supports four domain boxes: Markdown, Source Code, PDF, and Session. The Session domain contains goals, branches, decisions, tool interactions, and results. Human, agent, CLI, API, and web clients all connect through the same universal operations rather than separate stores.</desc>
+  <rect width="1200" height="700" fill="#ffffff"/>
+  <text x="600" y="52" text-anchor="middle" font-family="system-ui, sans-serif" font-size="30" font-weight="700" fill="#111827">One substrate, many domains</text>
+  <rect x="325" y="280" width="550" height="150" rx="20" fill="#e8f1ff" stroke="#2457a7" stroke-width="3"/>
+  <text x="600" y="335" text-anchor="middle" font-family="system-ui, sans-serif" font-size="28" font-weight="700" fill="#163b72">Universal Knowledge Model</text>
+  <text x="600" y="375" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" fill="#163b72">entities · revisions · snapshots · relations · provenance</text>
+  <text x="600" y="405" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" fill="#163b72">query · history · migration · description · derived knowledge</text>
+
+  <g font-family="system-ui, sans-serif">
+    <rect x="70" y="120" width="220" height="95" rx="16" fill="#f7fafc" stroke="#374151" stroke-width="2"/>
+    <text x="180" y="160" text-anchor="middle" font-size="22" font-weight="700" fill="#111827">Markdown</text>
+    <text x="180" y="188" text-anchor="middle" font-size="16" fill="#374151">sections · paragraphs · tables</text>
+
+    <rect x="345" y="120" width="220" height="95" rx="16" fill="#f7fafc" stroke="#374151" stroke-width="2"/>
+    <text x="455" y="160" text-anchor="middle" font-size="22" font-weight="700" fill="#111827">Source Code</text>
+    <text x="455" y="188" text-anchor="middle" font-size="16" fill="#374151">modules · functions · AST</text>
+
+    <rect x="620" y="120" width="220" height="95" rx="16" fill="#f7fafc" stroke="#374151" stroke-width="2"/>
+    <text x="730" y="160" text-anchor="middle" font-size="22" font-weight="700" fill="#111827">PDF</text>
+    <text x="730" y="188" text-anchor="middle" font-size="16" fill="#374151">pages · regions · tables</text>
+
+    <rect x="895" y="95" width="235" height="145" rx="16" fill="#eefbf3" stroke="#24834c" stroke-width="3"/>
+    <text x="1012" y="130" text-anchor="middle" font-size="22" font-weight="700" fill="#135c33">Session</text>
+    <text x="1012" y="160" text-anchor="middle" font-size="15" fill="#135c33">goals · branches · decisions</text>
+    <text x="1012" y="184" text-anchor="middle" font-size="15" fill="#135c33">tool calls · observations</text>
+    <text x="1012" y="208" text-anchor="middle" font-size="15" fill="#135c33">results · summaries</text>
+  </g>
+
+  <g stroke="#6b7280" stroke-width="2.5" fill="none">
+    <path d="M180 215 L390 280"/>
+    <path d="M455 215 L510 280"/>
+    <path d="M730 215 L690 280"/>
+    <path d="M1012 240 L805 280"/>
+  </g>
+
+  <text x="600" y="490" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="700" fill="#111827">Shared operations</text>
+  <text x="600" y="520" text-anchor="middle" font-family="system-ui, sans-serif" font-size="17" fill="#374151">inspect · list · follow · find · diff · history · render · branch · apply</text>
+
+  <g font-family="system-ui, sans-serif" font-size="18" font-weight="600" text-anchor="middle">
+    <rect x="100" y="565" width="160" height="62" rx="14" fill="#fff7ed" stroke="#c56a16" stroke-width="2"/>
+    <text x="180" y="603" fill="#7c3f0c">Human</text>
+    <rect x="310" y="565" width="160" height="62" rx="14" fill="#fff7ed" stroke="#c56a16" stroke-width="2"/>
+    <text x="390" y="603" fill="#7c3f0c">Agent</text>
+    <rect x="520" y="565" width="160" height="62" rx="14" fill="#fff7ed" stroke="#c56a16" stroke-width="2"/>
+    <text x="600" y="603" fill="#7c3f0c">CLI / TUI</text>
+    <rect x="730" y="565" width="160" height="62" rx="14" fill="#fff7ed" stroke="#c56a16" stroke-width="2"/>
+    <text x="810" y="603" fill="#7c3f0c">API</text>
+    <rect x="940" y="565" width="160" height="62" rx="14" fill="#fff7ed" stroke="#c56a16" stroke-width="2"/>
+    <text x="1020" y="603" fill="#7c3f0c">Web editor</text>
+  </g>
+  <g stroke="#9ca3af" stroke-width="2" fill="none">
+    <path d="M180 565 L430 530"/><path d="M390 565 L505 530"/><path d="M600 565 L600 530"/><path d="M810 565 L695 530"/><path d="M1020 565 L770 530"/>
+  </g>
+</svg>
