@@ -21,6 +21,19 @@ impl ContinuationToken {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
+
+    /// Returns the opaque token text for a provider-internal continuation.
+    ///
+    /// # Parameters
+    /// - `self`: Continuation token to inspect.
+    /// - `crate`: Internal visibility marker.
+    ///
+    /// # Returns
+    /// The token text without assigning semantic meaning to it.
+    #[must_use]
+    pub(crate) fn as_str(&self) -> &str {
+        &self.0
+    }
 }
 
 /// Requests one bounded page of semantic results.

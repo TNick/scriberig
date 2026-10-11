@@ -3,6 +3,7 @@
 pub mod detail;
 pub mod error;
 pub mod find;
+pub mod graph_service;
 pub mod handle;
 pub mod inspect;
 pub mod pagination;
@@ -15,6 +16,7 @@ pub mod traverse;
 pub use detail::{DetailLevel, InformationCost};
 pub use error::{QueryError, ReadOperation};
 pub use find::{FindHit, FindRequest, FindResult, FindService, FindStrategy};
+pub use graph_service::GraphReadService;
 pub use handle::{
     CollectionRef, EntityAtRevision, EntityInSnapshot, EntityRef, OperationRef, ProjectionRef,
     RelationRef, RevisionRef, SnapshotRef, TargetRef,
