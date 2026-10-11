@@ -5,7 +5,78 @@
 pub mod encoding;
 /// Defines strongly typed universal identifiers and names.
 pub mod ids;
+/// Defines origin and exact-input provenance records.
+pub mod provenance;
+/// Defines domain-neutral property values and canonical/derived classification.
+pub mod value;
 
 // Re-export the stable identifier API at the crate root.
 pub use encoding::{CanonicalEncode, CanonicalWriter, EncodingVersion};
 pub use ids::{EntityId, IdParseError, ObjectType, OperationId, RevisionId, RootName, SnapshotId};
+pub use provenance::{EntityRevisionRef, Provenance, ProvenanceSource};
+pub use value::{KnowledgeClass, KnowledgeValue};
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use super::{
+        EntityId, EntityRevisionRef, KnowledgeClass, KnowledgeValue, Provenance, ProvenanceSource,
+        RevisionId,
+    };
+
+    /// Checks nested values preserve list order and deterministic records.
+    #[test]
+    fn knowledge_values_preserve_structure() {
+        let mut record = BTreeMap::new();
+        record.insert("name".to_owned(), KnowledgeValue::String("item".to_owned()));
+        let value = KnowledgeValue::List(vec![
+            KnowledgeValue::UnsignedInteger(1),
+            KnowledgeValue::Record(record.clone()),
+        ]);
+        assert_eq!(
+            value,
+            KnowledgeValue::List(vec![
+                KnowledgeValue::UnsignedInteger(1),
+                KnowledgeValue::Record(record),
+            ])
+        );
+    }
+
+    /// Checks canonical and derived classes remain explicit vocabulary.
+    #[test]
+    fn knowledge_classes_are_distinct() {
+        assert_ne!(KnowledgeClass::Canonical, KnowledgeClass::Derived);
+    }
+
+    /// Checks provenance supports empty, multiple, and custom source inputs.
+    #[test]
+    fn provenance_preserves_exact_inputs_and_custom_sources() {
+        let empty = Provenance {
+            source: ProvenanceSource::User,
+            producer: None,
+            inputs: Vec::new(),
+            profile: None,
+            note: None,
+        };
+        assert_eq!(empty.inputs.len(), 0);
+        let populated = Provenance {
+            source: ProvenanceSource::Custom("review-bot".to_owned()),
+            producer: Some("bot-v1".to_owned()),
+            inputs: vec![
+                EntityRevisionRef {
+                    entity_id: EntityId::new([1; 16]),
+                    revision_id: RevisionId::new([2; 32]),
+                },
+                EntityRevisionRef {
+                    entity_id: EntityId::new([3; 16]),
+                    revision_id: RevisionId::new([4; 32]),
+                },
+            ],
+            profile: Some("review".to_owned()),
+            note: Some("derived from exact revisions".to_owned()),
+        };
+        assert_eq!(populated.inputs.len(), 2);
+        assert!(matches!(populated.source, ProvenanceSource::Custom(_)));
+    }
+}
