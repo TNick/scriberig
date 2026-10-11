@@ -1,6 +1,7 @@
 //! Defines shared semantic operations consumed by every product surface.
 
 pub mod capability;
+pub mod capability_registry;
 pub mod command;
 pub mod context;
 pub mod error;
@@ -24,9 +25,13 @@ pub use capability::{
     CapabilityDescriptor, CapabilityId, CapabilityKind, CapabilityScope, DomainOperationRequest,
     RuntimeCapability,
 };
+pub use capability_registry::{
+    CapabilityExecution, CapabilityProvider, CapabilityRegistrationError, CapabilityRegistry,
+    DuplicateCapability,
+};
 pub use command::{CommandContext, CommandKind};
 pub use context::{ApplicationContext, CapabilityContext, Principal};
-pub use error::ApplicationError;
+pub use error::{ApplicationError, ConflictDetails};
 pub use event::ApplicationEvent;
 pub use external_effect::{
     ExternalEffectEvent, ExternalEffectHistory, ExternalEffectIntent, ExternalEffectReceipt,
@@ -34,7 +39,9 @@ pub use external_effect::{
 };
 pub use guarded_derive::GuardedDerivedRepository;
 pub use guarded_query::GuardedQueryService;
-pub use operation::{OperationId, OperationKind, OperationProgress, OperationStatus};
+pub use operation::{
+    OperationId, OperationKind, OperationProgress, OperationRecord, OperationStatus,
+};
 pub use promotion::{
     ApprovalEvidence, PromotionDecision, PromotionPolicyEvaluation, PromotionRequest,
     evaluate_promotion, promote_candidate,

@@ -6,6 +6,13 @@ use std::fmt::{self, Display, Formatter};
 /// Reports a semantic application failure without transport-specific details.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ApplicationError {
+    /// Request parameters are inconsistent or incomplete.
+    InvalidRequest {
+        /// Universal operation being requested.
+        operation: String,
+        /// Safe request diagnostic.
+        message: String,
+    },
     /// Requested semantic data does not exist.
     NotFound {
         /// Stable subject that could not be found.
@@ -67,6 +74,58 @@ pub enum ApplicationError {
         /// Revision identity supplied by the caller.
         revision: RevisionId,
     },
+    /// A requested capability is not installed or available.
+    UnsupportedCapability {
+        /// Universal operation requesting the capability.
+        operation: String,
+        /// Stable capability identifier.
+        capability: String,
+    },
+    /// The requested state transition has competing semantic candidates.
+    Conflict {
+        /// Stable subject involved in the conflict.
+        subject: String,
+        /// Structured conflict detail.
+        details: Box<ConflictDetails>,
+    },
+    /// Multiple semantic candidates remain possible.
+    Ambiguous {
+        /// Scope in which candidates were found.
+        scope: String,
+        /// Stable candidate handles.
+        candidates: Vec<String>,
+        /// Safe reason for the ambiguity.
+        reason: String,
+    },
+    /// The requested exact snapshot is unavailable.
+    SnapshotUnavailable {
+        /// Snapshot required by the operation.
+        snapshot: SnapshotId,
+    },
+    /// A tracked operation failed with structured context.
+    OperationFailed {
+        /// Stable operation identity or kind.
+        operation: String,
+        /// Safe failure diagnostic.
+        message: String,
+    },
+}
+
+/// Preserves semantic handles associated with a conflict.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct ConflictDetails {
+    /// Base revision used by the attempted operation.
+    pub base_revision: Option<RevisionId>,
+    /// Revision expected by the operation.
+    pub expected_revision: Option<RevisionId>,
+    /// Revision currently present.
+    pub current_revision: Option<RevisionId>,
+    /// Competing left revision or migration handle.
+    pub left: Option<String>,
+    /// Competing right revision or migration handle.
+    pub right: Option<String>,
+    /// Relation or collection operation involved in the conflict.
+    pub operation: Option<String>,
 }
 
 impl ApplicationError {
@@ -80,6 +139,7 @@ impl ApplicationError {
     #[must_use]
     pub const fn category(&self) -> &'static str {
         match self {
+            Self::InvalidRequest { .. } => "invalid_request",
             Self::NotFound { .. } => "not_found",
             Self::SchemaViolation { .. } => "schema_violation",
             Self::StaleBaseSnapshot { .. } => "stale_base_snapshot",
@@ -91,6 +151,11 @@ impl ApplicationError {
             Self::OperationCancelled { .. } => "operation_cancelled",
             Self::Internal { .. } => "internal",
             Self::RevisionMismatch { .. } => "revision_mismatch",
+            Self::UnsupportedCapability { .. } => "unsupported_capability",
+            Self::Conflict { .. } => "conflict",
+            Self::Ambiguous { .. } => "ambiguous",
+            Self::SnapshotUnavailable { .. } => "snapshot_unavailable",
+            Self::OperationFailed { .. } => "operation_failed",
         }
     }
 }
@@ -109,6 +174,9 @@ impl Display for ApplicationError {
     /// Returns a formatting error when the destination rejects the write.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidRequest { operation, message } => {
+                write!(formatter, "invalid {operation} request: {message}")
+            }
             Self::NotFound { subject } => write!(formatter, "subject not found: {subject}"),
             Self::SchemaViolation { message } => {
                 write!(formatter, "schema violation: {message}")
@@ -145,6 +213,21 @@ impl Display for ApplicationError {
                     formatter,
                     "revision {revision} does not belong to entity {entity}"
                 )
+            }
+            Self::UnsupportedCapability {
+                operation,
+                capability,
+            } => write!(
+                formatter,
+                "unsupported capability {capability} for {operation}"
+            ),
+            Self::Conflict { subject, .. } => write!(formatter, "conflict for subject {subject}"),
+            Self::Ambiguous { scope, .. } => write!(formatter, "ambiguous result in {scope}"),
+            Self::SnapshotUnavailable { snapshot } => {
+                write!(formatter, "snapshot unavailable: {snapshot}")
+            }
+            Self::OperationFailed { operation, message } => {
+                write!(formatter, "operation {operation} failed: {message}")
             }
         }
     }

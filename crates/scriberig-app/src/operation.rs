@@ -70,3 +70,78 @@ pub struct OperationProgress {
     /// Optional human-readable phase name.
     pub phase: Option<String>,
 }
+
+/// Retains the inspectable state of one tracked application operation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OperationRecord {
+    /// Stable operation identity.
+    pub reference: OperationId,
+    /// Universal operation family.
+    pub kind: OperationKind,
+    /// Exact base snapshot, when the operation has one.
+    pub base_snapshot: Option<scriberig_core::SnapshotId>,
+    /// Optional named branch context.
+    pub branch: Option<scriberig_core::RootName>,
+    /// Current lifecycle state.
+    pub status: OperationStatus,
+    /// Optional coarse progress information.
+    pub progress: Option<OperationProgress>,
+    /// Stable handles produced by a completed operation.
+    pub result_handles: Vec<String>,
+    /// Structured failure when the operation failed.
+    pub error: Option<crate::ApplicationError>,
+}
+
+impl OperationRecord {
+    /// Creates a queued operation record.
+    ///
+    /// # Parameters
+    /// - `reference`: Stable operation identity.
+    /// - `kind`: Universal operation family.
+    ///
+    /// # Returns
+    /// A queued operation record without mutable result data.
+    #[must_use]
+    pub fn queued(reference: OperationId, kind: OperationKind) -> Self {
+        Self {
+            reference,
+            kind,
+            base_snapshot: None,
+            branch: None,
+            status: OperationStatus::Queued,
+            progress: None,
+            result_handles: Vec::new(),
+            error: None,
+        }
+    }
+
+    /// Transitions the operation to a new lifecycle state.
+    ///
+    /// # Parameters
+    /// - `self`: Operation record to update.
+    /// - `status`: Next lifecycle status.
+    ///
+    /// # Returns
+    /// The updated operation record.
+    ///
+    /// # Errors
+    /// Returns an application error when a terminal operation is changed.
+    pub fn transition(mut self, status: OperationStatus) -> Result<Self, crate::ApplicationError> {
+        if self.status.is_terminal() {
+            return Err(crate::ApplicationError::OperationFailed {
+                operation: self.reference.to_string(),
+                message: "terminal operation cannot transition".to_owned(),
+            });
+        }
+        self.status = status;
+        if status.is_terminal() {
+            self.progress = Some(OperationProgress {
+                status,
+                completed: self.progress.as_ref().and_then(|value| value.completed),
+                total: self.progress.as_ref().and_then(|value| value.total),
+                phase: self.progress.as_ref().and_then(|value| value.phase.clone()),
+            });
+        }
+        Ok(self)
+    }
+}
