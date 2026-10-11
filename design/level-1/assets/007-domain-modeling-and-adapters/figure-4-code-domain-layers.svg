@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Source-code domains preserve several semantic layers</title>
+  <desc id="desc">A vertical stack shows human-oriented code groups above source-level AST, concrete syntax and token structures, and derived compiler semantics. Canonical boundaries cover human-authored grouping where preserved, source syntax, comments, macros, and token structures needed for faithful round-trip. Compiler semantics such as types, call graphs, control flow, and diagnostics remain derived.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.head{font:700 21px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="760" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">The code domain is layered, not flattened into one universal AST</text>
+
+  <rect x="260" y="95" width="680" height="120" rx="20" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="600" y="137" text-anchor="middle" class="head">Human-oriented semantic structure</text>
+  <text x="600" y="171" text-anchor="middle" class="body">Function → CodeGroup → statement clusters</text>
+  <text x="600" y="196" text-anchor="middle" class="small">purpose, authored grouping, comments, progressive disclosure</text>
+
+  <rect x="260" y="260" width="680" height="120" rx="20" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="600" y="302" text-anchor="middle" class="head">Source-level syntax tree</text>
+  <text x="600" y="336" text-anchor="middle" class="body">declarations · parameters · patterns · statements · expressions</text>
+  <text x="600" y="361" text-anchor="middle" class="small">preserves programmer-chosen syntax and meaningful order</text>
+
+  <rect x="260" y="425" width="680" height="120" rx="20" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="600" y="467" text-anchor="middle" class="head">Concrete syntax where required</text>
+  <text x="600" y="501" text-anchor="middle" class="body">token trees · macro input · syntax needed for faithful round-trip</text>
+  <text x="600" y="526" text-anchor="middle" class="small">not every byte or whitespace choice must become canonical</text>
+
+  <rect x="260" y="590" width="680" height="120" rx="20" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3" stroke-dasharray="8 6"/>
+  <text x="600" y="632" text-anchor="middle" class="head">Derived compiler semantics</text>
+  <text x="600" y="666" text-anchor="middle" class="body">types · symbol resolution · call graph · CFG · diagnostics</text>
+  <text x="600" y="691" text-anchor="middle" class="small">depends on compiler, dependencies, target, features, and configuration</text>
+
+  <path d="M600 215 L600 260" class="line"/>
+  <path d="M600 380 L600 425" class="line"/>
+  <path d="M600 545 L600 590" class="line"/>
+
+  <rect x="60" y="190" width="150" height="355" rx="18" fill="#f0fdfa" stroke="#0f766e" stroke-width="2"/>
+  <text x="135" y="230" text-anchor="middle" class="head">Canonical</text>
+  <text x="135" y="265" text-anchor="middle" class="small">preserve author</text>
+  <text x="135" y="288" text-anchor="middle" class="small">intent and syntax</text>
+  <text x="135" y="330" text-anchor="middle" class="small">comments</text>
+  <text x="135" y="356" text-anchor="middle" class="small">groups when</text>
+  <text x="135" y="379" text-anchor="middle" class="small">intentionally kept</text>
+  <text x="135" y="421" text-anchor="middle" class="small">AST / CST</text>
+  <text x="135" y="447" text-anchor="middle" class="small">as needed</text>
+
+  <rect x="990" y="590" width="150" height="120" rx="18" fill="#faf5ff" stroke="#7c3aed" stroke-width="2"/>
+  <text x="1065" y="632" text-anchor="middle" class="head">Derived</text>
+  <text x="1065" y="664" text-anchor="middle" class="small">rebuildable</text>
+  <text x="1065" y="687" text-anchor="middle" class="small">with provenance</text>
+</svg>
