@@ -20,6 +20,8 @@ pub struct MigrationReference {
     pub parents: Vec<MigrationId>,
     /// Entity transitions carried by this migration.
     pub deltas: Vec<EntityDelta>,
+    /// Optional workspace or branch provenance.
+    pub workspace: Option<String>,
 }
 
 /// Describes one entity revision transition in history.
@@ -77,6 +79,83 @@ impl HistoryGraph {
     #[must_use]
     pub fn migration(&self, id: &str) -> Option<&MigrationReference> {
         self.migrations.get(id)
+    }
+
+    /// Returns all migration references in stable migration-ID order.
+    ///
+    /// # Returns
+    /// Borrowed migration references suitable for summary lists.
+    #[must_use]
+    pub fn migrations(&self) -> Vec<&MigrationReference> {
+        self.migrations.values().collect()
+    }
+
+    /// Finds migrations that introduced an exact revision.
+    ///
+    /// # Parameters
+    /// - `revision`: Revision identity to locate.
+    ///
+    /// # Returns
+    /// Matching migration references in deterministic ID order.
+    #[must_use]
+    pub fn introducing_revision(&self, revision: RevisionId) -> Vec<&MigrationReference> {
+        self.migrations
+            .values()
+            .filter(|migration| {
+                migration
+                    .deltas
+                    .iter()
+                    .any(|delta| delta.after == Some(revision))
+            })
+            .collect()
+    }
+
+    /// Finds migrations touching an entity.
+    ///
+    /// # Parameters
+    /// - `entity`: Entity identity to locate.
+    ///
+    /// # Returns
+    /// Matching migration references in deterministic ID order.
+    #[must_use]
+    pub fn touching_entity(&self, entity: EntityId) -> Vec<&MigrationReference> {
+        self.migrations
+            .values()
+            .filter(|migration| migration.deltas.iter().any(|delta| delta.entity == entity))
+            .collect()
+    }
+
+    /// Finds migrations associated with one workspace or branch.
+    ///
+    /// # Parameters
+    /// - `workspace`: Exact workspace provenance value.
+    ///
+    /// # Returns
+    /// Matching migration references in deterministic ID order.
+    #[must_use]
+    pub fn in_workspace(&self, workspace: &str) -> Vec<&MigrationReference> {
+        self.migrations
+            .values()
+            .filter(|migration| migration.workspace.as_deref() == Some(workspace))
+            .collect()
+    }
+
+    /// Returns descendant snapshot identities from explicit topology.
+    ///
+    /// # Parameters
+    /// - `ancestor`: Snapshot from which descendants are requested.
+    ///
+    /// # Returns
+    /// Reachable result snapshots sorted by canonical identity.
+    #[must_use]
+    pub fn descendants(&self, ancestor: SnapshotId) -> Vec<SnapshotId> {
+        self.migrations
+            .values()
+            .filter(|migration| self.is_ancestor(ancestor, migration.base))
+            .map(|migration| migration.result)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect()
     }
 
     /// Returns all snapshots reachable as ancestors of a snapshot.
@@ -194,6 +273,7 @@ mod tests {
             result: snapshot(result),
             parents: parents.into_iter().map(str::to_owned).collect(),
             deltas: Vec::new(),
+            workspace: None,
         }
     }
 

@@ -33,6 +33,7 @@ pub mod workspace;
 pub use branch::Branch;
 pub use conflict::{ConflictKind, MergeConflict};
 pub use diff::{DiffEnricher, DiffSummary, SemanticDiff, compare};
+pub use history::{HistoryGraph, LineageRecord, MigrationId, MigrationReference};
 pub use merge::{
     DomainMergeOutcome, DomainMergeStrategy, EntityMergeContext, MergeError, MergeInput,
     MergeResult, merge_snapshots,
@@ -41,8 +42,13 @@ pub use migration::{EntityDelta, Migration, MigrationError};
 pub use operation::{CollectionPosition, Operation};
 pub use promotion::{PromotionResult, promote};
 pub use provenance::{Provenance, SourceKind};
+pub use query::{
+    QueryPage, branches_descending_from, changed_between, common_ancestor, entity_history,
+    introduced_by, merge_conflicts, migrations_touching, page, workspace_migrations,
+};
 pub use rebase::{
     DomainReplayOutcome, DomainReplayStrategy, RebaseError, RebaseInput, RebaseResult,
     RebasedMigration, Relation, ReplayContext, ReplayState, rebase,
 };
+pub use summary::{BranchSummary, MergeSummary, MigrationSummary};
 pub use workspace::{Workspace, WorkspaceStatus};

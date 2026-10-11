@@ -1,5 +1,6 @@
 //! Defines branch metadata and branch references.
 
+use crate::history::MigrationId;
 use scriberig_core::SnapshotId;
 
 /// Stable identity and compact metadata for one branch line.
@@ -19,4 +20,8 @@ pub struct Branch {
     pub description: Option<String>,
     /// Optional outcome summary.
     pub outcome: Option<String>,
+    /// Optional lifecycle status.
+    pub status: Option<String>,
+    /// Optional resulting migration reference.
+    pub resulting_migration: Option<MigrationId>,
 }
