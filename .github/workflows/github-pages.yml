@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - README.md
+      - CLI_REFERENCE.md
       - design/**
       - crates/**
       - apps/**
@@ -79,15 +80,24 @@ jobs:
       - name: Build API documentation
         run: make docs
 
+      - name: Validate generated API documentation
+        shell: bash
+        run: |
+          test -f target/doc/typescript/index.html
+          rust_index="$(find target/doc -mindepth 2 -maxdepth 2 -type f -name index.html ! -path 'target/doc/typescript/*' -print -quit)"
+          test -n "$rust_index"
+
       - name: Stage canonical Markdown for the site
         shell: bash
         run: |
           rm -rf .pages
           mkdir -p .pages/docs
           cp README.md .pages/docs/index.md
+          cp CLI_REFERENCE.md .pages/docs/cli-reference.md
           cp -R design/level-1 .pages/docs/
           cp -R design/level-2 .pages/docs/
           cp -R design/level-3 .pages/docs/
+
           mkdir -p .pages/docs/api/rust .pages/docs/api/typescript
           for entry in target/doc/*; do
             if [ "${entry##*/}" != "typescript" ]; then
@@ -95,17 +105,37 @@ jobs:
             fi
           done
           cp -R target/doc/typescript/. .pages/docs/api/typescript/
-          cat > .pages/docs/api/index.md <<'EOF'
-          # API Reference
 
-          ## Rust
+          {
+            echo "# API Reference"
+            echo
+            echo "These references are rebuilt from the current Rust workspace and public TypeScript packages whenever GitHub Pages is published."
+            echo
+            echo "## Rust"
+            echo
+            echo "Generated with \`cargo doc --workspace --no-deps\`."
+            echo
+            for index in target/doc/*/index.html; do
+              [ -f "$index" ] || continue
+              crate="${index#target/doc/}"
+              crate="${crate%/index.html}"
+              [ "$crate" = "typescript" ] && continue
+              printf -- '- [`%s`](rust/%s/index.html)\n' "$crate" "$crate"
+            done
+            echo
+            echo "## TypeScript"
+            echo
+            echo "[Browse the generated TypeScript API documentation](typescript/index.html)."
+          } > .pages/docs/api/index.md
 
-          [Browse the Rust API documentation](rust/srig/index.html)
-
-          ## TypeScript
-
-          [Browse the TypeScript API documentation](typescript/index.html)
-          EOF
+      - name: Validate staged site
+        shell: bash
+        run: |
+          test -f .pages/docs/cli-reference.md
+          test -f .pages/docs/api/index.md
+          test -f .pages/docs/api/typescript/index.html
+          test -n "$(find .pages/docs/api/rust -mindepth 2 -maxdepth 2 -type f -name index.html -print -quit)"
+          mkdocs build --clean
 
       - name: Publish gh-pages branch
         shell: bash
