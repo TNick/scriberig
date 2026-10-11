@@ -43,3 +43,94 @@ fn sibling_snapshots_report_sorted_entity_deltas_and_summary() {
     assert_eq!(diff.summary().introduced, 1);
     assert_eq!(diff.summary().modified, 1);
 }
+
+use scriberig_core::RevisionId;
+use scriberig_store::Snapshot;
+use sr_change::{ConflictKind, MergeInput, merge_snapshots};
+
+/// Verifies disjoint branch changes resolve without conflicts.
+#[test]
+fn disjoint_changes_merge_automatically() {
+    let base = Snapshot::empty();
+    let left = base.with_revision(EntityId::new([1; 16]), RevisionId::new([2; 32]));
+    let right = base.with_revision(EntityId::new([3; 16]), RevisionId::new([4; 32]));
+    let result = merge_snapshots(
+        MergeInput {
+            base: base.id(),
+            left: left.id(),
+            right: right.id(),
+        },
+        &base,
+        &left,
+        &right,
+        None,
+    )
+    .expect("merge");
+    assert_eq!(result.resolved_deltas.len(), 2);
+    assert_eq!(result.conflicts.len(), 0);
+}
+
+/// Verifies competing modifications remain structured conflicts.
+#[test]
+fn competing_changes_preserve_unrelated_resolution() {
+    let entity = EntityId::new([1; 16]);
+    let other = EntityId::new([3; 16]);
+    let base = Snapshot::empty().with_revision(entity, RevisionId::new([2; 32]));
+    let left = base
+        .with_revision(entity, RevisionId::new([5; 32]))
+        .with_revision(other, RevisionId::new([6; 32]));
+    let right = base.with_revision(entity, RevisionId::new([7; 32]));
+    let result = merge_snapshots(
+        MergeInput {
+            base: base.id(),
+            left: left.id(),
+            right: right.id(),
+        },
+        &base,
+        &left,
+        &right,
+        None,
+    )
+    .expect("merge");
+    assert_eq!(result.conflicts[0].kind, ConflictKind::BothModified);
+    assert_eq!(result.resolved_deltas.len(), 1);
+    assert_eq!(result.resolved_deltas[0].entity, other);
+}
+
+/// Verifies delete/modify and competing-create classifications.
+#[test]
+fn delete_modify_and_competing_create_are_distinct() {
+    let entity = EntityId::new([1; 16]);
+    let base = Snapshot::empty().with_revision(entity, RevisionId::new([2; 32]));
+    let left = base.without_entity(entity);
+    let right = base.with_revision(entity, RevisionId::new([3; 32]));
+    let delete_modify = merge_snapshots(
+        MergeInput {
+            base: base.id(),
+            left: left.id(),
+            right: right.id(),
+        },
+        &base,
+        &left,
+        &right,
+        None,
+    )
+    .expect("merge");
+    assert_eq!(delete_modify.conflicts[0].kind, ConflictKind::DeleteModify);
+    let empty = Snapshot::empty();
+    let created_left = empty.with_revision(entity, RevisionId::new([8; 32]));
+    let created_right = empty.with_revision(entity, RevisionId::new([9; 32]));
+    let competing = merge_snapshots(
+        MergeInput {
+            base: empty.id(),
+            left: created_left.id(),
+            right: created_right.id(),
+        },
+        &empty,
+        &created_left,
+        &created_right,
+        None,
+    )
+    .expect("merge");
+    assert_eq!(competing.conflicts[0].kind, ConflictKind::CompetingCreate);
+}

@@ -31,7 +31,12 @@ pub mod summary;
 pub mod workspace;
 
 pub use branch::Branch;
+pub use conflict::{ConflictKind, MergeConflict};
 pub use diff::{DiffEnricher, DiffSummary, SemanticDiff, compare};
+pub use merge::{
+    DomainMergeOutcome, DomainMergeStrategy, EntityMergeContext, MergeError, MergeInput,
+    MergeResult, merge_snapshots,
+};
 pub use migration::{EntityDelta, Migration, MigrationError};
 pub use operation::{CollectionPosition, Operation};
 pub use promotion::{PromotionResult, promote};
