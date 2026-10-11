@@ -4956,7 +4956,11 @@
 <li>thrown/returned error documentation when applicable.</li>
 </ul>
 <p>Class-like constructs document their purpose and members. Class documentation separates public and private members where the language supports that distinction.</p>
-<p>Each logical code block starts after an empty line with a one- or two-line intent comment. The repository convention uses a machine-recognizable <code>Block:</code> prefix where practical.</p>
+<p>Each logical code block has a one- or two-line plain intent comment. For a
+documented declaration, place the comment after its documentation. In Rust,
+put the intent comment immediately after the <code>///</code> lines without a blank line,
+so Clippy does not report <code>empty_line_after_doc_comments</code>. Do not add a special
+prefix to explanatory comments.</p>
 <p>These rules apply to implementation work, not only public APIs.</p>
 <hr />
 <h2 id="9-formatting-policy">9. Formatting Policy<a class="headerlink" href="#9-formatting-policy" title="Permanent link">&para;</a></h2>
@@ -4969,7 +4973,7 @@
 <p>Pre-commit automation may modify staged files when the modification is deterministic and safe.</p>
 <hr />
 <h2 id="10-repository-lint-and-auto-fix">10. Repository Lint and Auto-Fix<a class="headerlink" href="#10-repository-lint-and-auto-fix" title="Permanent link">&para;</a></h2>
-<p>Repository-specific conventions are enforced by <code>tools/repo_lint.py</code> and its <code>tools/repo_lint/</code> implementation package.</p>
+<p>Repository-specific conventions are enforced by <code>tools/lint_repo.py</code> and its <code>tools/repo_lint/</code> implementation package.</p>
 <p>The linter should prefer deterministic safe fixes when possible. Rules that require semantic judgment may reject a file with a precise diagnostic rather than applying a risky rewrite.</p>
 <p>The linter itself follows the same source-size and documentation rules. If it grows, split it into focused modules rather than exempting it merely because it is tooling.</p>
 <p><code>tools/fix.sh</code> is the repository-wide safe-fix entry point. <code>tools/check.sh</code> is the non-mutating verification entry point.</p>

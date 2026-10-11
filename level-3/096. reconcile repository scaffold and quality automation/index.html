@@ -4690,7 +4690,7 @@
 <li>documentation for every public or private function and method;</li>
 <li>parameter, return, and error documentation where applicable;</li>
 <li>class/class-like documentation including member documentation;</li>
-<li>a blank line followed by a one- or two-line <code>Block:</code> intent comment before each logical code block.</li>
+<li>a one- or two-line plain intent comment for each logical code block, placed after declaration documentation; in Rust, keep it directly adjacent to <code>///</code> comments with no blank line.</li>
 </ul>
 <p>The conventions must apply to tooling code as well as product/library code.</p>
 <hr />
@@ -4704,7 +4704,7 @@
 <hr />
 <h2 id="required-automation">Required Automation<a class="headerlink" href="#required-automation" title="Permanent link">&para;</a></h2>
 <p>The repository must provide:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>tools/repo_lint.py
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>tools/lint_repo.py
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>tools/repo_lint/
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>tools/fix.sh
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>tools/check.sh

@@ -325,6 +325,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#local-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local app
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -4546,6 +4557,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#local-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local app
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -4616,6 +4638,18 @@
 <p>Apply safe automatic fixes and formatters with:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>./tools/fix.sh
 </code></pre></div>
+<h2 id="local-app">Local app<a class="headerlink" href="#local-app" title="Permanent link">&para;</a></h2>
+<p>Start or reuse the API and web application, create the ignored SQLite database
+under <code>playground/dev-app-runtime/</code>, and open the editor in your browser with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>make dev
+</code></pre></div>
+<p>Stop the processes started by that command with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>make dev-stop
+</code></pre></div>
+<p>The Make targets work on Linux and Windows. Repeating <code>make dev</code> reuses the
+running services; <code>make dev-stop</code> stops them. The current API exposes a health
+endpoint while semantic API operations remain under development. Logs and the
+local database stay in <code>playground/dev-app-runtime/</code>.</p>
 <p>Repository-specific source and agent rules live in the top-level <code>AGENTS.md</code> and are refined by nested <code>AGENTS.md</code> files.</p>
 
 

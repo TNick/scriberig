@@ -4789,13 +4789,13 @@
 </ul>
 <h2 id="completion-checklist">Completion checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Root Cargo workspace exists.</li>
-<li>[ ] All four crates exist and compile.</li>
-<li>[ ] Dependency direction matches Level 2.</li>
-<li>[ ] Core ID types are strongly typed.</li>
-<li>[ ] Digest IDs have deterministic text round-trips.</li>
-<li>[ ] Tests pass across the workspace.</li>
-<li>[ ] No higher-level product dependency was introduced.</li>
+<li>[x] Root Cargo workspace exists.</li>
+<li>[x] All four persistence crates exist in the workspace and compile as empty crate shells.</li>
+<li>[x] Dependency direction matches Level 2; <code>scriberig-core</code> has no Scriberig dependency, <code>scriberig-store</code> depends on core, and both backends depend on store and core.</li>
+<li>[x] Core ID types are strongly typed.</li>
+<li>[x] Digest IDs have deterministic text round-trips.</li>
+<li>[x] Tests pass across the workspace.</li>
+<li>[x] No higher-level product dependency was introduced by the four persistence crates.</li>
 </ul>
 <p>Stop after these conditions are met.</p>
 
