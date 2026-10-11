@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help init format lint test check dev dev-stop
+.PHONY: help init build install format lint test check dev dev-stop
 
 ifeq ($(OS),Windows_NT)
 PYTHON ?= python
@@ -11,6 +11,8 @@ endif
 help:
 	@echo Scriberig developer commands:
 	@echo   make init       Install web and pre-commit dependencies.
+	@echo   make build      Build all workspace targets.
+	@echo   make install    Build and install the srig executable.
 	@echo   make format     Apply repository, Rust, and web formatting.
 	@echo   make lint       Run repository and web formatting checks.
 	@echo   make test       Run Rust and web test suites.
@@ -25,6 +27,14 @@ init:
 	$(PYTHON) -m pip install pre-commit
 	pre-commit install
 	pre-commit install-hooks
+
+# Build every Rust workspace target.
+build:
+	cargo build --workspace --all-targets
+
+# Build and install the srig executable into Cargo's bin directory.
+install:
+	cargo install --path apps/scriberig --locked --force
 
 # Apply deterministic source and language-specific formatting.
 format:

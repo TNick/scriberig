@@ -67,6 +67,20 @@ Apply safe automatic fixes and formatters with:
 ./tools/fix.sh
 ```
 
+## Build and install
+
+Build all Rust workspace targets with:
+
+```text
+make build
+```
+
+Build and install the `srig` executable into Cargo's bin directory with:
+
+```text
+make install
+```
+
 ## Local app
 
 Start or reuse the API and web application, create the ignored SQLite database
