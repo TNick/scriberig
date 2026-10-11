@@ -1,7 +1,7 @@
 /** @file Defines the top-level reference Scriberig editor component. */
 
 import { ThemeProvider } from "@mui/material/styles";
-import { useMemo, useState, type ReactElement } from "react";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { ScriberigProvider } from "@scriberig/react";
 import { createScriberigTheme } from "@scriberig/components-mui";
 import { AppShell } from "./app-shell";
@@ -20,11 +20,22 @@ import { OperationsView } from "./views/OperationsView";
 export function App(): ReactElement {
   const runtime = useMemo(() => createRuntime(), []);
   const [route, setRoute] = useState<AppRoute>("raw");
+  const [connection, setConnection] = useState(runtime.connection);
+  useEffect(() => {
+    void runtime.bootstrap().then(
+      () => setConnection(runtime.connection),
+      () => setConnection(runtime.connection),
+    );
+  }, [runtime]);
   return (
     <ThemeProvider theme={createScriberigTheme()}>
       <ScriberigProvider value={runtime}>
-        <AppShell active={route} onNavigate={(next) => setRoute(parseRoute(next))} status="offline">
-          <SnapshotStatus state="offline" />
+        <AppShell
+          active={route}
+          onNavigate={(next) => setRoute(parseRoute(next))}
+          status={connection}
+        >
+          <SnapshotStatus state={connection === "connected" ? "current" : connection} />
           {route === "raw" ? (
             <RawKnowledgeView />
           ) : route === "semantic" ? (

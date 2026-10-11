@@ -52,6 +52,15 @@ export class KnowledgeTree {
       this.notify();
     }
   }
+
+  /** Starts loading one node and reports whether it was newly marked loading. */
+  beginLoading(id: string): boolean {
+    const node = this.nodes.get(id);
+    if (!node || node.loading) return false;
+    this.nodes.set(id, { ...node, loading: true });
+    this.notify();
+    return true;
+  }
   /** Marks a node collapsed. @param id Node handle. */
   collapse(id: string): void {
     const node = this.nodes.get(id);

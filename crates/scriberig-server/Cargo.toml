@@ -14,6 +14,7 @@ scriberig-agent-runtime = { path = "../scriberig-agent-runtime" }
 scriberig-app = { path = "../scriberig-app" }
 scriberig-protocol = { path = "../scriberig-protocol" }
 scriberig-store-sqlite = { path = "../scriberig-store-sqlite" }
+scriberig-store = { path = "../scriberig-store" }
 serde_json = "1.0"
 
 [lints]

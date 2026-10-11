@@ -18,7 +18,15 @@ export function MuiObjectTree({
         {n.summary?.label ?? n.entityId}
       </ListItemButton>
       {n.children.length ? (
-        <Button onClick={() => (n.expanded ? tree.collapse(n.id) : tree.expand(n.id))}>
+        <Button
+          onClick={() => {
+            if (n.expanded) tree.collapse(n.id);
+            else {
+              tree.expand(n.id);
+              onLoadMore?.(n);
+            }
+          }}
+        >
           {n.expanded ? "Collapse" : "Expand"}
         </Button>
       ) : null}

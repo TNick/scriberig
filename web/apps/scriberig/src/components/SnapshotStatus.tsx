@@ -7,10 +7,16 @@ import type { ReactElement } from "react";
 export function SnapshotStatus({
   state,
 }: {
-  state: "current" | "historical" | "candidate" | "stale" | "offline";
+  state:
+    "current" | "historical" | "candidate" | "stale" | "offline" | "connecting" | "disconnected";
 }): ReactElement {
   return (
-    <Alert severity={state === "stale" || state === "offline" ? "warning" : "info"} role="status">
+    <Alert
+      severity={
+        state === "stale" || state === "offline" || state === "disconnected" ? "warning" : "info"
+      }
+      role="status"
+    >
       View state: {state}
     </Alert>
   );

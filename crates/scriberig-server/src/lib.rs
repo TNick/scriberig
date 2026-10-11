@@ -1,18 +1,20 @@
 //! Adapts remote protocol requests and events onto shared Scriberig application operations.
 
+pub mod development;
 pub mod dispatch;
+pub mod http;
 pub mod operation;
 pub mod server;
 pub mod subscription;
 pub mod transport;
 
+pub use development::{ensure_fixture, DevelopmentFixture};
 pub use dispatch::Dispatcher;
 pub use server::ApplicationService;
 pub use transport::InProcessTransport;
 
 use std::error::Error;
-use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::TcpListener;
 use std::path::Path;
 
 /// Serve the development health endpoint over HTTP.
@@ -32,43 +34,17 @@ pub fn serve(
     port: u16,
     database_path: &Path,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    scriberig_store_sqlite::initialize_development_database(database_path)?;
+    let store = scriberig_store_sqlite::SqliteStore::open(database_path)?;
+    let fixture = ensure_fixture(&store).map_err(std::io::Error::other)?;
+    let service =
+        scriberig_app::ApplicationService::new(scriberig_app::StoreInspectionBackend::new(store));
+    let state = http::HttpState { service, fixture };
     let listener = TcpListener::bind((host, port))?;
     println!("Scriberig API listening on http://{host}:{port}");
     println!("SQLite database: {}", database_path.display());
 
     for connection in listener.incoming() {
-        handle_connection(connection?)?;
+        http::handle_connection(connection?, &state)?;
     }
     Ok(())
-}
-
-/// Handle one HTTP request from the development web proxy.
-///
-/// # Parameters
-/// - `stream`: Connected client socket.
-///
-/// # Returns
-/// Unit after the HTTP response is written.
-///
-/// # Errors
-/// Returns an error when the request or response cannot be read or written.
-fn handle_connection(mut stream: TcpStream) -> std::io::Result<()> {
-    let mut request = [0_u8; 2048];
-    let bytes_read = stream.read(&mut request)?;
-    let request_line = std::str::from_utf8(&request[..bytes_read])
-        .ok()
-        .and_then(|text| text.lines().next())
-        .unwrap_or_default();
-    let (status, body) = if request_line.starts_with("GET /api/health ") {
-        ("200 OK", r#"{"status":"ready","database":"ready"}"#)
-    } else {
-        ("404 Not Found", r#"{"error":"not found"}"#)
-    };
-
-    write!(
-        stream,
-        "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
-        body.len()
-    )
 }
