@@ -1,21 +1,32 @@
 //! Defines universal semantic query, traversal, scope, and pagination contracts.
 
 pub mod detail;
+pub mod error;
 pub mod handle;
+pub mod inspect;
 pub mod pagination;
+pub mod result;
 pub mod scope;
 pub mod selection;
+pub mod traverse;
 
 pub use detail::{DetailLevel, InformationCost};
+pub use error::{QueryError, ReadOperation};
 pub use handle::{
     CollectionRef, EntityAtRevision, EntityInSnapshot, EntityRef, OperationRef, ProjectionRef,
     RelationRef, RevisionRef, SnapshotRef, TargetRef,
 };
+pub use inspect::{InspectRequest, InspectService};
 pub use pagination::{
     ContinuationToken, DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT, Page, PageRequest, PageRequestError,
 };
+pub use result::{Inspection, NavigationEntry, ReadCapability};
 pub use scope::QueryScope;
 pub use selection::{ProjectionAnchor, RelationStep, Selection};
+pub use traverse::{
+    FollowDirection, FollowRequest, FollowResult, ListRequest, ListResult, ReadService,
+    SnapshotContext, TraverseService,
+};
 
 #[cfg(test)]
 mod tests {
@@ -80,6 +91,41 @@ mod tests {
         };
         assert_eq!(page.items, vec!["one"]);
         assert!(page.next.is_some());
+    }
+
+    /// Checks navigation requests and results retain typed snapshot context.
+    #[test]
+    fn traversal_contracts_preserve_typed_identity() {
+        let snapshot = SnapshotId::new([7; 32]);
+        let entity = EntityId::new([8; 16]);
+        let subject = EntityInSnapshot { entity, snapshot };
+        let collection = CollectionRef {
+            owner: entity,
+            collection_type: "module.children".to_owned(),
+        };
+        let request = ListRequest {
+            subject,
+            collection: collection.clone(),
+            page: PageRequest::default(),
+            detail: DetailLevel::Compact,
+        };
+        assert_eq!(request.subject.snapshot, snapshot);
+        assert_eq!(request.collection, collection);
+    }
+
+    /// Checks inspection requests preserve exact revision targets.
+    #[test]
+    fn inspection_request_keeps_exact_target() {
+        let target = TargetRef::Revision(EntityAtRevision {
+            entity: EntityId::new([9; 16]),
+            revision: RevisionId::new([10; 32]),
+        });
+        let request = InspectRequest {
+            target,
+            detail: DetailLevel::Identity,
+            view: None,
+        };
+        assert_eq!(request.target, target);
     }
 
     /// Checks information-cost hints remain optional and domain-neutral.
