@@ -6,4 +6,6 @@ Dependency direction is one-way: core/store/schema -> graph/query/change/derive/
 
 Storage backends implement `scriberig-store` contracts. Domain adapters live under `crates/domains/`. `scriberig-app` is the shared application-operation boundary used by CLI, server, TUI, web transport, and agents. `scriberig-agent-runtime` and `scriberig-server` are integrated product/runtime layers and must not leak product dependencies back into reusable crates.
 
+Rust source uses spaces with an indentation width of 4. `rustfmt` is authoritative for source formatting.
+
 When adding a crate, document its layer, allowed dependencies, and license in its manifest. Prefer extending an existing architectural owner over creating a competing crate for the same concept.
