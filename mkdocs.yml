@@ -11,7 +11,7 @@ site_dir: site
 
 use_directory_urls: true
 
- theme:
+theme:
   name: material
   features:
     - navigation.sections
