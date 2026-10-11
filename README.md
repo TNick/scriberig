@@ -42,6 +42,16 @@ The project is currently being specified from architecture down to implementatio
 
 The intended result is a system where humans, agents, compilers, editors, and third-party applications can work with different views of the same persistent semantic state without each inventing a separate storage or mutation model.
 
+## Documentation
+
+The GitHub Pages site publishes the project documentation together with generated API references:
+
+- [CLI reference](https://tnick.github.io/scriberig/cli-reference/)
+- [Rust and TypeScript API reference](https://tnick.github.io/scriberig/api/)
+- [TypeScript API documentation](https://tnick.github.io/scriberig/api/typescript/)
+
+The API documentation is rebuilt from the Rust workspace and public TypeScript packages by the GitHub Pages workflow.
+
 ## Bootstrap
 
 ```bash
