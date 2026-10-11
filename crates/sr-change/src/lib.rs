@@ -41,4 +41,8 @@ pub use migration::{EntityDelta, Migration, MigrationError};
 pub use operation::{CollectionPosition, Operation};
 pub use promotion::{PromotionResult, promote};
 pub use provenance::{Provenance, SourceKind};
+pub use rebase::{
+    DomainReplayOutcome, DomainReplayStrategy, RebaseError, RebaseInput, RebaseResult,
+    RebasedMigration, Relation, ReplayContext, ReplayState, rebase,
+};
 pub use workspace::{Workspace, WorkspaceStatus};
