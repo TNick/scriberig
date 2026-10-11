@@ -29,3 +29,7 @@ pub mod rebase;
 pub mod summary;
 /// Defines isolated speculative work.
 pub mod workspace;
+
+pub use migration::{EntityDelta, Migration, MigrationError};
+pub use operation::{CollectionPosition, Operation};
+pub use provenance::{Provenance, SourceKind};
