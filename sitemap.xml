@@ -73,6 +73,10 @@
          <lastmod>2026-10-11</lastmod>
     </url>
     <url>
+         <loc>https://tnick.github.io/scriberig/level-1/015.%20terminal%20user%20interface%20principles/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
          <loc>https://tnick.github.io/scriberig/level-2/001.%20derived%20knowledge%20runtime%20and%20cache%20design/</loc>
          <lastmod>2026-10-11</lastmod>
     </url>
@@ -150,6 +154,14 @@
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/020.%20repository%20scaffold%20conventions%20and%20native%20command%20surface/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-2/021.%20terminal%20ui%20runtime%20and%20state%20architecture/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-2/022.%20terminal%20ui%20views%20interaction%20and%20conformance/</loc>
          <lastmod>2026-10-11</lastmod>
     </url>
     <url>
@@ -542,6 +554,38 @@
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/098.%20reconcile%20scaffold%20task%20status%20and%20supersession/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/099.%20bootstrap%20ratatui%20terminal%20runtime%20and%20shell/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/100.%20implement%20tui%20actions%20reducer%20navigation%20and%20keymap/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/101.%20implement%20tui%20application%20adapter%20explorer%20and%20inspector/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/102.%20implement%20tui%20history%20diff%20projection%20and%20change%20review%20views/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/103.%20implement%20tui%20sessions%20agent%20interaction%20and%20operation%20observation/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/104.%20wire%20srig%20tui%20to%20local%20application%20composition/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/105.%20add%20remote%20tui%20mode%20through%20scriberig-client/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/106.%20verify%20tui%20conformance%20accessibility%20and%20terminal%20recovery/</loc>
          <lastmod>2026-10-11</lastmod>
     </url>
 </urlset>
