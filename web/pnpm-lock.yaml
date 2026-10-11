@@ -256,6 +256,12 @@ importers:
       '@scriberig/editor-core':
         specifier: workspace:*
         version: link:../editor-core
+      '@scriberig/model':
+        specifier: workspace:*
+        version: link:../model
+      '@scriberig/protocol':
+        specifier: workspace:*
+        version: link:../protocol
       '@scriberig/react':
         specifier: workspace:*
         version: link:../react
@@ -283,6 +289,9 @@ importers:
       '@scriberig/editor-core':
         specifier: workspace:*
         version: link:../editor-core
+      '@scriberig/protocol':
+        specifier: workspace:*
+        version: link:../protocol
       '@scriberig/react':
         specifier: workspace:*
         version: link:../react

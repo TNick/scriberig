@@ -10,3 +10,4 @@ export * from "./diff";
 export * from "./branches";
 export * from "./migration-review";
 export * from "./projection-session";
+export * from "./trust";

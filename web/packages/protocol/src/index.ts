@@ -10,3 +10,4 @@ export * from "./sessions";
 export * from "./projections";
 export * from "./capabilities";
 export * from "./errors";
+export * from "./trust";

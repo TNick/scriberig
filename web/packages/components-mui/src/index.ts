@@ -10,6 +10,7 @@ export * from "./MuiMigrationPreview";
 export * from "./MuiSessionTree";
 export * from "./MuiBranchView";
 export * from "./MuiValidationResults";
+export * from "./MuiTrustSummary";
 export * from "./MuiOperationView";
 export * from "./MuiProjectionHost";
 export * from "./MuiAgentPanel";

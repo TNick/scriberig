@@ -1,4 +1,8 @@
-/** @file Reserves a focused package module for its owning implementation task. */
+/** @file Defines stable transport-safe semantic identifiers. */
 
-// Keep the scaffold module empty until the relevant design defines its semantics.
-export {};
+/** Opaque entity identifier. */
+export type EntityId = string & { readonly __entityId: unique symbol };
+/** Opaque revision identifier. */
+export type RevisionId = string & { readonly __revisionId: unique symbol };
+/** Opaque snapshot identifier. */
+export type SnapshotId = string & { readonly __snapshotId: unique symbol };

@@ -9,3 +9,4 @@ export * from "./use-operation";
 export * from "./use-session";
 export * from "./use-selection";
 export * from "./use-commands";
+export * from "./use-trust";

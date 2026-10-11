@@ -8,6 +8,7 @@
   "dependencies": {
     "@scriberig/components": "workspace:*",
     "@scriberig/editor-core": "workspace:*",
+    "@scriberig/protocol": "workspace:*",
     "@scriberig/react": "workspace:*"
   },
   "peerDependencies": {

@@ -8,3 +8,4 @@ export * from "./relation-cache";
 export * from "./operation-store";
 export * from "./event-reducer";
 export * from "./stale-state";
+export * from "./trust-inspector";

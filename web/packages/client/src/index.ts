@@ -6,3 +6,4 @@ export * from "./transport";
 export * from "./http-transport";
 export * from "./event-stream";
 export * from "./errors";
+export * from "./trust";

@@ -1,6 +1,8 @@
 /** @file Defines the top-level reference Scriberig editor component. */
 
 import { useEffect, useState, type ReactElement } from "react";
+import { TrustInspectorPanel } from "@scriberig/components";
+import type { TrustInspectorState } from "@scriberig/model";
 
 /**
  * Render the reference Scriberig editor scaffold and API readiness.
@@ -9,6 +11,7 @@ import { useEffect, useState, type ReactElement } from "react";
  */
 export function App(): ReactElement {
   const [apiStatus, setApiStatus] = useState("Checking local API…");
+  const trustState: TrustInspectorState = { status: "idle" };
 
   useEffect(() => {
     let mounted = true;
@@ -45,6 +48,7 @@ export function App(): ReactElement {
       <h1>Scriberig</h1>
       <p>Editor scaffold</p>
       <p role="status">{apiStatus}</p>
+      <TrustInspectorPanel state={trustState} />
     </main>
   );
 }

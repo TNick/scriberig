@@ -13,3 +13,4 @@ export * from "./ValidationResults";
 export * from "./OperationView";
 export * from "./ProjectionHost";
 export * from "./AgentOperationView";
+export * from "./TrustViews";
