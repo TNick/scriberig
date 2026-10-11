@@ -80,35 +80,50 @@
 <a href=#80 id=80 data-nosnippet>80</a>    ///
 <a href=#81 id=81 data-nosnippet>81</a>    /// # Errors
 <a href=#82 id=82 data-nosnippet>82</a>    /// Returns a structured diagnostic when parsing fails.
-<a href=#83 id=83 data-nosnippet>83</a>    </span><span class="kw">fn </span>parse(<span class="kw-2">&amp;</span><span class="self">self</span>, kind: <span class="kw-2">&amp;</span>ProjectionKind, bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; ProjectionResult&lt;<span class="self">Self</span>::Candidate&gt;;
-<a href=#84 id=84 data-nosnippet>84</a>
-<a href=#85 id=85 data-nosnippet>85</a>    <span class="doccomment">/// Reconciles a candidate against the exact state from which it was edited.
-<a href=#86 id=86 data-nosnippet>86</a>    ///
-<a href=#87 id=87 data-nosnippet>87</a>    /// # Parameters
-<a href=#88 id=88 data-nosnippet>88</a>    /// - `self`: Adapter performing reconciliation.
-<a href=#89 id=89 data-nosnippet>89</a>    /// - `candidate`: Parsed external candidate.
-<a href=#90 id=90 data-nosnippet>90</a>    /// - `base`: Exact canonical base snapshot.
+<a href=#83 id=83 data-nosnippet>83</a>    </span><span class="kw">fn </span>parse(<span class="kw-2">&amp;</span><span class="self">self</span>, kind: <span class="kw-2">&amp;</span>ProjectionKind, bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; ProjectionResult&lt;<span class="self">Self</span>::Candidate&gt; {
+<a href=#84 id=84 data-nosnippet>84</a>        <span class="kw">let _ </span>= (kind, bytes);
+<a href=#85 id=85 data-nosnippet>85</a>        <span class="prelude-val">Err</span>(Box::new(ProjectionDiagnostic::unsupported(
+<a href=#86 id=86 data-nosnippet>86</a>            <span class="kw">crate</span>::diagnostic::DiagnosticStage::Parse,
+<a href=#87 id=87 data-nosnippet>87</a>        )))
+<a href=#88 id=88 data-nosnippet>88</a>    }
+<a href=#89 id=89 data-nosnippet>89</a>
+<a href=#90 id=90 data-nosnippet>90</a>    <span class="doccomment">/// Reconciles a candidate against the exact state from which it was edited.
 <a href=#91 id=91 data-nosnippet>91</a>    ///
-<a href=#92 id=92 data-nosnippet>92</a>    /// # Returns
-<a href=#93 id=93 data-nosnippet>93</a>    /// A typed outcome distinguishing no-op, proposal, ambiguity, conflict,
-<a href=#94 id=94 data-nosnippet>94</a>    /// and invalid external state.
-<a href=#95 id=95 data-nosnippet>95</a>    </span><span class="kw">fn </span>reconcile(
-<a href=#96 id=96 data-nosnippet>96</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
-<a href=#97 id=97 data-nosnippet>97</a>        candidate: <span class="self">Self</span>::Candidate,
-<a href=#98 id=98 data-nosnippet>98</a>        base: <span class="kw">crate</span>::model::SemanticStateRef,
-<a href=#99 id=99 data-nosnippet>99</a>    ) -&gt; ReconciliationOutcome&lt;<span class="self">Self</span>::Migration, <span class="self">Self</span>::Conflict, Box&lt;ProjectionDiagnostic&gt;&gt;;
-<a href=#100 id=100 data-nosnippet>100</a>
-<a href=#101 id=101 data-nosnippet>101</a>    <span class="doccomment">/// Validates an adapter-owned candidate before proposing canonical change.
-<a href=#102 id=102 data-nosnippet>102</a>    ///
-<a href=#103 id=103 data-nosnippet>103</a>    /// # Parameters
-<a href=#104 id=104 data-nosnippet>104</a>    /// - `self`: Adapter performing validation.
-<a href=#105 id=105 data-nosnippet>105</a>    /// - `candidate`: Parsed external candidate.
-<a href=#106 id=106 data-nosnippet>106</a>    ///
-<a href=#107 id=107 data-nosnippet>107</a>    /// # Returns
-<a href=#108 id=108 data-nosnippet>108</a>    /// Success when the candidate satisfies adapter invariants.
-<a href=#109 id=109 data-nosnippet>109</a>    ///
-<a href=#110 id=110 data-nosnippet>110</a>    /// # Errors
-<a href=#111 id=111 data-nosnippet>111</a>    /// Returns a structured diagnostic when validation fails.
-<a href=#112 id=112 data-nosnippet>112</a>    </span><span class="kw">fn </span>validate(<span class="kw-2">&amp;</span><span class="self">self</span>, candidate: <span class="kw-2">&amp;</span><span class="self">Self</span>::Candidate) -&gt; ProjectionResult&lt;()&gt;;
-<a href=#113 id=113 data-nosnippet>113</a>}
+<a href=#92 id=92 data-nosnippet>92</a>    /// # Parameters
+<a href=#93 id=93 data-nosnippet>93</a>    /// - `self`: Adapter performing reconciliation.
+<a href=#94 id=94 data-nosnippet>94</a>    /// - `candidate`: Parsed external candidate.
+<a href=#95 id=95 data-nosnippet>95</a>    /// - `context`: Exact canonical and projection synchronization context.
+<a href=#96 id=96 data-nosnippet>96</a>    ///
+<a href=#97 id=97 data-nosnippet>97</a>    /// # Returns
+<a href=#98 id=98 data-nosnippet>98</a>    /// A typed outcome distinguishing no-op, proposal, ambiguity, conflict,
+<a href=#99 id=99 data-nosnippet>99</a>    /// and invalid external state.
+<a href=#100 id=100 data-nosnippet>100</a>    </span><span class="kw">fn </span>reconcile(
+<a href=#101 id=101 data-nosnippet>101</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
+<a href=#102 id=102 data-nosnippet>102</a>        candidate: <span class="self">Self</span>::Candidate,
+<a href=#103 id=103 data-nosnippet>103</a>        context: <span class="kw-2">&amp;</span>ReconciliationContext,
+<a href=#104 id=104 data-nosnippet>104</a>    ) -&gt; ReconciliationOutcome&lt;<span class="self">Self</span>::Migration, <span class="self">Self</span>::Conflict, Box&lt;ProjectionDiagnostic&gt;&gt; {
+<a href=#105 id=105 data-nosnippet>105</a>        <span class="kw">let _ </span>= (candidate, context);
+<a href=#106 id=106 data-nosnippet>106</a>        ReconciliationOutcome::InvalidExternalState(Box::new(ProjectionDiagnostic::unsupported(
+<a href=#107 id=107 data-nosnippet>107</a>            <span class="kw">crate</span>::diagnostic::DiagnosticStage::Reconcile,
+<a href=#108 id=108 data-nosnippet>108</a>        )))
+<a href=#109 id=109 data-nosnippet>109</a>    }
+<a href=#110 id=110 data-nosnippet>110</a>
+<a href=#111 id=111 data-nosnippet>111</a>    <span class="doccomment">/// Validates an adapter-owned candidate before proposing canonical change.
+<a href=#112 id=112 data-nosnippet>112</a>    ///
+<a href=#113 id=113 data-nosnippet>113</a>    /// # Parameters
+<a href=#114 id=114 data-nosnippet>114</a>    /// - `self`: Adapter performing validation.
+<a href=#115 id=115 data-nosnippet>115</a>    /// - `candidate`: Parsed external candidate.
+<a href=#116 id=116 data-nosnippet>116</a>    ///
+<a href=#117 id=117 data-nosnippet>117</a>    /// # Returns
+<a href=#118 id=118 data-nosnippet>118</a>    /// Success when the candidate satisfies adapter invariants.
+<a href=#119 id=119 data-nosnippet>119</a>    ///
+<a href=#120 id=120 data-nosnippet>120</a>    /// # Errors
+<a href=#121 id=121 data-nosnippet>121</a>    /// Returns a structured diagnostic when validation fails.
+<a href=#122 id=122 data-nosnippet>122</a>    </span><span class="kw">fn </span>validate(<span class="kw-2">&amp;</span><span class="self">self</span>, candidate: <span class="kw-2">&amp;</span><span class="self">Self</span>::Candidate) -&gt; ProjectionResult&lt;()&gt; {
+<a href=#123 id=123 data-nosnippet>123</a>        <span class="kw">let _ </span>= candidate;
+<a href=#124 id=124 data-nosnippet>124</a>        <span class="prelude-val">Err</span>(Box::new(ProjectionDiagnostic::unsupported(
+<a href=#125 id=125 data-nosnippet>125</a>            <span class="kw">crate</span>::diagnostic::DiagnosticStage::Validate,
+<a href=#126 id=126 data-nosnippet>126</a>        )))
+<a href=#127 id=127 data-nosnippet>127</a>    }
+<a href=#128 id=128 data-nosnippet>128</a>}
 </code></pre></div></section></main></body></html>

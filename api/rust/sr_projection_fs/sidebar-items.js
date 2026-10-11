@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ProjectionStatus"],"mod":["hash","io","location","observe","ownership","recovery","state","sync"],"struct":["ProjectionRef"]};
+window.SIDEBAR_ITEMS = {"enum":["ProjectionStatus","RenderError"],"mod":["coordinator","hash","io","location","observe","ownership","recovery","state","sync"],"struct":["ProjectionRef"]};

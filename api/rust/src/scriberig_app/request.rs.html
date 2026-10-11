@@ -51,43 +51,47 @@
 <a href=#51 id=51 data-nosnippet>51</a></span><span class="kw">pub struct </span>ApplyRequest {
 <a href=#52 id=52 data-nosnippet>52</a>    <span class="doccomment">/// Exact base snapshot required by the change.
 <a href=#53 id=53 data-nosnippet>53</a>    </span><span class="kw">pub </span>base_snapshot: SnapshotId,
-<a href=#54 id=54 data-nosnippet>54</a>    <span class="doccomment">/// Stable migration/change handle.
-<a href=#55 id=55 data-nosnippet>55</a>    </span><span class="kw">pub </span>change: String,
-<a href=#56 id=56 data-nosnippet>56</a>}
-<a href=#57 id=57 data-nosnippet>57</a>
-<a href=#58 id=58 data-nosnippet>58</a><span class="doccomment">/// Identifies a commit request for an already validated change.
-<a href=#59 id=59 data-nosnippet>59</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
-<a href=#60 id=60 data-nosnippet>60</a></span><span class="kw">pub struct </span>CommitRequest {
-<a href=#61 id=61 data-nosnippet>61</a>    <span class="doccomment">/// Exact base snapshot being committed.
-<a href=#62 id=62 data-nosnippet>62</a>    </span><span class="kw">pub </span>base_snapshot: SnapshotId,
-<a href=#63 id=63 data-nosnippet>63</a>    <span class="doccomment">/// Stable migration/change handle.
-<a href=#64 id=64 data-nosnippet>64</a>    </span><span class="kw">pub </span>change: String,
-<a href=#65 id=65 data-nosnippet>65</a>}
-<a href=#66 id=66 data-nosnippet>66</a>
-<a href=#67 id=67 data-nosnippet>67</a><span class="doccomment">/// Selects one universal application operation.
-<a href=#68 id=68 data-nosnippet>68</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
-<a href=#69 id=69 data-nosnippet>69</a></span><span class="kw">pub enum </span>ApplicationRequest {
-<a href=#70 id=70 data-nosnippet>70</a>    <span class="doccomment">/// Inspect an exact semantic target.
-<a href=#71 id=71 data-nosnippet>71</a>    </span>Inspect(InspectRequest),
-<a href=#72 id=72 data-nosnippet>72</a>    <span class="doccomment">/// List a snapshot-bound collection.
-<a href=#73 id=73 data-nosnippet>73</a>    </span>List(ListRequest),
-<a href=#74 id=74 data-nosnippet>74</a>    <span class="doccomment">/// Follow a snapshot-bound relation.
-<a href=#75 id=75 data-nosnippet>75</a>    </span>Follow(FollowRequest),
-<a href=#76 id=76 data-nosnippet>76</a>    <span class="doccomment">/// Discover semantic entities in an exact scope.
-<a href=#77 id=77 data-nosnippet>77</a>    </span>Find(FindRequest),
-<a href=#78 id=78 data-nosnippet>78</a>    <span class="doccomment">/// Evaluate a structural query in an exact scope.
-<a href=#79 id=79 data-nosnippet>79</a>    </span>Query(QuerySpec),
-<a href=#80 id=80 data-nosnippet>80</a>    <span class="doccomment">/// Compute a semantic diff.
-<a href=#81 id=81 data-nosnippet>81</a>    </span>Diff(DiffRequest),
-<a href=#82 id=82 data-nosnippet>82</a>    <span class="doccomment">/// Read semantic history.
-<a href=#83 id=83 data-nosnippet>83</a>    </span>History(HistoryRequest),
-<a href=#84 id=84 data-nosnippet>84</a>    <span class="doccomment">/// Render through a registered view.
-<a href=#85 id=85 data-nosnippet>85</a>    </span>Render(RenderRequest),
-<a href=#86 id=86 data-nosnippet>86</a>    <span class="doccomment">/// Create or update a branch context.
-<a href=#87 id=87 data-nosnippet>87</a>    </span>Branch(BranchRequest),
-<a href=#88 id=88 data-nosnippet>88</a>    <span class="doccomment">/// Apply a proposed change.
-<a href=#89 id=89 data-nosnippet>89</a>    </span>Apply(ApplyRequest),
-<a href=#90 id=90 data-nosnippet>90</a>    <span class="doccomment">/// Commit a validated change.
-<a href=#91 id=91 data-nosnippet>91</a>    </span>Commit(CommitRequest),
-<a href=#92 id=92 data-nosnippet>92</a>}
+<a href=#54 id=54 data-nosnippet>54</a>    <span class="doccomment">/// Optional branch receiving the candidate context.
+<a href=#55 id=55 data-nosnippet>55</a>    </span><span class="kw">pub </span>branch: <span class="prelude-ty">Option</span>&lt;RootName&gt;,
+<a href=#56 id=56 data-nosnippet>56</a>    <span class="doccomment">/// Stable migration/change handle.
+<a href=#57 id=57 data-nosnippet>57</a>    </span><span class="kw">pub </span>change: String,
+<a href=#58 id=58 data-nosnippet>58</a>}
+<a href=#59 id=59 data-nosnippet>59</a>
+<a href=#60 id=60 data-nosnippet>60</a><span class="doccomment">/// Identifies a commit request for an already validated change.
+<a href=#61 id=61 data-nosnippet>61</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#62 id=62 data-nosnippet>62</a></span><span class="kw">pub struct </span>CommitRequest {
+<a href=#63 id=63 data-nosnippet>63</a>    <span class="doccomment">/// Exact base snapshot being committed.
+<a href=#64 id=64 data-nosnippet>64</a>    </span><span class="kw">pub </span>base_snapshot: SnapshotId,
+<a href=#65 id=65 data-nosnippet>65</a>    <span class="doccomment">/// Named branch whose root is promoted, or `main` when omitted.
+<a href=#66 id=66 data-nosnippet>66</a>    </span><span class="kw">pub </span>branch: <span class="prelude-ty">Option</span>&lt;RootName&gt;,
+<a href=#67 id=67 data-nosnippet>67</a>    <span class="doccomment">/// Stable migration/change handle.
+<a href=#68 id=68 data-nosnippet>68</a>    </span><span class="kw">pub </span>change: String,
+<a href=#69 id=69 data-nosnippet>69</a>}
+<a href=#70 id=70 data-nosnippet>70</a>
+<a href=#71 id=71 data-nosnippet>71</a><span class="doccomment">/// Selects one universal application operation.
+<a href=#72 id=72 data-nosnippet>72</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#73 id=73 data-nosnippet>73</a></span><span class="kw">pub enum </span>ApplicationRequest {
+<a href=#74 id=74 data-nosnippet>74</a>    <span class="doccomment">/// Inspect an exact semantic target.
+<a href=#75 id=75 data-nosnippet>75</a>    </span>Inspect(InspectRequest),
+<a href=#76 id=76 data-nosnippet>76</a>    <span class="doccomment">/// List a snapshot-bound collection.
+<a href=#77 id=77 data-nosnippet>77</a>    </span>List(ListRequest),
+<a href=#78 id=78 data-nosnippet>78</a>    <span class="doccomment">/// Follow a snapshot-bound relation.
+<a href=#79 id=79 data-nosnippet>79</a>    </span>Follow(FollowRequest),
+<a href=#80 id=80 data-nosnippet>80</a>    <span class="doccomment">/// Discover semantic entities in an exact scope.
+<a href=#81 id=81 data-nosnippet>81</a>    </span>Find(FindRequest),
+<a href=#82 id=82 data-nosnippet>82</a>    <span class="doccomment">/// Evaluate a structural query in an exact scope.
+<a href=#83 id=83 data-nosnippet>83</a>    </span>Query(QuerySpec),
+<a href=#84 id=84 data-nosnippet>84</a>    <span class="doccomment">/// Compute a semantic diff.
+<a href=#85 id=85 data-nosnippet>85</a>    </span>Diff(DiffRequest),
+<a href=#86 id=86 data-nosnippet>86</a>    <span class="doccomment">/// Read semantic history.
+<a href=#87 id=87 data-nosnippet>87</a>    </span>History(HistoryRequest),
+<a href=#88 id=88 data-nosnippet>88</a>    <span class="doccomment">/// Render through a registered view.
+<a href=#89 id=89 data-nosnippet>89</a>    </span>Render(RenderRequest),
+<a href=#90 id=90 data-nosnippet>90</a>    <span class="doccomment">/// Create or update a branch context.
+<a href=#91 id=91 data-nosnippet>91</a>    </span>Branch(BranchRequest),
+<a href=#92 id=92 data-nosnippet>92</a>    <span class="doccomment">/// Apply a proposed change.
+<a href=#93 id=93 data-nosnippet>93</a>    </span>Apply(ApplyRequest),
+<a href=#94 id=94 data-nosnippet>94</a>    <span class="doccomment">/// Commit a validated change.
+<a href=#95 id=95 data-nosnippet>95</a>    </span>Commit(CommitRequest),
+<a href=#96 id=96 data-nosnippet>96</a>}
 </code></pre></div></section></main></body></html>

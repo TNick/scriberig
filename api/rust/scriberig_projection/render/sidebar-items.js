@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["OutputHash","RenderRequest","RenderedProjection","RenderingContext"]};
+window.SIDEBAR_ITEMS = {"struct":["OutputHash","RenderCacheKey","RenderRequest","RenderedFragment","RenderedProjection","RenderingContext"]};

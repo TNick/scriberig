@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Observation"]};
+window.SIDEBAR_ITEMS = {"enum":["Observation"],"struct":["VecObservationSource"],"trait":["ObservationSource"]};

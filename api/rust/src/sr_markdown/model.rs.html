@@ -63,51 +63,58 @@
 <a href=#63 id=63 data-nosnippet>63</a>        <span class="doccomment">/// Link destination.
 <a href=#64 id=64 data-nosnippet>64</a>        </span>target: String,
 <a href=#65 id=65 data-nosnippet>65</a>    },
-<a href=#66 id=66 data-nosnippet>66</a>    <span class="doccomment">/// A section grouping a heading and all blocks until the next heading.
-<a href=#67 id=67 data-nosnippet>67</a>    </span>Section(Section),
-<a href=#68 id=68 data-nosnippet>68</a>}
-<a href=#69 id=69 data-nosnippet>69</a>
-<a href=#70 id=70 data-nosnippet>70</a><span class="doccomment">/// One ordered section in a Markdown document.
-<a href=#71 id=71 data-nosnippet>71</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
-<a href=#72 id=72 data-nosnippet>72</a></span><span class="kw">pub struct </span>Section {
-<a href=#73 id=73 data-nosnippet>73</a>    <span class="doccomment">/// Heading depth from one through six.
-<a href=#74 id=74 data-nosnippet>74</a>    </span><span class="kw">pub </span>level: u8,
-<a href=#75 id=75 data-nosnippet>75</a>    <span class="doccomment">/// Heading text.
-<a href=#76 id=76 data-nosnippet>76</a>    </span><span class="kw">pub </span>heading: String,
-<a href=#77 id=77 data-nosnippet>77</a>    <span class="doccomment">/// Blocks belonging to this section.
-<a href=#78 id=78 data-nosnippet>78</a>    </span><span class="kw">pub </span>blocks: Vec&lt;MarkdownBlock&gt;,
-<a href=#79 id=79 data-nosnippet>79</a>}
-<a href=#80 id=80 data-nosnippet>80</a>
-<a href=#81 id=81 data-nosnippet>81</a><span class="doccomment">/// One list item and its nested blocks.
-<a href=#82 id=82 data-nosnippet>82</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
-<a href=#83 id=83 data-nosnippet>83</a></span><span class="kw">pub struct </span>ListItem {
-<a href=#84 id=84 data-nosnippet>84</a>    <span class="doccomment">/// Item blocks in source order.
+<a href=#66 id=66 data-nosnippet>66</a>    <span class="doccomment">/// An image reference with alternative text and destination.
+<a href=#67 id=67 data-nosnippet>67</a>    </span>Image {
+<a href=#68 id=68 data-nosnippet>68</a>        <span class="doccomment">/// Alternative text.
+<a href=#69 id=69 data-nosnippet>69</a>        </span>alt: String,
+<a href=#70 id=70 data-nosnippet>70</a>        <span class="doccomment">/// Image destination.
+<a href=#71 id=71 data-nosnippet>71</a>        </span>target: String,
+<a href=#72 id=72 data-nosnippet>72</a>    },
+<a href=#73 id=73 data-nosnippet>73</a>    <span class="doccomment">/// A section grouping a heading and all blocks until the next heading.
+<a href=#74 id=74 data-nosnippet>74</a>    </span>Section(Section),
+<a href=#75 id=75 data-nosnippet>75</a>}
+<a href=#76 id=76 data-nosnippet>76</a>
+<a href=#77 id=77 data-nosnippet>77</a><span class="doccomment">/// One ordered section in a Markdown document.
+<a href=#78 id=78 data-nosnippet>78</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#79 id=79 data-nosnippet>79</a></span><span class="kw">pub struct </span>Section {
+<a href=#80 id=80 data-nosnippet>80</a>    <span class="doccomment">/// Heading depth from one through six.
+<a href=#81 id=81 data-nosnippet>81</a>    </span><span class="kw">pub </span>level: u8,
+<a href=#82 id=82 data-nosnippet>82</a>    <span class="doccomment">/// Heading text.
+<a href=#83 id=83 data-nosnippet>83</a>    </span><span class="kw">pub </span>heading: String,
+<a href=#84 id=84 data-nosnippet>84</a>    <span class="doccomment">/// Blocks belonging to this section.
 <a href=#85 id=85 data-nosnippet>85</a>    </span><span class="kw">pub </span>blocks: Vec&lt;MarkdownBlock&gt;,
 <a href=#86 id=86 data-nosnippet>86</a>}
 <a href=#87 id=87 data-nosnippet>87</a>
-<a href=#88 id=88 data-nosnippet>88</a><span class="kw">impl </span>ListItem {
-<a href=#89 id=89 data-nosnippet>89</a>    <span class="doccomment">/// Creates a list item from its blocks.
-<a href=#90 id=90 data-nosnippet>90</a>    ///
-<a href=#91 id=91 data-nosnippet>91</a>    /// # Parameters
-<a href=#92 id=92 data-nosnippet>92</a>    /// - `blocks`: Item blocks in source order.
-<a href=#93 id=93 data-nosnippet>93</a>    ///
-<a href=#94 id=94 data-nosnippet>94</a>    /// # Returns
-<a href=#95 id=95 data-nosnippet>95</a>    /// A list item.
-<a href=#96 id=96 data-nosnippet>96</a>    </span><span class="attr">#[must_use]
-<a href=#97 id=97 data-nosnippet>97</a>    </span><span class="kw">pub fn </span>new(blocks: Vec&lt;MarkdownBlock&gt;) -&gt; <span class="self">Self </span>{
-<a href=#98 id=98 data-nosnippet>98</a>        <span class="self">Self </span>{ blocks }
-<a href=#99 id=99 data-nosnippet>99</a>    }
-<a href=#100 id=100 data-nosnippet>100</a>
-<a href=#101 id=101 data-nosnippet>101</a>    <span class="doccomment">/// Creates a simple text list item.
-<a href=#102 id=102 data-nosnippet>102</a>    ///
-<a href=#103 id=103 data-nosnippet>103</a>    /// # Parameters
-<a href=#104 id=104 data-nosnippet>104</a>    /// - `text`: Text for the first paragraph.
-<a href=#105 id=105 data-nosnippet>105</a>    ///
-<a href=#106 id=106 data-nosnippet>106</a>    /// # Returns
-<a href=#107 id=107 data-nosnippet>107</a>    /// A list item containing one paragraph.
-<a href=#108 id=108 data-nosnippet>108</a>    </span><span class="attr">#[must_use]
-<a href=#109 id=109 data-nosnippet>109</a>    </span><span class="kw">pub fn </span>text(text: <span class="kw">impl </span>Into&lt;String&gt;) -&gt; <span class="self">Self </span>{
-<a href=#110 id=110 data-nosnippet>110</a>        <span class="self">Self</span>::new(<span class="macro">vec!</span>[MarkdownBlock::Paragraph(text.into())])
-<a href=#111 id=111 data-nosnippet>111</a>    }
-<a href=#112 id=112 data-nosnippet>112</a>}
+<a href=#88 id=88 data-nosnippet>88</a><span class="doccomment">/// One list item and its nested blocks.
+<a href=#89 id=89 data-nosnippet>89</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#90 id=90 data-nosnippet>90</a></span><span class="kw">pub struct </span>ListItem {
+<a href=#91 id=91 data-nosnippet>91</a>    <span class="doccomment">/// Item blocks in source order.
+<a href=#92 id=92 data-nosnippet>92</a>    </span><span class="kw">pub </span>blocks: Vec&lt;MarkdownBlock&gt;,
+<a href=#93 id=93 data-nosnippet>93</a>}
+<a href=#94 id=94 data-nosnippet>94</a>
+<a href=#95 id=95 data-nosnippet>95</a><span class="kw">impl </span>ListItem {
+<a href=#96 id=96 data-nosnippet>96</a>    <span class="doccomment">/// Creates a list item from its blocks.
+<a href=#97 id=97 data-nosnippet>97</a>    ///
+<a href=#98 id=98 data-nosnippet>98</a>    /// # Parameters
+<a href=#99 id=99 data-nosnippet>99</a>    /// - `blocks`: Item blocks in source order.
+<a href=#100 id=100 data-nosnippet>100</a>    ///
+<a href=#101 id=101 data-nosnippet>101</a>    /// # Returns
+<a href=#102 id=102 data-nosnippet>102</a>    /// A list item.
+<a href=#103 id=103 data-nosnippet>103</a>    </span><span class="attr">#[must_use]
+<a href=#104 id=104 data-nosnippet>104</a>    </span><span class="kw">pub fn </span>new(blocks: Vec&lt;MarkdownBlock&gt;) -&gt; <span class="self">Self </span>{
+<a href=#105 id=105 data-nosnippet>105</a>        <span class="self">Self </span>{ blocks }
+<a href=#106 id=106 data-nosnippet>106</a>    }
+<a href=#107 id=107 data-nosnippet>107</a>
+<a href=#108 id=108 data-nosnippet>108</a>    <span class="doccomment">/// Creates a simple text list item.
+<a href=#109 id=109 data-nosnippet>109</a>    ///
+<a href=#110 id=110 data-nosnippet>110</a>    /// # Parameters
+<a href=#111 id=111 data-nosnippet>111</a>    /// - `text`: Text for the first paragraph.
+<a href=#112 id=112 data-nosnippet>112</a>    ///
+<a href=#113 id=113 data-nosnippet>113</a>    /// # Returns
+<a href=#114 id=114 data-nosnippet>114</a>    /// A list item containing one paragraph.
+<a href=#115 id=115 data-nosnippet>115</a>    </span><span class="attr">#[must_use]
+<a href=#116 id=116 data-nosnippet>116</a>    </span><span class="kw">pub fn </span>text(text: <span class="kw">impl </span>Into&lt;String&gt;) -&gt; <span class="self">Self </span>{
+<a href=#117 id=117 data-nosnippet>117</a>        <span class="self">Self</span>::new(<span class="macro">vec!</span>[MarkdownBlock::Paragraph(text.into())])
+<a href=#118 id=118 data-nosnippet>118</a>    }
+<a href=#119 id=119 data-nosnippet>119</a>}
 </code></pre></div></section></main></body></html>

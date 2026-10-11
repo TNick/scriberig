@@ -86,34 +86,35 @@
 <a href=#86 id=86 data-nosnippet>86</a>            <span class="kw">let </span>(name, bytes) =
 <a href=#87 id=87 data-nosnippet>87</a>                row.map_err(|error| StoreOperationError::backend(error.to_string()))<span class="question-mark">?</span>;
 <a href=#88 id=88 data-nosnippet>88</a>            <span class="kw">if </span>bytes.len() != <span class="number">32 </span>{
-<a href=#89 id=89 data-nosnippet>89</a>                <span class="kw">return </span><span class="prelude-val">Err</span>(StoreOperationError::backend(
-<a href=#90 id=90 data-nosnippet>90</a>                    <span class="string">"invalid root snapshot identifier"</span>,
-<a href=#91 id=91 data-nosnippet>91</a>                ));
-<a href=#92 id=92 data-nosnippet>92</a>            }
-<a href=#93 id=93 data-nosnippet>93</a>            <span class="kw">let </span><span class="kw-2">mut </span>id = [<span class="number">0</span>; <span class="number">32</span>];
-<a href=#94 id=94 data-nosnippet>94</a>            id.copy_from_slice(<span class="kw-2">&amp;</span>bytes);
-<a href=#95 id=95 data-nosnippet>95</a>            statuses.push(RootStatus {
-<a href=#96 id=96 data-nosnippet>96</a>                name: scriberig_core::RootName::new(name).map_err(|error| StoreOperationError {
-<a href=#97 id=97 data-nosnippet>97</a>                    category: scriberig_store::StoreErrorCategory::InvalidEncoding,
-<a href=#98 id=98 data-nosnippet>98</a>                    message: <span class="macro">format!</span>(<span class="string">"{error:?}"</span>),
-<a href=#99 id=99 data-nosnippet>99</a>                })<span class="question-mark">?</span>,
-<a href=#100 id=100 data-nosnippet>100</a>                snapshot: <span class="prelude-val">Some</span>(scriberig_core::SnapshotId::new(id)),
-<a href=#101 id=101 data-nosnippet>101</a>            });
-<a href=#102 id=102 data-nosnippet>102</a>        }
-<a href=#103 id=103 data-nosnippet>103</a>        <span class="prelude-val">Ok</span>(statuses)
-<a href=#104 id=104 data-nosnippet>104</a>    }
-<a href=#105 id=105 data-nosnippet>105</a>
-<a href=#106 id=106 data-nosnippet>106</a>    <span class="doccomment">/// Rebuilds SQLite derived indexes.
-<a href=#107 id=107 data-nosnippet>107</a>    ///
-<a href=#108 id=108 data-nosnippet>108</a>    /// # Returns
-<a href=#109 id=109 data-nosnippet>109</a>    /// A consistent index status after rebuilding.
-<a href=#110 id=110 data-nosnippet>110</a>    ///
-<a href=#111 id=111 data-nosnippet>111</a>    /// # Errors
-<a href=#112 id=112 data-nosnippet>112</a>    /// Returns a backend error when rebuilding fails.
-<a href=#113 id=113 data-nosnippet>113</a>    </span><span class="kw">fn </span>rebuild_indexes(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;IndexStatus, StoreOperationError&gt; {
-<a href=#114 id=114 data-nosnippet>114</a>        <span class="self">self</span>.rebuild_derived_indexes()
-<a href=#115 id=115 data-nosnippet>115</a>            .map_err(|error| StoreOperationError::backend(error.to_string()))<span class="question-mark">?</span>;
-<a href=#116 id=116 data-nosnippet>116</a>        <span class="prelude-val">Ok</span>(IndexStatus { consistent: <span class="bool-val">true </span>})
-<a href=#117 id=117 data-nosnippet>117</a>    }
-<a href=#118 id=118 data-nosnippet>118</a>}
+<a href=#89 id=89 data-nosnippet>89</a>                <span class="kw">return </span><span class="prelude-val">Err</span>(StoreOperationError {
+<a href=#90 id=90 data-nosnippet>90</a>                    category: scriberig_store::StoreErrorCategory::InvalidEncoding,
+<a href=#91 id=91 data-nosnippet>91</a>                    message: <span class="string">"invalid root snapshot identifier"</span>.to_owned(),
+<a href=#92 id=92 data-nosnippet>92</a>                });
+<a href=#93 id=93 data-nosnippet>93</a>            }
+<a href=#94 id=94 data-nosnippet>94</a>            <span class="kw">let </span><span class="kw-2">mut </span>id = [<span class="number">0</span>; <span class="number">32</span>];
+<a href=#95 id=95 data-nosnippet>95</a>            id.copy_from_slice(<span class="kw-2">&amp;</span>bytes);
+<a href=#96 id=96 data-nosnippet>96</a>            statuses.push(RootStatus {
+<a href=#97 id=97 data-nosnippet>97</a>                name: scriberig_core::RootName::new(name).map_err(|error| StoreOperationError {
+<a href=#98 id=98 data-nosnippet>98</a>                    category: scriberig_store::StoreErrorCategory::InvalidEncoding,
+<a href=#99 id=99 data-nosnippet>99</a>                    message: <span class="macro">format!</span>(<span class="string">"{error:?}"</span>),
+<a href=#100 id=100 data-nosnippet>100</a>                })<span class="question-mark">?</span>,
+<a href=#101 id=101 data-nosnippet>101</a>                snapshot: <span class="prelude-val">Some</span>(scriberig_core::SnapshotId::new(id)),
+<a href=#102 id=102 data-nosnippet>102</a>            });
+<a href=#103 id=103 data-nosnippet>103</a>        }
+<a href=#104 id=104 data-nosnippet>104</a>        <span class="prelude-val">Ok</span>(statuses)
+<a href=#105 id=105 data-nosnippet>105</a>    }
+<a href=#106 id=106 data-nosnippet>106</a>
+<a href=#107 id=107 data-nosnippet>107</a>    <span class="doccomment">/// Rebuilds SQLite derived indexes.
+<a href=#108 id=108 data-nosnippet>108</a>    ///
+<a href=#109 id=109 data-nosnippet>109</a>    /// # Returns
+<a href=#110 id=110 data-nosnippet>110</a>    /// A consistent index status after rebuilding.
+<a href=#111 id=111 data-nosnippet>111</a>    ///
+<a href=#112 id=112 data-nosnippet>112</a>    /// # Errors
+<a href=#113 id=113 data-nosnippet>113</a>    /// Returns a backend error when rebuilding fails.
+<a href=#114 id=114 data-nosnippet>114</a>    </span><span class="kw">fn </span>rebuild_indexes(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;IndexStatus, StoreOperationError&gt; {
+<a href=#115 id=115 data-nosnippet>115</a>        <span class="self">self</span>.rebuild_derived_indexes()
+<a href=#116 id=116 data-nosnippet>116</a>            .map_err(|error| StoreOperationError::backend(error.to_string()))<span class="question-mark">?</span>;
+<a href=#117 id=117 data-nosnippet>117</a>        <span class="prelude-val">Ok</span>(IndexStatus { consistent: <span class="bool-val">true </span>})
+<a href=#118 id=118 data-nosnippet>118</a>    }
+<a href=#119 id=119 data-nosnippet>119</a>}
 </code></pre></div></section></main></body></html>

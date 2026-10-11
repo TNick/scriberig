@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["OwnershipClass","ProjectionClass"],"struct":["ProjectionKind","ProjectionRef","ProjectionSpec","ProjectionSpecRef","RendererVersion","SemanticScopeRef","SemanticStateRef"]};
+window.SIDEBAR_ITEMS = {"enum":["OwnershipClass","ProjectionClass"],"struct":["ExternalLocation","ProjectionKind","ProjectionRef","ProjectionSpec","ProjectionSpecRef","RendererVersion","SemanticScopeRef","SemanticStateRef"]};

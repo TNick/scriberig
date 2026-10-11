@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["FilesystemProjectionState"]};
+window.SIDEBAR_ITEMS = {"type":["FilesystemProjectionState"]};

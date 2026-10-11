@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["CandidateDocument"]};
+window.SIDEBAR_ITEMS = {"struct":["CandidateDocument","SourceSpan"]};

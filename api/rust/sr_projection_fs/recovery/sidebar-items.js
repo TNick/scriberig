@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["FailureStage"],"struct":["RecoveryRecord"]};
+window.SIDEBAR_ITEMS = {"enum":["FailureStage"],"struct":["MemoryRecoveryStore","RecoveryRecord"]};

@@ -7,7 +7,7 @@
 </ul>
 <h5 id="returns"><a class="doc-anchor" href="#returns">§</a>Returns</h5>
 <p>A provider that delegates render without duplicating projection logic.</p>
-</div></details></div></details></div><h2 id="trait-implementations" class="section-header">Trait Implementations<a href="#trait-implementations" class="anchor">§</a></h2><div id="trait-implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-OperationProvider-for-ProjectionOperationProvider%3CP,+F%3E" class="impl"><a class="src rightside" href="../../src/scriberig_app/projection_backend.rs.html#33-172">Source</a><a href="#impl-OperationProvider-for-ProjectionOperationProvider%3CP,+F%3E" class="anchor">§</a><h3 class="code-header">impl&lt;P, F&gt; <a class="trait" href="../operation_backend/trait.OperationProvider.html" title="trait scriberig_app::operation_backend::OperationProvider">OperationProvider</a> for <a class="struct" href="struct.ProjectionOperationProvider.html" title="struct scriberig_app::projection_backend::ProjectionOperationProvider">ProjectionOperationProvider</a>&lt;P, F&gt;<div class="where">where
+</div></details></div></details></div><h2 id="trait-implementations" class="section-header">Trait Implementations<a href="#trait-implementations" class="anchor">§</a></h2><div id="trait-implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-OperationProvider-for-ProjectionOperationProvider%3CP,+F%3E" class="impl"><a class="src rightside" href="../../src/scriberig_app/projection_backend.rs.html#33-176">Source</a><a href="#impl-OperationProvider-for-ProjectionOperationProvider%3CP,+F%3E" class="anchor">§</a><h3 class="code-header">impl&lt;P, F&gt; <a class="trait" href="../operation_backend/trait.OperationProvider.html" title="trait scriberig_app::operation_backend::OperationProvider">OperationProvider</a> for <a class="struct" href="struct.ProjectionOperationProvider.html" title="struct scriberig_app::projection_backend::ProjectionOperationProvider">ProjectionOperationProvider</a>&lt;P, F&gt;<div class="where">where
     P: ProjectionAdapter,
     F: <a class="trait" href="https://doc.rust-lang.org/1.99.0/core/ops/function/trait.Fn.html" title="trait core::ops::function::Fn">Fn</a>(&amp;<a class="struct" href="../request/struct.RenderRequest.html" title="struct scriberig_app::request::RenderRequest">RenderRequest</a>) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;RenderRequest, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;,</div></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.diff" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/projection_backend.rs.html#50-56">Source</a><a href="#method.diff" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.diff" class="fn">diff</a>(
     &amp;self,
@@ -39,7 +39,7 @@
 <p>Never returns a history summary.</p>
 <h5 id="errors-1"><a class="doc-anchor" href="#errors-1">§</a>Errors</h5>
 <p>Returns unsupported-operation.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.render" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/projection_backend.rs.html#90-111">Source</a><a href="#method.render" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.render" class="fn">render</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.render" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/projection_backend.rs.html#90-115">Source</a><a href="#method.render" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.render" class="fn">render</a>(
     &amp;self,
     _context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../request/struct.RenderRequest.html" title="struct scriberig_app::request::RenderRequest">RenderRequest</a>,
@@ -54,7 +54,7 @@
 <p>Render result summary with output hash and exact snapshot.</p>
 <h5 id="errors-2"><a class="doc-anchor" href="#errors-2">§</a>Errors</h5>
 <p>Returns a structured projection or factory failure.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.branch" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/projection_backend.rs.html#125-131">Source</a><a href="#method.branch" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.branch" class="fn">branch</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.branch" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/projection_backend.rs.html#129-135">Source</a><a href="#method.branch" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.branch" class="fn">branch</a>(
     &amp;self,
     _context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     _request: &amp;<a class="struct" href="../request/struct.BranchRequest.html" title="struct scriberig_app::request::BranchRequest">BranchRequest</a>,
@@ -69,7 +69,7 @@
 <p>Never returns a branch summary.</p>
 <h5 id="errors-3"><a class="doc-anchor" href="#errors-3">§</a>Errors</h5>
 <p>Returns unsupported-operation.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.apply" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/projection_backend.rs.html#145-151">Source</a><a href="#method.apply" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.apply" class="fn">apply</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.apply" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/projection_backend.rs.html#149-155">Source</a><a href="#method.apply" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.apply" class="fn">apply</a>(
     &amp;self,
     _context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     _request: &amp;<a class="struct" href="../request/struct.ApplyRequest.html" title="struct scriberig_app::request::ApplyRequest">ApplyRequest</a>,
@@ -84,7 +84,7 @@
 <p>Never returns a candidate summary.</p>
 <h5 id="errors-4"><a class="doc-anchor" href="#errors-4">§</a>Errors</h5>
 <p>Returns unsupported-operation.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.commit" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/projection_backend.rs.html#165-171">Source</a><a href="#method.commit" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.commit" class="fn">commit</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.commit" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/projection_backend.rs.html#169-175">Source</a><a href="#method.commit" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.commit" class="fn">commit</a>(
     &amp;self,
     _context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     _request: &amp;<a class="struct" href="../request/struct.CommitRequest.html" title="struct scriberig_app::request::CommitRequest">CommitRequest</a>,

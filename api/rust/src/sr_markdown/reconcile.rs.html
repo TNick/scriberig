@@ -172,85 +172,110 @@
 <a href=#172 id=172 data-nosnippet>172</a>                    entity,
 <a href=#173 id=173 data-nosnippet>173</a>                    revision: block_revision(block),
 <a href=#174 id=174 data-nosnippet>174</a>                });
-<a href=#175 id=175 data-nosnippet>175</a>            }
-<a href=#176 id=176 data-nosnippet>176</a>            NodeMatch::Ambiguous { .. } =&gt; {}
-<a href=#177 id=177 data-nosnippet>177</a>        }
-<a href=#178 id=178 data-nosnippet>178</a>    }
-<a href=#179 id=179 data-nosnippet>179</a>    <span class="kw">for </span>entity <span class="kw">in </span><span class="kw-2">&amp;</span>report.unmatched {
-<a href=#180 id=180 data-nosnippet>180</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(node) = base.iter().find(|node| node.id == <span class="kw-2">*</span>entity) {
-<a href=#181 id=181 data-nosnippet>181</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(collection) = node.parent {
-<a href=#182 id=182 data-nosnippet>182</a>                operations.push(Operation::RemoveCollectionMember {
-<a href=#183 id=183 data-nosnippet>183</a>                    collection,
-<a href=#184 id=184 data-nosnippet>184</a>                    member: <span class="kw-2">*</span>entity,
-<a href=#185 id=185 data-nosnippet>185</a>                });
-<a href=#186 id=186 data-nosnippet>186</a>                <span class="kw">continue</span>;
-<a href=#187 id=187 data-nosnippet>187</a>            }
-<a href=#188 id=188 data-nosnippet>188</a>        }
-<a href=#189 id=189 data-nosnippet>189</a>        operations.push(Operation::RemoveEntity { entity: <span class="kw-2">*</span>entity });
-<a href=#190 id=190 data-nosnippet>190</a>    }
-<a href=#191 id=191 data-nosnippet>191</a>    operations
-<a href=#192 id=192 data-nosnippet>192</a>}
-<a href=#193 id=193 data-nosnippet>193</a>
-<a href=#194 id=194 data-nosnippet>194</a><span class="doccomment">/// Produces a deterministic revision for a projected block.
-<a href=#195 id=195 data-nosnippet>195</a>///
-<a href=#196 id=196 data-nosnippet>196</a>/// # Parameters
-<a href=#197 id=197 data-nosnippet>197</a>/// - `block`: Semantic block to identify.
-<a href=#198 id=198 data-nosnippet>198</a>///
-<a href=#199 id=199 data-nosnippet>199</a>/// # Returns
-<a href=#200 id=200 data-nosnippet>200</a>/// Revision identity for the block's canonical payload.
-<a href=#201 id=201 data-nosnippet>201</a></span><span class="kw">fn </span>block_revision(block: <span class="kw-2">&amp;</span>MarkdownBlock) -&gt; scriberig_core::RevisionId {
-<a href=#202 id=202 data-nosnippet>202</a>    <span class="kw">let </span>payload = <span class="macro">format!</span>(<span class="string">"{block:?}"</span>);
-<a href=#203 id=203 data-nosnippet>203</a>    revision_id(
-<a href=#204 id=204 data-nosnippet>204</a>        EncodingVersion::V1,
-<a href=#205 id=205 data-nosnippet>205</a>        <span class="kw-2">&amp;</span>ObjectType::new(<span class="string">"markdown.block"</span>).expect(<span class="string">"static type"</span>),
-<a href=#206 id=206 data-nosnippet>206</a>        payload.as_bytes(),
-<a href=#207 id=207 data-nosnippet>207</a>    )
-<a href=#208 id=208 data-nosnippet>208</a>    .expect(<span class="string">"static canonical encoding version"</span>)
-<a href=#209 id=209 data-nosnippet>209</a>}
-<a href=#210 id=210 data-nosnippet>210</a>
-<a href=#211 id=211 data-nosnippet>211</a><span class="doccomment">/// Derives a stable new entity identity from a candidate path.
-<a href=#212 id=212 data-nosnippet>212</a>///
-<a href=#213 id=213 data-nosnippet>213</a>/// # Parameters
-<a href=#214 id=214 data-nosnippet>214</a>/// - `path`: Semantic candidate path used to distinguish duplicate inserts.
-<a href=#215 id=215 data-nosnippet>215</a>///
-<a href=#216 id=216 data-nosnippet>216</a>/// # Returns
-<a href=#217 id=217 data-nosnippet>217</a>/// A deterministic 128-bit entity identity.
-<a href=#218 id=218 data-nosnippet>218</a></span><span class="kw">fn </span>rand_bytes(path: <span class="kw-2">&amp;</span>[usize]) -&gt; [u8; <span class="number">16</span>] {
-<a href=#219 id=219 data-nosnippet>219</a>    <span class="kw">let </span>digest = blake3::hash(<span class="macro">format!</span>(<span class="string">"markdown.candidate:{path:?}"</span>).as_bytes());
-<a href=#220 id=220 data-nosnippet>220</a>    <span class="kw">let </span><span class="kw-2">mut </span>bytes = [<span class="number">0</span>; <span class="number">16</span>];
-<a href=#221 id=221 data-nosnippet>221</a>    bytes.copy_from_slice(<span class="kw-2">&amp;</span>digest.as_bytes()[..<span class="number">16</span>]);
-<a href=#222 id=222 data-nosnippet>222</a>    bytes
-<a href=#223 id=223 data-nosnippet>223</a>}
-<a href=#224 id=224 data-nosnippet>224</a>
-<a href=#225 id=225 data-nosnippet>225</a><span class="doccomment">/// Flattens blocks for operation lookup.
-<a href=#226 id=226 data-nosnippet>226</a>///
-<a href=#227 id=227 data-nosnippet>227</a>/// # Parameters
-<a href=#228 id=228 data-nosnippet>228</a>/// - `document`: Candidate document.
-<a href=#229 id=229 data-nosnippet>229</a>///
-<a href=#230 id=230 data-nosnippet>230</a>/// # Returns
-<a href=#231 id=231 data-nosnippet>231</a>/// Top-level blocks paired with structural paths.
-<a href=#232 id=232 data-nosnippet>232</a></span><span class="kw">fn </span>flatten_blocks(document: <span class="kw-2">&amp;</span><span class="kw">crate</span>::MarkdownDocument) -&gt; FlattenedBlocks {
-<a href=#233 id=233 data-nosnippet>233</a>    <span class="kw">let </span><span class="kw-2">mut </span>output = Vec::new();
-<a href=#234 id=234 data-nosnippet>234</a>    <span class="kw">for </span>(index, block) <span class="kw">in </span>document.blocks.iter().enumerate() {
-<a href=#235 id=235 data-nosnippet>235</a>        flatten_block(block, <span class="kw-2">&amp;</span>[index], <span class="kw-2">&amp;mut </span>output);
-<a href=#236 id=236 data-nosnippet>236</a>    }
-<a href=#237 id=237 data-nosnippet>237</a>    output
-<a href=#238 id=238 data-nosnippet>238</a>}
-<a href=#239 id=239 data-nosnippet>239</a>
-<a href=#240 id=240 data-nosnippet>240</a><span class="doccomment">/// Adds one block and its nested sections to the operation lookup table.
-<a href=#241 id=241 data-nosnippet>241</a>///
-<a href=#242 id=242 data-nosnippet>242</a>/// # Parameters
-<a href=#243 id=243 data-nosnippet>243</a>/// - `block`: Semantic block to add.
-<a href=#244 id=244 data-nosnippet>244</a>/// - `path`: Structural path of the block.
-<a href=#245 id=245 data-nosnippet>245</a>/// - `output`: Destination flattened blocks.
-<a href=#246 id=246 data-nosnippet>246</a></span><span class="kw">fn </span>flatten_block(block: <span class="kw-2">&amp;</span>MarkdownBlock, path: <span class="kw-2">&amp;</span>[usize], output: <span class="kw-2">&amp;mut </span>FlattenedBlocks) {
-<a href=#247 id=247 data-nosnippet>247</a>    output.push((path.to_owned(), block.clone()));
-<a href=#248 id=248 data-nosnippet>248</a>    <span class="kw">if let </span>MarkdownBlock::Section(section) = block {
-<a href=#249 id=249 data-nosnippet>249</a>        <span class="kw">for </span>(index, child) <span class="kw">in </span>section.blocks.iter().enumerate() {
-<a href=#250 id=250 data-nosnippet>250</a>            <span class="kw">let </span><span class="kw-2">mut </span>child_path = path.to_owned();
-<a href=#251 id=251 data-nosnippet>251</a>            child_path.push(index);
-<a href=#252 id=252 data-nosnippet>252</a>            flatten_block(child, <span class="kw-2">&amp;</span>child_path, output);
-<a href=#253 id=253 data-nosnippet>253</a>        }
-<a href=#254 id=254 data-nosnippet>254</a>    }
-<a href=#255 id=255 data-nosnippet>255</a>}
+<a href=#175 id=175 data-nosnippet>175</a>                <span class="kw">if let </span><span class="prelude-val">Some</span>(collection) = matched_parent(candidate_path, <span class="kw-2">&amp;</span>report.matches) {
+<a href=#176 id=176 data-nosnippet>176</a>                    operations.push(Operation::InsertCollectionMember {
+<a href=#177 id=177 data-nosnippet>177</a>                        collection,
+<a href=#178 id=178 data-nosnippet>178</a>                        member: entity,
+<a href=#179 id=179 data-nosnippet>179</a>                        position: sr_change::CollectionPosition {
+<a href=#180 id=180 data-nosnippet>180</a>                            index: candidate_path.last().copied().unwrap_or(<span class="number">0</span>) <span class="kw">as </span>u64,
+<a href=#181 id=181 data-nosnippet>181</a>                        },
+<a href=#182 id=182 data-nosnippet>182</a>                    });
+<a href=#183 id=183 data-nosnippet>183</a>                }
+<a href=#184 id=184 data-nosnippet>184</a>            }
+<a href=#185 id=185 data-nosnippet>185</a>            NodeMatch::Ambiguous { .. } =&gt; {}
+<a href=#186 id=186 data-nosnippet>186</a>        }
+<a href=#187 id=187 data-nosnippet>187</a>    }
+<a href=#188 id=188 data-nosnippet>188</a>    <span class="kw">for </span>entity <span class="kw">in </span><span class="kw-2">&amp;</span>report.unmatched {
+<a href=#189 id=189 data-nosnippet>189</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(node) = base.iter().find(|node| node.id == <span class="kw-2">*</span>entity) {
+<a href=#190 id=190 data-nosnippet>190</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(collection) = node.parent {
+<a href=#191 id=191 data-nosnippet>191</a>                operations.push(Operation::RemoveCollectionMember {
+<a href=#192 id=192 data-nosnippet>192</a>                    collection,
+<a href=#193 id=193 data-nosnippet>193</a>                    member: <span class="kw-2">*</span>entity,
+<a href=#194 id=194 data-nosnippet>194</a>                });
+<a href=#195 id=195 data-nosnippet>195</a>                <span class="kw">continue</span>;
+<a href=#196 id=196 data-nosnippet>196</a>            }
+<a href=#197 id=197 data-nosnippet>197</a>        }
+<a href=#198 id=198 data-nosnippet>198</a>        operations.push(Operation::RemoveEntity { entity: <span class="kw-2">*</span>entity });
+<a href=#199 id=199 data-nosnippet>199</a>    }
+<a href=#200 id=200 data-nosnippet>200</a>    operations
+<a href=#201 id=201 data-nosnippet>201</a>}
+<a href=#202 id=202 data-nosnippet>202</a>
+<a href=#203 id=203 data-nosnippet>203</a><span class="doccomment">/// Finds the stable parent collection matched for a candidate path.
+<a href=#204 id=204 data-nosnippet>204</a></span><span class="kw">fn </span>matched_parent(path: <span class="kw-2">&amp;</span>[usize], matches: <span class="kw-2">&amp;</span>[NodeMatch]) -&gt; <span class="prelude-ty">Option</span>&lt;EntityId&gt; {
+<a href=#205 id=205 data-nosnippet>205</a>    <span class="kw">if </span>path.len() &lt;= <span class="number">1 </span>{
+<a href=#206 id=206 data-nosnippet>206</a>        <span class="kw">return </span><span class="prelude-val">None</span>;
+<a href=#207 id=207 data-nosnippet>207</a>    }
+<a href=#208 id=208 data-nosnippet>208</a>    <span class="kw">let </span>parent_path = <span class="kw-2">&amp;</span>path[..path.len() - <span class="number">1</span>];
+<a href=#209 id=209 data-nosnippet>209</a>    matches.iter().find_map(|item| <span class="kw">match </span>item {
+<a href=#210 id=210 data-nosnippet>210</a>        NodeMatch::Matched {
+<a href=#211 id=211 data-nosnippet>211</a>            candidate_path,
+<a href=#212 id=212 data-nosnippet>212</a>            existing,
+<a href=#213 id=213 data-nosnippet>213</a>            ..
+<a href=#214 id=214 data-nosnippet>214</a>        } <span class="kw">if </span>candidate_path == parent_path =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>existing),
+<a href=#215 id=215 data-nosnippet>215</a>        <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#216 id=216 data-nosnippet>216</a>    })
+<a href=#217 id=217 data-nosnippet>217</a>}
+<a href=#218 id=218 data-nosnippet>218</a>
+<a href=#219 id=219 data-nosnippet>219</a><span class="doccomment">/// Produces a deterministic revision for a projected block.
+<a href=#220 id=220 data-nosnippet>220</a>///
+<a href=#221 id=221 data-nosnippet>221</a>/// # Parameters
+<a href=#222 id=222 data-nosnippet>222</a>/// - `block`: Semantic block to identify.
+<a href=#223 id=223 data-nosnippet>223</a>///
+<a href=#224 id=224 data-nosnippet>224</a>/// # Returns
+<a href=#225 id=225 data-nosnippet>225</a>/// Revision identity for the block's canonical payload.
+<a href=#226 id=226 data-nosnippet>226</a></span><span class="kw">fn </span>block_revision(block: <span class="kw-2">&amp;</span>MarkdownBlock) -&gt; scriberig_core::RevisionId {
+<a href=#227 id=227 data-nosnippet>227</a>    <span class="kw">let </span>payload = <span class="macro">format!</span>(<span class="string">"{block:?}"</span>);
+<a href=#228 id=228 data-nosnippet>228</a>    revision_id(
+<a href=#229 id=229 data-nosnippet>229</a>        EncodingVersion::V1,
+<a href=#230 id=230 data-nosnippet>230</a>        <span class="kw-2">&amp;</span>ObjectType::new(<span class="string">"markdown.block"</span>).expect(<span class="string">"static type"</span>),
+<a href=#231 id=231 data-nosnippet>231</a>        payload.as_bytes(),
+<a href=#232 id=232 data-nosnippet>232</a>    )
+<a href=#233 id=233 data-nosnippet>233</a>    .expect(<span class="string">"static canonical encoding version"</span>)
+<a href=#234 id=234 data-nosnippet>234</a>}
+<a href=#235 id=235 data-nosnippet>235</a>
+<a href=#236 id=236 data-nosnippet>236</a><span class="doccomment">/// Derives a stable new entity identity from a candidate path.
+<a href=#237 id=237 data-nosnippet>237</a>///
+<a href=#238 id=238 data-nosnippet>238</a>/// # Parameters
+<a href=#239 id=239 data-nosnippet>239</a>/// - `path`: Semantic candidate path used to distinguish duplicate inserts.
+<a href=#240 id=240 data-nosnippet>240</a>///
+<a href=#241 id=241 data-nosnippet>241</a>/// # Returns
+<a href=#242 id=242 data-nosnippet>242</a>/// A deterministic 128-bit entity identity.
+<a href=#243 id=243 data-nosnippet>243</a></span><span class="kw">fn </span>rand_bytes(path: <span class="kw-2">&amp;</span>[usize]) -&gt; [u8; <span class="number">16</span>] {
+<a href=#244 id=244 data-nosnippet>244</a>    <span class="kw">let </span>digest = blake3::hash(<span class="macro">format!</span>(<span class="string">"markdown.candidate:{path:?}"</span>).as_bytes());
+<a href=#245 id=245 data-nosnippet>245</a>    <span class="kw">let </span><span class="kw-2">mut </span>bytes = [<span class="number">0</span>; <span class="number">16</span>];
+<a href=#246 id=246 data-nosnippet>246</a>    bytes.copy_from_slice(<span class="kw-2">&amp;</span>digest.as_bytes()[..<span class="number">16</span>]);
+<a href=#247 id=247 data-nosnippet>247</a>    bytes
+<a href=#248 id=248 data-nosnippet>248</a>}
+<a href=#249 id=249 data-nosnippet>249</a>
+<a href=#250 id=250 data-nosnippet>250</a><span class="doccomment">/// Flattens blocks for operation lookup.
+<a href=#251 id=251 data-nosnippet>251</a>///
+<a href=#252 id=252 data-nosnippet>252</a>/// # Parameters
+<a href=#253 id=253 data-nosnippet>253</a>/// - `document`: Candidate document.
+<a href=#254 id=254 data-nosnippet>254</a>///
+<a href=#255 id=255 data-nosnippet>255</a>/// # Returns
+<a href=#256 id=256 data-nosnippet>256</a>/// Top-level blocks paired with structural paths.
+<a href=#257 id=257 data-nosnippet>257</a></span><span class="kw">fn </span>flatten_blocks(document: <span class="kw-2">&amp;</span><span class="kw">crate</span>::MarkdownDocument) -&gt; FlattenedBlocks {
+<a href=#258 id=258 data-nosnippet>258</a>    <span class="kw">let </span><span class="kw-2">mut </span>output = Vec::new();
+<a href=#259 id=259 data-nosnippet>259</a>    <span class="kw">for </span>(index, block) <span class="kw">in </span>document.blocks.iter().enumerate() {
+<a href=#260 id=260 data-nosnippet>260</a>        flatten_block(block, <span class="kw-2">&amp;</span>[index], <span class="kw-2">&amp;mut </span>output);
+<a href=#261 id=261 data-nosnippet>261</a>    }
+<a href=#262 id=262 data-nosnippet>262</a>    output
+<a href=#263 id=263 data-nosnippet>263</a>}
+<a href=#264 id=264 data-nosnippet>264</a>
+<a href=#265 id=265 data-nosnippet>265</a><span class="doccomment">/// Adds one block and its nested sections to the operation lookup table.
+<a href=#266 id=266 data-nosnippet>266</a>///
+<a href=#267 id=267 data-nosnippet>267</a>/// # Parameters
+<a href=#268 id=268 data-nosnippet>268</a>/// - `block`: Semantic block to add.
+<a href=#269 id=269 data-nosnippet>269</a>/// - `path`: Structural path of the block.
+<a href=#270 id=270 data-nosnippet>270</a>/// - `output`: Destination flattened blocks.
+<a href=#271 id=271 data-nosnippet>271</a></span><span class="kw">fn </span>flatten_block(block: <span class="kw-2">&amp;</span>MarkdownBlock, path: <span class="kw-2">&amp;</span>[usize], output: <span class="kw-2">&amp;mut </span>FlattenedBlocks) {
+<a href=#272 id=272 data-nosnippet>272</a>    output.push((path.to_owned(), block.clone()));
+<a href=#273 id=273 data-nosnippet>273</a>    <span class="kw">if let </span>MarkdownBlock::Section(section) = block {
+<a href=#274 id=274 data-nosnippet>274</a>        <span class="kw">for </span>(index, child) <span class="kw">in </span>section.blocks.iter().enumerate() {
+<a href=#275 id=275 data-nosnippet>275</a>            <span class="kw">let </span><span class="kw-2">mut </span>child_path = path.to_owned();
+<a href=#276 id=276 data-nosnippet>276</a>            child_path.push(index);
+<a href=#277 id=277 data-nosnippet>277</a>            flatten_block(child, <span class="kw-2">&amp;</span>child_path, output);
+<a href=#278 id=278 data-nosnippet>278</a>        }
+<a href=#279 id=279 data-nosnippet>279</a>    }
+<a href=#280 id=280 data-nosnippet>280</a>}
 </code></pre></div></section></main></body></html>

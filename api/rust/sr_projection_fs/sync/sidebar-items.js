@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["inspect_observation"],"struct":["MemorySyncStore","SyncState"]};
+window.SIDEBAR_ITEMS = {"enum":["ImportCompletion"],"struct":["ImportRequest","MemorySyncStore","ObservationResult","SyncState"]};

@@ -34,7 +34,7 @@
 </ul>
 <h5 id="returns-3"><a class="doc-anchor" href="#returns-3">§</a>Returns</h5>
 <p><code>true</code> when the handle was new, or <code>false</code> when it already existed.</p>
-</div></details></div></details></div><h2 id="trait-implementations" class="section-header">Trait Implementations<a href="#trait-implementations" class="anchor">§</a></h2><div id="trait-implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-OperationProvider-for-StoreOperationProvider%3CS%3E" class="impl"><a class="src rightside" href="../../src/scriberig_app/operation_store.rs.html#116-301">Source</a><a href="#impl-OperationProvider-for-StoreOperationProvider%3CS%3E" class="anchor">§</a><h3 class="code-header">impl&lt;S: SnapshotStore + RootStore&gt; <a class="trait" href="../operation_backend/trait.OperationProvider.html" title="trait scriberig_app::operation_backend::OperationProvider">OperationProvider</a> for <a class="struct" href="struct.StoreOperationProvider.html" title="struct scriberig_app::operation_store::StoreOperationProvider">StoreOperationProvider</a>&lt;S&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.diff" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/operation_store.rs.html#129-148">Source</a><a href="#method.diff" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.diff" class="fn">diff</a>(
+</div></details></div></details></div><h2 id="trait-implementations" class="section-header">Trait Implementations<a href="#trait-implementations" class="anchor">§</a></h2><div id="trait-implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-OperationProvider-for-StoreOperationProvider%3CS%3E" class="impl"><a class="src rightside" href="../../src/scriberig_app/operation_store.rs.html#116-323">Source</a><a href="#impl-OperationProvider-for-StoreOperationProvider%3CS%3E" class="anchor">§</a><h3 class="code-header">impl&lt;S: SnapshotStore + RootStore&gt; <a class="trait" href="../operation_backend/trait.OperationProvider.html" title="trait scriberig_app::operation_backend::OperationProvider">OperationProvider</a> for <a class="struct" href="struct.StoreOperationProvider.html" title="struct scriberig_app::operation_store::StoreOperationProvider">StoreOperationProvider</a>&lt;S&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.diff" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/operation_store.rs.html#129-151">Source</a><a href="#method.diff" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.diff" class="fn">diff</a>(
     &amp;self,
     _context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../request/struct.DiffRequest.html" title="struct scriberig_app::request::DiffRequest">DiffRequest</a>,
@@ -49,7 +49,7 @@
 <p>Summary containing the stable diff handle and right snapshot.</p>
 <h5 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h5>
 <p>Returns an internal application error when either snapshot is unavailable.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.history" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/operation_store.rs.html#162-181">Source</a><a href="#method.history" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.history" class="fn">history</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.history" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/operation_store.rs.html#165-188">Source</a><a href="#method.history" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.history" class="fn">history</a>(
     &amp;self,
     _context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../request/struct.HistoryRequest.html" title="struct scriberig_app::request::HistoryRequest">HistoryRequest</a>,
@@ -64,7 +64,7 @@
 <p>Never returns a history summary.</p>
 <h5 id="errors-1"><a class="doc-anchor" href="#errors-1">§</a>Errors</h5>
 <p>Returns an unsupported-operation error.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.render" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/operation_store.rs.html#195-201">Source</a><a href="#method.render" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.render" class="fn">render</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.render" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/operation_store.rs.html#202-208">Source</a><a href="#method.render" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.render" class="fn">render</a>(
     &amp;self,
     _context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     _request: &amp;<a class="struct" href="../request/struct.RenderRequest.html" title="struct scriberig_app::request::RenderRequest">RenderRequest</a>,
@@ -79,7 +79,7 @@
 <p>Never returns a render summary.</p>
 <h5 id="errors-2"><a class="doc-anchor" href="#errors-2">§</a>Errors</h5>
 <p>Returns an unsupported-operation error.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.branch" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/operation_store.rs.html#215-231">Source</a><a href="#method.branch" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.branch" class="fn">branch</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.branch" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/operation_store.rs.html#222-245">Source</a><a href="#method.branch" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.branch" class="fn">branch</a>(
     &amp;self,
     _context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../request/struct.BranchRequest.html" title="struct scriberig_app::request::BranchRequest">BranchRequest</a>,
@@ -94,7 +94,7 @@
 <p>Branch handle summary with its exact base snapshot.</p>
 <h5 id="errors-3"><a class="doc-anchor" href="#errors-3">§</a>Errors</h5>
 <p>Returns an unsupported-operation error.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.apply" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/operation_store.rs.html#245-262">Source</a><a href="#method.apply" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.apply" class="fn">apply</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.apply" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/operation_store.rs.html#259-280">Source</a><a href="#method.apply" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.apply" class="fn">apply</a>(
     &amp;self,
     _context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../request/struct.ApplyRequest.html" title="struct scriberig_app::request::ApplyRequest">ApplyRequest</a>,
@@ -109,7 +109,7 @@
 <p>Candidate summary containing the resulting immutable snapshot.</p>
 <h5 id="errors-4"><a class="doc-anchor" href="#errors-4">§</a>Errors</h5>
 <p>Returns an unsupported-operation error.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.commit" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/operation_store.rs.html#276-300">Source</a><a href="#method.commit" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.commit" class="fn">commit</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.commit" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/operation_store.rs.html#294-322">Source</a><a href="#method.commit" class="anchor">§</a><h4 class="code-header">fn <a href="../operation_backend/trait.OperationProvider.html#tymethod.commit" class="fn">commit</a>(
     &amp;self,
     _context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../request/struct.CommitRequest.html" title="struct scriberig_app::request::CommitRequest">CommitRequest</a>,

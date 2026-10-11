@@ -4,7 +4,7 @@
 <a href=#4 id=4 data-nosnippet>4</a><span class="kw">use </span>scriberig_core::ObjectType;
 <a href=#5 id=5 data-nosnippet>5</a>
 <a href=#6 id=6 data-nosnippet>6</a><span class="doccomment">/// Domain-neutral scalar value used by structural predicates.
-<a href=#7 id=7 data-nosnippet>7</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#7 id=7 data-nosnippet>7</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 <a href=#8 id=8 data-nosnippet>8</a></span><span class="kw">pub enum </span>QueryValue {
 <a href=#9 id=9 data-nosnippet>9</a>    <span class="doccomment">/// UTF-8 scalar value.
 <a href=#10 id=10 data-nosnippet>10</a>    </span>Text(String),
@@ -15,7 +15,7 @@
 <a href=#15 id=15 data-nosnippet>15</a>}
 <a href=#16 id=16 data-nosnippet>16</a>
 <a href=#17 id=17 data-nosnippet>17</a><span class="doccomment">/// Direction for typed relation predicates.
-<a href=#18 id=18 data-nosnippet>18</a></span><span class="attr">#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+<a href=#18 id=18 data-nosnippet>18</a></span><span class="attr">#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 <a href=#19 id=19 data-nosnippet>19</a></span><span class="kw">pub enum </span>QueryDirection {
 <a href=#20 id=20 data-nosnippet>20</a>    <span class="doccomment">/// Traverse relation targets from the subject.
 <a href=#21 id=21 data-nosnippet>21</a>    </span>Outgoing,
@@ -24,7 +24,7 @@
 <a href=#24 id=24 data-nosnippet>24</a>}
 <a href=#25 id=25 data-nosnippet>25</a>
 <a href=#26 id=26 data-nosnippet>26</a><span class="doccomment">/// Declarative structural query expression.
-<a href=#27 id=27 data-nosnippet>27</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#27 id=27 data-nosnippet>27</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 <a href=#28 id=28 data-nosnippet>28</a></span><span class="kw">pub enum </span>QueryExpr {
 <a href=#29 id=29 data-nosnippet>29</a>    <span class="doccomment">/// Matches every entity in the scope.
 <a href=#30 id=30 data-nosnippet>30</a>    </span>All,
@@ -65,7 +65,7 @@
 <a href=#65 id=65 data-nosnippet>65</a>}
 <a href=#66 id=66 data-nosnippet>66</a>
 <a href=#67 id=67 data-nosnippet>67</a><span class="doccomment">/// Orders exact structural query results using domain-independent semantics.
-<a href=#68 id=68 data-nosnippet>68</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#68 id=68 data-nosnippet>68</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 <a href=#69 id=69 data-nosnippet>69</a></span><span class="kw">pub enum </span>QueryOrdering {
 <a href=#70 id=70 data-nosnippet>70</a>    <span class="doccomment">/// Provider-defined stable ordering.
 <a href=#71 id=71 data-nosnippet>71</a>    </span>StableDefault,
@@ -79,7 +79,7 @@
 <a href=#79 id=79 data-nosnippet>79</a>}
 <a href=#80 id=80 data-nosnippet>80</a>
 <a href=#81 id=81 data-nosnippet>81</a><span class="doccomment">/// Selects ascending or descending property ordering.
-<a href=#82 id=82 data-nosnippet>82</a></span><span class="attr">#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+<a href=#82 id=82 data-nosnippet>82</a></span><span class="attr">#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 <a href=#83 id=83 data-nosnippet>83</a></span><span class="kw">pub enum </span>SortDirection {
 <a href=#84 id=84 data-nosnippet>84</a>    <span class="doccomment">/// Lowest values first.
 <a href=#85 id=85 data-nosnippet>85</a>    </span>Ascending,
@@ -88,7 +88,7 @@
 <a href=#88 id=88 data-nosnippet>88</a>}
 <a href=#89 id=89 data-nosnippet>89</a>
 <a href=#90 id=90 data-nosnippet>90</a><span class="doccomment">/// Requests exact structural selection within one snapshot-bound scope.
-<a href=#91 id=91 data-nosnippet>91</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#91 id=91 data-nosnippet>91</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 <a href=#92 id=92 data-nosnippet>92</a></span><span class="kw">pub struct </span>QuerySpec {
 <a href=#93 id=93 data-nosnippet>93</a>    <span class="doccomment">/// Exact semantic scope to query.
 <a href=#94 id=94 data-nosnippet>94</a>    </span><span class="kw">pub </span>scope: QueryScope,
@@ -103,7 +103,7 @@
 <a href=#103 id=103 data-nosnippet>103</a>}
 <a href=#104 id=104 data-nosnippet>104</a>
 <a href=#105 id=105 data-nosnippet>105</a><span class="doccomment">/// One semantic row returned by an exact structural query.
-<a href=#106 id=106 data-nosnippet>106</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#106 id=106 data-nosnippet>106</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 <a href=#107 id=107 data-nosnippet>107</a></span><span class="kw">pub struct </span>QueryRow {
 <a href=#108 id=108 data-nosnippet>108</a>    <span class="doccomment">/// Semantic handle reusable by inspect/list/follow operations.
 <a href=#109 id=109 data-nosnippet>109</a>    </span><span class="kw">pub </span>target: TargetRef,
@@ -114,7 +114,7 @@
 <a href=#114 id=114 data-nosnippet>114</a>}
 <a href=#115 id=115 data-nosnippet>115</a>
 <a href=#116 id=116 data-nosnippet>116</a><span class="doccomment">/// Returns exact-scope structural query rows.
-<a href=#117 id=117 data-nosnippet>117</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#117 id=117 data-nosnippet>117</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 <a href=#118 id=118 data-nosnippet>118</a></span><span class="kw">pub struct </span>QueryResult {
 <a href=#119 id=119 data-nosnippet>119</a>    <span class="doccomment">/// Exact scope used by evaluation.
 <a href=#120 id=120 data-nosnippet>120</a>    </span><span class="kw">pub </span>scope: QueryScope,
