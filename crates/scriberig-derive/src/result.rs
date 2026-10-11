@@ -1,5 +1,6 @@
 //! Defines immutable derived result records and structured attempt status.
 
+use crate::dependency::DependencySet;
 use crate::event::DerivedResultHandle;
 use crate::freshness::FreshnessObservation;
 use crate::key::DerivationKey;
@@ -149,6 +150,18 @@ impl DerivedResultRecord {
     #[must_use]
     pub const fn key(&self) -> &DerivationKey {
         &self.key
+    }
+
+    /// Returns the exact dependencies that contribute to this artifact.
+    ///
+    /// # Parameters
+    /// - `self`: Record to inspect.
+    ///
+    /// # Returns
+    /// The normalized immutable dependency set.
+    #[must_use]
+    pub const fn dependencies(&self) -> &DependencySet {
+        &self.key.dependencies
     }
 
     /// Returns the immutable artifact handle.

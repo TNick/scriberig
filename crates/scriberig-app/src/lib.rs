@@ -6,6 +6,7 @@ pub mod context;
 pub mod error;
 pub mod event;
 pub mod external_effect;
+pub mod guarded_derive;
 pub mod guarded_query;
 mod guarded_query_support;
 pub mod operation;
@@ -29,6 +30,7 @@ pub use external_effect::{
     ExternalEffectEvent, ExternalEffectHistory, ExternalEffectIntent, ExternalEffectReceipt,
     ExternalEffectState, authorize_external_effect,
 };
+pub use guarded_derive::GuardedDerivedRepository;
 pub use guarded_query::GuardedQueryService;
 pub use operation::{OperationId, OperationKind, OperationProgress, OperationStatus};
 pub use promotion::{
