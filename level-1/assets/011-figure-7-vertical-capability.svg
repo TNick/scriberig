@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+<title id="title">A user-facing capability implemented vertically across all relevant surfaces</title><desc id="desc">A vertical semantic diff feature starts in the shared knowledge and application layer, gains a protocol representation, server exposure, client method, CLI and UI presentation, agent exposure where useful, and conformance tests. A small matrix beside the pipeline marks each surface as implemented, local-only, planned, or not applicable so gaps remain explicit.</desc><defs>
+  <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+  <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker>
+  <style>
+    .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.subtitle{font:600 17px system-ui,sans-serif;fill:#475569}.label{font:700 20px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.tiny{font:13px system-ui,sans-serif;fill:#64748b}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#64748b;stroke-width:2.5;fill:none;stroke-dasharray:8 7;marker-end:url(#arrow)}.blue{stroke:#2563eb;stroke-width:3;fill:none;marker-end:url(#arrowBlue)}
+  </style>
+</defs><rect width="1200" height="720" fill="#ffffff"/>
+<text x="600" y="48" text-anchor="middle" class="title">Develop capabilities vertically, then verify conformance</text><text x="600" y="78" text-anchor="middle" class="subtitle">A feature is a cross-surface slice, not a private implementation hidden in one frontend.</text>
+<text x="70" y="130" class="label">Example capability: semantic diff</text>
+<g>
+<rect x="70" y="160" width="330" height="58" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"/><text x="235" y="196" text-anchor="middle" class="body">Knowledge + application operation</text>
+<rect x="70" y="235" width="330" height="58" rx="12" fill="#f8fafc" stroke="#64748b" stroke-width="2.5"/><text x="235" y="271" text-anchor="middle" class="body">Protocol representation</text>
+<rect x="70" y="310" width="330" height="58" rx="12" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2.5"/><text x="235" y="346" text-anchor="middle" class="body">Server transport + client method</text>
+<rect x="70" y="385" width="330" height="58" rx="12" fill="#ecfeff" stroke="#0891b2" stroke-width="2.5"/><text x="235" y="421" text-anchor="middle" class="body">CLI / TUI / web presentation</text>
+<rect x="70" y="460" width="330" height="58" rx="12" fill="#fff7ed" stroke="#c2410c" stroke-width="2.5"/><text x="235" y="496" text-anchor="middle" class="body">Agent tool exposure if useful</text>
+<rect x="70" y="535" width="330" height="58" rx="12" fill="#ecfdf5" stroke="#0f766e" stroke-width="2.5"/><text x="235" y="571" text-anchor="middle" class="body">Cross-surface conformance tests</text>
+<path d="M235 218 L235 235" class="line"/><path d="M235 293 L235 310" class="line"/><path d="M235 368 L235 385" class="line"/><path d="M235 443 L235 460" class="line"/><path d="M235 518 L235 535" class="line"/>
+</g>
+<text x="520" y="130" class="label">Capability matrix makes gaps explicit</text>
+<rect x="520" y="160" width="610" height="355" rx="14" fill="#ffffff" stroke="#64748b" stroke-width="2.5"/>
+<g class="small">
+<text x="545" y="195">Capability</text><text x="720" y="195">App</text><text x="780" y="195">Protocol</text><text x="875" y="195">CLI</text><text x="930" y="195">Web</text><text x="995" y="195">TUI</text><text x="1050" y="195">Agent</text>
+<line x1="535" y1="210" x2="1115" y2="210" stroke="#cbd5e1" stroke-width="2"/>
+<text x="545" y="250">inspect entity</text><text x="720" y="250">✓</text><text x="800" y="250">✓</text><text x="875" y="250">✓</text><text x="930" y="250">✓</text><text x="995" y="250">✓</text><text x="1050" y="250">✓</text>
+<text x="545" y="305">semantic diff</text><text x="720" y="305">✓</text><text x="800" y="305">✓</text><text x="875" y="305">✓</text><text x="930" y="305">planned</text><text x="995" y="305">planned</text><text x="1050" y="305">✓</text>
+<text x="545" y="360">raw storage GC</text><text x="720" y="360">✓</text><text x="800" y="360">—</text><text x="875" y="360">local</text><text x="930" y="360">—</text><text x="995" y="360">—</text><text x="1050" y="360">—</text>
+<text x="545" y="415">agent command</text><text x="720" y="415">✓</text><text x="800" y="415">✓</text><text x="875" y="415">✓</text><text x="930" y="415">planned</text><text x="995" y="415">planned</text><text x="1050" y="415">✓</text>
+</g>
+<rect x="555" y="455" width="540" height="38" rx="10" fill="#f8fafc" stroke="#cbd5e1"/><text x="825" y="480" text-anchor="middle" class="small">Statuses are evidence, not aspiration: implemented · planned · local · n/a</text>
+<text x="520" y="565" class="body">The matrix is planning evidence; conformance tests verify semantic equivalence.</text><text x="520" y="594" class="small">No surface should become “complete” by bypassing the shared application operation.</text>
+</svg>

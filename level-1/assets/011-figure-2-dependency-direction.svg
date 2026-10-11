@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+<title id="title">Dependency direction from stable foundations to product surfaces</title><desc id="desc">A layered stack runs from core values and storage through graph and schema, query and migration, domain adapters and projections, application operations, then product adapters. Arrows point upward only. Side annotations show that each lower layer can be useful without the layers above it.</desc><defs>
+  <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+  <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker>
+  <style>
+    .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.subtitle{font:600 17px system-ui,sans-serif;fill:#475569}.label{font:700 20px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.tiny{font:13px system-ui,sans-serif;fill:#64748b}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#64748b;stroke-width:2.5;fill:none;stroke-dasharray:8 7;marker-end:url(#arrow)}.blue{stroke:#2563eb;stroke-width:3;fill:none;marker-end:url(#arrowBlue)}
+  </style>
+</defs><rect width="1200" height="760" fill="#ffffff"/>
+<text x="600" y="48" text-anchor="middle" class="title">Dependency direction and independent-use boundaries</text><text x="600" y="78" text-anchor="middle" class="subtitle">Higher layers may depend downward; foundational libraries never depend upward.</text>
+<g>
+<rect x="365" y="115" width="470" height="64" rx="14" fill="#f8fafc" stroke="#64748b" stroke-width="2.5"/><text x="600" y="154" text-anchor="middle" class="label">Core identities and values</text>
+<rect x="365" y="200" width="470" height="64" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"/><text x="600" y="239" text-anchor="middle" class="label">Persistence abstractions + backends</text>
+<rect x="365" y="285" width="470" height="64" rx="14" fill="#ecfdf5" stroke="#0f766e" stroke-width="2.5"/><text x="600" y="324" text-anchor="middle" class="label">Universal graph + schema</text>
+<rect x="365" y="370" width="470" height="64" rx="14" fill="#f0fdf4" stroke="#15803d" stroke-width="2.5"/><text x="600" y="409" text-anchor="middle" class="label">Query + migration infrastructure</text>
+<rect x="365" y="455" width="470" height="64" rx="14" fill="#fff7ed" stroke="#c2410c" stroke-width="2.5"/><text x="600" y="494" text-anchor="middle" class="label">Domain adapters + projections</text>
+<rect x="365" y="540" width="470" height="64" rx="14" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2.5"/><text x="600" y="579" text-anchor="middle" class="label">Application operations</text>
+<rect x="365" y="625" width="470" height="64" rx="14" fill="#fdf2f8" stroke="#be185d" stroke-width="2.5"/><text x="600" y="664" text-anchor="middle" class="label">Server · CLI/TUI · Agent · Clients · Web</text>
+</g>
+<path d="M600 200 L600 179" class="line"/><path d="M600 285 L600 264" class="line"/><path d="M600 370 L600 349" class="line"/><path d="M600 455 L600 434" class="line"/><path d="M600 540 L600 519" class="line"/><path d="M600 625 L600 604" class="line"/>
+<text x="120" y="240" class="label">Standalone value</text><text x="120" y="270" class="body">Storage can be used</text><text x="120" y="293" class="body">without agents or UI.</text><path d="M300 275 L360 240" class="dash"/>
+<text x="900" y="402" class="label">Domain reuse</text><text x="900" y="432" class="body">Code/document support</text><text x="900" y="455" class="body">does not require a server.</text><path d="M895 445 L840 485" class="dash"/>
+<text x="95" y="582" class="label">Shared product core</text><text x="95" y="612" class="body">Operations centralize</text><text x="95" y="635" class="body">business behavior.</text><path d="M300 615 L360 575" class="dash"/>
+</svg>

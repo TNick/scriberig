@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="660" viewBox="0 0 1200 660" role="img" aria-labelledby="title desc">
+<title id="title">Stable operation identity with progress events and one final result</title><desc id="desc">A long-running operation has one stable OperationId and moves from queued to running, then to completed, failed, or cancelled. While running it may emit progress and partial output events. Events notify observers but canonical and final results are retrieved through the normal operation and semantic state APIs.</desc><defs>
+  <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+  <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker>
+  <style>
+    .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.subtitle{font:600 17px system-ui,sans-serif;fill:#475569}.label{font:700 20px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.tiny{font:13px system-ui,sans-serif;fill:#64748b}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#64748b;stroke-width:2.5;fill:none;stroke-dasharray:8 7;marker-end:url(#arrow)}.blue{stroke:#2563eb;stroke-width:3;fill:none;marker-end:url(#arrowBlue)}
+  </style>
+</defs><rect width="1200" height="660" fill="#ffffff"/>
+<text x="600" y="48" text-anchor="middle" class="title">Stable operations, observable progress, authoritative final state</text><text x="600" y="78" text-anchor="middle" class="subtitle">Streaming is delivery; it is not a second semantic API.</text>
+<rect x="70" y="170" width="190" height="82" rx="41" fill="#f8fafc" stroke="#64748b" stroke-width="3"/><text x="165" y="219" text-anchor="middle" class="label">Queued</text>
+<rect x="350" y="170" width="210" height="82" rx="41" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/><text x="455" y="205" text-anchor="middle" class="label">Running</text><text x="455" y="231" text-anchor="middle" class="small">OperationId O</text>
+<path d="M260 211 L350 211" class="line"/>
+<rect x="725" y="105" width="210" height="72" rx="36" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/><text x="830" y="149" text-anchor="middle" class="label">Completed</text>
+<rect x="725" y="205" width="210" height="72" rx="36" fill="#fef2f2" stroke="#dc2626" stroke-width="3"/><text x="830" y="249" text-anchor="middle" class="label">Failed</text>
+<rect x="725" y="305" width="210" height="72" rx="36" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/><text x="830" y="349" text-anchor="middle" class="label">Cancelled</text>
+<path d="M560 195 C630 165 650 145 725 141" class="line"/><path d="M560 211 L725 241" class="line"/><path d="M560 230 C625 280 650 325 725 341" class="line"/>
+<rect x="350" y="355" width="210" height="155" rx="18" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/><text x="455" y="392" text-anchor="middle" class="label">Event stream</text><text x="455" y="425" text-anchor="middle" class="body">progress</text><text x="455" y="451" text-anchor="middle" class="body">partial output</text><text x="455" y="477" text-anchor="middle" class="body">diagnostics</text><path d="M455 252 L455 355" class="dash"/>
+<rect x="710" y="475" width="250" height="100" rx="16" fill="#ecfeff" stroke="#0891b2" stroke-width="3"/><text x="835" y="514" text-anchor="middle" class="label">Operation result</text><text x="835" y="544" text-anchor="middle" class="body">addressable after the stream</text>
+<path d="M830 377 L835 475" class="dash"/>
+<text x="70" y="575" class="body">Observers may be CLI, TUI, web, API clients, or session branches.</text><text x="70" y="603" class="small">Events say what happened; consumers resolve authoritative state through normal APIs.</text>
+</svg>

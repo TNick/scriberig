@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+<title id="title">All mutation sources converge on one semantic change pipeline</title><desc id="desc">External file edits, web editor actions, CLI commands, agent tools, and third-party clients all produce migration proposals. Those proposals share validation and conflict checks before a new snapshot is committed. Provenance records the source, but no surface gets a private mutation path.</desc><defs>
+  <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+  <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker>
+  <style>
+    .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.subtitle{font:600 17px system-ui,sans-serif;fill:#475569}.label{font:700 20px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.tiny{font:13px system-ui,sans-serif;fill:#64748b}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#64748b;stroke-width:2.5;fill:none;stroke-dasharray:8 7;marker-end:url(#arrow)}.blue{stroke:#2563eb;stroke-width:3;fill:none;marker-end:url(#arrowBlue)}
+  </style>
+</defs><rect width="1200" height="700" fill="#ffffff"/>
+<text x="600" y="48" text-anchor="middle" class="title">All write surfaces converge on one semantic change path</text><text x="600" y="78" text-anchor="middle" class="subtitle">Different entry points, one migration and validation model.</text>
+<g>
+<rect x="55" y="135" width="230" height="68" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="2.5"/><text x="170" y="176" text-anchor="middle" class="label">External file edit</text>
+<rect x="55" y="225" width="230" height="68" rx="14" fill="#ecfeff" stroke="#0891b2" stroke-width="2.5"/><text x="170" y="266" text-anchor="middle" class="label">Web editor</text>
+<rect x="55" y="315" width="230" height="68" rx="14" fill="#f0fdf4" stroke="#15803d" stroke-width="2.5"/><text x="170" y="356" text-anchor="middle" class="label">CLI / TUI</text>
+<rect x="55" y="405" width="230" height="68" rx="14" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2.5"/><text x="170" y="446" text-anchor="middle" class="label">Agent tool</text>
+<rect x="55" y="495" width="230" height="68" rx="14" fill="#fff7ed" stroke="#c2410c" stroke-width="2.5"/><text x="170" y="536" text-anchor="middle" class="label">Third-party client</text>
+</g>
+<rect x="390" y="275" width="250" height="130" rx="18" fill="#f8fafc" stroke="#475569" stroke-width="3"/><text x="515" y="318" text-anchor="middle" class="label">Migration proposal</text><text x="515" y="348" text-anchor="middle" class="body">semantic operations</text><text x="515" y="375" text-anchor="middle" class="small">+ source provenance</text>
+<path d="M285 169 C335 190 350 290 390 315" class="line"/><path d="M285 259 C340 265 350 310 390 330" class="line"/><path d="M285 349 L390 349" class="line"/><path d="M285 439 C340 430 350 385 390 370" class="line"/><path d="M285 529 C335 505 350 410 390 390" class="line"/>
+<rect x="735" y="180" width="220" height="82" rx="16" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/><text x="845" y="214" text-anchor="middle" class="label">Validate</text><text x="845" y="241" text-anchor="middle" class="small">schema · compiler · policy</text>
+<rect x="735" y="305" width="220" height="82" rx="16" fill="#fef2f2" stroke="#dc2626" stroke-width="3"/><text x="845" y="339" text-anchor="middle" class="label">Conflict check</text><text x="845" y="366" text-anchor="middle" class="small">base snapshot · merge</text>
+<rect x="735" y="430" width="220" height="82" rx="16" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/><text x="845" y="464" text-anchor="middle" class="label">Commit</text><text x="845" y="491" text-anchor="middle" class="small">atomic semantic transition</text>
+<path d="M640 340 C690 310 690 240 735 221" class="line"/><path d="M640 340 L735 346" class="line"/><path d="M640 340 C690 375 690 450 735 471" class="line"/>
+<path d="M955 471 L1070 471" class="blue"/><rect x="1020" y="415" width="150" height="112" rx="18" fill="#ecfdf5" stroke="#2563eb" stroke-width="3"/><text x="1095" y="454" text-anchor="middle" class="label">Snapshot</text><text x="1095" y="484" text-anchor="middle" class="body">S → S′</text><text x="1095" y="508" text-anchor="middle" class="small">canonical state</text>
+</svg>
