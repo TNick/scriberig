@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" role="img" aria-labelledby="title desc">
+  <title id="title">Entity, revision, and snapshot identities</title>
+  <desc id="desc">A stable entity has multiple immutable revisions over time. Different snapshots resolve that entity to different exact revisions while preserving conceptual identity.</desc>
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.entity{fill:#eef2ff;stroke:#6366f1;stroke-width:2.5}.rev{fill:#fff;stroke:#64748b;stroke-width:2}.snap{fill:#eff6ff;stroke:#2563eb;stroke-width:2}.title{font:700 30px system-ui,sans-serif;fill:#0f172a}.h{font:700 20px system-ui,sans-serif;fill:#0f172a}.t{font:500 17px system-ui,sans-serif;fill:#334155}.small{font:500 15px system-ui,sans-serif;fill:#475569}.line{stroke:#64748b;stroke-width:2.2;fill:none}.dash{stroke-dasharray:8 7}.arrow{marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker>
+  </defs>
+  <rect class="bg" width="1200" height="650" rx="24"/>
+  <text class="title" x="600" y="48" text-anchor="middle">Conceptual identity stays stable; exact state is revisioned</text>
+
+  <rect class="entity" x="420" y="82" width="360" height="90" rx="16"/>
+  <text class="h" x="600" y="117" text-anchor="middle">Entity F · process_payment</text>
+  <text class="t" x="600" y="145" text-anchor="middle">“What conceptual thing is this?”</text>
+
+  <path class="line" d="M600 172 V215"/>
+  <path class="line" d="M600 215 H250 V250"/>
+  <path class="line" d="M600 215 V250"/>
+  <path class="line" d="M600 215 H950 V250"/>
+
+  <rect class="rev" x="105" y="250" width="290" height="116" rx="16"/>
+  <text class="h" x="250" y="285" text-anchor="middle">Revision R1</text>
+  <text class="small" x="250" y="315" text-anchor="middle">immutable exact state</text>
+  <text class="small" x="250" y="341" text-anchor="middle">initial implementation</text>
+
+  <rect class="rev" x="455" y="250" width="290" height="116" rx="16"/>
+  <text class="h" x="600" y="285" text-anchor="middle">Revision R2</text>
+  <text class="small" x="600" y="315" text-anchor="middle">immutable exact state</text>
+  <text class="small" x="600" y="341" text-anchor="middle">timeout handling added</text>
+
+  <rect class="rev" x="805" y="250" width="290" height="116" rx="16"/>
+  <text class="h" x="950" y="285" text-anchor="middle">Revision R3</text>
+  <text class="small" x="950" y="315" text-anchor="middle">immutable exact state</text>
+  <text class="small" x="950" y="341" text-anchor="middle">retry policy changed</text>
+
+  <path class="line dash arrow" d="M395 308 H455"/>
+  <path class="line dash arrow" d="M745 308 H805"/>
+  <text class="small" x="425" y="296" text-anchor="middle">change</text>
+  <text class="small" x="775" y="296" text-anchor="middle">change</text>
+
+  <rect class="snap" x="85" y="445" width="300" height="110" rx="16"/>
+  <text class="h" x="235" y="480" text-anchor="middle">Snapshot S1</text>
+  <text class="t" x="235" y="512" text-anchor="middle">F → R1</text>
+  <text class="small" x="235" y="538" text-anchor="middle">exact world state</text>
+
+  <rect class="snap" x="450" y="445" width="300" height="110" rx="16"/>
+  <text class="h" x="600" y="480" text-anchor="middle">Snapshot S2</text>
+  <text class="t" x="600" y="512" text-anchor="middle">F → R2</text>
+  <text class="small" x="600" y="538" text-anchor="middle">exact world state</text>
+
+  <rect class="snap" x="815" y="445" width="300" height="110" rx="16"/>
+  <text class="h" x="965" y="480" text-anchor="middle">Snapshot S3</text>
+  <text class="t" x="965" y="512" text-anchor="middle">F → R3</text>
+  <text class="small" x="965" y="538" text-anchor="middle">exact world state</text>
+
+  <path class="line arrow" d="M235 445 V392 H250 V366"/>
+  <path class="line arrow" d="M600 445 V366"/>
+  <path class="line arrow" d="M965 445 V392 H950 V366"/>
+
+  <text class="small" x="600" y="612" text-anchor="middle">EntityId = continuity · RevisionId = exact state · SnapshotId = exact consistent world</text>
+</svg>
