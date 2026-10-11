@@ -1,8 +1,7 @@
 //! Composes the integrated Scriberig executable from reusable and product runtime crates.
 
-// Block: Keep the process entry point minimal until product startup operations are implemented.
-/// Start the integrated Scriberig process composition root.
-///
-/// # Returns
-/// Returns `()` after the scaffold entry point completes.
-fn main() {}
+// Block: Delegate process-level command parsing and stub dispatch to the reusable CLI crate.
+/// Start the integrated `srig` executable.
+fn main() {
+    scriberig_cli::run();
+}
