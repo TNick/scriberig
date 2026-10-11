@@ -11,5 +11,8 @@ repository.workspace = true
 scriberig-core = { path = "../scriberig-core" }
 scriberig-store = { path = "../scriberig-store" }
 
+[dev-dependencies]
+scriberig-store-memory = { path = "../scriberig-store-memory" }
+
 [lints]
 workspace = true
