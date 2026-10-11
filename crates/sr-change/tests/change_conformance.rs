@@ -134,3 +134,59 @@ fn delete_modify_and_competing_create_are_distinct() {
     .expect("merge");
     assert_eq!(competing.conflicts[0].kind, ConflictKind::CompetingCreate);
 }
+
+/// Verifies creation and removal remain explicit semantic deltas.
+#[test]
+fn creation_and_removal_are_classified_without_text_markers() {
+    let entity = EntityId::new([9; 16]);
+    let store = MemoryStore::default();
+    let base = scriberig_store::Snapshot::empty().id();
+    let created = store
+        .apply_changes(
+            base,
+            &[
+                SnapshotChange::Set(entity, RevisionId::new([1; 32])),
+                SnapshotChange::Set(EntityId::new([8; 16]), RevisionId::new([2; 32])),
+            ],
+        )
+        .expect("create");
+    let removed = store
+        .apply_changes(created, &[SnapshotChange::Remove(entity)])
+        .expect("remove");
+    let diff = compare(&store, created, removed).expect("diff");
+    assert!(diff.deltas.iter().any(sr_change::EntityDelta::is_removed));
+}
+
+/// Verifies convergent edits merge without choosing one side as a conflict.
+#[test]
+fn convergent_edits_are_conflict_free() {
+    let entity = EntityId::new([4; 16]);
+    let base = scriberig_store::Snapshot::empty();
+    let left = base.with_revision(entity, RevisionId::new([7; 32]));
+    let right = base.with_revision(entity, RevisionId::new([7; 32]));
+    let result = sr_change::merge_snapshots(
+        sr_change::MergeInput {
+            base: base.id(),
+            left: left.id(),
+            right: right.id(),
+        },
+        &base,
+        &left,
+        &right,
+        None,
+    )
+    .expect("merge");
+    assert_eq!(result.conflicts.len(), 0);
+}
+
+/// Verifies representation-only reuse does not manufacture a semantic migration.
+#[test]
+fn identical_canonical_state_has_no_migration() {
+    let entity = EntityId::new([5; 16]);
+    let revision = RevisionId::new([6; 32]);
+    let first = scriberig_store::Snapshot::empty().with_revision(entity, revision);
+    let second = scriberig_store::Snapshot::empty().with_revision(entity, revision);
+    let store = MemoryStore::default();
+    let diff = compare(&store, first.id(), second.id()).expect("diff");
+    assert_eq!(diff.deltas.len(), 0);
+}
