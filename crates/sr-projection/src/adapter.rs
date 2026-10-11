@@ -8,6 +8,9 @@ use crate::{
     render::{RenderRequest, RenderedProjection},
 };
 
+/// Returns projection results with heap-allocated diagnostics.
+pub type ProjectionResult<Value> = Result<Value, Box<ProjectionDiagnostic>>;
+
 /// Connects one domain representation to generic projection operations.
 ///
 /// # Public members
@@ -48,7 +51,7 @@ pub trait ProjectionAdapter {
     ///
     /// # Errors
     /// Returns a structured diagnostic when rendering fails.
-    fn render(&self, request: &RenderRequest) -> Result<RenderedProjection, ProjectionDiagnostic>;
+    fn render(&self, request: &RenderRequest) -> ProjectionResult<RenderedProjection>;
 
     /// Parses an external representation without assigning canonical identity.
     ///
@@ -62,11 +65,7 @@ pub trait ProjectionAdapter {
     ///
     /// # Errors
     /// Returns a structured diagnostic when parsing fails.
-    fn parse(
-        &self,
-        kind: &ProjectionKind,
-        bytes: &[u8],
-    ) -> Result<Self::Candidate, ProjectionDiagnostic>;
+    fn parse(&self, kind: &ProjectionKind, bytes: &[u8]) -> ProjectionResult<Self::Candidate>;
 
     /// Reconciles a candidate against the exact state from which it was edited.
     ///
@@ -82,7 +81,7 @@ pub trait ProjectionAdapter {
         &self,
         candidate: Self::Candidate,
         base: crate::model::SemanticStateRef,
-    ) -> ReconciliationOutcome<Self::Migration, Self::Conflict, ProjectionDiagnostic>;
+    ) -> ReconciliationOutcome<Self::Migration, Self::Conflict, Box<ProjectionDiagnostic>>;
 
     /// Validates an adapter-owned candidate before proposing canonical change.
     ///
@@ -95,5 +94,5 @@ pub trait ProjectionAdapter {
     ///
     /// # Errors
     /// Returns a structured diagnostic when validation fails.
-    fn validate(&self, candidate: &Self::Candidate) -> Result<(), ProjectionDiagnostic>;
+    fn validate(&self, candidate: &Self::Candidate) -> ProjectionResult<()>;
 }

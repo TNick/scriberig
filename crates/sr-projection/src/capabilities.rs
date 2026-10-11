@@ -1,24 +1,32 @@
 //! Defines explicit and validated projection capabilities.
 
-/// Declares the operations and preservation guarantees an adapter supports.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+use std::collections::BTreeSet;
+
+/// Identifies one operation or preservation guarantee of an adapter.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 #[non_exhaustive]
-pub struct ProjectionCapabilities {
-    /// Whether semantic state can be rendered.
-    pub renderable: bool,
-    /// Whether an external representation can be parsed.
-    pub parseable: bool,
-    /// Whether external edits may be imported.
-    pub editable: bool,
-    /// Whether parse and render can preserve semantic meaning.
-    pub round_trip_capable: bool,
-    /// Whether reconciliation can retain structure across edits.
-    pub structure_preserving: bool,
-    /// Whether rendering can preserve source style choices.
-    pub style_preserving: bool,
+pub enum ProjectionFeature {
+    /// Semantic state can be rendered.
+    Renderable,
+    /// An external representation can be parsed.
+    Parseable,
+    /// External edits may be imported.
+    Editable,
+    /// Parsing and rendering preserve semantic meaning.
+    RoundTripCapable,
+    /// Reconciliation can retain structure across edits.
+    StructurePreserving,
+    /// Rendering can preserve source style choices.
+    StylePreserving,
 }
 
-/// Errors raised when a capability declaration contradicts itself.
+/// Declares supported projection operations and preservation guarantees.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct ProjectionCapabilities {
+    features: BTreeSet<ProjectionFeature>,
+}
+
+/// Errors raised when capability declarations contradict prerequisites.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CapabilityError {
     /// Editing requires parsing external representations.
@@ -27,17 +35,12 @@ pub enum CapabilityError {
     RoundTripRequiresParseAndRender,
 }
 
-// Construct capabilities through explicit validation.
+// Construct and inspect capability declarations.
 impl ProjectionCapabilities {
     /// Creates a capability declaration after validating its implications.
     ///
     /// # Parameters
-    /// - `renderable`: Whether rendering is supported.
-    /// - `parseable`: Whether parsing is supported.
-    /// - `editable`: Whether edits can be imported.
-    /// - `round_trip_capable`: Whether semantic round trips are supported.
-    /// - `structure_preserving`: Whether structure can be preserved.
-    /// - `style_preserving`: Whether style can be preserved.
+    /// - `features`: Operations and guarantees supported by the adapter.
     ///
     /// # Returns
     /// A valid capability declaration.
@@ -45,27 +48,34 @@ impl ProjectionCapabilities {
     /// # Errors
     /// Returns an error when editing or round-trip guarantees lack prerequisites.
     pub fn new(
-        renderable: bool,
-        parseable: bool,
-        editable: bool,
-        round_trip_capable: bool,
-        structure_preserving: bool,
-        style_preserving: bool,
+        features: impl IntoIterator<Item = ProjectionFeature>,
     ) -> Result<Self, CapabilityError> {
-        if editable && !parseable {
+        let features: BTreeSet<_> = features.into_iter().collect();
+        if features.contains(&ProjectionFeature::Editable)
+            && !features.contains(&ProjectionFeature::Parseable)
+        {
             return Err(CapabilityError::EditableRequiresParseable);
         }
-        if round_trip_capable && !(renderable && parseable) {
+        if features.contains(&ProjectionFeature::RoundTripCapable)
+            && !(features.contains(&ProjectionFeature::Renderable)
+                && features.contains(&ProjectionFeature::Parseable))
+        {
             return Err(CapabilityError::RoundTripRequiresParseAndRender);
         }
-        Ok(Self {
-            renderable,
-            parseable,
-            editable,
-            round_trip_capable,
-            structure_preserving,
-            style_preserving,
-        })
+        Ok(Self { features })
+    }
+
+    /// Reports whether a projection feature is supported.
+    ///
+    /// # Parameters
+    /// - `self`: Capability declaration to inspect.
+    /// - `feature`: Feature to look up.
+    ///
+    /// # Returns
+    /// `true` when the feature is present.
+    #[must_use]
+    pub fn supports(&self, feature: ProjectionFeature) -> bool {
+        self.features.contains(&feature)
     }
 
     /// Creates a render-only capability declaration.
@@ -76,14 +86,9 @@ impl ProjectionCapabilities {
     /// # Returns
     /// Capabilities for read-only rendering.
     #[must_use]
-    pub const fn read_only() -> Self {
+    pub fn read_only() -> Self {
         Self {
-            renderable: true,
-            parseable: false,
-            editable: false,
-            round_trip_capable: false,
-            structure_preserving: false,
-            style_preserving: false,
+            features: BTreeSet::from([ProjectionFeature::Renderable]),
         }
     }
 
@@ -95,14 +100,16 @@ impl ProjectionCapabilities {
     /// # Returns
     /// Capabilities with parsing and editing enabled.
     #[must_use]
-    pub const fn editable() -> Self {
+    pub fn editable() -> Self {
         Self {
-            renderable: true,
-            parseable: true,
-            editable: true,
-            round_trip_capable: true,
-            structure_preserving: true,
-            style_preserving: true,
+            features: BTreeSet::from([
+                ProjectionFeature::Renderable,
+                ProjectionFeature::Parseable,
+                ProjectionFeature::Editable,
+                ProjectionFeature::RoundTripCapable,
+                ProjectionFeature::StructurePreserving,
+                ProjectionFeature::StylePreserving,
+            ]),
         }
     }
 }

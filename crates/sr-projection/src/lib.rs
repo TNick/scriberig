@@ -11,8 +11,8 @@ pub mod state;
 pub mod style;
 
 // Expose the principal shared identifiers and contracts.
-pub use adapter::ProjectionAdapter;
-pub use capabilities::ProjectionCapabilities;
+pub use adapter::{ProjectionAdapter, ProjectionResult};
+pub use capabilities::{ProjectionCapabilities, ProjectionFeature};
 pub use diagnostic::{DiagnosticDetail, DiagnosticStage, ProjectionDiagnostic};
 pub use model::{
     OwnershipClass, ProjectionClass, ProjectionKind, ProjectionRef, ProjectionSpec,
