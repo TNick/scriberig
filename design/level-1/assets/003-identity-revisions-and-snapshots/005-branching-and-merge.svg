@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+<title id="title">Branching and merge over immutable snapshots</title>
+<desc id="desc">A snapshot S1 branches into snapshots S2 and S3. A later merge combines them into snapshot S4. Unchanged state is structurally shared; branching does not copy the whole world.</desc>
+<style>
+  .title{font:700 32px Arial,sans-serif;fill:#1f2937}
+  .subtitle{font:400 18px Arial,sans-serif;fill:#4b5563}
+  .body{font:400 17px Arial,sans-serif;fill:#374151}
+  .mono{font:600 18px 'Courier New', monospace;fill:#111827}
+  .node{fill:#ede9fe;stroke:#7c3aed;stroke-width:2.5}
+</style>
+<rect width="100%" height="100%" fill="#fff"/>
+<text x="60" y="55" class="title">Branching and merge use immutable snapshots</text>
+<text x="60" y="85" class="subtitle">Independent work starts from a shared base snapshot and produces cheap successor states that can later be merged.</text>
+
+<circle cx="600" cy="170" r="60" class="node"/>
+<text x="568" y="177" class="mono">S1</text>
+<text x="520" y="255" class="body">common base snapshot</text>
+
+<circle cx="320" cy="390" r="60" class="node"/>
+<text x="288" y="397" class="mono">S2</text>
+<text x="205" y="475" class="body">left branch: one line of work</text>
+
+<circle cx="880" cy="390" r="60" class="node"/>
+<text x="848" y="397" class="mono">S3</text>
+<text x="770" y="475" class="body">right branch: independent work</text>
+
+<circle cx="600" cy="620" r="60" class="node"/>
+<text x="568" y="627" class="mono">S4</text>
+<text x="505" y="705" class="body">merged successor snapshot</text>
+
+<line x1="555" y1="214" x2="365" y2="347" stroke="#6b7280" stroke-width="4" marker-end="url(#arrow)"/>
+<line x1="645" y1="214" x2="835" y2="347" stroke="#6b7280" stroke-width="4" marker-end="url(#arrow)"/>
+<line x1="365" y1="433" x2="555" y2="576" stroke="#6b7280" stroke-width="4" marker-end="url(#arrow)"/>
+<line x1="835" y1="433" x2="645" y2="576" stroke="#6b7280" stroke-width="4" marker-end="url(#arrow)"/>
+
+<text x="90" y="620" class="body">Branch creation is cheap because snapshots and revisions are immutable and structurally shared.</text>
+<text x="90" y="650" class="body">Merge is defined as a three-way comparison over exact historical state: base S1, left S2, right S3.</text>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6b7280"/></marker></defs>
+</svg>
