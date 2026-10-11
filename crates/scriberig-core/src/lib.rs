@@ -14,7 +14,9 @@ pub mod value;
 
 // Re-export the stable identifier API at the crate root.
 pub use encoding::{CanonicalEncode, CanonicalWriter, EncodingVersion, revision_id};
-pub use ids::{EntityId, IdParseError, ObjectType, OperationId, RevisionId, RootName, SnapshotId};
+pub use ids::{
+    EntityId, IdParseError, ObjectType, OperationId, RevisionId, RootName, SnapshotId, TypeId,
+};
 pub use principal::{PrincipalId, PrincipalKind};
 pub use provenance::{EntityRevisionRef, Provenance, ProvenanceSource};
 pub use value::{KnowledgeClass, KnowledgeValue};

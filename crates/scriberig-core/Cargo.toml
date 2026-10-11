@@ -9,6 +9,7 @@ repository.workspace = true
 
 [dependencies]
 blake3 = "1.8"
+uuid = { version = "1.18", features = ["v4", "std"] }
 
 [lints]
 workspace = true
