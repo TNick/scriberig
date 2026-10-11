@@ -9,6 +9,8 @@ repository.workspace = true
 
 [dependencies]
 sr-projection = { path = "../sr-projection" }
+scriberig-core = { path = "../scriberig-core" }
+blake3 = "1.8"
 
 [lints]
 workspace = true

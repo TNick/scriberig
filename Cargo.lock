@@ -728,6 +728,8 @@ dependencies = [
 name = "sr-projection-fs"
 version = "0.1.0"
 dependencies = [
+ "blake3",
+ "scriberig-core",
  "sr-projection",
 ]
 
