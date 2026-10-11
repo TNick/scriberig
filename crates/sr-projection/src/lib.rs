@@ -12,7 +12,7 @@ pub mod state;
 pub mod style;
 
 // Expose the principal shared identifiers and contracts.
-pub use adapter::{ProjectionAdapter, ProjectionResult};
+pub use adapter::{ProjectionAdapter, ProjectionResult, ReconciliationContext};
 pub use capabilities::{ProjectionCapabilities, ProjectionFeature};
 pub use conflict::{
     AmbiguousMapping, CapturedObservation, ConflictId, ConflictKind, ConflictResolution,
@@ -21,9 +21,9 @@ pub use conflict::{
 pub use diagnostic::{DiagnosticDetail, DiagnosticStage, ProjectionDiagnostic};
 pub use model::{
     OwnershipClass, ProjectionClass, ProjectionKind, ProjectionRef, ProjectionSpec,
-    ProjectionSpecRef, SemanticScopeRef,
+    ProjectionSpecRef, RendererVersion, SemanticScopeRef, SemanticStateRef,
 };
 pub use reconcile::ReconciliationOutcome;
-pub use render::{RenderRequest, RenderedProjection};
+pub use render::{OutputHash, RenderRequest, RenderedProjection, RenderingContext};
 pub use state::ProjectionStatus;
 pub use style::{StyleRef, StyleValue};

@@ -8,6 +8,21 @@ use crate::{
     render::{RenderRequest, RenderedProjection},
 };
 
+/// Groups exact state and specification inputs needed for reconciliation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ReconciliationContext {
+    /// Last synchronization base state.
+    pub base: crate::model::SemanticStateRef,
+    /// Current canonical state.
+    pub current: crate::model::SemanticStateRef,
+    /// Semantic scope being reconciled.
+    pub scope: crate::model::SemanticScopeRef,
+    /// Persistent projection specification.
+    pub specification: crate::model::ProjectionSpecRef,
+    /// Adapter-defined metadata.
+    pub metadata: std::collections::BTreeMap<String, Vec<u8>>,
+}
+
 /// Returns projection results with heap-allocated diagnostics.
 pub type ProjectionResult<Value> = Result<Value, Box<ProjectionDiagnostic>>;
 

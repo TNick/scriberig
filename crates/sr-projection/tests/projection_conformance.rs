@@ -102,3 +102,29 @@ fn concurrent_changes_have_first_class_conflict_kind() {
         sr_projection::ConflictKind::ConcurrentCanonicalChange,
     );
 }
+
+/// Checks exact render inputs and output digest metadata are reproducible.
+#[test]
+fn deterministic_render_identity_includes_style() {
+    use sr_projection::{
+        RenderRequest, RenderedProjection, RendererVersion, RenderingContext, SemanticScopeRef,
+        SemanticStateRef, StyleRef, StyleValue,
+    };
+    let entity = EntityId::new([3; 16]);
+    let request = RenderRequest {
+        specification: ProjectionSpecRef(entity),
+        scope: SemanticScopeRef {
+            entity,
+            revision: None,
+        },
+        base_state: SemanticStateRef(SnapshotId::new([4; 32])),
+        kind: ProjectionKind::new("text/plain").unwrap(),
+        style: StyleRef::Value(StyleValue::new(vec![1])),
+        renderer: RendererVersion::new("1"),
+        context: RenderingContext::default(),
+    };
+    let output = RenderedProjection::from_bytes(b"same".to_vec(), &request, None);
+    assert_eq!(output.output_hash.as_ref().unwrap().algorithm, "blake3");
+    assert_eq!(output.kind, request.kind);
+    assert_eq!(output.style, request.style);
+}
