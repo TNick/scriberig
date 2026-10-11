@@ -33,6 +33,7 @@ pub fn promote<S: RootStore>(
         Err(RootError::Conflict {
             expected, actual, ..
         }) => PromotionResult::StaleRoot { expected, actual },
+        Err(RootError::Backend(_)) => PromotionResult::StoreError,
     }
 }
 

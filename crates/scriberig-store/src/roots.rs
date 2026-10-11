@@ -14,6 +14,8 @@ pub enum RootError {
         /// Value currently stored by the backend.
         actual: Option<SnapshotId>,
     },
+    /// A backend-specific durable storage failure.
+    Backend(String),
 }
 
 /// Defines backend-neutral named-root operations.

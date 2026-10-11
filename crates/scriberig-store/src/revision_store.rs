@@ -13,6 +13,8 @@ pub enum StoreError {
     },
     /// A synchronization primitive could not be read or written.
     LockPoisoned,
+    /// A backend-specific durable storage failure.
+    Backend(String),
 }
 
 /// Stores immutable revisions by their content identity.

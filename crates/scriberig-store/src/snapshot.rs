@@ -19,6 +19,8 @@ pub enum SnapshotChange {
 pub enum SnapshotError {
     /// The requested snapshot is not known by the backend.
     UnknownSnapshot(SnapshotId),
+    /// A backend-specific durable storage failure.
+    Backend(String),
 }
 
 /// Private persistent radix node shared by related snapshots.
