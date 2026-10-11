@@ -1,0 +1,25 @@
+flowchart LR
+    subgraph C[Canonical knowledge]
+      F[Function F @ R17]
+      P[Paragraph P @ R8]
+      B[Branch B @ R5]
+    end
+    subgraph D[Derived knowledge]
+      CG[Call graph]
+      S[Summary / description]
+      V[Validation result]
+      RI[Render intermediate]
+    end
+    F -->|exact revision dependency| CG
+    F -->|exact revision dependency| S
+    P -->|exact revision dependency| S
+    B -->|exact revision dependency| V
+    C --> PR[Provenance\nproducer · profile · inputs · origin]
+    D --> PR
+
+    classDef canon fill:#eef2ff,stroke:#6366f1,stroke-width:2px;
+    classDef derived fill:#fff7ed,stroke:#ea580c,stroke-width:2px;
+    classDef prov fill:#f0fdf4,stroke:#16a34a,stroke-width:2px;
+    class F,P,B canon;
+    class CG,S,V,RI derived;
+    class PR prov;
