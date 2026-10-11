@@ -1,4 +1,20 @@
-/** @file Reserves a focused package module for its owning implementation task. */
+/** @file Renders one structured session branch summary. */
+import type { ReactElement } from "react";
+import type { BranchSummary } from "./component-types";
 
-// Keep the scaffold module empty until the relevant design defines its semantics.
-export {};
+/** Displays branch metadata and nested branch links. */
+export function BranchView({
+  branch,
+  className,
+}: {
+  branch: BranchSummary;
+  className?: string;
+}): ReactElement {
+  return (
+    <article className={className} aria-label={`Branch ${branch.title}`}>
+      <h2>{branch.title}</h2>
+      {branch.status ? <p>Status: {branch.status}</p> : null}
+      {branch.children?.length ? <p>{branch.children.length} child branches</p> : null}
+    </article>
+  );
+}

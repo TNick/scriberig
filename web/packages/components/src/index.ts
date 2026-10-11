@@ -14,3 +14,4 @@ export * from "./OperationView";
 export * from "./ProjectionHost";
 export * from "./AgentOperationView";
 export * from "./TrustViews";
+export * from "./component-types";

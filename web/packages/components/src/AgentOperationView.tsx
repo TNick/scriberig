@@ -1,4 +1,27 @@
-/** @file Reserves a focused package module for its owning implementation task. */
+/** @file Renders agent operation state and semantic result links. */
+import type { ReactElement } from "react";
 
-// Keep the scaffold module empty until the relevant design defines its semantics.
-export {};
+/** Keeps semantic result references first-class beside optional output. */
+export function AgentOperationView({
+  status,
+  output,
+  links,
+  className,
+}: {
+  status: string;
+  output?: string;
+  links: readonly string[];
+  className?: string;
+}): ReactElement {
+  return (
+    <section className={className} aria-label="Agent operation">
+      <p role="status">{status}</p>
+      {output ? <pre>{output}</pre> : null}
+      <ul aria-label="Semantic results">
+        {links.map((link) => (
+          <li key={link}>{link}</li>
+        ))}
+      </ul>
+    </section>
+  );
+}
