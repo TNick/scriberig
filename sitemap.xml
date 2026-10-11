@@ -137,6 +137,10 @@
          <lastmod>2026-10-11</lastmod>
     </url>
     <url>
+         <loc>https://tnick.github.io/scriberig/level-2/020.%20repository%20scaffold%20conventions%20and%20native%20command%20surface/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
          <loc>https://tnick.github.io/scriberig/level-3/001.%20bootstrap%20persistence%20workspace%20and%20core%20ids/</loc>
          <lastmod>2026-10-11</lastmod>
     </url>
@@ -514,6 +518,18 @@
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/095.%20implement%20inspect%20list%20and%20follow%20read%20operations/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/096.%20reconcile%20repository%20scaffold%20and%20quality%20automation/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/097.%20expose%20srig%20native%20command%20stubs/</loc>
+         <lastmod>2026-10-11</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/098.%20reconcile%20scaffold%20task%20status%20and%20supersession/</loc>
          <lastmod>2026-10-11</lastmod>
     </url>
 </urlset>
