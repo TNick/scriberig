@@ -5,14 +5,28 @@ pub use scriberig_core::OperationId;
 /// Classifies the semantic work performed by an operation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum OperationKind {
-    /// A read-only inspection or query.
+    /// Inspects one semantic target.
+    Inspect,
+    /// Lists a typed collection.
+    List,
+    /// Follows a typed relation.
+    Follow,
+    /// Discovers semantic entities.
+    Find,
+    /// Evaluates a structural query.
     Query,
-    /// A validation operation.
-    Validation,
-    /// A promotion or canonical-state transition.
-    Promotion,
-    /// An external effect or synchronization operation.
-    ExternalEffect,
+    /// Computes a semantic diff.
+    Diff,
+    /// Reads change history.
+    History,
+    /// Renders a semantic target through a registered view.
+    Render,
+    /// Creates or updates a branch context.
+    Branch,
+    /// Applies a proposed change.
+    Apply,
+    /// Commits a validated change.
+    Commit,
 }
 
 /// Describes the lifecycle state of an operation.

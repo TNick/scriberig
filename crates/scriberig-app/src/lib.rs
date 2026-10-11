@@ -7,15 +7,25 @@ pub mod error;
 pub mod event;
 pub mod operation;
 pub mod query;
+pub mod request;
+pub mod result;
 pub mod trust;
 
-pub use capability::{CapabilityId, RuntimeCapability};
+pub use capability::{
+    BranchContext, CapabilityDescriptor, CapabilityId, CapabilityKind, DomainOperationRequest,
+    RuntimeCapability,
+};
 pub use command::{CommandContext, CommandKind};
 pub use context::{ApplicationContext, CapabilityContext, Principal};
 pub use error::ApplicationError;
 pub use event::ApplicationEvent;
 pub use operation::{OperationId, OperationKind, OperationProgress, OperationStatus};
 pub use query::{DetailLevel, InspectRequest, InspectResult, QueryService, SnapshotResolution};
+pub use request::{
+    ApplicationRequest, ApplyRequest, BranchRequest, CommitRequest, DiffRequest, HistoryRequest,
+    RenderRequest, SnapshotSelector,
+};
+pub use result::{ApplicationResult, OperationStarted, OperationSummary};
 pub use trust::{
     ApprovalSummary, CapabilityDenial, ConflictSummary, ExternalEffectSummary, PolicyDecision,
     PolicyEvaluation, SourceKind, TrustSummary, ValidationState,
@@ -24,10 +34,12 @@ pub use trust::{
 #[cfg(test)]
 mod tests {
     use super::{
-        ApplicationError, ApplicationEvent, DetailLevel, InspectRequest, InspectResult,
-        OperationStatus, SnapshotResolution,
+        ApplicationError, ApplicationEvent, BranchContext, CapabilityDescriptor, CapabilityId,
+        CapabilityKind, DetailLevel, DomainOperationRequest, InspectRequest, InspectResult,
+        OperationKind, OperationStatus, SnapshotResolution, SnapshotSelector,
     };
-    use scriberig_core::{EntityId, RevisionId, SnapshotId};
+    use scriberig_core::{EntityId, ObjectType, RevisionId, RootName, SnapshotId};
+    use scriberig_query::Selection;
 
     /// Verifies terminal operation states remain distinguishable from active states.
     #[test]
@@ -84,5 +96,69 @@ mod tests {
         };
         assert_eq!(request.snapshot, SnapshotResolution::At(snapshot));
         assert_eq!(result.snapshot, Some(snapshot));
+    }
+
+    /// Verifies every universal operation has a stable operation kind.
+    #[test]
+    fn universal_operation_kinds_are_complete() {
+        let kinds = [
+            OperationKind::Inspect,
+            OperationKind::List,
+            OperationKind::Follow,
+            OperationKind::Find,
+            OperationKind::Query,
+            OperationKind::Diff,
+            OperationKind::History,
+            OperationKind::Render,
+            OperationKind::Branch,
+            OperationKind::Apply,
+            OperationKind::Commit,
+        ];
+        assert_eq!(kinds.len(), 11);
+    }
+
+    /// Verifies snapshot selectors preserve exact and named-root semantics.
+    #[test]
+    fn snapshot_selectors_remain_distinct() {
+        let snapshot = SnapshotId::new([7; 32]);
+        let root = RootName::new("main").expect("valid root");
+        assert_ne!(
+            SnapshotSelector::Exact(snapshot),
+            SnapshotSelector::NamedRoot(root)
+        );
+    }
+
+    /// Verifies capability descriptors and domain requests retain semantic handles.
+    #[test]
+    fn domain_operation_request_is_structured() {
+        let entity = EntityId::new([8; 16]);
+        let selection = Selection {
+            snapshot: SnapshotId::new([9; 32]),
+            entity,
+            revision: None,
+            relation_path: Vec::new(),
+            projection_anchor: None,
+        };
+        let capability = CapabilityDescriptor {
+            id: CapabilityId::new("command.rename").expect("valid capability"),
+            kind: CapabilityKind::DomainOperation,
+            label: "Rename".to_owned(),
+            description: "Rename an entity".to_owned(),
+            entity_types: vec![ObjectType::new("rust.function").expect("valid type")],
+            available: true,
+            derived: false,
+            estimated_items: None,
+        };
+        let request = DomainOperationRequest {
+            capability: capability.id.clone(),
+            subject: selection,
+            context: BranchContext {
+                base_snapshot: SnapshotId::new([9; 32]),
+                branch: None,
+            },
+            arguments: Vec::new(),
+        };
+        assert_eq!(request.capability, capability.id);
+        assert_eq!(request.subject.entity, entity);
     }
 }

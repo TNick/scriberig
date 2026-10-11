@@ -2,6 +2,9 @@
 
 use std::fmt::{self, Display, Formatter};
 
+use scriberig_core::{ObjectType, RootName, SnapshotId};
+use scriberig_query::{QueryValue, Selection};
+
 /// Identifies a capability exposed by the current application configuration.
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct CapabilityId(String);
@@ -66,6 +69,64 @@ pub struct RuntimeCapability {
     pub available: bool,
     /// Optional domain or scope metadata.
     pub scope: Option<String>,
+}
+
+/// Groups capabilities that extend the universal operation grammar.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CapabilityKind {
+    /// A typed relation traversal.
+    Relation,
+    /// A typed collection listing.
+    Collection,
+    /// A registered projection or view.
+    View,
+    /// A domain-specific semantic operation.
+    DomainOperation,
+    /// A provider-specific discovery strategy.
+    FindStrategy,
+}
+
+/// Describes an available capability without embedding executable behavior.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CapabilityDescriptor {
+    /// Stable capability identifier.
+    pub id: CapabilityId,
+    /// Capability category.
+    pub kind: CapabilityKind,
+    /// Short display label.
+    pub label: String,
+    /// Short semantic description.
+    pub description: String,
+    /// Entity types for which this capability is available.
+    pub entity_types: Vec<ObjectType>,
+    /// Whether the capability is currently available.
+    pub available: bool,
+    /// Whether the result is canonical or derived.
+    pub derived: bool,
+    /// Optional coarse information-cost estimate.
+    pub estimated_items: Option<u64>,
+}
+
+/// Identifies the branch/change context for a domain operation request.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BranchContext {
+    /// Exact snapshot on which the operation is based.
+    pub base_snapshot: SnapshotId,
+    /// Optional named branch context.
+    pub branch: Option<RootName>,
+}
+
+/// Describes one extensible domain operation request.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DomainOperationRequest {
+    /// Capability implementing the domain operation.
+    pub capability: CapabilityId,
+    /// Semantic subject and optional projection context.
+    pub subject: Selection,
+    /// Branch/change context for eventual canonical application.
+    pub context: BranchContext,
+    /// Typed operation arguments.
+    pub arguments: Vec<(String, QueryValue)>,
 }
 
 impl RuntimeCapability {
