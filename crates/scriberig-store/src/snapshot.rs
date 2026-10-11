@@ -1,6 +1,9 @@
 //! Defines immutable persistent radix snapshots and deterministic diffs.
 
 use std::collections::BTreeMap;
+
+#[path = "snapshot_diff.rs"]
+mod snapshot_diff;
 use std::sync::Arc;
 
 use scriberig_core::{EncodingError, EncodingVersion, EntityId, RevisionId, SnapshotId};
@@ -360,61 +363,5 @@ impl Snapshot {
                 SnapshotChange::Set(entity, revision) => snapshot.with_revision(entity, revision),
                 SnapshotChange::Remove(entity) => snapshot.without_entity(entity),
             })
-    }
-    /// # Parameters
-    /// - `other`: Operation input.
-    ///
-    /// # Returns
-    /// The requested snapshot result.
-    /// Computes explicit semantic differences in ascending entity order.
-    #[must_use]
-    pub fn diff(&self, other: &Self) -> Vec<SnapshotDiff> {
-        self.diff_semantic(other)
-    }
-
-    /// Computes storage-level changes suitable for applying to another snapshot.
-    #[must_use]
-    pub fn diff_changes(&self, other: &Self) -> Vec<SnapshotChange> {
-        self.diff_semantic(other)
-            .into_iter()
-            .map(|change| match change {
-                SnapshotDiff::Added { entity, revision }
-                | SnapshotDiff::Changed {
-                    entity,
-                    to: revision,
-                    ..
-                } => SnapshotChange::Set(entity, revision),
-                SnapshotDiff::Removed { entity, .. } => SnapshotChange::Remove(entity),
-            })
-            .collect()
-    }
-
-    /// Computes explicit semantic differences in ascending entity order.
-    #[must_use]
-    pub fn diff_semantic(&self, other: &Self) -> Vec<SnapshotDiff> {
-        let left: BTreeMap<_, _> = self.iter().collect();
-        let right: BTreeMap<_, _> = other.iter().collect();
-        left.keys()
-            .chain(right.keys())
-            .copied()
-            .collect::<std::collections::BTreeSet<_>>()
-            .into_iter()
-            .filter_map(|entity| match (left.get(&entity), right.get(&entity)) {
-                (None, Some(revision)) => Some(SnapshotDiff::Added {
-                    entity,
-                    revision: *revision,
-                }),
-                (Some(revision), None) => Some(SnapshotDiff::Removed {
-                    entity,
-                    revision: *revision,
-                }),
-                (Some(from), Some(to)) if from != to => Some(SnapshotDiff::Changed {
-                    entity,
-                    from: *from,
-                    to: *to,
-                }),
-                _ => None,
-            })
-            .collect()
     }
 }

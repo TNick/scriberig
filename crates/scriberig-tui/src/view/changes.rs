@@ -35,6 +35,13 @@ pub struct ChangeReviewModel {
 impl ChangeReviewModel {
     /// Builds a review model from a public candidate summary.
     #[must_use]
+    /// - `base_snapshot`: Argument named `base_snapshot`.
+    /// - `change`: Argument named `change`.
+    /// - `branch`: Argument named `branch`.
+    /// - `summary`: Argument named `summary`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn from_summary(
         base_snapshot: SnapshotId,
         change: impl Into<String>,

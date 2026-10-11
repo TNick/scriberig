@@ -7,6 +7,10 @@ import type { FullConfig } from "@playwright/test";
 const repositoryRoot = resolve(process.cwd(), "..");
 
 /** Stops only services owned by the repository development launcher. */
+/**
+ * @param _config Playwright global configuration.
+ * @returns Resolves after the stop request is issued.
+ */
 export default async function globalTeardown(_config: FullConfig): Promise<void> {
   spawnSync("python", ["tools/dev.py", "stop"], {
     cwd: repositoryRoot,

@@ -40,6 +40,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             let store = SqliteStore::open(&args.db)?;
             let service = ApplicationService::new(StoreInspectionBackend::new(store));
             let service = GuardedQueryService::new(service);
+            let service = scriberig_tui::ApplicationAdapter::new(service, Vec::new());
             let context = local_read_context("local-tui");
             scriberig_tui::run(
                 &service,

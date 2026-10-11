@@ -26,6 +26,10 @@ pub struct ProjectionModel {
 impl ProjectionModel {
     /// Builds a safe projection model from a public rendered result.
     #[must_use]
+    /// - `rendered`: Argument named `rendered`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn from_rendered(rendered: &sr_projection::RenderedProjection) -> Self {
         Self {
             projection: rendered.projection.map(|value| value.0.to_string()),

@@ -5,3 +5,4 @@ pub mod diff;
 pub mod history;
 pub mod operations;
 pub mod projection;
+pub mod session;

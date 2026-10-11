@@ -42,9 +42,7 @@ impl HttpTransport {
                 "TUI remote endpoints must use the http:// scheme",
             )
         })?;
-        let (authority, path) = remainder
-            .split_once('/')
-            .map_or((remainder, ""), |parts| parts);
+        let (authority, path) = remainder.split_once('/').unwrap_or((remainder, ""));
         let (host, port) = authority.rsplit_once(':').ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::InvalidInput,
@@ -140,7 +138,7 @@ impl ProtocolTransport for HttpTransport {
         match self.request(&request) {
             Ok(response) => response,
             Err(error) => ResponseEnvelope {
-                ..self.record_error(error, request)
+                ..self.record_error(&error, request)
             },
         }
     }
@@ -163,23 +161,19 @@ impl HttpTransport {
     ///
     /// # Returns
     /// A protocol-shaped error response.
-    fn record_error(
-        &self,
-        error: io::Error,
-        request: RequestEnvelope,
-    ) -> ResponseEnvelope {
+    fn record_error(&self, error: &io::Error, request: RequestEnvelope) -> ResponseEnvelope {
         if let Ok(mut slot) = self.error.lock() {
             *slot = Some(error.to_string());
         }
         ResponseEnvelope {
-                version: request.version,
-                correlation_id: request.correlation_id,
-                response: Response::Error(ProtocolError {
-                    code: ProtocolErrorCode::Internal,
-                    message: "remote transport unavailable".to_owned(),
-                    details: None,
-                    correlation_id: None,
-                }),
+            version: request.version,
+            correlation_id: request.correlation_id,
+            response: Response::Error(ProtocolError {
+                code: ProtocolErrorCode::Internal,
+                message: "remote transport unavailable".to_owned(),
+                details: None,
+                correlation_id: None,
+            }),
         }
     }
 }

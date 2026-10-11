@@ -5,6 +5,8 @@ use scriberig_protocol::ProtocolError;
 /// Errors returned by semantic client methods.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ClientError {
+    /// The protocol request could not reach its transport endpoint.
+    Transport(String),
     /// Server returned a structured protocol error.
     Protocol(ProtocolError),
     /// Server returned a response variant unrelated to the request.
@@ -25,6 +27,7 @@ impl std::fmt::Display for ClientError {
     /// Returns a formatting error when the destination rejects output.
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Transport(message) => write!(formatter, "transport unavailable: {message}"),
             Self::Protocol(error) => write!(formatter, "{:?}: {}", error.code, error.message),
             Self::UnexpectedResponse => formatter.write_str("unexpected protocol response"),
         }

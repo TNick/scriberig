@@ -18,6 +18,7 @@
     "@scriberig/react": "workspace:*",
     "@scriberig/components": "workspace:*",
     "@scriberig/components-mui": "workspace:*",
-    "@scriberig/agent-ui": "workspace:*"
+    "@scriberig/agent-ui": "workspace:*",
+    "@scriberig/app": "workspace:*"
   }
 }

@@ -36,6 +36,10 @@ pub struct ShellLayout {
 
 /// Computes shell regions for a terminal rectangle.
 #[must_use]
+/// - `area`: Argument named `area`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub fn shell_layout(area: Rect) -> ShellLayout {
     let vertical = ratatui::layout::Layout::vertical([
         ratatui::layout::Constraint::Length(1),

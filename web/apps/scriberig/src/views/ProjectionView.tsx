@@ -1,8 +1,8 @@
 /** @file Provides the public projection host surface. */
 import { MuiProjectionHost } from "@scriberig/components-mui";
 import type { ProjectionHandler } from "@scriberig/components";
+import { useSelection } from "@scriberig/react";
 import type { ReactElement } from "react";
-import { UnsupportedCapability } from "../components/UnsupportedCapability";
 /** Hosts registered projection handlers without private fallbacks. */
 /** @returns The rendered ProjectionView view or runtime value. */
 export function ProjectionView({
@@ -10,11 +10,16 @@ export function ProjectionView({
 }: {
   handlers?: readonly ProjectionHandler[];
 }): ReactElement {
+  const { selection } = useSelection();
   return (
     <section aria-label="Projection">
       <h1>Projection</h1>
-      <UnsupportedCapability capability="projection execution" />
-      <MuiProjectionHost projectionId="default" handlers={handlers} readonly />
+      <MuiProjectionHost
+        projectionId="default"
+        handlers={handlers}
+        readonly
+        {...(selection ? { selection: JSON.stringify(selection) } : {})}
+      />
     </section>
   );
 }

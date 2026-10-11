@@ -31,6 +31,14 @@ impl RootStore for SqliteStore {
     }
 
     /// Unconditionally points a named root at an immutable snapshot.
+    /// - `name`: Argument named `name`.
+    /// - `snapshot`: Argument named `snapshot`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn set_root(&self, name: RootName, snapshot: SnapshotId) -> Result<(), RootError> {
         let connection = self
             .connection
@@ -143,6 +151,15 @@ pub(crate) fn write_root_in_transaction(
 }
 
 /// Writes a root without comparing a previously observed value.
+/// - `connection`: Argument named `connection`.
+/// - `name`: Argument named `name`.
+/// - `snapshot`: Argument named `snapshot`.
+///
+/// # Returns
+/// The value produced by the declaration.
+///
+/// # Errors
+/// Returns an error when the operation cannot complete.
 fn write_root_in_connection(
     connection: &rusqlite::Connection,
     name: &RootName,

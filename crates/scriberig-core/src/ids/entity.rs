@@ -4,7 +4,9 @@
 use super::common::{IdParseError, parse_hex, write_hex};
 use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
-
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize,
+)]
 /// Identifies a stable conceptual entity independently of its revisions.
 ///
 /// # Public members
@@ -14,10 +16,8 @@ use std::str::FromStr;
 ///
 /// # Private members
 /// - `bytes`: Stores the identifier's 128-bit value.
-#[derive(
-    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize,
-)]
 pub struct EntityId {
+    /// Fixed-width bytes containing the entity identity.
     bytes: [u8; 16],
 }
 

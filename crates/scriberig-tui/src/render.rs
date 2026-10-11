@@ -1,14 +1,14 @@
 //! Renders the deterministic presentation shell from state only.
 
 use ratatui::{
+    Frame,
     layout::Rect,
     widgets::{Block, Borders, Paragraph},
-    Frame,
 };
 
 use crate::{
     keymap,
-    layout::{shell_layout, LayoutClass, ShellLayout},
+    layout::{LayoutClass, ShellLayout, shell_layout},
     state::TuiState,
 };
 
@@ -67,6 +67,14 @@ fn render_overlay(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
             crate::inspector::sanitize(&confirm.base),
             crate::inspector::sanitize(&confirm.summary),
         ),
+        crate::overlay::Overlay::Composer(composer) => format!(
+            "Session: {}\nBranch: {}\n\n{}\n\nEnter submit | Esc close",
+            composer.session,
+            composer
+                .branch
+                .map_or_else(|| "default".to_owned(), |value| value.to_string()),
+            crate::inspector::sanitize(&composer.text),
+        ),
     };
     frame.render_widget(
         Paragraph::new(text).block(
@@ -90,9 +98,16 @@ fn render_context(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
     } else {
         ""
     };
+    let connection = match state.connection {
+        crate::state::ConnectionState::Connecting => "connecting",
+        crate::state::ConnectionState::Connected => "connected",
+        crate::state::ConnectionState::Disconnected => "disconnected",
+        crate::state::ConnectionState::Failed => "failed",
+    };
+    let stale_marker = if state.stale { " | STALE" } else { "" };
     let text = format!(
-        " Scriberig | local shell | focus: {:?}{} ",
-        state.focus, overlay
+        " Scriberig | service: {connection}{stale_marker} | focus: {:?}{overlay} ",
+        state.focus
     );
     frame.render_widget(
         Paragraph::new(text).block(Block::default().borders(Borders::BOTTOM)),
@@ -157,6 +172,7 @@ fn explorer_text(state: &TuiState) -> String {
 ///
 /// # Returns
 /// Text representing the selected primary view.
+#[allow(clippy::too_many_lines)]
 fn primary_text(state: &TuiState) -> String {
     match state.primary_view {
         crate::selection::PrimaryView::Overview => inspector_text(state),
@@ -216,6 +232,49 @@ fn primary_text(state: &TuiState) -> String {
             crate::inspector::LoadState::Failed { message, .. } => message.clone(),
             crate::inspector::LoadState::NotRequested => "No change review".to_owned(),
         },
+        crate::selection::PrimaryView::Session => match &state.session {
+            crate::inspector::LoadState::Ready(model) => model
+                .rows
+                .iter()
+                .map(|row| {
+                    format!(
+                        "{}{}: {}",
+                        "  ".repeat(row.depth),
+                        if row.transient { "~" } else { "" },
+                        row.label
+                    )
+                })
+                .collect::<Vec<_>>()
+                .into_iter()
+                .chain(state.agent_output_observations.iter().map(|output| {
+                    format!(
+                        "[stream, non-canonical] {}",
+                        crate::inspector::sanitize(output)
+                    )
+                }))
+                .collect::<Vec<_>>()
+                .join("\n"),
+            crate::inspector::LoadState::Loading { .. } => "Loading session...".to_owned(),
+            crate::inspector::LoadState::Failed { message, .. } => message.clone(),
+            crate::inspector::LoadState::NotRequested => "Session not loaded".to_owned(),
+        },
+        crate::selection::PrimaryView::Operations => {
+            if state.operations.is_empty() {
+                "No observed operations".to_owned()
+            } else {
+                state
+                    .operations
+                    .iter()
+                    .map(|operation| {
+                        format!(
+                            "{} [{:?}] {}",
+                            operation.id, operation.status, operation.kind
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            }
+        }
     }
 }
 
@@ -296,7 +355,7 @@ fn render_hints(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
 
 #[cfg(test)]
 mod tests {
-    use ratatui::{backend::TestBackend, Terminal};
+    use ratatui::{Terminal, backend::TestBackend};
 
     use super::render;
     use crate::state::TuiState;

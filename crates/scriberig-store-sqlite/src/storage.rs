@@ -124,6 +124,7 @@ impl SqliteStore {
     ///
     /// # Errors
     /// Returns an error when SQLite rejects the transaction.
+    /// - `crate`: Argument named `crate`.
     pub(crate) fn store_snapshot_with_parent(
         &self,
         snapshot: &Snapshot,

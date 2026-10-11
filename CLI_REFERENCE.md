@@ -37,7 +37,7 @@ Each subcommand also supports `-h` / `--help`.
 Start the local application-backed terminal UI.
 
 ```text
-srig tui [--db <PATH>]
+srig tui [--db <PATH> | --connect <URL>]
 ```
 
 The UI reads semantic data through the shared application boundary. Type
@@ -46,6 +46,7 @@ The UI reads semantic data through the shared application boundary. Type
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `--db <PATH>` | `playground/dev-app-runtime/scriberig.sqlite` | SQLite database path used by the local TUI composition. |
+| `--connect <URL>` | none | Public protocol endpoint used by the remote TUI composition. Cannot be combined with `--db`. |
 
 ## `srig serve`
 

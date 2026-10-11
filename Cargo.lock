@@ -1035,6 +1035,7 @@ dependencies = [
  "scriberig-client",
  "scriberig-core",
  "scriberig-protocol",
+ "scriberig-session",
  "sr-change",
  "sr-projection",
 ]

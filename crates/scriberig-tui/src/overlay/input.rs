@@ -11,6 +11,7 @@ pub struct InputState {
 
 impl InputState {
     /// Appends input data, including pasted text, without interpreting it.
+    /// - `text`: Argument named `text`.
     pub fn append(&mut self, text: &str) {
         self.text.push_str(text);
     }

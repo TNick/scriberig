@@ -6,6 +6,10 @@ use sr_projection::{
     ReconciliationOutcome, RenderRequest, RenderedProjection,
 };
 
+#[path = "adapter_diagnostics.rs"]
+mod adapter_diagnostics;
+use adapter_diagnostics::diagnostic;
+
 use crate::{
     CandidateDocument, CanonicalNode, MarkdownConflict, MarkdownDocument,
     MarkdownMigrationProposal, MarkdownReconciliation, MarkdownStyle, ReconciliationAmbiguity,
@@ -353,32 +357,6 @@ impl ProjectionAdapter for MarkdownAdapter {
 ///
 /// # Returns
 /// A parse-stage projection diagnostic.
-fn diagnostic(
-    stage: DiagnosticStage,
-    kind: DiagnosticKind,
-    code: &str,
-    message: impl Into<String>,
-) -> ProjectionDiagnostic {
-    let message = message.into();
-    ProjectionDiagnostic {
-        kind,
-        stage,
-        projection: None,
-        scope: None,
-        detail: sr_projection::DiagnosticDetail {
-            code: code.to_owned(),
-            data: Vec::new(),
-        },
-        source: Some(sr_projection::DiagnosticSource {
-            subsystem: "sr-markdown".to_owned(),
-            code: code.to_owned(),
-            message: Some(message.clone()),
-        }),
-        message: Some(message),
-        retryable: false,
-    }
-}
-
 /// Creates a diagnostic for ambiguous Markdown identity matching.
 ///
 /// # Parameters

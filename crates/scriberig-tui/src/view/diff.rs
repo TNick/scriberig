@@ -27,6 +27,10 @@ pub struct DiffModel {
 impl DiffModel {
     /// Builds a TUI model without comparing rendered text.
     #[must_use]
+    /// - `diff`: Argument named `diff`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn from_diff(diff: &sr_change::SemanticDiff) -> Self {
         Self {
             left: diff.left,

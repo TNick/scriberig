@@ -201,6 +201,11 @@ fn build_operations(
 }
 
 /// Finds the stable parent collection matched for a candidate path.
+/// - `path`: Argument named `path`.
+/// - `matches`: Argument named `matches`.
+///
+/// # Returns
+/// The value produced by the declaration.
 fn matched_parent(path: &[usize], matches: &[NodeMatch]) -> Option<EntityId> {
     if path.len() <= 1 {
         return None;

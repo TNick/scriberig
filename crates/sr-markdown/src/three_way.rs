@@ -3,6 +3,10 @@
 use crate::{MarkdownBlock, MarkdownDocument, MarkdownStyle, equivalent, parse, render_document};
 use scriberig_core::SnapshotId;
 
+#[path = "three_way_conflict.rs"]
+mod three_way_conflict;
+use three_way_conflict::make_conflict;
+
 /// The semantic operation involved in a Markdown three-way conflict.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MarkdownConflictKind {
@@ -196,6 +200,16 @@ struct Hunk {
 }
 
 /// Merges a block sequence using exact unchanged base anchors.
+/// - `base`: Argument named `base`.
+/// - `current`: Argument named `current`.
+/// - `external`: Argument named `external`.
+/// - `path`: Argument named `path`.
+///
+/// # Returns
+/// The value produced by the declaration.
+///
+/// # Errors
+/// Returns an error when the operation cannot complete.
 fn merge_sequence(
     base: &[MarkdownBlock],
     current: &[MarkdownBlock],
@@ -271,6 +285,16 @@ fn merge_sequence(
 }
 
 /// Merges two edits that both changed the same stable section container.
+/// - `base`: Argument named `base`.
+/// - `current`: Argument named `current`.
+/// - `external`: Argument named `external`.
+/// - `path`: Argument named `path`.
+///
+/// # Returns
+/// The value produced by the declaration.
+///
+/// # Errors
+/// Returns an error when the operation cannot complete.
 fn merge_section_replacement(
     base: &[MarkdownBlock],
     current: &Hunk,
@@ -309,6 +333,11 @@ fn merge_section_replacement(
 }
 
 /// Computes replacement hunks by retaining exact unchanged anchors.
+/// - `base`: Argument named `base`.
+/// - `side`: Argument named `side`.
+///
+/// # Returns
+/// The value produced by the declaration.
 fn diff_hunks(base: &[MarkdownBlock], side: &[MarkdownBlock]) -> Vec<Hunk> {
     let mut anchors = Vec::new();
     let mut base_index = 0;
@@ -349,28 +378,4 @@ fn diff_hunks(base: &[MarkdownBlock], side: &[MarkdownBlock]) -> Vec<Hunk> {
         });
     }
     hunks
-}
-
-/// Builds a structured conflict for overlapping base edits.
-fn make_conflict(
-    path: &[usize],
-    base: &[MarkdownBlock],
-    current: &Hunk,
-    external: &Hunk,
-) -> MarkdownConflict {
-    let mut conflict_path = path.to_vec();
-    conflict_path.push(current.start);
-    MarkdownConflict {
-        kind: if current.replacement.is_empty() || external.replacement.is_empty() {
-            MarkdownConflictKind::DeleteModify
-        } else if current.start == current.end {
-            MarkdownConflictKind::Structural
-        } else {
-            MarkdownConflictKind::SameBlockChanged
-        },
-        path: conflict_path,
-        base: base.get(current.start).cloned(),
-        current: current.replacement.first().cloned(),
-        external: external.replacement.first().cloned(),
-    }
 }

@@ -14,6 +14,7 @@ scriberig-core = { path = "../scriberig-core" }
 scriberig-app = { path = "../scriberig-app" }
 scriberig-client = { path = "../scriberig-client" }
 scriberig-protocol = { path = "../scriberig-protocol" }
+scriberig-session = { path = "../scriberig-session" }
 sr-change = { path = "../sr-change" }
 sr-projection = { path = "../sr-projection" }
 

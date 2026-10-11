@@ -10,9 +10,40 @@ import type {
   ProtocolEvent,
   QueryRequest,
   ReadResponse,
+  SnapshotId,
 } from "@scriberig/protocol";
 import { subscribeEvents, type EventSubscription } from "./event-stream";
 import type { SemanticTransport } from "./transport";
+
+/** Normalizes legacy and current operation response shapes.
+ *
+ * @param value Untrusted operation response from a transport.
+ * @returns A normalized public operation.
+ * @throws When the response is not an operation object.
+ */
+function normalizeOperation(value: unknown): Operation {
+  if (typeof value !== "object" || value === null) {
+    throw new Error("server returned an invalid operation");
+  }
+  const record = value as Record<string, unknown>;
+  if (typeof record.operationId === "string") return record as unknown as Operation;
+  const reference = record.reference as Record<string, unknown> | undefined;
+  const progress = record.progress as Record<string, unknown> | undefined;
+  const result = record.result_snapshot as Record<string, unknown> | undefined;
+  const kind = record.kind;
+  const status = record.status;
+  const normalized: Operation = {
+    operationId: String(reference?.id ?? "") as Operation["operationId"],
+    kind: typeof kind === "string" ? kind.toLowerCase() : "unknown",
+    status: (typeof status === "string" ? status.toLowerCase() : "failed") as Operation["status"],
+  };
+  if (typeof progress?.percent === "number") normalized.progress = progress.percent / 100;
+  if (typeof result?.id === "string") {
+    normalized.resultSnapshotId = result.id as SnapshotId;
+  }
+  if (typeof record.error === "string") normalized.error = record.error;
+  return normalized;
+}
 /** Framework-independent client for shared semantic operations.
  *
  * Public members: semantic operation methods and `events`.
@@ -68,6 +99,10 @@ export class ScriberigClient {
     signal?: AbortSignal,
   ): Promise<Operation> {
     return this.transport.request("operation", { operationId }, signal);
+  }
+  /** Executes a declared application command through the public boundary. */
+  command<TPayload>(kind: string, payload: TPayload, signal?: AbortSignal): Promise<Operation> {
+    return this.transport.request("command", { kind, payload }, signal).then(normalizeOperation);
   }
   /** Subscribes to semantic events. */ events(
     listener: (event: ProtocolEvent) => void,

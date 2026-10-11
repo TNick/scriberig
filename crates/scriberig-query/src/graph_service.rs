@@ -345,6 +345,8 @@ impl<V: KnowledgeView> GraphReadService<V> {
 ///
 /// # Returns
 /// A compact navigation entry.
+/// - `record`: Argument named `record`.
+/// - `key`: Argument named `key`.
 fn property_text(record: &scriberig_graph::RevisionRecord, key: &str) -> Option<String> {
     match record.properties.get(key) {
         Some(scriberig_core::KnowledgeValue::String(value)) => Some(value.clone()),
@@ -363,6 +365,8 @@ fn property_text(record: &scriberig_graph::RevisionRecord, key: &str) -> Option<
 ///
 /// # Errors
 /// Returns an invalid-continuation error when the token is malformed.
+/// - `operation`: Argument named `operation`.
+/// - `snapshot`: Argument named `snapshot`.
 fn page_bounds(
     continuation: Option<&ContinuationToken>,
     limit: usize,

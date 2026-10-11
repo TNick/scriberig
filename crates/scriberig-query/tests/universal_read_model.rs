@@ -23,6 +23,13 @@ impl KnowledgeView for Fixture {
     type Error = &'static str;
 
     /// Returns every entity present in the fixture snapshot.
+    /// - `snapshot`: Argument named `snapshot`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn entities(&self, snapshot: SnapshotId) -> Result<Vec<EntityId>, Self::Error> {
         Ok(if snapshot == self.snapshot {
             self.records.keys().copied().collect()
@@ -32,6 +39,14 @@ impl KnowledgeView for Fixture {
     }
 
     /// Resolves one entity to the fixture's immutable revision.
+    /// - `snapshot`: Argument named `snapshot`.
+    /// - `entity`: Argument named `entity`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn resolve(
         &self,
         snapshot: SnapshotId,
@@ -44,6 +59,14 @@ impl KnowledgeView for Fixture {
     }
 
     /// Reads one entity revision in the fixture snapshot.
+    /// - `snapshot`: Argument named `snapshot`.
+    /// - `entity`: Argument named `entity`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn read_revision(
         &self,
         snapshot: SnapshotId,
@@ -55,6 +78,14 @@ impl KnowledgeView for Fixture {
     }
 
     /// Reads any fixture entity at its immutable revision.
+    /// - `entity`: Argument named `entity`.
+    /// - `revision`: Argument named `revision`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn read_exact_revision(
         &self,
         entity: EntityId,
@@ -66,6 +97,14 @@ impl KnowledgeView for Fixture {
     }
 
     /// Returns the semantic type of one fixture entity.
+    /// - `_snapshot`: Argument named `_snapshot`.
+    /// - `entity`: Argument named `entity`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn entity_type(
         &self,
         _snapshot: SnapshotId,
@@ -78,6 +117,14 @@ impl KnowledgeView for Fixture {
     }
 
     /// Deliberately omits reverse indexes to verify structured degradation.
+    /// - `_snapshot`: Argument named `_snapshot`.
+    /// - `_target`: Argument named `_target`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn reverse_relations(
         &self,
         _snapshot: SnapshotId,
@@ -88,6 +135,9 @@ impl KnowledgeView for Fixture {
 }
 
 /// Creates a project with an ordered collection and a typed relation.
+///
+/// # Returns
+/// The value produced by the declaration.
 fn fixture() -> Fixture {
     let snapshot = SnapshotId::new([9; 32]);
     let project = EntityId::from_bytes([1; 16]);

@@ -29,7 +29,7 @@ use std::path::Path;
 /// Unit after the listener stops accepting connections.
 ///
 /// # Errors
-/// Returns an error when the database, listener, or a client connection fails.
+/// Returns an error when the database or listener cannot be initialized.
 pub fn serve(
     host: &str,
     port: u16,
@@ -45,7 +45,16 @@ pub fn serve(
     println!("SQLite database: {}", database_path.display());
 
     for connection in listener.incoming() {
-        http::handle_connection(connection?, &state)?;
+        match connection {
+            Ok(connection) => {
+                if let Err(error) = http::handle_connection(connection, &state) {
+                    eprintln!("Scriberig API client connection failed: {error}");
+                }
+            }
+            Err(error) => {
+                eprintln!("Scriberig API accept failed: {error}");
+            }
+        }
     }
     Ok(())
 }

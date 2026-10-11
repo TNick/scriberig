@@ -36,6 +36,9 @@ impl TerminalGuard {
     ///
     /// # Errors
     /// Returns an I/O error when raw mode or alternate-screen setup fails.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn enter() -> io::Result<Self> {
         enable_raw_mode()?;
         let mut stdout = io::stdout();
@@ -61,6 +64,9 @@ impl TerminalGuard {
     ///
     /// # Errors
     /// Returns an I/O error when terminal restoration fails.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn restore(&mut self) -> io::Result<()> {
         if self.restored {
             return Ok(());
@@ -74,6 +80,12 @@ impl TerminalGuard {
     }
 
     /// Performs the backend commands needed to leave interactive mode.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn restore_terminal() -> io::Result<()> {
         let mut first_error = disable_raw_mode().err();
         let mut stdout = io::stdout();
@@ -118,6 +130,10 @@ impl Drop for TerminalGuard {
 ///
 /// # Errors
 /// Returns the writer's flush error.
+/// - `output`: Argument named `output`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub fn flush(output: &mut impl Write) -> io::Result<()> {
     output.flush()
 }

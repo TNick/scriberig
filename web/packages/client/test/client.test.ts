@@ -1,7 +1,7 @@
 /** @file Verifies client operation mapping and event subscription wiring. */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ProtocolEvent } from "@scriberig/protocol";
-import { ScriberigClient } from "../src";
+import { HttpTransport, ScriberigClient } from "../src";
 describe("ScriberigClient", () => {
   it("maps operations through injected transport", async () => {
     const calls: string[] = [];
@@ -15,6 +15,44 @@ describe("ScriberigClient", () => {
     const client = new ScriberigClient(transport);
     await client.find({ snapshot: { kind: "current" }, text: "hello" });
     expect(calls).toEqual(["find"]);
+  });
+
+  it("executes a public application command without owning semantic mutation logic", async () => {
+    const calls: Array<[string, unknown]> = [];
+    const transport = {
+      request: async <T>(operation: string, payload: unknown): Promise<T> => {
+        calls.push([operation, payload]);
+        return { operationId: "operation-1", kind: "apply", status: "queued" } as T;
+      },
+      subscribe: () => () => undefined,
+    };
+    const client = new ScriberigClient(transport);
+
+    await client.command("apply", { selection: "entity-1" });
+
+    expect(calls).toEqual([["command", { kind: "apply", payload: { selection: "entity-1" } }]]);
+  });
+
+  it("normalizes the Rust protocol operation envelope at the web boundary", async () => {
+    const transport = {
+      request: async <T>(): Promise<T> =>
+        ({
+          reference: { id: "operation-2" },
+          kind: "Apply",
+          status: "Running",
+          progress: { percent: 25, message: "working" },
+        }) as T,
+      subscribe: () => () => undefined,
+    };
+
+    const operation = await new ScriberigClient(transport).command("apply", {});
+
+    expect(operation).toMatchObject({
+      operationId: "operation-2",
+      kind: "apply",
+      status: "running",
+      progress: 0.25,
+    });
   });
   it("wires typed event subscriptions and close state", () => {
     let listener: ((event: ProtocolEvent) => void) | undefined;
@@ -32,5 +70,41 @@ describe("ScriberigClient", () => {
     expect(subscription.state).toBe("connected");
     subscription.close();
     expect(subscription.state).toBe("disconnected");
+  });
+
+  it("delivers buffered protocol events through the public HTTP transport", async () => {
+    const event: ProtocolEvent = { kind: "snapshotAdvanced", snapshotId: "s1" as never };
+    const fetch = vi.fn(async () => new Response(JSON.stringify([event]), { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    const transport = new HttpTransport("http://test/api");
+    const received: ProtocolEvent[] = [];
+
+    const subscription = transport.subscribe((value) => received.push(value));
+    await vi.waitFor(() => expect(received).toEqual([event]));
+
+    subscription();
+    expect(fetch).toHaveBeenCalledWith(
+      "http://test/api/protocol/subscribe",
+      expect.objectContaining({ method: "POST" }),
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it("continues polling the public event stream until it is closed", async () => {
+    vi.useFakeTimers();
+    const fetch = vi.fn(async () => new Response("[]", { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    const transport = new HttpTransport("http://test/api");
+    const unsubscribe = transport.subscribe(() => undefined);
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+
+    unsubscribe();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 });

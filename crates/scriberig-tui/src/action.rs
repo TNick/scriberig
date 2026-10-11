@@ -152,4 +152,26 @@ pub enum Action {
     OperationStatusRequested(scriberig_core::OperationId),
     /// Requests application-owned cancellation of an operation.
     OperationCancelRequested(scriberig_core::OperationId),
+    /// Applies a public session tree result.
+    SessionSucceeded {
+        /// Request generation.
+        request_id: u64,
+        /// Projected session tree.
+        model: crate::view::session::SessionModel,
+    },
+    /// Tracks the operation returned by an agent command submission.
+    AgentSubmitted(scriberig_core::OperationId),
+    /// Requests a public session tree.
+    SessionRequested(scriberig_core::EntityId),
+    /// Opens the agent composer for an explicit session branch.
+    ComposerOpened {
+        /// Session receiving the command.
+        session: scriberig_core::EntityId,
+        /// Optional branch receiving the new turn.
+        branch: Option<scriberig_core::EntityId>,
+    },
+    /// Records successful contact after a remote disconnect.
+    ConnectionRestored,
+    /// Records non-canonical agent output observation.
+    AgentOutputObserved(String),
 }

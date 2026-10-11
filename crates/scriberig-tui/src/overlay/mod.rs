@@ -19,6 +19,19 @@ pub struct ConfirmationState {
     pub commit: crate::view::changes::ConfirmedCommit,
 }
 
+/// Agent command composer scoped to a public session branch.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ComposerState {
+    /// Target session identity.
+    pub session: scriberig_core::EntityId,
+    /// Optional target branch.
+    pub branch: Option<scriberig_core::EntityId>,
+    /// Multiline user-authored command text.
+    pub text: String,
+    /// Safe local validation message.
+    pub error: Option<String>,
+}
+
 /// The single active modal overlay.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Overlay {
@@ -30,4 +43,6 @@ pub enum Overlay {
     Input(input::InputState),
     /// Confirmation modal for a reviewed state-changing operation.
     Confirm(ConfirmationState),
+    /// Multiline agent command composer.
+    Composer(ComposerState),
 }

@@ -22,6 +22,9 @@ pub trait ObservationSource {
     ///
     /// # Errors
     /// Returns the source-specific delivery error.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     fn next(&mut self) -> Result<Option<Observation>, Self::Error>;
 }
 
@@ -54,6 +57,9 @@ impl ObservationSource for VecObservationSource {
     ///
     /// # Returns
     /// The next observation, or `None` after the queue is empty.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn next(&mut self) -> Result<Option<Observation>, Self::Error> {
         Ok(self.observations.pop_front())
     }

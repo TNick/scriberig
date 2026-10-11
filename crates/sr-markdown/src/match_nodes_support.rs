@@ -5,6 +5,10 @@ use scriberig_core::EntityId;
 use crate::{CanonicalNode, MarkdownBlock, MarkdownDocument, NodeMatch};
 
 /// Checks whether an unchanged neighboring candidate anchors a base node.
+/// - `crate`: Argument named `crate`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub(crate) fn nearby_anchor(
     base: &[CanonicalNode],
     results: &[NodeMatch],
@@ -41,6 +45,10 @@ pub(crate) fn nearby_anchor(
 }
 
 /// Computes conservative word-overlap similarity for same-kind text blocks.
+/// - `crate`: Argument named `crate`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub(crate) fn text_similarity(left: &MarkdownBlock, right: &MarkdownBlock) -> (usize, usize) {
     let left = block_text(left);
     let right = block_text(right);
@@ -55,6 +63,10 @@ pub(crate) fn text_similarity(left: &MarkdownBlock, right: &MarkdownBlock) -> (u
 }
 
 /// Extracts comparable author text from a Markdown block.
+/// - `block`: Argument named `block`.
+///
+/// # Returns
+/// The value produced by the declaration.
 fn block_text(block: &MarkdownBlock) -> String {
     match block {
         MarkdownBlock::Heading { text, .. }
@@ -82,6 +94,10 @@ fn block_text(block: &MarkdownBlock) -> String {
 }
 
 /// Detects a likely insertion before a later unchanged section heading.
+/// - `crate`: Argument named `crate`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub(crate) fn section_precedes_heading_anchor(
     base: &[CanonicalNode],
     candidates: &[(Vec<usize>, MarkdownBlock)],
@@ -121,6 +137,10 @@ pub(crate) fn section_precedes_heading_anchor(
 }
 
 /// Checks whether a canonical node belongs to the candidate's known parent.
+/// - `crate`: Argument named `crate`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub(crate) fn parent_matches(
     node_parent: Option<EntityId>,
     mapped_parent: Option<EntityId>,
@@ -135,6 +155,10 @@ pub(crate) fn parent_matches(
 }
 
 /// Resolves the known parent context for one candidate path.
+/// - `crate`: Argument named `crate`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub(crate) fn candidate_context(path: &[usize], results: &[NodeMatch]) -> (Option<EntityId>, bool) {
     if path.len() <= 1 {
         return (None, false);
@@ -158,6 +182,10 @@ pub(crate) fn candidate_context(path: &[usize], results: &[NodeMatch]) -> (Optio
 }
 
 /// Flattens nested semantic blocks into stable structural paths.
+/// - `crate`: Argument named `crate`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub(crate) fn flatten(document: &MarkdownDocument) -> Vec<(Vec<usize>, MarkdownBlock)> {
     let mut output = Vec::new();
     for (index, block) in document.blocks.iter().enumerate() {
@@ -167,6 +195,10 @@ pub(crate) fn flatten(document: &MarkdownDocument) -> Vec<(Vec<usize>, MarkdownB
 }
 
 /// Adds a block and its nested sections to the flattened representation.
+/// - `block`: Argument named `block`.
+/// - `path`: Argument named `path`.
+/// - `output`: Argument named `output`.
+/// - `MarkdownBlock`: Argument named `MarkdownBlock`.
 fn flatten_block(
     block: &MarkdownBlock,
     path: &[usize],
@@ -183,11 +215,19 @@ fn flatten_block(
 }
 
 /// Reports whether two blocks have the same semantic kind.
+/// - `crate`: Argument named `crate`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub(crate) fn same_kind(left: &MarkdownBlock, right: &MarkdownBlock) -> bool {
     std::mem::discriminant(left) == std::mem::discriminant(right)
 }
 
 /// Reports whether two blocks share enough stable context for a changed edit.
+/// - `crate`: Argument named `crate`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub(crate) fn same_context(left: &MarkdownBlock, right: &MarkdownBlock) -> bool {
     match (left, right) {
         (MarkdownBlock::Section(left), MarkdownBlock::Section(right)) => left.level == right.level,

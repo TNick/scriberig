@@ -15,7 +15,7 @@ export function AppShell({
   children: ReactNode;
   status: string;
 }): ReactElement {
-  const routes = ["raw", "semantic", "projection", "history", "session", "operations"];
+  const routes = ["raw", "semantic", "projection", "history", "session", "migration", "operations"];
   return (
     <Box>
       <AppBar position="static">

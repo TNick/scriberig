@@ -30,6 +30,10 @@ pub enum PrimaryView {
     Projection,
     /// Candidate/change review.
     Changes,
+    /// Session tree and agent interaction.
+    Session,
+    /// Long-running operation observation.
+    Operations,
 }
 
 /// Explicit context needed to interpret a presentation location.
@@ -56,6 +60,9 @@ pub struct NavigationLocation {
 
 impl Default for NavigationLocation {
     /// Creates a location with no semantic selection.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     fn default() -> Self {
         Self {
             selection: None,

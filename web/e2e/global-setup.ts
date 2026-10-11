@@ -7,6 +7,11 @@ import type { FullConfig } from "@playwright/test";
 const repositoryRoot = resolve(process.cwd(), "..");
 
 /** Waits until the managed service responds successfully. */
+/**
+ * @param url Service URL to poll.
+ * @returns Resolves after the service responds successfully.
+ * @throws When the service does not become ready before the timeout.
+ */
 async function waitFor(url: string): Promise<void> {
   for (let attempt = 0; attempt < 120; attempt += 1) {
     try {
@@ -21,6 +26,10 @@ async function waitFor(url: string): Promise<void> {
 }
 
 /** Starts and verifies the repository-managed development services. */
+/**
+ * @param _config Playwright global configuration.
+ * @returns Resolves after both services are ready.
+ */
 export default async function globalSetup(_config: FullConfig): Promise<void> {
   const child = spawn("python", ["tools/dev.py", "start"], {
     cwd: repositoryRoot,

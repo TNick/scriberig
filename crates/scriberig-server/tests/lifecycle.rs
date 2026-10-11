@@ -15,6 +15,14 @@ struct Backend;
 
 impl ApplicationBackend for Backend {
     /// Rejects semantic execution because this test focuses on lifecycle state.
+    /// - `_context`: Argument named `_context`.
+    /// - `request`: Argument named `request`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn execute(
         &self,
         _context: &ApplicationContext,

@@ -9,6 +9,10 @@ use scriberig_core::EntityId;
 use scriberig_graph::{KnowledgeView, RevisionRecord};
 use std::cmp::Ordering;
 
+#[path = "graph_query_pagination.rs"]
+mod graph_query_pagination;
+use graph_query_pagination::page_bounds;
+
 impl<V: KnowledgeView> FindService for GraphReadService<V> {
     /// Executes bounded discovery over explicitly supplied graph entities.
     ///
@@ -378,60 +382,6 @@ fn query_value_matches(
     }
 }
 
-/// Computes bounded page offsets from a provider-owned continuation token.
-///
-/// # Parameters
-/// - `continuation`: Optional provider continuation token.
-/// - `limit`: Maximum number of items to return.
-///
-/// # Returns
-/// Start and exclusive end offsets.
-///
-/// # Errors
-/// Returns an invalid-continuation error when the token is malformed.
-fn page_bounds(
-    continuation: Option<&ContinuationToken>,
-    limit: usize,
-    operation: &str,
-    snapshot: scriberig_core::SnapshotId,
-) -> Result<(usize, usize), QueryError> {
-    if !(1..=crate::MAX_PAGE_LIMIT).contains(&limit) {
-        return Err(QueryError::InvalidQuery {
-            message: format!("page limit must be between 1 and {}", crate::MAX_PAGE_LIMIT),
-        });
-    }
-    let start = continuation.map_or(0, |token| {
-        token.offset_for(operation, snapshot).unwrap_or(usize::MAX)
-    });
-    if start == usize::MAX {
-        return Err(QueryError::InvalidContinuation {
-            operation: crate::ReadOperation::Query,
-        });
-    }
-    Ok((start, start.saturating_add(limit)))
-}
-
 #[cfg(test)]
-mod tests {
-    use super::compare_property_values;
-    use scriberig_core::KnowledgeValue;
-    use std::cmp::Ordering;
-
-    /// Verifies property ordering is deterministic for present and missing values.
-    #[test]
-    fn property_ordering_places_missing_values_first() {
-        let first = KnowledgeValue::String("alpha".to_owned());
-        let second = KnowledgeValue::String("beta".to_owned());
-        assert_eq!(
-            compare_property_values(Some(&first), Some(&second)),
-            Ordering::Less
-        );
-        assert_eq!(compare_property_values(None, Some(&first)), Ordering::Less);
-        let two = KnowledgeValue::SignedInteger(2);
-        let ten = KnowledgeValue::SignedInteger(10);
-        assert_eq!(
-            compare_property_values(Some(&two), Some(&ten)),
-            Ordering::Less
-        );
-    }
-}
+#[path = "graph_query_tests.rs"]
+mod tests;

@@ -45,6 +45,48 @@ pub trait ApplicationBackend {
             operation: "current snapshot resolution".to_owned(),
         })
     }
+
+    /// Reads a session through the owning application subsystem.
+    ///
+    /// # Parameters
+    /// - `_context`: Application context for the request.
+    /// - `_request`: Session request to resolve.
+    ///
+    /// # Returns
+    /// The requested session.
+    ///
+    /// # Errors
+    /// Returns an unsupported-operation error by default.
+    fn read_session(
+        &self,
+        _context: &ApplicationContext,
+        _request: &crate::SessionRequest,
+    ) -> Result<scriberig_session::Session, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "session read".to_owned(),
+        })
+    }
+
+    /// Starts an agent command through the owning application subsystem.
+    ///
+    /// # Parameters
+    /// - `_context`: Application context for the request.
+    /// - `_request`: Agent command request to submit.
+    ///
+    /// # Returns
+    /// The accepted operation identity.
+    ///
+    /// # Errors
+    /// Returns an unsupported-operation error by default.
+    fn submit_agent_command(
+        &self,
+        _context: &ApplicationContext,
+        _request: &crate::AgentCommandRequest,
+    ) -> Result<scriberig_core::OperationId, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "agent command submission".to_owned(),
+        })
+    }
 }
 
 /// Facade that delegates every application operation to one injected backend.
@@ -141,6 +183,46 @@ impl<B: ApplicationBackend> QueryService for ApplicationService<B> {
             });
         };
         inspect_result(inspection, request.detail)
+    }
+}
+
+impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
+    /// Delegates a session read to the application backend.
+    ///
+    /// # Parameters
+    /// - `context`: Application context for the request.
+    /// - `request`: Session request to resolve.
+    ///
+    /// # Returns
+    /// The requested session.
+    ///
+    /// # Errors
+    /// Returns the backend session error.
+    fn read_session(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::SessionRequest,
+    ) -> Result<scriberig_session::Session, ApplicationError> {
+        self.backend.read_session(context, request)
+    }
+
+    /// Delegates agent command submission to the application backend.
+    ///
+    /// # Parameters
+    /// - `context`: Application context for the request.
+    /// - `request`: Agent command request to submit.
+    ///
+    /// # Returns
+    /// The accepted operation identity.
+    ///
+    /// # Errors
+    /// Returns the backend agent error.
+    fn submit_agent_command(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::AgentCommandRequest,
+    ) -> Result<scriberig_core::OperationId, ApplicationError> {
+        self.backend.submit_agent_command(context, request)
     }
 }
 
@@ -244,108 +326,5 @@ fn query_request(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{ApplicationBackend, ApplicationService};
-    use crate::{
-        ApplicationContext, ApplicationError, ApplicationRequest, ApplicationResult, DetailLevel,
-        InspectRequest, QueryService, SnapshotResolution,
-    };
-    use scriberig_core::{EntityId, ObjectType, RevisionId, SnapshotId};
-    use scriberig_query::{EntityAtRevision, Inspection, TargetRef};
-
-    /// Provides one deterministic backend inspection for service tests.
-    struct Fixture;
-
-    impl ApplicationBackend for Fixture {
-        /// Executes the fixture inspection request.
-        ///
-        /// # Parameters
-        /// - `self`: Fixture backend.
-        /// - `_context`: Unused test context.
-        /// - `request`: Request expected to be an inspection.
-        ///
-        /// # Returns
-        /// One deterministic inspection result.
-        ///
-        /// # Errors
-        /// Returns an internal error for another request kind.
-        fn execute(
-            &self,
-            _context: &ApplicationContext,
-            request: &ApplicationRequest,
-        ) -> Result<ApplicationResult, ApplicationError> {
-            let ApplicationRequest::Inspect(_) = request else {
-                return Err(ApplicationError::UnsupportedOperation {
-                    operation: "fixture".to_owned(),
-                });
-            };
-            let entity = EntityId::from_bytes([1; 16]);
-            let revision = RevisionId::new([2; 32]);
-            let snapshot = SnapshotId::new([3; 32]);
-            Ok(ApplicationResult::Inspect(Inspection {
-                subject: TargetRef::Revision(EntityAtRevision { entity, revision }),
-                snapshot: Some(snapshot),
-                revision: Some(revision),
-                entity_type: Some(ObjectType::new("test.entity").expect("valid type")),
-                label: Some("fixture".to_owned()),
-                description: Some("test inspection".to_owned()),
-                properties: Vec::new(),
-                counts: Vec::new(),
-                relations: Vec::new(),
-                collections: Vec::new(),
-                views: Vec::new(),
-                operations: Vec::new(),
-                provenance: Vec::new(),
-                information_cost: None,
-                detail: scriberig_query::DetailLevel::Identity,
-            }))
-        }
-
-        /// Resolves the fixture's exact current snapshot.
-        ///
-        /// # Parameters
-        /// - `self`: Fixture backend.
-        /// - `_context`: Unused test context.
-        ///
-        /// # Returns
-        /// The deterministic current snapshot.
-        fn current_snapshot(
-            &self,
-            _context: &ApplicationContext,
-        ) -> Result<SnapshotId, ApplicationError> {
-            Ok(SnapshotId::new([3; 32]))
-        }
-    }
-
-    /// Verifies the typed inspection facade uses the universal execution path.
-    #[test]
-    fn inspection_delegates_through_application_backend() {
-        let service = ApplicationService::new(Fixture);
-        let request = InspectRequest {
-            entity: EntityId::from_bytes([1; 16]),
-            snapshot: SnapshotResolution::At(SnapshotId::new([3; 32])),
-            detail: DetailLevel::Compact,
-        };
-        let result = service
-            .inspect(&ApplicationContext::empty(), &request)
-            .expect("inspection");
-        assert_eq!(result.entity, request.entity);
-        assert_eq!(result.revision, Some(RevisionId::new([2; 32])));
-        assert_eq!(result.snapshot, Some(SnapshotId::new([3; 32])));
-    }
-
-    /// Verifies omitted current state is resolved before universal execution.
-    #[test]
-    fn current_inspection_is_resolved_to_one_exact_snapshot() {
-        let service = ApplicationService::new(Fixture);
-        let request = InspectRequest {
-            entity: EntityId::from_bytes([1; 16]),
-            snapshot: SnapshotResolution::Current,
-            detail: DetailLevel::Compact,
-        };
-        let result = service
-            .inspect(&ApplicationContext::empty(), &request)
-            .expect("current inspection");
-        assert_eq!(result.snapshot, Some(SnapshotId::new([3; 32])));
-    }
-}
+#[path = "tests.rs"]
+mod tests;

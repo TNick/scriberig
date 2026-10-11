@@ -1,5 +1,4 @@
 """Start and stop Scriberig's local API and web development services."""
-
 import os
 import signal
 import shutil
@@ -10,17 +9,13 @@ import urllib.error
 import urllib.request
 import webbrowser
 from pathlib import Path
-
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / "playground" / "dev-app-runtime"
 API_URL = "http://127.0.0.1:7337/api/health"
 WEB_URL = "http://127.0.0.1:5173"
 SERVICES = ("api", "web")
-
-
 def cargo_command() -> str:
     """Return a usable Cargo executable for the local Rust toolchain.
-
     Returns:
         Path or command name that can launch Cargo.
     """
@@ -28,7 +23,6 @@ def cargo_command() -> str:
     cargo = shutil.which("cargo")
     if cargo and Path(cargo).is_file() and Path(cargo).stat().st_size > 0:
         return cargo
-
     # Resolve Cargo through rustup when a broken shim shadows the toolchain.
     rustup = shutil.which("rustup")
     if rustup is None and os.name == "nt":
@@ -50,17 +44,12 @@ def cargo_command() -> str:
             resolved = result.stdout.strip()
             if resolved and Path(resolved).is_file():
                 return resolved
-
     # Let the operating system produce its usual executable-not-found error.
     return "cargo"
-
-
 def service_paths(name: str) -> dict[str, Path]:
     """Return PID and output paths for one development service.
-
     Args:
         name: Service name, either API or web.
-
     Returns:
         Mapping of process marker and log paths.
     """

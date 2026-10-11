@@ -139,7 +139,7 @@ fn translate_key(key: KeyEvent) -> Key {
 mod tests {
     use crossterm::event::{Event, KeyCode as CrosstermKeyCode, KeyEvent};
 
-    use super::{translate_event, KeyCode, TuiEvent};
+    use super::{KeyCode, TuiEvent, translate_event};
 
     /// Verifies backend key events become stable TUI key events.
     #[test]

@@ -7,6 +7,9 @@ use std::collections::BTreeMap;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
+#[path = "operation_record.rs"]
+mod operation_record;
+
 /// Classifies the semantic work performed by an operation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum OperationKind {
@@ -117,6 +120,9 @@ struct OperationRegistryState {
 
 impl OperationRegistry {
     /// Creates an empty operation registry.
+    ///
+    /// # Returns
+    /// A new empty operation registry.
     #[must_use]
     pub fn new() -> Self {
         Self::default()
@@ -271,6 +277,9 @@ impl OperationRegistry {
     }
 
     /// Subscribes to future lifecycle events.
+    ///
+    /// # Returns
+    /// A receiver for future lifecycle events.
     #[must_use]
     pub fn subscribe(&self) -> Receiver<ApplicationEvent> {
         let (sender, receiver) = mpsc::channel();
@@ -281,6 +290,9 @@ impl OperationRegistry {
     }
 
     /// Returns lifecycle events published so far.
+    ///
+    /// # Returns
+    /// A snapshot of all retained lifecycle events.
     #[must_use]
     pub fn events(&self) -> Vec<ApplicationEvent> {
         self.state
@@ -290,6 +302,12 @@ impl OperationRegistry {
     }
 
     /// Acquires the registry state or reports a lock failure.
+    ///
+    /// # Returns
+    /// The locked registry state.
+    ///
+    /// # Errors
+    /// Returns an internal error when the mutex is poisoned.
     fn lock(&self) -> Result<std::sync::MutexGuard<'_, OperationRegistryState>, ApplicationError> {
         self.state.lock().map_err(|_| ApplicationError::Internal {
             message: "operation registry lock failed".to_owned(),
@@ -299,6 +317,15 @@ impl OperationRegistry {
 
 impl OperationRegistryState {
     /// Returns a mutable operation record or a structured not-found error.
+    ///
+    /// # Parameters
+    /// - `id`: Operation identity to resolve.
+    ///
+    /// # Returns
+    /// A mutable operation record.
+    ///
+    /// # Errors
+    /// Returns `NotFound` when the operation is unknown.
     fn record_mut(&mut self, id: &OperationId) -> Result<&mut OperationRecord, ApplicationError> {
         self.records
             .get_mut(id)
@@ -308,6 +335,9 @@ impl OperationRegistryState {
     }
 
     /// Publishes an event and removes disconnected subscribers.
+    ///
+    /// # Parameters
+    /// - `event`: Lifecycle event to publish.
     fn publish(&mut self, event: &ApplicationEvent) {
         self.history.push(event.clone());
         self.subscribers
@@ -316,6 +346,12 @@ impl OperationRegistryState {
 }
 
 /// Converts a lifecycle transition to its transport-neutral event.
+///
+/// # Parameters
+/// - `record`: Operation record describing the transition.
+///
+/// # Returns
+/// The corresponding application event.
 fn operation_event(record: &OperationRecord) -> ApplicationEvent {
     if record.status.is_terminal() {
         ApplicationEvent::OperationCompleted {
@@ -330,59 +366,5 @@ fn operation_event(record: &OperationRecord) -> ApplicationEvent {
         ApplicationEvent::OperationStarted {
             operation: record.reference.clone(),
         }
-    }
-}
-
-impl OperationRecord {
-    /// Creates a queued operation record.
-    ///
-    /// # Parameters
-    /// - `reference`: Stable operation identity.
-    /// - `kind`: Universal operation family.
-    ///
-    /// # Returns
-    /// A queued operation record without mutable result data.
-    #[must_use]
-    pub fn queued(reference: OperationId, kind: OperationKind) -> Self {
-        Self {
-            reference,
-            kind,
-            base_snapshot: None,
-            branch: None,
-            status: OperationStatus::Queued,
-            progress: None,
-            result_handles: Vec::new(),
-            error: None,
-        }
-    }
-
-    /// Transitions the operation to a new lifecycle state.
-    ///
-    /// # Parameters
-    /// - `self`: Operation record to update.
-    /// - `status`: Next lifecycle status.
-    ///
-    /// # Returns
-    /// The updated operation record.
-    ///
-    /// # Errors
-    /// Returns an application error when a terminal operation is changed.
-    pub fn transition(mut self, status: OperationStatus) -> Result<Self, crate::ApplicationError> {
-        if self.status.is_terminal() {
-            return Err(crate::ApplicationError::OperationFailed {
-                operation: self.reference.to_string(),
-                message: "terminal operation cannot transition".to_owned(),
-            });
-        }
-        self.status = status;
-        if status.is_terminal() {
-            self.progress = Some(OperationProgress {
-                status,
-                completed: self.progress.as_ref().and_then(|value| value.completed),
-                total: self.progress.as_ref().and_then(|value| value.total),
-                phase: self.progress.as_ref().and_then(|value| value.phase.clone()),
-            });
-        }
-        Ok(self)
     }
 }

@@ -13,6 +13,11 @@ describe("createRuntime", () => {
 
   it("bootstraps a connected root from public capabilities and inspect calls", async () => {
     const fetch = vi.fn(async (url: string) => {
+      if (url.endsWith("/subscribe")) {
+        return new Response(JSON.stringify([{ kind: "snapshotAdvanced", snapshotId: "s2" }]), {
+          status: 200,
+        });
+      }
       if (url.endsWith("/capabilities")) {
         return new Response(
           JSON.stringify({
@@ -42,7 +47,9 @@ describe("createRuntime", () => {
 
     expect(runtime.connection).toBe("connected");
     expect(runtime.tree.get("root")?.entityId).toBe(ROOT);
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(runtime.commands.map((command) => command.id)).toEqual(["inspect", "list"]);
+    await vi.waitFor(() => expect(runtime.model.getState().snapshots.current).toBe("s2"));
+    expect(fetch).toHaveBeenCalledTimes(3);
   });
 
   it("reports disconnected when bootstrap transport fails", async () => {

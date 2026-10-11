@@ -6,6 +6,7 @@ import type { OperationStore } from "./operation-store";
 export interface ModelEventState {
   snapshots: SnapshotState;
   disconnected: boolean;
+  lastEvent?: ProtocolEvent;
 }
 /** Applies one event without mutating immutable revision caches. @param state Current state. @param event Incoming event. @param operations Operation store. @returns Updated state. */
 export function reduceEvent(
@@ -13,13 +14,14 @@ export function reduceEvent(
   event: ProtocolEvent,
   operations: OperationStore,
 ): ModelEventState {
+  const observed = { ...state, lastEvent: event };
   switch (event.kind) {
     case "snapshotAdvanced":
-      return { ...state, snapshots: advanceSnapshot(state.snapshots, event.snapshotId) };
+      return { ...observed, snapshots: advanceSnapshot(state.snapshots, event.snapshotId) };
     case "operationProgress":
       operations.progress(event.operationId, event.progress);
-      return state;
+      return observed;
     default:
-      return state;
+      return observed;
   }
 }

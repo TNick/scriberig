@@ -3,6 +3,7 @@
 import { ThemeProvider } from "@mui/material/styles";
 import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { ScriberigProvider } from "@scriberig/react";
+import { useSnapshot } from "@scriberig/react";
 import { createScriberigTheme } from "@scriberig/components-mui";
 import { AppShell } from "./app-shell";
 import { createRuntime } from "./runtime";
@@ -14,9 +15,28 @@ import { ProjectionView } from "./views/ProjectionView";
 import { HistoryView } from "./views/HistoryView";
 import { SessionAgentView } from "./views/SessionAgentView";
 import { OperationsView } from "./views/OperationsView";
+import { MigrationReviewView } from "./views/MigrationReviewView";
 
-/**
-/** @returns The rendered App view or runtime value. */
+/** Renders the current connection and snapshot status.
+ *
+ * @param connection Runtime connection state.
+ * @returns The rendered snapshot status.
+ */
+function RuntimeSnapshotStatus({ connection }: { connection: string }): ReactElement {
+  const snapshot = useSnapshot();
+  return (
+    <SnapshotStatus
+      state={
+        connection === "connected" ? snapshot.kind : (connection as "connecting" | "disconnected")
+      }
+    />
+  );
+}
+
+/** Renders the integrated Scriberig application.
+ *
+ * @returns The rendered application view.
+ */
 export function App(): ReactElement {
   const runtime = useMemo(() => createRuntime(), []);
   const [route, setRoute] = useState<AppRoute>("raw");
@@ -35,7 +55,7 @@ export function App(): ReactElement {
           onNavigate={(next) => setRoute(parseRoute(next))}
           status={connection}
         >
-          <SnapshotStatus state={connection === "connected" ? "current" : connection} />
+          <RuntimeSnapshotStatus connection={connection} />
           {route === "raw" ? (
             <RawKnowledgeView />
           ) : route === "semantic" ? (
@@ -46,6 +66,8 @@ export function App(): ReactElement {
             <HistoryView />
           ) : route === "session" ? (
             <SessionAgentView />
+          ) : route === "migration" ? (
+            <MigrationReviewView />
           ) : (
             <OperationsView />
           )}

@@ -4,6 +4,9 @@ use super::common::IdParseError;
 use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 
+#[derive(
+    Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize,
+)]
 /// Names a semantic object type without coupling it to a registry.
 ///
 /// # Public members
@@ -12,10 +15,8 @@ use std::str::FromStr;
 ///
 /// # Private members
 /// - `value`: Stores the validated UTF-8 identifier.
-#[derive(
-    Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize,
-)]
 pub struct TypeId {
+    /// Validated semantic type name.
     value: String,
 }
 

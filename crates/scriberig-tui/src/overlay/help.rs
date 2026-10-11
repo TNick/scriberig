@@ -13,6 +13,9 @@ pub struct HelpRow {
 
 /// Generates help rows from actual bindings, without a duplicate table.
 #[must_use]
+///
+/// # Returns
+/// The value produced by the declaration.
 pub fn rows() -> Vec<HelpRow> {
     bindings()
         .iter()

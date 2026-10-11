@@ -25,6 +25,10 @@ pub struct ExplorerModel {
 impl ExplorerModel {
     /// Creates an explorer rooted at an explicitly entered entity.
     #[must_use]
+    /// - `selection`: Argument named `selection`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn from_selection(selection: EntitySelection) -> Self {
         let label = selection.entity.to_string();
         Self {

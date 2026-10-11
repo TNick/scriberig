@@ -34,9 +34,9 @@ test("preserves the selected semantic identity across supported views", async ({
   await child.getByRole("button").first().click();
 
   await shell.navigate("semantic");
-  await expect(page.getByText(/Entity ent_/)).toBeVisible();
+  await expect(page.getByText("scriberig.demo.entity")).toBeVisible();
   await shell.navigate("raw");
   await shell.navigate("semantic");
-  await expect(page.getByText(/Entity ent_/)).toBeVisible();
+  await expect(page.getByText("scriberig.demo.entity")).toBeVisible();
   expectHealthyBrowser(diagnostics);
 });

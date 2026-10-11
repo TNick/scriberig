@@ -44,6 +44,14 @@ impl RootStore for MemoryRootStore {
     }
 
     /// Unconditionally points a named root at an immutable snapshot.
+    /// - `name`: Argument named `name`.
+    /// - `snapshot`: Argument named `snapshot`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn set_root(&self, name: RootName, snapshot: SnapshotId) -> Result<(), RootError> {
         self.roots
             .write()

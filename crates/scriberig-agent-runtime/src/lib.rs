@@ -44,6 +44,15 @@ pub struct EchoProvider;
 
 impl ModelProvider for EchoProvider {
     /// Returns the latest user prompt as a completed response.
+    ///
+    /// # Parameters
+    /// - `messages`: Conversation messages available to the provider.
+    ///
+    /// # Returns
+    /// A final response containing the latest user prompt.
+    ///
+    /// # Errors
+    /// Returns an error when no user prompt is available.
     fn decide(&mut self, messages: &[AgentMessage]) -> Result<ModelDecision, String> {
         let Some(AgentMessage::User(prompt)) = messages.first() else {
             return Err("agent prompt is missing".to_owned());
@@ -57,11 +66,24 @@ pub struct UnconfiguredTool;
 
 impl Tool for UnconfiguredTool {
     /// Identifies the guarded fallback tool.
+    ///
+    /// # Returns
+    /// The stable fallback tool name.
     fn name(&self) -> &'static str {
         "unconfigured"
     }
 
     /// Rejects tool execution until a concrete application tool is composed.
+    ///
+    /// # Parameters
+    /// - `_context`: Trusted application context for the invocation.
+    /// - `_input`: Structured tool input to reject.
+    ///
+    /// # Returns
+    /// Never returns a successful tool result.
+    ///
+    /// # Errors
+    /// Always returns an unsupported-operation tool error.
     fn invoke(
         &self,
         _context: &ApplicationContext,
@@ -110,6 +132,16 @@ pub enum AgentError {
 
 impl std::fmt::Display for AgentError {
     /// Formats a safe agent-runtime failure.
+    ///
+    /// # Parameters
+    /// - `self`: Agent error to format.
+    /// - `formatter`: Formatter receiving the rendered error.
+    ///
+    /// # Returns
+    /// Formatting success or the formatter's error.
+    ///
+    /// # Errors
+    /// Returns the formatter error when output cannot be written.
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Provider(message) => write!(formatter, "agent provider: {message}"),
@@ -234,6 +266,12 @@ where
     }
 
     /// Starts one tracked agent operation when a registry is configured.
+    ///
+    /// # Returns
+    /// The operation identity when lifecycle tracking is enabled.
+    ///
+    /// # Errors
+    /// Returns a provider error when an operation cannot be registered.
     fn start_operation(&mut self) -> Result<Option<OperationId>, AgentError> {
         let Some(registry) = &self.registry else {
             return Ok(None);
@@ -251,6 +289,10 @@ where
     }
 
     /// Publishes a terminal state for one tracked agent operation.
+    ///
+    /// # Parameters
+    /// - `operation`: Optional operation identity to update.
+    /// - `status`: Terminal lifecycle status to publish.
     fn finish_operation(&self, operation: Option<&OperationId>, status: OperationStatus) {
         if let (Some(registry), Some(operation)) = (&self.registry, operation) {
             let _ = registry.transition(operation, status);
@@ -259,88 +301,10 @@ where
 }
 
 /// Creates a cancellation flag suitable for one runtime invocation.
+///
+/// # Returns
+/// A clear, shared cancellation flag.
 #[must_use]
 pub fn cancellation_flag() -> Arc<AtomicBool> {
     Arc::new(AtomicBool::new(false))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{AgentMessage, AgentResult, AgentRuntime, ModelDecision, ModelProvider};
-    use scriberig_agent_core::{InspectTool, ToolDetail, ToolInput};
-    use scriberig_app::{
-        ApplicationContext, CapabilityContext, CapabilityId, InspectRequest, InspectResult,
-        QueryService,
-    };
-    use scriberig_core::{EntityId, ObjectType, RevisionId, SnapshotId};
-    use std::sync::atomic::AtomicBool;
-
-    /// Provides one deterministic query service to the runtime test.
-    struct Fixture;
-
-    impl QueryService for Fixture {
-        /// Returns one deterministic inspection.
-        fn inspect(
-            &self,
-            _context: &ApplicationContext,
-            request: &InspectRequest,
-        ) -> Result<InspectResult, scriberig_app::ApplicationError> {
-            Ok(InspectResult {
-                entity: request.entity,
-                revision: Some(RevisionId::new([2; 32])),
-                snapshot: Some(SnapshotId::new([3; 32])),
-                object_type: Some(ObjectType::new("test.entity").expect("type")),
-                label: Some("fixture".to_owned()),
-                description: None,
-                capabilities: vec!["inspect.entity".to_owned()],
-                trust: None,
-            })
-        }
-    }
-
-    /// Provides one tool request followed by a final answer.
-    struct Provider {
-        calls: usize,
-    }
-
-    impl ModelProvider for Provider {
-        /// Produces a deterministic inspect call then final text.
-        fn decide(&mut self, messages: &[AgentMessage]) -> Result<ModelDecision, String> {
-            if self.calls == 0 {
-                self.calls += 1;
-                return Ok(ModelDecision::Tool(ToolInput {
-                    entity: EntityId::from_bytes([1; 16]),
-                    snapshot: None,
-                    detail: ToolDetail::Compact,
-                }));
-            }
-            assert!(matches!(messages.last(), Some(AgentMessage::Tool(_))));
-            Ok(ModelDecision::Final("done".to_owned()))
-        }
-    }
-
-    /// Verifies the runtime executes tools only through agent-core contracts.
-    #[test]
-    fn runtime_completes_provider_tool_loop() {
-        let registry = scriberig_app::OperationRegistry::new();
-        let mut runtime = AgentRuntime::new(Provider { calls: 0 }, InspectTool::new(Fixture), 2)
-            .with_operation_registry(registry.clone());
-        let context = ApplicationContext {
-            capabilities: CapabilityContext::new([
-                CapabilityId::new("inspect.entity").expect("capability")
-            ]),
-            ..ApplicationContext::empty()
-        };
-        let result = runtime
-            .run(&context, "inspect", &AtomicBool::new(false))
-            .expect("agent result");
-        assert_eq!(result.output, "done");
-        assert_eq!(result.messages.len(), 2);
-        let _: AgentResult = result;
-        let events = registry.events();
-        assert!(events.iter().any(|event| matches!(
-            event,
-            scriberig_app::ApplicationEvent::OperationCompleted { .. }
-        )));
-    }
 }

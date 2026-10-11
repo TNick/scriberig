@@ -162,6 +162,7 @@ pub(crate) fn store_in_transaction(
 ///
 /// # Errors
 /// Returns a SQLite insertion error.
+/// - `crate`: Argument named `crate`.
 pub(crate) fn store_parent_in_transaction(
     transaction: &Transaction<'_>,
     snapshot: SnapshotId,

@@ -38,6 +38,12 @@ pub struct Workspace {
 impl Workspace {
     /// Creates an active workspace rooted at an exact snapshot.
     #[must_use]
+    /// - `base`: Argument named `base`.
+    /// - `target_root`: Argument named `target_root`.
+    /// - `provenance`: Argument named `provenance`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn new(base: SnapshotId, target_root: Option<RootName>, provenance: Provenance) -> Self {
         Self {
             base,
@@ -96,6 +102,10 @@ mod tests {
     use scriberig_store::RootStore;
     use scriberig_store_memory::MemoryStore;
 
+    /// Implements `workspace`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     fn workspace() -> Workspace {
         Workspace::new(
             SnapshotId::new([1; 32]),

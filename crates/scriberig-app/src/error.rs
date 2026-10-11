@@ -67,6 +67,18 @@ pub enum ApplicationError {
         /// Safe implementation diagnostic.
         message: String,
     },
+    /// A remote transport could not be reached or completed its request.
+    TransportUnavailable {
+        /// Safe transport diagnostic.
+        message: String,
+    },
+    /// A remote protocol returned a semantic failure category.
+    ProtocolFailure {
+        /// Stable protocol error category.
+        category: String,
+        /// Safe protocol diagnostic.
+        message: String,
+    },
     /// The requested revision does not belong to the requested entity.
     RevisionMismatch {
         /// Entity identity supplied by the caller.
@@ -150,6 +162,8 @@ impl ApplicationError {
             Self::ProjectionOutOfSync { .. } => "projection_out_of_sync",
             Self::OperationCancelled { .. } => "operation_cancelled",
             Self::Internal { .. } => "internal",
+            Self::TransportUnavailable { .. } => "transport_unavailable",
+            Self::ProtocolFailure { .. } => "protocol_failure",
             Self::RevisionMismatch { .. } => "revision_mismatch",
             Self::UnsupportedCapability { .. } => "unsupported_capability",
             Self::Conflict { .. } => "conflict",
@@ -207,6 +221,12 @@ impl Display for ApplicationError {
             }
             Self::Internal { message } => {
                 write!(formatter, "internal application error: {message}")
+            }
+            Self::TransportUnavailable { message } => {
+                write!(formatter, "transport unavailable: {message}")
+            }
+            Self::ProtocolFailure { category, message } => {
+                write!(formatter, "{category}: {message}")
             }
             Self::RevisionMismatch { entity, revision } => {
                 write!(

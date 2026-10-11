@@ -35,6 +35,9 @@ pub struct PaletteState {
 
 impl Default for PaletteState {
     /// Creates the initial local palette.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     fn default() -> Self {
         Self {
             query: String::new(),
@@ -48,6 +51,8 @@ impl Default for PaletteState {
                 item("diff", "View diff"),
                 item("projection", "View projection"),
                 item("changes", "View changes/validation"),
+                item("session", "View session"),
+                item("operations", "View operations"),
             ],
             semantic_actions: Vec::new(),
             selected: 0,
@@ -58,6 +63,10 @@ impl Default for PaletteState {
 impl PaletteState {
     /// Creates a palette whose semantic rows reflect application capabilities.
     #[must_use]
+    /// - `capabilities`: Argument named `capabilities`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn with_capabilities(capabilities: &[scriberig_app::RuntimeCapability]) -> Self {
         let mut palette = Self::default();
         if capabilities
@@ -74,10 +83,27 @@ impl PaletteState {
     }
 }
 
+/// Creates a local palette item.
+///
+/// # Parameters
+/// - `id`: Stable action identifier.
+/// - `label`: Human-readable action label.
+///
+/// # Returns
+/// A palette item.
 fn item(id: &str, label: &str) -> PaletteItem {
     item_with_source(id, label, ActionSource::Local)
 }
 
+/// Creates a palette item with an explicit action source.
+///
+/// # Parameters
+/// - `id`: Stable action identifier.
+/// - `label`: Human-readable action label.
+/// - `source`: Action source classification.
+///
+/// # Returns
+/// A palette item.
 fn item_with_source(id: &str, label: &str, source: ActionSource) -> PaletteItem {
     PaletteItem {
         id: id.to_owned(),
@@ -88,6 +114,11 @@ fn item_with_source(id: &str, label: &str, source: ActionSource) -> PaletteItem 
 
 /// Filters local and semantic rows by case-insensitive substring matching.
 #[must_use]
+/// - `items`: Argument named `items`.
+/// - `query`: Argument named `query`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub fn filter(items: &[PaletteItem], query: &str) -> Vec<PaletteItem> {
     let query = query.to_lowercase();
     items
@@ -102,12 +133,16 @@ pub fn filter(items: &[PaletteItem], query: &str) -> Vec<PaletteItem> {
 impl PaletteState {
     /// Returns the currently visible filtered rows.
     #[must_use]
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn filtered(&self) -> Vec<PaletteItem> {
         let mut items = self.local_actions.clone();
         items.extend(self.semantic_actions.clone());
         filter(&items, &self.query)
     }
     /// Changes the filter and clamps the selection.
+    /// - `query`: Argument named `query`.
     pub fn set_query(&mut self, query: String) {
         self.query = query;
         self.selected = self.selected.min(self.filtered().len().saturating_sub(1));
@@ -118,6 +153,7 @@ impl PaletteState {
 mod tests {
     use super::*;
     #[test]
+    /// Implements `filters_local_actions_case_insensitively`.
     fn filters_local_actions_case_insensitively() {
         let state = PaletteState::default();
         assert_eq!(

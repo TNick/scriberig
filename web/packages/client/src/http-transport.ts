@@ -34,10 +34,33 @@ export class HttpTransport implements SemanticTransport {
       );
     return body as TResponse;
   }
-  /** Subscribes to events; streaming remains transport-owned. */ subscribe(
-    _listener: (event: ProtocolEvent) => void,
-    _signal?: AbortSignal,
+  /** Polls buffered events until the caller closes the subscription. */ subscribe(
+    listener: (event: ProtocolEvent) => void,
+    signal?: AbortSignal,
   ): () => void {
-    return () => undefined;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const abort = () => {
+      active = false;
+      if (timer !== undefined) clearTimeout(timer);
+    };
+    signal?.addEventListener("abort", abort, { once: true });
+    const poll = async (): Promise<void> => {
+      if (!active) return;
+      try {
+        const events = await this.request<ProtocolEvent[]>("subscribe", { eventKinds: [] }, signal);
+        if (!active) return;
+        for (const event of events) listener(event);
+      } catch {
+        if (!active) return;
+      }
+      if (active) timer = setTimeout(() => void poll(), 1_000);
+    };
+    void poll();
+    return () => {
+      active = false;
+      if (timer !== undefined) clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
+    };
   }
 }

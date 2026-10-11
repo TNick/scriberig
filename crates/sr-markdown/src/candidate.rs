@@ -68,6 +68,10 @@ impl CandidateDocument {
 }
 
 /// Collects local candidate paths without assigning canonical identity.
+/// - `document`: Argument named `document`.
+///
+/// # Returns
+/// The value produced by the declaration.
 fn node_paths(document: &MarkdownDocument) -> Vec<Vec<usize>> {
     let mut paths = Vec::new();
     for (index, block) in document.blocks.iter().enumerate() {
@@ -77,6 +81,9 @@ fn node_paths(document: &MarkdownDocument) -> Vec<Vec<usize>> {
 }
 
 /// Adds one block and its nested section children to candidate paths.
+/// - `block`: Argument named `block`.
+/// - `path`: Argument named `path`.
+/// - `paths`: Argument named `paths`.
 fn collect_paths(block: &crate::MarkdownBlock, path: &[usize], paths: &mut Vec<Vec<usize>>) {
     paths.push(path.to_vec());
     if let crate::MarkdownBlock::Section(section) = block {

@@ -29,6 +29,11 @@ pub struct HistoryModel {
 impl HistoryModel {
     /// Builds a TUI history model from a public application summary.
     #[must_use]
+    /// - `snapshot`: Argument named `snapshot`.
+    /// - `summary`: Argument named `summary`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn from_summary(snapshot: SnapshotId, summary: &scriberig_app::OperationSummary) -> Self {
         let rows = summary
             .history
@@ -52,6 +57,11 @@ impl HistoryModel {
 
     /// Returns an exact historical selection for a changed entity row.
     #[must_use]
+    /// - `row`: Argument named `row`.
+    /// - `entity`: Argument named `entity`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn selection(
         &self,
         row: usize,

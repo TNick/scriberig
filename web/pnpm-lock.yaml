@@ -193,6 +193,9 @@ importers:
       '@scriberig/agent-ui':
         specifier: workspace:*
         version: link:../../packages/agent-ui
+      '@scriberig/app':
+        specifier: workspace:*
+        version: link:../scriberig
       '@scriberig/client':
         specifier: workspace:*
         version: link:../../packages/client

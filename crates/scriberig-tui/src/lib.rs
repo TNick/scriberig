@@ -84,8 +84,7 @@ impl From<io::Error> for TuiError {
 
 /// Provides semantic operations required by the TUI shell.
 pub use service::{
-    ApplicationAdapter, ApplicationOperationAdapter, RemoteAdapter, TuiOperationService,
-    TuiService,
+    ApplicationAdapter, ApplicationOperationAdapter, RemoteAdapter, TuiOperationService, TuiService,
 };
 
 /// Runs the line-oriented TUI shell over an application service.
@@ -100,7 +99,7 @@ pub use service::{
 ///
 /// # Errors
 /// Returns terminal I/O, invalid-command, or application failures.
-pub fn run<S: TuiService>(
+pub fn run<S: TuiService + Sync>(
     service: &S,
     context: &ApplicationContext,
     config: &TuiConfig,

@@ -13,6 +13,10 @@ use sr_projection::{
 };
 
 /// Creates the exact reconciliation context used by adapter tests.
+/// - `current`: Argument named `current`.
+///
+/// # Returns
+/// The value produced by the declaration.
 fn context(current: SnapshotId) -> ReconciliationContext {
     ReconciliationContext {
         base: SemanticStateRef(SnapshotId::new([1; 32])),

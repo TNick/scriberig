@@ -15,6 +15,7 @@ pub struct NavigationState {
 
 impl NavigationState {
     /// Activates a location, pushing the current one and clearing forward history.
+    /// - `location`: Argument named `location`.
     pub fn activate(&mut self, location: NavigationLocation) {
         if let Some(current) = self.current.replace(location) {
             self.back.push(current);
@@ -23,6 +24,9 @@ impl NavigationState {
     }
 
     /// Moves back one location and reports whether navigation occurred.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn go_back(&mut self) -> bool {
         let Some(location) = self.back.pop() else {
             return false;
@@ -34,6 +38,9 @@ impl NavigationState {
     }
 
     /// Moves forward one location and reports whether navigation occurred.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn go_forward(&mut self) -> bool {
         let Some(location) = self.forward.pop() else {
             return false;
@@ -50,6 +57,13 @@ mod tests {
     use super::NavigationState;
     use crate::selection::{NavigationLocation, SemanticReference};
 
+    /// Creates a navigation location for a named semantic reference.
+    ///
+    /// # Parameters
+    /// - `name`: Semantic reference name.
+    ///
+    /// # Returns
+    /// A navigation location.
     fn location(name: &str) -> NavigationLocation {
         NavigationLocation {
             selection: Some(SemanticReference(name.to_owned())),

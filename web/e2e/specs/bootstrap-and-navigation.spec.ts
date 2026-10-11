@@ -22,16 +22,17 @@ test("navigates across every application surface without losing connection state
   await shell.open();
 
   const surfaces = [
-    ["semantic", "Semantic", "semantic domain views"],
-    ["projection", "Projection", "projection execution"],
-    ["history", "History / Diff", "history and semantic diff"],
-    ["session", "Session / Agent", "sessions and agent operations"],
-    ["operations", "Operations", "long-running operations"],
+    ["semantic", "Semantic"],
+    ["projection", "Projection"],
+    ["history", "History / Diff"],
+    ["session", "Session / Agent"],
+    ["migration", "Migration Review"],
+    ["operations", "Operations"],
   ] as const;
-  for (const [, heading, capability] of surfaces) {
-    await shell.navigate(heading.split(" /")[0].toLowerCase());
-    await expect(page.getByRole("heading", { name: heading }).first()).toBeVisible();
-    await expect(page.getByText(`Unsupported capability: ${capability}`)).toBeVisible();
+  for (const [route, heading] of surfaces) {
+    await shell.navigate(route);
+    await expect(page.locator("h1")).toHaveText(heading);
+    await expect(page.getByText(/Unsupported capability:/)).toHaveCount(0);
     await expect(page.getByRole("status").first()).toHaveText("connected");
   }
   expectHealthyBrowser(diagnostics);

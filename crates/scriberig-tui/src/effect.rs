@@ -77,4 +77,20 @@ pub enum Effect {
         /// Operation identity to cancel.
         operation: scriberig_core::OperationId,
     },
+    /// Read a public session tree.
+    ReadSession {
+        /// Request generation.
+        request_id: u64,
+        /// Stable session identity.
+        session: scriberig_core::EntityId,
+    },
+    /// Submit a command to a session branch through the application boundary.
+    SubmitAgent {
+        /// Stable session identity.
+        session: scriberig_core::EntityId,
+        /// Optional target branch.
+        branch: Option<scriberig_core::EntityId>,
+        /// User-authored command text.
+        prompt: String,
+    },
 }

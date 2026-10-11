@@ -111,6 +111,14 @@ pub fn match_nodes(base: &[CanonicalNode], candidate: &MarkdownDocument) -> Matc
 
 /// Matches one candidate block against available canonical context.
 #[allow(clippy::too_many_lines)]
+/// - `base`: Argument named `base`.
+/// - `used`: Argument named `used`.
+/// - `results`: Argument named `results`.
+/// - `candidates`: Argument named `candidates`.
+/// - `MarkdownBlock`: Argument named `MarkdownBlock`.
+///
+/// # Returns
+/// The value produced by the declaration.
 fn match_candidate(
     base: &[CanonicalNode],
     used: &mut [bool],
@@ -232,6 +240,14 @@ fn match_candidate(
 }
 
 /// Creates a matched result and marks its canonical identity as consumed.
+/// - `path`: Argument named `path`.
+/// - `base`: Argument named `base`.
+/// - `used`: Argument named `used`.
+/// - `index`: Argument named `index`.
+/// - `evidence`: Argument named `evidence`.
+///
+/// # Returns
+/// The value produced by the declaration.
 fn matched(
     path: &[usize],
     base: &[CanonicalNode],
@@ -248,6 +264,12 @@ fn matched(
 }
 
 /// Creates an ambiguity result for equally plausible canonical identities.
+/// - `path`: Argument named `path`.
+/// - `base`: Argument named `base`.
+/// - `indexes`: Argument named `indexes`.
+///
+/// # Returns
+/// The value produced by the declaration.
 fn ambiguous(path: &[usize], base: &[CanonicalNode], indexes: &[usize]) -> NodeMatch {
     NodeMatch::Ambiguous {
         candidate_path: path.to_owned(),

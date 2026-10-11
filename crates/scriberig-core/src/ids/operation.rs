@@ -8,6 +8,7 @@ use std::str::FromStr;
 #[derive(
     Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize,
 )]
+/// Stores a stable operation identity.
 pub struct OperationId(String);
 
 impl OperationId {

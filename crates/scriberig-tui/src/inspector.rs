@@ -50,6 +50,10 @@ pub struct InspectorModel {
 impl InspectorModel {
     /// Builds a safe TUI projection from a public inspection result.
     #[must_use]
+    /// - `result`: Argument named `result`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     pub fn from_result(result: InspectResult) -> Self {
         Self {
             entity: result.entity,
@@ -70,6 +74,11 @@ impl InspectorModel {
 
 /// Converts an application error into a distinct safe presentation state.
 #[must_use]
+/// - `error`: Argument named `error`.
+/// - `stale`: Argument named `stale`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub fn presentation_error(error: &ApplicationError, stale: bool) -> LoadState<InspectorModel> {
     LoadState::Failed {
         category: error.category().to_owned(),
@@ -80,6 +89,10 @@ pub fn presentation_error(error: &ApplicationError, stale: bool) -> LoadState<In
 
 /// Removes terminal control characters from external text.
 #[must_use]
+/// - `text`: Argument named `text`.
+///
+/// # Returns
+/// The value produced by the declaration.
 pub fn sanitize(text: &str) -> String {
     text.chars()
         .filter(|character| !character.is_control())

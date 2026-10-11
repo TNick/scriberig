@@ -62,6 +62,8 @@ pub fn handle_connection<S: ApplicationService>(
         ("POST", "/api/protocol/capabilities") => Ok(capabilities(state)),
         ("POST", "/api/protocol/inspect") => inspect(state, body),
         ("POST", "/api/protocol/list") => list(state, body),
+        ("POST", "/api/protocol/subscribe") => subscribe(state, body),
+        ("POST", "/api/protocol/command") => command(state, body),
         _ => Err((
             404,
             json!({"code": "not_found", "message": "route not found"}),
@@ -187,6 +189,72 @@ fn list<S: ApplicationService>(state: &HttpState<S>, body: &str) -> Result<Value
         })
         .collect::<Vec<_>>();
     Ok(json!({"items": items, "nextCursor": null}))
+}
+
+/// Returns buffered public events for the browser model subscription.
+fn subscribe<S: ApplicationService>(
+    state: &HttpState<S>,
+    body: &str,
+) -> Result<Value, (u16, Value)> {
+    let value: Value = serde_json::from_str(body).map_err(|error| {
+        (
+            400,
+            json!({"code": "invalid_request", "message": error.to_string()}),
+        )
+    })?;
+    let event_kinds = value
+        .get("eventKinds")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(ToOwned::to_owned)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let events = state.service.events(&event_kinds).map_err(|error| {
+        (
+            503,
+            json!({"code": error.category(), "message": error.to_string()}),
+        )
+    })?;
+    serde_json::to_value(events).map_err(|error| {
+        (
+            500,
+            json!({"code": "internal", "message": error.to_string()}),
+        )
+    })
+}
+
+/// Executes one declared application command for browser clients.
+fn command<S: ApplicationService>(state: &HttpState<S>, body: &str) -> Result<Value, (u16, Value)> {
+    let value: Value = serde_json::from_str(body).map_err(|error| {
+        (
+            400,
+            json!({"code": "invalid_request", "message": error.to_string()}),
+        )
+    })?;
+    let kind = value
+        .get("kind")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let payload = value.get("payload").unwrap_or(&Value::Null);
+    let operation = state
+        .service
+        .command(&ApplicationContext::empty(), kind, payload)
+        .map_err(|error| {
+            (
+                400,
+                json!({"code": error.category(), "message": error.to_string()}),
+            )
+        })?;
+    serde_json::to_value(operation).map_err(|error| {
+        (
+            500,
+            json!({"code": "internal", "message": error.to_string()}),
+        )
+    })
 }
 
 /// Resolves the browser snapshot selector without silently changing exact IDs.

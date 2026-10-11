@@ -71,6 +71,7 @@ pub trait ApplicationService {
     ///
     /// # Errors
     /// Returns unsupported-operation when event delivery is unavailable.
+    /// - `_event_kinds`: Argument named `_event_kinds`.
     fn events(&self, _event_kinds: &[String]) -> Result<Vec<Event>, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "event subscription".to_owned(),
@@ -81,6 +82,11 @@ pub trait ApplicationService {
     ///
     /// # Errors
     /// Returns an application error when query execution is unavailable.
+    /// - `_context`: Argument named `_context`.
+    /// - `_request`: Argument named `_request`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     fn query(
         &self,
         _context: &ApplicationContext,
@@ -95,6 +101,12 @@ pub trait ApplicationService {
     ///
     /// # Errors
     /// Returns an application error when command execution is unavailable.
+    /// - `_context`: Argument named `_context`.
+    /// - `_kind`: Argument named `_kind`.
+    /// - `_payload`: Argument named `_payload`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     fn command(
         &self,
         _context: &ApplicationContext,
@@ -109,6 +121,14 @@ pub trait ApplicationService {
 
 impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// Delegates inspection to the borrowed application service.
+    /// - `context`: Argument named `context`.
+    /// - `request`: Argument named `request`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn inspect(
         &self,
         context: &ApplicationContext,
@@ -118,26 +138,58 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     }
 
     /// Delegates capability discovery to the borrowed application service.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
     fn capabilities(&self) -> Vec<RuntimeCapability> {
         (**self).capabilities()
     }
 
     /// Delegates operation status to the borrowed application service.
+    /// - `operation_id`: Argument named `operation_id`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn operation_status(&self, operation_id: &str) -> Result<Operation, ApplicationError> {
         (**self).operation_status(operation_id)
     }
 
     /// Delegates operation cancellation to the borrowed application service.
+    /// - `operation_id`: Argument named `operation_id`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn cancel_operation(&self, operation_id: &str) -> Result<Operation, ApplicationError> {
         (**self).cancel_operation(operation_id)
     }
 
     /// Delegates event observation to the borrowed application service.
+    /// - `event_kinds`: Argument named `event_kinds`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn events(&self, event_kinds: &[String]) -> Result<Vec<Event>, ApplicationError> {
         (**self).events(event_kinds)
     }
 
     /// Delegates structured queries to the borrowed application service.
+    /// - `context`: Argument named `context`.
+    /// - `request`: Argument named `request`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn query(
         &self,
         context: &ApplicationContext,
@@ -147,6 +199,15 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     }
 
     /// Delegates declared commands to the borrowed application service.
+    /// - `context`: Argument named `context`.
+    /// - `kind`: Argument named `kind`.
+    /// - `payload`: Argument named `payload`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn command(
         &self,
         context: &ApplicationContext,
@@ -195,6 +256,14 @@ where
     }
 
     /// Executes a structured query through the shared application backend.
+    /// - `context`: Argument named `context`.
+    /// - `request`: Argument named `request`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn query(
         &self,
         context: &ApplicationContext,
@@ -230,6 +299,13 @@ where
     }
 
     /// Cancels operation state through the shared application lifecycle registry.
+    /// - `operation_id`: Argument named `operation_id`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn cancel_operation(&self, operation_id: &str) -> Result<Operation, ApplicationError> {
         let id = operation_id
             .parse::<OperationId>()
@@ -240,6 +316,13 @@ where
     }
 
     /// Exposes buffered lifecycle events as stable protocol envelopes.
+    /// - `event_kinds`: Argument named `event_kinds`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn events(&self, event_kinds: &[String]) -> Result<Vec<Event>, ApplicationError> {
         Ok(self
             .operations()
@@ -251,6 +334,15 @@ where
     }
 
     /// Decodes and executes one command through the shared application façade.
+    /// - `context`: Argument named `context`.
+    /// - `kind`: Argument named `kind`.
+    /// - `payload`: Argument named `payload`.
+    ///
+    /// # Returns
+    /// The value produced by the declaration.
+    ///
+    /// # Errors
+    /// Returns an error when the operation cannot complete.
     fn command(
         &self,
         context: &ApplicationContext,
@@ -293,223 +385,19 @@ where
 }
 
 /// Decodes a protocol command into the transport-independent application model.
-fn decode_command(
-    kind: &str,
-    payload: &serde_json::Value,
-) -> Result<(OperationKind, ApplicationRequest), ApplicationError> {
-    fn invalid(kind: &str, error: impl std::fmt::Display) -> ApplicationError {
-        ApplicationError::InvalidRequest {
-            operation: kind.to_owned(),
-            message: error.to_string(),
-        }
-    }
-
-    match kind {
-        "apply" => serde_json::from_value::<ApplyRequest>(payload.clone())
-            .map(|request| (OperationKind::Apply, ApplicationRequest::Apply(request)))
-            .map_err(|error| invalid(kind, error)),
-        "branch" => serde_json::from_value::<BranchRequest>(payload.clone())
-            .map(|request| (OperationKind::Branch, ApplicationRequest::Branch(request)))
-            .map_err(|error| invalid(kind, error)),
-        "commit" => serde_json::from_value::<CommitRequest>(payload.clone())
-            .map(|request| (OperationKind::Commit, ApplicationRequest::Commit(request)))
-            .map_err(|error| invalid(kind, error)),
-        "diff" => serde_json::from_value::<DiffRequest>(payload.clone())
-            .map(|request| (OperationKind::Diff, ApplicationRequest::Diff(request)))
-            .map_err(|error| invalid(kind, error)),
-        _ => Err(ApplicationError::UnsupportedOperation {
-            operation: format!("command {kind}"),
-        }),
-    }
-}
-
-/// Extracts stable result handles without exposing canonical result payloads.
-fn result_handles(result: &scriberig_app::ApplicationResult) -> Vec<String> {
-    let summary = match result {
-        scriberig_app::ApplicationResult::Diff(value)
-        | scriberig_app::ApplicationResult::History(value)
-        | scriberig_app::ApplicationResult::Render(value)
-        | scriberig_app::ApplicationResult::Branch(value)
-        | scriberig_app::ApplicationResult::Apply(value)
-        | scriberig_app::ApplicationResult::Commit(value) => Some(value),
-        _ => None,
-    };
-    summary.map_or_else(Vec::new, |value| vec![value.handle.clone()])
-}
-
-/// Tests whether a protocol event matches a case-insensitive kind filter.
-///
-/// # Parameters
-/// - `event`: Event whose kind is being tested.
-/// - `event_kinds`: Requested event kind names; empty selects every event.
+/// - `kind`: Argument named `kind`.
+/// - `payload`: Argument named `payload`.
 ///
 /// # Returns
-/// `true` when the event is selected by the subscription.
-fn event_matches(event: &Event, event_kinds: &[String]) -> bool {
-    event_kinds.is_empty()
-        || event_kinds.iter().any(|kind| {
-            kind.eq_ignore_ascii_case(&format!("{:?}", event.kind))
-                || kind.eq_ignore_ascii_case(&format!("{:?}", event.kind).replace('_', ""))
-        })
-}
-
-/// Converts an application operation record to its public lifecycle form.
-fn operation_from_record(record: scriberig_app::OperationRecord) -> Operation {
-    Operation {
-        reference: scriberig_protocol::OperationReference {
-            id: record.reference.to_string(),
-        },
-        kind: match record.kind {
-            scriberig_app::OperationKind::Inspect => {
-                scriberig_protocol::operation::OperationKind::Inspect
-            }
-            scriberig_app::OperationKind::Query => {
-                scriberig_protocol::operation::OperationKind::Query
-            }
-            scriberig_app::OperationKind::Apply => {
-                scriberig_protocol::operation::OperationKind::Apply
-            }
-            scriberig_app::OperationKind::List => {
-                scriberig_protocol::operation::OperationKind::List
-            }
-            scriberig_app::OperationKind::Follow => {
-                scriberig_protocol::operation::OperationKind::Follow
-            }
-            scriberig_app::OperationKind::Find => {
-                scriberig_protocol::operation::OperationKind::Find
-            }
-            scriberig_app::OperationKind::Diff => {
-                scriberig_protocol::operation::OperationKind::Diff
-            }
-            scriberig_app::OperationKind::History => {
-                scriberig_protocol::operation::OperationKind::History
-            }
-            scriberig_app::OperationKind::Render => {
-                scriberig_protocol::operation::OperationKind::Render
-            }
-            scriberig_app::OperationKind::Branch => {
-                scriberig_protocol::operation::OperationKind::Branch
-            }
-            scriberig_app::OperationKind::Commit => {
-                scriberig_protocol::operation::OperationKind::Commit
-            }
-        },
-        status: match record.status {
-            scriberig_app::OperationStatus::Queued => {
-                scriberig_protocol::operation::OperationStatus::Queued
-            }
-            scriberig_app::OperationStatus::Running => {
-                scriberig_protocol::operation::OperationStatus::Running
-            }
-            scriberig_app::OperationStatus::Completed => {
-                scriberig_protocol::operation::OperationStatus::Completed
-            }
-            scriberig_app::OperationStatus::Failed => {
-                scriberig_protocol::operation::OperationStatus::Failed
-            }
-            scriberig_app::OperationStatus::Cancelled => {
-                scriberig_protocol::operation::OperationStatus::Cancelled
-            }
-        },
-        progress: record.progress.map(|progress| {
-            let percent = progress
-                .total
-                .filter(|total| *total > 0)
-                .map_or(0, |total| {
-                    progress
-                        .completed
-                        .unwrap_or_default()
-                        .saturating_mul(100)
-                        .checked_div(total)
-                        .unwrap_or(0)
-                        .min(100) as u8
-                });
-            scriberig_protocol::OperationProgress {
-                percent,
-                message: progress.phase,
-            }
-        }),
-        result_snapshot: None,
-        result_handles: record.result_handles,
-        error: record.error.map(|error| error.to_string()),
-    }
-}
-
-/// Converts one application lifecycle event to a stable protocol envelope.
-fn event_from_application(event: ApplicationEvent) -> Event {
-    let mut entity = None;
-    let mut revision = None;
-    let mut snapshot = None;
-    let mut operation = None;
-    let mut metadata = Vec::new();
-    let kind = match event {
-        ApplicationEvent::OperationStarted { operation: value } => {
-            operation = Some(value);
-            EventKind::OperationStarted
-        }
-        ApplicationEvent::OperationProgressed {
-            operation: value, ..
-        } => {
-            operation = Some(value);
-            EventKind::OperationProgressed
-        }
-        ApplicationEvent::OperationCompleted { operation: value } => {
-            operation = Some(value);
-            EventKind::OperationCompleted
-        }
-        ApplicationEvent::SnapshotChanged { snapshot: value } => {
-            snapshot = Some(scriberig_protocol::SnapshotReference {
-                id: value.to_string(),
-            });
-            EventKind::SnapshotChanged
-        }
-        ApplicationEvent::EntityChanged {
-            entity: value,
-            revision: value_revision,
-        } => {
-            entity = Some(scriberig_protocol::EntityReference {
-                id: value.to_string(),
-            });
-            revision = Some(scriberig_protocol::RevisionReference {
-                entity: scriberig_protocol::EntityReference {
-                    id: value.to_string(),
-                },
-                id: value_revision.to_string(),
-            });
-            EventKind::EntityChanged
-        }
-        ApplicationEvent::ProjectionChanged { subject } => {
-            entity = Some(scriberig_protocol::EntityReference {
-                id: subject.to_string(),
-            });
-            EventKind::ProjectionChanged
-        }
-        ApplicationEvent::BranchChanged { branch } => {
-            metadata.push(("branch".to_owned(), branch));
-            EventKind::BranchChanged
-        }
-        ApplicationEvent::MigrationCreated { migration } => {
-            metadata.push(("migration".to_owned(), migration));
-            EventKind::MigrationCreated
-        }
-        ApplicationEvent::ValidationCompleted { subject, passed } => {
-            metadata.push(("subject".to_owned(), subject));
-            metadata.push(("passed".to_owned(), passed.to_string()));
-            EventKind::ValidationCompleted
-        }
-        ApplicationEvent::AgentOutputProduced { output } => {
-            metadata.push(("output".to_owned(), output));
-            EventKind::AgentOutputProduced
-        }
-    };
-    Event {
-        kind,
-        entity,
-        revision,
-        snapshot,
-        operation: operation.map(|value| scriberig_protocol::OperationReference {
-            id: value.to_string(),
-        }),
-        metadata,
-    }
-}
+/// The value produced by the declaration.
+///
+/// # Errors
+/// Returns an error when the operation cannot complete.
+#[path = "server_commands.rs"]
+mod server_commands;
+#[path = "server_helpers.rs"]
+mod server_helpers;
+use server_commands::decode_command;
+use server_helpers::{
+    event_from_application, event_matches, operation_from_record, result_handles,
+};

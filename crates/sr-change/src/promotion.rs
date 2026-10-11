@@ -84,6 +84,14 @@ mod tests {
         }
 
         /// Sets the fixture root unconditionally.
+        /// - `_name`: Argument named `_name`.
+        /// - `_snapshot`: Argument named `_snapshot`.
+        ///
+        /// # Returns
+        /// The value produced by the declaration.
+        ///
+        /// # Errors
+        /// Returns an error when the operation cannot complete.
         fn set_root(&self, _name: RootName, _snapshot: SnapshotId) -> Result<(), RootError> {
             Ok(())
         }
@@ -118,6 +126,15 @@ mod tests {
     }
 
     impl SnapshotStore for Roots {
+        /// Implements `resolve`.
+        /// - `snapshot`: Argument named `snapshot`.
+        /// - `_entity`: Argument named `_entity`.
+        ///
+        /// # Returns
+        /// The value produced by the declaration.
+        ///
+        /// # Errors
+        /// Returns an error when the operation cannot complete.
         fn resolve(
             &self,
             snapshot: SnapshotId,
@@ -128,6 +145,15 @@ mod tests {
                 .ok_or(SnapshotError::UnknownSnapshot(snapshot))
         }
 
+        /// Implements `apply_changes`.
+        /// - `_base`: Argument named `_base`.
+        /// - `_changes`: Argument named `_changes`.
+        ///
+        /// # Returns
+        /// The value produced by the declaration.
+        ///
+        /// # Errors
+        /// Returns an error when the operation cannot complete.
         fn apply_changes(
             &self,
             _base: SnapshotId,
@@ -136,6 +162,14 @@ mod tests {
             Ok(SnapshotId::new([2; 32]))
         }
 
+        /// Implements `iter`.
+        /// - `snapshot`: Argument named `snapshot`.
+        ///
+        /// # Returns
+        /// The value produced by the declaration.
+        ///
+        /// # Errors
+        /// Returns an error when the operation cannot complete.
         fn iter(
             &self,
             snapshot: SnapshotId,
@@ -148,6 +182,15 @@ mod tests {
             }
         }
 
+        /// Implements `diff_snapshots`.
+        /// - `_from`: Argument named `_from`.
+        /// - `_to`: Argument named `_to`.
+        ///
+        /// # Returns
+        /// The value produced by the declaration.
+        ///
+        /// # Errors
+        /// Returns an error when the operation cannot complete.
         fn diff_snapshots(
             &self,
             _from: SnapshotId,
@@ -156,6 +199,14 @@ mod tests {
             Ok(Vec::new())
         }
 
+        /// Implements `parents`.
+        /// - `snapshot`: Argument named `snapshot`.
+        ///
+        /// # Returns
+        /// The value produced by the declaration.
+        ///
+        /// # Errors
+        /// Returns an error when the operation cannot complete.
         fn parents(&self, snapshot: SnapshotId) -> Result<Vec<SnapshotId>, SnapshotError> {
             self.iter(snapshot).map(|_| Vec::new())
         }

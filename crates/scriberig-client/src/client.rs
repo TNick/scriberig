@@ -61,7 +61,7 @@ impl<T: ProtocolTransport> Client<T> {
                 scriberig_protocol::request::DetailLevel::Compact
             },
         });
-        match self.send(request).response {
+        match self.send(request)?.response {
             Response::Inspect(response) => Ok(response),
             Response::Error(error) => Err(ClientError::Protocol(error)),
             _ => Err(ClientError::UnexpectedResponse),
@@ -77,7 +77,7 @@ impl<T: ProtocolTransport> Client<T> {
     /// Returns a structured server error or response mismatch.
     pub fn capabilities(&self) -> Result<CapabilitiesResponse, ClientError> {
         match self
-            .send(Request::Capabilities(RuntimeCapabilitiesRequest::default()))
+            .send(Request::Capabilities(RuntimeCapabilitiesRequest::default()))?
             .response
         {
             Response::Capabilities(response) => Ok(response),
@@ -105,7 +105,7 @@ impl<T: ProtocolTransport> Client<T> {
                 operation: OperationReference {
                     id: operation.into(),
                 },
-            }))
+            }))?
             .response
         {
             Response::OperationStatus(response) => Ok(response),
@@ -133,7 +133,7 @@ impl<T: ProtocolTransport> Client<T> {
                 operation: OperationReference {
                     id: operation.into(),
                 },
-            }))
+            }))?
             .response
         {
             Response::OperationCancelled(response) => Ok(response),
@@ -154,7 +154,7 @@ impl<T: ProtocolTransport> Client<T> {
     /// Returns a structured server error or response mismatch.
     pub fn subscribe(&self, event_kinds: Vec<String>) -> Result<Vec<Event>, ClientError> {
         match self
-            .send(Request::Subscribe(SubscribeRequest { event_kinds }))
+            .send(Request::Subscribe(SubscribeRequest { event_kinds }))?
             .response
         {
             Response::Events(events) => Ok(events),
@@ -178,7 +178,7 @@ impl<T: ProtocolTransport> Client<T> {
             .send(Request::Query(QueryRequest {
                 specification: serde_json::to_value(specification)
                     .map_err(|_| ClientError::UnexpectedResponse)?,
-            }))
+            }))?
             .response
         {
             Response::Query(response) => {
@@ -209,7 +209,7 @@ impl<T: ProtocolTransport> Client<T> {
             .send(Request::Command(CommandRequest {
                 kind: kind.into(),
                 payload,
-            }))
+            }))?
             .response
         {
             Response::CommandAccepted(response) => Ok(response),
@@ -225,12 +225,19 @@ impl<T: ProtocolTransport> Client<T> {
     ///
     /// # Returns
     /// Correlated transport response.
-    fn send(&self, request: Request) -> scriberig_protocol::ResponseEnvelope {
+    ///
+    /// # Errors
+    /// Returns a transport or protocol error.
+    fn send(&self, request: Request) -> Result<scriberig_protocol::ResponseEnvelope, ClientError> {
         let correlation = self.next_correlation.fetch_add(1, Ordering::Relaxed);
-        self.transport.send(RequestEnvelope {
+        let response = self.transport.send(RequestEnvelope {
             version: ProtocolVersion::default(),
             correlation_id: format!("client-{correlation}"),
             request,
-        })
+        });
+        if let Some(error) = self.transport.take_error() {
+            return Err(ClientError::Transport(error));
+        }
+        Ok(response)
     }
 }
