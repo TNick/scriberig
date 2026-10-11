@@ -70,7 +70,7 @@
 <a href=#70 id=70 data-nosnippet>70</a>        from: SnapshotId,
 <a href=#71 id=71 data-nosnippet>71</a>        to: SnapshotId,
 <a href=#72 id=72 data-nosnippet>72</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;SnapshotChange&gt;, SnapshotError&gt; {
-<a href=#73 id=73 data-nosnippet>73</a>        <span class="prelude-val">Ok</span>(<span class="self">self</span>.snapshot(from)<span class="question-mark">?</span>.diff(<span class="kw-2">&amp;</span><span class="self">self</span>.snapshot(to)<span class="question-mark">?</span>))
+<a href=#73 id=73 data-nosnippet>73</a>        <span class="prelude-val">Ok</span>(<span class="self">self</span>.snapshot(from)<span class="question-mark">?</span>.diff_changes(<span class="kw-2">&amp;</span><span class="self">self</span>.snapshot(to)<span class="question-mark">?</span>))
 <a href=#74 id=74 data-nosnippet>74</a>    }
 <a href=#75 id=75 data-nosnippet>75</a>}
 <a href=#76 id=76 data-nosnippet>76</a>

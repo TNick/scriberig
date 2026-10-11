@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {};
+window.SIDEBAR_ITEMS = {"enum":["RunOutcome","TuiError"],"fn":["inspect_headless","run"],"struct":["TuiConfig"],"trait":["TuiService"]};

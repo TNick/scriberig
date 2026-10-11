@@ -1,9 +1,9 @@
 (function() {
-    const implementors = Object.fromEntries([["scriberig_cli",[["impl Args for <a class=\"struct\" href=\"scriberig_cli/struct.Cli.html\" title=\"struct scriberig_cli::Cli\">Cli</a>",0],["impl Args for <a class=\"struct\" href=\"scriberig_cli/struct.InspectArgs.html\" title=\"struct scriberig_cli::InspectArgs\">InspectArgs</a>",0],["impl Args for <a class=\"struct\" href=\"scriberig_cli/struct.PromptArgs.html\" title=\"struct scriberig_cli::PromptArgs\">PromptArgs</a>",0],["impl Args for <a class=\"struct\" href=\"scriberig_cli/struct.ServeArgs.html\" title=\"struct scriberig_cli::ServeArgs\">ServeArgs</a>",0]]]]);
+    const implementors = Object.fromEntries([["scriberig_cli",[["impl Args for <a class=\"struct\" href=\"scriberig_cli/struct.Cli.html\" title=\"struct scriberig_cli::Cli\">Cli</a>",0],["impl Args for <a class=\"struct\" href=\"scriberig_cli/struct.InspectArgs.html\" title=\"struct scriberig_cli::InspectArgs\">InspectArgs</a>",0],["impl Args for <a class=\"struct\" href=\"scriberig_cli/struct.PromptArgs.html\" title=\"struct scriberig_cli::PromptArgs\">PromptArgs</a>",0],["impl Args for <a class=\"struct\" href=\"scriberig_cli/struct.ServeArgs.html\" title=\"struct scriberig_cli::ServeArgs\">ServeArgs</a>",0],["impl Args for <a class=\"struct\" href=\"scriberig_cli/struct.TuiArgs.html\" title=\"struct scriberig_cli::TuiArgs\">TuiArgs</a>",0]]]]);
     if (window.register_implementors) {
         window.register_implementors(implementors);
     } else {
         window.pending_implementors = implementors;
     }
 })()
-//{"start":59,"fragment_lengths":[574]}
+//{"start":59,"fragment_lengths":[709]}

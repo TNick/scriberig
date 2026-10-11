@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["SubscriptionBoundary"]};
+window.SIDEBAR_ITEMS = {"struct":["SubscriptionSpec"]};

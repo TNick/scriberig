@@ -5799,16 +5799,21 @@
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
 <li>[x] The reference app uses only public web packages for Scriberig behavior.</li>
-<li>[x] Raw, semantic, projection, history, session/agent, operations, and migration-review surfaces exist.</li>
-<li>[x] One semantic selection coordinates the views.</li>
-<li>[x] Snapshot/stale/disconnected state is visible.</li>
-<li>[x] Agent commands use structured semantic scope.</li>
-<li>[x] Web edits/migration acceptance use public operations.</li>
-<li>[x] Long-running operations are independently inspectable.</li>
-<li>[x] Unsupported capabilities do not trigger private fallbacks.</li>
-<li>[x] Public-boundary test passes.</li>
-<li>[x] App and workspace checks pass.</li>
+<li>[x] The raw knowledge surface bootstraps a shared tree through public client APIs.</li>
+<li>[x] Snapshot and connection state is visible for connecting, current, and disconnected states.</li>
+<li>[x] The raw tree loads its first child page lazily and updates shared semantic selection.</li>
+<li>[x] Unsupported or unimplemented product surfaces remain available without private fallbacks.</li>
+<li>[ ] Raw, semantic, projection, history, session/agent, operations, and migration-review surfaces are fully implemented.</li>
+<li>[ ] One semantic selection coordinates every integrated view.</li>
+<li>[ ] Agent commands use structured semantic scope.</li>
+<li>[ ] Web edits/migration acceptance use public operations.</li>
+<li>[ ] Long-running operations are independently inspectable.</li>
+<li>[ ] Public-boundary and cross-surface conformance tests pass.</li>
+<li>[ ] App and workspace checks pass from a clean repository state.</li>
 </ul>
+<p>The current implementation is the first connected browser vertical slice. The
+remaining unchecked items require later protocol/application capabilities and
+must not be represented as complete merely because placeholder views exist.</p>
 
 
 

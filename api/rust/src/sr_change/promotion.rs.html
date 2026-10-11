@@ -57,53 +57,58 @@
 <a href=#57 id=57 data-nosnippet>57</a>        </span><span class="kw">fn </span>read_root(<span class="kw-2">&amp;</span><span class="self">self</span>, _name: <span class="kw-2">&amp;</span>RootName) -&gt; <span class="prelude-ty">Option</span>&lt;SnapshotId&gt; {
 <a href=#58 id=58 data-nosnippet>58</a>            <span class="self">self</span>.<span class="number">0
 <a href=#59 id=59 data-nosnippet>59</a>        </span>}
-<a href=#60 id=60 data-nosnippet>60</a>        <span class="doccomment">/// Performs fixture compare-and-set.
-<a href=#61 id=61 data-nosnippet>61</a>        ///
-<a href=#62 id=62 data-nosnippet>62</a>        /// # Parameters
-<a href=#63 id=63 data-nosnippet>63</a>        /// - `_name`: Root name.
-<a href=#64 id=64 data-nosnippet>64</a>        /// - `expected`: Expected value.
-<a href=#65 id=65 data-nosnippet>65</a>        /// - `_new`: New value.
+<a href=#60 id=60 data-nosnippet>60</a>
+<a href=#61 id=61 data-nosnippet>61</a>        <span class="doccomment">/// Sets the fixture root unconditionally.
+<a href=#62 id=62 data-nosnippet>62</a>        </span><span class="kw">fn </span>set_root(<span class="kw-2">&amp;</span><span class="self">self</span>, _name: RootName, _snapshot: SnapshotId) -&gt; <span class="prelude-ty">Result</span>&lt;(), RootError&gt; {
+<a href=#63 id=63 data-nosnippet>63</a>            <span class="prelude-val">Ok</span>(())
+<a href=#64 id=64 data-nosnippet>64</a>        }
+<a href=#65 id=65 data-nosnippet>65</a>        <span class="doccomment">/// Performs fixture compare-and-set.
 <a href=#66 id=66 data-nosnippet>66</a>        ///
-<a href=#67 id=67 data-nosnippet>67</a>        /// # Returns
-<a href=#68 id=68 data-nosnippet>68</a>        /// Success or a conflict.
-<a href=#69 id=69 data-nosnippet>69</a>        ///
-<a href=#70 id=70 data-nosnippet>70</a>        /// # Errors
-<a href=#71 id=71 data-nosnippet>71</a>        /// Returns a fixture conflict when values differ.
-<a href=#72 id=72 data-nosnippet>72</a>        </span><span class="kw">fn </span>compare_and_set_root(
-<a href=#73 id=73 data-nosnippet>73</a>            <span class="kw-2">&amp;</span><span class="self">self</span>,
-<a href=#74 id=74 data-nosnippet>74</a>            _name: RootName,
-<a href=#75 id=75 data-nosnippet>75</a>            expected: <span class="prelude-ty">Option</span>&lt;SnapshotId&gt;,
-<a href=#76 id=76 data-nosnippet>76</a>            _new: SnapshotId,
-<a href=#77 id=77 data-nosnippet>77</a>        ) -&gt; <span class="prelude-ty">Result</span>&lt;(), RootError&gt; {
-<a href=#78 id=78 data-nosnippet>78</a>            <span class="kw">if </span><span class="self">self</span>.<span class="number">0 </span>== expected {
-<a href=#79 id=79 data-nosnippet>79</a>                <span class="prelude-val">Ok</span>(())
-<a href=#80 id=80 data-nosnippet>80</a>            } <span class="kw">else </span>{
-<a href=#81 id=81 data-nosnippet>81</a>                <span class="prelude-val">Err</span>(RootError::Conflict {
-<a href=#82 id=82 data-nosnippet>82</a>                    name: RootName::new(<span class="string">"x"</span>).expect(<span class="string">"name"</span>),
-<a href=#83 id=83 data-nosnippet>83</a>                    expected,
-<a href=#84 id=84 data-nosnippet>84</a>                    actual: <span class="self">self</span>.<span class="number">0</span>,
-<a href=#85 id=85 data-nosnippet>85</a>                })
-<a href=#86 id=86 data-nosnippet>86</a>            }
-<a href=#87 id=87 data-nosnippet>87</a>        }
-<a href=#88 id=88 data-nosnippet>88</a>    }
-<a href=#89 id=89 data-nosnippet>89</a>
-<a href=#90 id=90 data-nosnippet>90</a>    <span class="doccomment">/// Stale roots are reported without retrying.
-<a href=#91 id=91 data-nosnippet>91</a>    </span><span class="attr">#[test]
-<a href=#92 id=92 data-nosnippet>92</a>    </span><span class="kw">fn </span>stale_promotion_is_structured() {
-<a href=#93 id=93 data-nosnippet>93</a>        <span class="kw">let </span>actual = <span class="prelude-val">Some</span>(SnapshotId::new([<span class="number">1</span>; <span class="number">32</span>]));
-<a href=#94 id=94 data-nosnippet>94</a>        <span class="kw">let </span>result = promote(
-<a href=#95 id=95 data-nosnippet>95</a>            <span class="kw-2">&amp;</span>Roots(actual),
-<a href=#96 id=96 data-nosnippet>96</a>            RootName::new(<span class="string">"main"</span>).expect(<span class="string">"name"</span>),
-<a href=#97 id=97 data-nosnippet>97</a>            <span class="prelude-val">None</span>,
-<a href=#98 id=98 data-nosnippet>98</a>            SnapshotId::new([<span class="number">2</span>; <span class="number">32</span>]),
-<a href=#99 id=99 data-nosnippet>99</a>        );
-<a href=#100 id=100 data-nosnippet>100</a>        <span class="macro">assert_eq!</span>(
-<a href=#101 id=101 data-nosnippet>101</a>            result,
-<a href=#102 id=102 data-nosnippet>102</a>            PromotionResult::StaleRoot {
-<a href=#103 id=103 data-nosnippet>103</a>                expected: <span class="prelude-val">None</span>,
-<a href=#104 id=104 data-nosnippet>104</a>                actual
-<a href=#105 id=105 data-nosnippet>105</a>            }
-<a href=#106 id=106 data-nosnippet>106</a>        );
-<a href=#107 id=107 data-nosnippet>107</a>    }
-<a href=#108 id=108 data-nosnippet>108</a>}
+<a href=#67 id=67 data-nosnippet>67</a>        /// # Parameters
+<a href=#68 id=68 data-nosnippet>68</a>        /// - `_name`: Root name.
+<a href=#69 id=69 data-nosnippet>69</a>        /// - `expected`: Expected value.
+<a href=#70 id=70 data-nosnippet>70</a>        /// - `_new`: New value.
+<a href=#71 id=71 data-nosnippet>71</a>        ///
+<a href=#72 id=72 data-nosnippet>72</a>        /// # Returns
+<a href=#73 id=73 data-nosnippet>73</a>        /// Success or a conflict.
+<a href=#74 id=74 data-nosnippet>74</a>        ///
+<a href=#75 id=75 data-nosnippet>75</a>        /// # Errors
+<a href=#76 id=76 data-nosnippet>76</a>        /// Returns a fixture conflict when values differ.
+<a href=#77 id=77 data-nosnippet>77</a>        </span><span class="kw">fn </span>compare_and_set_root(
+<a href=#78 id=78 data-nosnippet>78</a>            <span class="kw-2">&amp;</span><span class="self">self</span>,
+<a href=#79 id=79 data-nosnippet>79</a>            _name: RootName,
+<a href=#80 id=80 data-nosnippet>80</a>            expected: <span class="prelude-ty">Option</span>&lt;SnapshotId&gt;,
+<a href=#81 id=81 data-nosnippet>81</a>            _new: SnapshotId,
+<a href=#82 id=82 data-nosnippet>82</a>        ) -&gt; <span class="prelude-ty">Result</span>&lt;(), RootError&gt; {
+<a href=#83 id=83 data-nosnippet>83</a>            <span class="kw">if </span><span class="self">self</span>.<span class="number">0 </span>== expected {
+<a href=#84 id=84 data-nosnippet>84</a>                <span class="prelude-val">Ok</span>(())
+<a href=#85 id=85 data-nosnippet>85</a>            } <span class="kw">else </span>{
+<a href=#86 id=86 data-nosnippet>86</a>                <span class="prelude-val">Err</span>(RootError::Conflict {
+<a href=#87 id=87 data-nosnippet>87</a>                    name: RootName::new(<span class="string">"x"</span>).expect(<span class="string">"name"</span>),
+<a href=#88 id=88 data-nosnippet>88</a>                    expected,
+<a href=#89 id=89 data-nosnippet>89</a>                    actual: <span class="self">self</span>.<span class="number">0</span>,
+<a href=#90 id=90 data-nosnippet>90</a>                })
+<a href=#91 id=91 data-nosnippet>91</a>            }
+<a href=#92 id=92 data-nosnippet>92</a>        }
+<a href=#93 id=93 data-nosnippet>93</a>    }
+<a href=#94 id=94 data-nosnippet>94</a>
+<a href=#95 id=95 data-nosnippet>95</a>    <span class="doccomment">/// Stale roots are reported without retrying.
+<a href=#96 id=96 data-nosnippet>96</a>    </span><span class="attr">#[test]
+<a href=#97 id=97 data-nosnippet>97</a>    </span><span class="kw">fn </span>stale_promotion_is_structured() {
+<a href=#98 id=98 data-nosnippet>98</a>        <span class="kw">let </span>actual = <span class="prelude-val">Some</span>(SnapshotId::new([<span class="number">1</span>; <span class="number">32</span>]));
+<a href=#99 id=99 data-nosnippet>99</a>        <span class="kw">let </span>result = promote(
+<a href=#100 id=100 data-nosnippet>100</a>            <span class="kw-2">&amp;</span>Roots(actual),
+<a href=#101 id=101 data-nosnippet>101</a>            RootName::new(<span class="string">"main"</span>).expect(<span class="string">"name"</span>),
+<a href=#102 id=102 data-nosnippet>102</a>            <span class="prelude-val">None</span>,
+<a href=#103 id=103 data-nosnippet>103</a>            SnapshotId::new([<span class="number">2</span>; <span class="number">32</span>]),
+<a href=#104 id=104 data-nosnippet>104</a>        );
+<a href=#105 id=105 data-nosnippet>105</a>        <span class="macro">assert_eq!</span>(
+<a href=#106 id=106 data-nosnippet>106</a>            result,
+<a href=#107 id=107 data-nosnippet>107</a>            PromotionResult::StaleRoot {
+<a href=#108 id=108 data-nosnippet>108</a>                expected: <span class="prelude-val">None</span>,
+<a href=#109 id=109 data-nosnippet>109</a>                actual
+<a href=#110 id=110 data-nosnippet>110</a>            }
+<a href=#111 id=111 data-nosnippet>111</a>        );
+<a href=#112 id=112 data-nosnippet>112</a>    }
+<a href=#113 id=113 data-nosnippet>113</a>}
 </code></pre></div></section></main></body></html>

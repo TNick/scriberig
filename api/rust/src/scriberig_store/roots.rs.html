@@ -92,44 +92,41 @@
 <a href=#92 id=92 data-nosnippet>92</a>    ///
 <a href=#93 id=93 data-nosnippet>93</a>    /// # Errors
 <a href=#94 id=94 data-nosnippet>94</a>    /// Returns a backend error when the update cannot be stored.
-<a href=#95 id=95 data-nosnippet>95</a>    </span><span class="kw">fn </span>set_root(<span class="kw-2">&amp;</span><span class="self">self</span>, name: RootName, snapshot: SnapshotId) -&gt; <span class="prelude-ty">Result</span>&lt;(), RootError&gt; {
-<a href=#96 id=96 data-nosnippet>96</a>        <span class="kw">let </span>expected = <span class="self">self</span>.read_root(<span class="kw-2">&amp;</span>name);
-<a href=#97 id=97 data-nosnippet>97</a>        <span class="self">self</span>.compare_and_set_root(name, expected, snapshot)
-<a href=#98 id=98 data-nosnippet>98</a>    }
-<a href=#99 id=99 data-nosnippet>99</a>
-<a href=#100 id=100 data-nosnippet>100</a>    <span class="doccomment">/// # Parameters
-<a href=#101 id=101 data-nosnippet>101</a>    /// - `name`: Operation input.
-<a href=#102 id=102 data-nosnippet>102</a>    /// - `expected`: Operation input.
-<a href=#103 id=103 data-nosnippet>103</a>    /// - `new`: Operation input.
+<a href=#95 id=95 data-nosnippet>95</a>    </span><span class="kw">fn </span>set_root(<span class="kw-2">&amp;</span><span class="self">self</span>, name: RootName, snapshot: SnapshotId) -&gt; <span class="prelude-ty">Result</span>&lt;(), RootError&gt;;
+<a href=#96 id=96 data-nosnippet>96</a>
+<a href=#97 id=97 data-nosnippet>97</a>    <span class="doccomment">/// # Parameters
+<a href=#98 id=98 data-nosnippet>98</a>    /// - `name`: Operation input.
+<a href=#99 id=99 data-nosnippet>99</a>    /// - `expected`: Operation input.
+<a href=#100 id=100 data-nosnippet>100</a>    /// - `new`: Operation input.
+<a href=#101 id=101 data-nosnippet>101</a>    ///
+<a href=#102 id=102 data-nosnippet>102</a>    /// # Returns
+<a href=#103 id=103 data-nosnippet>103</a>    /// The requested root result.
 <a href=#104 id=104 data-nosnippet>104</a>    ///
-<a href=#105 id=105 data-nosnippet>105</a>    /// # Returns
-<a href=#106 id=106 data-nosnippet>106</a>    /// The requested root result.
-<a href=#107 id=107 data-nosnippet>107</a>    ///
-<a href=#108 id=108 data-nosnippet>108</a>    /// # Errors
-<a href=#109 id=109 data-nosnippet>109</a>    /// Returns a root backend error.
-<a href=#110 id=110 data-nosnippet>110</a>    /// Performs compare-and-swap and returns a normal stale outcome.
-<a href=#111 id=111 data-nosnippet>111</a>    ///
-<a href=#112 id=112 data-nosnippet>112</a>    /// # Parameters
-<a href=#113 id=113 data-nosnippet>113</a>    /// - `name`: Root name.
-<a href=#114 id=114 data-nosnippet>114</a>    /// - `expected`: Expected snapshot.
-<a href=#115 id=115 data-nosnippet>115</a>    /// - `new`: Replacement snapshot.
+<a href=#105 id=105 data-nosnippet>105</a>    /// # Errors
+<a href=#106 id=106 data-nosnippet>106</a>    /// Returns a root backend error.
+<a href=#107 id=107 data-nosnippet>107</a>    /// Performs compare-and-swap and returns a normal stale outcome.
+<a href=#108 id=108 data-nosnippet>108</a>    ///
+<a href=#109 id=109 data-nosnippet>109</a>    /// # Parameters
+<a href=#110 id=110 data-nosnippet>110</a>    /// - `name`: Root name.
+<a href=#111 id=111 data-nosnippet>111</a>    /// - `expected`: Expected snapshot.
+<a href=#112 id=112 data-nosnippet>112</a>    /// - `new`: Replacement snapshot.
+<a href=#113 id=113 data-nosnippet>113</a>    ///
+<a href=#114 id=114 data-nosnippet>114</a>    /// # Returns
+<a href=#115 id=115 data-nosnippet>115</a>    /// Updated or stale outcome.
 <a href=#116 id=116 data-nosnippet>116</a>    ///
-<a href=#117 id=117 data-nosnippet>117</a>    /// # Returns
-<a href=#118 id=118 data-nosnippet>118</a>    /// Updated or stale outcome.
-<a href=#119 id=119 data-nosnippet>119</a>    ///
-<a href=#120 id=120 data-nosnippet>120</a>    /// # Errors
-<a href=#121 id=121 data-nosnippet>121</a>    /// Returns backend failures.
-<a href=#122 id=122 data-nosnippet>122</a>    </span><span class="kw">fn </span>compare_and_swap(
-<a href=#123 id=123 data-nosnippet>123</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
-<a href=#124 id=124 data-nosnippet>124</a>        name: RootName,
-<a href=#125 id=125 data-nosnippet>125</a>        expected: <span class="prelude-ty">Option</span>&lt;SnapshotId&gt;,
-<a href=#126 id=126 data-nosnippet>126</a>        new: SnapshotId,
-<a href=#127 id=127 data-nosnippet>127</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;CasOutcome, RootError&gt; {
-<a href=#128 id=128 data-nosnippet>128</a>        <span class="kw">match </span><span class="self">self</span>.compare_and_set_root(name, expected, new) {
-<a href=#129 id=129 data-nosnippet>129</a>            <span class="prelude-val">Ok</span>(()) =&gt; <span class="prelude-val">Ok</span>(CasOutcome::Updated),
-<a href=#130 id=130 data-nosnippet>130</a>            <span class="prelude-val">Err</span>(RootError::Conflict { actual, .. }) =&gt; <span class="prelude-val">Ok</span>(CasOutcome::Stale { actual }),
-<a href=#131 id=131 data-nosnippet>131</a>            <span class="prelude-val">Err</span>(error) =&gt; <span class="prelude-val">Err</span>(error),
-<a href=#132 id=132 data-nosnippet>132</a>        }
-<a href=#133 id=133 data-nosnippet>133</a>    }
-<a href=#134 id=134 data-nosnippet>134</a>}
+<a href=#117 id=117 data-nosnippet>117</a>    /// # Errors
+<a href=#118 id=118 data-nosnippet>118</a>    /// Returns backend failures.
+<a href=#119 id=119 data-nosnippet>119</a>    </span><span class="kw">fn </span>compare_and_swap(
+<a href=#120 id=120 data-nosnippet>120</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
+<a href=#121 id=121 data-nosnippet>121</a>        name: RootName,
+<a href=#122 id=122 data-nosnippet>122</a>        expected: <span class="prelude-ty">Option</span>&lt;SnapshotId&gt;,
+<a href=#123 id=123 data-nosnippet>123</a>        new: SnapshotId,
+<a href=#124 id=124 data-nosnippet>124</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;CasOutcome, RootError&gt; {
+<a href=#125 id=125 data-nosnippet>125</a>        <span class="kw">match </span><span class="self">self</span>.compare_and_set_root(name, expected, new) {
+<a href=#126 id=126 data-nosnippet>126</a>            <span class="prelude-val">Ok</span>(()) =&gt; <span class="prelude-val">Ok</span>(CasOutcome::Updated),
+<a href=#127 id=127 data-nosnippet>127</a>            <span class="prelude-val">Err</span>(RootError::Conflict { actual, .. }) =&gt; <span class="prelude-val">Ok</span>(CasOutcome::Stale { actual }),
+<a href=#128 id=128 data-nosnippet>128</a>            <span class="prelude-val">Err</span>(error) =&gt; <span class="prelude-val">Err</span>(error),
+<a href=#129 id=129 data-nosnippet>129</a>        }
+<a href=#130 id=130 data-nosnippet>130</a>    }
+<a href=#131 id=131 data-nosnippet>131</a>}
 </code></pre></div></section></main></body></html>

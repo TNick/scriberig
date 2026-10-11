@@ -58,7 +58,10 @@
 <a href=#58 id=58 data-nosnippet>58</a>    </span><span class="kw">pub </span>progress: <span class="prelude-ty">Option</span>&lt;OperationProgress&gt;,
 <a href=#59 id=59 data-nosnippet>59</a>    <span class="doccomment">/// Result snapshot when the operation completed.
 <a href=#60 id=60 data-nosnippet>60</a>    </span><span class="kw">pub </span>result_snapshot: <span class="prelude-ty">Option</span>&lt;SnapshotReference&gt;,
-<a href=#61 id=61 data-nosnippet>61</a>    <span class="doccomment">/// Safe failure summary when the operation failed.
-<a href=#62 id=62 data-nosnippet>62</a>    </span><span class="kw">pub </span>error: <span class="prelude-ty">Option</span>&lt;String&gt;,
-<a href=#63 id=63 data-nosnippet>63</a>}
+<a href=#61 id=61 data-nosnippet>61</a>    <span class="doccomment">/// Stable semantic handles produced by the operation.
+<a href=#62 id=62 data-nosnippet>62</a>    </span><span class="attr">#[serde(default)]
+<a href=#63 id=63 data-nosnippet>63</a>    </span><span class="kw">pub </span>result_handles: Vec&lt;String&gt;,
+<a href=#64 id=64 data-nosnippet>64</a>    <span class="doccomment">/// Safe failure summary when the operation failed.
+<a href=#65 id=65 data-nosnippet>65</a>    </span><span class="kw">pub </span>error: <span class="prelude-ty">Option</span>&lt;String&gt;,
+<a href=#66 id=66 data-nosnippet>66</a>}
 </code></pre></div></section></main></body></html>

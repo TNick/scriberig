@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["SnapshotChange","SnapshotError"],"struct":["Snapshot"]};
+window.SIDEBAR_ITEMS = {"enum":["SnapshotChange","SnapshotDiff","SnapshotError"],"struct":["Snapshot"]};

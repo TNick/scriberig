@@ -84,7 +84,7 @@
 <a href=#84 id=84 data-nosnippet>84</a></span><span class="attr">#[derive(Debug, Subcommand)]
 <a href=#85 id=85 data-nosnippet>85</a></span><span class="kw">pub enum </span>Command {
 <a href=#86 id=86 data-nosnippet>86</a>    <span class="doccomment">/// Start the interactive terminal UI.
-<a href=#87 id=87 data-nosnippet>87</a>    </span>Tui,
+<a href=#87 id=87 data-nosnippet>87</a>    </span>Tui(TuiArgs),
 <a href=#88 id=88 data-nosnippet>88</a>    <span class="doccomment">/// Start the API server.
 <a href=#89 id=89 data-nosnippet>89</a>    </span>Serve(ServeArgs),
 <a href=#90 id=90 data-nosnippet>90</a>    <span class="doccomment">/// Run one prompt in headless one-shot mode.
@@ -97,7 +97,7 @@
 <a href=#97 id=97 data-nosnippet>97</a>    </span>Inspect(InspectArgs),
 <a href=#98 id=98 data-nosnippet>98</a>}
 <a href=#99 id=99 data-nosnippet>99</a>
-<a href=#100 id=100 data-nosnippet>100</a><span class="doccomment">/// Configure the API server startup stub.
+<a href=#100 id=100 data-nosnippet>100</a><span class="doccomment">/// Configure the API server startup.
 <a href=#101 id=101 data-nosnippet>101</a>///
 <a href=#102 id=102 data-nosnippet>102</a>/// # Public members
 <a href=#103 id=103 data-nosnippet>103</a>/// - `host`: Interface address that the server should bind.
@@ -119,44 +119,52 @@
 <a href=#119 id=119 data-nosnippet>119</a>    </span><span class="kw">pub </span>db: std::path::PathBuf,
 <a href=#120 id=120 data-nosnippet>120</a>}
 <a href=#121 id=121 data-nosnippet>121</a>
-<a href=#122 id=122 data-nosnippet>122</a><span class="doccomment">/// Store a prompt accepted by a prompt-driven command.
-<a href=#123 id=123 data-nosnippet>123</a>///
-<a href=#124 id=124 data-nosnippet>124</a>/// # Public members
-<a href=#125 id=125 data-nosnippet>125</a>/// - `prompt`: User prompt forwarded by a future runtime implementation.
-<a href=#126 id=126 data-nosnippet>126</a>///
-<a href=#127 id=127 data-nosnippet>127</a>/// # Private members
-<a href=#128 id=128 data-nosnippet>128</a>/// None.
-<a href=#129 id=129 data-nosnippet>129</a></span><span class="attr">#[derive(Debug, Args)]
-<a href=#130 id=130 data-nosnippet>130</a></span><span class="kw">pub struct </span>PromptArgs {
-<a href=#131 id=131 data-nosnippet>131</a>    <span class="doccomment">/// User prompt forwarded by a future runtime implementation.
-<a href=#132 id=132 data-nosnippet>132</a>    </span><span class="kw">pub </span>prompt: String,
-<a href=#133 id=133 data-nosnippet>133</a>}
-<a href=#134 id=134 data-nosnippet>134</a>
-<a href=#135 id=135 data-nosnippet>135</a><span class="doccomment">/// Configure an entity inspection request.
-<a href=#136 id=136 data-nosnippet>136</a></span><span class="attr">#[derive(Debug, Args)]
-<a href=#137 id=137 data-nosnippet>137</a></span><span class="kw">pub struct </span>InspectArgs {
-<a href=#138 id=138 data-nosnippet>138</a>    <span class="doccomment">/// Entity identifier to inspect.
-<a href=#139 id=139 data-nosnippet>139</a>    </span><span class="kw">pub </span>entity: scriberig_core::EntityId,
-<a href=#140 id=140 data-nosnippet>140</a>    <span class="doccomment">/// Exact snapshot to inspect when supplied.
-<a href=#141 id=141 data-nosnippet>141</a>    </span><span class="attr">#[arg(long)]
-<a href=#142 id=142 data-nosnippet>142</a>    </span><span class="kw">pub </span>snapshot: <span class="prelude-ty">Option</span>&lt;scriberig_core::SnapshotId&gt;,
-<a href=#143 id=143 data-nosnippet>143</a>    <span class="doccomment">/// Print provenance handles and deeper trust metadata.
-<a href=#144 id=144 data-nosnippet>144</a>    </span><span class="attr">#[arg(long, value_enum, default_value_t = trust::InspectDepth::Compact)]
-<a href=#145 id=145 data-nosnippet>145</a>    </span><span class="kw">pub </span>depth: trust::InspectDepth,
-<a href=#146 id=146 data-nosnippet>146</a>    <span class="doccomment">/// Output representation for the trust result.
-<a href=#147 id=147 data-nosnippet>147</a>    </span><span class="attr">#[arg(long, value_enum, default_value_t = trust::OutputFormat::Human)]
-<a href=#148 id=148 data-nosnippet>148</a>    </span><span class="kw">pub </span>format: trust::OutputFormat,
-<a href=#149 id=149 data-nosnippet>149</a>    <span class="doccomment">/// SQLite database path used by the local inspection composition.
-<a href=#150 id=150 data-nosnippet>150</a>    </span><span class="attr">#[arg(long, default_value = <span class="string">"playground/dev-app-runtime/scriberig.sqlite"</span>)]
-<a href=#151 id=151 data-nosnippet>151</a>    </span><span class="kw">pub </span>db: std::path::PathBuf,
-<a href=#152 id=152 data-nosnippet>152</a>}
-<a href=#153 id=153 data-nosnippet>153</a>
-<a href=#154 id=154 data-nosnippet>154</a><span class="doccomment">/// Parse command-line input for the `srig` executable.
-<a href=#155 id=155 data-nosnippet>155</a>///
-<a href=#156 id=156 data-nosnippet>156</a>/// # Returns
-<a href=#157 id=157 data-nosnippet>157</a>/// The selected product mode and its arguments.
-<a href=#158 id=158 data-nosnippet>158</a></span><span class="attr">#[must_use]
-<a href=#159 id=159 data-nosnippet>159</a></span><span class="kw">pub fn </span>parse() -&gt; Command {
-<a href=#160 id=160 data-nosnippet>160</a>    Cli::parse().command
-<a href=#161 id=161 data-nosnippet>161</a>}
+<a href=#122 id=122 data-nosnippet>122</a><span class="doccomment">/// Configure the local application-backed terminal UI.
+<a href=#123 id=123 data-nosnippet>123</a></span><span class="attr">#[derive(Debug, Args)]
+<a href=#124 id=124 data-nosnippet>124</a></span><span class="kw">pub struct </span>TuiArgs {
+<a href=#125 id=125 data-nosnippet>125</a>    <span class="doccomment">/// SQLite database path used by the local TUI composition.
+<a href=#126 id=126 data-nosnippet>126</a>    </span><span class="attr">#[arg(long, default_value = <span class="string">"playground/dev-app-runtime/scriberig.sqlite"</span>)]
+<a href=#127 id=127 data-nosnippet>127</a>    </span><span class="kw">pub </span>db: std::path::PathBuf,
+<a href=#128 id=128 data-nosnippet>128</a>}
+<a href=#129 id=129 data-nosnippet>129</a>
+<a href=#130 id=130 data-nosnippet>130</a><span class="doccomment">/// Store a prompt accepted by a prompt-driven command.
+<a href=#131 id=131 data-nosnippet>131</a>///
+<a href=#132 id=132 data-nosnippet>132</a>/// # Public members
+<a href=#133 id=133 data-nosnippet>133</a>/// - `prompt`: User prompt forwarded to the composed runtime.
+<a href=#134 id=134 data-nosnippet>134</a>///
+<a href=#135 id=135 data-nosnippet>135</a>/// # Private members
+<a href=#136 id=136 data-nosnippet>136</a>/// None.
+<a href=#137 id=137 data-nosnippet>137</a></span><span class="attr">#[derive(Debug, Args)]
+<a href=#138 id=138 data-nosnippet>138</a></span><span class="kw">pub struct </span>PromptArgs {
+<a href=#139 id=139 data-nosnippet>139</a>    <span class="doccomment">/// User prompt forwarded to the composed runtime.
+<a href=#140 id=140 data-nosnippet>140</a>    </span><span class="kw">pub </span>prompt: String,
+<a href=#141 id=141 data-nosnippet>141</a>}
+<a href=#142 id=142 data-nosnippet>142</a>
+<a href=#143 id=143 data-nosnippet>143</a><span class="doccomment">/// Configure an entity inspection request.
+<a href=#144 id=144 data-nosnippet>144</a></span><span class="attr">#[derive(Debug, Args)]
+<a href=#145 id=145 data-nosnippet>145</a></span><span class="kw">pub struct </span>InspectArgs {
+<a href=#146 id=146 data-nosnippet>146</a>    <span class="doccomment">/// Entity identifier to inspect.
+<a href=#147 id=147 data-nosnippet>147</a>    </span><span class="kw">pub </span>entity: scriberig_core::EntityId,
+<a href=#148 id=148 data-nosnippet>148</a>    <span class="doccomment">/// Exact snapshot to inspect when supplied.
+<a href=#149 id=149 data-nosnippet>149</a>    </span><span class="attr">#[arg(long)]
+<a href=#150 id=150 data-nosnippet>150</a>    </span><span class="kw">pub </span>snapshot: <span class="prelude-ty">Option</span>&lt;scriberig_core::SnapshotId&gt;,
+<a href=#151 id=151 data-nosnippet>151</a>    <span class="doccomment">/// Print provenance handles and deeper trust metadata.
+<a href=#152 id=152 data-nosnippet>152</a>    </span><span class="attr">#[arg(long, value_enum, default_value_t = trust::InspectDepth::Compact)]
+<a href=#153 id=153 data-nosnippet>153</a>    </span><span class="kw">pub </span>depth: trust::InspectDepth,
+<a href=#154 id=154 data-nosnippet>154</a>    <span class="doccomment">/// Output representation for the trust result.
+<a href=#155 id=155 data-nosnippet>155</a>    </span><span class="attr">#[arg(long, value_enum, default_value_t = trust::OutputFormat::Human)]
+<a href=#156 id=156 data-nosnippet>156</a>    </span><span class="kw">pub </span>format: trust::OutputFormat,
+<a href=#157 id=157 data-nosnippet>157</a>    <span class="doccomment">/// SQLite database path used by the local inspection composition.
+<a href=#158 id=158 data-nosnippet>158</a>    </span><span class="attr">#[arg(long, default_value = <span class="string">"playground/dev-app-runtime/scriberig.sqlite"</span>)]
+<a href=#159 id=159 data-nosnippet>159</a>    </span><span class="kw">pub </span>db: std::path::PathBuf,
+<a href=#160 id=160 data-nosnippet>160</a>}
+<a href=#161 id=161 data-nosnippet>161</a>
+<a href=#162 id=162 data-nosnippet>162</a><span class="doccomment">/// Parse command-line input for the `srig` executable.
+<a href=#163 id=163 data-nosnippet>163</a>///
+<a href=#164 id=164 data-nosnippet>164</a>/// # Returns
+<a href=#165 id=165 data-nosnippet>165</a>/// The selected product mode and its arguments.
+<a href=#166 id=166 data-nosnippet>166</a></span><span class="attr">#[must_use]
+<a href=#167 id=167 data-nosnippet>167</a></span><span class="kw">pub fn </span>parse() -&gt; Command {
+<a href=#168 id=168 data-nosnippet>168</a>    Cli::parse().command
+<a href=#169 id=169 data-nosnippet>169</a>}
 </code></pre></div></section></main></body></html>

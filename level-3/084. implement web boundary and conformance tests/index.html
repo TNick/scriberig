@@ -5673,18 +5673,22 @@
 <hr />
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[x] Dependency direction is enforced by tests.</li>
-<li>[x] MUI is isolated to the MUI package and product app.</li>
-<li>[x] Deep/private cross-package imports are rejected.</li>
-<li>[x] Reference app cannot import server/database internals.</li>
-<li>[x] Shared semantic selection integration is tested.</li>
-<li>[x] Snapshot incrementality and immutable revision reuse are tested.</li>
-<li>[x] Agent commands are tested for structured semantic scope.</li>
-<li>[x] Web mutations are tested to flow through public migration/validation operations.</li>
-<li>[x] Durable operation lifecycle is tested across view unmounts.</li>
-<li>[x] Missing capabilities do not trigger private fallbacks.</li>
-<li>[x] Root typecheck/test/build commands all succeed.</li>
+<li>[ ] Dependency direction is enforced by dedicated conformance tests.</li>
+<li>[x] The current app changes use public package entry points only.</li>
+<li>[ ] MUI isolation is enforced by conformance tests.</li>
+<li>[ ] Deep/private cross-package imports are rejected by conformance tests.</li>
+<li>[ ] Reference app database/server boundary is enforced by conformance tests.</li>
+<li>[x] Runtime bootstrap and disconnected failure behavior are unit tested.</li>
+<li>[ ] Shared semantic selection integration is tested across all views.</li>
+<li>[ ] Snapshot incrementality and immutable revision reuse are tested.</li>
+<li>[ ] Agent commands are tested for structured semantic scope.</li>
+<li>[ ] Web mutations are tested to flow through public migration/validation operations.</li>
+<li>[ ] Durable operation lifecycle is tested across view unmounts.</li>
+<li>[x] Missing capabilities can be represented without private fallbacks in the current slice.</li>
+<li>[ ] Root typecheck/test/build commands all succeed from a clean repository state.</li>
 </ul>
+<p>This task remains incomplete. The checked items cover only the newly verified
+runtime bootstrap behavior; they do not claim the full conformance suite.</p>
 
 
 

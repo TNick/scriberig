@@ -5300,8 +5300,8 @@
 <tbody>
 <tr>
 <td><code>tui</code></td>
-<td><code>srig tui</code></td>
-<td>Placeholder; terminal UI runtime is not implemented yet.</td>
+<td><code>srig tui [OPTIONS]</code></td>
+<td>Starts the local application-backed terminal UI.</td>
 </tr>
 <tr>
 <td><code>serve</code></td>
@@ -5311,17 +5311,17 @@
 <tr>
 <td><code>run</code></td>
 <td><code>srig run &lt;PROMPT&gt;</code></td>
-<td>Placeholder; one-shot runtime is not implemented yet.</td>
+<td>Runs the deterministic local one-shot provider.</td>
 </tr>
 <tr>
 <td><code>agent</code></td>
 <td><code>srig agent &lt;PROMPT&gt;</code></td>
-<td>Placeholder; integrated agent runtime is not implemented yet.</td>
+<td>Runs the deterministic local agent runtime.</td>
 </tr>
 <tr>
 <td><code>maintenance</code></td>
 <td><code>srig maintenance</code></td>
-<td>Placeholder; maintenance runtime is not implemented yet.</td>
+<td>Checks SQLite canonical-state integrity.</td>
 </tr>
 <tr>
 <td><code>inspect</code></td>
@@ -5332,10 +5332,27 @@
 </table>
 <p>Each subcommand also supports <code>-h</code> / <code>--help</code>.</p>
 <h2 id="srig-tui"><code>srig tui</code><a class="headerlink" href="#srig-tui" title="Permanent link">&para;</a></h2>
-<p>Start the interactive terminal UI.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>srig tui
+<p>Start the local application-backed terminal UI.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>srig tui [--db &lt;PATH&gt;]
 </code></pre></div>
-<p>The command is currently an honest product stub: it parses successfully and reports that terminal UI mode is not implemented yet.</p>
+<p>The UI reads semantic data through the shared application boundary. Type
+<code>inspect &lt;ENTITY&gt;</code> to inspect an entity, or <code>q</code> to quit.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--db &lt;PATH&gt;</code></td>
+<td><code>playground/dev-app-runtime/scriberig.sqlite</code></td>
+<td>SQLite database path used by the local TUI composition.</td>
+</tr>
+</tbody>
+</table>
 <h2 id="srig-serve"><code>srig serve</code><a class="headerlink" href="#srig-serve" title="Permanent link">&para;</a></h2>
 <p>Start the API server.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>srig serve [--host &lt;HOST&gt;] [--port &lt;PORT&gt;] [--db &lt;PATH&gt;]
@@ -5376,7 +5393,8 @@
 <p><code>&lt;PROMPT&gt;</code> is one required positional string. Quote prompts that contain shell whitespace.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>srig run "Summarize the current project state"
 </code></pre></div>
-<p>The command currently accepts the prompt but does not execute a one-shot runtime yet.</p>
+<p>The local runtime echoes the prompt through the provider boundary until a
+configured model provider is composed.</p>
 <h2 id="srig-agent"><code>srig agent</code><a class="headerlink" href="#srig-agent" title="Permanent link">&para;</a></h2>
 <p>Accept one prompt for the integrated agent runtime.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>srig agent &lt;PROMPT&gt;
@@ -5384,12 +5402,15 @@
 <p><code>&lt;PROMPT&gt;</code> is one required positional string. Quote prompts that contain shell whitespace.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>srig agent "Implement the next focused design task"
 </code></pre></div>
-<p>The command currently accepts the prompt but does not execute the agent runtime yet.</p>
+<p>The local runtime executes the prompt through the bounded agent runtime and
+provider/tool boundaries.</p>
 <h2 id="srig-maintenance"><code>srig maintenance</code><a class="headerlink" href="#srig-maintenance" title="Permanent link">&para;</a></h2>
 <p>Select repository or database maintenance mode.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>srig maintenance
 </code></pre></div>
-<p>The command currently parses successfully but maintenance operations are not implemented yet.</p>
+<p>The command runs a canonical SQLite integrity check against
+<code>playground/dev-app-runtime/scriberig.sqlite</code> and reports corruption and
+unreachable snapshot counts.</p>
 <h2 id="srig-inspect"><code>srig inspect</code><a class="headerlink" href="#srig-inspect" title="Permanent link">&para;</a></h2>
 <p>Inspect trust metadata for one semantic entity.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>srig inspect &lt;ENTITY&gt; [OPTIONS]

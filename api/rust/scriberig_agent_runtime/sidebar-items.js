@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["UnavailableQueryService"]};
+window.SIDEBAR_ITEMS = {"enum":["AgentError","AgentMessage","ModelDecision"],"fn":["cancellation_flag","run_local_prompt"],"struct":["AgentResult","AgentRuntime","EchoProvider","UnconfiguredTool"],"trait":["ModelProvider"]};
