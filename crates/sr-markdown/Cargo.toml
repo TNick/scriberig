@@ -8,7 +8,10 @@ description = "Deterministic Markdown projection adapter."
 repository.workspace = true
 
 [dependencies]
+blake3 = "1"
 pulldown-cmark = "0.10"
+scriberig-core = { path = "../scriberig-core" }
+sr-change = { path = "../sr-change" }
 sr-projection = { path = "../sr-projection" }
 
 [lints]
