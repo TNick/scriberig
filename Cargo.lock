@@ -713,6 +713,7 @@ dependencies = [
 name = "sr-markdown"
 version = "0.1.0"
 dependencies = [
+ "pulldown-cmark",
  "sr-projection",
 ]
 

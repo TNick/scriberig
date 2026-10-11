@@ -4,10 +4,11 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license = "Apache-2.0"
-description = "Markdown projection adapter crate boundary."
+description = "Deterministic Markdown projection adapter."
 repository.workspace = true
 
 [dependencies]
+pulldown-cmark = "0.10"
 sr-projection = { path = "../sr-projection" }
 
 [lints]
