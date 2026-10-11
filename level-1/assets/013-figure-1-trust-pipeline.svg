@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650" role="img" aria-labelledby="title desc">
+  <title id="title">Trust pipeline from evidence to canonical snapshot</title>
+  <desc id="desc">External evidence is captured, parsed or derived, proposed against an exact snapshot, validated in an isolated candidate, evaluated by promotion policy, and only then may become canonical. Rejected or ambiguous work remains preserved outside canonical state.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#334155"/></marker>
+    <style>.h{font:700 28px system-ui,-apple-system,Segoe UI,sans-serif;fill:#0f172a}.t{font:600 20px system-ui,-apple-system,Segoe UI,sans-serif;fill:#0f172a}.s{font:400 17px system-ui,-apple-system,Segoe UI,sans-serif;fill:#334155}.tiny{font:400 15px system-ui,-apple-system,Segoe UI,sans-serif;fill:#475569}.box{fill:#f8fafc;stroke:#64748b;stroke-width:2;rx:14}.blue{fill:#eff6ff;stroke:#2563eb;stroke-width:2;rx:14}.green{fill:#f0fdf4;stroke:#16a34a;stroke-width:2;rx:14}.amber{fill:#fffbeb;stroke:#d97706;stroke-width:2;rx:14}.red{fill:#fef2f2;stroke:#dc2626;stroke-width:2;rx:14}.purple{fill:#faf5ff;stroke:#9333ea;stroke-width:2;rx:14}.line{stroke:#334155;stroke-width:2.5;fill:none;marker-end:url(#arrow)}.dash{stroke:#64748b;stroke-width:2;fill:none;stroke-dasharray:8 7;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <text x="60" y="55" class="h">Trust pipeline: information can exist before it is accepted</text>
+  <rect x="60" y="105" width="180" height="92" class="box"/><text x="150" y="138" text-anchor="middle" class="t">External evidence</text><text x="150" y="166" text-anchor="middle" class="s">human • file • web</text><text x="150" y="190" text-anchor="middle" class="s">tool • connector</text>
+  <rect x="295" y="105" width="180" height="92" class="blue"/><text x="385" y="140" text-anchor="middle" class="t">Observed</text><text x="385" y="170" text-anchor="middle" class="s">captured with source</text>
+  <rect x="530" y="105" width="180" height="92" class="purple"/><text x="620" y="140" text-anchor="middle" class="t">Parsed / derived</text><text x="620" y="170" text-anchor="middle" class="s">structured, not trusted</text>
+  <rect x="765" y="105" width="180" height="92" class="amber"/><text x="855" y="140" text-anchor="middle" class="t">Proposed change</text><text x="855" y="170" text-anchor="middle" class="s">against exact snapshot</text>
+  <rect x="1000" y="105" width="150" height="92" class="amber"/><text x="1075" y="140" text-anchor="middle" class="t">Candidate</text><text x="1075" y="170" text-anchor="middle" class="s">isolated branch</text>
+  <path d="M240 151 H295" class="line"/><path d="M475 151 H530" class="line"/><path d="M710 151 H765" class="line"/><path d="M945 151 H1000" class="line"/>
+  <rect x="770" y="290" width="230" height="105" class="green"/><text x="885" y="325" text-anchor="middle" class="t">Validation evidence</text><text x="885" y="354" text-anchor="middle" class="s">bound to candidate + config</text><text x="885" y="380" text-anchor="middle" class="s">parse • compile • tests • policy inputs</text>
+  <rect x="445" y="290" width="235" height="105" class="blue"/><text x="562" y="325" text-anchor="middle" class="t">Promotion policy</text><text x="562" y="354" text-anchor="middle" class="s">is the evidence sufficient?</text><text x="562" y="380" text-anchor="middle" class="s">may require approval</text>
+  <rect x="100" y="290" width="230" height="105" class="green"/><text x="215" y="325" text-anchor="middle" class="t">Canonical snapshot</text><text x="215" y="354" text-anchor="middle" class="s">accepted project state</text><text x="215" y="380" text-anchor="middle" class="s">not objective truth</text>
+  <path d="M1075 197 V245 H885 V290" class="line"/><path d="M770 342 H680" class="line"/><path d="M445 342 H330" class="line"/>
+  <rect x="815" y="475" width="300" height="100" class="red"/><text x="965" y="510" text-anchor="middle" class="t">Reject / conflict / rebase</text><text x="965" y="540" text-anchor="middle" class="s">preserve evidence and ambiguity</text>
+  <path d="M562 395 V525 H815" class="dash"/><text x="590" y="500" class="tiny">policy does not allow promotion</text>
+</svg>
