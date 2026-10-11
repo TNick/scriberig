@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["PolicyDecision","SourceKind","ValidationState"],"struct":["ApprovalSummary","CapabilityDenial","ConflictSummary","ExternalEffectSummary","PolicyEvaluation","TrustSummary"]};

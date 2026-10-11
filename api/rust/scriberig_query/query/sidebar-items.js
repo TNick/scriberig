@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["QueryDirection","QueryExpr","QueryOrdering","QueryValue","SortDirection"],"struct":["QueryResult","QueryRow","QuerySpec"],"trait":["StructuredQueryService"]};

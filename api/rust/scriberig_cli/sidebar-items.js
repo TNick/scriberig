@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Command"],"fn":["parse"],"mod":["trust"],"struct":["Cli","InspectArgs","PromptArgs","ServeArgs"]};

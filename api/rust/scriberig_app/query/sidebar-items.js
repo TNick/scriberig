@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DetailLevel","SnapshotResolution"],"struct":["InspectRequest","InspectResult"],"trait":["QueryService"]};

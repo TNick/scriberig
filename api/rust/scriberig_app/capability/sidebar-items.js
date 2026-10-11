@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CapabilityKind"],"struct":["BranchContext","CapabilityDescriptor","CapabilityId","DomainOperationRequest","RuntimeCapability"]};

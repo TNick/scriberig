@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CapabilityCategory"],"struct":["CapabilityDescriptor","CapabilityId","ProviderMetadata"]};

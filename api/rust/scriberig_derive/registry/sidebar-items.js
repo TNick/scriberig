@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Applicability","DependencyDiscovery","RegistrationError"],"struct":["CostHint","DerivationRegistration","DerivationRegistry","ProducerIdentity"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["DEFAULT_PAGE_LIMIT","MAX_PAGE_LIMIT"],"enum":["PageRequestError"],"struct":["ContinuationToken","Page","PageRequest"]};

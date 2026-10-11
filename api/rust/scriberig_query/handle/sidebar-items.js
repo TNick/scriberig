@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["TargetRef"],"struct":["CollectionRef","EntityAtRevision","EntityInSnapshot","EntityRef","OperationRef","ProjectionRef","RelationRef","RevisionRef","SnapshotRef"]};

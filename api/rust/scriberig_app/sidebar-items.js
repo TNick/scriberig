@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["capability","command","context","error","event","operation","query","request","result","trust"],"struct":["OperationId"]};

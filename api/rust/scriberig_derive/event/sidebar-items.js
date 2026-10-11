@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DerivationEvent","DerivationEventKind","EventReason"],"fn":["event_kind"],"struct":["DerivedResultHandle"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["SemanticChange"],"fn":["affected_transitively","is_affected"]};
