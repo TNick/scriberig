@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+<title id="title">Snapshot as a persistent revision map</title>
+<desc id="desc">Two snapshots are shown as immutable mappings from entity IDs to revision IDs. Snapshot S2 differs from Snapshot S1 only at P2, which changes from PR8 to PR9, while other mappings are shared.</desc>
+<style>
+  .title{font:700 32px Arial,sans-serif;fill:#1f2937}
+  .subtitle{font:400 18px Arial,sans-serif;fill:#4b5563}
+  .panel{fill:#fafafa;stroke:#d1d5db;stroke-width:2}
+  .h{font:700 24px Arial,sans-serif;fill:#111827}
+  .mono{font:600 18px 'Courier New', monospace;fill:#111827}
+  .body{font:400 16px Arial,sans-serif;fill:#374151}
+  .shared{fill:#dcfce7;stroke:#16a34a;stroke-width:2}
+  .changed{fill:#fee2e2;stroke:#dc2626;stroke-width:2}
+</style>
+<rect width="100%" height="100%" fill="#fff"/>
+<text x="60" y="55" class="title">Snapshot as a persistent revision map</text>
+<text x="60" y="85" class="subtitle">A snapshot is a resolution context: it maps stable entities to exact immutable revisions.</text>
+
+<rect x="70" y="135" width="430" height="540" rx="16" class="panel"/>
+<text x="95" y="175" class="h">Snapshot S1</text>
+<rect x="105" y="215" width="360" height="70" rx="10" class="shared"/>
+<text x="125" y="257" class="mono">F  -&gt; FR7</text>
+<rect x="105" y="305" width="360" height="70" rx="10" class="shared"/>
+<text x="125" y="347" class="mono">P1 -&gt; PR3</text>
+<rect x="105" y="395" width="360" height="70" rx="10" class="changed"/>
+<text x="125" y="437" class="mono">P2 -&gt; PR8</text>
+<rect x="105" y="485" width="360" height="70" rx="10" class="shared"/>
+<text x="125" y="527" class="mono">B  -&gt; BR2</text>
+<text x="105" y="610" class="body">The snapshot identifies one exact world state.</text>
+
+<rect x="700" y="135" width="430" height="540" rx="16" class="panel"/>
+<text x="725" y="175" class="h">Snapshot S2</text>
+<rect x="735" y="215" width="360" height="70" rx="10" class="shared"/>
+<text x="755" y="257" class="mono">F  -&gt; FR7</text>
+<rect x="735" y="305" width="360" height="70" rx="10" class="shared"/>
+<text x="755" y="347" class="mono">P1 -&gt; PR3</text>
+<rect x="735" y="395" width="360" height="70" rx="10" class="changed"/>
+<text x="755" y="437" class="mono">P2 -&gt; PR9</text>
+<rect x="735" y="485" width="360" height="70" rx="10" class="shared"/>
+<text x="755" y="527" class="mono">B  -&gt; BR2</text>
+<text x="735" y="610" class="body">Only the changed mapping gets a new resolution.</text>
+
+<line x1="500" y1="250" x2="700" y2="250" stroke="#16a34a" stroke-width="3" stroke-dasharray="7,6"/>
+<line x1="500" y1="340" x2="700" y2="340" stroke="#16a34a" stroke-width="3" stroke-dasharray="7,6"/>
+<line x1="500" y1="430" x2="700" y2="430" stroke="#dc2626" stroke-width="3"/>
+<line x1="500" y1="520" x2="700" y2="520" stroke="#16a34a" stroke-width="3" stroke-dasharray="7,6"/>
+<text x="535" y="685" class="body">Shared mappings remain identical; only changed entity resolutions differ.</text>
+</svg>

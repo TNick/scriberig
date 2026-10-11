@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+<title id="title">Three identity layers in Scriberig</title>
+<desc id="desc">Three stacked panels show EntityId, RevisionId, and SnapshotId. EntityId answers what conceptual thing this is, RevisionId answers what exact state that thing is in, and SnapshotId answers what exact state the whole knowledge universe is in.</desc>
+<style>
+  .title{font:700 34px Arial, sans-serif; fill:#1f2937}
+  .subtitle{font:400 18px Arial, sans-serif; fill:#4b5563}
+  .boxTitle{font:700 24px Arial, sans-serif; fill:#111827}
+  .label{font:600 17px Arial, sans-serif; fill:#111827}
+  .body{font:400 16px Arial, sans-serif; fill:#374151}
+  .small{font:400 14px Arial, sans-serif; fill:#6b7280}
+</style>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="60" y="60" class="title">Three identity layers</text>
+<text x="60" y="92" class="subtitle">Scriberig separates conceptual continuity, exact local state, and exact global state.</text>
+
+<rect x="60" y="140" width="1080" height="140" rx="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/>
+<text x="90" y="180" class="boxTitle">EntityId</text>
+<text x="90" y="215" class="label">Question answered</text>
+<text x="280" y="215" class="body">What thing is this?</text>
+<text x="90" y="245" class="label">Meaning</text>
+<text x="280" y="245" class="body">Stable conceptual continuity</text>
+<text x="90" y="275" class="label">Example</text>
+<text x="280" y="275" class="body">Function F, Paragraph P, Branch B</text>
+
+<rect x="60" y="305" width="1080" height="160" rx="16" fill="#ecfccb" stroke="#65a30d" stroke-width="2"/>
+<text x="90" y="345" class="boxTitle">RevisionId</text>
+<text x="90" y="380" class="label">Question answered</text>
+<text x="280" y="380" class="body">What exact state is this entity in?</text>
+<text x="90" y="410" class="label">Meaning</text>
+<text x="280" y="410" class="body">Immutable, content-addressed local state</text>
+<text x="90" y="440" class="label">Example</text>
+<text x="280" y="440" class="body">Function F at FR19; Paragraph P at PR3</text>
+
+<rect x="60" y="490" width="1080" height="160" rx="16" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+<text x="90" y="530" class="boxTitle">SnapshotId</text>
+<text x="90" y="565" class="label">Question answered</text>
+<text x="280" y="565" class="body">What exact state is the whole knowledge universe in?</text>
+<text x="90" y="595" class="label">Meaning</text>
+<text x="280" y="595" class="body">Immutable global resolution context</text>
+<text x="90" y="625" class="label">Example</text>
+<text x="280" y="625" class="body">Snapshot S42 resolving many entities to exact revisions</text>
+
+<line x1="1070" y1="280" x2="1070" y2="305" stroke="#6b7280" stroke-width="3" marker-end="url(#arrow)"/>
+<line x1="1070" y1="465" x2="1070" y2="490" stroke="#6b7280" stroke-width="3" marker-end="url(#arrow)"/>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#6b7280"/></marker></defs>
+</svg>
