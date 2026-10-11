@@ -2,7 +2,7 @@
 
 use super::{
     AUTHORIZATION_DENIED_EXIT_CODE, InspectDepth, TrustCommandError, inspect, inspect_at,
-    render_denial, render_inspection,
+    render_denial, render_denial_json, render_inspection, render_inspection_json,
 };
 use scriberig_app::{
     ApplicationContext, ApplicationError, CapabilityDenial, InspectRequest, InspectResult,
@@ -53,6 +53,26 @@ fn denial_output_is_structured() {
     assert!(output.contains("denied action: promote"));
     assert!(output.contains("alternative: inspect"));
     assert!(!output.contains("secret"));
+}
+
+/// Checks JSON output preserves structured trust fields and omits hidden data.
+#[test]
+fn machine_readable_output_is_structured() {
+    let output = render_inspection_json(&result(), InspectDepth::Deep);
+    assert!(output.starts_with('{'));
+    assert!(output.contains("\"source\":\"model_generated\""));
+    assert!(output.contains("\"provenance\":[\"prov_1\"]"));
+    assert!(!output.contains("secret"));
+
+    let denial = CapabilityDenial {
+        action: "promote".to_owned(),
+        scope: "entity:ent_1".to_owned(),
+        reason: "capability missing".to_owned(),
+        alternatives: vec!["inspect".to_owned()],
+        approval_may_grant: true,
+    };
+    let denial_output = render_denial_json(&denial);
+    assert!(denial_output.contains("\"approval_may_grant\":true"));
 }
 
 /// Checks CLI inspection delegates through the application query service.

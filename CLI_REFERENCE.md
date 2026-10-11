@@ -28,6 +28,7 @@ The executable requires a subcommand. Standard Clap help and version flags are a
 | `run` | `srig run <PROMPT>` | Placeholder; one-shot runtime is not implemented yet. |
 | `agent` | `srig agent <PROMPT>` | Placeholder; integrated agent runtime is not implemented yet. |
 | `maintenance` | `srig maintenance` | Placeholder; maintenance runtime is not implemented yet. |
+| `inspect` | `srig inspect <ENTITY> [OPTIONS]` | Inspects entity trust metadata through the shared application boundary. |
 
 Each subcommand also supports `-h` / `--help`.
 
@@ -102,6 +103,20 @@ srig maintenance
 ```
 
 The command currently parses successfully but maintenance operations are not implemented yet.
+
+## `srig inspect`
+
+Inspect trust metadata for one semantic entity.
+
+```text
+srig inspect <ENTITY> [--snapshot <SNAPSHOT>] [--depth <compact|deep>] [--format <human|json>]
+```
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `--snapshot <SNAPSHOT>` | current | Inspect an exact snapshot when supplied. |
+| `--depth <compact\|deep>` | `compact` | Include provenance and evidence handles at `deep`. |
+| `--format <human\|json>` | `human` | Select terminal text or structured JSON output. |
 
 ## Keeping this reference synchronized
 

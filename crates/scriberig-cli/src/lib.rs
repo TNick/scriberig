@@ -92,6 +92,9 @@ pub struct InspectArgs {
     /// Print provenance handles and deeper trust metadata.
     #[arg(long, value_enum, default_value_t = trust::InspectDepth::Compact)]
     pub depth: trust::InspectDepth,
+    /// Output representation for the trust result.
+    #[arg(long, value_enum, default_value_t = trust::OutputFormat::Human)]
+    pub format: trust::OutputFormat,
 }
 
 /// Parse command-line input for the `srig` executable.

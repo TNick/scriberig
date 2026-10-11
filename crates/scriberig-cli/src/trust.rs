@@ -8,6 +8,10 @@ use scriberig_app::{
 };
 use scriberig_core::EntityId;
 
+#[path = "trust_json.rs"]
+mod trust_json;
+pub use trust_json::{render_denial_json, render_inspection_json};
+
 /// Selects the amount of trust metadata printed by inspection.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, clap::ValueEnum)]
 pub enum InspectDepth {
@@ -15,6 +19,15 @@ pub enum InspectDepth {
     Compact,
     /// Include stable handles for deeper provenance inspection.
     Deep,
+}
+
+/// Selects human-readable or structured JSON output.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, clap::ValueEnum)]
+pub enum OutputFormat {
+    /// Render labelled terminal text.
+    Human,
+    /// Render a stable JSON object.
+    Json,
 }
 
 /// Exit status used when application authorization denies an operation.
@@ -97,6 +110,39 @@ pub fn inspect_at<S: QueryService>(
     snapshot: SnapshotResolution,
     depth: InspectDepth,
 ) -> Result<String, TrustCommandError> {
+    inspect_at_with_format(
+        service,
+        context,
+        entity,
+        snapshot,
+        depth,
+        OutputFormat::Human,
+    )
+}
+
+/// Executes inspection with an explicit output representation.
+///
+/// # Parameters
+/// - `service`: Application query service selected by the product composition root.
+/// - `context`: Caller and capability context for the request.
+/// - `entity`: Entity identifier to inspect.
+/// - `snapshot`: Snapshot resolution required by the caller.
+/// - `depth`: Compact or deep trust view.
+/// - `format`: Human or JSON output representation.
+///
+/// # Returns
+/// Rendered trust inspection output.
+///
+/// # Errors
+/// Returns a structured application failure or a distinct authorization denial.
+pub fn inspect_at_with_format<S: QueryService>(
+    service: &S,
+    context: &ApplicationContext,
+    entity: EntityId,
+    snapshot: SnapshotResolution,
+    depth: InspectDepth,
+    format: OutputFormat,
+) -> Result<String, TrustCommandError> {
     let request = InspectRequest {
         entity,
         snapshot,
@@ -118,8 +164,29 @@ pub fn inspect_at<S: QueryService>(
             }
             other => Err(TrustCommandError::Application(other)),
         },
-        |result| Ok(render_inspection(&result, depth)),
+        |result| Ok(render_inspection_with_format(&result, depth, format)),
     )
+}
+
+/// Renders an inspection result in the selected representation.
+///
+/// # Parameters
+/// - `result`: Shared application inspection result.
+/// - `depth`: Compact or deep trust view.
+/// - `format`: Human or JSON output representation.
+///
+/// # Returns
+/// Structured or terminal-formatted inspection output.
+#[must_use]
+pub fn render_inspection_with_format(
+    result: &InspectResult,
+    depth: InspectDepth,
+    format: OutputFormat,
+) -> String {
+    match format {
+        OutputFormat::Human => render_inspection(result, depth),
+        OutputFormat::Json => render_inspection_json(result, depth),
+    }
 }
 
 /// Renders an inspection result without exposing object content or secrets.
