@@ -1,0 +1,17 @@
+flowchart TB
+    S[Snapshot\nconsistent knowledge view] --> ER[Entity → Revision\nconceptual continuity → exact immutable state]
+    ER --> C[Canonical structure\nproperties · relations · collections]
+    ER --> D[Derived knowledge\nsummaries · analysis · indexes]
+    ER --> U[Universal interaction\ninspect · follow · find · diff]
+    C --> M[Markdown]
+    C --> A[Code / AST]
+    C --> P[PDFs]
+    C --> SS[Sessions]
+    C --> K[Project knowledge]
+
+    classDef core fill:#eef2ff,stroke:#6366f1,stroke-width:2px;
+    classDef domain fill:#f0fdf4,stroke:#16a34a,stroke-width:2px;
+    classDef derived fill:#fff7ed,stroke:#ea580c,stroke-width:2px;
+    class S,ER core;
+    class M,A,P,SS,K domain;
+    class D derived;
