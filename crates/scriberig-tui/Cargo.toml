@@ -8,6 +8,8 @@ description = "Terminal UI adapter over shared Scriberig application operations.
 repository.workspace = true
 
 [dependencies]
+crossterm = "0.28"
+ratatui = "0.29"
 scriberig-core = { path = "../scriberig-core" }
 scriberig-app = { path = "../scriberig-app" }
 

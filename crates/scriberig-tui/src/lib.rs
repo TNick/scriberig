@@ -1,12 +1,19 @@
-//! Provides a small application-backed terminal interaction boundary.
+//! Provides the application-backed terminal interaction boundary and shell.
 
-use std::io::{self, BufRead, Write};
+use std::io;
 
 use scriberig_app::{
     ApplicationContext, ApplicationError, DetailLevel, InspectRequest, InspectResult, QueryService,
     SnapshotResolution,
 };
 use scriberig_core::{EntityId, SnapshotId};
+
+pub mod event;
+pub mod layout;
+pub mod render;
+pub mod runtime;
+pub mod state;
+pub mod terminal;
 
 /// Configures the first application-backed TUI shell.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -111,40 +118,11 @@ impl<S: QueryService> TuiService for S {
 /// # Errors
 /// Returns terminal I/O, invalid-command, or application failures.
 pub fn run<S: TuiService>(
-    service: &S,
-    context: &ApplicationContext,
-    config: &TuiConfig,
+    _service: &S,
+    _context: &ApplicationContext,
+    _config: &TuiConfig,
 ) -> Result<RunOutcome, TuiError> {
-    let stdout = io::stdout();
-    let mut output = stdout.lock();
-    writeln!(
-        output,
-        "scriberig tui — type `inspect <entity>` or `q` to quit"
-    )?;
-    if let Some(entity) = config.initial_entity {
-        render_inspection(
-            &mut output,
-            service.inspect_entity(context, entity, config.snapshot),
-        )?;
-    }
-    if !config.interactive {
-        return Ok(RunOutcome::Quit);
-    }
-    for line in io::stdin().lock().lines() {
-        let line = line?;
-        if line.trim().eq_ignore_ascii_case("q") {
-            break;
-        }
-        let Some(entity_text) = line.strip_prefix("inspect ") else {
-            writeln!(output, "commands: inspect <entity>, q")?;
-            continue;
-        };
-        let entity = entity_text
-            .trim()
-            .parse::<EntityId>()
-            .map_err(|_| TuiError::InvalidCommand("invalid entity identifier".to_owned()))?;
-        render_inspection(&mut output, service.inspect_entity(context, entity, None))?;
-    }
+    runtime::run().map_err(TuiError::Io)?;
     Ok(RunOutcome::Quit)
 }
 
@@ -173,23 +151,6 @@ pub fn inspect_headless<S: TuiService>(
 }
 
 /// Renders one structured inspection in the shell's compact text form.
-fn render_inspection(
-    output: &mut impl Write,
-    result: Result<InspectResult, ApplicationError>,
-) -> Result<(), TuiError> {
-    match result {
-        Ok(result) => {
-            writeln!(output, "entity: {}", result.entity)?;
-            writeln!(output, "snapshot: {:?}", result.snapshot)?;
-            writeln!(output, "revision: {:?}", result.revision)?;
-            writeln!(output, "type: {:?}", result.object_type)?;
-            writeln!(output, "summary: {:?}", result.description.or(result.label))?;
-        }
-        Err(error) => writeln!(output, "error [{}]: {}", error.category(), error)?,
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::{RunOutcome, TuiConfig, inspect_headless};
@@ -225,11 +186,11 @@ mod tests {
         let result = inspect_headless(
             &Fixture,
             &ApplicationContext::empty(),
-            EntityId::new([1; 16]),
+            EntityId::from_bytes([1; 16]),
             None,
         )
         .expect("inspection");
-        assert_eq!(result.entity, EntityId::new([1; 16]));
+        assert_eq!(result.entity, EntityId::from_bytes([1; 16]));
     }
 
     /// Verifies noninteractive execution does not own the terminal.
