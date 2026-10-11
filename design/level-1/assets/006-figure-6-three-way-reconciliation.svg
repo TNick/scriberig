@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">Three-way reconciliation of database and external file changes</title>
+  <desc id="desc">The synchronization base B sits at the top. One branch leads to D, the current canonical database state, while another leads to F, the externally edited projection parsed into candidate semantics. Both feed a semantic three-way reconciliation step, which either produces a merged migration and new snapshot when changes are compatible or a structured conflict when they overlap incompatibly.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>.title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 21px system-ui,sans-serif;fill:#0f172a}.body{font:17px system-ui,sans-serif;fill:#334155}.small{font:15px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1200" height="700" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Concurrent edits reconcile from a shared synchronization base</text>
+
+  <rect x="430" y="90" width="340" height="120" rx="20" fill="#f8fafc" stroke="#475569" stroke-width="3"/>
+  <text x="600" y="135" text-anchor="middle" class="label">B — synchronization base</text>
+  <text x="600" y="170" text-anchor="middle" class="small">last semantic state known to match the external projection</text>
+
+  <rect x="120" y="300" width="340" height="135" rx="20" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="290" y="345" text-anchor="middle" class="label">D — current database state</text>
+  <text x="290" y="380" text-anchor="middle" class="body">canonical changes since B</text>
+  <text x="290" y="410" text-anchor="middle" class="small">agent, API, UI, merge, another edit</text>
+
+  <rect x="740" y="300" width="340" height="135" rx="20" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="910" y="345" text-anchor="middle" class="label">F — externally edited state</text>
+  <text x="910" y="380" text-anchor="middle" class="body">parsed candidate semantics</text>
+  <text x="910" y="410" text-anchor="middle" class="small">human editor, IDE, formatter, external tool</text>
+
+  <path d="M500 210 C430 245 365 270 330 300" class="line"/>
+  <path d="M700 210 C770 245 835 270 870 300" class="line"/>
+  <text x="415" y="258" text-anchor="middle" class="small">database-side evolution</text>
+  <text x="785" y="258" text-anchor="middle" class="small">projection-side evolution</text>
+
+  <rect x="380" y="505" width="440" height="115" rx="22" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="600" y="548" text-anchor="middle" class="label">Semantic three-way reconciliation</text>
+  <text x="600" y="582" text-anchor="middle" class="small">compare D←B and F←B by entities, relations, structure, and domain rules</text>
+  <path d="M330 435 C390 475 445 500 485 510" class="line"/>
+  <path d="M870 435 C810 475 755 500 715 510" class="line"/>
+
+  <rect x="70" y="650" width="440" height="38" rx="12" fill="#ecfdf5" stroke="#0f766e" stroke-width="2"/>
+  <text x="290" y="675" text-anchor="middle" class="small">compatible → merged migration → new snapshot → rerender</text>
+  <rect x="690" y="650" width="440" height="38" rx="12" fill="#fef2f2" stroke="#b91c1c" stroke-width="2"/>
+  <text x="910" y="675" text-anchor="middle" class="small">incompatible → structured semantic conflict; no silent overwrite</text>
+  <path d="M490 620 C430 640 365 650 320 650" class="line"/>
+  <path d="M710 620 C770 640 835 650 880 650" class="line"/>
+</svg>
