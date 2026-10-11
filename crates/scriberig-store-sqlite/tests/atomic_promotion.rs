@@ -19,7 +19,7 @@ fn atomic_revision_insert_and_promotion_commits_together() {
         vec![8],
     )
     .expect("revision");
-    let entity = EntityId::new([4; 16]);
+    let entity = EntityId::from_bytes([4; 16]);
     let snapshot = store
         .apply_revisions_and_promote(
             root.clone(),
@@ -40,7 +40,7 @@ fn missing_revision_rejects_promotion_and_rolls_back() {
     let store = SqliteStore::open_in_memory().expect("open");
     let root = RootName::new("main").expect("root");
     let missing = RevisionId::new([77; 32]);
-    let entity = EntityId::new([5; 16]);
+    let entity = EntityId::from_bytes([5; 16]);
     let error = store
         .apply_changes_and_promote(
             root.clone(),

@@ -35,7 +35,7 @@ pub struct Key {
 }
 
 /// Logical keyboard codes used by the TUI.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum KeyCode {
     /// A printable character.
     Char(char),
@@ -43,6 +43,18 @@ pub enum KeyCode {
     Esc,
     /// The Enter key.
     Enter,
+    /// The Tab key.
+    Tab,
+    /// The Backspace key.
+    Backspace,
+    /// The Up arrow key.
+    Up,
+    /// The Down arrow key.
+    Down,
+    /// The Left arrow key.
+    Left,
+    /// The Right arrow key.
+    Right,
     /// The question-mark help key.
     Help,
     /// An unsupported or non-actionable key.
@@ -98,6 +110,12 @@ fn translate_key(key: KeyEvent) -> Key {
         CrosstermKeyCode::Char(character) => KeyCode::Char(character),
         CrosstermKeyCode::Esc => KeyCode::Esc,
         CrosstermKeyCode::Enter => KeyCode::Enter,
+        CrosstermKeyCode::Tab => KeyCode::Tab,
+        CrosstermKeyCode::Backspace => KeyCode::Backspace,
+        CrosstermKeyCode::Up => KeyCode::Up,
+        CrosstermKeyCode::Down => KeyCode::Down,
+        CrosstermKeyCode::Left => KeyCode::Left,
+        CrosstermKeyCode::Right => KeyCode::Right,
         _ => KeyCode::Other,
     };
     Key { code, modifiers }

@@ -65,7 +65,7 @@ fn generic_model_is_domain_neutral() {
 /// Checks ambiguity keeps original evidence and competing states explicit.
 #[test]
 fn conflicts_retain_evidence_and_competing_states() {
-    let entity = EntityId::new([7; 16]);
+    let entity = EntityId::from_bytes([7; 16]);
     let observation = CapturedObservation {
         id: ObservationId(entity),
         projection: ProjectionRef(entity),
@@ -77,7 +77,7 @@ fn conflicts_retain_evidence_and_competing_states() {
         adapter_version: "1".to_owned(),
     };
     let conflict = sr_projection::ProjectionConflict {
-        id: ConflictId(EntityId::new([8; 16])),
+        id: ConflictId(EntityId::from_bytes([8; 16])),
         specification: ProjectionSpecRef(entity),
         projection: ProjectionRef(entity),
         base_snapshot: SnapshotId::new([1; 32]),
@@ -112,7 +112,7 @@ fn deterministic_render_identity_includes_style() {
         RenderRequest, RenderedProjection, RendererVersion, RenderingContext, SemanticScopeRef,
         SemanticStateRef, StyleRef, StyleValue,
     };
-    let entity = EntityId::new([3; 16]);
+    let entity = EntityId::from_bytes([3; 16]);
     let request = RenderRequest {
         specification: ProjectionSpecRef(entity),
         scope: SemanticScopeRef {
@@ -135,7 +135,7 @@ fn deterministic_render_identity_includes_style() {
 #[test]
 fn render_cache_identity_includes_exact_inputs() {
     use sr_projection::{RenderCacheKey, StyleRef, StyleValue};
-    let entity = EntityId::new([4; 16]);
+    let entity = EntityId::from_bytes([4; 16]);
     let mut request = RenderRequest {
         specification: ProjectionSpecRef(entity),
         scope: SemanticScopeRef {
@@ -158,7 +158,7 @@ fn render_cache_identity_includes_exact_inputs() {
 #[test]
 fn rendered_output_carries_reusable_fragments() {
     use sr_projection::{RenderedFragment, RenderedProjection};
-    let entity = EntityId::new([6; 16]);
+    let entity = EntityId::from_bytes([6; 16]);
     let request = RenderRequest {
         specification: ProjectionSpecRef(entity),
         scope: SemanticScopeRef {
@@ -183,7 +183,7 @@ fn specification_can_reference_external_location() {
     use sr_projection::{
         ExternalLocation, OwnershipClass, ProjectionClass, ProjectionSpec, RendererVersion,
     };
-    let entity = EntityId::new([8; 16]);
+    let entity = EntityId::from_bytes([8; 16]);
     let specification = ProjectionSpec {
         scope: SemanticScopeRef {
             entity,
@@ -253,10 +253,10 @@ fn read_only_adapters_have_explicit_unsupported_import_defaults() {
         base: SemanticStateRef(SnapshotId::new([1; 32])),
         current: SemanticStateRef(SnapshotId::new([2; 32])),
         scope: SemanticScopeRef {
-            entity: EntityId::new([3; 16]),
+            entity: EntityId::from_bytes([3; 16]),
             revision: None,
         },
-        specification: ProjectionSpecRef(EntityId::new([4; 16])),
+        specification: ProjectionSpecRef(EntityId::from_bytes([4; 16])),
         metadata: std::collections::BTreeMap::new(),
     };
     let outcome = adapter.reconcile((), &context);
@@ -360,10 +360,10 @@ fn adapter_reconciliation_receives_full_context() {
         ) -> ReconciliationOutcome<(), (), Box<ProjectionDiagnostic>> {
             assert_eq!(context.base, SemanticStateRef(SnapshotId::new([9; 32])));
             assert_eq!(context.current, SemanticStateRef(SnapshotId::new([10; 32])));
-            assert_eq!(context.scope.entity, EntityId::new([11; 16]));
+            assert_eq!(context.scope.entity, EntityId::from_bytes([11; 16]));
             assert_eq!(
                 context.specification,
-                ProjectionSpecRef(EntityId::new([12; 16]))
+                ProjectionSpecRef(EntityId::from_bytes([12; 16]))
             );
             ReconciliationOutcome::NoSemanticChange
         }
@@ -388,10 +388,10 @@ fn adapter_reconciliation_receives_full_context() {
         base: SemanticStateRef(SnapshotId::new([9; 32])),
         current: SemanticStateRef(SnapshotId::new([10; 32])),
         scope: SemanticScopeRef {
-            entity: EntityId::new([11; 16]),
+            entity: EntityId::from_bytes([11; 16]),
             revision: None,
         },
-        specification: ProjectionSpecRef(EntityId::new([12; 16])),
+        specification: ProjectionSpecRef(EntityId::from_bytes([12; 16])),
         metadata: std::collections::BTreeMap::new(),
     };
     assert!(matches!(

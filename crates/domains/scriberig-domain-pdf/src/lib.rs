@@ -54,7 +54,7 @@ impl PdfDocument {
         h.update(&index.to_be_bytes());
         let mut bytes = [0u8; 16];
         bytes.copy_from_slice(&h.finalize().as_bytes()[..16]);
-        EntityId::new(bytes)
+        EntityId::from_bytes(bytes)
     }
 }
 /// One ordered PDF page and its derived child handles.

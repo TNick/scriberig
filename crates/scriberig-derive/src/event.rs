@@ -182,7 +182,7 @@ mod tests {
     fn key() -> DerivationKey {
         let profile = DerivationProfile::new("test-summary", "v1");
         let dependencies = DependencySet::new(vec![Dependency::ExactRevision {
-            entity: EntityId::new([1; 16]),
+            entity: EntityId::from_bytes([1; 16]),
             revision: RevisionId::new([2; 32]),
         }]);
         DerivationKey::new(profile, dependencies)
@@ -196,7 +196,7 @@ mod tests {
         let result = DerivedResultHandle {
             artifact_id: RevisionId::new([3; 32]),
         };
-        let subject = Some(EntityId::new([1; 16]));
+        let subject = Some(EntityId::from_bytes([1; 16]));
         let snapshot = SnapshotId::new([4; 32]);
         let events = [
             DerivationEvent::DerivationStarted {

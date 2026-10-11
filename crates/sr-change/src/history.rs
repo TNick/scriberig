@@ -151,7 +151,9 @@ impl HistoryGraph {
     pub fn descendants(&self, ancestor: SnapshotId) -> Vec<SnapshotId> {
         self.migrations
             .values()
-            .filter(|migration| self.is_ancestor(ancestor, migration.base))
+            .filter(|migration| {
+                migration.result != ancestor && self.is_ancestor(ancestor, migration.result)
+            })
             .map(|migration| migration.result)
             .collect::<BTreeSet<_>>()
             .into_iter()
@@ -177,6 +179,13 @@ impl HistoryGraph {
             {
                 if result.insert(migration.base) {
                     queue.push_back(migration.base);
+                }
+                for parent in &migration.parents {
+                    if let Some(parent_migration) = self.migration(parent) {
+                        if result.insert(parent_migration.result) {
+                            queue.push_back(parent_migration.result);
+                        }
+                    }
                 }
             }
         }
@@ -286,6 +295,7 @@ mod tests {
         graph.insert(migration("left", 1, 3, vec![]));
         graph.insert(migration("base", 0, 1, vec![]));
         assert!(graph.is_ancestor(snapshot(1), snapshot(5)));
+        assert!(graph.is_ancestor(snapshot(3), snapshot(5)));
         assert_eq!(
             graph.common_ancestors(snapshot(3), snapshot(4)),
             vec![snapshot(0), snapshot(1)]
@@ -295,7 +305,7 @@ mod tests {
     /// Verifies entity removal preserves its historical before revision.
     #[test]
     fn lineage_preserves_creation_and_removal() {
-        let entity = EntityId::new([1; 16]);
+        let entity = EntityId::from_bytes([1; 16]);
         let revision = RevisionId::new([2; 32]);
         let delta = EntityDelta::new(entity, Some(revision), None).expect("removal");
         let mut graph = HistoryGraph::new();

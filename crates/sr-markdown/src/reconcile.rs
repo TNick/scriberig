@@ -167,7 +167,7 @@ fn build_operations(
                 else {
                     continue;
                 };
-                let entity = EntityId::new(rand_bytes(candidate_path));
+                let entity = EntityId::from_bytes(rand_bytes(candidate_path));
                 operations.push(Operation::CreateEntity {
                     entity,
                     revision: block_revision(block),

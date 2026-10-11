@@ -13,6 +13,7 @@ use scriberig_client::Client;
 use scriberig_conformance::{allowed_context, fixture, inspect_tool};
 use scriberig_protocol::{SnapshotReference, SnapshotSelector};
 use scriberig_server::InProcessTransport;
+use scriberig_tui::inspect_headless;
 
 /// Verifies all implemented inspect surfaces retain semantic handles.
 #[test]
@@ -78,6 +79,17 @@ fn inspect_surfaces_are_semantically_equal() {
     assert_eq!(cli.snapshot, expected.snapshot);
     assert_eq!(cli.label, expected.label);
     assert_eq!(cli.description, expected.description);
+
+    let tui = inspect_headless(
+        &expected_fixture,
+        &allowed_context(),
+        expected.entity,
+        expected.snapshot,
+    )
+    .expect("TUI inspect");
+    assert_eq!(tui.entity, expected.entity);
+    assert_eq!(tui.revision, expected.revision);
+    assert_eq!(tui.snapshot, expected.snapshot);
 }
 
 /// Verifies runtime capability discovery survives the server/client boundary.
@@ -103,7 +115,7 @@ fn missing_entity_is_structured() {
         .inspect(
             &ApplicationContext::empty(),
             &InspectRequest {
-                entity: scriberig_core::EntityId::new([7; 16]),
+                entity: scriberig_core::EntityId::from_bytes([7; 16]),
                 snapshot: SnapshotResolution::Current,
                 detail: DetailLevel::Compact,
             },

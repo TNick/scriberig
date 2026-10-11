@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use scriberig_core::{EncodingVersion, EntityId, RevisionId, SnapshotId};
+use scriberig_core::{EncodingError, EncodingVersion, EntityId, RevisionId, SnapshotId};
 
 /// Describes one storage-level snapshot update.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -45,6 +45,8 @@ pub enum SnapshotDiff {
 /// Reports an invalid snapshot operation.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SnapshotError {
+    /// The requested canonical encoding version is not supported.
+    InvalidEncoding(EncodingError),
     /// The requested snapshot is not known by the backend.
     UnknownSnapshot(SnapshotId),
     /// A backend-specific durable storage failure.
@@ -225,17 +227,20 @@ impl Snapshot {
     /// Creates an empty version-one snapshot.
     #[must_use]
     pub fn empty() -> Self {
-        Self::empty_with_version(EncodingVersion::new(1))
+        Self::from_root(EncodingVersion::V1, Arc::new(Node::Empty), 0)
     }
     /// # Parameters
     /// - `version`: Operation input.
     ///
     /// # Returns
     /// The requested snapshot result.
+    ///
+    /// # Errors
+    /// Returns `InvalidEncoding` when the requested version is unsupported.
     /// Creates an empty snapshot at an encoding version.
-    #[must_use]
-    pub fn empty_with_version(version: EncodingVersion) -> Self {
-        Self::from_root(version, Arc::new(Node::Empty), 0)
+    pub fn empty_with_version(version: EncodingVersion) -> Result<Self, SnapshotError> {
+        EncodingVersion::try_new(version.value()).map_err(SnapshotError::InvalidEncoding)?;
+        Ok(Self::from_root(version, Arc::new(Node::Empty), 0))
     }
     /// # Parameters
     /// - `entries`: Operation input.

@@ -46,7 +46,7 @@ fn migration(
 /// Verifies one semantic revision operation creates a new descendant line.
 #[test]
 fn rebase_replays_revision_and_preserves_original_history() {
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let old = RevisionId::new([2; 32]);
     let next = RevisionId::new([3; 32]);
     let base = Snapshot::empty().with_revision(entity, old);
@@ -80,7 +80,7 @@ fn rebase_replays_revision_and_preserves_original_history() {
 /// Verifies that a changed target fails the exact replace precondition.
 #[test]
 fn rebase_reports_conflict_for_changed_target() {
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let old = RevisionId::new([2; 32]);
     let next = RevisionId::new([3; 32]);
     let other = RevisionId::new([4; 32]);
@@ -113,8 +113,8 @@ fn rebase_reports_conflict_for_changed_target() {
 /// Verifies relation preconditions and application use stable semantic edges.
 #[test]
 fn rebase_replays_relation_operation() {
-    let from = EntityId::new([1; 16]);
-    let to = EntityId::new([2; 16]);
+    let from = EntityId::from_bytes([1; 16]);
+    let to = EntityId::from_bytes([2; 16]);
     let base = Snapshot::empty();
     let operation = Operation::AddRelation {
         from,
@@ -203,7 +203,7 @@ fn rebase_domain_strategy_resolves_unknown_operation() {
 /// Verifies ordered replay of two migrations keeps both rebased edges.
 #[test]
 fn rebase_replays_multiple_migrations_in_order() {
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let first = RevisionId::new([2; 32]);
     let second = RevisionId::new([3; 32]);
     let third = RevisionId::new([4; 32]);

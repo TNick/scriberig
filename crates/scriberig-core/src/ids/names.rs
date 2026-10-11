@@ -112,12 +112,11 @@ name_type!(
     "root_",
     "Names a mutable reference to a snapshot."
 );
-name_type!(ObjectType, "type_", "Names a canonical domain object type.");
-
 // Verify name validation and distinct textual representations.
 #[cfg(test)]
 mod tests {
-    use super::{ObjectType, RootName};
+    use super::RootName;
+    use crate::TypeId;
     use crate::ids::IdParseError;
     use std::str::FromStr;
 
@@ -127,11 +126,8 @@ mod tests {
     fn names_reject_empty_values_and_round_trip() {
         assert_eq!(RootName::new("  "), Err(IdParseError::EmptyName));
         let root = RootName::new("main").expect("valid root name");
-        let object_type = ObjectType::new("rust.function").expect("valid type");
+        let object_type = TypeId::new("rust.function").expect("valid type");
         assert_eq!(RootName::from_str(&root.to_string()), Ok(root));
-        assert_eq!(
-            ObjectType::from_str(&object_type.to_string()),
-            Ok(object_type)
-        );
+        assert_eq!(TypeId::from_str(&object_type.to_string()), Ok(object_type));
     }
 }

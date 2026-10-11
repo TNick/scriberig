@@ -12,7 +12,9 @@ use std::str::FromStr;
 ///
 /// # Private members
 /// - `value`: Stores the validated UTF-8 identifier.
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize,
+)]
 pub struct TypeId {
     value: String,
 }

@@ -12,6 +12,9 @@ mod type_id;
 pub use common::IdParseError;
 pub use digest::{RevisionId, SnapshotId};
 pub use entity::EntityId;
-pub use names::{ObjectType, RootName};
+pub use names::RootName;
 pub use operation::OperationId;
 pub use type_id::TypeId;
+
+/// Backward-compatible name for the canonical semantic type identifier.
+pub type ObjectType = TypeId;

@@ -137,6 +137,7 @@ impl crate::SnapshotError {
     #[must_use]
     pub const fn category(&self) -> StoreErrorCategory {
         match self {
+            Self::InvalidEncoding(_) => StoreErrorCategory::InvalidEncoding,
             Self::UnknownSnapshot(_) => StoreErrorCategory::NotFound,
             Self::Backend(_) => StoreErrorCategory::Backend,
         }

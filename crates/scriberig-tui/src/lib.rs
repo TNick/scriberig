@@ -2,18 +2,25 @@
 
 use std::io;
 
-use scriberig_app::{
-    ApplicationContext, ApplicationError, DetailLevel, InspectRequest, InspectResult, QueryService,
-    SnapshotResolution,
-};
+use scriberig_app::{ApplicationContext, ApplicationError, InspectResult};
 use scriberig_core::{EntityId, SnapshotId};
 
+pub mod action;
+pub mod effect;
 pub mod event;
+pub mod explorer;
+pub mod inspector;
+pub mod keymap;
 pub mod layout;
+pub mod navigation;
+pub mod overlay;
 pub mod render;
 pub mod runtime;
+pub mod selection;
+pub mod service;
 pub mod state;
 pub mod terminal;
+pub mod view;
 
 /// Configures the first application-backed TUI shell.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -65,45 +72,9 @@ impl From<io::Error> for TuiError {
 }
 
 /// Provides semantic operations required by the TUI shell.
-pub trait TuiService {
-    /// Inspects one entity through the shared application boundary.
-    ///
-    /// # Parameters
-    /// - `context`: Trusted application request context.
-    /// - `entity`: Entity identity to inspect.
-    /// - `snapshot`: Optional exact snapshot.
-    ///
-    /// # Returns
-    /// Snapshot-aware inspection result.
-    ///
-    /// # Errors
-    /// Returns the structured application failure.
-    fn inspect_entity(
-        &self,
-        context: &ApplicationContext,
-        entity: EntityId,
-        snapshot: Option<SnapshotId>,
-    ) -> Result<InspectResult, ApplicationError>;
-}
-
-impl<S: QueryService> TuiService for S {
-    /// Delegates TUI inspection to the shared query service.
-    fn inspect_entity(
-        &self,
-        context: &ApplicationContext,
-        entity: EntityId,
-        snapshot: Option<SnapshotId>,
-    ) -> Result<InspectResult, ApplicationError> {
-        self.inspect(
-            context,
-            &InspectRequest {
-                entity,
-                snapshot: snapshot.map_or(SnapshotResolution::Current, SnapshotResolution::At),
-                detail: DetailLevel::Detailed,
-            },
-        )
-    }
-}
+pub use service::{
+    ApplicationAdapter, ApplicationOperationAdapter, TuiOperationService, TuiService,
+};
 
 /// Runs the line-oriented TUI shell over an application service.
 ///
@@ -118,11 +89,11 @@ impl<S: QueryService> TuiService for S {
 /// # Errors
 /// Returns terminal I/O, invalid-command, or application failures.
 pub fn run<S: TuiService>(
-    _service: &S,
-    _context: &ApplicationContext,
-    _config: &TuiConfig,
+    service: &S,
+    context: &ApplicationContext,
+    config: &TuiConfig,
 ) -> Result<RunOutcome, TuiError> {
-    runtime::run().map_err(TuiError::Io)?;
+    runtime::run(service, context, config).map_err(TuiError::Io)?;
     Ok(RunOutcome::Quit)
 }
 

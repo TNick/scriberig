@@ -9,8 +9,8 @@ use scriberig_store::{Collection, Snapshot};
 /// Confirms update order does not affect a complete snapshot identity.
 #[test]
 fn equivalent_update_orders_converge() {
-    let first = EntityId::new([1; 16]);
-    let second = EntityId::new([2; 16]);
+    let first = EntityId::from_bytes([1; 16]);
+    let second = EntityId::from_bytes([2; 16]);
     let first_revision = RevisionId::new([3; 32]);
     let second_revision = RevisionId::new([4; 32]);
 
@@ -27,7 +27,7 @@ fn equivalent_update_orders_converge() {
 /// Confirms removing an entity does not mutate its predecessor.
 #[test]
 fn removing_entity_preserves_prior_snapshot() {
-    let entity = EntityId::new([5; 16]);
+    let entity = EntityId::from_bytes([5; 16]);
     let revision = RevisionId::new([6; 32]);
     let base = Snapshot::empty().with_revision(entity, revision);
     let removed = base.without_entity(entity);
@@ -40,8 +40,8 @@ fn removing_entity_preserves_prior_snapshot() {
 /// Confirms ordered collection reordering preserves child identities.
 #[test]
 fn reordered_collection_changes_order_only() {
-    let first = EntityId::new([7; 16]);
-    let second = EntityId::new([8; 16]);
+    let first = EntityId::from_bytes([7; 16]);
+    let second = EntityId::from_bytes([8; 16]);
     let original = Collection::create().replace([first, second]);
     let reordered = original.replace([second, first]);
 

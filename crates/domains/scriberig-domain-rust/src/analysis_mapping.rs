@@ -34,7 +34,7 @@ impl AnalysisMapping {
                 let digest = hasher.finalize();
                 let mut bytes = [0; 16];
                 bytes.copy_from_slice(&digest.as_bytes()[..16]);
-                (name, EntityId::new(bytes))
+                (name, EntityId::from_bytes(bytes))
             })
             .collect();
         Self { source, symbols }

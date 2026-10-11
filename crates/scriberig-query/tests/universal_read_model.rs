@@ -90,9 +90,9 @@ impl KnowledgeView for Fixture {
 /// Creates a project with an ordered collection and a typed relation.
 fn fixture() -> Fixture {
     let snapshot = SnapshotId::new([9; 32]);
-    let project = EntityId::new([1; 16]);
-    let first = EntityId::new([2; 16]);
-    let second = EntityId::new([3; 16]);
+    let project = EntityId::from_bytes([1; 16]);
+    let first = EntityId::from_bytes([2; 16]);
+    let second = EntityId::from_bytes([3; 16]);
     let function_type = ObjectType::new("test.function").expect("type");
     let mut records = BTreeMap::new();
     records.insert(
@@ -137,7 +137,7 @@ fn inspection_is_snapshot_bound_and_progressively_disclosed() {
     let result = service
         .inspect(&InspectRequest {
             target: TargetRef::Snapshot(EntityInSnapshot {
-                entity: EntityId::new([2; 16]),
+                entity: EntityId::from_bytes([2; 16]),
                 snapshot: SnapshotId::new([9; 32]),
             }),
             detail: DetailLevel::Compact,
@@ -158,7 +158,7 @@ fn list_preserves_order_and_returns_reusable_handles() {
     let fixture = fixture();
     let service = scriberig_query::GraphReadService::new(fixture);
     let subject = EntityInSnapshot {
-        entity: EntityId::new([1; 16]),
+        entity: EntityId::from_bytes([1; 16]),
         snapshot: SnapshotId::new([9; 32]),
     };
     let request = |continuation| ListRequest {
@@ -198,7 +198,7 @@ fn follow_preserves_relation_and_reports_missing_reverse_index() {
     let fixture = fixture();
     let service = scriberig_query::GraphReadService::new(fixture);
     let subject = EntityInSnapshot {
-        entity: EntityId::new([1; 16]),
+        entity: EntityId::from_bytes([1; 16]),
         snapshot: SnapshotId::new([9; 32]),
     };
     let request = FollowRequest {
@@ -255,7 +255,7 @@ fn find_and_query_return_snapshot_bound_semantic_rows() {
         .find(&FindRequest {
             scope: QueryScope::ExplicitEntities {
                 snapshot,
-                entities: vec![EntityId::new([2; 16])],
+                entities: vec![EntityId::from_bytes([2; 16])],
             },
             query: "test.function".to_owned(),
             strategy: FindStrategy::ExactText,

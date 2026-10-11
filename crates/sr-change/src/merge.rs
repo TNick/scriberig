@@ -2,7 +2,7 @@
 
 use crate::{ConflictKind, EntityDelta, MergeConflict};
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
-use scriberig_store::Snapshot;
+use scriberig_store::{Snapshot, SnapshotChange, SnapshotError, SnapshotStore};
 use std::collections::BTreeSet;
 
 /// Exact snapshots supplied to a three-way merge.
@@ -63,6 +63,8 @@ pub struct MergeResult {
     pub resolved_deltas: Vec<EntityDelta>,
     /// Unresolved semantic conflicts.
     pub conflicts: Vec<MergeConflict>,
+    /// Retained merged snapshot when materialization completed without conflicts.
+    pub result: Option<SnapshotId>,
 }
 
 /// Reports invalid merge input.
@@ -108,6 +110,7 @@ pub fn merge_snapshots(
         right: input.right,
         resolved_deltas: Vec::new(),
         conflicts: Vec::new(),
+        result: None,
     };
     for entity in entities {
         let b = base_map.get(&entity).copied();
@@ -175,6 +178,64 @@ pub fn merge_snapshots(
         });
     }
     Ok(result)
+}
+
+/// Reports merge materialization failures from the storage boundary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MergeStoreError {
+    /// One requested input snapshot could not be read or the result could not be stored.
+    Snapshot(SnapshotError),
+    /// The in-memory merge input was inconsistent.
+    Merge(MergeError),
+}
+
+/// Performs a three-way merge and retains its conflict-free result snapshot.
+///
+/// # Parameters
+/// - `store`: Backend-neutral snapshot store receiving the result.
+/// - `input`: Exact base, left, and right snapshot identities.
+/// - `strategy`: Optional domain strategy for ambiguous entities.
+///
+/// # Returns
+/// Merge deltas and the retained result identity when no conflicts remain.
+///
+/// # Errors
+/// Returns a merge-input or snapshot-store error.
+pub fn merge_snapshots_into_store<S: SnapshotStore>(
+    store: &S,
+    input: MergeInput,
+    strategy: Option<&dyn DomainMergeStrategy>,
+) -> Result<MergeResult, MergeStoreError> {
+    let base = snapshot_from_store(store, input.base)?;
+    let left = snapshot_from_store(store, input.left)?;
+    let right = snapshot_from_store(store, input.right)?;
+    let mut result =
+        merge_snapshots(input, &base, &left, &right, strategy).map_err(MergeStoreError::Merge)?;
+    if result.conflicts.is_empty() {
+        let changes = result
+            .resolved_deltas
+            .iter()
+            .map(|delta| match delta.after {
+                Some(revision) => SnapshotChange::Set(delta.entity, revision),
+                None => SnapshotChange::Remove(delta.entity),
+            })
+            .collect::<Vec<_>>();
+        result.result = Some(
+            store
+                .apply_changes(input.base, &changes)
+                .map_err(MergeStoreError::Snapshot)?,
+        );
+    }
+    Ok(result)
+}
+
+/// Reconstructs one immutable snapshot through the public store interface.
+fn snapshot_from_store<S: SnapshotStore>(
+    store: &S,
+    id: SnapshotId,
+) -> Result<Snapshot, MergeStoreError> {
+    let entries = store.iter(id).map_err(MergeStoreError::Snapshot)?;
+    Ok(Snapshot::from_entries(entries.into_iter().collect()))
 }
 
 /// Adds a delta when the transition is semantically non-empty.

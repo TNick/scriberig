@@ -23,7 +23,7 @@ impl ConformanceFixture for PdfFixture {
     /// Canonical inspection.
     fn canonical_inspection(&self) -> Inspection {
         Inspection {
-            entity: EntityId::new([7; 16]),
+            entity: EntityId::from_bytes([7; 16]),
             revision: RevisionId::new([8; 32]),
         }
     }

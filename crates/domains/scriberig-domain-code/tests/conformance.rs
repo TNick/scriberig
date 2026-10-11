@@ -21,7 +21,7 @@ impl ConformanceFixture for CodeFixture {
     /// Canonical inspection.
     fn canonical_inspection(&self) -> Inspection {
         Inspection {
-            entity: EntityId::new([1; 16]),
+            entity: EntityId::from_bytes([1; 16]),
             revision: RevisionId::new([2; 32]),
         }
     }

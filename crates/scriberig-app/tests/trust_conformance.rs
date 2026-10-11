@@ -12,7 +12,7 @@ use scriberig_core::{EntityId, EntityRevisionRef, Provenance, ProvenanceSource, 
 /// # Returns
 /// The trust summary, provenance record, and project inspection capability.
 fn fixture() -> (TrustSummary, Provenance, Capability) {
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let revision = RevisionId::new([2; 32]);
     let provenance = Provenance {
         source: ProvenanceSource::ModelGenerated,
@@ -85,7 +85,7 @@ fn validation_and_external_uncertainty_remain_structured() {
 #[test]
 fn capability_delegation_preserves_least_authority() {
     let (_, _, parent) = fixture();
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let child = Capability {
         scope: CapabilityScope::Entity(entity),
         actions: [CapabilityAction::Inspect].into_iter().collect(),

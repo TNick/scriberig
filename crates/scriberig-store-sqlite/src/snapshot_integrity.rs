@@ -191,7 +191,7 @@ fn inspect_node(
             revision.copy_from_slice(row.2.as_ref().expect("checked leaf revision"));
             if walk
                 .entries
-                .insert(EntityId::new(entity), RevisionId::new(revision))
+                .insert(EntityId::from_bytes(entity), RevisionId::new(revision))
                 .is_some()
             {
                 return Err(NodeWalkError::Invalid("duplicate entity leaf"));

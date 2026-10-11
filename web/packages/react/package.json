@@ -3,13 +3,32 @@
   "version": "0.1.0",
   "type": "module",
   "license": "Apache-2.0",
-  "exports": { ".": "./src/index.ts" },
-  "scripts": { "typecheck": "tsc -p tsconfig.json --noEmit", "test": "vitest run --passWithNoTests", "build": "tsc -p tsconfig.json" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "build": "vite build --config ../../vite.lib.config.mts && tsc -p tsconfig.build.json --emitDeclarationOnly"
+  },
   "dependencies": {
     "@scriberig/client": "workspace:*",
     "@scriberig/editor-core": "workspace:*",
     "@scriberig/model": "workspace:*",
     "@scriberig/protocol": "workspace:*"
   },
-  "peerDependencies": { "react": "^19.3.0" }
+  "peerDependencies": {
+    "react": "^19.3.0"
+  }
 }

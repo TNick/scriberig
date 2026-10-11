@@ -40,7 +40,7 @@ impl SnapshotStore for SqliteStore {
         changes: &[SnapshotChange],
     ) -> Result<SnapshotId, SnapshotError> {
         let next = self.snapshot(base)?.apply(changes.iter().copied());
-        self.store_snapshot(&next)?;
+        self.store_snapshot_with_parent(&next, base)?;
         Ok(next.id())
     }
     /// # Parameters
@@ -71,6 +71,42 @@ impl SnapshotStore for SqliteStore {
         to: SnapshotId,
     ) -> Result<Vec<SnapshotChange>, SnapshotError> {
         Ok(self.snapshot(from)?.diff_changes(&self.snapshot(to)?))
+    }
+
+    /// Returns direct immutable predecessors retained for one snapshot.
+    ///
+    /// # Parameters
+    /// - `snapshot`: Snapshot whose direct parents are requested.
+    ///
+    /// # Returns
+    /// Direct parents in deterministic order.
+    ///
+    /// # Errors
+    /// Returns an error when the snapshot or parent records cannot be read.
+    fn parents(&self, snapshot: SnapshotId) -> Result<Vec<SnapshotId>, SnapshotError> {
+        let _ = self.snapshot(snapshot)?;
+        let connection = self
+            .connection()
+            .map_err(|error| SnapshotError::Backend(format!("{error:?}")))?;
+        let mut statement = connection
+            .prepare(
+                "SELECT parent_id FROM snapshot_parents
+                 WHERE snapshot_id=? ORDER BY parent_id",
+            )
+            .map_err(|error| SnapshotError::Backend(error.to_string()))?;
+        let rows = statement
+            .query_map(params![snapshot.as_bytes().as_slice()], |row| {
+                let bytes: Vec<u8> = row.get(0)?;
+                if bytes.len() != 32 {
+                    return Err(rusqlite::Error::InvalidQuery);
+                }
+                let mut value = [0; 32];
+                value.copy_from_slice(&bytes);
+                Ok(SnapshotId::from_bytes(value))
+            })
+            .map_err(|error| SnapshotError::Backend(error.to_string()))?;
+        rows.map(|row| row.map_err(|error| SnapshotError::Backend(error.to_string())))
+            .collect()
     }
 }
 
@@ -111,6 +147,30 @@ pub(crate) fn store_in_transaction(
             ],
         )?;
     }
+    Ok(())
+}
+
+/// Stores one direct immutable snapshot-parent relation.
+///
+/// # Parameters
+/// - `transaction`: Transaction receiving the relation.
+/// - `snapshot`: Child snapshot identity.
+/// - `parent`: Direct parent snapshot identity.
+///
+/// # Returns
+/// Unit after the relation is stored.
+///
+/// # Errors
+/// Returns a SQLite insertion error.
+pub(crate) fn store_parent_in_transaction(
+    transaction: &Transaction<'_>,
+    snapshot: SnapshotId,
+    parent: SnapshotId,
+) -> rusqlite::Result<()> {
+    transaction.execute(
+        "INSERT OR IGNORE INTO snapshot_parents(snapshot_id,parent_id) VALUES (?,?)",
+        params![snapshot.as_bytes().as_slice(), parent.as_bytes().as_slice()],
+    )?;
     Ok(())
 }
 

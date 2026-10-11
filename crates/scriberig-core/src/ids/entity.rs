@@ -8,7 +8,7 @@ use std::str::FromStr;
 /// Identifies a stable conceptual entity independently of its revisions.
 ///
 /// # Public members
-/// - `new`: Constructs an entity identifier from 16 bytes.
+/// - `new`: Generates a fresh entity identifier.
 /// - `from_bytes`: Constructs an entity identifier from fixed-width bytes.
 /// - `as_bytes`: Borrows the identifier bytes.
 ///
@@ -29,19 +29,16 @@ impl EntityId {
     /// A new randomly generated entity identifier.
     #[must_use]
     pub fn fresh() -> Self {
-        Self::new(uuid::Uuid::new_v4().into_bytes())
+        Self::new()
     }
 
-    /// Constructs an entity identifier from its 128-bit value.
-    ///
-    /// # Parameters
-    /// - `bytes`: Fixed-width identifier bytes.
+    /// Generates a fresh non-content-derived entity identifier.
     ///
     /// # Returns
-    /// The new entity identifier.
+    /// A new randomly generated entity identifier.
     #[must_use]
-    pub const fn new(bytes: [u8; 16]) -> Self {
-        Self { bytes }
+    pub fn new() -> Self {
+        Self::from_bytes(uuid::Uuid::new_v4().into_bytes())
     }
 
     /// Constructs an entity identifier from its fixed-width bytes.
@@ -53,7 +50,7 @@ impl EntityId {
     /// The new entity identifier.
     #[must_use]
     pub const fn from_bytes(bytes: [u8; 16]) -> Self {
-        Self::new(bytes)
+        Self { bytes }
     }
 
     /// Borrows the identifier's fixed-width bytes.
@@ -66,6 +63,16 @@ impl EntityId {
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; 16] {
         &self.bytes
+    }
+}
+
+impl Default for EntityId {
+    /// Generates a fresh entity identifier.
+    ///
+    /// # Returns
+    /// A new randomly generated entity identifier.
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -102,7 +109,7 @@ impl FromStr for EntityId {
     /// # Errors
     /// Returns `InvalidFormat` for a wrong prefix, length, or hexadecimal digit.
     fn from_str(text: &str) -> Result<Self, Self::Err> {
-        Ok(Self::new(parse_hex("ent_", text)?))
+        Ok(Self::from_bytes(parse_hex("ent_", text)?))
     }
 }
 
@@ -116,7 +123,7 @@ mod tests {
     #[test]
 
     fn entity_id_round_trip() {
-        let entity = EntityId::new([0x5a; 16]);
+        let entity = EntityId::from_bytes([0x5a; 16]);
         assert_eq!(EntityId::from_str(&entity.to_string()), Ok(entity));
     }
 
@@ -124,5 +131,11 @@ mod tests {
     #[test]
     fn fresh_entity_ids_are_distinct() {
         assert_ne!(EntityId::fresh(), EntityId::fresh());
+    }
+
+    /// Checks the design-level zero-argument constructor generates identities.
+    #[test]
+    fn new_entity_ids_are_distinct() {
+        assert_ne!(EntityId::new(), EntityId::new());
     }
 }

@@ -18,7 +18,7 @@ fn key() -> DerivationKey {
     DerivationKey::new(
         DerivationProfile::new("test:summary", "v1"),
         DependencySet::new(vec![Dependency::ExactRevision {
-            entity: EntityId::new([1; 16]),
+            entity: EntityId::from_bytes([1; 16]),
             revision: RevisionId::new([2; 32]),
         }]),
     )
@@ -75,7 +75,7 @@ fn records_wrap_universal_derived_artifacts() {
         producer: Some("test-compiler".to_owned()),
         producer_version: None,
         inputs: vec![EntityRevisionRef {
-            entity_id: EntityId::new([1; 16]),
+            entity_id: EntityId::from_bytes([1; 16]),
             revision_id: RevisionId::new([2; 32]),
         }],
         profile: None,

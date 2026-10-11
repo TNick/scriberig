@@ -22,8 +22,8 @@ mod tests {
     /// Ordered values retain sequence while unordered values ignore insertion order.
     #[test]
     fn collection_semantics_are_distinct() {
-        let first = EntityId::new([1; 16]);
-        let second = EntityId::new([2; 16]);
+        let first = EntityId::from_bytes([1; 16]);
+        let second = EntityId::from_bytes([2; 16]);
         assert_ne!(
             CollectionValue::Ordered(vec![first, second]),
             CollectionValue::Ordered(vec![second, first])
@@ -38,7 +38,8 @@ mod tests {
     #[test]
     fn relation_targets_are_entity_ids() {
         let relation_type = ObjectType::new("depends_on").expect("type");
-        let relation = RelationValue::new(relation_type.clone(), vec![EntityId::new([7; 16])]);
+        let relation =
+            RelationValue::new(relation_type.clone(), vec![EntityId::from_bytes([7; 16])]);
         assert_eq!(relation.relation_type, relation_type);
         assert_eq!(relation.targets.len(), 1);
     }

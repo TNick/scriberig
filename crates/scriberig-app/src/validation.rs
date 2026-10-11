@@ -124,7 +124,7 @@ mod tests {
     #[test]
     fn evidence_requires_exact_dependencies() {
         let dependency = EntityRevisionRef {
-            entity_id: EntityId::new([1; 16]),
+            entity_id: EntityId::from_bytes([1; 16]),
             revision_id: RevisionId::new([2; 32]),
         };
         let evidence = ValidationEvidence {

@@ -14,7 +14,7 @@ fn interrupted_promotion_keeps_previous_root() {
         .compare_and_set_root(root.clone(), None, base)
         .expect("base root");
     let next = Snapshot::empty().apply([SnapshotChange::Set(
-        EntityId::new([1; 16]),
+        EntityId::from_bytes([1; 16]),
         RevisionId::new([2; 32]),
     )]);
     let mut connection = store.connection.lock().expect("connection");

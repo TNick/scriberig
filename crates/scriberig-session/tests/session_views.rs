@@ -5,9 +5,9 @@ use scriberig_session::{Branch, Session, SessionViews, Turn};
 /// Checks compact branch metadata and chronological turn views.
 #[test]
 fn views_do_not_require_turn_bodies() {
-    let mut branch = Branch::new(EntityId::new([2; 16]), "branch").expect("branch");
+    let mut branch = Branch::new(EntityId::from_bytes([2; 16]), "branch").expect("branch");
     branch.push_turn(Turn {
-        id: EntityId::new([4; 16]),
+        id: EntityId::from_bytes([4; 16]),
         ordinal: 7,
         human: None,
         agent: None,
@@ -15,7 +15,7 @@ fn views_do_not_require_turn_bodies() {
         tool_result: None,
     });
     let session = Session {
-        id: EntityId::new([1; 16]),
+        id: EntityId::from_bytes([1; 16]),
         branches: vec![branch.clone()],
         goals: Vec::new(),
         tasks: Vec::new(),

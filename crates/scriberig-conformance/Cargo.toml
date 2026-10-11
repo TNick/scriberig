@@ -18,10 +18,12 @@ scriberig-protocol = { path = "../scriberig-protocol" }
 scriberig-server = { path = "../scriberig-server" }
 scriberig-store = { path = "../scriberig-store" }
 scriberig-store-memory = { path = "../scriberig-store-memory" }
+scriberig-tui = { path = "../scriberig-tui" }
 sr-change = { path = "../sr-change" }
 sr-projection = { path = "../sr-projection" }
 
 [dev-dependencies]
+schemars = "0.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = "0.8"

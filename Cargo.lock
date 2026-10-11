@@ -1032,6 +1032,8 @@ dependencies = [
  "ratatui",
  "scriberig-app",
  "scriberig-core",
+ "sr-change",
+ "sr-projection",
 ]
 
 [[package]]

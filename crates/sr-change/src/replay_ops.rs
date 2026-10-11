@@ -156,7 +156,7 @@ pub fn replay_generic(
             Ok(None)
         }
         Operation::Domain { .. } => Err(Box::new(entity_conflict(
-            EntityId::new([0; 16]),
+            EntityId::from_bytes([0; 16]),
             ConflictKind::DomainConflict,
             "domain replay strategy unavailable",
         ))),
@@ -284,7 +284,7 @@ pub fn domain_conflict(operation: &Operation, detail: &str) -> crate::MergeConfl
         | Operation::RemoveCollectionMember { collection, .. }
         | Operation::MoveCollectionMember { collection, .. }
         | Operation::ReplaceCollectionStructure { collection, .. } => *collection,
-        Operation::Domain { .. } => EntityId::new([0; 16]),
+        Operation::Domain { .. } => EntityId::from_bytes([0; 16]),
     };
     entity_conflict(entity, ConflictKind::DomainConflict, detail)
 }

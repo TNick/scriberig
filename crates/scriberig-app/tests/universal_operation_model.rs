@@ -439,7 +439,7 @@ fn operation_dispatch_covers_all_mutating_and_projection_operations() {
 #[test]
 fn read_dispatch_preserves_structured_unsupported_capability() {
     let snapshot = SnapshotId::new([2; 32]);
-    let entity = scriberig_core::EntityId::new([3; 16]);
+    let entity = scriberig_core::EntityId::from_bytes([3; 16]);
     let subject = scriberig_query::EntityInSnapshot { entity, snapshot };
     let backend = CompositeBackend::new(ReadFixture, OperationFixture::new());
     let context = ApplicationContext::empty();
@@ -496,7 +496,7 @@ fn read_dispatch_preserves_structured_unsupported_capability() {
 #[test]
 fn inspection_merges_registered_capabilities() {
     let snapshot = SnapshotId::new([2; 32]);
-    let entity = scriberig_core::EntityId::new([3; 16]);
+    let entity = scriberig_core::EntityId::from_bytes([3; 16]);
     let mut registry = scriberig_app::CapabilityRegistry::new();
     registry
         .register(InspectionCapabilityProvider)

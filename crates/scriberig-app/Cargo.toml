@@ -17,6 +17,7 @@ scriberig-query = { path = "../scriberig-query" }
 scriberig-session = { path = "../scriberig-session" }
 scriberig-store = { path = "../scriberig-store" }
 sr-change = { path = "../sr-change" }
+serde = { version = "1.0", features = ["derive"] }
 
 [dev-dependencies]
 scriberig-store-memory = { path = "../scriberig-store-memory" }

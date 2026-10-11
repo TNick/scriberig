@@ -52,7 +52,7 @@ impl QueryService for Fixture {
 /// Verifies optional snapshot parsing is preserved by CLI dispatch.
 #[test]
 fn inspect_dispatch_preserves_handles() {
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let result = dispatch(
         &Fixture,
         &ApplicationContext::empty(),

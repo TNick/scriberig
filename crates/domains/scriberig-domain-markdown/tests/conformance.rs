@@ -23,7 +23,7 @@ impl ConformanceFixture for MarkdownFixture {
     /// Canonical inspection.
     fn canonical_inspection(&self) -> Inspection {
         Inspection {
-            entity: EntityId::new([3; 16]),
+            entity: EntityId::from_bytes([3; 16]),
             revision: RevisionId::new([4; 32]),
         }
     }

@@ -1,7 +1,7 @@
 //! Defines optimistic named-root advancement.
 
 use scriberig_core::{RootName, SnapshotId};
-use scriberig_store::{RootError, RootStore};
+use scriberig_store::{RootError, RootStore, SnapshotError, SnapshotStore};
 
 /// Result of an optimistic promotion attempt.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -22,26 +22,51 @@ pub enum PromotionResult {
 }
 
 /// Promotes a snapshot through the backend-neutral root contract.
-pub fn promote<S: RootStore>(
+pub fn promote<S: RootStore + SnapshotStore>(
     store: &S,
     root: RootName,
     expected: Option<SnapshotId>,
     result: SnapshotId,
 ) -> PromotionResult {
-    match store.compare_and_set_root(root, expected, result) {
-        Ok(()) => PromotionResult::Promoted,
-        Err(RootError::Conflict {
-            expected, actual, ..
-        }) => PromotionResult::StaleRoot { expected, actual },
-        Err(RootError::Backend(_)) => PromotionResult::StoreError,
+    match store.iter(result) {
+        Ok(_) => match store.compare_and_set_root(root, expected, result) {
+            Ok(()) => PromotionResult::Promoted,
+            Err(RootError::Conflict {
+                expected, actual, ..
+            }) => PromotionResult::StaleRoot { expected, actual },
+            Err(RootError::Backend(_)) => PromotionResult::StoreError,
+        },
+        Err(SnapshotError::UnknownSnapshot(_)) => PromotionResult::InvalidTarget,
+        Err(SnapshotError::InvalidEncoding(_) | SnapshotError::Backend(_)) => {
+            PromotionResult::StoreError
+        }
     }
+}
+
+/// Validates a target snapshot before performing optimistic promotion.
+///
+/// # Parameters
+/// - `store`: Backend implementing roots and snapshot reads.
+/// - `root`: Named root to advance.
+/// - `expected`: Snapshot currently expected at the root.
+/// - `result`: Snapshot to promote.
+///
+/// # Returns
+/// Promotion status with invalid targets rejected before root mutation.
+pub fn promote_checked<S: RootStore + SnapshotStore>(
+    store: &S,
+    root: RootName,
+    expected: Option<SnapshotId>,
+    result: SnapshotId,
+) -> PromotionResult {
+    promote(store, root, expected, result)
 }
 
 #[cfg(test)]
 mod tests {
     use super::{PromotionResult, promote};
     use scriberig_core::{RootName, SnapshotId};
-    use scriberig_store::{RootError, RootStore};
+    use scriberig_store::{RootError, RootStore, SnapshotChange, SnapshotError, SnapshotStore};
 
     /// Minimal root backend used to exercise promotion mapping.
     struct Roots(Option<SnapshotId>);
@@ -92,6 +117,50 @@ mod tests {
         }
     }
 
+    impl SnapshotStore for Roots {
+        fn resolve(
+            &self,
+            snapshot: SnapshotId,
+            _entity: scriberig_core::EntityId,
+        ) -> Result<Option<scriberig_core::RevisionId>, SnapshotError> {
+            (snapshot == SnapshotId::new([2; 32]))
+                .then_some(None)
+                .ok_or(SnapshotError::UnknownSnapshot(snapshot))
+        }
+
+        fn apply_changes(
+            &self,
+            _base: SnapshotId,
+            _changes: &[SnapshotChange],
+        ) -> Result<SnapshotId, SnapshotError> {
+            Ok(SnapshotId::new([2; 32]))
+        }
+
+        fn iter(
+            &self,
+            snapshot: SnapshotId,
+        ) -> Result<Vec<(scriberig_core::EntityId, scriberig_core::RevisionId)>, SnapshotError>
+        {
+            if snapshot == SnapshotId::new([2; 32]) {
+                Ok(Vec::new())
+            } else {
+                Err(SnapshotError::UnknownSnapshot(snapshot))
+            }
+        }
+
+        fn diff_snapshots(
+            &self,
+            _from: SnapshotId,
+            _to: SnapshotId,
+        ) -> Result<Vec<SnapshotChange>, SnapshotError> {
+            Ok(Vec::new())
+        }
+
+        fn parents(&self, snapshot: SnapshotId) -> Result<Vec<SnapshotId>, SnapshotError> {
+            self.iter(snapshot).map(|_| Vec::new())
+        }
+    }
+
     /// Stale roots are reported without retrying.
     #[test]
     fn stale_promotion_is_structured() {
@@ -109,5 +178,17 @@ mod tests {
                 actual
             }
         );
+    }
+
+    /// Verifies promotion rejects a target absent from the snapshot backend.
+    #[test]
+    fn invalid_target_is_rejected_before_root_update() {
+        let result = super::promote_checked(
+            &Roots(None),
+            RootName::new("main").expect("name"),
+            None,
+            SnapshotId::new([9; 32]),
+        );
+        assert_eq!(result, PromotionResult::InvalidTarget);
     }
 }

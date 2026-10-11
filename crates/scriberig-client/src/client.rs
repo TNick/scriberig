@@ -3,11 +3,12 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use scriberig_protocol::{
-    CancelOperationRequest, CapabilitiesResponse, EntityReference, Event, InspectEntityRequest,
-    InspectEntityResponse, OperationReference, OperationStatusRequest, OperationStatusResponse,
-    ProtocolTransport, ProtocolVersion, Request, RequestEnvelope, Response,
-    RuntimeCapabilitiesRequest, SnapshotSelector, SubscribeRequest,
+    CancelOperationRequest, CapabilitiesResponse, CommandRequest, EntityReference, Event,
+    InspectEntityRequest, InspectEntityResponse, OperationReference, OperationStatusRequest,
+    OperationStatusResponse, ProtocolTransport, ProtocolVersion, QueryRequest, Request,
+    RequestEnvelope, Response, RuntimeCapabilitiesRequest, SnapshotSelector, SubscribeRequest,
 };
+use scriberig_query::{QueryResult, QuerySpec};
 
 use crate::error::ClientError;
 
@@ -157,6 +158,61 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::Events(events) => Ok(events),
+            Response::Error(error) => Err(ClientError::Protocol(error)),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Evaluates one structured query through the remote application boundary.
+    ///
+    /// # Parameters
+    /// - `specification`: Snapshot-bound structural query.
+    ///
+    /// # Returns
+    /// A typed query page retaining its exact scope.
+    ///
+    /// # Errors
+    /// Returns a structured server error or response mismatch.
+    pub fn query(&self, specification: QuerySpec) -> Result<QueryResult, ClientError> {
+        match self
+            .send(Request::Query(QueryRequest {
+                specification: serde_json::to_value(specification)
+                    .map_err(|_| ClientError::UnexpectedResponse)?,
+            }))
+            .response
+        {
+            Response::Query(response) => {
+                serde_json::from_value(response.result).map_err(|_| ClientError::UnexpectedResponse)
+            }
+            Response::Error(error) => Err(ClientError::Protocol(error)),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Sends a presentation-neutral application command payload.
+    ///
+    /// # Parameters
+    /// - `kind`: Stable command family identifier.
+    /// - `payload`: Typed command payload encoded as JSON.
+    ///
+    /// # Returns
+    /// The tracked operation accepted by the application boundary.
+    ///
+    /// # Errors
+    /// Returns a structured server error or response mismatch.
+    pub fn command(
+        &self,
+        kind: impl Into<String>,
+        payload: serde_json::Value,
+    ) -> Result<OperationStatusResponse, ClientError> {
+        match self
+            .send(Request::Command(CommandRequest {
+                kind: kind.into(),
+                payload,
+            }))
+            .response
+        {
+            Response::CommandAccepted(response) => Ok(response),
             Response::Error(error) => Err(ClientError::Protocol(error)),
             _ => Err(ClientError::UnexpectedResponse),
         }

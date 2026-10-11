@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use scriberig_agent_core::{Tool, ToolError, ToolInput, ToolResult};
-use scriberig_app::ApplicationContext;
+use scriberig_app::{ApplicationContext, OperationId, OperationRegistry, OperationStatus};
 
 /// One model-facing message retained by the runtime loop.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -139,6 +139,10 @@ pub struct AgentRuntime<P, T> {
     tool: T,
     /// Maximum number of provider decisions allowed.
     step_limit: usize,
+    /// Optional shared registry receiving this runtime's lifecycle.
+    registry: Option<OperationRegistry>,
+    /// Monotonic local identity used when creating operation handles.
+    next_operation: u64,
 }
 
 impl<P, T> AgentRuntime<P, T>
@@ -161,7 +165,23 @@ where
             provider,
             tool,
             step_limit,
+            registry: None,
+            next_operation: 1,
         }
+    }
+
+    /// Attaches an application operation registry to this runtime.
+    ///
+    /// # Parameters
+    /// - `self`: Runtime being configured.
+    /// - `registry`: Shared lifecycle registry.
+    ///
+    /// # Returns
+    /// The runtime configured to publish queued, running, and terminal states.
+    #[must_use]
+    pub fn with_operation_registry(mut self, registry: OperationRegistry) -> Self {
+        self.registry = Some(registry);
+        self
     }
 
     /// Executes one prompt until a final model response or failure.
@@ -183,26 +203,58 @@ where
         prompt: impl Into<String>,
         cancelled: &AtomicBool,
     ) -> Result<AgentResult, AgentError> {
+        let operation = self.start_operation()?;
         let mut messages = vec![AgentMessage::User(prompt.into())];
         for _ in 0..self.step_limit {
             if cancelled.load(Ordering::Acquire) {
+                self.finish_operation(operation.as_ref(), OperationStatus::Cancelled);
                 return Err(AgentError::Cancelled);
             }
-            match self
-                .provider
-                .decide(&messages)
-                .map_err(AgentError::Provider)?
-            {
-                ModelDecision::Final(output) => return Ok(AgentResult { output, messages }),
+            match self.provider.decide(&messages).map_err(|error| {
+                self.finish_operation(operation.as_ref(), OperationStatus::Failed);
+                AgentError::Provider(error)
+            })? {
+                ModelDecision::Final(output) => {
+                    self.finish_operation(operation.as_ref(), OperationStatus::Completed);
+                    return Ok(AgentResult { output, messages });
+                }
                 ModelDecision::Tool(input) => {
-                    let result = self.tool.invoke(context, input).map_err(AgentError::Tool)?;
+                    let result = self.tool.invoke(context, input).map_err(|error| {
+                        self.finish_operation(operation.as_ref(), OperationStatus::Failed);
+                        AgentError::Tool(error)
+                    })?;
                     messages.push(AgentMessage::Tool(result));
                 }
             }
         }
+        self.finish_operation(operation.as_ref(), OperationStatus::Failed);
         Err(AgentError::StepLimit {
             limit: self.step_limit,
         })
+    }
+
+    /// Starts one tracked agent operation when a registry is configured.
+    fn start_operation(&mut self) -> Result<Option<OperationId>, AgentError> {
+        let Some(registry) = &self.registry else {
+            return Ok(None);
+        };
+        let id = OperationId::new(format!("agent-{}", self.next_operation))
+            .map_err(|error| AgentError::Provider(error.to_string()))?;
+        self.next_operation += 1;
+        registry
+            .start(id.clone(), scriberig_app::OperationKind::Query)
+            .map_err(|error| AgentError::Provider(error.to_string()))?;
+        registry
+            .transition(&id, OperationStatus::Running)
+            .map_err(|error| AgentError::Provider(error.to_string()))?;
+        Ok(Some(id))
+    }
+
+    /// Publishes a terminal state for one tracked agent operation.
+    fn finish_operation(&self, operation: Option<&OperationId>, status: OperationStatus) {
+        if let (Some(registry), Some(operation)) = (&self.registry, operation) {
+            let _ = registry.transition(operation, status);
+        }
     }
 }
 
@@ -257,7 +309,7 @@ mod tests {
             if self.calls == 0 {
                 self.calls += 1;
                 return Ok(ModelDecision::Tool(ToolInput {
-                    entity: EntityId::new([1; 16]),
+                    entity: EntityId::from_bytes([1; 16]),
                     snapshot: None,
                     detail: ToolDetail::Compact,
                 }));
@@ -270,7 +322,9 @@ mod tests {
     /// Verifies the runtime executes tools only through agent-core contracts.
     #[test]
     fn runtime_completes_provider_tool_loop() {
-        let mut runtime = AgentRuntime::new(Provider { calls: 0 }, InspectTool::new(Fixture), 2);
+        let registry = scriberig_app::OperationRegistry::new();
+        let mut runtime = AgentRuntime::new(Provider { calls: 0 }, InspectTool::new(Fixture), 2)
+            .with_operation_registry(registry.clone());
         let context = ApplicationContext {
             capabilities: CapabilityContext::new([
                 CapabilityId::new("inspect.entity").expect("capability")
@@ -283,5 +337,10 @@ mod tests {
         assert_eq!(result.output, "done");
         assert_eq!(result.messages.len(), 2);
         let _: AgentResult = result;
+        let events = registry.events();
+        assert!(events.iter().any(|event| matches!(
+            event,
+            scriberig_app::ApplicationEvent::OperationCompleted { .. }
+        )));
     }
 }

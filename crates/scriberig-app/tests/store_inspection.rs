@@ -32,7 +32,7 @@ fn context() -> ApplicationContext {
 #[test]
 fn store_backed_inspection_resolves_revision_and_snapshot() {
     let store = MemoryStore::new();
-    let entity = EntityId::new([7; 16]);
+    let entity = EntityId::from_bytes([7; 16]);
     let revision = Revision::new(
         EncodingVersion::V1,
         ObjectType::new("test.entity").expect("valid type"),

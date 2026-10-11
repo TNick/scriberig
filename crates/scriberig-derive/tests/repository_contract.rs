@@ -173,7 +173,7 @@ fn fixture(handle: u8, entity: EntityId, revision: RevisionId) -> DerivedResultR
 /// Verifies exact, key, dependency, discovery, and removal lookups.
 #[test]
 fn repository_preserves_immutable_results_and_indexes() {
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let revision = RevisionId::new([2; 32]);
     let first = fixture(3, entity, revision);
     let second = fixture(4, entity, revision);

@@ -115,7 +115,7 @@ mod tests {
     #[test]
     fn application_error_categories_are_structured() {
         let error = ApplicationError::RevisionMismatch {
-            entity: EntityId::new([1; 16]),
+            entity: EntityId::from_bytes([1; 16]),
             revision: RevisionId::new([2; 32]),
         };
         assert_eq!(error.category(), "revision_mismatch");
@@ -126,7 +126,7 @@ mod tests {
     #[test]
     fn events_retain_snapshot_and_revision_handles() {
         let event = ApplicationEvent::EntityChanged {
-            entity: EntityId::new([1; 16]),
+            entity: EntityId::from_bytes([1; 16]),
             revision: RevisionId::new([2; 32]),
         };
         assert!(matches!(event, ApplicationEvent::EntityChanged { .. }));
@@ -137,7 +137,7 @@ mod tests {
     /// Verifies inspection request and result types preserve snapshot identity.
     #[test]
     fn inspection_preserves_requested_snapshot() {
-        let entity = EntityId::new([4; 16]);
+        let entity = EntityId::from_bytes([4; 16]);
         let snapshot = SnapshotId::new([5; 32]);
         let request = InspectRequest {
             entity,
@@ -191,7 +191,7 @@ mod tests {
     /// Verifies capability descriptors and domain requests retain semantic handles.
     #[test]
     fn domain_operation_request_is_structured() {
-        let entity = EntityId::new([8; 16]);
+        let entity = EntityId::from_bytes([8; 16]);
         let selection = Selection {
             snapshot: SnapshotId::new([9; 32]),
             entity,
@@ -235,7 +235,7 @@ mod tests {
     /// Verifies project reads cover entities while entity reads stay narrow.
     #[test]
     fn capability_scopes_preserve_least_authority() {
-        let entity = EntityId::new([10; 16]);
+        let entity = EntityId::from_bytes([10; 16]);
         let project = capability(CapabilityScope::Project, CapabilityAction::Inspect);
         let entity_read = capability(CapabilityScope::Entity(entity), CapabilityAction::Inspect);
         let relation = CapabilityScope::Relation {
@@ -277,7 +277,7 @@ mod tests {
     fn delegation_cannot_widen_authority() {
         let parent = capability(CapabilityScope::Project, CapabilityAction::Inspect);
         let child = capability(
-            CapabilityScope::Entity(EntityId::new([11; 16])),
+            CapabilityScope::Entity(EntityId::from_bytes([11; 16])),
             CapabilityAction::Inspect,
         );
         let promoted = capability(CapabilityScope::Project, CapabilityAction::Promote);

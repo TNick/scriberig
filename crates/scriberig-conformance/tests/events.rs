@@ -14,7 +14,7 @@ fn event_references_survive_serialization() {
     let event = Event {
         kind: EventKind::EntityChanged,
         entity: Some(EntityReference {
-            id: EntityId::new([1; 16]).to_string(),
+            id: EntityId::from_bytes([1; 16]).to_string(),
         }),
         revision: None,
         snapshot: Some(SnapshotReference {
@@ -30,7 +30,7 @@ fn event_references_survive_serialization() {
     assert_eq!(decoded, event);
     assert_eq!(
         decoded.entity.expect("entity").id,
-        EntityId::new([1; 16]).to_string()
+        EntityId::from_bytes([1; 16]).to_string()
     );
 }
 
@@ -71,4 +71,23 @@ fn event_subject_resolves_through_the_public_read_boundary() {
     assert_eq!(response.entity.id, fixture.entity.to_string());
     assert_eq!(response.revision.id, fixture.revision.to_string());
     assert_eq!(response.snapshot.id, fixture.snapshot.to_string());
+
+    let reconnected = Client::new(InProcessTransport::new(fixture.clone()));
+    let recovered = reconnected
+        .subscribe(vec!["entity_changed".to_owned()])
+        .expect("resubscribe after disconnect");
+    assert_eq!(recovered, delivered);
+    let recovered_inspection = reconnected
+        .inspect(
+            fixture.entity.to_string(),
+            SnapshotSelector::Exact(SnapshotReference {
+                id: fixture.snapshot.to_string(),
+            }),
+            false,
+        )
+        .expect("resolve recovered event");
+    assert_eq!(
+        recovered_inspection.revision.id,
+        fixture.revision.to_string()
+    );
 }

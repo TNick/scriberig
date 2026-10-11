@@ -11,10 +11,10 @@ use scriberig_store_memory::MemoryStore;
 fn identity_subsystem_conformance() {
     let store = MemoryStore::new();
     let kind = ObjectType::new("test.entity").expect("type");
-    let function = EntityId::new([1; 16]);
-    let first = EntityId::new([2; 16]);
-    let second = EntityId::new([3; 16]);
-    let branch = EntityId::new([4; 16]);
+    let function = EntityId::from_bytes([1; 16]);
+    let first = EntityId::from_bytes([2; 16]);
+    let second = EntityId::from_bytes([3; 16]);
+    let branch = EntityId::from_bytes([4; 16]);
     let fr7 = store
         .put(Revision::new(EncodingVersion::V1, kind.clone(), vec![7]).expect("revision"))
         .expect("fr7");

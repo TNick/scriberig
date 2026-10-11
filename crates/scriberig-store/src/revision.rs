@@ -1,13 +1,13 @@
 //! Defines immutable canonical revision values.
 
 use crate::revision_store::StoreError;
-use scriberig_core::{EncodingVersion, ObjectType, RevisionId, revision_id};
+use scriberig_core::{EncodingVersion, RevisionId, TypeId, revision_id};
 
 /// Stores the canonical fields that determine one immutable revision.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Revision {
     version: EncodingVersion,
-    object_type: ObjectType,
+    object_type: TypeId,
     payload: Vec<u8>,
     id: RevisionId,
 }
@@ -29,7 +29,7 @@ impl Revision {
     pub fn from_parts(
         id: RevisionId,
         version: EncodingVersion,
-        object_type: ObjectType,
+        object_type: TypeId,
         payload: Vec<u8>,
     ) -> Result<Self, StoreError> {
         EncodingVersion::try_new(version.value()).map_err(StoreError::InvalidCanonicalEncoding)?;
@@ -66,7 +66,7 @@ impl Revision {
     /// Returns an encoding error when `version` is unsupported.
     pub fn new(
         version: EncodingVersion,
-        object_type: ObjectType,
+        object_type: TypeId,
         payload: Vec<u8>,
     ) -> Result<Self, StoreError> {
         let id = revision_id(version, &object_type, &payload)
@@ -89,7 +89,7 @@ impl Revision {
     /// # Returns
     /// The immutable semantic object type.
     #[must_use]
-    pub fn object_type(&self) -> &ObjectType {
+    pub fn object_type(&self) -> &TypeId {
         &self.object_type
     }
     /// Returns the canonical payload bytes.

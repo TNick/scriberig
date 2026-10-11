@@ -13,9 +13,9 @@ use scriberig_query::{
 use std::collections::BTreeSet;
 
 const SNAPSHOT: SnapshotId = SnapshotId::new([7; 32]);
-const ROOT: EntityId = EntityId::new([1; 16]);
-const ALLOWED: EntityId = EntityId::new([2; 16]);
-const RESTRICTED: EntityId = EntityId::new([3; 16]);
+const ROOT: EntityId = EntityId::from_bytes([1; 16]);
+const ALLOWED: EntityId = EntityId::from_bytes([2; 16]);
+const RESTRICTED: EntityId = EntityId::from_bytes([3; 16]);
 
 /// Creates one unconstrained capability grant for a test principal.
 ///

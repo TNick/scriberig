@@ -75,11 +75,11 @@ mod tests {
             producer_version: None,
             inputs: vec![
                 EntityRevisionRef {
-                    entity_id: EntityId::new([1; 16]),
+                    entity_id: EntityId::from_bytes([1; 16]),
                     revision_id: RevisionId::new([2; 32]),
                 },
                 EntityRevisionRef {
-                    entity_id: EntityId::new([3; 16]),
+                    entity_id: EntityId::from_bytes([3; 16]),
                     revision_id: RevisionId::new([4; 32]),
                 },
             ],
@@ -104,7 +104,7 @@ mod tests {
     #[test]
     fn semantic_references_use_typed_provenance_inputs() {
         let reference = EntityRevisionRef {
-            entity_id: EntityId::new([5; 16]),
+            entity_id: EntityId::from_bytes([5; 16]),
             revision_id: RevisionId::new([6; 32]),
         };
         let property = KnowledgeValue::Record(BTreeMap::from([(

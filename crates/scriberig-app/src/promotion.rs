@@ -116,7 +116,7 @@ pub fn evaluate_promotion(
 }
 
 /// Applies a previously evaluated promotion through atomic root CAS.
-pub fn promote_candidate<S: scriberig_store::RootStore>(
+pub fn promote_candidate<S: scriberig_store::RootStore + scriberig_store::SnapshotStore>(
     store: &S,
     request: &PromotionRequest,
     decision: PromotionDecision,

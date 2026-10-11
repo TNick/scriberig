@@ -36,11 +36,11 @@ pub use diff::{DiffEnricher, DiffSummary, SemanticDiff, compare};
 pub use history::{HistoryGraph, LineageRecord, MigrationId, MigrationReference};
 pub use merge::{
     DomainMergeOutcome, DomainMergeStrategy, EntityMergeContext, MergeError, MergeInput,
-    MergeResult, merge_snapshots,
+    MergeResult, MergeStoreError, merge_snapshots, merge_snapshots_into_store,
 };
 pub use migration::{EntityDelta, Migration, MigrationError};
 pub use operation::{CollectionPosition, Operation};
-pub use promotion::{PromotionResult, promote};
+pub use promotion::{PromotionResult, promote, promote_checked};
 pub use provenance::{Provenance, SourceKind};
 pub use query::{
     QueryPage, branches_descending_from, changed_between, common_ancestor, entity_history,

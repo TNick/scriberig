@@ -5,8 +5,9 @@ use scriberig_app::{
     ApplicationContext, ApplicationError, CapabilityContext, CapabilityId, InspectRequest,
     InspectResult, QueryService, RuntimeCapability, SnapshotResolution,
 };
-use scriberig_core::{EntityId, ObjectType, RevisionId, SnapshotId};
+use scriberig_core::{EncodingVersion, EntityId, ObjectType, RevisionId, SnapshotId};
 use scriberig_server::ApplicationService;
+use scriberig_store::{Revision, RevisionStore, SnapshotChange, SnapshotStore};
 use scriberig_store_memory::MemoryStore;
 
 /// Deterministic semantic fixture used by every public-surface test.
@@ -18,7 +19,7 @@ pub struct Fixture {
     pub revision: RevisionId,
     /// Known immutable semantic snapshot.
     pub snapshot: SnapshotId,
-    /// In-memory storage backend reserved for fixture state.
+    /// In-memory storage backend containing the fixture state.
     pub store: std::sync::Arc<MemoryStore>,
 }
 
@@ -26,13 +27,31 @@ pub struct Fixture {
 ///
 /// # Returns
 /// A fixture containing one known entity, revision, and snapshot.
+///
+/// # Panics
+/// Panics only if the fixed fixture type or storage records cannot be created.
 #[must_use]
 pub fn fixture() -> Fixture {
+    let store = std::sync::Arc::new(MemoryStore::new());
+    let entity = EntityId::from_bytes([1; 16]);
+    let object_type = ObjectType::new("markdown.document").expect("static type");
+    let revision = store
+        .put(
+            Revision::new(EncodingVersion::V1, object_type, b"architecture".to_vec())
+                .expect("fixture revision"),
+        )
+        .expect("store fixture revision");
+    let snapshot = store
+        .apply_changes(
+            store.empty_snapshot(),
+            &[SnapshotChange::Set(entity, revision)],
+        )
+        .expect("store fixture snapshot");
     Fixture {
-        entity: EntityId::new([1; 16]),
-        revision: RevisionId::new([2; 32]),
-        snapshot: SnapshotId::new([3; 32]),
-        store: std::sync::Arc::new(MemoryStore::new()),
+        entity,
+        revision,
+        snapshot,
+        store,
     }
 }
 
@@ -74,14 +93,34 @@ fn inspect_result(
         });
     }
     let snapshot = match request.snapshot {
-        SnapshotResolution::Current
-        | SnapshotResolution::At(_)
-        | SnapshotResolution::Revision(_) => Some(fixture.snapshot),
+        SnapshotResolution::Current => fixture.snapshot,
+        SnapshotResolution::At(snapshot) if snapshot == fixture.snapshot => snapshot,
+        SnapshotResolution::At(snapshot) => {
+            return Err(ApplicationError::SnapshotUnavailable { snapshot });
+        }
+        SnapshotResolution::Revision(revision) if revision == fixture.revision => fixture.snapshot,
+        SnapshotResolution::Revision(revision) => {
+            return Err(ApplicationError::RevisionMismatch {
+                entity: fixture.entity,
+                revision,
+            });
+        }
     };
+    let resolved = fixture
+        .store
+        .resolve(snapshot, fixture.entity)
+        .map_err(|error| ApplicationError::Internal {
+            message: format!("fixture resolution failed: {error:?}"),
+        })?;
+    if resolved != Some(fixture.revision) {
+        return Err(ApplicationError::Internal {
+            message: "fixture snapshot resolved an unexpected revision".to_owned(),
+        });
+    }
     Ok(InspectResult {
         entity: fixture.entity,
         revision: Some(fixture.revision),
-        snapshot,
+        snapshot: Some(snapshot),
         object_type: Some(ObjectType::new("markdown.document").expect("static type")),
         label: Some("Architecture".to_owned()),
         description: Some("Deterministic conformance document".to_owned()),

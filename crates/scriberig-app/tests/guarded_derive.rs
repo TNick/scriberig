@@ -11,8 +11,8 @@ use scriberig_derive::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 
-const PUBLIC: EntityId = EntityId::new([1; 16]);
-const RESTRICTED: EntityId = EntityId::new([2; 16]);
+const PUBLIC: EntityId = EntityId::from_bytes([1; 16]);
+const RESTRICTED: EntityId = EntityId::from_bytes([2; 16]);
 
 /// Stores immutable test artifacts for the repository adapter.
 struct MemoryRepository {

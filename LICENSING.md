@@ -58,6 +58,12 @@ AGPL integrated product
 
 AGPL product components may depend on Apache platform components. Reusable Apache components must not depend on integrated AGPL product components.
 
+The non-publishable `scriberig-conformance` crate is a test harness rather than
+a reusable platform component. It intentionally links the integrated server
+adapter so that cross-surface tests exercise the real product boundary. Its
+Apache metadata describes the reusable fixture and test-support code; the
+crate is not a distributable platform package and is excluded from publication.
+
 ## Agent and CLI boundary
 
 Reusable agent contracts, tool descriptions, semantic navigation interfaces, and similar building blocks may be Apache-2.0. The integrated agent execution/orchestration runtime is AGPL-3.0-only.

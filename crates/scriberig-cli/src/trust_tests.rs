@@ -81,7 +81,7 @@ fn inspect_uses_shared_query_boundary() {
     let output = inspect(
         &FakeService,
         &ApplicationContext::empty(),
-        EntityId::new([1; 16]),
+        EntityId::from_bytes([1; 16]),
         InspectDepth::Deep,
     )
     .expect("fake query service should succeed");
@@ -94,7 +94,7 @@ fn denied_inspection_has_authorization_exit_status() {
     let error = inspect_at(
         &DenyingService,
         &ApplicationContext::empty(),
-        EntityId::new([1; 16]),
+        EntityId::from_bytes([1; 16]),
         SnapshotResolution::Current,
         InspectDepth::Compact,
     )
@@ -165,7 +165,7 @@ impl QueryService for DenyingService {
 /// This fixture construction cannot fail.
 fn result() -> InspectResult {
     InspectResult {
-        entity: EntityId::new([1; 16]),
+        entity: EntityId::from_bytes([1; 16]),
         revision: Some(RevisionId::new([2; 32])),
         snapshot: Some(SnapshotId::new([3; 32])),
         object_type: None,

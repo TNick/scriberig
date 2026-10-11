@@ -4,7 +4,7 @@ use crate::{DetailLevel, InformationCost, TargetRef};
 use scriberig_core::{ObjectType, RevisionId, SnapshotId};
 
 /// Advertises a typed capability available from an inspected entity.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct ReadCapability {
     /// Stable semantic capability identifier.
     pub id: String,
@@ -13,7 +13,7 @@ pub struct ReadCapability {
 }
 
 /// Describes one compact entity reached through a collection or relation.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct NavigationEntry {
     /// Snapshot-relative or exact-revision semantic handle.
     pub target: TargetRef,
@@ -28,7 +28,7 @@ pub struct NavigationEntry {
 }
 
 /// Returns orientation metadata for one semantic entity.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Inspection {
     /// Entity target that was inspected.
     pub subject: TargetRef,

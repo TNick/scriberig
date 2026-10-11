@@ -35,10 +35,16 @@ fn two_protected_roots_preserve_their_union() {
         .expect("second");
     let base = scriberig_store::Snapshot::empty().id();
     let left = store
-        .apply_changes(base, &[SnapshotChange::Set(EntityId::new([1; 16]), first)])
+        .apply_changes(
+            base,
+            &[SnapshotChange::Set(EntityId::from_bytes([1; 16]), first)],
+        )
         .expect("left");
     let right = store
-        .apply_changes(base, &[SnapshotChange::Set(EntityId::new([2; 16]), second)])
+        .apply_changes(
+            base,
+            &[SnapshotChange::Set(EntityId::from_bytes([2; 16]), second)],
+        )
         .expect("right");
     let report = store
         .gc_dry_run(&ProtectedRoots {
@@ -68,7 +74,7 @@ fn missing_snapshot_node_is_corruption_and_not_swept() {
                 .expect("revision"),
             )
             .expect("put");
-        let entity = EntityId::new([6; 16]);
+        let entity = EntityId::from_bytes([6; 16]);
         let snapshot = store
             .apply_changes(
                 scriberig_store::Snapshot::empty().id(),
@@ -130,7 +136,7 @@ fn derived_snapshot_index_rebuild_preserves_identity() {
                 .expect("revision"),
             )
             .expect("put");
-        let entity = EntityId::new([7; 16]);
+        let entity = EntityId::from_bytes([7; 16]);
         let snapshot = store
             .apply_changes(
                 scriberig_store::Snapshot::empty().id(),
@@ -182,7 +188,7 @@ fn derived_snapshot_index_rebuild_preserves_legacy_snapshots() {
                 .expect("revision"),
             )
             .expect("put");
-        let entity = EntityId::new([8; 16]);
+        let entity = EntityId::from_bytes([8; 16]);
         let snapshot = store
             .apply_changes(
                 scriberig_store::Snapshot::empty().id(),

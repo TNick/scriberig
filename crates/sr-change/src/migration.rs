@@ -174,7 +174,7 @@ mod tests {
     /// Verifies create, remove, and modify classifications.
     #[test]
     fn delta_classification_is_explicit() {
-        let entity = EntityId::new([1; 16]);
+        let entity = EntityId::from_bytes([1; 16]);
         let before = RevisionId::new([2; 32]);
         let after = RevisionId::new([3; 32]);
         assert!(
@@ -201,8 +201,8 @@ mod tests {
     /// Verifies migration snapshots and deterministic entity ordering.
     #[test]
     fn migration_validates_snapshots_and_orders_deltas() {
-        let first = EntityId::new([1; 16]);
-        let second = EntityId::new([2; 16]);
+        let first = EntityId::from_bytes([1; 16]);
+        let second = EntityId::from_bytes([2; 16]);
         let base = SnapshotId::new([3; 32]);
         let result = SnapshotId::new([4; 32]);
         let deltas = vec![

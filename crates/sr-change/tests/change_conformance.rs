@@ -30,21 +30,24 @@ fn sibling_snapshots_report_sorted_entity_deltas_and_summary() {
         .id();
     let base = scriberig_store::Snapshot::empty().id();
     let left = store
-        .apply_changes(base, &[SnapshotChange::Set(EntityId::new([2; 16]), first)])
+        .apply_changes(
+            base,
+            &[SnapshotChange::Set(EntityId::from_bytes([2; 16]), first)],
+        )
         .expect("left");
     let right = store
         .apply_changes(
             base,
             &[
-                SnapshotChange::Set(EntityId::new([1; 16]), second),
-                SnapshotChange::Set(EntityId::new([2; 16]), third),
+                SnapshotChange::Set(EntityId::from_bytes([1; 16]), second),
+                SnapshotChange::Set(EntityId::from_bytes([2; 16]), third),
             ],
         )
         .expect("right");
     let diff = compare(&store, left, right).expect("diff");
     assert_eq!(diff.deltas.len(), 2);
-    assert_eq!(diff.deltas[0].entity, EntityId::new([1; 16]));
-    assert_eq!(diff.deltas[1].entity, EntityId::new([2; 16]));
+    assert_eq!(diff.deltas[0].entity, EntityId::from_bytes([1; 16]));
+    assert_eq!(diff.deltas[1].entity, EntityId::from_bytes([2; 16]));
     assert_eq!(diff.summary().total_changed(), 2);
     assert_eq!(diff.summary().introduced, 1);
     assert_eq!(diff.summary().modified, 1);
@@ -52,14 +55,14 @@ fn sibling_snapshots_report_sorted_entity_deltas_and_summary() {
 
 use scriberig_core::RevisionId;
 use scriberig_store::Snapshot;
-use sr_change::{ConflictKind, MergeInput, merge_snapshots};
+use sr_change::{ConflictKind, MergeInput, merge_snapshots, merge_snapshots_into_store};
 
 /// Verifies disjoint branch changes resolve without conflicts.
 #[test]
 fn disjoint_changes_merge_automatically() {
     let base = Snapshot::empty();
-    let left = base.with_revision(EntityId::new([1; 16]), RevisionId::new([2; 32]));
-    let right = base.with_revision(EntityId::new([3; 16]), RevisionId::new([4; 32]));
+    let left = base.with_revision(EntityId::from_bytes([1; 16]), RevisionId::new([2; 32]));
+    let right = base.with_revision(EntityId::from_bytes([3; 16]), RevisionId::new([4; 32]));
     let result = merge_snapshots(
         MergeInput {
             base: base.id(),
@@ -76,11 +79,51 @@ fn disjoint_changes_merge_automatically() {
     assert_eq!(result.conflicts.len(), 0);
 }
 
+/// Verifies a conflict-free merge is materialized as a retained snapshot.
+#[test]
+fn disjoint_merge_creates_result_snapshot() {
+    let store = MemoryStore::default();
+    let base = store.empty_snapshot();
+    let left = store
+        .apply_changes(
+            base,
+            &[SnapshotChange::Set(
+                EntityId::from_bytes([1; 16]),
+                RevisionId::new([2; 32]),
+            )],
+        )
+        .expect("left");
+    let right = store
+        .apply_changes(
+            base,
+            &[SnapshotChange::Set(
+                EntityId::from_bytes([3; 16]),
+                RevisionId::new([4; 32]),
+            )],
+        )
+        .expect("right");
+    let result =
+        merge_snapshots_into_store(&store, MergeInput { base, left, right }, None).expect("merge");
+    let merged = result.result.expect("merged snapshot");
+    assert_eq!(
+        store
+            .resolve(merged, EntityId::from_bytes([1; 16]))
+            .expect("resolve"),
+        Some(RevisionId::new([2; 32]))
+    );
+    assert_eq!(
+        store
+            .resolve(merged, EntityId::from_bytes([3; 16]))
+            .expect("resolve"),
+        Some(RevisionId::new([4; 32]))
+    );
+}
+
 /// Verifies competing modifications remain structured conflicts.
 #[test]
 fn competing_changes_preserve_unrelated_resolution() {
-    let entity = EntityId::new([1; 16]);
-    let other = EntityId::new([3; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
+    let other = EntityId::from_bytes([3; 16]);
     let base = Snapshot::empty().with_revision(entity, RevisionId::new([2; 32]));
     let left = base
         .with_revision(entity, RevisionId::new([5; 32]))
@@ -106,7 +149,7 @@ fn competing_changes_preserve_unrelated_resolution() {
 /// Verifies delete/modify and competing-create classifications.
 #[test]
 fn delete_modify_and_competing_create_are_distinct() {
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let base = Snapshot::empty().with_revision(entity, RevisionId::new([2; 32]));
     let left = base.without_entity(entity);
     let right = base.with_revision(entity, RevisionId::new([3; 32]));
@@ -144,7 +187,7 @@ fn delete_modify_and_competing_create_are_distinct() {
 /// Verifies creation and removal remain explicit semantic deltas.
 #[test]
 fn creation_and_removal_are_classified_without_text_markers() {
-    let entity = EntityId::new([9; 16]);
+    let entity = EntityId::from_bytes([9; 16]);
     let store = MemoryStore::default();
     let base = scriberig_store::Snapshot::empty().id();
     let created = store
@@ -152,7 +195,7 @@ fn creation_and_removal_are_classified_without_text_markers() {
             base,
             &[
                 SnapshotChange::Set(entity, RevisionId::new([1; 32])),
-                SnapshotChange::Set(EntityId::new([8; 16]), RevisionId::new([2; 32])),
+                SnapshotChange::Set(EntityId::from_bytes([8; 16]), RevisionId::new([2; 32])),
             ],
         )
         .expect("create");
@@ -166,7 +209,7 @@ fn creation_and_removal_are_classified_without_text_markers() {
 /// Verifies convergent edits merge without choosing one side as a conflict.
 #[test]
 fn convergent_edits_are_conflict_free() {
-    let entity = EntityId::new([4; 16]);
+    let entity = EntityId::from_bytes([4; 16]);
     let base = scriberig_store::Snapshot::empty();
     let left = base.with_revision(entity, RevisionId::new([7; 32]));
     let right = base.with_revision(entity, RevisionId::new([7; 32]));
@@ -188,7 +231,7 @@ fn convergent_edits_are_conflict_free() {
 /// Verifies representation-only reuse does not manufacture a semantic migration.
 #[test]
 fn identical_canonical_state_has_no_migration() {
-    let entity = EntityId::new([5; 16]);
+    let entity = EntityId::from_bytes([5; 16]);
     let revision = RevisionId::new([6; 32]);
     let first = scriberig_store::Snapshot::empty().with_revision(entity, revision);
     let second = scriberig_store::Snapshot::empty().with_revision(entity, revision);

@@ -1,10 +1,12 @@
 //! Defines the application service boundary accepted by the server adapter.
 
 use scriberig_app::{
-    ApplicationContext, ApplicationError, ApplicationEvent, InspectRequest, InspectResult,
-    OperationId, RuntimeCapability,
+    ApplicationContext, ApplicationError, ApplicationEvent, ApplicationRequest, ApplyRequest,
+    BranchRequest, CommitRequest, DiffRequest, InspectRequest, InspectResult, OperationId,
+    OperationKind, RuntimeCapability,
 };
 use scriberig_protocol::{Event, EventKind, Operation};
+use scriberig_query::{QueryResult, QuerySpec};
 
 /// Application semantics supplied to protocol dispatch.
 pub trait ApplicationService {
@@ -74,6 +76,35 @@ pub trait ApplicationService {
             operation: "event subscription".to_owned(),
         })
     }
+
+    /// Executes one structured query through the application boundary.
+    ///
+    /// # Errors
+    /// Returns an application error when query execution is unavailable.
+    fn query(
+        &self,
+        _context: &ApplicationContext,
+        _request: &QuerySpec,
+    ) -> Result<QueryResult, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "query".to_owned(),
+        })
+    }
+
+    /// Executes one declared application command and returns its lifecycle state.
+    ///
+    /// # Errors
+    /// Returns an application error when command execution is unavailable.
+    fn command(
+        &self,
+        _context: &ApplicationContext,
+        _kind: &str,
+        _payload: &serde_json::Value,
+    ) -> Result<Operation, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "command".to_owned(),
+        })
+    }
 }
 
 impl<S: ApplicationService + ?Sized> ApplicationService for &S {
@@ -104,6 +135,25 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// Delegates event observation to the borrowed application service.
     fn events(&self, event_kinds: &[String]) -> Result<Vec<Event>, ApplicationError> {
         (**self).events(event_kinds)
+    }
+
+    /// Delegates structured queries to the borrowed application service.
+    fn query(
+        &self,
+        context: &ApplicationContext,
+        request: &QuerySpec,
+    ) -> Result<QueryResult, ApplicationError> {
+        (**self).query(context, request)
+    }
+
+    /// Delegates declared commands to the borrowed application service.
+    fn command(
+        &self,
+        context: &ApplicationContext,
+        kind: &str,
+        payload: &serde_json::Value,
+    ) -> Result<Operation, ApplicationError> {
+        (**self).command(context, kind, payload)
     }
 }
 
@@ -144,6 +194,23 @@ where
         )]
     }
 
+    /// Executes a structured query through the shared application backend.
+    fn query(
+        &self,
+        context: &ApplicationContext,
+        request: &QuerySpec,
+    ) -> Result<QueryResult, ApplicationError> {
+        match self.execute(
+            context,
+            &scriberig_app::ApplicationRequest::Query(request.clone()),
+        )? {
+            scriberig_app::ApplicationResult::Query(result) => Ok(result),
+            _ => Err(ApplicationError::Internal {
+                message: "query backend returned a different result kind".to_owned(),
+            }),
+        }
+    }
+
     /// Reads operation state from the shared application lifecycle registry.
     ///
     /// # Parameters
@@ -182,6 +249,92 @@ where
             .filter(|event| event_matches(event, event_kinds))
             .collect())
     }
+
+    /// Decodes and executes one command through the shared application façade.
+    fn command(
+        &self,
+        context: &ApplicationContext,
+        kind: &str,
+        payload: &serde_json::Value,
+    ) -> Result<Operation, ApplicationError> {
+        let (operation_kind, request) = decode_command(kind, payload)?;
+        let operation_id = OperationId::new(format!(
+            "command-{kind}-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|error| ApplicationError::Internal {
+                    message: error.to_string(),
+                })?
+                .as_nanos()
+        ))
+        .map_err(|error| ApplicationError::Internal {
+            message: error.to_string(),
+        })?;
+        self.operations()
+            .start(operation_id.clone(), operation_kind)?;
+        self.operations()
+            .transition(&operation_id, scriberig_app::OperationStatus::Running)?;
+        let result = self.execute(context, &request);
+        match result {
+            Ok(result) => {
+                let handles = result_handles(&result);
+                Ok(operation_from_record(
+                    self.operations().complete(&operation_id, handles)?,
+                ))
+            }
+            Err(error) => {
+                let _ = self
+                    .operations()
+                    .transition(&operation_id, scriberig_app::OperationStatus::Failed);
+                Err(error)
+            }
+        }
+    }
+}
+
+/// Decodes a protocol command into the transport-independent application model.
+fn decode_command(
+    kind: &str,
+    payload: &serde_json::Value,
+) -> Result<(OperationKind, ApplicationRequest), ApplicationError> {
+    fn invalid(kind: &str, error: impl std::fmt::Display) -> ApplicationError {
+        ApplicationError::InvalidRequest {
+            operation: kind.to_owned(),
+            message: error.to_string(),
+        }
+    }
+
+    match kind {
+        "apply" => serde_json::from_value::<ApplyRequest>(payload.clone())
+            .map(|request| (OperationKind::Apply, ApplicationRequest::Apply(request)))
+            .map_err(|error| invalid(kind, error)),
+        "branch" => serde_json::from_value::<BranchRequest>(payload.clone())
+            .map(|request| (OperationKind::Branch, ApplicationRequest::Branch(request)))
+            .map_err(|error| invalid(kind, error)),
+        "commit" => serde_json::from_value::<CommitRequest>(payload.clone())
+            .map(|request| (OperationKind::Commit, ApplicationRequest::Commit(request)))
+            .map_err(|error| invalid(kind, error)),
+        "diff" => serde_json::from_value::<DiffRequest>(payload.clone())
+            .map(|request| (OperationKind::Diff, ApplicationRequest::Diff(request)))
+            .map_err(|error| invalid(kind, error)),
+        _ => Err(ApplicationError::UnsupportedOperation {
+            operation: format!("command {kind}"),
+        }),
+    }
+}
+
+/// Extracts stable result handles without exposing canonical result payloads.
+fn result_handles(result: &scriberig_app::ApplicationResult) -> Vec<String> {
+    let summary = match result {
+        scriberig_app::ApplicationResult::Diff(value)
+        | scriberig_app::ApplicationResult::History(value)
+        | scriberig_app::ApplicationResult::Render(value)
+        | scriberig_app::ApplicationResult::Branch(value)
+        | scriberig_app::ApplicationResult::Apply(value)
+        | scriberig_app::ApplicationResult::Commit(value) => Some(value),
+        _ => None,
+    };
+    summary.map_or_else(Vec::new, |value| vec![value.handle.clone()])
 }
 
 /// Tests whether a protocol event matches a case-insensitive kind filter.
@@ -216,7 +369,30 @@ fn operation_from_record(record: scriberig_app::OperationRecord) -> Operation {
             scriberig_app::OperationKind::Apply => {
                 scriberig_protocol::operation::OperationKind::Apply
             }
-            other => scriberig_protocol::operation::OperationKind::Custom(format!("{other:?}")),
+            scriberig_app::OperationKind::List => {
+                scriberig_protocol::operation::OperationKind::List
+            }
+            scriberig_app::OperationKind::Follow => {
+                scriberig_protocol::operation::OperationKind::Follow
+            }
+            scriberig_app::OperationKind::Find => {
+                scriberig_protocol::operation::OperationKind::Find
+            }
+            scriberig_app::OperationKind::Diff => {
+                scriberig_protocol::operation::OperationKind::Diff
+            }
+            scriberig_app::OperationKind::History => {
+                scriberig_protocol::operation::OperationKind::History
+            }
+            scriberig_app::OperationKind::Render => {
+                scriberig_protocol::operation::OperationKind::Render
+            }
+            scriberig_app::OperationKind::Branch => {
+                scriberig_protocol::operation::OperationKind::Branch
+            }
+            scriberig_app::OperationKind::Commit => {
+                scriberig_protocol::operation::OperationKind::Commit
+            }
         },
         status: match record.status {
             scriberig_app::OperationStatus::Queued => {

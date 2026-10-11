@@ -1,6 +1,7 @@
 //! Defines backend-neutral operations over retained immutable snapshots.
 
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
+use std::collections::BTreeSet;
 
 use crate::{SnapshotChange, SnapshotError};
 
@@ -69,4 +70,41 @@ pub trait SnapshotStore {
         from: SnapshotId,
         to: SnapshotId,
     ) -> Result<Vec<SnapshotChange>, SnapshotError>;
+
+    /// Returns the direct immutable predecessors of a snapshot.
+    ///
+    /// # Parameters
+    /// - `snapshot`: Exact snapshot whose parents are requested.
+    ///
+    /// # Returns
+    /// Deterministically ordered direct parent snapshots.
+    ///
+    /// # Errors
+    /// Returns an error when the snapshot is unavailable.
+    fn parents(&self, snapshot: SnapshotId) -> Result<Vec<SnapshotId>, SnapshotError>;
+
+    /// Walks immutable snapshot ancestry without exposing backend details.
+    ///
+    /// # Parameters
+    /// - `snapshot`: Exact snapshot at which to begin the walk.
+    ///
+    /// # Returns
+    /// Ancestors in deterministic breadth-first order, excluding `snapshot`.
+    ///
+    /// # Errors
+    /// Returns an error when the starting snapshot or an ancestor is unavailable.
+    fn ancestors(&self, snapshot: SnapshotId) -> Result<Vec<SnapshotId>, SnapshotError> {
+        let mut visited = BTreeSet::new();
+        let mut pending = self.parents(snapshot)?;
+        let mut result = Vec::new();
+        while let Some(candidate) = pending.pop() {
+            if !visited.insert(candidate) {
+                continue;
+            }
+            result.push(candidate);
+            pending.extend(self.parents(candidate)?);
+        }
+        result.sort();
+        Ok(result)
+    }
 }

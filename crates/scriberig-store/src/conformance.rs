@@ -76,8 +76,8 @@ pub fn load_fixture<S: ConformanceStore>(store: &S) -> Result<ConformanceFixture
         )
         .map_err(|error| format!("{error:?}"))?;
     let base = Snapshot::empty().id();
-    let entity_a = EntityId::new([1; 16]);
-    let entity_b = EntityId::new([2; 16]);
+    let entity_a = EntityId::from_bytes([1; 16]);
+    let entity_b = EntityId::from_bytes([2; 16]);
     let s1 = store
         .apply_changes(
             base,
@@ -130,8 +130,8 @@ pub fn run_core_conformance<S: ConformanceStore>(store: &S) -> Result<(), String
     }
 
     let base = Snapshot::empty().id();
-    let first_entity = EntityId::new([1; 16]);
-    let second_entity = EntityId::new([2; 16]);
+    let first_entity = EntityId::from_bytes([1; 16]);
+    let second_entity = EntityId::from_bytes([2; 16]);
     let first = store
         .apply_changes(base, &[SnapshotChange::Set(first_entity, revision_id)])
         .map_err(|error| format!("{error:?}"))?;
@@ -145,6 +145,14 @@ pub fn run_core_conformance<S: ConformanceStore>(store: &S) -> Result<(), String
     let branch = store
         .apply_changes(base, &[SnapshotChange::Set(second_entity, revision_id)])
         .map_err(|error| format!("{error:?}"))?;
+    if store.parents(first).map_err(|error| format!("{error:?}"))? != vec![base]
+        || !store
+            .ancestors(first)
+            .map_err(|error| format!("{error:?}"))?
+            .contains(&base)
+    {
+        return Err("snapshot ancestry was not retained".to_owned());
+    }
     if first == branch
         || !store
             .iter(base)
@@ -206,7 +214,7 @@ pub fn run_full_conformance<S: FullConformanceStore>(store: &S) -> Result<(), St
         return Err("stale root category was not backend-neutral".to_owned());
     }
     if store
-        .resolve(fixture.s1, EntityId::new([2; 16]))
+        .resolve(fixture.s1, EntityId::from_bytes([2; 16]))
         .map_err(|error| format!("{error:?}"))?
         != Some(fixture.b1)
     {

@@ -5,7 +5,7 @@ mod observability;
 mod roots;
 pub use roots::MemoryRootStore;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::RwLock;
 
 use scriberig_core::{EntityId, RevisionId, RootName, SnapshotId};
@@ -23,6 +23,7 @@ pub struct MemoryRevisionStore {
 pub struct MemoryStore {
     revisions: MemoryRevisionStore,
     snapshots: RwLock<BTreeMap<SnapshotId, Snapshot>>,
+    parents: RwLock<BTreeMap<SnapshotId, BTreeSet<SnapshotId>>>,
     roots: RwLock<BTreeMap<RootName, SnapshotId>>,
 }
 
@@ -50,6 +51,7 @@ impl MemoryStore {
         Self {
             revisions: MemoryRevisionStore::new(),
             snapshots: RwLock::new(snapshots),
+            parents: RwLock::new(BTreeMap::new()),
             roots: RwLock::new(BTreeMap::new()),
         }
     }
@@ -131,6 +133,14 @@ impl SnapshotStore for MemoryStore {
             .map_err(|_| SnapshotError::UnknownSnapshot(id))?
             .entry(id)
             .or_insert(next);
+        if id != base {
+            self.parents
+                .write()
+                .map_err(|_| SnapshotError::UnknownSnapshot(id))?
+                .entry(id)
+                .or_default()
+                .insert(base);
+        }
         Ok(id)
     }
 
@@ -163,6 +173,27 @@ impl SnapshotStore for MemoryStore {
         to: SnapshotId,
     ) -> Result<Vec<SnapshotChange>, SnapshotError> {
         Ok(self.snapshot(from)?.diff_changes(&self.snapshot(to)?))
+    }
+
+    /// Returns direct immutable predecessors retained for one snapshot.
+    ///
+    /// # Parameters
+    /// - `snapshot`: Snapshot whose direct parents are requested.
+    ///
+    /// # Returns
+    /// Direct parents in deterministic order.
+    ///
+    /// # Errors
+    /// Returns an error when the snapshot is unavailable or the store lock is poisoned.
+    fn parents(&self, snapshot: SnapshotId) -> Result<Vec<SnapshotId>, SnapshotError> {
+        let _ = self.snapshot(snapshot)?;
+        Ok(self
+            .parents
+            .read()
+            .map_err(|_| SnapshotError::UnknownSnapshot(snapshot))?
+            .get(&snapshot)
+            .map(|parents| parents.iter().copied().collect())
+            .unwrap_or_default())
     }
 }
 

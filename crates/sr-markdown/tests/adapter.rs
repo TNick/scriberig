@@ -18,10 +18,10 @@ fn context(current: SnapshotId) -> ReconciliationContext {
         base: SemanticStateRef(SnapshotId::new([1; 32])),
         current: SemanticStateRef(current),
         scope: SemanticScopeRef {
-            entity: EntityId::new([2; 16]),
+            entity: EntityId::from_bytes([2; 16]),
             revision: None,
         },
-        specification: ProjectionSpecRef(EntityId::new([3; 16])),
+        specification: ProjectionSpecRef(EntityId::from_bytes([3; 16])),
         metadata: BTreeMap::default(),
     }
 }
@@ -31,7 +31,7 @@ fn context(current: SnapshotId) -> ReconciliationContext {
 fn editable_reconciliation_preserves_identity() {
     let document = MarkdownDocument::new(vec![MarkdownBlock::Paragraph("before".to_owned())]);
     let node = CanonicalNode {
-        id: EntityId::new([7; 16]),
+        id: EntityId::from_bytes([7; 16]),
         parent: None,
         block: document.blocks[0].clone(),
         position: 0,
@@ -81,7 +81,7 @@ fn concurrent_disjoint_edits_produce_one_migration() {
     let current_document =
         MarkdownDocument::new(vec![MarkdownBlock::Paragraph("canonical".to_owned())]);
     let node = CanonicalNode {
-        id: EntityId::new([8; 16]),
+        id: EntityId::from_bytes([8; 16]),
         parent: None,
         block: base_document.blocks[0].clone(),
         position: 0,
@@ -121,7 +121,7 @@ fn concurrent_competing_edits_produce_structured_conflict() {
     let current_document =
         MarkdownDocument::new(vec![MarkdownBlock::Paragraph("canonical".to_owned())]);
     let node = CanonicalNode {
-        id: EntityId::new([9; 16]),
+        id: EntityId::from_bytes([9; 16]),
         parent: None,
         block: base_document.blocks[0].clone(),
         position: 0,

@@ -5,11 +5,11 @@ use scriberig_session::{Branch, BranchStatus, Session, SessionError, Turn};
 /// Checks branch ordering, cross-domain handles, and lifecycle validation.
 #[test]
 fn branch_structure_is_navigable() {
-    let id = EntityId::new([1; 16]);
+    let id = EntityId::from_bytes([1; 16]);
     let mut branch = Branch::new(id, "work").expect("branch");
-    branch.touch(EntityId::new([8; 16]));
+    branch.touch(EntityId::from_bytes([8; 16]));
     branch.push_turn(Turn {
-        id: EntityId::new([2; 16]),
+        id: EntityId::from_bytes([2; 16]),
         ordinal: 99,
         human: None,
         agent: None,
@@ -28,7 +28,7 @@ fn branch_structure_is_navigable() {
         })
     );
     let session = Session {
-        id: EntityId::new([3; 16]),
+        id: EntityId::from_bytes([3; 16]),
         branches: vec![branch],
         goals: Vec::new(),
         tasks: Vec::new(),

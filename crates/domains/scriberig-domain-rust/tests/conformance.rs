@@ -23,7 +23,7 @@ impl ConformanceFixture for RustFixture {
     /// Canonical inspection.
     fn canonical_inspection(&self) -> Inspection {
         Inspection {
-            entity: EntityId::new([5; 16]),
+            entity: EntityId::from_bytes([5; 16]),
             revision: RevisionId::new([6; 32]),
         }
     }

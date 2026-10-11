@@ -90,7 +90,7 @@ pub fn flatten_node(
     next: &mut u8,
     nodes: &mut Vec<CanonicalNode>,
 ) {
-    let id = EntityId::new([*next; 16]);
+    let id = EntityId::from_bytes([*next; 16]);
     *next = next.saturating_add(1);
     nodes.push(CanonicalNode {
         id,
@@ -173,9 +173,9 @@ pub fn apply_operations(
 /// Generic render request.
 pub fn render_request(snapshot: SnapshotId) -> RenderRequest {
     RenderRequest {
-        specification: ProjectionSpecRef(EntityId::new([90; 16])),
+        specification: ProjectionSpecRef(EntityId::from_bytes([90; 16])),
         scope: SemanticScopeRef {
-            entity: EntityId::new([91; 16]),
+            entity: EntityId::from_bytes([91; 16]),
             revision: None,
         },
         base_state: SemanticStateRef(snapshot),
@@ -203,10 +203,10 @@ pub fn sync_state(
     ownership: ProjectionOwnership,
 ) -> SyncState {
     SyncState {
-        projection: ProjectionRef(EntityId::new([92; 16])),
-        specification: ProjectionSpecRef(EntityId::new([90; 16])),
+        projection: ProjectionRef(EntityId::from_bytes([92; 16])),
+        specification: ProjectionSpecRef(EntityId::from_bytes([90; 16])),
         scope: SemanticScopeRef {
-            entity: EntityId::new([91; 16]),
+            entity: EntityId::from_bytes([91; 16]),
             revision: None,
         },
         kind: ProjectionKind::new("markdown").expect("kind"),

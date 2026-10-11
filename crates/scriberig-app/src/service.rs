@@ -279,7 +279,7 @@ mod tests {
                     operation: "fixture".to_owned(),
                 });
             };
-            let entity = EntityId::new([1; 16]);
+            let entity = EntityId::from_bytes([1; 16]);
             let revision = RevisionId::new([2; 32]);
             let snapshot = SnapshotId::new([3; 32]);
             Ok(ApplicationResult::Inspect(Inspection {
@@ -322,7 +322,7 @@ mod tests {
     fn inspection_delegates_through_application_backend() {
         let service = ApplicationService::new(Fixture);
         let request = InspectRequest {
-            entity: EntityId::new([1; 16]),
+            entity: EntityId::from_bytes([1; 16]),
             snapshot: SnapshotResolution::At(SnapshotId::new([3; 32])),
             detail: DetailLevel::Compact,
         };
@@ -339,7 +339,7 @@ mod tests {
     fn current_inspection_is_resolved_to_one_exact_snapshot() {
         let service = ApplicationService::new(Fixture);
         let request = InspectRequest {
-            entity: EntityId::new([1; 16]),
+            entity: EntityId::from_bytes([1; 16]),
             snapshot: SnapshotResolution::Current,
             detail: DetailLevel::Compact,
         };

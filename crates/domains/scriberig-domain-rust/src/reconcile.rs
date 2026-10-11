@@ -124,7 +124,7 @@ pub fn reconcile_with_comments(
     }
     for item in &matches.matches {
         if let SyntaxMatch::New { candidate: index } = item {
-            let entity = EntityId::new(new_entity_bytes(*index));
+            let entity = EntityId::from_bytes(new_entity_bytes(*index));
             operations.push(Operation::CreateEntity {
                 entity,
                 revision: item_revision(&candidate.items[*index]),

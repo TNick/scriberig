@@ -20,7 +20,7 @@ fn sqlite_round_trip_and_stale_cas() {
     let revision_id = store.put(revision.clone()).expect("put");
     assert_eq!(store.get(revision_id).expect("get"), Some(revision));
     let base = scriberig_store::Snapshot::empty().id();
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let snapshot = store
         .apply_changes(base, &[SnapshotChange::Set(entity, revision_id)])
         .expect("snapshot");
@@ -71,7 +71,7 @@ fn sqlite_gc_preserves_protected_and_collects_abandoned_branch() {
     let second = store
         .put(Revision::new(EncodingVersion::new(1), kind, vec![2]).expect("revision"))
         .expect("second revision");
-    let entity = EntityId::new([2; 16]);
+    let entity = EntityId::from_bytes([2; 16]);
     let protected = store
         .apply_changes(
             scriberig_store::Snapshot::empty().id(),
@@ -139,7 +139,7 @@ fn missing_referenced_revision_is_corruption() {
     let snapshot = store
         .apply_changes(
             scriberig_store::Snapshot::empty().id(),
-            &[SnapshotChange::Set(EntityId::new([9; 16]), revision)],
+            &[SnapshotChange::Set(EntityId::from_bytes([9; 16]), revision)],
         )
         .expect("snapshot");
     drop(store);
@@ -200,7 +200,7 @@ fn logical_ids_match_memory_backend() {
     let sqlite_revision = sqlite.put(revision.clone()).expect("sqlite revision");
     let memory_revision = memory.put(revision).expect("memory revision");
     assert_eq!(sqlite_revision, memory_revision);
-    let entity = EntityId::new([9; 16]);
+    let entity = EntityId::from_bytes([9; 16]);
     let base = scriberig_store::Snapshot::empty().id();
     let sqlite_snapshot = sqlite
         .apply_changes(base, &[SnapshotChange::Set(entity, sqlite_revision)])
@@ -224,12 +224,12 @@ fn complete_fixture_ids_match_memory_backend() {
 
     assert_eq!(sqlite_fixture, memory_fixture);
     assert_eq!(
-        sqlite.resolve(sqlite_fixture.s2, EntityId::new([1; 16])),
-        memory.resolve(memory_fixture.s2, EntityId::new([1; 16]))
+        sqlite.resolve(sqlite_fixture.s2, EntityId::from_bytes([1; 16])),
+        memory.resolve(memory_fixture.s2, EntityId::from_bytes([1; 16]))
     );
     assert_eq!(
-        sqlite.resolve(sqlite_fixture.s3, EntityId::new([2; 16])),
-        memory.resolve(memory_fixture.s3, EntityId::new([2; 16]))
+        sqlite.resolve(sqlite_fixture.s3, EntityId::from_bytes([2; 16])),
+        memory.resolve(memory_fixture.s3, EntityId::from_bytes([2; 16]))
     );
 }
 
@@ -266,7 +266,7 @@ fn committed_state_survives_reopen() {
     let path = temporary_database_path("reopen");
     let kind = ObjectType::new("test.reopen").expect("type");
     let revision = Revision::new(EncodingVersion::V1, kind, vec![7]).expect("revision");
-    let entity = EntityId::new([8; 16]);
+    let entity = EntityId::from_bytes([8; 16]);
     let root = RootName::new("main").expect("root");
     let (revision_id, snapshot) = {
         let store = SqliteStore::open(&path).expect("open");
@@ -303,7 +303,7 @@ fn failed_atomic_promotion_preserves_previous_root() {
     let revision = store
         .put(Revision::new(EncodingVersion::V1, kind, vec![9]).expect("revision"))
         .expect("put");
-    let entity = EntityId::new([3; 16]);
+    let entity = EntityId::from_bytes([3; 16]);
     let attempted = scriberig_store::Snapshot::empty()
         .apply([SnapshotChange::Set(entity, revision)])
         .id();

@@ -21,7 +21,7 @@ fn canonical(source: &str, ids: &[u8]) -> Vec<CanonicalRustItem> {
         .into_iter()
         .enumerate()
         .map(|(position, item)| CanonicalRustItem {
-            id: EntityId::new([ids[position]; 16]),
+            id: EntityId::from_bytes([ids[position]; 16]),
             item,
             position,
         })

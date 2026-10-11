@@ -23,7 +23,7 @@ fn memory_maintenance_marks_and_sweeps_unreachable_objects() {
     let snapshot = store
         .apply_changes(
             store.empty_snapshot(),
-            &[SnapshotChange::Set(EntityId::new([1; 16]), revision)],
+            &[SnapshotChange::Set(EntityId::from_bytes([1; 16]), revision)],
         )
         .expect("snapshot");
     let report = store

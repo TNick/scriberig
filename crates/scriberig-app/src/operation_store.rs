@@ -135,7 +135,8 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             ApplicationError::SnapshotUnavailable {
                 snapshot: match error {
                     scriberig_store::SnapshotError::UnknownSnapshot(snapshot) => snapshot,
-                    scriberig_store::SnapshotError::Backend(_) => request.to,
+                    scriberig_store::SnapshotError::InvalidEncoding(_)
+                    | scriberig_store::SnapshotError::Backend(_) => request.to,
                 },
             }
         })?;

@@ -17,13 +17,13 @@ fn self_write_event_is_synchronized() {
     let io = LocalFileSystem;
     io.write_atomic(&path, b"same").expect("write");
     let location = ProjectionLocation::new(&path);
-    let projection = ProjectionRef(EntityId::new([1; 16]));
+    let projection = ProjectionRef(EntityId::from_bytes([1; 16]));
     let mut store = MemorySyncStore::default();
     store.put(SyncState {
         projection,
-        specification: ProjectionSpecRef(EntityId::new([5; 16])),
+        specification: ProjectionSpecRef(EntityId::from_bytes([5; 16])),
         scope: SemanticScopeRef {
-            entity: EntityId::new([6; 16]),
+            entity: EntityId::from_bytes([6; 16]),
             revision: None,
         },
         kind: sr_projection::ProjectionKind::new("text").expect("kind"),
@@ -50,10 +50,10 @@ fn removal_is_not_semantic_deletion() {
     let location = ProjectionLocation::new("missing.txt");
     let mut store = MemorySyncStore::default();
     store.put(SyncState {
-        projection: ProjectionRef(EntityId::new([3; 16])),
-        specification: ProjectionSpecRef(EntityId::new([7; 16])),
+        projection: ProjectionRef(EntityId::from_bytes([3; 16])),
+        specification: ProjectionSpecRef(EntityId::from_bytes([7; 16])),
         scope: SemanticScopeRef {
-            entity: EntityId::new([8; 16]),
+            entity: EntityId::from_bytes([8; 16]),
             revision: None,
         },
         kind: sr_projection::ProjectionKind::new("text").expect("kind"),

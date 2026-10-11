@@ -21,7 +21,7 @@ use sr_projection::ReconciliationOutcome;
 
 const BASE: SnapshotId = SnapshotId::new([1; 32]);
 const CANDIDATE: SnapshotId = SnapshotId::new([2; 32]);
-const ENTITY: EntityId = EntityId::new([3; 16]);
+const ENTITY: EntityId = EntityId::from_bytes([3; 16]);
 const REVISION: RevisionId = RevisionId::new([4; 32]);
 
 /// Builds a project-scoped promotion capability bound to one base snapshot.

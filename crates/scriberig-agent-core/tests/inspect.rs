@@ -64,7 +64,7 @@ fn allowed_context() -> ApplicationContext {
 /// Verifies input mapping, snapshot preservation, and stable handles.
 #[test]
 fn inspect_adapter_delegates_semantics() {
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let result = InspectTool::new(Fixture)
         .invoke(
             &allowed_context(),
@@ -87,7 +87,7 @@ fn inspect_adapter_denies_without_capability() {
         .invoke(
             &ApplicationContext::empty(),
             ToolInput {
-                entity: EntityId::new([1; 16]),
+                entity: EntityId::from_bytes([1; 16]),
                 snapshot: None,
                 detail: ToolDetail::Compact,
             },

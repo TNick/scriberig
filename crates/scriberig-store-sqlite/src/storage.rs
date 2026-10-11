@@ -89,7 +89,7 @@ impl SqliteStore {
                 let mut revision_bytes = [0; 32];
                 revision_bytes.copy_from_slice(&revision);
                 entries.insert(
-                    scriberig_core::EntityId::new(entity_bytes),
+                    scriberig_core::EntityId::from_bytes(entity_bytes),
                     scriberig_core::RevisionId::new(revision_bytes),
                 );
             }
@@ -113,25 +113,29 @@ impl SqliteStore {
         Ok(snapshot)
     }
 
-    /// Stores a snapshot and its persistent map root transactionally.
+    /// Stores a snapshot and its direct predecessor in one transaction.
     ///
     /// # Parameters
-    /// - `self`: Store receiving the snapshot.
-    /// - `snapshot`: Snapshot to persist.
-    /// - `crate`: Internal visibility marker.
+    /// - `snapshot`: Immutable snapshot to persist.
+    /// - `parent`: Direct predecessor of the snapshot.
     ///
     /// # Returns
     /// Unit after the transaction commits.
     ///
     /// # Errors
-    /// Returns a backend persistence error.
-    pub(crate) fn store_snapshot(&self, snapshot: &Snapshot) -> Result<(), SnapshotError> {
+    /// Returns an error when SQLite rejects the transaction.
+    pub(crate) fn store_snapshot_with_parent(
+        &self,
+        snapshot: &Snapshot,
+        parent: SnapshotId,
+    ) -> Result<(), SnapshotError> {
         let mut connection = self
             .connection
             .lock()
             .map_err(|_| SnapshotError::Backend("lock poisoned".to_owned()))?;
         recovery::transaction(&mut connection, |transaction| {
-            Self::store_snapshot_in_transaction(transaction, snapshot)
+            Self::store_snapshot_in_transaction(transaction, snapshot)?;
+            crate::snapshot::store_parent_in_transaction(transaction, snapshot.id(), parent)
         })
         .map_err(sql_snapshot)
     }

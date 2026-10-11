@@ -42,7 +42,7 @@ fn snapshot(byte: u8) -> SnapshotId {
 #[test]
 fn changed_between_returns_stable_entity_revisions() {
     let store = MemoryStore::new();
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let first = RevisionId::new([2; 32]);
     let second = RevisionId::new([3; 32]);
     let base = Snapshot::empty().id();
@@ -60,7 +60,7 @@ fn changed_between_returns_stable_entity_revisions() {
 /// Verifies history questions, topology, and workspace provenance are deterministic.
 #[test]
 fn history_queries_return_structured_topology() {
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let first = RevisionId::new([2; 32]);
     let second = RevisionId::new([3; 32]);
     let mut graph = HistoryGraph::new();
@@ -102,10 +102,45 @@ fn history_queries_return_structured_topology() {
     );
 }
 
+/// Verifies common-ancestor selection follows topology rather than ID order.
+#[test]
+fn common_ancestor_prefers_the_most_specific_topological_ancestor() {
+    let mut history = HistoryGraph::new();
+    history.insert(MigrationReference {
+        id: "base".to_owned(),
+        base: snapshot(250),
+        result: snapshot(1),
+        parents: Vec::new(),
+        deltas: Vec::new(),
+        workspace: None,
+    });
+    history.insert(MigrationReference {
+        id: "left".to_owned(),
+        base: snapshot(1),
+        result: snapshot(2),
+        parents: vec!["base".to_owned()],
+        deltas: Vec::new(),
+        workspace: None,
+    });
+    history.insert(MigrationReference {
+        id: "right".to_owned(),
+        base: snapshot(1),
+        result: snapshot(3),
+        parents: vec!["base".to_owned()],
+        deltas: Vec::new(),
+        workspace: None,
+    });
+
+    assert_eq!(
+        common_ancestor(&history, snapshot(2), snapshot(3)),
+        Some(snapshot(1))
+    );
+}
+
 /// Verifies migration and branch summaries preserve structural metadata.
 #[test]
 fn summaries_preserve_counts_and_optional_descriptions() {
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let revision = RevisionId::new([2; 32]);
     let migration = Migration::new(
         snapshot(1),
@@ -141,7 +176,7 @@ fn summaries_preserve_counts_and_optional_descriptions() {
 /// Verifies merge summaries count conflicts by stable kind.
 #[test]
 fn merge_summary_reports_conflict_kinds() {
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let base = Snapshot::empty().with_revision(entity, RevisionId::new([2; 32]));
     let left = base.with_revision(entity, RevisionId::new([3; 32]));
     let right = base.with_revision(entity, RevisionId::new([4; 32]));

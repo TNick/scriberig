@@ -12,7 +12,7 @@ use std::collections::BTreeMap;
 /// Verifies conceptual identity remains stable across exact revisions.
 #[test]
 fn entity_continuity_and_derived_dependencies() {
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let first = RevisionId::new([2; 32]);
     let second = RevisionId::new([3; 32]);
     assert_ne!(first, second);
@@ -50,8 +50,8 @@ fn entity_continuity_and_derived_dependencies() {
 /// Verifies collection order and relation targets are semantic identities.
 #[test]
 fn collection_and_relation_semantics() {
-    let p1 = EntityId::new([1; 16]);
-    let p2 = EntityId::new([2; 16]);
+    let p1 = EntityId::from_bytes([1; 16]);
+    let p2 = EntityId::from_bytes([2; 16]);
     assert_ne!(
         CollectionValue::Ordered(vec![p1, p2]),
         CollectionValue::Ordered(vec![p2, p1])
@@ -75,7 +75,7 @@ fn revision_record_has_no_parent_requirement() {
         KnowledgeValue::String("hello".to_owned()),
     );
     let record = RevisionRecord {
-        entity: EntityId::new([7; 16]),
+        entity: EntityId::from_bytes([7; 16]),
         entity_type: entity_type.clone(),
         properties,
         relations: BTreeMap::new(),

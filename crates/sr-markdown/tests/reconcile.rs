@@ -17,7 +17,7 @@ use sr_markdown::{
 /// A canonical paragraph node.
 fn node(id: u8, position: usize, text: &str) -> CanonicalNode {
     CanonicalNode {
-        id: EntityId::new([id; 16]),
+        id: EntityId::from_bytes([id; 16]),
         parent: None,
         block: MarkdownBlock::Paragraph(text.to_owned()),
         position,
@@ -66,7 +66,7 @@ fn insertion_preserves_existing_match() {
 #[test]
 fn formatting_only_change_is_a_no_op() {
     let base = vec![CanonicalNode {
-        id: EntityId::new([1; 16]),
+        id: EntityId::from_bytes([1; 16]),
         parent: None,
         block: MarkdownBlock::List {
             ordered: false,
@@ -95,7 +95,7 @@ fn duplicate_content_is_not_assigned_by_position() {
 /// Verifies a reordered child retains identity and emits a collection move.
 #[test]
 fn reorder_emits_collection_move_for_nested_nodes() {
-    let collection = EntityId::new([8; 16]);
+    let collection = EntityId::from_bytes([8; 16]);
     let mut first = node(1, 0, "one");
     first.parent = Some(collection);
     let mut second = node(2, 1, "two");
@@ -116,7 +116,7 @@ fn reorder_emits_collection_move_for_nested_nodes() {
 /// Verifies inserted nested blocks update the owning collection.
 #[test]
 fn insertion_emits_collection_membership() {
-    let section_id = EntityId::new([7; 16]);
+    let section_id = EntityId::from_bytes([7; 16]);
     let section = CanonicalNode {
         id: section_id,
         parent: None,
@@ -128,7 +128,7 @@ fn insertion_emits_collection_membership() {
         position: 0,
     };
     let child = CanonicalNode {
-        id: EntityId::new([8; 16]),
+        id: EntityId::from_bytes([8; 16]),
         parent: Some(section_id),
         block: MarkdownBlock::Paragraph("one".to_owned()),
         position: 0,
@@ -152,7 +152,7 @@ fn insertion_emits_collection_membership() {
 /// Verifies an unambiguous heading rename retains section identity.
 #[test]
 fn renamed_section_preserves_identity() {
-    let section_id = EntityId::new([7; 16]);
+    let section_id = EntityId::from_bytes([7; 16]);
     let base = [CanonicalNode {
         id: section_id,
         parent: None,

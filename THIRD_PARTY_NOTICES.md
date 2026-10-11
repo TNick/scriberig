@@ -1,5 +1,12 @@
 # Third-Party Notices
 
-No repository-level third-party notices are required by the initial scaffold itself.
+The repository does not currently bundle third-party source code, fonts, media,
+or generated artifacts that require a repository-level notice beyond the
+dependency metadata shipped by Cargo and pnpm.
 
-When distributable dependencies, assets, generated code, fonts, parsers, or other third-party material require notices or attribution, add the exact required notices here or in the package that distributes the material. Do not invent attribution requirements for dependencies that do not require them.
+Dependency-specific license and notice obligations must still be reviewed when
+a dependency or distributed asset is added or upgraded. When a dependency,
+asset, generated file, font, parser, or other third-party material requires a
+central notice, add the exact required text here or in the package that
+distributes it. Do not invent attribution requirements for material that does
+not require them.

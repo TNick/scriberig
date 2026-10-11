@@ -17,10 +17,10 @@ pub use event::{Event, EventKind};
 pub use operation::{Operation, OperationProgress, OperationStatus};
 pub use refs::{EntityReference, OperationReference, RevisionReference, SnapshotReference};
 pub use request::{
-    CancelOperationRequest, InspectEntityRequest, OperationStatusRequest,
-    RuntimeCapabilitiesRequest, SnapshotSelector, SubscribeRequest,
+    CancelOperationRequest, CommandRequest, InspectEntityRequest, OperationStatusRequest,
+    QueryRequest, RuntimeCapabilitiesRequest, SnapshotSelector, SubscribeRequest,
 };
-pub use response::{InspectEntityResponse, OperationStatusResponse};
+pub use response::{InspectEntityResponse, OperationStatusResponse, QueryResponse};
 pub use transport::{ProtocolTransport, Request, RequestEnvelope, Response, ResponseEnvelope};
 pub use trust::{
     ApprovalSummary, CapabilityDenial, ConflictSummary, ExternalEffectState, ExternalEffectSummary,
@@ -57,6 +57,13 @@ mod tests {
             entity,
             snapshot: SnapshotSelector::Current,
             detail: request::DetailLevel::Deep,
+        });
+        round_trip(&QueryRequest {
+            specification: serde_json::json!({"scope": "snapshot"}),
+        });
+        round_trip(&CommandRequest {
+            kind: "apply".to_owned(),
+            payload: serde_json::json!({"change": "change-1"}),
         });
     }
 

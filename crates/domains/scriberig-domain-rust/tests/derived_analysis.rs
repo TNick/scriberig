@@ -22,7 +22,7 @@ fn profile() -> AnalysisProfile {
 #[test]
 fn references_resolve_to_canonical_symbols() {
     let source = "fn callee() -> i32 { 1 } fn caller() -> i32 { callee() }";
-    let source_entity = EntityId::new([1; 16]);
+    let source_entity = EntityId::from_bytes([1; 16]);
     let result =
         analyze(source, source_entity, RevisionId::new([2; 32]), &profile()).expect("analysis");
     let target_function = result.mapping.symbols["callee"];
@@ -38,7 +38,7 @@ fn references_resolve_to_canonical_symbols() {
 /// Verifies type facts are derived separately from canonical syntax.
 #[test]
 fn type_facts_and_exact_dependencies_are_recorded() {
-    let source_entity = EntityId::new([3; 16]);
+    let source_entity = EntityId::from_bytes([3; 16]);
     let revision = RevisionId::new([4; 32]);
     let result = analyze(
         "fn answer() -> String { String::new() }",
@@ -65,7 +65,7 @@ fn type_facts_and_exact_dependencies_are_recorded() {
 /// Verifies parse failures remain derived diagnostics and preserve source identity.
 #[test]
 fn failed_analysis_does_not_replace_canonical_source() {
-    let source_entity = EntityId::new([5; 16]);
+    let source_entity = EntityId::from_bytes([5; 16]);
     let revision = RevisionId::new([6; 32]);
     let failed = failed_analysis(
         scriberig_domain_rust::RustAnalysisError {
@@ -85,7 +85,7 @@ fn failed_analysis_does_not_replace_canonical_source() {
 /// Verifies environment and source changes produce distinct derived handles.
 #[test]
 fn relevant_inputs_invalidate_analysis_identity() {
-    let entity = EntityId::new([7; 16]);
+    let entity = EntityId::from_bytes([7; 16]);
     let first =
         analyze("fn f() {}", entity, RevisionId::new([8; 32]), &profile()).expect("analysis");
     let second =

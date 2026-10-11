@@ -47,9 +47,9 @@ fn create_scenario<S: RevisionStore + SnapshotStore + RootStore>(store: &S) -> S
     let c1 = store
         .put(Revision::new(EncodingVersion::V1, kind, vec![5]).expect("revision"))
         .expect("C1");
-    let a = EntityId::new([1; 16]);
-    let b = EntityId::new([2; 16]);
-    let c = EntityId::new([3; 16]);
+    let a = EntityId::from_bytes([1; 16]);
+    let b = EntityId::from_bytes([2; 16]);
+    let c = EntityId::from_bytes([3; 16]);
     let empty = scriberig_store::Snapshot::empty().id();
     let s1 = store
         .apply_changes(
@@ -82,6 +82,8 @@ fn create_scenario<S: RevisionStore + SnapshotStore + RootStore>(store: &S) -> S
     assert_eq!(store.resolve(s3, c), Ok(Some(c1)));
     assert_ne!(s1, s2);
     assert_ne!(s1, s3);
+    assert_eq!(store.parents(s2).expect("S2 parents"), vec![s1]);
+    assert_eq!(store.ancestors(s2).expect("S2 ancestry"), vec![empty, s1]);
     Scenario {
         a1,
         a2,
@@ -121,6 +123,12 @@ fn persistence_vertical_slice_is_backend_independent_and_durable() {
     drop(sqlite);
     let reopened = SqliteStore::open(&path).expect("reopen sqlite");
     assert_eq!(reopened.read_root(&root), Some(sqlite_scenario.s2));
+    assert_eq!(
+        reopened
+            .parents(sqlite_scenario.s2)
+            .expect("parents after reopen"),
+        vec![sqlite_scenario.s1]
+    );
     for snapshot in [sqlite_scenario.s1, sqlite_scenario.s2, sqlite_scenario.s3] {
         assert!(reopened.iter(snapshot).is_ok());
     }

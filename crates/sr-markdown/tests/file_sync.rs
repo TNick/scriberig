@@ -143,7 +143,7 @@ fn invalid_external_edit_is_recoverable() {
         .expect_err("invalid UTF-8");
     assert_eq!(error.detail.code, "invalid-utf8");
     let recovery = sr_projection_fs::RecoveryRecord {
-        projection: ProjectionRef(EntityId::new([93; 16])),
+        projection: ProjectionRef(EntityId::from_bytes([93; 16])),
         base: SemanticStateRef(SnapshotId::new([3; 32])),
         current: SemanticStateRef(SnapshotId::new([3; 32])),
         external: digest_bytes(&[0xff, 0xfe]),

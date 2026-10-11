@@ -320,7 +320,7 @@ impl CanonicalEncode for crate::ids::RevisionId {
 /// Returns an error when the encoding version is unsupported.
 pub fn revision_id(
     version: EncodingVersion,
-    object_type: &crate::ObjectType,
+    object_type: &crate::TypeId,
     payload: &[u8],
 ) -> Result<crate::RevisionId, EncodingError> {
     Ok(crate::RevisionId::from_bytes(
@@ -349,7 +349,7 @@ pub fn revision_id(
 /// Returns an error when the encoding version is unsupported.
 pub fn revision_envelope(
     version: EncodingVersion,
-    object_type: &crate::ObjectType,
+    object_type: &crate::TypeId,
     payload: &[u8],
 ) -> Result<Vec<u8>, EncodingError> {
     EncodingVersion::try_new(version.value())?;

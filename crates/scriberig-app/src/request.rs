@@ -4,7 +4,7 @@ use scriberig_core::{RootName, SnapshotId};
 use scriberig_query::{FindRequest, FollowRequest, InspectRequest, ListRequest, QuerySpec};
 
 /// Resolves an application request to an exact snapshot before execution.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum SnapshotSelector {
     /// Use this exact immutable snapshot.
     Exact(SnapshotId),
@@ -13,7 +13,7 @@ pub enum SnapshotSelector {
 }
 
 /// Identifies a semantic diff request.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct DiffRequest {
     /// Earlier exact snapshot.
     pub from: SnapshotId,
@@ -22,14 +22,14 @@ pub struct DiffRequest {
 }
 
 /// Identifies a history request for a semantic target.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct HistoryRequest {
     /// Snapshot or named root from which history is resolved.
     pub snapshot: SnapshotSelector,
 }
 
 /// Identifies a rendering request for a semantic target.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct RenderRequest {
     /// Exact snapshot context for rendering.
     pub snapshot: SnapshotSelector,
@@ -38,7 +38,7 @@ pub struct RenderRequest {
 }
 
 /// Identifies a branch operation without implementing branch mutation.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct BranchRequest {
     /// Root from which the branch is created.
     pub base: SnapshotSelector,
@@ -47,7 +47,7 @@ pub struct BranchRequest {
 }
 
 /// Identifies an application change-application request.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct ApplyRequest {
     /// Exact base snapshot required by the change.
     pub base_snapshot: SnapshotId,
@@ -58,7 +58,7 @@ pub struct ApplyRequest {
 }
 
 /// Identifies a commit request for an already validated change.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct CommitRequest {
     /// Exact base snapshot being committed.
     pub base_snapshot: SnapshotId,

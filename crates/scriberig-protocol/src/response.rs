@@ -26,3 +26,10 @@ pub struct OperationStatusResponse {
     /// Operation state and optional result summary.
     pub operation: Operation,
 }
+
+/// Returns one structured query page without presentation formatting.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct QueryResponse {
+    /// Exact query result and snapshot scope.
+    pub result: serde_json::Value,
+}

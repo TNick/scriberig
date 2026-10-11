@@ -11,8 +11,24 @@ pub enum OperationKind {
     Inspect,
     /// Execute a query.
     Query,
+    /// List a typed collection.
+    List,
+    /// Follow a typed relation.
+    Follow,
+    /// Find semantic entities.
+    Find,
+    /// Compute a semantic diff.
+    Diff,
+    /// Read semantic history.
+    History,
+    /// Render a registered projection.
+    Render,
+    /// Create or update a branch.
+    Branch,
     /// Apply a change.
     Apply,
+    /// Commit a validated change.
+    Commit,
     /// Validate a candidate.
     Validate,
     /// Promote a candidate.

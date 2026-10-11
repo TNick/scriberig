@@ -39,9 +39,9 @@ pub fn ensure_fixture(store: &SqliteStore) -> Result<DevelopmentFixture, String>
     }
 
     let entities = [
-        EntityId::new([1; 16]),
-        EntityId::new([2; 16]),
-        EntityId::new([3; 16]),
+        EntityId::from_bytes([1; 16]),
+        EntityId::from_bytes([2; 16]),
+        EntityId::from_bytes([3; 16]),
     ];
     let revisions = entities
         .iter()

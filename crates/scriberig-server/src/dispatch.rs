@@ -11,6 +11,7 @@ use scriberig_protocol::{
     ProtocolError, ProtocolErrorCode, ProtocolVersion, Request, RequestEnvelope, Response,
     ResponseEnvelope, RuntimeFeature, SnapshotReference,
 };
+use scriberig_query::QuerySpec;
 
 use crate::server::ApplicationService;
 
@@ -111,6 +112,38 @@ impl<S: ApplicationService> Dispatcher<S> {
                 |error| Response::Error(map_error(&error, correlation_id)),
                 Response::Events,
             ),
+            Request::Query(request) => {
+                let Ok(specification) = serde_json::from_value::<QuerySpec>(request.specification)
+                else {
+                    return Response::Error(ProtocolError {
+                        code: ProtocolErrorCode::SchemaViolation,
+                        message: "invalid query specification".to_owned(),
+                        details: None,
+                        correlation_id: Some(correlation_id.to_owned()),
+                    });
+                };
+                self.service
+                    .query(&ApplicationContext::empty(), &specification)
+                    .map_or_else(
+                        |error| Response::Error(map_error(&error, correlation_id)),
+                        |result| {
+                            Response::Query(scriberig_protocol::QueryResponse {
+                                result: serde_json::to_value(result).unwrap_or_default(),
+                            })
+                        },
+                    )
+            }
+            Request::Command(request) => self
+                .service
+                .command(
+                    &ApplicationContext::empty(),
+                    &request.kind,
+                    &request.payload,
+                )
+                .map_or_else(
+                    |error| Response::Error(map_error(&error, correlation_id)),
+                    |operation| Response::CommandAccepted(OperationStatusResponse { operation }),
+                ),
         }
     }
 

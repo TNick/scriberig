@@ -101,7 +101,7 @@ impl ApplicationService for Fixture {
 /// Fixture application service.
 fn fixture() -> Fixture {
     Fixture {
-        entity: EntityId::new([1; 16]),
+        entity: EntityId::from_bytes([1; 16]),
         revision: RevisionId::new([2; 32]),
         snapshot: SnapshotId::new([3; 32]),
     }
@@ -149,7 +149,7 @@ fn missing_entity_is_structured() {
     let client = Client::new(InProcessTransport::new(fixture()));
     let error = client
         .inspect(
-            EntityId::new([7; 16]).to_string(),
+            EntityId::from_bytes([7; 16]).to_string(),
             SnapshotSelector::Current,
             false,
         )
@@ -181,7 +181,7 @@ fn unsupported_protocol_major_is_rejected() {
         correlation_id: "test-1".to_owned(),
         request: Request::Inspect(InspectEntityRequest {
             entity: EntityReference {
-                id: EntityId::new([1; 16]).to_string(),
+                id: EntityId::from_bytes([1; 16]).to_string(),
             },
             snapshot: SnapshotSelector::Current,
             detail: scriberig_protocol::request::DetailLevel::Compact,

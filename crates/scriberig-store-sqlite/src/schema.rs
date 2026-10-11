@@ -125,6 +125,11 @@ fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
              payload BLOB NOT NULL
          );
          CREATE TABLE IF NOT EXISTS snapshots (id BLOB PRIMARY KEY);
+         CREATE TABLE IF NOT EXISTS snapshot_parents (
+             snapshot_id BLOB NOT NULL,
+             parent_id BLOB NOT NULL,
+             PRIMARY KEY(snapshot_id, parent_id)
+         );
          CREATE TABLE IF NOT EXISTS snapshot_entries (
              snapshot_id BLOB NOT NULL,
              entity BLOB NOT NULL,

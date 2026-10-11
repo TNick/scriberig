@@ -152,7 +152,7 @@ impl KnowledgeView for Fixture {
 /// A deterministic graph view fixture.
 fn fixture() -> Fixture {
     let snapshot = SnapshotId::new([3; 32]);
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let relation_type = ObjectType::new("depends_on").expect("type");
     Fixture {
         snapshot,
@@ -166,11 +166,11 @@ fn fixture() -> Fixture {
             )]),
             relations: BTreeMap::from([(
                 "depends_on".to_owned(),
-                RelationValue::new(relation_type, vec![EntityId::new([4; 16])]),
+                RelationValue::new(relation_type, vec![EntityId::from_bytes([4; 16])]),
             )]),
             collections: BTreeMap::from([(
                 "members".to_owned(),
-                CollectionValue::Unordered(BTreeSet::from([EntityId::new([5; 16])])),
+                CollectionValue::Unordered(BTreeSet::from([EntityId::from_bytes([5; 16])])),
             )]),
         },
     }
@@ -184,7 +184,7 @@ fn graph_inspection_is_snapshot_bound() {
     let result = service
         .inspect(&InspectRequest {
             target: TargetRef::Snapshot(EntityInSnapshot {
-                entity: EntityId::new([1; 16]),
+                entity: EntityId::from_bytes([1; 16]),
                 snapshot: SnapshotId::new([3; 32]),
             }),
             detail: DetailLevel::Compact,
@@ -203,7 +203,7 @@ fn graph_inspection_resolves_exact_revision_targets() {
     let result = service
         .inspect(&InspectRequest {
             target: TargetRef::Revision(scriberig_query::EntityAtRevision {
-                entity: EntityId::new([1; 16]),
+                entity: EntityId::from_bytes([1; 16]),
                 revision: RevisionId::new([2; 32]),
             }),
             detail: DetailLevel::Compact,
@@ -220,7 +220,7 @@ fn graph_traversal_is_bounded_and_typed() {
     let fixture = fixture();
     let service = GraphReadService::new(fixture);
     let subject = EntityInSnapshot {
-        entity: EntityId::new([1; 16]),
+        entity: EntityId::from_bytes([1; 16]),
         snapshot: SnapshotId::new([3; 32]),
     };
     let listed = service
@@ -264,7 +264,7 @@ fn graph_traversal_rejects_cross_operation_continuations() {
     let fixture = fixture();
     let service = GraphReadService::new(fixture);
     let subject = EntityInSnapshot {
-        entity: EntityId::new([1; 16]),
+        entity: EntityId::from_bytes([1; 16]),
         snapshot: SnapshotId::new([3; 32]),
     };
     let listed = service
@@ -309,7 +309,7 @@ fn graph_explicit_scopes_support_find_and_query() {
     let fixture = fixture();
     let service = GraphReadService::new(fixture);
     let snapshot = SnapshotId::new([3; 32]);
-    let entity = EntityId::new([1; 16]);
+    let entity = EntityId::from_bytes([1; 16]);
     let find = service
         .find(&FindRequest {
             scope: QueryScope::ExplicitEntities {

@@ -202,6 +202,9 @@ impl SqliteStore {
         if let Err(error) = Self::store_snapshot_in_transaction(&transaction, &next) {
             return Err(PromotionError::Backend(error.to_string()));
         }
+        if let Err(error) = snapshot::store_parent_in_transaction(&transaction, next.id(), base) {
+            return Err(PromotionError::Backend(error.to_string()));
+        }
         let actual = roots::read_root_in_transaction(&transaction, &name)
             .map_err(|error| PromotionError::Backend(error.to_string()))?;
         if actual != expected {

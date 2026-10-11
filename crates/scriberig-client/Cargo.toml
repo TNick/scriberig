@@ -9,6 +9,8 @@ repository.workspace = true
 
 [dependencies]
 scriberig-protocol = { path = "../scriberig-protocol" }
+scriberig-query = { path = "../scriberig-query" }
+serde_json = "1.0"
 
 [lints]
 workspace = true

@@ -7,7 +7,7 @@ use crate::{
 use scriberig_core::SnapshotId;
 
 /// Requests a bounded page from one snapshot-bound collection.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct ListRequest {
     /// Subject owning the collection.
     pub subject: EntityInSnapshot,
@@ -20,7 +20,7 @@ pub struct ListRequest {
 }
 
 /// Returns one page of a typed collection.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct ListResult {
     /// Subject whose collection was listed.
     pub subject: EntityInSnapshot,
@@ -33,7 +33,7 @@ pub struct ListResult {
 }
 
 /// Selects relation traversal direction.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum FollowDirection {
     /// Follow relation targets from the source entity.
     Outgoing,
@@ -42,7 +42,7 @@ pub enum FollowDirection {
 }
 
 /// Requests a bounded page from one typed relation.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct FollowRequest {
     /// Subject from which traversal begins.
     pub subject: EntityInSnapshot,
@@ -57,7 +57,7 @@ pub struct FollowRequest {
 }
 
 /// Returns one page of a typed relation.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct FollowResult {
     /// Subject from which traversal began.
     pub subject: EntityInSnapshot,

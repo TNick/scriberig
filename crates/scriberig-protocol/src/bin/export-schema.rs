@@ -2,8 +2,9 @@
 
 use schemars::schema_for;
 use scriberig_protocol::{
-    CapabilitiesResponse, Event, InspectEntityRequest, InspectEntityResponse, Operation,
-    ProtocolError, VersionExchange,
+    CapabilitiesResponse, CommandRequest, Event, InspectEntityRequest, InspectEntityResponse,
+    Operation, ProtocolError, QueryRequest, Request, RequestEnvelope, Response, ResponseEnvelope,
+    VersionExchange,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -24,6 +25,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     write_schema::<InspectEntityResponse>(&output, "inspect-response")?;
     write_schema::<Operation>(&output, "operation")?;
     write_schema::<ProtocolError>(&output, "error")?;
+    write_schema::<CommandRequest>(&output, "command-request")?;
+    write_schema::<QueryRequest>(&output, "query-request")?;
+    write_schema::<Request>(&output, "request")?;
+    write_schema::<Response>(&output, "response")?;
+    write_schema::<RequestEnvelope>(&output, "request-envelope")?;
+    write_schema::<ResponseEnvelope>(&output, "response-envelope")?;
     write_schema::<VersionExchange>(&output, "version")?;
     Ok(())
 }

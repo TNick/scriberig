@@ -46,7 +46,7 @@ mod tests {
     /// Checks revision and snapshot targets remain distinct.
     #[test]
     fn targets_preserve_resolution_mode() {
-        let entity = EntityId::new([1; 16]);
+        let entity = EntityId::from_bytes([1; 16]);
         let revision = RevisionId::new([2; 32]);
         let snapshot = SnapshotId::new([3; 32]);
         assert_ne!(
@@ -61,7 +61,7 @@ mod tests {
         let snapshot = SnapshotId::new([4; 32]);
         let scope = QueryScope::ExplicitEntities {
             snapshot,
-            entities: vec![EntityId::new([1; 16]), EntityId::new([2; 16])],
+            entities: vec![EntityId::from_bytes([1; 16]), EntityId::from_bytes([2; 16])],
         };
         assert_eq!(scope.snapshot(), snapshot);
     }
@@ -70,7 +70,7 @@ mod tests {
     #[test]
     fn selection_can_carry_projection_context() {
         let snapshot = SnapshotId::new([5; 32]);
-        let entity = EntityId::new([6; 16]);
+        let entity = EntityId::from_bytes([6; 16]);
         let semantic = Selection {
             snapshot,
             entity,
@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn traversal_contracts_preserve_typed_identity() {
         let snapshot = SnapshotId::new([7; 32]);
-        let entity = EntityId::new([8; 16]);
+        let entity = EntityId::from_bytes([8; 16]);
         let subject = EntityInSnapshot { entity, snapshot };
         let collection = CollectionRef {
             owner: entity,
@@ -127,7 +127,7 @@ mod tests {
     #[test]
     fn inspection_request_keeps_exact_target() {
         let target = TargetRef::Revision(EntityAtRevision {
-            entity: EntityId::new([9; 16]),
+            entity: EntityId::from_bytes([9; 16]),
             revision: RevisionId::new([10; 32]),
         });
         let request = InspectRequest {

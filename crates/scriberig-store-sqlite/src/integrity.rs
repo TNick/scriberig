@@ -353,7 +353,7 @@ pub(crate) fn load_legacy_entries(
         let mut revision_id = [0; 32];
         revision_id.copy_from_slice(&revision);
         result.insert(
-            scriberig_core::EntityId::new(entity_id),
+            scriberig_core::EntityId::from_bytes(entity_id),
             RevisionId::new(revision_id),
         );
     }

@@ -7,9 +7,9 @@
     "format": "prettier --write \"packages/**/*.{ts,tsx,js,jsx}\" \"apps/**/*.{ts,tsx,js,jsx}\"",
     "format:check": "prettier --check \"packages/**/*.{ts,tsx,js,jsx}\" \"apps/**/*.{ts,tsx,js,jsx}\"",
     "docs": "pnpm --filter @scriberig/typescript-docs run docs",
-    "typecheck": "pnpm -r --if-present typecheck",
-    "test": "pnpm -r --if-present test && pnpm test:conformance",
-    "build": "pnpm --filter @scriberig/app build",
+    "typecheck": "pnpm build && pnpm -r --if-present typecheck",
+    "test": "pnpm build && pnpm -r --if-present test && pnpm test:conformance",
+    "build": "pnpm -r --if-present build",
     "test:conformance": "vitest run --config vitest.conformance.config.ts"
   },
   "devDependencies": {

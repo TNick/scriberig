@@ -175,7 +175,7 @@ fn successful_rerender_establishes_a_new_base() {
     let _ = fs::create_dir_all(&root);
     let path = root.join("projection.txt");
     let mut coordinator = coordinator(&path, b"rendered");
-    let projection = ProjectionRef(EntityId::new([1; 16]));
+    let projection = ProjectionRef(EntityId::from_bytes([1; 16]));
     coordinator
         .write_rendered(
             projection,
@@ -241,7 +241,7 @@ fn managed_render_uses_adapter_output() {
     let mut coordinator = coordinator(&path, b"old");
     let adapter = TestAdapter::default();
     coordinator
-        .render_managed_projection(ProjectionRef(EntityId::new([1; 16])), &adapter)
+        .render_managed_projection(ProjectionRef(EntityId::from_bytes([1; 16])), &adapter)
         .expect("render");
     assert_eq!(LocalFileSystem.read(&path).expect("read"), b"canonical");
     assert_eq!(adapter.render_calls.get(), 1);
@@ -415,10 +415,10 @@ impl ProjectionAdapter for TestAdapter {
 fn coordinator(path: &std::path::Path, rendered: &[u8]) -> SyncCoordinator<LocalFileSystem> {
     let mut states = MemorySyncStore::default();
     states.put(SyncState {
-        projection: ProjectionRef(EntityId::new([1; 16])),
-        specification: sr_projection::ProjectionSpecRef(EntityId::new([4; 16])),
+        projection: ProjectionRef(EntityId::from_bytes([1; 16])),
+        specification: sr_projection::ProjectionSpecRef(EntityId::from_bytes([4; 16])),
         scope: sr_projection::SemanticScopeRef {
-            entity: EntityId::new([5; 16]),
+            entity: EntityId::from_bytes([5; 16]),
             revision: None,
         },
         kind: sr_projection::ProjectionKind::new("text").expect("kind"),

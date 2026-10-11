@@ -32,8 +32,8 @@ fn root_store_cas_is_atomic() {
 fn snapshots_branch_and_converge() {
     let store = MemoryStore::new();
     let base = store.empty_snapshot();
-    let first = EntityId::new([1; 16]);
-    let second = EntityId::new([2; 16]);
+    let first = EntityId::from_bytes([1; 16]);
+    let second = EntityId::from_bytes([2; 16]);
     let revision = RevisionId::new([3; 32]);
     let changed = store
         .apply_changes(base, &[SnapshotChange::Set(first, revision)])

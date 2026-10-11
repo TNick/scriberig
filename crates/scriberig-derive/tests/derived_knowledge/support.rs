@@ -157,7 +157,7 @@ impl DerivedRepository for TestRepository {
 /// # Errors
 /// Construction from fixed-width bytes is infallible.
 pub fn entity(value: u8) -> EntityId {
-    EntityId::new([value; 16])
+    EntityId::from_bytes([value; 16])
 }
 
 /// Creates a fake immutable revision identity.

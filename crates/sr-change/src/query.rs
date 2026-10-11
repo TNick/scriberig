@@ -122,7 +122,16 @@ pub fn common_ancestor(
     left: SnapshotId,
     right: SnapshotId,
 ) -> Option<SnapshotId> {
-    history.common_ancestors(left, right).last().copied()
+    let common = history.common_ancestors(left, right);
+    common
+        .iter()
+        .copied()
+        .filter(|candidate| {
+            !common
+                .iter()
+                .any(|other| *candidate != *other && history.is_ancestor(*candidate, *other))
+        })
+        .max()
 }
 
 /// Returns conflicts that prevent merging three exact snapshots.
