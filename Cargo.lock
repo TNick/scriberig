@@ -503,6 +503,8 @@ dependencies = [
 name = "scriberig-domain-rust"
 version = "0.1.0"
 dependencies = [
+ "blake3",
+ "quote",
  "scriberig-core",
  "scriberig-derive",
  "scriberig-domain-code",
@@ -510,6 +512,7 @@ dependencies = [
  "scriberig-migration",
  "scriberig-projection",
  "scriberig-schema",
+ "syn 2.0.119",
 ]
 
 [[package]]
