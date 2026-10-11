@@ -9,5 +9,5 @@ pub mod snapshot;
 pub use collection::Collection;
 pub use revision::Revision;
 pub use revision_store::{RevisionStore, StoreError};
-pub use roots::{RootError, RootStore};
+pub use roots::{CasOutcome, RootError, RootStore};
 pub use snapshot::{Snapshot, SnapshotChange, SnapshotError, SnapshotStore};

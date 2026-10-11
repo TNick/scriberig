@@ -18,8 +18,25 @@ pub enum RootError {
     Backend(String),
 }
 
+/// Outcome of an optimistic root compare-and-swap.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CasOutcome {
+    /// The root was advanced.
+    Updated,
+    /// The expected value was stale.
+    Stale {
+        /// Value observed by the store.
+        actual: Option<SnapshotId>,
+    },
+}
+
 /// Defines backend-neutral named-root operations.
 pub trait RootStore {
+    /// # Parameters
+    /// - `name`: Operation input.
+    ///
+    /// # Returns
+    /// The requested root result.
     /// # Parameters
     /// - `name`: Relevant operation input.
     ///
@@ -27,6 +44,16 @@ pub trait RootStore {
     /// The requested operation result.
     /// Reads a named root.
     fn read_root(&self, name: &RootName) -> Option<SnapshotId>;
+    /// # Parameters
+    /// - `name`: Operation input.
+    /// - `expected`: Operation input.
+    /// - `new`: Operation input.
+    ///
+    /// # Returns
+    /// The requested root result.
+    ///
+    /// # Errors
+    /// Returns a root backend error.
     /// # Parameters
     /// - `name`: Relevant operation input.
     /// - `expected`: Relevant operation input.
@@ -47,4 +74,61 @@ pub trait RootStore {
         expected: Option<SnapshotId>,
         new: SnapshotId,
     ) -> Result<(), RootError>;
+
+    /// # Parameters
+    /// - `name`: Operation input.
+    /// - `snapshot`: Operation input.
+    ///
+    /// # Returns
+    /// The requested root result.
+    ///
+    /// # Errors
+    /// Returns a root backend error.
+    /// Unconditionally points a root at an immutable snapshot.
+    ///
+    /// # Parameters
+    /// - `name`: Root name.
+    /// - `snapshot`: Immutable snapshot identity.
+    ///
+    /// # Errors
+    /// Returns a backend error when the update cannot be stored.
+    fn set_root(&self, name: RootName, snapshot: SnapshotId) -> Result<(), RootError> {
+        let expected = self.read_root(&name);
+        self.compare_and_set_root(name, expected, snapshot)
+    }
+
+    /// # Parameters
+    /// - `name`: Operation input.
+    /// - `expected`: Operation input.
+    /// - `new`: Operation input.
+    ///
+    /// # Returns
+    /// The requested root result.
+    ///
+    /// # Errors
+    /// Returns a root backend error.
+    /// Performs compare-and-swap and returns a normal stale outcome.
+    ///
+    /// # Parameters
+    /// - `name`: Root name.
+    /// - `expected`: Expected snapshot.
+    /// - `new`: Replacement snapshot.
+    ///
+    /// # Returns
+    /// Updated or stale outcome.
+    ///
+    /// # Errors
+    /// Returns backend failures.
+    fn compare_and_swap(
+        &self,
+        name: RootName,
+        expected: Option<SnapshotId>,
+        new: SnapshotId,
+    ) -> Result<CasOutcome, RootError> {
+        match self.compare_and_set_root(name, expected, new) {
+            Ok(()) => Ok(CasOutcome::Updated),
+            Err(RootError::Conflict { actual, .. }) => Ok(CasOutcome::Stale { actual }),
+            Err(error) => Err(error),
+        }
+    }
 }

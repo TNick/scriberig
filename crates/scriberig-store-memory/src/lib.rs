@@ -1,5 +1,8 @@
 //! Provides the in-memory implementation of the Scriberig storage contracts.
 
+mod roots;
+pub use roots::MemoryRootStore;
+
 use std::collections::BTreeMap;
 use std::sync::RwLock;
 
@@ -325,9 +328,29 @@ impl RevisionStore for MemoryRevisionStore {
 
 #[cfg(test)]
 mod tests {
-    use super::{MemoryRevisionStore, MemoryStore};
-    use scriberig_core::{EntityId, RevisionId, RootName};
-    use scriberig_store::{RootStore, SnapshotChange, SnapshotStore};
+    use super::{MemoryRevisionStore, MemoryRootStore, MemoryStore};
+    use scriberig_core::{EntityId, RevisionId, RootName, SnapshotId};
+    use scriberig_store::{CasOutcome, RootStore, SnapshotChange, SnapshotStore};
+
+    /// Confirms named roots support atomic stale detection.
+    #[test]
+    fn root_store_cas_is_atomic() {
+        let store = MemoryRootStore::new();
+        let name = RootName::new("main").expect("root");
+        let first = SnapshotId::new([1; 32]);
+        let second = SnapshotId::new([2; 32]);
+        assert_eq!(
+            store.compare_and_swap(name.clone(), None, first),
+            Ok(CasOutcome::Updated)
+        );
+        assert_eq!(
+            store.compare_and_swap(name.clone(), None, second),
+            Ok(CasOutcome::Stale {
+                actual: Some(first)
+            })
+        );
+        assert_eq!(store.read_root(&name), Some(first));
+    }
 
     /// Confirms snapshots are immutable and equivalent maps converge.
     #[test]
@@ -349,24 +372,6 @@ mod tests {
             .apply_changes(base, &[SnapshotChange::Set(first, revision)])
             .expect("snapshot");
         assert_eq!(changed, reordered);
-    }
-
-    /// Confirms named roots reject stale promotion without mutation.
-    #[test]
-    fn roots_compare_and_set() {
-        let store = MemoryStore::new();
-        let name = RootName::new("main").expect("root");
-        let base = store.empty_snapshot();
-        let next = store.apply_changes(base, &[]).expect("equivalent snapshot");
-        store
-            .compare_and_set_root(name.clone(), None, base)
-            .expect("initial promotion");
-        assert!(
-            store
-                .compare_and_set_root(name.clone(), None, next)
-                .is_err()
-        );
-        assert_eq!(store.read_root(&name), Some(base));
     }
 
     /// Confirms duplicate revision insertion is idempotent.
