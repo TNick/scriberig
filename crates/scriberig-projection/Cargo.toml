@@ -8,6 +8,7 @@ description = "Domain-independent rendering, import, reconciliation, and project
 repository.workspace = true
 
 [dependencies]
+sr-projection = { path = "../sr-projection" }
 scriberig-core = { path = "../scriberig-core" }
 scriberig-derive = { path = "../scriberig-derive" }
 scriberig-graph = { path = "../scriberig-graph" }

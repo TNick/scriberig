@@ -420,6 +420,7 @@ dependencies = [
  "scriberig-derive",
  "scriberig-graph",
  "scriberig-migration",
+ "sr-projection",
 ]
 
 [[package]]
@@ -516,6 +517,27 @@ dependencies = [
  "js-sys",
  "rsqlite-vfs",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "sr-markdown"
+version = "0.1.0"
+dependencies = [
+ "sr-projection",
+]
+
+[[package]]
+name = "sr-projection"
+version = "0.1.0"
+dependencies = [
+ "scriberig-core",
+]
+
+[[package]]
+name = "sr-projection-fs"
+version = "0.1.0"
+dependencies = [
+ "sr-projection",
 ]
 
 [[package]]
