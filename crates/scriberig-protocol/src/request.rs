@@ -1,0 +1,61 @@
+//! Defines semantic requests independent of transport endpoints.
+
+use crate::refs::{EntityReference, OperationReference, SnapshotReference};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+/// Selects the snapshot against which an inspection resolves.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub enum SnapshotSelector {
+    /// Resolve against an exact immutable snapshot.
+    Exact(SnapshotReference),
+    /// Resolve against a named root selected by the server.
+    NamedRoot(String),
+    /// Resolve against the current canonical root.
+    Current,
+}
+
+/// Requests semantic inspection of one entity.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct InspectEntityRequest {
+    /// Entity to inspect.
+    pub entity: EntityReference,
+    /// Snapshot resolution rule.
+    pub snapshot: SnapshotSelector,
+    /// Requested presentation-neutral detail level.
+    pub detail: DetailLevel,
+}
+
+/// Selects the amount of semantic summary returned.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub enum DetailLevel {
+    /// Return identifiers and a compact summary.
+    Compact,
+    /// Return all public semantic summary fields.
+    Deep,
+}
+
+/// Requests the runtime capability vocabulary.
+#[derive(Clone, Debug, Default, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct RuntimeCapabilitiesRequest {}
+
+/// Requests the current status of an operation.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct OperationStatusRequest {
+    /// Operation to inspect.
+    pub operation: OperationReference,
+}
+
+/// Requests cancellation of an operation.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct CancelOperationRequest {
+    /// Operation to cancel.
+    pub operation: OperationReference,
+}
+
+/// Requests a subscription to selected event categories.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct SubscribeRequest {
+    /// Optional event names; empty means all public events.
+    pub event_kinds: Vec<String>,
+}
