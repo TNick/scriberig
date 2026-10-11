@@ -24,6 +24,7 @@ __pycache__/
 .pages/
 site/
 playground/
+output/playwright/
 
 # Editors and OS
 .DS_Store
