@@ -5420,6 +5420,8 @@
 <hr />
 <h2 id="3-model-overview">3. Model Overview<a class="headerlink" href="#3-model-overview" title="Permanent link">&para;</a></h2>
 <p>The universal model is a typed graph of semantic entities and relationships interpreted within a snapshot.</p>
+<p><img alt="Universal knowledge model overview" src="../assets/002-universal-knowledge-model/001-model-overview.svg" /></p>
+<p><em>Figure 1. A snapshot resolves semantic entities to immutable revisions. The same substrate supports canonical structure, derived knowledge, universal interaction, and independently specialized domains.</em></p>
 <p>Conceptually:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Snapshot
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>   |
@@ -5525,6 +5527,8 @@
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>Branch B    -&gt; Revision BR5
 <a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>Decision X  -&gt; Revision XR2
 </code></pre></div>
+<p><img alt="Entity, revision, and snapshot identities" src="../assets/002-universal-knowledge-model/002-entity-revision-snapshot.svg" /></p>
+<p><em>Figure 2. Entity identity expresses conceptual continuity. Revision identity expresses one exact immutable state. Snapshot identity fixes the exact revisions visible in one consistent knowledge world.</em></p>
 <p>The knowledge graph must always be interpreted relative to an explicit or implicit snapshot.</p>
 <p>This avoids ambiguity such as asking for "the children of this function" without defining which historical state of the project is being observed.</p>
 <p>Consumers may commonly work against a current snapshot, but the underlying model must make historical snapshot selection possible.</p>
@@ -5783,6 +5787,8 @@
 </code></pre></div>
 <p>Derived knowledge is not automatically authoritative merely because it is stored in the same database.</p>
 <p>Consumers must be able to distinguish canonical state from parser facts, compiler facts, user-authored annotations, and model-generated interpretations.</p>
+<p><img alt="Canonical and derived knowledge with provenance" src="../assets/002-universal-knowledge-model/003-canonical-derived-provenance.svg" /></p>
+<p><em>Figure 3. Derived artifacts remain separate from canonical semantic state. They point to exact immutable inputs and record their producer and configuration through provenance.</em></p>
 <hr />
 <h2 id="17-provenance">17. Provenance<a class="headerlink" href="#17-provenance" title="Permanent link">&para;</a></h2>
 <p>Knowledge should carry enough provenance to answer:</p>
@@ -6034,6 +6040,8 @@
 <a id="__codelineno-41-11" name="__codelineno-41-11" href="#__codelineno-41-11"></a>  +-- Session schema
 <a id="__codelineno-41-12" name="__codelineno-41-12" href="#__codelineno-41-12"></a>  +-- future schemas
 </code></pre></div>
+<p><img alt="Schema specialization of the universal model" src="../assets/002-universal-knowledge-model/004-schema-specialization.svg" /></p>
+<p><em>Figure 4. The universal layer stays small. Domain schemas preserve strong semantics while reusing the same identity, graph, provenance, history, and interaction concepts.</em></p>
 <p>Domains should be independently evolvable where possible.</p>
 <p>The universal layer should contain only concepts that genuinely need to be shared.</p>
 <hr />
@@ -6090,6 +6098,8 @@
 <a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a>Migration --produced_by--&gt; AgentBranch
 <a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a>ToolResult --references--&gt; SourceFunction
 </code></pre></div>
+<p><img alt="Cross-domain relations in one knowledge graph" src="../assets/002-universal-knowledge-model/005-cross-domain-relations.svg" /></p>
+<p><em>Figure 5. Session, code, document, PDF, migration, and project-knowledge entities can reference one another directly through typed relations while retaining independent identity and history.</em></p>
 <p>These cross-domain relationships should not require copying objects between separate databases.</p>
 <p>They are ordinary typed relations in the same knowledge system.</p>
 <p>This is one of the strongest reasons to begin from a universal model rather than integrate several isolated domain stores later.</p>
