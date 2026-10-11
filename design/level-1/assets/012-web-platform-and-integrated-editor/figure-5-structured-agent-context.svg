@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Structured semantic context flows from editor selection into an agent branch and back into canonical history</title>
+  <desc id="desc">A user selection supplies entity, revision, snapshot, session, branch, and request to an agent command. The agent branch then uses shared inspect, query, diff, and edit operations. Its result is a proposed migration, which is validated before producing a resulting snapshot. The editor can follow links from the agent result back to affected semantic objects, validation results, and branch history.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>.title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 20px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Agent interaction carries semantic scope, not line-number prompts</text>
+
+  <rect x="50" y="120" width="280" height="220" rx="20" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="190" y="160" text-anchor="middle" class="label">Editor selection + request</text>
+  <text x="190" y="198" text-anchor="middle" class="body">entity</text>
+  <text x="190" y="225" text-anchor="middle" class="body">revision / current resolution</text>
+  <text x="190" y="252" text-anchor="middle" class="body">snapshot</text>
+  <text x="190" y="279" text-anchor="middle" class="body">session · branch</text>
+  <text x="190" y="306" text-anchor="middle" class="body">user request</text>
+
+  <rect x="410" y="105" width="330" height="250" rx="22" fill="#f5f3ff" stroke="#7c3aed" stroke-width="4"/>
+  <text x="575" y="148" text-anchor="middle" class="label">Agent branch</text>
+  <text x="575" y="180" text-anchor="middle" class="small">isolated from the parent session transcript</text>
+  <rect x="455" y="210" width="240" height="44" rx="12" fill="#ffffff" stroke="#7c3aed" stroke-width="2"/><text x="575" y="238" text-anchor="middle" class="body">inspect / follow / query</text>
+  <rect x="455" y="270" width="240" height="44" rx="12" fill="#ffffff" stroke="#7c3aed" stroke-width="2"/><text x="575" y="298" text-anchor="middle" class="body">diff / edit / validate</text>
+
+  <rect x="820" y="100" width="300" height="110" rx="18" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="970" y="143" text-anchor="middle" class="label">Proposed migration</text>
+  <text x="970" y="174" text-anchor="middle" class="small">affected semantic entities + provenance</text>
+
+  <rect x="820" y="270" width="300" height="110" rx="18" fill="#fef2f2" stroke="#dc2626" stroke-width="3"/>
+  <text x="970" y="313" text-anchor="middle" class="label">Validation result</text>
+  <text x="970" y="344" text-anchor="middle" class="small">tests · diagnostics · conflicts</text>
+
+  <rect x="820" y="440" width="300" height="110" rx="18" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="970" y="483" text-anchor="middle" class="label">Resulting snapshot</text>
+  <text x="970" y="514" text-anchor="middle" class="small">or no canonical change if validation fails</text>
+
+  <rect x="355" y="455" width="390" height="150" rx="20" fill="#f8fafc" stroke="#475569" stroke-width="3"/>
+  <text x="550" y="494" text-anchor="middle" class="label">Branch result returned to the editor</text>
+  <text x="550" y="528" text-anchor="middle" class="body">summary · migration link · validation link</text>
+  <text x="550" y="556" text-anchor="middle" class="body">affected object handles · resulting snapshot</text>
+  <text x="550" y="584" text-anchor="middle" class="small">The parent can keep the compact result, not the full exploration.</text>
+
+  <path d="M330 230 L410 230" class="line"/>
+  <path d="M740 175 L820 155" class="line"/>
+  <path d="M970 210 L970 270" class="line"/>
+  <path d="M970 380 L970 440" class="line"/>
+  <path d="M820 500 C770 520 760 530 745 530" class="line"/>
+  <path d="M550 455 C550 420 575 390 575 355" class="line"/>
+
+  <text x="190" y="390" text-anchor="middle" class="body">No prompt needs to say</text>
+  <text x="190" y="416" text-anchor="middle" class="body">“edit lines 124–198”.</text>
+</svg>
