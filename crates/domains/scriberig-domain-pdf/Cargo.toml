@@ -11,7 +11,7 @@ repository.workspace = true
 scriberig-core = { path = "../../scriberig-core" }
 scriberig-derive = { path = "../../scriberig-derive" }
 scriberig-graph = { path = "../../scriberig-graph" }
-scriberig-projection = { path = "../../scriberig-projection" }
+sr-projection = { path = "../../sr-projection" }
 scriberig-schema = { path = "../../scriberig-schema" }
 blake3 = "1.8"
 

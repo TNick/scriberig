@@ -172,6 +172,15 @@ fn build_operations(
                     entity,
                     revision: block_revision(block),
                 });
+                if let Some(collection) = matched_parent(candidate_path, &report.matches) {
+                    operations.push(Operation::InsertCollectionMember {
+                        collection,
+                        member: entity,
+                        position: sr_change::CollectionPosition {
+                            index: candidate_path.last().copied().unwrap_or(0) as u64,
+                        },
+                    });
+                }
             }
             NodeMatch::Ambiguous { .. } => {}
         }
@@ -189,6 +198,22 @@ fn build_operations(
         operations.push(Operation::RemoveEntity { entity: *entity });
     }
     operations
+}
+
+/// Finds the stable parent collection matched for a candidate path.
+fn matched_parent(path: &[usize], matches: &[NodeMatch]) -> Option<EntityId> {
+    if path.len() <= 1 {
+        return None;
+    }
+    let parent_path = &path[..path.len() - 1];
+    matches.iter().find_map(|item| match item {
+        NodeMatch::Matched {
+            candidate_path,
+            existing,
+            ..
+        } if candidate_path == parent_path => Some(*existing),
+        _ => None,
+    })
 }
 
 /// Produces a deterministic revision for a projected block.

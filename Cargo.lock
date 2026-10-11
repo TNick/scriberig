@@ -490,12 +490,12 @@ dependencies = [
  "scriberig-derive",
  "scriberig-graph",
  "scriberig-migration",
- "scriberig-projection",
  "scriberig-query",
  "scriberig-session",
  "scriberig-store",
  "scriberig-store-memory",
  "sr-change",
+ "sr-projection",
 ]
 
 [[package]]
@@ -540,6 +540,7 @@ name = "scriberig-core"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "serde",
  "uuid",
 ]
 
@@ -561,8 +562,8 @@ dependencies = [
  "scriberig-domain-test-support",
  "scriberig-graph",
  "scriberig-migration",
- "scriberig-projection",
  "scriberig-schema",
+ "sr-projection",
 ]
 
 [[package]]
@@ -575,8 +576,8 @@ dependencies = [
  "scriberig-domain-test-support",
  "scriberig-graph",
  "scriberig-migration",
- "scriberig-projection",
  "scriberig-schema",
+ "sr-projection",
 ]
 
 [[package]]
@@ -588,8 +589,8 @@ dependencies = [
  "scriberig-derive",
  "scriberig-domain-test-support",
  "scriberig-graph",
- "scriberig-projection",
  "scriberig-schema",
+ "sr-projection",
 ]
 
 [[package]]
@@ -604,9 +605,9 @@ dependencies = [
  "scriberig-domain-test-support",
  "scriberig-graph",
  "scriberig-migration",
- "scriberig-projection",
  "scriberig-schema",
  "sr-change",
+ "sr-projection",
  "syn 2.0.119",
 ]
 
@@ -639,10 +640,6 @@ dependencies = [
 name = "scriberig-projection"
 version = "0.1.0"
 dependencies = [
- "scriberig-core",
- "scriberig-derive",
- "scriberig-graph",
- "scriberig-migration",
  "sr-projection",
 ]
 
@@ -662,6 +659,8 @@ version = "0.1.0"
 dependencies = [
  "scriberig-core",
  "scriberig-graph",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -849,6 +848,8 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "scriberig-core",
+ "scriberig-store",
+ "sr-change",
 ]
 
 [[package]]

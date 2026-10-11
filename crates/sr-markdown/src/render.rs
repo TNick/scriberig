@@ -100,6 +100,13 @@ fn render_block(block: &MarkdownBlock, style: &MarkdownStyle, output: &mut Strin
             output.push_str(target.trim());
             output.push(')');
         }
+        MarkdownBlock::Image { alt, target } => {
+            output.push_str("![");
+            output.push_str(alt.trim());
+            output.push_str("](");
+            output.push_str(target.trim());
+            output.push(')');
+        }
         MarkdownBlock::Section(section) => render_section(section, style, output),
     }
 }
@@ -139,8 +146,20 @@ fn render_list(ordered: bool, items: &[ListItem], style: &MarkdownStyle, output:
             output.push(style.list_marker);
         }
         output.push(' ');
-        if let Some(first) = item.blocks.first() {
-            render_block(first, style, output);
+        for (block_index, block) in item.blocks.iter().enumerate() {
+            if block_index > 0 {
+                output.push('\n');
+                let mut nested = String::new();
+                render_block(block, style, &mut nested);
+                for line in nested.lines() {
+                    output.push_str("  ");
+                    output.push_str(line);
+                    output.push('\n');
+                }
+                output.pop();
+            } else {
+                render_block(block, style, output);
+            }
         }
     }
 }

@@ -23,6 +23,10 @@ pub enum ProjectionClass {
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct ProjectionKind(String);
 
+/// Identifies an external representation without imposing filesystem details.
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ExternalLocation(String);
+
 /// Identifies one projection instance independently of its location.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct ProjectionRef(pub EntityId);
@@ -55,10 +59,14 @@ pub struct ProjectionSpec {
     pub adapter_id: String,
     /// Adapter implementation version.
     pub adapter_version: String,
+    /// Renderer implementation version used for deterministic output.
+    pub renderer: RendererVersion,
     /// Adapter-defined deterministic configuration values.
     pub configuration: BTreeMap<String, Vec<u8>>,
     /// Generic ownership policy for projected output.
     pub ownership: OwnershipClass,
+    /// Optional opaque location for an external representation.
+    pub location: Option<ExternalLocation>,
 }
 
 /// Classifies ownership without describing a physical location.
@@ -107,6 +115,35 @@ impl ProjectionKind {
     ///
     /// # Returns
     /// The adapter-defined identifier.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl ExternalLocation {
+    /// Creates an opaque external location reference.
+    ///
+    /// # Parameters
+    /// - `location`: Stable adapter-defined location text.
+    ///
+    /// # Returns
+    /// The location when it is nonempty.
+    ///
+    /// # Errors
+    /// Returns an error when the location is empty or whitespace-only.
+    pub fn new(location: impl Into<String>) -> Result<Self, &'static str> {
+        let location = location.into();
+        if location.trim().is_empty() {
+            return Err("external location must not be empty");
+        }
+        Ok(Self(location))
+    }
+
+    /// Returns the opaque location text.
+    ///
+    /// # Returns
+    /// The adapter-defined location reference.
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0

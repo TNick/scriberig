@@ -4,7 +4,7 @@ use crate::{DetailLevel, InformationCost, Page, PageRequest, QueryError, QuerySc
 use scriberig_core::ObjectType;
 
 /// Domain-neutral scalar value used by structural predicates.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum QueryValue {
     /// UTF-8 scalar value.
     Text(String),
@@ -15,7 +15,7 @@ pub enum QueryValue {
 }
 
 /// Direction for typed relation predicates.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum QueryDirection {
     /// Traverse relation targets from the subject.
     Outgoing,
@@ -24,7 +24,7 @@ pub enum QueryDirection {
 }
 
 /// Declarative structural query expression.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum QueryExpr {
     /// Matches every entity in the scope.
     All,
@@ -65,7 +65,7 @@ pub enum QueryExpr {
 }
 
 /// Orders exact structural query results using domain-independent semantics.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum QueryOrdering {
     /// Provider-defined stable ordering.
     StableDefault,
@@ -79,7 +79,7 @@ pub enum QueryOrdering {
 }
 
 /// Selects ascending or descending property ordering.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum SortDirection {
     /// Lowest values first.
     Ascending,
@@ -88,7 +88,7 @@ pub enum SortDirection {
 }
 
 /// Requests exact structural selection within one snapshot-bound scope.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct QuerySpec {
     /// Exact semantic scope to query.
     pub scope: QueryScope,
@@ -103,7 +103,7 @@ pub struct QuerySpec {
 }
 
 /// One semantic row returned by an exact structural query.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct QueryRow {
     /// Semantic handle reusable by inspect/list/follow operations.
     pub target: TargetRef,
@@ -114,7 +114,7 @@ pub struct QueryRow {
 }
 
 /// Returns exact-scope structural query rows.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct QueryResult {
     /// Exact scope used by evaluation.
     pub scope: QueryScope,

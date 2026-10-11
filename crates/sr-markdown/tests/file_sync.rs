@@ -149,8 +149,8 @@ fn invalid_external_edit_is_recoverable() {
         external: digest_bytes(&[0xff, 0xfe]),
         location: ProjectionLocation::new("architecture.md"),
         stage: sr_projection_fs::FailureStage::Parse,
-        diagnostics: error.message.expect("diagnostic"),
-        bytes: Some(vec![0xff, 0xfe]),
+        diagnostics: vec![*error],
+        bytes: vec![0xff, 0xfe],
     };
     assert_eq!(recovery.base.0, SnapshotId::new([3; 32]));
     assert_eq!(recovery.stage, sr_projection_fs::FailureStage::Parse);

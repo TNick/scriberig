@@ -8,6 +8,8 @@ description = "Domain-independent projection contracts and lifecycle types."
 repository.workspace = true
 
 [dependencies]
+sr-change = { path = "../sr-change" }
+scriberig-store = { path = "../scriberig-store" }
 scriberig-core = { path = "../scriberig-core" }
 blake3 = "1.8"
 

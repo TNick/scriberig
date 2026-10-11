@@ -1,6 +1,7 @@
 //! Composes injected domain capability providers deterministically.
 
 use crate::{ApplicationError, CapabilityDescriptor, CapabilityId, DomainOperationRequest};
+use scriberig_query::{Inspection, ReadCapability};
 
 /// Supplies capability descriptors and optional domain operation execution.
 pub trait CapabilityProvider {
@@ -127,6 +128,50 @@ impl CapabilityRegistry {
                 .then(left.entity_types.cmp(&right.entity_types))
         });
         capabilities
+    }
+
+    /// Merges applicable registered capabilities into one inspection.
+    ///
+    /// # Parameters
+    /// - `self`: Registry containing generic and domain providers.
+    /// - `inspection`: Inspection to enrich in place.
+    ///
+    /// # Effects
+    /// Only available descriptors applicable to the inspected entity type are
+    /// added. Existing graph-provided descriptors are preserved and not
+    /// duplicated by identifier.
+    pub fn enrich_inspection(&self, inspection: &mut Inspection) {
+        let entity_type = inspection.entity_type.as_ref();
+        for descriptor in self.capabilities() {
+            if !descriptor.available
+                || (!descriptor.entity_types.is_empty()
+                    && !entity_type.is_some_and(|value| {
+                        descriptor
+                            .entity_types
+                            .iter()
+                            .any(|candidate| candidate == value)
+                    }))
+            {
+                continue;
+            }
+            let target = match descriptor.kind {
+                crate::CapabilityKind::Relation => &mut inspection.relations,
+                crate::CapabilityKind::Collection => &mut inspection.collections,
+                crate::CapabilityKind::View => &mut inspection.views,
+                crate::CapabilityKind::DomainOperation => &mut inspection.operations,
+                crate::CapabilityKind::FindStrategy => continue,
+            };
+            if target
+                .iter()
+                .any(|value| value.id == descriptor.id.as_str())
+            {
+                continue;
+            }
+            target.push(ReadCapability {
+                id: descriptor.id.to_string(),
+                description: descriptor.description,
+            });
+        }
     }
 
     /// Executes a matching capability through its owning provider.

@@ -68,6 +68,7 @@ fn storage_diff_is_snapshot_bound() {
         .expect("diff");
     assert_eq!(result.snapshot, Some(snapshot));
     assert!(result.handle.starts_with("diff:"));
+    assert_eq!(result.diff.as_ref().map(|diff| diff.left), Some(snapshot));
 }
 
 /// Verifies history execution retains the exact requested snapshot.
@@ -85,6 +86,7 @@ fn storage_history_is_snapshot_bound() {
         )
         .expect("history");
     assert_eq!(result.snapshot, Some(snapshot));
+    assert_eq!(result.history.as_ref().map(Vec::len), Some(0));
 }
 
 /// Verifies apply is candidate-only while commit performs root promotion.
@@ -115,6 +117,7 @@ fn storage_apply_and_commit_keep_promotion_explicit() {
             &ApplicationContext::empty(),
             &scriberig_app::ApplyRequest {
                 base_snapshot: snapshot,
+                branch: None,
                 change: "empty".to_owned(),
             },
         )
@@ -135,9 +138,29 @@ fn storage_apply_and_commit_keep_promotion_explicit() {
             &ApplicationContext::empty(),
             &scriberig_app::CommitRequest {
                 base_snapshot: snapshot,
+                branch: None,
                 change: "empty".to_owned(),
             },
         )
         .expect("commit");
     assert_eq!(committed.snapshot, Some(snapshot));
+}
+
+/// Verifies branch creation persists the requested named root.
+#[test]
+fn storage_branch_creates_requested_root() {
+    let store = MemoryStore::new();
+    let snapshot = store.empty_snapshot();
+    let provider = StoreOperationProvider::new(store);
+    let branch = RootName::new("feature").expect("branch");
+    provider
+        .branch(
+            &ApplicationContext::empty(),
+            &scriberig_app::BranchRequest {
+                base: SnapshotSelector::Exact(snapshot),
+                name: branch.clone(),
+            },
+        )
+        .expect("branch");
+    assert_eq!(provider.store().read_root(&branch), Some(snapshot));
 }

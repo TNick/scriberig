@@ -3,7 +3,7 @@
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
 
 /// Identifies one typed semantic traversal step.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum RelationStep {
     /// Follows a typed relation.
     Relation {
@@ -18,7 +18,7 @@ pub enum RelationStep {
 }
 
 /// Maps a semantic entity to an optional source projection location.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum ProjectionAnchor {
     /// Character or byte range in a text projection.
     TextRange {
@@ -50,7 +50,7 @@ pub enum ProjectionAnchor {
 }
 
 /// Selects one entity in an exact snapshot and optional semantic context.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Selection {
     /// Exact snapshot containing the selection.
     pub snapshot: SnapshotId,

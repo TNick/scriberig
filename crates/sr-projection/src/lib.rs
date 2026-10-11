@@ -18,12 +18,17 @@ pub use conflict::{
     AmbiguousMapping, CapturedObservation, ConflictId, ConflictKind, ConflictResolution,
     ConflictStatus, ObservationId, ProjectionConflict, ProjectionConflictStore, ResolvedConflict,
 };
-pub use diagnostic::{DiagnosticDetail, DiagnosticStage, ProjectionDiagnostic};
+pub use diagnostic::{
+    DiagnosticDetail, DiagnosticKind, DiagnosticSource, DiagnosticStage, ProjectionDiagnostic,
+};
 pub use model::{
-    OwnershipClass, ProjectionClass, ProjectionKind, ProjectionRef, ProjectionSpec,
-    ProjectionSpecRef, RendererVersion, SemanticScopeRef, SemanticStateRef,
+    ExternalLocation, OwnershipClass, ProjectionClass, ProjectionKind, ProjectionRef,
+    ProjectionSpec, ProjectionSpecRef, RendererVersion, SemanticScopeRef, SemanticStateRef,
 };
 pub use reconcile::ReconciliationOutcome;
-pub use render::{OutputHash, RenderRequest, RenderedProjection, RenderingContext};
+pub use render::{
+    OutputHash, RenderCacheKey, RenderRequest, RenderedFragment, RenderedProjection,
+    RenderingContext,
+};
 pub use state::ProjectionStatus;
 pub use style::{StyleRef, StyleValue};

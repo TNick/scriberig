@@ -9,10 +9,6 @@ repository.workspace = true
 
 [dependencies]
 sr-projection = { path = "../sr-projection" }
-scriberig-core = { path = "../scriberig-core" }
-scriberig-derive = { path = "../scriberig-derive" }
-scriberig-graph = { path = "../scriberig-graph" }
-scriberig-migration = { path = "../scriberig-migration" }
 
 [lints]
 workspace = true

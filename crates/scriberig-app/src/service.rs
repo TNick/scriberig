@@ -290,6 +290,21 @@ mod tests {
                 detail: scriberig_query::DetailLevel::Identity,
             }))
         }
+
+        /// Resolves the fixture's exact current snapshot.
+        ///
+        /// # Parameters
+        /// - `self`: Fixture backend.
+        /// - `_context`: Unused test context.
+        ///
+        /// # Returns
+        /// The deterministic current snapshot.
+        fn current_snapshot(
+            &self,
+            _context: &ApplicationContext,
+        ) -> Result<SnapshotId, ApplicationError> {
+            Ok(SnapshotId::new([3; 32]))
+        }
     }
 
     /// Verifies the typed inspection facade uses the universal execution path.
@@ -306,6 +321,21 @@ mod tests {
             .expect("inspection");
         assert_eq!(result.entity, request.entity);
         assert_eq!(result.revision, Some(RevisionId::new([2; 32])));
+        assert_eq!(result.snapshot, Some(SnapshotId::new([3; 32])));
+    }
+
+    /// Verifies omitted current state is resolved before universal execution.
+    #[test]
+    fn current_inspection_is_resolved_to_one_exact_snapshot() {
+        let service = ApplicationService::new(Fixture);
+        let request = InspectRequest {
+            entity: EntityId::new([1; 16]),
+            snapshot: SnapshotResolution::Current,
+            detail: DetailLevel::Compact,
+        };
+        let result = service
+            .inspect(&ApplicationContext::empty(), &request)
+            .expect("current inspection");
         assert_eq!(result.snapshot, Some(SnapshotId::new([3; 32])));
     }
 }

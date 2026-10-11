@@ -5,7 +5,9 @@ use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 
 /// Identifies one long-running operation across application events.
-#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize,
+)]
 pub struct OperationId(String);
 
 impl OperationId {

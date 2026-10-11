@@ -1,6 +1,7 @@
 //! Verifies watcher-neutral synchronization and feedback suppression.
 use scriberig_core::{EntityId, SnapshotId};
 use sr_projection::{ProjectionRef, ProjectionStatus, SemanticStateRef};
+use sr_projection::{ProjectionSpecRef, RendererVersion, SemanticScopeRef, StyleRef, StyleValue};
 use sr_projection_fs::{
     FileSystem, LocalFileSystem, MemorySyncStore, Observation, ProjectionLocation,
     ProjectionOwnership, SyncState, digest_bytes, inspect_observation,
@@ -20,9 +21,18 @@ fn self_write_event_is_synchronized() {
     let mut store = MemorySyncStore::default();
     store.put(SyncState {
         projection,
+        specification: ProjectionSpecRef(EntityId::new([5; 16])),
+        scope: SemanticScopeRef {
+            entity: EntityId::new([6; 16]),
+            revision: None,
+        },
+        kind: sr_projection::ProjectionKind::new("text").expect("kind"),
         location: location.clone(),
         ownership: ProjectionOwnership::ManagedEditable,
         base: SemanticStateRef(SnapshotId::new([2; 32])),
+        current: SemanticStateRef(SnapshotId::new([2; 32])),
+        style: StyleRef::Value(StyleValue::new(Vec::new())),
+        renderer: RendererVersion::new("test"),
         rendered: digest_bytes(b"same"),
         observed: None,
         status: ProjectionStatus::ExternallyModified,
@@ -41,9 +51,18 @@ fn removal_is_not_semantic_deletion() {
     let mut store = MemorySyncStore::default();
     store.put(SyncState {
         projection: ProjectionRef(EntityId::new([3; 16])),
+        specification: ProjectionSpecRef(EntityId::new([7; 16])),
+        scope: SemanticScopeRef {
+            entity: EntityId::new([8; 16]),
+            revision: None,
+        },
+        kind: sr_projection::ProjectionKind::new("text").expect("kind"),
         location: location.clone(),
         ownership: ProjectionOwnership::ManagedEditable,
         base: SemanticStateRef(SnapshotId::new([4; 32])),
+        current: SemanticStateRef(SnapshotId::new([4; 32])),
+        style: StyleRef::Value(StyleValue::new(Vec::new())),
+        renderer: RendererVersion::new("test"),
         rendered: digest_bytes(b"old"),
         observed: None,
         status: ProjectionStatus::Synchronized,

@@ -12,7 +12,7 @@ scriberig-core = { path = "../scriberig-core" }
 scriberig-derive = { path = "../scriberig-derive" }
 scriberig-graph = { path = "../scriberig-graph" }
 scriberig-migration = { path = "../scriberig-migration" }
-scriberig-projection = { path = "../scriberig-projection" }
+sr-projection = { path = "../sr-projection" }
 scriberig-query = { path = "../scriberig-query" }
 scriberig-session = { path = "../scriberig-session" }
 scriberig-store = { path = "../scriberig-store" }

@@ -62,6 +62,22 @@ pub trait KnowledgeView {
         snapshot: SnapshotId,
         entity: EntityId,
     ) -> Result<Option<RevisionRecord>, Self::Error>;
+    /// Reads an immutable revision without requiring a current snapshot.
+    ///
+    /// # Parameters
+    /// - `entity`: Entity identity associated with the revision.
+    /// - `revision`: Exact immutable revision identity.
+    ///
+    /// # Returns
+    /// The revision record when it is retained and belongs to the entity.
+    ///
+    /// # Errors
+    /// Returns the backend error when the revision cannot be read.
+    fn read_exact_revision(
+        &self,
+        entity: EntityId,
+        revision: RevisionId,
+    ) -> Result<Option<RevisionRecord>, Self::Error>;
     /// Returns the declared type for an entity in a snapshot.
     ///
     /// # Parameters

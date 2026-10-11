@@ -86,9 +86,10 @@ impl StoreObservability for SqliteStore {
             let (name, bytes) =
                 row.map_err(|error| StoreOperationError::backend(error.to_string()))?;
             if bytes.len() != 32 {
-                return Err(StoreOperationError::backend(
-                    "invalid root snapshot identifier",
-                ));
+                return Err(StoreOperationError {
+                    category: scriberig_store::StoreErrorCategory::InvalidEncoding,
+                    message: "invalid root snapshot identifier".to_owned(),
+                });
             }
             let mut id = [0; 32];
             id.copy_from_slice(&bytes);

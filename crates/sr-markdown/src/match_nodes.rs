@@ -2,10 +2,11 @@
 
 use scriberig_core::EntityId;
 
+use crate::match_nodes_support::{
+    candidate_context, flatten, nearby_anchor, parent_matches, same_context, same_kind,
+    section_precedes_heading_anchor, text_similarity,
+};
 use crate::model::{MarkdownBlock, MarkdownDocument};
-
-/// Flattened semantic blocks paired with structural paths.
-type FlattenedBlocks = Vec<(Vec<usize>, MarkdownBlock)>;
 
 /// A canonical node participating in one projected semantic surface.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -27,8 +28,16 @@ pub enum MatchEvidence {
     ExactStructural,
     /// Exact content with a unique local candidate.
     ExactContent,
+    /// Exact domain-significant section heading or title.
+    DomainName,
     /// Same kind at an unchanged structural position.
     StructuralContext,
+    /// Same sibling collection position with compatible surrounding context.
+    SiblingAlignment,
+    /// Same-kind node retained by an unchanged neighboring anchor.
+    NearbyAnchor,
+    /// Same-kind node selected by a unique conservative text score.
+    TextSimilarity,
 }
 
 /// One candidate matching result.
@@ -78,12 +87,19 @@ pub struct MatchReport {
 pub fn match_nodes(base: &[CanonicalNode], candidate: &MarkdownDocument) -> MatchReport {
     let candidates = flatten(candidate);
     let mut used = vec![false; base.len()];
-    let mut results = Vec::new();
+    let mut matches = Vec::new();
     for (path, block) in &candidates {
-        results.push(match_candidate(base, &mut used, &results, path, block));
+        matches.push(match_candidate(
+            base,
+            &mut used,
+            &matches,
+            &candidates,
+            path,
+            block,
+        ));
     }
     MatchReport {
-        matches: results,
+        matches,
         unmatched: base
             .iter()
             .enumerate()
@@ -93,22 +109,13 @@ pub fn match_nodes(base: &[CanonicalNode], candidate: &MarkdownDocument) -> Matc
     }
 }
 
-/// Matches one candidate block against the available canonical context.
-///
-/// # Parameters
-/// - `base`: Canonical nodes available for matching.
-/// - `used`: Mutable match markers for canonical nodes.
-/// - `results`: Matches already established in document order.
-/// - `path`: Candidate structural path.
-/// - `block`: Candidate semantic block.
-///
-/// # Returns
-/// The explicit match outcome for this candidate.
+/// Matches one candidate block against available canonical context.
 #[allow(clippy::too_many_lines)]
 fn match_candidate(
     base: &[CanonicalNode],
     used: &mut [bool],
     results: &[NodeMatch],
+    candidates: &[(Vec<usize>, MarkdownBlock)],
     path: &[usize],
     block: &MarkdownBlock,
 ) -> NodeMatch {
@@ -116,216 +123,134 @@ fn match_candidate(
     let root_context = base
         .iter()
         .any(|node| node.parent.is_none() && same_kind(&node.block, block));
+    let eligible = |index: usize, node: &CanonicalNode| {
+        !used[index]
+            && !parent_is_new
+            && parent_matches(node.parent, mapped_parent, path, root_context)
+    };
     let exact_content: Vec<_> = base
         .iter()
         .enumerate()
-        .filter(|(index, node)| {
-            !used[*index]
-                && !parent_is_new
-                && node.block == *block
-                && parent_matches(node.parent, mapped_parent, path, root_context)
-        })
+        .filter(|(index, node)| eligible(*index, node) && node.block == *block)
         .map(|(index, _)| index)
         .collect();
     if exact_content.len() > 1 {
-        return NodeMatch::Ambiguous {
-            candidate_path: path.to_owned(),
-            possible: exact_content.iter().map(|index| base[*index].id).collect(),
-        };
+        return ambiguous(path, base, &exact_content);
     }
     let exact_path: Vec<_> = base
         .iter()
         .enumerate()
         .filter(|(index, node)| {
-            !used[*index]
-                && !parent_is_new
+            eligible(*index, node)
                 && node.position == path.last().copied().unwrap_or(0)
-                && parent_matches(node.parent, mapped_parent, path, root_context)
                 && node.block == *block
         })
         .map(|(index, _)| index)
         .collect();
-    if let Some(&index) = exact_path.first().filter(|_| exact_path.len() == 1) {
-        used[index] = true;
-        return NodeMatch::Matched {
-            candidate_path: path.to_owned(),
-            existing: base[index].id,
-            evidence: MatchEvidence::ExactStructural,
-        };
+    if exact_path.len() == 1 {
+        return matched(
+            path,
+            base,
+            used,
+            exact_path[0],
+            MatchEvidence::ExactStructural,
+        );
     }
-    if let Some(&index) = exact_content.first().filter(|_| exact_content.len() == 1) {
-        used[index] = true;
-        return NodeMatch::Matched {
-            candidate_path: path.to_owned(),
-            existing: base[index].id,
-            evidence: MatchEvidence::ExactContent,
+    if exact_content.len() == 1 {
+        let evidence = if matches!(block, MarkdownBlock::Section(_)) {
+            MatchEvidence::DomainName
+        } else {
+            MatchEvidence::ExactContent
         };
-    }
-    if exact_content.len() > 1 {
-        return NodeMatch::Ambiguous {
-            candidate_path: path.to_owned(),
-            possible: exact_content.iter().map(|index| base[*index].id).collect(),
-        };
+        return matched(path, base, used, exact_content[0], evidence);
     }
     let contextual: Vec<_> = base
         .iter()
         .enumerate()
         .filter(|(index, node)| {
-            !used[*index]
-                && !parent_is_new
+            eligible(*index, node)
                 && node.position == path.last().copied().unwrap_or(0)
                 && same_context(&node.block, block)
-                && parent_matches(node.parent, mapped_parent, path, root_context)
+                && !section_precedes_heading_anchor(base, candidates, path, block)
         })
         .map(|(index, _)| index)
         .collect();
-    if let Some(&index) = contextual.first().filter(|_| contextual.len() == 1) {
-        used[index] = true;
-        return NodeMatch::Matched {
-            candidate_path: path.to_owned(),
-            existing: base[index].id,
-            evidence: MatchEvidence::StructuralContext,
-        };
+    if contextual.len() == 1 {
+        return matched(
+            path,
+            base,
+            used,
+            contextual[0],
+            MatchEvidence::SiblingAlignment,
+        );
+    }
+    let nearby: Vec<_> = base
+        .iter()
+        .enumerate()
+        .filter(|(index, node)| {
+            eligible(*index, node)
+                && same_context(&node.block, block)
+                && nearby_anchor(base, results, candidates, path, node)
+        })
+        .map(|(index, _)| index)
+        .collect();
+    if nearby.len() == 1 {
+        return matched(path, base, used, nearby[0], MatchEvidence::NearbyAnchor);
+    }
+    if nearby.len() > 1 {
+        return ambiguous(path, base, &nearby);
     }
     let same_kind: Vec<_> = base
         .iter()
         .enumerate()
-        .filter(|(index, node)| !used[*index] && same_context(&node.block, block))
-        .filter(|(_, node)| {
-            !parent_is_new && parent_matches(node.parent, mapped_parent, path, root_context)
+        .filter(|(index, node)| {
+            eligible(*index, node)
+                && same_context(&node.block, block)
+                && !section_precedes_heading_anchor(base, candidates, path, block)
         })
         .map(|(index, _)| index)
         .collect();
-    match same_kind.len() {
-        1 => {
-            let index = same_kind[0];
-            used[index] = true;
-            NodeMatch::Matched {
-                candidate_path: path.to_owned(),
-                existing: base[index].id,
-                evidence: MatchEvidence::StructuralContext,
-            }
-        }
-        count if count > 1 => NodeMatch::Ambiguous {
+    let scored: Vec<_> = same_kind
+        .iter()
+        .map(|index| (*index, text_similarity(&base[*index].block, block)))
+        .filter(|(_, (shared, union))| shared.saturating_mul(2) >= *union)
+        .collect();
+    if let Some((index, (shared, union))) = scored.first().copied()
+        && scored.get(1).is_none_or(|(_, (next_shared, next_union))| {
+            shared.saturating_mul(*next_union) > next_shared.saturating_mul(union)
+        })
+    {
+        return matched(path, base, used, index, MatchEvidence::TextSimilarity);
+    }
+    match same_kind.as_slice() {
+        [index] => matched(path, base, used, *index, MatchEvidence::StructuralContext),
+        [] => NodeMatch::New {
             candidate_path: path.to_owned(),
-            possible: same_kind.iter().map(|index| base[*index].id).collect(),
         },
-        _ => NodeMatch::New {
-            candidate_path: path.to_owned(),
-        },
+        _ => ambiguous(path, base, &same_kind),
     }
 }
 
-/// Checks whether a canonical node belongs to the candidate's known parent.
-///
-/// # Parameters
-/// - `node_parent`: Canonical parent identity.
-/// - `mapped_parent`: Parent identity established by an earlier match.
-/// - `path`: Candidate structural path.
-/// - `root_context`: Whether a top-level canonical node of this kind exists.
-///
-/// # Returns
-/// `true` when the node occupies the candidate's known collection.
-fn parent_matches(
-    node_parent: Option<EntityId>,
-    mapped_parent: Option<EntityId>,
+/// Creates a matched result and marks its canonical identity as consumed.
+fn matched(
     path: &[usize],
-    root_context: bool,
-) -> bool {
-    if path.len() == 1 {
-        !root_context || node_parent.is_none()
-    } else {
-        mapped_parent.is_some_and(|parent| node_parent == Some(parent))
+    base: &[CanonicalNode],
+    used: &mut [bool],
+    index: usize,
+    evidence: MatchEvidence,
+) -> NodeMatch {
+    used[index] = true;
+    NodeMatch::Matched {
+        candidate_path: path.to_owned(),
+        existing: base[index].id,
+        evidence,
     }
 }
 
-/// Resolves the known parent context for one candidate path.
-///
-/// # Parameters
-/// - `path`: Candidate structural path.
-/// - `results`: Matches already established in document order.
-///
-/// # Returns
-/// The mapped parent identity and whether an ancestor is newly created.
-fn candidate_context(path: &[usize], results: &[NodeMatch]) -> (Option<EntityId>, bool) {
-    if path.len() <= 1 {
-        return (None, false);
-    }
-    let parent_path = &path[..path.len() - 1];
-    let mapped_parent = results.iter().find_map(|item| match item {
-        NodeMatch::Matched {
-            candidate_path,
-            existing,
-            ..
-        } if candidate_path == parent_path => Some(*existing),
-        _ => None,
-    });
-    let parent_is_new = results.iter().any(|item| match item {
-        NodeMatch::New { candidate_path } | NodeMatch::Ambiguous { candidate_path, .. } => {
-            parent_path.starts_with(candidate_path)
-        }
-        NodeMatch::Matched { .. } => false,
-    });
-    (mapped_parent, parent_is_new)
-}
-
-/// Flattens nested semantic blocks into stable structural paths.
-///
-/// # Parameters
-/// - `document`: Document to flatten.
-///
-/// # Returns
-/// Blocks paired with their structural paths.
-fn flatten(document: &MarkdownDocument) -> FlattenedBlocks {
-    let mut output = Vec::new();
-    for (index, block) in document.blocks.iter().enumerate() {
-        flatten_block(block, &[index], &mut output);
-    }
-    output
-}
-
-/// Adds a block and its nested children to the flattened representation.
-///
-/// # Parameters
-/// - `block`: Block to add.
-/// - `path`: Current structural path.
-/// - `output`: Destination flattened list.
-fn flatten_block(block: &MarkdownBlock, path: &[usize], output: &mut FlattenedBlocks) {
-    output.push((path.to_owned(), block.clone()));
-    if let MarkdownBlock::Section(section) = block {
-        for (index, child) in section.blocks.iter().enumerate() {
-            let mut child_path = path.to_owned();
-            child_path.push(index);
-            flatten_block(child, &child_path, output);
-        }
-    }
-}
-
-/// Reports whether two blocks have the same semantic kind.
-///
-/// # Parameters
-/// - `left`: First block.
-/// - `right`: Second block.
-///
-/// # Returns
-/// `true` when both blocks have the same variant.
-fn same_kind(left: &MarkdownBlock, right: &MarkdownBlock) -> bool {
-    std::mem::discriminant(left) == std::mem::discriminant(right)
-}
-
-/// Reports whether two blocks share enough stable context for a changed edit.
-///
-/// # Parameters
-/// - `left`: Existing canonical block.
-/// - `right`: Candidate block.
-///
-/// # Returns
-/// `true` when structural matching may safely retain identity.
-fn same_context(left: &MarkdownBlock, right: &MarkdownBlock) -> bool {
-    match (left, right) {
-        (MarkdownBlock::Section(left), MarkdownBlock::Section(right)) => {
-            left.level == right.level && left.heading == right.heading
-        }
-        _ => same_kind(left, right),
+/// Creates an ambiguity result for equally plausible canonical identities.
+fn ambiguous(path: &[usize], base: &[CanonicalNode], indexes: &[usize]) -> NodeMatch {
+    NodeMatch::Ambiguous {
+        candidate_path: path.to_owned(),
+        possible: indexes.iter().map(|index| base[*index].id).collect(),
     }
 }

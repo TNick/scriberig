@@ -83,6 +83,28 @@ impl KnowledgeView for Fixture {
         Ok((snapshot == self.snapshot && entity == self.entity).then(|| self.record.clone()))
     }
 
+    /// Reads the fixture revision by its immutable identity.
+    ///
+    /// # Parameters
+    /// - `entity`: Entity identity requested by the test.
+    /// - `revision`: Revision identity requested by the test.
+    ///
+    /// # Returns
+    /// The fixture record when both identities match.
+    ///
+    /// # Errors
+    /// This fixture does not produce backend errors.
+    fn read_exact_revision(
+        &self,
+        entity: EntityId,
+        revision: RevisionId,
+    ) -> Result<Option<RevisionRecord>, Self::Error> {
+        Ok(
+            (entity == self.entity && revision == RevisionId::new([2; 32]))
+                .then(|| self.record.clone()),
+        )
+    }
+
     /// Returns the fixture entity type.
     ///
     /// # Parameters
@@ -173,6 +195,25 @@ fn graph_inspection_is_snapshot_bound() {
     assert_eq!(result.relations[0].id, "depends_on");
 }
 
+/// Verifies exact revision targets remain readable after snapshot changes.
+#[test]
+fn graph_inspection_resolves_exact_revision_targets() {
+    let fixture = fixture();
+    let service = GraphReadService::new(fixture);
+    let result = service
+        .inspect(&InspectRequest {
+            target: TargetRef::Revision(scriberig_query::EntityAtRevision {
+                entity: EntityId::new([1; 16]),
+                revision: RevisionId::new([2; 32]),
+            }),
+            detail: DetailLevel::Compact,
+            view: None,
+        })
+        .expect("exact revision inspection");
+    assert_eq!(result.revision, Some(RevisionId::new([2; 32])));
+    assert_eq!(result.snapshot, None);
+}
+
 /// Verifies collection and outgoing relation reads retain exact targets.
 #[test]
 fn graph_traversal_is_bounded_and_typed() {
@@ -194,6 +235,10 @@ fn graph_traversal_is_bounded_and_typed() {
         })
         .expect("list");
     assert_eq!(listed.page.items.len(), 1);
+    assert_eq!(
+        listed.page.items[0].entity_type,
+        Some(ObjectType::new("test.entity").expect("type"))
+    );
     let followed = service
         .follow(&FollowRequest {
             subject,
@@ -208,6 +253,54 @@ fn graph_traversal_is_bounded_and_typed() {
         })
         .expect("follow");
     assert_eq!(followed.page.items.len(), 1);
+
+    let continuation = listed.page.next;
+    assert!(continuation.is_none());
+}
+
+/// Verifies continuations cannot be replayed against a different operation.
+#[test]
+fn graph_traversal_rejects_cross_operation_continuations() {
+    let fixture = fixture();
+    let service = GraphReadService::new(fixture);
+    let subject = EntityInSnapshot {
+        entity: EntityId::new([1; 16]),
+        snapshot: SnapshotId::new([3; 32]),
+    };
+    let listed = service
+        .list(&ListRequest {
+            subject,
+            collection: CollectionRef {
+                owner: subject.entity,
+                collection_type: "members".to_owned(),
+            },
+            page: PageRequest::new(1, None).expect("page"),
+            detail: DetailLevel::Compact,
+        })
+        .expect("list");
+    let continuation = listed
+        .page
+        .next
+        .unwrap_or_else(|| scriberig_query::ContinuationToken::new("0"));
+    let error = service
+        .follow(&FollowRequest {
+            subject,
+            relation: RelationRef {
+                source: subject.entity,
+                relation_type: "depends_on".to_owned(),
+                target: None,
+            },
+            direction: FollowDirection::Outgoing,
+            page: PageRequest::new(1, Some(continuation)).expect("page"),
+            detail: DetailLevel::Compact,
+        })
+        .expect_err("cross-operation continuation");
+    assert!(matches!(
+        error,
+        scriberig_query::QueryError::InvalidContinuation {
+            operation: scriberig_query::ReadOperation::Follow,
+        }
+    ));
 }
 
 /// Verifies explicit entity scopes support discovery and structural queries.
@@ -246,4 +339,45 @@ fn graph_explicit_scopes_support_find_and_query() {
         })
         .expect("query");
     assert_eq!(query.page.items.len(), 1);
+}
+
+/// Verifies invalid discovery inputs remain structured at the query boundary.
+#[test]
+fn graph_query_rejects_empty_scope_and_search_text() {
+    let fixture = fixture();
+    let service = GraphReadService::new(fixture);
+    let snapshot = SnapshotId::new([3; 32]);
+    let scope_error = service
+        .query(&QuerySpec {
+            scope: QueryScope::ExplicitEntities {
+                snapshot,
+                entities: Vec::new(),
+            },
+            expression: QueryExpr::All,
+            ordering: QueryOrdering::StableDefault,
+            page: PageRequest::default(),
+            detail: DetailLevel::Identity,
+        })
+        .expect_err("empty scope");
+    assert!(matches!(
+        scope_error,
+        scriberig_query::QueryError::InvalidScope {
+            operation: scriberig_query::ReadOperation::Query,
+            ..
+        }
+    ));
+
+    let find_error = service
+        .find(&FindRequest {
+            scope: QueryScope::Snapshot(snapshot),
+            query: " ".to_owned(),
+            strategy: FindStrategy::ExactText,
+            page: PageRequest::default(),
+            detail: DetailLevel::Identity,
+        })
+        .expect_err("empty search text");
+    assert!(matches!(
+        find_error,
+        scriberig_query::QueryError::InvalidQuery { .. }
+    ));
 }

@@ -63,6 +63,13 @@ pub enum MarkdownBlock {
         /// Link destination.
         target: String,
     },
+    /// An image reference with alternative text and destination.
+    Image {
+        /// Alternative text.
+        alt: String,
+        /// Image destination.
+        target: String,
+    },
     /// A section grouping a heading and all blocks until the next heading.
     Section(Section),
 }

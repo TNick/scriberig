@@ -1,7 +1,8 @@
 //! Adapts the universal query providers to application execution.
 
 use crate::{
-    ApplicationBackend, ApplicationContext, ApplicationError, ApplicationRequest, ApplicationResult,
+    ApplicationBackend, ApplicationContext, ApplicationError, ApplicationRequest,
+    ApplicationResult, CapabilityRegistry,
 };
 use scriberig_core::SnapshotId;
 use scriberig_query::{
@@ -12,6 +13,7 @@ use scriberig_query::{
 pub struct UniversalReadBackend<R> {
     provider: R,
     current_snapshot: Option<SnapshotId>,
+    capabilities: Option<CapabilityRegistry>,
 }
 
 impl<R> UniversalReadBackend<R> {
@@ -27,6 +29,7 @@ impl<R> UniversalReadBackend<R> {
         Self {
             provider,
             current_snapshot: None,
+            capabilities: None,
         }
     }
 
@@ -41,6 +44,20 @@ impl<R> UniversalReadBackend<R> {
     #[must_use]
     pub const fn with_current_snapshot(mut self, snapshot: SnapshotId) -> Self {
         self.current_snapshot = Some(snapshot);
+        self
+    }
+
+    /// Installs the registry used to enrich inspection capabilities.
+    ///
+    /// # Parameters
+    /// - `self`: Backend being configured.
+    /// - `capabilities`: Injected generic/domain capability registry.
+    ///
+    /// # Returns
+    /// The configured read backend.
+    #[must_use]
+    pub fn with_capability_registry(mut self, capabilities: CapabilityRegistry) -> Self {
+        self.capabilities = Some(capabilities);
         self
     }
 
@@ -80,11 +97,13 @@ where
         request: &ApplicationRequest,
     ) -> Result<ApplicationResult, ApplicationError> {
         match request {
-            ApplicationRequest::Inspect(value) => self
-                .provider
-                .inspect(value)
-                .map(ApplicationResult::Inspect)
-                .map_err(map_query_error),
+            ApplicationRequest::Inspect(value) => {
+                let mut inspection = self.provider.inspect(value).map_err(map_query_error)?;
+                if let Some(capabilities) = &self.capabilities {
+                    capabilities.enrich_inspection(&mut inspection);
+                }
+                Ok(ApplicationResult::Inspect(inspection))
+            }
             ApplicationRequest::List(value) => self
                 .provider
                 .list(value)
@@ -173,6 +192,15 @@ fn map_query_error(error: QueryError) -> ApplicationError {
         QueryError::InvalidQuery { message } => ApplicationError::InvalidRequest {
             operation: "query".to_owned(),
             message,
+        },
+        QueryError::InvalidScope { operation, scope } => ApplicationError::InvalidRequest {
+            operation: format!("{operation:?}").to_lowercase(),
+            message: format!("invalid query scope: {scope:?}"),
+        },
+        QueryError::Ambiguous { operation, message } => ApplicationError::Ambiguous {
+            scope: format!("{operation:?}").to_lowercase(),
+            candidates: Vec::new(),
+            reason: message,
         },
     }
 }

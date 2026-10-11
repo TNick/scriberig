@@ -4,10 +4,11 @@ use std::cell::Cell;
 
 use scriberig_app::{
     ApplicationContext, ApplicationRequest, ApplicationResult, ApplyRequest, BranchRequest,
-    CommitRequest, CompositeBackend, DiffRequest, HistoryRequest, OperationProvider,
-    OperationSummary, RenderRequest, SnapshotSelector,
+    CapabilityDescriptor, CapabilityId, CapabilityKind, CapabilityProvider, CommitRequest,
+    CompositeBackend, DiffRequest, HistoryRequest, OperationProvider, OperationSummary,
+    RenderRequest, SnapshotSelector,
 };
-use scriberig_core::{RootName, SnapshotId};
+use scriberig_core::{ObjectType, RootName, SnapshotId};
 use scriberig_query::{
     FindRequest, FindResult, FindService, FollowRequest, FollowResult, InspectRequest,
     InspectService, Inspection, ListRequest, ListResult, QueryError, QueryResult, QuerySpec,
@@ -16,6 +17,100 @@ use scriberig_query::{
 
 /// Provides explicit unsupported errors for read-dispatch assertions.
 struct ReadFixture;
+
+/// Provides one successful inspection and unsupported traversal operations.
+struct InspectingReadFixture;
+
+impl InspectService for InspectingReadFixture {
+    /// Returns one generic inspection for capability-enrichment assertions.
+    fn inspect(&self, request: &InspectRequest) -> Result<Inspection, QueryError> {
+        Ok(Inspection {
+            subject: request.target,
+            snapshot: Some(SnapshotId::new([2; 32])),
+            revision: None,
+            entity_type: Some(ObjectType::new("test.entity").expect("type")),
+            label: None,
+            description: None,
+            properties: Vec::new(),
+            counts: Vec::new(),
+            relations: Vec::new(),
+            collections: Vec::new(),
+            views: Vec::new(),
+            operations: Vec::new(),
+            provenance: Vec::new(),
+            information_cost: None,
+            detail: request.detail,
+        })
+    }
+}
+
+impl TraverseService for InspectingReadFixture {
+    /// Returns an explicit unsupported list capability.
+    fn list(&self, request: &ListRequest) -> Result<ListResult, QueryError> {
+        ReadFixture.list(request)
+    }
+
+    /// Returns an explicit unsupported follow capability.
+    fn follow(&self, request: &FollowRequest) -> Result<FollowResult, QueryError> {
+        ReadFixture.follow(request)
+    }
+}
+
+impl FindService for InspectingReadFixture {
+    /// Returns an explicit unsupported find capability.
+    fn find(&self, request: &FindRequest) -> Result<FindResult, QueryError> {
+        ReadFixture.find(request)
+    }
+}
+
+impl StructuredQueryService for InspectingReadFixture {
+    /// Returns an explicit unsupported query capability.
+    fn query(&self, request: &QuerySpec) -> Result<QueryResult, QueryError> {
+        ReadFixture.query(request)
+    }
+}
+
+/// Advertises one domain capability for inspection enrichment.
+struct InspectionCapabilityProvider;
+
+impl CapabilityProvider for InspectionCapabilityProvider {
+    /// Returns relation, view, and operation descriptors for test entities.
+    fn capabilities(&self) -> Vec<CapabilityDescriptor> {
+        let entity_type = ObjectType::new("test.entity").expect("type");
+        vec![
+            CapabilityDescriptor {
+                id: CapabilityId::new("relation.calls").expect("capability"),
+                kind: CapabilityKind::Relation,
+                label: "Calls".to_owned(),
+                description: "Outgoing calls".to_owned(),
+                entity_types: vec![entity_type.clone()],
+                available: true,
+                derived: false,
+                estimated_items: None,
+            },
+            CapabilityDescriptor {
+                id: CapabilityId::new("view.summary").expect("capability"),
+                kind: CapabilityKind::View,
+                label: "Summary".to_owned(),
+                description: "Summary projection".to_owned(),
+                entity_types: vec![entity_type.clone()],
+                available: true,
+                derived: false,
+                estimated_items: None,
+            },
+            CapabilityDescriptor {
+                id: CapabilityId::new("operation.rename").expect("capability"),
+                kind: CapabilityKind::DomainOperation,
+                label: "Rename".to_owned(),
+                description: "Rename the entity".to_owned(),
+                entity_types: vec![entity_type],
+                available: true,
+                derived: false,
+                estimated_items: None,
+            },
+        ]
+    }
+}
 
 impl InspectService for ReadFixture {
     /// Returns an explicit provider error.
@@ -145,6 +240,10 @@ impl OperationFixture {
             handle: handle.to_owned(),
             snapshot: None,
             revision: None,
+            branch: None,
+            diff: None,
+            history: None,
+            rendered: None,
         }
     }
 }
@@ -314,10 +413,12 @@ fn operation_dispatch_covers_all_mutating_and_projection_operations() {
         }),
         ApplicationRequest::Apply(ApplyRequest {
             base_snapshot: snapshot,
+            branch: None,
             change: "change".to_owned(),
         }),
         ApplicationRequest::Commit(CommitRequest {
             base_snapshot: snapshot,
+            branch: None,
             change: "change".to_owned(),
         }),
     ];
@@ -389,4 +490,53 @@ fn read_dispatch_preserves_structured_unsupported_capability() {
             Err(scriberig_app::ApplicationError::UnsupportedCapability { .. })
         ));
     }
+}
+
+/// Verifies registered capabilities are merged into universal inspection.
+#[test]
+fn inspection_merges_registered_capabilities() {
+    let snapshot = SnapshotId::new([2; 32]);
+    let entity = scriberig_core::EntityId::new([3; 16]);
+    let mut registry = scriberig_app::CapabilityRegistry::new();
+    registry
+        .register(InspectionCapabilityProvider)
+        .expect("register capability provider");
+    let backend = CompositeBackend::new(InspectingReadFixture, OperationFixture::new())
+        .with_capability_registry(registry);
+    let request = ApplicationRequest::Inspect(InspectRequest {
+        target: scriberig_query::TargetRef::Snapshot(scriberig_query::EntityInSnapshot {
+            entity,
+            snapshot,
+        }),
+        detail: scriberig_query::DetailLevel::Compact,
+        view: None,
+    });
+
+    let result = scriberig_app::ApplicationBackend::execute(
+        &backend,
+        &ApplicationContext::empty(),
+        &request,
+    )
+    .expect("inspection");
+    let ApplicationResult::Inspect(inspection) = result else {
+        panic!("expected inspection result");
+    };
+    assert!(
+        inspection
+            .relations
+            .iter()
+            .any(|value| value.id == "relation.calls")
+    );
+    assert!(
+        inspection
+            .views
+            .iter()
+            .any(|value| value.id == "view.summary")
+    );
+    assert!(
+        inspection
+            .operations
+            .iter()
+            .any(|value| value.id == "operation.rename")
+    );
 }

@@ -5,7 +5,7 @@
 use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 
 use crate::{
-    candidate::CandidateDocument,
+    candidate::{CandidateDocument, SourceSpan},
     diagnostic::MarkdownDiagnostic,
     model::{ListItem, MarkdownBlock, MarkdownDocument, Section},
 };
@@ -23,7 +23,45 @@ use crate::{
 /// A candidate document that retains source length for diagnostics.
 pub fn parse(source: &str) -> Result<CandidateDocument, MarkdownDiagnostic> {
     let document = parse_document(source)?;
-    Ok(CandidateDocument::new(document, source.len()))
+    Ok(CandidateDocument::with_source_spans(
+        document,
+        source.len(),
+        source_spans(source),
+    ))
+}
+
+/// Collects parser-owned byte coordinates for supported block constructs.
+///
+/// # Parameters
+/// - `source`: External Markdown source.
+///
+/// # Returns
+/// Source spans suitable for diagnostics and projection coordinates.
+fn source_spans(source: &str) -> Vec<SourceSpan> {
+    Parser::new_ext(source, Options::all())
+        .into_offset_iter()
+        .filter_map(|(event, range)| {
+            let is_supported_block = matches!(
+                event,
+                Event::Start(
+                    Tag::Paragraph
+                        | Tag::Heading { .. }
+                        | Tag::List(_)
+                        | Tag::Item
+                        | Tag::CodeBlock(_)
+                        | Tag::BlockQuote
+                        | Tag::Table(_)
+                        | Tag::TableHead
+                        | Tag::TableRow
+                        | Tag::TableCell
+                )
+            );
+            is_supported_block.then_some(SourceSpan {
+                start: range.start,
+                end: range.end,
+            })
+        })
+        .collect()
 }
 
 /// Parses UTF-8 Markdown into a semantic document.
@@ -40,40 +78,65 @@ pub fn parse_document(source: &str) -> Result<MarkdownDocument, MarkdownDiagnost
     let parser = Parser::new_ext(source, Options::all());
     let mut blocks = Vec::new();
     let mut text = String::new();
-    let mut list: Option<(bool, Vec<ListItem>)> = None;
+    let mut lists: Vec<(bool, Vec<ListItem>)> = Vec::new();
     let mut table: Option<Vec<Vec<String>>> = None;
     let mut row = Vec::new();
     let mut code_language = None;
     let mut in_quote = false;
     let mut quote_blocks = Vec::new();
+    let mut text_context = false;
+    let mut inline_link_target = None;
+    let mut inline_image_target = None;
 
     for event in parser {
         match event {
-            Event::Start(Tag::Heading { .. }) => text.clear(),
-            Event::End(TagEnd::Heading(level)) => blocks.push(MarkdownBlock::Heading {
-                level: heading_level(level),
-                text: text.trim().to_owned(),
-            }),
-            Event::Start(Tag::Paragraph) => text.clear(),
+            Event::Start(Tag::Heading { .. }) => {
+                text.clear();
+                text_context = true;
+            }
+            Event::End(TagEnd::Heading(level)) => {
+                blocks.push(MarkdownBlock::Heading {
+                    level: heading_level(level),
+                    text: text.trim().to_owned(),
+                });
+                text_context = false;
+            }
+            Event::Start(Tag::Paragraph) => {
+                text.clear();
+                text_context = true;
+            }
             Event::End(TagEnd::Paragraph) => {
                 if in_quote {
                     push_text_block(&mut quote_blocks, &text);
                 } else {
                     push_text_block(&mut blocks, &text);
                 }
+                text_context = false;
             }
-            Event::Text(value) | Event::Code(value) => text.push_str(&value),
+            Event::Text(value) => {
+                append_list_text(&mut lists, &value, &mut text);
+            }
+            Event::Code(value) => {
+                append_list_text(&mut lists, &format!("`{value}`"), &mut text);
+            }
             Event::SoftBreak | Event::HardBreak => text.push('\n'),
-            Event::Start(Tag::List(start)) => list = Some((start.is_some(), Vec::new())),
-            Event::Start(Tag::Item) => text.clear(),
-            Event::End(TagEnd::Item) => {
-                if let Some((_, items)) = &mut list {
-                    items.push(ListItem::text(text.trim()));
+            Event::Start(Tag::List(start)) => lists.push((start.is_some(), Vec::new())),
+            Event::Start(Tag::Item) => {
+                if let Some((_, items)) = lists.last_mut() {
+                    items.push(ListItem::text(String::new()));
                 }
             }
+            Event::End(TagEnd::Item) => {}
             Event::End(TagEnd::List(_)) => {
-                if let Some((ordered, items)) = list.take() {
-                    blocks.push(MarkdownBlock::List { ordered, items });
+                if let Some((ordered, items)) = lists.pop() {
+                    let list_block = MarkdownBlock::List { ordered, items };
+                    if let Some((_, parent_items)) = lists.last_mut() {
+                        if let Some(parent) = parent_items.last_mut() {
+                            parent.blocks.push(list_block);
+                        }
+                    } else {
+                        blocks.push(list_block);
+                    }
                 }
             }
             Event::Start(Tag::CodeBlock(kind)) => {
@@ -103,13 +166,22 @@ pub fn parse_document(source: &str) -> Result<MarkdownDocument, MarkdownDiagnost
                 text.clear();
             }
             Event::Start(Tag::Link { dest_url, .. }) => {
-                text.clear();
-                text.push('\u{1}');
-                text.push_str(&dest_url);
-                text.push('\n');
+                if text_context {
+                    text.push('[');
+                    inline_link_target = Some(dest_url.to_string());
+                } else {
+                    text.clear();
+                    text.push('\u{1}');
+                    text.push_str(&dest_url);
+                    text.push('\n');
+                }
             }
             Event::End(TagEnd::Link) => {
-                if let Some((target, label)) = text
+                if let Some(target) = inline_link_target.take() {
+                    text.push_str("](");
+                    text.push_str(&target);
+                    text.push(')');
+                } else if let Some((target, label)) = text
                     .strip_prefix('\u{1}')
                     .and_then(|value| value.split_once('\n'))
                 {
@@ -117,8 +189,35 @@ pub fn parse_document(source: &str) -> Result<MarkdownDocument, MarkdownDiagnost
                         label: label.to_owned(),
                         target: target.to_owned(),
                     });
+                    text.clear();
                 }
-                text.clear();
+            }
+            Event::Start(Tag::Image { dest_url, .. }) => {
+                if text_context {
+                    text.push_str("![");
+                    inline_image_target = Some(dest_url.to_string());
+                } else {
+                    text.clear();
+                    text.push('\u{2}');
+                    text.push_str(&dest_url);
+                    text.push('\n');
+                }
+            }
+            Event::End(TagEnd::Image) => {
+                if let Some(target) = inline_image_target.take() {
+                    text.push_str("](");
+                    text.push_str(&target);
+                    text.push(')');
+                } else if let Some((target, alt)) = text
+                    .strip_prefix('\u{2}')
+                    .and_then(|value| value.split_once('\n'))
+                {
+                    blocks.push(MarkdownBlock::Image {
+                        alt: alt.to_owned(),
+                        target: target.to_owned(),
+                    });
+                    text.clear();
+                }
             }
             Event::Start(Tag::Table(_)) => {
                 table = Some(Vec::new());
@@ -142,6 +241,24 @@ pub fn parse_document(source: &str) -> Result<MarkdownDocument, MarkdownDiagnost
                     headers,
                     rows: rows.collect(),
                 });
+            }
+            Event::Start(Tag::Emphasis) => text.push('*'),
+            Event::End(TagEnd::Emphasis) => text.push('*'),
+            Event::Start(Tag::Strong) => text.push_str("**"),
+            Event::End(TagEnd::Strong) => text.push_str("**"),
+            Event::Start(Tag::Strikethrough) => text.push_str("~~"),
+            Event::End(TagEnd::Strikethrough) => text.push_str("~~"),
+            Event::Start(Tag::FootnoteDefinition(_))
+            | Event::End(TagEnd::FootnoteDefinition)
+            | Event::FootnoteReference(_)
+            | Event::Html(_)
+            | Event::InlineHtml(_)
+            | Event::Rule
+            | Event::TaskListMarker(_) => {
+                return Err(MarkdownDiagnostic::new(
+                    "unsupported-markdown",
+                    "Markdown contains syntax outside the supported projection model",
+                ));
             }
             _ if in_quote => {}
             _ => {}
@@ -206,6 +323,19 @@ fn push_text_block(blocks: &mut Vec<MarkdownBlock>, text: &str) {
     if !text.trim().is_empty() {
         blocks.push(MarkdownBlock::Paragraph(text.trim().to_owned()));
     }
+}
+
+/// Appends inline text to the active list item or block text buffer.
+fn append_list_text(lists: &mut [(bool, Vec<ListItem>)], value: &str, text: &mut String) {
+    if let Some((_, items)) = lists.last_mut() {
+        if let Some(ListItem { blocks }) = items.last_mut() {
+            if let Some(MarkdownBlock::Paragraph(paragraph)) = blocks.first_mut() {
+                paragraph.push_str(value);
+                return;
+            }
+        }
+    }
+    text.push_str(value);
 }
 
 /// Converts pulldown heading levels to a stable numeric depth.

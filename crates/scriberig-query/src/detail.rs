@@ -1,7 +1,7 @@
 //! Defines universal progressive-detail and information-cost hints.
 
 /// Requests a bounded amount of semantic query detail.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum DetailLevel {
     /// Return only stable identity handles.
     Identity,
@@ -14,7 +14,7 @@ pub enum DetailLevel {
 }
 
 /// Provides advisory coarse estimates for an operation result.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct InformationCost {
     /// Estimated number of returned semantic items.
     pub items: Option<u64>,

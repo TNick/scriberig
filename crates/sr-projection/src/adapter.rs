@@ -80,14 +80,19 @@ pub trait ProjectionAdapter {
     ///
     /// # Errors
     /// Returns a structured diagnostic when parsing fails.
-    fn parse(&self, kind: &ProjectionKind, bytes: &[u8]) -> ProjectionResult<Self::Candidate>;
+    fn parse(&self, kind: &ProjectionKind, bytes: &[u8]) -> ProjectionResult<Self::Candidate> {
+        let _ = (kind, bytes);
+        Err(Box::new(ProjectionDiagnostic::unsupported(
+            crate::diagnostic::DiagnosticStage::Parse,
+        )))
+    }
 
     /// Reconciles a candidate against the exact state from which it was edited.
     ///
     /// # Parameters
     /// - `self`: Adapter performing reconciliation.
     /// - `candidate`: Parsed external candidate.
-    /// - `base`: Exact canonical base snapshot.
+    /// - `context`: Exact canonical and projection synchronization context.
     ///
     /// # Returns
     /// A typed outcome distinguishing no-op, proposal, ambiguity, conflict,
@@ -95,8 +100,13 @@ pub trait ProjectionAdapter {
     fn reconcile(
         &self,
         candidate: Self::Candidate,
-        base: crate::model::SemanticStateRef,
-    ) -> ReconciliationOutcome<Self::Migration, Self::Conflict, Box<ProjectionDiagnostic>>;
+        context: &ReconciliationContext,
+    ) -> ReconciliationOutcome<Self::Migration, Self::Conflict, Box<ProjectionDiagnostic>> {
+        let _ = (candidate, context);
+        ReconciliationOutcome::InvalidExternalState(Box::new(ProjectionDiagnostic::unsupported(
+            crate::diagnostic::DiagnosticStage::Reconcile,
+        )))
+    }
 
     /// Validates an adapter-owned candidate before proposing canonical change.
     ///
@@ -109,5 +119,10 @@ pub trait ProjectionAdapter {
     ///
     /// # Errors
     /// Returns a structured diagnostic when validation fails.
-    fn validate(&self, candidate: &Self::Candidate) -> ProjectionResult<()>;
+    fn validate(&self, candidate: &Self::Candidate) -> ProjectionResult<()> {
+        let _ = candidate;
+        Err(Box::new(ProjectionDiagnostic::unsupported(
+            crate::diagnostic::DiagnosticStage::Validate,
+        )))
+    }
 }

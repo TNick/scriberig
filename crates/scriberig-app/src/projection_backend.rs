@@ -4,7 +4,7 @@ use crate::{
     ApplicationContext, ApplicationError, ApplyRequest, BranchRequest, CommitRequest, DiffRequest,
     HistoryRequest, OperationProvider, OperationSummary, RenderRequest,
 };
-use scriberig_projection::{ProjectionAdapter, RenderRequest as ProjectionRequest};
+use sr_projection::{ProjectionAdapter, RenderRequest as ProjectionRequest};
 
 /// Executes render through a canonical projection adapter and request factory.
 pub struct ProjectionOperationProvider<P, F> {
@@ -99,7 +99,7 @@ where
             .map_err(|diagnostic| ApplicationError::Internal {
                 message: format!("projection render failed: {diagnostic:?}"),
             })?;
-        let handle = rendered.output_hash.map_or_else(
+        let handle = rendered.output_hash.as_ref().map_or_else(
             || "render:unhashed".to_owned(),
             |hash| format!("{}:{:x?}", hash.algorithm, hash.digest),
         );
@@ -107,6 +107,10 @@ where
             handle,
             snapshot: Some(rendered.base_state.0),
             revision: None,
+            branch: None,
+            diff: None,
+            history: None,
+            rendered: Some(rendered),
         })
     }
 

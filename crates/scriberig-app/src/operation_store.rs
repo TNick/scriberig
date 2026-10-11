@@ -131,19 +131,22 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
         _context: &ApplicationContext,
         request: &DiffRequest,
     ) -> Result<OperationSummary, ApplicationError> {
-        let changes = self
-            .store
-            .diff_snapshots(request.from, request.to)
-            .map_err(|error| ApplicationError::SnapshotUnavailable {
+        let diff = sr_change::compare(&self.store, request.from, request.to).map_err(|error| {
+            ApplicationError::SnapshotUnavailable {
                 snapshot: match error {
                     scriberig_store::SnapshotError::UnknownSnapshot(snapshot) => snapshot,
                     scriberig_store::SnapshotError::Backend(_) => request.to,
                 },
-            })?;
+            }
+        })?;
         Ok(OperationSummary {
-            handle: format!("diff:{}:{}:{}", request.from, request.to, changes.len()),
+            handle: format!("diff:{}:{}:{}", request.from, request.to, diff.deltas.len()),
             snapshot: Some(request.to),
             revision: None,
+            branch: None,
+            diff: Some(diff),
+            history: None,
+            rendered: None,
         })
     }
 
@@ -177,6 +180,10 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             handle: format!("history:{snapshot}:{}", history.migrations().len()),
             snapshot: Some(snapshot),
             revision: None,
+            branch: None,
+            diff: None,
+            history: Some(history.migrations().into_iter().cloned().collect()),
+            rendered: None,
         })
     }
 
@@ -223,10 +230,17 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
                 return Err(unsupported("branch named-root resolution"));
             }
         };
+        self.store
+            .set_root(request.name.clone(), snapshot)
+            .map_err(|error| map_root_error(&error))?;
         Ok(OperationSummary {
             handle: format!("branch:{}:{}", request.name, snapshot),
             snapshot: Some(snapshot),
             revision: None,
+            branch: Some(request.name.clone()),
+            diff: None,
+            history: None,
+            rendered: None,
         })
     }
 
@@ -258,6 +272,10 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             handle: request.change.clone(),
             snapshot: Some(candidate),
             revision: None,
+            branch: request.branch.clone(),
+            diff: None,
+            history: None,
+            rendered: None,
         })
     }
 
@@ -285,17 +303,21 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             .map_err(|_| ApplicationError::SnapshotUnavailable {
                 snapshot: request.base_snapshot,
             })?;
+        let root = request
+            .branch
+            .clone()
+            .unwrap_or_else(|| scriberig_core::RootName::new("main").expect("main root"));
         self.store
-            .compare_and_set_root(
-                scriberig_core::RootName::new("main").expect("main root"),
-                Some(request.base_snapshot),
-                candidate,
-            )
+            .compare_and_set_root(root.clone(), Some(request.base_snapshot), candidate)
             .map_err(|error| map_root_error(&error))?;
         Ok(OperationSummary {
             handle: request.change.clone(),
             snapshot: Some(candidate),
             revision: None,
+            branch: Some(root),
+            diff: None,
+            history: None,
+            rendered: None,
         })
     }
 }

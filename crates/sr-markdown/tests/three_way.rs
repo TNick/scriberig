@@ -23,11 +23,12 @@ fn disjoint_changes_merge() {
     let base = document("one\n\ntwo\n");
     let current = document("one changed\n\ntwo\n");
     let external = document("one\n\ninserted\n\ntwo\n");
-    let ThreeWayOutcome::Merged { document } = three_way_merge(Some(&base), &current, &external)
+    let ThreeWayOutcome::Merged { document: merged } =
+        three_way_merge(Some(&base), &current, &external)
     else {
         panic!("expected merged state");
     };
-    assert_eq!(document.blocks.len(), 3);
+    assert_eq!(merged.blocks.len(), 3);
 }
 
 /// Verifies identical independent edits converge without conflict.
@@ -118,4 +119,62 @@ fn conflicted_merge_preserves_base_for_retry() {
     assert!(result.rendered.is_none());
     assert_eq!(result.synchronization_base, Some(SnapshotId::new([1; 32])));
     assert!(result.retryable);
+}
+
+#[test]
+/// Verifies an insertion does not conflict with a concurrent paragraph edit.
+fn insertion_and_unrelated_edit_merge_by_base_anchor() {
+    let base = document("one\n\ntwo\n");
+    let current = document("one\n\ntwo changed\n");
+    let external = document("inserted\n\none\n\ntwo\n");
+    let ThreeWayOutcome::Merged { document: merged } =
+        three_way_merge(Some(&base), &current, &external)
+    else {
+        panic!("expected base-anchored merge");
+    };
+    assert_eq!(merged, document("inserted\n\none\n\ntwo changed\n"));
+}
+
+#[test]
+/// Verifies independent edits inside one section merge recursively.
+fn nested_section_edits_merge_without_replacing_the_section() {
+    let base = document("# Title\n\nfirst\n\nsecond\n");
+    let current = document("# Title\n\nfirst changed\n\nsecond\n");
+    let external = document("# Title\n\nfirst\n\ninserted\n\nsecond\n");
+    let ThreeWayOutcome::Merged { document: merged } =
+        three_way_merge(Some(&base), &current, &external)
+    else {
+        panic!("expected nested merge");
+    };
+    assert!(merged.blocks.iter().any(|block| matches!(
+        block,
+        sr_markdown::MarkdownBlock::Section(section)
+            if section.blocks.len() == 3
+    )));
+}
+
+#[test]
+/// Verifies invalid rerender output is not promoted as a synchronization base.
+fn invalid_rerender_is_structured_and_retryable() {
+    let base = document("one\n");
+    let current = MarkdownDocument::new(vec![sr_markdown::MarkdownBlock::Section(
+        sr_markdown::Section {
+            level: 7,
+            heading: "invalid".to_owned(),
+            blocks: Vec::new(),
+        },
+    )]);
+    let result = synchronize(
+        Some(SnapshotId::new([1; 32])),
+        Some(&base),
+        SnapshotId::new([2; 32]),
+        &current,
+        &base,
+        &MarkdownStyle::default(),
+        SnapshotId::new([3; 32]),
+    );
+    assert!(matches!(result.outcome, ThreeWayOutcome::Conflict { .. }));
+    assert!(result.rendered.is_none());
+    assert!(result.retryable);
+    assert_eq!(result.synchronization_base, Some(SnapshotId::new([1; 32])));
 }

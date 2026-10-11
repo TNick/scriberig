@@ -5,6 +5,7 @@ pub mod candidate;
 pub mod diagnostic;
 pub mod equivalence;
 pub mod match_nodes;
+mod match_nodes_support;
 pub mod model;
 pub mod parser;
 pub mod reconcile;
@@ -13,7 +14,7 @@ pub mod style;
 pub mod three_way;
 
 pub use adapter::{MARKDOWN_KIND, MarkdownAdapter};
-pub use candidate::CandidateDocument;
+pub use candidate::{CandidateDocument, SourceSpan};
 pub use equivalence::{equivalent, semantically_equivalent};
 pub use match_nodes::{CanonicalNode, MatchEvidence, MatchReport, NodeMatch, match_nodes};
 pub use model::{MarkdownBlock, MarkdownDocument, Section};

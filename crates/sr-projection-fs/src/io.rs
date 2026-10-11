@@ -1,6 +1,9 @@
 //! Defines replace-safe local filesystem IO.
 
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static TEMP_FILE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 /// Structured local IO failure.
 #[derive(Debug)]
@@ -95,6 +98,54 @@ pub trait FileSystem {
     fn write_atomic(&self, path: &Path, bytes: &[u8]) -> Result<(), IoError>;
 }
 
+impl<F: FileSystem + ?Sized> FileSystem for &F {
+    /// Reads exact bytes through a borrowed filesystem implementation.
+    ///
+    /// # Parameters
+    /// - `self`: Borrowed filesystem implementation.
+    /// - `path`: File path.
+    ///
+    /// # Returns
+    /// Exact file bytes.
+    ///
+    /// # Errors
+    /// Returns the delegated filesystem error.
+    fn read(&self, path: &Path) -> Result<Vec<u8>, IoError> {
+        (**self).read(path)
+    }
+
+    /// Reads metadata through a borrowed filesystem implementation.
+    ///
+    /// # Parameters
+    /// - `self`: Borrowed filesystem implementation.
+    /// - `path`: File path.
+    ///
+    /// # Returns
+    /// Optional file metadata.
+    ///
+    /// # Errors
+    /// Returns the delegated filesystem error.
+    fn metadata(&self, path: &Path) -> Result<Option<FileMetadata>, IoError> {
+        (**self).metadata(path)
+    }
+
+    /// Atomically writes bytes through a borrowed filesystem implementation.
+    ///
+    /// # Parameters
+    /// - `self`: Borrowed filesystem implementation.
+    /// - `path`: Target path.
+    /// - `bytes`: Exact replacement bytes.
+    ///
+    /// # Returns
+    /// Unit after replacement.
+    ///
+    /// # Errors
+    /// Returns the delegated filesystem error.
+    fn write_atomic(&self, path: &Path, bytes: &[u8]) -> Result<(), IoError> {
+        (**self).write_atomic(path, bytes)
+    }
+}
+
 /// Minimal filesystem metadata exposed without watcher types.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct FileMetadata {
@@ -160,7 +211,11 @@ impl FileSystem for LocalFileSystem {
             .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or("projection");
-        let temp = parent.join(format!(".{name}.scriberig-tmp"));
+        let sequence = TEMP_FILE_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let temp = parent.join(format!(
+            ".{name}.scriberig-tmp-{}-{sequence}",
+            std::process::id()
+        ));
         std::fs::write(&temp, bytes).map_err(IoError::Write)?;
         if let Err(e) = std::fs::rename(&temp, path) {
             let _ = std::fs::remove_file(&temp);

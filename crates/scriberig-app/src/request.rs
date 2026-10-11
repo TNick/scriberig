@@ -51,6 +51,8 @@ pub struct BranchRequest {
 pub struct ApplyRequest {
     /// Exact base snapshot required by the change.
     pub base_snapshot: SnapshotId,
+    /// Optional branch receiving the candidate context.
+    pub branch: Option<RootName>,
     /// Stable migration/change handle.
     pub change: String,
 }
@@ -60,6 +62,8 @@ pub struct ApplyRequest {
 pub struct CommitRequest {
     /// Exact base snapshot being committed.
     pub base_snapshot: SnapshotId,
+    /// Named branch whose root is promoted, or `main` when omitted.
+    pub branch: Option<RootName>,
     /// Stable migration/change handle.
     pub change: String,
 }

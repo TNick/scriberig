@@ -172,4 +172,24 @@ mod tests {
         assert_eq!(cost.items, None);
         assert_eq!(DetailLevel::Compact, DetailLevel::Compact);
     }
+
+    /// Verifies the structured query AST has a stable transport representation.
+    #[test]
+    fn structured_query_ast_round_trips_as_json() {
+        let specification = QuerySpec {
+            scope: QueryScope::Snapshot(SnapshotId::new([14; 32])),
+            expression: QueryExpr::TypeIs(
+                ObjectType::new("rust.function").expect("valid object type"),
+            ),
+            ordering: QueryOrdering::Property {
+                key: "name".to_owned(),
+                direction: SortDirection::Ascending,
+            },
+            page: PageRequest::default(),
+            detail: DetailLevel::Structure,
+        };
+        let encoded = serde_json::to_string(&specification).expect("encode query");
+        let decoded: QuerySpec = serde_json::from_str(&encoded).expect("decode query");
+        assert_eq!(decoded, specification);
+    }
 }

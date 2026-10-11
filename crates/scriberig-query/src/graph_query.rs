@@ -2,11 +2,12 @@
 
 use crate::{
     ContinuationToken, EntityInSnapshot, FindHit, FindRequest, FindResult, FindService,
-    FindStrategy, GraphReadService, InformationCost, Page, QueryError, QueryExpr, QueryResult,
-    QueryRow, QueryScope, QuerySpec, StructuredQueryService, TargetRef,
+    FindStrategy, GraphReadService, InformationCost, Page, QueryError, QueryExpr, QueryOrdering,
+    QueryResult, QueryRow, QueryScope, QuerySpec, StructuredQueryService, TargetRef,
 };
 use scriberig_core::EntityId;
 use scriberig_graph::{KnowledgeView, RevisionRecord};
+use std::cmp::Ordering;
 
 impl<V: KnowledgeView> FindService for GraphReadService<V> {
     /// Executes bounded discovery over explicitly supplied graph entities.
@@ -22,7 +23,12 @@ impl<V: KnowledgeView> FindService for GraphReadService<V> {
     /// Returns an unsupported-capability error for whole-snapshot scopes or
     /// semantic strategies requiring an index.
     fn find(&self, request: &FindRequest) -> Result<FindResult, QueryError> {
-        let entities = scope_entities(self.view(), &request.scope)?;
+        if request.query.trim().is_empty() {
+            return Err(QueryError::InvalidQuery {
+                message: "find query must not be empty".to_owned(),
+            });
+        }
+        let entities = scope_entities(self.view(), &request.scope, crate::ReadOperation::Find)?;
         if !matches!(
             request.strategy,
             FindStrategy::ExactText | FindStrategy::StructuredName
@@ -54,8 +60,13 @@ impl<V: KnowledgeView> FindService for GraphReadService<V> {
                 });
             }
         }
-        let (start, end) = page_bounds(request.page.continuation.as_ref(), request.page.limit)?;
-        let next = (end < hits.len()).then(|| ContinuationToken::new(end.to_string()));
+        let (start, end) = page_bounds(
+            request.page.continuation.as_ref(),
+            request.page.limit,
+            "find",
+            snapshot,
+        )?;
+        let next = (end < hits.len()).then(|| ContinuationToken::for_page("find", snapshot, end));
         Ok(FindResult {
             scope: request.scope.clone(),
             strategy: request.strategy.clone(),
@@ -82,32 +93,166 @@ impl<V: KnowledgeView> StructuredQueryService for GraphReadService<V> {
     /// Returns an unsupported-capability error for whole-snapshot scopes or
     /// predicates requiring relation indexes.
     fn query(&self, specification: &QuerySpec) -> Result<QueryResult, QueryError> {
-        let entities = scope_entities(self.view(), &specification.scope)?;
+        let entities = scope_entities(
+            self.view(),
+            &specification.scope,
+            crate::ReadOperation::Query,
+        )?;
         let snapshot = specification.scope.snapshot();
         let mut rows = Vec::new();
         for entity in entities {
             let record = self.read_record(snapshot, entity)?;
             if matches_query(self, snapshot, &record, &specification.expression)? {
-                rows.push(QueryRow {
-                    target: TargetRef::Snapshot(EntityInSnapshot { entity, snapshot }),
-                    entity_type: Some(record.entity_type),
-                    metadata: None,
-                });
+                rows.push((entity, record));
             }
+        }
+        if let QueryOrdering::Property { key, direction } = &specification.ordering {
+            rows.sort_by(|left, right| {
+                let ordering = compare_property_values(
+                    left.1.properties.get(key),
+                    right.1.properties.get(key),
+                );
+                match direction {
+                    crate::SortDirection::Ascending => ordering,
+                    crate::SortDirection::Descending => ordering.reverse(),
+                }
+            });
         }
         let (start, end) = page_bounds(
             specification.page.continuation.as_ref(),
             specification.page.limit,
+            "query",
+            snapshot,
         )?;
-        let next = (end < rows.len()).then(|| ContinuationToken::new(end.to_string()));
+        let next = (end < rows.len()).then(|| ContinuationToken::for_page("query", snapshot, end));
         Ok(QueryResult {
             scope: specification.scope.clone(),
             page: Page {
-                items: rows.into_iter().skip(start).take(end - start).collect(),
+                items: rows
+                    .into_iter()
+                    .skip(start)
+                    .take(end - start)
+                    .map(|(entity, record)| QueryRow {
+                        target: TargetRef::Snapshot(EntityInSnapshot { entity, snapshot }),
+                        entity_type: Some(record.entity_type),
+                        metadata: None,
+                    })
+                    .collect(),
                 next,
             },
             information_cost: Some(InformationCost::default()),
         })
+    }
+}
+
+/// Compares optional property values for deterministic query ordering.
+///
+/// # Parameters
+/// - `left`: First optional property value.
+/// - `right`: Second optional property value.
+///
+/// # Returns
+/// A stable ordering with missing values before present values.
+fn compare_property_values(
+    left: Option<&scriberig_core::KnowledgeValue>,
+    right: Option<&scriberig_core::KnowledgeValue>,
+) -> Ordering {
+    match (left, right) {
+        (None, None) => Ordering::Equal,
+        (None, Some(_)) => Ordering::Less,
+        (Some(_), None) => Ordering::Greater,
+        (Some(left), Some(right)) => compare_values(left, right),
+    }
+}
+
+/// Compares property values by semantic variant and value rather than display text.
+///
+/// # Parameters
+/// - `left`: First canonical property value.
+/// - `right`: Second canonical property value.
+///
+/// # Returns
+/// A deterministic total ordering for supported property values.
+fn compare_values(
+    left: &scriberig_core::KnowledgeValue,
+    right: &scriberig_core::KnowledgeValue,
+) -> Ordering {
+    let variant_order = value_variant(left).cmp(&value_variant(right));
+    if variant_order != Ordering::Equal {
+        return variant_order;
+    }
+    match (left, right) {
+        (scriberig_core::KnowledgeValue::Null, scriberig_core::KnowledgeValue::Null) => {
+            Ordering::Equal
+        }
+        (
+            scriberig_core::KnowledgeValue::Bool(left),
+            scriberig_core::KnowledgeValue::Bool(right),
+        ) => left.cmp(right),
+        (
+            scriberig_core::KnowledgeValue::SignedInteger(left),
+            scriberig_core::KnowledgeValue::SignedInteger(right),
+        ) => left.cmp(right),
+        (
+            scriberig_core::KnowledgeValue::UnsignedInteger(left),
+            scriberig_core::KnowledgeValue::UnsignedInteger(right),
+        ) => left.cmp(right),
+        (
+            scriberig_core::KnowledgeValue::Float(left),
+            scriberig_core::KnowledgeValue::Float(right),
+        ) => left.partial_cmp(right).unwrap_or(Ordering::Equal),
+        (
+            scriberig_core::KnowledgeValue::String(left),
+            scriberig_core::KnowledgeValue::String(right),
+        ) => left.cmp(right),
+        (
+            scriberig_core::KnowledgeValue::Bytes(left),
+            scriberig_core::KnowledgeValue::Bytes(right),
+        ) => left.cmp(right),
+        (
+            scriberig_core::KnowledgeValue::List(left),
+            scriberig_core::KnowledgeValue::List(right),
+        ) => left
+            .iter()
+            .zip(right)
+            .map(|(left, right)| compare_values(left, right))
+            .find(|ordering| *ordering != Ordering::Equal)
+            .unwrap_or_else(|| left.len().cmp(&right.len())),
+        (
+            scriberig_core::KnowledgeValue::Record(left),
+            scriberig_core::KnowledgeValue::Record(right),
+        ) => left
+            .iter()
+            .zip(right)
+            .map(|((left_key, left), (right_key, right))| {
+                left_key
+                    .cmp(right_key)
+                    .then_with(|| compare_values(left, right))
+            })
+            .find(|ordering| *ordering != Ordering::Equal)
+            .unwrap_or_else(|| left.len().cmp(&right.len())),
+        _ => Ordering::Equal,
+    }
+}
+
+/// Assigns canonical ordering ranks to property value variants.
+///
+/// # Parameters
+/// - `value`: Property value to classify.
+///
+/// # Returns
+/// The stable variant rank used before comparing values.
+const fn value_variant(value: &scriberig_core::KnowledgeValue) -> u8 {
+    match value {
+        scriberig_core::KnowledgeValue::Null => 0,
+        scriberig_core::KnowledgeValue::Bool(_) => 1,
+        scriberig_core::KnowledgeValue::SignedInteger(_) => 2,
+        scriberig_core::KnowledgeValue::UnsignedInteger(_) => 3,
+        scriberig_core::KnowledgeValue::Float(_) => 4,
+        scriberig_core::KnowledgeValue::String(_) => 5,
+        scriberig_core::KnowledgeValue::Bytes(_) => 6,
+        scriberig_core::KnowledgeValue::List(_) => 7,
+        scriberig_core::KnowledgeValue::Record(_) => 8,
     }
 }
 
@@ -124,14 +269,21 @@ impl<V: KnowledgeView> StructuredQueryService for GraphReadService<V> {
 fn scope_entities<V: KnowledgeView>(
     view: &V,
     scope: &QueryScope,
+    operation: crate::ReadOperation,
 ) -> Result<Vec<EntityId>, QueryError> {
     match scope {
         QueryScope::Entity { entity, .. } => Ok(vec![*entity]),
+        QueryScope::ExplicitEntities { entities, .. } if entities.is_empty() => {
+            Err(QueryError::InvalidScope {
+                operation,
+                scope: scope.clone(),
+            })
+        }
         QueryScope::ExplicitEntities { entities, .. } => Ok(entities.clone()),
         QueryScope::Snapshot(snapshot) => {
             view.entities(*snapshot)
                 .map_err(|_| QueryError::SnapshotUnavailable {
-                    operation: crate::ReadOperation::Query,
+                    operation,
                     snapshot: *snapshot,
                 })
         }
@@ -240,9 +392,16 @@ fn query_value_matches(
 fn page_bounds(
     continuation: Option<&ContinuationToken>,
     limit: usize,
+    operation: &str,
+    snapshot: scriberig_core::SnapshotId,
 ) -> Result<(usize, usize), QueryError> {
+    if !(1..=crate::MAX_PAGE_LIMIT).contains(&limit) {
+        return Err(QueryError::InvalidQuery {
+            message: format!("page limit must be between 1 and {}", crate::MAX_PAGE_LIMIT),
+        });
+    }
     let start = continuation.map_or(0, |token| {
-        token.as_str().parse::<usize>().unwrap_or(usize::MAX)
+        token.offset_for(operation, snapshot).unwrap_or(usize::MAX)
     });
     if start == usize::MAX {
         return Err(QueryError::InvalidContinuation {
@@ -250,4 +409,29 @@ fn page_bounds(
         });
     }
     Ok((start, start.saturating_add(limit)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::compare_property_values;
+    use scriberig_core::KnowledgeValue;
+    use std::cmp::Ordering;
+
+    /// Verifies property ordering is deterministic for present and missing values.
+    #[test]
+    fn property_ordering_places_missing_values_first() {
+        let first = KnowledgeValue::String("alpha".to_owned());
+        let second = KnowledgeValue::String("beta".to_owned());
+        assert_eq!(
+            compare_property_values(Some(&first), Some(&second)),
+            Ordering::Less
+        );
+        assert_eq!(compare_property_values(None, Some(&first)), Ordering::Less);
+        let two = KnowledgeValue::SignedInteger(2);
+        let ten = KnowledgeValue::SignedInteger(10);
+        assert_eq!(
+            compare_property_values(Some(&two), Some(&ten)),
+            Ordering::Less
+        );
+    }
 }

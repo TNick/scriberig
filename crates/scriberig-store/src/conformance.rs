@@ -179,6 +179,21 @@ pub fn run_core_conformance<S: ConformanceStore>(store: &S) -> Result<(), String
 /// Returns a diagnostic when a backend violates the shared contract.
 pub fn run_full_conformance<S: FullConformanceStore>(store: &S) -> Result<(), String> {
     run_core_conformance(store)?;
+    let before = store.stats().map_err(|error| error.to_string())?;
+    let invalid_base = scriberig_core::SnapshotId::new([0x7f; 32]);
+    let invalid = store
+        .apply_changes(invalid_base, &[])
+        .expect_err("an unknown base snapshot must be rejected");
+    if invalid.category() != crate::StoreErrorCategory::NotFound {
+        return Err("unknown snapshot did not use the not-found category".to_owned());
+    }
+    let after = store.stats().map_err(|error| error.to_string())?;
+    if before.revisions != after.revisions
+        || before.snapshots != after.snapshots
+        || before.named_roots != after.named_roots
+    {
+        return Err("rejected snapshot operation changed persistent state".to_owned());
+    }
     let fixture = load_fixture(store)?;
     let root = RootName::new("fixture").map_err(|error| format!("{error:?}"))?;
     store
@@ -200,6 +215,15 @@ pub fn run_full_conformance<S: FullConformanceStore>(store: &S) -> Result<(), St
     let protected = ProtectedRoots {
         snapshots: BTreeSet::from([fixture.s2]),
     };
+    let integrity = store
+        .integrity_check(&protected)
+        .map_err(|error| error.to_string())?;
+    if integrity.is_corrupt()
+        || !integrity.unreachable.snapshots.contains(&fixture.s3)
+        || integrity.unreachable.snapshots.contains(&fixture.s2)
+    {
+        return Err("healthy fixture failed integrity verification".to_owned());
+    }
     let report = store
         .gc_dry_run(&protected)
         .map_err(|error| error.to_string())?;

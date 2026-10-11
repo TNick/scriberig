@@ -8,7 +8,7 @@ use crate::model::{
 use crate::{model::SemanticStateRef, style::StyleRef};
 
 /// Supplies explicit immutable and contextual inputs to a renderer.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct RenderRequest {
     /// Persistent projection specification being rendered.
     pub specification: ProjectionSpecRef,
@@ -27,10 +27,84 @@ pub struct RenderRequest {
 }
 
 /// Carries deterministic extension values without universal domain schemas.
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub struct RenderingContext {
     /// Stable-keyed adapter extension values.
     pub extensions: BTreeMap<String, Vec<u8>>,
+}
+
+/// Exact immutable inputs identifying one render/cache computation.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct RenderCacheKey {
+    /// Persistent projection specification reference.
+    pub specification: ProjectionSpecRef,
+    /// Semantic scope being rendered.
+    pub scope: SemanticScopeRef,
+    /// Exact semantic state used for rendering.
+    pub base_state: SemanticStateRef,
+    /// Projection kind.
+    pub kind: ProjectionKind,
+    /// Exact style input.
+    pub style: StyleRef,
+    /// Exact renderer version.
+    pub renderer: RendererVersion,
+    /// Deterministic adapter rendering context.
+    pub context: RenderingContext,
+}
+
+impl RenderCacheKey {
+    /// Builds a cache identity from every render request input.
+    ///
+    /// # Parameters
+    /// - `request`: Exact render request.
+    ///
+    /// # Returns
+    /// A stable cache identity containing all output-affecting inputs.
+    #[must_use]
+    pub fn from_request(request: &RenderRequest) -> Self {
+        Self {
+            specification: request.specification,
+            scope: request.scope,
+            base_state: request.base_state,
+            kind: request.kind.clone(),
+            style: request.style.clone(),
+            renderer: request.renderer.clone(),
+            context: request.context.clone(),
+        }
+    }
+}
+
+/// Carries one adapter-owned reusable intermediate rendering fragment.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct RenderedFragment {
+    /// Exact local immutable-input key selected by the adapter.
+    pub input_key: Vec<u8>,
+    /// Exact fragment bytes.
+    pub bytes: Vec<u8>,
+    /// Digest of the fragment bytes.
+    pub output_hash: OutputHash,
+}
+
+impl RenderedFragment {
+    /// Creates a reusable fragment from exact local input and output bytes.
+    ///
+    /// # Parameters
+    /// - `input`: Exact local immutable input bytes.
+    /// - `bytes`: Exact fragment output bytes.
+    ///
+    /// # Returns
+    /// A fragment with deterministic input and output metadata.
+    #[must_use]
+    pub fn new(input: &[u8], bytes: &[u8]) -> Self {
+        Self {
+            input_key: blake3::hash(input).as_bytes().to_vec(),
+            bytes: bytes.to_vec(),
+            output_hash: OutputHash {
+                algorithm: "blake3".to_owned(),
+                digest: blake3::hash(bytes).as_bytes().to_vec(),
+            },
+        }
+    }
 }
 
 /// Describes exact rendered representation and output hash metadata.
@@ -50,6 +124,10 @@ pub struct RenderedProjection {
     pub kind: ProjectionKind,
     /// Projection instance associated with the output, when known.
     pub projection: Option<ProjectionRef>,
+    /// Exact global cache identity used for this output.
+    pub cache_key: RenderCacheKey,
+    /// Optional reusable adapter-owned intermediate fragments.
+    pub fragments: Vec<RenderedFragment>,
 }
 
 /// Represents deterministic output digest metadata without choosing an algorithm.
@@ -90,6 +168,22 @@ impl RenderedProjection {
             renderer: request.renderer.clone(),
             kind: request.kind.clone(),
             projection,
+            cache_key: RenderCacheKey::from_request(request),
+            fragments: Vec::new(),
         }
+    }
+
+    /// Attaches reusable intermediate fragments to this rendered output.
+    ///
+    /// # Parameters
+    /// - `self`: Rendered output receiving the fragments.
+    /// - `fragments`: Adapter-owned reusable fragments.
+    ///
+    /// # Returns
+    /// This output with the supplied fragments attached.
+    #[must_use]
+    pub fn with_fragments(mut self, fragments: Vec<RenderedFragment>) -> Self {
+        self.fragments = fragments;
+        self
     }
 }

@@ -2,7 +2,7 @@
 use scriberig_core::{EncodingVersion, EntityId, ObjectType, RevisionId, RootName};
 use scriberig_store::{
     ProtectedRoots, Revision, RevisionStore, RootStore, SnapshotChange, SnapshotStore,
-    StoreObservability,
+    StoreErrorCategory, StoreObservability,
 };
 use scriberig_store_sqlite::SqliteStore;
 use std::fs;
@@ -209,6 +209,55 @@ fn logical_ids_match_memory_backend() {
         .apply_changes(base, &[SnapshotChange::Set(entity, memory_revision)])
         .expect("memory snapshot");
     assert_eq!(sqlite_snapshot, memory_snapshot);
+}
+
+/// Verifies the complete deterministic fixture has backend-independent IDs.
+#[test]
+fn complete_fixture_ids_match_memory_backend() {
+    use scriberig_store::load_fixture;
+    use scriberig_store_memory::MemoryStore;
+
+    let sqlite = SqliteStore::open_in_memory().expect("open sqlite");
+    let memory = MemoryStore::new();
+    let sqlite_fixture = load_fixture(&sqlite).expect("sqlite fixture");
+    let memory_fixture = load_fixture(&memory).expect("memory fixture");
+
+    assert_eq!(sqlite_fixture, memory_fixture);
+    assert_eq!(
+        sqlite.resolve(sqlite_fixture.s2, EntityId::new([1; 16])),
+        memory.resolve(memory_fixture.s2, EntityId::new([1; 16]))
+    );
+    assert_eq!(
+        sqlite.resolve(sqlite_fixture.s3, EntityId::new([2; 16])),
+        memory.resolve(memory_fixture.s3, EntityId::new([2; 16]))
+    );
+}
+
+/// Verifies malformed persisted root identifiers use the encoding category.
+#[test]
+fn malformed_root_identifier_has_backend_neutral_category() {
+    let path = temporary_database_path("malformed-root");
+    let store = SqliteStore::open(&path).expect("open");
+    let root = RootName::new("main").expect("root");
+    store
+        .compare_and_set_root(root, None, scriberig_store::Snapshot::empty().id())
+        .expect("root");
+    drop(store);
+
+    let connection = rusqlite::Connection::open(&path).expect("connection");
+    connection
+        .execute(
+            "UPDATE roots SET snapshot_id=? WHERE name='main'",
+            rusqlite::params![vec![1_u8, 2_u8]],
+        )
+        .expect("corrupt root");
+    drop(connection);
+
+    let store = SqliteStore::open(&path).expect("reopen");
+    let error = store.root_statuses().expect_err("malformed root");
+    assert_eq!(error.category, StoreErrorCategory::InvalidEncoding);
+    drop(store);
+    fs::remove_file(path).expect("cleanup");
 }
 
 /// Verifies committed revisions, snapshots, and roots survive reopening.

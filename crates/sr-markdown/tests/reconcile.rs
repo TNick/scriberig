@@ -112,3 +112,65 @@ fn reorder_emits_collection_move_for_nested_nodes() {
             if *actual == collection && *member == base[1].id
     )));
 }
+
+/// Verifies inserted nested blocks update the owning collection.
+#[test]
+fn insertion_emits_collection_membership() {
+    let section_id = EntityId::new([7; 16]);
+    let section = CanonicalNode {
+        id: section_id,
+        parent: None,
+        block: MarkdownBlock::Section(sr_markdown::Section {
+            level: 1,
+            heading: "Title".to_owned(),
+            blocks: vec![MarkdownBlock::Paragraph("one".to_owned())],
+        }),
+        position: 0,
+    };
+    let child = CanonicalNode {
+        id: EntityId::new([8; 16]),
+        parent: Some(section_id),
+        block: MarkdownBlock::Paragraph("one".to_owned()),
+        position: 0,
+    };
+    let candidate = parse("# Title\n\none\n\ntwo\n").expect("candidate");
+    let result = reconcile(
+        SnapshotId::new([9; 32]),
+        &[section, child],
+        &candidate,
+        "file.md",
+    );
+    let MarkdownReconciliation::MigrationProposal(proposal) = result else {
+        panic!("expected migration proposal");
+    };
+    assert!(proposal.operations.iter().any(|operation| matches!(
+        operation,
+        Operation::InsertCollectionMember { collection, .. } if *collection == section_id
+    )));
+}
+
+/// Verifies an unambiguous heading rename retains section identity.
+#[test]
+fn renamed_section_preserves_identity() {
+    let section_id = EntityId::new([7; 16]);
+    let base = [CanonicalNode {
+        id: section_id,
+        parent: None,
+        block: MarkdownBlock::Section(sr_markdown::Section {
+            level: 1,
+            heading: "Before".to_owned(),
+            blocks: Vec::new(),
+        }),
+        position: 0,
+    }];
+    let candidate = parse("# After\n").expect("candidate");
+    let MarkdownReconciliation::MigrationProposal(proposal) =
+        reconcile(SnapshotId::new([9; 32]), &base, &candidate, "file.md")
+    else {
+        panic!("expected heading migration proposal");
+    };
+    assert!(proposal.operations.iter().any(|operation| matches!(
+        operation,
+        Operation::ReplaceRevision { entity, .. } if *entity == section_id
+    )));
+}

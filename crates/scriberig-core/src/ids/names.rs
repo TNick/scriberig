@@ -16,7 +16,17 @@ macro_rules! name_type {
         ///
         /// # Private members
         /// - `value`: Stores the validated UTF-8 name.
-        #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+        #[derive(
+            Clone,
+            Debug,
+            Eq,
+            Hash,
+            Ord,
+            PartialEq,
+            PartialOrd,
+            serde::Deserialize,
+            serde::Serialize,
+        )]
         pub struct $name {
             value: String,
         }

@@ -21,6 +21,29 @@ pub enum DiagnosticStage {
     Rerender,
 }
 
+/// Classifies a projection diagnostic independently of presentation text.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum DiagnosticKind {
+    /// The requested adapter operation is unsupported.
+    UnsupportedOperation,
+    /// Projection configuration is invalid.
+    InvalidConfiguration,
+    /// Rendering failed.
+    RenderFailure,
+    /// Parsing failed.
+    ParseFailure,
+    /// Reconciliation found ambiguity.
+    ReconciliationAmbiguous,
+    /// Reconciliation found a conflict.
+    ReconciliationConflict,
+    /// Candidate validation failed.
+    ValidationFailure,
+    /// The synchronization base is missing or stale.
+    SynchronizationBaseMissing,
+    /// A storage or semantic-change operation failed.
+    StorageFailure,
+}
+
 /// Carries machine-readable adapter-specific diagnostic detail.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct DiagnosticDetail {
@@ -30,9 +53,22 @@ pub struct DiagnosticDetail {
     pub data: Vec<u8>,
 }
 
+/// Preserves the structured lower-level source of a projection diagnostic.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct DiagnosticSource {
+    /// Subsystem or adapter that produced the underlying failure.
+    pub subsystem: String,
+    /// Stable source-specific error code.
+    pub code: String,
+    /// Source-provided explanation when available.
+    pub message: Option<String>,
+}
+
 /// Describes a failure or concern at one projection lifecycle stage.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProjectionDiagnostic {
+    /// Stable diagnostic category.
+    pub kind: DiagnosticKind,
     /// Lifecycle stage where the diagnostic occurred.
     pub stage: DiagnosticStage,
     /// Projection instance when it is known.
@@ -41,8 +77,40 @@ pub struct ProjectionDiagnostic {
     pub scope: Option<SemanticScopeRef>,
     /// Structured domain-specific diagnostic payload.
     pub detail: DiagnosticDetail,
+    /// Structured lower-level source of the diagnostic, when available.
+    pub source: Option<DiagnosticSource>,
     /// Optional concise human-readable explanation.
     pub message: Option<String>,
     /// Whether retrying the same operation may succeed.
     pub retryable: bool,
+}
+
+impl ProjectionDiagnostic {
+    /// Creates a structured diagnostic for an unsupported adapter operation.
+    ///
+    /// # Parameters
+    /// - `stage`: Lifecycle stage where the unsupported operation was requested.
+    ///
+    /// # Returns
+    /// An explicit non-retryable unsupported-operation diagnostic.
+    #[must_use]
+    pub fn unsupported(stage: DiagnosticStage) -> Self {
+        Self {
+            kind: DiagnosticKind::UnsupportedOperation,
+            stage,
+            projection: None,
+            scope: None,
+            detail: DiagnosticDetail {
+                code: "unsupported-operation".to_owned(),
+                data: Vec::new(),
+            },
+            source: Some(DiagnosticSource {
+                subsystem: "projection-adapter".to_owned(),
+                code: "unsupported-operation".to_owned(),
+                message: None,
+            }),
+            message: Some("the projection adapter does not support this operation".to_owned()),
+            retryable: false,
+        }
+    }
 }

@@ -2,8 +2,8 @@
 
 use crate::{
     ApplicationBackend, ApplicationContext, ApplicationError, ApplicationRequest,
-    ApplicationResult, ApplyRequest, BranchRequest, CommitRequest, DiffRequest, HistoryRequest,
-    OperationSummary, RenderRequest,
+    ApplicationResult, ApplyRequest, BranchRequest, CapabilityRegistry, CommitRequest, DiffRequest,
+    HistoryRequest, OperationSummary, RenderRequest,
 };
 use scriberig_core::{RootName, SnapshotId};
 use scriberig_query::{
@@ -143,6 +143,7 @@ pub struct CompositeBackend<R, O> {
     read: R,
     operations: O,
     current_snapshot: Option<SnapshotId>,
+    capabilities: Option<CapabilityRegistry>,
 }
 
 impl<R, O> CompositeBackend<R, O> {
@@ -160,6 +161,7 @@ impl<R, O> CompositeBackend<R, O> {
             read,
             operations,
             current_snapshot: None,
+            capabilities: None,
         }
     }
 
@@ -174,6 +176,20 @@ impl<R, O> CompositeBackend<R, O> {
     #[must_use]
     pub const fn with_current_snapshot(mut self, snapshot: SnapshotId) -> Self {
         self.current_snapshot = Some(snapshot);
+        self
+    }
+
+    /// Installs the registry used to enrich inspection capabilities.
+    ///
+    /// # Parameters
+    /// - `self`: Backend being configured.
+    /// - `capabilities`: Injected generic/domain capability registry.
+    ///
+    /// # Returns
+    /// The configured composite backend.
+    #[must_use]
+    pub fn with_capability_registry(mut self, capabilities: CapabilityRegistry) -> Self {
+        self.capabilities = Some(capabilities);
         self
     }
 }
@@ -201,11 +217,13 @@ where
         request: &ApplicationRequest,
     ) -> Result<ApplicationResult, ApplicationError> {
         match request {
-            ApplicationRequest::Inspect(value) => self
-                .read
-                .inspect(value)
-                .map(ApplicationResult::Inspect)
-                .map_err(map_query_error),
+            ApplicationRequest::Inspect(value) => {
+                let mut inspection = self.read.inspect(value).map_err(map_query_error)?;
+                if let Some(capabilities) = &self.capabilities {
+                    capabilities.enrich_inspection(&mut inspection);
+                }
+                Ok(ApplicationResult::Inspect(inspection))
+            }
             ApplicationRequest::List(value) => self
                 .read
                 .list(value)
@@ -358,6 +376,15 @@ fn map_query_error(error: QueryError) -> ApplicationError {
         QueryError::InvalidQuery { message } => ApplicationError::InvalidRequest {
             operation: "query".to_owned(),
             message,
+        },
+        QueryError::InvalidScope { operation, scope } => ApplicationError::InvalidRequest {
+            operation: format!("{operation:?}").to_lowercase(),
+            message: format!("invalid query scope: {scope:?}"),
+        },
+        QueryError::Ambiguous { operation, message } => ApplicationError::Ambiguous {
+            scope: format!("{operation:?}").to_lowercase(),
+            candidates: Vec::new(),
+            reason: message,
         },
         _ => ApplicationError::InvalidRequest {
             operation: "universal read".to_owned(),

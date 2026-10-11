@@ -1,6 +1,6 @@
 //! Defines the structured universal application result model.
 
-use scriberig_core::{RevisionId, SnapshotId};
+use scriberig_core::{RevisionId, RootName, SnapshotId};
 use scriberig_query::{FindResult, FollowResult, Inspection, ListResult, QueryResult};
 
 /// Summarizes a semantic operation result without flattening it to text.
@@ -12,6 +12,14 @@ pub struct OperationSummary {
     pub snapshot: Option<SnapshotId>,
     /// Exact revision involved when known.
     pub revision: Option<RevisionId>,
+    /// Named branch context used by the operation, when applicable.
+    pub branch: Option<RootName>,
+    /// Structured semantic diff when this is a diff operation.
+    pub diff: Option<sr_change::SemanticDiff>,
+    /// Structured migration history when this is a history operation.
+    pub history: Option<Vec<sr_change::MigrationReference>>,
+    /// Structured rendered projection when this is a render operation.
+    pub rendered: Option<sr_projection::RenderedProjection>,
 }
 
 /// Identifies a tracked operation that has started.

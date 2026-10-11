@@ -52,37 +52,47 @@ impl<V: KnowledgeView> InspectService for GraphReadService<V> {
     /// # Errors
     /// Returns a structured query error when the target cannot be resolved.
     fn inspect(&self, request: &InspectRequest) -> Result<Inspection, QueryError> {
-        let (entity, snapshot) = match request.target {
-            TargetRef::Snapshot(target) => (target.entity, target.snapshot),
+        let (snapshot, revision, record) = match request.target {
+            TargetRef::Snapshot(target) => {
+                let revision = self
+                    .view
+                    .resolve(target.snapshot, target.entity)
+                    .map_err(|_| QueryError::SnapshotUnavailable {
+                        operation: crate::ReadOperation::Inspect,
+                        snapshot: target.snapshot,
+                    })?
+                    .ok_or(QueryError::NotFound {
+                        operation: crate::ReadOperation::Inspect,
+                        target: request.target,
+                    })?;
+                let record = self
+                    .view
+                    .read_revision(target.snapshot, target.entity)
+                    .map_err(|_| QueryError::Internal {
+                        operation: crate::ReadOperation::Inspect,
+                        message: "graph view failed to read revision".to_owned(),
+                    })?
+                    .ok_or(QueryError::NotFound {
+                        operation: crate::ReadOperation::Inspect,
+                        target: request.target,
+                    })?;
+                (Some(target.snapshot), revision, record)
+            }
             TargetRef::Revision(target) => {
-                return Err(QueryError::InvalidTarget {
-                    operation: crate::ReadOperation::Inspect,
-                    target: TargetRef::Revision(target),
-                });
+                let record = self
+                    .view
+                    .read_exact_revision(target.entity, target.revision)
+                    .map_err(|_| QueryError::Internal {
+                        operation: crate::ReadOperation::Inspect,
+                        message: "graph view failed to read exact revision".to_owned(),
+                    })?
+                    .ok_or(QueryError::NotFound {
+                        operation: crate::ReadOperation::Inspect,
+                        target: request.target,
+                    })?;
+                (None, target.revision, record)
             }
         };
-        let revision = self
-            .view
-            .resolve(snapshot, entity)
-            .map_err(|_| QueryError::SnapshotUnavailable {
-                operation: crate::ReadOperation::Inspect,
-                snapshot,
-            })?
-            .ok_or(QueryError::NotFound {
-                operation: crate::ReadOperation::Inspect,
-                target: request.target,
-            })?;
-        let record = self
-            .view
-            .read_revision(snapshot, entity)
-            .map_err(|_| QueryError::Internal {
-                operation: crate::ReadOperation::Inspect,
-                message: "graph view failed to read revision".to_owned(),
-            })?
-            .ok_or(QueryError::NotFound {
-                operation: crate::ReadOperation::Inspect,
-                target: request.target,
-            })?;
         let relations: Vec<ReadCapability> = record
             .relations
             .keys()
@@ -100,8 +110,8 @@ impl<V: KnowledgeView> InspectService for GraphReadService<V> {
             })
             .collect();
         Ok(Inspection {
-            subject: TargetRef::Snapshot(EntityInSnapshot { entity, snapshot }),
-            snapshot: Some(snapshot),
+            subject: request.target,
+            snapshot,
             revision: Some(revision),
             entity_type: Some(record.entity_type),
             label: None,
@@ -152,7 +162,12 @@ impl<V: KnowledgeView> TraverseService for GraphReadService<V> {
             CollectionValue::Ordered(values) => values.clone(),
             CollectionValue::Unordered(values) => values.iter().copied().collect(),
         };
-        let (start, end) = page_bounds(request.page.continuation.as_ref(), request.page.limit)?;
+        let (start, end) = page_bounds(
+            request.page.continuation.as_ref(),
+            request.page.limit,
+            "list",
+            request.subject.snapshot,
+        )?;
         let end = end.min(members.len());
         if start > end {
             return Err(QueryError::InvalidContinuation {
@@ -162,7 +177,7 @@ impl<V: KnowledgeView> TraverseService for GraphReadService<V> {
         let items = members[start..end]
             .iter()
             .copied()
-            .map(|entity| navigation(entity, request.subject.snapshot))
+            .map(|entity| self.navigation(entity, request.subject.snapshot))
             .collect();
         Ok(ListResult {
             subject: request.subject,
@@ -170,7 +185,8 @@ impl<V: KnowledgeView> TraverseService for GraphReadService<V> {
             collection: request.collection.clone(),
             page: Page {
                 items,
-                next: (end < members.len()).then(|| ContinuationToken::new(end.to_string())),
+                next: (end < members.len())
+                    .then(|| ContinuationToken::for_page("list", request.subject.snapshot, end)),
             },
         })
     }
@@ -215,7 +231,12 @@ impl<V: KnowledgeView> TraverseService for GraphReadService<V> {
                 .map(|relation| relation.source)
                 .collect(),
         };
-        let (start, end) = page_bounds(request.page.continuation.as_ref(), request.page.limit)?;
+        let (start, end) = page_bounds(
+            request.page.continuation.as_ref(),
+            request.page.limit,
+            "follow",
+            request.subject.snapshot,
+        )?;
         let end = end.min(targets.len());
         if start > end {
             return Err(QueryError::InvalidContinuation {
@@ -225,7 +246,7 @@ impl<V: KnowledgeView> TraverseService for GraphReadService<V> {
         let items = targets[start..end]
             .iter()
             .copied()
-            .map(|entity| navigation(entity, request.subject.snapshot))
+            .map(|entity| self.navigation(entity, request.subject.snapshot))
             .collect();
         Ok(FollowResult {
             subject: request.subject,
@@ -235,13 +256,56 @@ impl<V: KnowledgeView> TraverseService for GraphReadService<V> {
             metadata: None,
             page: Page {
                 items,
-                next: (end < targets.len()).then(|| ContinuationToken::new(end.to_string())),
+                next: (end < targets.len())
+                    .then(|| ContinuationToken::for_page("follow", request.subject.snapshot, end)),
             },
         })
     }
 }
 
 impl<V: KnowledgeView> GraphReadService<V> {
+    /// Builds a compact navigation entry from one exact revision.
+    ///
+    /// # Parameters
+    /// - `self`: Graph-backed read service.
+    /// - `entity`: Entity identity for the navigation target.
+    /// - `snapshot`: Exact snapshot containing the target.
+    ///
+    /// # Returns
+    /// A navigation entry with reusable identity and available metadata.
+    ///
+    /// This method intentionally does not require a full target revision;
+    /// listing remains useful when only generic type metadata is available.
+    fn navigation(&self, entity: EntityId, snapshot: SnapshotId) -> NavigationEntry {
+        let record = self.view.read_revision(snapshot, entity).ok().flatten();
+        let entity_type = record
+            .as_ref()
+            .map(|record| record.entity_type.clone())
+            .or_else(|| self.view.entity_type(snapshot, entity).ok().flatten());
+        let label = record.as_ref().and_then(|record| {
+            property_text(record, "label")
+                .or_else(|| property_text(record, "title"))
+                .or_else(|| property_text(record, "name"))
+        });
+        let description = record
+            .as_ref()
+            .and_then(|record| property_text(record, "description"));
+        let metadata = record.as_ref().map(|record| {
+            format!(
+                "relations:{} collections:{}",
+                record.relations.len(),
+                record.collections.len()
+            )
+        });
+        NavigationEntry {
+            target: TargetRef::Snapshot(EntityInSnapshot { entity, snapshot }),
+            entity_type,
+            label,
+            description,
+            metadata,
+        }
+    }
+
     /// Reads one exact graph record and maps backend failures to query errors.
     ///
     /// # Parameters
@@ -273,7 +337,7 @@ impl<V: KnowledgeView> GraphReadService<V> {
     }
 }
 
-/// Creates a compact navigation entry for one snapshot-bound entity.
+/// Reads a text property when its canonical value is a string.
 ///
 /// # Parameters
 /// - `entity`: Entity identity for the navigation target.
@@ -281,13 +345,10 @@ impl<V: KnowledgeView> GraphReadService<V> {
 ///
 /// # Returns
 /// A compact navigation entry.
-fn navigation(entity: EntityId, snapshot: SnapshotId) -> NavigationEntry {
-    NavigationEntry {
-        target: TargetRef::Snapshot(EntityInSnapshot { entity, snapshot }),
-        entity_type: None,
-        label: None,
-        description: None,
-        metadata: None,
+fn property_text(record: &scriberig_graph::RevisionRecord, key: &str) -> Option<String> {
+    match record.properties.get(key) {
+        Some(scriberig_core::KnowledgeValue::String(value)) => Some(value.clone()),
+        _ => None,
     }
 }
 
@@ -305,13 +366,23 @@ fn navigation(entity: EntityId, snapshot: SnapshotId) -> NavigationEntry {
 fn page_bounds(
     continuation: Option<&ContinuationToken>,
     limit: usize,
+    operation: &str,
+    snapshot: SnapshotId,
 ) -> Result<(usize, usize), QueryError> {
+    if !(1..=crate::MAX_PAGE_LIMIT).contains(&limit) {
+        return Err(QueryError::InvalidQuery {
+            message: format!("page limit must be between 1 and {}", crate::MAX_PAGE_LIMIT),
+        });
+    }
     let start = continuation.map_or(0, |token| {
-        token.as_str().parse::<usize>().unwrap_or(usize::MAX)
+        token.offset_for(operation, snapshot).unwrap_or(usize::MAX)
     });
     if start == usize::MAX {
         return Err(QueryError::InvalidContinuation {
-            operation: crate::ReadOperation::List,
+            operation: match operation {
+                "follow" => crate::ReadOperation::Follow,
+                _ => crate::ReadOperation::List,
+            },
         });
     }
     Ok((start, start.saturating_add(limit)))

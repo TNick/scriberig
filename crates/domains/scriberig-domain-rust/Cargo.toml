@@ -13,7 +13,7 @@ scriberig-derive = { path = "../../scriberig-derive" }
 scriberig-domain-code = { path = "../scriberig-domain-code" }
 scriberig-graph = { path = "../../scriberig-graph" }
 scriberig-migration = { path = "../../scriberig-migration" }
-scriberig-projection = { path = "../../scriberig-projection" }
+sr-projection = { path = "../../sr-projection" }
 scriberig-schema = { path = "../../scriberig-schema" }
 sr-change = { path = "../../sr-change" }
 syn = { version = "2.0.110", features = ["full", "extra-traits", "visit"] }

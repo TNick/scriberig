@@ -16,7 +16,20 @@ impl ProjectionLocation {
     /// A normalized lexical location.
     #[must_use]
     pub fn new(path: impl Into<PathBuf>) -> Self {
-        Self(path.into())
+        let path = path.into();
+        let mut normalized = PathBuf::new();
+        for component in path.components() {
+            match component {
+                std::path::Component::CurDir => {}
+                std::path::Component::ParentDir => {
+                    if !normalized.pop() {
+                        normalized.push(component.as_os_str());
+                    }
+                }
+                _ => normalized.push(component.as_os_str()),
+            }
+        }
+        Self(normalized)
     }
 
     /// Borrows the represented path.

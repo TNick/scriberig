@@ -14,7 +14,9 @@ use std::str::FromStr;
 ///
 /// # Private members
 /// - `bytes`: Stores the identifier's 128-bit value.
-#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize,
+)]
 pub struct EntityId {
     bytes: [u8; 16],
 }

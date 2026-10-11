@@ -69,3 +69,70 @@ fn styles_change_bytes_without_changing_semantics() {
         &parse(&alternate_output).expect("alternate output")
     ));
 }
+
+#[test]
+/// Verifies inline links and images survive semantic round trips.
+fn inline_links_and_images_are_preserved() {
+    let source = "A [link](https://example.test) and ![logo](logo.png) with `code`.\n";
+    let candidate = parse(source).expect("inline Markdown should parse");
+    let rendered = render_document(&candidate.document, &MarkdownStyle::default());
+    let reparsed = parse(&rendered).expect("rendered Markdown should parse");
+    assert!(semantically_equivalent(&candidate, &reparsed));
+}
+
+#[test]
+/// Verifies unsupported Markdown is rejected instead of silently discarded.
+fn unsupported_markdown_returns_a_diagnostic() {
+    let error = parse("---\n").expect_err("thematic breaks are unsupported");
+    assert_eq!(error.code, "unsupported-markdown");
+}
+
+#[test]
+/// Verifies candidate paths are local diagnostics metadata, not entity IDs.
+fn candidates_expose_structural_paths() {
+    let candidate = parse("# Title\n\ntext\n").expect("candidate");
+    assert_eq!(candidate.node_paths, vec![vec![0], vec![0, 0]]);
+}
+
+#[test]
+/// Verifies candidates retain source-coordinate diagnostics metadata.
+fn candidates_expose_source_spans() {
+    let source = "# Title\n\ntext\n";
+    let candidate = parse(source).expect("candidate");
+    assert_ne!(candidate.source_spans.len(), 0);
+    assert!(
+        candidate
+            .source_spans
+            .iter()
+            .all(|span| span.start < span.end && span.end <= source.len())
+    );
+}
+
+#[test]
+/// Verifies nested list items retain their parent/child structure.
+fn nested_lists_round_trip_without_losing_the_outer_item() {
+    let source = "- parent\n  - child\n";
+    let candidate = parse(source).expect("nested list should parse");
+    let rendered = render_document(&candidate.document, &MarkdownStyle::default());
+    let reparsed = parse(&rendered).expect("rendered nested list should parse");
+    assert!(semantically_equivalent(&candidate, &reparsed));
+    assert!(
+        matches!(
+            &candidate.document.blocks[0],
+            MarkdownBlock::List { items, .. }
+                if items[0].blocks.iter().any(|block| matches!(block, MarkdownBlock::List { .. }))
+        ),
+        "candidate={candidate:?}"
+    );
+    assert_eq!(
+        candidate.node_paths,
+        vec![
+            vec![0],
+            vec![0, 0],
+            vec![0, 0, 0],
+            vec![0, 0, 1],
+            vec![0, 0, 1, 0],
+            vec![0, 0, 1, 0, 0],
+        ]
+    );
+}

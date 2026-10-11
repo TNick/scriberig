@@ -1,6 +1,6 @@
 //! Defines structured failures for universal read operations.
 
-use crate::{CollectionRef, RelationRef, TargetRef};
+use crate::{CollectionRef, QueryScope, RelationRef, TargetRef};
 use scriberig_core::{EntityId, SnapshotId};
 
 /// Identifies the read operation that produced an error.
@@ -92,6 +92,20 @@ pub enum QueryError {
     /// Query expression is malformed or exceeds provider limits.
     InvalidQuery {
         /// Safe diagnostic context.
+        message: String,
+    },
+    /// Query scope is empty or inconsistent for the requested operation.
+    InvalidScope {
+        /// Operation that rejected the scope.
+        operation: ReadOperation,
+        /// Scope supplied by the caller.
+        scope: QueryScope,
+    },
+    /// Multiple semantic candidates remain unresolved.
+    Ambiguous {
+        /// Operation that encountered ambiguity.
+        operation: ReadOperation,
+        /// Safe explanation of the ambiguity.
         message: String,
     },
 }

@@ -5,8 +5,10 @@ pub const DEFAULT_PAGE_LIMIT: usize = 50;
 /// Maximum page size accepted by the generic query boundary.
 pub const MAX_PAGE_LIMIT: usize = 500;
 
+use scriberig_core::SnapshotId;
+
 /// Opaque continuation state tied to its producing operation and snapshot.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct ContinuationToken(String);
 
 impl ContinuationToken {
@@ -22,22 +24,49 @@ impl ContinuationToken {
         Self(value.into())
     }
 
-    /// Returns the opaque token text for a provider-internal continuation.
+    /// Creates a continuation bound to one operation and snapshot.
     ///
     /// # Parameters
-    /// - `self`: Continuation token to inspect.
-    /// - `crate`: Internal visibility marker.
+    /// - `operation`: Stable operation family producing the page.
+    /// - `snapshot`: Exact snapshot used by the operation.
+    /// - `offset`: Zero-based offset for the next page.
     ///
     /// # Returns
-    /// The token text without assigning semantic meaning to it.
+    /// An opaque continuation token that providers can validate on reuse.
     #[must_use]
-    pub(crate) fn as_str(&self) -> &str {
-        &self.0
+    pub(crate) fn for_page(operation: &str, snapshot: SnapshotId, offset: usize) -> Self {
+        Self(format!("v1|{operation}|{snapshot}|{offset}"))
+    }
+
+    /// Decodes a continuation for its expected operation and snapshot.
+    ///
+    /// # Parameters
+    /// - `self`: Continuation token to validate.
+    /// - `operation`: Operation family receiving the token.
+    /// - `snapshot`: Exact snapshot expected by the operation.
+    ///
+    /// # Returns
+    /// The next-page offset when the token belongs to this context.
+    #[must_use]
+    pub(crate) fn offset_for(&self, operation: &str, snapshot: SnapshotId) -> Option<usize> {
+        let snapshot = snapshot.to_string();
+        let mut parts = self.0.split('|');
+        if parts.next() != Some("v1")
+            || parts.next() != Some(operation)
+            || parts.next() != Some(snapshot.as_str())
+        {
+            return None;
+        }
+        parts
+            .next()?
+            .parse()
+            .ok()
+            .filter(|_| parts.next().is_none())
     }
 }
 
 /// Requests one bounded page of semantic results.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct PageRequest {
     /// Maximum number of items requested.
     pub limit: usize,
@@ -95,7 +124,7 @@ pub enum PageRequestError {
 }
 
 /// Contains one page of results and an optional opaque continuation.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Page<T> {
     /// Items returned for this page.
     pub items: Vec<T>,

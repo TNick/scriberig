@@ -17,7 +17,18 @@ macro_rules! digest_id {
         ///
         /// # Private members
         /// - `bytes`: Stores the fixed-width digest.
-        #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            Eq,
+            Hash,
+            Ord,
+            PartialEq,
+            PartialOrd,
+            serde::Deserialize,
+            serde::Serialize,
+        )]
         pub struct $name {
             bytes: [u8; 32],
         }

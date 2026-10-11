@@ -3,7 +3,7 @@
 use scriberig_core::{EntityId, SnapshotId};
 
 /// Restricts a query to one exact canonical snapshot and semantic scope.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum QueryScope {
     /// The complete graph visible in one snapshot.
     Snapshot(SnapshotId),

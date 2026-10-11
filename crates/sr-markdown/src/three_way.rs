@@ -1,6 +1,6 @@
 //! Merges Markdown semantic states using an explicit base/current/external triplet.
 
-use crate::{MarkdownBlock, MarkdownDocument, MarkdownStyle, render_document};
+use crate::{MarkdownBlock, MarkdownDocument, MarkdownStyle, equivalent, parse, render_document};
 use scriberig_core::SnapshotId;
 
 /// The semantic operation involved in a Markdown three-way conflict.
@@ -105,14 +105,11 @@ pub fn three_way_merge(
             document: current.clone(),
         };
     }
-    let conflicts = detect_conflicts(base, current, external);
-    if !conflicts.is_empty() {
-        return ThreeWayOutcome::Conflict { conflicts };
-    }
-    let mut merged = current.blocks.clone();
-    insert_external_only(&mut merged, base, current, external);
-    ThreeWayOutcome::Merged {
-        document: MarkdownDocument::new(merged),
+    match merge_sequence(&base.blocks, &current.blocks, &external.blocks, &[]) {
+        Ok(blocks) => ThreeWayOutcome::Merged {
+            document: MarkdownDocument::new(blocks),
+        },
+        Err(conflicts) => ThreeWayOutcome::Conflict { conflicts },
     }
 }
 
@@ -149,7 +146,31 @@ pub fn synchronize(
         | ThreeWayOutcome::Converged { document } => Some(document),
         ThreeWayOutcome::Conflict { .. } | ThreeWayOutcome::MissingSynchronizationBase => None,
     };
-    let rendered = safe_document.map(|document| render_document(document, style).into_bytes());
+    let rendered = safe_document.and_then(|document| {
+        let bytes = render_document(document, style).into_bytes();
+        let source = std::str::from_utf8(&bytes).ok()?;
+        let candidate = parse(source).ok()?;
+        equivalent(document, &candidate.document).then_some(bytes)
+    });
+    let outcome = if rendered.is_none()
+        && matches!(
+            &outcome,
+            ThreeWayOutcome::FormattingOnly { .. }
+                | ThreeWayOutcome::Merged { .. }
+                | ThreeWayOutcome::Converged { .. }
+        ) {
+        ThreeWayOutcome::Conflict {
+            conflicts: vec![MarkdownConflict {
+                kind: MarkdownConflictKind::Structural,
+                path: Vec::new(),
+                base: None,
+                current: None,
+                external: None,
+            }],
+        }
+    } else {
+        outcome
+    };
     let synchronization_base = if rendered.is_some() {
         Some(result_snapshot)
     } else {
@@ -163,62 +184,193 @@ pub fn synchronize(
     }
 }
 
-/// Detects incompatible changes to the same base block.
-///
-/// # Parameters
-/// - `base`: Last synchronized document.
-/// - `current`: Current canonical document.
-/// - `external`: External candidate document.
-///
-/// # Returns
-/// Structured conflicts for incompatible changes.
-fn detect_conflicts(
-    base: &MarkdownDocument,
-    current: &MarkdownDocument,
-    external: &MarkdownDocument,
-) -> Vec<MarkdownConflict> {
-    let mut conflicts = Vec::new();
-    for (index, base_block) in base.blocks.iter().enumerate() {
-        let current_block = current.blocks.get(index);
-        let external_block = external.blocks.get(index);
-        let current_changed = current_block != Some(base_block);
-        let external_changed = external_block != Some(base_block);
-        if current_changed && external_changed && current_block != external_block {
-            let kind = if current_block.is_none() || external_block.is_none() {
-                MarkdownConflictKind::DeleteModify
-            } else {
-                MarkdownConflictKind::SameBlockChanged
-            };
-            conflicts.push(MarkdownConflict {
-                kind,
-                path: vec![index],
-                base: Some(base_block.clone()),
-                current: current_block.cloned(),
-                external: external_block.cloned(),
-            });
-        }
-    }
-    conflicts
+/// Describes one side's replacement relative to a synchronization base.
+#[derive(Clone, Debug)]
+struct Hunk {
+    /// Inclusive base start.
+    start: usize,
+    /// Exclusive base end.
+    end: usize,
+    /// Replacement blocks.
+    replacement: Vec<MarkdownBlock>,
 }
 
-/// Inserts external blocks that are not present in the current state.
-///
-/// # Parameters
-/// - `merged`: Destination merged block sequence.
-/// - `base`: Last synchronized document.
-/// - `current`: Current canonical document.
-/// - `external`: External candidate document.
-fn insert_external_only(
-    merged: &mut Vec<MarkdownBlock>,
-    base: &MarkdownDocument,
-    current: &MarkdownDocument,
-    external: &MarkdownDocument,
-) {
-    for (index, block) in external.blocks.iter().enumerate() {
-        if base.blocks.contains(block) || current.blocks.contains(block) {
-            continue;
+/// Merges a block sequence using exact unchanged base anchors.
+fn merge_sequence(
+    base: &[MarkdownBlock],
+    current: &[MarkdownBlock],
+    external: &[MarkdownBlock],
+    path: &[usize],
+) -> Result<Vec<MarkdownBlock>, Vec<MarkdownConflict>> {
+    let current_hunks = diff_hunks(base, current);
+    let external_hunks = diff_hunks(base, external);
+    let mut merged = Vec::new();
+    let mut conflicts = Vec::new();
+    let mut cursor = 0;
+    let mut current_index = 0;
+    let mut external_index = 0;
+    while cursor <= base.len() {
+        let next_start = [
+            current_hunks
+                .get(current_index)
+                .map_or(usize::MAX, |hunk| hunk.start),
+            external_hunks
+                .get(external_index)
+                .map_or(usize::MAX, |hunk| hunk.start),
+        ]
+        .into_iter()
+        .min()
+        .unwrap_or(usize::MAX);
+        if next_start == usize::MAX {
+            merged.extend_from_slice(&base[cursor..]);
+            break;
         }
-        let position = index.min(merged.len());
-        merged.insert(position, block.clone());
+        merged.extend_from_slice(&base[cursor..next_start]);
+        let left = current_hunks
+            .get(current_index)
+            .filter(|hunk| hunk.start == next_start);
+        let right = external_hunks
+            .get(external_index)
+            .filter(|hunk| hunk.start == next_start);
+        match (left, right) {
+            (Some(left), Some(right)) if left.end == right.end => {
+                if left.replacement == right.replacement {
+                    merged.extend(left.replacement.clone());
+                } else if let Some(section) = merge_section_replacement(base, left, right, path)? {
+                    merged.push(section);
+                } else {
+                    conflicts.push(make_conflict(path, base, left, right));
+                }
+                cursor = left.end;
+                current_index += 1;
+                external_index += 1;
+            }
+            (Some(left), Some(right)) => {
+                conflicts.push(make_conflict(path, base, left, right));
+                cursor = left.end.max(right.end);
+                current_index += 1;
+                external_index += 1;
+            }
+            (Some(hunk), None) => {
+                merged.extend(hunk.replacement.clone());
+                cursor = hunk.end;
+                current_index += 1;
+            }
+            (None, Some(hunk)) => {
+                merged.extend(hunk.replacement.clone());
+                cursor = hunk.end;
+                external_index += 1;
+            }
+            (None, None) => unreachable!("a next hunk must exist"),
+        }
+    }
+    if !conflicts.is_empty() {
+        return Err(conflicts);
+    }
+    Ok(merged)
+}
+
+/// Merges two edits that both changed the same stable section container.
+fn merge_section_replacement(
+    base: &[MarkdownBlock],
+    current: &Hunk,
+    external: &Hunk,
+    path: &[usize],
+) -> Result<Option<MarkdownBlock>, Vec<MarkdownConflict>> {
+    let Some(MarkdownBlock::Section(base_section)) = base.get(current.start) else {
+        return Ok(None);
+    };
+    let [MarkdownBlock::Section(current_section)] = current.replacement.as_slice() else {
+        return Ok(None);
+    };
+    let [MarkdownBlock::Section(external_section)] = external.replacement.as_slice() else {
+        return Ok(None);
+    };
+    if current_section.level != base_section.level
+        || external_section.level != base_section.level
+        || current_section.heading != base_section.heading
+        || external_section.heading != base_section.heading
+    {
+        return Ok(None);
+    }
+    let mut child_path = path.to_vec();
+    child_path.push(current.start);
+    let blocks = merge_sequence(
+        &base_section.blocks,
+        &current_section.blocks,
+        &external_section.blocks,
+        &child_path,
+    )?;
+    Ok(Some(MarkdownBlock::Section(crate::Section {
+        level: base_section.level,
+        heading: base_section.heading.clone(),
+        blocks,
+    })))
+}
+
+/// Computes replacement hunks by retaining exact unchanged anchors.
+fn diff_hunks(base: &[MarkdownBlock], side: &[MarkdownBlock]) -> Vec<Hunk> {
+    let mut anchors = Vec::new();
+    let mut base_index = 0;
+    let mut side_index = 0;
+    while base_index < base.len() && side_index < side.len() {
+        if base[base_index] == side[side_index] {
+            anchors.push((base_index, side_index));
+            base_index += 1;
+            side_index += 1;
+        } else if let Some(next_side) = side[side_index..]
+            .iter()
+            .position(|block| block == &base[base_index])
+        {
+            side_index += next_side;
+        } else {
+            base_index += 1;
+        }
+    }
+    let mut hunks = Vec::new();
+    let mut previous_base = 0;
+    let mut previous_side = 0;
+    for (anchor_base, anchor_side) in anchors {
+        if previous_base != anchor_base || previous_side != anchor_side {
+            hunks.push(Hunk {
+                start: previous_base,
+                end: anchor_base,
+                replacement: side[previous_side..anchor_side].to_vec(),
+            });
+        }
+        previous_base = anchor_base + 1;
+        previous_side = anchor_side + 1;
+    }
+    if previous_base != base.len() || previous_side != side.len() {
+        hunks.push(Hunk {
+            start: previous_base,
+            end: base.len(),
+            replacement: side[previous_side..].to_vec(),
+        });
+    }
+    hunks
+}
+
+/// Builds a structured conflict for overlapping base edits.
+fn make_conflict(
+    path: &[usize],
+    base: &[MarkdownBlock],
+    current: &Hunk,
+    external: &Hunk,
+) -> MarkdownConflict {
+    let mut conflict_path = path.to_vec();
+    conflict_path.push(current.start);
+    MarkdownConflict {
+        kind: if current.replacement.is_empty() || external.replacement.is_empty() {
+            MarkdownConflictKind::DeleteModify
+        } else if current.start == current.end {
+            MarkdownConflictKind::Structural
+        } else {
+            MarkdownConflictKind::SameBlockChanged
+        },
+        path: conflict_path,
+        base: base.get(current.start).cloned(),
+        current: current.replacement.first().cloned(),
+        external: external.replacement.first().cloned(),
     }
 }

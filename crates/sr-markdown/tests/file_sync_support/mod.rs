@@ -204,9 +204,18 @@ pub fn sync_state(
 ) -> SyncState {
     SyncState {
         projection: ProjectionRef(EntityId::new([92; 16])),
+        specification: ProjectionSpecRef(EntityId::new([90; 16])),
+        scope: SemanticScopeRef {
+            entity: EntityId::new([91; 16]),
+            revision: None,
+        },
+        kind: ProjectionKind::new("markdown").expect("kind"),
         location: ProjectionLocation::new(path),
         ownership,
         base: SemanticStateRef(snapshot),
+        current: SemanticStateRef(snapshot),
+        style: StyleRef::Value(StyleValue::new(b"default".to_vec())),
+        renderer: RendererVersion::new("test"),
         rendered: digest_bytes(bytes),
         observed: None,
         status: ProjectionStatus::Synchronized,
