@@ -1,0 +1,79 @@
+[[capabilities]]
+id = "inspect_entity"
+description = "Inspect one semantic entity at an exact snapshot."
+semantic_owner = "scriberig-app"
+
+[capabilities.surfaces]
+library = "verified"
+app = "verified"
+protocol = "verified"
+server = "verified"
+client = "verified"
+cli = "verified"
+tui = "planned"
+web = "planned"
+agent = "verified"
+
+[[capabilities]]
+id = "runtime_capabilities"
+description = "Discover the capabilities exposed by the running application."
+semantic_owner = "scriberig-app"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "implemented"
+protocol = "verified"
+server = "verified"
+client = "verified"
+cli = "planned"
+tui = "planned"
+web = "planned"
+agent = "planned"
+
+[[capabilities]]
+id = "operation_status"
+description = "Read the lifecycle status of one semantic operation."
+semantic_owner = "scriberig-app"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "implemented"
+protocol = "verified"
+server = "verified"
+client = "verified"
+cli = "planned"
+tui = "planned"
+web = "planned"
+agent = "planned"
+
+[[capabilities]]
+id = "operation_cancel"
+description = "Cancel one cancellable semantic operation."
+semantic_owner = "scriberig-app"
+
+[capabilities.surfaces]
+library = "planned"
+app = "planned"
+protocol = "planned"
+server = "planned"
+client = "planned"
+cli = "planned"
+tui = "planned"
+web = "planned"
+agent = "planned"
+
+[[capabilities]]
+id = "event_subscription"
+description = "Subscribe to stable semantic lifecycle events."
+semantic_owner = "scriberig-app"
+
+[capabilities.surfaces]
+library = "planned"
+app = "planned"
+protocol = "planned"
+server = "planned"
+client = "planned"
+cli = "planned"
+tui = "planned"
+web = "planned"
+agent = "planned"
