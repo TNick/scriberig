@@ -22,7 +22,7 @@ repos:
         pass_filenames: false
       - id: web-format
         name: web prettier write and restage
-        entry: tools/precommit-web-format.sh
+        entry: bash tools/precommit-web-format.sh
         language: system
         files: '^web/.*\.(ts|tsx|js|jsx)$'
       - id: web-typecheck
