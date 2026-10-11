@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Integrated editor views synchronized by one semantic selection</title>
+  <desc id="desc">A central semantic selection containing entity, revision, snapshot, and optional path or projection location connects to six coordinated editor views: raw knowledge, semantic domain, projection, history and diff, session and agent, and validation and operations. The diagram shows that each view resolves the same selected semantic object instead of maintaining unrelated selections.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>.title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 20px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1200" height="760" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">One semantic selection coordinates the whole editor</text>
+
+  <rect x="390" y="285" width="420" height="190" rx="24" fill="#eff6ff" stroke="#2563eb" stroke-width="4"/>
+  <text x="600" y="325" text-anchor="middle" class="label">Universal semantic selection</text>
+  <text x="600" y="362" text-anchor="middle" class="body">entity</text>
+  <text x="600" y="390" text-anchor="middle" class="body">revision or current resolution</text>
+  <text x="600" y="418" text-anchor="middle" class="body">snapshot</text>
+  <text x="600" y="446" text-anchor="middle" class="small">optional relation path · optional projection location</text>
+
+  <rect x="65" y="90" width="285" height="120" rx="18" fill="#f8fafc" stroke="#475569" stroke-width="3"/>
+  <text x="208" y="130" text-anchor="middle" class="label">Raw knowledge</text>
+  <text x="208" y="160" text-anchor="middle" class="small">entity · revision · relation</text>
+  <text x="208" y="185" text-anchor="middle" class="small">provenance · lineage</text>
+
+  <rect x="458" y="75" width="285" height="120" rx="18" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="600" y="115" text-anchor="middle" class="label">Semantic / domain</text>
+  <text x="600" y="145" text-anchor="middle" class="small">function · paragraph · page</text>
+  <text x="600" y="170" text-anchor="middle" class="small">typed domain structure</text>
+
+  <rect x="850" y="90" width="285" height="120" rx="18" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="992" y="130" text-anchor="middle" class="label">Projection</text>
+  <text x="992" y="160" text-anchor="middle" class="small">source · Markdown · PDF</text>
+  <text x="992" y="185" text-anchor="middle" class="small">human-oriented rendering</text>
+
+  <rect x="65" y="550" width="285" height="120" rx="18" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="208" y="590" text-anchor="middle" class="label">History and diff</text>
+  <text x="208" y="620" text-anchor="middle" class="small">revisions · snapshots · migrations</text>
+  <text x="208" y="645" text-anchor="middle" class="small">semantic and raw differences</text>
+
+  <rect x="458" y="565" width="285" height="120" rx="18" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="600" y="605" text-anchor="middle" class="label">Session and agent</text>
+  <text x="600" y="635" text-anchor="middle" class="small">branch · decision · command</text>
+  <text x="600" y="660" text-anchor="middle" class="small">selected entity becomes agent scope</text>
+
+  <rect x="850" y="550" width="285" height="120" rx="18" fill="#fef2f2" stroke="#dc2626" stroke-width="3"/>
+  <text x="992" y="590" text-anchor="middle" class="label">Validation / operations</text>
+  <text x="992" y="620" text-anchor="middle" class="small">progress · diagnostics · tests</text>
+  <text x="992" y="645" text-anchor="middle" class="small">migration outcome</text>
+
+  <path d="M445 305 C360 245 300 200 320 185" class="line"/>
+  <path d="M600 285 L600 195" class="line"/>
+  <path d="M755 305 C840 245 900 200 880 185" class="line"/>
+  <path d="M445 455 C360 500 300 560 320 585" class="line"/>
+  <path d="M600 475 L600 565" class="line"/>
+  <path d="M755 455 C840 500 900 560 880 585" class="line"/>
+
+  <text x="600" y="520" text-anchor="middle" class="body">Selection identity is shared; presentation is view-specific.</text>
+</svg>

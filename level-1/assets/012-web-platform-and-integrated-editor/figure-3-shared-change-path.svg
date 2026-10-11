@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">All write sources converge on one semantic change pipeline</title>
+  <desc id="desc">Five input sources—web editor, agent, CLI or TUI, external projection edit, and third-party client—feed a shared application operation. That produces a migration proposal, which is validated before advancing to a new snapshot. A side loop shows projection edits passing through parsing and reconciliation rather than becoming canonical text directly.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>.title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 19px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#c2410c;stroke-width:3;fill:none;stroke-dasharray:8 7;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">One mutation model for humans, agents, and external editors</text>
+
+  <g>
+    <rect x="50" y="90" width="230" height="72" rx="16" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/><text x="165" y="133" text-anchor="middle" class="label">Web editor</text>
+    <rect x="50" y="190" width="230" height="72" rx="16" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/><text x="165" y="233" text-anchor="middle" class="label">Agent</text>
+    <rect x="50" y="290" width="230" height="72" rx="16" fill="#f8fafc" stroke="#475569" stroke-width="3"/><text x="165" y="333" text-anchor="middle" class="label">CLI / TUI</text>
+    <rect x="50" y="390" width="230" height="72" rx="16" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/><text x="165" y="423" text-anchor="middle" class="label">External projection edit</text><text x="165" y="446" text-anchor="middle" class="small">file or browser text buffer</text>
+    <rect x="50" y="490" width="230" height="72" rx="16" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/><text x="165" y="533" text-anchor="middle" class="label">Third-party client</text>
+  </g>
+
+  <rect x="370" y="235" width="260" height="120" rx="20" fill="#eff6ff" stroke="#2563eb" stroke-width="4"/>
+  <text x="500" y="278" text-anchor="middle" class="label">Shared application</text><text x="500" y="305" text-anchor="middle" class="label">operation</text>
+  <text x="500" y="334" text-anchor="middle" class="small">same semantic contract</text>
+
+  <rect x="725" y="120" width="220" height="95" rx="18" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="835" y="157" text-anchor="middle" class="label">Migration proposal</text><text x="835" y="185" text-anchor="middle" class="small">intent + provenance</text>
+
+  <rect x="725" y="285" width="220" height="95" rx="18" fill="#fef2f2" stroke="#dc2626" stroke-width="3"/>
+  <text x="835" y="322" text-anchor="middle" class="label">Validation</text><text x="835" y="350" text-anchor="middle" class="small">rules · tests · conflicts</text>
+
+  <rect x="725" y="450" width="220" height="95" rx="18" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="835" y="487" text-anchor="middle" class="label">New snapshot</text><text x="835" y="515" text-anchor="middle" class="small">canonical state advances</text>
+
+  <rect x="355" y="455" width="290" height="150" rx="20" fill="#fffaf5" stroke="#c2410c" stroke-width="2"/>
+  <text x="500" y="492" text-anchor="middle" class="label">Projection reconciliation</text>
+  <text x="500" y="525" text-anchor="middle" class="body">parse edited representation</text>
+  <text x="500" y="552" text-anchor="middle" class="body">compare with semantic state</text>
+  <text x="500" y="579" text-anchor="middle" class="body">derive semantic intent</text>
+
+  <path d="M280 126 C330 126 335 250 370 270" class="line"/>
+  <path d="M280 226 C330 226 340 270 370 285" class="line"/>
+  <path d="M280 326 L370 310" class="line"/>
+  <path d="M280 526 C330 526 340 350 370 335" class="line"/>
+  <path d="M280 426 C320 426 340 485 355 500" class="dash"/>
+  <path d="M645 530 C680 500 650 360 620 335" class="dash"/>
+
+  <path d="M630 275 C675 255 690 190 725 175" class="line"/>
+  <path d="M835 215 L835 285" class="line"/>
+  <path d="M835 380 L835 450" class="line"/>
+
+  <text x="1025" y="170" text-anchor="middle" class="body">Every source records</text><text x="1025" y="196" text-anchor="middle" class="body">provenance, but none</text><text x="1025" y="222" text-anchor="middle" class="body">gets a private write path.</text>
+  <text x="1025" y="330" text-anchor="middle" class="body">Failed validation does</text><text x="1025" y="356" text-anchor="middle" class="body">not advance canonical</text><text x="1025" y="382" text-anchor="middle" class="body">state.</text>
+</svg>
