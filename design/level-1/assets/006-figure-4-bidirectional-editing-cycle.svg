@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Bidirectional editing cycle from canonical state to projection and back</title>
+  <desc id="desc">A clockwise cycle starts at canonical semantic state, renders to a projection, allows a human or external tool to edit it, parses the edited representation into a candidate semantic structure, reconciles that candidate with existing canonical entities, produces a semantic migration, validates and commits a new snapshot, then renders again to establish a new synchronization base.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>.title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 19px system-ui,sans-serif;fill:#0f172a}.small{font:15px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}.step{stroke-width:3}</style>
+  </defs>
+  <rect width="1200" height="760" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Editable projections form a controlled round trip</text>
+
+  <rect x="430" y="90" width="340" height="105" rx="18" fill="#eff6ff" stroke="#2563eb" class="step"/>
+  <text x="600" y="132" text-anchor="middle" class="label">1. Canonical semantic state</text>
+  <text x="600" y="165" text-anchor="middle" class="small">authoritative entities and revisions</text>
+
+  <rect x="835" y="215" width="290" height="105" rx="18" fill="#ecfdf5" stroke="#0f766e" class="step"/>
+  <text x="980" y="257" text-anchor="middle" class="label">2. Render projection</text>
+  <text x="980" y="290" text-anchor="middle" class="small">deterministic style + renderer</text>
+
+  <rect x="835" y="425" width="290" height="105" rx="18" fill="#fff7ed" stroke="#c2410c" class="step"/>
+  <text x="980" y="467" text-anchor="middle" class="label">3. External edit</text>
+  <text x="980" y="500" text-anchor="middle" class="small">human, IDE, formatter, tool</text>
+
+  <rect x="455" y="585" width="290" height="105" rx="18" fill="#f5f3ff" stroke="#7c3aed" class="step"/>
+  <text x="600" y="627" text-anchor="middle" class="label">4. Parse candidate</text>
+  <text x="600" y="660" text-anchor="middle" class="small">recover semantic structure only</text>
+
+  <rect x="75" y="425" width="290" height="105" rx="18" fill="#f5f3ff" stroke="#7c3aed" class="step"/>
+  <text x="220" y="467" text-anchor="middle" class="label">5. Reconcile identity</text>
+  <text x="220" y="500" text-anchor="middle" class="small">match candidate to known entities</text>
+
+  <rect x="75" y="215" width="290" height="105" rx="18" fill="#fff7ed" stroke="#c2410c" class="step"/>
+  <text x="220" y="257" text-anchor="middle" class="label">6. Semantic migration</text>
+  <text x="220" y="290" text-anchor="middle" class="small">explicit operations + provenance</text>
+
+  <path d="M770 150 C835 160 875 195 900 220" class="line"/>
+  <path d="M980 320 L980 425" class="line"/>
+  <path d="M835 505 C800 555 740 590 700 605" class="line"/>
+  <path d="M455 638 C400 625 345 565 320 525" class="line"/>
+  <path d="M220 425 L220 320" class="line"/>
+  <path d="M365 245 C410 195 455 170 500 160" class="line"/>
+
+  <rect x="410" y="325" width="380" height="140" rx="20" fill="#f8fafc" stroke="#475569" stroke-width="2"/>
+  <text x="600" y="365" text-anchor="middle" class="label">Validation + commit</text>
+  <text x="600" y="397" text-anchor="middle" class="small">schema · syntax · compiler · tests · invariants</text>
+  <text x="600" y="428" text-anchor="middle" class="small">successful migration creates a new immutable snapshot</text>
+  <path d="M365 270 C430 285 475 315 500 335" class="line"/>
+  <path d="M700 335 C750 290 800 260 835 255" class="line" opacity="0"/>
+  <text x="600" y="720" text-anchor="middle" class="small">After commit, canonical rendering establishes the next synchronization base; raw edited bytes never become authority directly.</text>
+</svg>
