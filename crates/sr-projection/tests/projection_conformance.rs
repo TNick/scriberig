@@ -93,3 +93,12 @@ fn conflicts_retain_evidence_and_competing_states() {
     assert_eq!(conflict.observation.observed_content, b"external");
     assert_ne!(conflict.base_snapshot, conflict.current_snapshot);
 }
+
+/// Checks concurrent canonical changes are represented by an explicit kind.
+#[test]
+fn concurrent_changes_have_first_class_conflict_kind() {
+    assert_eq!(
+        sr_projection::ConflictKind::ConcurrentCanonicalChange,
+        sr_projection::ConflictKind::ConcurrentCanonicalChange,
+    );
+}

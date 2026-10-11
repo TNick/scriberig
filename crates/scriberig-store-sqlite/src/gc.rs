@@ -11,6 +11,27 @@ use scriberig_store::{
 use crate::SqliteStore;
 
 impl SqliteStore {
+    /// Rebuilds backend-derived indexes from authoritative SQLite rows.
+    ///
+    /// The current schema has no derived indexes. This operation still exists
+    /// as the maintenance boundary so future indexes can be rebuilt without
+    /// changing canonical revisions or snapshot identities.
+    ///
+    /// # Returns
+    /// Unit after the rebuild boundary has completed.
+    ///
+    /// # Errors
+    /// Returns the underlying SQLite error when the maintenance transaction
+    /// cannot be opened.
+    pub fn rebuild_derived_indexes(&self) -> rusqlite::Result<()> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        let transaction = connection.unchecked_transaction()?;
+        transaction.commit()
+    }
+
     /// Computes immutable objects that are not protected by named roots.
     ///
     /// # Parameters

@@ -78,4 +78,5 @@ fn sqlite_gc_preserves_protected_and_collects_abandoned_branch() {
     assert!(report.unreachable.snapshots.contains(&abandoned));
     assert_eq!(store.resolve(protected, entity), Ok(Some(first)));
     assert!(store.resolve(abandoned, entity).is_err());
+    store.rebuild_derived_indexes().expect("rebuild indexes");
 }
