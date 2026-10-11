@@ -13,6 +13,7 @@ mod guarded_query_support;
 pub mod operation;
 pub mod operation_backend;
 pub mod operation_store;
+pub mod projection_backend;
 pub mod promotion;
 pub mod query;
 pub mod read_backend;
@@ -47,6 +48,7 @@ pub use operation::{
 };
 pub use operation_backend::{CompositeBackend, OperationProvider};
 pub use operation_store::StoreOperationProvider;
+pub use projection_backend::ProjectionOperationProvider;
 pub use promotion::{
     ApprovalEvidence, PromotionDecision, PromotionPolicyEvaluation, PromotionRequest,
     evaluate_promotion, promote_candidate,
