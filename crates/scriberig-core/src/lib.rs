@@ -8,4 +8,4 @@ pub mod ids;
 
 // Re-export the stable identifier API at the crate root.
 pub use encoding::{CanonicalEncode, CanonicalWriter, EncodingVersion};
-pub use ids::{EntityId, IdParseError, ObjectType, RevisionId, RootName, SnapshotId};
+pub use ids::{EntityId, IdParseError, ObjectType, OperationId, RevisionId, RootName, SnapshotId};

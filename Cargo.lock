@@ -309,6 +309,7 @@ dependencies = [
 name = "scriberig-app"
 version = "0.1.0"
 dependencies = [
+ "scriberig-core",
  "scriberig-derive",
  "scriberig-graph",
  "scriberig-migration",
@@ -324,6 +325,7 @@ dependencies = [
  "clap",
  "scriberig-app",
  "scriberig-client",
+ "scriberig-core",
 ]
 
 [[package]]

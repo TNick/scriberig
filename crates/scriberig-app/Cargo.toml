@@ -8,6 +8,7 @@ description = "Shared application-operation boundary used by all product and cli
 repository.workspace = true
 
 [dependencies]
+scriberig-core = { path = "../scriberig-core" }
 scriberig-derive = { path = "../scriberig-derive" }
 scriberig-graph = { path = "../scriberig-graph" }
 scriberig-migration = { path = "../scriberig-migration" }

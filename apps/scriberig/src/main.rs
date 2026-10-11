@@ -30,6 +30,12 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         scriberig_cli::Command::Maintenance => {
             println!("srig maintenance: maintenance mode is not implemented yet.");
         }
+        scriberig_cli::Command::Inspect(args) => {
+            println!(
+                "srig inspect: entity {} requested at {:?}; runtime query service is not configured.",
+                args.entity, args.depth
+            );
+        }
     }
     Ok(())
 }

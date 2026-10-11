@@ -2,6 +2,8 @@
 
 use clap::{Args, Parser, Subcommand};
 
+pub mod trust;
+
 /// Parse the command line accepted by the `srig` executable.
 ///
 /// # Public members
@@ -40,6 +42,8 @@ pub enum Command {
     Agent(PromptArgs),
     /// Run repository or database maintenance operations.
     Maintenance,
+    /// Inspect one entity and its trust metadata.
+    Inspect(InspectArgs),
 }
 
 /// Configure the API server startup stub.
@@ -75,6 +79,16 @@ pub struct ServeArgs {
 pub struct PromptArgs {
     /// User prompt forwarded by a future runtime implementation.
     pub prompt: String,
+}
+
+/// Configure an entity inspection request.
+#[derive(Debug, Args)]
+pub struct InspectArgs {
+    /// Entity identifier to inspect.
+    pub entity: scriberig_core::EntityId,
+    /// Print provenance handles and deeper trust metadata.
+    #[arg(long, value_enum, default_value_t = trust::InspectDepth::Compact)]
+    pub depth: trust::InspectDepth,
 }
 
 /// Parse command-line input for the `srig` executable.
