@@ -7,6 +7,7 @@ pub mod operation;
 pub mod refs;
 pub mod request;
 pub mod response;
+pub mod trust;
 pub mod version;
 
 pub use capability::{CapabilitiesResponse, CapabilityInfo, RuntimeFeature};
@@ -19,6 +20,12 @@ pub use request::{
     SubscribeRequest,
 };
 pub use response::{InspectEntityResponse, OperationStatusResponse};
+pub use trust::{
+    ApprovalSummary, CapabilityDenial, ConflictSummary, ExternalEffectState, ExternalEffectSummary,
+    PolicyEvaluationSummary, PromotionResult, PromotionState, ProvenanceInput, TrustDetails,
+    TrustSelection, TrustSource, TrustSummary, ValidationDiagnostic, ValidationStatus,
+    ValidationSummary,
+};
 pub use version::{ProtocolVersion, VersionExchange};
 
 #[cfg(test)]
@@ -91,6 +98,73 @@ mod tests {
             snapshot: None,
             operation: None,
             metadata: vec![("source".to_owned(), "test".to_owned())],
+        });
+    }
+
+    /// Verifies trust outcomes and event references round trip distinctly.
+    #[test]
+    fn trust_outcomes_and_events_round_trip() {
+        let selection = TrustSelection {
+            entity: EntityReference {
+                id: "entity-1".to_owned(),
+            },
+            snapshot: SnapshotReference {
+                id: "snapshot-1".to_owned(),
+            },
+            revision: None,
+        };
+        round_trip(&CapabilityDenial {
+            action: "promote".to_owned(),
+            scope: "entity-1".to_owned(),
+            reason: "approval required".to_owned(),
+            alternatives: vec!["inspect".to_owned()],
+            approval_possible: true,
+        });
+        round_trip(&TrustDetails {
+            summary: TrustSummary {
+                source: TrustSource::ModelGenerated,
+                validation: ValidationStatus::Current,
+                accepted_via: Some("approval-1".to_owned()),
+                restricted: false,
+            },
+            provenance: vec![ProvenanceInput {
+                selection: selection.clone(),
+                relation: "derived-from".to_owned(),
+            }],
+            validation: Some(ValidationSummary {
+                status: ValidationStatus::Failed,
+                diagnostics: vec![ValidationDiagnostic {
+                    code: "schema".to_owned(),
+                    message: "invalid value".to_owned(),
+                    location: Some("field".to_owned()),
+                }],
+                operation: None,
+            }),
+            policy: None,
+            conflict: None,
+        });
+        round_trip(&Event {
+            kind: EventKind::SnapshotPromoted,
+            entity: Some(selection.entity),
+            revision: None,
+            snapshot: Some(selection.snapshot),
+            operation: Some(OperationReference {
+                id: "op-1".to_owned(),
+            }),
+            metadata: vec![("candidate".to_owned(), "snapshot-2".to_owned())],
+        });
+        round_trip(&PromotionResult {
+            state: PromotionState::Stale,
+            candidate: Some(SnapshotReference {
+                id: "candidate-1".to_owned(),
+            }),
+            promoted_snapshot: None,
+            reason: Some("base changed".to_owned()),
+        });
+        round_trip(&ExternalEffectSummary {
+            handle: "receipt-1".to_owned(),
+            state: ExternalEffectState::Unknown,
+            operation: None,
         });
     }
 }

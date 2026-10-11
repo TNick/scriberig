@@ -27,6 +27,20 @@ pub enum EventKind {
     ValidationCompleted,
     /// Agent output was produced.
     AgentOutputProduced,
+    /// A candidate snapshot was created.
+    CandidateCreated,
+    /// Validation started for a candidate or operation.
+    ValidationStarted,
+    /// An approval was recorded.
+    ApprovalRecorded,
+    /// A semantic conflict was detected.
+    ConflictDetected,
+    /// A capability check denied an action.
+    CapabilityDenied,
+    /// An external effect receipt changed state.
+    ExternalEffectUpdated,
+    /// A candidate snapshot was promoted.
+    SnapshotPromoted,
 }
 
 /// Carries stable references and concise metadata for one event.
