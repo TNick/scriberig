@@ -4,13 +4,16 @@ use crate::{
     ApplicationContext, ApplicationError, ApplyRequest, BranchRequest, CommitRequest, DiffRequest,
     HistoryRequest, OperationProvider, OperationSummary, RenderRequest,
 };
-use scriberig_store::SnapshotStore;
+use scriberig_store::{RootError, RootStore, SnapshotChange, SnapshotStore};
 use sr_change::HistoryGraph;
+use std::collections::BTreeMap;
+use std::sync::Mutex;
 
 /// Executes exact snapshot diffs through the canonical snapshot store.
 pub struct StoreOperationProvider<S> {
     store: S,
     history: Option<HistoryGraph>,
+    migrations: Mutex<BTreeMap<String, sr_change::Migration>>,
 }
 
 impl<S> StoreOperationProvider<S> {
@@ -26,6 +29,7 @@ impl<S> StoreOperationProvider<S> {
         Self {
             store,
             history: None,
+            migrations: Mutex::new(BTreeMap::new()),
         }
     }
 
@@ -54,9 +58,62 @@ impl<S> StoreOperationProvider<S> {
     pub const fn store(&self) -> &S {
         &self.store
     }
+
+    /// Registers a canonical migration for later apply or commit execution.
+    ///
+    /// # Parameters
+    /// - `self`: Provider owning the migration registry.
+    /// - `id`: Stable migration handle supplied by the caller.
+    /// - `migration`: Validated canonical migration.
+    ///
+    /// # Returns
+    /// `true` when the handle was new, or `false` when it already existed.
+    pub fn register_migration(
+        &self,
+        id: impl Into<String>,
+        migration: sr_change::Migration,
+    ) -> bool {
+        let Ok(mut migrations) = self.migrations.lock() else {
+            return false;
+        };
+        migrations.insert(id.into(), migration).is_none()
+    }
+
+    /// Resolves a registered migration into storage changes.
+    ///
+    /// # Parameters
+    /// - `self`: Provider owning canonical migrations.
+    /// - `id`: Stable migration handle.
+    ///
+    /// # Returns
+    /// Exact storage changes in canonical entity order.
+    ///
+    /// # Errors
+    /// Returns not-found when the migration handle is unknown.
+    fn changes_for(&self, id: &str) -> Result<Vec<SnapshotChange>, ApplicationError> {
+        let migrations = self
+            .migrations
+            .lock()
+            .map_err(|_| ApplicationError::Internal {
+                message: "migration registry lock failed".to_owned(),
+            })?;
+        let migration = migrations
+            .get(id)
+            .ok_or_else(|| ApplicationError::NotFound {
+                subject: id.to_owned(),
+            })?;
+        Ok(migration
+            .deltas
+            .iter()
+            .map(|delta| match delta.after {
+                Some(revision) => SnapshotChange::Set(delta.entity, revision),
+                None => SnapshotChange::Remove(delta.entity),
+            })
+            .collect())
+    }
 }
 
-impl<S: SnapshotStore> OperationProvider for StoreOperationProvider<S> {
+impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<S> {
     /// Computes an exact snapshot diff through the store contract.
     ///
     /// # Parameters
@@ -143,64 +200,103 @@ impl<S: SnapshotStore> OperationProvider for StoreOperationProvider<S> {
         Err(unsupported("render"))
     }
 
-    /// Reports that branch lifecycle storage is not configured.
+    /// Records a branch request at its exact immutable base.
     ///
     /// # Parameters
     /// - `self`: Storage operation provider.
     /// - `_context`: Authorized application context.
-    /// - `_request`: Branch request.
+    /// - `request`: Branch request.
     ///
     /// # Returns
-    /// Never returns a branch summary.
+    /// Branch handle summary with its exact base snapshot.
     ///
     /// # Errors
     /// Returns an unsupported-operation error.
     fn branch(
         &self,
         _context: &ApplicationContext,
-        _request: &BranchRequest,
+        request: &BranchRequest,
     ) -> Result<OperationSummary, ApplicationError> {
-        Err(unsupported("branch"))
+        let snapshot = match request.base {
+            crate::SnapshotSelector::Exact(snapshot) => snapshot,
+            crate::SnapshotSelector::NamedRoot(_) => {
+                return Err(unsupported("branch named-root resolution"));
+            }
+        };
+        Ok(OperationSummary {
+            handle: format!("branch:{}:{}", request.name, snapshot),
+            snapshot: Some(snapshot),
+            revision: None,
+        })
     }
 
-    /// Reports that change application requires a configured migration service.
+    /// Applies a registered migration without promoting a named root.
     ///
     /// # Parameters
     /// - `self`: Storage operation provider.
     /// - `_context`: Authorized application context.
-    /// - `_request`: Apply request.
+    /// - `request`: Apply request.
     ///
     /// # Returns
-    /// Never returns a candidate summary.
+    /// Candidate summary containing the resulting immutable snapshot.
     ///
     /// # Errors
     /// Returns an unsupported-operation error.
     fn apply(
         &self,
         _context: &ApplicationContext,
-        _request: &ApplyRequest,
+        request: &ApplyRequest,
     ) -> Result<OperationSummary, ApplicationError> {
-        Err(unsupported("apply"))
+        let changes = self.changes_for(&request.change)?;
+        let candidate = self
+            .store
+            .apply_changes(request.base_snapshot, &changes)
+            .map_err(|_| ApplicationError::SnapshotUnavailable {
+                snapshot: request.base_snapshot,
+            })?;
+        Ok(OperationSummary {
+            handle: request.change.clone(),
+            snapshot: Some(candidate),
+            revision: None,
+        })
     }
 
-    /// Reports that commit requires a configured promotion service.
+    /// Applies a registered migration and promotes the conventional `main` root.
     ///
     /// # Parameters
     /// - `self`: Storage operation provider.
     /// - `_context`: Authorized application context.
-    /// - `_request`: Commit request.
+    /// - `request`: Commit request.
     ///
     /// # Returns
-    /// Never returns a promotion summary.
+    /// Promotion summary containing the resulting immutable snapshot.
     ///
     /// # Errors
     /// Returns an unsupported-operation error.
     fn commit(
         &self,
         _context: &ApplicationContext,
-        _request: &CommitRequest,
+        request: &CommitRequest,
     ) -> Result<OperationSummary, ApplicationError> {
-        Err(unsupported("commit"))
+        let changes = self.changes_for(&request.change)?;
+        let candidate = self
+            .store
+            .apply_changes(request.base_snapshot, &changes)
+            .map_err(|_| ApplicationError::SnapshotUnavailable {
+                snapshot: request.base_snapshot,
+            })?;
+        self.store
+            .compare_and_set_root(
+                scriberig_core::RootName::new("main").expect("main root"),
+                Some(request.base_snapshot),
+                candidate,
+            )
+            .map_err(|error| map_root_error(&error))?;
+        Ok(OperationSummary {
+            handle: request.change.clone(),
+            snapshot: Some(candidate),
+            revision: None,
+        })
     }
 }
 
@@ -214,5 +310,30 @@ impl<S: SnapshotStore> OperationProvider for StoreOperationProvider<S> {
 fn unsupported(operation: &str) -> ApplicationError {
     ApplicationError::UnsupportedOperation {
         operation: operation.to_owned(),
+    }
+}
+
+/// Maps optimistic root failures without leaking backend details.
+///
+/// # Parameters
+/// - `error`: Root-store failure to translate.
+///
+/// # Returns
+/// Structured application conflict or internal failure.
+fn map_root_error(error: &RootError) -> ApplicationError {
+    match error {
+        RootError::Conflict {
+            expected, actual, ..
+        } => ApplicationError::Conflict {
+            subject: "main".to_owned(),
+            details: Box::new(crate::ConflictDetails {
+                left: expected.map(|value| value.to_string()),
+                right: actual.map(|value| value.to_string()),
+                ..crate::ConflictDetails::default()
+            }),
+        },
+        RootError::Backend(_) => ApplicationError::Internal {
+            message: "root promotion failed".to_owned(),
+        },
     }
 }

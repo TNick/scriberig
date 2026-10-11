@@ -5,8 +5,11 @@ use scriberig_app::{
     OperationId, OperationKind, OperationProvider, OperationRecord, OperationStatus,
     SnapshotSelector, StoreOperationProvider,
 };
-use scriberig_core::{RevisionId, SnapshotId};
+use scriberig_core::{RevisionId, RootName, SnapshotId};
+use scriberig_store::RootStore;
 use scriberig_store_memory::MemoryStore;
+use sr_change::{Migration, Provenance, SourceKind};
+use std::collections::BTreeMap;
 
 /// Verifies terminal operation states cannot be changed.
 #[test]
@@ -82,4 +85,59 @@ fn storage_history_is_snapshot_bound() {
         )
         .expect("history");
     assert_eq!(result.snapshot, Some(snapshot));
+}
+
+/// Verifies apply is candidate-only while commit performs root promotion.
+#[test]
+fn storage_apply_and_commit_keep_promotion_explicit() {
+    let store = MemoryStore::new();
+    let snapshot = store.empty_snapshot();
+    let migration = Migration::new(
+        snapshot,
+        snapshot,
+        Vec::new(),
+        Vec::new(),
+        Provenance {
+            source: SourceKind::User,
+            actor: None,
+            workspace: None,
+            projection: None,
+            validation: Vec::new(),
+            parents: Vec::new(),
+            metadata: BTreeMap::new(),
+        },
+    )
+    .expect("migration");
+    let provider = StoreOperationProvider::new(store);
+    assert!(provider.register_migration("empty", migration));
+    let applied = provider
+        .apply(
+            &ApplicationContext::empty(),
+            &scriberig_app::ApplyRequest {
+                base_snapshot: snapshot,
+                change: "empty".to_owned(),
+            },
+        )
+        .expect("apply");
+    assert_eq!(applied.snapshot, Some(snapshot));
+    assert!(
+        provider
+            .store()
+            .read_root(&RootName::new("main").expect("root"))
+            .is_none()
+    );
+    provider
+        .store()
+        .set_root(RootName::new("main").expect("root"), snapshot)
+        .expect("seed root");
+    let committed = provider
+        .commit(
+            &ApplicationContext::empty(),
+            &scriberig_app::CommitRequest {
+                base_snapshot: snapshot,
+                change: "empty".to_owned(),
+            },
+        )
+        .expect("commit");
+    assert_eq!(committed.snapshot, Some(snapshot));
 }
