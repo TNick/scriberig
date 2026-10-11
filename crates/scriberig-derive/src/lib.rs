@@ -40,6 +40,8 @@ pub mod repository;
 pub mod result;
 /// Defines generic retention behavior for derivation registrations.
 pub mod retention;
+/// Provides a usable in-memory repository and cache resolution runtime.
+pub mod runtime;
 /// Selects among existing immutable result records.
 pub mod selection;
 
@@ -58,4 +60,5 @@ pub use registry::{
 pub use repository::{DerivedRepository, RepositoryError};
 pub use result::{DerivedResultRecord, DerivedResultStatus, FailureReason};
 pub use retention::{RetentionPolicy, RetentionStrength};
+pub use runtime::{DerivedRuntime, InMemoryDerivedRepository, Resolution, RuntimeError};
 pub use selection::{SelectionOutcome, SelectionPolicy, SelectionReason, select};

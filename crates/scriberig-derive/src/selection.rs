@@ -8,7 +8,7 @@ use crate::result::{DerivedResultRecord, DerivedResultStatus};
 ///
 /// Candidate slice order is the caller's explicit ranking; selection never
 /// mutates records or persists a preferred-result pointer.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SelectionPolicy {
     /// Required exact profile; `None` accepts any profile.
     pub profile: Option<DerivationProfile>,
@@ -21,7 +21,7 @@ pub struct SelectionPolicy {
 }
 
 /// Explains which candidate was chosen or why no candidate qualified.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum SelectionOutcome<'a> {
     /// Candidate was selected according to the requested policy.
     Selected {
