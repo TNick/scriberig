@@ -30,6 +30,9 @@ pub mod summary;
 /// Defines isolated speculative work.
 pub mod workspace;
 
+pub use branch::Branch;
 pub use migration::{EntityDelta, Migration, MigrationError};
 pub use operation::{CollectionPosition, Operation};
+pub use promotion::{PromotionResult, promote};
 pub use provenance::{Provenance, SourceKind};
+pub use workspace::{Workspace, WorkspaceStatus};
