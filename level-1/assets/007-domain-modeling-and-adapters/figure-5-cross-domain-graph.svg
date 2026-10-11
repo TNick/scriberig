@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Cross-domain relations connect knowledge without transferring ownership</title>
+  <desc id="desc">A graph connects a session branch, design decision, Markdown code block, source function, source comment, PDF page, and migration. Solid containment arrows stay within domains. Dashed semantic-reference arrows cross domain boundaries, showing that entities may refer to each other without copying content or changing ownership.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.head{font:700 18px system-ui,sans-serif;fill:#0f172a}.small{font:14px system-ui,sans-serif;fill:#475569}.own{stroke:#334155;stroke-width:3;fill:none;marker-end:url(#arrow)}.ref{stroke:#7c3aed;stroke-width:3;stroke-dasharray:9 7;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">The universal graph links domains without collapsing them</text>
+
+  <rect x="70" y="115" width="240" height="105" rx="18" fill="#f0fdfa" stroke="#0f766e" stroke-width="3"/>
+  <text x="190" y="157" text-anchor="middle" class="head">Session Branch B</text>
+  <text x="190" y="188" text-anchor="middle" class="small">"Investigate cache strategy"</text>
+
+  <rect x="70" y="430" width="240" height="105" rx="18" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="190" y="472" text-anchor="middle" class="head">Decision D19</text>
+  <text x="190" y="503" text-anchor="middle" class="small">accepted architecture choice</text>
+
+  <rect x="465" y="95" width="250" height="105" rx="18" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="590" y="137" text-anchor="middle" class="head">Markdown CodeBlock C</text>
+  <text x="590" y="168" text-anchor="middle" class="small">owned by a document</text>
+
+  <rect x="465" y="300" width="250" height="105" rx="18" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="590" y="342" text-anchor="middle" class="head">Function F</text>
+  <text x="590" y="373" text-anchor="middle" class="small">source-code entity</text>
+
+  <rect x="465" y="515" width="250" height="105" rx="18" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="590" y="557" text-anchor="middle" class="head">Comment Cmt</text>
+  <text x="590" y="588" text-anchor="middle" class="small">authored source knowledge</text>
+
+  <rect x="870" y="115" width="250" height="105" rx="18" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="995" y="157" text-anchor="middle" class="head">PDF Page P12</text>
+  <text x="995" y="188" text-anchor="middle" class="small">source evidence and regions</text>
+
+  <rect x="870" y="430" width="250" height="105" rx="18" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+  <text x="995" y="472" text-anchor="middle" class="head">Migration M</text>
+  <text x="995" y="503" text-anchor="middle" class="small">changes semantic entities</text>
+
+  <path d="M190 220 L190 430" class="ref"/>
+  <text x="205" y="330" class="small">derived_from</text>
+
+  <path d="M310 165 C375 185 415 255 465 330" class="ref"/>
+  <text x="348" y="230" class="small">touches</text>
+
+  <path d="M590 200 L590 300" class="ref"/>
+  <text x="605" y="255" class="small">represents</text>
+
+  <path d="M590 405 L590 515" class="own"/>
+  <text x="605" y="465" class="small">contains / attaches</text>
+
+  <path d="M310 480 C400 480 410 560 465 565" class="ref"/>
+  <text x="355" y="535" class="small">referenced by</text>
+
+  <path d="M870 170 C785 190 760 430 715 550" class="ref"/>
+  <text x="780" y="340" class="small">supports</text>
+
+  <path d="M870 480 C790 445 745 390 715 360" class="ref"/>
+  <text x="775" y="445" class="small">changes</text>
+
+  <text x="600" y="672" text-anchor="middle" class="small">Solid line: structural ownership inside a domain · Dashed line: semantic reference across domains</text>
+</svg>

@@ -5437,6 +5437,9 @@
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>       +----&gt; projection C
 </code></pre></div>
 <p>The database remains authoritative. Projections exist to make that knowledge useful to humans, agents, compilers, external tools, and user interfaces.</p>
+<p>Figure 1 makes the important direction of authority explicit: Markdown, source code, transcripts, agent context, and interactive UI views are different renderings of one canonical semantic state. None of the projected forms becomes a competing source of truth merely because it is easier for a particular consumer to use.</p>
+<p><img alt="Diagram showing canonical knowledge at the center rendered outward into Markdown files, Rust source files, human transcripts, agent context, and interactive UI views; all are projections of one authoritative semantic state." src="../assets/006-figure-1-projection-family.svg" /></p>
+<p><strong>Figure 1 — One semantic state can support many simultaneous projections for different consumers and purposes.</strong></p>
 <hr />
 <h2 id="3-canonical-state-and-projection-state-are-different">3. Canonical State and Projection State Are Different<a class="headerlink" href="#3-canonical-state-and-projection-state-are-different" title="Permanent link">&para;</a></h2>
 <p>A projection must not become accidental canonical state merely because it is visible or editable.</p>
@@ -5566,6 +5569,9 @@
 </ul>
 <p>Styles should have stable conceptual identity and immutable revisions like other semantic configuration.</p>
 <p>A user-facing style alias may move to a newer style revision without rewriting semantic content.</p>
+<p>Figure 2 shows why style belongs beside semantic content rather than inside it. The same exact semantic module can be combined with different immutable style revisions to produce different bytes and layouts while preserving one program identity.</p>
+<p><img alt="Diagram showing one semantic Rust module combined with Style A and Style B to produce two differently formatted source projections while the semantic module remains unchanged." src="../assets/006-figure-2-style-separation.svg" /></p>
+<p><strong>Figure 2 — Style is an independent rendering input; changing presentation does not by itself change semantic identity.</strong></p>
 <hr />
 <h2 id="7-style-must-not-hide-semantic-transformation">7. Style Must Not Hide Semantic Transformation<a class="headerlink" href="#7-style-must-not-hide-semantic-transformation" title="Permanent link">&para;</a></h2>
 <p>A style controls representation, not meaning.</p>
@@ -5643,6 +5649,9 @@
 <p>Scriberig must retain enough information to distinguish its last synchronized projection from both current canonical state and current externally edited state.</p>
 </blockquote>
 <p>This is necessary for correct three-way reconciliation.</p>
+<p>Figure 3 is a conceptual schema, not a database table prescription. What matters at this level is that the synchronization record connects an exact semantic base to an exact external representation and records every input needed to reproduce or safely compare that representation.</p>
+<p><img alt="Schema diagram of a projection record linking canonical state to an external artifact, with fields for semantic scope, synchronization base, projection kind, style revision, renderer version, external location, last output digest, and ownership policy." src="../assets/006-figure-3-projection-record-schema.svg" /></p>
+<p><strong>Figure 3 — An editable projection record remembers enough exact state to reproduce output, detect drift, and support later reconciliation.</strong></p>
 <hr />
 <h2 id="11-external-files-remain-normal-files">11. External Files Remain Normal Files<a class="headerlink" href="#11-external-files-remain-normal-files" title="Permanent link">&para;</a></h2>
 <p>Although source files are projections rather than canonical storage, Scriberig must preserve ordinary filesystem workflows.</p>
@@ -5700,6 +5709,9 @@
 </blockquote>
 <p>These are separate problems.</p>
 <p>A parser may produce a structurally correct candidate graph without knowing which existing entity each candidate node should correspond to.</p>
+<p>Figure 4 shows the complete round trip. The critical point is that an external edit passes through parsing, identity reconciliation, migration, and validation before it becomes canonical; after commit, Scriberig renders again so the external artifact once more has a known synchronization base.</p>
+<p><img alt="Clockwise diagram showing canonical semantic state rendered to a projection, externally edited, parsed into candidate semantics, reconciled with known entities, turned into a semantic migration, validated and committed as a new snapshot, then rendered again." src="../assets/006-figure-4-bidirectional-editing-cycle.svg" /></p>
+<p><strong>Figure 4 — Bidirectional editing is a controlled semantic round trip, not direct replacement of the database with edited bytes.</strong></p>
 <hr />
 <h2 id="13-reconciliation-preserves-conceptual-identity-where-justified">13. Reconciliation Preserves Conceptual Identity Where Justified<a class="headerlink" href="#13-reconciliation-preserves-conceptual-identity-where-justified" title="Permanent link">&para;</a></h2>
 <p>Because Scriberig separates stable entity identity from immutable revisions, external editing needs to determine continuity.</p>
@@ -5735,6 +5747,9 @@
 <li>explicit metadata when a format naturally provides it.</li>
 </ul>
 <p>The exact matching algorithm belongs in domain-specific lower-level design.</p>
+<p>Figure 5 illustrates the intended identity behavior. A modified paragraph normally keeps its stable entity and receives a new immutable revision, an inserted block gets a new entity, and an unchanged paragraph is reused exactly; position helps matching but does not define identity.</p>
+<p><img alt="Three-column reconciliation diagram showing an existing section with P1 and P2, an edited candidate with modified first paragraph, inserted paragraph, and unchanged last paragraph, and a result that keeps P1 with a new revision, creates P3, and reuses P2 unchanged." src="../assets/006-figure-5-identity-preserving-reconciliation.svg" /></p>
+<p><strong>Figure 5 — Reconciliation preserves conceptual continuity where evidence supports it instead of treating every edited block as an unrelated new object.</strong></p>
 <hr />
 <h2 id="14-reconciliation-must-not-pretend-certainty">14. Reconciliation Must Not Pretend Certainty<a class="headerlink" href="#14-reconciliation-must-not-pretend-certainty" title="Permanent link">&para;</a></h2>
 <p>Some external edits are ambiguous.</p>
@@ -5844,6 +5859,9 @@
 <p>This is analogous to three-way version-control merging, but the comparison happens through domain semantics rather than only through lines.</p>
 <p>If database-side and external edits affect disjoint semantic entities, they should normally merge automatically.</p>
 <p>If both affect the same semantic state incompatibly, the system should produce a structured conflict.</p>
+<p>Figure 6 shows why the synchronization base must be retained. Current database state <code>D</code> and externally edited state <code>F</code> are both interpreted relative to the same base <code>B</code>; compatible semantic changes combine into a migration and new snapshot, while incompatible changes remain explicit structured conflicts rather than one side silently overwriting the other.</p>
+<p><img alt="Three-way reconciliation diagram with synchronization base B branching to current database state D and externally edited state F, then converging in semantic reconciliation that yields either a merged migration and new snapshot or a structured conflict." src="../assets/006-figure-6-three-way-reconciliation.svg" /></p>
+<p><strong>Figure 6 — Three-way semantic reconciliation combines independent changes and preserves conflicts when both sides changed the same meaning incompatibly.</strong></p>
 <hr />
 <h2 id="19-conflicts-are-semantic-objects-not-error-strings">19. Conflicts Are Semantic Objects, Not Error Strings<a class="headerlink" href="#19-conflicts-are-semantic-objects-not-error-strings" title="Permanent link">&para;</a></h2>
 <p>A reconciliation conflict should preserve enough structured information for a human, agent, UI, CLI, or API client to inspect and resolve it.</p>

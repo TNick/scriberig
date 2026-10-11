@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Domain knowledge is classified by authority and purpose</title>
+  <desc id="desc">Four boxes distinguish canonical knowledge, derived knowledge, projection-only information, and external evidence. Canonical knowledge participates in snapshots and semantic history. Derived knowledge is rebuildable and records dependencies and provenance. Projection-only information affects representation but not semantic identity. External evidence preserves source artifacts or observations. Arrows show derived knowledge computed from canonical state and evidence.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.head{font:700 21px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Every domain must say what kind of knowledge a value represents</text>
+
+  <rect x="75" y="115" width="430" height="210" rx="22" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="290" y="158" text-anchor="middle" class="head">Canonical knowledge</text>
+  <text x="290" y="197" text-anchor="middle" class="body">author-intended semantic state</text>
+  <text x="290" y="230" text-anchor="middle" class="body">participates in revisions and snapshots</text>
+  <text x="290" y="263" text-anchor="middle" class="small">examples: paragraph text, chosen syntax, comments</text>
+  <text x="290" y="292" text-anchor="middle" class="small">history · branch · merge · semantic edit</text>
+
+  <rect x="695" y="115" width="430" height="210" rx="22" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="910" y="158" text-anchor="middle" class="head">Derived knowledge</text>
+  <text x="910" y="197" text-anchor="middle" class="body">computed from exact inputs</text>
+  <text x="910" y="230" text-anchor="middle" class="body">rebuildable and provenance-aware</text>
+  <text x="910" y="263" text-anchor="middle" class="small">types · call graph · OCR · summaries · diagnostics</text>
+  <text x="910" y="292" text-anchor="middle" class="small">producer + configuration + dependency revisions</text>
+
+  <rect x="75" y="430" width="430" height="190" rx="22" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="290" y="473" text-anchor="middle" class="head">Projection-only information</text>
+  <text x="290" y="512" text-anchor="middle" class="body">representation and layout choices</text>
+  <text x="290" y="545" text-anchor="middle" class="small">wrapping · indentation · alignment · view state</text>
+  <text x="290" y="578" text-anchor="middle" class="small">does not normally change semantic identity</text>
+
+  <rect x="695" y="430" width="430" height="190" rx="22" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+  <text x="910" y="473" text-anchor="middle" class="head">External evidence</text>
+  <text x="910" y="512" text-anchor="middle" class="body">source artifact or observation</text>
+  <text x="910" y="545" text-anchor="middle" class="small">PDF bytes · compiler output · imported metadata</text>
+  <text x="910" y="578" text-anchor="middle" class="small">kept distinct from interpretations derived from it</text>
+
+  <path d="M505 205 C585 170 615 170 695 205" class="line"/>
+  <text x="600" y="155" text-anchor="middle" class="small">analyze</text>
+  <path d="M910 430 L910 325" class="line"/>
+  <text x="945" y="382" class="small">interpret</text>
+  <path d="M290 325 L290 430" class="line"/>
+  <text x="325" y="382" class="small">render</text>
+</svg>
