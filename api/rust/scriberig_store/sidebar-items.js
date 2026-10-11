@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {};
+window.SIDEBAR_ITEMS = {"mod":["collection","conformance","integrity","reachability","revision","revision_store","roots","snapshot","stats"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["StoreErrorCategory"],"struct":["GcReport","IndexStatus","RootStatus","StoreStats"],"trait":["StoreObservability"]};

@@ -5159,17 +5159,17 @@
 <p>If the repository has established additional checks by the time this task runs, run them too.</p>
 <h2 id="final-checklist">Final checklist<a class="headerlink" href="#final-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Workspace compiles without higher-level agent/domain dependencies.</li>
-<li>[ ] Memory and SQLite stores implement the same public persistence contract.</li>
-<li>[ ] Immutable historical snapshots remain readable.</li>
-<li>[ ] Deep/local changes preserve unrelated revision identities.</li>
-<li>[ ] Any canonical map change creates a different snapshot identity.</li>
-<li>[ ] Equivalent canonical state produces the same IDs across backends.</li>
-<li>[ ] Named-root promotion is compare-and-set and atomic.</li>
-<li>[ ] SQLite state survives reopen.</li>
-<li>[ ] Reachability and GC preserve protected state.</li>
-<li>[ ] Integrity verification passes on retained state.</li>
-<li>[ ] Formatting, tests, and clippy pass.</li>
+<li>[x] Workspace compiles without higher-level agent/domain dependencies.</li>
+<li>[x] Memory and SQLite stores implement the same public persistence contract.</li>
+<li>[x] Immutable historical snapshots remain readable.</li>
+<li>[x] Deep/local changes preserve unrelated revision identities.</li>
+<li>[x] Any canonical map change creates a different snapshot identity.</li>
+<li>[x] Equivalent canonical state produces the same IDs across backends.</li>
+<li>[x] Named-root promotion is compare-and-set and atomic.</li>
+<li>[x] SQLite state survives reopen.</li>
+<li>[x] Reachability and GC preserve protected state.</li>
+<li>[x] Integrity verification passes on retained state.</li>
+<li>[x] Formatting, tests, and clippy pass.</li>
 </ul>
 <p>When every item is satisfied, stop. Do not proceed into migrations, domain adapters, agents, CLI, server, or web implementation; those belong to later design documents.</p>
 

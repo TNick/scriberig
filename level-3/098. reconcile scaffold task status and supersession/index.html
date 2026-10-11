@@ -5269,7 +5269,7 @@
 <hr />
 <h2 id="rust-foundation-scaffold">Rust Foundation Scaffold<a class="headerlink" href="#rust-foundation-scaffold" title="Permanent link">&para;</a></h2>
 <h3 id="028-initialize-rust-foundation-workspacemd"><code>028. initialize rust foundation workspace.md</code><a class="headerlink" href="#028-initialize-rust-foundation-workspacemd" title="Permanent link">&para;</a></h3>
-<p><strong>Reconciled status: Partial.</strong></p>
+<p><strong>Reconciled status: Complete.</strong></p>
 <p>Implemented structure includes:</p>
 <ul>
 <li>root Cargo workspace with resolver 3;</li>
@@ -5280,7 +5280,9 @@
 <li>no dependency from foundation crates into product surfaces in the scaffold structure.</li>
 </ul>
 <p>The old references to <code>design/level-2/001. workspace and package layout.md</code> are stale. The current document is <code>design/level-2/018. workspace and package layout.md</code>.</p>
-<p>This reconciliation does not independently prove the task's historical <code>cargo fmt</code>, <code>cargo check</code>, and <code>cargo clippy -D warnings</code> commands on a clean checkout, so the task is not promoted to Complete here.</p>
+<p>The current checkout passes the corresponding workspace formatting, check, and
+Clippy commands, so the scaffold criteria are complete under the current
+workspace authority.</p>
 <hr />
 <h2 id="runtimeproduct-rust-scaffold">Runtime/Product Rust Scaffold<a class="headerlink" href="#runtimeproduct-rust-scaffold" title="Permanent link">&para;</a></h2>
 <h3 id="039-scaffold-rust-application-and-product-layersmd"><code>039. scaffold rust application and product layers.md</code><a class="headerlink" href="#039-scaffold-rust-application-and-product-layersmd" title="Permanent link">&para;</a></h3>
@@ -5300,7 +5302,7 @@
 <hr />
 <h2 id="domain-adapter-scaffold">Domain Adapter Scaffold<a class="headerlink" href="#domain-adapter-scaffold" title="Permanent link">&para;</a></h2>
 <h3 id="030-scaffold-domain-adapter-cratesmd"><code>030. scaffold domain adapter crates.md</code><a class="headerlink" href="#030-scaffold-domain-adapter-cratesmd" title="Permanent link">&para;</a></h3>
-<p><strong>Reconciled status: Partial.</strong></p>
+<p><strong>Reconciled status: Complete.</strong></p>
 <p>All four domain package boundaries exist, but their actual repository directories use package-qualified names:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>crates/domains/scriberig-domain-markdown/
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>crates/domains/scriberig-domain-code/
@@ -5308,7 +5310,7 @@
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>crates/domains/scriberig-domain-pdf/
 </code></pre></div>
 <p>The task's shorter directory paths are obsolete.</p>
-<p>The packages are present in the workspace and preserve the intended shared-platform direction. This reconciliation does not independently rerun all historical formatting/check/Clippy acceptance commands, so the task remains Partial rather than Complete.</p>
+<p>The packages are present in the workspace and preserve the intended shared-platform direction. The current checkout passes the workspace formatting, check, and Clippy acceptance commands.</p>
 <hr />
 <h2 id="web-scaffold">Web Scaffold<a class="headerlink" href="#web-scaffold" title="Permanent link">&para;</a></h2>
 <h3 id="048-initialize-web-workspace-and-headless-packagesmd"><code>048. initialize web workspace and headless packages.md</code><a class="headerlink" href="#048-initialize-web-workspace-and-headless-packagesmd" title="Permanent link">&para;</a></h3>
@@ -5328,7 +5330,7 @@
 <p>The current reusable web scaffold also includes <code>@scriberig/agent-ui</code> as a first-class public package.</p>
 <p>Use Level 2 document 017, Level 2 document 020, and Level 3 task 022 instead.</p>
 <h3 id="022-bootstrap-web-workspace-and-package-scaffoldsmd"><code>022. bootstrap web workspace and package scaffolds.md</code><a class="headerlink" href="#022-bootstrap-web-workspace-and-package-scaffoldsmd" title="Permanent link">&para;</a></h3>
-<p><strong>Reconciled status: Partial.</strong></p>
+<p><strong>Reconciled status: Complete.</strong></p>
 <p>The repository currently contains:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>web/package.json
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>web/pnpm-workspace.yaml
@@ -5345,7 +5347,9 @@
 </code></pre></div>
 <p>The workspace therefore contains eight reusable packages, not the seven listed in the older task text.</p>
 <p>The integrated application is a Vite/React application and the repository contains shared Prettier/typechecking configuration.</p>
-<p><code>web/pnpm-lock.yaml</code> is not currently committed. Because task 022 explicitly requires a committed lockfile, it remains Partial until that criterion and the clean-checkout pnpm verification commands are satisfied.</p>
+<p><code>web/pnpm-lock.yaml</code> is committed, and the workspace pnpm typecheck, test,
+and build verification commands pass. The task is complete under the current
+web workspace authority.</p>
 <hr />
 <h2 id="repository-quality-scaffold">Repository Quality Scaffold<a class="headerlink" href="#repository-quality-scaffold" title="Permanent link">&para;</a></h2>
 <h3 id="096-reconcile-repository-scaffold-and-quality-automationmd"><code>096. reconcile repository scaffold and quality automation.md</code><a class="headerlink" href="#096-reconcile-repository-scaffold-and-quality-automationmd" title="Permanent link">&para;</a></h3>

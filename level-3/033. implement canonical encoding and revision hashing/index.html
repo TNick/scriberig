@@ -5023,16 +5023,16 @@
 <p>Create a deterministic <code>CanonicalWriter</code> backed by <code>Vec&lt;u8&gt;</code>.</p>
 <p>It must provide explicit methods for at least:</p>
 <ul>
-<li>[ ] writing a fixed byte/domain tag;</li>
-<li>[ ] <code>u8</code>;</li>
-<li>[ ] <code>u16</code>;</li>
-<li>[ ] <code>u32</code>;</li>
-<li>[ ] <code>u64</code>;</li>
-<li>[ ] booleans with fixed discriminants;</li>
-<li>[ ] raw bytes with an explicit length prefix;</li>
-<li>[ ] UTF-8 strings with byte-length prefix;</li>
-<li>[ ] optional values with explicit present/absent discriminant;</li>
-<li>[ ] sequence length before sequence contents.</li>
+<li>[x] writing a fixed byte/domain tag;</li>
+<li>[x] <code>u8</code>;</li>
+<li>[x] <code>u16</code>;</li>
+<li>[x] <code>u32</code>;</li>
+<li>[x] <code>u64</code>;</li>
+<li>[x] booleans with fixed discriminants;</li>
+<li>[x] raw bytes with an explicit length prefix;</li>
+<li>[x] UTF-8 strings with byte-length prefix;</li>
+<li>[x] optional values with explicit present/absent discriminant;</li>
+<li>[x] sequence length before sequence contents.</li>
 </ul>
 <p>Use one specified endian order for multi-byte integers. Use big-endian unless the Level 2 design is updated before implementation.</p>
 <p>Lengths must use a fixed-width integer representation. Use <code>u64</code> for encoded lengths unless there is a compelling implementation blocker.</p>
@@ -5070,15 +5070,15 @@
 <h2 id="determinism-tests">Determinism Tests<a class="headerlink" href="#determinism-tests" title="Permanent link">&para;</a></h2>
 <p>Add focused tests proving:</p>
 <ul>
-<li>[ ] the same inputs produce the same bytes;</li>
-<li>[ ] the same revision inputs produce the same <code>RevisionId</code>;</li>
-<li>[ ] changing payload changes <code>RevisionId</code>;</li>
-<li>[ ] changing <code>TypeId</code> changes <code>RevisionId</code>;</li>
-<li>[ ] changing <code>EncodingVersion</code> changes <code>RevisionId</code>;</li>
-<li>[ ] <code>EntityId</code> is not an input to revision hashing;</li>
-<li>[ ] encoding a fixed sequence produces an expected fixed byte vector;</li>
-<li>[ ] strings use byte length, not character count;</li>
-<li>[ ] the implementation does not depend on native endianness.</li>
+<li>[x] the same inputs produce the same bytes;</li>
+<li>[x] the same revision inputs produce the same <code>RevisionId</code>;</li>
+<li>[x] changing payload changes <code>RevisionId</code>;</li>
+<li>[x] changing <code>TypeId</code> changes <code>RevisionId</code>;</li>
+<li>[x] changing <code>EncodingVersion</code> changes <code>RevisionId</code>;</li>
+<li>[x] <code>EntityId</code> is not an input to revision hashing;</li>
+<li>[x] encoding a fixed sequence produces an expected fixed byte vector;</li>
+<li>[x] strings use byte length, not character count;</li>
+<li>[x] the implementation does not depend on native endianness.</li>
 </ul>
 <p>At least one canonical encoding test must assert exact bytes, not merely compare two runs of the same function.</p>
 <h2 id="public-documentation">Public Documentation<a class="headerlink" href="#public-documentation" title="Permanent link">&para;</a></h2>
@@ -5106,13 +5106,13 @@
 </ul>
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] <code>CanonicalWriter</code> exists.</li>
-<li>[ ] <code>CanonicalEncode</code> exists.</li>
-<li>[ ] Revision hashing uses BLAKE3 and a domain tag.</li>
-<li>[ ] Encoding version participates in the hash.</li>
-<li>[ ] Exact-byte canonical tests pass.</li>
-<li>[ ] Revision hashing determinism tests pass.</li>
-<li>[ ] Workspace formatting, tests, and clippy pass.</li>
+<li>[x] <code>CanonicalWriter</code> exists.</li>
+<li>[x] <code>CanonicalEncode</code> exists.</li>
+<li>[x] Revision hashing uses BLAKE3 and a domain tag.</li>
+<li>[x] Encoding version participates in the hash.</li>
+<li>[x] Exact-byte canonical tests pass.</li>
+<li>[x] Revision hashing determinism tests pass.</li>
+<li>[x] Workspace formatting, tests, and clippy pass.</li>
 </ul>
 
 

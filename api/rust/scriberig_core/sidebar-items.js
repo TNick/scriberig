@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["encoding","ids","provenance","value"]};
+window.SIDEBAR_ITEMS = {"mod":["encoding","ids","principal","provenance","value"]};

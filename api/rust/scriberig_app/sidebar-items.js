@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["capability","command","context","error","event","operation","query","request","result","trust"],"struct":["OperationId"]};
+window.SIDEBAR_ITEMS = {"mod":["capability","capability_registry","command","context","error","event","external_effect","guarded_derive","guarded_query","operation","operation_backend","operation_store","projection_backend","promotion","query","read_backend","request","result","service","trust","validation"],"struct":["OperationId","StoreInspectionBackend"]};

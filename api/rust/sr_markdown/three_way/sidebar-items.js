@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["MarkdownConflictKind","ThreeWayOutcome"],"fn":["synchronize","three_way_merge"],"struct":["MarkdownConflict","MarkdownSynchronizationResult"]};

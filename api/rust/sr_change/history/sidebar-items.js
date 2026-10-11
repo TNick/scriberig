@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["HistoryGraph","LineageRecord","MigrationReference"],"type":["MigrationId"]};

@@ -5100,11 +5100,11 @@
 <p>Define a small validated root-name type or an equivalent checked string wrapper.</p>
 <p>Requirements:</p>
 <ul>
-<li>[ ] non-empty;</li>
-<li>[ ] deterministic textual representation;</li>
-<li>[ ] no hidden normalization;</li>
-<li>[ ] suitable for names such as <code>main</code>, <code>active-workspace</code>, and <code>current-project</code>;</li>
-<li>[ ] validation failure uses a typed error.</li>
+<li>[x] non-empty;</li>
+<li>[x] deterministic textual representation;</li>
+<li>[x] no hidden normalization;</li>
+<li>[x] suitable for names such as <code>main</code>, <code>active-workspace</code>, and <code>current-project</code>;</li>
+<li>[x] validation failure uses a typed error.</li>
 </ul>
 <p>Keep validation conservative and simple. Do not invent a complex path hierarchy in this task.</p>
 <h2 id="root-store-contract">Root Store Contract<a class="headerlink" href="#root-store-contract" title="Permanent link">&para;</a></h2>
@@ -5135,17 +5135,17 @@
 <h2 id="required-tests">Required Tests<a class="headerlink" href="#required-tests" title="Permanent link">&para;</a></h2>
 <p>In <code>crates/sr-store/tests/roots.rs</code>, test at least:</p>
 <ul>
-<li>[ ] missing root returns <code>None</code>;</li>
-<li>[ ] <code>set</code> creates a root;</li>
-<li>[ ] <code>set</code> can move a root from <code>S1</code> to <code>S2</code>;</li>
-<li>[ ] moving a root does not change <code>S1</code> or <code>S2</code>;</li>
-<li>[ ] CAS succeeds when expected value matches;</li>
-<li>[ ] CAS fails when expected value is stale;</li>
-<li>[ ] failed CAS leaves the current root unchanged;</li>
-<li>[ ] CAS with <code>expected = None</code> can create a missing root;</li>
-<li>[ ] CAS with <code>expected = None</code> fails when root already exists;</li>
-<li>[ ] two independent root names may point to the same snapshot;</li>
-<li>[ ] one root moving does not affect another root.</li>
+<li>[x] missing root returns <code>None</code>;</li>
+<li>[x] <code>set</code> creates a root;</li>
+<li>[x] <code>set</code> can move a root from <code>S1</code> to <code>S2</code>;</li>
+<li>[x] moving a root does not change <code>S1</code> or <code>S2</code>;</li>
+<li>[x] CAS succeeds when expected value matches;</li>
+<li>[x] CAS fails when expected value is stale;</li>
+<li>[x] failed CAS leaves the current root unchanged;</li>
+<li>[x] CAS with <code>expected = None</code> can create a missing root;</li>
+<li>[x] CAS with <code>expected = None</code> fails when root already exists;</li>
+<li>[x] two independent root names may point to the same snapshot;</li>
+<li>[x] one root moving does not affect another root.</li>
 </ul>
 <p>Add one concurrency test using two threads if it can be written deterministically enough to avoid flaky timing assumptions. Prefer barriers/channels over sleeps.</p>
 <p>The test should demonstrate that only one writer can successfully advance a root when both use the same old expected snapshot.</p>
@@ -5176,13 +5176,13 @@
 </ul>
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Root-name validation exists.</li>
-<li>[ ] Backend-independent root-store trait exists.</li>
-<li>[ ] In-memory implementation exists.</li>
-<li>[ ] Compare-and-swap is atomic within the in-memory store.</li>
-<li>[ ] Stale CAS is an explicit normal outcome.</li>
-<li>[ ] Roots point to snapshots without mutating them.</li>
-<li>[ ] Tests, formatting, and clippy all pass.</li>
+<li>[x] Root-name validation exists.</li>
+<li>[x] Backend-independent root-store trait exists.</li>
+<li>[x] In-memory implementation exists.</li>
+<li>[x] Compare-and-swap is atomic within the in-memory store.</li>
+<li>[x] Stale CAS is an explicit normal outcome.</li>
+<li>[x] Roots point to snapshots without mutating them.</li>
+<li>[x] Tests, formatting, and clippy all pass.</li>
 </ul>
 
 

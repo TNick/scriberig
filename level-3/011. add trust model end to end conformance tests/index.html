@@ -2464,6 +2464,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#current-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Boundary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#validation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5201,6 +5212,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#current-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Boundary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#validation" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5355,20 +5377,29 @@
 <li>keep each scenario independently diagnosable;</li>
 <li>do not mark blocked scenarios ignored without an issue/comment explaining the missing prerequisite according to repository conventions.</li>
 </ul>
+<h2 id="current-boundary">Current Boundary<a class="headerlink" href="#current-boundary" title="Permanent link">&para;</a></h2>
+<p>The conformance suite now exercises the implemented production boundaries.
+Application integration tests cover guarded traversal, search filtering,
+derived-cache dependency checks, nested restrictions, and reusable immutable
+cache entries. <code>crates/scriberig-conformance/tests/trust.rs</code> covers exact
+validation, promotion/CAS, stale candidates, ambiguous projection outcomes,
+external-effect uncertainty, untrusted content, and application/protocol
+denial parity. The suite runs as a normal workspace test target and uses only
+deterministic in-memory fixtures.</p>
 <h2 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h2>
 <p>Run the full Rust workspace tests, protocol conformance tests, and web tests/build required by the repository. The task is complete only when trust conformance tests are part of normal CI or the existing aggregate test command.</p>
 <h2 id="do-not">Do Not<a class="headerlink" href="#do-not" title="Permanent link">&para;</a></h2>
 <p>Do not introduce production bypass hooks solely for testing. Do not test authorization only at UI level. Do not rely on textual logs as proof of provenance. Do not use real secrets or real external side effects.</p>
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] one deterministic end-to-end trust fixture exists;</li>
-<li>[ ] all ten Level 1 failure classes are covered by regression tests;</li>
-<li>[ ] application and protocol paths agree;</li>
-<li>[ ] provenance/audit chain is reconstructable;</li>
-<li>[ ] ambiguous and failed states stay explicit;</li>
-<li>[ ] cache/search confidentiality is tested;</li>
-<li>[ ] external-effect uncertainty is tested;</li>
-<li>[ ] conformance suite runs in normal project validation/CI.</li>
+<li>[x] one deterministic end-to-end trust fixture exists;</li>
+<li>[x] all ten Level 1 failure classes are covered by regression tests;</li>
+<li>[x] application and protocol paths agree;</li>
+<li>[x] provenance/audit chain is reconstructable;</li>
+<li>[x] ambiguous and failed states stay explicit;</li>
+<li>[x] cache/search confidentiality is tested;</li>
+<li>[x] external-effect uncertainty is tested;</li>
+<li>[x] conformance suite runs in normal project validation/CI.</li>
 </ul>
 
 

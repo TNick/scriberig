@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["capability","domain","registry"]};
+window.SIDEBAR_ITEMS = {"mod":["capability","collection","domain","entity","property","registry","relation","validation","version"]};

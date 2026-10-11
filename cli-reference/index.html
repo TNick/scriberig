@@ -388,6 +388,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#srig-inspect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        srig inspect
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#keeping-this-reference-synchronized" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4879,6 +4890,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#srig-inspect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        srig inspect
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#keeping-this-reference-synchronized" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4971,6 +4993,11 @@
 <td><code>srig maintenance</code></td>
 <td>Placeholder; maintenance runtime is not implemented yet.</td>
 </tr>
+<tr>
+<td><code>inspect</code></td>
+<td><code>srig inspect &lt;ENTITY&gt; [OPTIONS]</code></td>
+<td>Inspects entity trust metadata through the shared application boundary.</td>
+</tr>
 </tbody>
 </table>
 <p>Each subcommand also supports <code>-h</code> / <code>--help</code>.</p>
@@ -5033,6 +5060,45 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>srig maintenance
 </code></pre></div>
 <p>The command currently parses successfully but maintenance operations are not implemented yet.</p>
+<h2 id="srig-inspect"><code>srig inspect</code><a class="headerlink" href="#srig-inspect" title="Permanent link">&para;</a></h2>
+<p>Inspect trust metadata for one semantic entity.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>srig inspect &lt;ENTITY&gt; [OPTIONS]
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--snapshot &lt;SNAPSHOT&gt;</code></td>
+<td>current</td>
+<td>Inspect an exact snapshot when supplied.</td>
+</tr>
+<tr>
+<td><code>--depth &lt;compact\|deep&gt;</code></td>
+<td><code>compact</code></td>
+<td>Include provenance and evidence handles at <code>deep</code>.</td>
+</tr>
+<tr>
+<td><code>--format &lt;human\|json&gt;</code></td>
+<td><code>human</code></td>
+<td>Select terminal text or structured JSON output.</td>
+</tr>
+<tr>
+<td><code>--db &lt;PATH&gt;</code></td>
+<td><code>playground/dev-app-runtime/scriberig.sqlite</code></td>
+<td>SQLite database used by local inspection.</td>
+</tr>
+</tbody>
+</table>
+<p>The command opens the configured SQLite store and reads immutable revisions and
+snapshots through the shared application boundary. A missing entity, snapshot,
+or current <code>main</code> root is reported as a structured failure. Authorization
+denials use exit status <code>77</code>.</p>
 <h2 id="keeping-this-reference-synchronized">Keeping this reference synchronized<a class="headerlink" href="#keeping-this-reference-synchronized" title="Permanent link">&para;</a></h2>
 <p>The parser in <code>crates/scriberig-cli</code> defines the accepted command line, and <code>apps/scriberig</code> composes those parsed commands into the executable. Treat this page as part of that public surface: CLI implementation changes are incomplete until this reference describes the resulting command line accurately.</p>
 

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["initialize_development_database"]};
+window.SIDEBAR_ITEMS = {"fn":["initialize_development_database"],"struct":["SqliteStore"]};

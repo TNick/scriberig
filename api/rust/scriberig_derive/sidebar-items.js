@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["dependency","event","explain","freshness","invalidation","key","profile","registry","repository","result","retention","selection"]};
+window.SIDEBAR_ITEMS = {"mod":["dependency","event","explain","freshness","invalidation","key","profile","registry","repository","result","retention","runtime","selection"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DomainReplayOutcome","RebaseError"],"fn":["rebase"],"struct":["RebaseInput","RebaseResult","RebasedMigration","ReplayContext","ReplayState"],"trait":["DomainReplayStrategy"],"type":["Relation"]};

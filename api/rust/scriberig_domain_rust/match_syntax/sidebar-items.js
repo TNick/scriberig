@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["SyntaxMatch","SyntaxMatchEvidence"],"fn":["match_items"],"struct":["CanonicalRustItem","SyntaxMatchReport"]};

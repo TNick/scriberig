@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DerivedStatus"],"struct":["DerivedArtifact"]};

@@ -100,7 +100,44 @@
 <a href=#100 id=100 data-nosnippet>100</a>    </span><span class="kw">pub </span>id: String,
 <a href=#101 id=101 data-nosnippet>101</a>    <span class="doccomment">/// Provider release or profile version.
 <a href=#102 id=102 data-nosnippet>102</a>    </span><span class="kw">pub </span>version: String,
-<a href=#103 id=103 data-nosnippet>103</a>    <span class="doccomment">/// Whether the provider is currently configured and usable.
-<a href=#104 id=104 data-nosnippet>104</a>    </span><span class="kw">pub </span>available: bool,
-<a href=#105 id=105 data-nosnippet>105</a>}
+<a href=#103 id=103 data-nosnippet>103</a>    <span class="doccomment">/// Optional semantics-affecting profile identifier.
+<a href=#104 id=104 data-nosnippet>104</a>    </span><span class="kw">pub </span>profile: <span class="prelude-ty">Option</span>&lt;String&gt;,
+<a href=#105 id=105 data-nosnippet>105</a>    <span class="doccomment">/// Whether the provider is currently configured and usable.
+<a href=#106 id=106 data-nosnippet>106</a>    </span><span class="kw">pub </span>available: bool,
+<a href=#107 id=107 data-nosnippet>107</a>}
+<a href=#108 id=108 data-nosnippet>108</a>
+<a href=#109 id=109 data-nosnippet>109</a><span class="kw">impl </span>ProviderMetadata {
+<a href=#110 id=110 data-nosnippet>110</a>    <span class="doccomment">/// Creates provider metadata without a profile.
+<a href=#111 id=111 data-nosnippet>111</a>    ///
+<a href=#112 id=112 data-nosnippet>112</a>    /// # Parameters
+<a href=#113 id=113 data-nosnippet>113</a>    /// - `id`: Stable provider or adapter identifier.
+<a href=#114 id=114 data-nosnippet>114</a>    /// - `version`: Provider version.
+<a href=#115 id=115 data-nosnippet>115</a>    /// - `available`: Whether the provider is usable.
+<a href=#116 id=116 data-nosnippet>116</a>    ///
+<a href=#117 id=117 data-nosnippet>117</a>    /// # Returns
+<a href=#118 id=118 data-nosnippet>118</a>    /// Provider metadata with no profile binding.
+<a href=#119 id=119 data-nosnippet>119</a>    </span><span class="attr">#[must_use]
+<a href=#120 id=120 data-nosnippet>120</a>    </span><span class="kw">pub fn </span>new(id: <span class="kw">impl </span>Into&lt;String&gt;, version: <span class="kw">impl </span>Into&lt;String&gt;, available: bool) -&gt; <span class="self">Self </span>{
+<a href=#121 id=121 data-nosnippet>121</a>        <span class="self">Self </span>{
+<a href=#122 id=122 data-nosnippet>122</a>            id: id.into(),
+<a href=#123 id=123 data-nosnippet>123</a>            version: version.into(),
+<a href=#124 id=124 data-nosnippet>124</a>            profile: <span class="prelude-val">None</span>,
+<a href=#125 id=125 data-nosnippet>125</a>            available,
+<a href=#126 id=126 data-nosnippet>126</a>        }
+<a href=#127 id=127 data-nosnippet>127</a>    }
+<a href=#128 id=128 data-nosnippet>128</a>
+<a href=#129 id=129 data-nosnippet>129</a>    <span class="doccomment">/// Binds a semantics-affecting provider profile.
+<a href=#130 id=130 data-nosnippet>130</a>    ///
+<a href=#131 id=131 data-nosnippet>131</a>    /// # Parameters
+<a href=#132 id=132 data-nosnippet>132</a>    /// - `self`: Provider metadata to update.
+<a href=#133 id=133 data-nosnippet>133</a>    /// - `profile`: Stable profile identifier.
+<a href=#134 id=134 data-nosnippet>134</a>    ///
+<a href=#135 id=135 data-nosnippet>135</a>    /// # Returns
+<a href=#136 id=136 data-nosnippet>136</a>    /// Metadata with the profile attached.
+<a href=#137 id=137 data-nosnippet>137</a>    </span><span class="attr">#[must_use]
+<a href=#138 id=138 data-nosnippet>138</a>    </span><span class="kw">pub fn </span>with_profile(<span class="kw-2">mut </span><span class="self">self</span>, profile: <span class="kw">impl </span>Into&lt;String&gt;) -&gt; <span class="self">Self </span>{
+<a href=#139 id=139 data-nosnippet>139</a>        <span class="self">self</span>.profile = <span class="prelude-val">Some</span>(profile.into());
+<a href=#140 id=140 data-nosnippet>140</a>        <span class="self">self
+<a href=#141 id=141 data-nosnippet>141</a>    </span>}
+<a href=#142 id=142 data-nosnippet>142</a>}
 </code></pre></div></section></main></body></html>

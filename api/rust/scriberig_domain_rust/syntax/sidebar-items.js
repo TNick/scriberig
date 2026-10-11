@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["RustItem"],"struct":["RustBlock","RustDeclaration","RustFile","RustFunction","RustMacro","RustParameter","RustStatement"]};

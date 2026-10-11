@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["AUTHORIZATION_DENIED_EXIT_CODE"],"enum":["InspectDepth","TrustCommandError"],"fn":["inspect","inspect_at","render_denial","render_inspection"]};
+window.SIDEBAR_ITEMS = {"constant":["AUTHORIZATION_DENIED_EXIT_CODE"],"enum":["InspectDepth","OutputFormat","TrustCommandError"],"fn":["inspect","inspect_at","inspect_at_with_format","render_denial","render_denial_json","render_inspection","render_inspection_json","render_inspection_with_format"]};

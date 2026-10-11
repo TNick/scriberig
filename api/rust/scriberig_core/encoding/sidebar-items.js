@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["CanonicalWriter","EncodingVersion"],"trait":["CanonicalEncode"]};
+window.SIDEBAR_ITEMS = {"fn":["revision_id"],"struct":["CanonicalWriter","EncodingVersion"],"trait":["CanonicalEncode"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["IoError"],"struct":["FileMetadata","LocalFileSystem"],"trait":["FileSystem"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DomainMergeOutcome","MergeError"],"fn":["merge_snapshots"],"struct":["EntityMergeContext","MergeInput","MergeResult"],"trait":["DomainMergeStrategy"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["allowed_context","fixture","inspect_tool"],"struct":["Fixture"]};

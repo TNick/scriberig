@@ -4934,6 +4934,13 @@
 
 
 <h1 id="scaffold-runtime-application-and-product-crates">Scaffold Runtime Application and Product Crates<a class="headerlink" href="#scaffold-runtime-application-and-product-crates" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Reconciled with the current workspace on 2026-10-11. The runtime crates
+were scaffolded under the prescribed names and dependency direction, then
+intentionally gained behavior through later Level 3 tasks. This document
+records the completed scaffold baseline; later APIs are not speculative
+additions to this task.</p>
+</blockquote>
 <h2 id="objective">Objective<a class="headerlink" href="#objective" title="Permanent link">&para;</a></h2>
 <p>Create the runtime-facing Rust crates prescribed by:</p>
 <ol>
@@ -4943,7 +4950,9 @@
 </ol>
 <p>This task is scaffolding only.</p>
 <p>Do not implement semantic operations, protocol payloads, HTTP routes, model-provider integration, or terminal UI behavior.</p>
-<p>The goal is to establish compileable package boundaries and enforce dependency direction before behavior is added.</p>
+<p>The goal is to establish compilable package boundaries and enforce dependency
+direction before behavior is added. Later focused tasks may extend these
+packages without changing the scaffold boundary.</p>
 <hr />
 <h2 id="prerequisite">Prerequisite<a class="headerlink" href="#prerequisite" title="Permanent link">&para;</a></h2>
 <p>The foundational Rust workspace from <code>design/level-3/001. initialize rust foundation workspace.md</code> must already exist.</p>
@@ -5084,16 +5093,17 @@
 <hr />
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] All eight runtime library crates exist.</li>
-<li>[ ] <code>apps/scriberig</code> exists and builds an executable.</li>
-<li>[ ] Root workspace includes the new members.</li>
-<li>[ ] Package names match this task exactly.</li>
-<li>[ ] Dependency direction matches the prescribed graph.</li>
-<li>[ ] <code>scriberig-protocol</code> does not depend on <code>scriberig-app</code>.</li>
-<li>[ ] <code>scriberig-client</code> does not depend on <code>scriberig-server</code>.</li>
-<li>[ ] Foundation/domain crates do not depend on product crates.</li>
-<li>[ ] Source files contain documentation only, not speculative APIs.</li>
-<li>[ ] Formatting, check, and Clippy all pass.</li>
+<li>[x] All eight runtime library crates exist.</li>
+<li>[x] <code>apps/scriberig</code> exists and builds an executable.</li>
+<li>[x] Root workspace includes the new members.</li>
+<li>[x] Package names match this task exactly.</li>
+<li>[x] Dependency direction matches the prescribed graph.</li>
+<li>[x] <code>scriberig-protocol</code> does not depend on <code>scriberig-app</code>.</li>
+<li>[x] <code>scriberig-client</code> does not depend on <code>scriberig-server</code>.</li>
+<li>[x] Foundation/domain crates do not depend on product crates.</li>
+<li>[x] Initial scaffold files contained documentation only; subsequent focused
+  tasks added behavior in the same bounded crates.</li>
+<li>[x] Formatting, check, and Clippy all pass.</li>
 </ul>
 
 

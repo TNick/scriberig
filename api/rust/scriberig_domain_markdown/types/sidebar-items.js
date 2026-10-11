@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["CONTAINMENT_RELATIONS","ENTITY_TYPES"],"fn":["entity_type"]};

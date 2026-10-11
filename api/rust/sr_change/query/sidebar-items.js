@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["branches_descending_from","changed_between","common_ancestor","entity_history","introduced_by","merge_conflicts","migrations_touching","page","workspace_migrations"],"struct":["QueryPage"]};

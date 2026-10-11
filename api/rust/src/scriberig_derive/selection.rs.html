@@ -8,7 +8,7 @@
 <a href=#8 id=8 data-nosnippet>8</a>///
 <a href=#9 id=9 data-nosnippet>9</a>/// Candidate slice order is the caller's explicit ranking; selection never
 <a href=#10 id=10 data-nosnippet>10</a>/// mutates records or persists a preferred-result pointer.
-<a href=#11 id=11 data-nosnippet>11</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#11 id=11 data-nosnippet>11</a></span><span class="attr">#[derive(Clone, Debug, PartialEq)]
 <a href=#12 id=12 data-nosnippet>12</a></span><span class="kw">pub struct </span>SelectionPolicy {
 <a href=#13 id=13 data-nosnippet>13</a>    <span class="doccomment">/// Required exact profile; `None` accepts any profile.
 <a href=#14 id=14 data-nosnippet>14</a>    </span><span class="kw">pub </span>profile: <span class="prelude-ty">Option</span>&lt;DerivationProfile&gt;,
@@ -21,7 +21,7 @@
 <a href=#21 id=21 data-nosnippet>21</a>}
 <a href=#22 id=22 data-nosnippet>22</a>
 <a href=#23 id=23 data-nosnippet>23</a><span class="doccomment">/// Explains which candidate was chosen or why no candidate qualified.
-<a href=#24 id=24 data-nosnippet>24</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#24 id=24 data-nosnippet>24</a></span><span class="attr">#[derive(Clone, Debug, PartialEq)]
 <a href=#25 id=25 data-nosnippet>25</a></span><span class="kw">pub enum </span>SelectionOutcome&lt;<span class="lifetime">'a</span>&gt; {
 <a href=#26 id=26 data-nosnippet>26</a>    <span class="doccomment">/// Candidate was selected according to the requested policy.
 <a href=#27 id=27 data-nosnippet>27</a>    </span>Selected {

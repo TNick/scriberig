@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DiagnosticSeverity","ValidationStatus"],"fn":["evidence_applicable"],"struct":["ValidationCandidate","ValidationDiagnostic","ValidationEvidence"],"trait":["Validator"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["INSPECT_CAPABILITY"],"fn":["inspect_available"]};

@@ -17,7 +17,7 @@
 <span class="item-spacer"></span>    fn <a href="#tymethod.reconcile" class="fn">reconcile</a>(
         &amp;self,
         candidate: Self::<a class="associatedtype" href="trait.ProjectionAdapter.html#associatedtype.Candidate" title="type scriberig_projection::ProjectionAdapter::Candidate">Candidate</a>,
-        base: <a class="struct" href="model/struct.SemanticStateRef.html" title="struct scriberig_projection::model::SemanticStateRef">SemanticStateRef</a>,
+        base: <a class="struct" href="struct.SemanticStateRef.html" title="struct scriberig_projection::SemanticStateRef">SemanticStateRef</a>,
     ) -&gt; <a class="enum" href="enum.ReconciliationOutcome.html" title="enum scriberig_projection::ReconciliationOutcome">ReconciliationOutcome</a>&lt;Self::<a class="associatedtype" href="trait.ProjectionAdapter.html#associatedtype.Migration" title="type scriberig_projection::ProjectionAdapter::Migration">Migration</a>, Self::<a class="associatedtype" href="trait.ProjectionAdapter.html#associatedtype.Conflict" title="type scriberig_projection::ProjectionAdapter::Conflict">Conflict</a>, <a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;<a class="struct" href="struct.ProjectionDiagnostic.html" title="struct scriberig_projection::ProjectionDiagnostic">ProjectionDiagnostic</a>&gt;&gt;;
 <span class="item-spacer"></span>    fn <a href="#tymethod.validate" class="fn">validate</a>(
         &amp;self,
@@ -78,7 +78,7 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="tymethod.reconcile" class="method"><h4 class="code-header">fn <a href="#tymethod.reconcile" class="fn">reconcile</a>(
     &amp;self,
     candidate: Self::<a class="associatedtype" href="trait.ProjectionAdapter.html#associatedtype.Candidate" title="type scriberig_projection::ProjectionAdapter::Candidate">Candidate</a>,
-    base: <a class="struct" href="model/struct.SemanticStateRef.html" title="struct scriberig_projection::model::SemanticStateRef">SemanticStateRef</a>,
+    base: <a class="struct" href="struct.SemanticStateRef.html" title="struct scriberig_projection::SemanticStateRef">SemanticStateRef</a>,
 ) -&gt; <a class="enum" href="enum.ReconciliationOutcome.html" title="enum scriberig_projection::ReconciliationOutcome">ReconciliationOutcome</a>&lt;Self::<a class="associatedtype" href="trait.ProjectionAdapter.html#associatedtype.Migration" title="type scriberig_projection::ProjectionAdapter::Migration">Migration</a>, Self::<a class="associatedtype" href="trait.ProjectionAdapter.html#associatedtype.Conflict" title="type scriberig_projection::ProjectionAdapter::Conflict">Conflict</a>, <a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;<a class="struct" href="struct.ProjectionDiagnostic.html" title="struct scriberig_projection::ProjectionDiagnostic">ProjectionDiagnostic</a>&gt;&gt;</h4></section></summary><div class="docblock"><p>Reconciles a candidate against the exact state from which it was edited.</p>
 <h5 id="parameters-3"><a class="doc-anchor" href="#parameters-3">§</a>Parameters</h5>
 <ul>

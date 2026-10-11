@@ -5078,8 +5078,16 @@
 
 
 <h1 id="implement-workspace-and-identity-types">Implement Workspace and Identity Types<a class="headerlink" href="#implement-workspace-and-identity-types" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Reconciled with the current workspace on 2026-10-11. The repository's
+reusable foundation is <code>scriberig-core</code> rather than the obsolete <code>sr-core</code>
+name from the original bootstrap specification. Existing callers construct
+deterministic IDs with <code>new(bytes)</code>; fresh entity allocation is exposed as
+<code>EntityId::fresh()</code> so the established byte constructor remains compatible.</p>
+</blockquote>
 <h2 id="mission">Mission<a class="headerlink" href="#mission" title="Permanent link">&para;</a></h2>
-<p>Create the initial Rust workspace and the <code>sr-core</code> identity types required by the identity/revision/snapshot design.</p>
+<p>Create the initial Rust workspace and the <code>scriberig-core</code> identity types
+required by the identity/revision/snapshot design.</p>
 <p>This task is intentionally narrow. Do not implement revisions, snapshot tries, stores, migrations, SQLite, agents, or domain models.</p>
 <h2 id="read-before-editing">Read Before Editing<a class="headerlink" href="#read-before-editing" title="Permanent link">&para;</a></h2>
 <p>Read these documents completely:</p>
@@ -5090,13 +5098,13 @@
 <h2 id="files-you-own">Files You Own<a class="headerlink" href="#files-you-own" title="Permanent link">&para;</a></h2>
 <p>Create or modify only these files unless compilation requires a trivial adjacent change:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Cargo.toml
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>crates/sr-core/Cargo.toml
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>crates/sr-core/src/lib.rs
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>crates/sr-core/src/ids.rs
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>crates/scriberig-core/Cargo.toml
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>crates/scriberig-core/src/lib.rs
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>crates/scriberig-core/src/ids/
 </code></pre></div>
 <p>Do not create <code>sr-store</code> in this task.</p>
 <h2 id="required-result">Required Result<a class="headerlink" href="#required-result" title="Permanent link">&para;</a></h2>
-<p>Create a Cargo workspace containing <code>crates/sr-core</code>.</p>
+<p>Create a Cargo workspace containing <code>crates/scriberig-core</code>.</p>
 <p>Implement these public opaque types:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>EntityId
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>RevisionId
@@ -5107,53 +5115,53 @@
 <h3 id="entityid"><code>EntityId</code><a class="headerlink" href="#entityid" title="Permanent link">&para;</a></h3>
 <p>Requirements:</p>
 <ul>
-<li>[ ] Stored as exactly 16 bytes.</li>
-<li>[ ] <code>EntityId::new()</code> creates a fresh non-content-derived identity.</li>
-<li>[ ] Provide <code>from_bytes([u8; 16])</code> and <code>as_bytes()</code>.</li>
-<li>[ ] Implement <code>Clone</code>, <code>Copy</code>, <code>Eq</code>, <code>Ord</code>, and <code>Hash</code>.</li>
-<li>[ ] Implement deterministic <code>Display</code> and <code>FromStr</code>.</li>
-<li>[ ] Display form starts with <code>ent_</code>.</li>
-<li>[ ] Parsing rejects another identity prefix.</li>
-<li>[ ] Do not expose the UUID crate's type in the public API.</li>
+<li>[x] Stored as exactly 16 bytes.</li>
+<li>[x] <code>EntityId::fresh()</code> creates a fresh non-content-derived identity.</li>
+<li>[x] Provide <code>from_bytes([u8; 16])</code> and <code>as_bytes()</code>.</li>
+<li>[x] Implement <code>Clone</code>, <code>Copy</code>, <code>Eq</code>, <code>Ord</code>, and <code>Hash</code>.</li>
+<li>[x] Implement deterministic <code>Display</code> and <code>FromStr</code>.</li>
+<li>[x] Display form starts with <code>ent_</code>.</li>
+<li>[x] Parsing rejects another identity prefix.</li>
+<li>[x] Do not expose the UUID crate's type in the public API.</li>
 </ul>
 <p>Use UUID v4 generation internally unless the currently selected dependency makes another random 128-bit implementation materially simpler.</p>
 <h3 id="revisionid"><code>RevisionId</code><a class="headerlink" href="#revisionid" title="Permanent link">&para;</a></h3>
 <p>Requirements:</p>
 <ul>
-<li>[ ] Stored as exactly 32 bytes.</li>
-<li>[ ] Opaque newtype distinct from <code>SnapshotId</code>.</li>
-<li>[ ] Provide byte construction/access needed by later hashing code.</li>
-<li>[ ] Display form starts with <code>rev_</code>.</li>
-<li>[ ] <code>FromStr</code> round-trips exact bytes.</li>
-<li>[ ] Parsing rejects <code>snp_</code> and <code>ent_</code> values.</li>
+<li>[x] Stored as exactly 32 bytes.</li>
+<li>[x] Opaque newtype distinct from <code>SnapshotId</code>.</li>
+<li>[x] Provide byte construction/access needed by later hashing code.</li>
+<li>[x] Display form starts with <code>rev_</code>.</li>
+<li>[x] <code>FromStr</code> round-trips exact bytes.</li>
+<li>[x] Parsing rejects <code>snp_</code> and <code>ent_</code> values.</li>
 </ul>
 <p>Do not compute revision hashes yet.</p>
 <h3 id="snapshotid"><code>SnapshotId</code><a class="headerlink" href="#snapshotid" title="Permanent link">&para;</a></h3>
 <p>Requirements:</p>
 <ul>
-<li>[ ] Stored as exactly 32 bytes.</li>
-<li>[ ] Opaque newtype distinct from <code>RevisionId</code>.</li>
-<li>[ ] Provide byte construction/access needed by later hashing code.</li>
-<li>[ ] Display form starts with <code>snp_</code>.</li>
-<li>[ ] <code>FromStr</code> round-trips exact bytes.</li>
-<li>[ ] Parsing rejects <code>rev_</code> and <code>ent_</code> values.</li>
+<li>[x] Stored as exactly 32 bytes.</li>
+<li>[x] Opaque newtype distinct from <code>RevisionId</code>.</li>
+<li>[x] Provide byte construction/access needed by later hashing code.</li>
+<li>[x] Display form starts with <code>snp_</code>.</li>
+<li>[x] <code>FromStr</code> round-trips exact bytes.</li>
+<li>[x] Parsing rejects <code>rev_</code> and <code>ent_</code> values.</li>
 </ul>
 <p>Do not implement snapshot hashing yet.</p>
 <h3 id="typeid"><code>TypeId</code><a class="headerlink" href="#typeid" title="Permanent link">&para;</a></h3>
 <p>Requirements:</p>
 <ul>
-<li>[ ] Owns a UTF-8 string.</li>
-<li>[ ] Constructor rejects an empty identifier.</li>
-<li>[ ] <code>Display</code> returns the exact identifier.</li>
-<li>[ ] Examples such as <code>markdown.paragraph</code> and <code>rust.function</code> must be valid.</li>
-<li>[ ] Do not hard-code a registry of known type names.</li>
+<li>[x] Owns a UTF-8 string.</li>
+<li>[x] Constructor rejects an empty identifier.</li>
+<li>[x] <code>Display</code> returns the exact identifier.</li>
+<li>[x] Examples such as <code>markdown.paragraph</code> and <code>rust.function</code> are valid.</li>
+<li>[x] Does not hard-code a registry of known type names.</li>
 </ul>
 <h3 id="encodingversion"><code>EncodingVersion</code><a class="headerlink" href="#encodingversion" title="Permanent link">&para;</a></h3>
 <p>Requirements:</p>
 <ul>
-<li>[ ] Small integer newtype.</li>
-<li>[ ] Define public constant/version constructor for version 1.</li>
-<li>[ ] Do not silently accept arithmetic overflow or use it as a mutable global.</li>
+<li>[x] Small integer newtype.</li>
+<li>[x] Define public constant/version constructor for version 1.</li>
+<li>[x] Do not silently accept arithmetic overflow or use it as a mutable global.</li>
 </ul>
 <h2 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h2>
 <p>Use one small typed parse/validation error for invalid textual identities and invalid <code>TypeId</code> construction. Do not use stringly typed errors in the public API if a compact enum is sufficient.</p>
@@ -5176,14 +5184,14 @@
 <p>Unit tests may live inside <code>ids.rs</code> for this task.</p>
 <p>Implement at least these tests:</p>
 <ul>
-<li>[ ] two <code>EntityId::new()</code> calls produce different values;</li>
-<li>[ ] <code>EntityId</code> display/parse round-trip;</li>
-<li>[ ] <code>RevisionId</code> display/parse round-trip;</li>
-<li>[ ] <code>SnapshotId</code> display/parse round-trip;</li>
-<li>[ ] wrong prefixes are rejected;</li>
-<li>[ ] <code>RevisionId</code> and <code>SnapshotId</code> cannot be accidentally parsed as each other;</li>
-<li>[ ] empty <code>TypeId</code> is rejected;</li>
-<li>[ ] valid <code>TypeId</code> round-trips through display.</li>
+<li>[x] two <code>EntityId::fresh()</code> calls produce different values;</li>
+<li>[x] <code>EntityId</code> display/parse round-trip;</li>
+<li>[x] <code>RevisionId</code> display/parse round-trip;</li>
+<li>[x] <code>SnapshotId</code> display/parse round-trip;</li>
+<li>[x] wrong prefixes are rejected;</li>
+<li>[x] <code>RevisionId</code> and <code>SnapshotId</code> cannot be accidentally parsed as each other;</li>
+<li>[x] empty <code>TypeId</code> is rejected;</li>
+<li>[x] valid <code>TypeId</code> round-trips through display.</li>
 </ul>
 <h2 id="commands-to-run">Commands to Run<a class="headerlink" href="#commands-to-run" title="Permanent link">&para;</a></h2>
 <p>Before finishing, run:</p>
@@ -5203,12 +5211,12 @@
 </ul>
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Workspace exists and builds.</li>
-<li>[ ] <code>sr-core</code> is a reusable library crate.</li>
-<li>[ ] All five required identity/configuration types exist.</li>
-<li>[ ] Text identity prefixes are distinct and checked.</li>
-<li>[ ] Tests pass.</li>
-<li>[ ] Formatting and clippy checks pass.</li>
+<li>[x] Workspace exists and builds.</li>
+<li>[x] <code>scriberig-core</code> is a reusable library crate.</li>
+<li>[x] All five required identity/configuration types exist.</li>
+<li>[x] Text identity prefixes are distinct and checked.</li>
+<li>[x] Tests pass.</li>
+<li>[x] Formatting and clippy checks pass.</li>
 </ul>
 
 

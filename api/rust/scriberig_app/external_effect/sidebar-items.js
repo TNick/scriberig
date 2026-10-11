@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ExternalEffectState"],"fn":["authorize_external_effect"],"struct":["ExternalEffectEvent","ExternalEffectHistory","ExternalEffectIntent","ExternalEffectReceipt"]};

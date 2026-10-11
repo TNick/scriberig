@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"trait":["ProjectionAdapter"],"type":["ProjectionResult"]};
+window.SIDEBAR_ITEMS = {"struct":["ReconciliationContext"],"trait":["ProjectionAdapter"],"type":["ProjectionResult"]};

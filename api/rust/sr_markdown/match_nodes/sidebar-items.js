@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["MatchEvidence","NodeMatch"],"fn":["match_nodes"],"struct":["CanonicalNode","MatchReport"]};

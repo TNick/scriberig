@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {};
+window.SIDEBAR_ITEMS = {"enum":["PdfEntityType","PdfError"],"fn":["extract","import_source"],"struct":["PageGeometry","PdfDocument","PdfPage","PdfProvenance","PdfSourceArtifact","Rectangle","TextRegion"]};

@@ -5347,19 +5347,19 @@
 <h3 id="step-4-assert-local-stability">Step 4: Assert local stability<a class="headerlink" href="#step-4-assert-local-stability" title="Permanent link">&para;</a></h3>
 <p>Verify:</p>
 <ul>
-<li>[ ] <code>F</code> still resolves to <code>FR7</code> in <code>S2</code>;</li>
-<li>[ ] <code>P1</code> still resolves to <code>PR3</code> in <code>S2</code>;</li>
-<li>[ ] <code>B</code> still resolves to <code>BR2</code> in <code>S2</code>;</li>
-<li>[ ] <code>P2</code> resolves to <code>PR8</code> in <code>S1</code>;</li>
-<li>[ ] <code>P2</code> resolves to <code>PR9</code> in <code>S2</code>;</li>
-<li>[ ] no semantic parent revision was manufactured merely because <code>P2</code> changed.</li>
+<li>[x] <code>F</code> still resolves to <code>FR7</code> in <code>S2</code>;</li>
+<li>[x] <code>P1</code> still resolves to <code>PR3</code> in <code>S2</code>;</li>
+<li>[x] <code>B</code> still resolves to <code>BR2</code> in <code>S2</code>;</li>
+<li>[x] <code>P2</code> resolves to <code>PR8</code> in <code>S1</code>;</li>
+<li>[x] <code>P2</code> resolves to <code>PR9</code> in <code>S2</code>;</li>
+<li>[x] no semantic parent revision was manufactured merely because <code>P2</code> changed.</li>
 </ul>
 <h3 id="step-5-assert-global-certainty">Step 5: Assert global certainty<a class="headerlink" href="#step-5-assert-global-certainty" title="Permanent link">&para;</a></h3>
 <p>Verify:</p>
 <ul>
-<li>[ ] <code>S1.id() != S2.id()</code>;</li>
-<li>[ ] rebuilding <code>S1</code> in another insertion order produces the same <code>SnapshotId</code>;</li>
-<li>[ ] rebuilding <code>S2</code> in another insertion order produces the same <code>SnapshotId</code>.</li>
+<li>[x] <code>S1.id() != S2.id()</code>;</li>
+<li>[x] rebuilding <code>S1</code> in another insertion order produces the same <code>SnapshotId</code>;</li>
+<li>[x] rebuilding <code>S2</code> in another insertion order produces the same <code>SnapshotId</code>.</li>
 </ul>
 <h3 id="step-6-assert-exact-history">Step 6: Assert exact history<a class="headerlink" href="#step-6-assert-exact-history" title="Permanent link">&para;</a></h3>
 <p>Verify that <code>S1</code> remains readable after <code>S2</code> exists and still resolves every entity to the original revisions.</p>
@@ -5385,51 +5385,51 @@
 <p>Then try another update still expecting <code>S1</code>.</p>
 <p>Verify:</p>
 <ul>
-<li>[ ] it fails as stale;</li>
-<li>[ ] <code>main</code> remains at <code>S2</code>;</li>
-<li>[ ] neither <code>S1</code> nor <code>S2</code> changed.</li>
+<li>[x] it fails as stale;</li>
+<li>[x] <code>main</code> remains at <code>S2</code>;</li>
+<li>[x] neither <code>S1</code> nor <code>S2</code> changed.</li>
 </ul>
 <h2 id="additional-invariant-audit">Additional Invariant Audit<a class="headerlink" href="#additional-invariant-audit" title="Permanent link">&para;</a></h2>
 <p>Check the implementation manually and with tests for every item below.</p>
 <h3 id="identity-separation">Identity separation<a class="headerlink" href="#identity-separation" title="Permanent link">&para;</a></h3>
 <ul>
-<li>[ ] <code>EntityId</code>, <code>RevisionId</code>, and <code>SnapshotId</code> are distinct Rust types.</li>
-<li>[ ] An <code>EntityId</code> is not computed from current content.</li>
-<li>[ ] A <code>RevisionId</code> is content-derived.</li>
-<li>[ ] A <code>SnapshotId</code> is content-derived from global mapping state.</li>
+<li>[x] <code>EntityId</code>, <code>RevisionId</code>, and <code>SnapshotId</code> are distinct Rust types.</li>
+<li>[x] An <code>EntityId</code> is not computed from current content.</li>
+<li>[x] A <code>RevisionId</code> is content-derived.</li>
+<li>[x] A <code>SnapshotId</code> is content-derived from global mapping state.</li>
 </ul>
 <h3 id="historical-exactness">Historical exactness<a class="headerlink" href="#historical-exactness" title="Permanent link">&para;</a></h3>
 <ul>
-<li>[ ] Revisions have no mutable update method.</li>
-<li>[ ] Snapshots have no mutable update method that changes an existing value in place.</li>
-<li>[ ] Named roots are pointers, not snapshot identities.</li>
+<li>[x] Revisions have no mutable update method.</li>
+<li>[x] Snapshots have no mutable update method that changes an existing value in place.</li>
+<li>[x] Named roots are pointers, not snapshot identities.</li>
 </ul>
 <h3 id="canonical-hashing">Canonical hashing<a class="headerlink" href="#canonical-hashing" title="Permanent link">&para;</a></h3>
 <ul>
-<li>[ ] Encoding version is included in revision hashes.</li>
-<li>[ ] Type ID is included in revision hashes.</li>
-<li>[ ] Entity ID is not included in revision hashes.</li>
-<li>[ ] Snapshot internal node hashes use domain separation.</li>
-<li>[ ] Snapshot root hash uses separate root domain separation.</li>
-<li>[ ] No unordered map iteration participates in canonical identity.</li>
+<li>[x] Encoding version is included in revision hashes.</li>
+<li>[x] Type ID is included in revision hashes.</li>
+<li>[x] Entity ID is not included in revision hashes.</li>
+<li>[x] Snapshot internal node hashes use domain separation.</li>
+<li>[x] Snapshot root hash uses separate root domain separation.</li>
+<li>[x] No unordered map iteration participates in canonical identity.</li>
 </ul>
 <h3 id="change-propagation">Change propagation<a class="headerlink" href="#change-propagation" title="Permanent link">&para;</a></h3>
 <ul>
-<li>[ ] One entity update does not copy the full entity-to-revision mapping.</li>
-<li>[ ] An update copies only the bounded trie path plus the new leaf/state required.</li>
-<li>[ ] Unaffected branches are structurally shared.</li>
+<li>[x] One entity update does not copy the full entity-to-revision mapping.</li>
+<li>[x] An update copies only the bounded trie path plus the new leaf/state required.</li>
+<li>[x] Unaffected branches are structurally shared.</li>
 </ul>
 <h3 id="determinism">Determinism<a class="headerlink" href="#determinism" title="Permanent link">&para;</a></h3>
 <ul>
-<li>[ ] Equivalent revision values have equivalent IDs.</li>
-<li>[ ] Equivalent snapshot mappings have equivalent IDs regardless of insertion order.</li>
-<li>[ ] Diff order is deterministic.</li>
-<li>[ ] ID textual forms round-trip exactly.</li>
+<li>[x] Equivalent revision values have equivalent IDs.</li>
+<li>[x] Equivalent snapshot mappings have equivalent IDs regardless of insertion order.</li>
+<li>[x] Diff order is deterministic.</li>
+<li>[x] ID textual forms round-trip exactly.</li>
 </ul>
 <h3 id="dependency-direction">Dependency direction<a class="headerlink" href="#dependency-direction" title="Permanent link">&para;</a></h3>
 <ul>
-<li>[ ] <code>sr-core</code> does not depend on <code>sr-store</code>.</li>
-<li>[ ] Neither crate depends on agent, server, UI, domain, filesystem watcher, or database-driver crates.</li>
+<li>[x] <code>sr-core</code> does not depend on <code>sr-store</code>.</li>
+<li>[x] Neither crate depends on agent, server, UI, domain, filesystem watcher, or database-driver crates.</li>
 </ul>
 <h2 id="test-organization">Test Organization<a class="headerlink" href="#test-organization" title="Permanent link">&para;</a></h2>
 <p>If existing tests already prove an invariant clearly, do not duplicate them unnecessarily.</p>
@@ -5465,17 +5465,17 @@
 </ul>
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Cross-module conformance scenario exists and passes.</li>
-<li>[ ] Local entity stability is demonstrated.</li>
-<li>[ ] Immutable historical revisions are demonstrated.</li>
-<li>[ ] Global snapshot change is demonstrated.</li>
-<li>[ ] Snapshot diff identifies only the changed entity resolution.</li>
-<li>[ ] Named-root CAS behavior is demonstrated.</li>
-<li>[ ] Structural sharing is still covered.</li>
-<li>[ ] All workspace tests pass.</li>
-<li>[ ] <code>cargo fmt --check</code> passes.</li>
-<li>[ ] clippy with warnings denied passes.</li>
-<li>[ ] docs build successfully.</li>
+<li>[x] Cross-module conformance scenario exists and passes.</li>
+<li>[x] Local entity stability is demonstrated.</li>
+<li>[x] Immutable historical revisions are demonstrated.</li>
+<li>[x] Global snapshot change is demonstrated.</li>
+<li>[x] Snapshot diff identifies only the changed entity resolution.</li>
+<li>[x] Named-root CAS behavior is demonstrated.</li>
+<li>[x] Structural sharing is still covered.</li>
+<li>[x] All workspace tests pass.</li>
+<li>[x] <code>cargo fmt --check</code> passes.</li>
+<li>[x] clippy with warnings denied passes.</li>
+<li>[x] docs build successfully.</li>
 </ul>
 <p>When this task is complete, the identity subsystem is ready for later Level 2 designs covering durable persistence, migrations, domains, projections, sessions, and agents.</p>
 

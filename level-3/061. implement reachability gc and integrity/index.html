@@ -5099,14 +5099,15 @@
 </ul>
 <h2 id="completion-checklist">Completion checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Reachability API exists.</li>
-<li>[ ] Structured integrity report exists.</li>
-<li>[ ] SQLite dry-run GC works.</li>
-<li>[ ] SQLite sweep preserves protected snapshots.</li>
-<li>[ ] Derived index rebuild works.</li>
-<li>[ ] Corruption and unreachability are distinguished.</li>
-<li>[ ] Memory and SQLite behavior remain consistent where public APIs overlap.</li>
-<li>[ ] Workspace tests pass.</li>
+<li>[x] Reachability API exists.</li>
+<li>[x] Structured integrity report exists.</li>
+<li>[x] SQLite dry-run GC works.</li>
+<li>[x] SQLite sweep preserves protected snapshots.</li>
+<li>[x] Derived index rebuild works (the current schema has no derived indexes;
+  the backend maintenance boundary is explicit and a no-op).</li>
+<li>[x] Corruption and unreachability are distinguished.</li>
+<li>[x] Memory and SQLite behavior remain consistent where public APIs overlap.</li>
+<li>[x] Workspace tests pass.</li>
 </ul>
 <p>Stop after these conditions are met.</p>
 

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["MARKDOWN_KIND"],"struct":["MarkdownAdapter"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["PromotionDecision"],"fn":["evaluate_promotion","promote_candidate"],"struct":["ApprovalEvidence","PromotionPolicyEvaluation","PromotionRequest"]};

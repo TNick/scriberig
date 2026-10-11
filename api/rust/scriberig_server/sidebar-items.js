@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["serve"]};
+window.SIDEBAR_ITEMS = {"fn":["serve"],"mod":["dispatch","operation","server","subscription","transport"]};

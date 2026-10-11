@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CapabilityRegistrationError"],"struct":["CapabilityExecution","CapabilityRegistry","DuplicateCapability"],"trait":["CapabilityProvider"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["RUST_ENTITY_TYPES","RUST_RELATIONS"]};

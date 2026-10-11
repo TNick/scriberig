@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Request","Response"],"struct":["RequestEnvelope","ResponseEnvelope"],"trait":["ProtocolTransport"]};

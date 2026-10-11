@@ -199,7 +199,7 @@
 <a href=#199 id=199 data-nosnippet>199</a>        DomainDescriptor {
 <a href=#200 id=200 data-nosnippet>200</a>            id: DomainId::new(domain).expect(<span class="string">"valid domain"</span>),
 <a href=#201 id=201 data-nosnippet>201</a>            name: <span class="string">"Markdown"</span>.to_owned(),
-<a href=#202 id=202 data-nosnippet>202</a>            schema_version: <span class="number">1</span>,
+<a href=#202 id=202 data-nosnippet>202</a>            schema_version: <span class="number">1</span>.into(),
 <a href=#203 id=203 data-nosnippet>203</a>            entity_types: <span class="macro">vec!</span>[ObjectType::new(entity_type).expect(<span class="string">"valid type"</span>)],
 <a href=#204 id=204 data-nosnippet>204</a>            relation_types: Vec::new(),
 <a href=#205 id=205 data-nosnippet>205</a>            capabilities: <span class="macro">vec!</span>[CapabilityDescriptor {
@@ -210,10 +210,11 @@
 <a href=#210 id=210 data-nosnippet>210</a>                provider: <span class="prelude-val">Some</span>(ProviderMetadata {
 <a href=#211 id=211 data-nosnippet>211</a>                    id: domain.to_owned(),
 <a href=#212 id=212 data-nosnippet>212</a>                    version: <span class="string">"1"</span>.to_owned(),
-<a href=#213 id=213 data-nosnippet>213</a>                    available,
-<a href=#214 id=214 data-nosnippet>214</a>                }),
-<a href=#215 id=215 data-nosnippet>215</a>            }],
-<a href=#216 id=216 data-nosnippet>216</a>        }
-<a href=#217 id=217 data-nosnippet>217</a>    }
-<a href=#218 id=218 data-nosnippet>218</a>}
+<a href=#213 id=213 data-nosnippet>213</a>                    profile: <span class="prelude-val">None</span>,
+<a href=#214 id=214 data-nosnippet>214</a>                    available,
+<a href=#215 id=215 data-nosnippet>215</a>                }),
+<a href=#216 id=216 data-nosnippet>216</a>            }],
+<a href=#217 id=217 data-nosnippet>217</a>        }
+<a href=#218 id=218 data-nosnippet>218</a>    }
+<a href=#219 id=219 data-nosnippet>219</a>}
 </code></pre></div></section></main></body></html>

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ValidationLocation","ValidationSeverity"],"fn":["validate"],"struct":["ValidationIssue","ValidationReport"],"trait":["ValidationSubject"]};

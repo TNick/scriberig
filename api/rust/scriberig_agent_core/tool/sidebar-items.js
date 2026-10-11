@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ToolDetail","ToolError"],"struct":["ToolInput","ToolResult"],"trait":["Tool"]};

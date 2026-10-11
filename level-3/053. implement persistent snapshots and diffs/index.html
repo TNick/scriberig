@@ -5328,17 +5328,17 @@
 <p>Exact Rust signatures may differ, but the semantics must match.</p>
 <h3 id="with_revision"><code>with_revision</code><a class="headerlink" href="#with_revision" title="Permanent link">&para;</a></h3>
 <ul>
-<li>[ ] Returns a new snapshot.</li>
-<li>[ ] Old snapshot remains unchanged.</li>
-<li>[ ] If the entity already resolves to the exact requested revision, return an equivalent snapshot with the same <code>SnapshotId</code>.</li>
-<li>[ ] Only nodes on the entity's radix path may be newly allocated, except for harmless implementation metadata.</li>
+<li>[x] Returns a new snapshot.</li>
+<li>[x] Old snapshot remains unchanged.</li>
+<li>[x] If the entity already resolves to the exact requested revision, return an equivalent snapshot with the same <code>SnapshotId</code>.</li>
+<li>[x] Only nodes on the entity's radix path may be newly allocated, except for harmless implementation metadata.</li>
 </ul>
 <h3 id="without_entity"><code>without_entity</code><a class="headerlink" href="#without_entity" title="Permanent link">&para;</a></h3>
 <ul>
-<li>[ ] Returns a new snapshot when the entity exists.</li>
-<li>[ ] Returns an equivalent snapshot with the same ID when the entity is absent.</li>
-<li>[ ] Must not mutate the previous snapshot.</li>
-<li>[ ] May collapse now-empty internal branches if canonical hashing stays deterministic.</li>
+<li>[x] Returns a new snapshot when the entity exists.</li>
+<li>[x] Returns an equivalent snapshot with the same ID when the entity is absent.</li>
+<li>[x] Must not mutate the previous snapshot.</li>
+<li>[x] May collapse now-empty internal branches if canonical hashing stays deterministic.</li>
 </ul>
 <h3 id="resolve"><code>resolve</code><a class="headerlink" href="#resolve" title="Permanent link">&para;</a></h3>
 <p>Resolve only against the supplied snapshot. Do not consult a global current root.</p>
@@ -5364,23 +5364,23 @@
 <h2 id="required-tests">Required Tests<a class="headerlink" href="#required-tests" title="Permanent link">&para;</a></h2>
 <p>In <code>crates/sr-store/tests/snapshots.rs</code>, test at least:</p>
 <ul>
-<li>[ ] empty snapshot ID is deterministic;</li>
-<li>[ ] two independently built empty snapshots have identical IDs;</li>
-<li>[ ] inserting one mapping changes the snapshot ID;</li>
-<li>[ ] old snapshot does not resolve the newly inserted mapping;</li>
-<li>[ ] new snapshot resolves it;</li>
-<li>[ ] setting the same revision again preserves <code>SnapshotId</code>;</li>
-<li>[ ] removing an absent entity preserves <code>SnapshotId</code>;</li>
-<li>[ ] removing an existing entity changes <code>SnapshotId</code>;</li>
-<li>[ ] insertion order does not affect final <code>SnapshotId</code>;</li>
-<li>[ ] two snapshots with the same complete mapping have the same ID;</li>
-<li>[ ] iteration is deterministic by <code>EntityId</code>;</li>
-<li>[ ] diff reports added entities;</li>
-<li>[ ] diff reports removed entities;</li>
-<li>[ ] diff reports changed revisions;</li>
-<li>[ ] diff omits unchanged entities;</li>
-<li>[ ] an unaffected trie branch is structurally shared;</li>
-<li>[ ] many entities sharing long nibble prefixes resolve correctly.</li>
+<li>[x] empty snapshot ID is deterministic;</li>
+<li>[x] two independently built empty snapshots have identical IDs;</li>
+<li>[x] inserting one mapping changes the snapshot ID;</li>
+<li>[x] old snapshot does not resolve the newly inserted mapping;</li>
+<li>[x] new snapshot resolves it;</li>
+<li>[x] setting the same revision again preserves <code>SnapshotId</code>;</li>
+<li>[x] removing an absent entity preserves <code>SnapshotId</code>;</li>
+<li>[x] removing an existing entity changes <code>SnapshotId</code>;</li>
+<li>[x] insertion order does not affect final <code>SnapshotId</code>;</li>
+<li>[x] two snapshots with the same complete mapping have the same ID;</li>
+<li>[x] iteration is deterministic by <code>EntityId</code>;</li>
+<li>[x] diff reports added entities;</li>
+<li>[x] diff reports removed entities;</li>
+<li>[x] diff reports changed revisions;</li>
+<li>[x] diff omits unchanged entities;</li>
+<li>[x] an unaffected trie branch is structurally shared;</li>
+<li>[x] many entities sharing long nibble prefixes resolve correctly.</li>
 </ul>
 <p>Also add a regression test demonstrating the architectural rule:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>changing P2 from PR8 to PR9
@@ -5406,14 +5406,14 @@
 </ul>
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Persistent 16-way radix trie exists.</li>
-<li>[ ] Snapshot IDs are content-derived and domain-separated.</li>
-<li>[ ] Updates structurally share unaffected branches.</li>
-<li>[ ] Equivalent mappings have equivalent IDs regardless of construction order.</li>
-<li>[ ] Snapshot resolution is explicit and local to the snapshot.</li>
-<li>[ ] Snapshot diff is deterministic and exact.</li>
-<li>[ ] Old snapshots remain usable after successor creation.</li>
-<li>[ ] Tests, formatting, and clippy all pass.</li>
+<li>[x] Persistent 16-way radix trie exists.</li>
+<li>[x] Snapshot IDs are content-derived and domain-separated.</li>
+<li>[x] Updates structurally share unaffected branches.</li>
+<li>[x] Equivalent mappings have equivalent IDs regardless of construction order.</li>
+<li>[x] Snapshot resolution is explicit and local to the snapshot.</li>
+<li>[x] Snapshot diff is deterministic and exact.</li>
+<li>[x] Old snapshots remain usable after successor creation.</li>
+<li>[x] Tests, formatting, and clippy all pass.</li>
 </ul>
 
 

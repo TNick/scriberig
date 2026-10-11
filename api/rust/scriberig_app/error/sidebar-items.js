@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ApplicationError"]};
+window.SIDEBAR_ITEMS = {"enum":["ApplicationError"],"struct":["ConflictDetails"]};

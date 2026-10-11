@@ -5039,14 +5039,14 @@
 <p>The constructor must compute the ID itself.</p>
 <p>The revision must not contain:</p>
 <ul>
-<li>[ ] <code>EntityId</code>;</li>
-<li>[ ] parent identity;</li>
-<li>[ ] child position;</li>
-<li>[ ] mutable root name;</li>
-<li>[ ] current snapshot;</li>
-<li>[ ] cache data;</li>
-<li>[ ] derived summary data;</li>
-<li>[ ] incidental timestamps.</li>
+<li>[x] <code>EntityId</code>;</li>
+<li>[x] parent identity;</li>
+<li>[x] child position;</li>
+<li>[x] mutable root name;</li>
+<li>[x] current snapshot;</li>
+<li>[x] cache data;</li>
+<li>[x] derived summary data;</li>
+<li>[x] incidental timestamps.</li>
 </ul>
 <p>Expose read-only accessors.</p>
 <h2 id="revision-store-trait">Revision Store Trait<a class="headerlink" href="#revision-store-trait" title="Permanent link">&para;</a></h2>
@@ -5063,10 +5063,10 @@
 <p>It should be safe for ordinary concurrent callers if this can be achieved with a standard <code>RwLock</code> without complicating the public API.</p>
 <p>Requirements:</p>
 <ul>
-<li>[ ] exact existing value is reused;</li>
-<li>[ ] missing ID returns <code>None</code>;</li>
-<li>[ ] callers cannot mutate a stored revision through a returned handle;</li>
-<li>[ ] a digest collision with different canonical bytes is treated as an integrity error, not as overwrite behavior.</li>
+<li>[x] exact existing value is reused;</li>
+<li>[x] missing ID returns <code>None</code>;</li>
+<li>[x] callers cannot mutate a stored revision through a returned handle;</li>
+<li>[x] a digest collision with different canonical bytes is treated as an integrity error, not as overwrite behavior.</li>
 </ul>
 <p>The collision branch may be practically unreachable, but it must exist logically.</p>
 <h2 id="store-error">Store Error<a class="headerlink" href="#store-error" title="Permanent link">&para;</a></h2>
@@ -5077,15 +5077,15 @@
 <h2 id="tests">Tests<a class="headerlink" href="#tests" title="Permanent link">&para;</a></h2>
 <p>In <code>crates/sr-store/tests/revisions.rs</code>, add integration tests for:</p>
 <ul>
-<li>[ ] creating a revision computes the same ID as the core hash helper;</li>
-<li>[ ] same type/version/payload creates the same <code>RevisionId</code>;</li>
-<li>[ ] different payload creates a different ID;</li>
-<li>[ ] different <code>TypeId</code> creates a different ID;</li>
-<li>[ ] <code>put</code> followed by <code>get</code> returns equal canonical fields;</li>
-<li>[ ] putting the same revision twice is idempotent;</li>
-<li>[ ] missing revision returns <code>None</code>;</li>
-<li>[ ] <code>contains</code> changes from false to true after insertion;</li>
-<li>[ ] the store exposes no mutable route that can change stored revision bytes in place.</li>
+<li>[x] creating a revision computes the same ID as the core hash helper;</li>
+<li>[x] same type/version/payload creates the same <code>RevisionId</code>;</li>
+<li>[x] different payload creates a different ID;</li>
+<li>[x] different <code>TypeId</code> creates a different ID;</li>
+<li>[x] <code>put</code> followed by <code>get</code> returns equal canonical fields;</li>
+<li>[x] putting the same revision twice is idempotent;</li>
+<li>[x] missing revision returns <code>None</code>;</li>
+<li>[x] <code>contains</code> changes from false to true after insertion;</li>
+<li>[x] the store exposes no mutable route that can change stored revision bytes in place.</li>
 </ul>
 <p>If practical, include a unit test for the integrity mismatch branch using a test-only helper rather than weakening production APIs.</p>
 <h2 id="public-api-rule">Public API Rule<a class="headerlink" href="#public-api-rule" title="Permanent link">&para;</a></h2>
@@ -5108,13 +5108,13 @@
 </ul>
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] <code>sr-store</code> exists and is part of the workspace.</li>
-<li>[ ] <code>Revision</code> computes its own immutable ID.</li>
-<li>[ ] <code>RevisionStore</code> is backend-independent.</li>
-<li>[ ] <code>MemoryRevisionStore</code> implements the trait.</li>
-<li>[ ] Duplicate revisions deduplicate logically.</li>
-<li>[ ] Integration tests pass.</li>
-<li>[ ] Workspace formatting, tests, and clippy pass.</li>
+<li>[x] <code>sr-store</code> exists and is part of the workspace.</li>
+<li>[x] <code>Revision</code> computes its own immutable ID.</li>
+<li>[x] <code>RevisionStore</code> is backend-independent.</li>
+<li>[x] <code>MemoryRevisionStore</code> implements the trait.</li>
+<li>[x] Duplicate revisions deduplicate logically.</li>
+<li>[x] Integration tests pass.</li>
+<li>[x] Workspace formatting, tests, and clippy pass.</li>
 </ul>
 
 

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ConflictKind","ConflictStatus"],"struct":["AmbiguousMapping","CapturedObservation","ConflictId","ConflictResolution","ObservationId","ProjectionConflict","ResolvedConflict"],"trait":["ProjectionConflictStore"]};

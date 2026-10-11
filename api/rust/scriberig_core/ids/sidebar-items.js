@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["IdParseError"],"struct":["EntityId","ObjectType","OperationId","RevisionId","RootName","SnapshotId"]};
+window.SIDEBAR_ITEMS = {"enum":["IdParseError"],"struct":["EntityId","ObjectType","OperationId","RevisionId","RootName","SnapshotId","TypeId"]};

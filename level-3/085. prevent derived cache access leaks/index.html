@@ -4978,6 +4978,12 @@
 
 
 <h1 id="prevent-derived-cache-access-leaks">Prevent Derived Cache Access Leaks<a class="headerlink" href="#prevent-derived-cache-access-leaks" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Implemented against the current workspace on 2026-10-11. Immutable
+dependency keys remain principal-independent in <code>scriberig-derive</code>; the
+application exposes them through <code>GuardedDerivedRepository</code>, which checks
+every canonical and nested derived dependency at cache-read time.</p>
+</blockquote>
 <h2 id="objective">Objective<a class="headerlink" href="#objective" title="Permanent link">&para;</a></h2>
 <p>Ensure summaries, descriptions, search indexes, analysis results, and other derived/cached artifacts cannot expose knowledge that the requesting principal is not allowed to observe.</p>
 <p>This task connects the derived-knowledge cache model to application-level capability enforcement without moving authorization policy into the generic cache implementation.</p>
@@ -5040,12 +5046,12 @@
 <p>Do not put mutable ACLs inside immutable content hashes. Do not make principal identity part of semantic revision identity. Do not return cached text before checking access. Do not assume generated summaries are safe to expose because they are not canonical.</p>
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] derived artifacts retain usable dependency provenance;</li>
-<li>[ ] application access checks cover cache hits and misses;</li>
-<li>[ ] search cannot leak restricted snippets;</li>
-<li>[ ] nested derivations preserve effective restrictions;</li>
-<li>[ ] shared immutable cache entries remain reusable across authorized principals;</li>
-<li>[ ] tests prove denial does not destroy cache reuse.</li>
+<li>[x] derived artifacts retain usable dependency provenance;</li>
+<li>[x] application access checks cover cache hits and misses;</li>
+<li>[x] search cannot leak restricted snippets;</li>
+<li>[x] nested derivations preserve effective restrictions;</li>
+<li>[x] shared immutable cache entries remain reusable across authorized principals;</li>
+<li>[x] tests prove denial does not destroy cache reuse.</li>
 </ul>
 
 

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"trait":["ProjectionAdapter"]};
+window.SIDEBAR_ITEMS = {"mod":["adapter","candidate","diagnostic","equivalence","match_nodes","model","parser","reconcile","render","style","three_way"],"trait":["ProjectionAdapter"]};

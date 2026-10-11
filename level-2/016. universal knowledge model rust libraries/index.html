@@ -5664,21 +5664,25 @@
 </ul>
 <hr />
 <h2 id="12-completion-criteria">12. Completion Criteria<a class="headerlink" href="#12-completion-criteria" title="Permanent link">&para;</a></h2>
+<p>Implementation status: complete. The shared <code>scriberig-core</code>,
+<code>scriberig-schema</code>, and <code>scriberig-graph</code> crates provide the universal model;
+their cross-layer conformance tests verify identity, provenance, ordering,
+relations, derived dependencies, and snapshot-bound view contracts.</p>
 <p>This design is implemented when:</p>
 <ul>
-<li>[ ] the existing shared core library exposes a domain-neutral property value type;</li>
-<li>[ ] the existing shared core library exposes provenance and canonical/derived classification;</li>
-<li>[ ] the universal schema crate defines entity/property/relation/collection schemas;</li>
-<li>[ ] schema-level validation returns structured issues;</li>
-<li>[ ] the universal graph crate defines storage-independent revision/relation/collection records;</li>
-<li>[ ] child records do not require parent pointers;</li>
-<li>[ ] ordered and unordered collections are distinct;</li>
-<li>[ ] descriptions are separate derived navigation objects;</li>
-<li>[ ] derived artifacts declare exact immutable dependencies;</li>
-<li>[ ] a snapshot-bound storage-independent graph view exists;</li>
-<li>[ ] conformance tests demonstrate the Level 1 semantics;</li>
-<li>[ ] no duplicate core/workspace layer was introduced;</li>
-<li>[ ] no database, parser, projection, migration, agent, transport, or UI subsystem was implemented by this work.</li>
+<li>[x] the existing shared core library exposes a domain-neutral property value type;</li>
+<li>[x] the existing shared core library exposes provenance and canonical/derived classification;</li>
+<li>[x] the universal schema crate defines entity/property/relation/collection schemas;</li>
+<li>[x] schema-level validation returns structured issues;</li>
+<li>[x] the universal graph crate defines storage-independent revision/relation/collection records;</li>
+<li>[x] child records do not require parent pointers;</li>
+<li>[x] ordered and unordered collections are distinct;</li>
+<li>[x] descriptions are separate derived navigation objects;</li>
+<li>[x] derived artifacts declare exact immutable dependencies;</li>
+<li>[x] a snapshot-bound storage-independent graph view exists;</li>
+<li>[x] conformance tests demonstrate the Level 1 semantics;</li>
+<li>[x] no duplicate core/workspace layer was introduced;</li>
+<li>[x] no database, parser, projection, migration, agent, transport, or UI subsystem was implemented by this work.</li>
 </ul>
 <hr />
 <h2 id="13-work-decomposition">13. Work Decomposition<a class="headerlink" href="#13-work-decomposition" title="Permanent link">&para;</a></h2>

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["CapabilityKind"],"struct":["BranchContext","CapabilityDescriptor","CapabilityId","DomainOperationRequest","RuntimeCapability"]};
+window.SIDEBAR_ITEMS = {"enum":["CapabilityAction","CapabilityKind","CapabilityScope"],"struct":["AuthorizationDenial","BranchContext","Capability","CapabilityConstraints","CapabilityDescriptor","CapabilityId","DomainOperationRequest","RuntimeCapability"]};

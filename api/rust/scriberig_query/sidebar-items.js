@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["detail","error","find","handle","inspect","pagination","query","result","scope","selection","traverse"]};
+window.SIDEBAR_ITEMS = {"mod":["detail","error","find","graph_service","handle","inspect","pagination","query","result","scope","selection","traverse"]};

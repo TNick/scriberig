@@ -5869,23 +5869,28 @@
 <p>The crate-level documentation should state clearly that the derivation subsystem is useful without agents, servers, or a UI.</p>
 <hr />
 <h2 id="25-completion-criteria">25. Completion Criteria<a class="headerlink" href="#25-completion-criteria" title="Permanent link">&para;</a></h2>
+<p>Implementation status: complete. The canonical implementation is
+<code>scriberig-derive</code>; its repository, selection, freshness, retention,
+invalidation, explanation, event, and registration modules are covered by
+unit and conformance tests. Application-level authorization wraps this
+backend-neutral contract without adding product dependencies to the crate.</p>
 <p>This Level 2 design is implemented when:</p>
 <ul>
-<li>[ ] one canonical derivation/cache crate exists and is registered in the workspace;</li>
-<li>[ ] derivation profiles and deterministic keys are represented explicitly;</li>
-<li>[ ] exact, scope, snapshot, configuration, and derived-result dependencies are supported;</li>
-<li>[ ] derived result records retain provenance and immutable identity;</li>
-<li>[ ] a backend-independent derived repository contract exists;</li>
-<li>[ ] multiple compatible results can coexist;</li>
-<li>[ ] selection policy is separate from exact identity;</li>
-<li>[ ] freshness is explicit for external observations;</li>
-<li>[ ] retention is independent of validity;</li>
-<li>[ ] reverse-dependency invalidation works without deleting historical artifacts;</li>
-<li>[ ] reuse/miss/recompute decisions can be explained structurally;</li>
-<li>[ ] derived events are separate from canonical snapshot events;</li>
-<li>[ ] domain derivations can be registered without hard-coded domain variants;</li>
-<li>[ ] conformance tests demonstrate local reuse plus global certainty;</li>
-<li>[ ] no agent runtime, concrete database driver, HTTP server, CLI, TUI, or UI dependency was introduced.</li>
+<li>[x] one canonical derivation/cache crate exists and is registered in the workspace;</li>
+<li>[x] derivation profiles and deterministic keys are represented explicitly;</li>
+<li>[x] exact, scope, snapshot, configuration, and derived-result dependencies are supported;</li>
+<li>[x] derived result records retain provenance and immutable identity;</li>
+<li>[x] a backend-independent derived repository contract exists;</li>
+<li>[x] multiple compatible results can coexist;</li>
+<li>[x] selection policy is separate from exact identity;</li>
+<li>[x] freshness is explicit for external observations;</li>
+<li>[x] retention is independent of validity;</li>
+<li>[x] reverse-dependency invalidation works without deleting historical artifacts;</li>
+<li>[x] reuse/miss/recompute decisions can be explained structurally;</li>
+<li>[x] derived events are separate from canonical snapshot events;</li>
+<li>[x] domain derivations can be registered without hard-coded domain variants;</li>
+<li>[x] conformance tests demonstrate local reuse plus global certainty;</li>
+<li>[x] no agent runtime, concrete database driver, HTTP server, CLI, TUI, or UI dependency was introduced.</li>
 </ul>
 <hr />
 <h2 id="26-level-3-work-decomposition">26. Level 3 Work Decomposition<a class="headerlink" href="#26-level-3-work-decomposition" title="Permanent link">&para;</a></h2>
@@ -5898,7 +5903,8 @@
 <li>implement derivation events and the domain registration contract;</li>
 <li>add the conformance test suite, crate documentation, and workspace validation.</li>
 </ol>
-<p>Each implementation task must inspect the actual workspace first and extend canonical crates rather than duplicating a provisional <code>sr-*</code> versus <code>scriberig-*</code> naming variant.</p>
+<p>Each implementation task must inspect the actual workspace first and extend canonical crates rather than duplicating a provisional <code>sr-*</code> versus <code>scriberig-*</code> naming variant.
+/</p>
 
 
 
