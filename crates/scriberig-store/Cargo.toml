@@ -8,6 +8,7 @@ description = "Backend-independent immutable revision, snapshot, and root storag
 repository.workspace = true
 
 [dependencies]
+blake3 = "1"
 scriberig-core = { path = "../scriberig-core" }
 
 [lints]
