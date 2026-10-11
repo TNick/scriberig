@@ -80,3 +80,42 @@ fn sqlite_gc_preserves_protected_and_collects_abandoned_branch() {
     assert!(store.resolve(abandoned, entity).is_err());
     store.rebuild_derived_indexes().expect("rebuild indexes");
 }
+
+/// Runs the shared backend-neutral conformance suite against SQLite.
+#[test]
+fn sqlite_shared_conformance_passes() {
+    let store = SqliteStore::open_in_memory().expect("open");
+    scriberig_store::run_core_conformance(&store).expect("conformance");
+}
+
+/// Verifies SQLite observability reports counts without changing state.
+#[test]
+fn sqlite_observability_reports_counts() {
+    use scriberig_store::StoreObservability;
+    let store = SqliteStore::open_in_memory().expect("open");
+    let stats = store.stats().expect("stats");
+    assert_eq!(stats.revisions, Some(0));
+    assert_eq!(stats.snapshots, Some(0));
+}
+
+/// Verifies equivalent canonical mappings have backend-independent identities.
+#[test]
+fn logical_ids_match_memory_backend() {
+    use scriberig_store_memory::MemoryStore;
+    let sqlite = SqliteStore::open_in_memory().expect("open sqlite");
+    let memory = MemoryStore::new();
+    let kind = ObjectType::new("conformance.item").expect("type");
+    let revision = Revision::new(EncodingVersion::V1, kind, vec![4, 5]);
+    let sqlite_revision = sqlite.put(revision.clone()).expect("sqlite revision");
+    let memory_revision = memory.put(revision).expect("memory revision");
+    assert_eq!(sqlite_revision, memory_revision);
+    let entity = EntityId::new([9; 16]);
+    let base = scriberig_store::Snapshot::empty().id();
+    let sqlite_snapshot = sqlite
+        .apply_changes(base, &[SnapshotChange::Set(entity, sqlite_revision)])
+        .expect("sqlite snapshot");
+    let memory_snapshot = memory
+        .apply_changes(base, &[SnapshotChange::Set(entity, memory_revision)])
+        .expect("memory snapshot");
+    assert_eq!(sqlite_snapshot, memory_snapshot);
+}

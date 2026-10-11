@@ -608,6 +608,7 @@ dependencies = [
  "rusqlite",
  "scriberig-core",
  "scriberig-store",
+ "scriberig-store-memory",
 ]
 
 [[package]]

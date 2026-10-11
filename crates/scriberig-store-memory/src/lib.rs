@@ -1,5 +1,6 @@
 //! Provides the in-memory implementation of the Scriberig storage contracts.
 
+mod observability;
 mod roots;
 pub use roots::MemoryRootStore;
 
@@ -326,63 +327,49 @@ impl RevisionStore for MemoryRevisionStore {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{MemoryRevisionStore, MemoryRootStore, MemoryStore};
-    use scriberig_core::{EntityId, RevisionId, RootName, SnapshotId};
-    use scriberig_store::{CasOutcome, RootStore, SnapshotChange, SnapshotStore};
-
-    /// Confirms named roots support atomic stale detection.
-    #[test]
-    fn root_store_cas_is_atomic() {
-        let store = MemoryRootStore::new();
-        let name = RootName::new("main").expect("root");
-        let first = SnapshotId::new([1; 32]);
-        let second = SnapshotId::new([2; 32]);
-        assert_eq!(
-            store.compare_and_swap(name.clone(), None, first),
-            Ok(CasOutcome::Updated)
-        );
-        assert_eq!(
-            store.compare_and_swap(name.clone(), None, second),
-            Ok(CasOutcome::Stale {
-                actual: Some(first)
-            })
-        );
-        assert_eq!(store.read_root(&name), Some(first));
+impl RevisionStore for MemoryStore {
+    /// Inserts a revision into the shared memory revision collection.
+    ///
+    /// # Parameters
+    /// - `revision`: Immutable revision to retain.
+    ///
+    /// # Returns
+    /// The revision identity.
+    ///
+    /// # Errors
+    /// Returns a storage error when the revision lock is poisoned.
+    fn put(&self, revision: Revision) -> Result<RevisionId, StoreError> {
+        self.revisions.put(revision)
     }
 
-    /// Confirms snapshots are immutable and equivalent maps converge.
-    #[test]
-    fn snapshots_branch_and_converge() {
-        let store = MemoryStore::new();
-        let base = store.empty_snapshot();
-        let first = EntityId::new([1; 16]);
-        let second = EntityId::new([2; 16]);
-        let revision = RevisionId::new([3; 32]);
-        let changed = store
-            .apply_changes(base, &[SnapshotChange::Set(first, revision)])
-            .expect("snapshot");
-        let branch = store
-            .apply_changes(base, &[SnapshotChange::Set(second, revision)])
-            .expect("snapshot");
-        assert_ne!(changed, branch);
-        assert_eq!(store.resolve(base, first), Ok(None));
-        let reordered = store
-            .apply_changes(base, &[SnapshotChange::Set(first, revision)])
-            .expect("snapshot");
-        assert_eq!(changed, reordered);
+    /// Reads a revision from the shared memory revision collection.
+    ///
+    /// # Parameters
+    /// - `id`: Revision identity.
+    ///
+    /// # Returns
+    /// The retained revision, when present.
+    ///
+    /// # Errors
+    /// Returns a storage error when the revision lock is poisoned.
+    fn get(&self, id: RevisionId) -> Result<Option<Revision>, StoreError> {
+        self.revisions.get(id)
     }
 
-    /// Confirms duplicate revision insertion is idempotent.
-    #[test]
-    fn revisions_are_idempotent() {
-        use scriberig_core::{EncodingVersion, ObjectType};
-        use scriberig_store::{Revision, RevisionStore};
-        let store = MemoryRevisionStore::new();
-        let kind = ObjectType::new("test").expect("type");
-        let revision = Revision::new(EncodingVersion::new(1), kind, vec![1, 2]);
-        let id = store.put(revision.clone()).expect("put");
-        assert_eq!(store.put(revision), Ok(id));
+    /// Checks whether a revision is retained in memory.
+    ///
+    /// # Parameters
+    /// - `id`: Revision identity.
+    ///
+    /// # Returns
+    /// Whether the revision is present.
+    ///
+    /// # Errors
+    /// Returns a storage error when the revision lock is poisoned.
+    fn contains(&self, id: RevisionId) -> Result<bool, StoreError> {
+        self.revisions.contains(id)
     }
 }
+
+#[cfg(test)]
+mod tests;
