@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">Local semantic stability with global snapshot certainty</title>
+  <desc id="desc">On the left, a semantic containment hierarchy shows Document D containing Section S containing Paragraph P. On the right, snapshot S1 maps D to D revision 4, S to S revision 7, and P to P revision 2. After editing only paragraph P, snapshot S2 keeps D revision 4 and S revision 7 but maps P to revision 3. The paragraph changes locally while the whole snapshot identity changes globally.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>.title{font:700 29px system-ui,sans-serif;fill:#0f172a}.label{font:700 20px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1200" height="700" fill="#ffffff"/>
+  <text x="600" y="45" text-anchor="middle" class="title">A deep edit does not require semantic ancestor churn</text>
+
+  <text x="245" y="92" text-anchor="middle" class="label">Semantic containment</text>
+  <rect x="105" y="125" width="280" height="74" rx="14" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="245" y="158" text-anchor="middle" class="label">Document D</text><text x="245" y="181" text-anchor="middle" class="small">entity stays D</text>
+  <rect x="125" y="250" width="240" height="74" rx="14" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="245" y="283" text-anchor="middle" class="label">Section S</text><text x="245" y="306" text-anchor="middle" class="small">entity stays S</text>
+  <rect x="145" y="375" width="200" height="82" rx="14" fill="#fff7ed" stroke="#d97706" stroke-width="4"/>
+  <text x="245" y="409" text-anchor="middle" class="label">Paragraph P</text><text x="245" y="434" text-anchor="middle" class="small">content edited</text>
+  <path d="M245 199 L245 250" class="line"/><path d="M245 324 L245 375" class="line"/>
+
+  <text x="755" y="92" text-anchor="middle" class="label">Snapshot resolution</text>
+  <rect x="510" y="120" width="300" height="210" rx="18" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+  <text x="660" y="157" text-anchor="middle" class="label">Snapshot S1</text>
+  <text x="550" y="204" class="body">D</text><text x="695" y="204" class="body">→ D@4</text>
+  <text x="550" y="244" class="body">S</text><text x="695" y="244" class="body">→ S@7</text>
+  <text x="550" y="284" class="body">P</text><text x="695" y="284" class="body">→ P@2</text>
+
+  <rect x="875" y="120" width="300" height="210" rx="18" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="1025" y="157" text-anchor="middle" class="label">Snapshot S2</text>
+  <text x="915" y="204" class="body">D</text><text x="1060" y="204" class="body">→ D@4</text>
+  <text x="915" y="244" class="body">S</text><text x="1060" y="244" class="body">→ S@7</text>
+  <text x="915" y="284" class="body">P</text><text x="1060" y="284" class="body" fill="#b45309">→ P@3</text>
+  <path d="M810 225 L875 225" class="line"/>
+  <text x="843" y="206" text-anchor="middle" class="small">edit P</text>
+
+  <line x1="660" y1="204" x2="1025" y2="204" stroke="#0f766e" stroke-width="3" stroke-dasharray="8 7"/>
+  <line x1="660" y1="244" x2="1025" y2="244" stroke="#0f766e" stroke-width="3" stroke-dasharray="8 7"/>
+  <text x="842" y="188" text-anchor="middle" class="small">unchanged revisions reused</text>
+
+  <rect x="455" y="390" width="720" height="190" rx="20" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="815" y="431" text-anchor="middle" class="label">Both properties hold at once</text>
+  <text x="815" y="472" text-anchor="middle" class="body">Local stability: D@4 and S@7 remain reusable because their own canonical state did not change.</text>
+  <text x="815" y="510" text-anchor="middle" class="body">Global certainty: S1 ≠ S2 because the complete entity→revision mapping changed.</text>
+  <text x="815" y="548" text-anchor="middle" class="small">The snapshot map, not the semantic containment tree, carries whole-world version identity.</text>
+
+  <text x="600" y="655" text-anchor="middle" class="body">A deep edit changes the smallest semantic revision that needs to change, plus a structurally shared path in the snapshot index.</text>
+</svg>
