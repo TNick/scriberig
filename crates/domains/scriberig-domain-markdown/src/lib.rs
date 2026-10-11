@@ -1,17 +1,22 @@
 //! Adapts Markdown documents to the universal semantic and projection architecture.
 
 pub mod adapter;
+pub mod change;
 pub mod classification;
 pub mod error;
 pub mod mapping;
+pub mod match_nodes;
 pub mod parse;
+pub mod reconcile;
 pub mod render;
 pub mod schema;
 pub mod types;
 
+pub use change::{Reconciliation, SemanticChange};
 pub use classification::{InformationClass, classify};
 pub use mapping::{MarkdownBlock, MarkdownDocument};
 pub use parse::parse;
+pub use reconcile::reconcile;
 pub use render::render;
 pub use schema::{OrderedRelation, markdown_schema};
 
