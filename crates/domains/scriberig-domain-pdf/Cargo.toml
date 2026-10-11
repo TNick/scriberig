@@ -13,6 +13,7 @@ scriberig-derive = { path = "../../scriberig-derive" }
 scriberig-graph = { path = "../../scriberig-graph" }
 scriberig-projection = { path = "../../scriberig-projection" }
 scriberig-schema = { path = "../../scriberig-schema" }
+blake3 = "1.8"
 
 [lints]
 workspace = true
