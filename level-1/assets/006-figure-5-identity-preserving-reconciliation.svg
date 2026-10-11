@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">Reconciliation preserves stable entity identity when justified</title>
+  <desc id="desc">The left side shows an existing section containing paragraph entities P1 and P2. The center shows parsed candidate blocks after an edit: the first paragraph is modified, a new paragraph is inserted, and the last paragraph is unchanged. The right side shows reconciliation mapping the modified candidate back to P1 with a new revision, creating P3 for the insertion, and reusing P2 unchanged.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>.title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 20px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.mono{font:15px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#334155}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}.reuse{stroke:#0f766e}.change{stroke:#c2410c}.new{stroke:#7c3aed}</style>
+  </defs>
+  <rect width="1200" height="700" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Reconciliation answers “what stayed the same?” semantically</text>
+
+  <text x="190" y="105" text-anchor="middle" class="label">Existing canonical section</text>
+  <rect x="55" y="135" width="270" height="420" rx="20" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <rect x="85" y="190" width="210" height="120" rx="15" fill="#ffffff" stroke="#c2410c" stroke-width="3"/>
+  <text x="105" y="225" class="label">P1 @ R1</text>
+  <text x="105" y="260" class="mono">Sessions form a tree.</text>
+  <text x="105" y="290" class="small">stable entity P1</text>
+  <rect x="85" y="365" width="210" height="120" rx="15" fill="#ffffff" stroke="#0f766e" stroke-width="3"/>
+  <text x="105" y="400" class="label">P2 @ R7</text>
+  <text x="105" y="435" class="mono">Branches can close.</text>
+  <text x="105" y="465" class="small">stable entity P2</text>
+
+  <text x="600" y="105" text-anchor="middle" class="label">Parsed candidate from edited file</text>
+  <rect x="430" y="135" width="340" height="420" rx="20" fill="#f8fafc" stroke="#475569" stroke-width="3"/>
+  <rect x="465" y="175" width="270" height="95" rx="15" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="485" y="207" class="mono">Sessions form a</text>
+  <text x="485" y="232" class="mono">persistent tree.</text>
+  <text x="485" y="258" class="small">candidate A: modified text</text>
+  <rect x="465" y="300" width="270" height="95" rx="15" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="485" y="335" class="mono">Completed work is archived.</text>
+  <text x="485" y="375" class="small">candidate B: inserted block</text>
+  <rect x="465" y="425" width="270" height="95" rx="15" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="485" y="460" class="mono">Branches can close.</text>
+  <text x="485" y="500" class="small">candidate C: exact match</text>
+
+  <text x="1010" y="105" text-anchor="middle" class="label">Reconciled semantic result</text>
+  <rect x="875" y="135" width="270" height="420" rx="20" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <rect x="905" y="175" width="210" height="95" rx="15" fill="#ffffff" stroke="#c2410c" stroke-width="3"/>
+  <text x="925" y="208" class="label">P1 @ R2</text>
+  <text x="925" y="238" class="small">same entity, new revision</text>
+  <rect x="905" y="300" width="210" height="95" rx="15" fill="#ffffff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="925" y="333" class="label">P3 @ R1</text>
+  <text x="925" y="363" class="small">new entity for insertion</text>
+  <rect x="905" y="425" width="210" height="95" rx="15" fill="#ffffff" stroke="#0f766e" stroke-width="3"/>
+  <text x="925" y="458" class="label">P2 @ R7</text>
+  <text x="925" y="488" class="small">exact revision reused</text>
+
+  <path d="M295 245 C355 225 405 210 465 215" class="line change"/>
+  <path d="M735 215 C800 210 845 205 905 215" class="line change"/>
+  <path d="M735 345 C805 345 850 345 905 345" class="line new"/>
+  <path d="M295 425 C355 470 405 475 465 470" class="line reuse"/>
+  <path d="M735 470 C800 470 850 470 905 470" class="line reuse"/>
+
+  <text x="375" y="202" text-anchor="middle" class="small">similar role + neighborhood</text>
+  <text x="815" y="192" text-anchor="middle" class="small">preserve P1</text>
+  <text x="815" y="330" text-anchor="middle" class="small">create P3</text>
+  <text x="375" y="500" text-anchor="middle" class="small">exact content match</text>
+  <text x="815" y="455" text-anchor="middle" class="small">reuse P2</text>
+
+  <rect x="220" y="605" width="760" height="55" rx="15" fill="#fff7ed" stroke="#c2410c" stroke-width="2"/>
+  <text x="600" y="640" text-anchor="middle" class="body">Position is evidence, not identity: unchanged or modified concepts keep stable handles when continuity is justified.</text>
+</svg>

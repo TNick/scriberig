@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="690" viewBox="0 0 1100 690" role="img" aria-labelledby="title desc">
+  <title id="title">Logical persistence layers</title>
+  <desc id="desc">Five stacked layers show semantic entities and typed relations above immutable revisions, snapshot entity-to-revision maps, derived indexes and caches, and the physical storage backend. Arrows indicate that higher layers depend on capabilities rather than backend-specific layout.</desc>
+  <defs>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.layer{font:700 22px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.side{font:600 17px system-ui,sans-serif;fill:#475569}
+    </style>
+  </defs>
+  <rect width="1100" height="690" fill="#ffffff"/>
+  <text x="550" y="46" text-anchor="middle" class="title">Logical persistence layers</text>
+
+  <g transform="translate(155,90)">
+    <rect x="0" y="0" width="790" height="92" rx="16" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+    <text x="395" y="38" text-anchor="middle" class="layer">Semantic entities and typed relations</text>
+    <text x="395" y="68" text-anchor="middle" class="body">Stable identity, domain meaning, canonical relationships</text>
+
+    <rect x="30" y="112" width="730" height="92" rx="16" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+    <text x="395" y="150" text-anchor="middle" class="layer">Immutable entity revisions</text>
+    <text x="395" y="180" text-anchor="middle" class="body">Exact canonical state; never modified in place</text>
+
+    <rect x="60" y="224" width="670" height="92" rx="16" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+    <text x="395" y="262" text-anchor="middle" class="layer">Snapshot entity → revision map</text>
+    <text x="395" y="292" text-anchor="middle" class="body">One complete, immutable, consistent view</text>
+
+    <rect x="90" y="336" width="610" height="92" rx="16" fill="#fff7ed" stroke="#d97706" stroke-width="3"/>
+    <text x="395" y="374" text-anchor="middle" class="layer">Derived indexes and caches</text>
+    <text x="395" y="404" text-anchor="middle" class="body">Rebuildable accelerators tied to exact inputs</text>
+
+    <rect x="120" y="448" width="550" height="92" rx="16" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+    <text x="395" y="486" text-anchor="middle" class="layer">Physical storage backend</text>
+    <text x="395" y="516" text-anchor="middle" class="body">Pages, records, transactions, compression, indexes</text>
+  </g>
+
+  <path d="M85 130 L85 566" stroke="#94a3b8" stroke-width="3" stroke-dasharray="7 7"/>
+  <path d="M75 130 L95 130 M75 566 L95 566" stroke="#94a3b8" stroke-width="3"/>
+  <text x="54" y="350" text-anchor="middle" transform="rotate(-90 54 350)" class="side">Stable contracts above, replaceable mechanics below</text>
+
+  <text x="550" y="653" text-anchor="middle" class="body">A domain or agent should depend on semantic persistence capabilities, not SQL tables, page layouts, or one backend.</text>
+</svg>

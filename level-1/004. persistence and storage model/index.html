@@ -5369,6 +5369,9 @@
 <p>A revision is immutable exact content.</p>
 <p>A snapshot is an immutable mapping that determines which revision of each entity is visible in one consistent state of the knowledge universe.</p>
 <p>These concepts must not collapse into one recursively changing identifier.</p>
+<p><img alt="Diagram showing one stable Function F entity resolved by snapshot S1 to immutable revision R1 and by snapshot S2 to immutable revision R2, separating conceptual identity, exact state, and whole-world state." src="../assets/004-figure-1-identity-model.svg" /></p>
+<p><em>Figure 1. Stable entity identity, exact revision identity, and global snapshot identity.</em></p>
+<p>The important distinction is that the entity answers which conceptual thing is being discussed, a revision identifies one exact immutable state of that thing, and a snapshot selects the exact revisions that together form one complete world. An edit can therefore preserve semantic continuity while still producing exact local history and a new global state.</p>
 <hr />
 <h2 id="3-storage-is-a-platform-capability">3. Storage Is a Platform Capability<a class="headerlink" href="#3-storage-is-a-platform-capability" title="Permanent link">&para;</a></h2>
 <p>The persistence system must be useful without any agent runtime.</p>
@@ -5420,6 +5423,9 @@
 <h3 id="45-physical-backend">4.5 Physical backend<a class="headerlink" href="#45-physical-backend" title="Permanent link">&para;</a></h3>
 <p>Stores bytes, pages, records, transactions, and indexes using a concrete database implementation.</p>
 <p>Higher layers must not depend on incidental details of lower layers.</p>
+<p><img alt="Five stacked persistence layers: semantic entities and relations, immutable revisions, snapshot entity-to-revision map, derived indexes and caches, and the physical storage backend. The upper contracts remain stable while lower storage mechanics can be replaced." src="../assets/004-figure-2-storage-layers.svg" /></p>
+<p><em>Figure 2. Logical persistence layers and their dependency direction.</em></p>
+<p>The reader should notice that semantic and domain code depends on persistence capabilities, not on a particular table layout or storage engine. This separation lets Scriberig replace or optimize physical storage, indexes, chunking, and cache strategies without changing the universal knowledge model exposed above them.</p>
 <hr />
 <h2 id="5-immutable-revisions">5. Immutable Revisions<a class="headerlink" href="#5-immutable-revisions" title="Permanent link">&para;</a></h2>
 <p>Canonical revisions are immutable after creation.</p>
@@ -5549,6 +5555,9 @@
 <a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>+
 <a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>global snapshot certainty
 </code></pre></div>
+<p><img alt="Diagram contrasting semantic containment with snapshot resolution: Document D and Section S keep revisions D@4 and S@7 while edited Paragraph P changes from P@2 in snapshot S1 to P@3 in snapshot S2; only the local entity revision changes, but the global snapshot identity also changes." src="../assets/004-figure-3-local-global-change.svg" /></p>
+<p><em>Figure 3. Local semantic stability combined with global snapshot certainty.</em></p>
+<p>This is the central answer to the change-propagation problem. A deep edit need not recreate the conceptual identity or revision of every semantic ancestor; only entities whose own canonical state changed need new revisions. The top-level snapshot still changes intentionally, giving the system a compact fingerprint that says the complete canonical world is different.</p>
 <hr />
 <h2 id="10-structural-changes-and-content-changes-are-different">10. Structural Changes and Content Changes Are Different<a class="headerlink" href="#10-structural-changes-and-content-changes-are-different" title="Permanent link">&para;</a></h2>
 <p>The storage model should preserve the distinction between changing an entity and changing a structure that refers to that entity.</p>
@@ -5658,6 +5667,9 @@
 </ul>
 <p>Derived persisted objects should identify their exact dependencies and producer configuration.</p>
 <p>They should be removable and rebuildable without losing canonical knowledge.</p>
+<p><img alt="Diagram with canonical state on the left containing entities, immutable revisions, canonical relations, collections, and snapshots; derived state on the right contains indexes, summaries, analysis, render caches, and validation results, connected by exact revision dependencies and producer configuration." src="../assets/004-figure-4-canonical-derived.svg" /></p>
+<p><em>Figure 4. Canonical state is authoritative; derived state is dependency-tracked and rebuildable.</em></p>
+<p>The key operational distinction is retention and invalidation. Losing canonical state can destroy retained knowledge, while losing a derived cache should only cost recomputation. Derived results should therefore name the smallest exact revision set and producer configuration that determines them, allowing reuse across unrelated global snapshot changes.</p>
 <hr />
 <h2 id="15-indexes-are-derived-state">15. Indexes Are Derived State<a class="headerlink" href="#15-indexes-are-derived-state" title="Permanent link">&para;</a></h2>
 <p>Indexes exist to make access efficient; they are not the authority for knowledge.</p>
@@ -5775,6 +5787,9 @@
 <li>validation workspaces;</li>
 <li>merge experiments.</li>
 </ul>
+<p><img alt="Diagram showing a named main root pointing to immutable snapshot S42, a transaction preparing and validating S43 before atomically moving main to it, and an independent feature root pointing to S44 derived from the same S42 base without copying it." src="../assets/004-figure-5-roots-transactions-branches.svg" /></p>
+<p><em>Figure 5. Named roots move atomically over immutable snapshots; branches share state instead of copying it.</em></p>
+<p>The figure combines three persistence rules that must work together: snapshots remain immutable, named roots provide the mutable coordination point, and new branch states structurally share their base. Readers therefore observe either a complete old root or a complete promoted root, while concurrent branches can develop independently and later reconcile semantically.</p>
 <hr />
 <h2 id="22-migrations-and-history">22. Migrations and History<a class="headerlink" href="#22-migrations-and-history" title="Permanent link">&para;</a></h2>
 <p>The persistence layer stores states; migrations explain transitions between states.</p>
@@ -5828,6 +5843,9 @@
 <p>Canonical revisions require stronger retention rules.</p>
 <p>Garbage collection must never make a retained snapshot partially unreadable.</p>
 <p>Implementations should prefer conservative retention when reachability or policy is uncertain.</p>
+<p><img alt="Reachability diagram showing protected roots such as main, a feature branch, and pinned history reaching snapshots and immutable revisions that must be kept; disconnected snapshots and revisions are garbage-collection candidates, while derived caches use independent eviction policies." src="../assets/004-figure-6-reachability-gc.svg" /></p>
+<p><em>Figure 6. Canonical retention is determined by reachability from protected roots.</em></p>
+<p>The important boundary is between semantic history and physical maintenance. Garbage collection may remove unreachable storage and derived caches may be evicted more aggressively, but neither operation is allowed to alter the meaning or readability of any retained snapshot. When retention is uncertain, the safe behavior is to keep the canonical state.</p>
 <hr />
 <h2 id="25-blobs-and-external-artifacts">25. Blobs and External Artifacts<a class="headerlink" href="#25-blobs-and-external-artifacts" title="Permanent link">&para;</a></h2>
 <p>Not every persisted artifact should be decomposed immediately into fine-grained semantic entities.</p>

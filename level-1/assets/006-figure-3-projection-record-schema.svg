@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">Conceptual projection record schema</title>
+  <desc id="desc">A central Projection Record card contains semantic scope, synchronization base, projection kind, style revision, renderer version, external location, last synchronized output digest, and ownership policy. It links left to canonical semantic state and right to the external artifact, showing that the record connects but does not replace either side.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>.title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 21px system-ui,sans-serif;fill:#0f172a}.body{font:17px system-ui,sans-serif;fill:#334155}.small{font:15px system-ui,sans-serif;fill:#475569}.field{font:16px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#334155}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1200" height="700" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Editable projections require an explicit synchronization record</text>
+
+  <rect x="55" y="240" width="270" height="165" rx="20" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="190" y="283" text-anchor="middle" class="label">Canonical state</text>
+  <text x="190" y="320" text-anchor="middle" class="body">semantic scope</text>
+  <text x="190" y="350" text-anchor="middle" class="small">entities + exact revisions</text>
+  <text x="190" y="378" text-anchor="middle" class="small">authoritative knowledge</text>
+
+  <rect x="395" y="95" width="410" height="500" rx="24" fill="#f8fafc" stroke="#475569" stroke-width="3"/>
+  <text x="600" y="140" text-anchor="middle" class="label">Projection record</text>
+  <line x1="425" y1="162" x2="775" y2="162" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="435" y="205" class="field">semantic_scope</text><text x="730" y="205" text-anchor="end" class="small">what is projected</text>
+  <text x="435" y="250" class="field">sync_base</text><text x="730" y="250" text-anchor="end" class="small">snapshot/revisions</text>
+  <text x="435" y="295" class="field">projection_kind</text><text x="730" y="295" text-anchor="end" class="small">Markdown, Rust, …</text>
+  <text x="435" y="340" class="field">style_revision</text><text x="730" y="340" text-anchor="end" class="small">exact presentation config</text>
+  <text x="435" y="385" class="field">renderer_version</text><text x="730" y="385" text-anchor="end" class="small">reproducible renderer</text>
+  <text x="435" y="430" class="field">external_location</text><text x="730" y="430" text-anchor="end" class="small">path or target</text>
+  <text x="435" y="475" class="field">last_output_digest</text><text x="730" y="475" text-anchor="end" class="small">dirty detection</text>
+  <text x="435" y="520" class="field">ownership_policy</text><text x="730" y="520" text-anchor="end" class="small">editable/read-only/etc.</text>
+  <text x="600" y="565" text-anchor="middle" class="small">Enough information to reproduce and reconcile the projection</text>
+
+  <rect x="875" y="240" width="270" height="165" rx="20" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="1010" y="283" text-anchor="middle" class="label">External artifact</text>
+  <text x="1010" y="320" text-anchor="middle" class="body">file / text / view</text>
+  <text x="1010" y="350" text-anchor="middle" class="small">ordinary user-facing form</text>
+  <text x="1010" y="378" text-anchor="middle" class="small">may change independently</text>
+
+  <path d="M325 322 L395 322" class="line"/>
+  <path d="M805 322 L875 322" class="line"/>
+  <text x="360" y="302" text-anchor="middle" class="small">render from</text>
+  <text x="840" y="302" text-anchor="middle" class="small">track</text>
+
+  <rect x="230" y="625" width="740" height="45" rx="14" fill="#fff7ed" stroke="#c2410c" stroke-width="2"/>
+  <text x="600" y="654" text-anchor="middle" class="body">The record is synchronization metadata; it is not a second source of semantic truth.</text>
+</svg>
