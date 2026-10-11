@@ -10,6 +10,7 @@ pub mod query;
 pub mod request;
 pub mod result;
 pub mod trust;
+pub mod validation;
 
 pub use capability::{
     AuthorizationDenial, BranchContext, Capability, CapabilityAction, CapabilityConstraints,
@@ -30,6 +31,10 @@ pub use result::{ApplicationResult, OperationStarted, OperationSummary};
 pub use trust::{
     ApprovalSummary, CapabilityDenial, ConflictSummary, ExternalEffectSummary, PolicyDecision,
     PolicyEvaluation, SourceKind, TrustSummary, ValidationState,
+};
+pub use validation::{
+    DiagnosticSeverity, ValidationCandidate, ValidationDiagnostic, ValidationEvidence,
+    ValidationStatus, Validator, evidence_applicable,
 };
 
 #[cfg(test)]
