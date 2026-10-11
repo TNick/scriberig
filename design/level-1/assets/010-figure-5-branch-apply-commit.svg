@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">Branch, apply, validate, and commit change flow</title>
+  <desc id="desc">A current snapshot creates an isolated branch. Apply produces candidate state and a migration proposal. Validation either reports structured conflicts and leaves the current snapshot unchanged, or succeeds and allows commit to promote the candidate as a new retained snapshot with history linking old and new state.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 21px system-ui,sans-serif;fill:#0f172a}.body{font:17px system-ui,sans-serif;fill:#334155}.small{font:15px system-ui,sans-serif;fill:#475569}.mono{font:16px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#334155}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#b91c1c;stroke-width:3;stroke-dasharray:8 8;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="700" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Writes build candidate state before canonical promotion</text>
+
+  <rect x="55" y="250" width="210" height="125" rx="18" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="160" y="292" text-anchor="middle" class="label">Snapshot S17</text>
+  <text x="160" y="329" text-anchor="middle" class="body">current canonical state</text>
+
+  <rect x="335" y="250" width="210" height="125" rx="18" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="440" y="292" text-anchor="middle" class="label">Branch B</text>
+  <text x="440" y="329" text-anchor="middle" class="body">isolated from S17</text>
+
+  <rect x="615" y="220" width="245" height="185" rx="18" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="737" y="262" text-anchor="middle" class="label">apply</text>
+  <text x="737" y="299" text-anchor="middle" class="body">semantic change</text>
+  <text x="737" y="334" text-anchor="middle" class="small">candidate S18</text>
+  <text x="737" y="366" text-anchor="middle" class="small">migration proposal + diagnostics</text>
+
+  <rect x="930" y="250" width="215" height="125" rx="18" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="1037" y="292" text-anchor="middle" class="label">validate</text>
+  <text x="1037" y="329" text-anchor="middle" class="body">policy + domain checks</text>
+
+  <path d="M265 312 L335 312" class="line"/><text x="300" y="292" text-anchor="middle" class="small">branch</text>
+  <path d="M545 312 L615 312" class="line"/>
+  <path d="M860 312 L930 312" class="line"/>
+
+  <rect x="825" y="500" width="320" height="120" rx="18" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="985" y="542" text-anchor="middle" class="label">commit → Snapshot S18</text>
+  <text x="985" y="578" text-anchor="middle" class="body">promote explicitly and retain migration history</text>
+  <path d="M1037 375 C1040 430 1020 465 995 500" class="line"/>
+  <text x="1083" y="438" class="small">success</text>
+
+  <rect x="350" y="500" width="340" height="120" rx="18" fill="#fef2f2" stroke="#b91c1c" stroke-width="3"/>
+  <text x="520" y="542" text-anchor="middle" class="label">Conflict / failed validation</text>
+  <text x="520" y="578" text-anchor="middle" class="body">structured result; S17 remains current</text>
+  <path d="M965 375 C870 455 760 480 690 530" class="dash"/>
+
+  <text x="600" y="660" text-anchor="middle" class="mono">branch does not mutate · apply does not promote · commit is the promotion boundary</text>
+</svg>
