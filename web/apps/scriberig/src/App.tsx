@@ -1,54 +1,45 @@
 /** @file Defines the top-level reference Scriberig editor component. */
 
-import { useEffect, useState, type ReactElement } from "react";
-import { TrustInspectorPanel } from "@scriberig/components";
-import type { TrustInspectorState } from "@scriberig/model";
+import { ThemeProvider } from "@mui/material/styles";
+import { useMemo, useState, type ReactElement } from "react";
+import { ScriberigProvider } from "@scriberig/react";
+import { createScriberigTheme } from "@scriberig/components-mui";
+import { AppShell } from "./app-shell";
+import { createRuntime } from "./runtime";
+import { parseRoute, type AppRoute } from "./routes";
+import { SnapshotStatus } from "./components/SnapshotStatus";
+import { RawKnowledgeView } from "./views/RawKnowledgeView";
+import { SemanticView } from "./views/SemanticView";
+import { ProjectionView } from "./views/ProjectionView";
+import { HistoryView } from "./views/HistoryView";
+import { SessionAgentView } from "./views/SessionAgentView";
+import { OperationsView } from "./views/OperationsView";
 
 /**
- * Render the reference Scriberig editor scaffold and API readiness.
- *
- * @returns The current editor application shell.
- */
+/** @returns The rendered App view or runtime value. */
 export function App(): ReactElement {
-  const [apiStatus, setApiStatus] = useState("Checking local API…");
-  const trustState: TrustInspectorState = { status: "idle" };
-
-  useEffect(() => {
-    let mounted = true;
-    void fetch("/api/health")
-      .then((response) => {
-        if (!response.ok) {
-          return null;
-        }
-        return response.json() as Promise<{
-          status: string;
-          database: string;
-        } | null>;
-      })
-      .then((result) => {
-        if (mounted && result) {
-          setApiStatus(`API ${result.status}; database ${result.database}`);
-        } else if (mounted) {
-          setApiStatus("Local API is unavailable");
-        }
-      })
-      .catch(() => {
-        if (mounted) {
-          setApiStatus("Local API is unavailable");
-        }
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
+  const runtime = useMemo(() => createRuntime(), []);
+  const [route, setRoute] = useState<AppRoute>("raw");
   return (
-    <main>
-      <h1>Scriberig</h1>
-      <p>Editor scaffold</p>
-      <p role="status">{apiStatus}</p>
-      <TrustInspectorPanel state={trustState} />
-    </main>
+    <ThemeProvider theme={createScriberigTheme()}>
+      <ScriberigProvider value={runtime}>
+        <AppShell active={route} onNavigate={(next) => setRoute(parseRoute(next))} status="offline">
+          <SnapshotStatus state="offline" />
+          {route === "raw" ? (
+            <RawKnowledgeView />
+          ) : route === "semantic" ? (
+            <SemanticView />
+          ) : route === "projection" ? (
+            <ProjectionView />
+          ) : route === "history" ? (
+            <HistoryView />
+          ) : route === "session" ? (
+            <SessionAgentView />
+          ) : (
+            <OperationsView />
+          )}
+        </AppShell>
+      </ScriberigProvider>
+    </ThemeProvider>
   );
 }

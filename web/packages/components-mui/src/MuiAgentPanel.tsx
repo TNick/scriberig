@@ -17,7 +17,7 @@ export function MuiAgentPanel({
 }: {
   sessionId?: string;
   branchId?: string;
-  selection?: Selection;
+  selection?: Selection | undefined;
   commands: readonly CommandDescriptor[];
   status: string;
   output?: string;
