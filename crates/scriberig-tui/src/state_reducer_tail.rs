@@ -55,6 +55,21 @@ pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Ef
             state.shell_message = "agent output observed (non-canonical)".to_owned();
             Some(vec![Effect::None])
         }
+        Action::OperationObserved(model) => {
+            state.pending_operation_refresh.retain(|id| id != &model.id);
+            if let Some(existing) = state.operations.iter_mut().find(|item| item.id == model.id) {
+                *existing = model;
+            } else {
+                state.operations.push(model);
+            }
+            Some(vec![Effect::None])
+        }
+        Action::OperationStatusRequested(operation) => {
+            Some(vec![Effect::OperationStatus { operation }])
+        }
+        Action::OperationCancelRequested(operation) => {
+            Some(vec![Effect::CancelOperation { operation }])
+        }
         _ => None,
     }
 }

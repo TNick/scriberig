@@ -22,6 +22,9 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             | Action::ComposerOpened { .. }
             | Action::AgentOutputObserved(_)
             | Action::CapabilitiesLoaded(_)
+            | Action::OperationObserved(_)
+            | Action::OperationStatusRequested(_)
+            | Action::OperationCancelRequested(_)
     ) {
         return reduce_tail(state, action).unwrap_or_default();
     }
@@ -376,21 +379,6 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
                 request_id,
                 request,
             }]
-        }
-        Action::OperationObserved(model) => {
-            state.pending_operation_refresh.retain(|id| id != &model.id);
-            if let Some(existing) = state.operations.iter_mut().find(|item| item.id == model.id) {
-                *existing = model;
-            } else {
-                state.operations.push(model);
-            }
-            vec![Effect::None]
-        }
-        Action::OperationStatusRequested(operation) => {
-            vec![Effect::OperationStatus { operation }]
-        }
-        Action::OperationCancelRequested(operation) => {
-            vec![Effect::CancelOperation { operation }]
         }
         Action::ConnectionRestored => {
             state.connection = ConnectionState::Connected;

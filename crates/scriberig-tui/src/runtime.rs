@@ -361,14 +361,10 @@ mod tests {
     fn worker_routes_effect_results_back_to_runtime() {
         let (work_sender, work_receiver) = std::sync::mpsc::sync_channel(1);
         let (message_sender, message_receiver) = std::sync::mpsc::sync_channel(1);
+        let context = ApplicationContext::empty();
         std::thread::scope(|scope| {
-            let worker = scope.spawn(|| {
-                super::worker_loop(
-                    &Fixture,
-                    &ApplicationContext::empty(),
-                    &work_receiver,
-                    &message_sender,
-                );
+            let worker = scope.spawn(move || {
+                super::worker_loop(&Fixture, &context, &work_receiver, &message_sender);
             });
             work_sender
                 .send(super::Work::Effect(

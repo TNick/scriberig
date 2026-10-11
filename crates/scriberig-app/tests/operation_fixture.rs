@@ -8,6 +8,7 @@ use scriberig_core::{RootName, SnapshotId};
 use std::cell::Cell;
 
 /// Records deterministic calls for universal operation tests.
+#[derive(Default)]
 pub struct OperationFixture {
     calls: Cell<usize>,
 }

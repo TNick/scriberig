@@ -9,7 +9,7 @@ import { useScriberig } from "./provider";
  */
 export function useOperation(operationId?: OperationId): {
   operation: Operation | undefined;
-  cancel: () => void;
+  cancel?: () => void;
 } {
   const { model } = useScriberig();
   const subscribe = useCallback(
@@ -21,5 +21,5 @@ export function useOperation(operationId?: OperationId): {
     () => (operationId ? model.operations.get(operationId) : undefined),
     () => (operationId ? model.operations.get(operationId) : undefined),
   );
-  return { operation, cancel: () => undefined };
+  return { operation };
 }
