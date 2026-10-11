@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Resulting Scriberig domain architecture</title>
+  <desc id="desc">The universal knowledge store and graph form a shared base. Above them sit independently installable Markdown, code, PDF, and session domains. Domain adapters connect Markdown files, programming-language syntax and compilers, PDF imports, and session views. Generic clients including CLI, API, browser, agents, and third-party applications consume the same domain capabilities from above.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 29px system-ui,sans-serif;fill:#0f172a}.head{font:700 18px system-ui,sans-serif;fill:#0f172a}.body{font:15px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="760" fill="#ffffff"/>
+  <text x="600" y="45" text-anchor="middle" class="title">Domains plug into one platform and expose one capability surface</text>
+
+  <rect x="170" y="615" width="860" height="95" rx="20" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="600" y="651" text-anchor="middle" class="head">Universal knowledge store and graph</text>
+  <text x="600" y="681" text-anchor="middle" class="body">entities · revisions · snapshots · schema · relations · query · migration · provenance</text>
+
+  <rect x="70" y="390" width="235" height="125" rx="18" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="187" y="430" text-anchor="middle" class="head">Markdown domain</text>
+  <text x="187" y="462" text-anchor="middle" class="body">schema + adapter</text>
+  <text x="187" y="490" text-anchor="middle" class="small">parse · render · reconcile</text>
+
+  <rect x="340" y="390" width="235" height="125" rx="18" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="457" y="430" text-anchor="middle" class="head">Code domain</text>
+  <text x="457" y="462" text-anchor="middle" class="body">shared code vocabulary</text>
+  <text x="457" y="490" text-anchor="middle" class="small">Rust + future languages</text>
+
+  <rect x="625" y="390" width="235" height="125" rx="18" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="742" y="430" text-anchor="middle" class="head">PDF domain</text>
+  <text x="742" y="462" text-anchor="middle" class="body">artifact + extraction</text>
+  <text x="742" y="490" text-anchor="middle" class="small">geometry · provenance</text>
+
+  <rect x="895" y="390" width="235" height="125" rx="18" fill="#f0fdfa" stroke="#0f766e" stroke-width="3"/>
+  <text x="1012" y="430" text-anchor="middle" class="head">Session domain</text>
+  <text x="1012" y="462" text-anchor="middle" class="body">branches · goals · tools</text>
+  <text x="1012" y="490" text-anchor="middle" class="small">transcript · context · audit</text>
+
+  <rect x="75" y="135" width="1050" height="150" rx="22" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+  <text x="600" y="176" text-anchor="middle" class="head">Consumers use the same public domain capabilities</text>
+  <text x="180" y="225" text-anchor="middle" class="body">CLI</text>
+  <text x="345" y="225" text-anchor="middle" class="body">API server</text>
+  <text x="520" y="225" text-anchor="middle" class="body">Web editor</text>
+  <text x="690" y="225" text-anchor="middle" class="body">Agent tools</text>
+  <text x="885" y="225" text-anchor="middle" class="body">Third-party apps</text>
+  <text x="1030" y="225" text-anchor="middle" class="body">TUI</text>
+  <text x="600" y="258" text-anchor="middle" class="small">inspect · list · follow · find · query · diff · history · render · domain commands</text>
+
+  <path d="M187 515 C210 565 285 590 355 615" class="line"/>
+  <path d="M457 515 L500 615" class="line"/>
+  <path d="M742 515 L700 615" class="line"/>
+  <path d="M1012 515 C990 565 915 590 845 615" class="line"/>
+
+  <path d="M187 390 C210 335 290 305 340 285" class="line"/>
+  <path d="M457 390 C470 335 500 305 520 285" class="line"/>
+  <path d="M742 390 C730 335 705 305 690 285" class="line"/>
+  <path d="M1012 390 C980 335 925 305 885 285" class="line"/>
+
+  <text x="600" y="742" text-anchor="middle" class="small">Smaller deployments install only the domains they need; no adapter requires the agent runtime or another unrelated domain.</text>
+</svg>
