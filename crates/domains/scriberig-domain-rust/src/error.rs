@@ -29,3 +29,31 @@ impl std::fmt::Display for RustSyntaxError {
     }
 }
 impl std::error::Error for RustSyntaxError {}
+
+/// Reports an analysis failure without invalidating canonical syntax.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RustAnalysisError {
+    /// Stable failure code.
+    pub code: String,
+    /// Safe human-readable explanation.
+    pub message: String,
+}
+
+impl std::fmt::Display for RustAnalysisError {
+    /// Formats the analysis failure.
+    ///
+    /// # Parameters
+    /// - `self`: Failure to format.
+    /// - `formatter`: Output formatter.
+    ///
+    /// # Returns
+    /// Formatting result.
+    ///
+    /// # Errors
+    /// Returns an error when formatting fails.
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "{}: {}", self.code, self.message)
+    }
+}
+
+impl std::error::Error for RustAnalysisError {}
