@@ -274,6 +274,12 @@ mod tests {
         second.write_bool(true);
 
         assert_eq!(first.as_bytes(), second.as_bytes());
+        assert_eq!(
+            first.as_bytes(),
+            &[
+                116, 101, 115, 116, 0, 1, 0, 0, 0, 0, 0, 0, 0, 3, 97, 98, 99, 1
+            ]
+        );
     }
 
     /// Verifies revision identity includes every envelope component.
