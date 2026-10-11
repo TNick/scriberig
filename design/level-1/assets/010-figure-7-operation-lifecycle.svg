@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">Long-running operation lifecycle</title>
+  <desc id="desc">An operation reference starts in queued state, moves to running, and then ends in completed, failed, or cancelled. While running it may emit progress, structured output, diagnostics, produced objects, and result handles. The same lifecycle is intended for compilation, imports, agent runs, reconciliation, rendering, tests, and other long work.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 21px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:15px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="620" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Long-running work has one observable lifecycle</text>
+
+  <rect x="70" y="210" width="210" height="110" rx="18" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+  <text x="175" y="252" text-anchor="middle" class="label">Queued</text>
+  <text x="175" y="286" text-anchor="middle" class="body">OperationRef O exists</text>
+
+  <rect x="380" y="180" width="300" height="170" rx="20" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="530" y="222" text-anchor="middle" class="label">Running</text>
+  <text x="530" y="258" text-anchor="middle" class="body">progress · structured output</text>
+  <text x="530" y="290" text-anchor="middle" class="body">diagnostics · produced objects</text>
+  <text x="530" y="322" text-anchor="middle" class="small">events are transport-independent</text>
+
+  <rect x="790" y="85" width="300" height="105" rx="18" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="940" y="126" text-anchor="middle" class="label">Completed</text>
+  <text x="940" y="160" text-anchor="middle" class="body">result handles available</text>
+
+  <rect x="790" y="235" width="300" height="105" rx="18" fill="#fef2f2" stroke="#b91c1c" stroke-width="3"/>
+  <text x="940" y="276" text-anchor="middle" class="label">Failed</text>
+  <text x="940" y="310" text-anchor="middle" class="body">structured error + context</text>
+
+  <rect x="790" y="385" width="300" height="105" rx="18" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="940" y="426" text-anchor="middle" class="label">Cancelled</text>
+  <text x="940" y="460" text-anchor="middle" class="body">operation stops explicitly</text>
+
+  <path d="M280 265 L380 265" class="line"/>
+  <path d="M680 220 C735 185 755 155 790 140" class="line"/>
+  <path d="M680 265 L790 285" class="line"/>
+  <path d="M680 315 C735 350 755 405 790 430" class="line"/>
+
+  <text x="600" y="555" text-anchor="middle" class="small">Compilation, tests, imports, indexing, reconciliation, rendering and agent runs can all use this same operation model.</text>
+</svg>
