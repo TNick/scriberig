@@ -1,8 +1,10 @@
 //! Defines a backend-independent immutable derived-result repository contract.
 
+use crate::dependency::{Dependency, DependencySet};
 use crate::event::DerivedResultHandle;
 use crate::key::DerivationKey;
 use crate::result::DerivedResultRecord;
+use scriberig_core::{EntityId, RevisionId};
 
 /// Reports an attempted overwrite of an immutable result identity.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -64,6 +66,50 @@ pub trait DerivedRepository {
     /// # Errors
     /// This lookup is infallible and returns an empty list when no key matches.
     fn by_key(&self, key: &DerivationKey) -> Vec<&DerivedResultRecord>;
+
+    /// Finds result handles that declare one exact dependency.
+    ///
+    /// # Parameters
+    /// - `self`: Repository to inspect.
+    /// - `dependency`: Exact dependency to reverse-index.
+    ///
+    /// # Returns
+    /// Stable handles of results depending on the requested value.
+    ///
+    /// # Errors
+    /// This lookup is infallible and returns an empty list when unmatched.
+    fn by_dependency(&self, dependency: &Dependency) -> Vec<DerivedResultHandle>;
+
+    /// Returns the normalized dependencies recorded for one result.
+    ///
+    /// # Parameters
+    /// - `self`: Repository to inspect.
+    /// - `handle`: Exact result identity.
+    ///
+    /// # Returns
+    /// The immutable dependency set when the result is retained.
+    ///
+    /// # Errors
+    /// This lookup is infallible and returns `None` when absent.
+    fn dependencies(&self, handle: DerivedResultHandle) -> Option<&DependencySet>;
+
+    /// Finds results associated with an exact entity revision for discovery.
+    ///
+    /// # Parameters
+    /// - `self`: Repository to inspect.
+    /// - `entity`: Exact entity identity.
+    /// - `revision`: Exact revision identity.
+    ///
+    /// # Returns
+    /// Stable handles associated with the exact entity revision.
+    ///
+    /// # Errors
+    /// This lookup is infallible and returns an empty list when unmatched.
+    fn by_entity_revision(
+        &self,
+        entity: EntityId,
+        revision: RevisionId,
+    ) -> Vec<DerivedResultHandle>;
 
     /// Removes one record only when its retention category is disposable.
     ///

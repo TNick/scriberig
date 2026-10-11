@@ -79,6 +79,56 @@ impl DerivedRepository for TestRepository {
             .collect()
     }
 
+    /// Finds handles that depend on one exact dependency.
+    ///
+    /// # Parameters
+    /// - `dependency`: Exact dependency to find.
+    ///
+    /// # Returns
+    /// Matching immutable handles.
+    ///
+    /// # Errors
+    /// This lookup is infallible.
+    fn by_dependency(&self, dependency: &Dependency) -> Vec<DerivedResultHandle> {
+        self.records
+            .values()
+            .filter(|record| record.key().dependencies.as_slice().contains(dependency))
+            .map(DerivedResultRecord::handle)
+            .collect()
+    }
+
+    /// Returns the exact dependencies recorded for a result.
+    ///
+    /// # Parameters
+    /// - `handle`: Exact result handle.
+    ///
+    /// # Returns
+    /// The normalized dependencies, when retained.
+    fn dependencies(&self, handle: DerivedResultHandle) -> Option<&DependencySet> {
+        self.records
+            .get(&handle)
+            .map(|record| &record.key().dependencies)
+    }
+
+    /// Finds handles associated with an exact entity revision.
+    ///
+    /// # Parameters
+    /// - `entity`: Exact entity identity.
+    /// - `revision`: Exact revision identity.
+    ///
+    /// # Returns
+    /// Matching immutable handles.
+    ///
+    /// # Errors
+    /// This lookup is infallible.
+    fn by_entity_revision(
+        &self,
+        entity: EntityId,
+        revision: RevisionId,
+    ) -> Vec<DerivedResultHandle> {
+        self.by_dependency(&Dependency::ExactRevision { entity, revision })
+    }
+
     /// Removes a record only when its retention category is disposable.
     ///
     /// # Parameters
