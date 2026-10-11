@@ -200,12 +200,18 @@ fn map_inspect(result: scriberig_app::InspectResult) -> InspectEntityResponse {
 fn map_error(error: &ApplicationError, correlation_id: &str) -> ProtocolError {
     let code = match error.category() {
         "not_found" => ProtocolErrorCode::NotFound,
+        "invalid_request" => ProtocolErrorCode::InvalidRequest,
         "permission_denied" => ProtocolErrorCode::PermissionDenied,
         "schema_violation" => ProtocolErrorCode::SchemaViolation,
         "stale_base_snapshot" => ProtocolErrorCode::StaleBaseSnapshot,
         "semantic_conflict" => ProtocolErrorCode::SemanticConflict,
         "validation_failure" => ProtocolErrorCode::ValidationFailure,
         "unsupported_operation" => ProtocolErrorCode::UnsupportedOperation,
+        "unsupported_capability" => ProtocolErrorCode::UnsupportedCapability,
+        "conflict" => ProtocolErrorCode::Conflict,
+        "ambiguous" => ProtocolErrorCode::Ambiguous,
+        "snapshot_unavailable" => ProtocolErrorCode::SnapshotUnavailable,
+        "operation_failed" => ProtocolErrorCode::OperationFailed,
         "projection_out_of_sync" => ProtocolErrorCode::ProjectionOutOfSync,
         "operation_cancelled" => ProtocolErrorCode::OperationCancelled,
         _ => ProtocolErrorCode::Internal,

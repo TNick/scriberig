@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 /// Machine-readable semantic error categories.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub enum ProtocolErrorCode {
+    /// Request parameters are inconsistent or incomplete.
+    InvalidRequest,
     /// Requested object does not exist.
     NotFound,
     /// Input violates a semantic schema.
@@ -20,6 +22,16 @@ pub enum ProtocolErrorCode {
     PermissionDenied,
     /// Operation is not supported.
     UnsupportedOperation,
+    /// Requested capability is not installed or available.
+    UnsupportedCapability,
+    /// Requested semantic transition has competing candidates.
+    Conflict,
+    /// Multiple semantic candidates remain possible.
+    Ambiguous,
+    /// Exact snapshot is unavailable.
+    SnapshotUnavailable,
+    /// A tracked operation failed.
+    OperationFailed,
     /// Projection is not synchronized.
     ProjectionOutOfSync,
     /// Operation was cancelled.
