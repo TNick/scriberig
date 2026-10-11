@@ -1,8 +1,9 @@
 //! Verifies tracked operation records and structured application failures.
 
 use scriberig_app::{
-    ApplicationContext, ApplicationError, ConflictDetails, DiffRequest, OperationId, OperationKind,
-    OperationProvider, OperationRecord, OperationStatus, StoreOperationProvider,
+    ApplicationContext, ApplicationError, ConflictDetails, DiffRequest, HistoryRequest,
+    OperationId, OperationKind, OperationProvider, OperationRecord, OperationStatus,
+    SnapshotSelector, StoreOperationProvider,
 };
 use scriberig_core::{RevisionId, SnapshotId};
 use scriberig_store_memory::MemoryStore;
@@ -64,4 +65,21 @@ fn storage_diff_is_snapshot_bound() {
         .expect("diff");
     assert_eq!(result.snapshot, Some(snapshot));
     assert!(result.handle.starts_with("diff:"));
+}
+
+/// Verifies history execution retains the exact requested snapshot.
+#[test]
+fn storage_history_is_snapshot_bound() {
+    let store = MemoryStore::new();
+    let snapshot = store.empty_snapshot();
+    let provider = StoreOperationProvider::new(store).with_history(sr_change::HistoryGraph::new());
+    let result = provider
+        .history(
+            &ApplicationContext::empty(),
+            &HistoryRequest {
+                snapshot: SnapshotSelector::Exact(snapshot),
+            },
+        )
+        .expect("history");
+    assert_eq!(result.snapshot, Some(snapshot));
 }

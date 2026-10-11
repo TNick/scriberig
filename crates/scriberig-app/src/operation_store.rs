@@ -5,10 +5,12 @@ use crate::{
     HistoryRequest, OperationProvider, OperationSummary, RenderRequest,
 };
 use scriberig_store::SnapshotStore;
+use sr_change::HistoryGraph;
 
 /// Executes exact snapshot diffs through the canonical snapshot store.
 pub struct StoreOperationProvider<S> {
     store: S,
+    history: Option<HistoryGraph>,
 }
 
 impl<S> StoreOperationProvider<S> {
@@ -21,7 +23,24 @@ impl<S> StoreOperationProvider<S> {
     /// A provider for storage-owned operations.
     #[must_use]
     pub const fn new(store: S) -> Self {
-        Self { store }
+        Self {
+            store,
+            history: None,
+        }
+    }
+
+    /// Installs an immutable history graph for history summaries.
+    ///
+    /// # Parameters
+    /// - `self`: Provider being configured.
+    /// - `history`: Canonical migration topology.
+    ///
+    /// # Returns
+    /// Provider with history access enabled.
+    #[must_use]
+    pub fn with_history(mut self, history: HistoryGraph) -> Self {
+        self.history = Some(history);
+        self
     }
 
     /// Returns the underlying snapshot store.
@@ -76,7 +95,7 @@ impl<S: SnapshotStore> OperationProvider for StoreOperationProvider<S> {
     /// # Parameters
     /// - `self`: Storage operation provider.
     /// - `_context`: Authorized application context.
-    /// - `_request`: History request.
+    /// - `request`: History request.
     ///
     /// # Returns
     /// Never returns a history summary.
@@ -86,9 +105,22 @@ impl<S: SnapshotStore> OperationProvider for StoreOperationProvider<S> {
     fn history(
         &self,
         _context: &ApplicationContext,
-        _request: &HistoryRequest,
+        request: &HistoryRequest,
     ) -> Result<OperationSummary, ApplicationError> {
-        Err(unsupported("history"))
+        let Some(history) = &self.history else {
+            return Err(unsupported("history"));
+        };
+        let snapshot = match request.snapshot {
+            crate::SnapshotSelector::Exact(snapshot) => snapshot,
+            crate::SnapshotSelector::NamedRoot(_) => {
+                return Err(unsupported("history named-root resolution"));
+            }
+        };
+        Ok(OperationSummary {
+            handle: format!("history:{snapshot}:{}", history.migrations().len()),
+            snapshot: Some(snapshot),
+            revision: None,
+        })
     }
 
     /// Reports that projection rendering is not owned by this provider.
