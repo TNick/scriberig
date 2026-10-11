@@ -282,10 +282,43 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#repository-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Repository layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#design-documents" class="md-nav__link">
     <span class="md-ellipsis">
       
         Design documents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bootstrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bootstrap
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quality-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality checks
       
     </span>
   </a>
@@ -4350,10 +4383,43 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#repository-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Repository layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#design-documents" class="md-nav__link">
     <span class="md-ellipsis">
       
         Design documents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bootstrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bootstrap
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quality-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality checks
       
     </span>
   </a>
@@ -4398,6 +4464,15 @@
 <li>reusable Rust and web libraries that remain useful without the agent runtime;</li>
 <li>CLI, API, TUI, web, and agent surfaces that evolve together.</li>
 </ul>
+<h2 id="repository-layout">Repository layout<a class="headerlink" href="#repository-layout" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>crates/        Rust libraries and runtime crates
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>apps/          Native executable composition roots
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>web/packages/  Reusable TypeScript/React packages
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>web/apps/      Complete browser applications
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>tools/         Repository linting and developer automation
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>tests/         Cross-layer conformance and end-to-end tests
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>design/        Level 1-3 architecture and implementation documents
+</code></pre></div>
 <h2 id="design-documents">Design documents<a class="headerlink" href="#design-documents" title="Permanent link">&para;</a></h2>
 <p>The project is currently being specified from architecture down to implementation tasks under <code>design/</code>:</p>
 <ul>
@@ -4406,6 +4481,22 @@
 <li><code>design/level-3/</code> — focused implementation instructions and acceptance criteria for implementation agents.</li>
 </ul>
 <p>The intended result is a system where humans, agents, compilers, editors, and third-party applications can work with different views of the same persistent semantic state without each inventing a separate storage or mutation model.</p>
+<h2 id="bootstrap">Bootstrap<a class="headerlink" href="#bootstrap" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>rustup<span class="w"> </span>show
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>cargo<span class="w"> </span>check<span class="w"> </span>--workspace<span class="w"> </span>--all-targets
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>corepack<span class="w"> </span><span class="nb">enable</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>pnpm<span class="w"> </span>--dir<span class="w"> </span>web<span class="w"> </span>install
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>pre-commit
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>./tools/install-hooks.sh
+</code></pre></div>
+<h2 id="quality-checks">Quality checks<a class="headerlink" href="#quality-checks" title="Permanent link">&para;</a></h2>
+<p>Run the complete local quality gate with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>./tools/check.sh
+</code></pre></div>
+<p>Apply safe automatic fixes and formatters with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>./tools/fix.sh
+</code></pre></div>
+<p>Repository-specific source and agent rules live in the top-level <code>AGENTS.md</code> and are refined by nested <code>AGENTS.md</code> files.</p>
 
 
 
