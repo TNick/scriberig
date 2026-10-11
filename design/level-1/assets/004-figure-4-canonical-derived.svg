@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1150" height="620" viewBox="0 0 1150 620" role="img" aria-labelledby="title desc">
+  <title id="title">Canonical state and derived state</title>
+  <desc id="desc">Canonical entities, revisions, relations, collections, and snapshots form the authoritative side. Derived indexes, summaries, compiler analysis, render caches, embeddings, and validation results depend on exact canonical revisions and producer configuration. Derived state can be deleted and rebuilt without losing canonical history.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>.title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 22px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:14px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1150" height="620" fill="#ffffff"/>
+  <text x="575" y="45" text-anchor="middle" class="title">Canonical truth and rebuildable derived knowledge</text>
+
+  <rect x="65" y="100" width="430" height="390" rx="22" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="280" y="142" text-anchor="middle" class="label">Canonical state</text>
+  <text x="280" y="173" text-anchor="middle" class="small">Participates directly in snapshots and history</text>
+  <rect x="110" y="210" width="340" height="55" rx="12" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/><text x="280" y="245" text-anchor="middle" class="body">Entities and immutable revisions</text>
+  <rect x="110" y="285" width="340" height="55" rx="12" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/><text x="280" y="320" text-anchor="middle" class="body">Canonical relations and collections</text>
+  <rect x="110" y="360" width="340" height="55" rx="12" fill="#ffffff" stroke="#93c5fd" stroke-width="2"/><text x="280" y="395" text-anchor="middle" class="body">Snapshot entity → revision map</text>
+  <text x="280" y="454" text-anchor="middle" class="small">Loss here means loss of retained knowledge.</text>
+
+  <rect x="655" y="100" width="430" height="390" rx="22" fill="#fff7ed" stroke="#d97706" stroke-width="3"/>
+  <text x="870" y="142" text-anchor="middle" class="label">Derived state</text>
+  <text x="870" y="173" text-anchor="middle" class="small">Depends on exact inputs and producer configuration</text>
+  <rect x="700" y="202" width="340" height="48" rx="11" fill="#ffffff" stroke="#fdba74" stroke-width="2"/><text x="870" y="233" text-anchor="middle" class="body">Reverse/search indexes</text>
+  <rect x="700" y="264" width="340" height="48" rx="11" fill="#ffffff" stroke="#fdba74" stroke-width="2"/><text x="870" y="295" text-anchor="middle" class="body">Summaries and descriptions</text>
+  <rect x="700" y="326" width="340" height="48" rx="11" fill="#ffffff" stroke="#fdba74" stroke-width="2"/><text x="870" y="357" text-anchor="middle" class="body">Compiler / PDF / semantic analysis</text>
+  <rect x="700" y="388" width="340" height="48" rx="11" fill="#ffffff" stroke="#fdba74" stroke-width="2"/><text x="870" y="419" text-anchor="middle" class="body">Render caches and validation results</text>
+  <text x="870" y="464" text-anchor="middle" class="small">May be evicted and rebuilt from declared inputs.</text>
+
+  <path d="M495 260 C565 220 585 220 655 260" class="line"/>
+  <path d="M495 340 C565 380 585 380 655 340" class="line"/>
+  <text x="575" y="226" text-anchor="middle" class="small">exact revision dependencies</text>
+  <text x="575" y="405" text-anchor="middle" class="small">producer/configuration provenance</text>
+
+  <rect x="185" y="525" width="780" height="62" rx="15" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="575" y="551" text-anchor="middle" class="body">Global snapshot identity answers “did anything canonical change?”</text>
+  <text x="575" y="575" text-anchor="middle" class="body">Local revision dependencies answer “can this derived result still be reused?”</text>
+</svg>
