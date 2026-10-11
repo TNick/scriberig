@@ -2,36 +2,44 @@
 <a href=#2 id=2 data-nosnippet>2</a>
 <a href=#3 id=3 data-nosnippet>3</a></span><span class="kw">use </span>scriberig_core::{RevisionId, SnapshotId};
 <a href=#4 id=4 data-nosnippet>4</a>
-<a href=#5 id=5 data-nosnippet>5</a><span class="doccomment">/// Machine-readable integrity issue.
-<a href=#6 id=6 data-nosnippet>6</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
-<a href=#7 id=7 data-nosnippet>7</a></span><span class="kw">pub enum </span>IntegrityIssue {
-<a href=#8 id=8 data-nosnippet>8</a>    <span class="doccomment">/// Stored revision content does not hash to its identity.
-<a href=#9 id=9 data-nosnippet>9</a>    </span>RevisionMismatch(RevisionId),
-<a href=#10 id=10 data-nosnippet>10</a>    <span class="doccomment">/// A referenced snapshot is missing or unreadable.
-<a href=#11 id=11 data-nosnippet>11</a>    </span>MissingSnapshot(SnapshotId),
-<a href=#12 id=12 data-nosnippet>12</a>    <span class="doccomment">/// A snapshot-map invariant is invalid.
-<a href=#13 id=13 data-nosnippet>13</a>    </span>InvalidSnapshot(SnapshotId),
-<a href=#14 id=14 data-nosnippet>14</a>    <span class="doccomment">/// A named root points to invalid state.
-<a href=#15 id=15 data-nosnippet>15</a>    </span>InvalidRoot(String),
-<a href=#16 id=16 data-nosnippet>16</a>}
-<a href=#17 id=17 data-nosnippet>17</a>
-<a href=#18 id=18 data-nosnippet>18</a><span class="doccomment">/// Separates corruption from valid unreachable maintenance candidates.
-<a href=#19 id=19 data-nosnippet>19</a></span><span class="attr">#[derive(Clone, Debug, Default, Eq, PartialEq)]
-<a href=#20 id=20 data-nosnippet>20</a></span><span class="kw">pub struct </span>IntegrityReport {
-<a href=#21 id=21 data-nosnippet>21</a>    <span class="doccomment">/// Detected corruption or missing authoritative data.
-<a href=#22 id=22 data-nosnippet>22</a>    </span><span class="kw">pub </span>corrupt: Vec&lt;IntegrityIssue&gt;,
-<a href=#23 id=23 data-nosnippet>23</a>    <span class="doccomment">/// Valid immutable objects not protected by roots.
-<a href=#24 id=24 data-nosnippet>24</a>    </span><span class="kw">pub </span>unreachable: <span class="kw">crate</span>::UnreachableObjects,
-<a href=#25 id=25 data-nosnippet>25</a>}
-<a href=#26 id=26 data-nosnippet>26</a>
-<a href=#27 id=27 data-nosnippet>27</a><span class="kw">impl </span>IntegrityReport {
-<a href=#28 id=28 data-nosnippet>28</a>    <span class="doccomment">/// Reports whether any corruption was found.
-<a href=#29 id=29 data-nosnippet>29</a>    ///
-<a href=#30 id=30 data-nosnippet>30</a>    /// # Returns
-<a href=#31 id=31 data-nosnippet>31</a>    /// `true` when at least one corruption issue exists.
-<a href=#32 id=32 data-nosnippet>32</a>    </span><span class="attr">#[must_use]
-<a href=#33 id=33 data-nosnippet>33</a>    </span><span class="kw">pub fn </span>is_corrupt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
-<a href=#34 id=34 data-nosnippet>34</a>        !<span class="self">self</span>.corrupt.is_empty()
-<a href=#35 id=35 data-nosnippet>35</a>    }
-<a href=#36 id=36 data-nosnippet>36</a>}
+<a href=#5 id=5 data-nosnippet>5</a><span class="kw">use </span><span class="kw">crate</span>::SnapshotNodeId;
+<a href=#6 id=6 data-nosnippet>6</a>
+<a href=#7 id=7 data-nosnippet>7</a><span class="doccomment">/// Machine-readable integrity issue.
+<a href=#8 id=8 data-nosnippet>8</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#9 id=9 data-nosnippet>9</a></span><span class="kw">pub enum </span>IntegrityIssue {
+<a href=#10 id=10 data-nosnippet>10</a>    <span class="doccomment">/// Stored revision content does not hash to its identity.
+<a href=#11 id=11 data-nosnippet>11</a>    </span>RevisionMismatch(RevisionId),
+<a href=#12 id=12 data-nosnippet>12</a>    <span class="doccomment">/// A referenced snapshot is missing or unreadable.
+<a href=#13 id=13 data-nosnippet>13</a>    </span>MissingSnapshot(SnapshotId),
+<a href=#14 id=14 data-nosnippet>14</a>    <span class="doccomment">/// A snapshot-map invariant is invalid.
+<a href=#15 id=15 data-nosnippet>15</a>    </span>InvalidSnapshot(SnapshotId),
+<a href=#16 id=16 data-nosnippet>16</a>    <span class="doccomment">/// A named root points to invalid state.
+<a href=#17 id=17 data-nosnippet>17</a>    </span>InvalidRoot(String),
+<a href=#18 id=18 data-nosnippet>18</a>    <span class="doccomment">/// A snapshot points to a node that is absent from canonical storage.
+<a href=#19 id=19 data-nosnippet>19</a>    </span>MissingSnapshotNode(SnapshotNodeId),
+<a href=#20 id=20 data-nosnippet>20</a>    <span class="doccomment">/// A persistent snapshot-map node violates its content or structure rule.
+<a href=#21 id=21 data-nosnippet>21</a>    </span>InvalidSnapshotNode(SnapshotNodeId),
+<a href=#22 id=22 data-nosnippet>22</a>    <span class="doccomment">/// A rebuildable index disagrees with canonical snapshot-map content.
+<a href=#23 id=23 data-nosnippet>23</a>    </span>InvalidIndex(SnapshotId),
+<a href=#24 id=24 data-nosnippet>24</a>}
+<a href=#25 id=25 data-nosnippet>25</a>
+<a href=#26 id=26 data-nosnippet>26</a><span class="doccomment">/// Separates corruption from valid unreachable maintenance candidates.
+<a href=#27 id=27 data-nosnippet>27</a></span><span class="attr">#[derive(Clone, Debug, Default, Eq, PartialEq)]
+<a href=#28 id=28 data-nosnippet>28</a></span><span class="kw">pub struct </span>IntegrityReport {
+<a href=#29 id=29 data-nosnippet>29</a>    <span class="doccomment">/// Detected corruption or missing authoritative data.
+<a href=#30 id=30 data-nosnippet>30</a>    </span><span class="kw">pub </span>corrupt: Vec&lt;IntegrityIssue&gt;,
+<a href=#31 id=31 data-nosnippet>31</a>    <span class="doccomment">/// Valid immutable objects not protected by roots.
+<a href=#32 id=32 data-nosnippet>32</a>    </span><span class="kw">pub </span>unreachable: <span class="kw">crate</span>::UnreachableObjects,
+<a href=#33 id=33 data-nosnippet>33</a>}
+<a href=#34 id=34 data-nosnippet>34</a>
+<a href=#35 id=35 data-nosnippet>35</a><span class="kw">impl </span>IntegrityReport {
+<a href=#36 id=36 data-nosnippet>36</a>    <span class="doccomment">/// Reports whether any corruption was found.
+<a href=#37 id=37 data-nosnippet>37</a>    ///
+<a href=#38 id=38 data-nosnippet>38</a>    /// # Returns
+<a href=#39 id=39 data-nosnippet>39</a>    /// `true` when at least one corruption issue exists.
+<a href=#40 id=40 data-nosnippet>40</a>    </span><span class="attr">#[must_use]
+<a href=#41 id=41 data-nosnippet>41</a>    </span><span class="kw">pub fn </span>is_corrupt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+<a href=#42 id=42 data-nosnippet>42</a>        !<span class="self">self</span>.corrupt.is_empty()
+<a href=#43 id=43 data-nosnippet>43</a>    }
+<a href=#44 id=44 data-nosnippet>44</a>}
 </code></pre></div></section></main></body></html>

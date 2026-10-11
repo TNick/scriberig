@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["ProtectedRoots","ReachableObjects","UnreachableObjects"]};
+window.SIDEBAR_ITEMS = {"struct":["ProtectedRoots","ReachableObjects","SnapshotNodeId","UnreachableObjects"]};

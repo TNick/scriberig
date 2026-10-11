@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["revision_id"],"struct":["CanonicalWriter","EncodingVersion"],"trait":["CanonicalEncode"]};
+window.SIDEBAR_ITEMS = {"enum":["EncodingError"],"fn":["revision_envelope","revision_id"],"struct":["CanonicalWriter","EncodingVersion"],"trait":["CanonicalEncode"]};

@@ -199,19 +199,20 @@
 <a href=#199 id=199 data-nosnippet>199</a>        <span class="kw-2">&amp;</span>ObjectType::new(<span class="string">"rust.item"</span>).expect(<span class="string">"static type"</span>),
 <a href=#200 id=200 data-nosnippet>200</a>        <span class="macro">format!</span>(<span class="string">"{item:?}"</span>).as_bytes(),
 <a href=#201 id=201 data-nosnippet>201</a>    )
-<a href=#202 id=202 data-nosnippet>202</a>}
-<a href=#203 id=203 data-nosnippet>203</a>
-<a href=#204 id=204 data-nosnippet>204</a><span class="doccomment">/// Produces a stable identity for one newly inserted candidate item.
-<a href=#205 id=205 data-nosnippet>205</a>///
-<a href=#206 id=206 data-nosnippet>206</a>/// # Parameters
-<a href=#207 id=207 data-nosnippet>207</a>/// - `index`: Candidate item index.
-<a href=#208 id=208 data-nosnippet>208</a>///
-<a href=#209 id=209 data-nosnippet>209</a>/// # Returns
-<a href=#210 id=210 data-nosnippet>210</a>/// A deterministic 128-bit entity identity.
-<a href=#211 id=211 data-nosnippet>211</a></span><span class="kw">fn </span>new_entity_bytes(index: usize) -&gt; [u8; <span class="number">16</span>] {
-<a href=#212 id=212 data-nosnippet>212</a>    <span class="kw">let </span>digest = blake3::hash(<span class="macro">format!</span>(<span class="string">"rust.candidate.item:{index}"</span>).as_bytes());
-<a href=#213 id=213 data-nosnippet>213</a>    <span class="kw">let </span><span class="kw-2">mut </span>bytes = [<span class="number">0</span>; <span class="number">16</span>];
-<a href=#214 id=214 data-nosnippet>214</a>    bytes.copy_from_slice(<span class="kw-2">&amp;</span>digest.as_bytes()[..<span class="number">16</span>]);
-<a href=#215 id=215 data-nosnippet>215</a>    bytes
-<a href=#216 id=216 data-nosnippet>216</a>}
+<a href=#202 id=202 data-nosnippet>202</a>    .expect(<span class="string">"static canonical encoding version"</span>)
+<a href=#203 id=203 data-nosnippet>203</a>}
+<a href=#204 id=204 data-nosnippet>204</a>
+<a href=#205 id=205 data-nosnippet>205</a><span class="doccomment">/// Produces a stable identity for one newly inserted candidate item.
+<a href=#206 id=206 data-nosnippet>206</a>///
+<a href=#207 id=207 data-nosnippet>207</a>/// # Parameters
+<a href=#208 id=208 data-nosnippet>208</a>/// - `index`: Candidate item index.
+<a href=#209 id=209 data-nosnippet>209</a>///
+<a href=#210 id=210 data-nosnippet>210</a>/// # Returns
+<a href=#211 id=211 data-nosnippet>211</a>/// A deterministic 128-bit entity identity.
+<a href=#212 id=212 data-nosnippet>212</a></span><span class="kw">fn </span>new_entity_bytes(index: usize) -&gt; [u8; <span class="number">16</span>] {
+<a href=#213 id=213 data-nosnippet>213</a>    <span class="kw">let </span>digest = blake3::hash(<span class="macro">format!</span>(<span class="string">"rust.candidate.item:{index}"</span>).as_bytes());
+<a href=#214 id=214 data-nosnippet>214</a>    <span class="kw">let </span><span class="kw-2">mut </span>bytes = [<span class="number">0</span>; <span class="number">16</span>];
+<a href=#215 id=215 data-nosnippet>215</a>    bytes.copy_from_slice(<span class="kw-2">&amp;</span>digest.as_bytes()[..<span class="number">16</span>]);
+<a href=#216 id=216 data-nosnippet>216</a>    bytes
+<a href=#217 id=217 data-nosnippet>217</a>}
 </code></pre></div></section></main></body></html>

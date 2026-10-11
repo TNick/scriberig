@@ -1,0 +1,9 @@
+(function() {
+    const implementors = Object.fromEntries([["scriberig_store",[["impl&lt;'a, T&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.99.0/core/iter/traits/collect/trait.IntoIterator.html\" title=\"trait core::iter::traits::collect::IntoIterator\">IntoIterator</a> for &amp;'a <a class=\"struct\" href=\"scriberig_store/collection/struct.Collection.html\" title=\"struct scriberig_store::collection::Collection\">Collection</a>&lt;T&gt;",0]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":59,"fragment_lengths":[402]}

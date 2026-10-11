@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["initialize_development_database"],"struct":["SqliteStore"]};
+window.SIDEBAR_ITEMS = {"enum":["PromotionError"],"fn":["initialize_development_database"],"struct":["SqliteStore"]};

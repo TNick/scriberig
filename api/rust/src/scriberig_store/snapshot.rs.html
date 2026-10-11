@@ -128,279 +128,227 @@
 <a href=#128 id=128 data-nosnippet>128</a>    <span class="kw">let </span><span class="kw-2">mut </span>children = existing.clone();
 <a href=#129 id=129 data-nosnippet>129</a>    <span class="kw">let </span>index = nibble(entity, depth);
 <a href=#130 id=130 data-nosnippet>130</a>    <span class="kw">if let </span><span class="prelude-val">Some</span>(child) = <span class="kw-2">&amp;</span>children[index] {
-<a href=#131 id=131 data-nosnippet>131</a>        children[index] = <span class="prelude-val">Some</span>(remove(child, entity, depth + <span class="number">1</span>));
-<a href=#132 id=132 data-nosnippet>132</a>    }
-<a href=#133 id=133 data-nosnippet>133</a>    <span class="kw">if </span>children.iter().all(Option::is_none) {
-<a href=#134 id=134 data-nosnippet>134</a>        Arc::new(Node::Empty)
-<a href=#135 id=135 data-nosnippet>135</a>    } <span class="kw">else </span>{
-<a href=#136 id=136 data-nosnippet>136</a>        Arc::new(Node::Branch(children))
-<a href=#137 id=137 data-nosnippet>137</a>    }
-<a href=#138 id=138 data-nosnippet>138</a>}
-<a href=#139 id=139 data-nosnippet>139</a>
-<a href=#140 id=140 data-nosnippet>140</a><span class="doccomment">/// Internal snapshot operation.
-<a href=#141 id=141 data-nosnippet>141</a>/// # Parameters
-<a href=#142 id=142 data-nosnippet>142</a>/// - `node`: Operation input.
-<a href=#143 id=143 data-nosnippet>143</a>/// - `entity`: Operation input.
-<a href=#144 id=144 data-nosnippet>144</a>/// - `depth`: Operation input.
-<a href=#145 id=145 data-nosnippet>145</a>///
-<a href=#146 id=146 data-nosnippet>146</a>/// # Returns
-<a href=#147 id=147 data-nosnippet>147</a>/// The requested snapshot result.
-<a href=#148 id=148 data-nosnippet>148</a></span><span class="kw">fn </span>resolve(node: <span class="kw-2">&amp;</span>Arc&lt;Node&gt;, entity: EntityId, depth: usize) -&gt; <span class="prelude-ty">Option</span>&lt;RevisionId&gt; {
-<a href=#149 id=149 data-nosnippet>149</a>    <span class="kw">match </span>node.as_ref() {
-<a href=#150 id=150 data-nosnippet>150</a>        Node::Leaf(found, revision) <span class="kw">if </span><span class="kw-2">*</span>found == entity =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>revision),
-<a href=#151 id=151 data-nosnippet>151</a>        Node::Branch(children) <span class="kw">if </span>depth &lt; <span class="number">32 </span>=&gt; children[nibble(entity, depth)]
-<a href=#152 id=152 data-nosnippet>152</a>            .as_ref()
-<a href=#153 id=153 data-nosnippet>153</a>            .and_then(|child| resolve(child, entity, depth + <span class="number">1</span>)),
-<a href=#154 id=154 data-nosnippet>154</a>        <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
-<a href=#155 id=155 data-nosnippet>155</a>    }
-<a href=#156 id=156 data-nosnippet>156</a>}
-<a href=#157 id=157 data-nosnippet>157</a>
-<a href=#158 id=158 data-nosnippet>158</a><span class="doccomment">/// Internal snapshot operation.
-<a href=#159 id=159 data-nosnippet>159</a>/// # Parameters
-<a href=#160 id=160 data-nosnippet>160</a>/// - `node`: Operation input.
-<a href=#161 id=161 data-nosnippet>161</a>/// - `values`: Operation input.
-<a href=#162 id=162 data-nosnippet>162</a>/// - `RevisionId`: Revision component of each collected pair.
-<a href=#163 id=163 data-nosnippet>163</a></span><span class="kw">fn </span>collect(node: <span class="kw-2">&amp;</span>Arc&lt;Node&gt;, values: <span class="kw-2">&amp;mut </span>Vec&lt;(EntityId, RevisionId)&gt;) {
-<a href=#164 id=164 data-nosnippet>164</a>    <span class="kw">match </span>node.as_ref() {
-<a href=#165 id=165 data-nosnippet>165</a>        Node::Leaf(entity, revision) =&gt; values.push((<span class="kw-2">*</span>entity, <span class="kw-2">*</span>revision)),
-<a href=#166 id=166 data-nosnippet>166</a>        Node::Branch(children) =&gt; {
-<a href=#167 id=167 data-nosnippet>167</a>            <span class="kw">for </span>child <span class="kw">in </span>children.iter().flatten() {
-<a href=#168 id=168 data-nosnippet>168</a>                collect(child, values);
-<a href=#169 id=169 data-nosnippet>169</a>            }
-<a href=#170 id=170 data-nosnippet>170</a>        }
-<a href=#171 id=171 data-nosnippet>171</a>        Node::Empty =&gt; {}
-<a href=#172 id=172 data-nosnippet>172</a>    }
-<a href=#173 id=173 data-nosnippet>173</a>}
-<a href=#174 id=174 data-nosnippet>174</a>
-<a href=#175 id=175 data-nosnippet>175</a><span class="doccomment">/// An immutable entity-to-revision mapping backed by a persistent radix tree.
-<a href=#176 id=176 data-nosnippet>176</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
-<a href=#177 id=177 data-nosnippet>177</a></span><span class="kw">pub struct </span>Snapshot {
-<a href=#178 id=178 data-nosnippet>178</a>    version: EncodingVersion,
-<a href=#179 id=179 data-nosnippet>179</a>    root: Arc&lt;Node&gt;,
-<a href=#180 id=180 data-nosnippet>180</a>    id: SnapshotId,
-<a href=#181 id=181 data-nosnippet>181</a>    len: usize,
-<a href=#182 id=182 data-nosnippet>182</a>}
-<a href=#183 id=183 data-nosnippet>183</a>
-<a href=#184 id=184 data-nosnippet>184</a><span class="kw">impl </span>Snapshot {
-<a href=#185 id=185 data-nosnippet>185</a>    <span class="doccomment">///
-<a href=#186 id=186 data-nosnippet>186</a>    /// # Returns
-<a href=#187 id=187 data-nosnippet>187</a>    /// The requested snapshot result.
-<a href=#188 id=188 data-nosnippet>188</a>    /// Creates an empty version-one snapshot.
-<a href=#189 id=189 data-nosnippet>189</a>    </span><span class="attr">#[must_use]
-<a href=#190 id=190 data-nosnippet>190</a>    </span><span class="kw">pub fn </span>empty() -&gt; <span class="self">Self </span>{
-<a href=#191 id=191 data-nosnippet>191</a>        <span class="self">Self</span>::empty_with_version(EncodingVersion::new(<span class="number">1</span>))
-<a href=#192 id=192 data-nosnippet>192</a>    }
-<a href=#193 id=193 data-nosnippet>193</a>    <span class="doccomment">/// # Parameters
-<a href=#194 id=194 data-nosnippet>194</a>    /// - `version`: Operation input.
-<a href=#195 id=195 data-nosnippet>195</a>    ///
-<a href=#196 id=196 data-nosnippet>196</a>    /// # Returns
-<a href=#197 id=197 data-nosnippet>197</a>    /// The requested snapshot result.
-<a href=#198 id=198 data-nosnippet>198</a>    /// Creates an empty snapshot at an encoding version.
-<a href=#199 id=199 data-nosnippet>199</a>    </span><span class="attr">#[must_use]
-<a href=#200 id=200 data-nosnippet>200</a>    </span><span class="kw">pub fn </span>empty_with_version(version: EncodingVersion) -&gt; <span class="self">Self </span>{
-<a href=#201 id=201 data-nosnippet>201</a>        <span class="self">Self</span>::from_root(version, Arc::new(Node::Empty), <span class="number">0</span>)
-<a href=#202 id=202 data-nosnippet>202</a>    }
-<a href=#203 id=203 data-nosnippet>203</a>    <span class="doccomment">/// # Parameters
-<a href=#204 id=204 data-nosnippet>204</a>    /// - `entries`: Operation input.
-<a href=#205 id=205 data-nosnippet>205</a>    ///
-<a href=#206 id=206 data-nosnippet>206</a>    /// # Returns
-<a href=#207 id=207 data-nosnippet>207</a>    /// The requested snapshot result.
-<a href=#208 id=208 data-nosnippet>208</a>    /// Creates a canonical snapshot from entries.
-<a href=#209 id=209 data-nosnippet>209</a>    </span><span class="attr">#[must_use]
-<a href=#210 id=210 data-nosnippet>210</a>    </span><span class="kw">pub fn </span>from_entries(entries: BTreeMap&lt;EntityId, RevisionId&gt;) -&gt; <span class="self">Self </span>{
-<a href=#211 id=211 data-nosnippet>211</a>        entries
-<a href=#212 id=212 data-nosnippet>212</a>            .into_iter()
-<a href=#213 id=213 data-nosnippet>213</a>            .fold(<span class="self">Self</span>::empty(), |snapshot, (entity, revision)| {
-<a href=#214 id=214 data-nosnippet>214</a>                snapshot.with_revision(entity, revision)
-<a href=#215 id=215 data-nosnippet>215</a>            })
-<a href=#216 id=216 data-nosnippet>216</a>    }
-<a href=#217 id=217 data-nosnippet>217</a>    <span class="doccomment">/// Internal snapshot operation.
-<a href=#218 id=218 data-nosnippet>218</a>    /// # Parameters
-<a href=#219 id=219 data-nosnippet>219</a>    /// - `version`: Operation input.
-<a href=#220 id=220 data-nosnippet>220</a>    /// - `root`: Operation input.
-<a href=#221 id=221 data-nosnippet>221</a>    /// - `len`: Operation input.
-<a href=#222 id=222 data-nosnippet>222</a>    ///
-<a href=#223 id=223 data-nosnippet>223</a>    /// # Returns
-<a href=#224 id=224 data-nosnippet>224</a>    /// The requested snapshot result.
-<a href=#225 id=225 data-nosnippet>225</a>    </span><span class="kw">fn </span>from_root(version: EncodingVersion, root: Arc&lt;Node&gt;, len: usize) -&gt; <span class="self">Self </span>{
-<a href=#226 id=226 data-nosnippet>226</a>        <span class="kw">let </span><span class="kw-2">mut </span>bytes = Vec::new();
-<a href=#227 id=227 data-nosnippet>227</a>        bytes.extend_from_slice(<span class="string">b"scriberig.snapshot.root.v1"</span>);
-<a href=#228 id=228 data-nosnippet>228</a>        bytes.extend_from_slice(<span class="kw-2">&amp;</span>version.value().to_be_bytes());
-<a href=#229 id=229 data-nosnippet>229</a>        bytes.extend_from_slice(<span class="kw-2">&amp;</span>root.hash(version));
-<a href=#230 id=230 data-nosnippet>230</a>        <span class="kw">let </span>id = SnapshotId::from_bytes(<span class="kw-2">*</span>blake3::hash(<span class="kw-2">&amp;</span>bytes).as_bytes());
-<a href=#231 id=231 data-nosnippet>231</a>        <span class="self">Self </span>{
-<a href=#232 id=232 data-nosnippet>232</a>            version,
-<a href=#233 id=233 data-nosnippet>233</a>            root,
-<a href=#234 id=234 data-nosnippet>234</a>            id,
-<a href=#235 id=235 data-nosnippet>235</a>            len,
-<a href=#236 id=236 data-nosnippet>236</a>        }
-<a href=#237 id=237 data-nosnippet>237</a>    }
-<a href=#238 id=238 data-nosnippet>238</a>    <span class="doccomment">///
-<a href=#239 id=239 data-nosnippet>239</a>    /// # Returns
-<a href=#240 id=240 data-nosnippet>240</a>    /// The requested snapshot result.
-<a href=#241 id=241 data-nosnippet>241</a>    /// Returns the content-derived snapshot identity.
-<a href=#242 id=242 data-nosnippet>242</a>    </span><span class="attr">#[must_use]
-<a href=#243 id=243 data-nosnippet>243</a>    </span><span class="kw">pub const fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; SnapshotId {
-<a href=#244 id=244 data-nosnippet>244</a>        <span class="self">self</span>.id
+<a href=#131 id=131 data-nosnippet>131</a>        <span class="kw">let </span>replacement = remove(child, entity, depth + <span class="number">1</span>);
+<a href=#132 id=132 data-nosnippet>132</a>        children[index] = <span class="kw">match </span>replacement.as_ref() {
+<a href=#133 id=133 data-nosnippet>133</a>            Node::Empty =&gt; <span class="prelude-val">None</span>,
+<a href=#134 id=134 data-nosnippet>134</a>            Node::Branch(<span class="kw">_</span>) | Node::Leaf(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(replacement),
+<a href=#135 id=135 data-nosnippet>135</a>        };
+<a href=#136 id=136 data-nosnippet>136</a>    }
+<a href=#137 id=137 data-nosnippet>137</a>    <span class="kw">if </span>children.iter().all(Option::is_none) {
+<a href=#138 id=138 data-nosnippet>138</a>        Arc::new(Node::Empty)
+<a href=#139 id=139 data-nosnippet>139</a>    } <span class="kw">else </span>{
+<a href=#140 id=140 data-nosnippet>140</a>        Arc::new(Node::Branch(children))
+<a href=#141 id=141 data-nosnippet>141</a>    }
+<a href=#142 id=142 data-nosnippet>142</a>}
+<a href=#143 id=143 data-nosnippet>143</a>
+<a href=#144 id=144 data-nosnippet>144</a><span class="attr">#[cfg(test)]
+<a href=#145 id=145 data-nosnippet>145</a>#[path = <span class="string">"snapshot_tests.rs"</span>]
+<a href=#146 id=146 data-nosnippet>146</a></span><span class="kw">mod </span>tests;
+<a href=#147 id=147 data-nosnippet>147</a>
+<a href=#148 id=148 data-nosnippet>148</a><span class="doccomment">/// Internal snapshot operation.
+<a href=#149 id=149 data-nosnippet>149</a>/// # Parameters
+<a href=#150 id=150 data-nosnippet>150</a>/// - `node`: Operation input.
+<a href=#151 id=151 data-nosnippet>151</a>/// - `entity`: Operation input.
+<a href=#152 id=152 data-nosnippet>152</a>/// - `depth`: Operation input.
+<a href=#153 id=153 data-nosnippet>153</a>///
+<a href=#154 id=154 data-nosnippet>154</a>/// # Returns
+<a href=#155 id=155 data-nosnippet>155</a>/// The requested snapshot result.
+<a href=#156 id=156 data-nosnippet>156</a></span><span class="kw">fn </span>resolve(node: <span class="kw-2">&amp;</span>Arc&lt;Node&gt;, entity: EntityId, depth: usize) -&gt; <span class="prelude-ty">Option</span>&lt;RevisionId&gt; {
+<a href=#157 id=157 data-nosnippet>157</a>    <span class="kw">match </span>node.as_ref() {
+<a href=#158 id=158 data-nosnippet>158</a>        Node::Leaf(found, revision) <span class="kw">if </span><span class="kw-2">*</span>found == entity =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>revision),
+<a href=#159 id=159 data-nosnippet>159</a>        Node::Branch(children) <span class="kw">if </span>depth &lt; <span class="number">32 </span>=&gt; children[nibble(entity, depth)]
+<a href=#160 id=160 data-nosnippet>160</a>            .as_ref()
+<a href=#161 id=161 data-nosnippet>161</a>            .and_then(|child| resolve(child, entity, depth + <span class="number">1</span>)),
+<a href=#162 id=162 data-nosnippet>162</a>        <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#163 id=163 data-nosnippet>163</a>    }
+<a href=#164 id=164 data-nosnippet>164</a>}
+<a href=#165 id=165 data-nosnippet>165</a>
+<a href=#166 id=166 data-nosnippet>166</a><span class="doccomment">/// Internal snapshot operation.
+<a href=#167 id=167 data-nosnippet>167</a>/// # Parameters
+<a href=#168 id=168 data-nosnippet>168</a>/// - `node`: Operation input.
+<a href=#169 id=169 data-nosnippet>169</a>/// - `values`: Operation input.
+<a href=#170 id=170 data-nosnippet>170</a>/// - `RevisionId`: Revision component of each collected pair.
+<a href=#171 id=171 data-nosnippet>171</a></span><span class="kw">fn </span>collect(node: <span class="kw-2">&amp;</span>Arc&lt;Node&gt;, values: <span class="kw-2">&amp;mut </span>Vec&lt;(EntityId, RevisionId)&gt;) {
+<a href=#172 id=172 data-nosnippet>172</a>    <span class="kw">match </span>node.as_ref() {
+<a href=#173 id=173 data-nosnippet>173</a>        Node::Leaf(entity, revision) =&gt; values.push((<span class="kw-2">*</span>entity, <span class="kw-2">*</span>revision)),
+<a href=#174 id=174 data-nosnippet>174</a>        Node::Branch(children) =&gt; {
+<a href=#175 id=175 data-nosnippet>175</a>            <span class="kw">for </span>child <span class="kw">in </span>children.iter().flatten() {
+<a href=#176 id=176 data-nosnippet>176</a>                collect(child, values);
+<a href=#177 id=177 data-nosnippet>177</a>            }
+<a href=#178 id=178 data-nosnippet>178</a>        }
+<a href=#179 id=179 data-nosnippet>179</a>        Node::Empty =&gt; {}
+<a href=#180 id=180 data-nosnippet>180</a>    }
+<a href=#181 id=181 data-nosnippet>181</a>}
+<a href=#182 id=182 data-nosnippet>182</a>
+<a href=#183 id=183 data-nosnippet>183</a><span class="doccomment">/// An immutable entity-to-revision mapping backed by a persistent radix tree.
+<a href=#184 id=184 data-nosnippet>184</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#185 id=185 data-nosnippet>185</a></span><span class="kw">pub struct </span>Snapshot {
+<a href=#186 id=186 data-nosnippet>186</a>    version: EncodingVersion,
+<a href=#187 id=187 data-nosnippet>187</a>    root: Arc&lt;Node&gt;,
+<a href=#188 id=188 data-nosnippet>188</a>    id: SnapshotId,
+<a href=#189 id=189 data-nosnippet>189</a>    len: usize,
+<a href=#190 id=190 data-nosnippet>190</a>}
+<a href=#191 id=191 data-nosnippet>191</a>
+<a href=#192 id=192 data-nosnippet>192</a><span class="kw">impl </span>Snapshot {
+<a href=#193 id=193 data-nosnippet>193</a>    <span class="doccomment">///
+<a href=#194 id=194 data-nosnippet>194</a>    /// # Returns
+<a href=#195 id=195 data-nosnippet>195</a>    /// The requested snapshot result.
+<a href=#196 id=196 data-nosnippet>196</a>    /// Creates an empty version-one snapshot.
+<a href=#197 id=197 data-nosnippet>197</a>    </span><span class="attr">#[must_use]
+<a href=#198 id=198 data-nosnippet>198</a>    </span><span class="kw">pub fn </span>empty() -&gt; <span class="self">Self </span>{
+<a href=#199 id=199 data-nosnippet>199</a>        <span class="self">Self</span>::empty_with_version(EncodingVersion::new(<span class="number">1</span>))
+<a href=#200 id=200 data-nosnippet>200</a>    }
+<a href=#201 id=201 data-nosnippet>201</a>    <span class="doccomment">/// # Parameters
+<a href=#202 id=202 data-nosnippet>202</a>    /// - `version`: Operation input.
+<a href=#203 id=203 data-nosnippet>203</a>    ///
+<a href=#204 id=204 data-nosnippet>204</a>    /// # Returns
+<a href=#205 id=205 data-nosnippet>205</a>    /// The requested snapshot result.
+<a href=#206 id=206 data-nosnippet>206</a>    /// Creates an empty snapshot at an encoding version.
+<a href=#207 id=207 data-nosnippet>207</a>    </span><span class="attr">#[must_use]
+<a href=#208 id=208 data-nosnippet>208</a>    </span><span class="kw">pub fn </span>empty_with_version(version: EncodingVersion) -&gt; <span class="self">Self </span>{
+<a href=#209 id=209 data-nosnippet>209</a>        <span class="self">Self</span>::from_root(version, Arc::new(Node::Empty), <span class="number">0</span>)
+<a href=#210 id=210 data-nosnippet>210</a>    }
+<a href=#211 id=211 data-nosnippet>211</a>    <span class="doccomment">/// # Parameters
+<a href=#212 id=212 data-nosnippet>212</a>    /// - `entries`: Operation input.
+<a href=#213 id=213 data-nosnippet>213</a>    ///
+<a href=#214 id=214 data-nosnippet>214</a>    /// # Returns
+<a href=#215 id=215 data-nosnippet>215</a>    /// The requested snapshot result.
+<a href=#216 id=216 data-nosnippet>216</a>    /// Creates a canonical snapshot from entries.
+<a href=#217 id=217 data-nosnippet>217</a>    </span><span class="attr">#[must_use]
+<a href=#218 id=218 data-nosnippet>218</a>    </span><span class="kw">pub fn </span>from_entries(entries: BTreeMap&lt;EntityId, RevisionId&gt;) -&gt; <span class="self">Self </span>{
+<a href=#219 id=219 data-nosnippet>219</a>        entries
+<a href=#220 id=220 data-nosnippet>220</a>            .into_iter()
+<a href=#221 id=221 data-nosnippet>221</a>            .fold(<span class="self">Self</span>::empty(), |snapshot, (entity, revision)| {
+<a href=#222 id=222 data-nosnippet>222</a>                snapshot.with_revision(entity, revision)
+<a href=#223 id=223 data-nosnippet>223</a>            })
+<a href=#224 id=224 data-nosnippet>224</a>    }
+<a href=#225 id=225 data-nosnippet>225</a>    <span class="doccomment">/// Internal snapshot operation.
+<a href=#226 id=226 data-nosnippet>226</a>    /// # Parameters
+<a href=#227 id=227 data-nosnippet>227</a>    /// - `version`: Operation input.
+<a href=#228 id=228 data-nosnippet>228</a>    /// - `root`: Operation input.
+<a href=#229 id=229 data-nosnippet>229</a>    /// - `len`: Operation input.
+<a href=#230 id=230 data-nosnippet>230</a>    ///
+<a href=#231 id=231 data-nosnippet>231</a>    /// # Returns
+<a href=#232 id=232 data-nosnippet>232</a>    /// The requested snapshot result.
+<a href=#233 id=233 data-nosnippet>233</a>    </span><span class="kw">fn </span>from_root(version: EncodingVersion, root: Arc&lt;Node&gt;, len: usize) -&gt; <span class="self">Self </span>{
+<a href=#234 id=234 data-nosnippet>234</a>        <span class="kw">let </span><span class="kw-2">mut </span>bytes = Vec::new();
+<a href=#235 id=235 data-nosnippet>235</a>        bytes.extend_from_slice(<span class="string">b"scriberig.snapshot.root.v1"</span>);
+<a href=#236 id=236 data-nosnippet>236</a>        bytes.extend_from_slice(<span class="kw-2">&amp;</span>version.value().to_be_bytes());
+<a href=#237 id=237 data-nosnippet>237</a>        bytes.extend_from_slice(<span class="kw-2">&amp;</span>root.hash(version));
+<a href=#238 id=238 data-nosnippet>238</a>        <span class="kw">let </span>id = SnapshotId::from_bytes(<span class="kw-2">*</span>blake3::hash(<span class="kw-2">&amp;</span>bytes).as_bytes());
+<a href=#239 id=239 data-nosnippet>239</a>        <span class="self">Self </span>{
+<a href=#240 id=240 data-nosnippet>240</a>            version,
+<a href=#241 id=241 data-nosnippet>241</a>            root,
+<a href=#242 id=242 data-nosnippet>242</a>            id,
+<a href=#243 id=243 data-nosnippet>243</a>            len,
+<a href=#244 id=244 data-nosnippet>244</a>        }
 <a href=#245 id=245 data-nosnippet>245</a>    }
 <a href=#246 id=246 data-nosnippet>246</a>    <span class="doccomment">///
 <a href=#247 id=247 data-nosnippet>247</a>    /// # Returns
 <a href=#248 id=248 data-nosnippet>248</a>    /// The requested snapshot result.
-<a href=#249 id=249 data-nosnippet>249</a>    /// Returns the number of mapped entities.
+<a href=#249 id=249 data-nosnippet>249</a>    /// Returns the content-derived snapshot identity.
 <a href=#250 id=250 data-nosnippet>250</a>    </span><span class="attr">#[must_use]
-<a href=#251 id=251 data-nosnippet>251</a>    </span><span class="kw">pub const fn </span>len(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
-<a href=#252 id=252 data-nosnippet>252</a>        <span class="self">self</span>.len
+<a href=#251 id=251 data-nosnippet>251</a>    </span><span class="kw">pub const fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; SnapshotId {
+<a href=#252 id=252 data-nosnippet>252</a>        <span class="self">self</span>.id
 <a href=#253 id=253 data-nosnippet>253</a>    }
-<a href=#254 id=254 data-nosnippet>254</a>
-<a href=#255 id=255 data-nosnippet>255</a>    <span class="doccomment">/// Reports whether this snapshot contains no entities.
-<a href=#256 id=256 data-nosnippet>256</a>    </span><span class="attr">#[must_use]
-<a href=#257 id=257 data-nosnippet>257</a>    </span><span class="kw">pub const fn </span>is_empty(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
-<a href=#258 id=258 data-nosnippet>258</a>        <span class="self">self</span>.len == <span class="number">0
-<a href=#259 id=259 data-nosnippet>259</a>    </span>}
-<a href=#260 id=260 data-nosnippet>260</a>    <span class="doccomment">/// # Parameters
-<a href=#261 id=261 data-nosnippet>261</a>    /// - `entity`: Operation input.
-<a href=#262 id=262 data-nosnippet>262</a>    ///
-<a href=#263 id=263 data-nosnippet>263</a>    /// # Returns
-<a href=#264 id=264 data-nosnippet>264</a>    /// The requested snapshot result.
-<a href=#265 id=265 data-nosnippet>265</a>    /// Resolves an entity only within this snapshot.
-<a href=#266 id=266 data-nosnippet>266</a>    </span><span class="attr">#[must_use]
-<a href=#267 id=267 data-nosnippet>267</a>    </span><span class="kw">pub fn </span>resolve(<span class="kw-2">&amp;</span><span class="self">self</span>, entity: EntityId) -&gt; <span class="prelude-ty">Option</span>&lt;RevisionId&gt; {
-<a href=#268 id=268 data-nosnippet>268</a>        resolve(<span class="kw-2">&amp;</span><span class="self">self</span>.root, entity, <span class="number">0</span>)
-<a href=#269 id=269 data-nosnippet>269</a>    }
-<a href=#270 id=270 data-nosnippet>270</a>    <span class="doccomment">/// # Parameters
-<a href=#271 id=271 data-nosnippet>271</a>    /// - `entity`: Operation input.
-<a href=#272 id=272 data-nosnippet>272</a>    /// - `revision`: Operation input.
-<a href=#273 id=273 data-nosnippet>273</a>    ///
-<a href=#274 id=274 data-nosnippet>274</a>    /// # Returns
-<a href=#275 id=275 data-nosnippet>275</a>    /// The requested snapshot result.
-<a href=#276 id=276 data-nosnippet>276</a>    /// Returns a successor sharing unaffected radix branches.
-<a href=#277 id=277 data-nosnippet>277</a>    </span><span class="attr">#[must_use]
-<a href=#278 id=278 data-nosnippet>278</a>    </span><span class="kw">pub fn </span>with_revision(<span class="kw-2">&amp;</span><span class="self">self</span>, entity: EntityId, revision: RevisionId) -&gt; <span class="self">Self </span>{
-<a href=#279 id=279 data-nosnippet>279</a>        <span class="kw">if </span><span class="self">self</span>.resolve(entity) == <span class="prelude-val">Some</span>(revision) {
-<a href=#280 id=280 data-nosnippet>280</a>            <span class="kw">return </span><span class="self">self</span>.clone();
-<a href=#281 id=281 data-nosnippet>281</a>        }
-<a href=#282 id=282 data-nosnippet>282</a>        <span class="kw">let </span>len = <span class="self">self</span>.len + usize::from(<span class="self">self</span>.resolve(entity).is_none());
-<a href=#283 id=283 data-nosnippet>283</a>        <span class="self">Self</span>::from_root(<span class="self">self</span>.version, insert(<span class="kw-2">&amp;</span><span class="self">self</span>.root, entity, revision, <span class="number">0</span>), len)
-<a href=#284 id=284 data-nosnippet>284</a>    }
-<a href=#285 id=285 data-nosnippet>285</a>    <span class="doccomment">/// # Parameters
-<a href=#286 id=286 data-nosnippet>286</a>    /// - `entity`: Operation input.
-<a href=#287 id=287 data-nosnippet>287</a>    ///
-<a href=#288 id=288 data-nosnippet>288</a>    /// # Returns
-<a href=#289 id=289 data-nosnippet>289</a>    /// The requested snapshot result.
-<a href=#290 id=290 data-nosnippet>290</a>    /// Returns a successor without one entity.
-<a href=#291 id=291 data-nosnippet>291</a>    </span><span class="attr">#[must_use]
-<a href=#292 id=292 data-nosnippet>292</a>    </span><span class="kw">pub fn </span>without_entity(<span class="kw-2">&amp;</span><span class="self">self</span>, entity: EntityId) -&gt; <span class="self">Self </span>{
-<a href=#293 id=293 data-nosnippet>293</a>        <span class="kw">if </span><span class="self">self</span>.resolve(entity).is_none() {
-<a href=#294 id=294 data-nosnippet>294</a>            <span class="kw">return </span><span class="self">self</span>.clone();
-<a href=#295 id=295 data-nosnippet>295</a>        }
-<a href=#296 id=296 data-nosnippet>296</a>        <span class="self">Self</span>::from_root(<span class="self">self</span>.version, remove(<span class="kw-2">&amp;</span><span class="self">self</span>.root, entity, <span class="number">0</span>), <span class="self">self</span>.len - <span class="number">1</span>)
-<a href=#297 id=297 data-nosnippet>297</a>    }
-<a href=#298 id=298 data-nosnippet>298</a>    <span class="doccomment">///
-<a href=#299 id=299 data-nosnippet>299</a>    /// # Returns
-<a href=#300 id=300 data-nosnippet>300</a>    /// The requested snapshot result.
-<a href=#301 id=301 data-nosnippet>301</a>    /// Iterates mappings in ascending entity order.
-<a href=#302 id=302 data-nosnippet>302</a>    </span><span class="kw">pub fn </span>iter(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = (EntityId, RevisionId)&gt; {
-<a href=#303 id=303 data-nosnippet>303</a>        <span class="kw">let </span><span class="kw-2">mut </span>values = Vec::new();
-<a href=#304 id=304 data-nosnippet>304</a>        collect(<span class="kw-2">&amp;</span><span class="self">self</span>.root, <span class="kw-2">&amp;mut </span>values);
-<a href=#305 id=305 data-nosnippet>305</a>        values.into_iter()
-<a href=#306 id=306 data-nosnippet>306</a>    }
-<a href=#307 id=307 data-nosnippet>307</a>    <span class="doccomment">/// # Parameters
-<a href=#308 id=308 data-nosnippet>308</a>    /// - `changes`: Operation input.
-<a href=#309 id=309 data-nosnippet>309</a>    ///
-<a href=#310 id=310 data-nosnippet>310</a>    /// # Returns
-<a href=#311 id=311 data-nosnippet>311</a>    /// The requested snapshot result.
-<a href=#312 id=312 data-nosnippet>312</a>    /// Applies storage changes and returns a persistent successor.
-<a href=#313 id=313 data-nosnippet>313</a>    </span><span class="attr">#[must_use]
-<a href=#314 id=314 data-nosnippet>314</a>    </span><span class="kw">pub fn </span>apply(<span class="kw-2">&amp;</span><span class="self">self</span>, changes: <span class="kw">impl </span>IntoIterator&lt;Item = SnapshotChange&gt;) -&gt; <span class="self">Self </span>{
-<a href=#315 id=315 data-nosnippet>315</a>        changes
-<a href=#316 id=316 data-nosnippet>316</a>            .into_iter()
-<a href=#317 id=317 data-nosnippet>317</a>            .fold(<span class="self">self</span>.clone(), |snapshot, change| <span class="kw">match </span>change {
-<a href=#318 id=318 data-nosnippet>318</a>                SnapshotChange::Set(entity, revision) =&gt; snapshot.with_revision(entity, revision),
-<a href=#319 id=319 data-nosnippet>319</a>                SnapshotChange::Remove(entity) =&gt; snapshot.without_entity(entity),
-<a href=#320 id=320 data-nosnippet>320</a>            })
-<a href=#321 id=321 data-nosnippet>321</a>    }
-<a href=#322 id=322 data-nosnippet>322</a>    <span class="doccomment">/// # Parameters
-<a href=#323 id=323 data-nosnippet>323</a>    /// - `other`: Operation input.
-<a href=#324 id=324 data-nosnippet>324</a>    ///
-<a href=#325 id=325 data-nosnippet>325</a>    /// # Returns
-<a href=#326 id=326 data-nosnippet>326</a>    /// The requested snapshot result.
-<a href=#327 id=327 data-nosnippet>327</a>    /// Computes deterministic mapping changes from this snapshot to another.
-<a href=#328 id=328 data-nosnippet>328</a>    </span><span class="attr">#[must_use]
-<a href=#329 id=329 data-nosnippet>329</a>    </span><span class="kw">pub fn </span>diff(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; Vec&lt;SnapshotChange&gt; {
-<a href=#330 id=330 data-nosnippet>330</a>        <span class="kw">let </span>left: BTreeMap&lt;<span class="kw">_</span>, <span class="kw">_</span>&gt; = <span class="self">self</span>.iter().collect();
-<a href=#331 id=331 data-nosnippet>331</a>        <span class="kw">let </span>right: BTreeMap&lt;<span class="kw">_</span>, <span class="kw">_</span>&gt; = other.iter().collect();
-<a href=#332 id=332 data-nosnippet>332</a>        <span class="kw">let </span><span class="kw-2">mut </span>changes = Vec::new();
-<a href=#333 id=333 data-nosnippet>333</a>        <span class="kw">for </span>(entity, revision) <span class="kw">in </span><span class="kw-2">&amp;</span>right {
-<a href=#334 id=334 data-nosnippet>334</a>            <span class="kw">if </span>left.get(entity) != <span class="prelude-val">Some</span>(revision) {
-<a href=#335 id=335 data-nosnippet>335</a>                changes.push(SnapshotChange::Set(<span class="kw-2">*</span>entity, <span class="kw-2">*</span>revision));
-<a href=#336 id=336 data-nosnippet>336</a>            }
-<a href=#337 id=337 data-nosnippet>337</a>        }
-<a href=#338 id=338 data-nosnippet>338</a>        <span class="kw">for </span>entity <span class="kw">in </span>left.keys() {
-<a href=#339 id=339 data-nosnippet>339</a>            <span class="kw">if </span>!right.contains_key(entity) {
-<a href=#340 id=340 data-nosnippet>340</a>                changes.push(SnapshotChange::Remove(<span class="kw-2">*</span>entity));
-<a href=#341 id=341 data-nosnippet>341</a>            }
-<a href=#342 id=342 data-nosnippet>342</a>        }
-<a href=#343 id=343 data-nosnippet>343</a>        changes
-<a href=#344 id=344 data-nosnippet>344</a>    }
-<a href=#345 id=345 data-nosnippet>345</a>}
-<a href=#346 id=346 data-nosnippet>346</a>
-<a href=#347 id=347 data-nosnippet>347</a><span class="doccomment">/// Defines backend-neutral snapshot operations.
-<a href=#348 id=348 data-nosnippet>348</a></span><span class="kw">pub trait </span>SnapshotStore {
-<a href=#349 id=349 data-nosnippet>349</a>    <span class="doccomment">/// # Parameters
-<a href=#350 id=350 data-nosnippet>350</a>    /// - `snapshot`: Operation input.
-<a href=#351 id=351 data-nosnippet>351</a>    /// - `entity`: Operation input.
-<a href=#352 id=352 data-nosnippet>352</a>    ///
-<a href=#353 id=353 data-nosnippet>353</a>    /// # Returns
-<a href=#354 id=354 data-nosnippet>354</a>    /// The requested snapshot result.
-<a href=#355 id=355 data-nosnippet>355</a>    ///
-<a href=#356 id=356 data-nosnippet>356</a>    /// # Errors
-<a href=#357 id=357 data-nosnippet>357</a>    /// Returns an error when the snapshot is unavailable.
-<a href=#358 id=358 data-nosnippet>358</a>    /// Resolves an entity in a stored snapshot.
-<a href=#359 id=359 data-nosnippet>359</a>    </span><span class="kw">fn </span>resolve(
-<a href=#360 id=360 data-nosnippet>360</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
-<a href=#361 id=361 data-nosnippet>361</a>        snapshot: SnapshotId,
-<a href=#362 id=362 data-nosnippet>362</a>        entity: EntityId,
-<a href=#363 id=363 data-nosnippet>363</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;RevisionId&gt;, SnapshotError&gt;;
-<a href=#364 id=364 data-nosnippet>364</a>    <span class="doccomment">/// # Parameters
-<a href=#365 id=365 data-nosnippet>365</a>    /// - `base`: Operation input.
-<a href=#366 id=366 data-nosnippet>366</a>    /// - `changes`: Operation input.
-<a href=#367 id=367 data-nosnippet>367</a>    ///
-<a href=#368 id=368 data-nosnippet>368</a>    /// # Returns
-<a href=#369 id=369 data-nosnippet>369</a>    /// The requested snapshot result.
-<a href=#370 id=370 data-nosnippet>370</a>    ///
-<a href=#371 id=371 data-nosnippet>371</a>    /// # Errors
-<a href=#372 id=372 data-nosnippet>372</a>    /// Returns an error when the snapshot is unavailable.
-<a href=#373 id=373 data-nosnippet>373</a>    /// Applies storage changes and returns the resulting snapshot.
-<a href=#374 id=374 data-nosnippet>374</a>    </span><span class="kw">fn </span>apply_changes(
-<a href=#375 id=375 data-nosnippet>375</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
-<a href=#376 id=376 data-nosnippet>376</a>        base: SnapshotId,
-<a href=#377 id=377 data-nosnippet>377</a>        changes: <span class="kw-2">&amp;</span>[SnapshotChange],
-<a href=#378 id=378 data-nosnippet>378</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;SnapshotId, SnapshotError&gt;;
-<a href=#379 id=379 data-nosnippet>379</a>    <span class="doccomment">/// # Parameters
-<a href=#380 id=380 data-nosnippet>380</a>    /// - `snapshot`: Operation input.
-<a href=#381 id=381 data-nosnippet>381</a>    ///
-<a href=#382 id=382 data-nosnippet>382</a>    /// # Returns
-<a href=#383 id=383 data-nosnippet>383</a>    /// The requested snapshot result.
-<a href=#384 id=384 data-nosnippet>384</a>    ///
-<a href=#385 id=385 data-nosnippet>385</a>    /// # Errors
-<a href=#386 id=386 data-nosnippet>386</a>    /// Returns an error when the snapshot is unavailable.
-<a href=#387 id=387 data-nosnippet>387</a>    /// Iterates a stored snapshot deterministically.
-<a href=#388 id=388 data-nosnippet>388</a>    </span><span class="attr">#[allow(clippy::iter_not_returning_iterator)]
-<a href=#389 id=389 data-nosnippet>389</a>    </span><span class="kw">fn </span>iter(<span class="kw-2">&amp;</span><span class="self">self</span>, snapshot: SnapshotId) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;(EntityId, RevisionId)&gt;, SnapshotError&gt;;
-<a href=#390 id=390 data-nosnippet>390</a>    <span class="doccomment">/// # Parameters
-<a href=#391 id=391 data-nosnippet>391</a>    /// - `from`: Operation input.
-<a href=#392 id=392 data-nosnippet>392</a>    /// - `to`: Operation input.
-<a href=#393 id=393 data-nosnippet>393</a>    ///
-<a href=#394 id=394 data-nosnippet>394</a>    /// # Returns
-<a href=#395 id=395 data-nosnippet>395</a>    /// The requested snapshot result.
-<a href=#396 id=396 data-nosnippet>396</a>    ///
-<a href=#397 id=397 data-nosnippet>397</a>    /// # Errors
-<a href=#398 id=398 data-nosnippet>398</a>    /// Returns an error when the snapshot is unavailable.
-<a href=#399 id=399 data-nosnippet>399</a>    /// Computes exact mapping changes between stored snapshots.
-<a href=#400 id=400 data-nosnippet>400</a>    </span><span class="kw">fn </span>diff_snapshots(
-<a href=#401 id=401 data-nosnippet>401</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
-<a href=#402 id=402 data-nosnippet>402</a>        from: SnapshotId,
-<a href=#403 id=403 data-nosnippet>403</a>        to: SnapshotId,
-<a href=#404 id=404 data-nosnippet>404</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;SnapshotChange&gt;, SnapshotError&gt;;
-<a href=#405 id=405 data-nosnippet>405</a>}
+<a href=#254 id=254 data-nosnippet>254</a>    <span class="doccomment">///
+<a href=#255 id=255 data-nosnippet>255</a>    /// # Returns
+<a href=#256 id=256 data-nosnippet>256</a>    /// The requested snapshot result.
+<a href=#257 id=257 data-nosnippet>257</a>    /// Returns the number of mapped entities.
+<a href=#258 id=258 data-nosnippet>258</a>    </span><span class="attr">#[must_use]
+<a href=#259 id=259 data-nosnippet>259</a>    </span><span class="kw">pub const fn </span>len(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
+<a href=#260 id=260 data-nosnippet>260</a>        <span class="self">self</span>.len
+<a href=#261 id=261 data-nosnippet>261</a>    }
+<a href=#262 id=262 data-nosnippet>262</a>
+<a href=#263 id=263 data-nosnippet>263</a>    <span class="doccomment">/// Reports whether this snapshot contains no entities.
+<a href=#264 id=264 data-nosnippet>264</a>    </span><span class="attr">#[must_use]
+<a href=#265 id=265 data-nosnippet>265</a>    </span><span class="kw">pub const fn </span>is_empty(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+<a href=#266 id=266 data-nosnippet>266</a>        <span class="self">self</span>.len == <span class="number">0
+<a href=#267 id=267 data-nosnippet>267</a>    </span>}
+<a href=#268 id=268 data-nosnippet>268</a>    <span class="doccomment">/// # Parameters
+<a href=#269 id=269 data-nosnippet>269</a>    /// - `entity`: Operation input.
+<a href=#270 id=270 data-nosnippet>270</a>    ///
+<a href=#271 id=271 data-nosnippet>271</a>    /// # Returns
+<a href=#272 id=272 data-nosnippet>272</a>    /// The requested snapshot result.
+<a href=#273 id=273 data-nosnippet>273</a>    /// Resolves an entity only within this snapshot.
+<a href=#274 id=274 data-nosnippet>274</a>    </span><span class="attr">#[must_use]
+<a href=#275 id=275 data-nosnippet>275</a>    </span><span class="kw">pub fn </span>resolve(<span class="kw-2">&amp;</span><span class="self">self</span>, entity: EntityId) -&gt; <span class="prelude-ty">Option</span>&lt;RevisionId&gt; {
+<a href=#276 id=276 data-nosnippet>276</a>        resolve(<span class="kw-2">&amp;</span><span class="self">self</span>.root, entity, <span class="number">0</span>)
+<a href=#277 id=277 data-nosnippet>277</a>    }
+<a href=#278 id=278 data-nosnippet>278</a>    <span class="doccomment">/// # Parameters
+<a href=#279 id=279 data-nosnippet>279</a>    /// - `entity`: Operation input.
+<a href=#280 id=280 data-nosnippet>280</a>    /// - `revision`: Operation input.
+<a href=#281 id=281 data-nosnippet>281</a>    ///
+<a href=#282 id=282 data-nosnippet>282</a>    /// # Returns
+<a href=#283 id=283 data-nosnippet>283</a>    /// The requested snapshot result.
+<a href=#284 id=284 data-nosnippet>284</a>    /// Returns a successor sharing unaffected radix branches.
+<a href=#285 id=285 data-nosnippet>285</a>    </span><span class="attr">#[must_use]
+<a href=#286 id=286 data-nosnippet>286</a>    </span><span class="kw">pub fn </span>with_revision(<span class="kw-2">&amp;</span><span class="self">self</span>, entity: EntityId, revision: RevisionId) -&gt; <span class="self">Self </span>{
+<a href=#287 id=287 data-nosnippet>287</a>        <span class="kw">if </span><span class="self">self</span>.resolve(entity) == <span class="prelude-val">Some</span>(revision) {
+<a href=#288 id=288 data-nosnippet>288</a>            <span class="kw">return </span><span class="self">self</span>.clone();
+<a href=#289 id=289 data-nosnippet>289</a>        }
+<a href=#290 id=290 data-nosnippet>290</a>        <span class="kw">let </span>len = <span class="self">self</span>.len + usize::from(<span class="self">self</span>.resolve(entity).is_none());
+<a href=#291 id=291 data-nosnippet>291</a>        <span class="self">Self</span>::from_root(<span class="self">self</span>.version, insert(<span class="kw-2">&amp;</span><span class="self">self</span>.root, entity, revision, <span class="number">0</span>), len)
+<a href=#292 id=292 data-nosnippet>292</a>    }
+<a href=#293 id=293 data-nosnippet>293</a>    <span class="doccomment">/// # Parameters
+<a href=#294 id=294 data-nosnippet>294</a>    /// - `entity`: Operation input.
+<a href=#295 id=295 data-nosnippet>295</a>    ///
+<a href=#296 id=296 data-nosnippet>296</a>    /// # Returns
+<a href=#297 id=297 data-nosnippet>297</a>    /// The requested snapshot result.
+<a href=#298 id=298 data-nosnippet>298</a>    /// Returns a successor without one entity.
+<a href=#299 id=299 data-nosnippet>299</a>    </span><span class="attr">#[must_use]
+<a href=#300 id=300 data-nosnippet>300</a>    </span><span class="kw">pub fn </span>without_entity(<span class="kw-2">&amp;</span><span class="self">self</span>, entity: EntityId) -&gt; <span class="self">Self </span>{
+<a href=#301 id=301 data-nosnippet>301</a>        <span class="kw">if </span><span class="self">self</span>.resolve(entity).is_none() {
+<a href=#302 id=302 data-nosnippet>302</a>            <span class="kw">return </span><span class="self">self</span>.clone();
+<a href=#303 id=303 data-nosnippet>303</a>        }
+<a href=#304 id=304 data-nosnippet>304</a>        <span class="self">Self</span>::from_root(<span class="self">self</span>.version, remove(<span class="kw-2">&amp;</span><span class="self">self</span>.root, entity, <span class="number">0</span>), <span class="self">self</span>.len - <span class="number">1</span>)
+<a href=#305 id=305 data-nosnippet>305</a>    }
+<a href=#306 id=306 data-nosnippet>306</a>    <span class="doccomment">///
+<a href=#307 id=307 data-nosnippet>307</a>    /// # Returns
+<a href=#308 id=308 data-nosnippet>308</a>    /// The requested snapshot result.
+<a href=#309 id=309 data-nosnippet>309</a>    /// Iterates mappings in ascending entity order.
+<a href=#310 id=310 data-nosnippet>310</a>    </span><span class="kw">pub fn </span>iter(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = (EntityId, RevisionId)&gt; {
+<a href=#311 id=311 data-nosnippet>311</a>        <span class="kw">let </span><span class="kw-2">mut </span>values = Vec::new();
+<a href=#312 id=312 data-nosnippet>312</a>        collect(<span class="kw-2">&amp;</span><span class="self">self</span>.root, <span class="kw-2">&amp;mut </span>values);
+<a href=#313 id=313 data-nosnippet>313</a>        values.into_iter()
+<a href=#314 id=314 data-nosnippet>314</a>    }
+<a href=#315 id=315 data-nosnippet>315</a>    <span class="doccomment">/// # Parameters
+<a href=#316 id=316 data-nosnippet>316</a>    /// - `changes`: Operation input.
+<a href=#317 id=317 data-nosnippet>317</a>    ///
+<a href=#318 id=318 data-nosnippet>318</a>    /// # Returns
+<a href=#319 id=319 data-nosnippet>319</a>    /// The requested snapshot result.
+<a href=#320 id=320 data-nosnippet>320</a>    /// Applies storage changes and returns a persistent successor.
+<a href=#321 id=321 data-nosnippet>321</a>    </span><span class="attr">#[must_use]
+<a href=#322 id=322 data-nosnippet>322</a>    </span><span class="kw">pub fn </span>apply(<span class="kw-2">&amp;</span><span class="self">self</span>, changes: <span class="kw">impl </span>IntoIterator&lt;Item = SnapshotChange&gt;) -&gt; <span class="self">Self </span>{
+<a href=#323 id=323 data-nosnippet>323</a>        changes
+<a href=#324 id=324 data-nosnippet>324</a>            .into_iter()
+<a href=#325 id=325 data-nosnippet>325</a>            .fold(<span class="self">self</span>.clone(), |snapshot, change| <span class="kw">match </span>change {
+<a href=#326 id=326 data-nosnippet>326</a>                SnapshotChange::Set(entity, revision) =&gt; snapshot.with_revision(entity, revision),
+<a href=#327 id=327 data-nosnippet>327</a>                SnapshotChange::Remove(entity) =&gt; snapshot.without_entity(entity),
+<a href=#328 id=328 data-nosnippet>328</a>            })
+<a href=#329 id=329 data-nosnippet>329</a>    }
+<a href=#330 id=330 data-nosnippet>330</a>    <span class="doccomment">/// # Parameters
+<a href=#331 id=331 data-nosnippet>331</a>    /// - `other`: Operation input.
+<a href=#332 id=332 data-nosnippet>332</a>    ///
+<a href=#333 id=333 data-nosnippet>333</a>    /// # Returns
+<a href=#334 id=334 data-nosnippet>334</a>    /// The requested snapshot result.
+<a href=#335 id=335 data-nosnippet>335</a>    /// Computes deterministic mapping changes from this snapshot to another.
+<a href=#336 id=336 data-nosnippet>336</a>    </span><span class="attr">#[must_use]
+<a href=#337 id=337 data-nosnippet>337</a>    </span><span class="kw">pub fn </span>diff(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; Vec&lt;SnapshotChange&gt; {
+<a href=#338 id=338 data-nosnippet>338</a>        <span class="kw">let </span>left: BTreeMap&lt;<span class="kw">_</span>, <span class="kw">_</span>&gt; = <span class="self">self</span>.iter().collect();
+<a href=#339 id=339 data-nosnippet>339</a>        <span class="kw">let </span>right: BTreeMap&lt;<span class="kw">_</span>, <span class="kw">_</span>&gt; = other.iter().collect();
+<a href=#340 id=340 data-nosnippet>340</a>        <span class="kw">let </span><span class="kw-2">mut </span>changes = Vec::new();
+<a href=#341 id=341 data-nosnippet>341</a>        <span class="kw">for </span>(entity, revision) <span class="kw">in </span><span class="kw-2">&amp;</span>right {
+<a href=#342 id=342 data-nosnippet>342</a>            <span class="kw">if </span>left.get(entity) != <span class="prelude-val">Some</span>(revision) {
+<a href=#343 id=343 data-nosnippet>343</a>                changes.push(SnapshotChange::Set(<span class="kw-2">*</span>entity, <span class="kw-2">*</span>revision));
+<a href=#344 id=344 data-nosnippet>344</a>            }
+<a href=#345 id=345 data-nosnippet>345</a>        }
+<a href=#346 id=346 data-nosnippet>346</a>        <span class="kw">for </span>entity <span class="kw">in </span>left.keys() {
+<a href=#347 id=347 data-nosnippet>347</a>            <span class="kw">if </span>!right.contains_key(entity) {
+<a href=#348 id=348 data-nosnippet>348</a>                changes.push(SnapshotChange::Remove(<span class="kw-2">*</span>entity));
+<a href=#349 id=349 data-nosnippet>349</a>            }
+<a href=#350 id=350 data-nosnippet>350</a>        }
+<a href=#351 id=351 data-nosnippet>351</a>        changes
+<a href=#352 id=352 data-nosnippet>352</a>    }
+<a href=#353 id=353 data-nosnippet>353</a>}
 </code></pre></div></section></main></body></html>

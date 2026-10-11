@@ -3,22 +3,26 @@
 <a href=#3 id=3 data-nosnippet>3</a></span><span class="kw">pub mod </span>collection;
 <a href=#4 id=4 data-nosnippet>4</a><span class="kw">pub mod </span>conformance;
 <a href=#5 id=5 data-nosnippet>5</a><span class="kw">pub mod </span>integrity;
-<a href=#6 id=6 data-nosnippet>6</a><span class="kw">pub mod </span>reachability;
-<a href=#7 id=7 data-nosnippet>7</a><span class="kw">pub mod </span>revision;
-<a href=#8 id=8 data-nosnippet>8</a><span class="kw">pub mod </span>revision_store;
-<a href=#9 id=9 data-nosnippet>9</a><span class="kw">pub mod </span>roots;
-<a href=#10 id=10 data-nosnippet>10</a><span class="kw">pub mod </span>snapshot;
-<a href=#11 id=11 data-nosnippet>11</a><span class="kw">pub mod </span>stats;
-<a href=#12 id=12 data-nosnippet>12</a>
-<a href=#13 id=13 data-nosnippet>13</a><span class="kw">pub use </span>collection::Collection;
-<a href=#14 id=14 data-nosnippet>14</a><span class="kw">pub use </span>conformance::{ConformanceStore, run_core_conformance};
-<a href=#15 id=15 data-nosnippet>15</a><span class="kw">pub use </span>integrity::{IntegrityIssue, IntegrityReport};
-<a href=#16 id=16 data-nosnippet>16</a><span class="kw">pub use </span>reachability::{ProtectedRoots, ReachableObjects, UnreachableObjects};
-<a href=#17 id=17 data-nosnippet>17</a><span class="kw">pub use </span>revision::Revision;
-<a href=#18 id=18 data-nosnippet>18</a><span class="kw">pub use </span>revision_store::{RevisionStore, StoreError};
-<a href=#19 id=19 data-nosnippet>19</a><span class="kw">pub use </span>roots::{CasOutcome, RootError, RootStore};
-<a href=#20 id=20 data-nosnippet>20</a><span class="kw">pub use </span>snapshot::{Snapshot, SnapshotChange, SnapshotError, SnapshotStore};
-<a href=#21 id=21 data-nosnippet>21</a><span class="kw">pub use </span>stats::{
-<a href=#22 id=22 data-nosnippet>22</a>    GcReport, IndexStatus, RootStatus, StoreErrorCategory, StoreObservability, StoreStats,
-<a href=#23 id=23 data-nosnippet>23</a>};
+<a href=#6 id=6 data-nosnippet>6</a><span class="kw">pub mod </span>maintenance;
+<a href=#7 id=7 data-nosnippet>7</a><span class="kw">pub mod </span>reachability;
+<a href=#8 id=8 data-nosnippet>8</a><span class="kw">pub mod </span>revision;
+<a href=#9 id=9 data-nosnippet>9</a><span class="kw">pub mod </span>revision_store;
+<a href=#10 id=10 data-nosnippet>10</a><span class="kw">pub mod </span>roots;
+<a href=#11 id=11 data-nosnippet>11</a><span class="kw">pub mod </span>snapshot;
+<a href=#12 id=12 data-nosnippet>12</a><span class="kw">pub mod </span>snapshot_store;
+<a href=#13 id=13 data-nosnippet>13</a><span class="kw">pub mod </span>stats;
+<a href=#14 id=14 data-nosnippet>14</a>
+<a href=#15 id=15 data-nosnippet>15</a><span class="kw">pub use </span>collection::Collection;
+<a href=#16 id=16 data-nosnippet>16</a><span class="kw">pub use </span>conformance::{ConformanceStore, run_core_conformance};
+<a href=#17 id=17 data-nosnippet>17</a><span class="kw">pub use </span>integrity::{IntegrityIssue, IntegrityReport};
+<a href=#18 id=18 data-nosnippet>18</a><span class="kw">pub use </span>maintenance::MaintenanceStore;
+<a href=#19 id=19 data-nosnippet>19</a><span class="kw">pub use </span>reachability::{ProtectedRoots, ReachableObjects, SnapshotNodeId, UnreachableObjects};
+<a href=#20 id=20 data-nosnippet>20</a><span class="kw">pub use </span>revision::Revision;
+<a href=#21 id=21 data-nosnippet>21</a><span class="kw">pub use </span>revision_store::{RevisionStore, StoreError};
+<a href=#22 id=22 data-nosnippet>22</a><span class="kw">pub use </span>roots::{CasOutcome, RootError, RootStore};
+<a href=#23 id=23 data-nosnippet>23</a><span class="kw">pub use </span>snapshot::{Snapshot, SnapshotChange, SnapshotError};
+<a href=#24 id=24 data-nosnippet>24</a><span class="kw">pub use </span>snapshot_store::SnapshotStore;
+<a href=#25 id=25 data-nosnippet>25</a><span class="kw">pub use </span>stats::{
+<a href=#26 id=26 data-nosnippet>26</a>    GcReport, IndexStatus, RootStatus, StoreErrorCategory, StoreObservability, StoreStats,
+<a href=#27 id=27 data-nosnippet>27</a>};
 </code></pre></div></section></main></body></html>
