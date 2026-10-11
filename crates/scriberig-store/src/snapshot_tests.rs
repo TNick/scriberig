@@ -1,6 +1,6 @@
 //! Tests private persistent snapshot representation invariants.
 
-use super::{Node, Snapshot};
+use super::{Node, Snapshot, SnapshotDiff};
 use scriberig_core::{EntityId, RevisionId};
 use std::sync::Arc;
 
@@ -33,4 +33,37 @@ fn updating_one_branch_shares_unaffected_structure() {
         base_children[2].as_ref().expect("second branch"),
         updated_children[2].as_ref().expect("second branch"),
     ));
+}
+
+/// Confirms semantic diffs distinguish additions, removals, and replacements.
+#[test]
+fn semantic_diff_is_explicit_and_entity_ordered() {
+    let added = EntityId::new([1; 16]);
+    let removed = EntityId::new([3; 16]);
+    let changed = EntityId::new([2; 16]);
+    let base = Snapshot::empty()
+        .with_revision(removed, RevisionId::new([1; 32]))
+        .with_revision(changed, RevisionId::new([2; 32]));
+    let target = Snapshot::empty()
+        .with_revision(added, RevisionId::new([4; 32]))
+        .with_revision(changed, RevisionId::new([5; 32]));
+
+    assert_eq!(
+        base.diff(&target),
+        vec![
+            SnapshotDiff::Added {
+                entity: added,
+                revision: RevisionId::new([4; 32]),
+            },
+            SnapshotDiff::Changed {
+                entity: changed,
+                from: RevisionId::new([2; 32]),
+                to: RevisionId::new([5; 32]),
+            },
+            SnapshotDiff::Removed {
+                entity: removed,
+                revision: RevisionId::new([1; 32]),
+            },
+        ]
+    );
 }

@@ -1,4 +1,34 @@
-//! Defines the future event subscription boundary without inventing a wire stream.
+//! Defines server-side event subscription filtering over application events.
 
-/// Marker for a future protocol event subscription implementation.
-pub struct SubscriptionBoundary;
+/// Describes the event kinds selected by one protocol subscription.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct SubscriptionSpec {
+    /// Requested protocol event names; empty selects every event.
+    pub event_kinds: Vec<String>,
+}
+
+impl SubscriptionSpec {
+    /// Creates a subscription selecting all public event kinds.
+    #[must_use]
+    pub fn all() -> Self {
+        Self::default()
+    }
+
+    /// Creates a subscription selecting the supplied event kinds.
+    #[must_use]
+    pub fn filtered(event_kinds: impl IntoIterator<Item = String>) -> Self {
+        Self {
+            event_kinds: event_kinds.into_iter().collect(),
+        }
+    }
+
+    /// Reports whether a protocol event name is selected.
+    #[must_use]
+    pub fn accepts(&self, event_kind: &str) -> bool {
+        self.event_kinds.is_empty()
+            || self
+                .event_kinds
+                .iter()
+                .any(|candidate| candidate.eq_ignore_ascii_case(event_kind))
+    }
+}

@@ -23,24 +23,29 @@ The executable requires a subcommand. Standard Clap help and version flags are a
 
 | Command | Synopsis | Status |
 | --- | --- | --- |
-| `tui` | `srig tui` | Placeholder; terminal UI runtime is not implemented yet. |
+| `tui` | `srig tui [OPTIONS]` | Starts the local application-backed terminal UI. |
 | `serve` | `srig serve [OPTIONS]` | Starts the local API server. |
-| `run` | `srig run <PROMPT>` | Placeholder; one-shot runtime is not implemented yet. |
-| `agent` | `srig agent <PROMPT>` | Placeholder; integrated agent runtime is not implemented yet. |
-| `maintenance` | `srig maintenance` | Placeholder; maintenance runtime is not implemented yet. |
+| `run` | `srig run <PROMPT>` | Runs the deterministic local one-shot provider. |
+| `agent` | `srig agent <PROMPT>` | Runs the deterministic local agent runtime. |
+| `maintenance` | `srig maintenance` | Checks SQLite canonical-state integrity. |
 | `inspect` | `srig inspect <ENTITY> [OPTIONS]` | Inspects entity trust metadata through the shared application boundary. |
 
 Each subcommand also supports `-h` / `--help`.
 
 ## `srig tui`
 
-Start the interactive terminal UI.
+Start the local application-backed terminal UI.
 
 ```text
-srig tui
+srig tui [--db <PATH>]
 ```
 
-The command is currently an honest product stub: it parses successfully and reports that terminal UI mode is not implemented yet.
+The UI reads semantic data through the shared application boundary. Type
+`inspect <ENTITY>` to inspect an entity, or `q` to quit.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `--db <PATH>` | `playground/dev-app-runtime/scriberig.sqlite` | SQLite database path used by the local TUI composition. |
 
 ## `srig serve`
 
@@ -76,7 +81,8 @@ srig run <PROMPT>
 srig run "Summarize the current project state"
 ```
 
-The command currently accepts the prompt but does not execute a one-shot runtime yet.
+The local runtime echoes the prompt through the provider boundary until a
+configured model provider is composed.
 
 ## `srig agent`
 
@@ -92,7 +98,8 @@ srig agent <PROMPT>
 srig agent "Implement the next focused design task"
 ```
 
-The command currently accepts the prompt but does not execute the agent runtime yet.
+The local runtime executes the prompt through the bounded agent runtime and
+provider/tool boundaries.
 
 ## `srig maintenance`
 
@@ -102,7 +109,9 @@ Select repository or database maintenance mode.
 srig maintenance
 ```
 
-The command currently parses successfully but maintenance operations are not implemented yet.
+The command runs a canonical SQLite integrity check against
+`playground/dev-app-runtime/scriberig.sqlite` and reports corruption and
+unreachable snapshot counts.
 
 ## `srig inspect`
 

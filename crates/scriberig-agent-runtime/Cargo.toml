@@ -11,6 +11,7 @@ publish = false
 [dependencies]
 scriberig-agent-core = { path = "../scriberig-agent-core" }
 scriberig-app = { path = "../scriberig-app" }
+scriberig-core = { path = "../scriberig-core" }
 scriberig-session = { path = "../scriberig-session" }
 
 [lints]

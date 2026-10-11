@@ -8,6 +8,7 @@ description = "Terminal UI adapter over shared Scriberig application operations.
 repository.workspace = true
 
 [dependencies]
+scriberig-core = { path = "../scriberig-core" }
 scriberig-app = { path = "../scriberig-app" }
 
 [lints]

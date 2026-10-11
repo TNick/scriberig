@@ -44,7 +44,8 @@ pub use external_effect::{
 pub use guarded_derive::GuardedDerivedRepository;
 pub use guarded_query::GuardedQueryService;
 pub use operation::{
-    OperationId, OperationKind, OperationProgress, OperationRecord, OperationStatus,
+    OperationId, OperationKind, OperationProgress, OperationRecord, OperationRegistry,
+    OperationStatus,
 };
 pub use operation_backend::{CompositeBackend, OperationProvider};
 pub use operation_store::StoreOperationProvider;

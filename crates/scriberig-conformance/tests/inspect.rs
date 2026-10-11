@@ -5,7 +5,8 @@ use scriberig_app::{
     ApplicationContext, DetailLevel, InspectRequest, QueryService, SnapshotResolution,
 };
 use scriberig_cli::{
-    Command, InspectArgs, dispatch,
+    InspectArgs,
+    inspect::result,
     trust::{InspectDepth, OutputFormat},
 };
 use scriberig_client::Client;
@@ -60,21 +61,38 @@ fn inspect_surfaces_are_semantically_equal() {
     assert_eq!(agent.revision, expected.revision);
     assert_eq!(agent.snapshot, expected.snapshot);
 
-    let cli = dispatch(
+    let cli = result(
         &fixture(),
         &ApplicationContext::empty(),
-        Command::Inspect(InspectArgs {
+        &InspectArgs {
             entity: expected.entity,
             snapshot: expected.snapshot,
             depth: InspectDepth::Compact,
             format: OutputFormat::Json,
             db: "playground/dev-app-runtime/scriberig.sqlite".into(),
-        }),
+        },
     )
-    .expect("CLI inspect")
-    .expect("CLI output");
-    assert!(cli.contains(&expected.entity.to_string()));
-    assert!(cli.contains(&expected.revision.expect("revision").to_string()));
+    .expect("CLI inspect");
+    assert_eq!(cli.entity, expected.entity);
+    assert_eq!(cli.revision, expected.revision);
+    assert_eq!(cli.snapshot, expected.snapshot);
+    assert_eq!(cli.label, expected.label);
+    assert_eq!(cli.description, expected.description);
+}
+
+/// Verifies runtime capability discovery survives the server/client boundary.
+#[test]
+fn runtime_capabilities_are_consistent_across_surfaces() {
+    let fixture = fixture();
+    let direct = scriberig_server::ApplicationService::capabilities(&fixture);
+    let remote = Client::new(InProcessTransport::new(fixture)).capabilities();
+    let remote = remote.expect("runtime capabilities");
+    assert_eq!(remote.capabilities.len(), direct.len());
+    for (remote, direct) in remote.capabilities.iter().zip(direct.iter()) {
+        assert_eq!(remote.id, direct.id.to_string());
+        assert_eq!(remote.description, direct.description);
+        assert_eq!(remote.available, direct.available);
+    }
 }
 
 /// Verifies missing entities retain a structured category across surfaces.

@@ -8,9 +8,10 @@ pub mod server;
 pub mod subscription;
 pub mod transport;
 
-pub use development::{ensure_fixture, DevelopmentFixture};
+pub use development::{DevelopmentFixture, ensure_fixture};
 pub use dispatch::Dispatcher;
 pub use server::ApplicationService;
+pub use subscription::SubscriptionSpec;
 pub use transport::InProcessTransport;
 
 use std::error::Error;

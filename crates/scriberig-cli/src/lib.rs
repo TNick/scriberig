@@ -84,7 +84,7 @@ pub struct Cli {
 #[derive(Debug, Subcommand)]
 pub enum Command {
     /// Start the interactive terminal UI.
-    Tui,
+    Tui(TuiArgs),
     /// Start the API server.
     Serve(ServeArgs),
     /// Run one prompt in headless one-shot mode.
@@ -97,7 +97,7 @@ pub enum Command {
     Inspect(InspectArgs),
 }
 
-/// Configure the API server startup stub.
+/// Configure the API server startup.
 ///
 /// # Public members
 /// - `host`: Interface address that the server should bind.
@@ -119,16 +119,24 @@ pub struct ServeArgs {
     pub db: std::path::PathBuf,
 }
 
+/// Configure the local application-backed terminal UI.
+#[derive(Debug, Args)]
+pub struct TuiArgs {
+    /// SQLite database path used by the local TUI composition.
+    #[arg(long, default_value = "playground/dev-app-runtime/scriberig.sqlite")]
+    pub db: std::path::PathBuf,
+}
+
 /// Store a prompt accepted by a prompt-driven command.
 ///
 /// # Public members
-/// - `prompt`: User prompt forwarded by a future runtime implementation.
+/// - `prompt`: User prompt forwarded to the composed runtime.
 ///
 /// # Private members
 /// None.
 #[derive(Debug, Args)]
 pub struct PromptArgs {
-    /// User prompt forwarded by a future runtime implementation.
+    /// User prompt forwarded to the composed runtime.
     pub prompt: String,
 }
 

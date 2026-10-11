@@ -144,13 +144,13 @@ impl ApplicationService for Fixture {
         )]
     }
 
-    /// Returns a deterministic completed operation.
+    /// Returns a deterministic operation lifecycle observation.
     ///
     /// # Parameters
     /// - `operation_id`: Stable operation handle.
     ///
     /// # Returns
-    /// Completed protocol operation.
+    /// Protocol operation status selected by the stable test handle.
     ///
     /// # Errors
     /// This fixture never fails operation lookup.
@@ -158,21 +158,120 @@ impl ApplicationService for Fixture {
         &self,
         operation_id: &str,
     ) -> Result<scriberig_protocol::Operation, ApplicationError> {
+        let (status, percent, message, error) = match operation_id {
+            "op-queued" => (
+                scriberig_protocol::operation::OperationStatus::Queued,
+                0,
+                "queued",
+                None,
+            ),
+            "op-running" => (
+                scriberig_protocol::operation::OperationStatus::Running,
+                50,
+                "running",
+                None,
+            ),
+            "op-failed" => (
+                scriberig_protocol::operation::OperationStatus::Failed,
+                50,
+                "failed",
+                Some("deterministic failure"),
+            ),
+            "op-cancelled" => (
+                scriberig_protocol::operation::OperationStatus::Cancelled,
+                25,
+                "cancelled",
+                Some("cancelled by caller"),
+            ),
+            _ => (
+                scriberig_protocol::operation::OperationStatus::Completed,
+                100,
+                "complete",
+                None,
+            ),
+        };
+        let result_snapshot = matches!(
+            &status,
+            scriberig_protocol::operation::OperationStatus::Completed
+        )
+        .then(|| scriberig_protocol::SnapshotReference {
+            id: self.snapshot.to_string(),
+        });
         Ok(scriberig_protocol::Operation {
             reference: scriberig_protocol::OperationReference {
                 id: operation_id.to_owned(),
             },
             kind: scriberig_protocol::operation::OperationKind::Inspect,
-            status: scriberig_protocol::operation::OperationStatus::Completed,
+            status,
             progress: Some(scriberig_protocol::OperationProgress {
-                percent: 100,
-                message: Some("complete".to_owned()),
+                percent,
+                message: Some(message.to_owned()),
             }),
-            result_snapshot: Some(scriberig_protocol::SnapshotReference {
+            result_snapshot,
+            result_handles: Vec::new(),
+            error: error.map(str::to_owned),
+        })
+    }
+
+    /// Returns the deterministic cancelled state for one operation.
+    ///
+    /// # Parameters
+    /// - `operation_id`: Stable operation handle.
+    ///
+    /// # Returns
+    /// Cancelled protocol operation.
+    ///
+    /// # Errors
+    /// This fixture never fails cancellation lookup.
+    fn cancel_operation(
+        &self,
+        operation_id: &str,
+    ) -> Result<scriberig_protocol::Operation, ApplicationError> {
+        let mut operation = self.operation_status(operation_id)?;
+        operation.status = scriberig_protocol::operation::OperationStatus::Cancelled;
+        operation.result_snapshot = None;
+        operation.error = Some("cancelled by caller".to_owned());
+        Ok(operation)
+    }
+
+    /// Returns one authoritative event for the deterministic fixture.
+    ///
+    /// # Parameters
+    /// - `event_kinds`: Optional protocol event-name filter.
+    ///
+    /// # Returns
+    /// A stable entity-change event when selected by the filter.
+    ///
+    /// # Errors
+    /// This fixture does not fail event reads.
+    fn events(
+        &self,
+        event_kinds: &[String],
+    ) -> Result<Vec<scriberig_protocol::Event>, ApplicationError> {
+        let selected = event_kinds.is_empty()
+            || event_kinds
+                .iter()
+                .any(|kind| kind == "EntityChanged" || kind.eq_ignore_ascii_case("entity_changed"));
+        if !selected {
+            return Ok(Vec::new());
+        }
+        Ok(vec![scriberig_protocol::Event {
+            kind: scriberig_protocol::EventKind::EntityChanged,
+            entity: Some(scriberig_protocol::EntityReference {
+                id: self.entity.to_string(),
+            }),
+            revision: Some(scriberig_protocol::RevisionReference {
+                entity: scriberig_protocol::EntityReference {
+                    id: self.entity.to_string(),
+                },
+                id: self.revision.to_string(),
+            }),
+            snapshot: Some(scriberig_protocol::SnapshotReference {
                 id: self.snapshot.to_string(),
             }),
-            error: None,
-        })
+            operation: None,
+            metadata: vec![("authority".to_owned(), "canonical".to_owned())],
+        }])
     }
 }
 

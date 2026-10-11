@@ -8,3 +8,4 @@ pub mod subscription;
 pub use client::Client;
 pub use error::ClientError;
 pub use operation::OperationPoller;
+pub use subscription::EventSubscription;

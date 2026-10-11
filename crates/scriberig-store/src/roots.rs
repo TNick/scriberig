@@ -92,10 +92,7 @@ pub trait RootStore {
     ///
     /// # Errors
     /// Returns a backend error when the update cannot be stored.
-    fn set_root(&self, name: RootName, snapshot: SnapshotId) -> Result<(), RootError> {
-        let expected = self.read_root(&name);
-        self.compare_and_set_root(name, expected, snapshot)
-    }
+    fn set_root(&self, name: RootName, snapshot: SnapshotId) -> Result<(), RootError>;
 
     /// # Parameters
     /// - `name`: Operation input.

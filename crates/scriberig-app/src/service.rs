@@ -50,6 +50,7 @@ pub trait ApplicationBackend {
 /// Facade that delegates every application operation to one injected backend.
 pub struct ApplicationService<B> {
     backend: B,
+    operations: crate::OperationRegistry,
 }
 
 impl<B> ApplicationService<B> {
@@ -61,8 +62,11 @@ impl<B> ApplicationService<B> {
     /// # Returns
     /// A transport-independent application service.
     #[must_use]
-    pub const fn new(backend: B) -> Self {
-        Self { backend }
+    pub fn new(backend: B) -> Self {
+        Self {
+            backend,
+            operations: crate::OperationRegistry::new(),
+        }
     }
 
     /// Returns the injected backend by shared reference.
@@ -75,6 +79,12 @@ impl<B> ApplicationService<B> {
     #[must_use]
     pub const fn backend(&self) -> &B {
         &self.backend
+    }
+
+    /// Returns the lifecycle registry used by this application service.
+    #[must_use]
+    pub const fn operations(&self) -> &crate::OperationRegistry {
+        &self.operations
     }
 }
 

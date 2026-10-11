@@ -1,9 +1,9 @@
 //! Verifies public protocol values round trip without relying on Debug output.
 
 use scriberig_protocol::{
-    EntityReference, Event, EventKind, InspectEntityRequest, Operation, OperationProgress,
-    OperationReference, ProtocolError, ProtocolErrorCode, ProtocolVersion, Request,
-    RequestEnvelope, SnapshotReference, SnapshotSelector,
+    CancelOperationRequest, EntityReference, Event, EventKind, InspectEntityRequest, Operation,
+    OperationProgress, OperationReference, ProtocolError, ProtocolErrorCode, ProtocolVersion,
+    Request, RequestEnvelope, SnapshotReference, SnapshotSelector, SubscribeRequest,
 };
 
 /// Serializes and deserializes one protocol value.
@@ -60,6 +60,7 @@ fn operation_and_event_round_trip() {
             message: Some("done".to_owned()),
         }),
         result_snapshot: None,
+        result_handles: Vec::new(),
         error: None,
     };
     assert_eq!(round_trip(&operation), operation);
@@ -76,10 +77,45 @@ fn operation_and_event_round_trip() {
     assert_eq!(round_trip(&event), event);
 }
 
+/// Verifies cancellation and event subscription requests retain their filters.
+#[test]
+fn operation_control_requests_round_trip() {
+    let cancel = Request::CancelOperation(CancelOperationRequest {
+        operation: OperationReference {
+            id: "op-1".to_owned(),
+        },
+    });
+    let subscribe = Request::Subscribe(SubscribeRequest {
+        event_kinds: vec!["EntityChanged".to_owned()],
+    });
+    assert_eq!(round_trip(&cancel), cancel);
+    assert_eq!(round_trip(&subscribe), subscribe);
+}
+
 /// Verifies protocol version metadata remains explicit and stable.
 #[test]
 fn protocol_version_is_explicit() {
     let version = ProtocolVersion::default();
     assert_eq!(version.major, 1);
     assert_eq!(round_trip(&version), version);
+}
+
+/// Verifies additive JSON fields do not break existing public messages.
+#[test]
+fn additive_fields_are_ignored_by_older_readers() {
+    let value = serde_json::json!({
+        "reference": {"id": "op-1"},
+        "kind": "Inspect",
+        "status": "Completed",
+        "progress": null,
+        "result_snapshot": null,
+        "error": null,
+        "future_result": {"entity": "ent-1"}
+    });
+    let operation: Operation = serde_json::from_value(value).expect("additive field");
+    assert_eq!(operation.reference.id, "op-1");
+    assert_eq!(
+        operation.status,
+        scriberig_protocol::operation::OperationStatus::Completed
+    );
 }

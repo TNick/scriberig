@@ -21,23 +21,36 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         scriberig_cli::Command::Serve(args) => {
             scriberig_server::serve(&args.host, args.port, &args.db)?;
         }
-        scriberig_cli::Command::Tui => {
-            println!("srig tui: terminal UI mode is not implemented yet.");
+        scriberig_cli::Command::Tui(args) => {
+            let store = SqliteStore::open(&args.db)?;
+            let service = ApplicationService::new(StoreInspectionBackend::new(store));
+            let service = GuardedQueryService::new(service);
+            let context = local_read_context("local-tui");
+            scriberig_tui::run(
+                &service,
+                &context,
+                &scriberig_tui::TuiConfig {
+                    interactive: true,
+                    ..scriberig_tui::TuiConfig::default()
+                },
+            )?;
         }
-        scriberig_cli::Command::Run(args) => {
-            println!(
-                "srig run: one-shot mode is not implemented yet (accepted {} prompt bytes).",
-                args.prompt.len()
-            );
-        }
-        scriberig_cli::Command::Agent(args) => {
-            println!(
-                "srig agent: agent mode is not implemented yet (accepted {} prompt bytes).",
-                args.prompt.len()
-            );
+        scriberig_cli::Command::Run(args) | scriberig_cli::Command::Agent(args) => {
+            let result = scriberig_agent_runtime::run_local_prompt(args.prompt)?;
+            println!("{}", result.output);
         }
         scriberig_cli::Command::Maintenance => {
-            println!("srig maintenance: maintenance mode is not implemented yet.");
+            use scriberig_store::ProtectedRoots;
+            let store = SqliteStore::open("playground/dev-app-runtime/scriberig.sqlite")?;
+            let report = store.integrity_check(&ProtectedRoots::default())?;
+            println!(
+                "maintenance: {} corruption issue(s), {} unreachable snapshot(s)",
+                report.corrupt.len(),
+                report.unreachable.snapshots.len()
+            );
+            if report.is_corrupt() {
+                return Err("maintenance integrity check found corruption".into());
+            }
         }
         scriberig_cli::Command::Inspect(args) => {
             let store = SqliteStore::open(&args.db)?;
@@ -67,4 +80,19 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         }
     }
     Ok(())
+}
+
+/// Builds the least-authority context for local read-only product surfaces.
+fn local_read_context(principal: &str) -> ApplicationContext {
+    ApplicationContext {
+        capabilities: CapabilityContext::with_grants([Capability {
+            scope: CapabilityScope::Project,
+            actions: [CapabilityAction::Inspect]
+                .into_iter()
+                .collect::<BTreeSet<_>>(),
+            constraints: CapabilityConstraints::unrestricted(),
+        }]),
+        principal: Some(scriberig_app::Principal::new(principal)),
+        ..ApplicationContext::empty()
+    }
 }

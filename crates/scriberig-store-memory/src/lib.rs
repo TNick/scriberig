@@ -162,7 +162,7 @@ impl SnapshotStore for MemoryStore {
         from: SnapshotId,
         to: SnapshotId,
     ) -> Result<Vec<SnapshotChange>, SnapshotError> {
-        Ok(self.snapshot(from)?.diff(&self.snapshot(to)?))
+        Ok(self.snapshot(from)?.diff_changes(&self.snapshot(to)?))
     }
 }
 
@@ -175,6 +175,15 @@ impl RootStore for MemoryStore {
     /// Reads a named root atomically.
     fn read_root(&self, name: &RootName) -> Option<SnapshotId> {
         self.roots.read().ok()?.get(name).copied()
+    }
+
+    /// Unconditionally points a named root at an immutable snapshot.
+    fn set_root(&self, name: RootName, snapshot: SnapshotId) -> Result<(), RootError> {
+        self.roots
+            .write()
+            .map_err(|_| RootError::Backend("lock poisoned".to_owned()))?
+            .insert(name, snapshot);
+        Ok(())
     }
 
     /// # Parameters

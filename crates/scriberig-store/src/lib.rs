@@ -23,7 +23,7 @@ pub use reachability::{ProtectedRoots, ReachableObjects, SnapshotNodeId, Unreach
 pub use revision::Revision;
 pub use revision_store::{RevisionStore, StoreError};
 pub use roots::{CasOutcome, RootError, RootStore};
-pub use snapshot::{Snapshot, SnapshotChange, SnapshotError};
+pub use snapshot::{Snapshot, SnapshotChange, SnapshotDiff, SnapshotError};
 pub use snapshot_store::SnapshotStore;
 pub use stats::{
     GcReport, IndexStatus, RootStatus, StoreErrorCategory, StoreObservability, StoreOperationError,

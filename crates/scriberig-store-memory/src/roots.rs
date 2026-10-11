@@ -42,6 +42,15 @@ impl RootStore for MemoryRootStore {
     fn read_root(&self, name: &RootName) -> Option<SnapshotId> {
         self.roots.read().ok()?.get(name).copied()
     }
+
+    /// Unconditionally points a named root at an immutable snapshot.
+    fn set_root(&self, name: RootName, snapshot: SnapshotId) -> Result<(), RootError> {
+        self.roots
+            .write()
+            .map_err(|_| RootError::Backend("lock poisoned".to_owned()))?
+            .insert(name, snapshot);
+        Ok(())
+    }
     /// # Parameters
     /// - `name`: Operation input.
     /// - `expected`: Operation input.
@@ -126,5 +135,19 @@ mod tests {
                 .is_err()
         );
         assert_eq!(store.read_root(&name), Some(base));
+    }
+
+    /// Confirms unconditional setting replaces a concurrent root value.
+    #[test]
+    fn set_root_replaces_existing_value() {
+        let store = MemoryRootStore::new();
+        let name = RootName::new("main").expect("root");
+        let first = SnapshotId::new([1; 32]);
+        let second = SnapshotId::new([2; 32]);
+
+        store.set_root(name.clone(), first).expect("first root");
+        store.set_root(name.clone(), second).expect("second root");
+
+        assert_eq!(store.read_root(&name), Some(second));
     }
 }

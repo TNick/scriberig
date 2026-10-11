@@ -58,6 +58,9 @@ pub struct Operation {
     pub progress: Option<OperationProgress>,
     /// Result snapshot when the operation completed.
     pub result_snapshot: Option<SnapshotReference>,
+    /// Stable semantic handles produced by the operation.
+    #[serde(default)]
+    pub result_handles: Vec<String>,
     /// Safe failure summary when the operation failed.
     pub error: Option<String>,
 }

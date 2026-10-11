@@ -1,9 +1,12 @@
 //! Verifies event references retain authoritative semantic handles.
 
+use scriberig_client::Client;
+use scriberig_conformance::fixture;
 use scriberig_core::EntityId;
 use scriberig_protocol::{
-    EntityReference, Event, EventKind, OperationReference, SnapshotReference,
+    EntityReference, Event, EventKind, OperationReference, SnapshotReference, SnapshotSelector,
 };
+use scriberig_server::InProcessTransport;
 
 /// Verifies an event carries references rather than mutable semantic copies.
 #[test]
@@ -29,4 +32,43 @@ fn event_references_survive_serialization() {
         decoded.entity.expect("entity").id,
         EntityId::new([1; 16]).to_string()
     );
+}
+
+/// Verifies event handles resolve authoritative state after observation.
+#[test]
+fn event_subject_resolves_through_the_public_read_boundary() {
+    let fixture = fixture();
+    let client = Client::new(InProcessTransport::new(fixture.clone()));
+    let delivered = client
+        .subscribe(vec!["entity_changed".to_owned()])
+        .expect("event subscription");
+    assert_eq!(delivered.len(), 1);
+    assert_eq!(
+        delivered[0].entity.as_ref().expect("event entity").id,
+        fixture.entity.to_string()
+    );
+    let event = Event {
+        kind: EventKind::EntityChanged,
+        entity: Some(EntityReference {
+            id: fixture.entity.to_string(),
+        }),
+        revision: None,
+        snapshot: Some(SnapshotReference {
+            id: fixture.snapshot.to_string(),
+        }),
+        operation: None,
+        metadata: Vec::new(),
+    };
+    let response = client
+        .inspect(
+            event.entity.expect("event subject").id,
+            SnapshotSelector::Exact(SnapshotReference {
+                id: event.snapshot.expect("event snapshot").id,
+            }),
+            false,
+        )
+        .expect("authoritative inspection");
+    assert_eq!(response.entity.id, fixture.entity.to_string());
+    assert_eq!(response.revision.id, fixture.revision.to_string());
+    assert_eq!(response.snapshot.id, fixture.snapshot.to_string());
 }

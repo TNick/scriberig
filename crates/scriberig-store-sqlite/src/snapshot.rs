@@ -70,7 +70,7 @@ impl SnapshotStore for SqliteStore {
         from: SnapshotId,
         to: SnapshotId,
     ) -> Result<Vec<SnapshotChange>, SnapshotError> {
-        Ok(self.snapshot(from)?.diff(&self.snapshot(to)?))
+        Ok(self.snapshot(from)?.diff_changes(&self.snapshot(to)?))
     }
 }
 

@@ -18,6 +18,7 @@ scriberig-app = { path = "../../crates/scriberig-app" }
 scriberig-cli = { path = "../../crates/scriberig-cli" }
 scriberig-server = { path = "../../crates/scriberig-server" }
 scriberig-store-sqlite = { path = "../../crates/scriberig-store-sqlite" }
+scriberig-store = { path = "../../crates/scriberig-store" }
 scriberig-tui = { path = "../../crates/scriberig-tui" }
 
 [lints]

@@ -100,6 +100,17 @@ impl<S: ApplicationService> Dispatcher<S> {
                     |error| Response::Error(map_error(&error, correlation_id)),
                     |operation| Response::OperationStatus(OperationStatusResponse { operation }),
                 ),
+            Request::CancelOperation(request) => self
+                .service
+                .cancel_operation(&request.operation.id)
+                .map_or_else(
+                    |error| Response::Error(map_error(&error, correlation_id)),
+                    |operation| Response::OperationCancelled(OperationStatusResponse { operation }),
+                ),
+            Request::Subscribe(request) => self.service.events(&request.event_kinds).map_or_else(
+                |error| Response::Error(map_error(&error, correlation_id)),
+                Response::Events,
+            ),
         }
     }
 

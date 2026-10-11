@@ -1,5 +1,6 @@
 //! Defines the transport-neutral in-process protocol envelope boundary.
 
+use crate::{CancelOperationRequest, Event, SubscribeRequest};
 use crate::{
     CapabilitiesResponse, InspectEntityRequest, InspectEntityResponse, OperationStatusRequest,
     OperationStatusResponse, ProtocolError, ProtocolVersion, RuntimeCapabilitiesRequest,
@@ -15,6 +16,10 @@ pub enum Request {
     Capabilities(RuntimeCapabilitiesRequest),
     /// Read one operation status.
     OperationStatus(OperationStatusRequest),
+    /// Cancel one tracked operation.
+    CancelOperation(CancelOperationRequest),
+    /// Read events currently available to a subscription.
+    Subscribe(SubscribeRequest),
 }
 
 /// Initial typed responses supported by the remote vertical slice.
@@ -26,6 +31,10 @@ pub enum Response {
     Capabilities(CapabilitiesResponse),
     /// Operation status result.
     OperationStatus(OperationStatusResponse),
+    /// Resulting state after cancellation.
+    OperationCancelled(OperationStatusResponse),
+    /// Events currently available to the subscriber.
+    Events(Vec<Event>),
     /// Structured protocol failure.
     Error(ProtocolError),
 }

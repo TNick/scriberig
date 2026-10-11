@@ -89,6 +89,7 @@ impl ApplicationService for Fixture {
             result_snapshot: Some(SnapshotReference {
                 id: self.snapshot.to_string(),
             }),
+            result_handles: Vec::new(),
             error: None,
         })
     }

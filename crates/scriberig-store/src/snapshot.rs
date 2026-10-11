@@ -14,6 +14,34 @@ pub enum SnapshotChange {
     Remove(EntityId),
 }
 
+/// Describes one semantic difference between two immutable snapshots.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SnapshotDiff {
+    /// An entity is present only in the target snapshot.
+    Added {
+        /// Entity introduced by the target snapshot.
+        entity: EntityId,
+        /// Revision assigned by the target snapshot.
+        revision: RevisionId,
+    },
+    /// An entity is present only in the source snapshot.
+    Removed {
+        /// Entity removed by the target snapshot.
+        entity: EntityId,
+        /// Revision assigned by the source snapshot.
+        revision: RevisionId,
+    },
+    /// An entity resolves to a different revision in the target snapshot.
+    Changed {
+        /// Entity whose resolution changed.
+        entity: EntityId,
+        /// Revision assigned by the source snapshot.
+        from: RevisionId,
+        /// Revision assigned by the target snapshot.
+        to: RevisionId,
+    },
+}
+
 /// Reports an invalid snapshot operation.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SnapshotError {
@@ -59,9 +87,10 @@ impl Node {
             Self::Branch(children) => {
                 bytes.extend_from_slice(b"scriberig.trie.branch.v1");
                 for child in children {
-                    bytes.extend_from_slice(
-                        &child.as_ref().map_or([0; 32], |node| node.hash(version)),
-                    );
+                    let hash = child
+                        .as_ref()
+                        .map_or_else(|| Self::Empty.hash(version), |node| node.hash(version));
+                    bytes.extend_from_slice(&hash);
                 }
             }
         }
@@ -332,22 +361,55 @@ impl Snapshot {
     ///
     /// # Returns
     /// The requested snapshot result.
-    /// Computes deterministic mapping changes from this snapshot to another.
+    /// Computes explicit semantic differences in ascending entity order.
     #[must_use]
-    pub fn diff(&self, other: &Self) -> Vec<SnapshotChange> {
+    pub fn diff(&self, other: &Self) -> Vec<SnapshotDiff> {
+        self.diff_semantic(other)
+    }
+
+    /// Computes storage-level changes suitable for applying to another snapshot.
+    #[must_use]
+    pub fn diff_changes(&self, other: &Self) -> Vec<SnapshotChange> {
+        self.diff_semantic(other)
+            .into_iter()
+            .map(|change| match change {
+                SnapshotDiff::Added { entity, revision }
+                | SnapshotDiff::Changed {
+                    entity,
+                    to: revision,
+                    ..
+                } => SnapshotChange::Set(entity, revision),
+                SnapshotDiff::Removed { entity, .. } => SnapshotChange::Remove(entity),
+            })
+            .collect()
+    }
+
+    /// Computes explicit semantic differences in ascending entity order.
+    #[must_use]
+    pub fn diff_semantic(&self, other: &Self) -> Vec<SnapshotDiff> {
         let left: BTreeMap<_, _> = self.iter().collect();
         let right: BTreeMap<_, _> = other.iter().collect();
-        let mut changes = Vec::new();
-        for (entity, revision) in &right {
-            if left.get(entity) != Some(revision) {
-                changes.push(SnapshotChange::Set(*entity, *revision));
-            }
-        }
-        for entity in left.keys() {
-            if !right.contains_key(entity) {
-                changes.push(SnapshotChange::Remove(*entity));
-            }
-        }
-        changes
+        left.keys()
+            .chain(right.keys())
+            .copied()
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .filter_map(|entity| match (left.get(&entity), right.get(&entity)) {
+                (None, Some(revision)) => Some(SnapshotDiff::Added {
+                    entity,
+                    revision: *revision,
+                }),
+                (Some(revision), None) => Some(SnapshotDiff::Removed {
+                    entity,
+                    revision: *revision,
+                }),
+                (Some(from), Some(to)) if from != to => Some(SnapshotDiff::Changed {
+                    entity,
+                    from: *from,
+                    to: *to,
+                }),
+                _ => None,
+            })
+            .collect()
     }
 }

@@ -3,10 +3,10 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use scriberig_protocol::{
-    CapabilitiesResponse, EntityReference, InspectEntityRequest, InspectEntityResponse,
-    OperationReference, OperationStatusRequest, OperationStatusResponse, ProtocolTransport,
-    ProtocolVersion, Request, RequestEnvelope, Response, RuntimeCapabilitiesRequest,
-    SnapshotSelector,
+    CancelOperationRequest, CapabilitiesResponse, EntityReference, Event, InspectEntityRequest,
+    InspectEntityResponse, OperationReference, OperationStatusRequest, OperationStatusResponse,
+    ProtocolTransport, ProtocolVersion, Request, RequestEnvelope, Response,
+    RuntimeCapabilitiesRequest, SnapshotSelector, SubscribeRequest,
 };
 
 use crate::error::ClientError;
@@ -108,6 +108,55 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::OperationStatus(response) => Ok(response),
+            Response::Error(error) => Err(ClientError::Protocol(error)),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Requests cancellation of one tracked operation.
+    ///
+    /// # Parameters
+    /// - `operation`: Transport-safe operation identifier.
+    ///
+    /// # Returns
+    /// The operation's cancelled lifecycle state.
+    ///
+    /// # Errors
+    /// Returns a structured server error or response mismatch.
+    pub fn cancel_operation(
+        &self,
+        operation: impl Into<String>,
+    ) -> Result<OperationStatusResponse, ClientError> {
+        match self
+            .send(Request::CancelOperation(CancelOperationRequest {
+                operation: OperationReference {
+                    id: operation.into(),
+                },
+            }))
+            .response
+        {
+            Response::OperationCancelled(response) => Ok(response),
+            Response::Error(error) => Err(ClientError::Protocol(error)),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Reads currently available events matching a subscription.
+    ///
+    /// # Parameters
+    /// - `event_kinds`: Optional event names; empty selects all events.
+    ///
+    /// # Returns
+    /// Stable event envelopes available at the time of the request.
+    ///
+    /// # Errors
+    /// Returns a structured server error or response mismatch.
+    pub fn subscribe(&self, event_kinds: Vec<String>) -> Result<Vec<Event>, ClientError> {
+        match self
+            .send(Request::Subscribe(SubscribeRequest { event_kinds }))
+            .response
+        {
+            Response::Events(events) => Ok(events),
             Response::Error(error) => Err(ClientError::Protocol(error)),
             _ => Err(ClientError::UnexpectedResponse),
         }

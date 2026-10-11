@@ -6,9 +6,10 @@ use std::str::FromStr;
 
 use scriberig_app::{ApplicationContext, InspectRequest, SnapshotResolution};
 use scriberig_core::{EntityId, SnapshotId};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::development::DevelopmentFixture;
+use crate::dispatch::Dispatcher;
 use crate::server::ApplicationService;
 
 /// Shared state for one local HTTP server.
@@ -41,7 +42,7 @@ pub fn handle_connection<S: ApplicationService>(
         return write_json(
             &mut stream,
             400,
-            json!({"code": "invalid_request", "message": "malformed HTTP request"}),
+            &json!({"code": "invalid_request", "message": "malformed HTTP request"}),
         );
     };
     let mut lines = head.lines();
@@ -49,7 +50,7 @@ pub fn handle_connection<S: ApplicationService>(
         return write_json(
             &mut stream,
             400,
-            json!({"code": "invalid_request", "message": "missing request line"}),
+            &json!({"code": "invalid_request", "message": "missing request line"}),
         );
     };
     let mut request_parts = request_line.split_whitespace();
@@ -57,6 +58,7 @@ pub fn handle_connection<S: ApplicationService>(
     let path = request_parts.next().unwrap_or_default();
     let parsed = match (method, path) {
         ("GET", "/api/health") => Ok(json!({"status": "ready", "database": "ready"})),
+        ("POST", "/api/protocol") => protocol(state, body),
         ("POST", "/api/protocol/capabilities") => Ok(capabilities(state)),
         ("POST", "/api/protocol/inspect") => inspect(state, body),
         ("POST", "/api/protocol/list") => list(state, body),
@@ -66,9 +68,30 @@ pub fn handle_connection<S: ApplicationService>(
         )),
     };
     match parsed {
-        Ok(value) => write_json(&mut stream, 200, value),
-        Err((status, value)) => write_json(&mut stream, status, value),
+        Ok(value) => write_json(&mut stream, 200, &value),
+        Err((status, value)) => write_json(&mut stream, status, &value),
     }
+}
+
+/// Dispatches an authoritative protocol envelope through shared application semantics.
+fn protocol<S: ApplicationService>(
+    state: &HttpState<S>,
+    body: &str,
+) -> Result<Value, (u16, Value)> {
+    let request: scriberig_protocol::RequestEnvelope =
+        serde_json::from_str(body).map_err(|error| {
+            (
+                400,
+                json!({"code": "invalid_request", "message": error.to_string()}),
+            )
+        })?;
+    let response = Dispatcher::new(&state.service).dispatch(request);
+    serde_json::to_value(response).map_err(|error| {
+        (
+            500,
+            json!({"code": "internal", "message": error.to_string()}),
+        )
+    })
 }
 
 /// Returns the capabilities required for development bootstrap.
@@ -127,7 +150,7 @@ fn inspect<S: ApplicationService>(state: &HttpState<S>, body: &str) -> Result<Va
         result.snapshot,
         result.revision,
         result.object_type.map(|value| value.to_string()),
-        result.label.or(result.description),
+        result.label.as_deref().or(result.description.as_deref()),
         None,
     ))
 }
@@ -157,7 +180,7 @@ fn list<S: ApplicationService>(state: &HttpState<S>, body: &str) -> Result<Value
                 Some(state.fixture.snapshot),
                 None,
                 Some("scriberig.demo.entity".to_owned()),
-                Some("Development entity".to_owned()),
+                Some("Development entity"),
                 None,
             )["summary"]
                 .clone()
@@ -222,7 +245,7 @@ fn object_description(
     snapshot: Option<SnapshotId>,
     revision: Option<scriberig_core::RevisionId>,
     object_type: Option<String>,
-    label: Option<String>,
+    label: Option<&str>,
     child_count: Option<usize>,
 ) -> Value {
     json!({
@@ -247,7 +270,7 @@ fn object_description(
 ///
 /// # Errors
 /// Returns an I/O error when the response cannot be written.
-fn write_json(stream: &mut TcpStream, status: u16, body: Value) -> std::io::Result<()> {
+fn write_json(stream: &mut TcpStream, status: u16, body: &Value) -> std::io::Result<()> {
     let body = serde_json::to_vec(&body).unwrap_or_else(|_| b"{\"code\":\"internal\"}".to_vec());
     let reason = match status {
         200 => "OK",
@@ -255,6 +278,10 @@ fn write_json(stream: &mut TcpStream, status: u16, body: Value) -> std::io::Resu
         404 => "Not Found",
         _ => "Error",
     };
-    write!(stream, "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len())?;
+    write!(
+        stream,
+        "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        body.len()
+    )?;
     stream.write_all(&body)
 }

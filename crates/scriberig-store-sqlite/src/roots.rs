@@ -29,6 +29,16 @@ impl RootStore for SqliteStore {
         value.copy_from_slice(&bytes);
         Some(SnapshotId::new(value))
     }
+
+    /// Unconditionally points a named root at an immutable snapshot.
+    fn set_root(&self, name: RootName, snapshot: SnapshotId) -> Result<(), RootError> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| RootError::Backend("lock poisoned".to_owned()))?;
+        write_root_in_connection(&connection, &name, snapshot)
+            .map_err(|error| RootError::Backend(error.to_string()))
+    }
     /// # Parameters
     /// - `name`: Operation input.
     /// - `expected`: Operation input.
@@ -125,6 +135,20 @@ pub(crate) fn write_root_in_transaction(
     snapshot: SnapshotId,
 ) -> rusqlite::Result<()> {
     transaction.execute(
+        "INSERT INTO roots(name,snapshot_id) VALUES (?,?)
+         ON CONFLICT(name) DO UPDATE SET snapshot_id=excluded.snapshot_id",
+        params![name.as_str(), snapshot.as_bytes().as_slice()],
+    )?;
+    Ok(())
+}
+
+/// Writes a root without comparing a previously observed value.
+fn write_root_in_connection(
+    connection: &rusqlite::Connection,
+    name: &RootName,
+    snapshot: SnapshotId,
+) -> rusqlite::Result<()> {
+    connection.execute(
         "INSERT INTO roots(name,snapshot_id) VALUES (?,?)
          ON CONFLICT(name) DO UPDATE SET snapshot_id=excluded.snapshot_id",
         params![name.as_str(), snapshot.as_bytes().as_slice()],

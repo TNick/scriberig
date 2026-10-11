@@ -89,6 +89,7 @@ mod tests {
                 message: Some("done".to_owned()),
             }),
             result_snapshot: None,
+            result_handles: Vec::new(),
             error: None,
         });
         round_trip(&Event {

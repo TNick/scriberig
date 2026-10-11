@@ -10,7 +10,6 @@ publish = false
 
 [dependencies]
 scriberig-core = { path = "../scriberig-core" }
-scriberig-agent-runtime = { path = "../scriberig-agent-runtime" }
 scriberig-app = { path = "../scriberig-app" }
 scriberig-protocol = { path = "../scriberig-protocol" }
 scriberig-store-sqlite = { path = "../scriberig-store-sqlite" }

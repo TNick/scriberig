@@ -57,6 +57,11 @@ mod tests {
         fn read_root(&self, _name: &RootName) -> Option<SnapshotId> {
             self.0
         }
+
+        /// Sets the fixture root unconditionally.
+        fn set_root(&self, _name: RootName, _snapshot: SnapshotId) -> Result<(), RootError> {
+            Ok(())
+        }
         /// Performs fixture compare-and-set.
         ///
         /// # Parameters

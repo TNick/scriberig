@@ -459,6 +459,7 @@ dependencies = [
  "scriberig-app",
  "scriberig-cli",
  "scriberig-server",
+ "scriberig-store",
  "scriberig-store-sqlite",
  "scriberig-tui",
 ]
@@ -479,6 +480,7 @@ version = "0.1.0"
 dependencies = [
  "scriberig-agent-core",
  "scriberig-app",
+ "scriberig-core",
  "scriberig-session",
 ]
 
@@ -674,11 +676,11 @@ dependencies = [
 name = "scriberig-server"
 version = "0.1.0"
 dependencies = [
- "scriberig-agent-runtime",
  "scriberig-app",
  "scriberig-client",
  "scriberig-core",
  "scriberig-protocol",
+ "scriberig-store",
  "scriberig-store-sqlite",
  "serde_json",
 ]
@@ -724,6 +726,7 @@ name = "scriberig-tui"
 version = "0.1.0"
 dependencies = [
  "scriberig-app",
+ "scriberig-core",
 ]
 
 [[package]]
