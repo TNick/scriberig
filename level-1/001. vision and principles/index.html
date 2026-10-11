@@ -1,0 +1,6090 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Design documentation for the Scriberig structured knowledge and agent platform.">
+      
+      
+      
+        <link rel="canonical" href="https://tnick.github.io/scriberig/level-1/001.%20vision%20and%20principles/">
+      
+      
+        <link rel="prev" href="../..">
+      
+      
+        <link rel="next" href="../002.%20universal%20knowledge%20model/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Scriberig Vision and Principles - Scriberig</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#scriberig-vision-and-principles" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Scriberig" class="md-header__button md-logo" aria-label="Scriberig" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Scriberig
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Scriberig Vision and Principles
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/TNick/scriberig" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    TNick/scriberig
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Scriberig" class="md-nav__button md-logo" aria-label="Scriberig" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Scriberig
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/TNick/scriberig" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    TNick/scriberig
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scriberig
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Level 1
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Level 1
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scriberig Vision and Principles
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scriberig Vision and Principles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-the-core-premise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. The Core Premise
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Goals
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Goals">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-structured-access-instead-of-raw-file-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Structured access instead of raw file access
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-human-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Human compatibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-stable-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Stable history
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-efficient-incremental-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Efficient incremental work
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-one-platform-many-consumers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 One platform, many consumers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#36-first-class-reusable-interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.6 First-class reusable interfaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-non-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Non-Goals
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Non-Goals">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-replacing-every-external-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Replacing every external tool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-treating-every-domain-identically" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Treating every domain identically
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-making-raw-storage-representation-the-public-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Making raw storage representation the public API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-eliminating-textual-representations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Eliminating textual representations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-fundamental-concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Fundamental Concepts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Fundamental Concepts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-what-thing-is-this" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 What thing is this?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-what-exact-state-is-this-thing-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 What exact state is this thing in?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-what-exact-state-is-the-whole-knowledge-universe-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 What exact state is the whole knowledge universe in?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-principle-knowledge-is-structured" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Principle: Knowledge Is Structured
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-principle-revisions-are-immutable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Principle: Revisions Are Immutable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-principle-local-stability-and-global-certainty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Principle: Local Stability and Global Certainty
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-principle-projections-are-functions-of-semantic-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Principle: Projections Are Functions of Semantic State
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-principle-supported-projections-are-bidirectional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Principle: Supported Projections Are Bidirectional
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-principle-changes-are-explicit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Principle: Changes Are Explicit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-principle-derived-knowledge-is-separate-and-provenanced" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Principle: Derived Knowledge Is Separate and Provenanced
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-principle-progressive-disclosure-is-the-default-agent-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Principle: Progressive Disclosure Is the Default Agent Interface
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-principle-one-interaction-grammar-across-domains" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Principle: One Interaction Grammar Across Domains
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-principle-sessions-are-knowledge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Principle: Sessions Are Knowledge
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-principle-files-and-line-numbers-are-not-primary-semantic-handles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. Principle: Files and Line Numbers Are Not Primary Semantic Handles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17-principle-validation-precedes-promotion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17. Principle: Validation Precedes Promotion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18-principle-consumers-are-peers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18. Principle: Consumers Are Peers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#19-principle-develop-capabilities-vertically" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        19. Principle: Develop Capabilities Vertically
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#20-principle-reusable-platform-below-integrated-product" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        20. Principle: Reusable Platform Below Integrated Product
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#21-principle-domain-adapters-specialize-they-do-not-fork-the-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        21. Principle: Domain Adapters Specialize, They Do Not Fork the Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#22-principle-cache-exact-inputs-not-incidental-containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        22. Principle: Cache Exact Inputs, Not Incidental Containers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#23-principle-provenance-and-trust-are-visible" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        23. Principle: Provenance and Trust Are Visible
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#24-principle-the-system-is-inspectable-at-multiple-levels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        24. Principle: The System Is Inspectable at Multiple Levels
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#25-architectural-invariants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        25. Architectural Invariants
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#26-measures-of-success" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26. Measures of Success
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="26. Measures of Success">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#261-a-large-project-can-be-navigated-without-reading-it-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.1 A large project can be navigated without reading it all
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#262-formatting-changes-are-cheap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.2 Formatting changes are cheap
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#263-local-edits-remain-local" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.3 Local edits remain local
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#264-global-change-is-still-detectable-immediately" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.4 Global change is still detectable immediately
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#265-external-tools-remain-usable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.5 External tools remain usable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#266-multiple-consumers-use-the-same-platform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.6 Multiple consumers use the same platform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#267-the-integrated-editor-is-reproducible-by-public-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.7 The integrated editor is reproducible by public APIs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#268-agent-history-does-not-grow-without-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.8 Agent history does not grow without structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#269-the-storage-layer-remains-independently-valuable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.9 The storage layer remains independently valuable
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#27-design-direction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        27. Design Direction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#28-guidance-for-lower-level-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        28. Guidance for Lower-Level Design
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../002.%20universal%20knowledge%20model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Universal Knowledge Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../003.%20identity%20revisions%20and%20snapshots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Identity, Revisions, and Snapshots
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../004.%20persistence%20and%20storage%20model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Persistence and Storage Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../005.%20changes%20migrations%20branches%20and%20merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changes, Migrations, Branches, and Merge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../006.%20projections%20and%20bidirectional%20editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Projections and Bidirectional Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../007.%20domain%20modeling%20and%20adapters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain Modeling and Adapters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../008.%20derived%20knowledge%20caching%20and%20incrementality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Derived Knowledge, Caching, and Incrementality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../009.%20agent%20interaction%20and%20sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Interaction and Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../010.%20universal%20query%20and%20operation%20model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Universal Query and Operation Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../011.%20runtime%20libraries%20protocol%20and%20product%20surfaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime Libraries, Protocol, and Product Surfaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../012.%20web%20platform%20and%20integrated%20editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Platform and Integrated Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../013.%20trust%20validation%20capabilities%20and%20provenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trust, Validation, Capabilities, and Provenance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../014.%20extensibility%20ecosystem%20and%20licensing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extensibility, Ecosystem, and Licensing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Level 2
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Level 2
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/001.%20derived%20knowledge%20runtime%20and%20cache%20design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Derived Knowledge Runtime and Cache Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/002.%20canonical%20encoding%20and%20revision%20identity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canonical Encoding and Revision Identity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/003.%20snapshots%20roots%20and%20persistent%20collections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Snapshots, Roots, and Persistent Collections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/004.%20sqlite%20backend%20transactions%20and%20recovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQLite Backend, Transactions, and Recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/005.%20indexes%20reachability%20gc%20and%20integrity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Indexes, Reachability, Garbage Collection, and Integrity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/006.%20persistence%20observability%20and%20conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Persistence Observability and Conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/007.%20projection%20crate%20boundaries%20and%20core%20model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Projection Crate Boundaries and Core Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/008.%20filesystem%20projection%20synchronization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Filesystem Projection Synchronization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/009.%20markdown%20editable%20projection%20adapter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Markdown Editable Projection Adapter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/010.%20universal%20query%20and%20operation%20implementation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Universal Query and Operation Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/011.%20application%20operations%20protocol%20and%20runtime%20boundaries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application Operations, Protocol, and Runtime Boundaries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/012.%20capability%20matrix%20and%20cross%20surface%20conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Capability Matrix and Cross-Surface Conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/013.%20identity%20revision%20snapshot%20implementation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Identity, Revision, and Snapshot Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/014.%20licensing%20artifacts%20package%20metadata%20and%20notices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Licensing Artifacts, Package Metadata, and Notices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/015.%20persistence%20crate%20boundaries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Persistence Crate Boundaries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/016.%20universal%20knowledge%20model%20rust%20libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Universal Knowledge Model Rust Libraries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/017.%20web%20workspace%20packages%20and%20integrated%20editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Workspace, Packages, and Integrated Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/018.%20workspace%20and%20package%20layout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace and Package Layout
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/019.%20change%20history%20and%20merge%20crate%20design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change History and Merge Crate Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Level 3
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Level 3
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/001.%20bootstrap%20persistence%20workspace%20and%20core%20ids/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Bootstrap Persistence Workspace and Core IDs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/002.%20apply%20licensing%20metadata%20to%20rust%20crates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Apply Licensing Metadata to Rust Crates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/003.%20apply%20licensing%20metadata%20to%20web%20packages/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Apply Licensing Metadata to Web Packages
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/004.%20document%20contribution%20licensing%20and%20third%20party%20notices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Document Contribution Licensing and Third-Party Notices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/005.%20implement%20derivation%20events%20and%20domain%20registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Derivation Events and Domain Registry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/006.%20add%20derived%20knowledge%20conformance%20tests%20and%20documentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Add Derived Knowledge Conformance Tests and Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/007.%20bootstrap%20projection%20crates%20and%20core%20contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Bootstrap Projection Crates and Core Contracts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/008.%20expose%20trust%20inspection%20in%20cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expose Trust Inspection in CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/009.%20expose%20trust%20inspection%20in%20web%20editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expose Trust Inspection in Web Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/010.%20implement%20domain%20capability%20discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Domain Capability Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/011.%20add%20trust%20model%20end%20to%20end%20conformance%20tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Add Trust Model End-to-End Conformance Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/012.%20implement%20application%20operation%20primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Application Operation Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/013.%20implement%20protocol%20contract%20and%20schema%20export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Protocol Contract and Schema Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/014.%20add%20projection%20end%20to%20end%20conformance%20slice/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Projection End-to-End Conformance Slice
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/015.%20expose%20inspect%20through%20cli%20and%20agent%20adapters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expose Inspect Through CLI and Agent Adapters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/016.%20create%20capability%20matrix%20and%20conformance%20harness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Create Capability Matrix and Conformance Harness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/017.%20implement%20find%20and%20structured%20query%20ast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Find and the Structured Query AST
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/018.%20implement%20universal%20application%20request%20result%20and%20capability%20model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Universal Application Request, Result, and Capability Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/019.%20integrate%20universal%20read%20diff%20history%20render%20and%20change%20operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrate Universal Read, Diff, History, Render, and Change Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/020.%20implement%20operation%20handles%20structured%20errors%20and%20extension%20registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Operation Handles, Structured Errors, and the Extension Registry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/021.%20verify%20universal%20query%20and%20operation%20conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verify Universal Query and Operation Conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/022.%20bootstrap%20web%20workspace%20and%20package%20scaffolds/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bootstrap Web Workspace and Package Scaffolds
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/023.%20bootstrap%20workspace%20and%20identity%20types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Workspace and Identity Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/024.%20create%20repository%20license%20texts%20and%20licensing%20guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Create Repository License Texts and Licensing Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/025.%20create%20sr-change%20crate%20scaffold/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Create the sr-change Crate Scaffold
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/026.%20extend%20shared%20core%20with%20knowledge%20values%20and%20provenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extend Shared Core with Knowledge Values and Provenance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/027.%20implement%20principal%20and%20capability%20model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Principal and Capability Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/028.%20initialize%20rust%20foundation%20workspace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Initialize Rust Foundation Workspace
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/029.%20scaffold%20derivation%20crate%20profiles%20dependencies%20and%20keys/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scaffold Derivation Crate, Profiles, Dependencies, and Keys
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/030.%20scaffold%20domain%20adapter%20crates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scaffold Domain Adapter Crates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/031.%20enforce%20capabilities%20in%20application%20queries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enforce Capabilities in Application Queries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/032.%20implement%20canonical%20encoding%20and%20revision%20api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Canonical Encoding and Revision API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/033.%20implement%20canonical%20encoding%20and%20revision%20hashing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Canonical Encoding and Revision Hashing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/034.%20implement%20derived%20result%20records%20and%20repository%20contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Derived Result Records and Repository Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/035.%20implement%20markdown%20domain%20schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Markdown Domain Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/036.%20implement%20migration%20operations%20and%20provenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Implement Migration, Operations, and Provenance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/037.%20implement%20protocol%20package%20boundary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Protocol Package Boundary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/038.%20implement%20universal%20schema%20contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Universal Schema Contracts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/039.%20scaffold%20rust%20application%20and%20product%20layers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scaffold Rust Application and Product Layers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/040.%20implement%20derived%20selection%20freshness%20failure%20and%20retention%20policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Derived Selection, Freshness, Failure, and Retention Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/041.%20implement%20framework%20independent%20transport%20client/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Framework-Independent Transport Client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/042.%20implement%20history%20topology%20and%20lineage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Implement History Topology and Lineage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/043.%20implement%20immutable%20revision%20store/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Immutable Revision Store
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/044.%20implement%20markdown%20adapter%20mapping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Markdown Adapter Mapping
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/045.%20implement%20snapshots%20roots%20collections%20and%20memory%20backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Snapshots, Roots, Collections, and Memory Backend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/046.%20implement%20universal%20graph%20semantic%20records/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Universal Graph Semantic Records
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/047.%20implement%20validation%20evidence%20and%20exact%20input%20binding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Validation Evidence and Exact Input Binding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/048.%20initialize%20web%20workspace%20and%20headless%20packages/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Initialize Web Workspace and Headless Packages
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/049.%20implement%20branches%20workspaces%20and%20promotion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Implement Branches, Workspaces, and Promotion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/050.%20implement%20candidate%20promotion%20and%20approval%20pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Candidate Promotion and Approval Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/051.%20implement%20client%20semantic%20model%20and%20incremental%20events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Client Semantic Model and Incremental Events
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/052.%20implement%20markdown%20semantic%20reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Markdown Semantic Reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/053.%20implement%20persistent%20snapshots%20and%20diffs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Persistent Snapshots and Snapshot Diffs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/054.%20implement%20reverse%20dependency%20invalidation%20and%20explanations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Reverse Dependency Invalidation and Explanations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/055.%20implement%20sqlite%20durable%20backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: SQLite Durable Backend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/056.%20scaffold%20web%20ui%20packages%20and%20editor%20shell/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scaffold Web UI Packages and Editor Shell
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/057.%20verify%20universal%20knowledge%20model%20conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verify Universal Knowledge Model Conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/058.%20implement%20headless%20editor%20core%20primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Headless Editor-Core Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/059.%20implement%20language%20independent%20code%20domain/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Language-Independent Code Domain
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/060.%20implement%20named%20roots%20and%20compare%20and%20swap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Named Roots and Compare-and-Swap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/061.%20implement%20reachability%20gc%20and%20integrity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Reachability, Garbage Collection, and Integrity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/062.%20implement%20universal%20semantic%20diff/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Implement Universal Semantic Diff
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/063.%20persist%20projection%20conflicts%20and%20captured%20evidence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Persist Projection Conflicts and Captured Evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/064.%20implement%20external%20effect%20receipts%20and%20reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement External Effect Receipts and Reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/065.%20implement%20observability%20and%20shared%20conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Observability and Shared Store Conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/066.%20implement%20react%20bindings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement React Bindings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/067.%20implement%20rust%20syntax%20domain%20adapter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Rust Syntax Domain Adapter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/068.%20implement%20three-way%20merge%20and%20conflicts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Implement Three-Way Merge and Structured Conflicts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/069.%20verify%20identity%20subsystem%20conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verify Identity Subsystem Conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/070.%20expose%20trust%20state%20through%20protocol%20and%20events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expose Trust State Through Protocol and Events
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/071.%20implement%20neutral%20reusable%20components/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Neutral Reusable Components
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/072.%20implement%20rebase%20and%20semantic%20replay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Implement Rebase and Semantic Replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/073.%20implement%20rust%20derived%20compiler%20analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Rust Derived Compiler Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/074.%20verify%20persistence%20vertical%20slice/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verify: Persistence Vertical Slice
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/075.%20implement%20change%20queries%20and%20summaries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Implement Change Queries and Progressive Summaries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/076.%20implement%20material%20ui%20component%20package/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Material UI Component Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/077.%20implement%20pdf%20import%20domain%20adapter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement PDF Import Domain Adapter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/078.%20implement%20projection%20specifications%20rendering%20and%20adapter%20api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Projection Specifications, Rendering, and Adapter API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/079.%20implement%20change%20subsystem%20conformance%20suite/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Implement the Change Subsystem Conformance Suite
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/080.%20implement%20filesystem%20projection%20ownership%20hashing%20and%20atomic%20io/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Filesystem Projection Ownership, Hashing, and Atomic IO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/081.%20implement%20reference%20integrated%20editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Reference Integrated Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/082.%20implement%20session%20domain%20structure%20and%20views/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Session Domain Structure and Views
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/083.%20implement%20filesystem%20observation%20synchronization%20and%20recovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Filesystem Observation, Synchronization, and Recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/084.%20implement%20web%20boundary%20and%20conformance%20tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Web Boundary and Conformance Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/085.%20prevent%20derived%20cache%20access%20leaks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prevent Derived Cache Access Leaks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/086.%20implement%20domain%20conformance%20test%20support/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Domain Conformance Test Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/087.%20implement%20markdown%20model%20parser%20renderer%20and%20style/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Markdown Model, Parser, Renderer, and Style
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/088.%20scaffold%20runtime%20application%20and%20product%20crates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scaffold Runtime Application and Product Crates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/089.%20implement%20domain%20schema%20and%20adapter%20version%20metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Domain Schema and Adapter Version Metadata
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/090.%20implement%20markdown%20node%20matching%20and%20semantic%20reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Markdown Node Matching and Semantic Reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/091.%20implement%20rust%20semantic%20reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Rust Semantic Reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/092.%20implement%20three%20way%20markdown%20synchronization%20and%20conflicts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Three-Way Markdown Synchronization and Conflicts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/093.%20implement%20server%20client%20inspect%20transport/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Server/Client Inspect Transport
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/094.%20implement%20universal%20query%20handles%20scope%20and%20pagination/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Universal Query Handles, Scope, and Pagination
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-3/095.%20implement%20inspect%20list%20and%20follow%20read%20operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Inspect, List, and Follow Read Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-the-core-premise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. The Core Premise
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Goals
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Goals">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-structured-access-instead-of-raw-file-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Structured access instead of raw file access
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-human-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Human compatibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-stable-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Stable history
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-efficient-incremental-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Efficient incremental work
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-one-platform-many-consumers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 One platform, many consumers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#36-first-class-reusable-interfaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.6 First-class reusable interfaces
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-non-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Non-Goals
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Non-Goals">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-replacing-every-external-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Replacing every external tool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-treating-every-domain-identically" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Treating every domain identically
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-making-raw-storage-representation-the-public-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Making raw storage representation the public API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-eliminating-textual-representations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Eliminating textual representations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-fundamental-concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Fundamental Concepts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Fundamental Concepts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-what-thing-is-this" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 What thing is this?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-what-exact-state-is-this-thing-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 What exact state is this thing in?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-what-exact-state-is-the-whole-knowledge-universe-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 What exact state is the whole knowledge universe in?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-principle-knowledge-is-structured" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Principle: Knowledge Is Structured
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-principle-revisions-are-immutable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Principle: Revisions Are Immutable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-principle-local-stability-and-global-certainty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Principle: Local Stability and Global Certainty
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-principle-projections-are-functions-of-semantic-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Principle: Projections Are Functions of Semantic State
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-principle-supported-projections-are-bidirectional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Principle: Supported Projections Are Bidirectional
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-principle-changes-are-explicit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Principle: Changes Are Explicit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-principle-derived-knowledge-is-separate-and-provenanced" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Principle: Derived Knowledge Is Separate and Provenanced
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-principle-progressive-disclosure-is-the-default-agent-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Principle: Progressive Disclosure Is the Default Agent Interface
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-principle-one-interaction-grammar-across-domains" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Principle: One Interaction Grammar Across Domains
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-principle-sessions-are-knowledge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Principle: Sessions Are Knowledge
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-principle-files-and-line-numbers-are-not-primary-semantic-handles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. Principle: Files and Line Numbers Are Not Primary Semantic Handles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17-principle-validation-precedes-promotion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17. Principle: Validation Precedes Promotion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18-principle-consumers-are-peers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18. Principle: Consumers Are Peers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#19-principle-develop-capabilities-vertically" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        19. Principle: Develop Capabilities Vertically
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#20-principle-reusable-platform-below-integrated-product" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        20. Principle: Reusable Platform Below Integrated Product
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#21-principle-domain-adapters-specialize-they-do-not-fork-the-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        21. Principle: Domain Adapters Specialize, They Do Not Fork the Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#22-principle-cache-exact-inputs-not-incidental-containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        22. Principle: Cache Exact Inputs, Not Incidental Containers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#23-principle-provenance-and-trust-are-visible" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        23. Principle: Provenance and Trust Are Visible
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#24-principle-the-system-is-inspectable-at-multiple-levels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        24. Principle: The System Is Inspectable at Multiple Levels
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#25-architectural-invariants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        25. Architectural Invariants
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#26-measures-of-success" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26. Measures of Success
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="26. Measures of Success">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#261-a-large-project-can-be-navigated-without-reading-it-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.1 A large project can be navigated without reading it all
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#262-formatting-changes-are-cheap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.2 Formatting changes are cheap
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#263-local-edits-remain-local" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.3 Local edits remain local
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#264-global-change-is-still-detectable-immediately" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.4 Global change is still detectable immediately
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#265-external-tools-remain-usable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.5 External tools remain usable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#266-multiple-consumers-use-the-same-platform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.6 Multiple consumers use the same platform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#267-the-integrated-editor-is-reproducible-by-public-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.7 The integrated editor is reproducible by public APIs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#268-agent-history-does-not-grow-without-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.8 Agent history does not grow without structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#269-the-storage-layer-remains-independently-valuable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26.9 The storage layer remains independently valuable
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#27-design-direction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        27. Design Direction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#28-guidance-for-lower-level-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        28. Guidance for Lower-Level Design
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="scriberig-vision-and-principles">Scriberig Vision and Principles<a class="headerlink" href="#scriberig-vision-and-principles" title="Permanent link">&para;</a></h1>
+<h2 id="1-purpose">1. Purpose<a class="headerlink" href="#1-purpose" title="Permanent link">&para;</a></h2>
+<p>Scriberig is a general system for storing, understanding, editing, and navigating structured knowledge.</p>
+<p>The system is designed for both humans and software agents. It must support source code, documents, sessions, PDFs, project decisions, tool results, and future domains without giving each domain a separate storage architecture.</p>
+<p>The central idea is simple:</p>
+<blockquote>
+<p>Store meaning as structured knowledge. Treat files, transcripts, user interfaces, and model context as projections of that knowledge.</p>
+</blockquote>
+<p>Scriberig is therefore not primarily a file editor, a chat application, or an agent harness. Those are products and interfaces built on top of a shared knowledge system.</p>
+<p>This document defines the vision and architectural principles that all lower-level designs and implementations must preserve.</p>
+<hr />
+<h2 id="2-the-core-premise">2. The Core Premise<a class="headerlink" href="#2-the-core-premise" title="Permanent link">&para;</a></h2>
+<p>Scriberig has one universal typed knowledge store.</p>
+<p>Different domains specialize that store with schemas and relations.</p>
+<p>Examples:</p>
+<ul>
+<li>a paragraph is an entity;</li>
+<li>a Markdown section is an entity;</li>
+<li>a source-code function is an entity;</li>
+<li>an AST expression is an entity;</li>
+<li>a PDF page is an entity;</li>
+<li>a table row or cell is an entity;</li>
+<li>an agent session is an entity;</li>
+<li>a session branch is an entity;</li>
+<li>a project decision is an entity;</li>
+<li>a migration is an entity;</li>
+<li>a style is an entity.</li>
+</ul>
+<p>Relations connect these objects.</p>
+<p>Examples:</p>
+<ul>
+<li><code>contains</code>;</li>
+<li><code>calls</code>;</li>
+<li><code>references</code>;</li>
+<li><code>derived_from</code>;</li>
+<li><code>described_by</code>;</li>
+<li><code>supersedes</code>;</li>
+<li><code>produced_by</code>;</li>
+<li><code>belongs_to</code>.</li>
+</ul>
+<p>Domain-specific systems define which entity types and relations are useful, but they do not replace the universal storage model.</p>
+<p>This allows the same fundamental operations to work across domains.</p>
+<p>For example, an agent or application should be able to inspect, traverse, search, compare, describe, render, branch, and modify knowledge using one general interaction model whether the target is code, a document, a PDF, or a session.</p>
+<hr />
+<h2 id="3-goals">3. Goals<a class="headerlink" href="#3-goals" title="Permanent link">&para;</a></h2>
+<p>Scriberig should make the following possible.</p>
+<h3 id="31-structured-access-instead-of-raw-file-access">3.1 Structured access instead of raw file access<a class="headerlink" href="#31-structured-access-instead-of-raw-file-access" title="Permanent link">&para;</a></h3>
+<p>An agent should normally work with semantic objects rather than unrestricted byte or text access.</p>
+<p>For example, instead of reading a large Markdown file, an agent can first list its top-level sections, inspect a selected section, see how many paragraphs or tables it contains, and read only the required objects.</p>
+<p>For code, an agent can inspect modules, functions, conceptual code groups, statements, and expressions progressively.</p>
+<p>The system should make the cheapest representation useful enough for the agent to decide what to inspect next.</p>
+<h3 id="32-human-compatibility">3.2 Human compatibility<a class="headerlink" href="#32-human-compatibility" title="Permanent link">&para;</a></h3>
+<p>Humans must remain free to use ordinary tools.</p>
+<p>Users may edit source files, Markdown files, and other supported projections with external editors.</p>
+<p>Scriberig must import those changes back into the semantic store instead of requiring all edits to happen through a custom editor.</p>
+<p>The system must not trap a project inside a proprietary editing environment.</p>
+<h3 id="33-stable-history">3.3 Stable history<a class="headerlink" href="#33-stable-history" title="Permanent link">&para;</a></h3>
+<p>Knowledge must have durable identity and history.</p>
+<p>The system must support:</p>
+<ul>
+<li>immutable revisions;</li>
+<li>snapshots;</li>
+<li>branches;</li>
+<li>migrations;</li>
+<li>semantic diffs;</li>
+<li>concurrent work;</li>
+<li>merges;</li>
+<li>rollback and inspection of historical state.</li>
+</ul>
+<h3 id="34-efficient-incremental-work">3.4 Efficient incremental work<a class="headerlink" href="#34-efficient-incremental-work" title="Permanent link">&para;</a></h3>
+<p>A local change should not force unrelated knowledge to be recomputed, rerendered, reanalyzed, or reread by an agent.</p>
+<p>Unchanged semantic objects should remain reusable across snapshots.</p>
+<p>Derived results should be reusable whenever their exact dependencies have not changed.</p>
+<h3 id="35-one-platform-many-consumers">3.5 One platform, many consumers<a class="headerlink" href="#35-one-platform-many-consumers" title="Permanent link">&para;</a></h3>
+<p>The storage and knowledge libraries must be useful without any agent runtime.</p>
+<p>A user may use Scriberig only as:</p>
+<ul>
+<li>a versioned semantic database;</li>
+<li>a structured document system;</li>
+<li>a source-code analysis system;</li>
+<li>a projection engine;</li>
+<li>a query system;</li>
+<li>an API server;</li>
+<li>a reusable UI library.</li>
+</ul>
+<p>The full agent product is one consumer of these capabilities, not the owner of them.</p>
+<h3 id="36-first-class-reusable-interfaces">3.6 First-class reusable interfaces<a class="headerlink" href="#36-first-class-reusable-interfaces" title="Permanent link">&para;</a></h3>
+<p>CLI, server API, TUI, web libraries, the full web editor, and agent tools must evolve together.</p>
+<p>User-level capabilities should be implemented vertically across the supported surfaces rather than existing only in one interface for long periods.</p>
+<p>The full Scriberig editor should use the same public libraries and APIs made available to third parties.</p>
+<hr />
+<h2 id="4-non-goals">4. Non-Goals<a class="headerlink" href="#4-non-goals" title="Permanent link">&para;</a></h2>
+<p>The following are not foundational goals.</p>
+<h3 id="41-replacing-every-external-tool">4.1 Replacing every external tool<a class="headerlink" href="#41-replacing-every-external-tool" title="Permanent link">&para;</a></h3>
+<p>Scriberig does not need to replace existing compilers, language servers, PDF parsers, editors, formatters, or databases when they can be integrated effectively.</p>
+<h3 id="42-treating-every-domain-identically">4.2 Treating every domain identically<a class="headerlink" href="#42-treating-every-domain-identically" title="Permanent link">&para;</a></h3>
+<p>The storage and interaction model is universal, but domain semantics are not.</p>
+<p>A Rust function and a PDF table are different kinds of knowledge and may require different parsers, renderers, validators, and relations.</p>
+<p>The goal is shared foundations, not forced uniformity.</p>
+<h3 id="43-making-raw-storage-representation-the-public-api">4.3 Making raw storage representation the public API<a class="headerlink" href="#43-making-raw-storage-representation-the-public-api" title="Permanent link">&para;</a></h3>
+<p>Consumers should use stable semantic APIs rather than depend directly on database tables or backend-specific details.</p>
+<p>The internal persistence implementation must be able to evolve without forcing all clients to change.</p>
+<h3 id="44-eliminating-textual-representations">4.4 Eliminating textual representations<a class="headerlink" href="#44-eliminating-textual-representations" title="Permanent link">&para;</a></h3>
+<p>Text files remain important because they are portable, familiar, editable, reviewable, and compatible with existing tools.</p>
+<p>The change is that they are treated as projections rather than the only canonical representation of meaning.</p>
+<hr />
+<h2 id="5-fundamental-concepts">5. Fundamental Concepts<a class="headerlink" href="#5-fundamental-concepts" title="Permanent link">&para;</a></h2>
+<p>Scriberig distinguishes three different questions.</p>
+<h3 id="51-what-thing-is-this">5.1 What thing is this?<a class="headerlink" href="#51-what-thing-is-this" title="Permanent link">&para;</a></h3>
+<p>An entity identifies conceptual continuity.</p>
+<p>A function, paragraph, session branch, or decision may continue to be the same conceptual entity while its content changes over time.</p>
+<p>This is represented by an <code>EntityId</code> or an equivalent stable handle.</p>
+<h3 id="52-what-exact-state-is-this-thing-in">5.2 What exact state is this thing in?<a class="headerlink" href="#52-what-exact-state-is-this-thing-in" title="Permanent link">&para;</a></h3>
+<p>A revision identifies an exact immutable state of an entity.</p>
+<p>Revisions do not change in place.</p>
+<p>A change creates another revision.</p>
+<p>This is represented by a <code>RevisionId</code> or equivalent immutable identity.</p>
+<h3 id="53-what-exact-state-is-the-whole-knowledge-universe-in">5.3 What exact state is the whole knowledge universe in?<a class="headerlink" href="#53-what-exact-state-is-the-whole-knowledge-universe-in" title="Permanent link">&para;</a></h3>
+<p>A snapshot identifies a complete consistent state of the knowledge store.</p>
+<p>A snapshot determines which revision of each relevant entity is current for that snapshot.</p>
+<p>Any canonical change creates a new snapshot identity.</p>
+<p>This is represented by a <code>SnapshotId</code> or equivalent root identity.</p>
+<p>These three concepts must not be conflated.</p>
+<p>Stable entity identity provides local continuity. Immutable revision identity provides exactness. Snapshot identity provides global certainty.</p>
+<hr />
+<h2 id="6-principle-knowledge-is-structured">6. Principle: Knowledge Is Structured<a class="headerlink" href="#6-principle-knowledge-is-structured" title="Permanent link">&para;</a></h2>
+<p>Canonical knowledge should be represented in forms that preserve meaningful structure.</p>
+<p>Examples include:</p>
+<ul>
+<li>sections and paragraphs instead of only Markdown bytes;</li>
+<li>tables, rows, and cells instead of only text ranges;</li>
+<li>functions, statements, and expressions instead of only source lines;</li>
+<li>session branches, decisions, and tool results instead of only transcript strings.</li>
+</ul>
+<p>The canonical representation should preserve the distinctions that matter to the domain.</p>
+<p>The system should not aggressively normalize semantically or syntactically meaningful choices merely because two forms may currently behave similarly.</p>
+<hr />
+<h2 id="7-principle-revisions-are-immutable">7. Principle: Revisions Are Immutable<a class="headerlink" href="#7-principle-revisions-are-immutable" title="Permanent link">&para;</a></h2>
+<p>Canonical revisions are never edited in place.</p>
+<p>A change produces a new revision.</p>
+<p>Historical revisions remain addressable while retained by history, branches, snapshots, or other roots.</p>
+<p>Immutability enables:</p>
+<ul>
+<li>reliable caching;</li>
+<li>reproducible analysis;</li>
+<li>branch isolation;</li>
+<li>exact historical references;</li>
+<li>safe concurrent work;</li>
+<li>deterministic comparison;</li>
+<li>structural sharing.</li>
+</ul>
+<p>Implementations may optimize physical storage, but they must preserve the logical immutability of revisions.</p>
+<hr />
+<h2 id="8-principle-local-stability-and-global-certainty">8. Principle: Local Stability and Global Certainty<a class="headerlink" href="#8-principle-local-stability-and-global-certainty" title="Permanent link">&para;</a></h2>
+<p>A change deep in the knowledge graph must not unnecessarily redefine the conceptual identity of every semantic ancestor.</p>
+<p>For example, editing the text of a paragraph should not imply that the containing document is a new conceptual document. Editing an expression should not imply that the containing function is a new conceptual function.</p>
+<p>Local entities retain stable identity while receiving new revisions.</p>
+<p>At the same time, the top-level snapshot must change whenever canonical knowledge changes.</p>
+<p>This is intentional.</p>
+<p>A snapshot identity is a compact assertion about the entire visible state of knowledge.</p>
+<p>Therefore:</p>
+<ul>
+<li>local revisions are used for fine-grained caching and incremental work;</li>
+<li>the global snapshot is used for consistency, reproducibility, synchronization, branching, and change detection.</li>
+</ul>
+<p>The system should preserve both properties rather than choosing one at the expense of the other.</p>
+<hr />
+<h2 id="9-principle-projections-are-functions-of-semantic-state">9. Principle: Projections Are Functions of Semantic State<a class="headerlink" href="#9-principle-projections-are-functions-of-semantic-state" title="Permanent link">&para;</a></h2>
+<p>Files, transcripts, UI views, and model context are projections of semantic state.</p>
+<p>Conceptually:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>projection = render(semantic_state, projection_configuration)
+</code></pre></div>
+<p>Examples:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Markdown graph + Markdown style -&gt; .md
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>Code graph + source style -&gt; source file
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>Session graph + chat style -&gt; transcript
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>Session graph + context policy -&gt; model context
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>Knowledge graph + UI state -&gt; browser view
+</code></pre></div>
+<p>Formatting and presentation configuration should not become semantic content unless the domain explicitly requires them to be meaningful.</p>
+<p>A style change should not normally change the semantic identity of the underlying knowledge.</p>
+<hr />
+<h2 id="10-principle-supported-projections-are-bidirectional">10. Principle: Supported Projections Are Bidirectional<a class="headerlink" href="#10-principle-supported-projections-are-bidirectional" title="Permanent link">&para;</a></h2>
+<p>Where editing is supported, projections must work in both directions.</p>
+<p>Rendering converts semantic state into an external representation.</p>
+<p>Import and reconciliation convert an edited external representation into semantic changes.</p>
+<p>Conceptually:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>semantic state
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    -&gt; render
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>projection
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    -&gt; external edit
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>edited projection
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    -&gt; parse and reconcile
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>semantic migration
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    -&gt; new snapshot
+</code></pre></div>
+<p>External edits should not be blindly accepted as a replacement for canonical state.</p>
+<p>They should be interpreted as proposed semantic changes relative to known previous state.</p>
+<p>When both the semantic state and an external projection have changed independently, reconciliation should use a three-way model and surface conflicts instead of silently overwriting one side.</p>
+<hr />
+<h2 id="11-principle-changes-are-explicit">11. Principle: Changes Are Explicit<a class="headerlink" href="#11-principle-changes-are-explicit" title="Permanent link">&para;</a></h2>
+<p>Canonical changes should be represented as explicit migrations or equivalent transitions between snapshots.</p>
+<p>A migration records what changed and where the new state came from.</p>
+<p>Possible sources include:</p>
+<ul>
+<li>human edits;</li>
+<li>agent edits;</li>
+<li>API clients;</li>
+<li>CLI commands;</li>
+<li>web editing;</li>
+<li>imports;</li>
+<li>merges;</li>
+<li>automated transformations.</li>
+</ul>
+<p>All write paths should converge on the same change model.</p>
+<p>The browser editor, CLI, TUI, external file watcher, agent runtime, and API server must not each invent separate mutation semantics.</p>
+<hr />
+<h2 id="12-principle-derived-knowledge-is-separate-and-provenanced">12. Principle: Derived Knowledge Is Separate and Provenanced<a class="headerlink" href="#12-principle-derived-knowledge-is-separate-and-provenanced" title="Permanent link">&para;</a></h2>
+<p>Not every useful fact belongs in canonical state.</p>
+<p>Examples of derived knowledge include:</p>
+<ul>
+<li>compiler analysis;</li>
+<li>symbol resolution;</li>
+<li>call graphs;</li>
+<li>control-flow and data-flow information;</li>
+<li>PDF extraction indexes;</li>
+<li>descriptions;</li>
+<li>summaries;</li>
+<li>model-generated interpretations;</li>
+<li>rendered intermediate representations;</li>
+<li>validation results.</li>
+</ul>
+<p>Derived knowledge should record:</p>
+<ul>
+<li>what it was derived from;</li>
+<li>the exact revisions or configuration it depends on;</li>
+<li>the producer or method used;</li>
+<li>enough provenance to distinguish authoritative facts from generated interpretations.</li>
+</ul>
+<p>Derived knowledge should be recomputable.</p>
+<p>When its dependencies are unchanged, it should be reusable even if unrelated parts of the global snapshot changed.</p>
+<hr />
+<h2 id="13-principle-progressive-disclosure-is-the-default-agent-interface">13. Principle: Progressive Disclosure Is the Default Agent Interface<a class="headerlink" href="#13-principle-progressive-disclosure-is-the-default-agent-interface" title="Permanent link">&para;</a></h2>
+<p>Agents should not be forced to reconstruct high-level structure from large raw inputs.</p>
+<p>The system already knows structure and should expose it directly.</p>
+<p>An agent should typically navigate from coarse information to fine detail.</p>
+<p>Examples:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Project
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  -&gt; subsystem
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    -&gt; module
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>      -&gt; function
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        -&gt; code group
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>          -&gt; statement
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>            -&gt; expression
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Document
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  -&gt; section
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    -&gt; subsection
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>      -&gt; paragraph/table/list
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>        -&gt; row/cell/item
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Session
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>  -&gt; branch/topic
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    -&gt; episode
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>      -&gt; turn
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        -&gt; message/tool result
+</code></pre></div>
+<p>Container objects should expose short descriptions, useful counts, relations, and stable handles before exposing full content.</p>
+<p>Tool results should make useful next navigation actions obvious.</p>
+<hr />
+<h2 id="14-principle-one-interaction-grammar-across-domains">14. Principle: One Interaction Grammar Across Domains<a class="headerlink" href="#14-principle-one-interaction-grammar-across-domains" title="Permanent link">&para;</a></h2>
+<p>The agent and external applications should learn one general way to interact with the knowledge store.</p>
+<p>The universal interaction vocabulary should support concepts such as:</p>
+<ul>
+<li>inspect;</li>
+<li>list;</li>
+<li>follow relations;</li>
+<li>find;</li>
+<li>query;</li>
+<li>describe;</li>
+<li>compare;</li>
+<li>inspect history;</li>
+<li>render;</li>
+<li>branch;</li>
+<li>propose a change;</li>
+<li>validate;</li>
+<li>commit or merge.</li>
+</ul>
+<p>Domain-specific schemas may expose specialized relations and operations, but they should extend the common model rather than create unrelated access systems.</p>
+<p>This makes it possible for a simple agent to navigate code, sessions, PDFs, documents, and future domains with the same basic tool discipline.</p>
+<hr />
+<h2 id="15-principle-sessions-are-knowledge">15. Principle: Sessions Are Knowledge<a class="headerlink" href="#15-principle-sessions-are-knowledge" title="Permanent link">&para;</a></h2>
+<p>Agent sessions are stored in the same universal system as project artifacts.</p>
+<p>A session is not fundamentally a flat transcript.</p>
+<p>It may contain structured objects such as:</p>
+<ul>
+<li>goals;</li>
+<li>human inputs;</li>
+<li>agent outputs;</li>
+<li>observations;</li>
+<li>decisions;</li>
+<li>questions;</li>
+<li>tool invocations;</li>
+<li>tool results;</li>
+<li>branches;</li>
+<li>branch results;</li>
+<li>summaries;</li>
+<li>tasks;</li>
+<li>references to project entities.</li>
+</ul>
+<p>Session branches are first-class objects.</p>
+<p>A branch should have a short description of its purpose and, when completed, its outcome.</p>
+<p>Completed exploratory branches may be omitted from normal model context and represented by compact branch summaries while remaining fully retrievable.</p>
+<p>This allows long-running work without requiring the permanent context to grow as a flat transcript.</p>
+<hr />
+<h2 id="16-principle-files-and-line-numbers-are-not-primary-semantic-handles">16. Principle: Files and Line Numbers Are Not Primary Semantic Handles<a class="headerlink" href="#16-principle-files-and-line-numbers-are-not-primary-semantic-handles" title="Permanent link">&para;</a></h2>
+<p>Files remain important projections, but semantic identity should not normally depend on file location or line number.</p>
+<p>A function moved to another file may still be the same conceptual function.</p>
+<p>A paragraph shifted by inserted text may still be the same conceptual paragraph.</p>
+<p>Agents and applications should prefer stable semantic handles.</p>
+<p>File paths and line positions may be supplied as useful projection metadata, but they should not be the primary identity system when a semantic object exists.</p>
+<hr />
+<h2 id="17-principle-validation-precedes-promotion">17. Principle: Validation Precedes Promotion<a class="headerlink" href="#17-principle-validation-precedes-promotion" title="Permanent link">&para;</a></h2>
+<p>Proposed changes should be validated before they become the promoted project state when the domain supports validation.</p>
+<p>Validation may include:</p>
+<ul>
+<li>structural checks;</li>
+<li>parser checks;</li>
+<li>schema checks;</li>
+<li>compiler checks;</li>
+<li>type checking;</li>
+<li>linting;</li>
+<li>tests;</li>
+<li>application-specific invariants.</li>
+</ul>
+<p>Agent work should normally occur on isolated branches or workspaces derived from a known snapshot.</p>
+<p>Failed attempts must not corrupt the base snapshot.</p>
+<p>Successful work can be compared, reviewed, validated, and merged explicitly.</p>
+<hr />
+<h2 id="18-principle-consumers-are-peers">18. Principle: Consumers Are Peers<a class="headerlink" href="#18-principle-consumers-are-peers" title="Permanent link">&para;</a></h2>
+<p>The CLI, API server, TUI, browser editor, external applications, and agent runtime are peers over the same application capabilities.</p>
+<p>No interface should contain unique core business logic that other interfaces cannot reuse.</p>
+<p>The server is not the conceptual owner of the system. It is one adapter exposing application operations remotely.</p>
+<p>The full web editor is not privileged. It should be implemented with the same public client, model, and UI libraries intended for third-party applications.</p>
+<p>An agent is also not privileged. It is a consumer of the same semantic APIs available to ordinary programs, with permissions and capabilities determining what it may access.</p>
+<hr />
+<h2 id="19-principle-develop-capabilities-vertically">19. Principle: Develop Capabilities Vertically<a class="headerlink" href="#19-principle-develop-capabilities-vertically" title="Permanent link">&para;</a></h2>
+<p>A user-facing capability should evolve across the supported surfaces together.</p>
+<p>For example, when semantic diff becomes a product capability, the design should consider its presence in:</p>
+<ul>
+<li>core application operations;</li>
+<li>protocol types;</li>
+<li>server API;</li>
+<li>CLI;</li>
+<li>TypeScript client;</li>
+<li>reusable web libraries;</li>
+<li>reference web application;</li>
+<li>agent tools where appropriate.</li>
+</ul>
+<p>Not every internal primitive requires every surface, but product-level capabilities should not accumulate exclusively in one interface.</p>
+<p>This keeps the public libraries capable enough to build the full product and prevents the web application or agent runtime from depending on private shortcuts.</p>
+<hr />
+<h2 id="20-principle-reusable-platform-below-integrated-product">20. Principle: Reusable Platform Below Integrated Product<a class="headerlink" href="#20-principle-reusable-platform-below-integrated-product" title="Permanent link">&para;</a></h2>
+<p>Scriberig should be useful in layers.</p>
+<p>A consumer may stop at the immutable storage layer.</p>
+<p>Another may use the universal graph and query model.</p>
+<p>Another may add Markdown, code, PDF, or projection support.</p>
+<p>Another may consume the API and reusable web libraries.</p>
+<p>The integrated Scriberig product adds sessions, agents, UI, orchestration, and opinionated workflows on top.</p>
+<p>Lower layers must not depend on higher product layers.</p>
+<p>In particular:</p>
+<blockquote>
+<p>The knowledge store must not know that agents exist.</p>
+</blockquote>
+<p>Domain adapters must also remain useful without the agent runtime.</p>
+<hr />
+<h2 id="21-principle-domain-adapters-specialize-they-do-not-fork-the-architecture">21. Principle: Domain Adapters Specialize, They Do Not Fork the Architecture<a class="headerlink" href="#21-principle-domain-adapters-specialize-they-do-not-fork-the-architecture" title="Permanent link">&para;</a></h2>
+<p>Each supported domain may provide:</p>
+<ul>
+<li>schemas;</li>
+<li>parsers;</li>
+<li>renderers;</li>
+<li>reconciliation logic;</li>
+<li>validators;</li>
+<li>derived indexes;</li>
+<li>specialized queries;</li>
+<li>semantic operations;</li>
+<li>UI views.</li>
+</ul>
+<p>But these should plug into the common storage, revision, snapshot, migration, query, and projection systems.</p>
+<p>A new domain should not require a new persistence model or a completely separate agent access protocol.</p>
+<hr />
+<h2 id="22-principle-cache-exact-inputs-not-incidental-containers">22. Principle: Cache Exact Inputs, Not Incidental Containers<a class="headerlink" href="#22-principle-cache-exact-inputs-not-incidental-containers" title="Permanent link">&para;</a></h2>
+<p>Caching should depend on the smallest immutable inputs that determine a result.</p>
+<p>For example:</p>
+<ul>
+<li>a rendered semantic fragment may depend on an object revision and style revision;</li>
+<li>a function summary may depend on the function revision and summary profile;</li>
+<li>a compiler analysis may depend on a function revision plus exact relevant dependency revisions and toolchain configuration;</li>
+<li>a session branch summary may depend on the branch revision and summary profile.</li>
+</ul>
+<p>The global snapshot should not be used as a cache key when only a local revision is relevant.</p>
+<p>This prevents unrelated changes from invalidating useful work.</p>
+<hr />
+<h2 id="23-principle-provenance-and-trust-are-visible">23. Principle: Provenance and Trust Are Visible<a class="headerlink" href="#23-principle-provenance-and-trust-are-visible" title="Permanent link">&para;</a></h2>
+<p>The system must distinguish between sources of information.</p>
+<p>Examples include:</p>
+<ul>
+<li>user-authored;</li>
+<li>parser-derived;</li>
+<li>compiler-derived;</li>
+<li>static-analysis-derived;</li>
+<li>system-generated;</li>
+<li>model-generated.</li>
+</ul>
+<p>An agent should be able to tell whether a statement is an authoritative structural fact or an interpretation generated by another model.</p>
+<p>Important conclusions and project decisions should retain references to the sessions, branches, tools, or artifacts from which they were derived.</p>
+<hr />
+<h2 id="24-principle-the-system-is-inspectable-at-multiple-levels">24. Principle: The System Is Inspectable at Multiple Levels<a class="headerlink" href="#24-principle-the-system-is-inspectable-at-multiple-levels" title="Permanent link">&para;</a></h2>
+<p>Users and developers should be able to inspect the same state at different abstraction levels.</p>
+<p>The integrated editor should eventually support views such as:</p>
+<ul>
+<li>raw entity and relation browsing;</li>
+<li>revision and snapshot inspection;</li>
+<li>migration history;</li>
+<li>semantic document views;</li>
+<li>source-code views;</li>
+<li>projection views;</li>
+<li>session and branch views;</li>
+<li>agent commands scoped to selected semantic objects.</li>
+</ul>
+<p>A selection in one view should resolve to the same semantic entity used by the other views.</p>
+<p>This makes the system debuggable and allows low-level and high-level operations to coexist.</p>
+<hr />
+<h2 id="25-architectural-invariants">25. Architectural Invariants<a class="headerlink" href="#25-architectural-invariants" title="Permanent link">&para;</a></h2>
+<p>Lower-level designs must preserve these invariants unless a later Level 1 decision explicitly replaces them.</p>
+<ul>
+<li>Canonical knowledge is structured and typed.</li>
+<li>Conceptual entity identity is distinct from exact revision identity.</li>
+<li>Revisions are immutable.</li>
+<li>A snapshot represents one exact consistent global state.</li>
+<li>Canonical changes produce new snapshots.</li>
+<li>Local semantic identity should remain stable across unrelated or presentation-only changes.</li>
+<li>Files and transcripts are projections, not the universal storage primitive.</li>
+<li>Supported editable projections can be reconciled back into semantic changes.</li>
+<li>Formatting and style are separate from semantic content unless a domain explicitly makes them meaningful.</li>
+<li>Changes from all write surfaces converge on a common migration/change model.</li>
+<li>Derived knowledge records provenance and dependencies.</li>
+<li>Derived results can be reused when their exact dependencies remain unchanged.</li>
+<li>Agents use progressive semantic disclosure by default.</li>
+<li>Sessions and their branches are stored as structured knowledge.</li>
+<li>Domain adapters reuse the common storage and interaction architecture.</li>
+<li>Storage and domain libraries remain useful without an agent runtime.</li>
+<li>CLI, API, web, TUI, and agent surfaces consume shared application capabilities.</li>
+<li>The reference web application uses public reusable libraries rather than private product-only mechanisms.</li>
+<li>Validation can occur on isolated branches before a result is promoted.</li>
+<li>Historical and concurrent states remain explicitly addressable.</li>
+</ul>
+<hr />
+<h2 id="26-measures-of-success">26. Measures of Success<a class="headerlink" href="#26-measures-of-success" title="Permanent link">&para;</a></h2>
+<p>The architecture is succeeding when the following statements are true.</p>
+<h3 id="261-a-large-project-can-be-navigated-without-reading-it-all">26.1 A large project can be navigated without reading it all<a class="headerlink" href="#261-a-large-project-can-be-navigated-without-reading-it-all" title="Permanent link">&para;</a></h3>
+<p>An agent can locate and inspect a small relevant semantic region without loading an entire repository, document, or session into context.</p>
+<h3 id="262-formatting-changes-are-cheap">26.2 Formatting changes are cheap<a class="headerlink" href="#262-formatting-changes-are-cheap" title="Permanent link">&para;</a></h3>
+<p>Changing a rendering style does not invalidate semantic identity or unrelated model understanding.</p>
+<h3 id="263-local-edits-remain-local">26.3 Local edits remain local<a class="headerlink" href="#263-local-edits-remain-local" title="Permanent link">&para;</a></h3>
+<p>Editing one paragraph, expression, or session branch preserves unrelated revisions and derived caches.</p>
+<h3 id="264-global-change-is-still-detectable-immediately">26.4 Global change is still detectable immediately<a class="headerlink" href="#264-global-change-is-still-detectable-immediately" title="Permanent link">&para;</a></h3>
+<p>A snapshot identity provides a compact way to determine whether canonical knowledge changed at all.</p>
+<h3 id="265-external-tools-remain-usable">26.5 External tools remain usable<a class="headerlink" href="#265-external-tools-remain-usable" title="Permanent link">&para;</a></h3>
+<p>Users can edit supported projections with ordinary editors and import those changes without abandoning semantic history.</p>
+<h3 id="266-multiple-consumers-use-the-same-platform">26.6 Multiple consumers use the same platform<a class="headerlink" href="#266-multiple-consumers-use-the-same-platform" title="Permanent link">&para;</a></h3>
+<p>The CLI, API, browser, TUI, agent runtime, and third-party applications use the same underlying operations and semantic references.</p>
+<h3 id="267-the-integrated-editor-is-reproducible-by-public-apis">26.7 The integrated editor is reproducible by public APIs<a class="headerlink" href="#267-the-integrated-editor-is-reproducible-by-public-apis" title="Permanent link">&para;</a></h3>
+<p>The official web application can be built from the same reusable packages available to other applications.</p>
+<h3 id="268-agent-history-does-not-grow-without-structure">26.8 Agent history does not grow without structure<a class="headerlink" href="#268-agent-history-does-not-grow-without-structure" title="Permanent link">&para;</a></h3>
+<p>Completed exploratory work can collapse to descriptions and results while remaining retrievable through session branches.</p>
+<h3 id="269-the-storage-layer-remains-independently-valuable">26.9 The storage layer remains independently valuable<a class="headerlink" href="#269-the-storage-layer-remains-independently-valuable" title="Permanent link">&para;</a></h3>
+<p>A consumer can use the knowledge store, revisions, snapshots, queries, and domain adapters without installing or running an agent.</p>
+<hr />
+<h2 id="27-design-direction">27. Design Direction<a class="headerlink" href="#27-design-direction" title="Permanent link">&para;</a></h2>
+<p>The intended architecture can be summarized as:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>                     Universal Knowledge Store
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>                              |
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>              entities + revisions + relations
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>                              |
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>                         snapshots
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>                              |
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>        +---------------------+----------------------+
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>        |                     |                      |
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    domain models        derived knowledge       sessions
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>        |                     |                      |
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>        +---------------------+----------------------+
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>                              |
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>                    application operations
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>                              |
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>          +-------------------+-------------------+
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>          |                   |                   |
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>        CLI/API             Web/TUI             Agents
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>          |                   |                   |
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>          +-------------------+-------------------+
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>                              |
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>                       semantic changes
+<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>                              |
+<a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>                          migrations
+<a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>                              |
+<a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>                         new snapshot
+</code></pre></div>
+<p>External projections such as files participate through render and reconciliation paths rather than bypassing this model.</p>
+<p>The architecture should remain understandable from this diagram even as individual domain adapters and product surfaces become sophisticated.</p>
+<hr />
+<h2 id="28-guidance-for-lower-level-design">28. Guidance for Lower-Level Design<a class="headerlink" href="#28-guidance-for-lower-level-design" title="Permanent link">&para;</a></h2>
+<p>Level 2 documents may choose concrete architectures, crate boundaries, schemas, algorithms, protocol types, and library APIs as long as they preserve the principles in this document.</p>
+<p>Level 3 documents may define exact implementation tasks, acceptance tests, files to modify, and focused instructions for implementation agents.</p>
+<p>When implementation pressure conflicts with a principle in this document, the conflict should be made explicit. A local implementation shortcut should not silently redefine a Level 1 architectural decision.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
