@@ -513,6 +513,7 @@ dependencies = [
  "scriberig-migration",
  "scriberig-projection",
  "scriberig-schema",
+ "sr-change",
  "syn 2.0.119",
 ]
 
