@@ -1,4 +1,9 @@
-/** @file Reserves a focused package module for its owning implementation task. */
-
-// Keep the scaffold module empty until the relevant design defines its semantics.
-export {};
+/** @file Defines local migration review state. */
+export interface MigrationReviewState {
+  proposalId: string;
+  baseSnapshot?: string;
+  candidateSnapshot?: string;
+  selectedChange?: string;
+  stale: boolean;
+  conflict: boolean;
+}

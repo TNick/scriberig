@@ -1,4 +1,6 @@
-/** @file Reserves a focused package module for its owning implementation task. */
-
-// Keep the scaffold module empty until the relevant design defines its semantics.
-export {};
+/** @file Defines snapshot-aware history coordination. */
+export interface HistoryState {
+  entityId?: string;
+  fromSnapshot?: string;
+  toSnapshot?: string;
+}
