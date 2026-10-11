@@ -3,6 +3,7 @@ import { useScriberig } from "@scriberig/react";
 import { MuiAgentPanel, MuiSessionTree } from "@scriberig/components-mui";
 import type { BranchSummary } from "@scriberig/components";
 import type { ReactElement } from "react";
+import { UnsupportedCapability } from "../components/UnsupportedCapability";
 /** Renders structured semantic scope and public commands. */
 /** @returns The rendered SessionAgentView view or runtime value. */
 export function SessionAgentView({
@@ -14,6 +15,7 @@ export function SessionAgentView({
   return (
     <section aria-label="Session and Agent">
       <h1>Session / Agent</h1>
+      <UnsupportedCapability capability="sessions and agent operations" />
       <MuiSessionTree branches={branches} />
       <MuiAgentPanel selection={selection.get()} commands={commands} status="Ready" />
     </section>

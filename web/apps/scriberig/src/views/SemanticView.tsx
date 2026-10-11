@@ -1,6 +1,7 @@
 /** @file Provides generic semantic inspection fallback. */
 import { useScriberig } from "@scriberig/react";
 import { SelectionSummary } from "../components/SelectionSummary";
+import { UnsupportedCapability } from "../components/UnsupportedCapability";
 import type { ReactElement } from "react";
 /** Displays the shared semantic selection. */
 /** @returns The rendered SemanticView view or runtime value. */
@@ -9,6 +10,7 @@ export function SemanticView(): ReactElement {
   return (
     <section aria-label="Semantic">
       <h1>Semantic</h1>
+      <UnsupportedCapability capability="semantic domain views" />
       <SelectionSummary selection={selection.get()} />
     </section>
   );

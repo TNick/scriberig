@@ -2,6 +2,7 @@
 import { MuiProjectionHost } from "@scriberig/components-mui";
 import type { ProjectionHandler } from "@scriberig/components";
 import type { ReactElement } from "react";
+import { UnsupportedCapability } from "../components/UnsupportedCapability";
 /** Hosts registered projection handlers without private fallbacks. */
 /** @returns The rendered ProjectionView view or runtime value. */
 export function ProjectionView({
@@ -12,6 +13,7 @@ export function ProjectionView({
   return (
     <section aria-label="Projection">
       <h1>Projection</h1>
+      <UnsupportedCapability capability="projection execution" />
       <MuiProjectionHost projectionId="default" handlers={handlers} readonly />
     </section>
   );
