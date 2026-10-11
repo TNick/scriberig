@@ -21,6 +21,7 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             | Action::SessionRequested(_)
             | Action::ComposerOpened { .. }
             | Action::AgentOutputObserved(_)
+            | Action::CapabilitiesLoaded(_)
     ) {
         return reduce_tail(state, action).unwrap_or_default();
     }
@@ -216,10 +217,6 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
                     stale: false,
                 };
             }
-            vec![Effect::None]
-        }
-        Action::CapabilitiesLoaded(capabilities) => {
-            state.capabilities = capabilities;
             vec![Effect::None]
         }
         Action::ViewSelected(view) => {

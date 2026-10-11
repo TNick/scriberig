@@ -4,6 +4,7 @@ import { KnowledgeTree, SelectionController } from "@scriberig/editor-core";
 import { WorkspaceModel } from "@scriberig/model";
 import type { EntityId, SnapshotId } from "@scriberig/protocol";
 import { createSnapshotState, advanceSnapshot } from "@scriberig/model";
+import { useMigrationReview } from "../src/use-migration-review";
 
 describe("headless hook dependencies", () => {
   it("shares selection and tree controllers across consumers", () => {
@@ -42,5 +43,18 @@ describe("headless hook dependencies", () => {
       current,
       stale: false,
     });
+  });
+
+  it("returns host-owned migration review actions", () => {
+    const apply = () => undefined;
+    const reject = () => undefined;
+    const review = useMigrationReview(
+      { proposalId: "proposal-1", stale: false, conflict: false },
+      { apply, reject },
+    );
+
+    expect(review.state.proposalId).toBe("proposal-1");
+    expect(review.apply).toBe(apply);
+    expect(review.reject).toBe(reject);
   });
 });

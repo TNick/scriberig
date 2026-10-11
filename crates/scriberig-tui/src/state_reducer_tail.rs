@@ -13,6 +13,12 @@ use super::*;
 /// Effects when the action belongs to this reducer partition.
 pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Effect>> {
     match action {
+        Action::CapabilitiesLoaded(capabilities) => {
+            state.capabilities = capabilities;
+            state.connection = ConnectionState::Connected;
+            state.stale = false;
+            Some(vec![Effect::None])
+        }
         Action::SessionSucceeded { request_id, model } => {
             if matches!(state.session, LoadState::Loading { request_id: current } if current == request_id)
             {

@@ -355,4 +355,30 @@ mod tests {
         );
         assert!(result.is_ok());
     }
+
+    /// Verifies semantic effects are routed through the worker boundary.
+    #[test]
+    fn worker_routes_effect_results_back_to_runtime() {
+        let (work_sender, work_receiver) = std::sync::mpsc::sync_channel(1);
+        let (message_sender, message_receiver) = std::sync::mpsc::sync_channel(1);
+        std::thread::scope(|scope| {
+            let worker = scope.spawn(|| {
+                super::worker_loop(
+                    &Fixture,
+                    &ApplicationContext::empty(),
+                    &work_receiver,
+                    &message_sender,
+                );
+            });
+            work_sender
+                .send(super::Work::Effect(
+                    crate::effect::Effect::RequestCapabilities,
+                ))
+                .expect("worker accepts effect");
+            drop(work_sender);
+            let message = message_receiver.recv().expect("worker result");
+            assert!(matches!(message, super::RuntimeMessage::Action(_)));
+            worker.join().expect("worker exits");
+        });
+    }
 }
