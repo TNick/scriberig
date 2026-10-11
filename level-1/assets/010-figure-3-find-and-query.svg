@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+  <title id="title">Find for discovery and query for exact structural selection</title>
+  <desc id="desc">A broad discovery request enters find, which may use text, names, tokens, or semantic similarity and returns ranked semantic handles. One or more handles then feed a structured query that applies type, property, relation, scope, ordering, and limit constraints to produce deterministic semantic results.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 22px system-ui,sans-serif;fill:#0f172a}.body{font:17px system-ui,sans-serif;fill:#334155}.small{font:15px system-ui,sans-serif;fill:#475569}.mono{font:17px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#334155}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="680" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Discover broadly, then establish facts structurally</text>
+
+  <rect x="55" y="150" width="240" height="150" rx="18" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+  <text x="175" y="192" text-anchor="middle" class="label">Question</text>
+  <text x="175" y="232" text-anchor="middle" class="body">“payment retry”</text>
+  <text x="175" y="264" text-anchor="middle" class="small">unknown exact location</text>
+
+  <rect x="365" y="105" width="300" height="240" rx="20" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="515" y="150" text-anchor="middle" class="label">find</text>
+  <text x="515" y="190" text-anchor="middle" class="body">discovery strategies</text>
+  <text x="515" y="226" text-anchor="middle" class="small">exact text · token · name</text>
+  <text x="515" y="257" text-anchor="middle" class="small">semantic similarity · domain match</text>
+  <text x="515" y="303" text-anchor="middle" class="body">ranked semantic handles</text>
+
+  <rect x="760" y="105" width="375" height="240" rx="20" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="947" y="150" text-anchor="middle" class="label">query</text>
+  <text x="947" y="190" text-anchor="middle" class="body">structured selection</text>
+  <text x="947" y="226" text-anchor="middle" class="small">scope · type · properties</text>
+  <text x="947" y="257" text-anchor="middle" class="small">relations · membership · ordering · limit</text>
+  <text x="947" y="303" text-anchor="middle" class="body">exact semantic result set</text>
+
+  <path d="M295 225 L365 225" class="line"/>
+  <path d="M665 225 L760 225" class="line"/>
+  <text x="713" y="205" text-anchor="middle" class="small">reuse returned handles</text>
+
+  <rect x="220" y="430" width="760" height="155" rx="20" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="600" y="470" text-anchor="middle" class="label">Example progression</text>
+  <text x="600" y="512" text-anchor="middle" class="mono">find(Project, “payment retry”) → Function F91</text>
+  <text x="600" y="550" text-anchor="middle" class="mono">query(functions that call F91) → [F12, F44, F77]</text>
+</svg>

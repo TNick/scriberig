@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Universal interaction grammar around semantic knowledge</title>
+  <desc id="desc">A central semantic knowledge state is surrounded by four operation groups. Observe contains inspect, list, and follow. Discover and compare contains find, query, diff, and history. Project contains render. Change contains branch, apply, and commit. All groups connect to the same semantic state.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.group{font:700 22px system-ui,sans-serif;fill:#0f172a}.op{font:18px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#334155}.body{font:16px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">One interaction grammar for every domain</text>
+
+  <rect x="390" y="265" width="420" height="170" rx="24" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="600" y="315" text-anchor="middle" class="group">Semantic knowledge</text>
+  <text x="600" y="350" text-anchor="middle" class="body">entities · revisions · relations · collections</text>
+  <text x="600" y="383" text-anchor="middle" class="body">resolved in an exact snapshot</text>
+  <text x="600" y="414" text-anchor="middle" class="body">same substrate for code, documents, PDFs and sessions</text>
+
+  <rect x="65" y="105" width="330" height="170" rx="18" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="230" y="145" text-anchor="middle" class="group">Observe</text>
+  <text x="230" y="185" text-anchor="middle" class="op">inspect · list · follow</text>
+  <text x="230" y="225" text-anchor="middle" class="body">orient and traverse known structure</text>
+
+  <rect x="805" y="105" width="330" height="170" rx="18" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="970" y="145" text-anchor="middle" class="group">Discover &amp; compare</text>
+  <text x="970" y="185" text-anchor="middle" class="op">find · query · diff · history</text>
+  <text x="970" y="225" text-anchor="middle" class="body">locate, select and compare knowledge</text>
+
+  <rect x="65" y="485" width="330" height="150" rx="18" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="230" y="525" text-anchor="middle" class="group">Project</text>
+  <text x="230" y="565" text-anchor="middle" class="op">render</text>
+  <text x="230" y="605" text-anchor="middle" class="body">produce a representation without mutation</text>
+
+  <rect x="805" y="485" width="330" height="150" rx="18" fill="#fef2f2" stroke="#b91c1c" stroke-width="3"/>
+  <text x="970" y="525" text-anchor="middle" class="group">Change</text>
+  <text x="970" y="565" text-anchor="middle" class="op">branch · apply · commit</text>
+  <text x="970" y="605" text-anchor="middle" class="body">construct and explicitly promote new state</text>
+
+  <path d="M395 245 C455 260 485 275 510 290" class="line"/>
+  <path d="M805 245 C745 260 715 275 690 290" class="line"/>
+  <path d="M395 520 C455 490 485 460 510 425" class="line"/>
+  <path d="M805 520 C745 490 715 460 690 425" class="line"/>
+</svg>

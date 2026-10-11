@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Progressive disclosure across code, documents, and sessions</title>
+  <desc id="desc">Three vertical navigation ladders show code progressing from project to module to function to code group to statement to expression, documents progressing from document to section to paragraph to inline content, and sessions progressing from session to branch to episode to turn to tool result. An arrow down the side indicates that detail and information cost increase only as the consumer drills deeper.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.head{font:700 22px system-ui,sans-serif;fill:#0f172a}.node{font:17px system-ui,sans-serif;fill:#334155}.side{font:16px system-ui,sans-serif;fill:#475569}.line{stroke:#94a3b8;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="760" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Progressive disclosure uses the same navigation pattern across domains</text>
+
+  <text x="245" y="105" text-anchor="middle" class="head">Code</text>
+  <text x="590" y="105" text-anchor="middle" class="head">Document</text>
+  <text x="925" y="105" text-anchor="middle" class="head">Session</text>
+
+  <g fill="#eff6ff" stroke="#2563eb" stroke-width="2.5">
+    <rect x="145" y="130" width="200" height="62" rx="14"/><rect x="145" y="220" width="200" height="62" rx="14"/><rect x="145" y="310" width="200" height="62" rx="14"/><rect x="145" y="400" width="200" height="62" rx="14"/><rect x="145" y="490" width="200" height="62" rx="14"/><rect x="145" y="580" width="200" height="62" rx="14"/>
+  </g>
+  <text x="245" y="169" text-anchor="middle" class="node">Project</text><text x="245" y="259" text-anchor="middle" class="node">Module</text><text x="245" y="349" text-anchor="middle" class="node">Function</text><text x="245" y="439" text-anchor="middle" class="node">Code group</text><text x="245" y="529" text-anchor="middle" class="node">Statement</text><text x="245" y="619" text-anchor="middle" class="node">Expression</text>
+
+  <g fill="#ecfdf5" stroke="#0f766e" stroke-width="2.5">
+    <rect x="490" y="130" width="200" height="62" rx="14"/><rect x="490" y="250" width="200" height="62" rx="14"/><rect x="490" y="370" width="200" height="62" rx="14"/><rect x="490" y="490" width="200" height="62" rx="14"/>
+  </g>
+  <text x="590" y="169" text-anchor="middle" class="node">Document</text><text x="590" y="289" text-anchor="middle" class="node">Section</text><text x="590" y="409" text-anchor="middle" class="node">Paragraph / table</text><text x="590" y="529" text-anchor="middle" class="node">Inline / cell</text>
+
+  <g fill="#f5f3ff" stroke="#7c3aed" stroke-width="2.5">
+    <rect x="825" y="130" width="200" height="62" rx="14"/><rect x="825" y="235" width="200" height="62" rx="14"/><rect x="825" y="340" width="200" height="62" rx="14"/><rect x="825" y="445" width="200" height="62" rx="14"/><rect x="825" y="550" width="200" height="62" rx="14"/>
+  </g>
+  <text x="925" y="169" text-anchor="middle" class="node">Session</text><text x="925" y="274" text-anchor="middle" class="node">Branch</text><text x="925" y="379" text-anchor="middle" class="node">Episode</text><text x="925" y="484" text-anchor="middle" class="node">Turn</text><text x="925" y="589" text-anchor="middle" class="node">Tool result</text>
+
+  <path d="M245 192 L245 220" class="line"/><path d="M245 282 L245 310" class="line"/><path d="M245 372 L245 400" class="line"/><path d="M245 462 L245 490" class="line"/><path d="M245 552 L245 580" class="line"/>
+  <path d="M590 192 L590 250" class="line"/><path d="M590 312 L590 370" class="line"/><path d="M590 432 L590 490" class="line"/>
+  <path d="M925 192 L925 235" class="line"/><path d="M925 297 L925 340" class="line"/><path d="M925 402 L925 445" class="line"/><path d="M925 507 L925 550" class="line"/>
+
+  <path d="M1090 145 L1090 625" class="line"/>
+  <text x="1120" y="385" transform="rotate(90 1120 385)" text-anchor="middle" class="side">more detail · higher information cost · requested only when useful</text>
+  <text x="600" y="700" text-anchor="middle" class="side">Every level returns stable handles so the next step is chosen deliberately rather than by dumping the deepest representation.</text>
+</svg>

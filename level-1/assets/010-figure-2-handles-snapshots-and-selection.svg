@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Entity, snapshot, revision, and selection relationship</title>
+  <desc id="desc">An entity reference and a snapshot reference flow into a resolve operation that produces an exact revision reference. A selection contains the snapshot, entity, optional exact revision, optional relation path, and optional projection anchor. The projection anchor is shown as contextual rather than canonical identity.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 21px system-ui,sans-serif;fill:#0f172a}.body{font:17px system-ui,sans-serif;fill:#334155}.small{font:15px system-ui,sans-serif;fill:#475569}.mono{font:17px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#334155}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#94a3b8;stroke-width:2.5;stroke-dasharray:8 8;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">Stable identity, exact state, and rendered context</text>
+
+  <rect x="70" y="115" width="280" height="120" rx="18" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="210" y="158" text-anchor="middle" class="label">EntityRef E</text>
+  <text x="210" y="194" text-anchor="middle" class="body">conceptual identity across time</text>
+
+  <rect x="70" y="300" width="280" height="120" rx="18" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="210" y="343" text-anchor="middle" class="label">SnapshotRef S</text>
+  <text x="210" y="379" text-anchor="middle" class="body">exact knowledge universe</text>
+
+  <rect x="455" y="205" width="290" height="130" rx="22" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="600" y="252" text-anchor="middle" class="label">resolve(S, E)</text>
+  <text x="600" y="292" text-anchor="middle" class="body">bind conceptual identity to exact state</text>
+
+  <rect x="850" y="205" width="280" height="130" rx="18" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="990" y="252" text-anchor="middle" class="label">RevisionRef R</text>
+  <text x="990" y="290" text-anchor="middle" class="body">immutable exact content</text>
+
+  <path d="M350 175 C405 180 430 215 455 245" class="line"/>
+  <path d="M350 360 C410 350 430 315 455 290" class="line"/>
+  <path d="M745 270 L850 270" class="line"/>
+
+  <rect x="180" y="500" width="840" height="150" rx="22" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+  <text x="600" y="538" text-anchor="middle" class="label">Selection</text>
+  <text x="260" y="580" class="mono">snapshot: S</text>
+  <text x="470" y="580" class="mono">entity: E</text>
+  <text x="650" y="580" class="mono">revision: R?</text>
+  <text x="845" y="580" class="mono">relation path?</text>
+  <text x="400" y="620" class="mono">projection anchor?</text>
+  <text x="690" y="620" class="small">line / DOM node / page rectangle = context, not identity</text>
+
+  <path d="M210 420 C260 465 315 488 370 505" class="dash"/>
+  <path d="M990 335 C920 405 840 460 770 505" class="dash"/>
+</svg>

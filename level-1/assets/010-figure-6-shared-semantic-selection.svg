@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">One semantic selection shared across editor views</title>
+  <desc id="desc">A central semantic selection identified by snapshot, entity, optional revision, relation path, and projection anchor connects to five views: raw database inspector, semantic domain view, rendered projection, history and diff view, and agent scope. The diagram shows that all views point to the same semantic object rather than rediscovering it independently.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 30px system-ui,sans-serif;fill:#0f172a}.label{font:700 21px system-ui,sans-serif;fill:#0f172a}.body{font:16px system-ui,sans-serif;fill:#334155}.small{font:15px system-ui,sans-serif;fill:#475569}.line{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <text x="600" y="48" text-anchor="middle" class="title">One selection binds low-level and high-level views together</text>
+
+  <rect x="410" y="255" width="380" height="190" rx="24" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/>
+  <text x="600" y="300" text-anchor="middle" class="label">Semantic selection</text>
+  <text x="600" y="340" text-anchor="middle" class="body">Snapshot S · Entity E · optional Revision R</text>
+  <text x="600" y="374" text-anchor="middle" class="body">optional relation path · projection anchor</text>
+  <text x="600" y="410" text-anchor="middle" class="small">identity is semantic; rendered coordinates are only context</text>
+
+  <rect x="55" y="95" width="290" height="115" rx="18" fill="#f8fafc" stroke="#64748b" stroke-width="3"/>
+  <text x="200" y="138" text-anchor="middle" class="label">Raw database</text>
+  <text x="200" y="176" text-anchor="middle" class="body">revision · properties · relations</text>
+
+  <rect x="855" y="95" width="290" height="115" rx="18" fill="#ecfdf5" stroke="#0f766e" stroke-width="3"/>
+  <text x="1000" y="138" text-anchor="middle" class="label">Semantic view</text>
+  <text x="1000" y="176" text-anchor="middle" class="body">function · paragraph · branch</text>
+
+  <rect x="55" y="510" width="290" height="115" rx="18" fill="#fff7ed" stroke="#c2410c" stroke-width="3"/>
+  <text x="200" y="553" text-anchor="middle" class="label">Rendered projection</text>
+  <text x="200" y="591" text-anchor="middle" class="body">source · Markdown · page view</text>
+
+  <rect x="855" y="510" width="290" height="115" rx="18" fill="#f5f3ff" stroke="#7c3aed" stroke-width="3"/>
+  <text x="1000" y="553" text-anchor="middle" class="label">History &amp; diff</text>
+  <text x="1000" y="591" text-anchor="middle" class="body">lineage · migrations · comparisons</text>
+
+  <rect x="455" y="545" width="290" height="105" rx="18" fill="#fef2f2" stroke="#b91c1c" stroke-width="3"/>
+  <text x="600" y="585" text-anchor="middle" class="label">Agent scope</text>
+  <text x="600" y="620" text-anchor="middle" class="body">ask or act on this exact object</text>
+
+  <path d="M430 280 C350 230 300 190 280 180" class="line"/>
+  <path d="M770 280 C850 230 900 190 920 180" class="line"/>
+  <path d="M430 420 C350 470 300 525 280 550" class="line"/>
+  <path d="M770 420 C850 470 900 525 920 550" class="line"/>
+  <path d="M600 445 L600 545" class="line"/>
+</svg>
