@@ -49,10 +49,14 @@
 
   "cSpell.language": "en",
   "cSpell.words": [
+    "clippy",
     "COMSPEC",
     "creationflags",
+    "incrementality",
     "inspectable",
     "killpg",
+    "parseability",
+    "renderable",
     "rustup",
     "scriberig",
     "srig",
