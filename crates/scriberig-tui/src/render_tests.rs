@@ -37,6 +37,26 @@ fn narrow_frame_contains_primary_text() {
     assert!(rendered.contains("Shell ready"));
 }
 
+/// Verifies the active project identity is visible in the context bar.
+#[test]
+fn context_bar_shows_active_project() {
+    let backend = TestBackend::new(140, 40);
+    let mut terminal = Terminal::new(backend).expect("terminal");
+    let state = TuiState {
+        project: Some("prj_test".to_owned()),
+        ..TuiState::default()
+    };
+
+    terminal.draw(|frame| render(frame, &state)).expect("draw");
+
+    let buffer = terminal.backend().buffer();
+    let layout = crate::layout::shell_layout(Rect::new(0, 0, 140, 40));
+    let context: String = (layout.context.x..layout.context.right())
+        .map(|x| buffer.cell((x, layout.context.y)).expect("cell").symbol())
+        .collect();
+    assert!(context.contains("project: prj_test"));
+}
+
 /// Verifies the status line shows contextual shortcuts instead of shell state.
 #[test]
 fn status_line_shows_contextual_shortcuts() {

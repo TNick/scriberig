@@ -40,7 +40,7 @@ pub struct ShellLayout {
 /// The value produced by the declaration.
 pub fn shell_layout(area: Rect) -> ShellLayout {
     let vertical = ratatui::layout::Layout::vertical([
-        ratatui::layout::Constraint::Length(1),
+        ratatui::layout::Constraint::Length(2),
         ratatui::layout::Constraint::Min(1),
         ratatui::layout::Constraint::Length(1),
     ])
