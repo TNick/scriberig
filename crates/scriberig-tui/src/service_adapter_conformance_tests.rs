@@ -25,24 +25,36 @@ struct LocalSessionFixture {
 }
 
 impl QueryService for LocalSessionFixture {
-    /// Rejects inspection because this test targets session equivalence.
+    /// Returns the deterministic inspection represented by both adapters.
     ///
     /// # Parameters
     /// - `_context`: Application request context.
-    /// - `_request`: Unsupported inspection request.
+    /// - `request`: Inspection request to resolve.
     ///
     /// # Returns
-    /// Never returns an inspection result.
+    /// The inspection preserves the requested semantic handles.
     ///
     /// # Errors
-    /// Always returns unsupported-operation.
+    /// This fixture does not return an application error.
     fn inspect(
         &self,
         _context: &ApplicationContext,
-        _request: &InspectRequest,
+        request: &InspectRequest,
     ) -> Result<InspectResult, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "fixture inspection".to_owned(),
+        Ok(InspectResult {
+            entity: request.entity,
+            revision: Some(scriberig_core::RevisionId::new([8; 32])),
+            snapshot: match request.snapshot {
+                scriberig_app::SnapshotResolution::At(snapshot) => Some(snapshot),
+                _ => None,
+            },
+            object_type: Some(
+                scriberig_core::ObjectType::new("fixture.entity").expect("object type"),
+            ),
+            label: Some("fixture inspection".to_owned()),
+            description: None,
+            capabilities: Vec::new(),
+            trust: None,
         })
     }
 }
@@ -141,6 +153,52 @@ fn session_fixture() -> Session {
         goals: Vec::new(),
         tasks: Vec::new(),
     }
+}
+
+/// Verifies local and remote inspection preserve the same semantic result.
+#[test]
+fn local_and_remote_inspection_share_semantics() {
+    let entity = EntityId::from_bytes([30; 16]);
+    let snapshot = scriberig_core::SnapshotId::new([31; 32]);
+    let local = ApplicationAdapter::new(
+        LocalSessionFixture {
+            session: session_fixture(),
+        },
+        Vec::new(),
+    )
+    .inspect_entity(&ApplicationContext::empty(), entity, Some(snapshot))
+    .expect("local inspection");
+    let transport = FixtureTransport {
+        response: ResponseEnvelope {
+            version: ProtocolVersion::default(),
+            correlation_id: "inspect-equivalence".to_owned(),
+            response: Response::Inspect(scriberig_protocol::InspectEntityResponse {
+                entity: scriberig_protocol::EntityReference {
+                    id: entity.to_string(),
+                },
+                revision: scriberig_protocol::RevisionReference {
+                    entity: scriberig_protocol::EntityReference {
+                        id: entity.to_string(),
+                    },
+                    id: scriberig_core::RevisionId::new([8; 32]).to_string(),
+                },
+                snapshot: scriberig_protocol::SnapshotReference {
+                    id: snapshot.to_string(),
+                },
+                object_type: Some("fixture.entity".to_owned()),
+                summary: Some("fixture inspection".to_owned()),
+            }),
+        },
+    };
+    let remote = RemoteAdapter::new(Client::new(transport))
+        .inspect_entity(&ApplicationContext::empty(), entity, Some(snapshot))
+        .expect("remote inspection");
+
+    assert_eq!(local.entity, remote.entity);
+    assert_eq!(local.revision, remote.revision);
+    assert_eq!(local.snapshot, remote.snapshot);
+    assert_eq!(local.object_type, remote.object_type);
+    assert_eq!(local.label, remote.label);
 }
 
 /// Verifies local and remote adapters reconstruct the same session semantics.
