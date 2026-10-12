@@ -1,11 +1,111 @@
 //! Implements HTTP transport and SSE streaming for the compatible provider.
 
 use std::io::{BufRead, BufReader};
+use std::time::Duration;
 
 use crate::provider::{ModelRequest, ModelResponse, ProviderError};
 use crate::stream::StreamAssembler;
 
 use super::OpenAiCompatibleProvider;
+
+/// Response returned by one compatible completion transport.
+pub(super) struct TransportResponse {
+    /// HTTP status returned by the transport.
+    pub(super) status: reqwest::StatusCode,
+    /// Safe request identifier extracted from response headers.
+    pub(super) request_id: Option<String>,
+    /// Response body bytes.
+    pub(super) body: Vec<u8>,
+}
+
+/// Sends one non-streaming compatible completion request.
+pub(super) trait CompletionTransport: Send + Sync {
+    /// Sends a JSON completion request through the transport boundary.
+    ///
+    /// # Parameters
+    /// - `endpoint`: Complete chat-completions URL.
+    /// - `payload`: Serialized provider-neutral request.
+    /// - `credential`: Optional bearer credential.
+    /// - `timeout`: Maximum request duration.
+    ///
+    /// # Returns
+    /// A normalized HTTP response envelope.
+    ///
+    /// # Errors
+    /// Returns a classified transport failure.
+    fn send(
+        &self,
+        endpoint: &str,
+        payload: &super::WireRequest,
+        credential: Option<&str>,
+        timeout: Duration,
+    ) -> Result<TransportResponse, ProviderError>;
+}
+
+/// Uses reqwest for production-compatible completion requests.
+pub(super) struct ReqwestCompletionTransport {
+    /// HTTP client configured by the provider boundary.
+    client: reqwest::blocking::Client,
+}
+
+impl ReqwestCompletionTransport {
+    /// Creates a reqwest-backed completion transport.
+    ///
+    /// # Parameters
+    /// - `super`: Parent module visibility boundary.
+    /// - `client`: Configured reqwest client.
+    ///
+    /// # Returns
+    /// A production completion transport.
+    pub(super) fn new(client: reqwest::blocking::Client) -> Self {
+        Self { client }
+    }
+}
+
+impl CompletionTransport for ReqwestCompletionTransport {
+    /// Sends one completion request and buffers its response body.
+    ///
+    /// # Parameters
+    /// - `endpoint`: Complete chat-completions URL.
+    /// - `payload`: Serialized provider-neutral request.
+    /// - `credential`: Optional bearer credential.
+    /// - `timeout`: Maximum request duration.
+    ///
+    /// # Returns
+    /// The HTTP response envelope.
+    ///
+    /// # Errors
+    /// Returns a classified reqwest failure.
+    fn send(
+        &self,
+        endpoint: &str,
+        payload: &super::WireRequest,
+        credential: Option<&str>,
+        timeout: Duration,
+    ) -> Result<TransportResponse, ProviderError> {
+        let mut builder = self.client.post(endpoint).timeout(timeout).json(payload);
+        if let Some(credential) = credential {
+            builder = builder.bearer_auth(credential);
+        }
+        let response = builder.send().map_err(|error| classify_transport(&error))?;
+        let request_id = response
+            .headers()
+            .get("x-request-id")
+            .or_else(|| response.headers().get("request-id"))
+            .and_then(|value| value.to_str().ok())
+            .map(str::to_owned);
+        let status = response.status();
+        let body = response
+            .bytes()
+            .map_err(|error| ProviderError::Transport(error.to_string()))?
+            .to_vec();
+        Ok(TransportResponse {
+            status,
+            request_id,
+            body,
+        })
+    }
+}
 
 impl OpenAiCompatibleProvider {
     /// Sends one streaming request and assembles its complete SSE response.

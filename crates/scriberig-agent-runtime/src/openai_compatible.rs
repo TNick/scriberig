@@ -1,7 +1,9 @@
 //! Implements the non-streaming OpenAI-compatible provider adapter.
 
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
+use crate::config::ResolvedCredential;
 use crate::provider::{
     FinishReason, ModelRequest, ModelResponse, ProviderAdapter, ProviderCapabilities,
     ProviderError, ProviderMetadata, ToolCall, ToolChoice, Usage,
@@ -11,7 +13,7 @@ use crate::provider::{MessageRole, ProviderConfig};
 mod openai_cancellation;
 #[path = "openai_transport.rs"]
 mod openai_transport;
-use openai_transport::{classify_status, classify_transport};
+use openai_transport::{CompletionTransport, ReqwestCompletionTransport, classify_status};
 
 /// OpenAI-compatible chat-completions provider.
 #[derive(Clone)]
@@ -20,6 +22,8 @@ pub struct OpenAiCompatibleProvider {
     config: ProviderConfig,
     /// HTTP client with bounded connection behavior.
     client: reqwest::blocking::Client,
+    /// Completion transport used by the normalized request path.
+    transport: Arc<dyn CompletionTransport>,
     /// Declared capabilities for this compatibility adapter.
     capabilities: ProviderCapabilities,
 }
@@ -43,9 +47,11 @@ impl OpenAiCompatibleProvider {
             .user_agent("scriberig-agent-runtime/0.1")
             .build()
             .map_err(|error| ProviderError::Configuration(error.to_string()))?;
+        let transport = Arc::new(ReqwestCompletionTransport::new(client.clone()));
         Ok(Self {
             config,
             client,
+            transport,
             capabilities: ProviderCapabilities {
                 tool_calls: true,
                 streaming: true,
@@ -55,6 +61,27 @@ impl OpenAiCompatibleProvider {
                 ..ProviderCapabilities::default()
             },
         })
+    }
+
+    /// Replaces the completion transport for deterministic adapter tests.
+    ///
+    /// # Parameters
+    /// - `config`: Provider configuration without an embedded secret.
+    /// - `transport`: In-process completion transport fixture.
+    ///
+    /// # Returns
+    /// A configured provider using the supplied transport.
+    ///
+    /// # Errors
+    /// Returns a configuration error when the backing HTTP client cannot be built.
+    #[cfg(test)]
+    fn with_transport(
+        config: ProviderConfig,
+        transport: Arc<dyn CompletionTransport>,
+    ) -> Result<Self, ProviderError> {
+        let mut provider = Self::new(config)?;
+        provider.transport = transport;
+        Ok(provider)
     }
 
     /// Returns the adapter's declared model capabilities.
@@ -92,27 +119,18 @@ impl ProviderAdapter for OpenAiCompatibleProvider {
     fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
         let credential = self.config.resolve_credential()?;
         let payload = WireRequest::from_request(request, false);
-        let mut builder = self
-            .client
-            .post(self.endpoint())
-            .timeout(self.config.request_timeout)
-            .json(&payload);
-        if let Some(credential) = credential {
-            builder = builder.bearer_auth(credential.as_str());
-        }
-        let response = builder.send().map_err(|error| classify_transport(&error))?;
-        let request_id = response
-            .headers()
-            .get("x-request-id")
-            .or_else(|| response.headers().get("request-id"))
-            .and_then(|value| value.to_str().ok())
-            .map(str::to_owned);
-        let status = response.status();
+        let response = self.transport.send(
+            &self.endpoint(),
+            &payload,
+            credential.as_ref().map(ResolvedCredential::as_str),
+            self.config.request_timeout,
+        )?;
+        let request_id = response.request_id;
+        let status = response.status;
         if !status.is_success() {
             return Err(classify_status(status, request_id));
         }
-        let wire: WireResponse = response
-            .json()
+        let wire: WireResponse = serde_json::from_slice(&response.body)
             .map_err(|error| ProviderError::MalformedResponse(error.to_string()))?;
         wire.into_response(request_id)
     }
