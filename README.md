@@ -92,6 +92,19 @@ srig project import PROJECT_ID --db scriberig.sqlite
 srig project status PROJECT_ID --db scriberig.sqlite
 ```
 
+To onboard this repository with one command, import the files tracked by Git,
+and print the resulting status:
+
+```text
+make onboard
+```
+
+Set `ONBOARD_DB` to use a shared database other than the development database:
+
+```text
+make onboard ONBOARD_DB=path/to/shared.sqlite
+```
+
 The API server can onboard only paths under explicitly configured roots:
 
 `--git-tracked` restricts the persisted scan manifest to existing files in

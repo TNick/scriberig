@@ -1,5 +1,7 @@
 .DEFAULT_GOAL := help
-.PHONY: help init build install tui docs format lint test check dev dev-stop
+.PHONY: help init build install tui onboard docs format lint test check dev dev-stop
+
+ONBOARD_DB ?= playground/dev-app-runtime/scriberig.sqlite
 
 ifeq ($(OS),Windows_NT)
 PYTHON ?= python
@@ -14,6 +16,7 @@ help:
 	@echo   make build      Build all workspace targets.
 	@echo   make install    Build and install the srig executable.
 	@echo   make tui        Start srig in TUI mode.
+	@echo   make onboard    Import Git-tracked files from the current project.
 	@echo   make docs       Build Rust and TypeScript API documentation.
 	@echo   make format     Apply repository, Rust, and web formatting.
 	@echo   make lint       Run repository and web formatting checks.
@@ -41,6 +44,10 @@ install:
 # Start the integrated srig executable in TUI mode.
 tui:
 	cargo run --package scriberig --bin srig -- tui
+
+# Scan and import the current project's Git-tracked files.
+onboard:
+	$(PYTHON) tools/onboard.py --root . --db "$(ONBOARD_DB)"
 
 # Build API documentation from Rust and TypeScript declaration docs.
 docs:
