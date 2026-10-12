@@ -189,8 +189,11 @@ fn validate_file(file: &ScannedFile) -> Result<(), Box<dyn std::error::Error + S
     match file.adapter {
         "markdown" => {
             let source = std::str::from_utf8(&file.bytes)?;
-            sr_markdown::parse(source)
-                .map_err(|error| format!("{}: {error:?}", file.relative_path))?;
+            if let Err(error) = sr_markdown::parse(source) {
+                if error.code != "unsupported-markdown" {
+                    return Err(format!("{}: {error:?}", file.relative_path).into());
+                }
+            }
         }
         "rust" => {
             std::str::from_utf8(&file.bytes)
