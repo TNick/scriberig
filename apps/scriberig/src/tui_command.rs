@@ -23,6 +23,7 @@ type ProjectStartup = (ProjectId, Option<EntityId>, Option<SnapshotId>);
 ///
 /// # Errors
 /// Returns a database, transport, or terminal error.
+#[allow(clippy::too_many_lines)]
 pub(super) fn run(
     args: &scriberig_cli::TuiArgs,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -62,9 +63,16 @@ pub(super) fn run(
                 let project = report.project;
                 if args.import_project {
                     let imported = service.import(project.id)?;
-                    let entity = store
-                        .project_entities(project.id)?
-                        .first()
+                    let entities = store.project_entities(project.id)?;
+                    let entity = entities
+                        .iter()
+                        .find(|record| record.name.as_deref() == Some("add"))
+                        .or_else(|| {
+                            entities.iter().find(|record| {
+                                record.kind == "source" && record.relative_path == "src/lib.rs"
+                            })
+                        })
+                        .or_else(|| entities.iter().find(|record| record.kind == "source"))
                         .map(|record| record.entity);
                     return Ok((project.id, entity, Some(imported.snapshot)));
                 }
@@ -82,15 +90,63 @@ pub(super) fn run(
         .as_ref()
         .map(|(project_id, _, _)| project_labels(&store, *project_id))
         .transpose()?;
+    let projection =
+        project
+            .as_ref()
+            .zip(labels.as_ref())
+            .and_then(|((project_id, _, snapshot), _)| {
+                snapshot.map(|snapshot| {
+                    let files = store
+                        .project_files(*project_id)
+                        .unwrap_or_default()
+                        .into_iter()
+                        .collect::<Vec<_>>();
+                    let by_path = files
+                        .iter()
+                        .map(|file| (file.relative_path.as_str(), file))
+                        .collect::<std::collections::HashMap<_, _>>();
+                    let sources = store
+                        .project_entities(*project_id)
+                        .unwrap_or_default()
+                        .into_iter()
+                        .filter_map(|entity| {
+                            by_path.get(entity.relative_path.as_str()).map(|file| {
+                                (entity.entity, (entity.relative_path, file.bytes.clone()))
+                            })
+                        })
+                        .collect();
+                    scriberig_tui::ProjectProjection {
+                        project: *project_id,
+                        workflow: scriberig_project::ProjectService::new(Arc::clone(&store)),
+                        snapshot,
+                        sources,
+                    }
+                })
+            });
     let service = scriberig_tui::ApplicationOperationAdapter::new(service)
         .with_explorer_labels(labels.unwrap_or_default());
+    let service = if let Some(value) = projection {
+        service.with_project_projection(value)
+    } else {
+        service
+    };
     let context = ApplicationContext::empty();
     scriberig_tui::run(
         &service,
         &context,
         &scriberig_tui::TuiConfig {
             interactive: true,
-            project: project.as_ref().map(|value| value.0.to_string()),
+            project: project.as_ref().map(|value| {
+                format!(
+                    "{} @ {}",
+                    args.project
+                        .as_ref()
+                        .map_or_else(|| value.0.to_string(), |path| path.display().to_string()),
+                    value
+                        .2
+                        .map_or_else(|| "unimported".to_owned(), |snapshot| snapshot.to_string())
+                )
+            }),
             initial_entity: project
                 .as_ref()
                 .and_then(|value| value.1)
@@ -125,6 +181,10 @@ fn project_labels(
     for record in records {
         if record.kind == "source" {
             labels.insert(record.entity, record.relative_path);
+            continue;
+        }
+        if let Some(name) = record.name {
+            labels.insert(record.entity, format!("{name} · {}", record.kind));
             continue;
         }
         let key = (record.relative_path.clone(), record.kind.clone());

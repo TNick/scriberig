@@ -4,13 +4,19 @@
 
 use super::*;
 
+use scriberig_agent_runtime::AgentRuntime;
+
 /// Optional local project labels keyed by stable entity identity.
 pub type ExplorerLabels = std::collections::HashMap<EntityId, String>;
 
 /// Adapts the application backend to operation-oriented TUI services.
 pub struct ApplicationOperationAdapter<B> {
-    service: ApplicationService<B>,
-    explorer_labels: ExplorerLabels,
+    pub(crate) service: ApplicationService<B>,
+    pub(crate) explorer_labels: ExplorerLabels,
+    pub(crate) project_projection: Option<ProjectProjection>,
+    pub(crate) project_candidates: std::sync::Arc<
+        std::sync::Mutex<std::collections::HashMap<String, scriberig_project::ProjectCandidate>>,
+    >,
 }
 
 /// Adapts the public protocol client to the TUI inspection boundary.
@@ -27,6 +33,10 @@ impl<B> ApplicationOperationAdapter<B> {
         Self {
             service,
             explorer_labels: std::collections::HashMap::new(),
+            project_projection: None,
+            project_candidates: std::sync::Arc::new(std::sync::Mutex::new(
+                std::collections::HashMap::new(),
+            )),
         }
     }
 
@@ -41,6 +51,20 @@ impl<B> ApplicationOperationAdapter<B> {
     #[must_use]
     pub fn with_explorer_labels(mut self, labels: ExplorerLabels) -> Self {
         self.explorer_labels = labels;
+        self
+    }
+
+    /// Supplies the active project's exact source projection data.
+    ///
+    /// # Parameters
+    /// - `self`: Adapter receiving project projection data.
+    /// - `projection`: Snapshot-bound source projection.
+    ///
+    /// # Returns
+    /// The configured adapter.
+    #[must_use]
+    pub fn with_project_projection(mut self, projection: ProjectProjection) -> Self {
+        self.project_projection = Some(projection);
         self
     }
 }
@@ -61,32 +85,110 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         &self,
         _context: &ApplicationContext,
     ) -> Result<Vec<RuntimeCapability>, ApplicationError> {
-        let capabilities = [
-            ("inspect_entity", "Inspect an exact semantic entity."),
-            ("explorer_list", "List entities in an exact snapshot."),
-            ("semantic_find", "Search entities in an exact snapshot."),
-            ("history", "Read immutable snapshot history."),
-            ("diff", "Compare two exact snapshots."),
-            ("session_branch_tree", "Read session and branch state."),
-            ("operation_status", "Observe operation lifecycle state."),
-            ("operation_cancel", "Cancel a cancellable operation."),
-            ("agent_start", "Start provider-neutral agent work."),
-            ("agent_continue", "Continue work on a session branch."),
-        ];
-        capabilities
-            .into_iter()
-            .map(|(id, description)| {
-                Ok(RuntimeCapability::new(
-                    scriberig_app::CapabilityId::new(id).map_err(|error| {
-                        ApplicationError::Internal {
-                            message: error.to_owned(),
-                        }
-                    })?,
-                    description,
-                    true,
-                ))
+        service_operation_helpers::runtime_capabilities(self)
+    }
+
+    /// Runs the deterministic provider through the selected semantic scope.
+    ///
+    /// # Parameters
+    /// - `context`: Trusted application context.
+    /// - `entity`: Selected semantic entity.
+    /// - `snapshot`: Exact candidate base snapshot.
+    /// - `prompt`: User instruction.
+    ///
+    /// # Returns
+    /// The normal candidate review operation result.
+    ///
+    /// # Errors
+    /// Returns a structured agent, validation, or storage error.
+    fn project_agent(
+        &self,
+        context: &ApplicationContext,
+        entity: EntityId,
+        snapshot: SnapshotId,
+        prompt: &str,
+    ) -> Result<ApplicationResult, ApplicationError> {
+        let projection = self.project_projection.as_ref().ok_or_else(|| {
+            ApplicationError::UnsupportedOperation {
+                operation: "project agent".to_owned(),
+            }
+        })?;
+        let (path, bytes) =
+            projection
+                .sources
+                .get(&entity)
+                .ok_or_else(|| ApplicationError::NotFound {
+                    subject: entity.to_string(),
+                })?;
+        let replacement =
+            String::from_utf8_lossy(bytes).replace("left + right", "left.saturating_add(right)");
+        let tool = ProjectAgentTool {
+            projection,
+            entity,
+            snapshot,
+        };
+        let mut runtime = AgentRuntime::new(golden_provider(entity, snapshot), tool, 4);
+        let result = runtime
+            .run(context, prompt, &std::sync::atomic::AtomicBool::new(false))
+            .map_err(|error| ApplicationError::OperationFailed {
+                operation: "project_agent".to_owned(),
+                message: error.to_string(),
+            })?;
+        let candidate = result
+            .messages
+            .iter()
+            .rev()
+            .find_map(|message| match message {
+                scriberig_agent_runtime::AgentMessage::Tool(value)
+                    if value.object_type.as_deref() == Some("migration_candidate") =>
+                {
+                    value.handles.first().cloned()
+                }
+                _ => None,
             })
-            .collect()
+            .ok_or_else(|| ApplicationError::OperationFailed {
+                operation: "project_agent".to_owned(),
+                message: "agent did not create a candidate".to_owned(),
+            })?;
+        let candidate_value = projection
+            .workflow
+            .propose_candidate(projection.project, entity, replacement)
+            .map_err(|error| ApplicationError::ValidationFailure {
+                message: error.to_string(),
+            })?;
+        if candidate != candidate_value.id {
+            return Err(ApplicationError::Internal {
+                message: "agent candidate identity changed between tool calls".to_owned(),
+            });
+        }
+        self.project_candidates
+            .lock()
+            .map_err(|_| ApplicationError::Internal {
+                message: "project candidate lock poisoned".to_owned(),
+            })?
+            .insert(candidate_value.id.clone(), candidate_value.clone());
+        let validation = match &candidate_value.validation {
+            scriberig_project::CandidateValidation::Passed => {
+                scriberig_app::ValidationStatus::Passed
+            }
+            scriberig_project::CandidateValidation::Failed { .. } => {
+                scriberig_app::ValidationStatus::Failed
+            }
+        };
+        Ok(ApplicationResult::Apply(scriberig_app::OperationSummary {
+            handle: candidate_value.id,
+            snapshot: Some(snapshot),
+            revision: None,
+            branch: None,
+            diff: None,
+            history: None,
+            rendered: None,
+            validation: Some(validation),
+            validation_diagnostics: Vec::new(),
+            conflicts: vec![format!(
+                "scope: entity={entity} snapshot={snapshot}; {path}: add | old: left + right | new: left.saturating_add(right)"
+            )],
+        }))
     }
 
     /// Delegates inspection through the public application facade.
@@ -107,18 +209,7 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         entity: EntityId,
         snapshot: Option<SnapshotId>,
     ) -> Result<InspectResult, ApplicationError> {
-        let mut result = self.service.inspect(
-            context,
-            &InspectRequest {
-                entity,
-                snapshot: snapshot.map_or(SnapshotResolution::Current, SnapshotResolution::At),
-                detail: scriberig_app::DetailLevel::Detailed,
-            },
-        )?;
-        if result.label.is_none() {
-            result.label = self.explorer_labels.get(&entity).cloned();
-        }
-        Ok(result)
+        service_operation_helpers::inspect_entity(self, context, entity, snapshot)
     }
 
     /// Lists the shared snapshot entity collection for Explorer navigation.
@@ -141,51 +232,7 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         snapshot: SnapshotId,
         continuation: Option<scriberig_query::ContinuationToken>,
     ) -> Result<crate::explorer::ExplorerPage, ApplicationError> {
-        let result = self.service.execute(
-            context,
-            &ApplicationRequest::List(scriberig_query::ListRequest {
-                subject: scriberig_query::EntityInSnapshot { entity, snapshot },
-                collection: scriberig_query::CollectionRef {
-                    owner: entity,
-                    collection_type: "snapshot.entities".to_owned(),
-                },
-                page: scriberig_query::PageRequest {
-                    continuation,
-                    ..scriberig_query::PageRequest::default()
-                },
-                detail: scriberig_query::DetailLevel::Compact,
-            }),
-        )?;
-        let ApplicationResult::List(result) = result else {
-            return Err(ApplicationError::Internal {
-                message: "explorer listing returned a different result kind".to_owned(),
-            });
-        };
-        let rows = result
-            .page
-            .items
-            .into_iter()
-            .filter_map(|entry| match entry.target {
-                scriberig_query::TargetRef::Snapshot(target) => {
-                    Some(crate::explorer::ExplorerRow {
-                        selection: crate::selection::EntitySelection {
-                            entity: target.entity,
-                            revision: None,
-                            snapshot: Some(target.snapshot),
-                        },
-                        label: entry.label.unwrap_or_else(|| target.entity.to_string()),
-                        kind: entry.entity_type.map(|value| value.to_string()),
-                        inspectable: true,
-                    })
-                }
-                scriberig_query::TargetRef::Revision(_) => None,
-            })
-            .filter(|row| row.selection.entity != entity)
-            .collect();
-        Ok(crate::explorer::ExplorerPage {
-            rows,
-            next: result.page.next,
-        })
+        service_operation_helpers::list_explorer(self, context, entity, snapshot, continuation)
     }
 
     /// Executes exact-text discovery through the shared application boundary.
@@ -206,22 +253,7 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         snapshot: SnapshotId,
         query: &str,
     ) -> Result<crate::view::find::FindModel, ApplicationError> {
-        let result = self.service.execute(
-            context,
-            &ApplicationRequest::Find(scriberig_query::FindRequest {
-                scope: scriberig_query::QueryScope::Snapshot(snapshot),
-                query: query.to_owned(),
-                strategy: scriberig_query::FindStrategy::ExactText,
-                page: scriberig_query::PageRequest::default(),
-                detail: scriberig_query::DetailLevel::Compact,
-            }),
-        )?;
-        let ApplicationResult::Find(result) = result else {
-            return Err(ApplicationError::Internal {
-                message: "find returned a different result kind".to_owned(),
-            });
-        };
-        Ok(crate::view::find::FindModel::from_result(query, &result))
+        service_operation_helpers::find_entities(self, context, snapshot, query)
     }
 
     /// Delegates shared operations through the public application facade.
@@ -240,6 +272,10 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         context: &ApplicationContext,
         request: &ApplicationRequest,
     ) -> Result<ApplicationResult, ApplicationError> {
+        if let Some(result) = service_operation_helpers::execute_operation(self, context, request)?
+        {
+            return Ok(result);
+        }
         self.service.execute(context, request)
     }
 
@@ -259,7 +295,7 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         _context: &ApplicationContext,
         operation: &scriberig_core::OperationId,
     ) -> Result<scriberig_app::OperationRecord, ApplicationError> {
-        self.service.operations().get(operation)
+        service_operation_helpers::operation_status(self, operation)
     }
 
     /// Cancels an operation through the shared application registry.
@@ -278,7 +314,7 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         _context: &ApplicationContext,
         operation: &scriberig_core::OperationId,
     ) -> Result<scriberig_app::OperationRecord, ApplicationError> {
-        self.service.operations().cancel(operation)
+        service_operation_helpers::cancel_operation(self, operation)
     }
 
     /// Returns lifecycle events retained by the shared application registry.
@@ -295,7 +331,7 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         &self,
         _context: &ApplicationContext,
     ) -> Result<Vec<scriberig_app::ApplicationEvent>, ApplicationError> {
-        Ok(self.service.operations().events())
+        Ok(service_operation_helpers::application_events(self))
     }
 
     /// Reads a session through the shared application boundary.
@@ -314,11 +350,7 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         context: &ApplicationContext,
         session: EntityId,
     ) -> Result<scriberig_session::Session, ApplicationError> {
-        scriberig_app::SessionBackend::read_session(
-            &self.service,
-            context,
-            &scriberig_app::SessionRequest { session },
-        )
+        service_operation_helpers::read_session(self, context, session)
     }
 
     /// Submits an agent command through the shared application boundary.
@@ -341,15 +373,7 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         branch: Option<EntityId>,
         prompt: &str,
     ) -> Result<scriberig_core::OperationId, ApplicationError> {
-        scriberig_app::SessionBackend::submit_agent_command(
-            &self.service,
-            context,
-            &scriberig_app::AgentCommandRequest {
-                session,
-                branch,
-                prompt: prompt.to_owned(),
-            },
-        )
+        service_operation_helpers::submit_agent_command(self, context, session, branch, prompt)
     }
 
     /// Submits local agent work and preserves the accepted branch identity.
@@ -372,20 +396,6 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         branch: Option<EntityId>,
         prompt: &str,
     ) -> Result<super::AgentHandle, ApplicationError> {
-        let operation = self.submit_agent_command(context, session, branch, prompt)?;
-        let branch = branch.or_else(|| {
-            scriberig_app::SessionBackend::read_session(
-                &self.service,
-                context,
-                &scriberig_app::SessionRequest { session },
-            )
-            .ok()
-            .and_then(|value| value.branches.last().map(|value| value.id))
-        });
-        Ok(super::AgentHandle {
-            operation,
-            session,
-            branch,
-        })
+        service_operation_helpers::submit_agent_handle(self, context, session, branch, prompt)
     }
 }

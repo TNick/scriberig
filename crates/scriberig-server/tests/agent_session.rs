@@ -39,6 +39,7 @@ impl ApplicationBackend for Fixture {
 
 /// Verifies start returns operation, session, and root-branch handles.
 #[test]
+#[allow(clippy::too_many_lines)]
 fn agent_start_returns_inspectable_branch() {
     let dispatcher = Dispatcher::new(ApplicationService::new(Fixture));
     let session = "ent_01010101010101010101010101010101".to_owned();
@@ -50,6 +51,7 @@ fn agent_start_returns_inspectable_branch() {
                 id: session.clone(),
             },
             prompt: "inspect".to_owned(),
+            selection: None,
         }),
     });
     let (operation_id, branch) = match response.response {

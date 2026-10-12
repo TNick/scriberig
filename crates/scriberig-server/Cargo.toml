@@ -15,9 +15,13 @@ scriberig-protocol = { path = "../scriberig-protocol" }
 scriberig-store-sqlite = { path = "../scriberig-store-sqlite" }
 scriberig-store = { path = "../scriberig-store" }
 scriberig-project = { path = "../scriberig-project" }
+scriberig-domain-rust = { path = "../domains/scriberig-domain-rust" }
 scriberig-query = { path = "../scriberig-query" }
 scriberig-session = { path = "../scriberig-session" }
 scriberig-session-sqlite = { path = "../scriberig-session-sqlite" }
+scriberig-agent-core = { path = "../scriberig-agent-core" }
+scriberig-agent-runtime = { path = "../scriberig-agent-runtime" }
+sr-projection-fs = { path = "../sr-projection-fs" }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 blake3 = "1.8.2"

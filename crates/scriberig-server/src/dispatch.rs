@@ -180,6 +180,7 @@ impl<S: ApplicationService> Dispatcher<S> {
                 &serde_json::json!({
                     "session": request.session.id,
                     "prompt": request.prompt,
+                    "selection": request.selection,
                 }),
                 None,
                 correlation_id,
@@ -190,6 +191,7 @@ impl<S: ApplicationService> Dispatcher<S> {
                     "session": request.session.id,
                     "branch": request.branch.id,
                     "prompt": request.prompt,
+                    "selection": request.selection,
                 }),
                 Some((&request.session, &request.branch)),
                 correlation_id,

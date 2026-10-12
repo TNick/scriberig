@@ -2,11 +2,10 @@
 
 use std::{
     fs,
-    io::{Read, Write},
+    io::Write,
     path::PathBuf,
     sync::{
         Mutex, OnceLock,
-        atomic::{AtomicU64, Ordering},
         mpsc::{self, Receiver},
     },
     thread,
@@ -15,6 +14,12 @@ use std::{
 
 use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 use vt100::Parser;
+
+#[path = "tui_pty_support/fixture.rs"]
+mod tui_pty_fixture;
+#[path = "tui_pty_support/interaction.rs"]
+mod tui_pty_interaction;
+use tui_pty_fixture::{basic_fixture, copy_directory, read_output, temporary_fixture};
 
 /// Owns one real terminal session used by native TUI workflow tests.
 pub struct TuiPty {
@@ -37,14 +42,54 @@ impl TuiPty {
     /// Panics when the fixture, pseudo-terminal, or child process cannot be created.
     #[must_use]
     pub fn start() -> Self {
+        Self::start_for_fixture(basic_fixture())
+    }
+
+    /// Starts the TUI against the checked-in Rust golden project copy.
+    ///
+    /// # Returns
+    /// A running TUI session with the named Rust fixture.
+    ///
+    /// # Panics
+    /// Panics when the fixture cannot be copied or the child cannot start.
+    #[must_use]
+    pub fn start_golden() -> Self {
         let fixture = temporary_fixture();
-        fs::write(fixture.join("README.md"), "# PTY fixture\n").expect("fixture");
-        fs::create_dir_all(fixture.join("src")).expect("source directory");
-        fs::write(
-            fixture.join("src/app.py"),
-            "def greet():\n    return 'hi'\n",
-        )
-        .expect("python fixture");
+        copy_directory(
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("..")
+                .join("..")
+                .join("tests")
+                .join("fixtures")
+                .join("golden-rust-project"),
+            &fixture,
+        );
+        Self::start_for_fixture(fixture)
+    }
+
+    /// Restarts the native TUI against an existing golden fixture.
+    ///
+    /// # Parameters
+    /// - `fixture`: Existing project and database directory.
+    ///
+    /// # Returns
+    /// A running TUI session using the existing durable state.
+    #[must_use]
+    pub fn restart(fixture: PathBuf) -> Self {
+        Self::start_for_fixture(fixture)
+    }
+
+    /// Starts the native process for one prepared fixture.
+    ///
+    /// # Parameters
+    /// - `fixture`: Prepared project directory.
+    ///
+    /// # Returns
+    /// A running TUI session.
+    ///
+    /// # Panics
+    /// Panics when the pseudo-terminal or child process cannot be created.
+    fn start_for_fixture(fixture: PathBuf) -> Self {
         let database = fixture.join("scriberig.sqlite");
         let pty_system = native_pty_system();
         let pair = pty_system
@@ -167,17 +212,6 @@ impl TuiPty {
         self.parser.set_size(size.rows, size.cols);
     }
 
-    /// Reads a fresh frame after an interaction before checking its contents.
-    ///
-    /// # Parameters
-    /// - `expected`: Visible text expected after the interaction.
-    ///
-    /// # Returns
-    /// `true` when the text appears before the timeout.
-    pub fn read_until_next(&mut self, expected: &str) -> bool {
-        self.read_until(expected)
-    }
-
     /// Returns the current virtual terminal screen as visible text.
     ///
     /// # Returns
@@ -185,6 +219,58 @@ impl TuiPty {
     #[must_use]
     pub fn screen(&self) -> String {
         self.parser.screen().contents()
+    }
+
+    /// Reads the golden source file from the process-owned fixture.
+    ///
+    /// # Returns
+    /// Current source bytes decoded as UTF-8.
+    ///
+    /// # Panics
+    /// Panics when the fixture source cannot be read.
+    #[must_use]
+    pub fn source(&self) -> String {
+        fs::read_to_string(self.fixture.join("src").join("lib.rs")).expect("read source")
+    }
+
+    /// Adds an external marker to the live Rust source.
+    ///
+    /// # Panics
+    /// Panics when the fixture source cannot be read or written.
+    pub fn external_edit(&self) {
+        let path = self.fixture.join("src").join("lib.rs");
+        let source = fs::read_to_string(&path).expect("read source");
+        fs::write(path, format!("// external edit\n{source}")).expect("external edit");
+    }
+
+    /// Stops the process while retaining its fixture for a restart test.
+    ///
+    /// # Parameters
+    /// - `self`: Running PTY session.
+    ///
+    /// # Returns
+    /// The retained fixture directory.
+    ///
+    /// # Panics
+    /// Panics when the child cannot be polled or stopped.
+    #[must_use]
+    pub fn quit_retain_fixture(mut self) -> PathBuf {
+        self.send(b"q");
+        let deadline = Instant::now() + Duration::from_secs(3);
+        loop {
+            if self.child.try_wait().expect("poll tui").is_some() {
+                break;
+            }
+            if Instant::now() >= deadline {
+                self.child.kill().expect("kill tui");
+                self.child.wait().expect("wait for tui");
+                break;
+            }
+            thread::sleep(Duration::from_millis(25));
+        }
+        let fixture = self.fixture.clone();
+        std::mem::forget(self);
+        fixture
     }
 
     /// Describes the last virtual screen and raw terminal output.
@@ -214,6 +300,43 @@ impl TuiPty {
     pub fn shutdown(mut self) -> bool {
         self.send(&[3]);
         self.finish()
+    }
+
+    /// Stops a session after an expected recoverable operation failure.
+    ///
+    /// The product assertions are made before teardown; this helper preserves
+    /// the failure screen while allowing the terminal child to be collected.
+    ///
+    /// # Parameters
+    /// - `self`: Running PTY session.
+    ///
+    /// # Returns
+    /// Whether the child reported a successful exit.
+    ///
+    /// # Panics
+    /// Panics when the child cannot be polled, stopped, or the fixture removed.
+    #[must_use]
+    pub fn shutdown_allow_failure(mut self) -> bool {
+        self.send(&[3]);
+        let deadline = Instant::now() + Duration::from_secs(3);
+        let status = loop {
+            if let Some(status) = self.child.try_wait().expect("poll tui") {
+                break status;
+            }
+            if Instant::now() >= deadline {
+                self.child.kill().expect("kill tui");
+                break self.child.wait().expect("wait for tui");
+            }
+            thread::sleep(Duration::from_millis(25));
+        };
+        for _ in 0..20 {
+            if fs::remove_dir_all(&self.fixture).is_ok() {
+                return status.success();
+            }
+            thread::sleep(Duration::from_millis(50));
+        }
+        let _ = fs::remove_dir_all(&self.fixture);
+        status.success()
     }
 
     /// Waits for a TUI that was asked to quit through another key binding.
@@ -277,40 +400,4 @@ pub fn test_lock() -> std::sync::MutexGuard<'static, ()> {
     LOCK.get_or_init(|| Mutex::new(()))
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
-}
-
-/// Creates a unique temporary directory owned by one test session.
-///
-/// # Returns
-/// The newly created fixture directory.
-fn temporary_fixture() -> PathBuf {
-    static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
-    let sequence = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
-    let path = std::env::temp_dir().join(format!(
-        "scriberig-tui-pty-{}-{}",
-        std::process::id(),
-        sequence
-    ));
-    fs::create_dir_all(&path).expect("create fixture");
-    path
-}
-
-/// Relays bytes from the PTY reader to the test thread.
-///
-/// # Parameters
-/// - `reader`: PTY output stream.
-/// - `sender`: Channel receiving output frames.
-#[allow(clippy::needless_pass_by_value)]
-fn read_output<R: Read>(mut reader: R, sender: mpsc::Sender<Vec<u8>>) {
-    let mut buffer = [0_u8; 4096];
-    loop {
-        match reader.read(&mut buffer) {
-            Ok(0) | Err(_) => return,
-            Ok(size) => {
-                if sender.send(buffer[..size].to_vec()).is_err() {
-                    return;
-                }
-            }
-        }
-    }
 }

@@ -110,4 +110,15 @@ pub enum Effect {
         /// User-authored command text.
         prompt: String,
     },
+    /// Run the deterministic semantic project agent for the selected entity.
+    ProjectAgent {
+        /// Monotonic request identifier.
+        request_id: u64,
+        /// Selected semantic entity.
+        entity: scriberig_core::EntityId,
+        /// Exact base snapshot.
+        snapshot: scriberig_core::SnapshotId,
+        /// User instruction sent to the provider.
+        prompt: String,
+    },
 }

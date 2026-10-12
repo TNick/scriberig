@@ -2395,6 +2395,8 @@ dependencies = [
  "scriberig-store-sqlite",
  "serde_json",
  "sr-markdown",
+ "sr-projection-fs",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -2436,9 +2438,12 @@ name = "scriberig-server"
 version = "0.1.0"
 dependencies = [
  "blake3",
+ "scriberig-agent-core",
+ "scriberig-agent-runtime",
  "scriberig-app",
  "scriberig-client",
  "scriberig-core",
+ "scriberig-domain-rust",
  "scriberig-project",
  "scriberig-protocol",
  "scriberig-query",
@@ -2448,6 +2453,7 @@ dependencies = [
  "scriberig-store-sqlite",
  "serde",
  "serde_json",
+ "sr-projection-fs",
 ]
 
 [[package]]
@@ -2503,12 +2509,16 @@ version = "0.1.0"
 dependencies = [
  "crossterm",
  "ratatui",
+ "scriberig-agent-core",
+ "scriberig-agent-runtime",
  "scriberig-app",
  "scriberig-client",
  "scriberig-core",
+ "scriberig-project",
  "scriberig-protocol",
  "scriberig-query",
  "scriberig-session",
+ "serde_json",
  "sr-change",
  "sr-projection",
 ]

@@ -22,7 +22,9 @@ scriberig-domain-binary = { path = "../domains/scriberig-domain-binary" }
 scriberig-store = { path = "../scriberig-store" }
 scriberig-store-sqlite = { path = "../scriberig-store-sqlite" }
 sr-markdown = { path = "../sr-markdown" }
+sr-projection-fs = { path = "../sr-projection-fs" }
 serde_json = "1.0"
+syn = { version = "2.0.110", features = ["full"] }
 
 [lints]
 workspace = true

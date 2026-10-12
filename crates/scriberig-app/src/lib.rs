@@ -69,8 +69,8 @@ pub use result::{
 pub use service::{ApplicationBackend, ApplicationService};
 pub use service_store::StoreInspectionBackend;
 pub use session::{
-    AgentCommandRequest, AgentResult, CandidateChange, LocalAgentHandle, LocalChildAgentHandle,
-    SessionBackend, SessionRequest,
+    AgentCommandRequest, AgentResult, AgentSelection, CandidateChange, LocalAgentHandle,
+    LocalChildAgentHandle, SessionBackend, SessionRequest,
 };
 pub use trust::{
     ApprovalSummary, CapabilityDenial, ConflictSummary, ExternalEffectSummary, PolicyDecision,

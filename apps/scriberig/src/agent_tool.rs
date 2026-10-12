@@ -305,6 +305,7 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
                     session,
                     branch,
                     prompt: prompt.to_owned(),
+                    selection: None,
                 },
             )
             .map_err(|error| map_error(&error))?;

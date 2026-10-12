@@ -127,6 +127,7 @@ impl<S: QueryService + SessionBackend> TuiService for ApplicationAdapter<S> {
                 session,
                 branch,
                 prompt: prompt.to_owned(),
+                selection: None,
             },
         )
     }

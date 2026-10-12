@@ -72,6 +72,7 @@ impl<T: ProtocolTransport> Client<T> {
             .send(Request::AgentStart(AgentStartRequest {
                 session: SessionReference { id: session.into() },
                 prompt: prompt.into(),
+                selection: None,
             }))?
             .response
         {
@@ -126,6 +127,7 @@ impl<T: ProtocolTransport> Client<T> {
                 session: SessionReference { id: session.into() },
                 branch: BranchReference { id: branch.into() },
                 prompt: prompt.into(),
+                selection: None,
             }))?
             .response
         {

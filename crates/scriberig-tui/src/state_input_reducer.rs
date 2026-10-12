@@ -64,6 +64,7 @@ pub(super) fn reduce_input(state: &mut TuiState, action: Action) -> Vec<Effect> 
 ///
 /// # Returns
 /// Effects produced by submitting the active input.
+#[allow(clippy::too_many_lines)]
 fn submit_input(state: &mut TuiState) -> Vec<Effect> {
     let text = state.input_text().unwrap_or_default().trim().to_owned();
     if matches!(state.overlay, Some(Overlay::Composer(_))) {
@@ -119,6 +120,32 @@ fn submit_input(state: &mut TuiState) -> Vec<Effect> {
         }
         state.overlay = None;
         return super::reduce(state, Action::FindRequested(text));
+    }
+    if let Some(Overlay::Input(input)) = state.overlay.as_ref()
+        && input.purpose == crate::overlay::input::InputPurpose::ProjectionEdit
+    {
+        let Some(selection) = state.selection else {
+            state.overlay = None;
+            return vec![Effect::None];
+        };
+        let Some(base_snapshot) = selection.snapshot else {
+            state.overlay = None;
+            return vec![Effect::None];
+        };
+        if text.is_empty() {
+            return vec![Effect::None];
+        }
+        state.overlay = None;
+        return super::reduce(
+            state,
+            Action::ReviewRequested {
+                request: scriberig_app::ApplyRequest {
+                    base_snapshot,
+                    branch: None,
+                    change: format!("project-edit|{}|{}", selection.entity, text),
+                },
+            },
+        );
     }
     if state.is_input_active() && !text.is_empty() {
         match text.parse::<scriberig_core::EntityId>() {

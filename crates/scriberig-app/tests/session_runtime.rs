@@ -146,6 +146,7 @@ fn local_agent_completion_uses_runtime_output() {
             session,
             branch: None,
             prompt: "instruction".to_owned(),
+            selection: None,
         })
         .expect("pending agent operation");
 
@@ -186,6 +187,7 @@ fn local_child_agent_start_creates_parent_link() {
         session: EntityId::from_bytes([21; 16]),
         branch: None,
         prompt: "root".to_owned(),
+        selection: None,
     };
     let root = service.start_local_agent(&request).expect("root");
     let child = service
@@ -253,6 +255,7 @@ fn failed_local_child_agent_is_retained() {
             session: EntityId::from_bytes([31; 16]),
             branch: None,
             prompt: "root".to_owned(),
+            selection: None,
         })
         .expect("root");
     let child = service

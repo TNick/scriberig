@@ -203,6 +203,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
                 session,
                 branch: None,
                 prompt: prompt.into(),
+                selection: None,
             },
         )
     }
@@ -234,6 +235,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
                 session,
                 branch: Some(branch),
                 prompt: prompt.into(),
+                selection: None,
             },
         )
     }

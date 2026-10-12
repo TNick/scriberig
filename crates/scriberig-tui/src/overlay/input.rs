@@ -10,6 +10,8 @@ pub enum InputPurpose {
     DiffSnapshot,
     /// Search text for snapshot-scoped discovery.
     FindQuery,
+    /// Enter a replacement expression for the selected source projection.
+    ProjectionEdit,
 }
 
 /// Text input state owned by an input overlay.

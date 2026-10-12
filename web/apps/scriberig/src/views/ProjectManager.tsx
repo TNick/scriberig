@@ -41,7 +41,13 @@ interface ImportDiagnostic {
  * @returns The project manager view.
  * @throws Network failures are rendered as an error state.
  */
-export function ProjectManager({ client }: { client: ScriberigClient }): ReactElement {
+export function ProjectManager({
+  client,
+  onActivate,
+}: {
+  client: ScriberigClient;
+  onActivate: (projectId: string) => Promise<void>;
+}): ReactElement {
   const [projects, setProjects] = useState<Project[]>([]);
   const [path, setPath] = useState("");
   const [name, setName] = useState("");
@@ -105,6 +111,7 @@ export function ProjectManager({ client }: { client: ScriberigClient }): ReactEl
         ...current.filter((project) => project.id !== value.project.id),
         value.project,
       ]);
+      await onActivate(value.project.id);
       setScan(undefined);
     } catch (reason: unknown) {
       setError(String(reason));
@@ -114,6 +121,19 @@ export function ProjectManager({ client }: { client: ScriberigClient }): ReactEl
       }
     } finally {
       setImporting(false);
+    }
+  }
+
+  /** Opens an already imported project in this client workspace.
+   * @param project Imported project to activate.
+   * @returns Resolves after activation completes.
+   */
+  async function openProject(project: Project): Promise<void> {
+    setError(undefined);
+    try {
+      await onActivate(project.id);
+    } catch (reason: unknown) {
+      setError(String(reason));
     }
   }
 
@@ -140,6 +160,9 @@ export function ProjectManager({ client }: { client: ScriberigClient }): ReactEl
               primary={`${project.name} (${project.status})`}
               secondary={project.path}
             />
+            {project.status === "imported" && (
+              <Button onClick={() => void openProject(project)}>Open {project.name}</Button>
+            )}
           </ListItem>
         ))}
       </List>

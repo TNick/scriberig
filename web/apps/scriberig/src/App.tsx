@@ -52,6 +52,7 @@ export function App(): ReactElement {
   const [route, setRoute] = useState<AppRoute>("raw");
   const [reviewMigrationId, setReviewMigrationId] = useState<string>();
   const [connection, setConnection] = useState(runtime.connection);
+  const [workspace, setWorkspace] = useState(runtime.activeWorkspace);
   useEffect(() => {
     void runtime.bootstrap().then(
       () => setConnection(runtime.connection),
@@ -59,6 +60,7 @@ export function App(): ReactElement {
     );
   }, [runtime]);
   useEffect(() => runtime.model.subscribe(() => setConnection(runtime.connection)), [runtime]);
+  useEffect(() => runtime.subscribe(() => setWorkspace(runtime.activeWorkspace)), [runtime]);
   return (
     <ThemeProvider theme={createScriberigTheme()}>
       <ScriberigProvider value={runtime}>
@@ -66,13 +68,20 @@ export function App(): ReactElement {
           active={route}
           onNavigate={(next) => setRoute(parseRoute(next))}
           status={connection}
+          {...(workspace === undefined ? {} : { workspace })}
         >
           <RuntimeSnapshotStatus connection={connection} />
           <SharedSelectionSummary />
-          {route === "projects" ? (
-            <ProjectManager client={runtime.client} />
-          ) : route === "raw" ? (
+          {route === "raw" ? (
             <RawKnowledgeView />
+          ) : route === "projects" ? (
+            <ProjectManager
+              client={runtime.client}
+              onActivate={async (projectId) => {
+                await runtime.activateProject(projectId);
+                setRoute("semantic");
+              }}
+            />
           ) : route === "semantic" ? (
             <SemanticView />
           ) : route === "projection" ? (
@@ -83,7 +92,7 @@ export function App(): ReactElement {
             <SessionAgentView
               onReviewCandidate={(migrationId) => {
                 setReviewMigrationId(migrationId);
-                setRoute("migration");
+                setRoute("projection");
               }}
             />
           ) : route === "migration" ? (

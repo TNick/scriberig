@@ -13,6 +13,12 @@ use scriberig_store_sqlite::{
 #[path = "support.rs"]
 mod support;
 use support::import_file;
+#[path = "candidate.rs"]
+mod candidate;
+#[path = "project_views.rs"]
+mod project_views;
+pub use candidate::{CandidateApplyReport, CandidateValidation, ProjectCandidate};
+pub use project_views::{ProjectSourceProjection, ProjectSymbol};
 #[path = "errors.rs"]
 mod errors;
 use errors::{filesystem_error, git_error, missing_project, promotion_error, storage_error};
@@ -66,6 +72,17 @@ pub struct ImportReport {
     pub entities: usize,
     /// Promoted immutable snapshot.
     pub snapshot: SnapshotId,
+}
+
+/// Resolves the exact active semantic workspace for one imported project.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectWorkspace {
+    /// Canonical project catalog record.
+    pub project: ProjectRecord,
+    /// Current immutable project snapshot.
+    pub snapshot: SnapshotId,
+    /// Semantic source root used to begin navigation.
+    pub root_entity: scriberig_core::EntityId,
 }
 
 /// Describes one recoverable or terminal import diagnostic.
@@ -276,6 +293,48 @@ impl ProjectService {
             files: files.iter().filter(|file| file.status == "ready").count(),
             entities: ownership.len(),
             snapshot,
+        })
+    }
+
+    /// Resolves an imported project's current snapshot and semantic root.
+    ///
+    /// # Parameters
+    /// - `project`: Project whose active workspace should be resolved.
+    ///
+    /// # Returns
+    /// The project record, current snapshot, and semantic root entity.
+    ///
+    /// # Errors
+    /// Returns a structured error when the project is missing or not imported.
+    pub fn workspace(&self, project: ProjectId) -> Result<ProjectWorkspace, ProjectError> {
+        let record = self
+            .store
+            .project(project)
+            .map_err(storage_error)?
+            .ok_or_else(|| missing_project(project))?;
+        let snapshot = record.current_snapshot.ok_or_else(|| ProjectError {
+            code: "project_not_imported",
+            message: "project has no current semantic snapshot".to_owned(),
+            diagnostics: Vec::new(),
+        })?;
+        let entities = self
+            .store
+            .project_entities(project)
+            .map_err(storage_error)?;
+        let root_entity = entities
+            .iter()
+            .find(|entity| entity.kind == "source" && entity.relative_path == "src/lib.rs")
+            .or_else(|| entities.iter().find(|entity| entity.kind == "source"))
+            .map(|entity| entity.entity)
+            .ok_or_else(|| ProjectError {
+                code: "project_root_unavailable",
+                message: "project has no semantic source root".to_owned(),
+                diagnostics: Vec::new(),
+            })?;
+        Ok(ProjectWorkspace {
+            project: record,
+            snapshot,
+            root_entity,
         })
     }
 }

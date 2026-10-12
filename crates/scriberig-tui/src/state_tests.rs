@@ -183,9 +183,7 @@ fn palette_opens_agent_composer_for_selection() {
         ..TuiState::default()
     };
     reduce(&mut state, Action::PaletteOpened);
-    for _ in 0..10 {
-        reduce(&mut state, Action::CursorMoved(Direction::Next));
-    }
+    reduce(&mut state, Action::InputChanged("start-agent".to_owned()));
     let effects = reduce(&mut state, Action::Activated);
     assert_eq!(effects, vec![Effect::None]);
     assert!(matches!(

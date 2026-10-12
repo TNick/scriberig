@@ -162,4 +162,16 @@ capability-gated; agent streaming is available through the runtime and
 supported product surfaces. Logs and the local database stay in
 `playground/dev-app-runtime/`.
 
+## Product workflow status
+
+The repository contains a deterministic Rust project golden fixture and
+real-process browser, native TUI, and cross-surface acceptance suites. These
+currently exercise project activation, named `Calculator`/`add` navigation,
+Rust source projection, reviewed candidate validation, conflict-protected
+materialization, reload durability, and semantically scoped deterministic
+agent candidates. Run `python tools/product_golden.py` to execute the complete
+acceptance driver. The implementation is not described as product-verified
+until the design checklists also confirm durable candidate/effect recovery and
+public embedded/remote conformance evidence.
+
 Repository-specific source and agent rules live in the top-level `AGENTS.md` and are refined by nested `AGENTS.md` files.

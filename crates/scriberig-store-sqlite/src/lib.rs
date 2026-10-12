@@ -19,6 +19,7 @@ mod schema;
 mod snapshot;
 mod snapshot_integrity;
 mod storage;
+mod workflow;
 
 use std::path::Path;
 use std::sync::Mutex;
@@ -35,6 +36,7 @@ pub struct SqliteStore {
 
 pub use project_files::{ProjectEntityRecord, ProjectFileRecord};
 pub use projects::{ProjectRecord, ProjectStatus};
+pub use workflow::{ProjectCandidateRecord, ProjectEffectRecord};
 
 /// Reports a failure while atomically preparing and promoting a snapshot.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -307,13 +309,14 @@ impl SqliteStore {
         for entity in entities {
             transaction
                 .execute(
-                    "INSERT INTO project_entities(project_id,relative_path,entity,kind)
-                     VALUES (?,?,?,?)",
+                    "INSERT INTO project_entities(project_id,relative_path,entity,kind,name)
+                     VALUES (?,?,?,?,?)",
                     rusqlite::params![
                         entity.project_id.as_bytes().as_slice(),
                         entity.relative_path,
                         entity.entity.as_bytes().as_slice(),
                         entity.kind,
+                        entity.name,
                     ],
                 )
                 .map_err(|error| PromotionError::Backend(error.to_string()))?;

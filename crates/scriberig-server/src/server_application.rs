@@ -290,6 +290,7 @@ where
     ///
     /// # Errors
     /// Returns an error when the operation cannot complete.
+    #[allow(clippy::too_many_lines)]
     fn command(
         &self,
         context: &ApplicationContext,
@@ -326,6 +327,35 @@ where
                     operation: kind.to_owned(),
                     message: "prompt is required".to_owned(),
                 })?;
+            let selection = match payload
+                .get("selection")
+                .filter(|value| !value.is_null())
+                .cloned()
+            {
+                None => None,
+                Some(value) => {
+                    let selection =
+                        serde_json::from_value::<scriberig_protocol::AgentSelection>(value)
+                            .map_err(|error| ApplicationError::InvalidRequest {
+                                operation: kind.to_owned(),
+                                message: format!("invalid semantic selection: {error}"),
+                            })?;
+                    Some(scriberig_app::AgentSelection {
+                        entity: selection.entity.id.parse().map_err(|error| {
+                            ApplicationError::InvalidRequest {
+                                operation: kind.to_owned(),
+                                message: format!("invalid selected entity: {error}"),
+                            }
+                        })?,
+                        snapshot: selection.snapshot.id.parse().map_err(|error| {
+                            ApplicationError::InvalidRequest {
+                                operation: kind.to_owned(),
+                                message: format!("invalid selected snapshot: {error}"),
+                            }
+                        })?,
+                    })
+                }
+            };
             let operation = scriberig_app::SessionBackend::submit_agent_command(
                 self,
                 context,
@@ -333,6 +363,7 @@ where
                     session,
                     branch,
                     prompt: prompt.to_owned(),
+                    selection,
                 },
             )?;
             return self.operation_status(&operation.to_string());

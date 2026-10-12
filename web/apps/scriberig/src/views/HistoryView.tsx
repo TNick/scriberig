@@ -3,6 +3,7 @@ import { MuiHistoryView, MuiSemanticDiffView } from "@scriberig/components-mui";
 import type { DiffEntry } from "@scriberig/components";
 import { useSelection, useScriberig } from "@scriberig/react";
 import { useEffect, useState, type ReactElement } from "react";
+import type { AppRuntime } from "../runtime";
 /** Renders caller-provided semantic history entries. */
 /** @returns The rendered HistoryView view or runtime value. */
 export function HistoryView({
@@ -11,10 +12,28 @@ export function HistoryView({
   entries?: readonly DiffEntry[];
 }): ReactElement {
   const { client } = useScriberig();
+  const runtime = useScriberig() as unknown as AppRuntime;
   const { selection } = useSelection();
   const [loadedEntries, setLoadedEntries] = useState<readonly DiffEntry[]>([]);
 
   useEffect(() => {
+    if (runtime.activeWorkspace !== undefined && suppliedEntries === undefined) {
+      void runtime.client
+        .project<{ snapshots: string[] }>("history", {
+          project: runtime.activeWorkspace.project.id,
+        })
+        .then((response) => {
+          setLoadedEntries(
+            response.snapshots.map((snapshot) => ({
+              id: snapshot,
+              kind: "snapshot",
+              summary: `snapshot ${snapshot}`,
+            })),
+          );
+        })
+        .catch(() => setLoadedEntries([]));
+      return;
+    }
     if (!selection || suppliedEntries !== undefined) return;
     const controller = new AbortController();
     void client
@@ -36,7 +55,7 @@ export function HistoryView({
         if (!controller.signal.aborted) setLoadedEntries([]);
       });
     return () => controller.abort();
-  }, [client, selection, suppliedEntries]);
+  }, [client, runtime, selection, suppliedEntries]);
 
   const entries = suppliedEntries ?? loadedEntries;
   return (

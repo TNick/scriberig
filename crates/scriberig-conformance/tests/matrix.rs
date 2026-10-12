@@ -98,6 +98,12 @@ fn checked_in_matrix_is_truthful_and_complete() {
             "session_branch_activity",
             "agent_event_subscription",
             "agent_streaming_output",
+            "project_workspace",
+            "semantic_code_navigation",
+            "source_projection",
+            "projection_edit_candidate",
+            "filesystem_materialize",
+            "semantic_project_agent_candidate",
         ]
     );
 }
@@ -121,6 +127,12 @@ fn tui_statuses_match_implemented_surface_evidence() {
         ("session_branch_activity", "implemented"),
         ("agent_event_subscription", "implemented"),
         ("agent_streaming_output", "implemented"),
+        ("project_workspace", "verified"),
+        ("semantic_code_navigation", "verified"),
+        ("source_projection", "verified"),
+        ("projection_edit_candidate", "verified"),
+        ("filesystem_materialize", "verified"),
+        ("semantic_project_agent_candidate", "verified"),
     ];
     for (id, status) in expected {
         let entry = document["capabilities"]

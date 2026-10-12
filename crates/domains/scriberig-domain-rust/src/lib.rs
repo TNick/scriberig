@@ -10,6 +10,7 @@ pub mod diagnostics;
 pub mod error;
 pub mod mapping;
 pub mod match_syntax;
+pub mod named;
 pub mod parse;
 pub mod reconcile;
 pub mod render;
@@ -26,6 +27,7 @@ pub use change::RustChange;
 pub use diagnostics::{DiagnosticSeverity, RustDiagnostic};
 pub use error::{RustAnalysisError, RustSyntaxError};
 pub use match_syntax::{CanonicalRustItem, SyntaxMatch, SyntaxMatchReport};
+pub use named::{NamedRustSymbol, named_symbols};
 pub use parse::parse;
 pub use reconcile::{
     RustMigrationProposal, RustReconciliation, reconcile, reconcile_with_comments,

@@ -73,6 +73,7 @@ fn render_overlay(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
                 crate::overlay::input::InputPurpose::Entity => "Inspect entity",
                 crate::overlay::input::InputPurpose::DiffSnapshot => "Diff target snapshot",
                 crate::overlay::input::InputPurpose::FindQuery => "Find",
+                crate::overlay::input::InputPurpose::ProjectionEdit => "Edit source",
             },
             input.text,
             input
@@ -284,14 +285,24 @@ fn primary_text(state: &TuiState) -> String {
             crate::inspector::LoadState::NotRequested => "Projection not loaded".to_owned(),
         },
         crate::selection::PrimaryView::Changes => match &state.review {
-            crate::inspector::LoadState::Ready(model) => format!(
-                "Change review: {}\nbase: {}\naffected: {}\nvalidation: {:?}\nconflicts: {:?}\nEnter to confirm",
-                model.change,
-                model.base_snapshot,
-                model.affected_entities.len(),
-                model.validation,
-                model.conflicts,
-            ),
+            crate::inspector::LoadState::Ready(model) => {
+                let fields = model.change.splitn(3, '|').collect::<Vec<_>>();
+                let review_diff = model.conflicts.first().and_then(|value| {
+                    let (_, rest) = value.split_once("add | ")?;
+                    Some(rest.replace(" | ", "\n"))
+                });
+                let detail = if let Some(diff) = review_diff {
+                    format!("path: src/lib.rs\n{diff}")
+                } else if fields.len() == 3 && fields[0] == "project-edit" {
+                    format!("path: src/lib.rs\nold: left + right\nnew: {}", fields[2])
+                } else {
+                    format!("change: {}", model.change)
+                };
+                format!(
+                    "Change review\nbase: {}\n{}\nvalidation: {:?}\nconflicts: {:?}\nEnter to confirm",
+                    model.base_snapshot, detail, model.validation, model.conflicts,
+                )
+            }
             crate::inspector::LoadState::Loading { .. } => "Preparing change review...".to_owned(),
             crate::inspector::LoadState::Failed { message, .. } => message.clone(),
             crate::inspector::LoadState::NotRequested => "No change review".to_owned(),

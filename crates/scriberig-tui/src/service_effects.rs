@@ -2,7 +2,10 @@
 
 use std::collections::BTreeSet;
 
-use super::{ApplicationContext, ApplicationError, ApplicationRequest, execute_operation_effect};
+use super::{
+    ApplicationContext, ApplicationError, ApplicationRequest, ApplicationResult,
+    execute_operation_effect,
+};
 use crate::{action::Action, effect::Effect, inspector::InspectorModel, service::TuiService};
 use scriberig_core::EntityId;
 use scriberig_session::Session;
@@ -134,6 +137,32 @@ pub fn execute_effect<S: TuiService>(
                 category: error.category().to_owned(),
                 message: crate::inspector::sanitize(&error.to_string()),
             }),
+        Effect::ProjectAgent {
+            request_id,
+            entity,
+            snapshot,
+            prompt,
+        } => match service.project_agent(context, entity, snapshot, &prompt) {
+            Ok(ApplicationResult::Apply(summary)) => Action::ReviewSucceeded {
+                request_id,
+                model: crate::view::changes::ChangeReviewModel::from_summary(
+                    snapshot,
+                    summary.handle.clone(),
+                    None,
+                    &summary,
+                ),
+            },
+            Ok(_) => Action::OperationFailed {
+                request_id,
+                category: "invalid_result".to_owned(),
+                message: "project agent did not produce a candidate".to_owned(),
+            },
+            Err(error) => Action::OperationFailed {
+                request_id,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            },
+        },
         Effect::RequestRefresh => Action::RefreshRequested,
         Effect::RequestQuit => Action::QuitRequested,
         Effect::RequestFind {

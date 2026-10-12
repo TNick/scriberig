@@ -145,6 +145,7 @@ fn run_shared_agent(
         session,
         branch: None,
         prompt: args.prompt.clone(),
+        selection: None,
     };
     let handle = service.start_local_agent(&request)?;
     let scope = ChildExecutionScope {

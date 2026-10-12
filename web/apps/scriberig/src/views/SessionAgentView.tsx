@@ -10,7 +10,7 @@ import { useOperation, useSelection, useScriberig } from "@scriberig/react";
 import type { BranchDescriptor, Operation } from "@scriberig/model";
 import type { AgentSelection, BranchId, OperationId, SessionId } from "@scriberig/protocol";
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactElement } from "react";
-import { capabilityAvailable } from "../runtime";
+import { capabilityAvailable, type AppRuntime, type ProjectCandidate } from "../runtime";
 
 const SESSION_STORAGE_KEY = "scriberig.agent.session";
 const OPERATION_STORAGE_KEY = "scriberig.agent.operation";
@@ -66,6 +66,7 @@ export function SessionAgentView({
   onReviewCandidate?: (migrationId: string) => void;
 }): ReactElement {
   const { client, model, capabilities } = useScriberig();
+  const runtime = useScriberig() as unknown as AppRuntime;
   const { selection, setSelection } = useSelection();
   const agentState = useSyncExternalStore(
     (listener) => model.subscribeAgent(() => listener()),
@@ -126,12 +127,24 @@ export function SessionAgentView({
   };
 
   const submit = async (prompt: string): Promise<void> => {
-    if (!canStartAgent) {
+    if (!canStartAgent && runtime.activeWorkspace === undefined) {
       setStatus("Agent start is unavailable");
       return;
     }
     setStatus("Submitting");
     try {
+      if (runtime.activeWorkspace !== undefined && currentSelection !== undefined) {
+        const candidate = await client.project<ProjectCandidate & { scope: unknown }>("agent", {
+          project: runtime.activeWorkspace.project.id,
+          entity: currentSelection.entityId,
+          snapshot: currentSelection.snapshotId,
+          prompt,
+        });
+        runtime.setAgentCandidate(candidate);
+        setStatus("Candidate ready for review");
+        onReviewCandidate?.(candidate.candidate);
+        return;
+      }
       const accepted =
         activeBranchId === undefined
           ? await client.startAgent({
@@ -209,7 +222,7 @@ export function SessionAgentView({
         value={prompt}
         onChange={setPrompt}
         onSubmit={(prompt) => void submit(prompt)}
-        disabled={!canStartAgent}
+        disabled={!canStartAgent && runtime.activeWorkspace === undefined}
       />
       {panelOperation ? (
         <AgentOperationPanel

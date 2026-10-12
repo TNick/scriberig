@@ -90,6 +90,15 @@ pub fn initialize(connection: &mut Connection) -> rusqlite::Result<u32> {
         "UPDATE metadata SET value=? WHERE key='schema_version' AND value IN ('1','2','3')",
         [CURRENT_SCHEMA_VERSION.to_string()],
     )?;
+    let has_name = transaction
+        .prepare("PRAGMA table_info(project_entities)")?
+        .query_map([], |row| row.get::<_, String>(1))?
+        .collect::<rusqlite::Result<Vec<_>>>()?
+        .into_iter()
+        .any(|column| column == "name");
+    if !has_name {
+        transaction.execute("ALTER TABLE project_entities ADD COLUMN name TEXT", [])?;
+    }
     let version = metadata_u32(&transaction, "schema_version")?;
     if version > CURRENT_SCHEMA_VERSION || version == 0 {
         return Err(rusqlite::Error::ToSqlConversionFailure(Box::new(
@@ -192,11 +201,38 @@ fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
              relative_path TEXT NOT NULL,
              entity BLOB NOT NULL,
              kind TEXT NOT NULL,
+             name TEXT,
              PRIMARY KEY(project_id, relative_path, entity),
              FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
          );
          CREATE INDEX IF NOT EXISTS project_entities_project_idx
-             ON project_entities(project_id);",
+             ON project_entities(project_id);
+         CREATE TABLE IF NOT EXISTS project_candidates (
+             id TEXT PRIMARY KEY,
+             project_id BLOB NOT NULL,
+             base_snapshot BLOB NOT NULL,
+             entity BLOB NOT NULL,
+             relative_path TEXT NOT NULL,
+             old_bytes BLOB NOT NULL,
+             new_bytes BLOB NOT NULL,
+             validation TEXT NOT NULL,
+             diagnostics TEXT NOT NULL,
+             created_at TEXT NOT NULL,
+             FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+         );
+         CREATE INDEX IF NOT EXISTS project_candidates_project_idx
+             ON project_candidates(project_id);
+         CREATE TABLE IF NOT EXISTS project_effects (
+             candidate_id TEXT PRIMARY KEY,
+             project_id BLOB NOT NULL,
+             base_snapshot BLOB NOT NULL,
+             successor_snapshot BLOB,
+             relative_path TEXT NOT NULL,
+             state TEXT NOT NULL,
+             diagnostic TEXT,
+             updated_at TEXT NOT NULL,
+             FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+         );",
     )
 }
 

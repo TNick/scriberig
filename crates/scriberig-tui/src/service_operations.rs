@@ -120,7 +120,7 @@ pub fn execute_operation_effect<S: TuiOperationService>(
                 request_id,
                 model: crate::view::changes::ChangeReviewModel::from_summary(
                     request.base_snapshot,
-                    request.change,
+                    summary.handle.clone(),
                     request.branch,
                     &summary,
                 ),

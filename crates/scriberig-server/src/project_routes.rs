@@ -1,11 +1,20 @@
 //! Implements HTTP project catalog and onboarding routes.
 
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use scriberig_project::{ProjectService, ScanOptions};
-use scriberig_store_sqlite::{ProjectRecord, ProjectStatus};
+use scriberig_project::{CandidateValidation, ProjectService, ScanOptions};
+use scriberig_store::SnapshotStore;
 use serde_json::{Value, json};
+#[path = "project_agent.rs"]
+mod project_agent;
+#[path = "project_routes_support.rs"]
+mod project_routes_support;
+#[path = "project_workflow.rs"]
+mod project_workflow;
+use project_routes_support::{
+    authorized_path, invalid_project, invalid_request, project_error, project_json, storage_error,
+    unavailable, workspace_json,
+};
 
 use crate::http::HttpState;
 use crate::server::ApplicationService;
@@ -29,6 +38,13 @@ pub(super) fn protocol<S: ApplicationService>(
         "list" => list(state),
         "scan" => scan(state, &body),
         "import" => import(state, &body),
+        "workspace" => workspace(state, &body),
+        "symbols" => symbols(state, &body),
+        "projection" => projection(state, &body),
+        "history" => history(state, &body),
+        "propose" => propose(state, &body),
+        "apply" => apply(state, &body),
+        "agent" => project_agent::agent(state, &body),
         "relink" => relink(state, &body),
         _ => Err((404, json!({"code": "unsupported_project_operation"}))),
     };
@@ -75,6 +91,13 @@ pub(super) fn direct<S: ApplicationService>(
         "list" => list(state),
         "scan" => scan(state, &request.payload.to_string()),
         "import" => import(state, &request.payload.to_string()),
+        "workspace" => workspace(state, &request.payload.to_string()),
+        "symbols" => symbols(state, &request.payload.to_string()),
+        "projection" => projection(state, &request.payload.to_string()),
+        "history" => history(state, &request.payload.to_string()),
+        "propose" => propose(state, &request.payload.to_string()),
+        "apply" => apply(state, &request.payload.to_string()),
+        "agent" => project_agent::agent(state, &request.payload.to_string()),
         "relink" => relink(state, &request.payload.to_string()),
         _ => Err((
             404,
@@ -182,13 +205,112 @@ pub(super) fn import<S: ApplicationService>(
     let report = ProjectService::new(Arc::clone(store))
         .import(id)
         .map_err(|error| project_error(&error))?;
+    let workspace = ProjectService::new(Arc::clone(store))
+        .workspace(id)
+        .map_err(|error| project_error(&error))?;
     Ok(json!({
         "project": project_json(&report.project),
         "files": report.files,
         "entities": report.entities,
         "snapshot": report.snapshot.to_string(),
+        "workspace": workspace_json(&workspace),
         "diagnostics": [],
     }))
+}
+
+/// Resolves one project's active semantic workspace.
+pub(super) fn workspace<S: ApplicationService>(
+    state: &HttpState<S>,
+    body: &str,
+) -> Result<Value, (u16, Value)> {
+    let store = state.project_store.as_ref().ok_or_else(unavailable)?;
+    let input: ImportInput = serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
+    let id = input.project.parse().map_err(|_| invalid_project())?;
+    let value = ProjectService::new(Arc::clone(store))
+        .workspace(id)
+        .map_err(|error| project_error(&error))?;
+    Ok(workspace_json(&value))
+}
+
+/// Lists named semantic symbols owned by one active project.
+pub(super) fn symbols<S: ApplicationService>(
+    state: &HttpState<S>,
+    body: &str,
+) -> Result<Value, (u16, Value)> {
+    let store = state.project_store.as_ref().ok_or_else(unavailable)?;
+    let input: ImportInput = serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
+    let id = input.project.parse().map_err(|_| invalid_project())?;
+    let workspace = ProjectService::new(Arc::clone(store))
+        .workspace(id)
+        .map_err(|error| project_error(&error))?;
+    let symbols = ProjectService::new(Arc::clone(store))
+        .symbols(id)
+        .map_err(|error| project_error(&error))?
+        .into_iter()
+        .map(|symbol| {
+            json!({
+                "entityId": symbol.entity.to_string(),
+                "snapshotId": symbol.snapshot.to_string(),
+                "path": symbol.path,
+                "kind": symbol.kind,
+                "name": symbol.name.unwrap_or_else(|| "source".to_owned()),
+            })
+        })
+        .collect::<Vec<_>>();
+    Ok(json!({ "workspace": workspace_json(&workspace), "symbols": symbols }))
+}
+
+/// Renders the exact source projection for one project entity.
+pub(super) fn projection<S: ApplicationService>(
+    state: &HttpState<S>,
+    body: &str,
+) -> Result<Value, (u16, Value)> {
+    let store = state.project_store.as_ref().ok_or_else(unavailable)?;
+    let input: ProjectionInput =
+        serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
+    let project = input.project.parse().map_err(|_| invalid_project())?;
+    let entity = input.entity.parse().map_err(|_| invalid_project())?;
+    let projection = ProjectService::new(Arc::clone(store))
+        .projection(project, entity)
+        .map_err(|error| project_error(&error))?;
+    Ok(json!({
+        "project": projection.project.to_string(),
+        "snapshot": projection.snapshot.to_string(),
+        "entityId": projection.entity.to_string(),
+        "name": projection.name,
+        "kind": projection.kind,
+        "path": projection.path,
+        "text": String::from_utf8_lossy(&projection.text),
+        "editable": projection.editable,
+        "stale": false,
+    }))
+}
+
+/// Returns the immutable snapshot lineage for one project.
+pub(super) fn history<S: ApplicationService>(
+    state: &HttpState<S>,
+    body: &str,
+) -> Result<Value, (u16, Value)> {
+    let store = state.project_store.as_ref().ok_or_else(unavailable)?;
+    let input: ProjectInput =
+        serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
+    let project = input.project.parse().map_err(|_| invalid_project())?;
+    let workspace = ProjectService::new(Arc::clone(store))
+        .workspace(project)
+        .map_err(|error| project_error(&error))?;
+    let mut snapshots = vec![workspace.snapshot.to_string()];
+    let mut current = workspace.snapshot;
+    for _ in 0..16 {
+        let parents = store
+            .parents(current)
+            .map_err(|error| storage_error(format!("{error:?}")))?;
+        let Some(parent) = parents.first().copied() else {
+            break;
+        };
+        snapshots.push(parent.to_string());
+        current = parent;
+    }
+    Ok(json!({"project": project.to_string(), "snapshots": snapshots}))
 }
 
 /// Request body for a project scan.
@@ -212,6 +334,13 @@ struct RelinkInput {
     path: String,
 }
 
+/// Request body for project-scoped history.
+#[derive(serde::Deserialize)]
+struct ProjectInput {
+    /// Stable project identity.
+    project: String,
+}
+
 /// Request body for a project import.
 #[derive(serde::Deserialize)]
 struct ImportInput {
@@ -219,144 +348,27 @@ struct ImportInput {
     project: String,
 }
 
-/// Serializes one project record.
-///
-/// # Parameters
-/// - `project`: Project record to serialize.
-///
-/// # Returns
-/// Public JSON project metadata.
-fn project_json(project: &ProjectRecord) -> Value {
-    json!({
-        "id": project.id.to_string(),
-        "name": project.name,
-        "path": project.path,
-        "status": match project.status {
-            ProjectStatus::Registered => "registered",
-            ProjectStatus::ScanReady => "scan_ready",
-            ProjectStatus::Imported => "imported",
-            ProjectStatus::Failed => "failed",
-        },
-        "snapshot": project.current_snapshot.map(|value| value.to_string()),
-    })
+/// Request body for workspace projection lookup.
+#[derive(serde::Deserialize)]
+struct ProjectionInput {
+    /// Stable project identity.
+    project: String,
+    /// Stable semantic entity identity.
+    entity: String,
 }
 
-/// Creates a standard unavailable-service response.
-///
-/// # Returns
-/// HTTP status and structured error body.
-fn unavailable() -> (u16, Value) {
-    (503, json!({"code": "project_catalog_unavailable"}))
+/// Creates and validates a source candidate without changing canonical state.
+pub(super) fn propose<S: ApplicationService>(
+    state: &HttpState<S>,
+    body: &str,
+) -> Result<Value, (u16, Value)> {
+    project_workflow::propose(state, body)
 }
 
-/// Creates a standard invalid-request response.
-///
-/// # Parameters
-/// - `error`: JSON decoding failure.
-///
-/// # Returns
-/// HTTP status and structured error body.
-fn invalid_request(error: &serde_json::Error) -> (u16, Value) {
-    (
-        400,
-        json!({"code": "invalid_request", "message": error.to_string()}),
-    )
-}
-
-/// Creates a standard invalid-project response.
-///
-/// # Returns
-/// HTTP status and structured error body.
-fn invalid_project() -> (u16, Value) {
-    (404, json!({"code": "project_not_found"}))
-}
-
-/// Converts a project-service failure into an HTTP response.
-///
-/// # Parameters
-/// - `error`: Project-service failure.
-///
-/// # Returns
-/// HTTP status and structured error body.
-fn project_error(error: &scriberig_project::ProjectError) -> (u16, Value) {
-    let status = if error.code == "project_not_found" {
-        404
-    } else {
-        400
-    };
-    (
-        status,
-        json!({
-            "code": error.code,
-            "message": error.message,
-            "diagnostics": error.diagnostics.iter().map(|diagnostic| json!({
-                "path": diagnostic.path,
-                "adapter": diagnostic.adapter,
-                "stage": diagnostic.stage,
-                "code": diagnostic.code,
-                "message": diagnostic.message,
-                "retryable": diagnostic.retryable,
-            })).collect::<Vec<_>>(),
-        }),
-    )
-}
-
-/// Converts a storage failure into an HTTP error.
-///
-/// # Parameters
-/// - `error`: Storage failure.
-///
-/// # Returns
-/// HTTP status and structured error body.
-fn storage_error(error: impl std::fmt::Display) -> (u16, Value) {
-    (
-        500,
-        json!({"code": "storage_error", "message": error.to_string()}),
-    )
-}
-
-/// Resolves a requested project path under one of the configured roots.
-///
-/// # Parameters
-/// - `roots`: Canonical filesystem roots allowed by the server operator.
-/// - `requested`: User-supplied project path.
-///
-/// # Returns
-/// A canonical path contained by an allowed root.
-///
-/// # Errors
-/// Returns a forbidden response when the path is missing or outside policy.
-fn authorized_path(roots: &[PathBuf], requested: &str) -> Result<PathBuf, (u16, Value)> {
-    let path = std::fs::canonicalize(Path::new(requested)).map_err(|error| {
-        (
-            400,
-            json!({"code": "invalid_project_path", "message": error.to_string()}),
-        )
-    })?;
-    if roots.iter().any(|root| path.starts_with(root)) {
-        Ok(path)
-    } else {
-        Err((403, json!({"code": "project_path_forbidden"})))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::authorized_path;
-    /// Rejects a project path outside the operator-selected root.
-    #[test]
-    fn path_policy_rejects_outside_root() {
-        let root = std::env::temp_dir();
-        let outside = std::path::Path::new("C:\\");
-        let result = authorized_path(&[root], outside.to_string_lossy().as_ref());
-        assert!(result.is_err());
-    }
-
-    /// Accepts a project path contained by a configured root.
-    #[test]
-    fn path_policy_accepts_existing_child() {
-        let root = std::fs::canonicalize(std::env::temp_dir()).expect("temporary root");
-        let result = authorized_path(std::slice::from_ref(&root), &root.to_string_lossy());
-        assert!(result.is_ok());
-    }
+/// Applies a validated candidate with snapshot and filesystem compare-and-swap.
+pub(super) fn apply<S: ApplicationService>(
+    state: &HttpState<S>,
+    body: &str,
+) -> Result<Value, (u16, Value)> {
+    project_workflow::apply(state, body)
 }

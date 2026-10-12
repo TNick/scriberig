@@ -35,6 +35,8 @@ pub struct ProjectEntityRecord {
     pub entity: EntityId,
     /// Stable entity-kind label.
     pub kind: String,
+    /// Human-readable semantic name when the entity is a named symbol.
+    pub name: Option<String>,
 }
 
 impl SqliteStore {
@@ -124,7 +126,7 @@ impl SqliteStore {
             .lock()
             .map_err(|_| rusqlite::Error::InvalidQuery)?;
         let mut statement = connection.prepare(
-            "SELECT project_id,relative_path,entity,kind
+            "SELECT project_id,relative_path,entity,kind,name
              FROM project_entities WHERE project_id=? ORDER BY relative_path,entity",
         )?;
         let rows = statement.query_map(params![project.as_bytes().as_slice()], entity_from_row)?;
@@ -158,13 +160,14 @@ impl SqliteStore {
         )?;
         for entity in entities {
             transaction.execute(
-                "INSERT INTO project_entities(project_id,relative_path,entity,kind)
-                 VALUES (?,?,?,?)",
+                "INSERT INTO project_entities(project_id,relative_path,entity,kind,name)
+                 VALUES (?,?,?,?,?)",
                 params![
                     entity.project_id.as_bytes().as_slice(),
                     entity.relative_path,
                     entity.entity.as_bytes().as_slice(),
                     entity.kind,
+                    entity.name,
                 ],
             )?;
         }

@@ -53,6 +53,17 @@ pub struct AgentCommandRequest {
     pub branch: Option<EntityId>,
     /// User-authored command text.
     pub prompt: String,
+    /// Exact semantic scope supplied to the agent runtime.
+    pub selection: Option<AgentSelection>,
+}
+
+/// Identifies the exact semantic scope supplied to an agent.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentSelection {
+    /// Selected semantic entity.
+    pub entity: EntityId,
+    /// Snapshot containing the selected entity.
+    pub snapshot: SnapshotId,
 }
 
 /// Identifies a locally accepted agent operation before execution completes.

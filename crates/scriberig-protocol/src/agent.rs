@@ -19,6 +19,15 @@ pub struct BranchReference {
     pub id: String,
 }
 
+/// Identifies the exact semantic scope supplied to an agent.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct AgentSelection {
+    /// Selected semantic entity.
+    pub entity: EntityReference,
+    /// Snapshot containing the selected entity.
+    pub snapshot: SnapshotReference,
+}
+
 /// Identifies a candidate change that must use normal migration review.
 #[derive(Clone, Debug, Default, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct CandidateChangeReference {
@@ -65,6 +74,9 @@ pub struct AgentStartRequest {
     pub session: SessionReference,
     /// User-authored instruction.
     pub prompt: String,
+    /// Exact semantic scope for the requested work.
+    #[serde(default)]
+    pub selection: Option<AgentSelection>,
 }
 
 /// Continues an agent operation on an existing session branch.
@@ -76,6 +88,9 @@ pub struct AgentContinueRequest {
     pub branch: BranchReference,
     /// User-authored follow-up instruction.
     pub prompt: String,
+    /// Exact semantic scope for the requested work.
+    #[serde(default)]
+    pub selection: Option<AgentSelection>,
 }
 
 /// Returns the shared operation handle accepted for agent execution.

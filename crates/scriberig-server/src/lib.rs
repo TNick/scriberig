@@ -10,6 +10,7 @@ pub mod transport;
 
 pub use development::{DevelopmentFixture, ensure_fixture};
 pub use dispatch::Dispatcher;
+pub use http::InProcessProjectTransport;
 pub use server::ApplicationService;
 pub use subscription::SubscriptionSpec;
 pub use transport::InProcessTransport;

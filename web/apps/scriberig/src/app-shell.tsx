@@ -9,11 +9,13 @@ export function AppShell({
   onNavigate,
   children,
   status,
+  workspace,
 }: {
   active: string;
   onNavigate: (route: string) => void;
   children: ReactNode;
   status: string;
+  workspace?: { project: { name: string }; snapshot: string };
 }): ReactElement {
   const routes = [
     "projects",
@@ -45,6 +47,7 @@ export function AppShell({
       </AppBar>
       <Box component="p" role="status" sx={{ px: 2 }}>
         {status}
+        {workspace ? ` | project: ${workspace.project.name} | snapshot: ${workspace.snapshot}` : ""}
       </Box>
       <Box component="main" sx={{ p: 2 }}>
         {children}

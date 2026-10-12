@@ -189,3 +189,99 @@ cli = "implemented"
 tui = "implemented"
 web = "implemented"
 agent = "implemented"
+
+[[capabilities]]
+id = "project_workspace"
+description = "Resolve and activate a project-specific semantic workspace."
+semantic_owner = "scriberig-project"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "implemented"
+protocol = "implemented"
+server = "verified"
+client = "implemented"
+cli = "planned"
+tui = "verified"
+web = "verified"
+agent = "planned"
+
+[[capabilities]]
+id = "semantic_code_navigation"
+description = "Browse named Rust symbols from shared semantic data."
+semantic_owner = "scriberig-domain-rust"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "implemented"
+protocol = "implemented"
+server = "verified"
+client = "implemented"
+cli = "planned"
+tui = "verified"
+web = "verified"
+agent = "planned"
+
+[[capabilities]]
+id = "source_projection"
+description = "Render exact Rust source for a selected semantic entity."
+semantic_owner = "scriberig-project"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "implemented"
+protocol = "implemented"
+server = "verified"
+client = "implemented"
+cli = "planned"
+tui = "verified"
+web = "verified"
+agent = "planned"
+
+[[capabilities]]
+id = "projection_edit_candidate"
+description = "Create a validated source candidate without write-through."
+semantic_owner = "scriberig-server"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "planned"
+protocol = "implemented"
+server = "verified"
+client = "implemented"
+cli = "planned"
+tui = "verified"
+web = "verified"
+agent = "planned"
+
+[[capabilities]]
+id = "filesystem_materialize"
+description = "Apply a validated candidate with filesystem conflict protection."
+semantic_owner = "scriberig-server"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "planned"
+protocol = "implemented"
+server = "verified"
+client = "implemented"
+cli = "planned"
+tui = "verified"
+web = "verified"
+agent = "planned"
+
+[[capabilities]]
+id = "semantic_project_agent_candidate"
+description = "Create a normal migration candidate from exact semantic scope."
+semantic_owner = "scriberig-project"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "implemented"
+protocol = "implemented"
+server = "verified"
+client = "implemented"
+cli = "planned"
+tui = "verified"
+web = "verified"
+agent = "verified"

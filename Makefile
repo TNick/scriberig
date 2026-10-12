@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help init build install tui onboard test-tui docs format lint test check dev dev-stop
+.PHONY: help init build install tui onboard test-tui product-golden docs format lint test check dev dev-stop
 
 ONBOARD_DB ?= playground/dev-app-runtime/scriberig.sqlite
 
@@ -18,6 +18,7 @@ help:
 	@echo   make tui        Onboard and open the current project in the TUI.
 	@echo   make onboard    Import Git-tracked files from the current project.
 	@echo   make test-tui   Run deterministic and PTY TUI test suites.
+	@echo   make product-golden Run browser, PTY, and conformance golden tests.
 	@echo   make docs       Build Rust and TypeScript API documentation.
 	@echo   make format     Apply repository, Rust, and web formatting.
 	@echo   make lint       Run repository and web formatting checks.
@@ -54,6 +55,10 @@ onboard:
 test-tui:
 	cargo test -p scriberig-tui --lib
 	cargo test -p scriberig --test tui_pty
+
+# Run the mandatory product-level golden workflow gate.
+product-golden:
+	$(PYTHON) tools/product_golden.py
 
 # Build API documentation from Rust and TypeScript declaration docs.
 docs:

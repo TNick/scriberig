@@ -14,8 +14,8 @@ pub mod trust;
 pub mod version;
 
 pub use agent::{
-    AgentAcceptedResponse, AgentContinueRequest, AgentResult, AgentStartRequest, BranchReference,
-    CandidateChangeReference, SessionReference,
+    AgentAcceptedResponse, AgentContinueRequest, AgentResult, AgentSelection, AgentStartRequest,
+    BranchReference, CandidateChangeReference, SessionReference,
 };
 pub use capability::{CapabilitiesResponse, CapabilityInfo, RuntimeFeature};
 pub use error::{ProtocolError, ProtocolErrorCode};
@@ -87,6 +87,7 @@ mod tests {
                 id: "session-1".to_owned(),
             },
             prompt: "inspect the selected branch".to_owned(),
+            selection: None,
         });
         round_trip(&AgentContinueRequest {
             session: SessionReference {
@@ -96,6 +97,7 @@ mod tests {
                 id: "branch-1".to_owned(),
             },
             prompt: "continue".to_owned(),
+            selection: None,
         });
     }
 

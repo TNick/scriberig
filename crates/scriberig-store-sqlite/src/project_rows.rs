@@ -62,6 +62,7 @@ pub(crate) fn entity_from_row(row: &Row<'_>) -> rusqlite::Result<ProjectEntityRe
             .ok_or(rusqlite::Error::InvalidQuery)
             .map(EntityId::from_bytes)?,
         kind: row.get(3)?,
+        name: row.get(4)?,
     })
 }
 

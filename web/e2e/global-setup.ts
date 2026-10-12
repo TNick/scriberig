@@ -1,7 +1,9 @@
 /** @file Starts the local API and Vite services before browser tests. */
 
-import { spawn } from "node:child_process";
-import { resolve } from "node:path";
+import { spawn, spawnSync } from "node:child_process";
+import { cp, mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import type { FullConfig } from "@playwright/test";
 
 const repositoryRoot = resolve(process.cwd(), "..");
@@ -31,10 +33,25 @@ async function waitFor(url: string): Promise<void> {
  * @returns Resolves after both services are ready.
  */
 export default async function globalSetup(_config: FullConfig): Promise<void> {
+  const fixtureRoot = await mkdtemp(join(tmpdir(), "scriberig-web-golden-"));
+  await cp(resolve(repositoryRoot, "tests/fixtures/golden-rust-project"), fixtureRoot, {
+    recursive: true,
+  });
+  await mkdir(resolve(repositoryRoot, "output/playwright"), { recursive: true });
+  await writeFile(resolve(repositoryRoot, "output/playwright/golden-fixture-root"), fixtureRoot);
+  spawnSync("python", ["tools/dev.py", "stop"], {
+    cwd: repositoryRoot,
+    stdio: "ignore",
+    windowsHide: true,
+  });
   const child = spawn("python", ["tools/dev.py", "start"], {
     cwd: repositoryRoot,
     detached: true,
-    env: { ...process.env, SCRIBERIG_NO_BROWSER: "1" },
+    env: {
+      ...process.env,
+      SCRIBERIG_NO_BROWSER: "1",
+      SCRIBERIG_PROJECT_ROOT: fixtureRoot,
+    },
     stdio: "ignore",
     windowsHide: true,
   });

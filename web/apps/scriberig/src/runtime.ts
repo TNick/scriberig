@@ -5,6 +5,42 @@ import { KnowledgeTree, type TreeNode } from "@scriberig/editor-core";
 import { WorkspaceModel } from "@scriberig/model";
 import type { AgentEvent, CapabilitiesResponse, ProtocolEvent } from "@scriberig/protocol";
 
+const ACTIVE_PROJECT_STORAGE_KEY = "scriberig.active.project";
+
+/** Project workspace resolved from the authoritative application service. */
+export interface ActiveWorkspace {
+  project: { id: string; name: string; path: string; status: string; snapshot?: string };
+  snapshot: string;
+  rootEntity: string;
+}
+
+/** Named semantic symbol exposed by the shared project adapter. */
+export interface ProjectSymbol {
+  entityId: string;
+  snapshotId: string;
+  path: string;
+  kind: string;
+  name: string;
+}
+
+/** Candidate returned by the shared human or agent review path. */
+export interface ProjectCandidate {
+  /** Stable candidate identity. */
+  candidate: string;
+  /** Exact base snapshot. */
+  base: string;
+  /** Changed project-relative path. */
+  path: string;
+  /** Original source text. */
+  old: string;
+  /** Proposed source text. */
+  new: string;
+  /** Validation terminal state. */
+  validation: string;
+  /** Whether normal Apply is available. */
+  applyEnabled: boolean;
+}
+
 /** Browser connection state reported by the application runtime. */
 export type ConnectionState = "connecting" | "connected" | "disconnected";
 
@@ -18,6 +54,12 @@ export interface AppRuntime {
   capabilities: CapabilitiesResponse | undefined;
   connection: ConnectionState;
   bootstrap: () => Promise<void>;
+  activeWorkspace: ActiveWorkspace | undefined;
+  symbols: ProjectSymbol[];
+  agentCandidate: ProjectCandidate | undefined;
+  activateProject: (projectId: string) => Promise<void>;
+  setAgentCandidate: (candidate: ProjectCandidate | undefined) => void;
+  subscribe: (listener: () => void) => () => void;
 }
 
 const COMMANDS: Readonly<Record<string, Omit<CommandDescriptor, "requiredCapability">>> = {
@@ -136,6 +178,10 @@ export function createRuntime(baseUrl = "/api"): AppRuntime {
   let commands: readonly CommandDescriptor[] = [];
   let agentSequence = 0;
   let agentRefresh: Promise<void> | undefined;
+  let activeWorkspace: ActiveWorkspace | undefined;
+  let symbols: ProjectSymbol[] = [];
+  let agentCandidate: ProjectCandidate | undefined;
+  const listeners = new Set<() => void>();
   const client = new ScriberigClient(transport);
   const model = new WorkspaceModel();
   const refreshAgentWorkspace = async (): Promise<void> => {
@@ -219,12 +265,46 @@ export function createRuntime(baseUrl = "/api"): AppRuntime {
         },
       );
       connection = "connected";
+      const storedProject = globalThis.localStorage?.getItem(ACTIVE_PROJECT_STORAGE_KEY);
+      if (storedProject !== null && storedProject !== undefined) {
+        await activateProject(storedProject);
+      }
     })().catch((error) => {
       connection = "disconnected";
       model.setDisconnected(true);
       throw error;
     });
     return bootstrapPromise;
+  };
+  const activateProject = async (projectId: string): Promise<void> => {
+    const workspace = await client.project<ActiveWorkspace>("workspace", { project: projectId });
+    const value = await client.project<{ symbols: ProjectSymbol[] }>("symbols", {
+      project: projectId,
+    });
+    activeWorkspace = workspace;
+    symbols = value.symbols;
+    globalThis.localStorage?.setItem(ACTIVE_PROJECT_STORAGE_KEY, projectId);
+    const rootDescription = await client.inspect({
+      entityId: workspace.rootEntity as never,
+      snapshot: { kind: "exact", snapshotId: workspace.snapshot as never },
+      detail: "compact",
+    });
+    if ("summary" in rootDescription) {
+      tree.setRoot({
+        id: "root",
+        entityId: workspace.rootEntity as never,
+        snapshotId: workspace.snapshot as never,
+        summary: rootDescription.summary,
+        expanded: false,
+        loading: false,
+        children: [],
+      });
+    }
+    listeners.forEach((listener) => listener());
+  };
+  const setAgentCandidate = (candidate: ProjectCandidate | undefined): void => {
+    agentCandidate = candidate;
+    listeners.forEach((listener) => listener());
   };
   return {
     client,
@@ -241,5 +321,20 @@ export function createRuntime(baseUrl = "/api"): AppRuntime {
       return connection;
     },
     bootstrap,
+    get activeWorkspace() {
+      return activeWorkspace;
+    },
+    get symbols() {
+      return symbols;
+    },
+    get agentCandidate() {
+      return agentCandidate;
+    },
+    activateProject,
+    setAgentCandidate,
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
   };
 }

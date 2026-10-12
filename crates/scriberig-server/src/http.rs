@@ -22,8 +22,11 @@ use http_helpers::{object_description, write_json};
 mod http_events;
 #[path = "http_migration.rs"]
 mod http_migration;
+#[path = "http_project_transport.rs"]
+mod http_project_transport;
 #[path = "http_protocol.rs"]
 mod http_protocol;
+pub use http_project_transport::InProcessProjectTransport;
 #[path = "http_request.rs"]
 mod http_request;
 #[path = "http_session.rs"]

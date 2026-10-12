@@ -215,10 +215,60 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
             return vec![Effect::None];
         }
         "projection" => {
-            "Projection needs a registered view for the selected entity."
-                .clone_into(&mut state.shell_message);
             state.overlay = None;
+            let Some(selection) = state.selection else {
+                "Select an entity before opening projection.".clone_into(&mut state.shell_message);
+                return vec![Effect::None];
+            };
+            let Some(snapshot) = selection.snapshot else {
+                "Projection requires an exact snapshot.".clone_into(&mut state.shell_message);
+                return vec![Effect::None];
+            };
+            return reduce(
+                state,
+                Action::ProjectionRequested {
+                    request: scriberig_app::RenderRequest {
+                        snapshot: scriberig_app::SnapshotSelector::Exact(snapshot),
+                        view: format!("project-source:{}", selection.entity),
+                    },
+                },
+            );
+        }
+        "edit" => {
+            if state.selection.is_none()
+                || !matches!(
+                    state.primary_view,
+                    crate::selection::PrimaryView::Projection
+                )
+            {
+                "Open a source projection before editing it.".clone_into(&mut state.shell_message);
+                state.overlay = None;
+                return vec![Effect::None];
+            }
+            state.overlay = Some(Overlay::Input(crate::overlay::input::InputState {
+                purpose: crate::overlay::input::InputPurpose::ProjectionEdit,
+                ..Default::default()
+            }));
             return vec![Effect::None];
+        }
+        "project-agent" => {
+            let Some(selection) = state.selection else {
+                return vec![Effect::None];
+            };
+            let Some(snapshot) = selection.snapshot else {
+                return vec![Effect::None];
+            };
+            state.overlay = None;
+            let request_id = state.next_request_id;
+            state.next_request_id += 1;
+            state.primary_view = crate::selection::PrimaryView::Changes;
+            state.review = LoadState::Loading { request_id };
+            return vec![Effect::ProjectAgent {
+                request_id,
+                entity: selection.entity,
+                snapshot,
+                prompt: "Change add so overflow saturates instead of wrapping.".to_owned(),
+            }];
         }
         "changes" => {
             "Changes appear after an application proposes a migration."

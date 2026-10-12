@@ -1,6 +1,6 @@
 //! Implements project filesystem scanning and domain-specific extraction.
 
-use scriberig_core::{EncodingVersion, EntityId, ObjectType, ProjectId, RootName};
+use scriberig_core::{EncodingVersion, EntityId, ObjectType, ProjectId};
 use scriberig_store::{Revision, SnapshotChange};
 use scriberig_store_sqlite::{ProjectEntityRecord, ProjectFileRecord};
 
@@ -15,10 +15,13 @@ mod scan;
 pub(crate) use scan::scan_directory;
 #[path = "adapters.rs"]
 mod adapters;
+#[path = "support_identity.rs"]
+mod support_identity;
 use adapters::{
     import_binary, import_c_family, import_data, import_ecma, import_html, import_python,
     import_text,
 };
+pub(crate) use support_identity::{project_root, source_entity};
 /// Imports one file and appends its revisions and snapshot changes.
 ///
 /// # Parameters
@@ -40,7 +43,7 @@ pub(crate) fn import_file(
     changes: &mut Vec<SnapshotChange>,
 ) -> Result<Vec<ProjectEntityRecord>, ProjectError> {
     let source = source_entity(project, &file.relative_path);
-    let mut ownership = vec![entity_record(project, file, source, "source")];
+    let mut ownership = vec![entity_record(project, file, source, "source", None)];
     let source_revision = revision("project.source", file.bytes.clone())?;
     changes.push(SnapshotChange::Set(source, source_revision.id()));
     revisions.push(source_revision);
@@ -158,6 +161,21 @@ fn import_rust(
             ownership,
         )?;
     }
+    for symbol in scriberig_domain_rust::named_symbols(text).map_err(|error| {
+        adapter_diagnostics_error(file, "semantic", "symbol_extraction_failed", &[error], true)
+    })? {
+        add_named_child(
+            project,
+            file,
+            source,
+            &symbol.kind,
+            &symbol.name,
+            &symbol.key,
+            revisions,
+            changes,
+            ownership,
+        )?;
+    }
     Ok(())
 }
 /// Extracts semantic PDF page entities.
@@ -249,7 +267,7 @@ pub(super) fn add_child(
     let revision = revision(kind, payload)?;
     changes.push(SnapshotChange::Set(entity, revision.id()));
     revisions.push(revision);
-    ownership.push(entity_record(project, file, entity, kind));
+    ownership.push(entity_record(project, file, entity, kind, None));
     Ok(())
 }
 
@@ -280,6 +298,7 @@ fn revision(kind: &str, payload: Vec<u8>) -> Result<Revision, ProjectError> {
 /// - `file`: Source file owning the entity.
 /// - `entity`: Entity identity.
 /// - `kind`: Entity kind.
+/// - `name`: Optional human-readable name.
 ///
 /// # Returns
 /// An ownership record.
@@ -288,31 +307,77 @@ fn entity_record(
     file: &ProjectFileRecord,
     entity: EntityId,
     kind: &str,
+    name: Option<String>,
 ) -> ProjectEntityRecord {
     ProjectEntityRecord {
         project_id: project,
         relative_path: file.relative_path.clone(),
         entity,
         kind: kind.to_owned(),
+        name,
     }
 }
 
-/// Derives a stable source entity identity.
+/// Adds one named Rust symbol to the current project snapshot.
 ///
 /// # Parameters
-/// - `project`: Stable project identity.
-/// - `path`: Project-relative path.
-/// - `crate`: Internal visibility marker.
+/// - `project`: Owning project identity.
+/// - `file`: Source file record.
+/// - `source`: Source entity identity.
+/// - `kind`: Semantic kind label.
+/// - `name`: Human-readable symbol name.
+/// - `key`: Stable semantic key.
+/// - `revisions`: Output revisions.
+/// - `changes`: Output snapshot changes.
+/// - `ownership`: Output ownership records.
 ///
 /// # Returns
-/// Stable source entity identity.
-pub(crate) fn source_entity(project: ProjectId, path: &str) -> EntityId {
-    let mut bytes = Vec::with_capacity(16 + path.len());
-    bytes.extend_from_slice(project.as_bytes());
-    bytes.extend_from_slice(path.as_bytes());
-    let digest = blake3::hash(&bytes);
+/// Unit after appending the symbol.
+///
+/// # Errors
+/// Returns an error when the revision cannot be created.
+#[allow(clippy::too_many_arguments)]
+fn add_named_child(
+    project: ProjectId,
+    file: &ProjectFileRecord,
+    source: EntityId,
+    kind: &str,
+    name: &str,
+    key: &str,
+    revisions: &mut Vec<Revision>,
+    changes: &mut Vec<SnapshotChange>,
+    ownership: &mut Vec<ProjectEntityRecord>,
+) -> Result<(), ProjectError> {
+    let entity = named_entity(source, kind, key);
+    let revision = revision(kind, name.as_bytes().to_vec())?;
+    changes.push(SnapshotChange::Set(entity, revision.id()));
+    revisions.push(revision);
+    ownership.push(entity_record(
+        project,
+        file,
+        entity,
+        kind,
+        Some(name.to_owned()),
+    ));
+    Ok(())
+}
+
+/// Derives a stable named-symbol identity from source and semantic key.
+///
+/// # Parameters
+/// - `source`: Source entity identity.
+/// - `kind`: Semantic kind label.
+/// - `key`: Stable semantic key.
+///
+/// # Returns
+/// Stable named-symbol entity identity.
+fn named_entity(source: EntityId, kind: &str, key: &str) -> EntityId {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(source.as_bytes());
+    hasher.update(kind.as_bytes());
+    hasher.update(key.as_bytes());
     let mut identity = [0; 16];
-    identity.copy_from_slice(&digest.as_bytes()[..16]);
+    identity.copy_from_slice(&hasher.finalize().as_bytes()[..16]);
     EntityId::from_bytes(identity)
 }
 
@@ -333,19 +398,4 @@ fn child_entity(source: EntityId, kind: &str, index: usize) -> EntityId {
     let mut identity = [0; 16];
     identity.copy_from_slice(&hasher.finalize().as_bytes()[..16]);
     EntityId::from_bytes(identity)
-}
-
-/// Creates the named root assigned to one project.
-///
-/// # Parameters
-/// - `project`: Stable project identity.
-/// - `crate`: Internal visibility marker.
-///
-/// # Returns
-/// Project-specific named root.
-///
-/// # Errors
-/// Returns an invalid root-name error.
-pub(crate) fn project_root(project: ProjectId) -> Result<RootName, ProjectError> {
-    RootName::new(format!("project_{project}")).map_err(|error| invalid_input(error.to_string()))
 }

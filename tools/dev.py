@@ -1,7 +1,6 @@
 """Start and stop Scriberig's local API and web development services."""
 import os
 import signal
-import shutil
 import subprocess
 import sys
 import time
@@ -9,43 +8,13 @@ import urllib.error
 import urllib.request
 import webbrowser
 from pathlib import Path
+
+from dev_toolchain import cargo_command
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / "playground" / "dev-app-runtime"
 API_URL = "http://127.0.0.1:7337/api/health"
 WEB_URL = "http://127.0.0.1:5173"
 SERVICES = ("api", "web")
-def cargo_command() -> str:
-    """Return a usable Cargo executable for the local Rust toolchain.
-    Returns:
-        Path or command name that can launch Cargo.
-    """
-    # Prefer a normal Cargo command when the PATH entry is usable.
-    cargo = shutil.which("cargo")
-    if cargo and Path(cargo).is_file() and Path(cargo).stat().st_size > 0:
-        return cargo
-    # Resolve Cargo through rustup when a broken shim shadows the toolchain.
-    rustup = shutil.which("rustup")
-    if rustup is None and os.name == "nt":
-        candidate = Path.home() / ".cargo" / "bin" / "rustup.exe"
-        if candidate.is_file():
-            rustup = str(candidate)
-    if rustup:
-        try:
-            result = subprocess.run(
-                [rustup, "which", "cargo"],
-                capture_output=True,
-                check=True,
-                text=True,
-                timeout=5,
-            )
-        except (OSError, subprocess.SubprocessError):
-            pass
-        else:
-            resolved = result.stdout.strip()
-            if resolved and Path(resolved).is_file():
-                return resolved
-    # Let the operating system produce its usual executable-not-found error.
-    return "cargo"
 def service_paths(name: str) -> dict[str, Path]:
     """Return PID and output paths for one development service.
     Args:
@@ -319,6 +288,10 @@ def start() -> None:
     """
     # Store the database, service logs, and process markers together.
     RUNTIME.mkdir(parents=True, exist_ok=True)
+    project_roots = os.environ.get("SCRIBERIG_PROJECT_ROOT")
+    project_root_arguments = []
+    if project_roots:
+        project_root_arguments = ["--project-root", project_roots]
     api_pid, api_new = ensure_service(
         "api",
         cargo_command(),
@@ -334,6 +307,7 @@ def start() -> None:
             "7337",
             "--db",
             "playground/dev-app-runtime/scriberig.sqlite",
+            *project_root_arguments,
         ],
     )
     pnpm = "pnpm.cmd" if os.name == "nt" else "pnpm"

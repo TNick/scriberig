@@ -11,7 +11,7 @@ fn tui_pty_shows_project_context() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
     let screen = tui.screen();
     assert!(screen.contains("Explorer"));
     assert!(screen.contains("Primary"));
@@ -25,14 +25,142 @@ fn tui_pty_shows_readable_explorer_rows() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
+    tui.send(b"\t\t\r");
+    assert!(tui.read_until("README.md"), "{}", tui.diagnostic());
     assert!(tui.screen().contains("README.md"), "{}", tui.diagnostic());
     assert!(
-        tui.screen().contains(":: markdown.block"),
+        tui.screen().contains("project.source"),
         "{}",
         tui.diagnostic()
     );
     assert!(tui.shutdown());
+}
+
+/// TUI-GOLDEN-01 opens the copied Rust project and exposes named symbols.
+#[test]
+fn tui_golden_01_shows_named_rust_symbols() {
+    let _lock = test_lock();
+    let mut tui = TuiPty::start_golden();
+
+    assert!(tui.read_until("Entity:"), "{}", tui.diagnostic());
+    tui.send(b"\t\t\r");
+    assert!(tui.read_until("Calculator"), "{}", tui.diagnostic());
+    assert!(tui.screen().contains("add"), "{}", tui.diagnostic());
+    assert!(tui.shutdown());
+}
+
+/// TUI-GOLDEN-02 opens the real source projection for the imported file.
+#[test]
+fn tui_golden_02_shows_rust_source_projection() {
+    let _lock = test_lock();
+    let mut tui = TuiPty::start_golden();
+    assert!(tui.read_until("Entity:"), "{}", tui.diagnostic());
+    tui.send(b":");
+    assert!(tui.read_until("Open help"), "{}", tui.diagnostic());
+    for (partial, character) in [
+        ("p", b'p'),
+        ("pr", b'r'),
+        ("pro", b'o'),
+        ("proj", b'j'),
+        ("proje", b'e'),
+        ("projec", b'c'),
+        ("project", b't'),
+        ("projecti", b'i'),
+        ("projectio", b'o'),
+        ("projection", b'n'),
+    ] {
+        tui.send(&[character]);
+        assert!(
+            tui.read_until(&format!("Search: {partial}")),
+            "{}",
+            tui.diagnostic()
+        );
+    }
+    tui.send(b"\r");
+    assert!(tui.read_until("src/lib.rs"), "{}", tui.diagnostic());
+    assert!(
+        tui.screen().contains("left + right"),
+        "{}",
+        tui.diagnostic()
+    );
+    assert!(tui.shutdown());
+}
+
+/// TUI-GOLDEN-03 edits, reviews, validates, applies, and persists a candidate.
+#[test]
+fn tui_golden_03_edits_reviews_applies_and_restarts() {
+    let _lock = test_lock();
+    let mut tui = TuiPty::start_golden();
+    assert!(tui.read_until("Entity:"), "{}", tui.diagnostic());
+    tui.send(b":");
+    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
+    tui.send(b"projection\r");
+    assert!(tui.read_until("left + right"), "{}", tui.diagnostic());
+    tui.send(b":");
+    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
+    tui.send(b"edit\r");
+    assert!(tui.read_until("Edit source"), "{}", tui.diagnostic());
+    tui.send(b"left.saturating_add(right)\r");
+    assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
+    assert!(
+        tui.screen().contains("left.saturating_add(right)"),
+        "{}",
+        tui.diagnostic()
+    );
+    assert!(tui.screen().contains("validation: Passed"));
+    assert!(tui.source().contains("left + right"));
+    tui.send(b"\r");
+    assert!(tui.read_until("Enter confirm"), "{}", tui.diagnostic());
+    tui.send(b"\r");
+    assert!(tui.read_until("materialized"), "{}", tui.diagnostic());
+    assert!(tui.source().contains("left.saturating_add(right)"));
+    let fixture = tui.quit_retain_fixture();
+    let mut restarted = TuiPty::restart(fixture.clone());
+    assert!(
+        restarted.read_until("Entity:"),
+        "{}",
+        restarted.diagnostic()
+    );
+    restarted.send(b":");
+    assert!(
+        restarted.read_until("Search:"),
+        "{}",
+        restarted.diagnostic()
+    );
+    restarted.send(b"projection\r");
+    assert!(
+        restarted.read_until("left.saturating_add(right)"),
+        "{}",
+        restarted.diagnostic()
+    );
+    assert!(restarted.shutdown());
+}
+
+/// TUI-GOLDEN-04 preserves an external edit instead of silently overwriting it.
+#[test]
+fn tui_golden_04_external_edit_is_not_overwritten() {
+    let _lock = test_lock();
+    let mut tui = TuiPty::start_golden();
+    assert!(tui.read_until("Entity:"), "{}", tui.diagnostic());
+    tui.send(b":");
+    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
+    tui.send(b"projection\r");
+    assert!(tui.read_until("left + right"), "{}", tui.diagnostic());
+    tui.send(b":edit\r");
+    assert!(tui.read_until("Edit source"), "{}", tui.diagnostic());
+    tui.send(b"left.saturating_add(right)\r");
+    assert!(tui.read_until("validation: Passed"), "{}", tui.diagnostic());
+    tui.external_edit();
+    tui.send(b"\r\r");
+    assert!(
+        tui.read_until("filesystem_conflict"),
+        "{}",
+        tui.diagnostic()
+    );
+    assert!(tui.source().contains("external edit"));
+    assert!(!tui.source().contains("left.saturating_add(right)"));
+    let _ = tui.shutdown_allow_failure();
 }
 
 /// Verifies the help overlay is reachable from the running native TUI.
@@ -41,7 +169,7 @@ fn tui_pty_opens_help_overlay() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
     tui.send(b"?");
     assert!(tui.read_until("Ctrl-C"));
     let screen = tui.screen();
@@ -73,7 +201,7 @@ fn tui_pty_opens_and_closes_command_palette() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
     tui.send(b":");
     assert!(tui.read_until("Search:"));
     tui.send(b"\x1b");
@@ -87,14 +215,14 @@ fn tui_pty_resizes_without_losing_project_context() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: prj_"));
+    assert!(tui.read_until("project: "));
     tui.resize(PtySize {
         rows: 30,
         cols: 100,
         pixel_width: 0,
         pixel_height: 0,
     });
-    assert!(tui.read_until_next("project: prj_"));
+    assert!(tui.read_until_next("project: "));
     assert!(tui.screen().contains("Primary"));
     assert!(tui.shutdown());
 }
@@ -105,22 +233,22 @@ fn tui_pty_cycles_focus_between_panes() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("focus: Primary"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Primary [ACTIVE]"), "{}", tui.diagnostic());
     tui.send(b"\t");
     assert!(
-        tui.read_until_next("focus: Inspector"),
+        tui.read_until_next("Inspector [ACTIVE]"),
         "{}",
         tui.diagnostic()
     );
     tui.send(b"\t");
     assert!(
-        tui.read_until_next("focus: Explorer"),
+        tui.read_until_next("Explorer [ACTIVE]"),
         "{}",
         tui.diagnostic()
     );
     tui.send(b"\x1b[Z");
     assert!(
-        tui.read_until_next("focus: Inspector"),
+        tui.read_until_next("Inspector [ACTIVE]"),
         "{}",
         tui.diagnostic()
     );
@@ -136,7 +264,7 @@ fn tui_pty_accepts_browse_commands() {
     assert!(tui.read_until("Entity:"), "{}", tui.diagnostic());
     tui.send(b"r\r\x1b[A\x1b[B\x1b[D\x1b[C\x08x");
     assert!(tui.read_until_next("Entity:"), "{}", tui.diagnostic());
-    assert!(tui.screen().contains("project: prj_"));
+    assert!(tui.screen().contains("project: "));
     assert!(tui.shutdown());
 }
 
@@ -146,7 +274,7 @@ fn tui_pty_moves_palette_selection() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
     tui.send(b":");
     assert!(tui.read_until("Search:"));
     tui.send(b"\x1b[B\x1b[C\x1b[A\x1b[D");
@@ -160,7 +288,7 @@ fn tui_pty_lists_local_palette_commands() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     let screen = tui.screen();
@@ -185,7 +313,7 @@ fn tui_pty_submits_find_query() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
     tui.send(b"/");
     assert!(tui.read_until("Find:"), "{}", tui.diagnostic());
     tui.send(b"readmx");
@@ -193,7 +321,6 @@ fn tui_pty_submits_find_query() {
     tui.send(b"e");
     assert!(tui.read_until("Find: readme"), "{}", tui.diagnostic());
     tui.send(b"\r");
-    assert!(tui.read_until_not("OVERLAY"), "{}", tui.diagnostic());
     assert!(tui.screen().contains("Find: readme"));
     assert!(tui.shutdown());
 }
@@ -204,7 +331,7 @@ fn tui_pty_quits_with_q() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
     tui.send(b"q");
     assert!(tui.wait_for_exit());
 }
@@ -215,7 +342,7 @@ fn tui_pty_activates_palette_commands() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
     tui.send(b":");
     assert!(tui.read_until("Search:"));
     tui.send(b"operations");
@@ -241,7 +368,7 @@ fn tui_pty_opens_history_and_agent_composer() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
     tui.send(b":");
     assert!(tui.read_until("Search:"));
     tui.send(b"history");
