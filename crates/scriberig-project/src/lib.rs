@@ -48,6 +48,8 @@ pub struct ScanReport {
     pub project: ProjectRecord,
     /// Persisted deterministic scan files.
     pub files: Vec<ScanFile>,
+    /// Whether the manifest was restricted to Git-indexed files.
+    pub git_tracked: bool,
 }
 
 /// Result of promoting one project import.
@@ -183,7 +185,11 @@ impl ProjectService {
             .project(project.id)
             .map_err(storage_error)?
             .ok_or_else(|| missing_project(project.id))?;
-        Ok(ScanReport { project, files })
+        Ok(ScanReport {
+            project,
+            files,
+            git_tracked: options.git_tracked,
+        })
     }
 
     /// Imports the persisted scan into an immutable project snapshot.

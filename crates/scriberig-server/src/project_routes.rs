@@ -104,7 +104,11 @@ pub(super) fn scan<S: ApplicationService>(
             })
         })
         .collect::<Vec<_>>();
-    Ok(json!({"project": project_json(&report.project), "files": files}))
+    Ok(json!({
+        "project": project_json(&report.project),
+        "files": files,
+        "gitTracked": report.git_tracked,
+    }))
 }
 
 /// Relinks a project to a new path while preserving its identity.

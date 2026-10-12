@@ -179,6 +179,7 @@ fn run_scan(args: &ProjectScanArgs) -> Result<(), Box<dyn std::error::Error + Se
     let response = serde_json::json!({
         "project": project_json(std::slice::from_ref(&report.project))[0],
         "files": report.files.iter().map(file_json).collect::<Vec<_>>(),
+        "gitTracked": report.git_tracked,
     });
     if args.json {
         println!("{}", serde_json::to_string_pretty(&response)?);
@@ -186,6 +187,7 @@ fn run_scan(args: &ProjectScanArgs) -> Result<(), Box<dyn std::error::Error + Se
         println!("project {} scanned", report.project.id);
         println!("path: {}", report.project.path.display());
         println!("files: {}", report.files.len());
+        println!("git-tracked only: {}", report.git_tracked);
     }
     Ok(())
 }

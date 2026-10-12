@@ -25,6 +25,7 @@ interface Project {
 interface ScanResult {
   project: Project;
   files: Array<{ path: string; adapter: string; status: string; bytes: number }>;
+  gitTracked: boolean;
 }
 
 /** Renders the project catalog and reviewable filesystem scan.
@@ -144,6 +145,7 @@ export function ProjectManager({ client }: { client: ScriberigClient }): ReactEl
           <Typography variant="h6">Scan review</Typography>
           <Typography>
             {scan.files.length} files discovered for {scan.project.name}.
+            {scan.gitTracked ? " Git-tracked files only." : " All scanned files."}
           </Typography>
           <Button
             sx={{ my: 1 }}
