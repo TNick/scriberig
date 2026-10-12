@@ -24,7 +24,7 @@ use std::path::Path;
 use std::sync::Mutex;
 
 use rusqlite::Connection;
-use scriberig_core::{RevisionId, SnapshotId};
+use scriberig_core::{ProjectId, RevisionId, RootName, SnapshotId};
 use scriberig_store::{Revision, Snapshot, SnapshotError};
 
 /// A durable SQLite-backed revision, snapshot, and root store.
@@ -222,6 +222,111 @@ impl SqliteStore {
             }));
         }
         roots::write_root_in_transaction(&transaction, &name, next.id())
+            .map_err(|error| PromotionError::Backend(error.to_string()))?;
+        transaction
+            .commit()
+            .map_err(|error| PromotionError::Backend(error.to_string()))?;
+        Ok(next.id())
+    }
+
+    /// Promotes a project snapshot and its catalog metadata atomically.
+    ///
+    /// # Parameters
+    /// - `project`: Project whose snapshot and ownership are being replaced.
+    /// - `name`: Named root receiving the promoted snapshot.
+    /// - `expected`: Root value required for compare-and-swap promotion.
+    /// - `base`: Existing snapshot used as the change base.
+    /// - `revisions`: Immutable revisions to insert before promotion.
+    /// - `changes`: Snapshot map changes to apply.
+    /// - `entities`: Ownership rows matching the resulting project snapshot.
+    ///
+    /// # Returns
+    /// The promoted immutable snapshot identity.
+    ///
+    /// # Errors
+    /// Returns a snapshot, stale-root, missing-revision, or transaction error.
+    #[allow(clippy::too_many_arguments)]
+    pub fn apply_project_import(
+        &self,
+        project: ProjectId,
+        name: RootName,
+        expected: Option<SnapshotId>,
+        base: SnapshotId,
+        revisions: &[Revision],
+        changes: &[scriberig_store::SnapshotChange],
+        entities: &[ProjectEntityRecord],
+    ) -> Result<SnapshotId, PromotionError> {
+        let source = self.snapshot(base).map_err(PromotionError::Snapshot)?;
+        let next = source.apply(changes.iter().copied());
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| PromotionError::Backend("lock poisoned".to_owned()))?;
+        let transaction = connection
+            .transaction()
+            .map_err(|error| PromotionError::Backend(error.to_string()))?;
+        for revision in revisions {
+            revision::insert_in_transaction(&transaction, revision)
+                .map_err(|error| PromotionError::Backend(error.to_string()))?;
+        }
+        for change in changes {
+            if let scriberig_store::SnapshotChange::Set(_, revision) = change {
+                let present: bool = transaction
+                    .query_row(
+                        "SELECT EXISTS(SELECT 1 FROM revisions WHERE id=?)",
+                        rusqlite::params![revision.as_bytes().as_slice()],
+                        |row| row.get(0),
+                    )
+                    .map_err(|error| PromotionError::Backend(error.to_string()))?;
+                if !present {
+                    return Err(PromotionError::MissingRevision(*revision));
+                }
+            }
+        }
+        Self::store_snapshot_in_transaction(&transaction, &next)
+            .map_err(|error| PromotionError::Backend(error.to_string()))?;
+        snapshot::store_parent_in_transaction(&transaction, next.id(), base)
+            .map_err(|error| PromotionError::Backend(error.to_string()))?;
+        let actual = roots::read_root_in_transaction(&transaction, &name)
+            .map_err(|error| PromotionError::Backend(error.to_string()))?;
+        if actual != expected {
+            return Err(PromotionError::Root(scriberig_store::RootError::Conflict {
+                name,
+                expected,
+                actual,
+            }));
+        }
+        roots::write_root_in_transaction(&transaction, &name, next.id())
+            .map_err(|error| PromotionError::Backend(error.to_string()))?;
+        transaction
+            .execute(
+                "DELETE FROM project_entities WHERE project_id=?",
+                rusqlite::params![project.as_bytes().as_slice()],
+            )
+            .map_err(|error| PromotionError::Backend(error.to_string()))?;
+        for entity in entities {
+            transaction
+                .execute(
+                    "INSERT INTO project_entities(project_id,relative_path,entity,kind)
+                     VALUES (?,?,?,?)",
+                    rusqlite::params![
+                        entity.project_id.as_bytes().as_slice(),
+                        entity.relative_path,
+                        entity.entity.as_bytes().as_slice(),
+                        entity.kind,
+                    ],
+                )
+                .map_err(|error| PromotionError::Backend(error.to_string()))?;
+        }
+        transaction
+            .execute(
+                "UPDATE projects SET status='imported',current_snapshot=?,updated_at=datetime('now')
+                 WHERE id=?",
+                rusqlite::params![
+                    next.id().as_bytes().as_slice(),
+                    project.as_bytes().as_slice(),
+                ],
+            )
             .map_err(|error| PromotionError::Backend(error.to_string()))?;
         transaction
             .commit()

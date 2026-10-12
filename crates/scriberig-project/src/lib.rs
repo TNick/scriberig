@@ -195,14 +195,10 @@ impl ProjectService {
         }
         let snapshot = self
             .store
-            .apply_revisions_and_promote(root, expected, base, &revisions, &changes)
+            .apply_project_import(
+                project, root, expected, base, &revisions, &changes, &ownership,
+            )
             .map_err(|error| promotion_error(format!("{error:?}")))?;
-        self.store
-            .replace_project_entities(project, &ownership)
-            .map_err(storage_error)?;
-        self.store
-            .set_project_status(project, ProjectStatus::Imported, Some(snapshot))
-            .map_err(storage_error)?;
         let project_record = self
             .store
             .project(project)
