@@ -7,6 +7,7 @@ export interface BrowserDiagnostics {
   consoleErrors: string[];
   pageErrors: string[];
   failedRequests: string[];
+  httpErrors: string[];
   privateRequests: string[];
 }
 
@@ -20,6 +21,7 @@ export function installDiagnostics(page: Page): BrowserDiagnostics {
     consoleErrors: [],
     pageErrors: [],
     failedRequests: [],
+    httpErrors: [],
     privateRequests: [],
   };
   page.on("console", (message) => {
@@ -30,6 +32,11 @@ export function installDiagnostics(page: Page): BrowserDiagnostics {
     const failure = request.failure()?.errorText ?? "";
     if (!request.url().includes("favicon") && !failure.includes("ERR_ABORTED")) {
       diagnostics.failedRequests.push(request.url());
+    }
+  });
+  page.on("response", (response) => {
+    if (response.status() >= 400 && !response.url().includes("favicon")) {
+      diagnostics.httpErrors.push(`${response.status()} ${response.url()}`);
     }
   });
   page.on("request", (request) => {
@@ -44,6 +51,7 @@ export function installDiagnostics(page: Page): BrowserDiagnostics {
 /** Asserts that the browser completed the flow without runtime failures. */
 /** @param diagnostics Diagnostics collected during the browser flow. */
 export function expectHealthyBrowser(diagnostics: BrowserDiagnostics): void {
+  expect(diagnostics.httpErrors).toEqual([]);
   expect(diagnostics.consoleErrors).toEqual([]);
   expect(diagnostics.pageErrors).toEqual([]);
   expect(diagnostics.failedRequests).toEqual([]);

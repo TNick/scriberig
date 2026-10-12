@@ -54,6 +54,38 @@ pub(super) fn protocol<S: ApplicationService>(
     }
 }
 
+/// Dispatches the browser transport's direct project operation shape.
+///
+/// # Parameters
+/// - `state`: HTTP application state.
+/// - `body`: JSON project request containing `operation` and `payload`.
+///
+/// # Returns
+/// The unwrapped project result expected by the browser client.
+///
+/// # Errors
+/// Returns a structured HTTP error for malformed or failed project operations.
+pub(super) fn direct<S: ApplicationService>(
+    state: &HttpState<S>,
+    body: &str,
+) -> Result<Value, (u16, Value)> {
+    let request: scriberig_protocol::ProjectRequest =
+        serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
+    match request.operation.as_str() {
+        "list" => list(state),
+        "scan" => scan(state, &request.payload.to_string()),
+        "import" => import(state, &request.payload.to_string()),
+        "relink" => relink(state, &request.payload.to_string()),
+        _ => Err((
+            404,
+            json!({
+                "code": "unsupported_project_operation",
+                "message": "unsupported project operation"
+            }),
+        )),
+    }
+}
+
 /// Lists projects in the configured database.
 pub(super) fn list<S: ApplicationService>(state: &HttpState<S>) -> Result<Value, (u16, Value)> {
     let store = state.project_store.as_ref().ok_or_else(unavailable)?;

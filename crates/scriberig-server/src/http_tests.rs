@@ -1,6 +1,9 @@
 //! Verifies HTTP mapping for application-owned migration detail.
 
-use super::{HttpState, allowed_origin, http_migration::migration, http_protocol::dispatch};
+use super::{
+    HttpState, allowed_origin, http_migration::migration, http_protocol::dispatch,
+    project_routes::direct,
+};
 use crate::development::DevelopmentFixture;
 use crate::server::ApplicationService;
 use scriberig_app::{
@@ -153,6 +156,25 @@ fn typed_operation_route_rejects_unknown_operation() {
         dispatch(&state, "unknown", "{}", "request-43".to_owned()).expect_err("unknown operation");
     assert_eq!(status, 404);
     assert_eq!(body["code"], "unsupported_operation");
+}
+
+/// Verifies the browser transport's direct project route is dispatched.
+#[test]
+fn direct_project_route_preserves_project_errors() {
+    let state = HttpState {
+        service: Fixture,
+        allowed_origin: None,
+        project_store: None,
+        allowed_project_roots: Vec::new(),
+        fixture: DevelopmentFixture {
+            root_entity: EntityId::from_bytes([1; 16]),
+            child_entities: Vec::new(),
+            snapshot: SnapshotId::new([1; 32]),
+        },
+    };
+    let (_, response) = direct(&state, r#"{"operation":"list","payload":{}}"#)
+        .expect_err("project catalog should be unavailable");
+    assert_eq!(response["code"], "project_catalog_unavailable");
 }
 
 /// Verifies CORS accepts only the configured exact origin.

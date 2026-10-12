@@ -26,6 +26,8 @@ mod http_migration;
 mod http_protocol;
 #[path = "http_request.rs"]
 mod http_request;
+#[path = "http_session.rs"]
+mod http_session;
 #[path = "project_routes.rs"]
 mod project_routes;
 
@@ -136,6 +138,8 @@ pub fn handle_connection<S: ApplicationService>(
         ("POST", "/api/projects/import") => project_routes::import(state, body),
         ("POST", "/api/projects/relink") => project_routes::relink(state, body),
         ("POST", "/api/protocol") => protocol(state, body),
+        ("POST", "/api/protocol/project") => project_routes::direct(state, body),
+        ("POST", "/api/protocol/session") => http_session::read(state, body),
         ("POST", "/api/protocol/capabilities") => Ok(capabilities(state)),
         ("POST", "/api/protocol/inspect") => inspect(state, body),
         ("POST", "/api/protocol/list") => list(state, body),
