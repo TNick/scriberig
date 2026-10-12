@@ -15,7 +15,7 @@ help:
 	@echo   make init       Install web and pre-commit dependencies.
 	@echo   make build      Build all workspace targets.
 	@echo   make install    Build and install the srig executable.
-	@echo   make tui        Start srig in TUI mode.
+	@echo   make tui        Onboard and open the current project in the TUI.
 	@echo   make onboard    Import Git-tracked files from the current project.
 	@echo   make docs       Build Rust and TypeScript API documentation.
 	@echo   make format     Apply repository, Rust, and web formatting.
@@ -43,7 +43,7 @@ install:
 
 # Start the integrated srig executable in TUI mode.
 tui:
-	cargo run --package scriberig --bin srig -- tui
+	cargo run --package scriberig --bin srig -- tui --db "$(ONBOARD_DB)" --project . --git-tracked --import
 
 # Scan and import the current project's Git-tracked files.
 onboard:
