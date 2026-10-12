@@ -28,7 +28,26 @@ fn tui_pty_opens_help_overlay() {
     assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
     tui.send(b"?");
     assert!(tui.read_until("Ctrl-C"));
-    assert!(tui.screen().contains("Overlay"));
+    let screen = tui.screen();
+    assert!(screen.contains("Overlay"));
+    for label in [
+        "Ctrl-C",
+        "Esc",
+        "Tab",
+        "Shift-Tab",
+        "Enter",
+        "Up",
+        "Down",
+        "Left",
+        "Backspace",
+        ":",
+        "/",
+        "?",
+        "r",
+        "q",
+    ] {
+        assert!(screen.contains(label), "missing help key {label}: {screen}");
+    }
     assert!(tui.shutdown());
 }
 
