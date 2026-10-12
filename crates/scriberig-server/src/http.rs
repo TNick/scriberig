@@ -3,6 +3,7 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use scriberig_app::{ApplicationContext, InspectRequest, SnapshotResolution};
@@ -12,6 +13,7 @@ use serde_json::{Value, json};
 use crate::development::DevelopmentFixture;
 use crate::dispatch::Dispatcher;
 use crate::server::ApplicationService;
+use scriberig_store_sqlite::SqliteStore;
 
 #[path = "http_helpers.rs"]
 mod http_helpers;
@@ -23,6 +25,8 @@ mod http_events;
 mod http_migration;
 #[path = "http_protocol.rs"]
 mod http_protocol;
+#[path = "project_routes.rs"]
+mod project_routes;
 
 static REQUEST_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 
@@ -34,6 +38,8 @@ pub struct HttpState<S> {
     pub fixture: DevelopmentFixture,
     /// Optional exact browser origin allowed by the server.
     pub allowed_origin: Option<String>,
+    /// Optional project catalog used by onboarding routes.
+    pub project_store: Option<Arc<SqliteStore>>,
 }
 
 /// Handles one local HTTP connection.
@@ -122,6 +128,9 @@ pub fn handle_connection<S: ApplicationService>(
     }
     let parsed = match (method, path) {
         ("GET", "/api/health") => Ok(json!({"status": "ready", "database": "ready"})),
+        ("GET", "/api/projects") => project_routes::list(state),
+        ("POST", "/api/projects/scan") => project_routes::scan(state, body),
+        ("POST", "/api/projects/relink") => project_routes::relink(state, body),
         ("POST", "/api/protocol") => protocol(state, body),
         ("POST", "/api/protocol/capabilities") => Ok(capabilities(state)),
         ("POST", "/api/protocol/inspect") => inspect(state, body),

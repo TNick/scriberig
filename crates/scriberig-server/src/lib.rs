@@ -75,6 +75,7 @@ pub fn serve_with_origin(
         service,
         fixture,
         allowed_origin: allowed_origin.map(ToOwned::to_owned),
+        project_store: Some(Arc::clone(&store)),
     };
     let listener = TcpListener::bind((host, port))?;
     println!("Scriberig API listening on http://{host}:{port}");

@@ -1565,6 +1565,7 @@ dependencies = [
 name = "scriberig-server"
 version = "0.1.0"
 dependencies = [
+ "blake3",
  "scriberig-app",
  "scriberig-client",
  "scriberig-core",
@@ -1574,6 +1575,7 @@ dependencies = [
  "scriberig-session-sqlite",
  "scriberig-store",
  "scriberig-store-sqlite",
+ "serde",
  "serde_json",
 ]
 

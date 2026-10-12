@@ -97,6 +97,7 @@ fn migration_route_maps_canonical_detail() {
     let state = HttpState {
         service: Fixture,
         allowed_origin: None,
+        project_store: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -119,6 +120,7 @@ fn typed_operation_route_preserves_correlation() {
     let state = HttpState {
         service: Fixture,
         allowed_origin: None,
+        project_store: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -137,6 +139,7 @@ fn typed_operation_route_rejects_unknown_operation() {
     let state = HttpState {
         service: Fixture,
         allowed_origin: None,
+        project_store: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
