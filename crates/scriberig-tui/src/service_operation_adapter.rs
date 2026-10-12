@@ -4,17 +4,44 @@
 
 use super::*;
 
+/// Optional local project labels keyed by stable entity identity.
+pub type ExplorerLabels = std::collections::HashMap<EntityId, String>;
+
 /// Adapts the application backend to operation-oriented TUI services.
 pub struct ApplicationOperationAdapter<B> {
     service: ApplicationService<B>,
+    explorer_labels: ExplorerLabels,
 }
 
 /// Adapts the public protocol client to the TUI inspection boundary.
 impl<B> ApplicationOperationAdapter<B> {
     /// Creates an operation adapter around an application service.
+    ///
+    /// # Parameters
+    /// - `service`: Application service used by the adapter.
+    ///
+    /// # Returns
+    /// An adapter with no project-specific explorer labels.
     #[must_use]
-    pub const fn new(service: ApplicationService<B>) -> Self {
-        Self { service }
+    pub fn new(service: ApplicationService<B>) -> Self {
+        Self {
+            service,
+            explorer_labels: std::collections::HashMap::new(),
+        }
+    }
+
+    /// Supplies project-relative labels for local explorer navigation.
+    ///
+    /// # Parameters
+    /// - `self`: Adapter receiving the project labels.
+    /// - `labels`: Human-readable labels keyed by stable entity identity.
+    ///
+    /// # Returns
+    /// The adapter configured with the supplied labels.
+    #[must_use]
+    pub fn with_explorer_labels(mut self, labels: ExplorerLabels) -> Self {
+        self.explorer_labels = labels;
+        self
     }
 }
 
@@ -80,14 +107,18 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         entity: EntityId,
         snapshot: Option<SnapshotId>,
     ) -> Result<InspectResult, ApplicationError> {
-        self.service.inspect(
+        let mut result = self.service.inspect(
             context,
             &InspectRequest {
                 entity,
                 snapshot: snapshot.map_or(SnapshotResolution::Current, SnapshotResolution::At),
                 detail: scriberig_app::DetailLevel::Detailed,
             },
-        )
+        )?;
+        if result.label.is_none() {
+            result.label = self.explorer_labels.get(&entity).cloned();
+        }
+        Ok(result)
     }
 
     /// Lists the shared snapshot entity collection for Explorer navigation.
@@ -143,6 +174,7 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
                             snapshot: Some(target.snapshot),
                         },
                         label: entry.label.unwrap_or_else(|| target.entity.to_string()),
+                        kind: entry.entity_type.map(|value| value.to_string()),
                         inspectable: true,
                     })
                 }

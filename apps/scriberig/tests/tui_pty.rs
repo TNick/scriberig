@@ -19,6 +19,22 @@ fn tui_pty_shows_project_context() {
     assert!(tui.shutdown());
 }
 
+/// Verifies project-relative paths and semantic kinds are visible in Explorer.
+#[test]
+fn tui_pty_shows_readable_explorer_rows() {
+    let _lock = test_lock();
+    let mut tui = TuiPty::start();
+
+    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    assert!(tui.screen().contains("README.md"), "{}", tui.diagnostic());
+    assert!(
+        tui.screen().contains(":: markdown.block"),
+        "{}",
+        tui.diagnostic()
+    );
+    assert!(tui.shutdown());
+}
+
 /// Verifies the help overlay is reachable from the running native TUI.
 #[test]
 fn tui_pty_opens_help_overlay() {

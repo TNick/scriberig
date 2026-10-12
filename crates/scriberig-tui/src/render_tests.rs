@@ -190,3 +190,35 @@ fn explorer_scrolls_to_keep_selected_row_visible() {
         "{rendered}"
     );
 }
+
+/// Verifies explorer rows expose readable project context and semantic kind.
+#[test]
+fn explorer_renders_context_instead_of_only_stable_ids() {
+    let backend = TestBackend::new(140, 12);
+    let mut terminal = Terminal::new(backend).expect("terminal");
+    let entity = scriberig_core::EntityId::from_bytes([3; 16]);
+    let mut state = TuiState {
+        focus: Focus::Explorer,
+        explorer: crate::explorer::ExplorerModel::from_selection(
+            crate::selection::EntitySelection {
+                entity,
+                revision: None,
+                snapshot: None,
+            },
+        ),
+        ..TuiState::default()
+    };
+    state.explorer.root.as_mut().expect("root").label = "src/app.py".to_owned();
+    state.explorer.root.as_mut().expect("root").kind = Some("source".to_owned());
+
+    terminal.draw(|frame| render(frame, &state)).expect("draw");
+
+    let rendered: String = terminal
+        .backend()
+        .buffer()
+        .content()
+        .iter()
+        .map(ratatui::buffer::Cell::symbol)
+        .collect();
+    assert!(rendered.contains("src/app.py [source]"), "{rendered}");
+}

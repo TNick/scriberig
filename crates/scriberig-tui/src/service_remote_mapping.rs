@@ -53,6 +53,7 @@ pub(crate) fn list_explorer<T: scriberig_protocol::ProtocolTransport>(
                     snapshot: Some(target.snapshot),
                 },
                 label: entry.label.unwrap_or_else(|| target.entity.to_string()),
+                kind: entry.entity_type.map(|value| value.to_string()),
                 inspectable: true,
             }),
             scriberig_query::TargetRef::Revision(_) => None,

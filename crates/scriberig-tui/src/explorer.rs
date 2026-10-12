@@ -11,6 +11,8 @@ pub struct ExplorerRow {
     pub selection: EntitySelection,
     /// Safe compact label.
     pub label: String,
+    /// Semantic kind shown alongside the human-readable label.
+    pub kind: Option<String>,
     /// Whether the row can be activated for inspection.
     pub inspectable: bool,
 }
@@ -64,6 +66,7 @@ impl ExplorerModel {
             root: Some(ExplorerRow {
                 selection,
                 label,
+                kind: None,
                 inspectable: true,
             }),
             rows: Vec::new(),
@@ -90,6 +93,7 @@ impl ExplorerModel {
                     snapshot,
                 },
                 label: entity.to_string(),
+                kind: None,
                 inspectable: true,
             }));
     }

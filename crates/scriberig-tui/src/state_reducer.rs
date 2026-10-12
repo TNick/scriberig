@@ -128,6 +128,14 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
                     snapshot: model.snapshot,
                 });
                 state.inspector = LoadState::Ready(model.clone());
+                if let Some(root) = state.explorer.root.as_mut() {
+                    if root.selection.entity == model.entity {
+                        if let Some(label) = model.label.clone() {
+                            root.label = label;
+                        }
+                        root.kind.clone_from(&model.kind);
+                    }
+                }
                 state
                     .navigation
                     .activate(crate::selection::NavigationLocation {

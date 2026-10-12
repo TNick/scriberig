@@ -14,31 +14,46 @@ pub(super) fn explorer_text(state: &TuiState) -> String {
     let Some(root) = state.explorer.root.as_ref() else {
         return "Explorer\n  No semantic root entered".to_owned();
     };
-    let mut rows = vec![format!(
-        "{}{}",
-        if state.cursor == 0 && state.focus == Focus::Explorer {
-            "> "
+    let mut rows = vec![display_row(
+        root,
+        &if state.cursor == 0 && state.focus == Focus::Explorer {
+            "> ".to_owned()
         } else {
-            "  "
+            "  ".to_owned()
         },
-        root.label
     )];
     rows.extend(state.explorer.rows.iter().enumerate().map(|(index, row)| {
         let cursor = index + 1;
-        format!(
-            "{}{}",
-            if state.cursor == cursor && state.focus == Focus::Explorer {
-                "> "
+        display_row(
+            row,
+            &if state.cursor == cursor && state.focus == Focus::Explorer {
+                "> ".to_owned()
             } else {
-                "  "
+                "  ".to_owned()
             },
-            row.label
         )
     }));
     if state.explorer.next.is_some() {
         rows.push("  … more entities; press Enter on the root".to_owned());
     }
     format!("Explorer\n{}", rows.join("\n"))
+}
+
+/// Formats one explorer row with its readable label and semantic kind.
+///
+/// # Parameters
+/// - `row`: Explorer row to format.
+/// - `prefix`: Selection marker and indentation prefix.
+///
+/// # Returns
+/// A compact human-readable explorer line.
+fn display_row(row: &crate::explorer::ExplorerRow, prefix: &str) -> String {
+    let kind = row
+        .kind
+        .as_deref()
+        .map(|value| format!(" [{value}]"))
+        .unwrap_or_default();
+    format!("{prefix}{}{kind}", row.label)
 }
 
 /// Computes the explorer text offset needed to keep the cursor in view.

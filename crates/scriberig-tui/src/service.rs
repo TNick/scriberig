@@ -31,7 +31,7 @@ pub use agent_handle::AgentHandle;
 pub use service_application::ApplicationAdapter;
 use service_effects::select_branch_subtree;
 pub use service_effects::{TuiOperationService, execute_effect};
-pub use service_operation_adapter::ApplicationOperationAdapter;
+pub use service_operation_adapter::{ApplicationOperationAdapter, ExplorerLabels};
 pub use service_operations::{execute_operation, execute_operation_effect};
 pub use service_remote::RemoteAdapter;
 

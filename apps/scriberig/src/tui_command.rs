@@ -6,11 +6,11 @@ use scriberig_app::{
     ApplicationBackendComposition, ApplicationContext, ApplicationService, StoreInspectionBackend,
     StoreOperationProvider,
 };
-use scriberig_core::{EntityId, SnapshotId};
+use scriberig_core::{EntityId, ProjectId, SnapshotId};
 use scriberig_store_sqlite::SqliteStore;
 
 /// Identifies the project context selected for TUI startup.
-type ProjectStartup = (String, Option<EntityId>, Option<SnapshotId>);
+type ProjectStartup = (ProjectId, Option<EntityId>, Option<SnapshotId>);
 
 /// Starts TUI mode using either a remote endpoint or local project database.
 ///
@@ -66,9 +66,9 @@ pub(super) fn run(
                         .project_entities(project.id)?
                         .first()
                         .map(|record| record.entity);
-                    return Ok((project.id.to_string(), entity, Some(imported.snapshot)));
+                    return Ok((project.id, entity, Some(imported.snapshot)));
                 }
-                Ok((project.id.to_string(), None, None))
+                Ok((project.id, None, None))
             },
         )
         .transpose()?;
@@ -78,14 +78,19 @@ pub(super) fn run(
         StoreOperationProvider::new(Arc::clone(&store)),
     );
     let service = ApplicationService::new(backend);
-    let service = scriberig_tui::ApplicationOperationAdapter::new(service);
+    let labels = project
+        .as_ref()
+        .map(|(project_id, _, _)| project_labels(&store, *project_id))
+        .transpose()?;
+    let service = scriberig_tui::ApplicationOperationAdapter::new(service)
+        .with_explorer_labels(labels.unwrap_or_default());
     let context = ApplicationContext::empty();
     scriberig_tui::run(
         &service,
         &context,
         &scriberig_tui::TuiConfig {
             interactive: true,
-            project: project.as_ref().map(|value| value.0.clone()),
+            project: project.as_ref().map(|value| value.0.to_string()),
             initial_entity: project
                 .as_ref()
                 .and_then(|value| value.1)
@@ -97,4 +102,38 @@ pub(super) fn run(
         },
     )?;
     Ok(())
+}
+
+/// Builds readable explorer labels from the imported project ownership manifest.
+///
+/// # Parameters
+/// - `store`: SQLite store containing project ownership records.
+/// - `project`: Project whose entities are being displayed.
+///
+/// # Returns
+/// A stable entity-to-label map for local TUI navigation.
+///
+/// # Errors
+/// Returns a SQLite error when the ownership manifest cannot be read.
+fn project_labels(
+    store: &Arc<SqliteStore>,
+    project: ProjectId,
+) -> Result<scriberig_tui::ExplorerLabels, Box<dyn std::error::Error + Send + Sync>> {
+    let records = store.project_entities(project)?;
+    let mut counts = std::collections::HashMap::<(String, String), usize>::new();
+    let mut labels = scriberig_tui::ExplorerLabels::new();
+    for record in records {
+        if record.kind == "source" {
+            labels.insert(record.entity, record.relative_path);
+            continue;
+        }
+        let key = (record.relative_path.clone(), record.kind.clone());
+        let ordinal = counts.entry(key).or_insert(0);
+        *ordinal += 1;
+        labels.insert(
+            record.entity,
+            format!("{} :: {} #{}", record.relative_path, record.kind, ordinal),
+        );
+    }
+    Ok(labels)
 }

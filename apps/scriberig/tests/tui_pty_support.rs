@@ -39,6 +39,12 @@ impl TuiPty {
     pub fn start() -> Self {
         let fixture = temporary_fixture();
         fs::write(fixture.join("README.md"), "# PTY fixture\n").expect("fixture");
+        fs::create_dir_all(fixture.join("src")).expect("source directory");
+        fs::write(
+            fixture.join("src/app.py"),
+            "def greet():\n    return 'hi'\n",
+        )
+        .expect("python fixture");
         let database = fixture.join("scriberig.sqlite");
         let pty_system = native_pty_system();
         let pair = pty_system
