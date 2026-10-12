@@ -217,6 +217,14 @@ export class ScriberigClient {
   command<TPayload>(kind: string, payload: TPayload, signal?: AbortSignal): Promise<Operation> {
     return this.transport.request("command", { kind, payload }, signal).then(normalizeOperation);
   }
+  /** Executes one typed project onboarding operation. */
+  project<TResponse>(
+    operation: string,
+    payload: unknown,
+    signal?: AbortSignal,
+  ): Promise<TResponse> {
+    return this.transport.request("project", { operation, payload }, signal);
+  }
   /** Opens or updates a branch through the public application boundary. */
   branch<TPayload>(payload: TPayload, signal?: AbortSignal): Promise<Operation> {
     return this.command("branch", payload, signal);

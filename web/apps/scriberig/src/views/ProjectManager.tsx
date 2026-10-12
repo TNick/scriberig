@@ -10,6 +10,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useState, type FormEvent, type ReactElement } from "react";
+import type { ScriberigClient } from "@scriberig/client";
 
 interface Project {
   id: string;
@@ -28,7 +29,7 @@ interface ScanResult {
  * @returns The project manager view.
  * @throws Network failures are rendered as an error state.
  */
-export function ProjectManager(): ReactElement {
+export function ProjectManager({ client }: { client: ScriberigClient }): ReactElement {
   const [projects, setProjects] = useState<Project[]>([]);
   const [path, setPath] = useState("");
   const [name, setName] = useState("");
@@ -37,14 +38,11 @@ export function ProjectManager(): ReactElement {
   const [error, setError] = useState<string>();
 
   useEffect(() => {
-    void fetch("/api/projects")
-      .then(async (response) => {
-        if (!response.ok) throw new Error(await response.text());
-        return response.json() as Promise<{ projects: Project[] }>;
-      })
+    void client
+      .project<{ projects: Project[] }>("list", {})
       .then((value) => setProjects(value.projects))
       .catch((reason: unknown) => setError(String(reason)));
-  }, []);
+  }, [client]);
 
   /** Starts a server-side project scan.
    * @param event Form submission event.
@@ -56,13 +54,10 @@ export function ProjectManager(): ReactElement {
     setError(undefined);
     setScan(undefined);
     try {
-      const response = await fetch("/api/projects/scan", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ path, ...(name === "" ? {} : { name }) }),
+      const value = await client.project<ScanResult>("scan", {
+        path,
+        ...(name === "" ? {} : { name }),
       });
-      if (!response.ok) throw new Error(await response.text());
-      const value = (await response.json()) as ScanResult;
       setScan(value);
       setProjects((current) => [
         ...current.filter((project) => project.id !== value.project.id),
@@ -82,13 +77,9 @@ export function ProjectManager(): ReactElement {
     setError(undefined);
     setImporting(true);
     try {
-      const response = await fetch("/api/projects/import", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ project: scan.project.id }),
+      const value = await client.project<{ project: Project }>("import", {
+        project: scan.project.id,
       });
-      if (!response.ok) throw new Error(await response.text());
-      const value = (await response.json()) as { project: Project };
       setProjects((current) => [
         ...current.filter((project) => project.id !== value.project.id),
         value.project,

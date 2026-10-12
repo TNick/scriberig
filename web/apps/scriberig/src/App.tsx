@@ -70,7 +70,7 @@ export function App(): ReactElement {
           <RuntimeSnapshotStatus connection={connection} />
           <SharedSelectionSummary />
           {route === "projects" ? (
-            <ProjectManager />
+            <ProjectManager client={runtime.client} />
           ) : route === "raw" ? (
             <RawKnowledgeView />
           ) : route === "semantic" ? (
