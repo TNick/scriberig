@@ -1,4 +1,6 @@
 /** @file Verifies mutation tests use public command descriptors. */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { expect, it } from "vitest";
 import { discoverCommands, type CommandDescriptor } from "@scriberig/editor-core";
 import { ScriberigClient } from "@scriberig/client";
@@ -26,4 +28,14 @@ it("routes migration and validation through public operations", async () => {
     ["command", { kind: "migrate", payload: { proposalId: "proposal-1" } }],
     ["command", { kind: "validate", payload: { proposalId: "proposal-1" } }],
   ]);
+});
+
+it("migration review applies through a public operation and rejects locally", () => {
+  const view = readFileSync(
+    resolve(import.meta.dirname, "../../apps/scriberig/src/views/MigrationReviewView.tsx"),
+    "utf8",
+  );
+  expect(view).toContain('client.command("apply"');
+  expect(view).toContain("waitForTerminalOperation");
+  expect(view).toContain("canonical state was not changed");
 });
