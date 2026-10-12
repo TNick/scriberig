@@ -44,8 +44,10 @@ fn runtime_emits_phase_events_to_attached_log() {
 #[test]
 fn runtime_emits_model_text_delta_to_attached_log() {
     let events = scriberig_agent_runtime::orchestration::RuntimeEventLog::new();
+    let registry = scriberig_app::OperationRegistry::new();
     let mut runtime = AgentRuntime::new(EchoProvider, scriberig_agent_runtime::UnconfiguredTool, 1)
         .with_event_log(events.clone())
+        .with_operation_registry(registry.clone())
         .with_branch_id("stream-branch");
     runtime
         .run(
@@ -61,5 +63,10 @@ fn runtime_emits_model_text_delta_to_attached_log() {
             branch,
             text
         } if branch == "stream-branch" && text == "streamed answer"
+    )));
+    assert!(registry.events().iter().any(|event| matches!(
+        event,
+        scriberig_app::ApplicationEvent::AgentOutputDelta { text, .. }
+            if text == "streamed answer"
     )));
 }

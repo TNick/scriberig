@@ -120,7 +120,7 @@ fn tui_statuses_match_implemented_surface_evidence() {
         ("session_branch_tree", "implemented"),
         ("session_branch_activity", "implemented"),
         ("agent_event_subscription", "implemented"),
-        ("agent_streaming_output", "planned"),
+        ("agent_streaming_output", "implemented"),
     ];
     for (id, status) in expected {
         let entry = document["capabilities"]

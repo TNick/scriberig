@@ -283,11 +283,16 @@ where
             let provider_started = std::time::Instant::now();
             let event_log = self.event_log.clone();
             let branch_id = self.branch_id.clone();
+            let registry = self.registry.clone();
+            let operation_id = operation.clone();
             let decision = self
                 .provider
                 .decide_with_output(&messages, &mut |text| {
                     if let Some(event_log) = &event_log {
                         event_log.push(RuntimeEvent::model_text_delta(&branch_id, text));
+                    }
+                    if let (Some(registry), Some(operation_id)) = (&registry, &operation_id) {
+                        let _ = registry.publish_agent_output_delta(operation_id, text);
                     }
                 })
                 .map_err(|error| {
