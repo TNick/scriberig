@@ -79,12 +79,7 @@ pub fn parse(path: &Path, source: &str) -> Result<DataDocument, DataError> {
             "jsonc",
             serde_json::from_str(&strip_json_comments(source)).map_err(|error| error.to_string()),
         ),
-        Some("yaml" | "yml") => (
-            "yaml",
-            serde_yaml::from_str::<serde_yaml::Value>(source)
-                .map_err(|error| error.to_string())
-                .and_then(|value| serde_json::to_value(value).map_err(|error| error.to_string())),
-        ),
+        Some("yaml" | "yml") => ("yaml", parse_yaml(source)),
         Some("toml") => (
             "toml",
             toml::from_str::<toml::Value>(source)
@@ -110,6 +105,30 @@ pub fn parse(path: &Path, source: &str) -> Result<DataDocument, DataError> {
         value,
         nodes,
     })
+}
+
+/// Parses one or more YAML documents into one normalized value.
+///
+/// # Parameters
+/// - `source`: YAML stream.
+///
+/// # Returns
+/// One value for a single-document stream or an ordered array for a stream
+/// containing multiple documents.
+///
+/// # Errors
+/// Returns parser or normalization diagnostics.
+fn parse_yaml(source: &str) -> Result<Value, String> {
+    let values = serde_yaml::Deserializer::from_str(source)
+        .map(serde_yaml::Value::deserialize)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| error.to_string())?;
+    let value = match values.as_slice() {
+        [] => serde_yaml::Value::Null,
+        [value] => value.clone(),
+        _ => serde_yaml::Value::Sequence(values),
+    };
+    serde_json::to_value(value).map_err(|error| error.to_string())
 }
 
 /// Removes JSONC comments while preserving strings and newlines.
@@ -246,5 +265,13 @@ mod tests {
             parse(Path::new("config.toml"), "[package]\nname = \"demo\"\n").expect("TOML parses");
         assert_eq!(yaml.nodes[0].kind, "object");
         assert_eq!(toml.nodes[0].kind, "object");
+    }
+
+    /// Preserves ordered YAML multi-document streams as one value.
+    #[test]
+    fn parses_yaml_streams() {
+        let document =
+            parse(Path::new("stream.yaml"), "---\na: 1\n---\nb: 2\n").expect("YAML stream parses");
+        assert_eq!(document.value.as_array().map(Vec::len), Some(2));
     }
 }
