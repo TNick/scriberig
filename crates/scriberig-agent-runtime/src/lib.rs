@@ -110,6 +110,29 @@ pub trait ModelProvider {
     /// # Errors
     /// Returns a provider-specific failure.
     fn decide(&mut self, messages: &[AgentMessage]) -> Result<ModelDecision, String>;
+
+    /// Produces a decision while forwarding provider-neutral text fragments.
+    ///
+    /// # Parameters
+    /// - `messages`: Immutable conversation and tool observations.
+    /// - `on_text`: Callback receiving bounded assistant-text fragments.
+    ///
+    /// # Returns
+    /// The next tool request or final response.
+    ///
+    /// # Errors
+    /// Returns the same provider failure as [`Self::decide`].
+    fn decide_with_output(
+        &mut self,
+        messages: &[AgentMessage],
+        on_text: &mut dyn FnMut(&str),
+    ) -> Result<ModelDecision, String> {
+        let decision = self.decide(messages)?;
+        if let ModelDecision::Final(output) = &decision {
+            on_text(output);
+        }
+        Ok(decision)
+    }
 }
 
 /// Deterministic provider used by local one-shot composition and tests.

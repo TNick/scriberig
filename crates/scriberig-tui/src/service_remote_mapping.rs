@@ -288,6 +288,14 @@ pub(crate) fn map_remote_event(
                 .map(|(_, value)| value.clone())?;
             Some(scriberig_app::ApplicationEvent::AgentOutputProduced { operation, output })
         }
+        scriberig_protocol::EventKind::AgentOutputDelta => {
+            let text = event
+                .metadata
+                .iter()
+                .find(|(key, _)| key == "text")
+                .map(|(_, value)| value.clone())?;
+            Some(scriberig_app::ApplicationEvent::AgentOutputDelta { operation, text })
+        }
         _ => None,
     }
 }

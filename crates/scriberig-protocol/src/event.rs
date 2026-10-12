@@ -31,6 +31,8 @@ pub enum EventKind {
     ValidationCompleted,
     /// Agent output was produced.
     AgentOutputProduced,
+    /// Incremental transient agent output text.
+    AgentOutputDelta,
     /// A candidate snapshot was created.
     CandidateCreated,
     /// Validation started for a candidate or operation.

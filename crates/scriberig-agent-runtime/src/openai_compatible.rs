@@ -1,6 +1,6 @@
 //! Implements the non-streaming OpenAI-compatible provider adapter.
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::sync::Arc;
 
 use crate::config::ResolvedCredential;
@@ -9,10 +9,13 @@ use crate::provider::{
     ProviderError, ProviderMetadata, ToolCall, ToolChoice, Usage,
 };
 use crate::provider::{MessageRole, ProviderConfig};
+use openai_wire::WireResponse;
 #[path = "openai_cancellation.rs"]
 mod openai_cancellation;
 #[path = "openai_transport.rs"]
 mod openai_transport;
+#[path = "openai_wire.rs"]
+mod openai_wire;
 use openai_transport::{CompletionTransport, ReqwestCompletionTransport, classify_status};
 
 /// OpenAI-compatible chat-completions provider.
@@ -133,6 +136,25 @@ impl ProviderAdapter for OpenAiCompatibleProvider {
         let wire: WireResponse = serde_json::from_slice(&response.body)
             .map_err(|error| ProviderError::MalformedResponse(error.to_string()))?;
         wire.into_response(request_id)
+    }
+
+    /// Completes through SSE while forwarding assistant text fragments.
+    ///
+    /// # Parameters
+    /// - `request`: Provider-neutral request to execute.
+    /// - `on_text`: Callback receiving provider-neutral text fragments.
+    ///
+    /// # Returns
+    /// The assembled normalized response.
+    ///
+    /// # Errors
+    /// Returns the classified provider failure.
+    fn complete_streaming(
+        &self,
+        request: &ModelRequest,
+        on_text: &mut dyn FnMut(&str),
+    ) -> Result<ModelResponse, ProviderError> {
+        self.complete_streaming_with(request, on_text)
     }
 }
 
@@ -277,53 +299,6 @@ impl WireTool {
             },
         }
     }
-}
-
-#[derive(Deserialize)]
-/// Deserializes one compatible provider response.
-struct WireResponse {
-    choices: Vec<WireChoice>,
-    usage: Option<WireUsage>,
-    model: Option<String>,
-}
-
-#[derive(Deserialize)]
-/// Deserializes one response choice.
-struct WireChoice {
-    message: WireAssistantMessage,
-    finish_reason: Option<String>,
-}
-
-#[derive(Deserialize)]
-/// Deserializes the assistant message in a response choice.
-struct WireAssistantMessage {
-    content: Option<String>,
-    tool_calls: Option<Vec<WireToolCall>>,
-}
-
-#[derive(Deserialize)]
-/// Deserializes one provider function call.
-struct WireToolCall {
-    id: String,
-    function: WireFunctionCall,
-}
-
-#[derive(Deserialize)]
-/// Deserializes function-call name and JSON arguments.
-struct WireFunctionCall {
-    name: String,
-    arguments: String,
-}
-
-#[derive(Deserialize)]
-/// Deserializes provider token usage metadata.
-struct WireUsage {
-    #[serde(rename = "prompt_tokens")]
-    input: u64,
-    #[serde(rename = "completion_tokens")]
-    output: u64,
-    #[serde(rename = "total_tokens")]
-    total: u64,
 }
 
 impl WireResponse {

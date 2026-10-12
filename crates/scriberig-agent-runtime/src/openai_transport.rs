@@ -123,6 +123,26 @@ impl OpenAiCompatibleProvider {
         &self,
         request: &ModelRequest,
     ) -> Result<ModelResponse, ProviderError> {
+        self.complete_streaming_with(request, &mut |_| {})
+    }
+
+    /// Sends one streaming request and forwards each assistant text fragment.
+    ///
+    /// # Parameters
+    /// - `self`: Configured provider adapter.
+    /// - `request`: Provider-neutral request to execute.
+    /// - `on_text`: Callback receiving bounded provider text fragments.
+    ///
+    /// # Returns
+    /// A normalized response assembled from all stream fragments.
+    ///
+    /// # Errors
+    /// Returns a classified transport, HTTP, configuration, or stream failure.
+    pub fn complete_streaming_with(
+        &self,
+        request: &ModelRequest,
+        on_text: &mut dyn FnMut(&str),
+    ) -> Result<ModelResponse, ProviderError> {
         let credential = self.config.resolve_credential()?;
         let payload = super::WireRequest::from_request(request, true);
         let mut builder = self
@@ -150,8 +170,12 @@ impl OpenAiCompatibleProvider {
             if line.trim().is_empty() {
                 continue;
             }
+            let before = assembler.text_len();
             if assembler.push_sse_line(&line)? {
                 break;
+            }
+            if let Some(delta) = assembler.text_since(before) {
+                on_text(delta);
             }
         }
         let mut normalized = assembler.finish()?;

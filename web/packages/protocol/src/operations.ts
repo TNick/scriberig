@@ -32,6 +32,7 @@ export type ProtocolEvent = { sequence?: number } & (
   | { kind: "operationCompleted"; operationId: OperationId }
   | { kind: "operationProgress"; operationId: OperationId; progress: number }
   | { kind: "agentOutput"; operationId: OperationId; text: string }
+  | { kind: "modelTextDelta"; operationId: OperationId; text: string }
   | { kind: "operationFailed"; operationId: OperationId; error: string }
   | { kind: "operationCancelled"; operationId: OperationId }
 );

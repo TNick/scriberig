@@ -225,6 +225,7 @@ where
     ///
     /// # Errors
     /// Returns the first provider, tool, child, cancellation, or budget error.
+    #[allow(clippy::too_many_lines)]
     fn run_inner(
         &mut self,
         context: &ApplicationContext,
@@ -280,15 +281,24 @@ where
                 state.model_steps,
             ));
             let provider_started = std::time::Instant::now();
-            let decision = self.provider.decide(&messages).map_err(|error| {
-                self.emit(BranchPhase::Failed);
-                self.emit_event(RuntimeEvent::branch_execution_failed(
-                    &self.branch_id,
-                    "provider",
-                ));
-                self.finish_operation(operation.as_ref(), OperationStatus::Failed);
-                AgentError::Provider(error)
-            })?;
+            let event_log = self.event_log.clone();
+            let branch_id = self.branch_id.clone();
+            let decision = self
+                .provider
+                .decide_with_output(&messages, &mut |text| {
+                    if let Some(event_log) = &event_log {
+                        event_log.push(RuntimeEvent::model_text_delta(&branch_id, text));
+                    }
+                })
+                .map_err(|error| {
+                    self.emit(BranchPhase::Failed);
+                    self.emit_event(RuntimeEvent::branch_execution_failed(
+                        &self.branch_id,
+                        "provider",
+                    ));
+                    self.finish_operation(operation.as_ref(), OperationStatus::Failed);
+                    AgentError::Provider(error)
+                })?;
             if provider_started.elapsed() > self.limits.max_provider_duration {
                 self.fail_budget(
                     operation.as_ref(),

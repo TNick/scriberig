@@ -146,6 +146,25 @@ impl<P: ProviderAdapter> crate::ModelProvider for ProviderModel<P> {
     /// # Errors
     /// Returns provider failures or malformed tool arguments.
     fn decide(&mut self, messages: &[AgentMessage]) -> Result<ModelDecision, String> {
+        self.decide_with_output(messages, &mut |_| {})
+    }
+
+    /// Converts runtime messages while forwarding provider text fragments.
+    ///
+    /// # Parameters
+    /// - `messages`: Provider-neutral runtime conversation.
+    /// - `on_text`: Callback receiving streamed assistant text.
+    ///
+    /// # Returns
+    /// A final response or validated inspect-tool decision.
+    ///
+    /// # Errors
+    /// Returns provider failures or malformed tool arguments.
+    fn decide_with_output(
+        &mut self,
+        messages: &[AgentMessage],
+        on_text: &mut dyn FnMut(&str),
+    ) -> Result<ModelDecision, String> {
         let request = ModelRequest {
             model: self.model.clone(),
             messages: messages.iter().map(message).collect(),
@@ -176,7 +195,7 @@ impl<P: ProviderAdapter> crate::ModelProvider for ProviderModel<P> {
                 .response
         } else {
             self.provider
-                .complete(&request)
+                .complete_streaming(&request, on_text)
                 .map_err(|error| provider_error(&error))?
         };
         let Some(call) = response.tool_calls.into_iter().next() else {

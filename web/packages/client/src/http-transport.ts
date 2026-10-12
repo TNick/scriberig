@@ -131,6 +131,12 @@ export function normalizeProtocolEvent(value: unknown): ProtocolEvent | undefine
         ? withSequence({ kind: "agentOutput", operationId: operationId as OperationId, text })
         : undefined;
     }
+    case "AgentOutputDelta": {
+      const text = metadataValue(event, "text");
+      return typeof operationId === "string" && text !== undefined
+        ? withSequence({ kind: "modelTextDelta", operationId: operationId as OperationId, text })
+        : undefined;
+    }
     default:
       return undefined;
   }

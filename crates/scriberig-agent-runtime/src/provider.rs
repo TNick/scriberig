@@ -261,6 +261,29 @@ pub trait ProviderAdapter: Send + Sync {
     /// # Errors
     /// Returns a classified provider failure.
     fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError>;
+
+    /// Completes a request while forwarding provider-neutral text fragments.
+    ///
+    /// # Parameters
+    /// - `request`: Provider-neutral request to execute.
+    /// - `on_text`: Callback receiving bounded assistant-text fragments.
+    ///
+    /// # Returns
+    /// A normalized terminal response.
+    ///
+    /// # Errors
+    /// Returns a classified provider failure.
+    fn complete_streaming(
+        &self,
+        request: &ModelRequest,
+        on_text: &mut dyn FnMut(&str),
+    ) -> Result<ModelResponse, ProviderError> {
+        let response = self.complete(request)?;
+        if let Some(text) = &response.text {
+            on_text(text);
+        }
+        Ok(response)
+    }
 }
 
 /// Deterministic provider fake for runtime and integration tests.

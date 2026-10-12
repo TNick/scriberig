@@ -15,8 +15,14 @@ pub(super) fn reduce_application_event(
     state: &mut TuiState,
     event: &scriberig_app::ApplicationEvent,
 ) -> Vec<Effect> {
-    if let scriberig_app::ApplicationEvent::AgentOutputProduced { output, .. } = event {
-        return reduce(state, Action::AgentOutputObserved(output.clone()));
+    match event {
+        scriberig_app::ApplicationEvent::AgentOutputProduced { output, .. } => {
+            return reduce(state, Action::AgentOutputObserved(output.clone()));
+        }
+        scriberig_app::ApplicationEvent::AgentOutputDelta { text, .. } => {
+            return reduce(state, Action::AgentOutputObserved(text.clone()));
+        }
+        _ => {}
     }
     let operation = match event {
         scriberig_app::ApplicationEvent::OperationStarted { operation }

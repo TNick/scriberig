@@ -76,4 +76,11 @@ pub enum ApplicationEvent {
         /// Stable output identity.
         output: String,
     },
+    /// An incremental agent output fragment identified by its operation.
+    AgentOutputDelta {
+        /// Operation producing the fragment.
+        operation: crate::OperationId,
+        /// Bounded transient text fragment.
+        text: String,
+    },
 }

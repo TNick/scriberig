@@ -380,6 +380,14 @@ pub(super) fn event_from_application(event: ApplicationEvent) -> Event {
             metadata.push(("output".to_owned(), output));
             EventKind::AgentOutputProduced
         }
+        ApplicationEvent::AgentOutputDelta {
+            operation: value,
+            text,
+        } => {
+            operation = Some(value);
+            metadata.push(("text".to_owned(), text));
+            EventKind::AgentOutputDelta
+        }
     };
     Event {
         sequence: 0,

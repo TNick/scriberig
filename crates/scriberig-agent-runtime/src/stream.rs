@@ -55,6 +55,27 @@ impl StreamAssembler {
         Self::default()
     }
 
+    /// Returns the accumulated assistant-text length.
+    ///
+    /// # Returns
+    /// The number of UTF-8 bytes accumulated so far.
+    #[must_use]
+    pub fn text_len(&self) -> usize {
+        self.text.len()
+    }
+
+    /// Returns text appended after a previous byte offset.
+    ///
+    /// # Parameters
+    /// - `offset`: Previous value returned by [`Self::text_len`].
+    ///
+    /// # Returns
+    /// The newly appended text, or no text when the offset is unchanged.
+    #[must_use]
+    pub fn text_since(&self, offset: usize) -> Option<&str> {
+        self.text.get(offset..).filter(|text| !text.is_empty())
+    }
+
     /// Adds one normalized fragment without parsing incomplete JSON.
     ///
     /// # Parameters

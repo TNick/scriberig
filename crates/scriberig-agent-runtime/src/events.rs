@@ -12,6 +12,8 @@ pub enum RuntimeEvent {
     PhaseChanged { branch: String, phase: BranchPhase },
     /// A provider request is about to be issued.
     ModelInvocationStarted { branch: String, step: usize },
+    /// A bounded provider-neutral text fragment became available.
+    ModelTextDelta { branch: String, text: String },
     /// An atomic or child tool was accepted for execution.
     ToolStarted { branch: String, tool: String },
     /// A tool execution returned or failed.
@@ -116,6 +118,24 @@ impl RuntimeEvent {
         Self::ModelInvocationStarted {
             branch: branch.into(),
             step,
+        }
+    }
+
+    /// Creates a bounded model-text delta event.
+    ///
+    /// # Parameters
+    /// - `branch`: Stable branch correlation identity.
+    /// - `text`: Incremental provider-neutral assistant text.
+    ///
+    /// # Returns
+    /// A bounded runtime event.
+    #[must_use]
+    pub fn model_text_delta(branch: impl Into<String>, text: impl Into<String>) -> Self {
+        let mut text = text.into();
+        text.truncate(4096);
+        Self::ModelTextDelta {
+            branch: branch.into(),
+            text,
         }
     }
 
@@ -259,6 +279,7 @@ impl RuntimeEvent {
             Self::BranchExecutionStarted { branch }
             | Self::PhaseChanged { branch, .. }
             | Self::ModelInvocationStarted { branch, .. }
+            | Self::ModelTextDelta { branch, .. }
             | Self::ToolStarted { branch, .. }
             | Self::ToolCompleted { branch, .. }
             | Self::ChildBranchStarted { branch }
