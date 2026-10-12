@@ -4,6 +4,21 @@ use scriberig_app::InspectResult;
 
 use crate::trust::{InspectDepth, OutputFormat, render_inspection_with_format};
 
+/// Renders a protocol value as stable pretty JSON.
+///
+/// # Parameters
+/// - `value`: Serializable public response value.
+///
+/// # Returns
+/// Pretty-printed JSON text.
+///
+/// # Panics
+/// Panics only if a public response type violates its serialization contract.
+#[must_use]
+pub fn render_json<T: serde::Serialize>(value: &T) -> String {
+    serde_json::to_string_pretty(value).expect("public response is serializable")
+}
+
 /// Renders an inspection result for a selected terminal representation.
 ///
 /// # Parameters
@@ -92,6 +107,7 @@ mod tests {
     use super::{render_agent_diagnostics, render_agent_result};
     use crate::RunFormat;
     use scriberig_app::AgentResult;
+
     use scriberig_core::EntityId;
 
     /// Creates a minimal stable agent result for output tests.

@@ -29,6 +29,11 @@ The executable requires a subcommand. Standard Clap help and version flags are a
 | `agent` | `srig agent <PROMPT> [OPTIONS]` | Alias for the shared application agent operation. |
 | `maintenance` | `srig maintenance [OPTIONS]` | Checks SQLite canonical-state integrity. |
 | `inspect` | `srig inspect <ENTITY> [OPTIONS]` | Inspects entity trust metadata through the shared application boundary. |
+| `capabilities` | `srig capabilities [OPTIONS]` | Lists capabilities exposed by a remote application. |
+| `operation` | `srig operation <status\|cancel> <OPERATION> [OPTIONS]` | Observes or cancels a remote operation. |
+| `events` | `srig events [OPTIONS]` | Reads buffered lifecycle or agent output events. |
+| `session` | `srig session <tree\|activity> ... [OPTIONS]` | Reads durable session and branch state. |
+| `agent-continue` | `srig agent-continue <SESSION> <BRANCH> <PROMPT> [OPTIONS]` | Continues an agent operation on an existing branch. |
 
 Each subcommand also supports `-h` / `--help`.
 
@@ -155,6 +160,25 @@ The command opens the configured SQLite store and reads immutable revisions and
 snapshots through the shared application boundary. A missing entity, snapshot,
 or current `main` root is reported as a structured failure. Authorization
 denials use exit status `77`.
+
+## Remote operation commands
+
+The following commands use the public protocol client. They default to
+`http://127.0.0.1:7337` and accept `--connect <URL>` for another server.
+
+```text
+srig capabilities [--connect <URL>] [--json]
+srig operation status <OPERATION> [--connect <URL>]
+srig operation cancel <OPERATION> [--connect <URL>]
+srig events [--kind <EVENT_KIND>]... [--after <CURSOR>] [--connect <URL>]
+srig session tree <SESSION> [--connect <URL>]
+srig session activity <SESSION> <BRANCH> [--connect <URL>]
+srig agent-continue <SESSION> <BRANCH> <PROMPT> [--connect <URL>]
+```
+
+`events --kind agent_output_delta` observes bounded streaming output. Events
+are returned as structured JSON so callers can retain the cursor and recover
+durable state through `operation` and `session` commands.
 
 ## Keeping this reference synchronized
 

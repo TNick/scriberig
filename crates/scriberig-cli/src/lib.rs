@@ -95,6 +95,115 @@ pub enum Command {
     Maintenance(MaintenanceArgs),
     /// Inspect one entity and its trust metadata.
     Inspect(InspectArgs),
+    /// Discover capabilities exposed by a remote application.
+    Capabilities(RemoteArgs),
+    /// Observe or cancel one remote operation.
+    Operation(OperationArgs),
+    /// Read buffered lifecycle or agent streaming events.
+    Events(EventsArgs),
+    /// Read durable session and branch state.
+    Session(SessionArgs),
+    /// Continue an agent operation on an existing remote branch.
+    AgentContinue(AgentContinueArgs),
+}
+
+/// Configures a command that uses the public HTTP protocol endpoint.
+#[derive(Debug, Args)]
+pub struct RemoteArgs {
+    /// Public protocol endpoint used by the command.
+    #[arg(long, default_value = "http://127.0.0.1:7337")]
+    pub connect: String,
+    /// Render the response as machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+}
+
+/// Selects an operation lifecycle action.
+#[derive(Debug, Subcommand)]
+pub enum OperationCommand {
+    /// Read one operation's current status.
+    Status {
+        /// Stable operation identifier.
+        operation: String,
+        /// Remote endpoint and output options.
+        #[command(flatten)]
+        remote: RemoteArgs,
+    },
+    /// Request cancellation of one operation.
+    Cancel {
+        /// Stable operation identifier.
+        operation: String,
+        /// Remote endpoint and output options.
+        #[command(flatten)]
+        remote: RemoteArgs,
+    },
+}
+
+/// Selects an operation lifecycle command.
+#[derive(Debug, Args)]
+pub struct OperationArgs {
+    /// Selected lifecycle action.
+    #[command(subcommand)]
+    pub command: OperationCommand,
+}
+
+/// Configures a buffered event observation request.
+#[derive(Debug, Args)]
+pub struct EventsArgs {
+    /// Optional event-kind filter; repeat to select multiple kinds.
+    #[arg(long = "kind")]
+    pub event_kinds: Vec<String>,
+    /// Return events newer than this cursor.
+    #[arg(long)]
+    pub after: Option<u64>,
+    /// Remote endpoint and output options.
+    #[command(flatten)]
+    pub remote: RemoteArgs,
+}
+
+/// Selects a durable session read operation.
+#[derive(Debug, Subcommand)]
+pub enum SessionCommand {
+    /// Read the complete session branch tree and activity summaries.
+    Tree {
+        /// Stable session identifier.
+        session: String,
+        /// Remote endpoint and output options.
+        #[command(flatten)]
+        remote: RemoteArgs,
+    },
+    /// Read activity for one branch subtree.
+    Activity {
+        /// Stable session identifier.
+        session: String,
+        /// Stable branch identifier.
+        branch: String,
+        /// Remote endpoint and output options.
+        #[command(flatten)]
+        remote: RemoteArgs,
+    },
+}
+
+/// Configures a durable session read command.
+#[derive(Debug, Args)]
+pub struct SessionArgs {
+    /// Selected session read action.
+    #[command(subcommand)]
+    pub command: SessionCommand,
+}
+
+/// Configures continuation of an existing agent branch.
+#[derive(Debug, Args)]
+pub struct AgentContinueArgs {
+    /// Stable session identifier.
+    pub session: String,
+    /// Stable branch identifier receiving the follow-up.
+    pub branch: String,
+    /// Follow-up instruction.
+    pub prompt: String,
+    /// Remote endpoint and output options.
+    #[command(flatten)]
+    pub remote: RemoteArgs,
 }
 
 /// Configure the API server startup.

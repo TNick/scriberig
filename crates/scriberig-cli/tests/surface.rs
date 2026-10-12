@@ -16,11 +16,37 @@ fn stable_commands_parse() {
             "inspect",
             vec!["srig", "inspect", "ent_01010101010101010101010101010101"],
         ),
+        ("capabilities", vec!["srig", "capabilities"]),
+        ("operation", vec!["srig", "operation", "status", "op-1"]),
+        (
+            "events",
+            vec!["srig", "events", "--kind", "agent_output_delta"],
+        ),
+        (
+            "session",
+            vec![
+                "srig",
+                "session",
+                "tree",
+                "ent_01010101010101010101010101010101",
+            ],
+        ),
+        (
+            "agent-continue",
+            vec![
+                "srig",
+                "agent-continue",
+                "ent_01010101010101010101010101010101",
+                "ent_01010101010101010101010101010101",
+                "prompt",
+            ],
+        ),
     ];
 
     for (name, arguments) in cases {
         let parsed = Cli::try_parse_from(arguments).expect(name);
-        assert!(format!("{parsed:?}").to_lowercase().contains(name));
+        let debug_name = name.replace('-', "");
+        assert!(format!("{parsed:?}").to_lowercase().contains(&debug_name));
     }
 }
 
@@ -35,7 +61,18 @@ fn standard_help_and_version_are_available() {
 
     let mut command = Cli::command();
     let help = command.render_help().to_string();
-    for name in ["tui", "serve", "run", "agent", "maintenance"] {
+    for name in [
+        "tui",
+        "serve",
+        "run",
+        "agent",
+        "maintenance",
+        "capabilities",
+        "operation",
+        "events",
+        "session",
+        "agent-continue",
+    ] {
         assert!(help.contains(name), "help omits {name}");
     }
 }

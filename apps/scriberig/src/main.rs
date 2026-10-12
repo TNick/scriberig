@@ -15,6 +15,7 @@ use scriberig_app::{
 use scriberig_store_sqlite::SqliteStore;
 
 mod child_runtime;
+mod remote_commands;
 use child_runtime::{LocalChildExecutor, inspect_catalog};
 
 /// Start the integrated `srig` executable and report runtime failures.
@@ -24,6 +25,7 @@ use child_runtime::{LocalChildExecutor, inspect_catalog};
 ///
 /// # Errors
 /// Returns an error when the API server cannot start or serve a request.
+#[allow(clippy::too_many_lines)]
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let command = scriberig_cli::parse();
     match command {
@@ -112,6 +114,19 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     return Err(format!("inspect failed with status {}", error.exit_code).into());
                 }
             }
+        }
+        scriberig_cli::Command::Capabilities(args) => {
+            remote_commands::capabilities(&args)?;
+        }
+        scriberig_cli::Command::Operation(args) => {
+            remote_commands::operation(args)?;
+        }
+        scriberig_cli::Command::Events(args) => {
+            remote_commands::events(args)?;
+        }
+        scriberig_cli::Command::Session(args) => remote_commands::session(args)?,
+        scriberig_cli::Command::AgentContinue(args) => {
+            remote_commands::agent_continue(args)?;
         }
     }
     Ok(())

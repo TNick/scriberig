@@ -1387,6 +1387,7 @@ dependencies = [
  "scriberig-app",
  "scriberig-client",
  "scriberig-core",
+ "serde",
  "serde_json",
 ]
 
