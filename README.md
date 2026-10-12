@@ -99,8 +99,11 @@ Git's index. Import then consumes that reviewed manifest.
 
 Source imports currently include Markdown, Rust, PDF, HTML, JavaScript,
 TypeScript, Python (.py, .pyi, and .pyw), C (.c and .h), and C++ (.cc, .cpp,
-.cxx, .hpp, .hh, and .hxx) files. Unsupported extensions remain available as
-source-only manifest records.
+.cxx, .hpp, .hh, and .hxx) files. JSON/JSONC, YAML, and TOML retain parsed
+value trees. Common project, configuration, documentation, script, and source
+files retain deterministic text-line entities. Binary artifacts retain exact
+source bytes plus media-type and size metadata. Unknown UTF-8 files use the
+same text adapter, so no file is silently dropped from onboarding.
 
 ```text
 srig serve --db scriberig.sqlite --project-root PATH
