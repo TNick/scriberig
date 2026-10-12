@@ -86,12 +86,16 @@ share that database:
 
 ```text
 srig project scan PATH --db scriberig.sqlite
+srig project scan PATH --git-tracked --db scriberig.sqlite
 srig project list --db scriberig.sqlite
 srig project import PROJECT_ID --db scriberig.sqlite
 srig project status PROJECT_ID --db scriberig.sqlite
 ```
 
 The API server can onboard only paths under explicitly configured roots:
+
+`--git-tracked` restricts the persisted scan manifest to existing files in
+Git's index. Import then consumes that reviewed manifest.
 
 ```text
 srig serve --db scriberig.sqlite --project-root PATH
