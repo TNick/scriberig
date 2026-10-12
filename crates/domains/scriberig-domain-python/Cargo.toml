@@ -1,0 +1,16 @@
+[package]
+name = "scriberig-domain-python"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Python syntax parsing adapter."
+repository.workspace = true
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+tree-sitter = "0.25"
+tree-sitter-python = "0.25"
+
+[lints]
+workspace = true
