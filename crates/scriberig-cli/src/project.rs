@@ -209,6 +209,7 @@ fn run_import(args: &ProjectImportArgs) -> Result<(), Box<dyn std::error::Error 
         "files": report.files,
         "entities": report.entities,
         "snapshot": report.snapshot.to_string(),
+        "diagnostics": [],
     });
     if args.json {
         println!("{}", serde_json::to_string_pretty(&response)?);

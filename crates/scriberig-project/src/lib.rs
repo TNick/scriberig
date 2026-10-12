@@ -65,6 +65,23 @@ pub struct ImportReport {
     pub snapshot: SnapshotId,
 }
 
+/// Describes one recoverable or terminal import diagnostic.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ImportDiagnostic {
+    /// Project-relative file path.
+    pub path: String,
+    /// Adapter that produced the diagnostic.
+    pub adapter: String,
+    /// Import stage that failed.
+    pub stage: String,
+    /// Stable diagnostic category.
+    pub code: String,
+    /// Safe diagnostic message.
+    pub message: String,
+    /// Whether editing the source and retrying may succeed.
+    pub retryable: bool,
+}
+
 /// Reports a project onboarding failure.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProjectError {
@@ -72,6 +89,8 @@ pub struct ProjectError {
     pub code: &'static str,
     /// Safe human-readable failure detail.
     pub message: String,
+    /// Structured diagnostics suitable for agents and product surfaces.
+    pub diagnostics: Vec<ImportDiagnostic>,
 }
 
 impl Display for ProjectError {
@@ -213,6 +232,7 @@ impl ProjectService {
             return Err(ProjectError {
                 code: "scan_required",
                 message: "scan the project before importing".to_owned(),
+                diagnostics: Vec::new(),
             });
         }
         let old_entities = self
@@ -264,6 +284,7 @@ fn storage_error(error: impl Display) -> ProjectError {
     ProjectError {
         code: "storage_error",
         message: error.to_string(),
+        diagnostics: Vec::new(),
     }
 }
 
@@ -278,6 +299,7 @@ fn filesystem_error(error: &std::io::Error) -> ProjectError {
     ProjectError {
         code: "filesystem_error",
         message: error.to_string(),
+        diagnostics: Vec::new(),
     }
 }
 
@@ -292,6 +314,7 @@ fn git_error(error: &std::io::Error) -> ProjectError {
     ProjectError {
         code: "git_repository_required",
         message: error.to_string(),
+        diagnostics: Vec::new(),
     }
 }
 
@@ -306,6 +329,7 @@ fn missing_project(project: ProjectId) -> ProjectError {
     ProjectError {
         code: "project_not_found",
         message: project.to_string(),
+        diagnostics: Vec::new(),
     }
 }
 
@@ -320,6 +344,7 @@ fn promotion_error(message: String) -> ProjectError {
     ProjectError {
         code: "promotion_failed",
         message,
+        diagnostics: Vec::new(),
     }
 }
 
@@ -336,6 +361,14 @@ pub(crate) fn validation_error(path: &str, message: &str) -> ProjectError {
     ProjectError {
         code: "validation_failed",
         message: format!("{path}: {message}"),
+        diagnostics: vec![ImportDiagnostic {
+            path: path.to_owned(),
+            adapter: "unknown".to_owned(),
+            stage: "validate".to_owned(),
+            code: "validation_failed".to_owned(),
+            message: message.to_owned(),
+            retryable: true,
+        }],
     }
 }
 
@@ -351,5 +384,6 @@ pub(crate) fn invalid_input(message: String) -> ProjectError {
     ProjectError {
         code: "invalid_input",
         message,
+        diagnostics: Vec::new(),
     }
 }

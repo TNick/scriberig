@@ -130,9 +130,12 @@ fn import_markdown(
 ) -> Result<(), ProjectError> {
     let text = std::str::from_utf8(&file.bytes)
         .map_err(|error| validation_error(&file.relative_path, &error.to_string()))?;
-    let Ok(parsed) = sr_markdown::parse(text) else {
-        return Ok(());
-    };
+    let parsed = sr_markdown::parse(text).map_err(|error| {
+        validation_error(
+            &file.relative_path,
+            &format!("{}: {}", error.code, error.message),
+        )
+    })?;
     for (index, block) in parsed.document.blocks.iter().enumerate() {
         add_child(
             project,

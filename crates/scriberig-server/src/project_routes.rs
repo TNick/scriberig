@@ -253,7 +253,18 @@ fn project_error(error: &scriberig_project::ProjectError) -> (u16, Value) {
     };
     (
         status,
-        json!({"code": error.code, "message": error.message}),
+        json!({
+            "code": error.code,
+            "message": error.message,
+            "diagnostics": error.diagnostics.iter().map(|diagnostic| json!({
+                "path": diagnostic.path,
+                "adapter": diagnostic.adapter,
+                "stage": diagnostic.stage,
+                "code": diagnostic.code,
+                "message": diagnostic.message,
+                "retryable": diagnostic.retryable,
+            })).collect::<Vec<_>>(),
+        }),
     )
 }
 
