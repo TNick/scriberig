@@ -7121,48 +7121,48 @@
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <h3 id="browser">Browser<a class="headerlink" href="#browser" title="Permanent link">&para;</a></h3>
 <ul>
-<li>[ ] WEB-GOLDEN-01 passes against real server + browser app + temp Git fixture.</li>
-<li>[ ] WEB-GOLDEN-02 passes and shows exact source projection.</li>
-<li>[ ] WEB-GOLDEN-03 proves candidate/review/validation with no pre-accept disk/current-state mutation.</li>
-<li>[ ] WEB-GOLDEN-04 proves apply, disk write-back, successor refresh, history, and reload durability.</li>
-<li>[ ] WEB-GOLDEN-05 proves invalid edit cannot apply or mutate disk/current state.</li>
-<li>[ ] WEB-GOLDEN-06 proves external stale edit is not silently overwritten.</li>
-<li>[ ] WEB-GOLDEN-07 proves semantically scoped deterministic agent enters normal review path.</li>
-<li>[ ] Browser golden suite has no hidden network-model dependency.</li>
-<li>[ ] Browser diagnostics/trace artifacts are available on failure.</li>
+<li>[x] WEB-GOLDEN-01 passes against real server + browser app + temp Git fixture.</li>
+<li>[x] WEB-GOLDEN-02 passes and shows exact source projection.</li>
+<li>[x] WEB-GOLDEN-03 proves candidate/review/validation with no pre-accept disk/current-state mutation.</li>
+<li>[x] WEB-GOLDEN-04 proves apply, disk write-back, successor refresh, history, and reload durability.</li>
+<li>[x] WEB-GOLDEN-05 proves invalid edit cannot apply or mutate disk/current state.</li>
+<li>[x] WEB-GOLDEN-06 proves external stale edit is not silently overwritten.</li>
+<li>[x] WEB-GOLDEN-07 proves semantically scoped deterministic agent enters normal review path.</li>
+<li>[x] Browser golden suite has no hidden network-model dependency.</li>
+<li>[x] Browser diagnostics/trace artifacts are available on failure.</li>
 </ul>
 <h3 id="native-tui">Native TUI<a class="headerlink" href="#native-tui" title="Permanent link">&para;</a></h3>
 <ul>
-<li>[ ] TUI-GOLDEN-01 passes through real <code>srig tui</code> PTY.</li>
-<li>[ ] TUI-GOLDEN-02 passes and shows exact source projection.</li>
-<li>[ ] TUI-GOLDEN-03 proves edit/review/validation/apply/write-back/restart durability.</li>
-<li>[ ] TUI-GOLDEN-04 proves stale external file is protected.</li>
-<li>[ ] TUI-GOLDEN-05 proves semantically scoped deterministic agent normal review path.</li>
-<li>[ ] TUI golden suite has no hidden network-model dependency.</li>
-<li>[ ] PTY transcript/failure artifacts are available on failure.</li>
+<li>[x] TUI-GOLDEN-01 passes through real <code>srig tui</code> PTY.</li>
+<li>[x] TUI-GOLDEN-02 passes and shows exact source projection.</li>
+<li>[x] TUI-GOLDEN-03 proves edit/review/validation/apply/write-back/restart durability.</li>
+<li>[x] TUI-GOLDEN-04 proves stale external file is protected.</li>
+<li>[x] TUI-GOLDEN-05 proves semantically scoped deterministic agent normal review path.</li>
+<li>[x] TUI golden suite has no hidden network-model dependency.</li>
+<li>[x] PTY transcript/failure artifacts are available on failure.</li>
 </ul>
 <h3 id="conformance">Conformance<a class="headerlink" href="#conformance" title="Permanent link">&para;</a></h3>
 <ul>
-<li>[ ] GOLDEN-CONFORMANCE-01 workspace equivalence passes.</li>
-<li>[ ] GOLDEN-CONFORMANCE-02 semantic selection equivalence passes.</li>
-<li>[ ] GOLDEN-CONFORMANCE-03 source projection equivalence passes.</li>
-<li>[ ] GOLDEN-CONFORMANCE-04 human change semantic equivalence passes.</li>
-<li>[ ] GOLDEN-CONFORMANCE-05 stale apply semantics pass.</li>
-<li>[ ] GOLDEN-CONFORMANCE-06 multi-project isolation passes.</li>
-<li>[ ] GOLDEN-CONFORMANCE-07 agent shared-change-type semantics pass.</li>
+<li>[x] GOLDEN-CONFORMANCE-01 workspace equivalence passes.</li>
+<li>[x] GOLDEN-CONFORMANCE-02 semantic selection equivalence passes.</li>
+<li>[x] GOLDEN-CONFORMANCE-03 source projection equivalence passes.</li>
+<li>[x] GOLDEN-CONFORMANCE-04 human change semantic equivalence passes.</li>
+<li>[x] GOLDEN-CONFORMANCE-05 stale apply semantics pass.</li>
+<li>[x] GOLDEN-CONFORMANCE-06 multi-project isolation passes.</li>
+<li>[x] GOLDEN-CONFORMANCE-07 agent shared-change-type semantics pass.</li>
 </ul>
 <h3 id="gate-and-documentation">Gate and documentation<a class="headerlink" href="#gate-and-documentation" title="Permanent link">&para;</a></h3>
 <ul>
-<li>[ ] Product golden command/script exists and fails if any required scenario fails/skips.</li>
-<li>[ ] <code>tests/product-golden/README.md</code> maps scenario IDs to concrete test files/commands.</li>
-<li>[ ] CI executes product golden gate as mandatory job/step.</li>
-<li>[ ] Existing repository checks remain enabled.</li>
-<li>[ ] <code>capabilities.toml</code> reflects only actually verified surfaces.</li>
-<li>[ ] README product status describes the newly verified Rust project workflow precisely.</li>
-<li>[ ] Tasks <code>117</code>-<code>121</code> are checked only from real evidence.</li>
-<li>[ ] Task <code>116</code> master checklist is updated last.</li>
-<li>[ ] Full Rust/web quality gate passes.</li>
-<li>[ ] No required golden test is skipped, ignored, quarantined, or <code>todo</code>.</li>
+<li>[x] Product golden command/script exists and fails if any required scenario fails/skips.</li>
+<li>[x] <code>tests/product-golden/README.md</code> maps scenario IDs to concrete test files/commands.</li>
+<li>[x] CI executes product golden gate as mandatory job/step.</li>
+<li>[x] Existing repository checks remain enabled.</li>
+<li>[x] <code>capabilities.toml</code> reflects only actually verified surfaces.</li>
+<li>[x] README product status describes the newly verified Rust project workflow precisely.</li>
+<li>[x] Tasks <code>117</code>-<code>121</code> are checked only from real evidence.</li>
+<li>[x] Task <code>116</code> master checklist is updated last.</li>
+<li>[x] Full Rust/web quality gate passes.</li>
+<li>[x] No required golden test is skipped, ignored, quarantined, or <code>todo</code>.</li>
 </ul>
 <p>Only after every item above is checked may the implementing agent report: <strong>the first useful project workflow is product-verified</strong>.</p>
 

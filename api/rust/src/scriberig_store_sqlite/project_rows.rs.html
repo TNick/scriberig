@@ -62,23 +62,24 @@
 <a href=#62 id=62 data-nosnippet>62</a>            </span>.ok_or(rusqlite::Error::InvalidQuery)
 <a href=#63 id=63 data-nosnippet>63</a>            .map(EntityId::from_bytes)<span class="question-mark">?</span>,
 <a href=#64 id=64 data-nosnippet>64</a>        kind: row.get(<span class="number">3</span>)<span class="question-mark">?</span>,
-<a href=#65 id=65 data-nosnippet>65</a>    })
-<a href=#66 id=66 data-nosnippet>66</a>}
-<a href=#67 id=67 data-nosnippet>67</a>
-<a href=#68 id=68 data-nosnippet>68</a><span class="doccomment">/// Converts a SQLite blob into a fixed-width identifier when valid.
-<a href=#69 id=69 data-nosnippet>69</a></span><span class="kw">fn </span>fixed_id&lt;<span class="kw">const </span>N: usize&gt;(
-<a href=#70 id=70 data-nosnippet>70</a>    bytes: Vec&lt;u8&gt;,
-<a href=#71 id=71 data-nosnippet>71</a>    description: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
-<a href=#72 id=72 data-nosnippet>72</a>    column: usize,
-<a href=#73 id=73 data-nosnippet>73</a>) -&gt; rusqlite::Result&lt;<span class="prelude-ty">Option</span>&lt;[u8; N]&gt;&gt; {
-<a href=#74 id=74 data-nosnippet>74</a>    bytes.try_into().map(<span class="prelude-val">Some</span>).map_err(|<span class="kw">_</span>| {
-<a href=#75 id=75 data-nosnippet>75</a>        rusqlite::Error::FromSqlConversionFailure(
-<a href=#76 id=76 data-nosnippet>76</a>            column,
-<a href=#77 id=77 data-nosnippet>77</a>            rusqlite::types::Type::Blob,
-<a href=#78 id=78 data-nosnippet>78</a>            Box::new(std::io::Error::other(<span class="macro">format!</span>(
-<a href=#79 id=79 data-nosnippet>79</a>                <span class="string">"invalid {description} identifier"
-<a href=#80 id=80 data-nosnippet>80</a>            </span>))),
-<a href=#81 id=81 data-nosnippet>81</a>        )
-<a href=#82 id=82 data-nosnippet>82</a>    })
-<a href=#83 id=83 data-nosnippet>83</a>}
+<a href=#65 id=65 data-nosnippet>65</a>        name: row.get(<span class="number">4</span>)<span class="question-mark">?</span>,
+<a href=#66 id=66 data-nosnippet>66</a>    })
+<a href=#67 id=67 data-nosnippet>67</a>}
+<a href=#68 id=68 data-nosnippet>68</a>
+<a href=#69 id=69 data-nosnippet>69</a><span class="doccomment">/// Converts a SQLite blob into a fixed-width identifier when valid.
+<a href=#70 id=70 data-nosnippet>70</a></span><span class="kw">fn </span>fixed_id&lt;<span class="kw">const </span>N: usize&gt;(
+<a href=#71 id=71 data-nosnippet>71</a>    bytes: Vec&lt;u8&gt;,
+<a href=#72 id=72 data-nosnippet>72</a>    description: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
+<a href=#73 id=73 data-nosnippet>73</a>    column: usize,
+<a href=#74 id=74 data-nosnippet>74</a>) -&gt; rusqlite::Result&lt;<span class="prelude-ty">Option</span>&lt;[u8; N]&gt;&gt; {
+<a href=#75 id=75 data-nosnippet>75</a>    bytes.try_into().map(<span class="prelude-val">Some</span>).map_err(|<span class="kw">_</span>| {
+<a href=#76 id=76 data-nosnippet>76</a>        rusqlite::Error::FromSqlConversionFailure(
+<a href=#77 id=77 data-nosnippet>77</a>            column,
+<a href=#78 id=78 data-nosnippet>78</a>            rusqlite::types::Type::Blob,
+<a href=#79 id=79 data-nosnippet>79</a>            Box::new(std::io::Error::other(<span class="macro">format!</span>(
+<a href=#80 id=80 data-nosnippet>80</a>                <span class="string">"invalid {description} identifier"
+<a href=#81 id=81 data-nosnippet>81</a>            </span>))),
+<a href=#82 id=82 data-nosnippet>82</a>        )
+<a href=#83 id=83 data-nosnippet>83</a>    })
+<a href=#84 id=84 data-nosnippet>84</a>}
 </code></pre></div></section></main></body></html>

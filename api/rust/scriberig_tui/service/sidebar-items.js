@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["execute_effect","execute_operation","execute_operation_effect"],"struct":["AgentHandle","ApplicationAdapter","ApplicationOperationAdapter","RemoteAdapter"],"trait":["TuiOperationService","TuiService"],"type":["ExplorerLabels"]};
+window.SIDEBAR_ITEMS = {"fn":["execute_effect","execute_operation","execute_operation_effect"],"struct":["AgentHandle","ApplicationAdapter","ApplicationOperationAdapter","ProjectProjection","RemoteAdapter"],"trait":["TuiOperationService","TuiService"],"type":["ExplorerLabels"]};

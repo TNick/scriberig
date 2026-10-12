@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ProjectStatus","PromotionError"],"fn":["initialize_development_database"],"struct":["ProjectEntityRecord","ProjectFileRecord","ProjectRecord","SqliteStore"]};
+window.SIDEBAR_ITEMS = {"enum":["ProjectStatus","PromotionError"],"fn":["initialize_development_database"],"struct":["ProjectCandidateRecord","ProjectEffectRecord","ProjectEntityRecord","ProjectFileRecord","ProjectRecord","SqliteStore"]};

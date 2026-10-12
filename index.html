@@ -369,6 +369,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#product-workflow-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Product workflow status
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -5877,6 +5888,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#product-workflow-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Product workflow status
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -6007,6 +6029,16 @@ semantic operation endpoints. Optional domain operations remain
 capability-gated; agent streaming is available through the runtime and
 supported product surfaces. Logs and the local database stay in
 <code>playground/dev-app-runtime/</code>.</p>
+<h2 id="product-workflow-status">Product workflow status<a class="headerlink" href="#product-workflow-status" title="Permanent link">&para;</a></h2>
+<p>The repository contains a deterministic Rust project golden fixture and
+real-process browser, native TUI, and cross-surface acceptance suites. These
+currently exercise project activation, named <code>Calculator</code>/<code>add</code> navigation,
+Rust source projection, reviewed candidate validation, conflict-protected
+materialization, reload durability, and semantically scoped deterministic
+agent candidates. Run <code>python tools/product_golden.py</code> to execute the complete
+acceptance driver. The implementation is not described as product-verified
+until the design checklists also confirm durable candidate/effect recovery and
+public embedded/remote conformance evidence.</p>
 <p>Repository-specific source and agent rules live in the top-level <code>AGENTS.md</code> and are refined by nested <code>AGENTS.md</code> files.</p>
 
 

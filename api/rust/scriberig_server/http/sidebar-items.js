@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["handle_connection"],"struct":["HttpState"]};
+window.SIDEBAR_ITEMS = {"fn":["handle_connection"],"struct":["HttpState","InProcessProjectTransport"]};

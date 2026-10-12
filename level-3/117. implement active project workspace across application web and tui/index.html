@@ -6593,27 +6593,27 @@
 <hr />
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Golden Rust fixture exists/reused and test helper copies it to temp Git workspaces.</li>
-<li>[ ] Shared application contract resolves exact workspace root/snapshot by <code>ProjectId</code>.</li>
-<li>[ ] No global mutable server <code>current project</code> was introduced.</li>
-<li>[ ] Protocol/server/Rust client expose project workspace resolution through public contracts.</li>
-<li>[ ] TypeScript client/runtime can resolve and activate the same workspace.</li>
-<li>[ ] Web <code>ProjectManager</code> activates imported project instead of only updating local list state.</li>
-<li>[ ] Web can open an already imported project without reimporting it.</li>
-<li>[ ] Web shell visibly identifies active project and current snapshot.</li>
-<li>[ ] Web explorer root changes to selected project root.</li>
-<li>[ ] Native TUI state owns explicit active project workspace identity/root/snapshot.</li>
-<li>[ ] <code>srig tui --project ... --import</code> starts in that project's semantic root.</li>
-<li>[ ] Multi-project database does not cause last-imported/global-root leakage.</li>
-<li>[ ] Workspace refresh resolves authoritative successor snapshot/root.</li>
-<li>[ ] Selection is cleared/preserved according to exact rules above.</li>
-<li>[ ] APP-WORKSPACE-01 passes.</li>
-<li>[ ] PROTOCOL-WORKSPACE-01 passes.</li>
-<li>[ ] WEB-WORKSPACE-01 and WEB-WORKSPACE-02 pass in a real browser.</li>
-<li>[ ] TUI-WORKSPACE-01 and TUI-WORKSPACE-02 pass in the native PTY harness.</li>
-<li>[ ] Failure cases have structured tests.</li>
-<li>[ ] <code>capabilities.toml</code> truthfully records project workspace coverage.</li>
-<li>[ ] Affected Rust/web checks pass.</li>
+<li>[x] Golden Rust fixture exists/reused and test helper copies it to temp Git workspaces.</li>
+<li>[x] Shared application contract resolves exact workspace root/snapshot by <code>ProjectId</code>.</li>
+<li>[x] No global mutable server <code>current project</code> was introduced.</li>
+<li>[x] Protocol/server/Rust client expose project workspace resolution through public contracts.</li>
+<li>[x] TypeScript client/runtime can resolve and activate the same workspace.</li>
+<li>[x] Web <code>ProjectManager</code> activates imported project instead of only updating local list state.</li>
+<li>[x] Web can open an already imported project without reimporting it.</li>
+<li>[x] Web shell visibly identifies active project and current snapshot.</li>
+<li>[x] Web explorer root changes to selected project root.</li>
+<li>[x] Native TUI state owns explicit active project workspace identity/root/snapshot.</li>
+<li>[x] <code>srig tui --project ... --import</code> starts in that project's semantic root.</li>
+<li>[x] Multi-project database does not cause last-imported/global-root leakage.</li>
+<li>[x] Workspace refresh resolves authoritative successor snapshot/root.</li>
+<li>[x] Selection is cleared/preserved according to exact rules above.</li>
+<li>[x] APP-WORKSPACE-01 passes.</li>
+<li>[x] PROTOCOL-WORKSPACE-01 passes.</li>
+<li>[x] WEB-WORKSPACE-01 and WEB-WORKSPACE-02 pass in a real browser.</li>
+<li>[x] TUI-WORKSPACE-01 and TUI-WORKSPACE-02 pass in the native PTY harness.</li>
+<li>[x] Failure cases have structured tests.</li>
+<li>[x] <code>capabilities.toml</code> truthfully records project workspace coverage.</li>
+<li>[x] Affected Rust/web checks pass.</li>
 </ul>
 <p>Do not proceed to task <code>118</code> with unchecked items.</p>
 

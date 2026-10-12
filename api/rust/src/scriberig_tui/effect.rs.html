@@ -110,5 +110,16 @@
 <a href=#110 id=110 data-nosnippet>110</a>        <span class="doccomment">/// User-authored command text.
 <a href=#111 id=111 data-nosnippet>111</a>        </span>prompt: String,
 <a href=#112 id=112 data-nosnippet>112</a>    },
-<a href=#113 id=113 data-nosnippet>113</a>}
+<a href=#113 id=113 data-nosnippet>113</a>    <span class="doccomment">/// Run the deterministic semantic project agent for the selected entity.
+<a href=#114 id=114 data-nosnippet>114</a>    </span>ProjectAgent {
+<a href=#115 id=115 data-nosnippet>115</a>        <span class="doccomment">/// Monotonic request identifier.
+<a href=#116 id=116 data-nosnippet>116</a>        </span>request_id: u64,
+<a href=#117 id=117 data-nosnippet>117</a>        <span class="doccomment">/// Selected semantic entity.
+<a href=#118 id=118 data-nosnippet>118</a>        </span>entity: scriberig_core::EntityId,
+<a href=#119 id=119 data-nosnippet>119</a>        <span class="doccomment">/// Exact base snapshot.
+<a href=#120 id=120 data-nosnippet>120</a>        </span>snapshot: scriberig_core::SnapshotId,
+<a href=#121 id=121 data-nosnippet>121</a>        <span class="doccomment">/// User instruction sent to the provider.
+<a href=#122 id=122 data-nosnippet>122</a>        </span>prompt: String,
+<a href=#123 id=123 data-nosnippet>123</a>    },
+<a href=#124 id=124 data-nosnippet>124</a>}
 </code></pre></div></section></main></body></html>

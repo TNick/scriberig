@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["analysis","analysis_mapping","analysis_profile","change","code_groups","comments","diagnostics","error","mapping","match_syntax","parse","reconcile","render","schema","syntax"]};
+window.SIDEBAR_ITEMS = {"mod":["analysis","analysis_mapping","analysis_profile","change","code_groups","comments","diagnostics","error","mapping","match_syntax","named","parse","reconcile","render","schema","syntax"]};

@@ -84,7 +84,7 @@
 </ul>
 <h5 id="returns-7"><a class="doc-anchor" href="#returns-7">§</a>Returns</h5>
 <p>This tool set with project recovery enabled.</p>
-</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-LocalAgentTool%3C'_,+B%3E-1" class="impl"><a class="src rightside" href="../../src/srig/agent_tool.rs.html#136-378">Source</a><a href="#impl-LocalAgentTool%3C'_,+B%3E-1" class="anchor">§</a><h3 class="code-header">impl&lt;B: ApplicationBackend&gt; <a class="struct" href="struct.LocalAgentTool.html" title="struct srig::agent_tool::LocalAgentTool">LocalAgentTool</a>&lt;'_, B&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.result" class="method"><a class="src rightside" href="../../src/srig/agent_tool.rs.html#148-157">Source</a><h4 class="code-header">fn <a href="#method.result" class="fn">result</a>(summary: impl <a class="trait" href="https://doc.rust-lang.org/1.99.0/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, handles: <a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;) -&gt; ToolResult</h4></section></summary><div class="docblock"><p>Builds a bounded control result from safe text and handles.</p>
+</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-LocalAgentTool%3C'_,+B%3E-1" class="impl"><a class="src rightside" href="../../src/srig/agent_tool.rs.html#136-379">Source</a><a href="#impl-LocalAgentTool%3C'_,+B%3E-1" class="anchor">§</a><h3 class="code-header">impl&lt;B: ApplicationBackend&gt; <a class="struct" href="struct.LocalAgentTool.html" title="struct srig::agent_tool::LocalAgentTool">LocalAgentTool</a>&lt;'_, B&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.result" class="method"><a class="src rightside" href="../../src/srig/agent_tool.rs.html#148-157">Source</a><h4 class="code-header">fn <a href="#method.result" class="fn">result</a>(summary: impl <a class="trait" href="https://doc.rust-lang.org/1.99.0/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, handles: <a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;) -&gt; ToolResult</h4></section></summary><div class="docblock"><p>Builds a bounded control result from safe text and handles.</p>
 <h5 id="parameters-7"><a class="doc-anchor" href="#parameters-7">§</a>Parameters</h5>
 <ul>
 <li><code>summary</code>: Safe bounded result description.</li>
@@ -126,7 +126,7 @@
 <p>Bounded event cursors represented as stable handles.</p>
 <h5 id="errors-9"><a class="doc-anchor" href="#errors-9">§</a>Errors</h5>
 <p>This buffered read does not fail.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.agent_command" class="method"><a class="src rightside" href="../../src/srig/agent_tool.rs.html#288-315">Source</a><h4 class="code-header">fn <a href="#method.agent_command" class="fn">agent_command</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.agent_command" class="method"><a class="src rightside" href="../../src/srig/agent_tool.rs.html#288-316">Source</a><h4 class="code-header">fn <a href="#method.agent_command" class="fn">agent_command</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     arguments: &amp;<a class="enum" href="https://docs.rs/serde_json/1.0.152/serde_json/value/enum.Value.html" title="enum serde_json::value::Value">Value</a>,
@@ -142,7 +142,7 @@
 <p>Accepted operation and session handles.</p>
 <h5 id="errors-10"><a class="doc-anchor" href="#errors-10">§</a>Errors</h5>
 <p>Returns invalid arguments, authorization, or application failures.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.session_tree" class="method"><a class="src rightside" href="../../src/srig/agent_tool.rs.html#328-347">Source</a><h4 class="code-header">fn <a href="#method.session_tree" class="fn">session_tree</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.session_tree" class="method"><a class="src rightside" href="../../src/srig/agent_tool.rs.html#329-348">Source</a><h4 class="code-header">fn <a href="#method.session_tree" class="fn">session_tree</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     arguments: &amp;<a class="enum" href="https://docs.rs/serde_json/1.0.152/serde_json/value/enum.Value.html" title="enum serde_json::value::Value">Value</a>,
@@ -156,7 +156,7 @@
 <p>Branch handles and a bounded session summary.</p>
 <h5 id="errors-11"><a class="doc-anchor" href="#errors-11">§</a>Errors</h5>
 <p>Returns invalid arguments, authorization, or session lookup failures.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.session_activity" class="method"><a class="src rightside" href="../../src/srig/agent_tool.rs.html#360-377">Source</a><h4 class="code-header">fn <a href="#method.session_activity" class="fn">session_activity</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.session_activity" class="method"><a class="src rightside" href="../../src/srig/agent_tool.rs.html#361-378">Source</a><h4 class="code-header">fn <a href="#method.session_activity" class="fn">session_activity</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     arguments: &amp;<a class="enum" href="https://docs.rs/serde_json/1.0.152/serde_json/value/enum.Value.html" title="enum serde_json::value::Value">Value</a>,

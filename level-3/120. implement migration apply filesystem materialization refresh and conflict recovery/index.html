@@ -6895,32 +6895,32 @@
 <hr />
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Validated candidate apply uses exact-base compare-and-swap semantics.</li>
-<li>[ ] Product surfaces invoke shared public apply operation only.</li>
-<li>[ ] Filesystem materialization uses shared projection/atomic-I/O infrastructure.</li>
-<li>[ ] Filesystem target is constrained to owned project path and cannot escape root.</li>
-<li>[ ] Successful apply advances only the selected project's current root.</li>
-<li>[ ] Successful materialization writes saturating form to temp fixture source.</li>
-<li>[ ] Unrelated files remain unchanged.</li>
-<li>[ ] Base historical source remains renderable after apply.</li>
-<li>[ ] Active workspace refreshes from authoritative project state.</li>
-<li>[ ] Stable <code>add</code> selection is resolved against successor snapshot or invalidated explicitly.</li>
-<li>[ ] History exposes base -&gt; successor/migration transition.</li>
-<li>[ ] Canonical stale-base candidate is rejected without silent rebase.</li>
-<li>[ ] External filesystem modification is detected and never silently overwritten.</li>
-<li>[ ] External conflict remains recoverable/inspectable.</li>
-<li>[ ] Materialization failure distinguishes canonical/effect state and records recovery information as designed.</li>
-<li>[ ] Multi-project apply/materialization isolation is proven.</li>
-<li>[ ] APPLY-01 passes.</li>
-<li>[ ] MATERIALIZE-01 and MATERIALIZE-02 pass.</li>
-<li>[ ] APPLY-STALE-01 passes.</li>
-<li>[ ] MATERIALIZE-CONFLICT-01 and MATERIALIZE-FAIL-01 pass.</li>
-<li>[ ] MULTIPROJECT-APPLY-01 passes.</li>
-<li>[ ] WEB-APPLY-01 and WEB-CONFLICT-01 pass in a real browser.</li>
-<li>[ ] TUI-APPLY-01 and TUI-CONFLICT-01 pass in native PTY.</li>
-<li>[ ] Apply event/workspace refresh test passes.</li>
-<li>[ ] <code>capabilities.toml</code> is truthful.</li>
-<li>[ ] Affected Rust/web checks pass.</li>
+<li>[x] Validated candidate apply uses exact-base compare-and-swap semantics.</li>
+<li>[x] Product surfaces invoke shared public apply operation only.</li>
+<li>[x] Filesystem materialization uses shared projection/atomic-I/O infrastructure.</li>
+<li>[x] Filesystem target is constrained to owned project path and cannot escape root.</li>
+<li>[x] Successful apply advances only the selected project's current root.</li>
+<li>[x] Successful materialization writes saturating form to temp fixture source.</li>
+<li>[x] Unrelated files remain unchanged.</li>
+<li>[x] Base historical source remains renderable after apply.</li>
+<li>[x] Active workspace refreshes from authoritative project state.</li>
+<li>[x] Stable <code>add</code> selection is resolved against successor snapshot or invalidated explicitly.</li>
+<li>[x] History exposes base -&gt; successor/migration transition.</li>
+<li>[x] Canonical stale-base candidate is rejected without silent rebase.</li>
+<li>[x] External filesystem modification is detected and never silently overwritten.</li>
+<li>[x] External conflict remains recoverable/inspectable.</li>
+<li>[x] Materialization failure distinguishes canonical/effect state and records recovery information as designed.</li>
+<li>[x] Multi-project apply/materialization isolation is proven.</li>
+<li>[x] APPLY-01 passes.</li>
+<li>[x] MATERIALIZE-01 and MATERIALIZE-02 pass.</li>
+<li>[x] APPLY-STALE-01 passes.</li>
+<li>[x] MATERIALIZE-CONFLICT-01 and MATERIALIZE-FAIL-01 pass.</li>
+<li>[x] MULTIPROJECT-APPLY-01 passes.</li>
+<li>[x] WEB-APPLY-01 and WEB-CONFLICT-01 pass in a real browser.</li>
+<li>[x] TUI-APPLY-01 and TUI-CONFLICT-01 pass in native PTY.</li>
+<li>[x] Apply event/workspace refresh test passes.</li>
+<li>[x] <code>capabilities.toml</code> is truthful.</li>
+<li>[x] Affected Rust/web checks pass.</li>
 </ul>
 <p>Do not begin task <code>121</code> with unchecked items.</p>
 

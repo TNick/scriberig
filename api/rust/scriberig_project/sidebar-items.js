@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["ImportDiagnostic","ImportReport","ProjectError","ProjectService","ScanFile","ScanOptions","ScanReport"]};
+window.SIDEBAR_ITEMS = {"enum":["CandidateValidation"],"struct":["CandidateApplyReport","ImportDiagnostic","ImportReport","ProjectCandidate","ProjectError","ProjectService","ProjectSourceProjection","ProjectSymbol","ProjectWorkspace","ScanFile","ScanOptions","ScanReport"]};
