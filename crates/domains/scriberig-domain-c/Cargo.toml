@@ -1,0 +1,17 @@
+[package]
+name = "scriberig-domain-c"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "C and C++ syntax parsing adapter."
+repository.workspace = true
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+tree-sitter = "0.25"
+tree-sitter-c = "0.24"
+tree-sitter-cpp = "0.23"
+
+[lints]
+workspace = true

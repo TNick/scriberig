@@ -33,6 +33,7 @@ members = [
   "crates/domains/scriberig-domain-html",
   "crates/domains/scriberig-domain-ecma",
   "crates/domains/scriberig-domain-python",
+  "crates/domains/scriberig-domain-c",
   "crates/domains/test-support",
   "crates/scriberig-conformance",
   "apps/scriberig",
