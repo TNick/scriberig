@@ -98,8 +98,9 @@ The API server can onboard only paths under explicitly configured roots:
 Git's index. Import then consumes that reviewed manifest.
 
 Source imports currently include Markdown, Rust, PDF, HTML, JavaScript,
-TypeScript, and Python (.py, .pyi, and .pyw) files. Unsupported extensions
-remain available as source-only manifest records.
+TypeScript, Python (.py, .pyi, and .pyw), C (.c and .h), and C++ (.cc, .cpp,
+.cxx, .hpp, .hh, and .hxx) files. Unsupported extensions remain available as
+source-only manifest records.
 
 ```text
 srig serve --db scriberig.sqlite --project-root PATH
