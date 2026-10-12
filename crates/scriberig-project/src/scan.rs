@@ -61,10 +61,11 @@ fn visit_directory(
             if tracked.is_some_and(|paths| !paths.contains(&relative_path)) {
                 continue;
             }
-            let adapter = adapter_for(&path).to_owned();
+            let bytes = std::fs::read(&path)?;
+            let adapter = adapter_for(&path, &bytes).to_owned();
             files.push(ScanFile {
                 relative_path,
-                bytes: std::fs::read(&path)?,
+                bytes,
                 status: if adapter == "unsupported" {
                     "unsupported".to_owned()
                 } else {
@@ -107,10 +108,11 @@ fn is_excluded(path: &Path) -> bool {
 ///
 /// # Parameters
 /// - `path`: File path to classify.
+/// - `bytes`: File bytes used to distinguish unknown text from binary data.
 ///
 /// # Returns
 /// The selected adapter name.
-fn adapter_for(path: &Path) -> &'static str {
+fn adapter_for(path: &Path, bytes: &[u8]) -> &'static str {
     let name = path.file_name().and_then(|value| value.to_str());
     if matches!(
         name,
@@ -124,6 +126,19 @@ fn adapter_for(path: &Path) -> &'static str {
                 | ".gitignore"
                 | ".gitattributes"
                 | ".editorconfig"
+                | ".gitmodules"
+                | ".npmrc"
+                | ".yarnrc"
+                | ".prettierrc"
+                | ".eslintrc"
+                | ".babelrc"
+                | ".flake8"
+                | "gradlew"
+                | "Gemfile"
+                | "Rakefile"
+                | "Brewfile"
+                | "Vagrantfile"
+                | "Procfile"
         )
     ) {
         return "text";
@@ -148,11 +163,17 @@ fn adapter_for(path: &Path) -> &'static str {
             | "svg" | "txt" | "log" | "env" | "xml" | "ini" | "cfg" | "properties" | "csv" | "tsv"
             | "rst" | "adoc" | "tex" | "graphql" | "gql" | "proto" | "sql" | "go" | "java" | "kt"
             | "kts" | "cs" | "swift" | "php" | "rb" | "lua" | "dart" | "scala" | "m" | "mm" | "hs"
-            | "ex" | "exs" | "erl" | "zig",
+            | "ex" | "exs" | "erl" | "zig" | "lock" | "sum" | "mod" | "gradle",
         ) => "text",
-        Some("json" | "jsonc") => "json",
+        Some("json" | "jsonc" | "ipynb") => "json",
         Some("yaml" | "yml") => "yaml",
         Some("toml") => "toml",
-        _ => "unsupported",
+        Some(
+            "png" | "jpg" | "jpeg" | "gif" | "webp" | "ico" | "bmp" | "woff" | "woff2" | "ttf"
+            | "otf" | "wasm" | "zip" | "gz" | "tar" | "7z" | "jar" | "exe" | "dll" | "o" | "a"
+            | "so",
+        ) => "binary",
+        _ if std::str::from_utf8(bytes).is_ok() => "text",
+        _ => "binary",
     }
 }

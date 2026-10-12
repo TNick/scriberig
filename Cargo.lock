@@ -2160,6 +2160,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "scriberig-domain-binary"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "scriberig-domain-c"
 version = "0.1.0"
 dependencies = [
@@ -2305,6 +2312,7 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "scriberig-core",
+ "scriberig-domain-binary",
  "scriberig-domain-c",
  "scriberig-domain-data",
  "scriberig-domain-ecma",

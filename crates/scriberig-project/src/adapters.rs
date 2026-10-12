@@ -11,6 +11,9 @@ use crate::errors::adapter_diagnostics_error;
 
 use super::add_child;
 
+#[path = "adapters/binary.rs"]
+mod binary;
+pub(super) use binary::import_binary;
 #[path = "adapters/data.rs"]
 mod data;
 pub(super) use data::import_data;

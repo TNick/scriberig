@@ -18,6 +18,7 @@ scriberig-domain-python = { path = "../domains/scriberig-domain-python" }
 scriberig-domain-rust = { path = "../domains/scriberig-domain-rust" }
 scriberig-domain-text = { path = "../domains/scriberig-domain-text" }
 scriberig-domain-data = { path = "../domains/scriberig-domain-data" }
+scriberig-domain-binary = { path = "../domains/scriberig-domain-binary" }
 scriberig-store = { path = "../scriberig-store" }
 scriberig-store-sqlite = { path = "../scriberig-store-sqlite" }
 sr-markdown = { path = "../sr-markdown" }

@@ -142,6 +142,32 @@ fn imports_common_text_files() {
     assert!(entities.iter().any(|entity| entity.kind == "text.line"));
 }
 
+/// Imports unknown UTF-8 files as text and binary artifacts as metadata.
+#[test]
+fn imports_unknown_text_and_binary_files() {
+    let root = temporary_directory("fallback-files");
+    fs::write(root.join("custom.build"), "rule: all\n").expect("unknown text");
+    fs::write(root.join("image.png"), [0_u8, 159, 146, 150]).expect("binary");
+    let database = root.with_extension("sqlite");
+    let store = Arc::new(SqliteStore::open(&database).expect("database"));
+    let service = ProjectService::new(store.clone());
+
+    let scan = service
+        .scan(Some("fallback".to_owned()), &root)
+        .expect("scan");
+    assert!(scan.files.iter().any(|file| file.adapter == "text"));
+    assert!(scan.files.iter().any(|file| file.adapter == "binary"));
+    let report = service.import(scan.project.id).expect("import");
+    assert_eq!(report.files, 2);
+    assert!(
+        store
+            .project_entities(scan.project.id)
+            .expect("entities")
+            .iter()
+            .any(|entity| entity.kind == "binary.document")
+    );
+}
+
 /// Restricts a scan manifest to existing files tracked by Git's index.
 #[test]
 fn git_tracked_scan_excludes_untracked_files() {

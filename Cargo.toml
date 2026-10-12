@@ -36,6 +36,7 @@ members = [
   "crates/domains/scriberig-domain-c",
   "crates/domains/scriberig-domain-text",
   "crates/domains/scriberig-domain-data",
+  "crates/domains/scriberig-domain-binary",
   "crates/domains/test-support",
   "crates/scriberig-conformance",
   "apps/scriberig",
