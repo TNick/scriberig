@@ -207,6 +207,32 @@ impl TuiPty {
     #[must_use]
     pub fn shutdown(mut self) -> bool {
         self.send(&[3]);
+        self.finish()
+    }
+
+    /// Waits for a TUI that was asked to quit through another key binding.
+    ///
+    /// # Parameters
+    /// - `self`: Owned TUI session to wait for and clean up.
+    ///
+    /// # Returns
+    /// `true` when the child exits successfully.
+    ///
+    /// # Panics
+    /// Panics when the child cannot be polled, stopped, or the fixture removed.
+    #[must_use]
+    pub fn wait_for_exit(mut self) -> bool {
+        self.finish()
+    }
+
+    /// Waits for the child and removes the temporary fixture.
+    ///
+    /// # Returns
+    /// `true` when the child exits successfully.
+    ///
+    /// # Panics
+    /// Panics when the child cannot be polled, stopped, or the fixture removed.
+    fn finish(&mut self) -> bool {
         let deadline = Instant::now() + Duration::from_secs(3);
         let status = loop {
             if let Some(status) = self.child.try_wait().expect("poll tui") {

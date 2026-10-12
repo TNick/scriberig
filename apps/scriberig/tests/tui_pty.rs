@@ -92,6 +92,33 @@ fn tui_pty_cycles_focus_between_panes() {
     assert!(tui.shutdown());
 }
 
+/// Verifies browse commands leave the live semantic shell usable.
+#[test]
+fn tui_pty_accepts_browse_commands() {
+    let _lock = test_lock();
+    let mut tui = TuiPty::start();
+
+    assert!(tui.read_until("Entity:"), "{}", tui.diagnostic());
+    tui.send(b"r\r\x1b[A\x1b[B\x1b[D\x1b[C\x08x");
+    assert!(tui.read_until_next("Entity:"), "{}", tui.diagnostic());
+    assert!(tui.screen().contains("project: prj_"));
+    assert!(tui.shutdown());
+}
+
+/// Verifies palette cursor movement through both horizontal and vertical keys.
+#[test]
+fn tui_pty_moves_palette_selection() {
+    let _lock = test_lock();
+    let mut tui = TuiPty::start();
+
+    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    tui.send(b":");
+    assert!(tui.read_until("Search:"));
+    tui.send(b"\x1b[B\x1b[C\x1b[A\x1b[D");
+    assert!(tui.read_until_next("Search:"), "{}", tui.diagnostic());
+    assert!(tui.shutdown());
+}
+
 /// Verifies every always-available local palette command is discoverable.
 #[test]
 fn tui_pty_lists_local_palette_commands() {
@@ -134,6 +161,17 @@ fn tui_pty_submits_find_query() {
     assert!(tui.read_until_not("OVERLAY"), "{}", tui.diagnostic());
     assert!(tui.screen().contains("Find: readme"));
     assert!(tui.shutdown());
+}
+
+/// Verifies the single-key quit command exits the native TUI cleanly.
+#[test]
+fn tui_pty_quits_with_q() {
+    let _lock = test_lock();
+    let mut tui = TuiPty::start();
+
+    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    tui.send(b"q");
+    assert!(tui.wait_for_exit());
 }
 
 /// Verifies palette selection, activation, and view routing in the live TUI.
