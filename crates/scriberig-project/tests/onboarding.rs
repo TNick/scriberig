@@ -105,6 +105,36 @@ fn scan_reopen_import_and_delete_are_durable() {
     );
 }
 
+/// Imports Rust files whose conditional or split implementations repeat a method name.
+#[test]
+fn imports_repeated_rust_method_names_without_duplicate_ownership() {
+    let root = temporary_directory("repeated-rust-methods");
+    fs::write(
+        root.join("lib.rs"),
+        "struct Calculator;\nimpl Calculator { fn add(&self) {} }\nimpl Calculator { fn add(&self) {} }\n",
+    )
+    .expect("Rust source");
+    let database = root.with_extension("sqlite");
+    let store = Arc::new(SqliteStore::open(&database).expect("database"));
+    let service = ProjectService::new(Arc::clone(&store));
+
+    let scan = service
+        .scan(Some("fixture".to_owned()), &root)
+        .expect("scan");
+    service
+        .import(scan.project.id)
+        .expect("repeated method import");
+
+    let entities = store.project_entities(scan.project.id).expect("entities");
+    assert_eq!(
+        entities
+            .iter()
+            .filter(|entity| entity.name.as_deref() == Some("add"))
+            .count(),
+        2
+    );
+}
+
 /// Imports common configuration, script, and extensionless project files.
 #[test]
 fn imports_common_text_files() {

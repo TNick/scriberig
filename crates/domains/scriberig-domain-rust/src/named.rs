@@ -97,12 +97,35 @@ fn push_symbol(
     symbols: &mut Vec<NamedRustSymbol>,
 ) {
     let start = source.find(name).unwrap_or(0);
+    let key = unique_key(key, symbols);
     symbols.push(NamedRustSymbol {
         kind: kind.to_owned(),
         name: name.to_owned(),
-        key: key.to_owned(),
+        key,
         range: (start, start.saturating_add(name.len())),
     });
+}
+
+/// Makes a repeated semantic key unique within one source file.
+///
+/// # Parameters
+/// - `key`: Preferred semantic key.
+/// - `symbols`: Symbols already extracted from the source file.
+///
+/// # Returns
+/// The preferred key or a deterministic occurrence-suffixed variant.
+fn unique_key(key: &str, symbols: &[NamedRustSymbol]) -> String {
+    if !symbols.iter().any(|symbol| symbol.key == key) {
+        return key.to_owned();
+    }
+    let mut occurrence = 2;
+    loop {
+        let candidate = format!("{key}#{occurrence}");
+        if !symbols.iter().any(|symbol| symbol.key == candidate) {
+            return candidate;
+        }
+        occurrence += 1;
+    }
 }
 
 /// Joins one semantic path component.
@@ -133,5 +156,19 @@ mod tests {
         assert!(symbols.iter().any(|value| value.name == "math"));
         assert!(symbols.iter().any(|value| value.name == "Calculator"));
         assert!(symbols.iter().any(|value| value.name == "add"));
+    }
+
+    /// Disambiguates repeated semantic declarations without dropping either one.
+    #[test]
+    fn disambiguates_repeated_named_symbols() {
+        let source = "struct Calculator; impl Calculator { fn add(&self) {} } impl Calculator { fn add(&self) {} }";
+        let symbols = named_symbols(source).expect("valid Rust");
+        let methods = symbols
+            .iter()
+            .filter(|value| value.name == "add")
+            .collect::<Vec<_>>();
+        assert_eq!(methods.len(), 2);
+        assert_eq!(methods[0].key, "Calculator::add");
+        assert_eq!(methods[1].key, "Calculator::add#2");
     }
 }
