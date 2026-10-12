@@ -158,6 +158,7 @@ impl TuiPty {
     /// Panics when the PTY cannot be resized.
     pub fn resize(&mut self, size: PtySize) {
         self.master.resize(size).expect("resize pty");
+        self.parser.set_size(size.rows, size.cols);
     }
 
     /// Reads a fresh frame after an interaction before checking its contents.

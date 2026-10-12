@@ -135,3 +135,29 @@ fn tui_pty_submits_find_query() {
     assert!(tui.screen().contains("Find: readme"));
     assert!(tui.shutdown());
 }
+
+/// Verifies palette selection, activation, and view routing in the live TUI.
+#[test]
+fn tui_pty_activates_palette_commands() {
+    let _lock = test_lock();
+    let mut tui = TuiPty::start();
+
+    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    tui.send(b":");
+    assert!(tui.read_until("Search:"));
+    tui.send(b"operations");
+    tui.send(b"\r");
+    assert!(
+        tui.read_until("No observed operations"),
+        "{}",
+        tui.diagnostic()
+    );
+
+    tui.send(b":");
+    assert!(tui.read_until("Search:"));
+    tui.send(b"overview");
+    tui.send(b"\r");
+    assert!(tui.read_until("Entity:"), "{}", tui.diagnostic());
+
+    assert!(tui.shutdown());
+}
