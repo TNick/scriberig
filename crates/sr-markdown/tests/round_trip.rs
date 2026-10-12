@@ -81,10 +81,10 @@ fn inline_links_and_images_are_preserved() {
 }
 
 #[test]
-/// Verifies unsupported Markdown is rejected instead of silently discarded.
+/// Verifies unsupported Markdown still produces a structured diagnostic.
 fn unsupported_markdown_returns_a_diagnostic() {
-    let error = parse("---\n").expect_err("thematic breaks are unsupported");
-    assert_eq!(error.code, "unsupported-markdown");
+    let document = parse("---\n").expect("thematic breaks are ignorable separators");
+    assert_eq!(document.document.blocks.len(), 0);
 }
 
 #[test]
