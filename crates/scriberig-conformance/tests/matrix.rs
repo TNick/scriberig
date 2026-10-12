@@ -102,6 +102,37 @@ fn checked_in_matrix_is_truthful_and_complete() {
     );
 }
 
+/// Verifies TUI statuses match the currently verified implementation slices.
+#[test]
+fn tui_statuses_match_implemented_surface_evidence() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../capabilities.toml");
+    let source = std::fs::read_to_string(path).expect("capabilities.toml");
+    let document: toml::Value = source.parse().expect("toml");
+    let expected = [
+        ("inspect_entity", "verified"),
+        ("runtime_capabilities", "implemented"),
+        ("operation_status", "implemented"),
+        ("operation_cancel", "implemented"),
+        ("event_subscription", "implemented"),
+        ("agent_start", "implemented"),
+        ("agent_continue", "implemented"),
+        ("agent_final_result", "implemented"),
+        ("session_branch_tree", "implemented"),
+        ("session_branch_activity", "implemented"),
+        ("agent_event_subscription", "implemented"),
+        ("agent_streaming_output", "planned"),
+    ];
+    for (id, status) in expected {
+        let entry = document["capabilities"]
+            .as_array()
+            .expect("entries")
+            .iter()
+            .find(|entry| entry["id"].as_str() == Some(id))
+            .unwrap_or_else(|| panic!("missing capability {id}"));
+        assert_eq!(entry["surfaces"]["tui"].as_str(), Some(status), "{id}");
+    }
+}
+
 /// Verifies malformed matrix entries are rejected with readable diagnostics.
 #[test]
 fn malformed_matrix_is_rejected() {
