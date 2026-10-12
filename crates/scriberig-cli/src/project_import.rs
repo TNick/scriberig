@@ -3,7 +3,7 @@
 use std::path::Path;
 
 use scriberig_core::{EncodingVersion, EntityId, ObjectType, ProjectId, RootName, SnapshotId};
-use scriberig_store::{Revision, Snapshot, SnapshotChange};
+use scriberig_store::{Revision, RootStore, Snapshot, SnapshotChange};
 use scriberig_store_sqlite::{ProjectRecord, ProjectStatus, SqliteStore};
 
 /// Describes one filesystem file discovered during onboarding.
@@ -157,6 +157,7 @@ pub(crate) fn import_files(
         .current_snapshot
         .unwrap_or_else(|| Snapshot::empty().id());
     let root = RootName::new(format!("project_{}", project.id))?;
+    let expected = store.read_root(&root);
     let mut revisions = Vec::new();
     let mut changes = Vec::new();
     for file in files.iter().filter(|file| file.adapter != "unsupported") {
@@ -169,7 +170,7 @@ pub(crate) fn import_files(
         revisions.push(revision);
     }
     let snapshot = store
-        .apply_revisions_and_promote(root, None, base, &revisions, &changes)
+        .apply_revisions_and_promote(root, expected, base, &revisions, &changes)
         .map_err(|error| format!("project import promotion failed: {error:?}"))?;
     store.set_project_status(project.id, ProjectStatus::Imported, Some(snapshot))?;
     Ok((changes.len(), snapshot))
