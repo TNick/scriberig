@@ -77,7 +77,14 @@ fn scan_reopen_import_and_delete_are_durable() {
     let service = ProjectService::new(Arc::clone(&reopened));
     let report = service.import(scan.project.id).expect("import");
     assert_eq!(report.files, 3);
-    assert!(report.entities >= 6);
+    assert!(report.entities >= 7);
+    assert!(
+        reopened
+            .project_entities(scan.project.id)
+            .expect("HTML entities")
+            .iter()
+            .any(|entity| entity.kind == "html.document")
+    );
     assert_ne!(
         reopened
             .project_entities(scan.project.id)

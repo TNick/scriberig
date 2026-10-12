@@ -72,12 +72,24 @@ fn import_html(
 ) -> Result<(), ProjectError> {
     let document = scriberig_domain_html::parse(&file.bytes)
         .map_err(|error| validation_error(&file.relative_path, &error.to_string()))?;
+    let document_payload = document
+        .canonical_bytes()
+        .map_err(|error| validation_error(&file.relative_path, &error.to_string()))?;
+    add_child(
+        project,
+        file,
+        source,
+        "html.document",
+        0,
+        document_payload,
+        revisions,
+        changes,
+        ownership,
+    )?;
     for (index, node) in document.nodes.iter().enumerate() {
-        let payload = format!(
-            "kind={}\ndepth={}\ntext={}\nattributes={:?}",
-            node.kind, node.depth, node.text, node.attributes
-        )
-        .into_bytes();
+        let payload = node
+            .canonical_bytes()
+            .map_err(|error| validation_error(&file.relative_path, &error.to_string()))?;
         add_child(
             project,
             file,

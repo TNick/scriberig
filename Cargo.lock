@@ -1808,6 +1808,8 @@ name = "scriberig-domain-html"
 version = "0.1.0"
 dependencies = [
  "kuchiki",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

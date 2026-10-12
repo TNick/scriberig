@@ -4,9 +4,10 @@ use std::io;
 
 use kuchiki::traits::TendrilSink;
 use kuchiki::{NodeData, NodeRef};
+use serde::{Deserialize, Serialize};
 
 /// A parsed HTML document with its meaningful semantic descendants.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct HtmlDocument {
     /// Document title when one is present.
     pub title: Option<String>,
@@ -17,7 +18,7 @@ pub struct HtmlDocument {
 }
 
 /// A meaningful or opaque HTML node.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct HtmlNode {
     /// Element name or `text`/`opaque` node kind.
     pub kind: String,
@@ -27,6 +28,32 @@ pub struct HtmlNode {
     pub attributes: Vec<(String, String)>,
     /// Nesting depth in the parsed document.
     pub depth: usize,
+}
+
+impl HtmlDocument {
+    /// Encodes the semantic document as stable versioned JSON bytes.
+    ///
+    /// # Returns
+    /// Canonical JSON representation of the parsed document.
+    ///
+    /// # Errors
+    /// Returns a serialization error when the document cannot be encoded.
+    pub fn canonical_bytes(&self) -> Result<Vec<u8>, serde_json::Error> {
+        serde_json::to_vec(self)
+    }
+}
+
+impl HtmlNode {
+    /// Encodes one semantic node as stable versioned JSON bytes.
+    ///
+    /// # Returns
+    /// Canonical JSON representation of the node.
+    ///
+    /// # Errors
+    /// Returns a serialization error when the node cannot be encoded.
+    pub fn canonical_bytes(&self) -> Result<Vec<u8>, serde_json::Error> {
+        serde_json::to_vec(self)
+    }
 }
 
 /// Parses an HTML byte stream without executing or fetching anything.
