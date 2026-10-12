@@ -98,6 +98,7 @@ fn migration_route_maps_canonical_detail() {
         service: Fixture,
         allowed_origin: None,
         project_store: None,
+        allowed_project_roots: Vec::new(),
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -121,6 +122,7 @@ fn typed_operation_route_preserves_correlation() {
         service: Fixture,
         allowed_origin: None,
         project_store: None,
+        allowed_project_roots: Vec::new(),
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -140,6 +142,7 @@ fn typed_operation_route_rejects_unknown_operation() {
         service: Fixture,
         allowed_origin: None,
         project_store: None,
+        allowed_project_roots: Vec::new(),
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),

@@ -38,6 +38,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 args.port,
                 &args.db,
                 args.allow_origin.as_deref(),
+                &args.project_roots,
             )?;
         }
         scriberig_cli::Command::Tui(args) => tui_command::run(&args)?,

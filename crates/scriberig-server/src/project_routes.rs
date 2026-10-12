@@ -1,5 +1,6 @@
 //! Implements HTTP project catalog and onboarding routes.
 
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use scriberig_project::ProjectService;
@@ -36,8 +37,9 @@ pub(super) fn scan<S: ApplicationService>(
 ) -> Result<Value, (u16, Value)> {
     let store = state.project_store.as_ref().ok_or_else(unavailable)?;
     let input: ScanInput = serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
+    let path = authorized_path(&state.allowed_project_roots, &input.path)?;
     let report = ProjectService::new(Arc::clone(store))
-        .scan(input.name, input.path)
+        .scan(input.name, path)
         .map_err(|error| project_error(&error))?;
     let files = report
         .files
@@ -62,10 +64,9 @@ pub(super) fn relink<S: ApplicationService>(
 ) -> Result<Value, (u16, Value)> {
     let store = state.project_store.as_ref().ok_or_else(unavailable)?;
     let input: RelinkInput = serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
+    let path = authorized_path(&state.allowed_project_roots, &input.path)?;
     let id = input.project.parse().map_err(|_| invalid_project())?;
-    store
-        .relink_project(id, input.path)
-        .map_err(storage_error)?;
+    store.relink_project(id, path).map_err(storage_error)?;
     let project = store
         .project(id)
         .map_err(storage_error)?
@@ -211,4 +212,52 @@ fn storage_error(error: impl std::fmt::Display) -> (u16, Value) {
         500,
         json!({"code": "storage_error", "message": error.to_string()}),
     )
+}
+
+/// Resolves a requested project path under one of the configured roots.
+///
+/// # Parameters
+/// - `roots`: Canonical filesystem roots allowed by the server operator.
+/// - `requested`: User-supplied project path.
+///
+/// # Returns
+/// A canonical path contained by an allowed root.
+///
+/// # Errors
+/// Returns a forbidden response when the path is missing or outside policy.
+fn authorized_path(roots: &[PathBuf], requested: &str) -> Result<PathBuf, (u16, Value)> {
+    let path = std::fs::canonicalize(Path::new(requested)).map_err(|error| {
+        (
+            400,
+            json!({"code": "invalid_project_path", "message": error.to_string()}),
+        )
+    })?;
+    if roots.iter().any(|root| path.starts_with(root)) {
+        Ok(path)
+    } else {
+        Err((403, json!({"code": "project_path_forbidden"})))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::authorized_path;
+    use std::path::PathBuf;
+
+    /// Rejects a project path outside the operator-selected root.
+    #[test]
+    fn path_policy_rejects_outside_root() {
+        let root = std::env::temp_dir();
+        let outside = std::path::Path::new("C:\\");
+        let result = authorized_path(&[root], outside.to_string_lossy().as_ref());
+        assert!(result.is_err());
+    }
+
+    /// Accepts a project path contained by a configured root.
+    #[test]
+    fn path_policy_accepts_existing_child() {
+        let root = std::env::temp_dir();
+        let result = authorized_path(&[PathBuf::from("C:\\")], &root.to_string_lossy());
+        assert!(result.is_ok());
+    }
 }

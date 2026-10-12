@@ -220,6 +220,7 @@ pub struct AgentContinueArgs {
 /// - `host`: Interface address that the server should bind.
 /// - `port`: TCP port that the server should bind.
 /// - `db`: SQLite database file for the server.
+/// - `project_roots`: Filesystem roots allowed for project onboarding.
 ///
 /// # Private members
 /// None.
@@ -237,6 +238,9 @@ pub struct ServeArgs {
     /// Exact browser origin allowed for cross-origin protocol requests.
     #[arg(long)]
     pub allow_origin: Option<String>,
+    /// Filesystem root permitted for project scans and relinks; repeatable.
+    #[arg(long = "project-root")]
+    pub project_roots: Vec<std::path::PathBuf>,
 }
 
 /// Configure the local application-backed terminal UI.

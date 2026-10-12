@@ -2,9 +2,9 @@
 
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use scriberig_app::{ApplicationContext, InspectRequest, SnapshotResolution};
 use scriberig_core::{EntityId, SnapshotId};
@@ -24,10 +24,12 @@ mod http_events;
 mod http_migration;
 #[path = "http_protocol.rs"]
 mod http_protocol;
+#[path = "http_request.rs"]
+mod http_request;
 #[path = "project_routes.rs"]
 mod project_routes;
 
-static REQUEST_SEQUENCE: AtomicU64 = AtomicU64::new(1);
+use http_request::{allowed_origin, header_value, request_id};
 
 /// Shared state for one local HTTP server.
 pub struct HttpState<S> {
@@ -39,6 +41,8 @@ pub struct HttpState<S> {
     pub allowed_origin: Option<String>,
     /// Optional project catalog used by onboarding routes.
     pub project_store: Option<Arc<SqliteStore>>,
+    /// Canonical filesystem roots permitted for project scans and relinks.
+    pub allowed_project_roots: Vec<PathBuf>,
 }
 
 /// Handles one local HTTP connection.
@@ -147,48 +151,6 @@ pub fn handle_connection<S: ApplicationService>(
         Ok(value) => write_json(&mut stream, 200, &value, origin.as_deref()),
         Err((status, value)) => write_json(&mut stream, status, &value, origin.as_deref()),
     }
-}
-
-/// Returns a request header value without accepting malformed names.
-fn header_value<'a>(head: &'a str, wanted: &str) -> Option<&'a str> {
-    head.lines().skip(1).find_map(|line| {
-        let (name, value) = line.split_once(':')?;
-        name.eq_ignore_ascii_case(wanted).then_some(value.trim())
-    })
-}
-
-/// Allows only the configured exact origin, never a wildcard.
-///
-/// # Parameters
-/// - `head`: HTTP request headers.
-/// - `configured`: Optional configured exact origin.
-///
-/// # Returns
-/// The allowed origin when the request matches configuration.
-fn allowed_origin(head: &str, configured: Option<&str>) -> Option<String> {
-    let origin = header_value(head, "origin")?;
-    configured
-        .filter(|value| !value.is_empty() && *value != "*")
-        .filter(|value| *value == origin)
-        .map(ToOwned::to_owned)
-}
-
-/// Returns a bounded request correlation identifier from headers or local state.
-///
-/// # Parameters
-/// - `head`: HTTP request headers.
-///
-/// # Returns
-/// A bounded request correlation identifier.
-fn request_id(head: &str) -> String {
-    let supplied = head.lines().skip(1).find_map(|line| {
-        let (name, value) = line.split_once(':')?;
-        (name.eq_ignore_ascii_case("x-request-id")).then_some(value.trim())
-    });
-    let value = supplied
-        .filter(|value| !value.is_empty() && value.len() <= 128)
-        .map(ToOwned::to_owned);
-    value.unwrap_or_else(|| format!("http-{}", REQUEST_SEQUENCE.fetch_add(1, Ordering::Relaxed)))
 }
 
 /// Dispatches an authoritative protocol envelope through shared application semantics.
