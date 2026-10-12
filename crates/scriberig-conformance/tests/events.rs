@@ -12,6 +12,7 @@ use scriberig_server::InProcessTransport;
 #[test]
 fn event_references_survive_serialization() {
     let event = Event {
+        sequence: 1,
         kind: EventKind::EntityChanged,
         entity: Some(EntityReference {
             id: EntityId::from_bytes([1; 16]).to_string(),
@@ -48,6 +49,7 @@ fn event_subject_resolves_through_the_public_read_boundary() {
         fixture.entity.to_string()
     );
     let event = Event {
+        sequence: 2,
         kind: EventKind::EntityChanged,
         entity: Some(EntityReference {
             id: fixture.entity.to_string(),

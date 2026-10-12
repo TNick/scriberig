@@ -1,5 +1,16 @@
 /** @file Renders a migration review without owning mutation state. */
 import type { ReactElement } from "react";
+import type { MigrationChange } from "./component-types";
+
+/**
+ * Formats a structured migration change for a neutral presentation.
+ * @param change Structured migration change.
+ * @returns Human-readable change text.
+ */
+function formatChange(change: MigrationChange): string {
+  if (typeof change === "string") return change;
+  return `${change.kind}: ${change.entityId}`;
+}
 
 /** Presents migration status and caller-controlled review actions. */
 export function MigrationPreview({
@@ -12,7 +23,7 @@ export function MigrationPreview({
   className,
 }: {
   baseSnapshot: string;
-  changes: readonly string[];
+  changes: readonly MigrationChange[];
   validation: "current" | "failed" | "unknown";
   state?: "ready" | "stale" | "conflict";
   onApply?: () => void;
@@ -26,7 +37,7 @@ export function MigrationPreview({
       {state ? <p role="status">State: {state}</p> : null}
       <ul>
         {changes.map((change) => (
-          <li key={change}>{change}</li>
+          <li key={formatChange(change)}>{formatChange(change)}</li>
         ))}
       </ul>
       {onApply ? (

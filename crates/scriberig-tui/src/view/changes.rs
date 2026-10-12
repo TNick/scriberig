@@ -48,6 +48,20 @@ impl ChangeReviewModel {
         branch: Option<RootName>,
         summary: &scriberig_app::OperationSummary,
     ) -> Self {
+        let validation = match summary.validation {
+            Some(scriberig_app::ValidationStatus::Passed) => ReviewValidation::Passed,
+            Some(
+                scriberig_app::ValidationStatus::Failed | scriberig_app::ValidationStatus::Error,
+            ) => ReviewValidation::Failed(if summary.validation_diagnostics.is_empty() {
+                "validation failed".to_owned()
+            } else {
+                summary.validation_diagnostics.join("; ")
+            }),
+            Some(
+                scriberig_app::ValidationStatus::Skipped | scriberig_app::ValidationStatus::Unknown,
+            )
+            | None => ReviewValidation::Unknown,
+        };
         Self {
             base_snapshot,
             change: change.into(),
@@ -57,8 +71,8 @@ impl ChangeReviewModel {
                 .as_ref()
                 .map(|diff| diff.deltas.iter().map(|delta| delta.entity).collect())
                 .unwrap_or_default(),
-            conflicts: Vec::new(),
-            validation: ReviewValidation::Passed,
+            conflicts: summary.conflicts.clone(),
+            validation,
             requires_confirmation: true,
         }
     }
@@ -73,4 +87,35 @@ pub struct ConfirmedCommit {
     pub change: String,
     /// Reviewed branch context.
     pub branch: Option<RootName>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ChangeReviewModel, ReviewValidation};
+    use scriberig_app::{OperationSummary, ValidationStatus};
+    use scriberig_core::SnapshotId;
+
+    /// Verifies review status remains unknown without application evidence.
+    #[test]
+    fn review_preserves_validation_and_conflict_evidence() {
+        let summary = OperationSummary {
+            handle: "candidate".to_owned(),
+            snapshot: None,
+            revision: None,
+            branch: None,
+            diff: None,
+            history: None,
+            rendered: None,
+            validation: Some(ValidationStatus::Failed),
+            validation_diagnostics: vec!["invalid relation".to_owned()],
+            conflicts: vec!["entity conflict".to_owned()],
+        };
+        let model =
+            ChangeReviewModel::from_summary(SnapshotId::new([1; 32]), "candidate", None, &summary);
+        assert_eq!(
+            model.validation,
+            ReviewValidation::Failed("invalid relation".to_owned())
+        );
+        assert_eq!(model.conflicts, vec!["entity conflict"]);
+    }
 }

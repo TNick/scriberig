@@ -38,6 +38,8 @@ pub enum ProtocolErrorCode {
     OperationCancelled,
     /// Unexpected internal failure.
     Internal,
+    /// Requested event replay cursor is outside the retained window.
+    CursorTooOld,
     /// Client and server protocol majors are incompatible.
     UnsupportedVersion,
 }

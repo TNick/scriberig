@@ -84,6 +84,8 @@ pub struct TuiState {
     pub primary_view: crate::selection::PrimaryView,
     /// History request/result state.
     pub history: LoadState<crate::view::history::HistoryModel>,
+    /// Find request/result state.
+    pub find: LoadState<crate::view::find::FindModel>,
     /// Diff request/result state.
     pub diff: LoadState<crate::view::diff::DiffModel>,
     /// Projection request/result state.
@@ -102,6 +104,8 @@ pub struct TuiState {
     pub pending_operation_refresh: Vec<scriberig_core::OperationId>,
     /// Bounded stream/output handles shown as in-progress observations.
     pub agent_output_observations: Vec<String>,
+    /// Stable session, branch, and operation handles for active agent work.
+    pub agent_handles: Vec<crate::service::AgentHandle>,
 }
 
 impl Default for TuiState {
@@ -127,6 +131,7 @@ impl Default for TuiState {
             next_request_id: 1,
             primary_view: crate::selection::PrimaryView::Overview,
             history: LoadState::NotRequested,
+            find: LoadState::NotRequested,
             diff: LoadState::NotRequested,
             projection: LoadState::NotRequested,
             review: LoadState::NotRequested,
@@ -136,6 +141,7 @@ impl Default for TuiState {
             session: LoadState::NotRequested,
             pending_operation_refresh: Vec::new(),
             agent_output_observations: Vec::new(),
+            agent_handles: Vec::new(),
         }
     }
 }

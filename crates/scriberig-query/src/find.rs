@@ -7,7 +7,7 @@ use crate::{
 use scriberig_core::ObjectType;
 
 /// Selects a discovery strategy without promising provider support.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum FindStrategy {
     /// Matches exact text.
     ExactText,
@@ -22,7 +22,7 @@ pub enum FindStrategy {
 }
 
 /// Requests ranked or approximate discovery inside one exact snapshot scope.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct FindRequest {
     /// Exact semantic scope to search.
     pub scope: QueryScope,
@@ -37,7 +37,7 @@ pub struct FindRequest {
 }
 
 /// One semantic discovery hit with optional ranking/provenance metadata.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct FindHit {
     /// Semantic handle that can be passed to inspection.
     pub target: TargetRef,
@@ -56,7 +56,7 @@ pub struct FindHit {
 }
 
 /// Returns discovery hits with the exact scope and strategy used.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct FindResult {
     /// Exact scope used by discovery.
     pub scope: QueryScope,

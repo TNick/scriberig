@@ -2,6 +2,17 @@
 import type { ReactElement } from "react";
 import { Button, List, ListItem, Typography } from "@mui/material";
 import { MuiPanel, MuiStatus } from "./mui-primitives";
+import type { MigrationChange } from "@scriberig/components";
+
+/**
+ * Formats a structured migration change for the MUI presentation.
+ * @param change Structured migration change.
+ * @returns Human-readable change text.
+ */
+function formatChange(change: MigrationChange): string {
+  if (typeof change === "string") return change;
+  return `${change.kind}: ${change.entityId}`;
+}
 /** Renders the MuiMigrationPreview Material UI component. */
 export function MuiMigrationPreview({
   baseSnapshot,
@@ -15,7 +26,7 @@ export function MuiMigrationPreview({
 }: {
   baseSnapshot: string;
   candidateSnapshot?: string;
-  changes: readonly string[];
+  changes: readonly MigrationChange[];
   validation: "current" | "failed" | "unknown";
   state?: "ready" | "stale" | "conflict";
   onApply?: () => void;
@@ -38,8 +49,8 @@ export function MuiMigrationPreview({
         <MuiStatus severity={state === "ready" ? "info" : "warning"}>State: {state}</MuiStatus>
       ) : null}
       <List>
-        {changes.map((c) => (
-          <ListItem key={c}>{c}</ListItem>
+        {changes.map((change) => (
+          <ListItem key={formatChange(change)}>{formatChange(change)}</ListItem>
         ))}
       </List>
       {onApply ? (

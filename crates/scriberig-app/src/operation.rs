@@ -3,12 +3,14 @@
 pub use scriberig_core::OperationId;
 
 use crate::{ApplicationError, ApplicationEvent};
-use std::collections::BTreeMap;
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::mpsc::{self, Receiver};
 use std::sync::{Arc, Mutex};
 
 #[path = "operation_record.rs"]
 mod operation_record;
+#[path = "operation_state.rs"]
+mod operation_state;
+use operation_state::{OperationRegistryState, operation_event};
 
 /// Classifies the semantic work performed by an operation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -31,6 +33,8 @@ pub enum OperationKind {
     Render,
     /// Creates or updates a branch context.
     Branch,
+    /// Executes a model-driven agent operation.
+    Agent,
     /// Applies a proposed change.
     Apply,
     /// Commits a validated change.
@@ -96,6 +100,8 @@ pub struct OperationRecord {
     pub progress: Option<OperationProgress>,
     /// Stable handles produced by a completed operation.
     pub result_handles: Vec<String>,
+    /// Structured terminal agent result, when this is an agent operation.
+    pub agent_result: Option<crate::AgentResult>,
     /// Structured failure when the operation failed.
     pub error: Option<crate::ApplicationError>,
 }
@@ -105,17 +111,6 @@ pub struct OperationRecord {
 pub struct OperationRegistry {
     /// Shared mutable lifecycle state and event subscribers.
     state: Arc<Mutex<OperationRegistryState>>,
-}
-
-/// Stores operation records and event subscribers behind one lock.
-#[derive(Default)]
-struct OperationRegistryState {
-    /// Operation records keyed by their stable identity.
-    records: BTreeMap<OperationId, OperationRecord>,
-    /// Subscribers receiving lifecycle events.
-    subscribers: Vec<Sender<ApplicationEvent>>,
-    /// Bounded in-process history available to protocol subscribers.
-    history: Vec<ApplicationEvent>,
 }
 
 impl OperationRegistry {
@@ -202,6 +197,31 @@ impl OperationRegistry {
         Ok(updated)
     }
 
+    /// Marks an operation failed and retains its structured error.
+    ///
+    /// # Parameters
+    /// - `id`: Operation identity to update.
+    /// - `error`: Structured failure explaining the terminal state.
+    ///
+    /// # Returns
+    /// The failed operation record.
+    ///
+    /// # Errors
+    /// Returns a structured failure when the operation is unknown or terminal.
+    pub fn fail(
+        &self,
+        id: &OperationId,
+        error: ApplicationError,
+    ) -> Result<OperationRecord, ApplicationError> {
+        let mut state = self.lock()?;
+        let record = state.record_mut(id)?;
+        let mut updated = record.clone().transition(OperationStatus::Failed)?;
+        updated.error = Some(error);
+        *record = updated.clone();
+        state.publish(&operation_event(&updated));
+        Ok(updated)
+    }
+
     /// Records bounded progress for an active operation.
     ///
     /// # Parameters
@@ -262,6 +282,36 @@ impl OperationRegistry {
         Ok(updated)
     }
 
+    /// Completes an agent operation with its structured durable result.
+    ///
+    /// # Parameters
+    /// - `id`: Operation identity to complete.
+    /// - `result_handles`: Stable semantic handles produced by the operation.
+    /// - `result`: Provider-neutral terminal agent result.
+    ///
+    /// # Returns
+    /// The completed operation record.
+    ///
+    /// # Errors
+    /// Returns a structured failure when completion is invalid.
+    pub fn complete_agent(
+        &self,
+        id: &OperationId,
+        result_handles: Vec<String>,
+        result: crate::AgentResult,
+    ) -> Result<OperationRecord, ApplicationError> {
+        self.transition(id, OperationStatus::Completed)?;
+        let mut state = self.lock()?;
+        let record = state.record_mut(id)?;
+        record.result_handles = result_handles;
+        record.agent_result = Some(result);
+        let updated = record.clone();
+        state.publish(&ApplicationEvent::OperationCompleted {
+            operation: id.clone(),
+        });
+        Ok(updated)
+    }
+
     /// Cancels one active operation.
     ///
     /// # Parameters
@@ -284,7 +334,7 @@ impl OperationRegistry {
     pub fn subscribe(&self) -> Receiver<ApplicationEvent> {
         let (sender, receiver) = mpsc::channel();
         if let Ok(mut state) = self.state.lock() {
-            state.subscribers.push(sender);
+            state.subscribe(sender);
         }
         receiver
     }
@@ -295,6 +345,24 @@ impl OperationRegistry {
     /// A snapshot of all retained lifecycle events.
     #[must_use]
     pub fn events(&self) -> Vec<ApplicationEvent> {
+        self.state
+            .lock()
+            .map(|state| {
+                state
+                    .history
+                    .iter()
+                    .map(|(_, event)| event.clone())
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    /// Returns retained lifecycle events with their stable cursors.
+    ///
+    /// # Returns
+    /// Events paired with the monotonic cursor allocated at publication time.
+    #[must_use]
+    pub fn events_with_sequences(&self) -> Vec<(u64, ApplicationEvent)> {
         self.state
             .lock()
             .map(|state| state.history.clone())
@@ -312,59 +380,5 @@ impl OperationRegistry {
         self.state.lock().map_err(|_| ApplicationError::Internal {
             message: "operation registry lock failed".to_owned(),
         })
-    }
-}
-
-impl OperationRegistryState {
-    /// Returns a mutable operation record or a structured not-found error.
-    ///
-    /// # Parameters
-    /// - `id`: Operation identity to resolve.
-    ///
-    /// # Returns
-    /// A mutable operation record.
-    ///
-    /// # Errors
-    /// Returns `NotFound` when the operation is unknown.
-    fn record_mut(&mut self, id: &OperationId) -> Result<&mut OperationRecord, ApplicationError> {
-        self.records
-            .get_mut(id)
-            .ok_or_else(|| ApplicationError::NotFound {
-                subject: id.to_string(),
-            })
-    }
-
-    /// Publishes an event and removes disconnected subscribers.
-    ///
-    /// # Parameters
-    /// - `event`: Lifecycle event to publish.
-    fn publish(&mut self, event: &ApplicationEvent) {
-        self.history.push(event.clone());
-        self.subscribers
-            .retain(|subscriber| subscriber.send(event.clone()).is_ok());
-    }
-}
-
-/// Converts a lifecycle transition to its transport-neutral event.
-///
-/// # Parameters
-/// - `record`: Operation record describing the transition.
-///
-/// # Returns
-/// The corresponding application event.
-fn operation_event(record: &OperationRecord) -> ApplicationEvent {
-    if record.status.is_terminal() {
-        ApplicationEvent::OperationCompleted {
-            operation: record.reference.clone(),
-        }
-    } else if let Some(progress) = record.progress.clone() {
-        ApplicationEvent::OperationProgressed {
-            operation: record.reference.clone(),
-            progress,
-        }
-    } else {
-        ApplicationEvent::OperationStarted {
-            operation: record.reference.clone(),
-        }
     }
 }

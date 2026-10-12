@@ -5,7 +5,7 @@ use scriberig_app::{
     SnapshotResolution,
 };
 use scriberig_cli::{
-    Command, InspectArgs, dispatch,
+    Command, InspectArgs, MaintenanceArgs, dispatch,
     trust::{InspectDepth, OutputFormat},
 };
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
@@ -74,7 +74,13 @@ fn inspect_dispatch_preserves_handles() {
 /// Verifies unsupported command paths return a non-zero dispatch status.
 #[test]
 fn unsupported_dispatch_is_structured() {
-    let error = dispatch(&Fixture, &ApplicationContext::empty(), Command::Maintenance)
-        .expect_err("unsupported command");
+    let error = dispatch(
+        &Fixture,
+        &ApplicationContext::empty(),
+        Command::Maintenance(MaintenanceArgs {
+            db: "test.sqlite".into(),
+        }),
+    )
+    .expect_err("unsupported command");
     assert_eq!(error.exit_code, 1);
 }

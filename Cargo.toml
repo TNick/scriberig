@@ -16,6 +16,7 @@ members = [
   "crates/sr-projection-fs",
   "crates/sr-markdown",
   "crates/scriberig-session",
+  "crates/scriberig-session-sqlite",
   "crates/scriberig-app",
   "crates/scriberig-protocol",
   "crates/scriberig-client",

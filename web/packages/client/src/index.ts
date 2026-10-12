@@ -3,5 +3,6 @@ export * from "./client";
 export * from "./event-stream";
 export * from "./errors";
 export * from "./http-transport";
+export * from "./sse-parser";
 export * from "./transport";
 export * from "./trust";

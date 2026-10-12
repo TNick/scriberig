@@ -50,6 +50,18 @@ pub enum ApplicationEvent {
         /// Stable operation identity.
         operation: OperationId,
     },
+    /// An operation failed with a stable diagnostic.
+    OperationFailed {
+        /// Stable operation identity.
+        operation: OperationId,
+        /// Safe failure detail.
+        error: String,
+    },
+    /// An operation was cancelled before completion.
+    OperationCancelled {
+        /// Stable operation identity.
+        operation: OperationId,
+    },
     /// Validation completed for a stable subject handle.
     ValidationCompleted {
         /// Stable validated subject identity.

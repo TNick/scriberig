@@ -2,12 +2,16 @@
 
 use crate::{
     ApplicationContext, ApplicationError, ApplyRequest, BranchRequest, CommitRequest, DiffRequest,
-    HistoryRequest, OperationProvider, OperationSummary, RenderRequest,
+    HistoryRequest, MigrationDelta, MigrationDetail, OperationProvider, OperationSummary,
+    RenderRequest,
 };
 use scriberig_store::{RootError, RootStore, SnapshotChange, SnapshotStore};
-use sr_change::HistoryGraph;
-use std::collections::BTreeMap;
+use sr_change::{EntityDelta, HistoryGraph, MigrationReference};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Mutex;
+
+#[path = "operation_store_helpers.rs"]
+mod operation_store_helpers;
 
 /// Executes exact snapshot diffs through the canonical snapshot store.
 pub struct StoreOperationProvider<S> {
@@ -78,19 +82,21 @@ impl<S> StoreOperationProvider<S> {
         };
         migrations.insert(id.into(), migration).is_none()
     }
+}
 
-    /// Resolves a registered migration into storage changes.
+impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<S> {
+    /// Reads one registered migration without changing canonical state.
     ///
     /// # Parameters
-    /// - `self`: Provider owning canonical migrations.
+    /// - `self`: Storage-backed operation provider.
     /// - `id`: Stable migration handle.
     ///
     /// # Returns
-    /// Exact storage changes in canonical entity order.
+    /// Snapshot-bound migration detail.
     ///
     /// # Errors
     /// Returns not-found when the migration handle is unknown.
-    fn changes_for(&self, id: &str) -> Result<Vec<SnapshotChange>, ApplicationError> {
+    fn migration_detail(&self, id: &str) -> Result<MigrationDetail, ApplicationError> {
         let migrations = self
             .migrations
             .lock()
@@ -102,18 +108,22 @@ impl<S> StoreOperationProvider<S> {
             .ok_or_else(|| ApplicationError::NotFound {
                 subject: id.to_owned(),
             })?;
-        Ok(migration
-            .deltas
-            .iter()
-            .map(|delta| match delta.after {
-                Some(revision) => SnapshotChange::Set(delta.entity, revision),
-                None => SnapshotChange::Remove(delta.entity),
-            })
-            .collect())
+        Ok(MigrationDetail {
+            id: id.to_owned(),
+            base: migration.base,
+            result: migration.result,
+            deltas: migration
+                .deltas
+                .iter()
+                .map(|delta| MigrationDelta {
+                    entity: delta.entity,
+                    before: delta.before,
+                    after: delta.after,
+                })
+                .collect(),
+        })
     }
-}
 
-impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<S> {
     /// Computes an exact snapshot diff through the store contract.
     ///
     /// # Parameters
@@ -148,6 +158,9 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             diff: Some(diff),
             history: None,
             rendered: None,
+            validation: None,
+            validation_diagnostics: Vec::new(),
+            conflicts: Vec::new(),
         })
     }
 
@@ -168,14 +181,15 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
         _context: &ApplicationContext,
         request: &HistoryRequest,
     ) -> Result<OperationSummary, ApplicationError> {
-        let Some(history) = &self.history else {
-            return Err(unsupported("history"));
-        };
         let snapshot = match request.snapshot {
             crate::SnapshotSelector::Exact(snapshot) => snapshot,
             crate::SnapshotSelector::NamedRoot(_) => {
                 return Err(unsupported("history named-root resolution"));
             }
+        };
+        let history = match &self.history {
+            Some(history) => history.clone(),
+            None => self.history_for_snapshot(snapshot)?,
         };
         Ok(OperationSummary {
             handle: format!("history:{snapshot}:{}", history.migrations().len()),
@@ -185,6 +199,9 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             diff: None,
             history: Some(history.migrations().into_iter().cloned().collect()),
             rendered: None,
+            validation: None,
+            validation_diagnostics: Vec::new(),
+            conflicts: Vec::new(),
         })
     }
 
@@ -242,6 +259,9 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             diff: None,
             history: None,
             rendered: None,
+            validation: None,
+            validation_diagnostics: Vec::new(),
+            conflicts: Vec::new(),
         })
     }
 
@@ -277,6 +297,9 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             diff: None,
             history: None,
             rendered: None,
+            validation: None,
+            validation_diagnostics: Vec::new(),
+            conflicts: Vec::new(),
         })
     }
 
@@ -319,6 +342,9 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             diff: None,
             history: None,
             rendered: None,
+            validation: None,
+            validation_diagnostics: Vec::new(),
+            conflicts: Vec::new(),
         })
     }
 }

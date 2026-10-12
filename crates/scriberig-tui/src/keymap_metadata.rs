@@ -98,7 +98,7 @@ pub fn hints(state: &TuiState) -> Vec<(&'static str, &'static str)> {
     } else {
         Context::Browse
     };
-    bindings()
+    let mut hints = bindings()
         .iter()
         .filter(|binding| binding.context == context)
         .filter_map(|binding| {
@@ -107,7 +107,14 @@ pub fn hints(state: &TuiState) -> Vec<(&'static str, &'static str)> {
                 .find(|item| item.id == binding.action)
                 .map(|item| (key_label(binding.chord), item.label))
         })
-        .collect()
+        .collect::<Vec<_>>();
+    if !hints
+        .iter()
+        .any(|(key, label)| *key == "Ctrl-C" && *label == "quit")
+    {
+        hints.insert(0, ("Ctrl-C", "quit"));
+    }
+    hints
 }
 
 /// Formats a key for help and hints.

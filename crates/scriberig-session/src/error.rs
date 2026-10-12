@@ -7,7 +7,10 @@ pub enum SessionError {
         to: crate::BranchStatus,
     },
     EmptyTitle,
+    MissingParent,
+    DuplicateBranch,
 }
+
 impl std::fmt::Display for SessionError {
     /// Formats a session error.
     /// Executes `fmt` for structured session state.

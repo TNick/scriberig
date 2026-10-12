@@ -1,17 +1,27 @@
 //! Defines branch lifecycle, compact metadata, and turn ownership.
-use crate::{description::Description, error::SessionError, turn::Turn, types::BranchResult};
+use crate::{
+    description::Description,
+    error::SessionError,
+    execution::{ExecutionActivity, ModelInvocation, ModelOutput},
+    turn::{ToolInvocation, ToolResult, Turn},
+    types::BranchResult,
+};
 use scriberig_core::EntityId;
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, serde::Deserialize, serde::Serialize,
+)]
 /// Session-domain structured value.
 pub enum BranchStatus {
     Active,
     Completed,
     Abandoned,
 }
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 /// Session-domain structured value.
 pub struct Branch {
     pub id: EntityId,
+    pub parent: Option<EntityId>,
+    pub children: Vec<EntityId>,
     pub title: String,
     pub purpose: Option<String>,
     pub outcome: Option<String>,
@@ -20,6 +30,11 @@ pub struct Branch {
     pub touched: Vec<EntityId>,
     pub turns: Vec<Turn>,
     pub result: Option<BranchResult>,
+    pub activity: Vec<ExecutionActivity>,
+    pub model_invocations: Vec<ModelInvocation>,
+    pub model_outputs: Vec<ModelOutput>,
+    pub tool_invocations: Vec<ToolInvocation>,
+    pub tool_results: Vec<ToolResult>,
 }
 impl Branch {
     /// Creates an active branch.
@@ -51,6 +66,8 @@ impl Branch {
         }
         Ok(Self {
             id,
+            parent: None,
+            children: Vec::new(),
             title,
             purpose: None,
             outcome: None,
@@ -59,7 +76,37 @@ impl Branch {
             touched: Vec::new(),
             turns: Vec::new(),
             result: None,
+            activity: Vec::new(),
+            model_invocations: Vec::new(),
+            model_outputs: Vec::new(),
+            tool_invocations: Vec::new(),
+            tool_results: Vec::new(),
         })
+    }
+
+    /// Creates an active child branch with explicit parent and purpose.
+    ///
+    /// # Parameters
+    /// - `id`: Stable child branch identifier.
+    /// - `parent`: Parent branch identifier.
+    /// - `title`: Human-readable child title.
+    /// - `purpose`: Focused work assigned to the child.
+    ///
+    /// # Returns
+    /// A child branch whose parent relationship is already initialized.
+    ///
+    /// # Errors
+    /// Returns `EmptyTitle` for a blank title.
+    pub fn new_child(
+        id: EntityId,
+        parent: EntityId,
+        title: impl Into<String>,
+        purpose: impl Into<String>,
+    ) -> Result<Self, SessionError> {
+        let mut branch = Self::new(id, title)?;
+        branch.parent = Some(parent);
+        branch.purpose = Some(purpose.into());
+        Ok(branch)
     }
     /// Applies a lifecycle transition.
     /// # Errors

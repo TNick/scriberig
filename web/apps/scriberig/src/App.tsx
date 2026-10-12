@@ -3,7 +3,7 @@
 import { ThemeProvider } from "@mui/material/styles";
 import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { ScriberigProvider } from "@scriberig/react";
-import { useSnapshot } from "@scriberig/react";
+import { useSelection, useSnapshot } from "@scriberig/react";
 import { createScriberigTheme } from "@scriberig/components-mui";
 import { AppShell } from "./app-shell";
 import { createRuntime } from "./runtime";
@@ -16,6 +16,15 @@ import { HistoryView } from "./views/HistoryView";
 import { SessionAgentView } from "./views/SessionAgentView";
 import { OperationsView } from "./views/OperationsView";
 import { MigrationReviewView } from "./views/MigrationReviewView";
+import { SelectionSummary } from "./components/SelectionSummary";
+
+/** Renders the semantic selection shared by every integrated route.
+ * @returns The shared selection summary.
+ */
+function SharedSelectionSummary(): ReactElement {
+  const { selection } = useSelection();
+  return <SelectionSummary selection={selection} />;
+}
 
 /** Renders the current connection and snapshot status.
  *
@@ -40,6 +49,7 @@ function RuntimeSnapshotStatus({ connection }: { connection: string }): ReactEle
 export function App(): ReactElement {
   const runtime = useMemo(() => createRuntime(), []);
   const [route, setRoute] = useState<AppRoute>("raw");
+  const [reviewMigrationId, setReviewMigrationId] = useState<string>();
   const [connection, setConnection] = useState(runtime.connection);
   useEffect(() => {
     void runtime.bootstrap().then(
@@ -47,6 +57,7 @@ export function App(): ReactElement {
       () => setConnection(runtime.connection),
     );
   }, [runtime]);
+  useEffect(() => runtime.model.subscribe(() => setConnection(runtime.connection)), [runtime]);
   return (
     <ThemeProvider theme={createScriberigTheme()}>
       <ScriberigProvider value={runtime}>
@@ -56,6 +67,7 @@ export function App(): ReactElement {
           status={connection}
         >
           <RuntimeSnapshotStatus connection={connection} />
+          <SharedSelectionSummary />
           {route === "raw" ? (
             <RawKnowledgeView />
           ) : route === "semantic" ? (
@@ -65,9 +77,16 @@ export function App(): ReactElement {
           ) : route === "history" ? (
             <HistoryView />
           ) : route === "session" ? (
-            <SessionAgentView />
+            <SessionAgentView
+              onReviewCandidate={(migrationId) => {
+                setReviewMigrationId(migrationId);
+                setRoute("migration");
+              }}
+            />
           ) : route === "migration" ? (
-            <MigrationReviewView />
+            <MigrationReviewView
+              {...(reviewMigrationId === undefined ? {} : { migrationId: reviewMigrationId })}
+            />
           ) : (
             <OperationsView />
           )}

@@ -3,7 +3,9 @@
 use std::io;
 use std::time::Duration;
 
-use crossterm::event::{self, Event, KeyCode as CrosstermKeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{
+    self, Event, KeyCode as CrosstermKeyCode, KeyEvent, KeyEventKind, KeyModifiers,
+};
 
 /// A terminal event understood by the TUI runtime.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -101,6 +103,7 @@ pub fn read_event(timeout: Duration) -> io::Result<TuiEvent> {
 pub(crate) fn translate_event(result: io::Result<Event>) -> io::Result<TuiEvent> {
     let event = result?;
     Ok(match event {
+        Event::Key(key) if key.kind == KeyEventKind::Release => TuiEvent::Tick,
         Event::Key(key) => TuiEvent::Key(translate_key(key)),
         Event::Paste(text) => TuiEvent::Paste(text),
         Event::Resize(width, height) => TuiEvent::Resize { width, height },
@@ -114,16 +117,29 @@ pub(crate) fn translate_event(result: io::Result<Event>) -> io::Result<TuiEvent>
 /// # Returns
 /// The value produced by the declaration.
 fn translate_key(key: KeyEvent) -> Key {
-    let modifiers = Modifiers {
+    let mut modifiers = Modifiers {
         control: key.modifiers.contains(KeyModifiers::CONTROL),
         alt: key.modifiers.contains(KeyModifiers::ALT),
         shift: key.modifiers.contains(KeyModifiers::SHIFT),
     };
     let code = match key.code {
+        CrosstermKeyCode::Char('\u{3}') => {
+            modifiers.control = true;
+            KeyCode::Char('c')
+        }
         CrosstermKeyCode::Char('?') if !modifiers.control && !modifiers.alt => KeyCode::Help,
+        CrosstermKeyCode::Char(character)
+            if modifiers.control && character.eq_ignore_ascii_case(&'c') =>
+        {
+            KeyCode::Char('c')
+        }
         CrosstermKeyCode::Char(character) => KeyCode::Char(character),
         CrosstermKeyCode::Esc => KeyCode::Esc,
         CrosstermKeyCode::Enter => KeyCode::Enter,
+        CrosstermKeyCode::BackTab => {
+            modifiers.shift = true;
+            KeyCode::Tab
+        }
         CrosstermKeyCode::Tab => KeyCode::Tab,
         CrosstermKeyCode::Backspace => KeyCode::Backspace,
         CrosstermKeyCode::Up => KeyCode::Up,
@@ -137,7 +153,9 @@ fn translate_key(key: KeyEvent) -> Key {
 
 #[cfg(test)]
 mod tests {
-    use crossterm::event::{Event, KeyCode as CrosstermKeyCode, KeyEvent};
+    use crossterm::event::{
+        Event, KeyCode as CrosstermKeyCode, KeyEvent, KeyEventKind, KeyModifiers,
+    };
 
     use super::{KeyCode, TuiEvent, translate_event};
 
@@ -160,5 +178,59 @@ mod tests {
     fn ignores_unsupported_events() {
         let event = translate_event(Ok(Event::FocusGained)).expect("event");
         assert_eq!(event, TuiEvent::Tick);
+    }
+
+    /// Verifies key-release events do not duplicate text input.
+    #[test]
+    fn ignores_key_release_events() {
+        let event = translate_event(Ok(Event::Key(KeyEvent::new_with_kind(
+            CrosstermKeyCode::Char('a'),
+            KeyModifiers::NONE,
+            KeyEventKind::Release,
+        ))))
+        .expect("event");
+        assert_eq!(event, TuiEvent::Tick);
+    }
+
+    /// Verifies a raw control character is normalized to the quit chord.
+    #[test]
+    fn translates_raw_control_c_as_quit_key() {
+        let event = translate_event(Ok(Event::Key(KeyEvent::new(
+            CrosstermKeyCode::Char('\u{3}'),
+            crossterm::event::KeyModifiers::NONE,
+        ))))
+        .expect("event");
+        assert_eq!(
+            event,
+            TuiEvent::Key(super::Key {
+                code: KeyCode::Char('c'),
+                modifiers: super::Modifiers {
+                    control: true,
+                    alt: false,
+                    shift: false,
+                },
+            })
+        );
+    }
+
+    /// Verifies terminal-native Shift+Tab becomes the reverse-focus chord.
+    #[test]
+    fn translates_backtab_as_shifted_tab() {
+        let event = translate_event(Ok(Event::Key(KeyEvent::new(
+            CrosstermKeyCode::BackTab,
+            KeyModifiers::NONE,
+        ))))
+        .expect("event");
+        assert_eq!(
+            event,
+            TuiEvent::Key(super::Key {
+                code: KeyCode::Tab,
+                modifiers: super::Modifiers {
+                    control: false,
+                    alt: false,
+                    shift: true,
+                },
+            })
+        );
     }
 }

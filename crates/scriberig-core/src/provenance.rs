@@ -3,7 +3,7 @@
 use crate::{EntityId, RevisionId};
 
 /// Identifies one exact immutable entity revision used as provenance input.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct EntityRevisionRef {
     /// Stable entity identity.
     pub entity_id: EntityId,
@@ -12,7 +12,7 @@ pub struct EntityRevisionRef {
 }
 
 /// Identifies the kind of source that produced a value or artifact.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum ProvenanceSource {
     /// A human user authored or asserted the value.
     User,
@@ -39,7 +39,7 @@ pub enum ProvenanceSource {
 }
 
 /// Records origin and exact immutable dependencies without implying trust.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Provenance {
     /// Source category that produced the knowledge.
     pub source: ProvenanceSource,

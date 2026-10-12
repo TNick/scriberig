@@ -2,6 +2,7 @@
 
 pub mod changes;
 pub mod diff;
+pub mod find;
 pub mod history;
 pub mod operations;
 pub mod projection;

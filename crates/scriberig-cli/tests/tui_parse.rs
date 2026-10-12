@@ -31,3 +31,11 @@ fn tui_rejects_database_and_remote_endpoint_together() {
     ]);
     assert!(result.is_err());
 }
+
+/// Verifies maintenance accepts an explicit SQLite database path.
+#[test]
+fn maintenance_parses_database_path() {
+    let cli = Cli::try_parse_from(["srig", "maintenance", "--db", "custom.sqlite"])
+        .expect("maintenance arguments");
+    assert!(format!("{cli:?}").contains("custom.sqlite"));
+}

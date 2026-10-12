@@ -1,5 +1,6 @@
 //! Defines stable serializable transport contracts without server business logic.
 
+pub mod agent;
 pub mod capability;
 pub mod error;
 pub mod event;
@@ -7,20 +8,32 @@ pub mod operation;
 pub mod refs;
 pub mod request;
 pub mod response;
+pub mod session;
 pub mod transport;
 pub mod trust;
 pub mod version;
 
+pub use agent::{
+    AgentAcceptedResponse, AgentContinueRequest, AgentResult, AgentStartRequest, BranchReference,
+    CandidateChangeReference, SessionReference,
+};
 pub use capability::{CapabilitiesResponse, CapabilityInfo, RuntimeFeature};
 pub use error::{ProtocolError, ProtocolErrorCode};
 pub use event::{Event, EventKind};
 pub use operation::{Operation, OperationProgress, OperationStatus};
 pub use refs::{EntityReference, OperationReference, RevisionReference, SnapshotReference};
 pub use request::{
-    CancelOperationRequest, CommandRequest, InspectEntityRequest, OperationStatusRequest,
-    QueryRequest, RuntimeCapabilitiesRequest, SnapshotSelector, SubscribeRequest,
+    CancelOperationRequest, CommandRequest, FindRequest, InspectEntityRequest, ListRequest,
+    OperationStatusRequest, QueryRequest, RuntimeCapabilitiesRequest, SnapshotSelector,
+    SubscribeRequest,
 };
-pub use response::{InspectEntityResponse, OperationStatusResponse, QueryResponse};
+pub use response::{
+    FindResponse, InspectEntityResponse, ListResponse, OperationStatusResponse, QueryResponse,
+};
+pub use session::{
+    SessionBranch, SessionBranchResult, SessionBranchStatus, SessionReadRequest,
+    SessionReadResponse, SessionTurn,
+};
 pub use transport::{ProtocolTransport, Request, RequestEnvelope, Response, ResponseEnvelope};
 pub use trust::{
     ApprovalSummary, CapabilityDenial, ConflictSummary, ExternalEffectState, ExternalEffectSummary,
@@ -61,9 +74,27 @@ mod tests {
         round_trip(&QueryRequest {
             specification: serde_json::json!({"scope": "snapshot"}),
         });
+        round_trip(&ListRequest {
+            specification: serde_json::json!({"collection": "snapshot.entities"}),
+        });
         round_trip(&CommandRequest {
             kind: "apply".to_owned(),
             payload: serde_json::json!({"change": "change-1"}),
+        });
+        round_trip(&AgentStartRequest {
+            session: SessionReference {
+                id: "session-1".to_owned(),
+            },
+            prompt: "inspect the selected branch".to_owned(),
+        });
+        round_trip(&AgentContinueRequest {
+            session: SessionReference {
+                id: "session-1".to_owned(),
+            },
+            branch: BranchReference {
+                id: "branch-1".to_owned(),
+            },
+            prompt: "continue".to_owned(),
         });
     }
 
@@ -97,9 +128,11 @@ mod tests {
             }),
             result_snapshot: None,
             result_handles: Vec::new(),
+            agent_result: None,
             error: None,
         });
         round_trip(&Event {
+            sequence: 1,
             kind: EventKind::EntityChanged,
             entity: Some(EntityReference {
                 id: "entity-1".to_owned(),
@@ -154,6 +187,7 @@ mod tests {
             conflict: None,
         });
         round_trip(&Event {
+            sequence: 2,
             kind: EventKind::SnapshotPromoted,
             entity: Some(selection.entity),
             revision: None,

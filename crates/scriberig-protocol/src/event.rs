@@ -23,6 +23,10 @@ pub enum EventKind {
     OperationProgressed,
     /// Operation completed.
     OperationCompleted,
+    /// Operation failed.
+    OperationFailed,
+    /// Operation was cancelled.
+    OperationCancelled,
     /// Validation completed.
     ValidationCompleted,
     /// Agent output was produced.
@@ -46,6 +50,9 @@ pub enum EventKind {
 /// Carries stable references and concise metadata for one event.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct Event {
+    /// Monotonic protocol event cursor within the server event history.
+    #[serde(default)]
+    pub sequence: u64,
     /// Event category.
     pub kind: EventKind,
     /// Optional affected entity.

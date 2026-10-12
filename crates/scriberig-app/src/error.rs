@@ -149,7 +149,7 @@ impl ApplicationError {
     /// # Returns
     /// A stable category label.
     #[must_use]
-    pub const fn category(&self) -> &'static str {
+    pub fn category(&self) -> &str {
         match self {
             Self::InvalidRequest { .. } => "invalid_request",
             Self::NotFound { .. } => "not_found",
@@ -163,7 +163,7 @@ impl ApplicationError {
             Self::OperationCancelled { .. } => "operation_cancelled",
             Self::Internal { .. } => "internal",
             Self::TransportUnavailable { .. } => "transport_unavailable",
-            Self::ProtocolFailure { .. } => "protocol_failure",
+            Self::ProtocolFailure { category, .. } => category.as_str(),
             Self::RevisionMismatch { .. } => "revision_mismatch",
             Self::UnsupportedCapability { .. } => "unsupported_capability",
             Self::Conflict { .. } => "conflict",

@@ -3,7 +3,7 @@ import { HttpTransport, ScriberigClient } from "@scriberig/client";
 import { SelectionController, type CommandDescriptor } from "@scriberig/editor-core";
 import { KnowledgeTree, type TreeNode } from "@scriberig/editor-core";
 import { WorkspaceModel } from "@scriberig/model";
-import type { CapabilitiesResponse, ProtocolEvent } from "@scriberig/protocol";
+import type { AgentEvent, CapabilitiesResponse, ProtocolEvent } from "@scriberig/protocol";
 
 /** Browser connection state reported by the application runtime. */
 export type ConnectionState = "connecting" | "connected" | "disconnected";
@@ -52,6 +52,74 @@ function commandsFor(capabilities: CapabilitiesResponse): readonly CommandDescri
     .map(([id, command]) => ({ ...command, requiredCapability: id }));
 }
 
+/** Checks whether a discovered capability or feature is available.
+ * @param capabilities Capability discovery response.
+ * @param id Capability or feature identifier.
+ * @returns Whether the capability is currently available.
+ * @throws This pure projection does not throw.
+ */
+export function capabilityAvailable(
+  capabilities: CapabilitiesResponse | undefined,
+  id: string,
+): boolean {
+  return (
+    capabilities?.features.includes(id) === true ||
+    capabilities?.capabilities.some(
+      (capability) => capability.id === id && capability.available,
+    ) === true
+  );
+}
+
+/** Projects a wire operation event into the branch-aware agent model.
+ * @param model Shared semantic model receiving the event.
+ * @param event Normalized protocol event from the server.
+ * @param fallbackSequence Local sequence used by transports without cursors.
+ * @returns The next sequence value.
+ * @throws This pure projection does not throw.
+ */
+function applyAgentProtocolEvent(
+  model: WorkspaceModel,
+  event: ProtocolEvent,
+  fallbackSequence: number,
+): number {
+  const sequence = Math.max(fallbackSequence + 1, event.sequence ?? fallbackSequence + 1);
+  let agentEvent: AgentEvent | undefined;
+  switch (event.kind) {
+    case "agentOutput":
+      agentEvent = {
+        kind: "modelTextDelta",
+        sequence,
+        operationId: event.operationId,
+        text: event.text,
+      };
+      break;
+    case "branchChanged":
+      agentEvent = { kind: "branchChanged", sequence, branchId: event.branchId as never };
+      break;
+    case "operationProgress":
+      agentEvent = { kind: "operationProgress", sequence, operationId: event.operationId };
+      break;
+    case "operationCompleted":
+      agentEvent = { kind: "operationCompleted", sequence, operationId: event.operationId };
+      break;
+    case "operationFailed":
+      agentEvent = {
+        kind: "operationFailed",
+        sequence,
+        operationId: event.operationId,
+        failure: { category: "operation_failure", message: event.error },
+      };
+      break;
+    case "operationCancelled":
+      agentEvent = { kind: "operationCancelled", sequence, operationId: event.operationId };
+      break;
+    default:
+      break;
+  }
+  if (agentEvent !== undefined) model.applyAgentEvent(agentEvent);
+  return sequence;
+}
+
 /** Creates the application runtime from public package contracts. */
 /**
  * @param baseUrl Base URL used by the public HTTP transport.
@@ -66,8 +134,31 @@ export function createRuntime(baseUrl = "/api"): AppRuntime {
   let bootstrapPromise: Promise<void> | undefined;
   let discovered: CapabilitiesResponse | undefined;
   let commands: readonly CommandDescriptor[] = [];
+  let agentSequence = 0;
+  let agentRefresh: Promise<void> | undefined;
   const client = new ScriberigClient(transport);
   const model = new WorkspaceModel();
+  const refreshAgentWorkspace = async (): Promise<void> => {
+    if (agentRefresh !== undefined) return agentRefresh;
+    agentRefresh = (async () => {
+      const operations = model.getAgentState().operations;
+      await Promise.all(
+        Object.values(operations).map(async (known) => {
+          const operation = await client.getOperation(known.operationId);
+          model.operations.set(operation);
+          model.setAgentOperation(operation);
+          const sessionId = operation.sessionId ?? known.sessionId;
+          if (sessionId !== undefined) {
+            const session = await client.getSession(sessionId);
+            model.setAgentSession(session);
+          }
+        }),
+      );
+    })().finally(() => {
+      agentRefresh = undefined;
+    });
+    return agentRefresh;
+  };
   const bootstrap = async (): Promise<void> => {
     if (bootstrapPromise) return bootstrapPromise;
     bootstrapPromise = (async () => {
@@ -95,7 +186,38 @@ export function createRuntime(baseUrl = "/api"): AppRuntime {
       };
       tree.setRoot(node);
       model.setDisconnected(false);
-      client.events((event: ProtocolEvent) => model.apply(event));
+      client.events(
+        (event: ProtocolEvent) => {
+          model.apply(event);
+          agentSequence = applyAgentProtocolEvent(model, event, agentSequence);
+          if (
+            event.kind === "operationCompleted" ||
+            event.kind === "operationFailed" ||
+            event.kind === "operationCancelled"
+          ) {
+            void client.operation(event.operationId).then((operation) => {
+              model.operations.set(operation);
+              model.setAgentOperation(operation);
+              if (operation.sessionId !== undefined) {
+                void client
+                  .getSession(operation.sessionId)
+                  .then((session) => model.setAgentSession(session));
+              }
+            });
+          }
+        },
+        undefined,
+        (state) => {
+          const disconnected = state === "disconnected";
+          connection = disconnected ? "disconnected" : "connected";
+          model.setDisconnected(disconnected);
+          if (disconnected) {
+            model.markAgentWorkspaceStale();
+          } else {
+            void refreshAgentWorkspace();
+          }
+        },
+      );
       connection = "connected";
     })().catch((error) => {
       connection = "disconnected";

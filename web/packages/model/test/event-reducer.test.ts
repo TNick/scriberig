@@ -8,7 +8,12 @@ describe("reduceEvent", () => {
   it("retains non-snapshot lifecycle events for subscribed views", () => {
     const event: ProtocolEvent = { kind: "branchChanged", branchId: "branch-1" };
     const state = reduceEvent(
-      { snapshots: createSnapshotState(), disconnected: false },
+      {
+        snapshots: createSnapshotState(),
+        disconnected: false,
+        changedBranches: [],
+        changedSessions: [],
+      },
       event,
       new OperationStore(),
     );
@@ -16,9 +21,35 @@ describe("reduceEvent", () => {
     expect(state.lastEvent).toEqual(event);
   });
 
+  it("records branch and session changes for model consumers", () => {
+    const operations = new OperationStore();
+    const state = reduceEvent(
+      reduceEvent(
+        {
+          snapshots: createSnapshotState(),
+          disconnected: false,
+          changedBranches: [],
+          changedSessions: [],
+        },
+        { kind: "branchChanged", branchId: "branch-1" },
+        operations,
+      ),
+      { kind: "sessionChanged", sessionId: "session-1" },
+      operations,
+    );
+
+    expect(state.changedBranches).toEqual(["branch-1"]);
+    expect(state.changedSessions).toEqual(["session-1"]);
+  });
+
   it("updates operation lifecycle state from protocol events", () => {
     const operations = new OperationStore();
-    const base = { snapshots: createSnapshotState(), disconnected: false };
+    const base = {
+      snapshots: createSnapshotState(),
+      disconnected: false,
+      changedBranches: [],
+      changedSessions: [],
+    };
 
     reduceEvent(
       base,
@@ -53,7 +84,12 @@ describe("reduceEvent", () => {
     const operations = new OperationStore();
 
     reduceEvent(
-      { snapshots: createSnapshotState(), disconnected: false },
+      {
+        snapshots: createSnapshotState(),
+        disconnected: false,
+        changedBranches: [],
+        changedSessions: [],
+      },
       { kind: "agentOutput", operationId: "op-2" as OperationId, text: "result" },
       operations,
     );

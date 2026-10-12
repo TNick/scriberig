@@ -33,3 +33,17 @@ pub struct QueryResponse {
     /// Exact query result and snapshot scope.
     pub result: serde_json::Value,
 }
+
+/// Returns one bounded semantic collection page.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct ListResponse {
+    /// Exact list result and snapshot scope.
+    pub result: serde_json::Value,
+}
+
+/// Returns bounded semantic discovery hits.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct FindResponse {
+    /// Exact find result and scope.
+    pub result: serde_json::Value,
+}

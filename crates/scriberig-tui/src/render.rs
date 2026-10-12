@@ -3,14 +3,19 @@
 use ratatui::{
     Frame,
     layout::Rect,
-    widgets::{Block, Borders, Paragraph},
+    style::{Color, Style},
+    widgets::{Block, Borders, Clear, Paragraph},
 };
 
 use crate::{
     keymap,
     layout::{LayoutClass, ShellLayout, shell_layout},
-    state::TuiState,
+    state::{Focus, TuiState},
 };
+
+#[path = "render_helpers.rs"]
+mod render_helpers;
+use render_helpers::{inspector_text, panel_block, render_status};
 
 /// Renders one complete shell frame without semantic I/O.
 ///
@@ -23,7 +28,6 @@ pub fn render(frame: &mut Frame<'_>, state: &TuiState) {
     render_body(frame, &layout, state);
     render_overlay(frame, layout.primary, state);
     render_status(frame, layout.status, state);
-    render_hints(frame, layout.hints, state);
 }
 
 /// Renders the active modal overlay as a visible, text-labelled panel.
@@ -36,24 +40,37 @@ fn render_overlay(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
     let Some(overlay) = state.overlay.as_ref() else {
         return;
     };
+    frame.render_widget(Clear, area);
     let text = match overlay {
         crate::overlay::Overlay::Help => crate::overlay::help::rows()
             .into_iter()
             .map(|row| format!("{}: {}", row.key, row.action))
             .collect::<Vec<_>>()
             .join("\n"),
-        crate::overlay::Overlay::Palette(palette) => format!(
-            "Search: {}\n{}",
-            palette.query,
-            palette
+        crate::overlay::Overlay::Palette(palette) => {
+            let rows = palette
                 .filtered()
                 .into_iter()
-                .map(|item| item.label)
+                .enumerate()
+                .map(|(index, item)| {
+                    let marker = if index == palette.selected {
+                        "> "
+                    } else {
+                        "  "
+                    };
+                    format!("{marker}{}", item.label)
+                })
                 .collect::<Vec<_>>()
-                .join("\n")
-        ),
+                .join("\n");
+            format!("Search: {}\n{rows}", palette.query)
+        }
         crate::overlay::Overlay::Input(input) => format!(
-            "Find: {}{}",
+            "{}: {}{}",
+            match input.purpose {
+                crate::overlay::input::InputPurpose::Entity => "Inspect entity",
+                crate::overlay::input::InputPurpose::DiffSnapshot => "Diff target snapshot",
+                crate::overlay::input::InputPurpose::FindQuery => "Find",
+            },
             input.text,
             input
                 .error
@@ -133,19 +150,19 @@ fn render_body(frame: &mut Frame<'_>, layout: &ShellLayout, state: &TuiState) {
     if let Some(area) = layout.explorer {
         frame.render_widget(
             Paragraph::new(explorer_text(state))
-                .block(Block::default().title(" Explorer ").borders(Borders::ALL)),
+                .block(panel_block(" Explorer ", state.focus == Focus::Explorer)),
             area,
         );
     }
     frame.render_widget(
         Paragraph::new(primary_text(state))
-            .block(Block::default().title(" Primary ").borders(Borders::ALL)),
+            .block(panel_block(" Primary ", state.focus == Focus::Primary)),
         layout.primary,
     );
     if let Some(area) = layout.inspector {
         frame.render_widget(
             Paragraph::new(inspector_text(state))
-                .block(Block::default().title(" Inspector ").borders(Borders::ALL)),
+                .block(panel_block(" Inspector ", state.focus == Focus::Inspector)),
             area,
         );
     }
@@ -159,10 +176,34 @@ fn render_body(frame: &mut Frame<'_>, layout: &ShellLayout, state: &TuiState) {
 /// # Returns
 /// Text representing the explorer pane.
 fn explorer_text(state: &TuiState) -> String {
-    state.explorer.root.as_ref().map_or_else(
-        || "Explorer\n  No semantic root entered".to_owned(),
-        |row| format!("Explorer\n  > {}", row.label),
-    )
+    let Some(root) = state.explorer.root.as_ref() else {
+        return "Explorer\n  No semantic root entered".to_owned();
+    };
+    let mut rows = vec![format!(
+        "{}{}",
+        if state.cursor == 0 && state.focus == Focus::Explorer {
+            "> "
+        } else {
+            "  "
+        },
+        root.label
+    )];
+    rows.extend(state.explorer.rows.iter().enumerate().map(|(index, row)| {
+        let cursor = index + 1;
+        format!(
+            "{}{}",
+            if state.cursor == cursor && state.focus == Focus::Explorer {
+                "> "
+            } else {
+                "  "
+            },
+            row.label
+        )
+    }));
+    if state.explorer.next.is_some() {
+        rows.push("  … more entities; press Enter on the root".to_owned());
+    }
+    format!("Explorer\n{}", rows.join("\n"))
 }
 
 /// Renders the selected primary view from cached presentation state.
@@ -183,13 +224,55 @@ fn primary_text(state: &TuiState) -> String {
                 model
                     .rows
                     .iter()
-                    .map(|row| format!("{}: {} -> {}", row.id, row.base, row.result))
+                    .enumerate()
+                    .map(|(index, row)| {
+                        format!(
+                            "{}{}: {} -> {} ({} changed)",
+                            if state.focus == Focus::Primary && state.cursor == index {
+                                "> "
+                            } else {
+                                "  "
+                            },
+                            row.id,
+                            row.base,
+                            row.result,
+                            row.entities.len()
+                        )
+                    })
                     .collect::<Vec<_>>()
                     .join("\n")
             ),
             crate::inspector::LoadState::Loading { .. } => "Loading history...".to_owned(),
             crate::inspector::LoadState::Failed { message, .. } => message.clone(),
             crate::inspector::LoadState::NotRequested => "History not loaded".to_owned(),
+        },
+        crate::selection::PrimaryView::Find => match &state.find {
+            crate::inspector::LoadState::Ready(model) => format!(
+                "Find: {}\n{}",
+                model.query,
+                model
+                    .rows
+                    .iter()
+                    .enumerate()
+                    .map(|(index, row)| format!(
+                        "{}{} {}{}",
+                        if state.focus == Focus::Primary && state.cursor == index {
+                            "> "
+                        } else {
+                            "  "
+                        },
+                        row.entity,
+                        row.entity_type.as_deref().unwrap_or("unknown"),
+                        row.preview
+                            .as_deref()
+                            .map_or(String::new(), |value| format!(" — {value}"))
+                    ))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            ),
+            crate::inspector::LoadState::Loading { .. } => "Searching...".to_owned(),
+            crate::inspector::LoadState::Failed { message, .. } => message.clone(),
+            crate::inspector::LoadState::NotRequested => "Find not run".to_owned(),
         },
         crate::selection::PrimaryView::Diff => match &state.diff {
             crate::inspector::LoadState::Ready(model) => format!(
@@ -199,7 +282,20 @@ fn primary_text(state: &TuiState) -> String {
                 model
                     .rows
                     .iter()
-                    .map(|row| format!("{}: {:?} -> {:?}", row.entity, row.before, row.after))
+                    .enumerate()
+                    .map(|(index, row)| {
+                        format!(
+                            "{}{}: {:?} -> {:?}",
+                            if state.focus == Focus::Primary && state.cursor == index {
+                                "> "
+                            } else {
+                                "  "
+                            },
+                            row.entity,
+                            row.before,
+                            row.after
+                        )
+                    })
                     .collect::<Vec<_>>()
                     .join("\n")
             ),
@@ -222,11 +318,12 @@ fn primary_text(state: &TuiState) -> String {
         },
         crate::selection::PrimaryView::Changes => match &state.review {
             crate::inspector::LoadState::Ready(model) => format!(
-                "Change review: {}\nbase: {}\naffected: {}\nvalidation: {:?}\nEnter to confirm",
+                "Change review: {}\nbase: {}\naffected: {}\nvalidation: {:?}\nconflicts: {:?}\nEnter to confirm",
                 model.change,
                 model.base_snapshot,
                 model.affected_entities.len(),
-                model.validation
+                model.validation,
+                model.conflicts,
             ),
             crate::inspector::LoadState::Loading { .. } => "Preparing change review...".to_owned(),
             crate::inspector::LoadState::Failed { message, .. } => message.clone(),
@@ -236,9 +333,15 @@ fn primary_text(state: &TuiState) -> String {
             crate::inspector::LoadState::Ready(model) => model
                 .rows
                 .iter()
-                .map(|row| {
+                .enumerate()
+                .map(|(index, row)| {
                     format!(
-                        "{}{}: {}",
+                        "{}{}{}: {}",
+                        if state.focus == Focus::Primary && state.cursor == index {
+                            "> "
+                        } else {
+                            "  "
+                        },
                         "  ".repeat(row.depth),
                         if row.transient { "~" } else { "" },
                         row.label
@@ -265,10 +368,18 @@ fn primary_text(state: &TuiState) -> String {
                 state
                     .operations
                     .iter()
-                    .map(|operation| {
+                    .enumerate()
+                    .map(|(index, operation)| {
                         format!(
-                            "{} [{:?}] {}",
-                            operation.id, operation.status, operation.kind
+                            "{}{} [{:?}] {}",
+                            if state.focus == Focus::Primary && state.cursor == index {
+                                "> "
+                            } else {
+                                "  "
+                            },
+                            operation.id,
+                            operation.status,
+                            operation.kind
                         )
                     })
                     .collect::<Vec<_>>()
@@ -278,114 +389,6 @@ fn primary_text(state: &TuiState) -> String {
     }
 }
 
-/// Formats inspector loading, error, and ready states with exact identifiers.
-///
-/// # Parameters
-/// - `state`: Cached presentation state.
-///
-/// # Returns
-/// Text representing inspector state.
-fn inspector_text(state: &TuiState) -> String {
-    match &state.inspector {
-        crate::inspector::LoadState::NotRequested => {
-            "Shell ready\n\nEnter an entity with : or /.".to_owned()
-        }
-        crate::inspector::LoadState::Loading { request_id } => {
-            format!("Inspecting entity (request {request_id})...")
-        }
-        crate::inspector::LoadState::Failed {
-            category,
-            message,
-            stale,
-        } => format!(
-            "Error [{category}]{}\n{message}",
-            if *stale { " (stale data retained)" } else { "" }
-        ),
-        crate::inspector::LoadState::Ready(model) => format!(
-            "Entity: {}\nRevision: {}\nSnapshot: {}\nKind: {}\nLabel: {}\n{}",
-            model.entity,
-            model
-                .revision
-                .map_or_else(|| "none".to_owned(), |value| value.to_string()),
-            model
-                .snapshot
-                .map_or_else(|| "none".to_owned(), |value| value.to_string()),
-            model.kind.as_deref().unwrap_or("unknown"),
-            model.label.as_deref().unwrap_or("none"),
-            model.description.as_deref().unwrap_or("No description"),
-        ),
-    }
-}
-
-/// Renders the runtime status line.
-///
-/// # Parameters
-/// - `frame`: Terminal frame to draw.
-/// - `area`: Status-line rectangle.
-/// - `state`: Cached presentation state.
-fn render_status(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
-    let running = state
-        .operations
-        .iter()
-        .filter(|operation| operation.cancellable())
-        .count();
-    let operation_status = if running == 0 {
-        "operations: idle".to_owned()
-    } else {
-        format!("operations: {running} active")
-    };
-    let message = format!("{} | {}", state.shell_message, operation_status);
-    frame.render_widget(Paragraph::new(message), area);
-}
-
-/// Renders keyboard hints shared by all responsive layouts.
-///
-/// # Parameters
-/// - `frame`: Terminal frame to draw.
-/// - `area`: Hint-line rectangle.
-/// - `state`: Cached presentation state.
-fn render_hints(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
-    let hints = keymap::hints(state)
-        .into_iter()
-        .map(|(key, label)| format!("{key} {label}"))
-        .collect::<Vec<_>>()
-        .join(" | ");
-    frame.render_widget(Paragraph::new(format!(" {hints} ")), area);
-}
-
 #[cfg(test)]
-mod tests {
-    use ratatui::{Terminal, backend::TestBackend};
-
-    use super::render;
-    use crate::state::TuiState;
-
-    /// Renders representative sizes without touching a real terminal.
-    #[test]
-    fn renders_all_required_sizes() {
-        for (width, height) in [(140, 40), (100, 30), (72, 24), (10, 3)] {
-            let backend = TestBackend::new(width, height);
-            let mut terminal = Terminal::new(backend).expect("terminal");
-            terminal
-                .draw(|frame| render(frame, &TuiState::default()))
-                .expect("draw");
-        }
-    }
-
-    /// Verifies the narrow shell preserves a readable primary message.
-    #[test]
-    fn narrow_frame_contains_primary_text() {
-        let backend = TestBackend::new(72, 24);
-        let mut terminal = Terminal::new(backend).expect("terminal");
-        terminal
-            .draw(|frame| render(frame, &TuiState::default()))
-            .expect("draw");
-        let buffer = terminal.backend().buffer();
-        let rendered: String = buffer
-            .content()
-            .iter()
-            .map(ratatui::buffer::Cell::symbol)
-            .collect();
-        assert!(rendered.contains("Shell ready"));
-    }
-}
+#[path = "render_tests.rs"]
+mod tests;

@@ -24,6 +24,26 @@ fn printable_input_is_not_a_browse_command() {
         Some(Action::InputChanged("q".into()))
     );
 }
+
+/// Verifies the shifted colon key opens the command palette.
+#[test]
+fn shifted_colon_opens_palette() {
+    let state = TuiState::default();
+    assert_eq!(
+        action_for(
+            &state,
+            &Key {
+                code: KeyCode::Char(':'),
+                modifiers: Modifiers {
+                    shift: true,
+                    ..Modifiers::default()
+                },
+            }
+        ),
+        Some(Action::PaletteOpened)
+    );
+}
+
 #[test]
 /// Implements `hints_are_derived_from_bindings`.
 fn hints_are_derived_from_bindings() {

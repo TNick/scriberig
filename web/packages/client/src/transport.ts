@@ -1,5 +1,7 @@
 /** @file Defines the framework-independent semantic transport contract. */
 import type { ProtocolError, ProtocolEvent } from "@scriberig/protocol";
+/** Connection state reported by an event transport. */
+export type TransportConnectionState = "connected" | "disconnected";
 /** Typed transport failure separate from semantic protocol errors.
  *
  * Public members: `name`, `message`.
@@ -14,7 +16,11 @@ export class TransportError extends Error {
 /** A transport operation with typed payload and result. */
 export interface SemanticTransport {
   request<TResponse>(operation: string, payload: unknown, signal?: AbortSignal): Promise<TResponse>;
-  subscribe(listener: (event: ProtocolEvent) => void, signal?: AbortSignal): () => void;
+  subscribe(
+    listener: (event: ProtocolEvent) => void,
+    signal?: AbortSignal,
+    onStateChange?: (state: TransportConnectionState) => void,
+  ): () => void;
 }
 /** Semantic error returned by a server.
  *

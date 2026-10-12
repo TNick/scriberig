@@ -1,6 +1,6 @@
 /** @file Defines event subscription lifecycle independent of UI frameworks. */
 import type { ProtocolEvent } from "@scriberig/protocol";
-import type { SemanticTransport } from "./transport";
+import type { SemanticTransport, TransportConnectionState } from "./transport";
 /** Event stream lifecycle state. */
 export type EventStreamState = "connected" | "disconnected";
 /** A closable typed event subscription. */
@@ -19,11 +19,18 @@ export function subscribeEvents(
   transport: SemanticTransport,
   listener: (event: ProtocolEvent) => void,
   signal?: AbortSignal,
+  onStateChange?: (state: EventStreamState) => void,
 ): EventSubscription {
   let state: EventStreamState = "connected";
-  const unsubscribe = transport.subscribe(listener, signal);
+  let closed = false;
+  const notifyStateChange = (next: TransportConnectionState): void => {
+    state = next;
+    onStateChange?.(next);
+  };
+  const unsubscribe = transport.subscribe(listener, signal, notifyStateChange);
   const close = () => {
-    if (state === "connected") {
+    if (!closed) {
+      closed = true;
       state = "disconnected";
       unsubscribe();
     }

@@ -1,7 +1,13 @@
 /** @file Verifies accessible, styling-neutral component behavior. */
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ObjectInspector, OperationView, ProjectionHost, SessionTree } from "../src";
+import {
+  MigrationPreview,
+  ObjectInspector,
+  OperationView,
+  ProjectionHost,
+  SessionTree,
+} from "../src";
 
 describe("neutral components", () => {
   it("renders historical inspection state", () => {
@@ -36,5 +42,16 @@ describe("neutral components", () => {
   it("shows unsupported projections explicitly", () => {
     const html = renderToStaticMarkup(<ProjectionHost projectionId="missing" handlers={[]} />);
     expect(html).toContain("Unsupported projection");
+  });
+
+  it("renders structured semantic migration changes", () => {
+    const html = renderToStaticMarkup(
+      <MigrationPreview
+        baseSnapshot="base"
+        changes={[{ entityId: "entity-1" as never, kind: "modified" }]}
+        validation="current"
+      />,
+    );
+    expect(html).toContain("modified: entity-1");
   });
 });

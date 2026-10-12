@@ -100,6 +100,9 @@ mod tests {
                 workspace: None,
             }]),
             rendered: None,
+            validation: None,
+            validation_diagnostics: Vec::new(),
+            conflicts: Vec::new(),
         };
         let model = HistoryModel::from_summary(snapshot, &summary);
         assert_eq!(

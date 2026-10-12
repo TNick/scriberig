@@ -32,6 +32,14 @@ export class OperationStore {
       progress,
     }));
   }
+  /** Records that an operation has started. @param operationId Operation identity. */
+  start(operationId: OperationId): void {
+    this.update(operationId, (old) => ({ ...old, status: "running" }));
+  }
+  /** Records successful operation completion. @param operationId Operation identity. */
+  complete(operationId: OperationId): void {
+    this.update(operationId, (old) => ({ ...old, status: "completed" }));
+  }
   /** Marks an operation as failed. @param operationId Operation identity. @param error Failure detail. */
   fail(operationId: OperationId, error: string): void {
     this.update(operationId, (old) => ({ ...old, status: "failed", error }));

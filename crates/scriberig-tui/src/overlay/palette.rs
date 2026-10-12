@@ -52,6 +52,8 @@ impl Default for PaletteState {
                 item("projection", "View projection"),
                 item("changes", "View changes/validation"),
                 item("session", "View session"),
+                item("start-agent", "Start agent session"),
+                item("continue-agent", "Continue selected branch"),
                 item("operations", "View operations"),
             ],
             semantic_actions: Vec::new(),
@@ -69,6 +71,23 @@ impl PaletteState {
     /// The value produced by the declaration.
     pub fn with_capabilities(capabilities: &[scriberig_app::RuntimeCapability]) -> Self {
         let mut palette = Self::default();
+        if !capabilities.is_empty() {
+            let available = |id: &str| {
+                capabilities
+                    .iter()
+                    .any(|capability| capability.available && capability.id.as_str() == id)
+            };
+            palette.local_actions.retain(|item| match item.id.as_str() {
+                "history" => available("history"),
+                "diff" => available("diff"),
+                "projection" => available("projection_render"),
+                "changes" => available("change_review"),
+                "session" => available("session_branch_tree"),
+                "start-agent" => available("agent_start"),
+                "continue-agent" => available("agent_continue"),
+                _ => true,
+            });
+        }
         if capabilities
             .iter()
             .any(|capability| capability.available && capability.id.as_str() == "inspect_entity")
@@ -183,5 +202,29 @@ mod tests {
                 .any(|item| item.id == "inspect_entity")
         );
         assert_eq!(PaletteState::default().semantic_actions.len(), 0);
+    }
+
+    /// Verifies agent actions require their own advertised capabilities.
+    #[test]
+    fn agent_actions_follow_specific_capabilities() {
+        let session = scriberig_app::RuntimeCapability::new(
+            scriberig_app::CapabilityId::new("session_branch_tree").expect("id"),
+            "session",
+            true,
+        );
+        let start = scriberig_app::RuntimeCapability::new(
+            scriberig_app::CapabilityId::new("agent_start").expect("id"),
+            "start",
+            true,
+        );
+        let palette = PaletteState::with_capabilities(&[session, start]);
+        let ids = palette
+            .local_actions
+            .iter()
+            .map(|item| item.id.as_str())
+            .collect::<Vec<_>>();
+        assert!(ids.contains(&"session"));
+        assert!(ids.contains(&"start-agent"));
+        assert!(!ids.contains(&"continue-agent"));
     }
 }

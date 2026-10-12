@@ -2,19 +2,33 @@
 
 #![allow(clippy::wildcard_imports)]
 
+use super::service_remote_mapping::{
+    map_remote_event, map_remote_operation, protocol_category, remote_error, session_from_response,
+};
 use super::*;
 
 /// Adapts a protocol transport to TUI service operations.
 pub struct RemoteAdapter<T> {
     /// Protocol client used for semantic requests.
-    client: scriberig_client::Client<T>,
+    pub(super) client: scriberig_client::Client<T>,
+    /// Last remote event cursor delivered to the TUI runtime.
+    event_cursor: std::sync::Mutex<Option<u64>>,
 }
 
 impl<T> RemoteAdapter<T> {
     /// Creates a remote TUI adapter over a public protocol client.
+    ///
+    /// # Parameters
+    /// - `client`: Protocol client used for remote TUI requests.
+    ///
+    /// # Returns
+    /// A remote adapter backed by the client.
     #[must_use]
-    pub const fn new(client: scriberig_client::Client<T>) -> Self {
-        Self { client }
+    pub fn new(client: scriberig_client::Client<T>) -> Self {
+        Self {
+            client,
+            event_cursor: std::sync::Mutex::new(None),
+        }
     }
 }
 
@@ -69,6 +83,52 @@ impl<T: scriberig_protocol::ProtocolTransport> TuiService for RemoteAdapter<T> {
             capabilities: Vec::new(),
             trust: None,
         })
+    }
+
+    /// Lists snapshot entities through the public remote query boundary.
+    ///
+    /// # Parameters
+    /// - `context`: Authorization context for the remote request.
+    /// - `entity`: Entity owning the semantic collection.
+    /// - `snapshot`: Exact snapshot context.
+    /// - `continuation`: Opaque continuation returned by the previous page.
+    /// - `_context`: Authorization context for the remote request.
+    ///
+    /// # Returns
+    /// Snapshot-bound Explorer rows and the next continuation, when present.
+    ///
+    /// # Errors
+    /// Returns a structured remote protocol or application error.
+    fn list_explorer(
+        &self,
+        _context: &ApplicationContext,
+        entity: EntityId,
+        snapshot: SnapshotId,
+        continuation: Option<scriberig_query::ContinuationToken>,
+    ) -> Result<crate::explorer::ExplorerPage, ApplicationError> {
+        super::service_remote_mapping::list_explorer(&self.client, entity, snapshot, continuation)
+    }
+
+    /// Executes exact-text discovery through the public remote boundary.
+    ///
+    /// # Parameters
+    /// - `context`: Authorization context for the remote request.
+    /// - `snapshot`: Exact discovery scope.
+    /// - `query`: User-authored search text.
+    /// - `_context`: Authorization context for the remote request.
+    ///
+    /// # Returns
+    /// A bounded TUI discovery model.
+    ///
+    /// # Errors
+    /// Returns a structured remote protocol or application error.
+    fn find_entities(
+        &self,
+        _context: &ApplicationContext,
+        snapshot: SnapshotId,
+        query: &str,
+    ) -> Result<crate::view::find::FindModel, ApplicationError> {
+        super::service_remote_mapping::find_entities(&self.client, snapshot, query)
     }
 
     /// Converts remote capability descriptors into application metadata.
@@ -164,171 +224,162 @@ impl<T: scriberig_protocol::ProtocolTransport> TuiService for RemoteAdapter<T> {
         &self,
         _context: &ApplicationContext,
     ) -> Result<Vec<scriberig_app::ApplicationEvent>, ApplicationError> {
-        self.client
-            .subscribe(Vec::new())
-            .map_err(remote_error)
-            .map(|events| events.into_iter().filter_map(map_remote_event).collect())
-    }
-}
-
-/// Converts one protocol operation into the shared application lifecycle model.
-/// - `operation`: Argument named `operation`.
-///
-/// # Returns
-/// The value produced by the declaration.
-///
-/// # Errors
-/// Returns an error when the operation cannot complete.
-fn map_remote_operation(
-    operation: scriberig_protocol::Operation,
-) -> Result<scriberig_app::OperationRecord, ApplicationError> {
-    let reference = scriberig_core::OperationId::from_str(&operation.reference.id)
-        .or_else(|_| scriberig_core::OperationId::new(operation.reference.id.clone()))
-        .map_err(|error| ApplicationError::Internal {
-            message: format!("remote response contained invalid operation identity: {error}"),
-        })?;
-    let kind = match operation.kind {
-        scriberig_protocol::operation::OperationKind::Inspect => {
-            scriberig_app::OperationKind::Inspect
-        }
-        scriberig_protocol::operation::OperationKind::Query => scriberig_app::OperationKind::Query,
-        scriberig_protocol::operation::OperationKind::List => scriberig_app::OperationKind::List,
-        scriberig_protocol::operation::OperationKind::Follow => {
-            scriberig_app::OperationKind::Follow
-        }
-        scriberig_protocol::operation::OperationKind::Find => scriberig_app::OperationKind::Find,
-        scriberig_protocol::operation::OperationKind::Diff => scriberig_app::OperationKind::Diff,
-        scriberig_protocol::operation::OperationKind::History => {
-            scriberig_app::OperationKind::History
-        }
-        scriberig_protocol::operation::OperationKind::Render => {
-            scriberig_app::OperationKind::Render
-        }
-        scriberig_protocol::operation::OperationKind::Branch => {
-            scriberig_app::OperationKind::Branch
-        }
-        scriberig_protocol::operation::OperationKind::Apply => scriberig_app::OperationKind::Apply,
-        scriberig_protocol::operation::OperationKind::Commit => {
-            scriberig_app::OperationKind::Commit
-        }
-        scriberig_protocol::operation::OperationKind::Validate
-        | scriberig_protocol::operation::OperationKind::Promote
-        | scriberig_protocol::operation::OperationKind::Custom(_) => {
-            scriberig_app::OperationKind::Query
-        }
-    };
-    let status = match operation.status {
-        scriberig_protocol::OperationStatus::Queued => scriberig_app::OperationStatus::Queued,
-        scriberig_protocol::OperationStatus::Running => scriberig_app::OperationStatus::Running,
-        scriberig_protocol::OperationStatus::Completed => scriberig_app::OperationStatus::Completed,
-        scriberig_protocol::OperationStatus::Failed => scriberig_app::OperationStatus::Failed,
-        scriberig_protocol::OperationStatus::Cancelled => scriberig_app::OperationStatus::Cancelled,
-    };
-    let mut record = scriberig_app::OperationRecord::queued(reference, kind);
-    record.status = status;
-    record.result_handles = operation.result_handles;
-    record.progress = operation
-        .progress
-        .map(|progress| scriberig_app::OperationProgress {
-            status,
-            completed: Some(u64::from(progress.percent)),
-            total: Some(100),
-            phase: progress.message,
-        });
-    if let Some(error) = operation.error {
-        record.error = Some(ApplicationError::OperationFailed {
-            operation: record.reference.to_string(),
-            message: crate::inspector::sanitize(&error),
-        });
-    }
-    Ok(record)
-}
-
-/// Converts operation-related protocol events into shared application events.
-/// - `event`: Argument named `event`.
-///
-/// # Returns
-/// The value produced by the declaration.
-fn map_remote_event(event: scriberig_protocol::Event) -> Option<scriberig_app::ApplicationEvent> {
-    let operation = event.operation?.id.parse().ok()?;
-    match event.kind {
-        scriberig_protocol::EventKind::OperationStarted => {
-            Some(scriberig_app::ApplicationEvent::OperationStarted { operation })
-        }
-        scriberig_protocol::EventKind::OperationProgressed => {
-            let progress = event
-                .metadata
-                .iter()
-                .find(|(key, _)| key == "percent")
-                .and_then(|(_, value)| value.parse::<u8>().ok())
-                .map(|percent| scriberig_app::OperationProgress {
-                    status: scriberig_app::OperationStatus::Running,
-                    completed: Some(u64::from(percent)),
-                    total: Some(100),
-                    phase: None,
-                })?;
-            Some(scriberig_app::ApplicationEvent::OperationProgressed {
-                operation,
-                progress,
-            })
-        }
-        scriberig_protocol::EventKind::OperationCompleted => {
-            Some(scriberig_app::ApplicationEvent::OperationCompleted { operation })
-        }
-        _ => None,
-    }
-}
-
-/// Converts client/protocol failures into safe application-boundary errors.
-///
-/// # Parameters
-/// - `error`: Client or protocol failure.
-///
-/// # Returns
-/// A sanitized application error.
-fn remote_error(error: scriberig_client::ClientError) -> ApplicationError {
-    match error {
-        scriberig_client::ClientError::Transport(message) => {
-            ApplicationError::TransportUnavailable {
-                message: crate::inspector::sanitize(&message),
+        let cursor = self.event_cursor.lock().ok().and_then(|value| *value);
+        let events = match self.client.subscribe_after(Vec::new(), cursor) {
+            Ok(events) => events,
+            Err(scriberig_client::ClientError::Protocol(error))
+                if protocol_category(&error.code) == "cursor_too_old" =>
+            {
+                self.client
+                    .subscribe_after(Vec::new(), None)
+                    .map_err(remote_error)?
+            }
+            Err(error) => return Err(remote_error(error)),
+        };
+        if let Some(sequence) = events.iter().map(|event| event.sequence).max() {
+            if let Ok(mut cursor) = self.event_cursor.lock() {
+                *cursor = Some(sequence);
             }
         }
-        scriberig_client::ClientError::Protocol(error) => ApplicationError::ProtocolFailure {
-            category: protocol_category(&error.code).to_owned(),
-            message: crate::inspector::sanitize(&error.message),
-        },
-        scriberig_client::ClientError::UnexpectedResponse => ApplicationError::ProtocolFailure {
-            category: "unexpected_response".to_owned(),
-            message: "remote response did not match the requested operation".to_owned(),
-        },
+        Ok(events.into_iter().filter_map(map_remote_event).collect())
+    }
+
+    /// Reads and reconstructs the compact remote session view.
+    ///
+    /// # Parameters
+    /// - `_context`: Authorized application context.
+    /// - `session`: Stable session identity.
+    ///
+    /// # Returns
+    /// A provider-neutral session value usable by the existing TUI view model.
+    ///
+    /// # Errors
+    /// Returns a sanitized remote or identity-decoding error.
+    fn read_session(
+        &self,
+        _context: &ApplicationContext,
+        session: EntityId,
+    ) -> Result<scriberig_session::Session, ApplicationError> {
+        let response = self
+            .client
+            .read_session(session.to_string())
+            .map_err(remote_error)?;
+        session_from_response(response)
+    }
+
+    /// Reads one remote branch subtree on demand.
+    ///
+    /// # Parameters
+    /// - `_context`: Authorized application context.
+    /// - `session`: Stable session identity.
+    /// - `branch`: Branch whose activity is requested.
+    ///
+    /// # Returns
+    /// The selected provider-neutral branch subtree.
+    ///
+    /// # Errors
+    /// Returns a sanitized remote protocol failure.
+    fn read_session_branch(
+        &self,
+        _context: &ApplicationContext,
+        session: EntityId,
+        branch: EntityId,
+    ) -> Result<scriberig_session::Session, ApplicationError> {
+        let response = self
+            .client
+            .read_session_branch(session.to_string(), branch.to_string())
+            .map_err(remote_error)?;
+        session_from_response(response)
+    }
+
+    /// Submits a remote agent command through the shared operation protocol.
+    ///
+    /// # Parameters
+    /// - `_context`: Authorized application context.
+    /// - `session`: Stable session identity receiving the prompt.
+    /// - `branch`: Optional target branch identity.
+    /// - `prompt`: User-authored agent instruction.
+    ///
+    /// # Returns
+    /// The accepted shared operation identity.
+    ///
+    /// # Errors
+    /// Returns the sanitized remote protocol failure.
+    fn submit_agent_command(
+        &self,
+        _context: &ApplicationContext,
+        session: EntityId,
+        branch: Option<EntityId>,
+        prompt: &str,
+    ) -> Result<scriberig_core::OperationId, ApplicationError> {
+        let operation = self
+            .client
+            .submit_agent_command(
+                session.to_string(),
+                branch.map(|value| value.to_string()),
+                prompt,
+            )
+            .map_err(remote_error)?;
+        scriberig_core::OperationId::from_str(&operation.operation.reference.id).map_err(|error| {
+            ApplicationError::Internal {
+                message: format!("remote response contained invalid operation identity: {error}"),
+            }
+        })
+    }
+
+    /// Submits remote agent work while retaining the server-provided branch handle.
+    ///
+    /// # Parameters
+    /// - `_context`: Application context for the operation.
+    /// - `session`: Stable session identity.
+    /// - `branch`: Optional continuation branch.
+    /// - `prompt`: User-authored instruction.
+    ///
+    /// # Returns
+    /// Stable operation, session, and branch handles.
+    ///
+    /// # Errors
+    /// Returns a sanitized remote protocol or identity error.
+    fn submit_agent_handle(
+        &self,
+        _context: &ApplicationContext,
+        session: EntityId,
+        branch: Option<EntityId>,
+        prompt: &str,
+    ) -> Result<super::AgentHandle, ApplicationError> {
+        let accepted = match branch {
+            Some(branch) => self
+                .client
+                .continue_agent_with_handles(session.to_string(), branch.to_string(), prompt)
+                .map_err(remote_error)?,
+            None => self
+                .client
+                .start_agent_with_handles(session.to_string(), prompt)
+                .map_err(remote_error)?,
+        };
+        let operation =
+            scriberig_core::OperationId::from_str(&accepted.operation.operation.reference.id)
+                .map_err(|error| ApplicationError::Internal {
+                    message: format!(
+                        "remote response contained invalid operation identity: {error}"
+                    ),
+                })?;
+        let branch = accepted
+            .branch
+            .as_ref()
+            .map(|value| EntityId::from_str(&value.id))
+            .transpose()
+            .map_err(|error| ApplicationError::Internal {
+                message: format!("remote response contained invalid branch identity: {error}"),
+            })?;
+        Ok(super::AgentHandle {
+            operation,
+            session,
+            branch,
+        })
     }
 }
 
-/// Converts a protocol error code to the stable presentation category.
-///
-/// # Parameters
-/// - `code`: Protocol error code to classify.
-///
-/// # Returns
-/// Stable snake-case category text.
-fn protocol_category(code: &scriberig_protocol::ProtocolErrorCode) -> &'static str {
-    match code {
-        scriberig_protocol::ProtocolErrorCode::InvalidRequest => "invalid_request",
-        scriberig_protocol::ProtocolErrorCode::NotFound => "not_found",
-        scriberig_protocol::ProtocolErrorCode::SchemaViolation => "schema_violation",
-        scriberig_protocol::ProtocolErrorCode::StaleBaseSnapshot => "stale_base_snapshot",
-        scriberig_protocol::ProtocolErrorCode::SemanticConflict => "semantic_conflict",
-        scriberig_protocol::ProtocolErrorCode::ValidationFailure => "validation_failure",
-        scriberig_protocol::ProtocolErrorCode::PermissionDenied => "permission_denied",
-        scriberig_protocol::ProtocolErrorCode::UnsupportedOperation => "unsupported_operation",
-        scriberig_protocol::ProtocolErrorCode::UnsupportedCapability => "unsupported_capability",
-        scriberig_protocol::ProtocolErrorCode::Conflict => "conflict",
-        scriberig_protocol::ProtocolErrorCode::Ambiguous => "ambiguous",
-        scriberig_protocol::ProtocolErrorCode::SnapshotUnavailable => "snapshot_unavailable",
-        scriberig_protocol::ProtocolErrorCode::OperationFailed => "operation_failed",
-        scriberig_protocol::ProtocolErrorCode::ProjectionOutOfSync => "projection_out_of_sync",
-        scriberig_protocol::ProtocolErrorCode::OperationCancelled => "operation_cancelled",
-        scriberig_protocol::ProtocolErrorCode::Internal => "internal",
-        scriberig_protocol::ProtocolErrorCode::UnsupportedVersion => "unsupported_version",
-    }
-}
+#[cfg(test)]
+#[path = "service_remote_tests.rs"]
+mod tests;

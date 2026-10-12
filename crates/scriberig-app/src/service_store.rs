@@ -3,7 +3,9 @@
 use crate::{
     ApplicationBackend, ApplicationContext, ApplicationError, ApplicationRequest, ApplicationResult,
 };
-use scriberig_query::{Inspection, TargetRef};
+use scriberig_query::{
+    CollectionRef, EntityInSnapshot, Inspection, NavigationEntry, Page, TargetRef,
+};
 use scriberig_store::{RevisionStore, RootStore, SnapshotStore};
 
 /// Provides exact inspection over canonical revision, snapshot, and root stores.
@@ -60,15 +62,91 @@ where
     ///
     /// # Errors
     /// Returns a structured not-found or backend failure.
+    #[allow(clippy::too_many_lines)]
     fn execute(
         &self,
         _context: &ApplicationContext,
         request: &ApplicationRequest,
     ) -> Result<ApplicationResult, ApplicationError> {
         let ApplicationRequest::Inspect(request) = request else {
-            return Err(ApplicationError::UnsupportedOperation {
-                operation: "storage inspection backend only supports inspect".to_owned(),
-            });
+            let ApplicationRequest::List(request) = request else {
+                if let ApplicationRequest::Find(request) = request {
+                    return find_snapshot_entities(&self.store, request);
+                }
+                return Err(ApplicationError::UnsupportedOperation {
+                    operation: "storage backend read operation".to_owned(),
+                });
+            };
+            if request.collection.collection_type != "snapshot.entities" {
+                return Err(ApplicationError::UnsupportedCapability {
+                    operation: "list".to_owned(),
+                    capability: request.collection.collection_type.clone(),
+                });
+            }
+            let entities = self
+                .store
+                .iter(request.subject.snapshot)
+                .map_err(|error| storage_snapshot_error(&error))?;
+            let start = request
+                .page
+                .continuation
+                .as_ref()
+                .map_or(Some(0), |token| {
+                    token.offset_for("list", request.subject.snapshot)
+                })
+                .ok_or_else(|| ApplicationError::InvalidRequest {
+                    operation: "list".to_owned(),
+                    message: "invalid snapshot entity continuation".to_owned(),
+                })?;
+            let end = start.saturating_add(request.page.limit).min(entities.len());
+            if start > end {
+                return Err(ApplicationError::InvalidRequest {
+                    operation: "list".to_owned(),
+                    message: "snapshot entity continuation is out of range".to_owned(),
+                });
+            }
+            let items = entities
+                .iter()
+                .skip(start)
+                .take(end.saturating_sub(start))
+                .copied()
+                .map(|(entity, revision)| {
+                    let entity_type = self
+                        .store
+                        .get(revision)
+                        .ok()
+                        .flatten()
+                        .map(|value| value.object_type().clone());
+                    NavigationEntry {
+                        target: TargetRef::Snapshot(EntityInSnapshot {
+                            entity,
+                            snapshot: request.subject.snapshot,
+                        }),
+                        entity_type,
+                        label: None,
+                        description: None,
+                        metadata: Some("snapshot entity".to_owned()),
+                    }
+                })
+                .collect();
+            return Ok(ApplicationResult::List(scriberig_query::ListResult {
+                subject: request.subject,
+                snapshot: request.subject.snapshot,
+                collection: CollectionRef {
+                    owner: request.collection.owner,
+                    collection_type: request.collection.collection_type.clone(),
+                },
+                page: Page {
+                    items,
+                    next: (end < entities.len()).then(|| {
+                        scriberig_query::ContinuationToken::for_page(
+                            "list",
+                            request.subject.snapshot,
+                            end,
+                        )
+                    }),
+                },
+            }));
         };
         let (subject, revision_id, snapshot) = match request.target {
             TargetRef::Snapshot(target) => {
@@ -130,6 +208,70 @@ where
                 subject: self.current_root.to_string(),
             })
     }
+}
+
+/// Finds entities by exact text over stable identity and type metadata.
+///
+/// # Parameters
+/// - `store`: Revision and snapshot storage backend.
+/// - `request`: Snapshot-scoped exact-text discovery request.
+///
+/// # Returns
+/// A bounded public find result.
+///
+/// # Errors
+/// Returns a structured application error for unsupported scopes or pages.
+fn find_snapshot_entities<S>(
+    store: &S,
+    request: &scriberig_query::FindRequest,
+) -> Result<ApplicationResult, ApplicationError>
+where
+    S: RevisionStore + SnapshotStore,
+{
+    let scriberig_query::QueryScope::Snapshot(snapshot) = request.scope else {
+        return Err(ApplicationError::InvalidRequest {
+            operation: "find".to_owned(),
+            message: "storage find requires a snapshot scope".to_owned(),
+        });
+    };
+    if request.page.continuation.is_some() {
+        return Err(ApplicationError::InvalidRequest {
+            operation: "find".to_owned(),
+            message: "storage find has no next page".to_owned(),
+        });
+    }
+    let query = request.query.to_lowercase();
+    let hits = store
+        .iter(snapshot)
+        .map_err(|error| storage_snapshot_error(&error))?
+        .into_iter()
+        .filter_map(|(entity, revision)| {
+            let value = store.get(revision).ok().flatten()?;
+            let entity_text = entity.to_string();
+            let type_text = value.object_type().to_string();
+            (entity_text.to_lowercase().contains(&query)
+                || type_text.to_lowercase().contains(&query))
+            .then_some(scriberig_query::FindHit {
+                target: TargetRef::Snapshot(EntityInSnapshot { entity, snapshot }),
+                entity_type: Some(value.object_type().clone()),
+                label: None,
+                preview: Some(type_text),
+                score: None,
+                anchor: None,
+                provenance: None,
+            })
+        })
+        .take(request.page.limit)
+        .collect();
+    Ok(ApplicationResult::Find(scriberig_query::FindResult {
+        scope: request.scope.clone(),
+        strategy: request.strategy.clone(),
+        page: Page {
+            items: hits,
+            next: None,
+        },
+        information_cost: None,
+    }))
 }
 
 /// Maps a revision backend failure to a safe application error.

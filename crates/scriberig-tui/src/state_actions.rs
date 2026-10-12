@@ -21,7 +21,9 @@ pub(super) fn reduce_application_event(
     let operation = match event {
         scriberig_app::ApplicationEvent::OperationStarted { operation }
         | scriberig_app::ApplicationEvent::OperationProgressed { operation, .. }
-        | scriberig_app::ApplicationEvent::OperationCompleted { operation } => operation.clone(),
+        | scriberig_app::ApplicationEvent::OperationCompleted { operation }
+        | scriberig_app::ApplicationEvent::OperationFailed { operation, .. }
+        | scriberig_app::ApplicationEvent::OperationCancelled { operation } => operation.clone(),
         _ => return vec![Effect::None],
     };
     if state.pending_operation_refresh.contains(&operation) {
@@ -37,8 +39,46 @@ pub(super) fn reduce_application_event(
 ///
 /// # Returns
 /// Effects produced by the activation.
+#[allow(clippy::too_many_lines)]
 pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
     if state.overlay.is_none() {
+        if state.focus == crate::state::Focus::Explorer {
+            let selection = if state.cursor == 0 {
+                state.explorer.root.as_ref().map(|row| row.selection)
+            } else {
+                state
+                    .explorer
+                    .rows
+                    .get(state.cursor.saturating_sub(1))
+                    .map(|row| row.selection)
+            };
+            if let Some(selection) = selection {
+                if state.cursor == 0
+                    && (state.explorer.rows.is_empty() || state.explorer.next.is_some())
+                    && let Some(snapshot) = selection.snapshot
+                {
+                    let request_id = state.next_request_id;
+                    state.next_request_id += 1;
+                    return vec![Effect::ListExplorer {
+                        request_id,
+                        entity: selection.entity,
+                        snapshot,
+                        continuation: state.explorer.next.clone(),
+                    }];
+                }
+                let request_id = state.next_request_id;
+                state.next_request_id += 1;
+                state.primary_view = crate::selection::PrimaryView::Overview;
+                return reduce(
+                    state,
+                    Action::InspectRequested {
+                        request_id,
+                        entity: selection.entity,
+                        snapshot: selection.snapshot,
+                    },
+                );
+            }
+        }
         if state.primary_view == crate::selection::PrimaryView::Operations {
             if let Some(operation) = state.operations.get(state.cursor) {
                 if let Some(handle) = operation.result_handles.first() {
@@ -51,10 +91,71 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
                 }
             }
         }
+        if state.primary_view == crate::selection::PrimaryView::Find
+            && let LoadState::Ready(model) = &state.find
+            && let Some(row) = model.rows.get(state.cursor)
+        {
+            let request_id = state.next_request_id;
+            state.next_request_id += 1;
+            return reduce(
+                state,
+                Action::InspectRequested {
+                    request_id,
+                    entity: row.entity,
+                    snapshot: Some(row.snapshot),
+                },
+            );
+        }
+        if state.primary_view == crate::selection::PrimaryView::History
+            && let LoadState::Ready(model) = &state.history
+            && let Some((entity, _, snapshot)) = model.selection(state.cursor, 0)
+        {
+            let request_id = state.next_request_id;
+            state.next_request_id += 1;
+            return reduce(
+                state,
+                Action::InspectRequested {
+                    request_id,
+                    entity,
+                    snapshot: Some(snapshot),
+                },
+            );
+        }
+        if state.primary_view == crate::selection::PrimaryView::Diff
+            && let LoadState::Ready(model) = &state.diff
+            && let Some(row) = model.rows.get(state.cursor)
+        {
+            let request_id = state.next_request_id;
+            state.next_request_id += 1;
+            return reduce(
+                state,
+                Action::InspectRequested {
+                    request_id,
+                    entity: row.entity,
+                    snapshot: Some(model.right),
+                },
+            );
+        }
+        if state.primary_view == crate::selection::PrimaryView::Changes
+            && matches!(state.review, LoadState::Ready(_))
+        {
+            return reduce(state, Action::ConfirmReview);
+        }
         if state.primary_view == crate::selection::PrimaryView::Session {
             if let LoadState::Ready(model) = &state.session {
                 if let Some(row) = model.rows.get(state.cursor) {
                     let id = row.reference;
+                    if row.kind == crate::view::session::SessionRowKind::Branch {
+                        if let Some(session) = state.selection.map(|value| value.entity) {
+                            return reduce(
+                                state,
+                                Action::SessionRequested {
+                                    session,
+                                    branch: Some(id),
+                                },
+                            );
+                        }
+                    }
                     state
                         .navigation
                         .activate(crate::selection::NavigationLocation {
@@ -89,10 +190,79 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
             };
             return reduce(state, Action::HistoryRequested { snapshot });
         }
-        "diff" | "projection" | "changes" => {
+        "diff" => {
+            if state
+                .selection
+                .and_then(|selection| selection.snapshot)
+                .is_none()
+            {
+                "Select an exact snapshot before starting a diff."
+                    .clone_into(&mut state.shell_message);
+                state.overlay = None;
+                return vec![Effect::None];
+            }
+            state.overlay = Some(Overlay::Input(crate::overlay::input::InputState {
+                purpose: crate::overlay::input::InputPurpose::DiffSnapshot,
+                ..Default::default()
+            }));
+            return vec![Effect::None];
+        }
+        "projection" => {
+            "Projection needs a registered view for the selected entity."
+                .clone_into(&mut state.shell_message);
+            state.overlay = None;
+            return vec![Effect::None];
+        }
+        "changes" => {
+            "Changes appear after an application proposes a migration."
+                .clone_into(&mut state.shell_message);
+            state.overlay = None;
             return vec![Effect::None];
         }
         "session" => Action::ViewSelected(crate::selection::PrimaryView::Session),
+        "start-agent" => {
+            let Some(selection) = state.selection else {
+                "Select an entity before starting an agent.".clone_into(&mut state.shell_message);
+                state.overlay = None;
+                return vec![Effect::None];
+            };
+            state.overlay = None;
+            return reduce(
+                state,
+                Action::ComposerOpened {
+                    session: selection.entity,
+                    branch: None,
+                },
+            );
+        }
+        "continue-agent" => {
+            let Some(session) = state.selection else {
+                "Select a session before continuing a branch.".clone_into(&mut state.shell_message);
+                state.overlay = None;
+                return vec![Effect::None];
+            };
+            let branch = match &state.session {
+                LoadState::Ready(model) => model
+                    .rows
+                    .get(state.cursor)
+                    .filter(|row| row.kind == crate::view::session::SessionRowKind::Branch)
+                    .map(|row| row.reference),
+                _ => None,
+            };
+            let Some(branch) = branch else {
+                "Select a branch before continuing it.".clone_into(&mut state.shell_message);
+                state.overlay = None;
+                return vec![Effect::None];
+            };
+            state.overlay = None;
+            return reduce(
+                state,
+                Action::ComposerOpened {
+                    session: session.entity,
+                    branch: Some(branch),
+                },
+            );
+        }
         "operations" => Action::ViewSelected(crate::selection::PrimaryView::Operations),
         _ => return vec![Effect::None],
     };

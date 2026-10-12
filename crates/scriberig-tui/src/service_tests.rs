@@ -4,6 +4,7 @@ use super::{ApplicationAdapter, TuiService, execute_effect};
 use crate::{action::Action, effect::Effect};
 use scriberig_app::{
     ApplicationContext, ApplicationError, InspectRequest, InspectResult, QueryService,
+    SessionBackend,
 };
 use scriberig_core::{EntityId, SnapshotId};
 
@@ -43,6 +44,50 @@ impl QueryService for Fixture {
     }
 }
 
+impl SessionBackend for Fixture {
+    /// Rejects session reads in the query-only test fixture.
+    ///
+    /// # Parameters
+    /// - `_context`: Application context.
+    /// - `_request`: Session read request.
+    ///
+    /// # Returns
+    /// Never returns a session.
+    ///
+    /// # Errors
+    /// Always returns an unsupported-operation error.
+    fn read_session(
+        &self,
+        _context: &ApplicationContext,
+        _request: &scriberig_app::SessionRequest,
+    ) -> Result<scriberig_session::Session, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "test session read".to_owned(),
+        })
+    }
+
+    /// Rejects agent commands in the query-only test fixture.
+    ///
+    /// # Parameters
+    /// - `_context`: Application context.
+    /// - `_request`: Agent command request.
+    ///
+    /// # Returns
+    /// Never returns an operation identity.
+    ///
+    /// # Errors
+    /// Always returns an unsupported-operation error.
+    fn submit_agent_command(
+        &self,
+        _context: &ApplicationContext,
+        _request: &scriberig_app::AgentCommandRequest,
+    ) -> Result<scriberig_core::OperationId, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "test agent command".to_owned(),
+        })
+    }
+}
+
 /// Verifies the adapter preserves exact public snapshot context.
 #[test]
 fn delegates_public_inspection_contract() {
@@ -74,9 +119,11 @@ fn translates_control_effects_without_silent_noops() {
             &service,
             &context,
             Effect::RequestFind {
-                text: "term".to_owned()
+                request_id: 1,
+                text: "term".to_owned(),
+                snapshot: SnapshotId::new([8; 32]),
             }
         ),
-        Action::OperationFailed { category, .. } if category == "unsupported"
+        Action::OperationFailed { category, .. } if category == "unsupported_operation"
     ));
 }

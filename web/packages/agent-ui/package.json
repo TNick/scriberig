@@ -25,6 +25,7 @@
   "dependencies": {
     "@scriberig/editor-core": "workspace:*",
     "@scriberig/model": "workspace:*",
+    "@scriberig/protocol": "workspace:*",
     "@scriberig/react": "workspace:*"
   },
   "peerDependencies": {

@@ -88,11 +88,11 @@ pub enum Command {
     /// Start the API server.
     Serve(ServeArgs),
     /// Run one prompt in headless one-shot mode.
-    Run(PromptArgs),
+    Run(RunArgs),
     /// Run one prompt through the integrated agent runtime.
-    Agent(PromptArgs),
+    Agent(RunArgs),
     /// Run repository or database maintenance operations.
-    Maintenance,
+    Maintenance(MaintenanceArgs),
     /// Inspect one entity and its trust metadata.
     Inspect(InspectArgs),
 }
@@ -117,6 +117,9 @@ pub struct ServeArgs {
     /// SQLite database path used by the local API server.
     #[arg(long, default_value = "playground/dev-app-runtime/scriberig.sqlite")]
     pub db: std::path::PathBuf,
+    /// Exact browser origin allowed for cross-origin protocol requests.
+    #[arg(long)]
+    pub allow_origin: Option<String>,
 }
 
 /// Configure the local application-backed terminal UI.
@@ -134,6 +137,20 @@ pub struct TuiArgs {
     pub connect: Option<String>,
 }
 
+/// Configure canonical-state maintenance.
+///
+/// # Public members
+/// - `db`: SQLite database path to inspect.
+///
+/// # Private members
+/// None.
+#[derive(Debug, Args)]
+pub struct MaintenanceArgs {
+    /// SQLite database path to check.
+    #[arg(long, default_value = "playground/dev-app-runtime/scriberig.sqlite")]
+    pub db: std::path::PathBuf,
+}
+
 /// Store a prompt accepted by a prompt-driven command.
 ///
 /// # Public members
@@ -145,6 +162,40 @@ pub struct TuiArgs {
 pub struct PromptArgs {
     /// User prompt forwarded to the composed runtime.
     pub prompt: String,
+}
+
+/// Configures a headless shared agent operation.
+#[derive(Debug, Args)]
+pub struct RunArgs {
+    /// User prompt forwarded to the shared agent operation.
+    pub prompt: String,
+    /// SQLite database path used by the local application composition.
+    #[arg(long, default_value = "playground/dev-app-runtime/scriberig.sqlite")]
+    pub db: std::path::PathBuf,
+    /// Output representation for the completed operation.
+    #[arg(long, value_enum, default_value_t = RunFormat::Human)]
+    pub format: RunFormat,
+    /// Safe provider profile identifier used in diagnostics.
+    #[arg(long, default_value = "default")]
+    pub provider: String,
+    /// Provider model identifier used when `--base-url` is supplied.
+    #[arg(long, default_value = "default")]
+    pub model: String,
+    /// OpenAI-compatible provider base URL for real model execution.
+    #[arg(long)]
+    pub base_url: Option<String>,
+    /// Environment variable containing the provider credential.
+    #[arg(long, requires = "base_url")]
+    pub api_key_env: Option<String>,
+}
+
+/// Selects the one-shot command output representation.
+#[derive(Clone, Copy, Debug, clap::ValueEnum)]
+pub enum RunFormat {
+    /// Render final text and stable handles for a human.
+    Human,
+    /// Render one machine-readable JSON object.
+    Json,
 }
 
 /// Configure an entity inspection request.
@@ -173,4 +224,40 @@ pub struct InspectArgs {
 #[must_use]
 pub fn parse() -> Command {
     Cli::parse().command
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Cli, Command, RunFormat};
+    use clap::Parser;
+
+    /// Verifies headless provider options remain part of the native command.
+    #[test]
+    fn run_parses_provider_configuration_without_secret_value() {
+        let cli = Cli::try_parse_from([
+            "srig",
+            "run",
+            "hello",
+            "--provider",
+            "local",
+            "--model",
+            "model-a",
+            "--base-url",
+            "http://127.0.0.1:9000/v1",
+            "--api-key-env",
+            "PROVIDER_KEY",
+            "--format",
+            "json",
+        ])
+        .expect("run arguments");
+
+        let Command::Run(args) = cli.command else {
+            panic!("expected run command");
+        };
+        assert_eq!(args.prompt, "hello");
+        assert_eq!(args.provider, "local");
+        assert_eq!(args.model, "model-a");
+        assert_eq!(args.api_key_env.as_deref(), Some("PROVIDER_KEY"));
+        assert!(matches!(args.format, RunFormat::Json));
+    }
 }

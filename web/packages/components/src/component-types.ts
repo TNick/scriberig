@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { KnowledgeTree, TreeNode } from "@scriberig/editor-core";
-import type { ObjectSummary } from "@scriberig/protocol";
+import type { ObjectSummary, SemanticDiff } from "@scriberig/protocol";
 
 /** Common styling and DOM extension properties. */
 export interface ComponentProps {
@@ -49,6 +49,9 @@ export interface DiffEntry {
   /** Human-readable summary. */
   summary: string;
 }
+
+/** One semantic migration change or legacy display-only change. */
+export type MigrationChange = SemanticDiff | string;
 
 /** One session branch summary. */
 export interface BranchSummary {

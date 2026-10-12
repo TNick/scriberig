@@ -1,0 +1,168 @@
+//! Verifies deterministic branch context and exact model-result caching.
+
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+use scriberig_agent_runtime::cache::{CachePolicy, ModelCache};
+use scriberig_agent_runtime::context::{
+    BranchExecutionContext, ContextActivity, ContextCompiler, ContextPolicy,
+    RequestFingerprintInput,
+};
+use scriberig_agent_runtime::provider::{FinishReason, ModelResponse, ProviderMetadata};
+
+/// Verifies unrelated activity does not enter a bounded child context.
+#[test]
+fn child_context_is_bounded_and_preserves_omitted_handles() {
+    let context = BranchExecutionContext::new("session", "child", "child purpose", "do work")
+        .with_parent_summary("parent summary")
+        .with_activity(ContextActivity::new(1, "old", "secret marker").with_handle("h-old"))
+        .with_activity(ContextActivity::new(2, "recent", "selected marker").with_handle("h-new"));
+    let compiled = ContextCompiler::new(ContextPolicy { max_chars: 80 }).compile(&context);
+
+    assert!(compiled.canonical.contains("child purpose"));
+    assert!(!compiled.canonical.contains("secret marker"));
+    assert!(compiled.omitted_handles.contains(&"h-old".to_owned()));
+}
+
+/// Verifies request fingerprints change for semantic inputs but ignore secrets.
+#[test]
+fn fingerprint_excludes_credentials_and_changes_for_model_inputs() {
+    let input = RequestFingerprintInput::new("profile", "model", "compiled", "tools");
+    let first = input.clone().with_credential("one").fingerprint();
+    let second = input.clone().with_credential("two").fingerprint();
+    let changed = input.with_model("other").fingerprint();
+
+    assert_eq!(first, second);
+    assert_ne!(first, changed);
+    assert!(!first.contains("one"));
+}
+
+/// Verifies exact cache reuse avoids a second provider invocation.
+#[test]
+fn reuse_exact_preserves_original_provenance() {
+    let cache = ModelCache::new();
+    let calls = AtomicUsize::new(0);
+    let response = || {
+        calls.fetch_add(1, Ordering::Relaxed);
+        Ok(ModelResponse {
+            text: Some("done".to_owned()),
+            tool_calls: Vec::new(),
+            finish_reason: FinishReason::Stop,
+            usage: None,
+            metadata: ProviderMetadata::default(),
+        })
+    };
+
+    let first = cache
+        .execute(CachePolicy::RecordOnly, "fp", "invocation-1", response)
+        .expect("first response");
+    let second = cache
+        .execute(CachePolicy::ReuseExact, "fp", "invocation-2", || {
+            panic!("provider should not be called on cache hit")
+        })
+        .expect("cached response");
+
+    assert_eq!(calls.load(Ordering::Relaxed), 1);
+    assert_eq!(first.original_invocation, "invocation-1");
+    assert_eq!(second.invocation, "invocation-2");
+    assert_eq!(second.original_invocation, "invocation-1");
+    assert!(second.reused);
+}
+
+/// Verifies branch namespaces isolate otherwise identical model requests.
+#[test]
+fn cache_namespace_isolates_branches() {
+    let cache = ModelCache::new();
+    let calls = AtomicUsize::new(0);
+    let response = || {
+        calls.fetch_add(1, Ordering::Relaxed);
+        Ok(ModelResponse {
+            text: Some("done".to_owned()),
+            tool_calls: Vec::new(),
+            finish_reason: FinishReason::Stop,
+            usage: None,
+            metadata: ProviderMetadata::default(),
+        })
+    };
+
+    cache
+        .execute(CachePolicy::RecordOnly, "branch-a:request", "a-1", response)
+        .expect("branch a response");
+    let branch_b = cache
+        .execute(CachePolicy::ReuseExact, "branch-b:request", "b-1", || {
+            Ok(ModelResponse {
+                text: Some("branch b".to_owned()),
+                tool_calls: Vec::new(),
+                finish_reason: FinishReason::Stop,
+                usage: None,
+                metadata: ProviderMetadata::default(),
+            })
+        })
+        .expect("branch b response");
+
+    assert!(!branch_b.reused);
+    assert_eq!(calls.load(Ordering::Relaxed), 1);
+}
+
+/// Verifies a changed request identity misses an exact cache entry.
+#[test]
+fn changed_request_fingerprint_invalidates_exact_reuse() {
+    let cache = ModelCache::new();
+    let first = cache
+        .execute(
+            CachePolicy::RecordOnly,
+            "request-v1",
+            "invocation-1",
+            || {
+                Ok(ModelResponse {
+                    text: Some("v1".to_owned()),
+                    tool_calls: Vec::new(),
+                    finish_reason: FinishReason::Stop,
+                    usage: None,
+                    metadata: ProviderMetadata::default(),
+                })
+            },
+        )
+        .expect("first response");
+    let second = cache
+        .execute(
+            CachePolicy::ReuseExact,
+            "request-v2",
+            "invocation-2",
+            || {
+                Ok(ModelResponse {
+                    text: Some("v2".to_owned()),
+                    tool_calls: Vec::new(),
+                    finish_reason: FinishReason::Stop,
+                    usage: None,
+                    metadata: ProviderMetadata::default(),
+                })
+            },
+        )
+        .expect("changed response");
+
+    assert!(!second.reused);
+    assert_ne!(first.response, second.response);
+}
+
+/// Verifies failed provider responses never become successful cache hits.
+#[test]
+fn failed_response_is_not_cached_as_success() {
+    let cache = ModelCache::new();
+    let first = cache.execute(CachePolicy::ReuseExact, "failed", "invocation-1", || {
+        Err("provider failed".to_owned())
+    });
+    assert_eq!(first, Err("provider failed".to_owned()));
+
+    let second = cache
+        .execute(CachePolicy::ReuseExact, "failed", "invocation-2", || {
+            Ok(ModelResponse {
+                text: Some("recovered".to_owned()),
+                tool_calls: Vec::new(),
+                finish_reason: FinishReason::Stop,
+                usage: None,
+                metadata: ProviderMetadata::default(),
+            })
+        })
+        .expect("recovery response");
+    assert!(!second.reused);
+}

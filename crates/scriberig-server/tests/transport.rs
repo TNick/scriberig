@@ -90,6 +90,7 @@ impl ApplicationService for Fixture {
                 id: self.snapshot.to_string(),
             }),
             result_handles: Vec::new(),
+            agent_result: None,
             error: None,
         })
     }

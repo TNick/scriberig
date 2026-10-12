@@ -2,25 +2,35 @@
 
 #![allow(clippy::map_unwrap_or)]
 
-use crate::{action::Action, effect::Effect, inspector::InspectorModel};
+use crate::effect::Effect;
 use scriberig_app::{
     ApplicationBackend, ApplicationContext, ApplicationError, ApplicationRequest,
     ApplicationResult, ApplicationService, InspectRequest, InspectResult, QueryService,
     RuntimeCapability, SnapshotResolution,
 };
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
+use scriberig_session::Session;
 use std::str::FromStr;
 
+#[path = "agent_handle.rs"]
+mod agent_handle;
 #[path = "service_application.rs"]
 mod service_application;
+#[path = "service_effects.rs"]
+mod service_effects;
 #[path = "service_operation_adapter.rs"]
 mod service_operation_adapter;
 #[path = "service_operations.rs"]
 mod service_operations;
 #[path = "service_remote.rs"]
 mod service_remote;
+#[path = "service_remote_mapping.rs"]
+mod service_remote_mapping;
 
+pub use agent_handle::AgentHandle;
 pub use service_application::ApplicationAdapter;
+use service_effects::select_branch_subtree;
+pub use service_effects::{TuiOperationService, execute_effect};
 pub use service_operation_adapter::ApplicationOperationAdapter;
 pub use service_operations::{execute_operation, execute_operation_effect};
 pub use service_remote::RemoteAdapter;
@@ -45,6 +55,60 @@ pub trait TuiService {
         entity: EntityId,
         snapshot: Option<SnapshotId>,
     ) -> Result<InspectResult, ApplicationError>;
+
+    /// Lists bounded snapshot entities for Explorer navigation.
+    ///
+    /// # Parameters
+    /// - `context`: Application context for the request.
+    /// - `entity`: Entity owning the Explorer collection.
+    /// - `snapshot`: Exact snapshot context.
+    /// - `_context`: Application context for the request.
+    /// - `_entity`: Entity owning the Explorer collection.
+    /// - `_snapshot`: Exact snapshot context.
+    /// - `_continuation`: Optional continuation token.
+    ///
+    /// # Returns
+    /// Snapshot-bound Explorer rows.
+    ///
+    /// # Errors
+    /// Returns the structured application listing error.
+    fn list_explorer(
+        &self,
+        _context: &ApplicationContext,
+        _entity: EntityId,
+        _snapshot: SnapshotId,
+        _continuation: Option<scriberig_query::ContinuationToken>,
+    ) -> Result<crate::explorer::ExplorerPage, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "explorer listing".to_owned(),
+        })
+    }
+
+    /// Executes snapshot-scoped semantic discovery.
+    ///
+    /// # Parameters
+    /// - `context`: Application context for the request.
+    /// - `snapshot`: Exact discovery scope.
+    /// - `query`: User-authored search text.
+    /// - `_context`: Application context for the request.
+    /// - `_snapshot`: Exact discovery scope.
+    /// - `_query`: User-authored search text.
+    ///
+    /// # Returns
+    /// A bounded find model.
+    ///
+    /// # Errors
+    /// Returns the structured discovery error.
+    fn find_entities(
+        &self,
+        _context: &ApplicationContext,
+        _snapshot: SnapshotId,
+        _query: &str,
+    ) -> Result<crate::view::find::FindModel, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "semantic find".to_owned(),
+        })
+    }
 
     /// Returns runtime capabilities exposed by the application composition.
     ///
@@ -211,6 +275,30 @@ pub trait TuiService {
         })
     }
 
+    /// Reads one branch subtree without requiring unrelated child histories.
+    ///
+    /// # Parameters
+    /// - `context`: Application context for the request.
+    /// - `session`: Stable session identity.
+    /// - `branch`: Branch whose activity should be loaded.
+    ///
+    /// # Returns
+    /// The selected branch and nested descendants.
+    ///
+    /// # Errors
+    /// Returns the underlying session read failure.
+    fn read_session_branch(
+        &self,
+        context: &ApplicationContext,
+        session: EntityId,
+        branch: EntityId,
+    ) -> Result<Session, ApplicationError> {
+        Ok(select_branch_subtree(
+            self.read_session(context, session)?,
+            branch,
+        ))
+    }
+
     /// Submits agent text to a public session/branch operation.
     ///
     /// # Parameters
@@ -235,126 +323,80 @@ pub trait TuiService {
             operation: "agent command submission".to_owned(),
         })
     }
-}
 
-/// Supplies shared application operations to semantic TUI views.
-pub trait TuiOperationService {
-    /// Executes one public application operation without exposing storage.
+    /// Starts a shared agent operation at the session root.
     ///
     /// # Parameters
-    /// - `context`: Authorized application context.
-    /// - `request`: Public universal application request.
+    /// - `context`: Application context for the operation.
+    /// - `session`: Session receiving the new root branch.
+    /// - `prompt`: User-authored agent instruction.
     ///
     /// # Returns
-    /// Structured application result owned by the application layer.
+    /// Stable accepted operation identity.
     ///
     /// # Errors
-    /// Returns the structured application error from the owning subsystem.
-    fn execute_operation(
+    /// Returns the service's structured agent submission error.
+    fn start_agent(
         &self,
         context: &ApplicationContext,
-        request: &ApplicationRequest,
-    ) -> Result<ApplicationResult, ApplicationError>;
-}
+        session: EntityId,
+        prompt: &str,
+    ) -> Result<scriberig_core::OperationId, ApplicationError> {
+        self.submit_agent_command(context, session, None, prompt)
+    }
 
-/// Adapts the complete public application facade for operation-backed views.
-pub fn execute_effect<S: TuiService>(
-    service: &S,
-    context: &ApplicationContext,
-    effect: Effect,
-) -> Action {
-    match effect {
-        Effect::InspectEntity {
-            request_id,
-            entity,
-            snapshot,
-        } => match service.inspect_entity(context, entity, snapshot) {
-            Ok(result) => Action::InspectSucceeded {
-                request_id,
-                model: InspectorModel::from_result(result),
-            },
-            Err(error) => Action::InspectFailed {
-                request_id,
-                category: error.category().to_owned(),
-                message: crate::inspector::sanitize(&error.to_string()),
-            },
-        },
-        Effect::RequestCapabilities => match service.runtime_capabilities(context) {
-            Ok(capabilities) => Action::CapabilitiesLoaded(capabilities),
-            Err(error) => Action::InspectFailed {
-                request_id: 0,
-                category: error.category().to_owned(),
-                message: crate::inspector::sanitize(&error.to_string()),
-            },
-        },
-        Effect::History { .. }
-        | Effect::Diff { .. }
-        | Effect::Render { .. }
-        | Effect::Apply { .. }
-        | Effect::Commit { .. } => execute_operation_effect(service, context, effect),
-        Effect::OperationStatus { operation } => service
-            .operation_status(context, &operation)
-            .map(|record| {
-                Action::OperationObserved(crate::view::operations::OperationModel::from_record(
-                    &record,
-                ))
-            })
-            .unwrap_or_else(|error| Action::OperationFailed {
-                request_id: 0,
-                category: error.category().to_owned(),
-                message: crate::inspector::sanitize(&error.to_string()),
-            }),
-        Effect::CancelOperation { operation } => service
-            .cancel_operation(context, &operation)
-            .map(|record| {
-                Action::OperationObserved(crate::view::operations::OperationModel::from_record(
-                    &record,
-                ))
-            })
-            .unwrap_or_else(|error| Action::OperationFailed {
-                request_id: 0,
-                category: error.category().to_owned(),
-                message: crate::inspector::sanitize(&error.to_string()),
-            }),
-        Effect::ReadSession {
-            request_id,
-            session,
-        } => service
-            .read_session(context, session)
-            .map(|value| Action::SessionSucceeded {
-                request_id,
-                model: crate::view::session::SessionModel::from_session(&value),
-            })
-            .unwrap_or_else(|error| Action::OperationFailed {
-                request_id,
-                category: error.category().to_owned(),
-                message: crate::inspector::sanitize(&error.to_string()),
-            }),
-        Effect::SubmitAgent {
+    /// Continues a shared agent operation on an existing branch.
+    ///
+    /// # Parameters
+    /// - `context`: Application context for the operation.
+    /// - `session`: Session containing the branch.
+    /// - `branch`: Existing branch receiving the follow-up.
+    /// - `prompt`: User-authored follow-up instruction.
+    ///
+    /// # Returns
+    /// Stable accepted operation identity.
+    ///
+    /// # Errors
+    /// Returns the service's structured agent submission error.
+    fn continue_agent(
+        &self,
+        context: &ApplicationContext,
+        session: EntityId,
+        branch: EntityId,
+        prompt: &str,
+    ) -> Result<scriberig_core::OperationId, ApplicationError> {
+        self.submit_agent_command(context, session, Some(branch), prompt)
+    }
+
+    /// Submits agent work and preserves stable handles available at acceptance.
+    ///
+    /// # Parameters
+    /// - `context`: Application context for the operation.
+    /// - `session`: Session receiving the prompt.
+    /// - `branch`: Optional continuation branch.
+    /// - `prompt`: User-authored instruction.
+    ///
+    /// # Returns
+    /// Stable operation, session, and known branch handles.
+    ///
+    /// # Errors
+    /// Returns the service's structured agent submission error.
+    fn submit_agent_handle(
+        &self,
+        context: &ApplicationContext,
+        session: EntityId,
+        branch: Option<EntityId>,
+        prompt: &str,
+    ) -> Result<AgentHandle, ApplicationError> {
+        let operation = branch.map_or_else(
+            || self.start_agent(context, session, prompt),
+            |branch| self.continue_agent(context, session, branch, prompt),
+        )?;
+        Ok(AgentHandle {
+            operation,
             session,
             branch,
-            prompt,
-        } => service
-            .submit_agent_command(context, session, branch, &prompt)
-            .map(Action::AgentSubmitted)
-            .unwrap_or_else(|error| Action::OperationFailed {
-                request_id: 0,
-                category: error.category().to_owned(),
-                message: crate::inspector::sanitize(&error.to_string()),
-            }),
-        Effect::RequestRefresh => Action::RefreshRequested,
-        Effect::RequestQuit => Action::QuitRequested,
-        Effect::RequestFind { text } => Action::OperationFailed {
-            request_id: 0,
-            category: "unsupported".to_owned(),
-            message: format!("find is not available through this TUI service: {text}"),
-        },
-        Effect::RequestSemanticAction { id, .. } => Action::OperationFailed {
-            request_id: 0,
-            category: "unsupported".to_owned(),
-            message: format!("semantic action is not available through this TUI service: {id}"),
-        },
-        Effect::None => Action::Noop,
+        })
     }
 }
 

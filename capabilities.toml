@@ -59,7 +59,7 @@ server = "verified"
 client = "verified"
 cli = "planned"
 tui = "implemented"
-web = "planned"
+web = "implemented"
 agent = "planned"
 
 [[capabilities]]
@@ -75,5 +75,117 @@ server = "verified"
 client = "verified"
 cli = "planned"
 tui = "implemented"
+web = "implemented"
+agent = "planned"
+
+[[capabilities]]
+id = "agent_start"
+description = "Start a provider-neutral agent operation for a session."
+semantic_owner = "scriberig-app"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "implemented"
+protocol = "implemented"
+server = "implemented"
+client = "implemented"
+cli = "planned"
+tui = "implemented"
+web = "implemented"
+agent = "planned"
+
+[[capabilities]]
+id = "agent_continue"
+description = "Continue an agent operation on an existing session branch."
+semantic_owner = "scriberig-app"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "implemented"
+protocol = "implemented"
+server = "implemented"
+client = "implemented"
+cli = "planned"
+tui = "implemented"
+web = "implemented"
+agent = "planned"
+
+[[capabilities]]
+id = "agent_final_result"
+description = "Read a structured terminal result from an agent operation."
+semantic_owner = "scriberig-app"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "implemented"
+protocol = "implemented"
+server = "implemented"
+client = "implemented"
+cli = "implemented"
+tui = "implemented"
+web = "implemented"
+agent = "implemented"
+
+[[capabilities]]
+id = "session_branch_tree"
+description = "Read the durable session and nested branch tree."
+semantic_owner = "scriberig-session"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "implemented"
+protocol = "implemented"
+server = "implemented"
+client = "implemented"
+cli = "planned"
+tui = "implemented"
+web = "implemented"
+agent = "planned"
+
+[[capabilities]]
+id = "session_branch_activity"
+description = "Read ordered activity and result references for a session branch."
+semantic_owner = "scriberig-session"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "implemented"
+protocol = "implemented"
+server = "implemented"
+client = "implemented"
+cli = "planned"
+tui = "implemented"
+web = "implemented"
+agent = "planned"
+
+[[capabilities]]
+id = "agent_event_subscription"
+description = "Observe safe ordered agent lifecycle events."
+semantic_owner = "scriberig-app"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "implemented"
+protocol = "implemented"
+server = "implemented"
+client = "implemented"
+cli = "planned"
+tui = "implemented"
+web = "implemented"
+agent = "planned"
+
+[[capabilities]]
+id = "agent_streaming_output"
+description = "Observe bounded provider-neutral agent output events."
+semantic_owner = "scriberig-agent-runtime"
+
+[capabilities.surfaces]
+library = "planned"
+app = "planned"
+protocol = "planned"
+server = "planned"
+client = "planned"
+cli = "planned"
+tui = "planned"
 web = "implemented"
 agent = "planned"

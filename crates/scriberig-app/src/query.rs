@@ -75,3 +75,25 @@ pub trait QueryService {
         request: &InspectRequest,
     ) -> Result<InspectResult, ApplicationError>;
 }
+
+impl<S: QueryService + ?Sized> QueryService for &S {
+    /// Delegates inspection through a borrowed query service.
+    ///
+    /// # Parameters
+    /// - `self`: Borrowed application query service.
+    /// - `context`: Caller, capability, and snapshot context.
+    /// - `request`: Snapshot-aware inspection request.
+    ///
+    /// # Returns
+    /// Snapshot-bound inspection metadata.
+    ///
+    /// # Errors
+    /// Returns the delegated application error.
+    fn inspect(
+        &self,
+        context: &ApplicationContext,
+        request: &InspectRequest,
+    ) -> Result<InspectResult, ApplicationError> {
+        (*self).inspect(context, request)
+    }
+}

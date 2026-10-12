@@ -122,6 +122,46 @@ impl<S: QueryService> QueryService for GuardedQueryService<S> {
     }
 }
 
+impl<S: crate::SessionBackend> crate::SessionBackend for GuardedQueryService<S> {
+    /// Delegates a session read through the wrapped application boundary.
+    ///
+    /// # Parameters
+    /// - `context`: Caller authorization and snapshot context.
+    /// - `request`: Stable session identity to read.
+    ///
+    /// # Returns
+    /// The requested session snapshot.
+    ///
+    /// # Errors
+    /// Returns the wrapped session backend error.
+    fn read_session(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::SessionRequest,
+    ) -> Result<scriberig_session::Session, ApplicationError> {
+        self.inner.read_session(context, request)
+    }
+
+    /// Delegates an agent command through the wrapped application boundary.
+    ///
+    /// # Parameters
+    /// - `context`: Caller authorization and snapshot context.
+    /// - `request`: Session command to submit.
+    ///
+    /// # Returns
+    /// The accepted operation identity.
+    ///
+    /// # Errors
+    /// Returns the wrapped session backend error.
+    fn submit_agent_command(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::AgentCommandRequest,
+    ) -> Result<scriberig_core::OperationId, ApplicationError> {
+        self.inner.submit_agent_command(context, request)
+    }
+}
+
 impl<S: InspectService> GuardedQueryService<S> {
     /// Authorizes and delegates a reusable exact-target inspection.
     ///

@@ -2,16 +2,30 @@
 
 use crate::{
     ApplicationBackend, ApplicationContext, ApplicationError, ApplicationRequest,
-    ApplicationResult, ApplyRequest, BranchRequest, CapabilityRegistry, CommitRequest, DiffRequest,
-    HistoryRequest, OperationSummary, RenderRequest,
+    ApplicationResult, ApplyRequest, BranchRequest, CommitRequest, DiffRequest, HistoryRequest,
+    MigrationDetail, OperationSummary, RenderRequest,
 };
 use scriberig_core::{RootName, SnapshotId};
-use scriberig_query::{
-    FindService, InspectService, QueryError, StructuredQueryService, TraverseService,
-};
 
 /// Owns application-level diff, history, rendering, and change semantics.
 pub trait OperationProvider {
+    /// Reads canonical detail for one registered migration proposal.
+    ///
+    /// # Parameters
+    /// - `self`: Canonical operation provider.
+    /// - `_id`: Stable migration handle.
+    ///
+    /// # Returns
+    /// Snapshot-bound migration detail.
+    ///
+    /// # Errors
+    /// Returns not-found for an unknown migration or unsupported-operation when
+    /// proposal reads are not configured.
+    fn migration_detail(&self, _id: &str) -> Result<MigrationDetail, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "migration detail".to_owned(),
+        })
+    }
     /// Resolves a named root before a semantic operation starts.
     ///
     /// # Parameters
@@ -138,112 +152,69 @@ pub trait OperationProvider {
     ) -> Result<OperationSummary, ApplicationError>;
 }
 
-/// Composes a universal read provider with canonical operation ownership.
-pub struct CompositeBackend<R, O> {
+/// Composes an application read backend with canonical operation ownership.
+pub struct ApplicationBackendComposition<R, O> {
+    /// Backend owning inspection and other read operations.
     read: R,
+    /// Provider owning diff, history, projection, and change operations.
     operations: O,
-    current_snapshot: Option<SnapshotId>,
-    capabilities: Option<CapabilityRegistry>,
 }
 
-impl<R, O> CompositeBackend<R, O> {
-    /// Creates a composite backend from independent providers.
+impl<R, O> ApplicationBackendComposition<R, O> {
+    /// Creates one application backend from separate read and operation ports.
     ///
     /// # Parameters
-    /// - `read`: Provider for inspect/list/follow/find/query.
-    /// - `operations`: Provider for diff/history/render/branch/apply/commit.
+    /// - `read`: Backend owning read operations.
+    /// - `operations`: Provider owning non-read operations.
     ///
     /// # Returns
-    /// A universal application backend.
+    /// A backend preserving the ownership of both providers.
     #[must_use]
     pub const fn new(read: R, operations: O) -> Self {
-        Self {
-            read,
-            operations,
-            current_snapshot: None,
-            capabilities: None,
-        }
+        Self { read, operations }
     }
 
-    /// Sets the snapshot used to resolve current-root selectors.
-    ///
-    /// # Parameters
-    /// - `self`: Backend being configured.
-    /// - `snapshot`: Exact current snapshot.
+    /// Returns the read backend.
     ///
     /// # Returns
-    /// The configured backend.
+    /// The backend used for read requests.
     #[must_use]
-    pub const fn with_current_snapshot(mut self, snapshot: SnapshotId) -> Self {
-        self.current_snapshot = Some(snapshot);
-        self
+    pub const fn read(&self) -> &R {
+        &self.read
     }
 
-    /// Installs the registry used to enrich inspection capabilities.
-    ///
-    /// # Parameters
-    /// - `self`: Backend being configured.
-    /// - `capabilities`: Injected generic/domain capability registry.
+    /// Returns the operation provider.
     ///
     /// # Returns
-    /// The configured composite backend.
+    /// The provider used for change and projection requests.
     #[must_use]
-    pub fn with_capability_registry(mut self, capabilities: CapabilityRegistry) -> Self {
-        self.capabilities = Some(capabilities);
-        self
+    pub const fn operations(&self) -> &O {
+        &self.operations
     }
 }
 
-impl<R, O> ApplicationBackend for CompositeBackend<R, O>
+impl<R, O> ApplicationBackend for ApplicationBackendComposition<R, O>
 where
-    R: InspectService + TraverseService + FindService + StructuredQueryService,
+    R: ApplicationBackend,
     O: OperationProvider,
 {
-    /// Dispatches each universal operation to its owning provider.
+    /// Delegates each request to the provider owning its semantic operation.
     ///
     /// # Parameters
-    /// - `self`: Composite application backend.
-    /// - `context`: Authorized caller context.
-    /// - `request`: Universal request to execute.
+    /// - `context`: Authorized application context.
+    /// - `request`: Universal application request.
     ///
     /// # Returns
-    /// Structured universal operation result.
+    /// The structured result produced by the selected provider.
     ///
     /// # Errors
-    /// Returns the provider's structured application failure.
+    /// Returns the selected provider's structured application error.
     fn execute(
         &self,
         context: &ApplicationContext,
         request: &ApplicationRequest,
     ) -> Result<ApplicationResult, ApplicationError> {
         match request {
-            ApplicationRequest::Inspect(value) => {
-                let mut inspection = self.read.inspect(value).map_err(map_query_error)?;
-                if let Some(capabilities) = &self.capabilities {
-                    capabilities.enrich_inspection(&mut inspection);
-                }
-                Ok(ApplicationResult::Inspect(inspection))
-            }
-            ApplicationRequest::List(value) => self
-                .read
-                .list(value)
-                .map(ApplicationResult::List)
-                .map_err(map_query_error),
-            ApplicationRequest::Follow(value) => self
-                .read
-                .follow(value)
-                .map(ApplicationResult::Follow)
-                .map_err(map_query_error),
-            ApplicationRequest::Find(value) => self
-                .read
-                .find(value)
-                .map(ApplicationResult::Find)
-                .map_err(map_query_error),
-            ApplicationRequest::Query(value) => self
-                .read
-                .query(value)
-                .map(ApplicationResult::Query)
-                .map_err(map_query_error),
             ApplicationRequest::Diff(value) => self
                 .operations
                 .diff(context, value)
@@ -274,28 +245,43 @@ where
                 .operations
                 .commit(context, value)
                 .map(ApplicationResult::Commit),
+            _ => self.read.execute(context, request),
         }
     }
 
-    /// Resolves the configured current snapshot for convenience APIs.
+    /// Reads migration detail from the canonical operation provider.
     ///
     /// # Parameters
-    /// - `self`: Composite application backend.
-    /// - `_context`: Authorized caller context.
+    /// - `_context`: Authorized application context.
+    /// - `id`: Stable migration handle.
     ///
     /// # Returns
-    /// Exact configured current snapshot.
+    /// Snapshot-bound migration detail.
     ///
     /// # Errors
-    /// Returns an unsupported-operation error when no root is configured.
-    fn current_snapshot(
+    /// Returns the operation provider's structured application error.
+    fn migration_detail(
         &self,
         _context: &ApplicationContext,
+        id: &str,
+    ) -> Result<MigrationDetail, ApplicationError> {
+        self.operations.migration_detail(id)
+    }
+    /// Delegates current-snapshot resolution to the read backend.
+    ///
+    /// # Parameters
+    /// - `context`: Authorized application context.
+    ///
+    /// # Returns
+    /// The exact current snapshot.
+    ///
+    /// # Errors
+    /// Returns the read backend's snapshot resolution error.
+    fn current_snapshot(
+        &self,
+        context: &ApplicationContext,
     ) -> Result<SnapshotId, ApplicationError> {
-        self.current_snapshot
-            .ok_or_else(|| ApplicationError::UnsupportedOperation {
-                operation: "current snapshot resolution".to_owned(),
-            })
+        self.read.current_snapshot(context)
     }
 }
 
@@ -341,54 +327,5 @@ fn resolve_selector<O: OperationProvider>(
         crate::SnapshotSelector::NamedRoot(root) => {
             Ok(crate::SnapshotSelector::Exact(provider.resolve_root(root)?))
         }
-    }
-}
-
-/// Maps a query error to the application boundary.
-///
-/// # Parameters
-/// - `error`: Query failure returned by the read provider.
-///
-/// # Returns
-/// Structured application-level failure.
-fn map_query_error(error: QueryError) -> ApplicationError {
-    match error {
-        QueryError::NotFound { target, .. } => ApplicationError::NotFound {
-            subject: format!("{target:?}"),
-        },
-        QueryError::SnapshotUnavailable { snapshot, .. } => {
-            ApplicationError::SnapshotUnavailable { snapshot }
-        }
-        QueryError::UnsupportedCapability {
-            operation,
-            capability,
-        } => ApplicationError::UnsupportedCapability {
-            operation: format!("{operation:?}").to_lowercase(),
-            capability,
-        },
-        QueryError::DerivedDataUnavailable { operation, .. } => {
-            ApplicationError::UnsupportedCapability {
-                operation: format!("{operation:?}").to_lowercase(),
-                capability: "derived read data".to_owned(),
-            }
-        }
-        QueryError::Internal { message, .. } => ApplicationError::Internal { message },
-        QueryError::InvalidQuery { message } => ApplicationError::InvalidRequest {
-            operation: "query".to_owned(),
-            message,
-        },
-        QueryError::InvalidScope { operation, scope } => ApplicationError::InvalidRequest {
-            operation: format!("{operation:?}").to_lowercase(),
-            message: format!("invalid query scope: {scope:?}"),
-        },
-        QueryError::Ambiguous { operation, message } => ApplicationError::Ambiguous {
-            scope: format!("{operation:?}").to_lowercase(),
-            candidates: Vec::new(),
-            reason: message,
-        },
-        _ => ApplicationError::InvalidRequest {
-            operation: "universal read".to_owned(),
-            message: "query request is invalid".to_owned(),
-        },
     }
 }

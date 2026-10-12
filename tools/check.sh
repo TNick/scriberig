@@ -8,5 +8,7 @@ python3 tools/check_persistence_boundaries.py
 cargo fmt --all -- --check
 cargo check --workspace --all-targets
 cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
 pnpm --dir web format:check
 pnpm --dir web typecheck
+pnpm --dir web test

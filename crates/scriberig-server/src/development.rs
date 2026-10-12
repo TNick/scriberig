@@ -69,3 +69,36 @@ pub fn ensure_fixture(store: &SqliteStore) -> Result<DevelopmentFixture, String>
         snapshot,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::ensure_fixture;
+    use scriberig_core::RootName;
+    use scriberig_store::RootStore;
+    use scriberig_store_sqlite::SqliteStore;
+
+    /// Verifies an empty database receives a usable semantic starting point.
+    #[test]
+    fn empty_store_gets_development_fixture() {
+        let store = SqliteStore::open_in_memory().expect("store");
+
+        let fixture = ensure_fixture(&store).expect("fixture");
+
+        assert_eq!(fixture.child_entities.len(), 2);
+        let root = RootName::new("main").expect("root");
+        assert_eq!(store.read_root(&root), Some(fixture.snapshot));
+    }
+
+    /// Verifies bootstrapping is idempotent for an already initialized store.
+    #[test]
+    fn existing_fixture_is_reused() {
+        let store = SqliteStore::open_in_memory().expect("store");
+
+        let first = ensure_fixture(&store).expect("first fixture");
+        let second = ensure_fixture(&store).expect("second fixture");
+
+        assert_eq!(first.root_entity, second.root_entity);
+        assert_eq!(first.child_entities, second.child_entities);
+        assert_eq!(first.snapshot, second.snapshot);
+    }
+}

@@ -1,15 +1,17 @@
 //! Verifies tracked operation records and structured application failures.
 
 use scriberig_app::{
-    ApplicationContext, ApplicationError, ConflictDetails, DiffRequest, HistoryRequest,
+    ApplicationBackend, ApplicationBackendComposition, ApplicationContext, ApplicationError,
+    ApplicationRequest, ApplicationResult, ConflictDetails, DiffRequest, HistoryRequest,
     OperationId, OperationKind, OperationProvider, OperationRecord, OperationStatus,
-    SnapshotSelector, StoreOperationProvider,
+    SnapshotSelector, StoreInspectionBackend, StoreOperationProvider,
 };
-use scriberig_core::{RevisionId, RootName, SnapshotId};
-use scriberig_store::RootStore;
+use scriberig_core::{EntityId, RevisionId, RootName, SnapshotId};
+use scriberig_store::{RootStore, SnapshotChange, SnapshotStore};
 use scriberig_store_memory::MemoryStore;
 use sr_change::{Migration, Provenance, SourceKind};
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 /// Verifies terminal operation states cannot be changed.
 #[test]
@@ -71,6 +73,45 @@ fn storage_diff_is_snapshot_bound() {
     assert_eq!(result.diff.as_ref().map(|diff| diff.left), Some(snapshot));
 }
 
+/// Verifies operation providers can share a storage backend through `Arc`.
+#[test]
+fn storage_operation_provider_accepts_shared_store() {
+    let store = Arc::new(MemoryStore::new());
+    let snapshot = store.empty_snapshot();
+    let provider = StoreOperationProvider::new(Arc::clone(&store));
+    let result = provider
+        .diff(
+            &ApplicationContext::empty(),
+            &DiffRequest {
+                from: snapshot,
+                to: snapshot,
+            },
+        )
+        .expect("diff");
+    assert_eq!(result.snapshot, Some(snapshot));
+}
+
+/// Verifies read and operation providers can be composed over one store.
+#[test]
+fn application_backend_composition_dispatches_storage_diff() {
+    let store = Arc::new(MemoryStore::new());
+    let snapshot = store.empty_snapshot();
+    let backend = ApplicationBackendComposition::new(
+        StoreInspectionBackend::new(Arc::clone(&store)),
+        StoreOperationProvider::new(Arc::clone(&store)),
+    );
+    let result = backend
+        .execute(
+            &ApplicationContext::empty(),
+            &ApplicationRequest::Diff(DiffRequest {
+                from: snapshot,
+                to: snapshot,
+            }),
+        )
+        .expect("composed diff");
+    assert!(matches!(result, ApplicationResult::Diff(_)));
+}
+
 /// Verifies history execution retains the exact requested snapshot.
 #[test]
 fn storage_history_is_snapshot_bound() {
@@ -87,6 +128,34 @@ fn storage_history_is_snapshot_bound() {
         .expect("history");
     assert_eq!(result.snapshot, Some(snapshot));
     assert_eq!(result.history.as_ref().map(Vec::len), Some(0));
+}
+
+/// Verifies history is derived from durable snapshot ancestry when no graph is
+/// explicitly injected by the caller.
+#[test]
+fn storage_history_derives_snapshot_transition() {
+    let store = MemoryStore::new();
+    let base = store.empty_snapshot();
+    let entity = EntityId::from_bytes([1; 16]);
+    let revision = RevisionId::new([2; 32]);
+    let snapshot = store
+        .apply_changes(base, &[SnapshotChange::Set(entity, revision)])
+        .expect("snapshot");
+
+    let result = StoreOperationProvider::new(store)
+        .history(
+            &ApplicationContext::empty(),
+            &HistoryRequest {
+                snapshot: SnapshotSelector::Exact(snapshot),
+            },
+        )
+        .expect("derived history");
+
+    let history = result.history.expect("history rows");
+    assert_eq!(history.len(), 1);
+    assert_eq!(history[0].base, base);
+    assert_eq!(history[0].result, snapshot);
+    assert_eq!(history[0].deltas[0].entity, entity);
 }
 
 /// Verifies apply is candidate-only while commit performs root promotion.
@@ -144,6 +213,45 @@ fn storage_apply_and_commit_keep_promotion_explicit() {
         )
         .expect("commit");
     assert_eq!(committed.snapshot, Some(snapshot));
+}
+
+/// Verifies registered migrations remain readable as exact proposal details.
+#[test]
+fn storage_migration_detail_is_snapshot_bound() {
+    let store = MemoryStore::new();
+    let base = store.empty_snapshot();
+    let result = SnapshotId::new([9; 32]);
+    let migration = Migration::new(
+        base,
+        result,
+        vec![
+            sr_change::EntityDelta::new(
+                scriberig_core::EntityId::from_bytes([1; 16]),
+                Some(RevisionId::new([2; 32])),
+                Some(RevisionId::new([3; 32])),
+            )
+            .expect("delta"),
+        ],
+        Vec::new(),
+        Provenance {
+            source: SourceKind::User,
+            actor: None,
+            workspace: None,
+            projection: None,
+            validation: Vec::new(),
+            parents: Vec::new(),
+            metadata: BTreeMap::new(),
+        },
+    )
+    .expect("migration");
+    let provider = StoreOperationProvider::new(store);
+    assert!(provider.register_migration("proposal-1", migration));
+    let detail = provider
+        .migration_detail("proposal-1")
+        .expect("migration detail");
+    assert_eq!(detail.base, base);
+    assert_eq!(detail.result, result);
+    assert_eq!(detail.deltas.len(), 1);
 }
 
 /// Verifies branch creation persists the requested named root.

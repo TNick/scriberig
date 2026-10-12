@@ -259,10 +259,10 @@ pub fn bindings() -> &'static [Binding] {
 /// # Returns
 /// The value produced by the declaration.
 pub fn action_for(state: &TuiState, key: &Key) -> Option<Action> {
+    if is_quit_chord(key) {
+        return Some(Action::QuitRequested);
+    }
     if state.is_input_active() {
-        if key.modifiers.control && key.code == KeyCode::Char('c') {
-            return Some(Action::QuitRequested);
-        }
         return match key.code {
             KeyCode::Esc => Some(Action::OverlayClosed),
             KeyCode::Enter => Some(Action::InputSubmitted),
@@ -322,9 +322,49 @@ pub fn action_for(state: &TuiState, key: &Key) -> Option<Action> {
         .find(|binding| {
             binding.context == context
                 && binding.chord.code == key.code
-                && binding.chord.modifiers == key.modifiers
+                && binding.chord.modifiers == command_modifiers(key)
         })
         .map(|binding| action(binding.action))
+}
+
+/// Recognizes Ctrl+C across terminal event encodings.
+///
+/// Some Windows terminal paths deliver the control byte directly, while
+/// others deliver `c` or `C` with the control modifier attached.
+///
+/// # Parameters
+/// - `key`: Backend-independent key event.
+///
+/// # Returns
+/// Whether the key represents the global quit chord.
+fn is_quit_chord(key: &Key) -> bool {
+    matches!(key.code, KeyCode::Char('\u{3}'))
+        || (key.modifiers.control && matches!(key.code, KeyCode::Char('c' | 'C')))
+}
+
+/// Returns modifiers normalized for punctuation command bindings.
+///
+/// Punctuation such as `:` and `?` commonly requires Shift on a physical
+/// keyboard, but Shift produces the character rather than changing the
+/// command chord.
+///
+/// # Parameters
+/// - `key`: Key being matched against the command map.
+///
+/// # Returns
+/// Modifiers normalized for command matching.
+fn command_modifiers(key: &Key) -> Modifiers {
+    if key.modifiers.shift
+        && !key.modifiers.control
+        && !key.modifiers.alt
+        && matches!(key.code, KeyCode::Char(':') | KeyCode::Help)
+    {
+        return Modifiers {
+            shift: false,
+            ..key.modifiers
+        };
+    }
+    key.modifiers
 }
 
 /// Converts an action identifier into the reducer's typed action.

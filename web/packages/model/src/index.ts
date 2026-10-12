@@ -10,3 +10,5 @@ export * from "./event-reducer";
 export * from "./stale-state";
 export * from "./trust-inspector";
 export * from "./subscription";
+export * from "./agent-workspace";
+export type { AgentSelection, BranchDescriptor, Operation } from "@scriberig/protocol";

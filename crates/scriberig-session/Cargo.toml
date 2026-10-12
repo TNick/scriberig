@@ -11,6 +11,7 @@ repository.workspace = true
 scriberig-core = { path = "../scriberig-core" }
 scriberig-graph = { path = "../scriberig-graph" }
 scriberig-migration = { path = "../scriberig-migration" }
+serde = { version = "1.0", features = ["derive"] }
 
 [lints]
 workspace = true

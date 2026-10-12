@@ -79,6 +79,15 @@ pub enum Action {
         /// Safe presentation message.
         message: String,
     },
+    /// Applies a successful bounded Explorer listing.
+    ExplorerSucceeded {
+        /// Request that produced the rows.
+        request_id: u64,
+        /// Snapshot-bound semantic rows.
+        rows: Vec<crate::explorer::ExplorerRow>,
+        /// Opaque continuation for another bounded page.
+        next: Option<scriberig_query::ContinuationToken>,
+    },
     /// Apply runtime capability metadata returned by the application.
     CapabilitiesLoaded(Vec<scriberig_app::RuntimeCapability>),
     /// Switches the primary view without changing semantic selection.
@@ -131,6 +140,15 @@ pub enum Action {
         /// Exact snapshot whose history is requested.
         snapshot: scriberig_core::SnapshotId,
     },
+    /// Requests snapshot-scoped semantic discovery.
+    FindRequested(String),
+    /// Applies a successful semantic discovery result.
+    FindSucceeded {
+        /// Request generation.
+        request_id: u64,
+        /// Projected discovery rows.
+        model: crate::view::find::FindModel,
+    },
     /// Requests a two-sided semantic diff.
     DiffRequested {
         /// Public exact diff request.
@@ -160,9 +178,14 @@ pub enum Action {
         model: crate::view::session::SessionModel,
     },
     /// Tracks the operation returned by an agent command submission.
-    AgentSubmitted(scriberig_core::OperationId),
+    AgentSubmitted(crate::service::AgentHandle),
     /// Requests a public session tree.
-    SessionRequested(scriberig_core::EntityId),
+    SessionRequested {
+        /// Stable session identity.
+        session: scriberig_core::EntityId,
+        /// Optional branch whose activity is loaded on demand.
+        branch: Option<scriberig_core::EntityId>,
+    },
     /// Opens the agent composer for an explicit session branch.
     ComposerOpened {
         /// Session receiving the command.

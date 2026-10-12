@@ -87,29 +87,117 @@ impl TerminalGuard {
     /// # Errors
     /// Returns an error when the operation cannot complete.
     fn restore_terminal() -> io::Result<()> {
-        let mut first_error = disable_raw_mode().err();
-        let mut stdout = io::stdout();
-        for command in [
-            TerminalCommand::DisableBracketedPaste,
-            TerminalCommand::Show,
-            TerminalCommand::LeaveAlternateScreen,
-        ] {
-            let result = match command {
-                TerminalCommand::DisableBracketedPaste => {
-                    execute!(stdout, DisableBracketedPaste)
-                }
-                TerminalCommand::Show => execute!(stdout, Show),
-                TerminalCommand::LeaveAlternateScreen => execute!(stdout, LeaveAlternateScreen),
-            };
+        let mut driver = CrosstermDriver {
+            stdout: io::stdout(),
+        };
+        restore_with(&mut driver)
+    }
+}
+
+/// Returns the complete, ordered terminal restoration plan.
+///
+/// Keeping the plan separate makes teardown ordering testable without taking
+/// over the process terminal.
+///
+/// # Returns
+/// Commands that undo every capability enabled by [`TerminalGuard::enter`].
+fn restoration_commands() -> [TerminalCommand; 3] {
+    [
+        TerminalCommand::DisableBracketedPaste,
+        TerminalCommand::Show,
+        TerminalCommand::LeaveAlternateScreen,
+    ]
+}
+
+/// Executes terminal restoration through an injectable lifecycle driver.
+///
+/// # Parameters
+/// - `driver`: Terminal command implementation.
+///
+/// # Returns
+/// The first cleanup error, after all cleanup commands were attempted.
+///
+/// # Errors
+/// Returns the first error reported by the driver.
+fn restore_with<D: TerminalDriver>(driver: &mut D) -> io::Result<()> {
+    let mut first_error = driver.disable_raw_mode().err();
+    for command in restoration_commands() {
+        if let Err(error) = driver.execute(command) {
             if first_error.is_none() {
-                first_error = result.err();
+                first_error = Some(error);
             }
         }
-        first_error.map_or(Ok(()), Err)
+    }
+    first_error.map_or(Ok(()), Err)
+}
+
+/// Abstracts the terminal commands needed during restoration.
+trait TerminalDriver {
+    /// Disables raw mode.
+    ///
+    /// # Returns
+    /// Success when raw mode is disabled.
+    ///
+    /// # Errors
+    /// Returns the terminal driver's I/O error.
+    fn disable_raw_mode(&mut self) -> io::Result<()>;
+
+    /// Executes one non-raw-mode restoration command.
+    ///
+    /// # Parameters
+    /// - `command`: Terminal restoration command to execute.
+    ///
+    /// # Returns
+    /// Success when the command is executed.
+    ///
+    /// # Errors
+    /// Returns the terminal driver's I/O error.
+    fn execute(&mut self, command: TerminalCommand) -> io::Result<()>;
+}
+
+/// Executes restoration commands against the process terminal.
+struct CrosstermDriver {
+    /// Terminal output receiving crossterm commands.
+    stdout: io::Stdout,
+}
+
+impl TerminalDriver for CrosstermDriver {
+    /// Disables crossterm raw mode.
+    ///
+    /// # Returns
+    /// Success when raw mode is disabled.
+    ///
+    /// # Errors
+    /// Returns the terminal driver's I/O error.
+    fn disable_raw_mode(&mut self) -> io::Result<()> {
+        disable_raw_mode()
+    }
+
+    /// Executes one crossterm restoration command.
+    ///
+    /// # Parameters
+    /// - `command`: Terminal restoration command to execute.
+    ///
+    /// # Returns
+    /// Success when the command is executed.
+    ///
+    /// # Errors
+    /// Returns the terminal driver's I/O error.
+    fn execute(&mut self, command: TerminalCommand) -> io::Result<()> {
+        match command {
+            TerminalCommand::DisableBracketedPaste => {
+                execute!(self.stdout, DisableBracketedPaste)
+            }
+            TerminalCommand::Show => execute!(self.stdout, Show),
+            TerminalCommand::LeaveAlternateScreen => {
+                execute!(self.stdout, LeaveAlternateScreen)
+            }
+        }
     }
 }
 
 /// Identifies one independently attempted terminal restoration command.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum TerminalCommand {
     /// Disables bracketed paste mode.
     DisableBracketedPaste,
@@ -140,7 +228,51 @@ pub fn flush(output: &mut impl Write) -> io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{LifecycleState, flush};
+    use std::io;
+
+    use super::{
+        LifecycleState, TerminalCommand, TerminalDriver, flush, restoration_commands, restore_with,
+    };
+
+    /// Records restoration attempts while optionally failing one command.
+    struct FakeDriver {
+        /// Commands attempted by the restoration executor.
+        commands: Vec<TerminalCommand>,
+        /// Command that should return an injected failure.
+        failure: Option<TerminalCommand>,
+    }
+
+    impl TerminalDriver for FakeDriver {
+        /// Records raw-mode restoration without touching a terminal.
+        ///
+        /// # Returns
+        /// Always succeeds for the fake driver.
+        ///
+        /// # Errors
+        /// This fake driver does not return an error.
+        fn disable_raw_mode(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+
+        /// Records one restoration command and injects its configured failure.
+        ///
+        /// # Parameters
+        /// - `command`: Terminal restoration command to record.
+        ///
+        /// # Returns
+        /// Success unless the command is configured to fail.
+        ///
+        /// # Errors
+        /// Returns the configured injected error.
+        fn execute(&mut self, command: TerminalCommand) -> io::Result<()> {
+            self.commands.push(command);
+            if self.failure == Some(command) {
+                Err(io::Error::other("injected restoration failure"))
+            } else {
+                Ok(())
+            }
+        }
+    }
 
     /// Verifies lifecycle-adjacent output can be flushed through an abstraction.
     #[test]
@@ -163,5 +295,29 @@ mod tests {
         assert!(state.alternate_screen);
         assert!(state.cursor_hidden);
         assert!(state.bracketed_paste);
+    }
+
+    /// Verifies teardown attempts every owned capability in stable order.
+    #[test]
+    fn restoration_plan_is_complete_and_ordered() {
+        assert!(matches!(
+            restoration_commands(),
+            [
+                TerminalCommand::DisableBracketedPaste,
+                TerminalCommand::Show,
+                TerminalCommand::LeaveAlternateScreen
+            ]
+        ));
+    }
+
+    /// Verifies cleanup continues after one command fails.
+    #[test]
+    fn restoration_attempts_all_commands_after_failure() {
+        let mut driver = FakeDriver {
+            commands: Vec::new(),
+            failure: Some(TerminalCommand::Show),
+        };
+        assert!(restore_with(&mut driver).is_err());
+        assert_eq!(driver.commands, restoration_commands());
     }
 }

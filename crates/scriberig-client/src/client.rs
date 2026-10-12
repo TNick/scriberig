@@ -3,11 +3,16 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use scriberig_protocol::{
-    CancelOperationRequest, CapabilitiesResponse, CommandRequest, EntityReference, Event,
-    InspectEntityRequest, InspectEntityResponse, OperationReference, OperationStatusRequest,
-    OperationStatusResponse, ProtocolTransport, ProtocolVersion, QueryRequest, Request,
-    RequestEnvelope, Response, RuntimeCapabilitiesRequest, SnapshotSelector, SubscribeRequest,
+    AgentContinueRequest, AgentStartRequest, BranchReference, CancelOperationRequest,
+    CapabilitiesResponse, CommandRequest, EntityReference, Event, InspectEntityRequest,
+    InspectEntityResponse, OperationReference, OperationStatusRequest, OperationStatusResponse,
+    ProtocolTransport, ProtocolVersion, QueryRequest, Request, RequestEnvelope, Response,
+    RuntimeCapabilitiesRequest, SessionReadRequest, SessionReadResponse, SessionReference,
+    SnapshotSelector, SubscribeRequest,
 };
+
+#[path = "client_agent.rs"]
+mod client_agent;
 use scriberig_query::{QueryResult, QuerySpec};
 
 use crate::error::ClientError;
@@ -114,6 +119,62 @@ impl<T: ProtocolTransport> Client<T> {
         }
     }
 
+    /// Reads one compact durable session tree.
+    ///
+    /// # Parameters
+    /// - `session`: Stable session identity.
+    ///
+    /// # Returns
+    /// Provider-neutral session and branch activity summaries.
+    ///
+    /// # Errors
+    /// Returns a structured server error or response mismatch.
+    pub fn read_session(
+        &self,
+        session: impl Into<String>,
+    ) -> Result<SessionReadResponse, ClientError> {
+        match self
+            .send(Request::SessionRead(SessionReadRequest {
+                session: SessionReference { id: session.into() },
+                branch: None,
+            }))?
+            .response
+        {
+            Response::Session(response) => Ok(response),
+            Response::Error(error) => Err(ClientError::Protocol(error)),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Reads one branch and its nested descendants on demand.
+    ///
+    /// # Parameters
+    /// - `session`: Stable session identity.
+    /// - `branch`: Stable branch identity whose activity is requested.
+    ///
+    /// # Returns
+    /// The selected branch subtree without unrelated branch histories.
+    ///
+    /// # Errors
+    /// Returns a structured server error or response mismatch.
+    pub fn read_session_branch(
+        &self,
+        session: impl Into<String>,
+        branch: impl Into<String>,
+    ) -> Result<SessionReadResponse, ClientError> {
+        match self
+            .send(Request::SessionRead(SessionReadRequest {
+                session: SessionReference { id: session.into() },
+                branch: Some(scriberig_protocol::BranchReference { id: branch.into() }),
+            }))?
+            .response
+        {
+            Response::Session(response) => Ok(response),
+            Response::Error(error) => Err(ClientError::Protocol(error)),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
     /// Requests cancellation of one tracked operation.
     ///
     /// # Parameters
@@ -153,8 +214,27 @@ impl<T: ProtocolTransport> Client<T> {
     /// # Errors
     /// Returns a structured server error or response mismatch.
     pub fn subscribe(&self, event_kinds: Vec<String>) -> Result<Vec<Event>, ClientError> {
+        self.subscribe_after(event_kinds, None)
+    }
+
+    /// Reads events published after an optional protocol cursor.
+    ///
+    /// # Parameters
+    /// - `event_kinds`: Optional event names; empty selects all events.
+    /// - `after`: Last cursor already processed by the caller.
+    ///
+    /// # Returns
+    /// Stable event envelopes newer than the requested cursor.
+    ///
+    /// # Errors
+    /// Returns a structured server error or response mismatch.
+    pub fn subscribe_after(
+        &self,
+        event_kinds: Vec<String>,
+        after: Option<u64>,
+    ) -> Result<Vec<Event>, ClientError> {
         match self
-            .send(Request::Subscribe(SubscribeRequest { event_kinds }))?
+            .send(Request::Subscribe(SubscribeRequest { event_kinds, after }))?
             .response
         {
             Response::Events(events) => Ok(events),
@@ -182,6 +262,66 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::Query(response) => {
+                serde_json::from_value(response.result).map_err(|_| ClientError::UnexpectedResponse)
+            }
+            Response::Error(error) => Err(ClientError::Protocol(error)),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Reads one bounded collection page through the remote application
+    /// boundary.
+    ///
+    /// # Parameters
+    /// - `specification`: Snapshot-bound universal list request.
+    ///
+    /// # Returns
+    /// The typed collection page.
+    ///
+    /// # Errors
+    /// Returns a structured server error or response mismatch.
+    pub fn list(
+        &self,
+        specification: scriberig_query::ListRequest,
+    ) -> Result<scriberig_query::ListResult, ClientError> {
+        match self
+            .send(Request::List(scriberig_protocol::ListRequest {
+                specification: serde_json::to_value(specification)
+                    .map_err(|_| ClientError::UnexpectedResponse)?,
+            }))?
+            .response
+        {
+            Response::List(response) => {
+                serde_json::from_value(response.result).map_err(|_| ClientError::UnexpectedResponse)
+            }
+            Response::Error(error) => Err(ClientError::Protocol(error)),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Executes bounded semantic discovery through the remote application
+    /// boundary.
+    ///
+    /// # Parameters
+    /// - `specification`: Snapshot-scoped universal find request.
+    ///
+    /// # Returns
+    /// The typed discovery result.
+    ///
+    /// # Errors
+    /// Returns a structured server error or response mismatch.
+    pub fn find(
+        &self,
+        specification: scriberig_query::FindRequest,
+    ) -> Result<scriberig_query::FindResult, ClientError> {
+        match self
+            .send(Request::Find(scriberig_protocol::FindRequest {
+                specification: serde_json::to_value(specification)
+                    .map_err(|_| ClientError::UnexpectedResponse)?,
+            }))?
+            .response
+        {
+            Response::Find(response) => {
                 serde_json::from_value(response.result).map_err(|_| ClientError::UnexpectedResponse)
             }
             Response::Error(error) => Err(ClientError::Protocol(error)),

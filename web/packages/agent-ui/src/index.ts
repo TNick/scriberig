@@ -4,3 +4,4 @@
 export * from "./agent-panel";
 export * from "./session-panel";
 export * from "./operation-panel";
+export * from "./branch-activity";

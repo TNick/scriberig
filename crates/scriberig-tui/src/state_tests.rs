@@ -5,6 +5,9 @@ use crate::action::{Action, Direction};
 use crate::effect::Effect;
 use crate::event::{Key, KeyCode, Modifiers, TuiEvent};
 use crate::overlay::{Overlay, palette::PaletteState};
+use crate::selection::PrimaryView;
+use crate::view::history::{HistoryModel, HistoryRow};
+use scriberig_core::{EntityId, SnapshotId};
 
 /// Verifies resize events update only terminal presentation state.
 #[test]
@@ -24,6 +27,34 @@ fn quit_key_sets_quit_flag() {
     let mut state = TuiState::default();
     state.apply_event(&TuiEvent::Key(Key {
         code: KeyCode::Char('q'),
+        modifiers: Modifiers::default(),
+    }));
+    assert!(state.should_quit);
+}
+
+/// Verifies the control-C quit chord stops the runtime.
+#[test]
+fn control_c_sets_quit_flag() {
+    let mut state = TuiState::default();
+    state.apply_event(&TuiEvent::Key(Key {
+        code: KeyCode::Char('c'),
+        modifiers: Modifiers {
+            control: true,
+            ..Modifiers::default()
+        },
+    }));
+    assert!(state.should_quit);
+}
+
+/// Verifies the global quit chord also works while Explorer owns focus.
+#[test]
+fn control_c_quits_from_explorer_focus() {
+    let mut state = TuiState {
+        focus: Focus::Explorer,
+        ..TuiState::default()
+    };
+    state.apply_event(&TuiEvent::Key(Key {
+        code: KeyCode::Char('\u{3}'),
         modifiers: Modifiers::default(),
     }));
     assert!(state.should_quit);
@@ -112,6 +143,159 @@ fn palette_selection_moves_and_activates() {
     assert!(state.overlay.is_none());
 }
 
+/// Verifies the palette reaches the agent composer for the selected entity.
+#[test]
+fn palette_opens_agent_composer_for_selection() {
+    let entity = scriberig_core::EntityId::from_bytes([7; 16]);
+    let mut state = TuiState {
+        selection: Some(crate::selection::EntitySelection {
+            entity,
+            revision: None,
+            snapshot: None,
+        }),
+        ..TuiState::default()
+    };
+    reduce(&mut state, Action::PaletteOpened);
+    for _ in 0..10 {
+        reduce(&mut state, Action::CursorMoved(Direction::Next));
+    }
+    let effects = reduce(&mut state, Action::Activated);
+    assert_eq!(effects, vec![Effect::None]);
+    assert!(matches!(
+        state.overlay,
+        Some(Overlay::Composer(crate::overlay::ComposerState {
+            session: selected,
+            branch: None,
+            ..
+        })) if selected == entity
+    ));
+}
+
+/// Verifies Diff collects an explicit target snapshot before dispatching.
+#[test]
+fn palette_diff_collects_target_snapshot() {
+    let base = scriberig_core::SnapshotId::new([1; 32]);
+    let target = scriberig_core::SnapshotId::new([2; 32]);
+    let mut state = TuiState {
+        selection: Some(crate::selection::EntitySelection {
+            entity: scriberig_core::EntityId::from_bytes([7; 16]),
+            revision: None,
+            snapshot: Some(base),
+        }),
+        ..TuiState::default()
+    };
+    reduce(&mut state, Action::PaletteOpened);
+    for _ in 0..6 {
+        reduce(&mut state, Action::CursorMoved(Direction::Next));
+    }
+    reduce(&mut state, Action::Activated);
+    reduce(&mut state, Action::Paste(target.to_string()));
+
+    assert_eq!(
+        reduce(&mut state, Action::InputSubmitted),
+        vec![Effect::Diff {
+            request_id: 1,
+            request: scriberig_app::DiffRequest {
+                from: base,
+                to: target
+            },
+        }]
+    );
+    assert_eq!(state.primary_view, crate::selection::PrimaryView::Diff);
+}
+
+/// Verifies a history row activates its exact historical entity context.
+#[test]
+fn history_row_activation_inspects_historical_entity() {
+    let entity = EntityId::from_bytes([9; 16]);
+    let snapshot = SnapshotId::new([3; 32]);
+    let mut state = TuiState {
+        focus: Focus::Primary,
+        primary_view: PrimaryView::History,
+        history: crate::inspector::LoadState::Ready(HistoryModel {
+            snapshot,
+            rows: vec![HistoryRow {
+                id: "snapshot:3".to_owned(),
+                base: SnapshotId::new([2; 32]),
+                result: snapshot,
+                entities: vec![(entity, None)],
+                workspace: None,
+            }],
+        }),
+        ..TuiState::default()
+    };
+
+    let effects = reduce(&mut state, Action::Activated);
+
+    assert!(matches!(
+        effects.as_slice(),
+        [Effect::InspectEntity {
+            entity: selected,
+            snapshot: Some(selected_snapshot),
+            ..
+        }] if selected == &entity && selected_snapshot == &snapshot
+    ));
+}
+
+/// Verifies a diff row activates inspection on the target snapshot side.
+#[test]
+fn diff_row_activation_inspects_target_entity() {
+    let entity = EntityId::from_bytes([8; 16]);
+    let target = SnapshotId::new([4; 32]);
+    let mut state = TuiState {
+        focus: Focus::Primary,
+        primary_view: PrimaryView::Diff,
+        diff: crate::inspector::LoadState::Ready(crate::view::diff::DiffModel {
+            left: SnapshotId::new([3; 32]),
+            right: target,
+            rows: vec![crate::view::diff::DiffRow {
+                entity,
+                before: None,
+                after: None,
+            }],
+        }),
+        ..TuiState::default()
+    };
+
+    let effects = reduce(&mut state, Action::Activated);
+
+    assert!(matches!(
+        effects.as_slice(),
+        [Effect::InspectEntity {
+            entity: selected,
+            snapshot: Some(selected_snapshot),
+            ..
+        }] if selected == &entity && selected_snapshot == &target
+    ));
+}
+
+/// Verifies Enter on an Explorer row re-inspects that semantic entity.
+#[test]
+fn explorer_activation_inspects_selected_entity() {
+    let entity = scriberig_core::EntityId::from_bytes([8; 16]);
+    let mut state = TuiState {
+        focus: crate::state::Focus::Explorer,
+        ..TuiState::default()
+    };
+    state.explorer =
+        crate::explorer::ExplorerModel::from_selection(crate::selection::EntitySelection {
+            entity,
+            revision: None,
+            snapshot: None,
+        });
+
+    let effects = reduce(&mut state, Action::Activated);
+
+    assert!(matches!(
+        effects.as_slice(),
+        [Effect::InspectEntity {
+            entity: selected,
+            ..
+        }] if selected == &entity
+    ));
+    assert_eq!(state.primary_view, crate::selection::PrimaryView::Overview);
+}
+
 /// Verifies refresh re-reads the selected entity through the service port.
 #[test]
 fn refresh_reissues_selected_inspection() {
@@ -162,241 +346,7 @@ fn closing_overlay_does_not_cancel_operation() {
     assert!(state.operations[0].cancellable());
 }
 
-/// Verifies resizing preserves semantic navigation history.
-#[test]
-fn resize_preserves_navigation() {
-    let mut state = TuiState::default();
-    reduce(
-        &mut state,
-        Action::ActivateLocation(crate::selection::NavigationLocation::default()),
-    );
-    let history = state.navigation.clone();
-    reduce(
-        &mut state,
-        Action::TerminalResized {
-            width: 20,
-            height: 8,
-        },
-    );
-    assert_eq!(state.navigation, history);
-}
-
-/// Verifies invalid go-to input remains local and emits no inspect effect.
-#[test]
-fn invalid_entity_input_stays_in_overlay() {
-    let mut state = TuiState::default();
-    reduce(&mut state, Action::FindOpened);
-    reduce(&mut state, Action::InputChanged("not-an-entity".to_owned()));
-    let effects = reduce(&mut state, Action::InputSubmitted);
-    assert_eq!(effects, vec![Effect::None]);
-    assert!(matches!(state.overlay, Some(Overlay::Input(input)) if input.error.is_some()));
-    assert!(matches!(
-        state.inspector,
-        crate::inspector::LoadState::NotRequested
-    ));
-}
-
-/// Verifies a late result cannot overwrite a newer inspector request.
-#[test]
-fn stale_inspect_result_is_ignored() {
-    let mut state = TuiState::default();
-    let entity = scriberig_core::EntityId::from_bytes([4; 16]);
-    reduce(
-        &mut state,
-        Action::InspectRequested {
-            request_id: 1,
-            entity,
-            snapshot: None,
-        },
-    );
-    reduce(
-        &mut state,
-        Action::InspectRequested {
-            request_id: 2,
-            entity,
-            snapshot: None,
-        },
-    );
-    let model = crate::inspector::InspectorModel::from_result(scriberig_app::InspectResult {
-        entity,
-        revision: None,
-        snapshot: None,
-        object_type: None,
-        label: Some("old".to_owned()),
-        description: None,
-        capabilities: Vec::new(),
-        trust: None,
-    });
-    reduce(
-        &mut state,
-        Action::InspectSucceeded {
-            request_id: 1,
-            model,
-        },
-    );
-    assert!(matches!(
-        state.inspector,
-        crate::inspector::LoadState::Loading { request_id: 2 }
-    ));
-}
-
-/// Verifies switching primary views retains semantic selection.
-#[test]
-fn view_switch_preserves_selection() {
-    let mut state = TuiState::default();
-    let entity = scriberig_core::EntityId::from_bytes([8; 16]);
-    state.selection = Some(crate::selection::EntitySelection {
-        entity,
-        revision: None,
-        snapshot: None,
-    });
-    reduce(
-        &mut state,
-        Action::ViewSelected(crate::selection::PrimaryView::History),
-    );
-    assert_eq!(state.selection.map(|value| value.entity), Some(entity));
-}
-
-/// Verifies review confirmation is local until the confirmed command is emitted.
-#[test]
-fn confirmation_does_not_mutate_without_explicit_confirm() {
-    let mut state = TuiState::default();
-    let base = scriberig_core::SnapshotId::new([9; 32]);
-    state.review = crate::inspector::LoadState::Ready(crate::view::changes::ChangeReviewModel {
-        base_snapshot: base,
-        change: "change-1".to_owned(),
-        branch: None,
-        affected_entities: Vec::new(),
-        conflicts: Vec::new(),
-        validation: crate::view::changes::ReviewValidation::Passed,
-        requires_confirmation: true,
-    });
-    assert_eq!(
-        reduce(&mut state, Action::ConfirmReview),
-        vec![Effect::None]
-    );
-    assert!(matches!(state.overlay, Some(Overlay::Confirm(_))));
-    assert!(matches!(
-        state.review,
-        crate::inspector::LoadState::Ready(_)
-    ));
-}
-
-/// Verifies the confirmed commit carries the reviewed base snapshot.
-#[test]
-fn confirmed_commit_preserves_reviewed_base() {
-    let mut state = TuiState::default();
-    let base = scriberig_core::SnapshotId::new([6; 32]);
-    let effects = reduce(
-        &mut state,
-        Action::CommitConfirmed(crate::view::changes::ConfirmedCommit {
-            base_snapshot: base,
-            change: "change-2".to_owned(),
-            branch: None,
-        }),
-    );
-    assert!(
-        matches!(effects.as_slice(), [Effect::Commit { request_id: 1, request }]
-            if request.base_snapshot == base && request.change == "change-2")
-    );
-}
-
-/// Verifies a stale operation failure remains visible and is not retried.
-#[test]
-fn stale_operation_failure_is_visible_without_retry() {
-    let mut state = TuiState::default();
-    reduce(
-        &mut state,
-        Action::ReviewRequested {
-            request: scriberig_app::ApplyRequest {
-                base_snapshot: scriberig_core::SnapshotId::new([1; 32]),
-                branch: None,
-                change: "change".to_owned(),
-            },
-        },
-    );
-    let effects = reduce(
-        &mut state,
-        Action::OperationFailed {
-            request_id: 1,
-            category: "stale_base_snapshot".to_owned(),
-            message: "base changed".to_owned(),
-        },
-    );
-    assert_eq!(effects, vec![Effect::None]);
-    assert!(
-        matches!(state.review, crate::inspector::LoadState::Failed { ref category, .. } if category == "stale_base_snapshot")
-    );
-}
-
-/// Verifies pasted multiline composer content remains data and submits intact.
-#[test]
-fn composer_submission_preserves_multiline_prompt() {
-    let mut state = TuiState::default();
-    let session = scriberig_core::EntityId::from_bytes([3; 16]);
-    reduce(
-        &mut state,
-        Action::ComposerOpened {
-            session,
-            branch: None,
-        },
-    );
-    reduce(&mut state, Action::Paste("line one\nline two".to_owned()));
-    let effects = reduce(&mut state, Action::InputSubmitted);
-    assert_eq!(
-        effects,
-        vec![Effect::SubmitAgent {
-            session,
-            branch: None,
-            prompt: "line one\nline two".to_owned(),
-        }]
-    );
-}
-
-/// Verifies the submitted operation identity is tracked without replacement.
-#[test]
-fn submitted_agent_operation_id_is_stable() {
-    let mut state = TuiState::default();
-    let operation = scriberig_core::OperationId::new("agent-1").expect("operation id");
-    let effects = reduce(&mut state, Action::AgentSubmitted(operation.clone()));
-    assert_eq!(
-        effects,
-        vec![Effect::OperationStatus {
-            operation: operation.clone()
-        }]
-    );
-    assert_eq!(
-        effects,
-        reduce(&mut state, Action::AgentSubmitted(operation))
-    );
-}
-
-/// Verifies an authoritative progress record reaches the operation view.
-#[test]
-fn operation_progress_updates_presentation() {
-    let mut state = TuiState::default();
-    let operation = scriberig_core::OperationId::new("progress").expect("operation id");
-    let mut record =
-        scriberig_app::OperationRecord::queued(operation, scriberig_app::OperationKind::Query);
-    record.status = scriberig_app::OperationStatus::Running;
-    record.progress = Some(scriberig_app::OperationProgress {
-        status: scriberig_app::OperationStatus::Running,
-        completed: Some(3),
-        total: Some(8),
-        phase: None,
-    });
-    reduce(
-        &mut state,
-        Action::OperationObserved(crate::view::operations::OperationModel::from_record(
-            &record,
-        )),
-    );
-    assert_eq!(state.operations[0].progress.as_deref(), Some("3/8"));
-    assert_eq!(
-        state.operations[0].status,
-        scriberig_app::OperationStatus::Running
-    );
-}
-
+#[path = "state_late_tests.rs"]
+mod state_late_tests;
 #[path = "state_tail_tests.rs"]
 mod state_tail_tests;

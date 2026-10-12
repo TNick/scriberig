@@ -70,7 +70,7 @@ fn validate_matrix(source: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// Verifies the checked-in matrix has exactly the initial capability entries.
+/// Verifies the checked-in matrix has exactly the declared capability entries.
 #[test]
 fn checked_in_matrix_is_truthful_and_complete() {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../capabilities.toml");
@@ -91,6 +91,13 @@ fn checked_in_matrix_is_truthful_and_complete() {
             "operation_status",
             "operation_cancel",
             "event_subscription",
+            "agent_start",
+            "agent_continue",
+            "agent_final_result",
+            "session_branch_tree",
+            "session_branch_activity",
+            "agent_event_subscription",
+            "agent_streaming_output",
         ]
     );
 }

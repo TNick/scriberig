@@ -1,13 +1,54 @@
 //! Executes universal application requests through an injected backend.
 
+use std::collections::BTreeMap;
+use std::sync::atomic::AtomicU64;
+use std::sync::{Arc, Mutex};
+
 use crate::{
-    ApplicationContext, ApplicationError, ApplicationRequest, ApplicationResult, DetailLevel,
-    InspectRequest, InspectResult, QueryService,
+    ApplicationContext, ApplicationError, ApplicationRequest, ApplicationResult, InspectRequest,
+    InspectResult, MigrationDetail, QueryService,
 };
-use scriberig_query::{DetailLevel as QueryDetailLevel, Inspection, TargetRef};
+use scriberig_core::EntityId;
+use scriberig_session::Session;
+
+use crate::SessionBackend;
+
+use self::service_query_helpers::{inspect_result, query_request};
+
+#[path = "service_configuration.rs"]
+mod service_configuration;
+#[path = "service_query_helpers.rs"]
+mod service_query_helpers;
+#[path = "service_sessions.rs"]
+mod service_sessions;
+#[path = "session_failures.rs"]
+mod session_failures;
+#[path = "session_persistence.rs"]
+mod session_persistence;
 
 /// Provides semantic execution for the universal application request model.
 pub trait ApplicationBackend {
+    /// Reads canonical detail for one migration proposal.
+    ///
+    /// # Parameters
+    /// - `_context`: Authorized application context.
+    /// - `_id`: Stable migration handle.
+    ///
+    /// # Returns
+    /// Snapshot-bound migration detail.
+    ///
+    /// # Errors
+    /// Returns unsupported-operation when proposal reads are not configured.
+    fn migration_detail(
+        &self,
+        _context: &ApplicationContext,
+        _id: &str,
+    ) -> Result<MigrationDetail, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "migration detail".to_owned(),
+        })
+    }
+
     /// Executes one transport-independent application request.
     ///
     /// # Parameters
@@ -93,6 +134,9 @@ pub trait ApplicationBackend {
 pub struct ApplicationService<B> {
     backend: B,
     operations: crate::OperationRegistry,
+    sessions: Arc<Mutex<BTreeMap<EntityId, Session>>>,
+    next_agent_handle: AtomicU64,
+    session_store: Option<Arc<dyn scriberig_session::SessionStore>>,
 }
 
 impl<B> ApplicationService<B> {
@@ -108,6 +152,9 @@ impl<B> ApplicationService<B> {
         Self {
             backend,
             operations: crate::OperationRegistry::new(),
+            sessions: Arc::new(Mutex::new(BTreeMap::new())),
+            next_agent_handle: AtomicU64::new(1),
+            session_store: None,
         }
     }
 
@@ -131,6 +178,86 @@ impl<B> ApplicationService<B> {
 }
 
 impl<B: ApplicationBackend> ApplicationService<B> {
+    /// Starts an agent operation at a session root through the shared boundary.
+    ///
+    /// # Parameters
+    /// - `self`: Application service owning the session subsystem.
+    /// - `context`: Authorized application context.
+    /// - `session`: Stable target session identity.
+    /// - `prompt`: User-authored agent instruction.
+    ///
+    /// # Returns
+    /// Stable operation identity for lifecycle observation.
+    ///
+    /// # Errors
+    /// Returns the shared application failure from agent submission.
+    pub fn start_agent(
+        &self,
+        context: &ApplicationContext,
+        session: EntityId,
+        prompt: impl Into<String>,
+    ) -> Result<scriberig_core::OperationId, ApplicationError> {
+        self.submit_agent_command(
+            context,
+            &crate::AgentCommandRequest {
+                session,
+                branch: None,
+                prompt: prompt.into(),
+            },
+        )
+    }
+
+    /// Continues an agent operation on an existing session branch.
+    ///
+    /// # Parameters
+    /// - `self`: Application service owning the session subsystem.
+    /// - `context`: Authorized application context.
+    /// - `session`: Stable target session identity.
+    /// - `branch`: Stable branch receiving the follow-up.
+    /// - `prompt`: User-authored follow-up instruction.
+    ///
+    /// # Returns
+    /// Stable operation identity for lifecycle observation.
+    ///
+    /// # Errors
+    /// Returns the shared application failure from agent submission.
+    pub fn continue_agent(
+        &self,
+        context: &ApplicationContext,
+        session: EntityId,
+        branch: EntityId,
+        prompt: impl Into<String>,
+    ) -> Result<scriberig_core::OperationId, ApplicationError> {
+        self.submit_agent_command(
+            context,
+            &crate::AgentCommandRequest {
+                session,
+                branch: Some(branch),
+                prompt: prompt.into(),
+            },
+        )
+    }
+
+    /// Reads one migration proposal through the shared application boundary.
+    ///
+    /// # Parameters
+    /// - `self`: Application service.
+    /// - `context`: Authorized application context.
+    /// - `id`: Stable migration handle.
+    ///
+    /// # Returns
+    /// Snapshot-bound migration detail.
+    ///
+    /// # Errors
+    /// Returns the backend's structured application error.
+    pub fn migration_detail(
+        &self,
+        context: &ApplicationContext,
+        id: &str,
+    ) -> Result<MigrationDetail, ApplicationError> {
+        self.backend.migration_detail(context, id)
+    }
+
     /// Executes one universal application request.
     ///
     /// # Parameters
@@ -184,145 +311,6 @@ impl<B: ApplicationBackend> QueryService for ApplicationService<B> {
         };
         inspect_result(inspection, request.detail)
     }
-}
-
-impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
-    /// Delegates a session read to the application backend.
-    ///
-    /// # Parameters
-    /// - `context`: Application context for the request.
-    /// - `request`: Session request to resolve.
-    ///
-    /// # Returns
-    /// The requested session.
-    ///
-    /// # Errors
-    /// Returns the backend session error.
-    fn read_session(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::SessionRequest,
-    ) -> Result<scriberig_session::Session, ApplicationError> {
-        self.backend.read_session(context, request)
-    }
-
-    /// Delegates agent command submission to the application backend.
-    ///
-    /// # Parameters
-    /// - `context`: Application context for the request.
-    /// - `request`: Agent command request to submit.
-    ///
-    /// # Returns
-    /// The accepted operation identity.
-    ///
-    /// # Errors
-    /// Returns the backend agent error.
-    fn submit_agent_command(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::AgentCommandRequest,
-    ) -> Result<scriberig_core::OperationId, ApplicationError> {
-        self.backend.submit_agent_command(context, request)
-    }
-}
-
-/// Converts the universal query inspection into the application result shape.
-///
-/// # Parameters
-/// - `inspection`: Query-layer inspection result.
-/// - `_detail`: Detail requested by the application caller.
-///
-/// # Returns
-/// Snapshot-aware application inspection metadata.
-///
-/// # Errors
-/// Returns a revision mismatch when the query target is inconsistent.
-fn inspect_result(
-    inspection: Inspection,
-    _detail: DetailLevel,
-) -> Result<InspectResult, ApplicationError> {
-    let entity = match inspection.subject {
-        TargetRef::Snapshot(target) => target.entity,
-        TargetRef::Revision(target) => target.entity,
-    };
-    let revision = match inspection.subject {
-        TargetRef::Revision(target) => {
-            if inspection
-                .revision
-                .is_some_and(|value| value != target.revision)
-            {
-                return Err(ApplicationError::RevisionMismatch {
-                    entity,
-                    revision: target.revision,
-                });
-            }
-            Some(target.revision)
-        }
-        TargetRef::Snapshot(_) => inspection.revision,
-    };
-    Ok(InspectResult {
-        entity,
-        revision,
-        snapshot: inspection.snapshot,
-        object_type: inspection.entity_type,
-        label: inspection.label,
-        description: inspection.description,
-        capabilities: inspection
-            .operations
-            .into_iter()
-            .map(|capability| capability.id)
-            .chain(inspection.views.into_iter().map(|capability| capability.id))
-            .collect(),
-        trust: None,
-    })
-}
-
-/// Converts an application inspection request into an exact query target.
-///
-/// # Parameters
-/// - `request`: Application inspection request.
-/// - `current`: Resolved current snapshot when the request uses `Current`.
-///
-/// # Returns
-/// Query-layer inspection request with an exact target.
-///
-/// # Errors
-/// Returns an unsupported-operation error when no exact snapshot or revision
-/// was supplied.
-fn query_request(
-    request: &InspectRequest,
-    current: Option<scriberig_core::SnapshotId>,
-) -> Result<scriberig_query::InspectRequest, ApplicationError> {
-    let target = match request.snapshot {
-        crate::SnapshotResolution::At(snapshot) => {
-            TargetRef::Snapshot(scriberig_query::EntityInSnapshot {
-                entity: request.entity,
-                snapshot,
-            })
-        }
-        crate::SnapshotResolution::Revision(revision) => {
-            TargetRef::Revision(scriberig_query::EntityAtRevision {
-                entity: request.entity,
-                revision,
-            })
-        }
-        crate::SnapshotResolution::Current => {
-            TargetRef::Snapshot(scriberig_query::EntityInSnapshot {
-                entity: request.entity,
-                snapshot: current.ok_or_else(|| ApplicationError::Internal {
-                    message: "current snapshot was not resolved".to_owned(),
-                })?,
-            })
-        }
-    };
-    Ok(scriberig_query::InspectRequest {
-        target,
-        detail: match request.detail {
-            DetailLevel::Compact => QueryDetailLevel::Compact,
-            DetailLevel::Detailed => QueryDetailLevel::Structure,
-        },
-        view: None,
-    })
 }
 
 #[cfg(test)]

@@ -3,6 +3,7 @@
 #![allow(clippy::wildcard_imports)]
 
 use super::*;
+use crate::action::Action;
 
 impl<S: TuiService> TuiOperationService for S {
     /// Uses the operation method exposed by the TUI service boundary.

@@ -1,15 +1,18 @@
 //! Dispatches protocol requests through the injected application boundary.
 
+mod helpers;
+
 use std::str::FromStr;
 
 use scriberig_app::{
-    ApplicationContext, ApplicationError, DetailLevel, InspectRequest, SnapshotResolution,
+    ApplicationContext, CapabilityContext, CapabilityId, DetailLevel, InspectRequest,
+    SnapshotResolution,
 };
 use scriberig_core::{EntityId, SnapshotId};
 use scriberig_protocol::{
-    CapabilitiesResponse, CapabilityInfo, InspectEntityResponse, OperationStatusResponse,
-    ProtocolError, ProtocolErrorCode, ProtocolVersion, Request, RequestEnvelope, Response,
-    ResponseEnvelope, RuntimeFeature, SnapshotReference,
+    CapabilitiesResponse, CapabilityInfo, OperationStatusResponse, ProtocolError,
+    ProtocolErrorCode, ProtocolVersion, Request, RequestEnvelope, Response, ResponseEnvelope,
+    RuntimeFeature,
 };
 use scriberig_query::QuerySpec;
 
@@ -70,48 +73,32 @@ impl<S: ApplicationService> Dispatcher<S> {
     ///
     /// # Returns
     /// Typed protocol response.
+    #[allow(clippy::too_many_lines)]
     fn dispatch_request(&self, request: Request, correlation_id: &str) -> Response {
         match request {
             Request::Inspect(request) => self.inspect(request, correlation_id),
-            Request::Capabilities(_) => {
-                let capabilities = self
-                    .service
-                    .capabilities()
-                    .into_iter()
-                    .map(|capability| CapabilityInfo {
-                        id: capability.id.to_string(),
-                        description: capability.description,
-                        available: capability.available,
-                        domain: capability.scope,
-                    })
-                    .collect();
-                Response::Capabilities(CapabilitiesResponse {
-                    protocol: ProtocolVersion::default(),
-                    capabilities,
-                    features: vec![RuntimeFeature {
-                        id: "inspect".to_owned(),
-                        enabled: true,
-                    }],
-                })
-            }
+            Request::Capabilities(_) => self.capabilities(),
             Request::OperationStatus(request) => self
                 .service
                 .operation_status(&request.operation.id)
                 .map_or_else(
-                    |error| Response::Error(map_error(&error, correlation_id)),
+                    |error| Response::Error(helpers::map_error(&error, correlation_id)),
                     |operation| Response::OperationStatus(OperationStatusResponse { operation }),
                 ),
             Request::CancelOperation(request) => self
                 .service
                 .cancel_operation(&request.operation.id)
                 .map_or_else(
-                    |error| Response::Error(map_error(&error, correlation_id)),
+                    |error| Response::Error(helpers::map_error(&error, correlation_id)),
                     |operation| Response::OperationCancelled(OperationStatusResponse { operation }),
                 ),
-            Request::Subscribe(request) => self.service.events(&request.event_kinds).map_or_else(
-                |error| Response::Error(map_error(&error, correlation_id)),
-                Response::Events,
-            ),
+            Request::Subscribe(request) => self
+                .service
+                .events_after(&request.event_kinds, request.after.unwrap_or_default())
+                .map_or_else(
+                    |error| Response::Error(helpers::map_error(&error, correlation_id)),
+                    Response::Events,
+                ),
             Request::Query(request) => {
                 let Ok(specification) = serde_json::from_value::<QuerySpec>(request.specification)
                 else {
@@ -125,9 +112,53 @@ impl<S: ApplicationService> Dispatcher<S> {
                 self.service
                     .query(&ApplicationContext::empty(), &specification)
                     .map_or_else(
-                        |error| Response::Error(map_error(&error, correlation_id)),
+                        |error| Response::Error(helpers::map_error(&error, correlation_id)),
                         |result| {
                             Response::Query(scriberig_protocol::QueryResponse {
+                                result: serde_json::to_value(result).unwrap_or_default(),
+                            })
+                        },
+                    )
+            }
+            Request::List(request) => {
+                let Ok(specification) =
+                    serde_json::from_value::<scriberig_query::ListRequest>(request.specification)
+                else {
+                    return Response::Error(ProtocolError {
+                        code: ProtocolErrorCode::SchemaViolation,
+                        message: "invalid list specification".to_owned(),
+                        details: None,
+                        correlation_id: Some(correlation_id.to_owned()),
+                    });
+                };
+                self.service
+                    .list(&ApplicationContext::empty(), &specification)
+                    .map_or_else(
+                        |error| Response::Error(helpers::map_error(&error, correlation_id)),
+                        |result| {
+                            Response::List(scriberig_protocol::ListResponse {
+                                result: serde_json::to_value(result).unwrap_or_default(),
+                            })
+                        },
+                    )
+            }
+            Request::Find(request) => {
+                let Ok(specification) =
+                    serde_json::from_value::<scriberig_query::FindRequest>(request.specification)
+                else {
+                    return Response::Error(ProtocolError {
+                        code: ProtocolErrorCode::SchemaViolation,
+                        message: "invalid find specification".to_owned(),
+                        details: None,
+                        correlation_id: Some(correlation_id.to_owned()),
+                    });
+                };
+                self.service
+                    .find(&ApplicationContext::empty(), &specification)
+                    .map_or_else(
+                        |error| Response::Error(helpers::map_error(&error, correlation_id)),
+                        |result| {
+                            Response::Find(scriberig_protocol::FindResponse {
                                 result: serde_json::to_value(result).unwrap_or_default(),
                             })
                         },
@@ -136,15 +167,152 @@ impl<S: ApplicationService> Dispatcher<S> {
             Request::Command(request) => self
                 .service
                 .command(
-                    &ApplicationContext::empty(),
+                    &command_context(&request.kind),
                     &request.kind,
                     &request.payload,
                 )
                 .map_or_else(
-                    |error| Response::Error(map_error(&error, correlation_id)),
+                    |error| Response::Error(helpers::map_error(&error, correlation_id)),
                     |operation| Response::CommandAccepted(OperationStatusResponse { operation }),
                 ),
+            Request::AgentStart(request) => self.agent_command(
+                "agent_start",
+                &serde_json::json!({
+                    "session": request.session.id,
+                    "prompt": request.prompt,
+                }),
+                None,
+                correlation_id,
+            ),
+            Request::AgentContinue(request) => self.agent_command(
+                "agent_continue",
+                &serde_json::json!({
+                    "session": request.session.id,
+                    "branch": request.branch.id,
+                    "prompt": request.prompt,
+                }),
+                Some((&request.session, &request.branch)),
+                correlation_id,
+            ),
+            Request::SessionRead(request) => self.session_read(&request, correlation_id),
         }
+    }
+
+    /// Builds the capability response from the injected application service.
+    ///
+    /// # Returns
+    /// The public runtime capability response.
+    fn capabilities(&self) -> Response {
+        let capabilities = self
+            .service
+            .capabilities()
+            .into_iter()
+            .map(|capability| CapabilityInfo {
+                id: capability.id.to_string(),
+                description: capability.description,
+                available: capability.available,
+                domain: capability.scope,
+            })
+            .collect();
+        Response::Capabilities(CapabilitiesResponse {
+            protocol: ProtocolVersion::default(),
+            capabilities,
+            features: vec![RuntimeFeature {
+                id: "inspect".to_owned(),
+                enabled: true,
+            }],
+        })
+    }
+
+    /// Reads one durable session through the application boundary.
+    ///
+    /// # Parameters
+    /// - `request`: Typed session read request.
+    /// - `correlation_id`: Request correlation identity.
+    ///
+    /// # Returns
+    /// Typed session response or protocol error.
+    fn session_read(
+        &self,
+        request: &scriberig_protocol::SessionReadRequest,
+        correlation_id: &str,
+    ) -> Response {
+        self.service
+            .read_session(&command_context("session_branch_tree"), &request.session.id)
+            .map_or_else(
+                |error| Response::Error(helpers::map_error(&error, correlation_id)),
+                |response| {
+                    Response::Session(request.branch.as_ref().map_or(response.clone(), |branch| {
+                        helpers::select_branch_subtree(response, &branch.id)
+                    }))
+                },
+            )
+    }
+
+    /// Dispatches one typed agent request through the shared command boundary.
+    ///
+    /// # Parameters
+    /// - `kind`: Stable agent operation identifier.
+    /// - `payload`: Provider-neutral request payload.
+    /// - `references`: Session and optional branch references for the response.
+    /// - `correlation_id`: Request correlation identity.
+    ///
+    /// # Returns
+    /// Typed accepted agent response or protocol error.
+    fn agent_command(
+        &self,
+        kind: &str,
+        payload: &serde_json::Value,
+        references: Option<(
+            &scriberig_protocol::SessionReference,
+            &scriberig_protocol::BranchReference,
+        )>,
+        correlation_id: &str,
+    ) -> Response {
+        if !self
+            .service
+            .capabilities()
+            .iter()
+            .any(|capability| capability.id.as_str() == kind && capability.available)
+        {
+            return Response::Error(helpers::map_error(
+                &scriberig_app::ApplicationError::UnsupportedOperation {
+                    operation: kind.to_owned(),
+                },
+                correlation_id,
+            ));
+        }
+        let session = references.as_ref().map_or_else(
+            || {
+                payload
+                    .get("session")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or_default()
+                    .to_owned()
+            },
+            |(session, _)| session.id.clone(),
+        );
+        self.service
+            .command(&command_context(kind), kind, payload)
+            .map_or_else(
+                |error| Response::Error(helpers::map_error(&error, correlation_id)),
+                |operation| {
+                    let branch = references.map(|(_, branch)| branch.clone()).or_else(|| {
+                        self.service
+                            .read_session(&command_context("session_branch_tree"), &session)
+                            .ok()
+                            .and_then(|value| value.branches.last().cloned())
+                            .map(|branch| scriberig_protocol::BranchReference {
+                                id: branch.id.clone(),
+                            })
+                    });
+                    Response::AgentAccepted(scriberig_protocol::AgentAcceptedResponse {
+                        operation: OperationStatusResponse { operation },
+                        session: scriberig_protocol::SessionReference { id: session },
+                        branch,
+                    })
+                },
+            )
     }
 
     /// Maps one protocol inspection request to the shared application request.
@@ -197,116 +365,26 @@ impl<S: ApplicationService> Dispatcher<S> {
             },
         );
         result.map_or_else(
-            |error| Response::Error(map_error(&error, correlation_id)),
-            |result| Response::Inspect(map_inspect(result)),
+            |error| Response::Error(helpers::map_error(&error, correlation_id)),
+            |result| Response::Inspect(helpers::map_inspect(result)),
         )
     }
 }
 
-/// Converts an application inspection result to protocol references.
+/// Builds the trusted server context for an exposed command family.
 ///
 /// # Parameters
-/// - `result`: Application inspection result.
+/// - `kind`: Stable command or capability identifier.
 ///
 /// # Returns
-/// Protocol inspection response with stable references.
-fn map_inspect(result: scriberig_app::InspectResult) -> InspectEntityResponse {
-    InspectEntityResponse {
-        entity: scriberig_protocol::EntityReference {
-            id: result.entity.to_string(),
-        },
-        revision: scriberig_protocol::RevisionReference {
-            entity: scriberig_protocol::EntityReference {
-                id: result.entity.to_string(),
-            },
-            id: result
-                .revision
-                .map_or_else(String::new, |value| value.to_string()),
-        },
-        snapshot: SnapshotReference {
-            id: result
-                .snapshot
-                .map_or_else(String::new, |value| value.to_string()),
-        },
-        object_type: result.object_type.map(|value| value.to_string()),
-        summary: result.description.or(result.label),
+/// A context granting only the requested public command capability.
+fn command_context(kind: &str) -> ApplicationContext {
+    let mut capabilities = vec![CapabilityId::new(kind).expect("protocol command capability")];
+    if matches!(kind, "agent_start" | "agent_continue") {
+        capabilities.push(CapabilityId::new("session_branch_tree").expect("session capability"));
     }
-}
-
-/// Converts an application error without exposing restricted payloads.
-///
-/// # Parameters
-/// - `error`: Application error to classify.
-/// - `correlation_id`: Request correlation identity.
-///
-/// # Returns
-/// Structured protocol error.
-fn map_error(error: &ApplicationError, correlation_id: &str) -> ProtocolError {
-    let code = match error.category() {
-        "not_found" => ProtocolErrorCode::NotFound,
-        "invalid_request" => ProtocolErrorCode::InvalidRequest,
-        "permission_denied" => ProtocolErrorCode::PermissionDenied,
-        "schema_violation" => ProtocolErrorCode::SchemaViolation,
-        "stale_base_snapshot" => ProtocolErrorCode::StaleBaseSnapshot,
-        "semantic_conflict" => ProtocolErrorCode::SemanticConflict,
-        "validation_failure" => ProtocolErrorCode::ValidationFailure,
-        "unsupported_operation" => ProtocolErrorCode::UnsupportedOperation,
-        "unsupported_capability" => ProtocolErrorCode::UnsupportedCapability,
-        "conflict" => ProtocolErrorCode::Conflict,
-        "ambiguous" => ProtocolErrorCode::Ambiguous,
-        "snapshot_unavailable" => ProtocolErrorCode::SnapshotUnavailable,
-        "operation_failed" => ProtocolErrorCode::OperationFailed,
-        "projection_out_of_sync" => ProtocolErrorCode::ProjectionOutOfSync,
-        "operation_cancelled" => ProtocolErrorCode::OperationCancelled,
-        _ => ProtocolErrorCode::Internal,
-    };
-    ProtocolError {
-        code,
-        message: error.to_string(),
-        details: Some(error_details(error)),
-        correlation_id: Some(correlation_id.to_owned()),
-    }
-}
-
-/// Preserves safe semantic handles in protocol error details.
-///
-/// # Parameters
-/// - `error`: Application error being serialized.
-///
-/// # Returns
-/// JSON-safe structured details without backend internals.
-fn error_details(error: &ApplicationError) -> serde_json::Value {
-    match error {
-        ApplicationError::NotFound { subject } => serde_json::json!({"subject": subject}),
-        ApplicationError::InvalidRequest { operation, message }
-        | ApplicationError::OperationFailed { operation, message } => {
-            serde_json::json!({"operation": operation, "message": message})
-        }
-        ApplicationError::UnsupportedCapability {
-            operation,
-            capability,
-        } => {
-            serde_json::json!({"operation": operation, "capability": capability})
-        }
-        ApplicationError::Conflict { subject, details } => serde_json::json!({
-            "subject": subject,
-            "base_revision": details.base_revision.map(|value| value.to_string()),
-            "expected_revision": details.expected_revision.map(|value| value.to_string()),
-            "current_revision": details.current_revision.map(|value| value.to_string()),
-            "left": details.left.as_ref(),
-            "right": details.right.as_ref(),
-            "operation": details.operation,
-        }),
-        ApplicationError::Ambiguous {
-            scope,
-            candidates,
-            reason,
-        } => {
-            serde_json::json!({"scope": scope, "candidates": candidates, "reason": reason})
-        }
-        ApplicationError::SnapshotUnavailable { snapshot } => {
-            serde_json::json!({"snapshot": snapshot.to_string()})
-        }
-        _ => serde_json::json!({}),
+    ApplicationContext {
+        capabilities: CapabilityContext::new(capabilities),
+        ..ApplicationContext::empty()
     }
 }

@@ -1,5 +1,7 @@
 //! Defines deterministic fixtures shared by cross-surface conformance tests.
 
+pub mod agent_fixture;
+
 use scriberig_agent_core::{INSPECT_CAPABILITY, InspectTool};
 use scriberig_app::{
     ApplicationContext, ApplicationError, CapabilityContext, CapabilityId, InspectRequest,
@@ -248,6 +250,7 @@ impl ApplicationService for Fixture {
             }),
             result_snapshot,
             result_handles: Vec::new(),
+            agent_result: None,
             error: error.map(str::to_owned),
         })
     }
@@ -295,6 +298,7 @@ impl ApplicationService for Fixture {
             return Ok(Vec::new());
         }
         Ok(vec![scriberig_protocol::Event {
+            sequence: 1,
             kind: scriberig_protocol::EventKind::EntityChanged,
             entity: Some(scriberig_protocol::EntityReference {
                 id: self.entity.to_string(),

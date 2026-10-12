@@ -112,6 +112,7 @@ pub fn initialize(connection: &mut Connection) -> rusqlite::Result<u32> {
 ///
 /// # Errors
 /// Returns the SQLite schema error.
+#[allow(clippy::too_many_lines)]
 fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
     transaction.execute_batch(
         "CREATE TABLE IF NOT EXISTS metadata (

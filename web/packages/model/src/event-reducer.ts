@@ -6,6 +6,8 @@ import type { OperationStore } from "./operation-store";
 export interface ModelEventState {
   snapshots: SnapshotState;
   disconnected: boolean;
+  changedBranches: readonly string[];
+  changedSessions: readonly string[];
   lastEvent?: ProtocolEvent;
 }
 /** Applies one event without mutating immutable revision caches. @param state Current state. @param event Incoming event. @param operations Operation store. @returns Updated state. */
@@ -21,6 +23,16 @@ export function reduceEvent(
     case "operationProgress":
       operations.progress(event.operationId, event.progress);
       return observed;
+    case "operationStarted":
+      operations.start(event.operationId);
+      return observed;
+    case "operationCompleted":
+      operations.complete(event.operationId);
+      return observed;
+    case "branchChanged":
+      return { ...observed, changedBranches: [...state.changedBranches, event.branchId] };
+    case "sessionChanged":
+      return { ...observed, changedSessions: [...state.changedSessions, event.sessionId] };
     case "operationFailed":
       operations.fail(event.operationId, event.error);
       return observed;

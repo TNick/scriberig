@@ -30,8 +30,6 @@ pub struct ShellLayout {
     pub inspector: Option<Rect>,
     /// The status rectangle.
     pub status: Rect,
-    /// The key-hint rectangle.
-    pub hints: Rect,
 }
 
 /// Computes shell regions for a terminal rectangle.
@@ -44,7 +42,6 @@ pub fn shell_layout(area: Rect) -> ShellLayout {
     let vertical = ratatui::layout::Layout::vertical([
         ratatui::layout::Constraint::Length(1),
         ratatui::layout::Constraint::Min(1),
-        ratatui::layout::Constraint::Length(1),
         ratatui::layout::Constraint::Length(1),
     ])
     .split(area);
@@ -82,7 +79,6 @@ pub fn shell_layout(area: Rect) -> ShellLayout {
         primary,
         inspector,
         status: vertical[2],
-        hints: vertical[3],
     }
 }
 

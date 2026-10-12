@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 export default defineConfig({
   resolve: {
     alias: {
+      "@scriberig/client": resolve(__dirname, "packages/client/src/index.ts"),
       "@scriberig/editor-core": resolve(__dirname, "packages/editor-core/src/index.ts"),
       "@scriberig/model": resolve(__dirname, "packages/model/src/index.ts"),
     },

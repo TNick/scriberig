@@ -2,14 +2,35 @@
 
 use scriberig_app::{
     ApplicationContext, ApplicationError, ApplicationEvent, ApplicationRequest, ApplyRequest,
-    BranchRequest, CommitRequest, DiffRequest, InspectRequest, InspectResult, OperationId,
-    OperationKind, RuntimeCapability,
+    BranchRequest, CommitRequest, DiffRequest, InspectRequest, InspectResult, MigrationDetail,
+    OperationId, OperationKind, RenderRequest, RuntimeCapability,
 };
 use scriberig_protocol::{Event, EventKind, Operation};
-use scriberig_query::{QueryResult, QuerySpec};
+use scriberig_query::{FindRequest, FindResult, ListRequest, ListResult, QueryResult, QuerySpec};
 
 /// Application semantics supplied to protocol dispatch.
 pub trait ApplicationService {
+    /// Reads canonical detail for one migration proposal.
+    ///
+    /// # Parameters
+    /// - `_context`: Trusted request context.
+    /// - `_migration_id`: Stable migration handle.
+    ///
+    /// # Returns
+    /// Snapshot-bound migration detail.
+    ///
+    /// # Errors
+    /// Returns unsupported-operation when proposal reads are unavailable.
+    fn migration_detail(
+        &self,
+        _context: &ApplicationContext,
+        _migration_id: &str,
+    ) -> Result<MigrationDetail, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "migration detail".to_owned(),
+        })
+    }
+
     /// Executes one application inspection.
     ///
     /// # Parameters
@@ -32,6 +53,27 @@ pub trait ApplicationService {
     /// # Returns
     /// Runtime capability descriptors.
     fn capabilities(&self) -> Vec<RuntimeCapability>;
+
+    /// Reads one compact durable session tree.
+    ///
+    /// # Parameters
+    /// - `_context`: Trusted request context.
+    /// - `_session`: Stable session identity.
+    ///
+    /// # Returns
+    /// Provider-neutral session and branch activity summaries.
+    ///
+    /// # Errors
+    /// Returns a structured application error when the session is unavailable.
+    fn read_session(
+        &self,
+        _context: &ApplicationContext,
+        _session: &str,
+    ) -> Result<scriberig_protocol::SessionReadResponse, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "session read".to_owned(),
+        })
+    }
 
     /// Returns one operation status in protocol-independent form.
     ///
@@ -78,6 +120,29 @@ pub trait ApplicationService {
         })
     }
 
+    /// Returns public events after a reconnect cursor.
+    ///
+    /// # Parameters
+    /// - `event_kinds`: Event kind filters.
+    /// - `after`: Last cursor already processed by the caller.
+    ///
+    /// # Returns
+    /// Retained events newer than `after`.
+    ///
+    /// # Errors
+    /// Returns an error when the replay cursor is no longer retained.
+    fn events_after(
+        &self,
+        event_kinds: &[String],
+        after: u64,
+    ) -> Result<Vec<Event>, ApplicationError> {
+        Ok(self
+            .events(event_kinds)?
+            .into_iter()
+            .filter(|event| event.sequence > after)
+            .collect())
+    }
+
     /// Executes one structured query through the application boundary.
     ///
     /// # Errors
@@ -94,6 +159,48 @@ pub trait ApplicationService {
     ) -> Result<QueryResult, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "query".to_owned(),
+        })
+    }
+
+    /// Executes one bounded semantic collection listing.
+    ///
+    /// # Parameters
+    /// - `_context`: Trusted request context.
+    /// - `_request`: Snapshot-bound collection request.
+    ///
+    /// # Returns
+    /// A bounded collection page.
+    ///
+    /// # Errors
+    /// Returns unsupported-operation when listing is unavailable.
+    fn list(
+        &self,
+        _context: &ApplicationContext,
+        _request: &ListRequest,
+    ) -> Result<ListResult, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "list".to_owned(),
+        })
+    }
+
+    /// Executes bounded semantic discovery within an exact scope.
+    ///
+    /// # Parameters
+    /// - `_context`: Trusted request context.
+    /// - `_request`: Snapshot-scoped discovery request.
+    ///
+    /// # Returns
+    /// A bounded discovery result.
+    ///
+    /// # Errors
+    /// Returns unsupported-operation when discovery is unavailable.
+    fn find(
+        &self,
+        _context: &ApplicationContext,
+        _request: &FindRequest,
+    ) -> Result<FindResult, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "find".to_owned(),
         })
     }
 
@@ -120,6 +227,25 @@ pub trait ApplicationService {
 }
 
 impl<S: ApplicationService + ?Sized> ApplicationService for &S {
+    /// Delegates migration detail to the borrowed application service.
+    ///
+    /// # Parameters
+    /// - `context`: Trusted request context.
+    /// - `migration_id`: Stable migration handle.
+    ///
+    /// # Returns
+    /// Snapshot-bound migration detail.
+    ///
+    /// # Errors
+    /// Returns the delegated service error.
+    fn migration_detail(
+        &self,
+        context: &ApplicationContext,
+        migration_id: &str,
+    ) -> Result<MigrationDetail, ApplicationError> {
+        (**self).migration_detail(context, migration_id)
+    }
+
     /// Delegates inspection to the borrowed application service.
     /// - `context`: Argument named `context`.
     /// - `request`: Argument named `request`.
@@ -143,6 +269,23 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// The value produced by the declaration.
     fn capabilities(&self) -> Vec<RuntimeCapability> {
         (**self).capabilities()
+    }
+
+    /// Delegates compact session reads to the borrowed service.
+    /// - `context`: Trusted request context.
+    /// - `session`: Stable session identity.
+    ///
+    /// # Returns
+    /// Compact session tree response.
+    ///
+    /// # Errors
+    /// Returns the service's structured failure.
+    fn read_session(
+        &self,
+        context: &ApplicationContext,
+        session: &str,
+    ) -> Result<scriberig_protocol::SessionReadResponse, ApplicationError> {
+        (**self).read_session(context, session)
     }
 
     /// Delegates operation status to the borrowed application service.
@@ -179,6 +322,23 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// Returns an error when the operation cannot complete.
     fn events(&self, event_kinds: &[String]) -> Result<Vec<Event>, ApplicationError> {
         (**self).events(event_kinds)
+    }
+
+    /// Delegates cursor-based event observation to the borrowed service.
+    /// - `event_kinds`: Event kind filters.
+    /// - `after`: Last cursor already processed by the caller.
+    ///
+    /// # Returns
+    /// Events newer than `after`.
+    ///
+    /// # Errors
+    /// Returns an error when replay is unavailable.
+    fn events_after(
+        &self,
+        event_kinds: &[String],
+        after: u64,
+    ) -> Result<Vec<Event>, ApplicationError> {
+        (**self).events_after(event_kinds, after)
     }
 
     /// Delegates structured queries to the borrowed application service.
@@ -218,171 +378,8 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     }
 }
 
-// Adapt the shared application façade to the protocol server boundary.
-impl<B> ApplicationService for scriberig_app::ApplicationService<B>
-where
-    B: scriberig_app::ApplicationBackend,
-{
-    /// Executes inspection through the shared application façade.
-    ///
-    /// # Parameters
-    /// - `self`: Shared application service.
-    /// - `context`: Trusted request context.
-    /// - `request`: Snapshot-aware inspection request.
-    ///
-    /// # Returns
-    /// Application inspection result.
-    ///
-    /// # Errors
-    /// Returns the shared application failure.
-    fn inspect(
-        &self,
-        context: &ApplicationContext,
-        request: &InspectRequest,
-    ) -> Result<InspectResult, ApplicationError> {
-        scriberig_app::QueryService::inspect(self, context, request)
-    }
-
-    /// Advertises the generic inspect capability supplied by this façade.
-    ///
-    /// # Returns
-    /// One available inspect capability.
-    fn capabilities(&self) -> Vec<RuntimeCapability> {
-        vec![RuntimeCapability::new(
-            scriberig_app::CapabilityId::new("inspect_entity").expect("static capability"),
-            "Inspect one entity",
-            true,
-        )]
-    }
-
-    /// Executes a structured query through the shared application backend.
-    /// - `context`: Argument named `context`.
-    /// - `request`: Argument named `request`.
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    ///
-    /// # Errors
-    /// Returns an error when the operation cannot complete.
-    fn query(
-        &self,
-        context: &ApplicationContext,
-        request: &QuerySpec,
-    ) -> Result<QueryResult, ApplicationError> {
-        match self.execute(
-            context,
-            &scriberig_app::ApplicationRequest::Query(request.clone()),
-        )? {
-            scriberig_app::ApplicationResult::Query(result) => Ok(result),
-            _ => Err(ApplicationError::Internal {
-                message: "query backend returned a different result kind".to_owned(),
-            }),
-        }
-    }
-
-    /// Reads operation state from the shared application lifecycle registry.
-    ///
-    /// # Parameters
-    /// - `self`: Shared application service.
-    /// - `operation_id`: Requested operation identity.
-    ///
-    /// # Returns
-    /// # Errors
-    /// Returns a structured error when the operation is unknown.
-    fn operation_status(&self, operation_id: &str) -> Result<Operation, ApplicationError> {
-        let id = operation_id
-            .parse::<OperationId>()
-            .map_err(|_| ApplicationError::NotFound {
-                subject: operation_id.to_owned(),
-            })?;
-        Ok(operation_from_record(self.operations().get(&id)?))
-    }
-
-    /// Cancels operation state through the shared application lifecycle registry.
-    /// - `operation_id`: Argument named `operation_id`.
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    ///
-    /// # Errors
-    /// Returns an error when the operation cannot complete.
-    fn cancel_operation(&self, operation_id: &str) -> Result<Operation, ApplicationError> {
-        let id = operation_id
-            .parse::<OperationId>()
-            .map_err(|_| ApplicationError::NotFound {
-                subject: operation_id.to_owned(),
-            })?;
-        Ok(operation_from_record(self.operations().cancel(&id)?))
-    }
-
-    /// Exposes buffered lifecycle events as stable protocol envelopes.
-    /// - `event_kinds`: Argument named `event_kinds`.
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    ///
-    /// # Errors
-    /// Returns an error when the operation cannot complete.
-    fn events(&self, event_kinds: &[String]) -> Result<Vec<Event>, ApplicationError> {
-        Ok(self
-            .operations()
-            .events()
-            .into_iter()
-            .map(event_from_application)
-            .filter(|event| event_matches(event, event_kinds))
-            .collect())
-    }
-
-    /// Decodes and executes one command through the shared application façade.
-    /// - `context`: Argument named `context`.
-    /// - `kind`: Argument named `kind`.
-    /// - `payload`: Argument named `payload`.
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    ///
-    /// # Errors
-    /// Returns an error when the operation cannot complete.
-    fn command(
-        &self,
-        context: &ApplicationContext,
-        kind: &str,
-        payload: &serde_json::Value,
-    ) -> Result<Operation, ApplicationError> {
-        let (operation_kind, request) = decode_command(kind, payload)?;
-        let operation_id = OperationId::new(format!(
-            "command-{kind}-{}",
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map_err(|error| ApplicationError::Internal {
-                    message: error.to_string(),
-                })?
-                .as_nanos()
-        ))
-        .map_err(|error| ApplicationError::Internal {
-            message: error.to_string(),
-        })?;
-        self.operations()
-            .start(operation_id.clone(), operation_kind)?;
-        self.operations()
-            .transition(&operation_id, scriberig_app::OperationStatus::Running)?;
-        let result = self.execute(context, &request);
-        match result {
-            Ok(result) => {
-                let handles = result_handles(&result);
-                Ok(operation_from_record(
-                    self.operations().complete(&operation_id, handles)?,
-                ))
-            }
-            Err(error) => {
-                let _ = self
-                    .operations()
-                    .transition(&operation_id, scriberig_app::OperationStatus::Failed);
-                Err(error)
-            }
-        }
-    }
-}
+#[path = "server_application.rs"]
+mod server_application;
 
 /// Decodes a protocol command into the transport-independent application model.
 /// - `kind`: Argument named `kind`.
@@ -396,8 +393,4 @@ where
 #[path = "server_commands.rs"]
 mod server_commands;
 #[path = "server_helpers.rs"]
-mod server_helpers;
-use server_commands::decode_command;
-use server_helpers::{
-    event_from_application, event_matches, operation_from_record, result_handles,
-};
+pub(crate) mod server_helpers;

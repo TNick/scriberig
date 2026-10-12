@@ -1,6 +1,72 @@
 //! Converts application results and events into protocol values.
 
 use crate::server::{ApplicationEvent, Event, EventKind, Operation};
+use scriberig_app::ApplicationError;
+
+/// Converts a durable session into a compact provider-neutral response.
+///
+/// # Parameters
+/// - `super`: Server protocol module namespace used by the response type.
+/// - `session`: Durable session value returned by the application boundary.
+///
+/// # Returns
+/// Session tree containing ordered activity and compact result handles.
+pub(super) fn session_response(
+    session: scriberig_session::Session,
+) -> scriberig_protocol::SessionReadResponse {
+    let session_id = session.id;
+    let mut branches = session
+        .branches
+        .into_iter()
+        .map(|branch| scriberig_protocol::SessionBranch {
+            id: branch.id.to_string(),
+            parent: branch.parent.map(|value| value.to_string()),
+            children: branch.children.iter().map(ToString::to_string).collect(),
+            title: branch.title,
+            status: match branch.status {
+                scriberig_session::BranchStatus::Active => {
+                    scriberig_protocol::SessionBranchStatus::Active
+                }
+                scriberig_session::BranchStatus::Completed => {
+                    scriberig_protocol::SessionBranchStatus::Completed
+                }
+                scriberig_session::BranchStatus::Abandoned => {
+                    scriberig_protocol::SessionBranchStatus::Abandoned
+                }
+            },
+            turns: branch
+                .turns
+                .into_iter()
+                .map(|turn| scriberig_protocol::SessionTurn {
+                    id: turn.id.to_string(),
+                    ordinal: turn.ordinal,
+                    has_human_input: turn.human.is_some(),
+                    has_agent_output: turn.agent.is_some(),
+                    agent_output: turn.agent.map(|value| value.text),
+                    tool_invocation: turn.tool_invocation.map(|value| value.to_string()),
+                    tool_result: turn.tool_result.map(|value| value.to_string()),
+                })
+                .collect(),
+            result: branch
+                .result
+                .map(|result| scriberig_protocol::SessionBranchResult {
+                    id: result.id.to_string(),
+                    references: result
+                        .references
+                        .into_iter()
+                        .map(|value| value.to_string())
+                        .collect(),
+                }),
+        })
+        .collect::<Vec<_>>();
+    branches.sort_by(|left, right| left.id.cmp(&right.id));
+    scriberig_protocol::SessionReadResponse {
+        session: scriberig_protocol::SessionReference {
+            id: session_id.to_string(),
+        },
+        branches,
+    }
+}
 
 /// Extracts stable result handles without exposing canonical result payloads.
 /// - `super`: Parent-module imports used by this helper.
@@ -36,6 +102,45 @@ pub(super) fn event_matches(event: &Event, event_kinds: &[String]) -> bool {
             kind.eq_ignore_ascii_case(&format!("{:?}", event.kind))
                 || kind.eq_ignore_ascii_case(&format!("{:?}", event.kind).replace('_', ""))
         })
+}
+
+/// Preserves safe semantic handles in protocol error details.
+///
+/// # Parameters
+/// - `error`: Application error being serialized.
+///
+/// # Returns
+/// JSON-safe structured details without backend internals.
+pub fn error_details(error: &ApplicationError) -> serde_json::Value {
+    match error {
+        ApplicationError::NotFound { subject } => serde_json::json!({"subject": subject}),
+        ApplicationError::InvalidRequest { operation, message }
+        | ApplicationError::OperationFailed { operation, message } => {
+            serde_json::json!({"operation": operation, "message": message})
+        }
+        ApplicationError::UnsupportedCapability {
+            operation,
+            capability,
+        } => serde_json::json!({"operation": operation, "capability": capability}),
+        ApplicationError::Conflict { subject, details } => serde_json::json!({
+            "subject": subject,
+            "base_revision": details.base_revision.map(|value| value.to_string()),
+            "expected_revision": details.expected_revision.map(|value| value.to_string()),
+            "current_revision": details.current_revision.map(|value| value.to_string()),
+            "left": details.left.as_ref(),
+            "right": details.right.as_ref(),
+            "operation": details.operation,
+        }),
+        ApplicationError::Ambiguous {
+            scope,
+            candidates,
+            reason,
+        } => serde_json::json!({"scope": scope, "candidates": candidates, "reason": reason}),
+        ApplicationError::SnapshotUnavailable { snapshot } => {
+            serde_json::json!({"snapshot": snapshot.to_string()})
+        }
+        _ => serde_json::json!({}),
+    }
 }
 
 /// Converts an application operation record to its public lifecycle form.
@@ -80,6 +185,9 @@ pub(super) fn operation_from_record(record: scriberig_app::OperationRecord) -> O
             scriberig_app::OperationKind::Branch => {
                 scriberig_protocol::operation::OperationKind::Branch
             }
+            scriberig_app::OperationKind::Agent => {
+                scriberig_protocol::operation::OperationKind::Agent
+            }
             scriberig_app::OperationKind::Commit => {
                 scriberig_protocol::operation::OperationKind::Commit
             }
@@ -121,7 +229,55 @@ pub(super) fn operation_from_record(record: scriberig_app::OperationRecord) -> O
         }),
         result_snapshot: None,
         result_handles: record.result_handles,
+        agent_result: record.agent_result.map(agent_result),
         error: record.error.map(|error| error.to_string()),
+    }
+}
+
+/// Converts an application agent result into a provider-neutral protocol value.
+///
+/// # Parameters
+/// - `result`: Durable application result.
+///
+/// # Returns
+/// Safe protocol result without provider credentials or DTOs.
+///
+/// # Errors
+/// This conversion is infallible because all identifiers have already been
+/// validated by the application layer.
+fn agent_result(result: scriberig_app::AgentResult) -> scriberig_protocol::AgentResult {
+    scriberig_protocol::AgentResult {
+        session: scriberig_protocol::SessionReference {
+            id: result.session.to_string(),
+        },
+        root_branch: scriberig_protocol::BranchReference {
+            id: result.root_branch.to_string(),
+        },
+        final_output: result.final_output,
+        branch_result: result.branch_result.to_string(),
+        produced_changes: result
+            .produced_changes
+            .into_iter()
+            .map(|value| scriberig_protocol::EntityReference {
+                id: value.to_string(),
+            })
+            .collect(),
+        validation_results: result.validation_results,
+        unresolved_questions: result.unresolved_questions,
+        candidate_changes: result
+            .candidate_changes
+            .into_iter()
+            .map(|value| scriberig_protocol::CandidateChangeReference {
+                migration: value.migration,
+                entity: value
+                    .entity
+                    .map(|id| scriberig_protocol::EntityReference { id: id.to_string() }),
+                candidate_snapshot: value
+                    .candidate_snapshot
+                    .map(|id| scriberig_protocol::SnapshotReference { id: id.to_string() }),
+                validation: value.validation,
+            })
+            .collect(),
     }
 }
 
@@ -143,14 +299,37 @@ pub(super) fn event_from_application(event: ApplicationEvent) -> Event {
             EventKind::OperationStarted
         }
         ApplicationEvent::OperationProgressed {
-            operation: value, ..
+            operation: value,
+            progress,
         } => {
             operation = Some(value);
+            if let Some(total) = progress.total.filter(|total| *total > 0) {
+                let percent = progress
+                    .completed
+                    .unwrap_or_default()
+                    .saturating_mul(100)
+                    .checked_div(total)
+                    .unwrap_or_default()
+                    .min(100);
+                metadata.push(("percent".to_owned(), percent.to_string()));
+            }
             EventKind::OperationProgressed
         }
         ApplicationEvent::OperationCompleted { operation: value } => {
             operation = Some(value);
             EventKind::OperationCompleted
+        }
+        ApplicationEvent::OperationFailed {
+            operation: value,
+            error,
+        } => {
+            operation = Some(value);
+            metadata.push(("error".to_owned(), error));
+            EventKind::OperationFailed
+        }
+        ApplicationEvent::OperationCancelled { operation: value } => {
+            operation = Some(value);
+            EventKind::OperationCancelled
         }
         ApplicationEvent::SnapshotChanged { snapshot: value } => {
             snapshot = Some(scriberig_protocol::SnapshotReference {
@@ -198,6 +377,7 @@ pub(super) fn event_from_application(event: ApplicationEvent) -> Event {
         }
     };
     Event {
+        sequence: 0,
         kind,
         entity,
         revision,

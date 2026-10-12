@@ -1,0 +1,369 @@
+//! Implements the non-streaming OpenAI-compatible provider adapter.
+
+use serde::{Deserialize, Serialize};
+
+use crate::provider::{
+    FinishReason, ModelRequest, ModelResponse, ProviderAdapter, ProviderCapabilities,
+    ProviderError, ProviderMetadata, ToolCall, ToolChoice, Usage,
+};
+use crate::provider::{MessageRole, ProviderConfig};
+#[path = "openai_transport.rs"]
+mod openai_transport;
+use openai_transport::{classify_status, classify_transport};
+
+/// OpenAI-compatible chat-completions provider.
+#[derive(Clone)]
+pub struct OpenAiCompatibleProvider {
+    /// Runtime provider configuration.
+    config: ProviderConfig,
+    /// HTTP client with bounded connection behavior.
+    client: reqwest::blocking::Client,
+    /// Declared capabilities for this compatibility adapter.
+    capabilities: ProviderCapabilities,
+}
+
+impl OpenAiCompatibleProvider {
+    /// Creates an adapter with the configured endpoint and timeouts.
+    ///
+    /// # Parameters
+    /// - `config`: Provider configuration without an embedded secret.
+    ///
+    /// # Returns
+    /// A configured OpenAI-compatible adapter.
+    ///
+    /// # Errors
+    /// Returns a configuration error when the HTTP client cannot be built.
+    pub fn new(config: ProviderConfig) -> Result<Self, ProviderError> {
+        let client = reqwest::blocking::Client::builder()
+            .connect_timeout(config.connect_timeout)
+            .no_proxy()
+            .http1_only()
+            .user_agent("scriberig-agent-runtime/0.1")
+            .build()
+            .map_err(|error| ProviderError::Configuration(error.to_string()))?;
+        Ok(Self {
+            config,
+            client,
+            capabilities: ProviderCapabilities {
+                tool_calls: true,
+                streaming: true,
+                usage_reporting: true,
+                provider_request_id: true,
+                provider_model_fingerprint: true,
+                ..ProviderCapabilities::default()
+            },
+        })
+    }
+
+    /// Returns the adapter's declared model capabilities.
+    ///
+    /// # Returns
+    /// A copy of the capability descriptor.
+    #[must_use]
+    pub const fn capabilities(&self) -> ProviderCapabilities {
+        self.capabilities
+    }
+
+    /// Returns the configured endpoint with the chat-completions suffix.
+    ///
+    /// # Returns
+    /// The endpoint URL used for requests.
+    fn endpoint(&self) -> String {
+        format!(
+            "{}/chat/completions",
+            self.config.base_url.trim_end_matches('/')
+        )
+    }
+}
+
+impl ProviderAdapter for OpenAiCompatibleProvider {
+    /// Sends a normalized request and parses one normalized response.
+    ///
+    /// # Parameters
+    /// - `request`: Provider-neutral model request.
+    ///
+    /// # Returns
+    /// A provider-neutral model response.
+    ///
+    /// # Errors
+    /// Returns a classified transport, HTTP, configuration, or parse failure.
+    fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
+        let credential = self.config.resolve_credential()?;
+        let payload = WireRequest::from_request(request, false);
+        let mut builder = self
+            .client
+            .post(self.endpoint())
+            .timeout(self.config.request_timeout)
+            .json(&payload);
+        if let Some(credential) = credential {
+            builder = builder.bearer_auth(credential.as_str());
+        }
+        let response = builder.send().map_err(|error| classify_transport(&error))?;
+        let request_id = response
+            .headers()
+            .get("x-request-id")
+            .or_else(|| response.headers().get("request-id"))
+            .and_then(|value| value.to_str().ok())
+            .map(str::to_owned);
+        let status = response.status();
+        if !status.is_success() {
+            return Err(classify_status(status, request_id));
+        }
+        let wire: WireResponse = response
+            .json()
+            .map_err(|error| ProviderError::MalformedResponse(error.to_string()))?;
+        wire.into_response(request_id)
+    }
+}
+
+/// Serializes a provider-neutral request into the compatible wire subset.
+#[derive(Serialize)]
+struct WireRequest {
+    model: String,
+    messages: Vec<WireMessage>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    tools: Vec<WireTool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tool_choice: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    response_format: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    temperature: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "is_false")]
+    stream: bool,
+}
+
+impl WireRequest {
+    /// Converts a provider-neutral request into wire fields.
+    ///
+    /// # Parameters
+    /// - `request`: Provider-neutral request.
+    /// - `stream`: Whether the provider should stream SSE fragments.
+    ///
+    /// # Returns
+    /// OpenAI-compatible request fields.
+    fn from_request(request: &ModelRequest, stream: bool) -> Self {
+        let tool_choice = match &request.tool_choice {
+            ToolChoice::Auto => Some(serde_json::json!("auto")),
+            ToolChoice::None => Some(serde_json::json!("none")),
+            ToolChoice::Required(name) => Some(serde_json::json!({
+                "type": "function",
+                "function": {"name": name},
+            })),
+        };
+        let response_format = request.response_schema.as_ref().map(|schema| {
+            serde_json::json!({
+                "type": "json_schema",
+                "json_schema": {"name": "scriberig_output", "schema": schema},
+            })
+        });
+        Self {
+            model: request.model.clone(),
+            messages: request
+                .messages
+                .iter()
+                .map(WireMessage::from_message)
+                .collect(),
+            tools: request
+                .tools
+                .iter()
+                .map(WireTool::from_definition)
+                .collect(),
+            tool_choice,
+            response_format,
+            temperature: request.temperature,
+            max_tokens: request.max_tokens,
+            stream,
+        }
+    }
+}
+
+/// Omits the default false streaming flag from ordinary requests.
+#[allow(clippy::trivially_copy_pass_by_ref)]
+///
+/// # Parameters
+/// - `value`: Streaming flag to inspect.
+///
+/// # Returns
+/// `true` when the flag is false.
+fn is_false(value: &bool) -> bool {
+    !*value
+}
+
+/// Serializes one provider-neutral message.
+#[derive(Serialize)]
+struct WireMessage {
+    role: &'static str,
+    content: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tool_call_id: Option<String>,
+}
+
+impl WireMessage {
+    /// Converts a semantic message role to its wire spelling.
+    ///
+    /// # Parameters
+    /// - `message`: Provider-neutral message.
+    ///
+    /// # Returns
+    /// Wire-compatible message fields.
+    fn from_message(message: &crate::provider::ModelMessage) -> Self {
+        let role = match message.role {
+            MessageRole::System => "system",
+            MessageRole::User => "user",
+            MessageRole::Assistant => "assistant",
+            MessageRole::Tool => "tool",
+        };
+        Self {
+            role,
+            content: message.content.clone(),
+            tool_call_id: message.tool_call_id.clone(),
+        }
+    }
+}
+
+#[derive(Serialize)]
+/// Serializes one function tool declaration.
+struct WireTool {
+    r#type: &'static str,
+    function: WireFunction,
+}
+
+#[derive(Serialize)]
+/// Serializes the function portion of a tool declaration.
+struct WireFunction {
+    name: String,
+    description: String,
+    parameters: serde_json::Value,
+}
+
+impl WireTool {
+    /// Converts a trusted tool definition to a function declaration.
+    ///
+    /// # Parameters
+    /// - `definition`: Trusted provider-neutral tool definition.
+    ///
+    /// # Returns
+    /// Wire-compatible function tool fields.
+    fn from_definition(definition: &crate::provider::ToolDefinition) -> Self {
+        Self {
+            r#type: "function",
+            function: WireFunction {
+                name: definition.name.clone(),
+                description: definition.description.clone(),
+                parameters: definition.parameters.clone(),
+            },
+        }
+    }
+}
+
+#[derive(Deserialize)]
+/// Deserializes one compatible provider response.
+struct WireResponse {
+    choices: Vec<WireChoice>,
+    usage: Option<WireUsage>,
+    model: Option<String>,
+}
+
+#[derive(Deserialize)]
+/// Deserializes one response choice.
+struct WireChoice {
+    message: WireAssistantMessage,
+    finish_reason: Option<String>,
+}
+
+#[derive(Deserialize)]
+/// Deserializes the assistant message in a response choice.
+struct WireAssistantMessage {
+    content: Option<String>,
+    tool_calls: Option<Vec<WireToolCall>>,
+}
+
+#[derive(Deserialize)]
+/// Deserializes one provider function call.
+struct WireToolCall {
+    id: String,
+    function: WireFunctionCall,
+}
+
+#[derive(Deserialize)]
+/// Deserializes function-call name and JSON arguments.
+struct WireFunctionCall {
+    name: String,
+    arguments: String,
+}
+
+#[derive(Deserialize)]
+/// Deserializes provider token usage metadata.
+struct WireUsage {
+    #[serde(rename = "prompt_tokens")]
+    input: u64,
+    #[serde(rename = "completion_tokens")]
+    output: u64,
+    #[serde(rename = "total_tokens")]
+    total: u64,
+}
+
+impl WireResponse {
+    /// Normalizes a compatible response without exposing wire DTOs.
+    ///
+    /// # Parameters
+    /// - `self`: Wire response to normalize.
+    /// - `request_id`: Safe provider request identifier.
+    ///
+    /// # Returns
+    /// Normalized provider response.
+    ///
+    /// # Errors
+    /// Returns malformed-response when choices or arguments are invalid.
+    fn into_response(self, request_id: Option<String>) -> Result<ModelResponse, ProviderError> {
+        let choice = self.choices.into_iter().next().ok_or_else(|| {
+            ProviderError::MalformedResponse("response has no choices".to_owned())
+        })?;
+        let tool_calls = choice
+            .message
+            .tool_calls
+            .unwrap_or_default()
+            .into_iter()
+            .map(|call| {
+                let arguments =
+                    serde_json::from_str(&call.function.arguments).map_err(|error| {
+                        ProviderError::MalformedResponse(format!(
+                            "tool call arguments are not JSON: {error}"
+                        ))
+                    })?;
+                Ok(ToolCall {
+                    id: call.id,
+                    name: call.function.name,
+                    arguments,
+                })
+            })
+            .collect::<Result<Vec<_>, ProviderError>>()?;
+        let finish_reason = match choice.finish_reason.as_deref() {
+            Some("tool_calls") => FinishReason::ToolCall,
+            Some("length") => FinishReason::Length,
+            Some("content_filter") => FinishReason::Refusal,
+            _ => FinishReason::Stop,
+        };
+        Ok(ModelResponse {
+            text: choice.message.content,
+            tool_calls,
+            finish_reason,
+            usage: self.usage.map(|usage| Usage {
+                prompt_tokens: usage.input,
+                completion_tokens: usage.output,
+                total_tokens: usage.total,
+            }),
+            metadata: ProviderMetadata {
+                request_id,
+                model_fingerprint: self.model,
+            },
+        })
+    }
+}
+
+#[cfg(test)]
+#[path = "openai_compatible_tests.rs"]
+mod tests;

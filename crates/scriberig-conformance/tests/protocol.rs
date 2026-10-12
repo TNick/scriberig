@@ -6,6 +6,18 @@ use scriberig_protocol::{
     Request, RequestEnvelope, SnapshotReference, SnapshotSelector, SubscribeRequest,
 };
 
+/// Verifies the checked-in cross-package fixture remains valid JSON.
+#[test]
+fn shared_fixture_is_stable() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("../../../tests/fixtures/inspect_entity.json"))
+            .expect("shared inspect fixture");
+    assert_eq!(fixture["object_type"], "markdown.document");
+    assert!(fixture["entity"].as_str().is_some());
+    assert!(fixture["snapshot"].as_str().is_some());
+    assert!(fixture["revision"].as_str().is_some());
+}
+
 /// Serializes and deserializes one protocol value.
 fn round_trip<T>(value: &T) -> T
 where
@@ -61,10 +73,12 @@ fn operation_and_event_round_trip() {
         }),
         result_snapshot: None,
         result_handles: Vec::new(),
+        agent_result: None,
         error: None,
     };
     assert_eq!(round_trip(&operation), operation);
     let event = Event {
+        sequence: 1,
         kind: EventKind::OperationCompleted,
         entity: None,
         revision: None,
@@ -87,6 +101,7 @@ fn operation_control_requests_round_trip() {
     });
     let subscribe = Request::Subscribe(SubscribeRequest {
         event_kinds: vec!["EntityChanged".to_owned()],
+        after: None,
     });
     assert_eq!(round_trip(&cancel), cancel);
     assert_eq!(round_trip(&subscribe), subscribe);

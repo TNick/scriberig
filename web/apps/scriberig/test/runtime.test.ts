@@ -1,7 +1,7 @@
 /** @file Verifies browser runtime bootstrap and connection failure behavior. */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createRuntime } from "../src/runtime";
+import { capabilityAvailable, createRuntime } from "../src/runtime";
 
 const ROOT = "ent_01010101010101010101010101010101" as never;
 const SNAPSHOT = "snp_01010101010101010101010101010101" as never;
@@ -11,12 +11,28 @@ describe("createRuntime", () => {
     vi.unstubAllGlobals();
   });
 
+  it("projects capability and feature availability without private fallbacks", () => {
+    const capabilities = {
+      protocolMajor: 1 as const,
+      features: ["agent_start"],
+      capabilities: [{ id: "operation_cancel", description: "Cancel", available: true }],
+    };
+    expect(capabilityAvailable(capabilities, "agent_start")).toBe(true);
+    expect(capabilityAvailable(capabilities, "operation_cancel")).toBe(true);
+    expect(capabilityAvailable(capabilities, "agent_continue")).toBe(false);
+    expect(capabilityAvailable(undefined, "agent_start")).toBe(false);
+  });
+
   it("bootstraps a connected root from public capabilities and inspect calls", async () => {
     const fetch = vi.fn(async (url: string) => {
-      if (url.endsWith("/subscribe")) {
-        return new Response(JSON.stringify([{ kind: "snapshotAdvanced", snapshotId: "s2" }]), {
-          status: 200,
-        });
+      if (url.includes("/events")) {
+        return new Response(
+          `data: ${JSON.stringify({ kind: "snapshotAdvanced", snapshotId: "s2" })}\n\n`,
+          {
+            headers: { "content-type": "text/event-stream" },
+            status: 200,
+          },
+        );
       }
       if (url.endsWith("/capabilities")) {
         return new Response(

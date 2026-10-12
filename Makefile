@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help init build install docs format lint test check dev dev-stop
+.PHONY: help init build install tui docs format lint test check dev dev-stop
 
 ifeq ($(OS),Windows_NT)
 PYTHON ?= python
@@ -13,6 +13,7 @@ help:
 	@echo   make init       Install web and pre-commit dependencies.
 	@echo   make build      Build all workspace targets.
 	@echo   make install    Build and install the srig executable.
+	@echo   make tui        Start srig in TUI mode.
 	@echo   make docs       Build Rust and TypeScript API documentation.
 	@echo   make format     Apply repository, Rust, and web formatting.
 	@echo   make lint       Run repository and web formatting checks.
@@ -36,6 +37,10 @@ build:
 # Build and install the srig executable into Cargo's bin directory.
 install:
 	cargo install --path apps/scriberig --locked --force
+
+# Start the integrated srig executable in TUI mode.
+tui:
+	cargo run --package scriberig --bin srig -- tui
 
 # Build API documentation from Rust and TypeScript declaration docs.
 docs:
@@ -64,8 +69,10 @@ check:
 	cargo fmt --all -- --check
 	cargo check --workspace --all-targets
 	cargo clippy --workspace --all-targets -- -D warnings
+	cargo test --workspace
 	pnpm --dir web format:check
 	pnpm --dir web typecheck
+	pnpm --dir web test
 
 # Start or reuse the API and web app, then open the browser.
 dev:

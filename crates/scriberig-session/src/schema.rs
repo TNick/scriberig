@@ -16,6 +16,8 @@ pub enum SessionEntityType {
     Summary,
     Task,
     Turn,
+    ModelInvocation,
+    ModelOutput,
 }
 impl SessionEntityType {
     #[must_use]
@@ -35,6 +37,8 @@ impl SessionEntityType {
             Self::Summary => "Summary",
             Self::Task => "Task",
             Self::Turn => "Turn",
+            Self::ModelInvocation => "ModelInvocation",
+            Self::ModelOutput => "ModelOutput",
         }
     }
 }

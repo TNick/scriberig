@@ -3,6 +3,7 @@
 pub mod capability;
 pub mod capability_registry;
 pub mod command;
+pub mod composite_backend;
 pub mod context;
 pub mod error;
 pub mod event;
@@ -35,6 +36,7 @@ pub use capability_registry::{
     DuplicateCapability,
 };
 pub use command::{CommandContext, CommandKind};
+pub use composite_backend::CompositeBackend;
 pub use context::{ApplicationContext, CapabilityContext, Principal};
 pub use error::{ApplicationError, ConflictDetails};
 pub use event::ApplicationEvent;
@@ -48,7 +50,7 @@ pub use operation::{
     OperationId, OperationKind, OperationProgress, OperationRecord, OperationRegistry,
     OperationStatus,
 };
-pub use operation_backend::{CompositeBackend, OperationProvider};
+pub use operation_backend::{ApplicationBackendComposition, OperationProvider};
 pub use operation_store::StoreOperationProvider;
 pub use projection_backend::ProjectionOperationProvider;
 pub use promotion::{
@@ -61,10 +63,15 @@ pub use request::{
     ApplicationRequest, ApplyRequest, BranchRequest, CommitRequest, DiffRequest, HistoryRequest,
     RenderRequest, SnapshotSelector,
 };
-pub use result::{ApplicationResult, OperationStarted, OperationSummary};
+pub use result::{
+    ApplicationResult, MigrationDelta, MigrationDetail, OperationStarted, OperationSummary,
+};
 pub use service::{ApplicationBackend, ApplicationService};
 pub use service_store::StoreInspectionBackend;
-pub use session::{AgentCommandRequest, SessionBackend, SessionRequest};
+pub use session::{
+    AgentCommandRequest, AgentResult, CandidateChange, LocalAgentHandle, LocalChildAgentHandle,
+    SessionBackend, SessionRequest,
+};
 pub use trust::{
     ApprovalSummary, CapabilityDenial, ConflictSummary, ExternalEffectSummary, PolicyDecision,
     PolicyEvaluation, SourceKind, TrustSummary, ValidationState,
@@ -173,10 +180,11 @@ mod tests {
             OperationKind::History,
             OperationKind::Render,
             OperationKind::Branch,
+            OperationKind::Agent,
             OperationKind::Apply,
             OperationKind::Commit,
         ];
-        assert_eq!(kinds.len(), 11);
+        assert_eq!(kinds.len(), 12);
     }
 
     /// Verifies snapshot selectors preserve exact and named-root semantics.

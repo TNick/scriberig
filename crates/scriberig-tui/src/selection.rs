@@ -24,6 +24,8 @@ pub enum PrimaryView {
     Overview,
     /// Immutable semantic history.
     History,
+    /// Bounded semantic discovery results.
+    Find,
     /// Two-sided semantic diff.
     Diff,
     /// Read-only rendered projection.

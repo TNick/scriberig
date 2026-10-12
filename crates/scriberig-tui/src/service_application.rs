@@ -3,6 +3,7 @@
 #![allow(clippy::wildcard_imports)]
 
 use super::*;
+use scriberig_app::SessionBackend;
 
 /// Adapts an application query service to TUI operations.
 pub struct ApplicationAdapter<S> {
@@ -34,7 +35,7 @@ impl<S> ApplicationAdapter<S> {
     }
 }
 
-impl<S: QueryService> TuiService for ApplicationAdapter<S> {
+impl<S: QueryService + SessionBackend> TuiService for ApplicationAdapter<S> {
     /// Delegates inspection through the public query service.
     ///
     /// # Parameters
@@ -78,6 +79,89 @@ impl<S: QueryService> TuiService for ApplicationAdapter<S> {
         _context: &ApplicationContext,
     ) -> Result<Vec<RuntimeCapability>, ApplicationError> {
         Ok(self.capabilities.clone())
+    }
+
+    /// Reads a session through the public application boundary.
+    ///
+    /// # Parameters
+    /// - `context`: Caller authorization context.
+    /// - `session`: Stable session identity.
+    ///
+    /// # Returns
+    /// The requested session snapshot.
+    ///
+    /// # Errors
+    /// Returns the application session error.
+    fn read_session(
+        &self,
+        context: &ApplicationContext,
+        session: EntityId,
+    ) -> Result<scriberig_session::Session, ApplicationError> {
+        self.service
+            .read_session(context, &scriberig_app::SessionRequest { session })
+    }
+
+    /// Submits an agent command through the public application boundary.
+    ///
+    /// # Parameters
+    /// - `context`: Caller authorization context.
+    /// - `session`: Target session identity.
+    /// - `branch`: Optional target branch.
+    /// - `prompt`: User-authored command text.
+    ///
+    /// # Returns
+    /// The accepted operation identity.
+    ///
+    /// # Errors
+    /// Returns the application session error.
+    fn submit_agent_command(
+        &self,
+        context: &ApplicationContext,
+        session: EntityId,
+        branch: Option<EntityId>,
+        prompt: &str,
+    ) -> Result<scriberig_core::OperationId, ApplicationError> {
+        self.service.submit_agent_command(
+            context,
+            &scriberig_app::AgentCommandRequest {
+                session,
+                branch,
+                prompt: prompt.to_owned(),
+            },
+        )
+    }
+
+    /// Submits local agent work and resolves the accepted root branch handle.
+    ///
+    /// # Parameters
+    /// - `context`: Application context for the operation.
+    /// - `session`: Stable session identity.
+    /// - `branch`: Optional continuation branch.
+    /// - `prompt`: User-authored instruction.
+    ///
+    /// # Returns
+    /// Stable operation, session, and branch handles.
+    ///
+    /// # Errors
+    /// Returns the application submission or session-read error.
+    fn submit_agent_handle(
+        &self,
+        context: &ApplicationContext,
+        session: EntityId,
+        branch: Option<EntityId>,
+        prompt: &str,
+    ) -> Result<super::AgentHandle, ApplicationError> {
+        let operation = self.submit_agent_command(context, session, branch, prompt)?;
+        let branch = branch.or_else(|| {
+            self.read_session(context, session)
+                .ok()
+                .and_then(|value| value.branches.last().map(|value| value.id))
+        });
+        Ok(super::AgentHandle {
+            operation,
+            session,
+            branch,
+        })
     }
 }
 

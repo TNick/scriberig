@@ -7,6 +7,10 @@ use super::state_cursor_reducer::reduce_focus;
 use super::state_reducer_tail::reduce_tail;
 use super::*;
 use crate::{overlay::palette::PaletteState, state::ConnectionState};
+
+#[path = "state_input_reducer.rs"]
+mod state_input_reducer;
+use state_input_reducer::reduce_input;
 /// Applies one action deterministically and returns work for the runtime.
 /// - `state`: Argument named `state`.
 /// - `action`: Argument named `action`.
@@ -18,7 +22,7 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
         action,
         Action::SessionSucceeded { .. }
             | Action::AgentSubmitted(_)
-            | Action::SessionRequested(_)
+            | Action::SessionRequested { .. }
             | Action::ComposerOpened { .. }
             | Action::AgentOutputObserved(_)
             | Action::CapabilitiesLoaded(_)
@@ -78,85 +82,14 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             vec![Effect::None]
         }
         Action::FindOpened => {
-            state.overlay = Some(Overlay::Input(InputState::default()));
+            state.overlay = Some(Overlay::Input(InputState {
+                purpose: crate::overlay::input::InputPurpose::FindQuery,
+                ..Default::default()
+            }));
             vec![Effect::None]
         }
-        Action::InputChanged(text) => {
-            if let Some(Overlay::Input(input)) = state.overlay.as_mut() {
-                input.error = None;
-                if text.is_empty() {
-                    input.backspace();
-                } else {
-                    input.append(&text);
-                }
-            } else if let Some(Overlay::Palette(palette)) = state.overlay.as_mut() {
-                if text.is_empty() {
-                    palette.query.pop();
-                    palette.selected = palette
-                        .selected
-                        .min(palette.filtered().len().saturating_sub(1));
-                } else {
-                    palette.set_query(format!("{}{}", palette.query, text));
-                }
-            } else if let Some(Overlay::Composer(composer)) = state.overlay.as_mut() {
-                composer.error = None;
-                if text.is_empty() {
-                    composer.text.pop();
-                } else {
-                    composer.text.push_str(&text);
-                }
-            }
-            vec![Effect::None]
-        }
-        Action::Paste(text) => {
-            if let Some(Overlay::Input(input)) = state.overlay.as_mut() {
-                input.append(&text);
-            } else if let Some(Overlay::Palette(palette)) = state.overlay.as_mut() {
-                palette.set_query(format!("{}{}", palette.query, text));
-            } else if let Some(Overlay::Composer(composer)) = state.overlay.as_mut() {
-                composer.text.push_str(&text);
-            }
-            vec![Effect::None]
-        }
-        Action::InputSubmitted => {
-            let text = state.input_text().unwrap_or_default().trim().to_owned();
-            if matches!(state.overlay, Some(Overlay::Composer(_))) {
-                let Some(Overlay::Composer(composer)) = state.overlay.take() else {
-                    return vec![Effect::None];
-                };
-                if composer.text.trim().is_empty() {
-                    state.overlay = Some(Overlay::Composer(composer));
-                    return vec![Effect::None];
-                }
-                return vec![Effect::SubmitAgent {
-                    session: composer.session,
-                    branch: composer.branch,
-                    prompt: composer.text,
-                }];
-            }
-            if state.is_input_active() && !text.is_empty() {
-                match text.parse::<scriberig_core::EntityId>() {
-                    Ok(entity) => {
-                        let request_id = state.next_request_id;
-                        state.next_request_id += 1;
-                        state.overlay = None;
-                        return reduce(
-                            state,
-                            Action::InspectRequested {
-                                request_id,
-                                entity,
-                                snapshot: None,
-                            },
-                        );
-                    }
-                    Err(error) => {
-                        if let Some(Overlay::Input(input)) = state.overlay.as_mut() {
-                            input.error = Some(format!("invalid entity identifier: {error}"));
-                        }
-                    }
-                }
-            }
-            vec![Effect::None]
+        Action::InputChanged(_) | Action::Paste(_) | Action::InputSubmitted => {
+            reduce_input(state, action)
         }
         Action::TerminalResized { width, height } => {
             state.terminal_size = (width, height);
@@ -228,12 +161,31 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
         }
         Action::ViewSelected(view) => {
             state.primary_view = view;
+            if view == crate::selection::PrimaryView::Session {
+                if let Some(selection) = state.selection {
+                    return reduce(
+                        state,
+                        Action::SessionRequested {
+                            session: selection.entity,
+                            branch: None,
+                        },
+                    );
+                }
+                "Select a session entity to load it.".clone_into(&mut state.shell_message);
+            }
             vec![Effect::None]
         }
         Action::HistorySucceeded { request_id, model } => {
             if matches!(state.history, LoadState::Loading { request_id: current } if current == request_id)
             {
                 state.history = LoadState::Ready(model);
+            }
+            vec![Effect::None]
+        }
+        Action::FindSucceeded { request_id, model } => {
+            if matches!(state.find, LoadState::Loading { request_id: current } if current == request_id)
+            {
+                state.find = LoadState::Ready(model);
             }
             vec![Effect::None]
         }
@@ -273,6 +225,14 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             if matches!(state.history, LoadState::Loading { request_id: current } if current == request_id)
             {
                 state.history = LoadState::Failed {
+                    category: category.clone(),
+                    message: message.clone(),
+                    stale: false,
+                };
+            }
+            if matches!(state.find, LoadState::Loading { request_id: current } if current == request_id)
+            {
+                state.find = LoadState::Failed {
                     category: category.clone(),
                     message: message.clone(),
                     stale: false,
@@ -354,6 +314,21 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
                 snapshot,
             }]
         }
+        Action::FindRequested(text) => {
+            let Some(snapshot) = state.selection.and_then(|selection| selection.snapshot) else {
+                "Find requires an exact snapshot selection.".clone_into(&mut state.shell_message);
+                return vec![Effect::None];
+            };
+            let request_id = state.next_request_id;
+            state.next_request_id += 1;
+            state.primary_view = crate::selection::PrimaryView::Find;
+            state.find = LoadState::Loading { request_id };
+            vec![Effect::RequestFind {
+                request_id,
+                text,
+                snapshot,
+            }]
+        }
         Action::DiffRequested { request } => {
             let request_id = state.next_request_id;
             state.next_request_id += 1;
@@ -387,11 +362,32 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
         Action::ConnectionRestored => {
             state.connection = ConnectionState::Connected;
             state.stale = true;
-            if state.selection.is_some() {
+            let mut effects = if state.selection.is_some() {
                 reduce(state, Action::RefreshRequested)
             } else {
-                vec![Effect::None]
+                Vec::new()
+            };
+            for handle in state.agent_handles.clone() {
+                if !state.pending_operation_refresh.contains(&handle.operation) {
+                    state
+                        .pending_operation_refresh
+                        .push(handle.operation.clone());
+                    effects.push(Effect::OperationStatus {
+                        operation: handle.operation,
+                    });
+                }
+                let request_id = state.next_request_id;
+                state.next_request_id += 1;
+                effects.push(Effect::ReadSession {
+                    request_id,
+                    session: handle.session,
+                    branch: handle.branch,
+                });
             }
+            if effects.is_empty() {
+                effects.push(Effect::None);
+            }
+            effects
         }
         _ => state_reducer_tail::reduce_tail(state, action).unwrap_or_default(),
     }

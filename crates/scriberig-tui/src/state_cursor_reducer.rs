@@ -20,12 +20,53 @@ pub(super) fn reduce_cursor(state: &mut TuiState, direction: Direction) -> Vec<E
             Direction::Next => palette.selected.saturating_add(1).min(last),
         };
     } else {
+        let last = cursor_limit(state);
         state.cursor = match direction {
             Direction::Previous => state.cursor.saturating_sub(1),
-            Direction::Next => state.cursor.saturating_add(1),
+            Direction::Next => state.cursor.saturating_add(1).min(last),
         };
     }
     vec![Effect::None]
+}
+
+/// Returns the last selectable row in the focused presentation.
+///
+/// # Parameters
+/// - `state`: Current TUI presentation state.
+///
+/// # Returns
+/// The zero-based upper cursor bound for the active pane.
+fn cursor_limit(state: &TuiState) -> usize {
+    match state.focus {
+        Focus::Explorer => state
+            .explorer
+            .root
+            .iter()
+            .count()
+            .saturating_add(state.explorer.rows.len())
+            .saturating_sub(1),
+        Focus::Primary => match state.primary_view {
+            crate::selection::PrimaryView::History => match &state.history {
+                LoadState::Ready(model) => model.rows.len().saturating_sub(1),
+                _ => 0,
+            },
+            crate::selection::PrimaryView::Find => match &state.find {
+                LoadState::Ready(model) => model.rows.len().saturating_sub(1),
+                _ => 0,
+            },
+            crate::selection::PrimaryView::Diff => match &state.diff {
+                LoadState::Ready(model) => model.rows.len().saturating_sub(1),
+                _ => 0,
+            },
+            crate::selection::PrimaryView::Session => match &state.session {
+                LoadState::Ready(model) => model.rows.len().saturating_sub(1),
+                _ => 0,
+            },
+            crate::selection::PrimaryView::Operations => state.operations.len().saturating_sub(1),
+            _ => 0,
+        },
+        Focus::Inspector => 0,
+    }
 }
 
 /// Advances focus in the requested direction when no overlay is active.

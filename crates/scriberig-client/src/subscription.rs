@@ -17,6 +17,8 @@ pub struct EventSubscription<'a, T> {
     client: &'a Client<T>,
     /// Requested event kind filters.
     event_kinds: Vec<String>,
+    /// Most recent cursor delivered to this subscriber.
+    after: Option<u64>,
 }
 
 impl<'a, T: scriberig_protocol::ProtocolTransport> EventSubscription<'a, T> {
@@ -32,6 +34,7 @@ impl<'a, T: scriberig_protocol::ProtocolTransport> EventSubscription<'a, T> {
         Self {
             client,
             event_kinds: Vec::new(),
+            after: None,
         }
     }
 
@@ -48,6 +51,7 @@ impl<'a, T: scriberig_protocol::ProtocolTransport> EventSubscription<'a, T> {
         Self {
             client,
             event_kinds,
+            after: None,
         }
     }
 
@@ -58,8 +62,14 @@ impl<'a, T: scriberig_protocol::ProtocolTransport> EventSubscription<'a, T> {
     ///
     /// # Errors
     /// Returns the structured client or protocol failure.
-    pub fn poll(&self) -> Result<Vec<Event>, ClientError> {
-        self.client.subscribe(self.event_kinds.clone())
+    pub fn poll(&mut self) -> Result<Vec<Event>, ClientError> {
+        let events = self
+            .client
+            .subscribe_after(self.event_kinds.clone(), self.after)?;
+        if let Some(sequence) = events.iter().map(|event| event.sequence).max() {
+            self.after = Some(sequence);
+        }
+        Ok(events)
     }
 }
 

@@ -35,7 +35,7 @@ impl ContinuationToken {
     /// An opaque continuation token that providers can validate on reuse.
     #[must_use]
     /// - `crate`: Argument named `crate`.
-    pub(crate) fn for_page(operation: &str, snapshot: SnapshotId, offset: usize) -> Self {
+    pub fn for_page(operation: &str, snapshot: SnapshotId, offset: usize) -> Self {
         Self(format!("v1|{operation}|{snapshot}|{offset}"))
     }
 
@@ -50,7 +50,7 @@ impl ContinuationToken {
     /// The next-page offset when the token belongs to this context.
     #[must_use]
     /// - `crate`: Argument named `crate`.
-    pub(crate) fn offset_for(&self, operation: &str, snapshot: SnapshotId) -> Option<usize> {
+    pub fn offset_for(&self, operation: &str, snapshot: SnapshotId) -> Option<usize> {
         let snapshot = snapshot.to_string();
         let mut parts = self.0.split('|');
         if parts.next() != Some("v1")

@@ -1,0 +1,77 @@
+//! Verifies provider-neutral execution records and compact nested views.
+
+use scriberig_core::EntityId;
+use scriberig_session::{
+    Branch, BranchResult, BranchStatus, CacheDisposition, ExecutionActivity, ModelInvocation,
+    ModelOutput, Session, SessionViews,
+};
+
+/// Verifies model provenance and output are provider-neutral and secret-free.
+#[test]
+fn model_execution_records_are_explicit() {
+    let branch = EntityId::from_bytes([1; 16]);
+    let invocation = EntityId::from_bytes([2; 16]);
+    let output = EntityId::from_bytes([3; 16]);
+    let record = ModelInvocation {
+        id: invocation,
+        branch,
+        ordinal: 1,
+        agent_profile: Some("default".to_owned()),
+        context_fingerprint: Some("ctx".to_owned()),
+        provider_profile: Some("local".to_owned()),
+        model: Some("model-a".to_owned()),
+        request_fingerprint: Some("req".to_owned()),
+        cache: CacheDisposition::Miss,
+        output: Some(output),
+    };
+    let result = ModelOutput {
+        id: output,
+        invocation,
+        text: Some("done".to_owned()),
+        structured_output: None,
+        finish_reason: Some("stop".to_owned()),
+        usage: Some((1, 2)),
+    };
+    assert_eq!(record.branch, branch);
+    assert_eq!(result.id, output);
+    assert!(!format!("{record:?}").contains("Authorization"));
+}
+
+/// Verifies deterministic activity ordering and compact child results.
+#[test]
+fn nested_branch_views_are_compact_and_ordered() {
+    let parent_id = EntityId::from_bytes([4; 16]);
+    let child_id = EntityId::from_bytes([5; 16]);
+    let result_id = EntityId::from_bytes([6; 16]);
+    let mut parent = Branch::new(parent_id, "parent").expect("parent");
+    parent.children.push(child_id);
+    parent
+        .activity
+        .push(ExecutionActivity::ChildBranch(child_id));
+    let mut child = Branch::new(child_id, "child").expect("child");
+    child.parent = Some(parent_id);
+    child.status = BranchStatus::Completed;
+    child.outcome = Some("finished".to_owned());
+    child.result = Some(BranchResult {
+        id: result_id,
+        branch: child_id,
+        status: BranchStatus::Completed,
+        summary: Some("finished".to_owned()),
+        result_kind: Some("agent".to_owned()),
+        references: vec![result_id],
+        touched: Vec::new(),
+        produced_changes: Vec::new(),
+        validations: Vec::new(),
+        unresolved_questions: Vec::new(),
+    });
+    let session = Session {
+        id: EntityId::from_bytes([7; 16]),
+        branches: vec![parent, child],
+        goals: Vec::new(),
+        tasks: Vec::new(),
+    };
+    let summaries = SessionViews::child_summaries(&session, parent_id);
+    assert_eq!(summaries.len(), 1);
+    assert_eq!(summaries[0].result_handles, vec![result_id]);
+    assert_eq!(SessionViews::branches(&session)[0].activity_count, 1);
+}

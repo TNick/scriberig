@@ -25,9 +25,9 @@ The executable requires a subcommand. Standard Clap help and version flags are a
 | --- | --- | --- |
 | `tui` | `srig tui [OPTIONS]` | Starts the local application-backed terminal UI. |
 | `serve` | `srig serve [OPTIONS]` | Starts the local API server. |
-| `run` | `srig run <PROMPT>` | Runs the deterministic local one-shot provider. |
-| `agent` | `srig agent <PROMPT>` | Runs the deterministic local agent runtime. |
-| `maintenance` | `srig maintenance` | Checks SQLite canonical-state integrity. |
+| `run` | `srig run <PROMPT> [OPTIONS]` | Runs one shared application agent operation. |
+| `agent` | `srig agent <PROMPT> [OPTIONS]` | Alias for the shared application agent operation. |
+| `maintenance` | `srig maintenance [OPTIONS]` | Checks SQLite canonical-state integrity. |
 | `inspect` | `srig inspect <ENTITY> [OPTIONS]` | Inspects entity trust metadata through the shared application boundary. |
 
 Each subcommand also supports `-h` / `--help`.
@@ -53,7 +53,7 @@ The UI reads semantic data through the shared application boundary. Type
 Start the API server.
 
 ```text
-srig serve [--host <HOST>] [--port <PORT>] [--db <PATH>]
+srig serve [--host <HOST>] [--port <PORT>] [--db <PATH>] [--allow-origin <ORIGIN>]
 ```
 
 | Option | Default | Meaning |
@@ -61,6 +61,7 @@ srig serve [--host <HOST>] [--port <PORT>] [--db <PATH>]
 | `--host <HOST>` | `127.0.0.1` | Interface address to bind. |
 | `--port <PORT>` | `7337` | TCP port to bind. |
 | `--db <PATH>` | `playground/dev-app-runtime/scriberig.sqlite` | SQLite database path used by the local API server. |
+| `--allow-origin <ORIGIN>` | unset | Exact browser origin allowed for cross-origin protocol requests. |
 
 Example:
 
@@ -73,7 +74,7 @@ srig serve --host 0.0.0.0 --port 7337 --db playground/dev-app-runtime/scriberig.
 Accept one prompt in headless one-shot mode.
 
 ```text
-srig run <PROMPT>
+srig run <PROMPT> [OPTIONS]
 ```
 
 `<PROMPT>` is one required positional string. Quote prompts that contain shell whitespace.
@@ -82,15 +83,29 @@ srig run <PROMPT>
 srig run "Summarize the current project state"
 ```
 
-The local runtime echoes the prompt through the provider boundary until a
-configured model provider is composed.
+The command creates a fresh session root, submits the prompt through the shared
+application operation boundary, waits for the terminal operation record, and
+renders the structured agent result. Human output writes final text to stdout
+and stable handles to stderr. JSON output writes one machine-readable result.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `--db <PATH>` | `playground/dev-app-runtime/scriberig.sqlite` | SQLite database path used by the local composition. |
+| `--format <human\|json>` | `human` | Select human or machine-readable output. |
+| `--provider <PROFILE>` | `default` | Safe provider profile identifier. |
+| `--model <MODEL>` | `default` | Provider model identifier when using `--base-url`. |
+| `--base-url <URL>` | unset | OpenAI-compatible provider base URL. When omitted, deterministic local execution is used. |
+| `--api-key-env <NAME>` | unset | Environment variable containing the provider credential; requires `--base-url`. |
+
+Pressing Ctrl-C requests cancellation of the shared operation. The command
+preserves the operation/session record and exits with status `130`.
 
 ## `srig agent`
 
 Accept one prompt for the integrated agent runtime.
 
 ```text
-srig agent <PROMPT>
+srig agent <PROMPT> [OPTIONS]
 ```
 
 `<PROMPT>` is one required positional string. Quote prompts that contain shell whitespace.
@@ -99,20 +114,23 @@ srig agent <PROMPT>
 srig agent "Implement the next focused design task"
 ```
 
-The local runtime executes the prompt through the bounded agent runtime and
-provider/tool boundaries.
+`agent` delegates to exactly the same shared application operation path as
+`run`; the two spellings are retained for compatibility.
 
 ## `srig maintenance`
 
 Select repository or database maintenance mode.
 
 ```text
-srig maintenance
+srig maintenance [--db <PATH>]
 ```
 
-The command runs a canonical SQLite integrity check against
-`playground/dev-app-runtime/scriberig.sqlite` and reports corruption and
-unreachable snapshot counts.
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `--db <PATH>` | `playground/dev-app-runtime/scriberig.sqlite` | SQLite database to check. |
+
+The command runs a canonical SQLite integrity check against the selected
+database and reports corruption and unreachable snapshot counts.
 
 ## `srig inspect`
 

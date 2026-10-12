@@ -2,6 +2,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import type { ScriberigClient } from "@scriberig/client";
 import type { WorkspaceModel } from "@scriberig/model";
+import type { CapabilitiesResponse } from "@scriberig/protocol";
 import type { CommandDescriptor, KnowledgeTree, SelectionController } from "@scriberig/editor-core";
 
 /** Objects shared by all Scriberig React bindings. */
@@ -16,6 +17,8 @@ export interface ScriberigReactValue {
   commands: readonly CommandDescriptor[];
   /** Optional shared knowledge tree controller. */
   tree?: KnowledgeTree;
+  /** Capability discovery supplied by the host runtime, when available. */
+  capabilities?: CapabilitiesResponse | undefined;
 }
 
 const ScriberigContext = createContext<ScriberigReactValue | null>(null);

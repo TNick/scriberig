@@ -58,12 +58,29 @@ pub struct CancelOperationRequest {
 pub struct SubscribeRequest {
     /// Optional event names; empty means all public events.
     pub event_kinds: Vec<String>,
+    /// Return only events published after this cursor.
+    #[serde(default)]
+    pub after: Option<u64>,
 }
 
 /// Requests one exact structural query through the shared query model.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct QueryRequest {
     /// Snapshot-bound structural query specification.
+    pub specification: serde_json::Value,
+}
+
+/// Requests one bounded semantic collection page.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct ListRequest {
+    /// Serialized universal list request retained by the protocol boundary.
+    pub specification: serde_json::Value,
+}
+
+/// Requests bounded semantic discovery within an exact scope.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct FindRequest {
+    /// Serialized universal find request retained by the protocol boundary.
     pub specification: serde_json::Value,
 }
 

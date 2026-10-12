@@ -10,6 +10,8 @@ use scriberig_protocol::{
     ResponseEnvelope,
 };
 
+use crate::events::HttpEventStream;
+
 /// A short-lived HTTP transport for one protocol endpoint.
 #[derive(Clone, Debug)]
 pub struct HttpTransport {
@@ -26,6 +28,35 @@ pub struct HttpTransport {
 }
 
 impl HttpTransport {
+    /// Starts a reconnecting SSE subscription for public protocol events.
+    ///
+    /// # Parameters
+    /// - after: Optional last event cursor to resume after.
+    /// - callback: Handler invoked for decoded protocol events.
+    ///
+    /// # Returns
+    /// A cancellable event stream handle.
+    ///
+    /// # Errors
+    /// Returns an error when the stream worker cannot be created.
+    pub fn subscribe_events<F>(
+        &self,
+        after: Option<u64>,
+        callback: F,
+    ) -> io::Result<HttpEventStream>
+    where
+        F: Fn(scriberig_protocol::Event) + Send + 'static,
+    {
+        HttpEventStream::start(
+            self.host.clone(),
+            self.port,
+            self.path.trim_end_matches("/protocol").to_owned() + "/protocol",
+            self.timeout,
+            after,
+            callback,
+        )
+    }
+
     /// Parses an `http://host:port` endpoint.
     ///
     /// # Errors

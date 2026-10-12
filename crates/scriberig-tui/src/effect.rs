@@ -9,8 +9,12 @@ pub enum Effect {
     RequestRefresh,
     /// Ask the owning service adapter to execute a find request.
     RequestFind {
+        /// Monotonic request identifier.
+        request_id: u64,
         /// Query text supplied by the user.
         text: String,
+        /// Exact snapshot scope for discovery.
+        snapshot: scriberig_core::SnapshotId,
     },
     /// Ask the owning service adapter to execute a contextual action later.
     RequestSemanticAction {
@@ -29,6 +33,17 @@ pub enum Effect {
         entity: scriberig_core::EntityId,
         /// Optional exact snapshot.
         snapshot: Option<scriberig_core::SnapshotId>,
+    },
+    /// Request the bounded semantic children of one snapshot entity.
+    ListExplorer {
+        /// Monotonic request identifier.
+        request_id: u64,
+        /// Entity whose snapshot collection is listed.
+        entity: scriberig_core::EntityId,
+        /// Exact snapshot containing the collection.
+        snapshot: scriberig_core::SnapshotId,
+        /// Opaque continuation for the next page.
+        continuation: Option<scriberig_query::ContinuationToken>,
     },
     /// Request the current runtime capability descriptors.
     RequestCapabilities,
@@ -83,6 +98,8 @@ pub enum Effect {
         request_id: u64,
         /// Stable session identity.
         session: scriberig_core::EntityId,
+        /// Optional branch whose activity is loaded on demand.
+        branch: Option<scriberig_core::EntityId>,
     },
     /// Submit a command to a session branch through the application boundary.
     SubmitAgent {

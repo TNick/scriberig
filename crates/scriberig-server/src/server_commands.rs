@@ -2,7 +2,7 @@
 
 use super::{
     ApplicationError, ApplicationRequest, ApplyRequest, BranchRequest, CommitRequest, DiffRequest,
-    OperationKind,
+    OperationKind, RenderRequest,
 };
 
 /// Decodes a protocol command into an application command.
@@ -44,6 +44,9 @@ pub(super) fn decode_command(
             .map_err(|error| invalid(kind, error)),
         "diff" => serde_json::from_value::<DiffRequest>(payload.clone())
             .map(|request| (OperationKind::Diff, ApplicationRequest::Diff(request)))
+            .map_err(|error| invalid(kind, error)),
+        "render" => serde_json::from_value::<RenderRequest>(payload.clone())
+            .map(|request| (OperationKind::Render, ApplicationRequest::Render(request)))
             .map_err(|error| invalid(kind, error)),
         _ => Err(ApplicationError::UnsupportedOperation {
             operation: format!("command {kind}"),

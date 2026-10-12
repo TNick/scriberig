@@ -1,6 +1,9 @@
 //! Defines the transport-neutral in-process protocol envelope boundary.
 
-use crate::{CancelOperationRequest, CommandRequest, Event, QueryRequest, SubscribeRequest};
+use crate::{
+    AgentContinueRequest, AgentStartRequest, CancelOperationRequest, CommandRequest, Event,
+    FindRequest, ListRequest, QueryRequest, SessionReadRequest, SubscribeRequest,
+};
 use crate::{
     CapabilitiesResponse, InspectEntityRequest, InspectEntityResponse, OperationStatusRequest,
     OperationStatusResponse, ProtocolError, ProtocolVersion, RuntimeCapabilitiesRequest,
@@ -23,8 +26,18 @@ pub enum Request {
     Subscribe(SubscribeRequest),
     /// Evaluate one typed structural query.
     Query(QueryRequest),
+    /// Read one bounded semantic collection page.
+    List(ListRequest),
+    /// Discover semantic entities within an exact scope.
+    Find(FindRequest),
     /// Execute one typed application command.
     Command(CommandRequest),
+    /// Start one provider-neutral agent operation.
+    AgentStart(AgentStartRequest),
+    /// Continue one provider-neutral agent operation.
+    AgentContinue(AgentContinueRequest),
+    /// Read one compact durable session tree.
+    SessionRead(SessionReadRequest),
 }
 
 /// Initial typed responses supported by the remote vertical slice.
@@ -42,8 +55,16 @@ pub enum Response {
     Events(Vec<Event>),
     /// Query result page.
     Query(crate::response::QueryResponse),
+    /// Collection result page.
+    List(crate::response::ListResponse),
+    /// Semantic discovery result.
+    Find(crate::response::FindResponse),
     /// Accepted command operation.
     CommandAccepted(OperationStatusResponse),
+    /// Accepted agent operation.
+    AgentAccepted(crate::AgentAcceptedResponse),
+    /// Compact durable session tree.
+    Session(crate::SessionReadResponse),
     /// Structured protocol failure.
     Error(ProtocolError),
 }

@@ -25,6 +25,8 @@ pub enum OperationKind {
     Render,
     /// Create or update a branch.
     Branch,
+    /// Execute a model-driven agent operation.
+    Agent,
     /// Apply a change.
     Apply,
     /// Commit a validated change.
@@ -77,6 +79,9 @@ pub struct Operation {
     /// Stable semantic handles produced by the operation.
     #[serde(default)]
     pub result_handles: Vec<String>,
+    /// Structured terminal agent result, when available.
+    #[serde(default)]
+    pub agent_result: Option<crate::AgentResult>,
     /// Safe failure summary when the operation failed.
     pub error: Option<String>,
 }

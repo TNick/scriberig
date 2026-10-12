@@ -3,6 +3,30 @@
 use scriberig_core::{RevisionId, RootName, SnapshotId};
 use scriberig_query::{FindResult, FollowResult, Inspection, ListResult, QueryResult};
 
+/// Describes one immutable entity transition in a migration proposal.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct MigrationDelta {
+    /// Entity whose canonical revision changes.
+    pub entity: scriberig_core::EntityId,
+    /// Revision in the base snapshot, when present.
+    pub before: Option<RevisionId>,
+    /// Revision in the candidate snapshot, when present.
+    pub after: Option<RevisionId>,
+}
+
+/// Exposes the canonical, snapshot-bound detail of one migration proposal.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct MigrationDetail {
+    /// Stable migration handle.
+    pub id: String,
+    /// Exact snapshot from which the proposal starts.
+    pub base: SnapshotId,
+    /// Exact candidate snapshot produced by the proposal.
+    pub result: SnapshotId,
+    /// Deterministically ordered entity transitions.
+    pub deltas: Vec<MigrationDelta>,
+}
+
 /// Summarizes a semantic operation result without flattening it to text.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OperationSummary {
@@ -20,6 +44,12 @@ pub struct OperationSummary {
     pub history: Option<Vec<sr_change::MigrationReference>>,
     /// Structured rendered projection when this is a render operation.
     pub rendered: Option<sr_projection::RenderedProjection>,
+    /// Validation outcome when the operation performed validation.
+    pub validation: Option<crate::ValidationStatus>,
+    /// Safe validation diagnostics associated with the operation.
+    pub validation_diagnostics: Vec<String>,
+    /// Safe conflict summaries associated with the operation.
+    pub conflicts: Vec<String>,
 }
 
 /// Identifies a tracked operation that has started.

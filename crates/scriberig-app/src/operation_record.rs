@@ -21,6 +21,7 @@ impl OperationRecord {
             status: OperationStatus::Queued,
             progress: None,
             result_handles: Vec::new(),
+            agent_result: None,
             error: None,
         }
     }

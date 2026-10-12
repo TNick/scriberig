@@ -19,6 +19,49 @@ impl<B> ApplicationOperationAdapter<B> {
 }
 
 impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
+    /// Reports the semantic operations exposed by the embedded application.
+    ///
+    /// # Parameters
+    /// - `self`: Embedded application adapter.
+    /// - `_context`: Authorization context used by the surrounding runtime.
+    ///
+    /// # Returns
+    /// Capability descriptors used to keep the command palette honest.
+    ///
+    /// # Errors
+    /// This adapter has no separate capability-discovery failure path.
+    fn runtime_capabilities(
+        &self,
+        _context: &ApplicationContext,
+    ) -> Result<Vec<RuntimeCapability>, ApplicationError> {
+        let capabilities = [
+            ("inspect_entity", "Inspect an exact semantic entity."),
+            ("explorer_list", "List entities in an exact snapshot."),
+            ("semantic_find", "Search entities in an exact snapshot."),
+            ("history", "Read immutable snapshot history."),
+            ("diff", "Compare two exact snapshots."),
+            ("session_branch_tree", "Read session and branch state."),
+            ("operation_status", "Observe operation lifecycle state."),
+            ("operation_cancel", "Cancel a cancellable operation."),
+            ("agent_start", "Start provider-neutral agent work."),
+            ("agent_continue", "Continue work on a session branch."),
+        ];
+        capabilities
+            .into_iter()
+            .map(|(id, description)| {
+                Ok(RuntimeCapability::new(
+                    scriberig_app::CapabilityId::new(id).map_err(|error| {
+                        ApplicationError::Internal {
+                            message: error.to_owned(),
+                        }
+                    })?,
+                    description,
+                    true,
+                ))
+            })
+            .collect()
+    }
+
     /// Delegates inspection through the public application facade.
     ///
     /// # Parameters
@@ -45,6 +88,108 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
                 detail: scriberig_app::DetailLevel::Detailed,
             },
         )
+    }
+
+    /// Lists the shared snapshot entity collection for Explorer navigation.
+    ///
+    /// # Parameters
+    /// - `context`: Application context.
+    /// - `entity`: Entity owning the collection.
+    /// - `snapshot`: Exact snapshot context.
+    /// - `continuation`: Optional continuation token.
+    ///
+    /// # Returns
+    /// A bounded Explorer page.
+    ///
+    /// # Errors
+    /// Returns the application listing error.
+    fn list_explorer(
+        &self,
+        context: &ApplicationContext,
+        entity: EntityId,
+        snapshot: SnapshotId,
+        continuation: Option<scriberig_query::ContinuationToken>,
+    ) -> Result<crate::explorer::ExplorerPage, ApplicationError> {
+        let result = self.service.execute(
+            context,
+            &ApplicationRequest::List(scriberig_query::ListRequest {
+                subject: scriberig_query::EntityInSnapshot { entity, snapshot },
+                collection: scriberig_query::CollectionRef {
+                    owner: entity,
+                    collection_type: "snapshot.entities".to_owned(),
+                },
+                page: scriberig_query::PageRequest {
+                    continuation,
+                    ..scriberig_query::PageRequest::default()
+                },
+                detail: scriberig_query::DetailLevel::Compact,
+            }),
+        )?;
+        let ApplicationResult::List(result) = result else {
+            return Err(ApplicationError::Internal {
+                message: "explorer listing returned a different result kind".to_owned(),
+            });
+        };
+        let rows = result
+            .page
+            .items
+            .into_iter()
+            .filter_map(|entry| match entry.target {
+                scriberig_query::TargetRef::Snapshot(target) => {
+                    Some(crate::explorer::ExplorerRow {
+                        selection: crate::selection::EntitySelection {
+                            entity: target.entity,
+                            revision: None,
+                            snapshot: Some(target.snapshot),
+                        },
+                        label: entry.label.unwrap_or_else(|| target.entity.to_string()),
+                        inspectable: true,
+                    })
+                }
+                scriberig_query::TargetRef::Revision(_) => None,
+            })
+            .filter(|row| row.selection.entity != entity)
+            .collect();
+        Ok(crate::explorer::ExplorerPage {
+            rows,
+            next: result.page.next,
+        })
+    }
+
+    /// Executes exact-text discovery through the shared application boundary.
+    ///
+    /// # Parameters
+    /// - `context`: Application context.
+    /// - `snapshot`: Exact discovery scope.
+    /// - `query`: Search text.
+    ///
+    /// # Returns
+    /// A bounded find model.
+    ///
+    /// # Errors
+    /// Returns the application discovery error.
+    fn find_entities(
+        &self,
+        context: &ApplicationContext,
+        snapshot: SnapshotId,
+        query: &str,
+    ) -> Result<crate::view::find::FindModel, ApplicationError> {
+        let result = self.service.execute(
+            context,
+            &ApplicationRequest::Find(scriberig_query::FindRequest {
+                scope: scriberig_query::QueryScope::Snapshot(snapshot),
+                query: query.to_owned(),
+                strategy: scriberig_query::FindStrategy::ExactText,
+                page: scriberig_query::PageRequest::default(),
+                detail: scriberig_query::DetailLevel::Compact,
+            }),
+        )?;
+        let ApplicationResult::Find(result) = result else {
+            return Err(ApplicationError::Internal {
+                message: "find returned a different result kind".to_owned(),
+            });
+        };
+        Ok(crate::view::find::FindModel::from_result(query, &result))
     }
 
     /// Delegates shared operations through the public application facade.
@@ -173,5 +318,42 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
                 prompt: prompt.to_owned(),
             },
         )
+    }
+
+    /// Submits local agent work and preserves the accepted branch identity.
+    ///
+    /// # Parameters
+    /// - `context`: Application context for the operation.
+    /// - `session`: Stable session identity.
+    /// - `branch`: Optional continuation branch.
+    /// - `prompt`: User-authored instruction.
+    ///
+    /// # Returns
+    /// Stable operation, session, and branch handles.
+    ///
+    /// # Errors
+    /// Returns the application submission or session-read error.
+    fn submit_agent_handle(
+        &self,
+        context: &ApplicationContext,
+        session: EntityId,
+        branch: Option<EntityId>,
+        prompt: &str,
+    ) -> Result<super::AgentHandle, ApplicationError> {
+        let operation = self.submit_agent_command(context, session, branch, prompt)?;
+        let branch = branch.or_else(|| {
+            scriberig_app::SessionBackend::read_session(
+                &self.service,
+                context,
+                &scriberig_app::SessionRequest { session },
+            )
+            .ok()
+            .and_then(|value| value.branches.last().map(|value| value.id))
+        });
+        Ok(super::AgentHandle {
+            operation,
+            session,
+            branch,
+        })
     }
 }
