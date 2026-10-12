@@ -86,7 +86,10 @@ srig run "Summarize the current project state"
 The command creates a fresh session root, submits the prompt through the shared
 application operation boundary, waits for the terminal operation record, and
 renders the structured agent result. Human output writes final text to stdout
-and stable handles to stderr. JSON output writes one machine-readable result.
+and stable handles to stderr. When a streaming provider is configured, bounded
+transient model text is also reported on stderr as it arrives; the durable
+final answer remains the only answer text written to stdout. JSON output writes
+one machine-readable result and does not emit transient stream text.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
