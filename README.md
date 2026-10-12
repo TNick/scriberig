@@ -97,6 +97,10 @@ The API server can onboard only paths under explicitly configured roots:
 `--git-tracked` restricts the persisted scan manifest to existing files in
 Git's index. Import then consumes that reviewed manifest.
 
+Source imports currently include Markdown, Rust, PDF, HTML, JavaScript,
+TypeScript, and Python (.py, .pyi, and .pyw) files. Unsupported extensions
+remain available as source-only manifest records.
+
 ```text
 srig serve --db scriberig.sqlite --project-root PATH
 ```
