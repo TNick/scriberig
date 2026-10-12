@@ -7,6 +7,8 @@ use crate::provider::{
     ProviderError, ProviderMetadata, ToolCall, ToolChoice, Usage,
 };
 use crate::provider::{MessageRole, ProviderConfig};
+#[path = "openai_cancellation.rs"]
+mod openai_cancellation;
 #[path = "openai_transport.rs"]
 mod openai_transport;
 use openai_transport::{classify_status, classify_transport};

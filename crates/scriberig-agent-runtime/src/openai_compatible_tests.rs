@@ -1,7 +1,14 @@
 //! Tests the OpenAI-compatible wire conversion and response normalization.
 
-use super::{WireRequest, WireResponse};
-use crate::provider::{FinishReason, ModelMessage, ModelRequest, ToolDefinition};
+use std::sync::atomic::AtomicBool;
+
+use super::{
+    OpenAiCompatibleProvider, WireRequest, WireResponse, openai_transport::classify_status,
+};
+use crate::provider::{
+    CredentialSource, FinishReason, ModelMessage, ModelRequest, ProviderConfig, ProviderError,
+    ToolDefinition,
+};
 
 /// Verifies provider-neutral tool definitions serialize to function tools.
 #[test]
@@ -51,4 +58,33 @@ fn response_normalization_parses_structured_tool_arguments() {
     assert_eq!(response.finish_reason, FinishReason::ToolCall);
     assert_eq!(response.tool_calls[0].arguments["entity"], "ent_1");
     assert_eq!(response.metadata.request_id.as_deref(), Some("request-1"));
+}
+
+/// Verifies cancellation is rejected before an outbound request starts.
+#[test]
+fn cancellation_is_observed_before_provider_request() {
+    let provider = OpenAiCompatibleProvider::new(ProviderConfig::new(
+        "mock",
+        "http://127.0.0.1:1",
+        "mock-model",
+        CredentialSource::None,
+    ))
+    .expect("provider");
+    let cancelled = AtomicBool::new(true);
+
+    let error = provider
+        .complete_with_cancellation(
+            &ModelRequest::new("mock-model", vec![ModelMessage::user("hello")]),
+            &cancelled,
+        )
+        .expect_err("cancelled request");
+
+    assert_eq!(error, ProviderError::Cancelled);
+}
+
+/// Verifies provider deadline statuses normalize to timeout failures.
+#[test]
+fn request_timeout_status_is_classified() {
+    let error = classify_status(reqwest::StatusCode::REQUEST_TIMEOUT, None);
+    assert!(matches!(error, ProviderError::Timeout(_)));
 }
