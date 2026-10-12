@@ -1,0 +1,333 @@
+//! Verifies native TUI workflows through a real pseudo-terminal.
+
+use std::{
+    fs,
+    io::{Read, Write},
+    path::PathBuf,
+    sync::{
+        Mutex, OnceLock,
+        atomic::{AtomicU64, Ordering},
+        mpsc::{self, Receiver},
+    },
+    thread,
+    time::{Duration, Instant},
+};
+
+use portable_pty::{CommandBuilder, PtySize, native_pty_system};
+use vt100::Parser;
+
+/// Verifies the native TUI project context is visible after startup.
+#[test]
+fn tui_pty_shows_project_context() {
+    let _lock = test_lock();
+    let mut tui = TuiPty::start();
+
+    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    let screen = tui.screen();
+    assert!(screen.contains("Explorer"));
+    assert!(screen.contains("Primary"));
+    assert!(screen.contains("Inspector"));
+    assert!(tui.shutdown());
+}
+
+/// Verifies the help overlay is reachable from the running native TUI.
+#[test]
+fn tui_pty_opens_help_overlay() {
+    let _lock = test_lock();
+    let mut tui = TuiPty::start();
+
+    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    tui.send(b"?");
+    assert!(tui.read_until("Ctrl-C"));
+    assert!(tui.screen().contains("Overlay"));
+    assert!(tui.shutdown());
+}
+
+/// Verifies the command palette opens and closes through terminal input.
+#[test]
+fn tui_pty_opens_and_closes_command_palette() {
+    let _lock = test_lock();
+    let mut tui = TuiPty::start();
+
+    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    tui.send(b":");
+    assert!(tui.read_until("Search:"));
+    tui.send(b"\x1b");
+    assert!(tui.read_until_not("Search:"));
+    assert!(tui.shutdown());
+}
+
+/// Verifies a native terminal resize preserves the selected project context.
+#[test]
+fn tui_pty_resizes_without_losing_project_context() {
+    let _lock = test_lock();
+    let mut tui = TuiPty::start();
+
+    assert!(tui.read_until("project: prj_"));
+    tui.resize(PtySize {
+        rows: 30,
+        cols: 100,
+        pixel_width: 0,
+        pixel_height: 0,
+    });
+    assert!(tui.read_until_next("project: prj_"));
+    assert!(tui.screen().contains("Primary"));
+    assert!(tui.shutdown());
+}
+
+/// Owns one real terminal session used by native TUI workflow tests.
+struct TuiPty {
+    fixture: PathBuf,
+    master: Box<dyn portable_pty::MasterPty>,
+    child: Box<dyn portable_pty::Child + Send>,
+    writer: Box<dyn Write + Send>,
+    receiver: Receiver<Vec<u8>>,
+    parser: Parser,
+    transcript: Vec<u8>,
+}
+
+impl TuiPty {
+    /// Starts the native TUI in a fixed-size `ConPTY` session.
+    ///
+    /// # Returns
+    /// A running TUI session with a temporary project fixture.
+    fn start() -> Self {
+        let fixture = temporary_fixture();
+        fs::write(fixture.join("README.md"), "# PTY fixture\n").expect("fixture");
+        let database = fixture.join("scriberig.sqlite");
+        let pty_system = native_pty_system();
+        let pair = pty_system
+            .openpty(PtySize {
+                rows: 40,
+                cols: 140,
+                pixel_width: 0,
+                pixel_height: 0,
+            })
+            .expect("open pty");
+        let mut command = CommandBuilder::new(env!("CARGO_BIN_EXE_srig"));
+        command.args([
+            "tui",
+            "--db",
+            database.to_str().expect("database path"),
+            "--project",
+            fixture.to_str().expect("fixture path"),
+            "--import",
+        ]);
+        let child = pair.slave.spawn_command(command).expect("spawn tui");
+        let master = pair.master;
+        let mut writer = master.take_writer().expect("take writer");
+        let reader = master.try_clone_reader().expect("clone reader");
+        let (sender, receiver) = mpsc::channel();
+        thread::spawn(move || read_output(reader, sender));
+        writer.flush().expect("flush terminal writer");
+        Self {
+            fixture,
+            master,
+            child,
+            writer,
+            receiver,
+            parser: Parser::new(40, 140, 0),
+            transcript: Vec::new(),
+        }
+    }
+
+    /// Sends raw terminal input to the running TUI.
+    ///
+    /// # Parameters
+    /// - `input`: Terminal bytes to send to the child process.
+    fn send(&mut self, input: &[u8]) {
+        self.writer.write_all(input).expect("send terminal input");
+        self.writer.flush().expect("flush terminal input");
+    }
+
+    /// Reads the PTY until a visible screen string appears or a timeout expires.
+    ///
+    /// # Parameters
+    /// - `expected`: Visible text that must appear on the virtual screen.
+    ///
+    /// # Returns
+    /// `true` when the text appears before the timeout.
+    fn read_until(&mut self, expected: &str) -> bool {
+        let deadline = Instant::now() + Duration::from_secs(20);
+        while Instant::now() < deadline {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if !self.receive_frame(remaining) {
+                break;
+            }
+            if self.screen().contains(expected) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Reads a fresh PTY frame until a visible string disappears.
+    ///
+    /// # Parameters
+    /// - `unexpected`: Visible text that must disappear from the screen.
+    ///
+    /// # Returns
+    /// `true` when the text disappears before the timeout.
+    fn read_until_not(&mut self, unexpected: &str) -> bool {
+        let deadline = Instant::now() + Duration::from_secs(20);
+        while Instant::now() < deadline {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if !self.receive_frame(remaining) {
+                break;
+            }
+            if !self.screen().contains(unexpected) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Reads and applies one PTY frame, including terminal query responses.
+    ///
+    /// # Parameters
+    /// - `timeout`: Maximum time to wait for a PTY frame.
+    ///
+    /// # Returns
+    /// `true` when a frame was received.
+    fn receive_frame(&mut self, timeout: Duration) -> bool {
+        let Ok(bytes) = self.receiver.recv_timeout(timeout) else {
+            return false;
+        };
+        self.transcript.extend_from_slice(&bytes);
+        if bytes.windows(4).any(|window| window == b"\x1b[6n") {
+            self.send(b"\x1b[1;1R");
+        }
+        self.parser.process(&bytes);
+        true
+    }
+
+    /// Resizes the native terminal surface.
+    ///
+    /// # Parameters
+    /// - `size`: New terminal dimensions.
+    fn resize(&mut self, size: PtySize) {
+        self.master.resize(size).expect("resize pty");
+    }
+
+    /// Reads a fresh frame after an interaction before checking its contents.
+    ///
+    /// # Parameters
+    /// - `expected`: Visible text expected after the interaction.
+    ///
+    /// # Returns
+    /// `true` when the text appears before the timeout.
+    fn read_until_next(&mut self, expected: &str) -> bool {
+        let deadline = Instant::now() + Duration::from_secs(20);
+        while Instant::now() < deadline {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if !self.receive_frame(remaining) {
+                return false;
+            }
+            if self.screen().contains(expected) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Returns the current virtual terminal screen as visible text.
+    ///
+    /// # Returns
+    /// The current screen contents with terminal control sequences retained.
+    fn screen(&self) -> String {
+        let screen = self.parser.screen().contents_formatted();
+        String::from_utf8_lossy(&screen).into_owned()
+    }
+
+    /// Describes the last virtual screen and raw terminal output.
+    ///
+    /// # Returns
+    /// Diagnostic screen and transcript text for a failed assertion.
+    fn diagnostic(&self) -> String {
+        format!(
+            "screen: {}; transcript: {}",
+            self.screen(),
+            String::from_utf8_lossy(&self.transcript)
+        )
+    }
+
+    /// Requests normal shutdown and bounds cleanup if the process does not exit.
+    ///
+    /// # Parameters
+    /// - `self`: Owned TUI session to shut down and clean up.
+    ///
+    /// # Returns
+    /// `true` when the child exits successfully.
+    fn shutdown(mut self) -> bool {
+        self.send(&[3]);
+        let deadline = Instant::now() + Duration::from_secs(3);
+        let status = loop {
+            if let Some(status) = self.child.try_wait().expect("poll tui") {
+                break status;
+            }
+            if Instant::now() >= deadline {
+                self.child.kill().expect("kill stuck tui");
+                break self.child.wait().expect("wait for killed tui");
+            }
+            thread::sleep(Duration::from_millis(25));
+        };
+        let transcript = String::from_utf8_lossy(&self.transcript);
+        assert!(
+            status.success(),
+            "TUI exited unsuccessfully: {status:?}; transcript: {transcript}"
+        );
+        fs::remove_dir_all(&self.fixture).expect("remove fixture");
+        status.success()
+    }
+}
+
+impl Drop for TuiPty {
+    /// Cleans up a failed test without leaving a child process behind.
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = fs::remove_dir_all(&self.fixture);
+    }
+}
+
+/// Serializes native PTY sessions for Windows `ConPTY` stability.
+///
+/// # Returns
+/// The process-wide PTY test lock guard.
+fn test_lock() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
+        .lock()
+        .expect("test lock")
+}
+
+/// Creates a unique temporary directory owned by one test session.
+///
+/// # Returns
+/// The newly created fixture directory.
+fn temporary_fixture() -> PathBuf {
+    static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
+    let sequence = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
+    let path = std::env::temp_dir().join(format!(
+        "scriberig-tui-pty-{}-{}",
+        std::process::id(),
+        sequence
+    ));
+    fs::create_dir_all(&path).expect("create fixture");
+    path
+}
+
+/// Relays bytes from the PTY reader to the test thread.
+#[allow(clippy::needless_pass_by_value)]
+fn read_output<R: Read>(mut reader: R, sender: mpsc::Sender<Vec<u8>>) {
+    let mut buffer = [0_u8; 4096];
+    loop {
+        match reader.read(&mut buffer) {
+            Ok(0) | Err(_) => return,
+            Ok(size) => {
+                if sender.send(buffer[..size].to_vec()).is_err() {
+                    return;
+                }
+            }
+        }
+    }
+}
