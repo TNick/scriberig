@@ -348,6 +348,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#project-onboarding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project onboarding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#local-app" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2180,6 +2191,8 @@
       
         
       
+        
+      
     
     
     
@@ -2884,6 +2897,34 @@
     
   
     Create Repository License Texts and Licensing Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="level-3/024.%20implement%20project%20onboarding%20across%20surfaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement project onboarding across product surfaces
   
 
     
@@ -5545,6 +5586,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#project-onboarding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project onboarding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#local-app" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5634,24 +5686,57 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>./tools/fix.sh
 </code></pre></div>
 <h2 id="build-and-install">Build and install<a class="headerlink" href="#build-and-install" title="Permanent link">&para;</a></h2>
+<h2 id="project-onboarding">Project onboarding<a class="headerlink" href="#project-onboarding" title="Permanent link">&para;</a></h2>
+<p>Projects are stored in the selected SQLite database and multiple projects may
+share that database:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>srig project scan PATH --db scriberig.sqlite
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>srig project scan PATH --git-tracked --db scriberig.sqlite
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>srig project list --db scriberig.sqlite
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>srig project import PROJECT_ID --db scriberig.sqlite
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>srig project status PROJECT_ID --db scriberig.sqlite
+</code></pre></div>
+<p>To onboard this repository with one command, import the files tracked by Git,
+and print the resulting status:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>make onboard
+</code></pre></div>
+<p>Set <code>ONBOARD_DB</code> to use a shared database other than the development database:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>make onboard ONBOARD_DB=path/to/shared.sqlite
+</code></pre></div>
+<p>The API server can onboard only paths under explicitly configured roots:</p>
+<p><code>--git-tracked</code> restricts the persisted scan manifest to existing files in
+Git's index. Import then consumes that reviewed manifest.</p>
+<p>Source imports currently include Markdown, Rust, PDF, HTML, JavaScript,
+TypeScript, Python (.py, .pyi, and .pyw), C (.c and .h), and C++ (.cc, .cpp,
+.cxx, .hpp, .hh, and .hxx) files. JSON/JSONC, YAML, and TOML retain parsed
+value trees. Common project, configuration, documentation, script, and source
+files retain deterministic text-line entities. Binary artifacts retain exact
+source bytes plus media-type and size metadata. Unknown UTF-8 files use the
+same text adapter, so no file is silently dropped from onboarding.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>srig serve --db scriberig.sqlite --project-root PATH
+</code></pre></div>
+<p>The TUI can scan a project before startup and optionally import it:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>srig tui --db scriberig.sqlite --project PATH --import
+</code></pre></div>
 <p>Build all Rust workspace targets with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>make build
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>make build
 </code></pre></div>
 <p>Build and install the <code>srig</code> executable into Cargo's bin directory with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>make install
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>make install
 </code></pre></div>
 <h2 id="local-app">Local app<a class="headerlink" href="#local-app" title="Permanent link">&para;</a></h2>
 <p>Start or reuse the API and web application, create the ignored SQLite database
 under <code>playground/dev-app-runtime/</code>, and open the editor in your browser with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>make dev
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>make dev
 </code></pre></div>
 <p>Stop the processes started by that command with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>make dev-stop
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>make dev-stop
 </code></pre></div>
 <p>The Make targets work on Linux and Windows. Repeating <code>make dev</code> reuses the
-running services; <code>make dev-stop</code> stops them. The current API exposes a health
-endpoint while semantic API operations remain under development. Logs and the
-local database stay in <code>playground/dev-app-runtime/</code>.</p>
+running services; <code>make dev-stop</code> stops them. The current API exposes health and
+semantic operation endpoints. Optional domain operations remain
+capability-gated; agent streaming is available through the runtime and
+supported product surfaces. Logs and the local database stay in
+<code>playground/dev-app-runtime/</code>.</p>
 <p>Repository-specific source and agent rules live in the top-level <code>AGENTS.md</code> and are refined by nested <code>AGENTS.md</code> files.</p>
 
 

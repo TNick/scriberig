@@ -124,31 +124,32 @@
 <a href=#124 id=124 data-nosnippet>124</a>    ///
 <a href=#125 id=125 data-nosnippet>125</a>    /// # Errors
 <a href=#126 id=126 data-nosnippet>126</a>    /// Returns an error when SQLite rejects the transaction.
-<a href=#127 id=127 data-nosnippet>127</a>    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>store_snapshot_with_parent(
-<a href=#128 id=128 data-nosnippet>128</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
-<a href=#129 id=129 data-nosnippet>129</a>        snapshot: <span class="kw-2">&amp;</span>Snapshot,
-<a href=#130 id=130 data-nosnippet>130</a>        parent: SnapshotId,
-<a href=#131 id=131 data-nosnippet>131</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), SnapshotError&gt; {
-<a href=#132 id=132 data-nosnippet>132</a>        <span class="kw">let </span><span class="kw-2">mut </span>connection = <span class="self">self
-<a href=#133 id=133 data-nosnippet>133</a>            </span>.connection
-<a href=#134 id=134 data-nosnippet>134</a>            .lock()
-<a href=#135 id=135 data-nosnippet>135</a>            .map_err(|<span class="kw">_</span>| SnapshotError::Backend(<span class="string">"lock poisoned"</span>.to_owned()))<span class="question-mark">?</span>;
-<a href=#136 id=136 data-nosnippet>136</a>        recovery::transaction(<span class="kw-2">&amp;mut </span>connection, |transaction| {
-<a href=#137 id=137 data-nosnippet>137</a>            <span class="self">Self</span>::store_snapshot_in_transaction(transaction, snapshot)<span class="question-mark">?</span>;
-<a href=#138 id=138 data-nosnippet>138</a>            <span class="kw">crate</span>::snapshot::store_parent_in_transaction(transaction, snapshot.id(), parent)
-<a href=#139 id=139 data-nosnippet>139</a>        })
-<a href=#140 id=140 data-nosnippet>140</a>        .map_err(sql_snapshot)
-<a href=#141 id=141 data-nosnippet>141</a>    }
-<a href=#142 id=142 data-nosnippet>142</a>}
-<a href=#143 id=143 data-nosnippet>143</a>
-<a href=#144 id=144 data-nosnippet>144</a><span class="doccomment">/// Converts a SQLite error to a snapshot backend error.
-<a href=#145 id=145 data-nosnippet>145</a>///
-<a href=#146 id=146 data-nosnippet>146</a>/// # Parameters
-<a href=#147 id=147 data-nosnippet>147</a>/// - `error`: SQLite error.
-<a href=#148 id=148 data-nosnippet>148</a>///
-<a href=#149 id=149 data-nosnippet>149</a>/// # Returns
-<a href=#150 id=150 data-nosnippet>150</a>/// A typed snapshot backend error.
-<a href=#151 id=151 data-nosnippet>151</a></span><span class="kw">fn </span>sql_snapshot(error: rusqlite::Error) -&gt; SnapshotError {
-<a href=#152 id=152 data-nosnippet>152</a>    SnapshotError::Backend(error.to_string())
-<a href=#153 id=153 data-nosnippet>153</a>}
+<a href=#127 id=127 data-nosnippet>127</a>    /// - `crate`: Argument named `crate`.
+<a href=#128 id=128 data-nosnippet>128</a>    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>store_snapshot_with_parent(
+<a href=#129 id=129 data-nosnippet>129</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
+<a href=#130 id=130 data-nosnippet>130</a>        snapshot: <span class="kw-2">&amp;</span>Snapshot,
+<a href=#131 id=131 data-nosnippet>131</a>        parent: SnapshotId,
+<a href=#132 id=132 data-nosnippet>132</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), SnapshotError&gt; {
+<a href=#133 id=133 data-nosnippet>133</a>        <span class="kw">let </span><span class="kw-2">mut </span>connection = <span class="self">self
+<a href=#134 id=134 data-nosnippet>134</a>            </span>.connection
+<a href=#135 id=135 data-nosnippet>135</a>            .lock()
+<a href=#136 id=136 data-nosnippet>136</a>            .map_err(|<span class="kw">_</span>| SnapshotError::Backend(<span class="string">"lock poisoned"</span>.to_owned()))<span class="question-mark">?</span>;
+<a href=#137 id=137 data-nosnippet>137</a>        recovery::transaction(<span class="kw-2">&amp;mut </span>connection, |transaction| {
+<a href=#138 id=138 data-nosnippet>138</a>            <span class="self">Self</span>::store_snapshot_in_transaction(transaction, snapshot)<span class="question-mark">?</span>;
+<a href=#139 id=139 data-nosnippet>139</a>            <span class="kw">crate</span>::snapshot::store_parent_in_transaction(transaction, snapshot.id(), parent)
+<a href=#140 id=140 data-nosnippet>140</a>        })
+<a href=#141 id=141 data-nosnippet>141</a>        .map_err(sql_snapshot)
+<a href=#142 id=142 data-nosnippet>142</a>    }
+<a href=#143 id=143 data-nosnippet>143</a>}
+<a href=#144 id=144 data-nosnippet>144</a>
+<a href=#145 id=145 data-nosnippet>145</a><span class="doccomment">/// Converts a SQLite error to a snapshot backend error.
+<a href=#146 id=146 data-nosnippet>146</a>///
+<a href=#147 id=147 data-nosnippet>147</a>/// # Parameters
+<a href=#148 id=148 data-nosnippet>148</a>/// - `error`: SQLite error.
+<a href=#149 id=149 data-nosnippet>149</a>///
+<a href=#150 id=150 data-nosnippet>150</a>/// # Returns
+<a href=#151 id=151 data-nosnippet>151</a>/// A typed snapshot backend error.
+<a href=#152 id=152 data-nosnippet>152</a></span><span class="kw">fn </span>sql_snapshot(error: rusqlite::Error) -&gt; SnapshotError {
+<a href=#153 id=153 data-nosnippet>153</a>    SnapshotError::Backend(error.to_string())
+<a href=#154 id=154 data-nosnippet>154</a>}
 </code></pre></div></section></main></body></html>

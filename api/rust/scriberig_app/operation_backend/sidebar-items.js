@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["CompositeBackend"],"trait":["OperationProvider"]};
+window.SIDEBAR_ITEMS = {"struct":["ApplicationBackendComposition"],"trait":["OperationProvider"]};

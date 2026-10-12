@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["InputState"]};
+window.SIDEBAR_ITEMS = {"enum":["InputPurpose"],"struct":["InputState"]};

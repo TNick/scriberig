@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["render_inspection_output"]};
+window.SIDEBAR_ITEMS = {"fn":["render_agent_diagnostics","render_agent_result","render_inspection_output","render_json"]};

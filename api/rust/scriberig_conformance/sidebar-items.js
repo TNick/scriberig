@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["allowed_context","fixture","inspect_tool"],"struct":["Fixture"]};
+window.SIDEBAR_ITEMS = {"fn":["allowed_context","fixture","inspect_tool"],"mod":["agent_fixture"],"struct":["Fixture"]};

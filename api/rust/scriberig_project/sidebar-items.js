@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["ImportDiagnostic","ImportReport","ProjectError","ProjectService","ScanFile","ScanOptions","ScanReport"]};

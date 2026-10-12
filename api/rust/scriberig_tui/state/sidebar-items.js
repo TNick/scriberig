@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Focus"],"fn":["reduce"],"struct":["TuiState"]};
+window.SIDEBAR_ITEMS = {"enum":["ConnectionState","Focus"],"fn":["reduce"],"struct":["TuiState"]};

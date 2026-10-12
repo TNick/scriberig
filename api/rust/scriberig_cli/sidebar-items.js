@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Command"],"fn":["dispatch","parse"],"mod":["inspect","output","trust"],"struct":["Cli","DispatchError","InspectArgs","PromptArgs","ServeArgs","TuiArgs"]};
+window.SIDEBAR_ITEMS = {"enum":["Command","OperationCommand","RunFormat","SessionCommand"],"fn":["dispatch","parse"],"mod":["inspect","output","project","trust"],"struct":["AgentContinueArgs","Cli","DispatchError","EventsArgs","InspectArgs","MaintenanceArgs","OperationArgs","PromptArgs","RemoteArgs","RunArgs","ServeArgs","SessionArgs","TuiArgs"]};

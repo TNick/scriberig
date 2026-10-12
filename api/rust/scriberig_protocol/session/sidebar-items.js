@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["SessionBranchStatus"],"struct":["SessionBranch","SessionBranchResult","SessionReadRequest","SessionReadResponse","SessionTurn"]};

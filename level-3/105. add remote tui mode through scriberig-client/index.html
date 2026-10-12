@@ -2060,6 +2060,8 @@
       
         
       
+        
+      
     
     
     
@@ -2764,6 +2766,34 @@
     
   
     Create Repository License Texts and Licensing Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../024.%20implement%20project%20onboarding%20across%20surfaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement project onboarding across product surfaces
   
 
     
@@ -5822,7 +5852,7 @@
 
 
 <h1 id="add-remote-tui-mode-through-scriberig-client">Add Remote TUI Mode Through <code>scriberig-client</code><a class="headerlink" href="#add-remote-tui-mode-through-scriberig-client" title="Permanent link">&para;</a></h1>
-<p><strong>Status: [ ] Pending</strong></p>
+<p><strong>Status: [x] Complete</strong></p>
 <h2 id="objective">Objective<a class="headerlink" href="#objective" title="Permanent link">&para;</a></h2>
 <p>Allow the same TUI state machine and views—including branch-aware agent/session workflows—to operate against a remote Scriberig server through the public <code>scriberig-client</code>/protocol boundary.</p>
 <p>This task proves that the TUI is a peer product surface rather than a privileged local database or model-provider console.</p>
@@ -6038,22 +6068,22 @@
 <hr />
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] <code>srig tui --connect &lt;ENDPOINT&gt;</code> is parsed as a remote mode.</li>
-<li>[ ] Local and remote selectors are mutually exclusive.</li>
-<li>[ ] Remote access uses <code>scriberig-client</code>, not server internals.</li>
-<li>[ ] The existing state machine/views work through the remote service adapter.</li>
-<li>[ ] Remote agent start/continue use the same public operation as local mode.</li>
-<li>[ ] Nested branch tree/result behavior is equivalent in local and remote mode.</li>
-<li>[ ] Connection and stale-state status are visible.</li>
-<li>[ ] Remote capabilities drive semantic/agent action availability.</li>
-<li>[ ] Transport, semantic, and sanitized runtime/provider failures remain distinguishable.</li>
-<li>[ ] Event resume or authoritative refresh handles reconnect safely.</li>
-<li>[ ] Lost streaming fragments do not prevent final durable result recovery.</li>
-<li>[ ] Remote cancellation uses shared operation semantics.</li>
-<li>[ ] Provider credentials are absent from TUI/client state.</li>
-<li>[ ] Tests run without external network/model dependencies.</li>
-<li>[ ] Conformance status is advanced only when verified.</li>
-<li>[ ] Formatting, tests, and Clippy pass.</li>
+<li>[x] <code>srig tui --connect &lt;ENDPOINT&gt;</code> is parsed as a remote mode.</li>
+<li>[x] Local and remote selectors are mutually exclusive.</li>
+<li>[x] Remote access uses <code>scriberig-client</code>, not server internals.</li>
+<li>[x] The existing state machine/views work through the remote service adapter.</li>
+<li>[x] Remote agent start/continue use the same public operation as local mode.</li>
+<li>[x] Nested branch tree/result behavior is equivalent in local and remote mode.</li>
+<li>[x] Connection and stale-state status are visible.</li>
+<li>[x] Remote capabilities drive semantic/agent action availability.</li>
+<li>[x] Transport, semantic, and sanitized runtime/provider failures remain distinguishable.</li>
+<li>[x] Event resume or authoritative refresh handles reconnect safely.</li>
+<li>[x] Lost streaming fragments do not prevent final durable result recovery.</li>
+<li>[x] Remote cancellation uses shared operation semantics.</li>
+<li>[x] Provider credentials are absent from TUI/client state.</li>
+<li>[x] Tests run without external network/model dependencies.</li>
+<li>[x] Conformance status is advanced only when verified.</li>
+<li>[x] Formatting, tests, and Clippy pass.</li>
 </ul>
 
 

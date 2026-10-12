@@ -2060,6 +2060,8 @@
       
         
       
+        
+      
     
     
     
@@ -2764,6 +2766,34 @@
     
   
     Create Repository License Texts and Licensing Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../024.%20implement%20project%20onboarding%20across%20surfaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement project onboarding across product surfaces
   
 
     
@@ -5668,7 +5698,7 @@
 
 
 <h1 id="wire-srig-tui-to-local-application-composition">Wire <code>srig tui</code> to Local Application Composition<a class="headerlink" href="#wire-srig-tui-to-local-application-composition" title="Permanent link">&para;</a></h1>
-<p><strong>Status: [ ] Pending</strong></p>
+<p><strong>Status: [x] Complete</strong></p>
 <h2 id="objective">Objective<a class="headerlink" href="#objective" title="Permanent link">&para;</a></h2>
 <p>Replace the existing honest <code>srig tui</code> stub with the real local embedded TUI while preserving the repository's composition boundaries.</p>
 <p>Read first:</p>
@@ -5765,17 +5795,17 @@
 <hr />
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] <code>srig tui</code> starts the real local TUI instead of the stub message.</li>
-<li>[ ] <code>--db</code> is parsed in <code>scriberig-cli</code> and consumed by product composition.</li>
-<li>[ ] Concrete SQLite/store construction remains outside <code>scriberig-tui</code>.</li>
-<li>[ ] Local TUI uses an explicit application principal and capability context.</li>
-<li>[ ] Capability grants are no broader than required by implemented features.</li>
-<li>[ ] Detectable startup failures occur before terminal takeover when practical.</li>
-<li>[ ] Runtime failures restore terminal state before propagation.</li>
-<li>[ ] Normal quit returns success.</li>
-<li>[ ] Automated tests do not require an uncontrolled real terminal.</li>
-<li>[ ] Help/documentation no longer describes TUI mode as a stub.</li>
-<li>[ ] Formatting, check, Clippy, and relevant workspace tests pass.</li>
+<li>[x] <code>srig tui</code> starts the real local TUI instead of the stub message.</li>
+<li>[x] <code>--db</code> is parsed in <code>scriberig-cli</code> and consumed by product composition.</li>
+<li>[x] Concrete SQLite/store construction remains outside <code>scriberig-tui</code>.</li>
+<li>[x] Local TUI uses an explicit application principal and capability context.</li>
+<li>[x] Capability grants are no broader than required by implemented features.</li>
+<li>[x] Detectable startup failures occur before terminal takeover when practical.</li>
+<li>[x] Runtime failures restore terminal state before propagation.</li>
+<li>[x] Normal quit returns success.</li>
+<li>[x] Automated tests do not require an uncontrolled real terminal.</li>
+<li>[x] Help/documentation no longer describes TUI mode as a stub.</li>
+<li>[x] Formatting, check, Clippy, and relevant workspace tests pass.</li>
 </ul>
 
 

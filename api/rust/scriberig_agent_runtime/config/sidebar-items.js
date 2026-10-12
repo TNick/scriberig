@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CompatibilityProfile","CredentialSource"],"struct":["ProviderCapabilities","ProviderConfig","ResolvedCredential"]};

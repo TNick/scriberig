@@ -3,7 +3,7 @@
 <a href=#3 id=3 data-nosnippet>3</a></span><span class="kw">use crate</span>::{EntityId, RevisionId};
 <a href=#4 id=4 data-nosnippet>4</a>
 <a href=#5 id=5 data-nosnippet>5</a><span class="doccomment">/// Identifies one exact immutable entity revision used as provenance input.
-<a href=#6 id=6 data-nosnippet>6</a></span><span class="attr">#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+<a href=#6 id=6 data-nosnippet>6</a></span><span class="attr">#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, serde::Deserialize, serde::Serialize)]
 <a href=#7 id=7 data-nosnippet>7</a></span><span class="kw">pub struct </span>EntityRevisionRef {
 <a href=#8 id=8 data-nosnippet>8</a>    <span class="doccomment">/// Stable entity identity.
 <a href=#9 id=9 data-nosnippet>9</a>    </span><span class="kw">pub </span>entity_id: EntityId,
@@ -12,7 +12,7 @@
 <a href=#12 id=12 data-nosnippet>12</a>}
 <a href=#13 id=13 data-nosnippet>13</a>
 <a href=#14 id=14 data-nosnippet>14</a><span class="doccomment">/// Identifies the kind of source that produced a value or artifact.
-<a href=#15 id=15 data-nosnippet>15</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#15 id=15 data-nosnippet>15</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 <a href=#16 id=16 data-nosnippet>16</a></span><span class="kw">pub enum </span>ProvenanceSource {
 <a href=#17 id=17 data-nosnippet>17</a>    <span class="doccomment">/// A human user authored or asserted the value.
 <a href=#18 id=18 data-nosnippet>18</a>    </span>User,
@@ -39,7 +39,7 @@
 <a href=#39 id=39 data-nosnippet>39</a>}
 <a href=#40 id=40 data-nosnippet>40</a>
 <a href=#41 id=41 data-nosnippet>41</a><span class="doccomment">/// Records origin and exact immutable dependencies without implying trust.
-<a href=#42 id=42 data-nosnippet>42</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#42 id=42 data-nosnippet>42</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 <a href=#43 id=43 data-nosnippet>43</a></span><span class="kw">pub struct </span>Provenance {
 <a href=#44 id=44 data-nosnippet>44</a>    <span class="doccomment">/// Source category that produced the knowledge.
 <a href=#45 id=45 data-nosnippet>45</a>    </span><span class="kw">pub </span>source: ProvenanceSource,

@@ -2058,6 +2058,8 @@
       
         
       
+        
+      
     
     
     
@@ -2762,6 +2764,34 @@
     
   
     Create Repository License Texts and Licensing Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../024.%20implement%20project%20onboarding%20across%20surfaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement project onboarding across product surfaces
   
 
     
@@ -5952,7 +5982,7 @@
 
 
 <h1 id="verify-agent-branch-isolation-and-cross-surface-conformance">Verify Agent Branch Isolation and Cross-Surface Conformance<a class="headerlink" href="#verify-agent-branch-isolation-and-cross-surface-conformance" title="Permanent link">&para;</a></h1>
-<p><strong>Status: [ ] Pending</strong></p>
+<p><strong>Status: [x] Complete</strong></p>
 <h2 id="objective">Objective<a class="headerlink" href="#objective" title="Permanent link">&para;</a></h2>
 <p>Build deterministic conformance fixtures proving that one-shot CLI, embedded application, server/client, TUI adapters, and web client/model consume the same branch-aware agent semantics and preserve branch isolation.</p>
 <p>Read first:</p>
@@ -6283,23 +6313,23 @@
 <hr />
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Shared deterministic fake-provider scenarios exist.</li>
-<li>[ ] Simple root execution is semantically conformant across implemented surfaces.</li>
-<li>[ ] Atomic tool execution is conformant and does not create unnecessary branches.</li>
-<li>[ ] Nested child branch topology/result behavior is conformant.</li>
-<li>[ ] Child-internal marker is excluded from parent context until explicitly reopened.</li>
-<li>[ ] Branch-depth/tool/model budgets fail safely and consistently.</li>
-<li>[ ] Exact model cache reuse and invalidation are proven.</li>
-<li>[ ] Capability denial cannot be bypassed by any surface.</li>
-<li>[ ] Candidate changes remain non-canonical until shared review/promotion.</li>
-<li>[ ] Cancellation semantics are shared across product controls.</li>
-<li>[ ] Event disconnect/reconnect cannot lose durable final state.</li>
-<li>[ ] One-shot stdout/stderr/JSON/exit behavior derives from shared result.</li>
-<li>[ ] TUI branch collapse/expand/stream semantics use shared state.</li>
-<li>[ ] Web client/model branch/reconnect semantics use shared state.</li>
-<li>[ ] Provider secret values are absent from public/session/cache/UI artifacts.</li>
-<li>[ ] Capability matrix statuses are advanced only where verified.</li>
-<li>[ ] Repository-wide relevant formatting, tests, typecheck, build, lint, and Clippy pass.</li>
+<li>[x] Shared deterministic fake-provider scenarios exist.</li>
+<li>[x] Simple root execution is semantically conformant across implemented surfaces.</li>
+<li>[x] Atomic tool execution is conformant and does not create unnecessary branches.</li>
+<li>[x] Nested child branch topology/result behavior is conformant.</li>
+<li>[x] Child-internal marker is excluded from parent context until explicitly reopened.</li>
+<li>[x] Branch-depth/tool/model budgets fail safely and consistently.</li>
+<li>[x] Exact model cache reuse and invalidation are proven.</li>
+<li>[x] Capability denial cannot be bypassed by any surface.</li>
+<li>[x] Candidate changes remain non-canonical until shared review/promotion.</li>
+<li>[x] Cancellation semantics are shared across product controls.</li>
+<li>[x] Event disconnect/reconnect cannot lose durable final state.</li>
+<li>[x] One-shot stdout/stderr/JSON/exit behavior derives from shared result.</li>
+<li>[x] TUI branch collapse/expand/stream semantics use shared state.</li>
+<li>[x] Web client/model branch/reconnect semantics use shared state.</li>
+<li>[x] Provider secret values are absent from public/session/cache/UI artifacts.</li>
+<li>[x] Capability matrix statuses are advanced only where verified.</li>
+<li>[x] Repository-wide relevant formatting, tests, typecheck, build, lint, and Clippy pass.</li>
 </ul>
 
 

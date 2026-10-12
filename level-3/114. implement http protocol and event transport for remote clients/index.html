@@ -2060,6 +2060,8 @@
       
         
       
+        
+      
     
     
     
@@ -2764,6 +2766,34 @@
     
   
     Create Repository License Texts and Licensing Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../024.%20implement%20project%20onboarding%20across%20surfaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement project onboarding across product surfaces
   
 
     
@@ -6032,7 +6062,7 @@
 
 
 <h1 id="implement-http-protocol-and-event-transport-for-remote-clients">Implement HTTP Protocol and Event Transport for Remote Clients<a class="headerlink" href="#implement-http-protocol-and-event-transport-for-remote-clients" title="Permanent link">&para;</a></h1>
-<p><strong>Status: [ ] Pending</strong></p>
+<p><strong>Status: [x] Complete</strong></p>
 <h2 id="objective">Objective<a class="headerlink" href="#objective" title="Permanent link">&para;</a></h2>
 <p>Implement the concrete remote transport required by the web application and future remote TUI/third-party clients: JSON protocol requests over HTTP plus resumable semantic event streaming.</p>
 <p>Read first:</p>
@@ -6315,18 +6345,18 @@
 <hr />
 <h2 id="completion-checklist">Completion Checklist<a class="headerlink" href="#completion-checklist" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] <code>/protocol/{operation}</code> is a real typed HTTP transport over existing server dispatch.</li>
-<li>[ ] <code>/protocol/events</code> streams Scriberig protocol events with resumable cursors.</li>
-<li>[ ] Event replay is bounded and gap/resync behavior is explicit.</li>
-<li>[ ] Slow subscribers cannot block runtime work or grow memory unboundedly.</li>
-<li>[ ] Web <code>HttpTransport.subscribe</code> consumes Scriberig SSE using fetch and auth headers.</li>
-<li>[ ] Request/subscription cancellation works.</li>
-<li>[ ] Rust remote client support is added or cleanly separated behind an async transport abstraction.</li>
-<li>[ ] Local/remote TUI can share semantic service state rather than provider details.</li>
-<li>[ ] Security defaults favor loopback/restrictive CORS and keep provider secrets server-side.</li>
-<li>[ ] Deterministic agent operation survives event disconnect/reconnect.</li>
-<li>[ ] Tests require no public network/model service.</li>
-<li>[ ] Formatting, tests, typecheck, and Clippy pass.</li>
+<li>[x] <code>/protocol/{operation}</code> is a real typed HTTP transport over existing server dispatch.</li>
+<li>[x] <code>/protocol/events</code> streams Scriberig protocol events with resumable cursors.</li>
+<li>[x] Event replay is bounded and gap/resync behavior is explicit.</li>
+<li>[x] Slow subscribers cannot block runtime work or grow memory unboundedly.</li>
+<li>[x] Web <code>HttpTransport.subscribe</code> consumes Scriberig SSE using fetch and auth headers.</li>
+<li>[x] Request/subscription cancellation works.</li>
+<li>[x] Rust remote client support is added or cleanly separated behind an async transport abstraction.</li>
+<li>[x] Local/remote TUI can share semantic service state rather than provider details.</li>
+<li>[x] Security defaults favor loopback/restrictive CORS and keep provider secrets server-side.</li>
+<li>[x] Deterministic agent operation survives event disconnect/reconnect.</li>
+<li>[x] Tests require no public network/model service.</li>
+<li>[x] Formatting, tests, typecheck, and Clippy pass.</li>
 </ul>
 
 

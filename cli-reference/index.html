@@ -399,6 +399,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#remote-operation-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Remote operation commands
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#keeping-this-reference-synchronized" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2204,6 +2215,8 @@
       
         
       
+        
+      
     
     
     
@@ -2908,6 +2921,34 @@
     
   
     Create Repository License Texts and Licensing Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../level-3/024.%20implement%20project%20onboarding%20across%20surfaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement project onboarding across product surfaces
   
 
     
@@ -5591,6 +5632,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#remote-operation-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Remote operation commands
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#keeping-this-reference-synchronized" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5670,17 +5722,17 @@
 </tr>
 <tr>
 <td><code>run</code></td>
-<td><code>srig run &lt;PROMPT&gt;</code></td>
-<td>Runs the deterministic local one-shot provider.</td>
+<td><code>srig run &lt;PROMPT&gt; [OPTIONS]</code></td>
+<td>Runs one shared application agent operation.</td>
 </tr>
 <tr>
 <td><code>agent</code></td>
-<td><code>srig agent &lt;PROMPT&gt;</code></td>
-<td>Runs the deterministic local agent runtime.</td>
+<td><code>srig agent &lt;PROMPT&gt; [OPTIONS]</code></td>
+<td>Alias for the shared application agent operation.</td>
 </tr>
 <tr>
 <td><code>maintenance</code></td>
-<td><code>srig maintenance</code></td>
+<td><code>srig maintenance [OPTIONS]</code></td>
 <td>Checks SQLite canonical-state integrity.</td>
 </tr>
 <tr>
@@ -5688,12 +5740,37 @@
 <td><code>srig inspect &lt;ENTITY&gt; [OPTIONS]</code></td>
 <td>Inspects entity trust metadata through the shared application boundary.</td>
 </tr>
+<tr>
+<td><code>capabilities</code></td>
+<td><code>srig capabilities [OPTIONS]</code></td>
+<td>Lists capabilities exposed by a remote application.</td>
+</tr>
+<tr>
+<td><code>operation</code></td>
+<td><code>srig operation &lt;status\|cancel&gt; &lt;OPERATION&gt; [OPTIONS]</code></td>
+<td>Observes or cancels a remote operation.</td>
+</tr>
+<tr>
+<td><code>events</code></td>
+<td><code>srig events [OPTIONS]</code></td>
+<td>Reads buffered lifecycle or agent output events.</td>
+</tr>
+<tr>
+<td><code>session</code></td>
+<td><code>srig session &lt;tree\|activity&gt; ... [OPTIONS]</code></td>
+<td>Reads durable session and branch state.</td>
+</tr>
+<tr>
+<td><code>agent-continue</code></td>
+<td><code>srig agent-continue &lt;SESSION&gt; &lt;BRANCH&gt; &lt;PROMPT&gt; [OPTIONS]</code></td>
+<td>Continues an agent operation on an existing branch.</td>
+</tr>
 </tbody>
 </table>
 <p>Each subcommand also supports <code>-h</code> / <code>--help</code>.</p>
 <h2 id="srig-tui"><code>srig tui</code><a class="headerlink" href="#srig-tui" title="Permanent link">&para;</a></h2>
 <p>Start the local application-backed terminal UI.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>srig tui [--db &lt;PATH&gt;]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>srig tui [--db &lt;PATH&gt; | --connect &lt;URL&gt;]
 </code></pre></div>
 <p>The UI reads semantic data through the shared application boundary. Type
 <code>inspect &lt;ENTITY&gt;</code> to inspect an entity, or <code>q</code> to quit.</p>
@@ -5711,11 +5788,16 @@
 <td><code>playground/dev-app-runtime/scriberig.sqlite</code></td>
 <td>SQLite database path used by the local TUI composition.</td>
 </tr>
+<tr>
+<td><code>--connect &lt;URL&gt;</code></td>
+<td>none</td>
+<td>Public protocol endpoint used by the remote TUI composition. Cannot be combined with <code>--db</code>.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="srig-serve"><code>srig serve</code><a class="headerlink" href="#srig-serve" title="Permanent link">&para;</a></h2>
 <p>Start the API server.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>srig serve [--host &lt;HOST&gt;] [--port &lt;PORT&gt;] [--db &lt;PATH&gt;]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>srig serve [--host &lt;HOST&gt;] [--port &lt;PORT&gt;] [--db &lt;PATH&gt;] [--allow-origin &lt;ORIGIN&gt;]
 </code></pre></div>
 <table>
 <thead>
@@ -5741,6 +5823,11 @@
 <td><code>playground/dev-app-runtime/scriberig.sqlite</code></td>
 <td>SQLite database path used by the local API server.</td>
 </tr>
+<tr>
+<td><code>--allow-origin &lt;ORIGIN&gt;</code></td>
+<td>unset</td>
+<td>Exact browser origin allowed for cross-origin protocol requests.</td>
+</tr>
 </tbody>
 </table>
 <p>Example:</p>
@@ -5748,29 +5835,97 @@
 </code></pre></div>
 <h2 id="srig-run"><code>srig run</code><a class="headerlink" href="#srig-run" title="Permanent link">&para;</a></h2>
 <p>Accept one prompt in headless one-shot mode.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>srig run &lt;PROMPT&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>srig run &lt;PROMPT&gt; [OPTIONS]
 </code></pre></div>
 <p><code>&lt;PROMPT&gt;</code> is one required positional string. Quote prompts that contain shell whitespace.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>srig run "Summarize the current project state"
 </code></pre></div>
-<p>The local runtime echoes the prompt through the provider boundary until a
-configured model provider is composed.</p>
+<p>The command creates a fresh session root, submits the prompt through the shared
+application operation boundary, waits for the terminal operation record, and
+renders the structured agent result. Human output writes final text to stdout
+and stable handles to stderr. When a streaming provider is configured, bounded
+transient model text is also reported on stderr as it arrives; the durable
+final answer remains the only answer text written to stdout. JSON output writes
+one machine-readable result and does not emit transient stream text.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--db &lt;PATH&gt;</code></td>
+<td><code>playground/dev-app-runtime/scriberig.sqlite</code></td>
+<td>SQLite database path used by the local composition.</td>
+</tr>
+<tr>
+<td><code>--format &lt;human\|json&gt;</code></td>
+<td><code>human</code></td>
+<td>Select human or machine-readable output.</td>
+</tr>
+<tr>
+<td><code>--no-stream</code></td>
+<td>disabled</td>
+<td>Disable transient provider output without changing operation semantics.</td>
+</tr>
+<tr>
+<td><code>--provider &lt;PROFILE&gt;</code></td>
+<td><code>default</code></td>
+<td>Safe provider profile identifier.</td>
+</tr>
+<tr>
+<td><code>--model &lt;MODEL&gt;</code></td>
+<td><code>default</code></td>
+<td>Provider model identifier when using <code>--base-url</code>.</td>
+</tr>
+<tr>
+<td><code>--base-url &lt;URL&gt;</code></td>
+<td>unset</td>
+<td>OpenAI-compatible provider base URL. When omitted, deterministic local execution is used.</td>
+</tr>
+<tr>
+<td><code>--api-key-env &lt;NAME&gt;</code></td>
+<td>unset</td>
+<td>Environment variable containing the provider credential; requires <code>--base-url</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Pressing Ctrl-C requests cancellation of the shared operation. The command
+preserves the operation/session record and exits with status <code>130</code>.</p>
 <h2 id="srig-agent"><code>srig agent</code><a class="headerlink" href="#srig-agent" title="Permanent link">&para;</a></h2>
 <p>Accept one prompt for the integrated agent runtime.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>srig agent &lt;PROMPT&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>srig agent &lt;PROMPT&gt; [OPTIONS]
 </code></pre></div>
 <p><code>&lt;PROMPT&gt;</code> is one required positional string. Quote prompts that contain shell whitespace.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>srig agent "Implement the next focused design task"
 </code></pre></div>
-<p>The local runtime executes the prompt through the bounded agent runtime and
-provider/tool boundaries.</p>
+<p><code>agent</code> delegates to exactly the same shared application operation path as
+<code>run</code>; the two spellings are retained for compatibility.</p>
 <h2 id="srig-maintenance"><code>srig maintenance</code><a class="headerlink" href="#srig-maintenance" title="Permanent link">&para;</a></h2>
 <p>Select repository or database maintenance mode.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>srig maintenance
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>srig maintenance [--db &lt;PATH&gt;]
 </code></pre></div>
-<p>The command runs a canonical SQLite integrity check against
-<code>playground/dev-app-runtime/scriberig.sqlite</code> and reports corruption and
-unreachable snapshot counts.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--db &lt;PATH&gt;</code></td>
+<td><code>playground/dev-app-runtime/scriberig.sqlite</code></td>
+<td>SQLite database to check.</td>
+</tr>
+</tbody>
+</table>
+<p>The command runs a canonical SQLite integrity check against the selected
+database and reports corruption and unreachable snapshot counts.</p>
 <h2 id="srig-inspect"><code>srig inspect</code><a class="headerlink" href="#srig-inspect" title="Permanent link">&para;</a></h2>
 <p>Inspect trust metadata for one semantic entity.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>srig inspect &lt;ENTITY&gt; [OPTIONS]
@@ -5810,6 +5965,20 @@ unreachable snapshot counts.</p>
 snapshots through the shared application boundary. A missing entity, snapshot,
 or current <code>main</code> root is reported as a structured failure. Authorization
 denials use exit status <code>77</code>.</p>
+<h2 id="remote-operation-commands">Remote operation commands<a class="headerlink" href="#remote-operation-commands" title="Permanent link">&para;</a></h2>
+<p>The following commands use the public protocol client. They default to
+<code>http://127.0.0.1:7337</code> and accept <code>--connect &lt;URL&gt;</code> for another server.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>srig capabilities [--connect &lt;URL&gt;] [--json]
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>srig operation status &lt;OPERATION&gt; [--connect &lt;URL&gt;]
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>srig operation cancel &lt;OPERATION&gt; [--connect &lt;URL&gt;]
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>srig events [--kind &lt;EVENT_KIND&gt;]... [--after &lt;CURSOR&gt;] [--connect &lt;URL&gt;]
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>srig session tree &lt;SESSION&gt; [--connect &lt;URL&gt;]
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>srig session activity &lt;SESSION&gt; &lt;BRANCH&gt; [--connect &lt;URL&gt;]
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>srig agent-continue &lt;SESSION&gt; &lt;BRANCH&gt; &lt;PROMPT&gt; [--connect &lt;URL&gt;]
+</code></pre></div>
+<p><code>events --kind agent_output_delta</code> observes bounded streaming output. Events
+are returned as structured JSON so callers can retain the cursor and recover
+durable state through <code>operation</code> and <code>session</code> commands.</p>
 <h2 id="keeping-this-reference-synchronized">Keeping this reference synchronized<a class="headerlink" href="#keeping-this-reference-synchronized" title="Permanent link">&para;</a></h2>
 <p>The parser in <code>crates/scriberig-cli</code> defines the accepted command line, and <code>apps/scriberig</code> composes those parsed commands into the executable. Treat this page as part of that public surface: CLI implementation changes are incomplete until this reference describes the resulting command line accurately.</p>
 

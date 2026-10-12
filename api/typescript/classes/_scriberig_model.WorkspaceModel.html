@@ -18,7 +18,7 @@
 Private members: the event state and change subscription.</p>
 </div></section><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/9f4e39f1871640cd6ae50f8dc84b6a898094e1fd/web/packages/model/src/workspace-model.ts#L14">workspace-model.ts:14</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/8cec61fb44a5fd27cdb1edb982e648909077688e/web/packages/model/src/workspace-model.ts#L23">model/src/workspace-model.ts:23</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -36,9 +36,15 @@ Private members: the event state and change subscription.</p>
 <section class="tsd-index-section">
 <h3 class="tsd-index-heading tsd-anchor-link" id="methods">Methods<a href="#methods" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-index-list"><a href="#apply" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>apply</span></a>
+<a href="#applyagentevent" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>apply<wbr/>Agent<wbr/>Event</span></a>
+<a href="#getagentstate" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Agent<wbr/>State</span></a>
 <a href="#getstate" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>State</span></a>
+<a href="#markagentworkspacestale" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>mark<wbr/>Agent<wbr/>Workspace<wbr/>Stale</span></a>
+<a href="#setagentoperation" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Agent<wbr/>Operation</span></a>
+<a href="#setagentsession" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Agent<wbr/>Session</span></a>
 <a href="#setdisconnected" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Disconnected</span></a>
 <a href="#subscribe" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>subscribe</span></a>
+<a href="#subscribeagent" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>subscribe<wbr/>Agent</span></a>
 <a href="#view" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>view</span></a>
 </div></section></div></details></section></section>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Constructors"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -60,14 +66,14 @@ Private members: the event state and change subscription.</p>
 <div class="tsd-comment tsd-typography"><p>Durable operation records.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/9f4e39f1871640cd6ae50f8dc84b6a898094e1fd/web/packages/model/src/workspace-model.ts#L18">workspace-model.ts:18</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/8cec61fb44a5fd27cdb1edb982e648909077688e/web/packages/model/src/workspace-model.ts#L27">model/src/workspace-model.ts:27</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="revisions"><code class="tsd-tag">Readonly</code><span>revisions</span><a href="#revisions" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">revisions</span><span class="tsd-signature-symbol">:</span> <a href="_scriberig_model.RevisionCache.html" class="tsd-signature-type tsd-kind-class">RevisionCache</a><span class="tsd-signature-symbol"> = ...</span></div>
 <div class="tsd-comment tsd-typography"><p>Immutable revision cache.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/9f4e39f1871640cd6ae50f8dc84b6a898094e1fd/web/packages/model/src/workspace-model.ts#L16">workspace-model.ts:16</a></li></ul></aside></section></section></details>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/8cec61fb44a5fd27cdb1edb982e648909077688e/web/packages/model/src/workspace-model.ts#L25">model/src/workspace-model.ts:25</a></li></ul></aside></section></section></details>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="methods-1">Methods<a href="#methods-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
 <section>
@@ -87,7 +93,36 @@ Private members: the event state and change subscription.</p>
 </div></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/9f4e39f1871640cd6ae50f8dc84b6a898094e1fd/web/packages/model/src/workspace-model.ts#L26">workspace-model.ts:26</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/8cec61fb44a5fd27cdb1edb982e648909077688e/web/packages/model/src/workspace-model.ts#L47">model/src/workspace-model.ts:47</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="applyagentevent"><span>apply<wbr/>Agent<wbr/>Event</span><a href="#applyagentevent" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="applyagentevent-1"><span class="tsd-kind-call-signature">applyAgentEvent</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">event</span><span class="tsd-signature-symbol">:</span> <a href="../types/_scriberig_protocol.AgentEvent.html" class="tsd-signature-type tsd-kind-type-alias">AgentEvent</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#applyagentevent-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Applies an ordered agent event to the branch-aware model state.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">event</span>: <a href="../types/_scriberig_protocol.AgentEvent.html" class="tsd-signature-type tsd-kind-type-alias">AgentEvent</a></span>
+<div class="tsd-comment tsd-typography"><p>Agent event.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/8cec61fb44a5fd27cdb1edb982e648909077688e/web/packages/model/src/workspace-model.ts#L52">model/src/workspace-model.ts:52</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="getagentstate"><span>get<wbr/>Agent<wbr/>State</span><a href="#getagentstate" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="getagentstate-1"><span class="tsd-kind-call-signature">getAgentState</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_scriberig_model.AgentWorkspaceState.html" class="tsd-signature-type tsd-kind-interface">AgentWorkspaceState</a><a href="#getagentstate-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Returns the current branch-aware agent state.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <a href="../interfaces/_scriberig_model.AgentWorkspaceState.html" class="tsd-signature-type tsd-kind-interface">AgentWorkspaceState</a></h4><p>Agent workspace state.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/8cec61fb44a5fd27cdb1edb982e648909077688e/web/packages/model/src/workspace-model.ts#L95">model/src/workspace-model.ts:95</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="getstate"><span>get<wbr/>State</span><a href="#getstate" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -99,7 +134,52 @@ Private members: the event state and change subscription.</p>
 <h4 class="tsd-returns-title">Returns <a href="../interfaces/_scriberig_model.ModelEventState.html" class="tsd-signature-type tsd-kind-interface">ModelEventState</a></h4><p>Consistent state snapshot.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/9f4e39f1871640cd6ae50f8dc84b6a898094e1fd/web/packages/model/src/workspace-model.ts#L48">workspace-model.ts:48</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/8cec61fb44a5fd27cdb1edb982e648909077688e/web/packages/model/src/workspace-model.ts#L91">model/src/workspace-model.ts:91</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="markagentworkspacestale"><span>mark<wbr/>Agent<wbr/>Workspace<wbr/>Stale</span><a href="#markagentworkspacestale" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="markagentworkspacestale-1"><span class="tsd-kind-call-signature">markAgentWorkspaceStale</span><span class="tsd-signature-symbol">()</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#markagentworkspacestale-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Marks agent state stale until a reconnect refresh completes.</p>
+</div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/8cec61fb44a5fd27cdb1edb982e648909077688e/web/packages/model/src/workspace-model.ts#L69">model/src/workspace-model.ts:69</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="setagentoperation"><span>set<wbr/>Agent<wbr/>Operation</span><a href="#setagentoperation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="setagentoperation-1"><span class="tsd-kind-call-signature">setAgentOperation</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">operation</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_scriberig_model.Operation.html" class="tsd-signature-type tsd-kind-interface">Operation</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#setagentoperation-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Stores an authoritative agent operation beside branch state.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">operation</span>: <a href="../interfaces/_scriberig_model.Operation.html" class="tsd-signature-type tsd-kind-interface">Operation</a></span>
+<div class="tsd-comment tsd-typography"><p>Operation record.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/8cec61fb44a5fd27cdb1edb982e648909077688e/web/packages/model/src/workspace-model.ts#L59">model/src/workspace-model.ts:59</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="setagentsession"><span>set<wbr/>Agent<wbr/>Session</span><a href="#setagentsession" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="setagentsession-1"><span class="tsd-kind-call-signature">setAgentSession</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">session</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_scriberig_protocol.SessionReadResponse.html" class="tsd-signature-type tsd-kind-interface">SessionReadResponse</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">void</span><a href="#setagentsession-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Stores an authoritative session branch tree.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">session</span>: <a href="../interfaces/_scriberig_protocol.SessionReadResponse.html" class="tsd-signature-type tsd-kind-interface">SessionReadResponse</a></span>
+<div class="tsd-comment tsd-typography"><p>Session response.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/8cec61fb44a5fd27cdb1edb982e648909077688e/web/packages/model/src/workspace-model.ts#L64">model/src/workspace-model.ts:64</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="setdisconnected"><span>set<wbr/>Disconnected</span><a href="#setdisconnected" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -116,7 +196,7 @@ Private members: the event state and change subscription.</p>
 </div></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/9f4e39f1871640cd6ae50f8dc84b6a898094e1fd/web/packages/model/src/workspace-model.ts#L31">workspace-model.ts:31</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/8cec61fb44a5fd27cdb1edb982e648909077688e/web/packages/model/src/workspace-model.ts#L74">model/src/workspace-model.ts:74</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="subscribe"><span>subscribe</span><a href="#subscribe" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -134,7 +214,25 @@ Private members: the event state and change subscription.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">void</span></h4><p>Unsubscribe function.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/9f4e39f1871640cd6ae50f8dc84b6a898094e1fd/web/packages/model/src/workspace-model.ts#L22">workspace-model.ts:22</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/8cec61fb44a5fd27cdb1edb982e648909077688e/web/packages/model/src/workspace-model.ts#L39">model/src/workspace-model.ts:39</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="subscribeagent"><span>subscribe<wbr/>Agent</span><a href="#subscribeagent" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures">
+<li class="">
+<div class="tsd-signature tsd-anchor-link" id="subscribeagent-1"><span class="tsd-kind-call-signature">subscribeAgent</span><span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">listener</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">state</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_scriberig_model.AgentWorkspaceState.html" class="tsd-signature-type tsd-kind-interface">AgentWorkspaceState</a><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">void</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">void</span><a href="#subscribeagent-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Subscribes to branch-aware agent state changes.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">listener</span>: <span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">state</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_scriberig_model.AgentWorkspaceState.html" class="tsd-signature-type tsd-kind-interface">AgentWorkspaceState</a><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">void</span></span>
+<div class="tsd-comment tsd-typography"><p>Agent state listener.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-symbol">()</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">void</span></h4><p>Unsubscribe function.</p>
+<aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/8cec61fb44a5fd27cdb1edb982e648909077688e/web/packages/model/src/workspace-model.ts#L43">model/src/workspace-model.ts:43</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="view"><span>view</span><a href="#view" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -151,7 +249,7 @@ Private members: the event state and change subscription.</p>
 </div></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/9f4e39f1871640cd6ae50f8dc84b6a898094e1fd/web/packages/model/src/workspace-model.ts#L36">workspace-model.ts:36</a></li></ul></aside></div></li></ul></section></section></details></div>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/8cec61fb44a5fd27cdb1edb982e648909077688e/web/packages/model/src/workspace-model.ts#L79">model/src/workspace-model.ts:79</a></li></ul></aside></div></li></ul></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -171,7 +269,7 @@ Private members: the event state and change subscription.</p>
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Properties</summary>
 <div><a href="#operations"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>operations</span></a><a href="#revisions"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>revisions</span></a></div></details>
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Methods</summary>
-<div><a href="#apply"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>apply</span></a><a href="#getstate"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>State</span></a><a href="#setdisconnected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Disconnected</span></a><a href="#subscribe"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>subscribe</span></a><a href="#view"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>view</span></a></div></details></div></details></div>
+<div><a href="#apply"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>apply</span></a><a href="#applyagentevent"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>apply<wbr/>Agent<wbr/>Event</span></a><a href="#getagentstate"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Agent<wbr/>State</span></a><a href="#getstate"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>State</span></a><a href="#markagentworkspacestale"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>mark<wbr/>Agent<wbr/>Workspace<wbr/>Stale</span></a><a href="#setagentoperation"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Agent<wbr/>Operation</span></a><a href="#setagentsession"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Agent<wbr/>Session</span></a><a href="#setdisconnected"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Disconnected</span></a><a href="#subscribe"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>subscribe</span></a><a href="#subscribeagent"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>subscribe<wbr/>Agent</span></a><a href="#view"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>view</span></a></div></details></div></details></div>
 <div class="site-menu">
 <nav class="tsd-navigation"><a href="../index.html">Documentation</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["AgentAcceptedResponse","AgentContinueRequest","AgentResult","AgentStartRequest","BranchReference","CandidateChangeReference","SessionReference"]};

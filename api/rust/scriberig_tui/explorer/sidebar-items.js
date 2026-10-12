@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["ExplorerModel","ExplorerRow"]};
+window.SIDEBAR_ITEMS = {"struct":["ExplorerModel","ExplorerPage","ExplorerRow"]};

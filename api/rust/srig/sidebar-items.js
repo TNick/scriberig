@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["local_read_context","main"]};
+window.SIDEBAR_ITEMS = {"fn":["agent_actions","execute_model","fresh_session_id","local_read_context","main","run_composed_model","run_shared_agent"],"mod":["agent_tool","agent_tool_helpers","child_runtime","remote_commands","tui_command"]};

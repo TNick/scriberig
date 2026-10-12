@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["client","error","operation","subscription"]};
+window.SIDEBAR_ITEMS = {"mod":["client","error","events","http","operation","subscription"]};

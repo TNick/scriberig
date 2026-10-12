@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["BranchDescriptor","DecisionEntry","SessionViews","TurnView"]};
+window.SIDEBAR_ITEMS = {"struct":["BranchDescriptor","ChildBranchSummary","DecisionEntry","SessionViews","TurnView"]};
