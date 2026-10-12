@@ -5,6 +5,7 @@ use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::provider::{ProviderAdapter, ToolDefinition};
 use scriberig_agent_runtime::{ChildExecutionScope, ChildExecutor, ChildRequest, ChildResult};
 use scriberig_app::{ApplicationBackend, ApplicationContext, ApplicationService};
+use scriberig_store_sqlite::SqliteStore;
 
 use crate::agent_tool::LocalAgentTool;
 
@@ -109,6 +110,21 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
             "Read bounded agent output events.",
             "agent_streaming_output",
         ),
+        (
+            "project_import",
+            "Import a scanned project and return recoverable diagnostics.",
+            "project_import",
+        ),
+        (
+            "project_rescan",
+            "Rescan a project after a source repair.",
+            "project_rescan",
+        ),
+        (
+            "project_repair_file",
+            "Repair one authorized project-relative source file.",
+            "project_repair_file",
+        ),
     ] {
         descriptors.push(ToolDescriptor {
             definition: ToolDefinition {
@@ -117,7 +133,15 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
                 parameters: serde_json::json!({"type": "object"}),
             },
             result_shape: "bounded provider-neutral control result".to_owned(),
-            state_changing: matches!(name, "operation_cancel" | "agent_start" | "agent_continue"),
+            state_changing: matches!(
+                name,
+                "operation_cancel"
+                    | "agent_start"
+                    | "agent_continue"
+                    | "project_import"
+                    | "project_rescan"
+                    | "project_repair_file"
+            ),
             execution_mode: ToolExecutionMode::Atomic,
             required_capability: Some(required_capability.to_owned()),
         });
@@ -135,6 +159,8 @@ pub(super) struct LocalChildExecutor<'a, B, P> {
     pub(super) model: String,
     /// Shared exact-response cache scoped by branch namespace.
     pub(super) cache: ModelCache,
+    /// Shared project store used by nested recovery tools.
+    pub(super) project_store: std::sync::Arc<SqliteStore>,
 }
 
 impl<B, P> ChildExecutor for LocalChildExecutor<'_, B, P>
@@ -185,6 +211,7 @@ where
             provider: self.provider.clone(),
             model: self.model.clone(),
             cache: self.cache.clone(),
+            project_store: std::sync::Arc::clone(&self.project_store),
         };
         let result = scriberig_agent_runtime::AgentRuntime::new(
             ProviderModel::new(self.provider.clone(), self.model.clone())
@@ -192,7 +219,8 @@ where
                 .with_capabilities(context.capabilities.clone())
                 .with_cache(self.cache.clone(), CachePolicy::ReuseExact)
                 .with_cache_namespace(child_scope.parent_branch.to_string()),
-            LocalAgentTool::new(self.service),
+            LocalAgentTool::new(self.service)
+                .with_project_store(std::sync::Arc::clone(&self.project_store)),
             8,
         )
         .run_with_child_executor_at(&child_scope, context, prompt, cancelled, &mut nested);

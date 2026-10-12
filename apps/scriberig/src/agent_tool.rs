@@ -5,17 +5,26 @@ use scriberig_app::{
     ApplicationBackend, ApplicationContext, ApplicationService, SessionBackend, SessionRequest,
 };
 use scriberig_core::EntityId;
+use scriberig_project::ProjectService;
+use scriberig_store_sqlite::SqliteStore;
 
 use super::agent_tool_helpers::{
     argument_id, argument_operation, invalid_argument, map_error, require_capability,
 };
 
+#[path = "project_recovery.rs"]
+mod project_recovery;
+
 /// Provides inspect and application-control tools to one local agent branch.
 pub(super) struct LocalAgentTool<'a, B> {
     /// Shared application service owning semantic and lifecycle state.
-    service: &'a ApplicationService<B>,
+    pub(super) service: &'a ApplicationService<B>,
     /// Provider-neutral entity inspection adapter.
-    inspect: InspectTool<&'a ApplicationService<B>>,
+    pub(super) inspect: InspectTool<&'a ApplicationService<B>>,
+    /// Optional project onboarding service exposed to the local agent.
+    pub(super) project: Option<ProjectService>,
+    /// Optional durable store used for authorized workspace repair.
+    pub(super) project_store: Option<std::sync::Arc<SqliteStore>>,
 }
 
 impl<'a, B> LocalAgentTool<'a, B> {
@@ -32,7 +41,23 @@ impl<'a, B> LocalAgentTool<'a, B> {
         Self {
             service,
             inspect: InspectTool::new(service),
+            project: None,
+            project_store: None,
         }
+    }
+
+    /// Enables project recovery operations over one shared durable store.
+    ///
+    /// # Parameters
+    /// - `store`: Durable store containing project registrations and files.
+    /// - `super`: Module namespace containing the tool constructor.
+    ///
+    /// # Returns
+    /// This tool set with project recovery enabled.
+    pub(super) fn with_project_store(mut self, store: std::sync::Arc<SqliteStore>) -> Self {
+        self.project = Some(ProjectService::new(std::sync::Arc::clone(&store)));
+        self.project_store = Some(store);
+        self
     }
 }
 
@@ -95,6 +120,9 @@ impl<B: ApplicationBackend> Tool for LocalAgentTool<'_, B> {
                 let branch = argument_id(arguments, "branch")?;
                 self.agent_command(context, arguments, Some(branch))
             }
+            "project_import" => self.project_import(arguments),
+            "project_rescan" => self.project_rescan(arguments),
+            "project_repair_file" => self.project_repair_file(arguments),
             "session_branch_tree" => self.session_tree(context, arguments),
             "session_branch_activity" => self.session_activity(context, arguments),
             _ => Err(ToolError::Application {
@@ -147,6 +175,9 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
             "session_branch_activity",
             "agent_event_subscription",
             "agent_streaming_output",
+            "project_import",
+            "project_rescan",
+            "project_repair_file",
         ];
         Self::result(
             "runtime capabilities available",

@@ -153,23 +153,24 @@ fn run_shared_agent(
         depth: 0,
         active_branches: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
     };
-    let runtime_result = match run_composed_model(args, &service, &context, &scope, &cancellation) {
-        Ok(result) => result,
-        Err(error) => {
-            if matches!(error, scriberig_agent_runtime::AgentError::Cancelled) {
-                let _ = service.operations().cancel(&handle.operation);
-                eprintln!("agent operation cancelled: {}", handle.operation);
-                std::process::exit(130);
+    let runtime_result =
+        match run_composed_model(args, &service, &store, &context, &scope, &cancellation) {
+            Ok(result) => result,
+            Err(error) => {
+                if matches!(error, scriberig_agent_runtime::AgentError::Cancelled) {
+                    let _ = service.operations().cancel(&handle.operation);
+                    eprintln!("agent operation cancelled: {}", handle.operation);
+                    std::process::exit(130);
+                }
+                let _ = service.operations().fail(
+                    &handle.operation,
+                    scriberig_app::ApplicationError::Internal {
+                        message: error.to_string(),
+                    },
+                );
+                return Err(Box::new(error));
             }
-            let _ = service.operations().fail(
-                &handle.operation,
-                scriberig_app::ApplicationError::Internal {
-                    message: error.to_string(),
-                },
-            );
-            return Err(Box::new(error));
-        }
-    };
+        };
     service.complete_local_agent(&handle, runtime_result.output)?;
     let operation = handle.operation;
     let record = service.operations().get(&operation)?;
@@ -203,6 +204,7 @@ fn run_shared_agent(
 fn run_composed_model<B: scriberig_app::ApplicationBackend>(
     args: &scriberig_cli::RunArgs,
     service: &scriberig_app::ApplicationService<B>,
+    project_store: &Arc<SqliteStore>,
     context: &ApplicationContext,
     scope: &ChildExecutionScope,
     cancellation: &std::sync::atomic::AtomicBool,
@@ -232,6 +234,7 @@ fn run_composed_model<B: scriberig_app::ApplicationBackend>(
             provider,
             args.model.clone(),
             service,
+            project_store,
             context,
             scope,
             &args.prompt,
@@ -241,7 +244,7 @@ fn run_composed_model<B: scriberig_app::ApplicationBackend>(
     }
     let runtime = scriberig_agent_runtime::AgentRuntime::new(
         scriberig_agent_runtime::EchoProvider,
-        LocalAgentTool::new(service),
+        LocalAgentTool::new(service).with_project_store(Arc::clone(project_store)),
         8,
     );
     let mut runtime = if let Some(callback) = output_callback {
@@ -273,6 +276,7 @@ fn execute_model<
     provider: P,
     model: String,
     service: &scriberig_app::ApplicationService<B>,
+    project_store: &Arc<SqliteStore>,
     context: &ApplicationContext,
     scope: &ChildExecutionScope,
     prompt: &str,
@@ -286,6 +290,7 @@ fn execute_model<
         provider: provider.clone(),
         model: model.clone(),
         cache: cache.clone(),
+        project_store: Arc::clone(project_store),
     };
     let runtime = scriberig_agent_runtime::AgentRuntime::new(
         ProviderModel::new(provider, model)
@@ -296,7 +301,7 @@ fn execute_model<
                 scriberig_agent_runtime::cache::CachePolicy::ReuseExact,
             )
             .with_cache_namespace(scope.parent_branch.to_string()),
-        LocalAgentTool::new(service),
+        LocalAgentTool::new(service).with_project_store(Arc::clone(project_store)),
         8,
     );
     let mut runtime = if let Some(callback) = output_callback {
@@ -367,6 +372,9 @@ fn agent_actions() -> BTreeSet<CapabilityAction> {
         CapabilityAction::Custom("session_branch_activity".to_owned()),
         CapabilityAction::Custom("agent_event_subscription".to_owned()),
         CapabilityAction::Custom("agent_streaming_output".to_owned()),
+        CapabilityAction::Custom("project_import".to_owned()),
+        CapabilityAction::Custom("project_rescan".to_owned()),
+        CapabilityAction::Custom("project_repair_file".to_owned()),
     ]
     .into_iter()
     .collect()
