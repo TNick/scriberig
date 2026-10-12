@@ -40,7 +40,10 @@ pub fn run<S: TuiService + Sync>(
     let _guard = TerminalGuard::enter()?;
     let backend = CrosstermBackend::new(io::stdout());
     let mut terminal = Terminal::new(backend)?;
-    let mut state = TuiState::default();
+    let mut state = TuiState {
+        project: config.project.clone(),
+        ..TuiState::default()
+    };
     std::thread::scope(|scope| {
         let (work_sender, work_receiver) = mpsc::sync_channel(32);
         let (message_sender, message_receiver) = mpsc::sync_channel(32);

@@ -123,7 +123,8 @@ fn render_context(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
     };
     let stale_marker = if state.stale { " | STALE" } else { "" };
     let text = format!(
-        " Scriberig | service: {connection}{stale_marker} | focus: {:?}{overlay} ",
+        " Scriberig | service: {connection}{stale_marker} | project: {} | focus: {:?}{overlay} ",
+        state.project.as_deref().unwrap_or("unselected"),
         state.focus
     );
     frame.render_widget(

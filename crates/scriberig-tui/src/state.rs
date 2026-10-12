@@ -60,6 +60,8 @@ pub struct TuiState {
     pub focus: Focus,
     /// A short status message rendered in the shell.
     pub shell_message: String,
+    /// Stable active project identity, when selected.
+    pub project: Option<String>,
     /// Current semantic-service connection state.
     pub connection: ConnectionState,
     /// Whether cached models require authoritative refresh after reconnect.
@@ -119,6 +121,7 @@ impl Default for TuiState {
             terminal_size: (80, 24),
             focus: Focus::Primary,
             shell_message: "No semantic service is attached in this runtime.".to_owned(),
+            project: None,
             connection: ConnectionState::Connecting,
             stale: false,
             navigation: NavigationState::default(),

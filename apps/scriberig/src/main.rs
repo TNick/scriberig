@@ -17,6 +17,7 @@ mod agent_tool;
 mod agent_tool_helpers;
 mod child_runtime;
 mod remote_commands;
+mod tui_command;
 use agent_tool::LocalAgentTool;
 use child_runtime::{LocalChildExecutor, inspect_catalog};
 
@@ -39,42 +40,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 args.allow_origin.as_deref(),
             )?;
         }
-        scriberig_cli::Command::Tui(args) => {
-            if let Some(endpoint) = args.connect {
-                let transport = scriberig_client::HttpTransport::from_endpoint(&endpoint)?;
-                let client = scriberig_client::Client::new(transport);
-                let service = scriberig_tui::RemoteAdapter::new(client);
-                let context = local_read_context("remote-tui");
-                scriberig_tui::run(
-                    &service,
-                    &context,
-                    &scriberig_tui::TuiConfig {
-                        interactive: true,
-                        ..scriberig_tui::TuiConfig::default()
-                    },
-                )?;
-                return Ok(());
-            }
-            let store = Arc::new(SqliteStore::open(&args.db)?);
-            let fixture =
-                scriberig_server::ensure_fixture(&store).map_err(std::io::Error::other)?;
-            let backend = ApplicationBackendComposition::new(
-                StoreInspectionBackend::new(Arc::clone(&store)),
-                StoreOperationProvider::new(Arc::clone(&store)),
-            );
-            let service = ApplicationService::new(backend);
-            let service = scriberig_tui::ApplicationOperationAdapter::new(service);
-            let context = local_read_context("local-tui");
-            scriberig_tui::run(
-                &service,
-                &context,
-                &scriberig_tui::TuiConfig {
-                    interactive: true,
-                    initial_entity: Some(fixture.root_entity),
-                    snapshot: Some(fixture.snapshot),
-                },
-            )?;
-        }
+        scriberig_cli::Command::Tui(args) => tui_command::run(&args)?,
         scriberig_cli::Command::Run(args) | scriberig_cli::Command::Agent(args) => {
             run_shared_agent(&args)?;
         }

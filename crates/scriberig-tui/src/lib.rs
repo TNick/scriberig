@@ -31,6 +31,8 @@ pub struct TuiConfig {
     pub initial_entity: Option<EntityId>,
     /// Optional exact snapshot for the initial inspection.
     pub snapshot: Option<SnapshotId>,
+    /// Optional active project identity shown in the shell context.
+    pub project: Option<String>,
 }
 
 /// Describes why the TUI runtime stopped.

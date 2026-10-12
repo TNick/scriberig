@@ -252,6 +252,9 @@ pub struct TuiArgs {
     /// Public protocol endpoint used by the remote TUI composition.
     #[arg(long, conflicts_with = "db")]
     pub connect: Option<String>,
+    /// Optional local filesystem project to register and scan before startup.
+    #[arg(long, requires = "db")]
+    pub project: Option<std::path::PathBuf>,
 }
 
 /// Configure canonical-state maintenance.
