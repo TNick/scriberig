@@ -18,7 +18,8 @@ pub use encoding::{
     revision_id,
 };
 pub use ids::{
-    EntityId, IdParseError, ObjectType, OperationId, RevisionId, RootName, SnapshotId, TypeId,
+    EntityId, IdParseError, ObjectType, OperationId, ProjectId, RevisionId, RootName, SnapshotId,
+    TypeId,
 };
 pub use principal::{PrincipalId, PrincipalKind};
 pub use provenance::{EntityRevisionRef, Provenance, ProvenanceSource};

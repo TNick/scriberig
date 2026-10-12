@@ -6,6 +6,7 @@ mod digest;
 mod entity;
 mod names;
 mod operation;
+mod project;
 mod type_id;
 
 // Expose identifier types through the stable ids module.
@@ -14,6 +15,7 @@ pub use digest::{RevisionId, SnapshotId};
 pub use entity::EntityId;
 pub use names::RootName;
 pub use operation::OperationId;
+pub use project::ProjectId;
 pub use type_id::TypeId;
 
 /// Backward-compatible name for the canonical semantic type identifier.

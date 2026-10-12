@@ -8,6 +8,7 @@ mod indexes;
 mod integrity;
 mod integrity_nodes;
 mod observability;
+mod projects;
 mod reachability;
 mod recovery;
 mod revision;
@@ -29,6 +30,8 @@ use scriberig_store::{Revision, Snapshot, SnapshotError};
 pub struct SqliteStore {
     connection: Mutex<Connection>,
 }
+
+pub use projects::{ProjectRecord, ProjectStatus};
 
 /// Reports a failure while atomically preparing and promoting a snapshot.
 #[derive(Clone, Debug, Eq, PartialEq)]

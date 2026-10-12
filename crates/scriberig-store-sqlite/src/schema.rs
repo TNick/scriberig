@@ -6,7 +6,7 @@ use std::fmt::{Display, Formatter};
 use rusqlite::{Connection, Transaction};
 
 /// Current SQLite backend schema version.
-pub const CURRENT_SCHEMA_VERSION: u32 = 1;
+pub const CURRENT_SCHEMA_VERSION: u32 = 2;
 
 const INTEGRITY_FORMAT_VERSION: &str = "1";
 const RECOVERY_MODE: &str = "transactional-root-promotion";
@@ -86,6 +86,10 @@ impl Error for UnsupportedMetadata {}
 pub fn initialize(connection: &mut Connection) -> rusqlite::Result<u32> {
     let transaction = connection.transaction()?;
     initialize_schema(&transaction)?;
+    transaction.execute(
+        "UPDATE metadata SET value=? WHERE key='schema_version' AND value='1'",
+        [CURRENT_SCHEMA_VERSION.to_string()],
+    )?;
     let version = metadata_u32(&transaction, "schema_version")?;
     if version > CURRENT_SCHEMA_VERSION || version == 0 {
         return Err(rusqlite::Error::ToSqlConversionFailure(Box::new(
@@ -155,11 +159,21 @@ fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
              snapshot_id BLOB NOT NULL
          );
          INSERT OR IGNORE INTO metadata(key, value)
-             VALUES ('schema_version', '1');
+             VALUES ('schema_version', '2');
          INSERT OR IGNORE INTO metadata(key, value)
              VALUES ('integrity_format_version', '1');
          INSERT OR IGNORE INTO metadata(key, value)
-             VALUES ('recovery_mode', 'transactional-root-promotion');",
+             VALUES ('recovery_mode', 'transactional-root-promotion');
+         CREATE TABLE IF NOT EXISTS projects (
+             id BLOB PRIMARY KEY,
+             name TEXT NOT NULL,
+             path TEXT NOT NULL UNIQUE,
+             created_at TEXT NOT NULL,
+             updated_at TEXT NOT NULL,
+             current_snapshot BLOB,
+             status TEXT NOT NULL
+         );
+         CREATE INDEX IF NOT EXISTS projects_path_idx ON projects(path);",
     )
 }
 
