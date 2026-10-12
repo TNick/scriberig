@@ -70,3 +70,27 @@ fn runtime_emits_model_text_delta_to_attached_log() {
             if text == "streamed answer"
     )));
 }
+
+/// Verifies runtime text fragments reach an attached presentation callback.
+#[test]
+fn runtime_forwards_model_text_to_callback() {
+    let observed = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let target = observed.clone();
+    let callback = std::sync::Arc::new(move |text: &str| {
+        target.lock().expect("callback lock").push(text.to_owned());
+    });
+    let mut runtime = AgentRuntime::new(EchoProvider, scriberig_agent_runtime::UnconfiguredTool, 1)
+        .with_output_callback(callback);
+    runtime
+        .run(
+            &ApplicationContext::empty(),
+            "callback answer",
+            &AtomicBool::new(false),
+        )
+        .expect("runtime result");
+
+    assert_eq!(
+        observed.lock().expect("result lock").as_slice(),
+        ["callback answer"]
+    );
+}

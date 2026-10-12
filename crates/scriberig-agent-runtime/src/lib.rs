@@ -20,6 +20,9 @@ pub mod tools;
 
 pub use runtime::{AgentRuntime, cancellation_flag};
 
+/// Thread-safe sink for provider-neutral assistant text fragments.
+pub type OutputCallback = std::sync::Arc<dyn Fn(&str) + Send + Sync>;
+
 /// One model-facing message retained by the runtime loop.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentMessage {

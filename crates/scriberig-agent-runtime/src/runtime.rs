@@ -11,7 +11,7 @@ use crate::orchestration::{
 };
 use crate::{
     AgentError, AgentMessage, AgentResult, ChildExecutionScope, ChildExecutor, ModelDecision,
-    ModelProvider,
+    ModelProvider, OutputCallback,
 };
 
 #[path = "runtime_helpers.rs"]
@@ -37,6 +37,7 @@ pub struct AgentRuntime<P, T> {
     registry: Option<OperationRegistry>,
     next_operation: u64,
     event_log: Option<RuntimeEventLog>,
+    output_callback: Option<OutputCallback>,
     branch_id: String,
     limits: RuntimeLimits,
 }
@@ -63,6 +64,7 @@ where
             registry: None,
             next_operation: 1,
             event_log: None,
+            output_callback: None,
             branch_id: "root".to_owned(),
             limits: RuntimeLimits {
                 max_model_steps: step_limit,
@@ -96,6 +98,20 @@ where
     #[must_use]
     pub fn with_event_log(mut self, event_log: RuntimeEventLog) -> Self {
         self.event_log = Some(event_log);
+        self
+    }
+
+    /// Attaches a callback for bounded provider-neutral text fragments.
+    ///
+    /// # Parameters
+    /// - `self`: Runtime being configured.
+    /// - `callback`: Thread-safe presentation or observation callback.
+    ///
+    /// # Returns
+    /// The runtime configured to forward text fragments.
+    #[must_use]
+    pub fn with_output_callback(mut self, callback: OutputCallback) -> Self {
+        self.output_callback = Some(callback);
         self
     }
 
@@ -285,6 +301,7 @@ where
             let branch_id = self.branch_id.clone();
             let registry = self.registry.clone();
             let operation_id = operation.clone();
+            let output_callback = self.output_callback.clone();
             let decision = self
                 .provider
                 .decide_with_output(&messages, &mut |text| {
@@ -293,6 +310,9 @@ where
                     }
                     if let (Some(registry), Some(operation_id)) = (&registry, &operation_id) {
                         let _ = registry.publish_agent_output_delta(operation_id, text);
+                    }
+                    if let Some(output_callback) = &output_callback {
+                        output_callback(text);
                     }
                 })
                 .map_err(|error| {

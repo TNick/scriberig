@@ -228,6 +228,10 @@ fn run_composed_model<B: scriberig_app::ApplicationBackend>(
     scope: &ChildExecutionScope,
     cancellation: &std::sync::atomic::AtomicBool,
 ) -> Result<scriberig_agent_runtime::AgentResult, scriberig_agent_runtime::AgentError> {
+    let output_callback = matches!(args.format, scriberig_cli::RunFormat::Human).then(|| {
+        std::sync::Arc::new(|text: &str| eprintln!("agent output: {text}"))
+            as std::sync::Arc<dyn Fn(&str) + Send + Sync>
+    });
     if let Some(base_url) = &args.base_url {
         let credential_source = args
             .api_key_env
@@ -252,14 +256,20 @@ fn run_composed_model<B: scriberig_app::ApplicationBackend>(
             scope,
             &args.prompt,
             cancellation,
+            output_callback,
         );
     }
-    scriberig_agent_runtime::AgentRuntime::new(
+    let runtime = scriberig_agent_runtime::AgentRuntime::new(
         scriberig_agent_runtime::EchoProvider,
         InspectTool::new(service),
         8,
-    )
-    .run(context, &args.prompt, cancellation)
+    );
+    let mut runtime = if let Some(callback) = output_callback {
+        runtime.with_output_callback(callback)
+    } else {
+        runtime
+    };
+    runtime.run(context, &args.prompt, cancellation)
 }
 
 /// Runs one provider-neutral model through the shared runtime loop.
@@ -275,6 +285,7 @@ fn run_composed_model<B: scriberig_app::ApplicationBackend>(
 ///
 /// # Errors
 /// Returns the runtime's structured failure.
+#[allow(clippy::too_many_arguments)]
 fn execute_model<
     P: scriberig_agent_runtime::provider::ProviderAdapter + Clone,
     B: scriberig_app::ApplicationBackend,
@@ -286,6 +297,7 @@ fn execute_model<
     scope: &ChildExecutionScope,
     prompt: &str,
     cancellation: &std::sync::atomic::AtomicBool,
+    output_callback: Option<scriberig_agent_runtime::OutputCallback>,
 ) -> Result<scriberig_agent_runtime::AgentResult, scriberig_agent_runtime::AgentError> {
     let catalog = inspect_catalog();
     let cache = scriberig_agent_runtime::cache::ModelCache::new();
@@ -295,7 +307,7 @@ fn execute_model<
         model: model.clone(),
         cache: cache.clone(),
     };
-    scriberig_agent_runtime::AgentRuntime::new(
+    let runtime = scriberig_agent_runtime::AgentRuntime::new(
         ProviderModel::new(provider, model)
             .with_catalog(catalog)
             .with_capabilities(context.capabilities.clone())
@@ -306,8 +318,13 @@ fn execute_model<
             .with_cache_namespace(scope.parent_branch.to_string()),
         InspectTool::new(service),
         8,
-    )
-    .run_with_child_executor_at(scope, context, prompt, cancellation, &mut children)
+    );
+    let mut runtime = if let Some(callback) = output_callback {
+        runtime.with_output_callback(callback)
+    } else {
+        runtime
+    };
+    runtime.run_with_child_executor_at(scope, context, prompt, cancellation, &mut children)
 }
 
 /// Allocates a fresh session identity for one local command invocation.
