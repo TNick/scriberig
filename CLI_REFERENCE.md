@@ -95,6 +95,7 @@ one machine-readable result and does not emit transient stream text.
 | --- | --- | --- |
 | `--db <PATH>` | `playground/dev-app-runtime/scriberig.sqlite` | SQLite database path used by the local composition. |
 | `--format <human\|json>` | `human` | Select human or machine-readable output. |
+| `--no-stream` | disabled | Disable transient provider output without changing operation semantics. |
 | `--provider <PROFILE>` | `default` | Safe provider profile identifier. |
 | `--model <MODEL>` | `default` | Provider model identifier when using `--base-url`. |
 | `--base-url <URL>` | unset | OpenAI-compatible provider base URL. When omitted, deterministic local execution is used. |

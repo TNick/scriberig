@@ -175,6 +175,9 @@ pub struct RunArgs {
     /// Output representation for the completed operation.
     #[arg(long, value_enum, default_value_t = RunFormat::Human)]
     pub format: RunFormat,
+    /// Disable transient provider output while retaining the shared operation.
+    #[arg(long)]
+    pub no_stream: bool,
     /// Safe provider profile identifier used in diagnostics.
     #[arg(long, default_value = "default")]
     pub provider: String,
@@ -248,6 +251,7 @@ mod tests {
             "PROVIDER_KEY",
             "--format",
             "json",
+            "--no-stream",
         ])
         .expect("run arguments");
 
@@ -258,6 +262,7 @@ mod tests {
         assert_eq!(args.provider, "local");
         assert_eq!(args.model, "model-a");
         assert_eq!(args.api_key_env.as_deref(), Some("PROVIDER_KEY"));
+        assert!(args.no_stream);
         assert!(matches!(args.format, RunFormat::Json));
     }
 }

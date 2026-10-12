@@ -228,10 +228,11 @@ fn run_composed_model<B: scriberig_app::ApplicationBackend>(
     scope: &ChildExecutionScope,
     cancellation: &std::sync::atomic::AtomicBool,
 ) -> Result<scriberig_agent_runtime::AgentResult, scriberig_agent_runtime::AgentError> {
-    let output_callback = matches!(args.format, scriberig_cli::RunFormat::Human).then(|| {
-        std::sync::Arc::new(|text: &str| eprintln!("agent output: {text}"))
-            as std::sync::Arc<dyn Fn(&str) + Send + Sync>
-    });
+    let output_callback =
+        (matches!(args.format, scriberig_cli::RunFormat::Human) && !args.no_stream).then(|| {
+            std::sync::Arc::new(|text: &str| eprintln!("agent output: {text}"))
+                as std::sync::Arc<dyn Fn(&str) + Send + Sync>
+        });
     if let Some(base_url) = &args.base_url {
         let credential_source = args
             .api_key_env
