@@ -350,6 +350,17 @@ where
                     messages.push(AgentMessage::Tool(result));
                     self.emit(BranchPhase::AwaitingModel);
                 }
+                ModelDecision::NamedTool { name, arguments } => {
+                    let result = self.run_named_tool(
+                        context,
+                        &name,
+                        &arguments,
+                        operation.as_ref(),
+                        &mut state,
+                    )?;
+                    messages.push(AgentMessage::Tool(result));
+                    self.emit(BranchPhase::AwaitingModel);
+                }
                 ModelDecision::Child(request) => {
                     let result = self.run_child_tool(
                         context,

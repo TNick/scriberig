@@ -58,6 +58,45 @@ where
         Ok(result)
     }
 
+    /// Executes one named application control tool.
+    ///
+    /// # Parameters
+    /// - `self`: Runtime owning the tool boundary.
+    /// - `super`: Runtime helper module containing the dispatch implementation.
+    /// - `context`: Trusted application request context.
+    /// - `name`: Registered control-tool identifier.
+    /// - `arguments`: Provider arguments validated by the catalog.
+    /// - `operation`: Optional lifecycle operation.
+    /// - `state`: Mutable branch counters.
+    ///
+    /// # Returns
+    /// The bounded application control result.
+    ///
+    /// # Errors
+    /// Returns a tool or budget failure.
+    pub(super) fn run_named_tool(
+        &self,
+        context: &ApplicationContext,
+        name: &str,
+        arguments: &serde_json::Value,
+        operation: Option<&OperationId>,
+        state: &mut BranchRuntimeState,
+    ) -> Result<scriberig_agent_core::ToolResult, AgentError> {
+        self.reserve_tool_call(operation, state)?;
+        self.emit(BranchPhase::ExecutingTools);
+        self.emit_event(RuntimeEvent::tool_started(&self.branch_id, name));
+        let result = self
+            .tool
+            .invoke_named(context, name, arguments)
+            .map_err(|error| {
+                self.emit_event(RuntimeEvent::tool_completed(&self.branch_id, name, false));
+                self.finish_operation(operation, OperationStatus::Failed);
+                AgentError::Tool(error)
+            })?;
+        self.emit_event(RuntimeEvent::tool_completed(&self.branch_id, name, true));
+        Ok(result)
+    }
+
     /// Executes one delegated child after reserving its branch budgets.
     ///
     /// # Parameters

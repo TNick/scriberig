@@ -223,7 +223,10 @@ impl<P: ProviderAdapter> crate::ModelProvider for ProviderModel<P> {
                     prompt: prompt.to_owned(),
                 }));
             }
-            return Err(format!("unknown trusted agent tool: {}", call.name));
+            return Ok(ModelDecision::NamedTool {
+                name: call.name,
+                arguments: call.arguments,
+            });
         }
         let entity = call
             .arguments

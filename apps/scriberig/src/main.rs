@@ -3,7 +3,6 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use scriberig_agent_core::InspectTool;
 use scriberig_agent_runtime::ChildExecutionScope;
 use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::provider::{CredentialSource, ProviderConfig};
@@ -14,8 +13,11 @@ use scriberig_app::{
 };
 use scriberig_store_sqlite::SqliteStore;
 
+mod agent_tool;
+mod agent_tool_helpers;
 mod child_runtime;
 mod remote_commands;
+use agent_tool::LocalAgentTool;
 use child_runtime::{LocalChildExecutor, inspect_catalog};
 
 /// Start the integrated `srig` executable and report runtime failures.
@@ -158,15 +160,7 @@ fn run_shared_agent(
     let context = ApplicationContext {
         capabilities: scriberig_app::CapabilityContext::with_grants([Capability {
             scope: CapabilityScope::Project,
-            actions: [
-                CapabilityAction::Inspect,
-                CapabilityAction::Custom("agent.delegate".to_owned()),
-                CapabilityAction::Custom("agent_start".to_owned()),
-                CapabilityAction::Custom("agent_continue".to_owned()),
-                CapabilityAction::Custom("session_branch_tree".to_owned()),
-            ]
-            .into_iter()
-            .collect::<BTreeSet<_>>(),
+            actions: agent_actions(),
             constraints: CapabilityConstraints::unrestricted(),
         }]),
         principal: Some(scriberig_app::Principal::new("local-agent")),
@@ -277,7 +271,7 @@ fn run_composed_model<B: scriberig_app::ApplicationBackend>(
     }
     let runtime = scriberig_agent_runtime::AgentRuntime::new(
         scriberig_agent_runtime::EchoProvider,
-        InspectTool::new(service),
+        LocalAgentTool::new(service),
         8,
     );
     let mut runtime = if let Some(callback) = output_callback {
@@ -332,7 +326,7 @@ fn execute_model<
                 scriberig_agent_runtime::cache::CachePolicy::ReuseExact,
             )
             .with_cache_namespace(scope.parent_branch.to_string()),
-        InspectTool::new(service),
+        LocalAgentTool::new(service),
         8,
     );
     let mut runtime = if let Some(callback) = output_callback {
@@ -383,4 +377,27 @@ fn local_read_context(principal: &str) -> ApplicationContext {
         principal: Some(scriberig_app::Principal::new(principal)),
         ..ApplicationContext::empty()
     }
+}
+
+/// Builds the least-authority action set for the integrated agent runtime.
+///
+/// # Returns
+/// Scoped actions for inspection, branch execution, and bounded observation.
+fn agent_actions() -> BTreeSet<CapabilityAction> {
+    [
+        CapabilityAction::Inspect,
+        CapabilityAction::Custom("agent.delegate".to_owned()),
+        CapabilityAction::Custom("runtime_capabilities".to_owned()),
+        CapabilityAction::Custom("operation_status".to_owned()),
+        CapabilityAction::Custom("operation_cancel".to_owned()),
+        CapabilityAction::Custom("event_subscription".to_owned()),
+        CapabilityAction::Custom("agent_start".to_owned()),
+        CapabilityAction::Custom("agent_continue".to_owned()),
+        CapabilityAction::Custom("session_branch_tree".to_owned()),
+        CapabilityAction::Custom("session_branch_activity".to_owned()),
+        CapabilityAction::Custom("agent_event_subscription".to_owned()),
+        CapabilityAction::Custom("agent_streaming_output".to_owned()),
+    ]
+    .into_iter()
+    .collect()
 }

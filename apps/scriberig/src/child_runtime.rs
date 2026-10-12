@@ -1,22 +1,25 @@
 //! Composes recursive child-agent execution through public application APIs.
 
-use scriberig_agent_core::InspectTool;
 use scriberig_agent_runtime::cache::{CachePolicy, ModelCache};
 use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::provider::{ProviderAdapter, ToolDefinition};
-use scriberig_agent_runtime::tools::{ToolCatalog, ToolDescriptor, ToolExecutionMode};
 use scriberig_agent_runtime::{ChildExecutionScope, ChildExecutor, ChildRequest, ChildResult};
 use scriberig_app::{ApplicationBackend, ApplicationContext, ApplicationService};
 
+use crate::agent_tool::LocalAgentTool;
+
 /// Builds the trusted provider-visible catalog for the local agent runtime.
 ///
-/// # Parameters
-/// - `super`: Parent module namespace used for composition.
-///
 /// # Returns
-/// Deterministically ordered inspect and delegation tool descriptors.
-pub(super) fn inspect_catalog() -> ToolCatalog {
-    ToolCatalog::new(vec![
+/// Deterministically ordered inspect, control, and delegation descriptors.
+///
+/// # Parameters
+/// - `super`: Module namespace containing the catalog composition helper.
+#[allow(clippy::too_many_lines)]
+pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
+    use scriberig_agent_runtime::tools::{ToolCatalog, ToolDescriptor, ToolExecutionMode};
+
+    let mut descriptors = vec![
         ToolDescriptor {
             definition: ToolDefinition {
                 name: "inspect".to_owned(),
@@ -54,7 +57,72 @@ pub(super) fn inspect_catalog() -> ToolCatalog {
             execution_mode: ToolExecutionMode::ChildBranch,
             required_capability: Some("agent.delegate".to_owned()),
         },
-    ])
+    ];
+    for (name, description, required_capability) in [
+        (
+            "runtime_capabilities",
+            "Discover exposed runtime capabilities.",
+            "runtime_capabilities",
+        ),
+        (
+            "operation_status",
+            "Read one operation lifecycle status.",
+            "operation_status",
+        ),
+        (
+            "operation_cancel",
+            "Cancel one active operation.",
+            "operation_cancel",
+        ),
+        (
+            "event_subscription",
+            "Read ordered lifecycle events.",
+            "event_subscription",
+        ),
+        (
+            "agent_start",
+            "Accept agent work for a session.",
+            "agent_start",
+        ),
+        (
+            "agent_continue",
+            "Continue work on a session branch.",
+            "agent_continue",
+        ),
+        (
+            "session_branch_tree",
+            "Read a durable session branch tree.",
+            "session_branch_tree",
+        ),
+        (
+            "session_branch_activity",
+            "Read ordered branch activity.",
+            "session_branch_activity",
+        ),
+        (
+            "agent_event_subscription",
+            "Read ordered agent lifecycle events.",
+            "agent_event_subscription",
+        ),
+        (
+            "agent_streaming_output",
+            "Read bounded agent output events.",
+            "agent_streaming_output",
+        ),
+    ] {
+        descriptors.push(ToolDescriptor {
+            definition: ToolDefinition {
+                name: name.to_owned(),
+                description: description.to_owned(),
+                parameters: serde_json::json!({"type": "object"}),
+            },
+            result_shape: "bounded provider-neutral control result".to_owned(),
+            state_changing: matches!(name, "operation_cancel" | "agent_start" | "agent_continue"),
+            execution_mode: ToolExecutionMode::Atomic,
+            required_capability: Some(required_capability.to_owned()),
+        });
+    }
+    ToolCatalog::new(descriptors)
 }
 
 /// Executes recursively delegated branches through the public application API.
@@ -124,7 +192,7 @@ where
                 .with_capabilities(context.capabilities.clone())
                 .with_cache(self.cache.clone(), CachePolicy::ReuseExact)
                 .with_cache_namespace(child_scope.parent_branch.to_string()),
-            InspectTool::new(self.service),
+            LocalAgentTool::new(self.service),
             8,
         )
         .run_with_child_executor_at(&child_scope, context, prompt, cancelled, &mut nested);

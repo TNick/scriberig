@@ -1346,6 +1346,7 @@ dependencies = [
  "scriberig-core",
  "scriberig-protocol",
  "scriberig-session",
+ "serde_json",
 ]
 
 [[package]]

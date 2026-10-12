@@ -83,4 +83,29 @@ pub trait Tool {
         context: &scriberig_app::ApplicationContext,
         input: ToolInput,
     ) -> Result<ToolResult, ToolError>;
+
+    /// Invokes a named provider-facing control tool.
+    ///
+    /// # Parameters
+    /// - `self`: Tool implementation.
+    /// - `_context`: Trusted application context.
+    /// - `name`: Registered control-tool identifier.
+    /// - `_arguments`: Validated provider arguments.
+    ///
+    /// # Returns
+    /// Compact structured control output.
+    ///
+    /// # Errors
+    /// Returns unsupported-operation unless the composed tool owns the name.
+    fn invoke_named(
+        &self,
+        _context: &scriberig_app::ApplicationContext,
+        name: &str,
+        _arguments: &serde_json::Value,
+    ) -> Result<ToolResult, ToolError> {
+        Err(ToolError::Application {
+            category: "unsupported_operation".to_owned(),
+            message: format!("agent tool is not configured: {name}"),
+        })
+    }
 }

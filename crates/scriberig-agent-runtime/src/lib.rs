@@ -94,6 +94,13 @@ pub trait ChildExecutor {
 pub enum ModelDecision {
     /// Ask an application-backed tool to execute.
     Tool(ToolInput),
+    /// Ask a named application control tool to execute.
+    NamedTool {
+        /// Registered provider-facing tool name.
+        name: String,
+        /// Validated JSON arguments supplied by the provider.
+        arguments: serde_json::Value,
+    },
     /// Delegate focused work to a nested branch.
     Child(ChildRequest),
     /// Finish with provider-produced text.

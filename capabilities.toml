@@ -28,7 +28,7 @@ client = "verified"
 cli = "implemented"
 tui = "implemented"
 web = "implemented"
-agent = "planned"
+agent = "implemented"
 
 [[capabilities]]
 id = "operation_status"
@@ -44,7 +44,7 @@ client = "verified"
 cli = "implemented"
 tui = "implemented"
 web = "implemented"
-agent = "planned"
+agent = "implemented"
 
 [[capabilities]]
 id = "operation_cancel"
@@ -60,7 +60,7 @@ client = "verified"
 cli = "implemented"
 tui = "implemented"
 web = "implemented"
-agent = "planned"
+agent = "implemented"
 
 [[capabilities]]
 id = "event_subscription"
@@ -76,7 +76,7 @@ client = "verified"
 cli = "implemented"
 tui = "implemented"
 web = "implemented"
-agent = "planned"
+agent = "implemented"
 
 [[capabilities]]
 id = "agent_start"
@@ -92,7 +92,7 @@ client = "implemented"
 cli = "implemented"
 tui = "implemented"
 web = "implemented"
-agent = "planned"
+agent = "implemented"
 
 [[capabilities]]
 id = "agent_continue"
@@ -108,7 +108,7 @@ client = "implemented"
 cli = "implemented"
 tui = "implemented"
 web = "implemented"
-agent = "planned"
+agent = "implemented"
 
 [[capabilities]]
 id = "agent_final_result"
@@ -140,7 +140,7 @@ client = "implemented"
 cli = "implemented"
 tui = "implemented"
 web = "implemented"
-agent = "planned"
+agent = "implemented"
 
 [[capabilities]]
 id = "session_branch_activity"
@@ -156,7 +156,7 @@ client = "implemented"
 cli = "implemented"
 tui = "implemented"
 web = "implemented"
-agent = "planned"
+agent = "implemented"
 
 [[capabilities]]
 id = "agent_event_subscription"
@@ -172,7 +172,7 @@ client = "implemented"
 cli = "implemented"
 tui = "implemented"
 web = "implemented"
-agent = "planned"
+agent = "implemented"
 
 [[capabilities]]
 id = "agent_streaming_output"
