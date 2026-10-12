@@ -194,6 +194,7 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
             let Some(snapshot) = state.selection.and_then(|selection| selection.snapshot) else {
                 return vec![Effect::None];
             };
+            state.overlay = None;
             return reduce(state, Action::HistoryRequested { snapshot });
         }
         "diff" => {
