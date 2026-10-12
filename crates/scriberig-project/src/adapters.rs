@@ -11,6 +11,76 @@ use crate::errors::adapter_diagnostics_error;
 
 use super::add_child;
 
+/// Extracts a complete C or C++ syntax tree.
+///
+/// # Parameters
+/// - `project`: Owning project identity.
+/// - `file`: C or C++ source file.
+/// - `source`: Source artifact entity.
+/// - `revisions`: Destination revisions.
+/// - `changes`: Destination snapshot changes.
+/// - `ownership`: Destination entity ownership records.
+/// - `super`: Parent support module visibility marker.
+///
+/// # Returns
+/// Unit after syntax-tree entities are added.
+///
+/// # Errors
+/// Returns UTF-8 or C-family parser diagnostics as a retryable project failure.
+pub(super) fn import_c_family(
+    project: ProjectId,
+    file: &ProjectFileRecord,
+    source: EntityId,
+    revisions: &mut Vec<Revision>,
+    changes: &mut Vec<SnapshotChange>,
+    ownership: &mut Vec<ProjectEntityRecord>,
+) -> Result<(), ProjectError> {
+    let text = std::str::from_utf8(&file.bytes).map_err(|error| {
+        adapter_diagnostics_error(file, "decode", "decode_failed", &[error.to_string()], true)
+    })?;
+    let document =
+        scriberig_domain_c::parse(Path::new(&file.relative_path), text).map_err(|error| {
+            adapter_diagnostics_error(file, "parse", "parse_failed", &error.diagnostics, true)
+        })?;
+    let document_kind = format!("{}.document", file.adapter);
+    let document_payload = serde_json::to_vec(&document).map_err(|error| {
+        adapter_diagnostics_error(
+            file,
+            "encode",
+            "encoding_failed",
+            &[error.to_string()],
+            true,
+        )
+    })?;
+    add_child(
+        project,
+        file,
+        source,
+        &document_kind,
+        0,
+        document_payload,
+        revisions,
+        changes,
+        ownership,
+    )?;
+    let node_kind = format!("{}.node", file.adapter);
+    for (index, node) in document.nodes.iter().enumerate() {
+        let payload = serde_json::to_vec(node).map_err(|error| {
+            adapter_diagnostics_error(
+                file,
+                "encode",
+                "encoding_failed",
+                &[error.to_string()],
+                true,
+            )
+        })?;
+        add_child(
+            project, file, source, &node_kind, index, payload, revisions, changes, ownership,
+        )?;
+    }
+    Ok(())
+}
+
 /// Extracts semantic HTML nodes while retaining the exact source artifact.
 ///
 /// # Parameters

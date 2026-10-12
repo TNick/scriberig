@@ -239,3 +239,68 @@ fn python_imports_are_atomic_and_diagnostic() {
         Some(imported.snapshot)
     );
 }
+
+/// Imports C and C++ sources and keeps the prior snapshot on syntax failure.
+#[test]
+fn c_and_cpp_imports_are_atomic_and_diagnostic() {
+    let root = temporary_directory("c-family");
+    fs::write(
+        root.join("main.c"),
+        "#include <stdio.h>\nstruct Point { int x; };\nint main(void) { return 0; }\n",
+    )
+    .expect("C");
+    fs::write(root.join("legacy.h"), "int legacy_value;\n").expect("C header");
+    fs::write(
+        root.join("box.cpp"),
+        "namespace demo { template <typename T> class Box { T value; }; }\n",
+    )
+    .expect("C++");
+    fs::write(
+        root.join("box.hpp"),
+        "class HeaderBox { public: int value; };\n",
+    )
+    .expect("C++ header");
+    let database = root.with_extension("sqlite");
+    let store = Arc::new(SqliteStore::open(&database).expect("database"));
+    let service = ProjectService::new(Arc::clone(&store));
+    let scan = service.scan(None, &root).expect("scan");
+    assert_eq!(
+        scan.files
+            .iter()
+            .map(|file| file.adapter.as_str())
+            .collect::<Vec<_>>(),
+        vec!["cpp", "cpp", "c", "c"]
+    );
+    let imported = service.import(scan.project.id).expect("C-family import");
+    assert!(imported.entities >= 25);
+    assert!(
+        store
+            .project_entities(scan.project.id)
+            .expect("C-family entities")
+            .iter()
+            .any(|entity| entity.kind == "c.document")
+    );
+    assert!(
+        store
+            .project_entities(scan.project.id)
+            .expect("C++ entities")
+            .iter()
+            .any(|entity| entity.kind == "cpp.document")
+    );
+
+    fs::write(root.join("main.c"), "int broken( {\n").expect("broken C");
+    service.scan(None, &root).expect("rescan");
+    let error = service
+        .import(scan.project.id)
+        .expect_err("invalid C must reject import");
+    assert_eq!(error.code, "import_diagnostics");
+    assert_eq!(error.diagnostics[0].adapter, "c");
+    assert_eq!(
+        store
+            .project(scan.project.id)
+            .expect("project")
+            .expect("record")
+            .current_snapshot,
+        Some(imported.snapshot)
+    );
+}

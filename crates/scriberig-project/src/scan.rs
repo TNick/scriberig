@@ -113,6 +113,8 @@ fn is_excluded(path: &Path) -> bool {
 fn adapter_for(path: &Path) -> &'static str {
     match path.extension().and_then(|value| value.to_str()) {
         Some("html" | "htm") => "html",
+        Some("c" | "h") => "c",
+        Some("cc" | "cpp" | "cxx" | "hpp" | "hh" | "hxx") => "cpp",
         Some("js" | "mjs" | "cjs" | "jsx") => "javascript",
         Some("ts" | "mts" | "cts" | "tsx") => "typescript",
         Some("md" | "markdown") => "markdown",
