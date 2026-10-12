@@ -16,6 +16,9 @@ use crate::{
 #[path = "render_helpers.rs"]
 mod render_helpers;
 use render_helpers::{inspector_text, panel_block, render_status};
+#[path = "render_explorer.rs"]
+mod render_explorer;
+use render_explorer::{explorer_scroll, explorer_text};
 
 /// Renders one complete shell frame without semantic I/O.
 ///
@@ -151,6 +154,7 @@ fn render_body(frame: &mut Frame<'_>, layout: &ShellLayout, state: &TuiState) {
     if let Some(area) = layout.explorer {
         frame.render_widget(
             Paragraph::new(explorer_text(state))
+                .scroll((explorer_scroll(state, area.height), 0))
                 .block(panel_block(" Explorer ", state.focus == Focus::Explorer)),
             area,
         );
@@ -167,44 +171,6 @@ fn render_body(frame: &mut Frame<'_>, layout: &ShellLayout, state: &TuiState) {
             area,
         );
     }
-}
-
-/// Formats the bounded semantic explorer model.
-///
-/// # Parameters
-/// - `state`: Cached presentation state.
-///
-/// # Returns
-/// Text representing the explorer pane.
-fn explorer_text(state: &TuiState) -> String {
-    let Some(root) = state.explorer.root.as_ref() else {
-        return "Explorer\n  No semantic root entered".to_owned();
-    };
-    let mut rows = vec![format!(
-        "{}{}",
-        if state.cursor == 0 && state.focus == Focus::Explorer {
-            "> "
-        } else {
-            "  "
-        },
-        root.label
-    )];
-    rows.extend(state.explorer.rows.iter().enumerate().map(|(index, row)| {
-        let cursor = index + 1;
-        format!(
-            "{}{}",
-            if state.cursor == cursor && state.focus == Focus::Explorer {
-                "> "
-            } else {
-                "  "
-            },
-            row.label
-        )
-    }));
-    if state.explorer.next.is_some() {
-        rows.push("  … more entities; press Enter on the root".to_owned());
-    }
-    format!("Explorer\n{}", rows.join("\n"))
 }
 
 /// Renders the selected primary view from cached presentation state.

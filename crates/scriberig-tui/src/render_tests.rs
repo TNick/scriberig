@@ -150,3 +150,43 @@ fn focused_panel_has_accent_border() {
         Color::DarkGray
     );
 }
+
+/// Verifies the selected explorer row remains visible below the viewport.
+#[test]
+fn explorer_scrolls_to_keep_selected_row_visible() {
+    let backend = TestBackend::new(140, 12);
+    let mut terminal = Terminal::new(backend).expect("terminal");
+    let root = scriberig_core::EntityId::from_bytes([1; 16]);
+    let last = scriberig_core::EntityId::from_bytes([9; 16]);
+    let mut state = TuiState {
+        focus: Focus::Explorer,
+        explorer: crate::explorer::ExplorerModel::from_selection(
+            crate::selection::EntitySelection {
+                entity: root,
+                revision: None,
+                snapshot: None,
+            },
+        ),
+        ..TuiState::default()
+    };
+    state.explorer.add_entities(
+        (2_u8..=9).map(|value| scriberig_core::EntityId::from_bytes([value; 16])),
+        None,
+    );
+    state.cursor = state.explorer.rows.len();
+
+    terminal.draw(|frame| render(frame, &state)).expect("draw");
+
+    let rendered: String = terminal
+        .backend()
+        .buffer()
+        .content()
+        .iter()
+        .map(ratatui::buffer::Cell::symbol)
+        .collect();
+    let last_prefix = last.to_string();
+    assert!(
+        rendered.contains(&format!("> {}", &last_prefix[..12])),
+        "{rendered}"
+    );
+}
