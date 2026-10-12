@@ -9,3 +9,13 @@ it("uses public package boundaries", () => {
   );
   expect(app).not.toMatch(/crates|server\/src|database|\/src\//);
 });
+
+it("provides a built-in public projection for the integrated route", () => {
+  const projection = readFileSync(
+    resolve(import.meta.dirname, "../../apps/scriberig/src/views/ProjectionView.tsx"),
+    "utf8",
+  );
+  expect(projection).toContain("useObject");
+  expect(projection).toContain("MuiObjectInspector");
+  expect(projection).toContain("Select a semantic object to render.");
+});
