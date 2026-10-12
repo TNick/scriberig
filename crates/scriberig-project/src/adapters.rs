@@ -7,7 +7,7 @@ use scriberig_store::{Revision, SnapshotChange};
 use scriberig_store_sqlite::{ProjectEntityRecord, ProjectFileRecord};
 
 use crate::ProjectError;
-use crate::errors::{adapter_diagnostics_error, adapter_validation_error};
+use crate::errors::adapter_diagnostics_error;
 
 use super::add_child;
 
@@ -35,11 +35,18 @@ pub(super) fn import_html(
     changes: &mut Vec<SnapshotChange>,
     ownership: &mut Vec<ProjectEntityRecord>,
 ) -> Result<(), ProjectError> {
-    let document = scriberig_domain_html::parse(&file.bytes)
-        .map_err(|error| adapter_validation_error(file, "parse_failed", &error.to_string()))?;
-    let document_payload = document
-        .canonical_bytes()
-        .map_err(|error| adapter_validation_error(file, "encoding_failed", &error.to_string()))?;
+    let document = scriberig_domain_html::parse(&file.bytes).map_err(|error| {
+        adapter_diagnostics_error(file, "parse", "parse_failed", &[error.to_string()], true)
+    })?;
+    let document_payload = document.canonical_bytes().map_err(|error| {
+        adapter_diagnostics_error(
+            file,
+            "encode",
+            "encoding_failed",
+            &[error.to_string()],
+            true,
+        )
+    })?;
     add_child(
         project,
         file,
@@ -53,7 +60,13 @@ pub(super) fn import_html(
     )?;
     for (index, node) in document.nodes.iter().enumerate() {
         let payload = node.canonical_bytes().map_err(|error| {
-            adapter_validation_error(file, "encoding_failed", &error.to_string())
+            adapter_diagnostics_error(
+                file,
+                "encode",
+                "encoding_failed",
+                &[error.to_string()],
+                true,
+            )
         })?;
         add_child(
             project,
@@ -94,8 +107,9 @@ pub(super) fn import_ecma(
     changes: &mut Vec<SnapshotChange>,
     ownership: &mut Vec<ProjectEntityRecord>,
 ) -> Result<(), ProjectError> {
-    let text = std::str::from_utf8(&file.bytes)
-        .map_err(|error| adapter_validation_error(file, "decode_failed", &error.to_string()))?;
+    let text = std::str::from_utf8(&file.bytes).map_err(|error| {
+        adapter_diagnostics_error(file, "decode", "decode_failed", &[error.to_string()], true)
+    })?;
     let document =
         scriberig_domain_ecma::parse(Path::new(&file.relative_path), text).map_err(|error| {
             adapter_diagnostics_error(
@@ -106,8 +120,15 @@ pub(super) fn import_ecma(
                 !error.fatal,
             )
         })?;
-    let document_payload = serde_json::to_vec(&document)
-        .map_err(|error| adapter_validation_error(file, "encoding_failed", &error.to_string()))?;
+    let document_payload = serde_json::to_vec(&document).map_err(|error| {
+        adapter_diagnostics_error(
+            file,
+            "encode",
+            "encoding_failed",
+            &[error.to_string()],
+            true,
+        )
+    })?;
     let document_kind = format!("{}.document", file.adapter);
     add_child(
         project,
@@ -123,7 +144,13 @@ pub(super) fn import_ecma(
     let node_kind = format!("{}.node", file.adapter);
     for (index, node) in document.nodes.iter().enumerate() {
         let payload = serde_json::to_vec(node).map_err(|error| {
-            adapter_validation_error(file, "encoding_failed", &error.to_string())
+            adapter_diagnostics_error(
+                file,
+                "encode",
+                "encoding_failed",
+                &[error.to_string()],
+                true,
+            )
         })?;
         add_child(
             project, file, source, &node_kind, index, payload, revisions, changes, ownership,

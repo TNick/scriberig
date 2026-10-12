@@ -242,3 +242,21 @@ where
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::inspect_catalog;
+
+    /// Verifies project recovery tools are exposed to provider runtimes.
+    #[test]
+    fn catalog_exposes_project_recovery_operations() {
+        let names = inspect_catalog()
+            .definitions()
+            .into_iter()
+            .map(|definition| definition.name)
+            .collect::<Vec<_>>();
+        for name in ["project_import", "project_repair_file", "project_rescan"] {
+            assert!(names.iter().any(|candidate| candidate == name));
+        }
+    }
+}

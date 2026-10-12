@@ -5,7 +5,7 @@ use scriberig_store::{Revision, SnapshotChange};
 use scriberig_store_sqlite::{ProjectEntityRecord, ProjectFileRecord};
 
 use crate::ProjectError;
-use crate::errors::{adapter_diagnostics_error, adapter_validation_error, invalid_input};
+use crate::errors::{adapter_diagnostics_error, invalid_input};
 
 #[path = "git.rs"]
 mod git;
@@ -77,8 +77,9 @@ fn import_markdown(
     changes: &mut Vec<SnapshotChange>,
     ownership: &mut Vec<ProjectEntityRecord>,
 ) -> Result<(), ProjectError> {
-    let text = std::str::from_utf8(&file.bytes)
-        .map_err(|error| adapter_validation_error(file, "decode_failed", &error.to_string()))?;
+    let text = std::str::from_utf8(&file.bytes).map_err(|error| {
+        adapter_diagnostics_error(file, "decode", "decode_failed", &[error.to_string()], true)
+    })?;
     let parsed = sr_markdown::parse(text).map_err(|error| {
         adapter_diagnostics_error(file, "parse", &error.code, &[error.message], true)
     })?;
@@ -120,10 +121,12 @@ fn import_rust(
     changes: &mut Vec<SnapshotChange>,
     ownership: &mut Vec<ProjectEntityRecord>,
 ) -> Result<(), ProjectError> {
-    let text = std::str::from_utf8(&file.bytes)
-        .map_err(|error| adapter_validation_error(file, "decode_failed", &error.to_string()))?;
-    let parsed = scriberig_domain_rust::parse(text)
-        .map_err(|error| adapter_validation_error(file, "parse_failed", &error.to_string()))?;
+    let text = std::str::from_utf8(&file.bytes).map_err(|error| {
+        adapter_diagnostics_error(file, "decode", "decode_failed", &[error.to_string()], true)
+    })?;
+    let parsed = scriberig_domain_rust::parse(text).map_err(|error| {
+        adapter_diagnostics_error(file, "parse", "parse_failed", &[error.to_string()], true)
+    })?;
     for (index, item) in parsed.items.iter().enumerate() {
         add_child(
             project,
@@ -162,8 +165,16 @@ fn import_pdf(
     changes: &mut Vec<SnapshotChange>,
     ownership: &mut Vec<ProjectEntityRecord>,
 ) -> Result<(), ProjectError> {
-    let source_artifact = scriberig_domain_pdf::import_source(file.bytes.clone())
-        .map_err(|error| adapter_validation_error(file, "extract_failed", &error.to_string()))?;
+    let source_artifact =
+        scriberig_domain_pdf::import_source(file.bytes.clone()).map_err(|error| {
+            adapter_diagnostics_error(
+                file,
+                "extract",
+                "extract_failed",
+                &[error.to_string()],
+                true,
+            )
+        })?;
     let document = scriberig_domain_pdf::extract(
         &scriberig_domain_pdf::PdfDocument::from_source(source_artifact),
         "scriberig-project",

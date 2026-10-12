@@ -87,24 +87,6 @@ pub(super) fn promotion_error(message: String) -> ProjectError {
     }
 }
 
-/// Creates an adapter-specific retryable validation error.
-///
-/// # Parameters
-/// - `file`: Source file that failed validation.
-/// - `code`: Stable diagnostic code.
-/// - `message`: Diagnostic message.
-/// - `crate`: Crate visibility marker.
-///
-/// # Returns
-/// A structured project error with one import diagnostic.
-pub(crate) fn adapter_validation_error(
-    file: &ProjectFileRecord,
-    code: &str,
-    message: &str,
-) -> ProjectError {
-    adapter_diagnostics_error(file, "validate", code, &[message.to_owned()], true)
-}
-
 /// Creates an adapter error from parser or extractor diagnostics.
 ///
 /// # Parameters
