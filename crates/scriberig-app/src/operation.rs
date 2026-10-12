@@ -6,6 +6,8 @@ use crate::{ApplicationError, ApplicationEvent};
 use std::sync::mpsc::{self, Receiver};
 use std::sync::{Arc, Mutex};
 
+#[path = "operation_agent.rs"]
+mod operation_agent;
 #[path = "operation_record.rs"]
 mod operation_record;
 #[path = "operation_state.rs"]

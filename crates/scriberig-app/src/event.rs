@@ -71,6 +71,8 @@ pub enum ApplicationEvent {
     },
     /// An agent produced output identified by a stable handle.
     AgentOutputProduced {
+        /// Operation that produced the output.
+        operation: crate::OperationId,
         /// Stable output identity.
         output: String,
     },

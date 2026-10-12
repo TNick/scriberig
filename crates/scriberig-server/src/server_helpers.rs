@@ -287,6 +287,7 @@ fn agent_result(result: scriberig_app::AgentResult) -> scriberig_protocol::Agent
 ///
 /// # Returns
 /// The value produced by the declaration.
+#[allow(clippy::too_many_lines)]
 pub(super) fn event_from_application(event: ApplicationEvent) -> Event {
     let mut entity = None;
     let mut revision = None;
@@ -371,7 +372,11 @@ pub(super) fn event_from_application(event: ApplicationEvent) -> Event {
             metadata.push(("passed".to_owned(), passed.to_string()));
             EventKind::ValidationCompleted
         }
-        ApplicationEvent::AgentOutputProduced { output } => {
+        ApplicationEvent::AgentOutputProduced {
+            operation: value,
+            output,
+        } => {
+            operation = Some(value);
             metadata.push(("output".to_owned(), output));
             EventKind::AgentOutputProduced
         }

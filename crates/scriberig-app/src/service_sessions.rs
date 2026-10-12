@@ -276,6 +276,8 @@ impl<B> ApplicationService<B> {
             unresolved_questions: Vec::new(),
             candidate_changes: Vec::new(),
         };
+        self.operations
+            .publish_agent_output(&handle.operation, &result.final_output)?;
         self.operations.complete_agent(
             &handle.operation,
             vec![branch_result.to_string()],
@@ -355,6 +357,8 @@ impl<B> ApplicationService<B> {
             unresolved_questions: Vec::new(),
             candidate_changes: Vec::new(),
         };
+        self.operations
+            .publish_agent_output(&handle.operation, &result.final_output)?;
         self.operations.complete_agent(
             &handle.operation,
             vec![branch_result.to_string()],

@@ -280,6 +280,14 @@ pub(crate) fn map_remote_event(
         scriberig_protocol::EventKind::OperationCancelled => {
             Some(scriberig_app::ApplicationEvent::OperationCancelled { operation })
         }
+        scriberig_protocol::EventKind::AgentOutputProduced => {
+            let output = event
+                .metadata
+                .iter()
+                .find(|(key, _)| key == "output")
+                .map(|(_, value)| value.clone())?;
+            Some(scriberig_app::ApplicationEvent::AgentOutputProduced { operation, output })
+        }
         _ => None,
     }
 }

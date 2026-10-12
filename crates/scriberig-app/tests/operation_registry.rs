@@ -66,3 +66,26 @@ fn registry_retains_failure_details() {
         Some(ApplicationError::InvalidRequest { .. })
     ));
 }
+
+/// Verifies agent output is published with its operation correlation handle.
+#[test]
+fn registry_publishes_agent_output() {
+    let registry = OperationRegistry::new();
+    let events = registry.subscribe();
+    let id = OperationId::new("operation-output").expect("operation id");
+    registry
+        .start(id.clone(), OperationKind::Agent)
+        .expect("start");
+
+    registry
+        .publish_agent_output(&id, "partial answer")
+        .expect("output");
+
+    assert!(matches!(
+        events
+            .try_iter()
+            .find(|event| matches!(event, ApplicationEvent::AgentOutputProduced { .. })),
+        Some(ApplicationEvent::AgentOutputProduced { operation, output })
+            if operation == id && output == "partial answer"
+    ));
+}
