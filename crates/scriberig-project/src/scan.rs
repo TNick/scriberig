@@ -111,7 +111,29 @@ fn is_excluded(path: &Path) -> bool {
 /// # Returns
 /// The selected adapter name.
 fn adapter_for(path: &Path) -> &'static str {
-    match path.extension().and_then(|value| value.to_str()) {
+    let name = path.file_name().and_then(|value| value.to_str());
+    if matches!(
+        name,
+        Some(
+            "Dockerfile"
+                | "Makefile"
+                | "justfile"
+                | "Taskfile"
+                | "LICENSE"
+                | "README"
+                | ".gitignore"
+                | ".gitattributes"
+                | ".editorconfig"
+        )
+    ) {
+        return "text";
+    }
+    match path
+        .extension()
+        .and_then(|value| value.to_str())
+        .map(str::to_ascii_lowercase)
+        .as_deref()
+    {
         Some("html" | "htm") => "html",
         Some("c" | "h") => "c",
         Some("cc" | "cpp" | "cxx" | "hpp" | "hh" | "hxx") => "cpp",
@@ -121,6 +143,13 @@ fn adapter_for(path: &Path) -> &'static str {
         Some("py" | "pyi" | "pyw") => "python",
         Some("rs") => "rust",
         Some("pdf") => "pdf",
+        Some(
+            "json" | "jsonc" | "yaml" | "yml" | "toml" | "sh" | "bash" | "zsh" | "fish" | "ps1"
+            | "psm1" | "bat" | "cmd" | "mmd" | "mermaid" | "svg" | "txt" | "log" | "env" | "xml"
+            | "ini" | "cfg" | "properties" | "csv" | "tsv" | "rst" | "adoc" | "tex" | "graphql"
+            | "gql" | "proto" | "sql" | "go" | "java" | "kt" | "kts" | "cs" | "swift" | "php"
+            | "rb" | "lua" | "dart" | "scala" | "m" | "mm" | "hs" | "ex" | "exs" | "erl" | "zig",
+        ) => "text",
         _ => "unsupported",
     }
 }

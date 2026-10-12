@@ -15,7 +15,7 @@ mod scan;
 pub(crate) use scan::scan_directory;
 #[path = "adapters.rs"]
 mod adapters;
-use adapters::{import_c_family, import_ecma, import_html, import_python};
+use adapters::{import_c_family, import_ecma, import_html, import_python, import_text};
 /// Imports one file and appends its revisions and snapshot changes.
 ///
 /// # Parameters
@@ -54,6 +54,9 @@ pub(crate) fn import_file(
         }
         "python" => {
             import_python(project, file, source, revisions, changes, &mut ownership)?;
+        }
+        "text" => {
+            import_text(project, file, source, revisions, changes, &mut ownership)?;
         }
         _ => {}
     }

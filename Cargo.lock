@@ -2265,6 +2265,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "scriberig-domain-text"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "scriberig-graph"
 version = "0.1.0"
 dependencies = [
@@ -2294,6 +2301,7 @@ dependencies = [
  "scriberig-domain-pdf",
  "scriberig-domain-python",
  "scriberig-domain-rust",
+ "scriberig-domain-text",
  "scriberig-store",
  "scriberig-store-sqlite",
  "serde_json",

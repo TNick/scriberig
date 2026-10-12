@@ -76,8 +76,8 @@ fn scan_reopen_import_and_delete_are_durable() {
     let reopened = Arc::new(SqliteStore::open(&database).expect("reopen"));
     let service = ProjectService::new(Arc::clone(&reopened));
     let report = service.import(scan.project.id).expect("import");
-    assert_eq!(report.files, 3);
-    assert!(report.entities >= 7);
+    assert_eq!(report.files, 4);
+    assert!(report.entities >= 10);
     assert!(
         reopened
             .project_entities(scan.project.id)
@@ -103,6 +103,34 @@ fn scan_reopen_import_and_delete_are_durable() {
             .iter()
             .all(|entity| !entity.relative_path.ends_with("main.rs"))
     );
+}
+
+/// Imports common configuration, script, and extensionless files as text.
+#[test]
+fn imports_common_text_files() {
+    let root = temporary_directory("common-text");
+    fs::write(root.join("config.toml"), "[package]\nname = \"demo\"\n").expect("TOML");
+    fs::write(root.join("deploy.sh"), "#!/bin/sh\necho deploy\n").expect("shell");
+    fs::write(root.join("Dockerfile"), "FROM alpine\n").expect("Dockerfile");
+    fs::write(root.join("diagram.mmd"), "graph TD\nA --> B\n").expect("Mermaid");
+    let database = root.with_extension("sqlite");
+    let store = Arc::new(SqliteStore::open(&database).expect("database"));
+    let service = ProjectService::new(store.clone());
+
+    let scan = service.scan(Some("text".to_owned()), &root).expect("scan");
+    assert!(scan.files.iter().all(|file| file.adapter == "text"));
+    let report = service.import(scan.project.id).expect("import");
+
+    assert_eq!(report.files, 4);
+    let entities = store.project_entities(scan.project.id).expect("entities");
+    assert_eq!(
+        entities
+            .iter()
+            .filter(|entity| entity.kind == "text.document")
+            .count(),
+        4
+    );
+    assert!(entities.iter().any(|entity| entity.kind == "text.line"));
 }
 
 /// Restricts a scan manifest to existing files tracked by Git's index.
