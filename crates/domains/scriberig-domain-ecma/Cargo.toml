@@ -1,0 +1,19 @@
+[package]
+name = "scriberig-domain-ecma"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "JavaScript and TypeScript syntax parsing adapter."
+repository.workspace = true
+
+[dependencies]
+oxc_allocator = "0.153"
+oxc_ast_visit = { version = "0.153", features = ["serialize"] }
+oxc_parser = "0.153"
+oxc_span = "0.153"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[lints]
+workspace = true

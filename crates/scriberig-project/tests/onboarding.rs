@@ -144,3 +144,49 @@ fn git_tracked_scan_requires_repository() {
         .expect_err("non-Git path must fail");
     assert_eq!(error.code, "git_repository_required");
 }
+
+/// Imports JavaScript and TypeScript syntax trees and preserves the prior snapshot
+/// when a later parse fails.
+#[test]
+fn ecma_imports_are_atomic_and_diagnostic() {
+    let root = temporary_directory("ecma");
+    fs::write(
+        root.join("main.js"),
+        "export function answer() { return 42; }\n",
+    )
+    .expect("JavaScript");
+    fs::write(
+        root.join("types.ts"),
+        "export interface Answer { value: number }\nexport const answer: Answer = { value: 42 };\n",
+    )
+    .expect("TypeScript");
+    let database = root.with_extension("sqlite");
+    let store = Arc::new(SqliteStore::open(&database).expect("database"));
+    let service = ProjectService::new(Arc::clone(&store));
+    let scan = service.scan(None, &root).expect("scan");
+    assert_eq!(
+        scan.files
+            .iter()
+            .map(|file| file.adapter.as_str())
+            .collect::<Vec<_>>(),
+        vec!["javascript", "typescript"]
+    );
+    let imported = service.import(scan.project.id).expect("ECMAScript import");
+    assert!(imported.entities >= 8);
+
+    fs::write(root.join("main.js"), "export function broken( {\n").expect("broken JavaScript");
+    service.scan(None, &root).expect("rescan");
+    let error = service
+        .import(scan.project.id)
+        .expect_err("invalid source must reject import");
+    assert_eq!(error.code, "import_diagnostics");
+    assert_eq!(error.diagnostics[0].adapter, "javascript");
+    assert_eq!(
+        store
+            .project(scan.project.id)
+            .expect("project")
+            .expect("record")
+            .current_snapshot,
+        Some(imported.snapshot)
+    );
+}

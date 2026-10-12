@@ -11,11 +11,13 @@ repository.workspace = true
 blake3 = "1.8.2"
 scriberig-core = { path = "../scriberig-core" }
 scriberig-domain-html = { path = "../domains/scriberig-domain-html" }
+scriberig-domain-ecma = { path = "../domains/scriberig-domain-ecma" }
 scriberig-domain-pdf = { path = "../domains/scriberig-domain-pdf" }
 scriberig-domain-rust = { path = "../domains/scriberig-domain-rust" }
 scriberig-store = { path = "../scriberig-store" }
 scriberig-store-sqlite = { path = "../scriberig-store-sqlite" }
 sr-markdown = { path = "../sr-markdown" }
+serde_json = "1.0"
 
 [lints]
 workspace = true

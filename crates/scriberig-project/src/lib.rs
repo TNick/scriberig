@@ -13,6 +13,9 @@ use scriberig_store_sqlite::{
 #[path = "support.rs"]
 mod support;
 use support::import_file;
+#[path = "errors.rs"]
+mod errors;
+use errors::{filesystem_error, git_error, missing_project, promotion_error, storage_error};
 
 /// Shared project onboarding service used by CLI, HTTP, and TUI surfaces.
 #[derive(Clone, Debug)]
@@ -197,7 +200,11 @@ impl ProjectService {
             .replace_project_files(project.id, &records)
             .map_err(storage_error)?;
         self.store
-            .set_project_status(project.id, ProjectStatus::ScanReady, None)
+            .set_project_status(
+                project.id,
+                ProjectStatus::ScanReady,
+                project.current_snapshot,
+            )
             .map_err(storage_error)?;
         let project = self
             .store
@@ -270,120 +277,5 @@ impl ProjectService {
             entities: ownership.len(),
             snapshot,
         })
-    }
-}
-
-/// Converts a storage failure into a project error.
-///
-/// # Parameters
-/// - `error`: Storage failure.
-///
-/// # Returns
-/// A structured project error.
-fn storage_error(error: impl Display) -> ProjectError {
-    ProjectError {
-        code: "storage_error",
-        message: error.to_string(),
-        diagnostics: Vec::new(),
-    }
-}
-
-/// Converts a filesystem failure into a project error.
-///
-/// # Parameters
-/// - `error`: Filesystem failure.
-///
-/// # Returns
-/// A structured project error.
-fn filesystem_error(error: &std::io::Error) -> ProjectError {
-    ProjectError {
-        code: "filesystem_error",
-        message: error.to_string(),
-        diagnostics: Vec::new(),
-    }
-}
-
-/// Converts a Git selection failure into a stable project error.
-///
-/// # Parameters
-/// - `error`: Git command or repository failure.
-///
-/// # Returns
-/// A structured Git repository requirement error.
-fn git_error(error: &std::io::Error) -> ProjectError {
-    ProjectError {
-        code: "git_repository_required",
-        message: error.to_string(),
-        diagnostics: Vec::new(),
-    }
-}
-
-/// Creates a missing-project error.
-///
-/// # Parameters
-/// - `project`: Missing project identity.
-///
-/// # Returns
-/// A structured project error.
-fn missing_project(project: ProjectId) -> ProjectError {
-    ProjectError {
-        code: "project_not_found",
-        message: project.to_string(),
-        diagnostics: Vec::new(),
-    }
-}
-
-/// Creates a snapshot promotion error.
-///
-/// # Parameters
-/// - `message`: Promotion failure detail.
-///
-/// # Returns
-/// A structured project error.
-fn promotion_error(message: String) -> ProjectError {
-    ProjectError {
-        code: "promotion_failed",
-        message,
-        diagnostics: Vec::new(),
-    }
-}
-
-/// Creates a source validation error.
-///
-/// # Parameters
-/// - `path`: Source path.
-/// - `message`: Validation detail.
-/// - `crate`: Internal visibility marker.
-///
-/// # Returns
-/// A structured project error.
-pub(crate) fn validation_error(path: &str, message: &str) -> ProjectError {
-    ProjectError {
-        code: "validation_failed",
-        message: format!("{path}: {message}"),
-        diagnostics: vec![ImportDiagnostic {
-            path: path.to_owned(),
-            adapter: "unknown".to_owned(),
-            stage: "validate".to_owned(),
-            code: "validation_failed".to_owned(),
-            message: message.to_owned(),
-            retryable: true,
-        }],
-    }
-}
-
-/// Creates an invalid-input error.
-///
-/// # Parameters
-/// - `message`: Invalid-input detail.
-/// - `crate`: Internal visibility marker.
-///
-/// # Returns
-/// A structured project error.
-pub(crate) fn invalid_input(message: String) -> ProjectError {
-    ProjectError {
-        code: "invalid_input",
-        message,
-        diagnostics: Vec::new(),
     }
 }

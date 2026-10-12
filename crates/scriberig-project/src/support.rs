@@ -4,7 +4,8 @@ use scriberig_core::{EncodingVersion, EntityId, ObjectType, ProjectId, RootName}
 use scriberig_store::{Revision, SnapshotChange};
 use scriberig_store_sqlite::{ProjectEntityRecord, ProjectFileRecord};
 
-use crate::{ProjectError, invalid_input, validation_error};
+use crate::ProjectError;
+use crate::errors::{adapter_diagnostics_error, adapter_validation_error, invalid_input};
 
 #[path = "git.rs"]
 mod git;
@@ -12,6 +13,9 @@ pub(crate) use git::git_tracked_paths;
 #[path = "scan.rs"]
 mod scan;
 pub(crate) use scan::scan_directory;
+#[path = "adapters.rs"]
+mod adapters;
+use adapters::{import_ecma, import_html};
 /// Imports one file and appends its revisions and snapshot changes.
 ///
 /// # Parameters
@@ -42,67 +46,12 @@ pub(crate) fn import_file(
         "rust" => import_rust(project, file, source, revisions, changes, &mut ownership)?,
         "pdf" => import_pdf(project, file, source, revisions, changes, &mut ownership)?,
         "html" => import_html(project, file, source, revisions, changes, &mut ownership)?,
+        "javascript" | "typescript" => {
+            import_ecma(project, file, source, revisions, changes, &mut ownership)?;
+        }
         _ => {}
     }
     Ok(ownership)
-}
-
-/// Extracts semantic HTML nodes while retaining the exact source artifact.
-///
-/// # Parameters
-/// - `project`: Owning project identity.
-/// - `file`: HTML source file.
-/// - `source`: Source artifact entity.
-/// - `revisions`: Destination revisions.
-/// - `changes`: Destination snapshot changes.
-/// - `ownership`: Destination entity ownership records.
-///
-/// # Returns
-/// Unit after HTML children are added.
-///
-/// # Errors
-/// Returns source parsing or revision errors.
-fn import_html(
-    project: ProjectId,
-    file: &ProjectFileRecord,
-    source: EntityId,
-    revisions: &mut Vec<Revision>,
-    changes: &mut Vec<SnapshotChange>,
-    ownership: &mut Vec<ProjectEntityRecord>,
-) -> Result<(), ProjectError> {
-    let document = scriberig_domain_html::parse(&file.bytes)
-        .map_err(|error| validation_error(&file.relative_path, &error.to_string()))?;
-    let document_payload = document
-        .canonical_bytes()
-        .map_err(|error| validation_error(&file.relative_path, &error.to_string()))?;
-    add_child(
-        project,
-        file,
-        source,
-        "html.document",
-        0,
-        document_payload,
-        revisions,
-        changes,
-        ownership,
-    )?;
-    for (index, node) in document.nodes.iter().enumerate() {
-        let payload = node
-            .canonical_bytes()
-            .map_err(|error| validation_error(&file.relative_path, &error.to_string()))?;
-        add_child(
-            project,
-            file,
-            source,
-            "html.node",
-            index,
-            payload,
-            revisions,
-            changes,
-            ownership,
-        )?;
-    }
-    Ok(())
 }
 
 /// Extracts semantic Markdown block entities.
@@ -129,12 +78,9 @@ fn import_markdown(
     ownership: &mut Vec<ProjectEntityRecord>,
 ) -> Result<(), ProjectError> {
     let text = std::str::from_utf8(&file.bytes)
-        .map_err(|error| validation_error(&file.relative_path, &error.to_string()))?;
+        .map_err(|error| adapter_validation_error(file, "decode_failed", &error.to_string()))?;
     let parsed = sr_markdown::parse(text).map_err(|error| {
-        validation_error(
-            &file.relative_path,
-            &format!("{}: {}", error.code, error.message),
-        )
+        adapter_diagnostics_error(file, "parse", &error.code, &[error.message], true)
     })?;
     for (index, block) in parsed.document.blocks.iter().enumerate() {
         add_child(
@@ -175,9 +121,9 @@ fn import_rust(
     ownership: &mut Vec<ProjectEntityRecord>,
 ) -> Result<(), ProjectError> {
     let text = std::str::from_utf8(&file.bytes)
-        .map_err(|error| validation_error(&file.relative_path, &error.to_string()))?;
+        .map_err(|error| adapter_validation_error(file, "decode_failed", &error.to_string()))?;
     let parsed = scriberig_domain_rust::parse(text)
-        .map_err(|error| validation_error(&file.relative_path, &error.to_string()))?;
+        .map_err(|error| adapter_validation_error(file, "parse_failed", &error.to_string()))?;
     for (index, item) in parsed.items.iter().enumerate() {
         add_child(
             project,
@@ -217,7 +163,7 @@ fn import_pdf(
     ownership: &mut Vec<ProjectEntityRecord>,
 ) -> Result<(), ProjectError> {
     let source_artifact = scriberig_domain_pdf::import_source(file.bytes.clone())
-        .map_err(|error| validation_error(&file.relative_path, &error.to_string()))?;
+        .map_err(|error| adapter_validation_error(file, "extract_failed", &error.to_string()))?;
     let document = scriberig_domain_pdf::extract(
         &scriberig_domain_pdf::PdfDocument::from_source(source_artifact),
         "scriberig-project",
@@ -251,6 +197,7 @@ fn import_pdf(
 /// - `revisions`: Destination revisions.
 /// - `changes`: Destination snapshot changes.
 /// - `ownership`: Destination ownership records.
+/// - `super`: Parent support module visibility marker.
 ///
 /// # Returns
 /// Unit after the child is appended.
@@ -258,7 +205,7 @@ fn import_pdf(
 /// # Errors
 /// Returns a canonical revision error.
 #[allow(clippy::too_many_arguments)]
-fn add_child(
+pub(super) fn add_child(
     project: ProjectId,
     file: &ProjectFileRecord,
     source: EntityId,
