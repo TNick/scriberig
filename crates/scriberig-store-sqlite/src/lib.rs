@@ -8,6 +8,8 @@ mod indexes;
 mod integrity;
 mod integrity_nodes;
 mod observability;
+mod project_files;
+mod project_rows;
 mod projects;
 mod reachability;
 mod recovery;
@@ -31,6 +33,7 @@ pub struct SqliteStore {
     connection: Mutex<Connection>,
 }
 
+pub use project_files::{ProjectEntityRecord, ProjectFileRecord};
 pub use projects::{ProjectRecord, ProjectStatus};
 
 /// Reports a failure while atomically preparing and promoting a snapshot.

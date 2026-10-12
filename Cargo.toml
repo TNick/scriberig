@@ -25,6 +25,7 @@ members = [
   "crates/scriberig-server",
   "crates/scriberig-tui",
   "crates/scriberig-cli",
+  "crates/scriberig-project",
   "crates/domains/scriberig-domain-markdown",
   "crates/domains/scriberig-domain-code",
   "crates/domains/scriberig-domain-rust",

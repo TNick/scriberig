@@ -6,7 +6,7 @@ use std::fmt::{Display, Formatter};
 use rusqlite::{Connection, Transaction};
 
 /// Current SQLite backend schema version.
-pub const CURRENT_SCHEMA_VERSION: u32 = 2;
+pub const CURRENT_SCHEMA_VERSION: u32 = 4;
 
 const INTEGRITY_FORMAT_VERSION: &str = "1";
 const RECOVERY_MODE: &str = "transactional-root-promotion";
@@ -87,7 +87,7 @@ pub fn initialize(connection: &mut Connection) -> rusqlite::Result<u32> {
     let transaction = connection.transaction()?;
     initialize_schema(&transaction)?;
     transaction.execute(
-        "UPDATE metadata SET value=? WHERE key='schema_version' AND value='1'",
+        "UPDATE metadata SET value=? WHERE key='schema_version' AND value IN ('1','2','3')",
         [CURRENT_SCHEMA_VERSION.to_string()],
     )?;
     let version = metadata_u32(&transaction, "schema_version")?;
@@ -159,7 +159,7 @@ fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
              snapshot_id BLOB NOT NULL
          );
          INSERT OR IGNORE INTO metadata(key, value)
-             VALUES ('schema_version', '2');
+             VALUES ('schema_version', '4');
          INSERT OR IGNORE INTO metadata(key, value)
              VALUES ('integrity_format_version', '1');
          INSERT OR IGNORE INTO metadata(key, value)
@@ -173,7 +173,30 @@ fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
              current_snapshot BLOB,
              status TEXT NOT NULL
          );
-         CREATE INDEX IF NOT EXISTS projects_path_idx ON projects(path);",
+         CREATE INDEX IF NOT EXISTS projects_path_idx ON projects(path);
+         CREATE TABLE IF NOT EXISTS project_files (
+             project_id BLOB NOT NULL,
+             relative_path TEXT NOT NULL,
+             entity BLOB NOT NULL,
+             digest BLOB NOT NULL,
+             bytes BLOB NOT NULL,
+             adapter TEXT NOT NULL,
+             status TEXT NOT NULL,
+             PRIMARY KEY(project_id, relative_path),
+             FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+         );
+         CREATE INDEX IF NOT EXISTS project_files_project_idx
+             ON project_files(project_id);
+         CREATE TABLE IF NOT EXISTS project_entities (
+             project_id BLOB NOT NULL,
+             relative_path TEXT NOT NULL,
+             entity BLOB NOT NULL,
+             kind TEXT NOT NULL,
+             PRIMARY KEY(project_id, relative_path, entity),
+             FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+         );
+         CREATE INDEX IF NOT EXISTS project_entities_project_idx
+             ON project_entities(project_id);",
     )
 }
 

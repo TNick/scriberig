@@ -14,6 +14,7 @@ scriberig-app = { path = "../scriberig-app" }
 scriberig-protocol = { path = "../scriberig-protocol" }
 scriberig-store-sqlite = { path = "../scriberig-store-sqlite" }
 scriberig-store = { path = "../scriberig-store" }
+scriberig-project = { path = "../scriberig-project" }
 scriberig-query = { path = "../scriberig-query" }
 scriberig-session = { path = "../scriberig-session" }
 scriberig-session-sqlite = { path = "../scriberig-session-sqlite" }

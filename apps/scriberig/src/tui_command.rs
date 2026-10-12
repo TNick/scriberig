@@ -47,22 +47,11 @@ pub(super) fn run(
                     .file_name()
                     .and_then(|value| value.to_str())
                     .unwrap_or("project");
-                let project = store.register_project(name, path)?;
-                store.set_project_status(
-                    project.id,
-                    scriberig_store_sqlite::ProjectStatus::ScanReady,
-                    None,
-                )?;
+                let service = scriberig_project::ProjectService::new(Arc::clone(&store));
+                let report = service.scan(Some(name.to_owned()), path)?;
+                let project = report.project;
                 if args.import_project {
-                    scriberig_cli::project::run(&scriberig_cli::ProjectArgs {
-                        command: scriberig_cli::ProjectCommand::Import(
-                            scriberig_cli::ProjectImportArgs {
-                                project: project.id,
-                                db: args.db.clone(),
-                                json: false,
-                            },
-                        ),
-                    })?;
+                    service.import(project.id)?;
                 }
                 Ok(project.id.to_string())
             },

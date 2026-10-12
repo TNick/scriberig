@@ -18,6 +18,7 @@ scriberig-client = { path = "../scriberig-client" }
 scriberig-store-sqlite = { path = "../scriberig-store-sqlite" }
 scriberig-store = { path = "../scriberig-store" }
 sr-markdown = { path = "../sr-markdown" }
+scriberig-project = { path = "../scriberig-project" }
 
 [lints]
 workspace = true

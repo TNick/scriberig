@@ -1,15 +1,12 @@
-//! Implements local project catalog and filesystem scan commands.
+//! Implements the project catalog and onboarding commands.
 
-use std::path::{Path, PathBuf};
-
-use scriberig_core::ProjectId;
-use scriberig_store_sqlite::{ProjectRecord, ProjectStatus, SqliteStore};
+use std::path::PathBuf;
+use std::sync::Arc;
 
 use clap::{Args, Subcommand};
-
-#[path = "project_import.rs"]
-mod project_import;
-use project_import::{import_files, scan_files};
+use scriberig_core::ProjectId;
+use scriberig_project::{ProjectService, ScanFile};
+use scriberig_store_sqlite::{ProjectRecord, ProjectStatus, SqliteStore};
 
 /// Selects a project catalog operation.
 #[derive(Debug, Args)]
@@ -26,7 +23,7 @@ pub enum ProjectCommand {
     List(ProjectDatabaseArgs),
     /// Scan and register a filesystem project.
     Scan(ProjectScanArgs),
-    /// Import the latest filesystem scan into an immutable project snapshot.
+    /// Import the latest persisted filesystem scan.
     Import(ProjectImportArgs),
     /// Read one project's onboarding status.
     Status(ProjectSelectorArgs),
@@ -38,7 +35,7 @@ pub enum ProjectCommand {
 #[derive(Debug, Args)]
 pub struct ProjectSelectorArgs {
     /// Stable project identity.
-    pub project: scriberig_core::ProjectId,
+    pub project: ProjectId,
     /// SQLite database path.
     #[arg(long, default_value = "playground/dev-app-runtime/scriberig.sqlite")]
     pub db: PathBuf,
@@ -91,7 +88,7 @@ pub struct ProjectImportArgs {
 #[derive(Debug, Args)]
 pub struct ProjectRelinkArgs {
     /// Stable project identity.
-    pub project: scriberig_core::ProjectId,
+    pub project: ProjectId,
     /// New filesystem path.
     #[arg(long)]
     pub path: PathBuf,
@@ -115,169 +112,184 @@ pub struct ProjectRelinkArgs {
 /// Returns a database, filesystem, or project lookup error.
 pub fn run(args: &ProjectArgs) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     match &args.command {
-        ProjectCommand::List(args) => {
-            let store = SqliteStore::open(&args.db)?;
-            let projects = store.list_projects()?;
-            if args.json {
-                println!(
-                    "{}",
-                    serde_json::to_string_pretty(&project_json(&projects))?
-                );
-            } else if projects.is_empty() {
-                println!("no projects");
-            } else {
-                for project in projects {
-                    println!(
-                        "{}\t{}\t{}\t{:?}",
-                        project.id,
-                        project.name,
-                        project.path.display(),
-                        project.status
-                    );
-                }
-            }
-        }
-        ProjectCommand::Scan(args) => {
-            let store = SqliteStore::open(&args.db)?;
-            let name = args
-                .name
-                .clone()
-                .or_else(|| path_name(&args.path))
-                .unwrap_or_else(|| "project".to_owned());
-            let project = store.register_project(name, &args.path)?;
-            let manifest = scan(&project.path)?;
-            store.set_project_status(project.id, ProjectStatus::ScanReady, None)?;
-            let project = store
-                .project(project.id)?
-                .ok_or_else(|| format!("project {} was not found", project.id))?;
-            let response = serde_json::json!({
-                "project": project_json(std::slice::from_ref(&project))[0],
-                "files": manifest,
-            });
-            if args.json {
-                println!("{}", serde_json::to_string_pretty(&response)?);
-            } else {
-                println!("project {} scanned", project.id);
-                println!("path: {}", project.path.display());
-                println!(
-                    "files: {}",
-                    response["files"].as_array().map_or(0, Vec::len)
-                );
-            }
-        }
-        ProjectCommand::Import(args) => {
-            run_import(args)?;
-        }
-        ProjectCommand::Status(args) => {
-            let store = SqliteStore::open(&args.db)?;
-            let project = store
-                .project(args.project)?
-                .ok_or_else(|| format!("project {} was not found", args.project))?;
-            if args.json {
-                println!(
-                    "{}",
-                    serde_json::to_string_pretty(&project_json(&[project]))?
-                );
-            } else {
-                print_project(&project);
-            }
-        }
-        ProjectCommand::Relink(args) => {
-            let store = SqliteStore::open(&args.db)?;
-            store.relink_project(args.project, &args.path)?;
-            let project = store
-                .project(args.project)?
-                .ok_or_else(|| format!("project {} was not found", args.project))?;
-            if args.json {
-                println!(
-                    "{}",
-                    serde_json::to_string_pretty(&project_json(&[project]))?
-                );
-            } else {
-                println!(
-                    "project {} relinked to {}",
-                    project.id,
-                    project.path.display()
-                );
-            }
+        ProjectCommand::List(args) => run_list(args)?,
+        ProjectCommand::Scan(args) => run_scan(args)?,
+        ProjectCommand::Import(args) => run_import(args)?,
+        ProjectCommand::Status(args) => run_status(args)?,
+        ProjectCommand::Relink(args) => run_relink(args)?,
+    }
+    Ok(())
+}
+
+/// Runs the project list command.
+///
+/// # Parameters
+/// - `args`: List command options.
+///
+/// # Returns
+/// Unit after output is rendered.
+///
+/// # Errors
+/// Returns a database or serialization error.
+fn run_list(args: &ProjectDatabaseArgs) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let store = SqliteStore::open(&args.db)?;
+    let projects = store.list_projects()?;
+    if args.json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&project_json(&projects))?
+        );
+    } else if projects.is_empty() {
+        println!("no projects");
+    } else {
+        for project in projects {
+            println!(
+                "{}\t{}\t{}\t{:?}",
+                project.id,
+                project.name,
+                project.path.display(),
+                project.status
+            );
         }
     }
     Ok(())
 }
 
-/// Runs one project import and renders its result.
+/// Runs a persisted project scan.
+///
+/// # Parameters
+/// - `args`: Scan command options.
+///
+/// # Returns
+/// Unit after output is rendered.
+///
+/// # Errors
+/// Returns a filesystem, database, or serialization error.
+fn run_scan(args: &ProjectScanArgs) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let report = service(&args.db)?.scan(args.name.clone(), &args.path)?;
+    let response = serde_json::json!({
+        "project": project_json(std::slice::from_ref(&report.project))[0],
+        "files": report.files.iter().map(file_json).collect::<Vec<_>>(),
+    });
+    if args.json {
+        println!("{}", serde_json::to_string_pretty(&response)?);
+    } else {
+        println!("project {} scanned", report.project.id);
+        println!("path: {}", report.project.path.display());
+        println!("files: {}", report.files.len());
+    }
+    Ok(())
+}
+
+/// Runs the semantic project import.
 ///
 /// # Parameters
 /// - `args`: Import command options.
 ///
 /// # Returns
-/// Unit after import output is rendered.
+/// Unit after output is rendered.
 ///
 /// # Errors
-/// Returns a database, filesystem, validation, or promotion error.
+/// Returns a project validation, database, or serialization error.
 fn run_import(args: &ProjectImportArgs) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let store = SqliteStore::open(&args.db)?;
-    let project = store
-        .project(args.project)?
-        .ok_or_else(|| format!("project {} was not found", args.project))?;
-    let files = scan_files(&project.path)?;
-    let imported = import_files(&store, &project, &files)?;
-    let project = store
-        .project(args.project)?
-        .ok_or_else(|| format!("project {} was not found", args.project))?;
+    let report = service(&args.db)?.import(args.project)?;
     let response = serde_json::json!({
-        "project": project_json(std::slice::from_ref(&project))[0],
-        "files": imported.0,
-        "snapshot": imported.1.to_string(),
+        "project": project_json(std::slice::from_ref(&report.project))[0],
+        "files": report.files,
+        "entities": report.entities,
+        "snapshot": report.snapshot.to_string(),
     });
     if args.json {
         println!("{}", serde_json::to_string_pretty(&response)?);
     } else {
         println!(
-            "project {} imported {} files into {}",
-            args.project, imported.0, imported.1
+            "project {} imported {} files and {} entities into {}",
+            args.project, report.files, report.entities, report.snapshot
         );
     }
     Ok(())
 }
 
-/// Scans supported and unknown files under one project path.
+/// Reads one project's catalog status.
 ///
 /// # Parameters
-/// - `path`: Project directory to scan.
+/// - `args`: Status command options.
 ///
 /// # Returns
-/// Deterministically ordered file manifest entries.
+/// Unit after output is rendered.
 ///
 /// # Errors
-/// Returns a filesystem traversal or read error.
-fn scan(path: &Path) -> std::io::Result<Vec<serde_json::Value>> {
-    Ok(scan_files(path)?
-        .into_iter()
-        .map(|file| file.json())
-        .collect())
+/// Returns a database or project lookup error.
+fn run_status(args: &ProjectSelectorArgs) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let store = SqliteStore::open(&args.db)?;
+    let project = store
+        .project(args.project)?
+        .ok_or_else(|| format!("project {} was not found", args.project))?;
+    if args.json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&project_json(&[project]))?
+        );
+    } else {
+        print_project(&project);
+    }
+    Ok(())
 }
 
-/// Derives a default project name from a path.
+/// Relinks a project while preserving its stable identity.
 ///
 /// # Parameters
-/// - `path`: Project path.
+/// - `args`: Relink command options.
 ///
 /// # Returns
-/// The final path component when it is valid UTF-8.
-fn path_name(path: &Path) -> Option<String> {
-    path.file_name()
-        .and_then(|value| value.to_str())
-        .map(ToOwned::to_owned)
+/// Unit after output is rendered.
+///
+/// # Errors
+/// Returns a database or project lookup error.
+fn run_relink(args: &ProjectRelinkArgs) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let store = SqliteStore::open(&args.db)?;
+    store.relink_project(args.project, &args.path)?;
+    let project = store
+        .project(args.project)?
+        .ok_or_else(|| format!("project {} was not found", args.project))?;
+    if args.json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&project_json(&[project]))?
+        );
+    } else {
+        println!(
+            "project {} relinked to {}",
+            project.id,
+            project.path.display()
+        );
+    }
+    Ok(())
 }
 
-/// Renders project records as stable JSON values.
+/// Opens the shared project onboarding service.
 ///
 /// # Parameters
-/// - `projects`: Project records to render.
+/// - `path`: SQLite database path.
 ///
 /// # Returns
-/// JSON values containing only public project fields.
+/// A shared project service.
+///
+/// # Errors
+/// Returns a database initialization error.
+fn service(
+    path: &std::path::Path,
+) -> Result<ProjectService, Box<dyn std::error::Error + Send + Sync>> {
+    Ok(ProjectService::new(Arc::new(SqliteStore::open(path)?)))
+}
+
+/// Converts project records to stable public JSON.
+///
+/// # Parameters
+/// - `projects`: Project records to serialize.
+///
+/// # Returns
+/// Public JSON values.
 fn project_json(projects: &[ProjectRecord]) -> Vec<serde_json::Value> {
     projects
         .iter()
@@ -293,13 +305,30 @@ fn project_json(projects: &[ProjectRecord]) -> Vec<serde_json::Value> {
         .collect()
 }
 
-/// Converts a project status into its stable public name.
+/// Converts a scan file to stable public JSON.
 ///
 /// # Parameters
-/// - `status`: Status to render.
+/// - `file`: Scan file to serialize.
 ///
 /// # Returns
-/// Stable status text.
+/// Public JSON file metadata.
+fn file_json(file: &ScanFile) -> serde_json::Value {
+    serde_json::json!({
+        "path": file.relative_path,
+        "bytes": file.bytes.len(),
+        "digest": blake3::hash(&file.bytes).to_hex().to_string(),
+        "adapter": file.adapter,
+        "status": file.status,
+    })
+}
+
+/// Converts a project status to its stable public spelling.
+///
+/// # Parameters
+/// - `status`: Project status to serialize.
+///
+/// # Returns
+/// Stable public status text.
 fn status_name(status: &ProjectStatus) -> &'static str {
     match status {
         ProjectStatus::Registered => "registered",

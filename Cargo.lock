@@ -1330,6 +1330,7 @@ dependencies = [
  "scriberig-cli",
  "scriberig-client",
  "scriberig-core",
+ "scriberig-project",
  "scriberig-server",
  "scriberig-session-sqlite",
  "scriberig-store",
@@ -1389,6 +1390,7 @@ dependencies = [
  "scriberig-app",
  "scriberig-client",
  "scriberig-core",
+ "scriberig-project",
  "scriberig-store",
  "scriberig-store-sqlite",
  "serde",
@@ -1530,6 +1532,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "scriberig-project"
+version = "0.1.0"
+dependencies = [
+ "blake3",
+ "scriberig-core",
+ "scriberig-domain-pdf",
+ "scriberig-domain-rust",
+ "scriberig-store",
+ "scriberig-store-sqlite",
+ "sr-markdown",
+]
+
+[[package]]
 name = "scriberig-projection"
 version = "0.1.0"
 dependencies = [
@@ -1571,6 +1586,7 @@ dependencies = [
  "scriberig-app",
  "scriberig-client",
  "scriberig-core",
+ "scriberig-project",
  "scriberig-protocol",
  "scriberig-query",
  "scriberig-session",
