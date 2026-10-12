@@ -52,7 +52,13 @@ pub(super) fn run(
                     .and_then(|value| value.to_str())
                     .unwrap_or("project");
                 let service = scriberig_project::ProjectService::new(Arc::clone(&store));
-                let report = service.scan(Some(name.to_owned()), path)?;
+                let report = service.scan_with_options(
+                    Some(name.to_owned()),
+                    path,
+                    scriberig_project::ScanOptions {
+                        git_tracked: args.git_tracked,
+                    },
+                )?;
                 let project = report.project;
                 if args.import_project {
                     let imported = service.import(project.id)?;

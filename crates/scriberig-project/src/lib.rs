@@ -12,13 +12,20 @@ use scriberig_store_sqlite::{
 
 #[path = "support.rs"]
 mod support;
-use support::{import_file, scan_directory};
+use support::import_file;
 
 /// Shared project onboarding service used by CLI, HTTP, and TUI surfaces.
 #[derive(Clone, Debug)]
 pub struct ProjectService {
     /// Shared durable SQLite catalog and object store.
     store: Arc<SqliteStore>,
+}
+
+/// Selects which filesystem files a project scan persists.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct ScanOptions {
+    /// Restricts the manifest to files tracked by the Git index.
+    pub git_tracked: bool,
 }
 
 /// A scanned project file with exact source bytes and classification.
@@ -113,6 +120,27 @@ impl ProjectService {
         name: Option<String>,
         path: impl AsRef<Path>,
     ) -> Result<ScanReport, ProjectError> {
+        self.scan_with_options(name, path, ScanOptions::default())
+    }
+
+    /// Registers and persists a scan using an explicit file-selection policy.
+    ///
+    /// # Parameters
+    /// - `name`: Optional display name for a new project.
+    /// - `path`: Filesystem project path.
+    /// - `options`: File-selection policy for the persisted manifest.
+    ///
+    /// # Returns
+    /// The registered project and selected deterministic scan files.
+    ///
+    /// # Errors
+    /// Returns a structured filesystem, Git, or storage failure.
+    pub fn scan_with_options(
+        &self,
+        name: Option<String>,
+        path: impl AsRef<Path>,
+        options: ScanOptions,
+    ) -> Result<ScanReport, ProjectError> {
         let path = path.as_ref();
         let display_name = name
             .or_else(|| {
@@ -125,7 +153,13 @@ impl ProjectService {
             .store
             .register_project(display_name, path)
             .map_err(storage_error)?;
-        let files = scan_directory(&project.path).map_err(|error| filesystem_error(&error))?;
+        let tracked = if options.git_tracked {
+            Some(support::git_tracked_paths(&project.path).map_err(|error| git_error(&error))?)
+        } else {
+            None
+        };
+        let files = support::scan_directory(&project.path, tracked.as_ref())
+            .map_err(|error| filesystem_error(&error))?;
         let records = files
             .iter()
             .map(|file| ProjectFileRecord {
@@ -237,6 +271,20 @@ fn storage_error(error: impl Display) -> ProjectError {
 fn filesystem_error(error: &std::io::Error) -> ProjectError {
     ProjectError {
         code: "filesystem_error",
+        message: error.to_string(),
+    }
+}
+
+/// Converts a Git selection failure into a stable project error.
+///
+/// # Parameters
+/// - `error`: Git command or repository failure.
+///
+/// # Returns
+/// A structured Git repository requirement error.
+fn git_error(error: &std::io::Error) -> ProjectError {
+    ProjectError {
+        code: "git_repository_required",
         message: error.to_string(),
     }
 }

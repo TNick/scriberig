@@ -262,6 +262,9 @@ pub struct TuiArgs {
     /// Import the selected project before starting the TUI.
     #[arg(long = "import", requires = "project")]
     pub import_project: bool,
+    /// Restrict project onboarding to existing Git-indexed files.
+    #[arg(long, requires = "project")]
+    pub git_tracked: bool,
 }
 
 /// Configure canonical-state maintenance.

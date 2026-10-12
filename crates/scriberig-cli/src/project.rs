@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use clap::{Args, Subcommand};
 use scriberig_core::ProjectId;
-use scriberig_project::{ProjectService, ScanFile};
+use scriberig_project::{ProjectService, ScanFile, ScanOptions};
 use scriberig_store_sqlite::{ProjectRecord, ProjectStatus, SqliteStore};
 
 /// Selects a project catalog operation.
@@ -63,6 +63,9 @@ pub struct ProjectScanArgs {
     /// Optional display name for a newly registered project.
     #[arg(long)]
     pub name: Option<String>,
+    /// Restrict the persisted manifest to existing Git-indexed files.
+    #[arg(long)]
+    pub git_tracked: bool,
     /// SQLite database path.
     #[arg(long, default_value = "playground/dev-app-runtime/scriberig.sqlite")]
     pub db: PathBuf,
@@ -166,7 +169,13 @@ fn run_list(args: &ProjectDatabaseArgs) -> Result<(), Box<dyn std::error::Error 
 /// # Errors
 /// Returns a filesystem, database, or serialization error.
 fn run_scan(args: &ProjectScanArgs) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let report = service(&args.db)?.scan(args.name.clone(), &args.path)?;
+    let report = service(&args.db)?.scan_with_options(
+        args.name.clone(),
+        &args.path,
+        ScanOptions {
+            git_tracked: args.git_tracked,
+        },
+    )?;
     let response = serde_json::json!({
         "project": project_json(std::slice::from_ref(&report.project))[0],
         "files": report.files.iter().map(file_json).collect::<Vec<_>>(),

@@ -3,6 +3,8 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
+  FormControlLabel,
   List,
   ListItem,
   ListItemText,
@@ -33,6 +35,7 @@ export function ProjectManager({ client }: { client: ScriberigClient }): ReactEl
   const [projects, setProjects] = useState<Project[]>([]);
   const [path, setPath] = useState("");
   const [name, setName] = useState("");
+  const [gitTracked, setGitTracked] = useState(false);
   const [scan, setScan] = useState<ScanResult>();
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string>();
@@ -57,6 +60,7 @@ export function ProjectManager({ client }: { client: ScriberigClient }): ReactEl
       const value = await client.project<ScanResult>("scan", {
         path,
         ...(name === "" ? {} : { name }),
+        ...(gitTracked ? { gitTracked: true } : {}),
       });
       setScan(value);
       setProjects((current) => [
@@ -116,6 +120,15 @@ export function ProjectManager({ client }: { client: ScriberigClient }): ReactEl
           value={path}
           onChange={(event) => setPath(event.target.value)}
           required
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={gitTracked}
+              onChange={(event) => setGitTracked(event.target.checked)}
+            />
+          }
+          label="Only Git-tracked files"
         />
         <TextField
           label="Project name"

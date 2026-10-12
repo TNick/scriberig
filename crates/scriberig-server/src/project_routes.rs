@@ -3,7 +3,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use scriberig_project::ProjectService;
+use scriberig_project::{ProjectService, ScanOptions};
 use scriberig_store_sqlite::{ProjectRecord, ProjectStatus};
 use serde_json::{Value, json};
 
@@ -83,7 +83,13 @@ pub(super) fn scan<S: ApplicationService>(
     let input: ScanInput = serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
     let path = authorized_path(&state.allowed_project_roots, &input.path)?;
     let report = ProjectService::new(Arc::clone(store))
-        .scan(input.name, path)
+        .scan_with_options(
+            input.name,
+            path,
+            ScanOptions {
+                git_tracked: input.git_tracked,
+            },
+        )
         .map_err(|error| project_error(&error))?;
     let files = report
         .files
@@ -155,6 +161,9 @@ struct ScanInput {
     path: String,
     /// Optional display name.
     name: Option<String>,
+    /// Restrict the manifest to existing Git-indexed files.
+    #[serde(default, alias = "gitTracked")]
+    git_tracked: bool,
 }
 
 /// Request body for a project relink.

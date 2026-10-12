@@ -2,9 +2,10 @@
 
 use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 use std::sync::Arc;
 
-use scriberig_project::ProjectService;
+use scriberig_project::{ProjectService, ScanOptions};
 use scriberig_store_sqlite::SqliteStore;
 
 /// Creates a unique temporary directory for one onboarding test.
@@ -20,6 +21,24 @@ fn temporary_directory(label: &str) -> PathBuf {
     let _ = fs::remove_dir_all(&path);
     fs::create_dir_all(&path).expect("temporary project directory");
     path
+}
+
+/// Runs one Git command in a temporary repository.
+///
+/// # Parameters
+/// - `root`: Repository working tree.
+/// - `arguments`: Git arguments.
+///
+/// # Returns
+/// Unit after Git succeeds.
+fn git(root: &PathBuf, arguments: &[&str]) {
+    let status = Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .args(arguments)
+        .status()
+        .expect("git executable");
+    assert!(status.success(), "git command failed: {arguments:?}");
 }
 
 /// Persists manifests, imports semantic children, and removes deleted ownership.
@@ -72,4 +91,44 @@ fn scan_reopen_import_and_delete_are_durable() {
             .iter()
             .all(|entity| !entity.relative_path.ends_with("main.rs"))
     );
+}
+
+/// Restricts a scan manifest to existing files tracked by Git's index.
+#[test]
+fn git_tracked_scan_excludes_untracked_files() {
+    let root = temporary_directory("git-tracked");
+    fs::write(root.join("tracked.md"), "# tracked\n").expect("tracked file");
+    fs::write(root.join("untracked.rs"), "fn ignored() {}\n").expect("untracked file");
+    git(&root, &["init"]);
+    git(&root, &["add", "tracked.md"]);
+    let database = root.with_extension("sqlite");
+    let store = Arc::new(SqliteStore::open(&database).expect("database"));
+    let report = ProjectService::new(store)
+        .scan_with_options(
+            Some("tracked".to_owned()),
+            &root,
+            ScanOptions { git_tracked: true },
+        )
+        .expect("tracked scan");
+    assert_eq!(
+        report
+            .files
+            .iter()
+            .map(|file| file.relative_path.as_str())
+            .collect::<Vec<_>>(),
+        vec!["tracked.md"]
+    );
+}
+
+/// Rejects Git-filtered scans when the selected path is not a repository.
+#[test]
+fn git_tracked_scan_requires_repository() {
+    let root = temporary_directory("not-git");
+    fs::write(root.join("notes.md"), "# notes\n").expect("source file");
+    let database = root.with_extension("sqlite");
+    let store = Arc::new(SqliteStore::open(&database).expect("database"));
+    let error = ProjectService::new(store)
+        .scan_with_options(None, &root, ScanOptions { git_tracked: true })
+        .expect_err("non-Git path must fail");
+    assert_eq!(error.code, "git_repository_required");
 }
