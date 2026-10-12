@@ -116,6 +116,7 @@ fn adapter_for(path: &Path) -> &'static str {
         Some("js" | "mjs" | "cjs" | "jsx") => "javascript",
         Some("ts" | "mts" | "cts" | "tsx") => "typescript",
         Some("md" | "markdown") => "markdown",
+        Some("py" | "pyi" | "pyw") => "python",
         Some("rs") => "rust",
         Some("pdf") => "pdf",
         _ => "unsupported",

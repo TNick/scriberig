@@ -49,6 +49,17 @@ pub struct PythonNodeRecord {
     pub text: Option<String>,
 }
 
+impl PythonDocument {
+    /// Returns the adapter identifier for this parsed document.
+    ///
+    /// # Returns
+    /// The Python adapter identifier.
+    #[must_use]
+    pub fn adapter(&self) -> &str {
+        &self.adapter
+    }
+}
+
 /// A serializable syntax tree node with ordered children.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct PythonNode {

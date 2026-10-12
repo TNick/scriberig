@@ -190,3 +190,52 @@ fn ecma_imports_are_atomic_and_diagnostic() {
         Some(imported.snapshot)
     );
 }
+
+/// Imports Python modules and keeps the prior snapshot on syntax failure.
+#[test]
+fn python_imports_are_atomic_and_diagnostic() {
+    let root = temporary_directory("python");
+    fs::write(
+        root.join("main.py"),
+        "# greeting\nclass Greeter:\n    def greet(self, name: str) -> str:\n        return f\"Hi {name}\"\n",
+    )
+    .expect("Python");
+    fs::write(root.join("types.pyi"), "def greet(name: str) -> str: ...\n").expect("Python stub");
+    fs::write(root.join("script.pyw"), "print(\"window\")\n").expect("Python script");
+    let database = root.with_extension("sqlite");
+    let store = Arc::new(SqliteStore::open(&database).expect("database"));
+    let service = ProjectService::new(Arc::clone(&store));
+    let scan = service.scan(None, &root).expect("scan");
+    assert_eq!(
+        scan.files
+            .iter()
+            .map(|file| file.adapter.as_str())
+            .collect::<Vec<_>>(),
+        vec!["python", "python", "python"]
+    );
+    let imported = service.import(scan.project.id).expect("Python import");
+    assert!(imported.entities >= 20);
+    assert!(
+        store
+            .project_entities(scan.project.id)
+            .expect("Python entities")
+            .iter()
+            .any(|entity| entity.kind == "python.document")
+    );
+
+    fs::write(root.join("main.py"), "def broken(:\n").expect("broken Python");
+    service.scan(None, &root).expect("rescan");
+    let error = service
+        .import(scan.project.id)
+        .expect_err("invalid Python must reject import");
+    assert_eq!(error.code, "import_diagnostics");
+    assert_eq!(error.diagnostics[0].adapter, "python");
+    assert_eq!(
+        store
+            .project(scan.project.id)
+            .expect("project")
+            .expect("record")
+            .current_snapshot,
+        Some(imported.snapshot)
+    );
+}

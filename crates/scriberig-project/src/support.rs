@@ -15,7 +15,7 @@ mod scan;
 pub(crate) use scan::scan_directory;
 #[path = "adapters.rs"]
 mod adapters;
-use adapters::{import_ecma, import_html};
+use adapters::{import_ecma, import_html, import_python};
 /// Imports one file and appends its revisions and snapshot changes.
 ///
 /// # Parameters
@@ -48,6 +48,9 @@ pub(crate) fn import_file(
         "html" => import_html(project, file, source, revisions, changes, &mut ownership)?,
         "javascript" | "typescript" => {
             import_ecma(project, file, source, revisions, changes, &mut ownership)?;
+        }
+        "python" => {
+            import_python(project, file, source, revisions, changes, &mut ownership)?;
         }
         _ => {}
     }

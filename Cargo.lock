@@ -2281,6 +2281,7 @@ dependencies = [
  "scriberig-domain-ecma",
  "scriberig-domain-html",
  "scriberig-domain-pdf",
+ "scriberig-domain-python",
  "scriberig-domain-rust",
  "scriberig-store",
  "scriberig-store-sqlite",
