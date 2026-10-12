@@ -1,0 +1,129 @@
+/** @file Provides server-backed project catalog and scan onboarding. */
+import {
+  Alert,
+  Box,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { useEffect, useState, type FormEvent, type ReactElement } from "react";
+
+interface Project {
+  id: string;
+  name: string;
+  path: string;
+  status: string;
+  snapshot?: string;
+}
+
+interface ScanResult {
+  project: Project;
+  files: Array<{ path: string; adapter: string; status: string; bytes: number }>;
+}
+
+/** Renders the project catalog and reviewable filesystem scan.
+ * @returns The project manager view.
+ * @throws Network failures are rendered as an error state.
+ */
+export function ProjectManager(): ReactElement {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [path, setPath] = useState("");
+  const [name, setName] = useState("");
+  const [scan, setScan] = useState<ScanResult>();
+  const [error, setError] = useState<string>();
+
+  useEffect(() => {
+    void fetch("/api/projects")
+      .then(async (response) => {
+        if (!response.ok) throw new Error(await response.text());
+        return response.json() as Promise<{ projects: Project[] }>;
+      })
+      .then((value) => setProjects(value.projects))
+      .catch((reason: unknown) => setError(String(reason)));
+  }, []);
+
+  /** Starts a server-side project scan.
+   * @param event Form submission event.
+   * @returns A promise completed after the scan response is applied.
+   * @throws Network and server failures are rendered as an error state.
+   */
+  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    setError(undefined);
+    setScan(undefined);
+    try {
+      const response = await fetch("/api/projects/scan", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ path, ...(name === "" ? {} : { name }) }),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      const value = (await response.json()) as ScanResult;
+      setScan(value);
+      setProjects((current) => [
+        ...current.filter((project) => project.id !== value.project.id),
+        value.project,
+      ]);
+    } catch (reason: unknown) {
+      setError(String(reason));
+    }
+  }
+
+  return (
+    <Box>
+      <Typography variant="h5">Projects</Typography>
+      {error !== undefined && <Alert severity="error">{error}</Alert>}
+      <List aria-label="Projects">
+        {projects.map((project) => (
+          <ListItem key={project.id}>
+            <ListItemText
+              primary={`${project.name} (${project.status})`}
+              secondary={project.path}
+            />
+          </ListItem>
+        ))}
+      </List>
+      <Box
+        component="form"
+        onSubmit={(event) => void submit(event)}
+        sx={{ display: "grid", gap: 2, maxWidth: 640 }}
+      >
+        <TextField
+          label="Server filesystem path"
+          value={path}
+          onChange={(event) => setPath(event.target.value)}
+          required
+        />
+        <TextField
+          label="Project name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
+        <Button type="submit" variant="contained">
+          Scan project
+        </Button>
+      </Box>
+      {scan !== undefined && (
+        <Box sx={{ mt: 3 }}>
+          <Typography variant="h6">Scan review</Typography>
+          <Typography>
+            {scan.files.length} files discovered for {scan.project.name}.
+          </Typography>
+          <List aria-label="Scan manifest">
+            {scan.files.slice(0, 100).map((file) => (
+              <ListItem key={file.path}>
+                <ListItemText
+                  primary={file.path}
+                  secondary={`${file.adapter} · ${file.status} · ${file.bytes} bytes`}
+                />
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      )}
+    </Box>
+  );
+}

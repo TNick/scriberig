@@ -17,6 +17,7 @@ import { SessionAgentView } from "./views/SessionAgentView";
 import { OperationsView } from "./views/OperationsView";
 import { MigrationReviewView } from "./views/MigrationReviewView";
 import { SelectionSummary } from "./components/SelectionSummary";
+import { ProjectManager } from "./views/ProjectManager";
 
 /** Renders the semantic selection shared by every integrated route.
  * @returns The shared selection summary.
@@ -68,7 +69,9 @@ export function App(): ReactElement {
         >
           <RuntimeSnapshotStatus connection={connection} />
           <SharedSelectionSummary />
-          {route === "raw" ? (
+          {route === "projects" ? (
+            <ProjectManager />
+          ) : route === "raw" ? (
             <RawKnowledgeView />
           ) : route === "semantic" ? (
             <SemanticView />
