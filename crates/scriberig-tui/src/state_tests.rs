@@ -143,6 +143,33 @@ fn palette_selection_moves_and_activates() {
     assert!(state.overlay.is_none());
 }
 
+/// Verifies history palette activation closes the overlay before loading.
+#[test]
+fn palette_history_activation_closes_overlay() {
+    let mut state = TuiState {
+        selection: Some(crate::selection::EntitySelection {
+            entity: EntityId::from_bytes([8; 16]),
+            revision: None,
+            snapshot: Some(SnapshotId::new([3; 32])),
+        }),
+        ..TuiState::default()
+    };
+    reduce(&mut state, Action::PaletteOpened);
+    for _ in 0..5 {
+        reduce(&mut state, Action::CursorMoved(Direction::Next));
+    }
+    let effects = reduce(&mut state, Action::Activated);
+    assert_eq!(
+        effects,
+        vec![Effect::History {
+            request_id: 1,
+            snapshot: SnapshotId::new([3; 32])
+        }]
+    );
+    assert!(state.overlay.is_none());
+    assert_eq!(state.primary_view, PrimaryView::History);
+}
+
 /// Verifies the palette reaches the agent composer for the selected entity.
 #[test]
 fn palette_opens_agent_composer_for_selection() {

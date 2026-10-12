@@ -218,3 +218,28 @@ fn tui_pty_activates_palette_commands() {
 
     assert!(tui.shutdown());
 }
+
+/// Verifies history loading and the agent composer command from the palette.
+#[test]
+fn tui_pty_opens_history_and_agent_composer() {
+    let _lock = test_lock();
+    let mut tui = TuiPty::start();
+
+    assert!(tui.read_until("project: prj_"), "{}", tui.diagnostic());
+    tui.send(b":");
+    assert!(tui.read_until("Search:"));
+    tui.send(b"history");
+    assert!(tui.read_until("Search: history"));
+    tui.send(b"\r");
+    assert!(tui.read_until("History @"), "{}", tui.diagnostic());
+
+    tui.send(b":");
+    assert!(tui.read_until("Search:"));
+    tui.send(b"start-agent");
+    assert!(tui.read_until("Search: start-agent"));
+    tui.send(b"\r");
+    assert!(tui.read_until("Session:"), "{}", tui.diagnostic());
+    tui.send(b"\x1b");
+    assert!(tui.read_until_not("Session:"));
+    assert!(tui.shutdown());
+}
