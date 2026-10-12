@@ -8,8 +8,8 @@ pub mod project;
 pub mod trust;
 
 pub use project::{
-    ProjectArgs, ProjectCommand, ProjectDatabaseArgs, ProjectRelinkArgs, ProjectScanArgs,
-    ProjectSelectorArgs,
+    ProjectArgs, ProjectCommand, ProjectDatabaseArgs, ProjectImportArgs, ProjectRelinkArgs,
+    ProjectScanArgs, ProjectSelectorArgs,
 };
 
 /// Reports a CLI dispatch failure while preserving its process status.

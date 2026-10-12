@@ -1389,9 +1389,11 @@ dependencies = [
  "scriberig-app",
  "scriberig-client",
  "scriberig-core",
+ "scriberig-store",
  "scriberig-store-sqlite",
  "serde",
  "serde_json",
+ "sr-markdown",
 ]
 
 [[package]]

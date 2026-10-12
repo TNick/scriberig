@@ -2,9 +2,14 @@
 
 use std::path::{Path, PathBuf};
 
+use scriberig_core::ProjectId;
 use scriberig_store_sqlite::{ProjectRecord, ProjectStatus, SqliteStore};
 
 use clap::{Args, Subcommand};
+
+#[path = "project_import.rs"]
+mod project_import;
+use project_import::{import_files, scan_files};
 
 /// Selects a project catalog operation.
 #[derive(Debug, Args)]
@@ -21,6 +26,8 @@ pub enum ProjectCommand {
     List(ProjectDatabaseArgs),
     /// Scan and register a filesystem project.
     Scan(ProjectScanArgs),
+    /// Import the latest filesystem scan into an immutable project snapshot.
+    Import(ProjectImportArgs),
     /// Read one project's onboarding status.
     Status(ProjectSelectorArgs),
     /// Change a project's registered filesystem path.
@@ -59,6 +66,19 @@ pub struct ProjectScanArgs {
     /// Optional display name for a newly registered project.
     #[arg(long)]
     pub name: Option<String>,
+    /// SQLite database path.
+    #[arg(long, default_value = "playground/dev-app-runtime/scriberig.sqlite")]
+    pub db: PathBuf,
+    /// Render machine-readable JSON.
+    #[arg(long)]
+    pub json: bool,
+}
+
+/// Configures a project import operation.
+#[derive(Debug, Args)]
+pub struct ProjectImportArgs {
+    /// Stable project identity.
+    pub project: ProjectId,
     /// SQLite database path.
     #[arg(long, default_value = "playground/dev-app-runtime/scriberig.sqlite")]
     pub db: PathBuf,
@@ -127,6 +147,9 @@ pub fn run(args: &ProjectArgs) -> Result<(), Box<dyn std::error::Error + Send + 
             let project = store.register_project(name, &args.path)?;
             let manifest = scan(&project.path)?;
             store.set_project_status(project.id, ProjectStatus::ScanReady, None)?;
+            let project = store
+                .project(project.id)?
+                .ok_or_else(|| format!("project {} was not found", project.id))?;
             let response = serde_json::json!({
                 "project": project_json(std::slice::from_ref(&project))[0],
                 "files": manifest,
@@ -141,6 +164,9 @@ pub fn run(args: &ProjectArgs) -> Result<(), Box<dyn std::error::Error + Send + 
                     response["files"].as_array().map_or(0, Vec::len)
                 );
             }
+        }
+        ProjectCommand::Import(args) => {
+            run_import(args)?;
         }
         ProjectCommand::Status(args) => {
             let store = SqliteStore::open(&args.db)?;
@@ -179,6 +205,42 @@ pub fn run(args: &ProjectArgs) -> Result<(), Box<dyn std::error::Error + Send + 
     Ok(())
 }
 
+/// Runs one project import and renders its result.
+///
+/// # Parameters
+/// - `args`: Import command options.
+///
+/// # Returns
+/// Unit after import output is rendered.
+///
+/// # Errors
+/// Returns a database, filesystem, validation, or promotion error.
+fn run_import(args: &ProjectImportArgs) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let store = SqliteStore::open(&args.db)?;
+    let project = store
+        .project(args.project)?
+        .ok_or_else(|| format!("project {} was not found", args.project))?;
+    let files = scan_files(&project.path)?;
+    let imported = import_files(&store, &project, &files)?;
+    let project = store
+        .project(args.project)?
+        .ok_or_else(|| format!("project {} was not found", args.project))?;
+    let response = serde_json::json!({
+        "project": project_json(std::slice::from_ref(&project))[0],
+        "files": imported.0,
+        "snapshot": imported.1.to_string(),
+    });
+    if args.json {
+        println!("{}", serde_json::to_string_pretty(&response)?);
+    } else {
+        println!(
+            "project {} imported {} files into {}",
+            args.project, imported.0, imported.1
+        );
+    }
+    Ok(())
+}
+
 /// Scans supported and unknown files under one project path.
 ///
 /// # Parameters
@@ -190,89 +252,10 @@ pub fn run(args: &ProjectArgs) -> Result<(), Box<dyn std::error::Error + Send + 
 /// # Errors
 /// Returns a filesystem traversal or read error.
 fn scan(path: &Path) -> std::io::Result<Vec<serde_json::Value>> {
-    let mut files = Vec::new();
-    scan_directory(path, path, &mut files)?;
-    files.sort_by(|left, right| {
-        left["path"]
-            .as_str()
-            .unwrap_or_default()
-            .cmp(right["path"].as_str().unwrap_or_default())
-    });
-    Ok(files)
-}
-
-/// Recursively visits one directory while applying default exclusions.
-///
-/// # Parameters
-/// - `root`: Project root used for relative paths.
-/// - `directory`: Directory currently being visited.
-/// - `files`: Manifest entries being collected.
-///
-/// # Returns
-/// Unit after the directory has been visited.
-///
-/// # Errors
-/// Returns a filesystem traversal or read error.
-fn scan_directory(
-    root: &Path,
-    directory: &Path,
-    files: &mut Vec<serde_json::Value>,
-) -> std::io::Result<()> {
-    for entry in std::fs::read_dir(directory)? {
-        let entry = entry?;
-        let path = entry.path();
-        let relative = path.strip_prefix(root).unwrap_or(&path);
-        if is_excluded(relative) {
-            continue;
-        }
-        let metadata = entry.metadata()?;
-        if metadata.is_dir() {
-            scan_directory(root, &path, files)?;
-        } else if metadata.is_file() {
-            let bytes = std::fs::read(&path)?;
-            let adapter = adapter_for(&path);
-            files.push(serde_json::json!({
-                "path": relative.to_string_lossy().replace('\\', "/"),
-                "bytes": bytes.len(),
-                "digest": blake3::hash(&bytes).to_hex().to_string(),
-                "adapter": adapter,
-                "status": if adapter == "unsupported" { "unsupported" } else { "ready" },
-            }));
-        }
-    }
-    Ok(())
-}
-
-/// Returns whether a relative path belongs to a default-excluded directory.
-///
-/// # Parameters
-/// - `path`: Relative path to classify.
-///
-/// # Returns
-/// Whether the path should be skipped.
-fn is_excluded(path: &Path) -> bool {
-    path.components().any(|component| {
-        matches!(
-            component.as_os_str().to_str(),
-            Some(".git" | "target" | "node_modules" | "dist" | "build")
-        )
-    })
-}
-
-/// Selects the first supported adapter by file extension.
-///
-/// # Parameters
-/// - `path`: File path to classify.
-///
-/// # Returns
-/// The adapter name or `unsupported`.
-fn adapter_for(path: &Path) -> &'static str {
-    match path.extension().and_then(|value| value.to_str()) {
-        Some("md" | "markdown") => "markdown",
-        Some("rs") => "rust",
-        Some("pdf") => "pdf",
-        _ => "unsupported",
-    }
+    Ok(scan_files(path)?
+        .into_iter()
+        .map(|file| file.json())
+        .collect())
 }
 
 /// Derives a default project name from a path.
