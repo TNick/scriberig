@@ -107,8 +107,9 @@ make dev-stop
 ```
 
 The Make targets work on Linux and Windows. Repeating `make dev` reuses the
-running services; `make dev-stop` stops them. The current API exposes a health
-endpoint while semantic API operations remain under development. Logs and the
-local database stay in `playground/dev-app-runtime/`.
+running services; `make dev-stop` stops them. The current API exposes health and
+semantic operation endpoints. Some optional domain operations and
+provider-streaming integrations remain capability-gated. Logs and the local
+database stay in `playground/dev-app-runtime/`.
 
 Repository-specific source and agent rules live in the top-level `AGENTS.md` and are refined by nested `AGENTS.md` files.
