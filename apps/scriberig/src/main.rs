@@ -130,6 +130,9 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         scriberig_cli::Command::AgentContinue(args) => {
             remote_commands::agent_continue(args)?;
         }
+        scriberig_cli::Command::Project(args) => {
+            scriberig_cli::project::run(&args)?;
+        }
     }
     Ok(())
 }

@@ -4,7 +4,13 @@ use clap::{Args, Parser, Subcommand};
 
 pub mod inspect;
 pub mod output;
+pub mod project;
 pub mod trust;
+
+pub use project::{
+    ProjectArgs, ProjectCommand, ProjectDatabaseArgs, ProjectRelinkArgs, ProjectScanArgs,
+    ProjectSelectorArgs,
+};
 
 /// Reports a CLI dispatch failure while preserving its process status.
 #[derive(Debug)]
@@ -105,6 +111,8 @@ pub enum Command {
     Session(SessionArgs),
     /// Continue an agent operation on an existing remote branch.
     AgentContinue(AgentContinueArgs),
+    /// Manage projects stored in a shared database.
+    Project(ProjectArgs),
 }
 
 /// Configures a command that uses the public HTTP protocol endpoint.
