@@ -27,6 +27,19 @@ pub(super) fn dispatch<S: ApplicationService>(
     correlation_id: String,
 ) -> Result<Value, (u16, Value)> {
     let request = decode_request(operation, body)?;
+    if let scriberig_protocol::Request::Project(project) = request {
+        return serde_json::to_value(super::project_routes::protocol(
+            state,
+            &project,
+            correlation_id,
+        ))
+        .map_err(|error| {
+            (
+                500,
+                json!({"code": "internal", "message": error.to_string()}),
+            )
+        });
+    }
     let response = Dispatcher::new(&state.service).dispatch(scriberig_protocol::RequestEnvelope {
         version: scriberig_protocol::ProtocolVersion::default(),
         correlation_id,
@@ -91,6 +104,9 @@ fn decode_request(
         }
         "session" | "session_read" => {
             scriberig_protocol::Request::SessionRead(serde_json::from_str(body).map_err(invalid)?)
+        }
+        "project" => {
+            scriberig_protocol::Request::Project(serde_json::from_str(body).map_err(invalid)?)
         }
         _ => {
             return Err((

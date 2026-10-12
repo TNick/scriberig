@@ -2,11 +2,12 @@
 
 use crate::{
     AgentContinueRequest, AgentStartRequest, CancelOperationRequest, CommandRequest, Event,
-    FindRequest, ListRequest, QueryRequest, SessionReadRequest, SubscribeRequest,
+    FindRequest, ListRequest, ProjectRequest, QueryRequest, SessionReadRequest, SubscribeRequest,
 };
 use crate::{
     CapabilitiesResponse, InspectEntityRequest, InspectEntityResponse, OperationStatusRequest,
-    OperationStatusResponse, ProtocolError, ProtocolVersion, RuntimeCapabilitiesRequest,
+    OperationStatusResponse, ProjectResponse, ProtocolError, ProtocolVersion,
+    RuntimeCapabilitiesRequest,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -38,6 +39,8 @@ pub enum Request {
     AgentContinue(AgentContinueRequest),
     /// Read one compact durable session tree.
     SessionRead(SessionReadRequest),
+    /// Execute one project onboarding operation.
+    Project(ProjectRequest),
 }
 
 /// Initial typed responses supported by the remote vertical slice.
@@ -65,6 +68,8 @@ pub enum Response {
     AgentAccepted(crate::AgentAcceptedResponse),
     /// Compact durable session tree.
     Session(crate::SessionReadResponse),
+    /// Project onboarding result.
+    Project(ProjectResponse),
     /// Structured protocol failure.
     Error(ProtocolError),
 }

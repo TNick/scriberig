@@ -165,6 +165,19 @@ fn protocol<S: ApplicationService>(
                 json!({"code": "invalid_request", "message": error.to_string()}),
             )
         })?;
+    if let scriberig_protocol::Request::Project(project) = request.request.clone() {
+        return serde_json::to_value(project_routes::protocol(
+            state,
+            &project,
+            request.correlation_id,
+        ))
+        .map_err(|error| {
+            (
+                500,
+                json!({"code": "internal", "message": error.to_string()}),
+            )
+        });
+    }
     let response = Dispatcher::new(&state.service).dispatch(request);
     serde_json::to_value(response).map_err(|error| {
         (

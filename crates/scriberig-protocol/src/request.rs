@@ -92,3 +92,12 @@ pub struct CommandRequest {
     /// JSON representation of the typed command payload.
     pub payload: serde_json::Value,
 }
+
+/// Requests one project onboarding operation through the public protocol.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct ProjectRequest {
+    /// Stable project operation name such as `scan` or `import`.
+    pub operation: String,
+    /// Operation-specific JSON payload.
+    pub payload: serde_json::Value,
+}

@@ -47,3 +47,10 @@ pub struct FindResponse {
     /// Exact find result and scope.
     pub result: serde_json::Value,
 }
+
+/// Returns the result of one project onboarding operation.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct ProjectResponse {
+    /// Operation result retained in its presentation-neutral JSON shape.
+    pub result: serde_json::Value,
+}

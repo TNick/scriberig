@@ -24,11 +24,12 @@ pub use operation::{Operation, OperationProgress, OperationStatus};
 pub use refs::{EntityReference, OperationReference, RevisionReference, SnapshotReference};
 pub use request::{
     CancelOperationRequest, CommandRequest, FindRequest, InspectEntityRequest, ListRequest,
-    OperationStatusRequest, QueryRequest, RuntimeCapabilitiesRequest, SnapshotSelector,
-    SubscribeRequest,
+    OperationStatusRequest, ProjectRequest, QueryRequest, RuntimeCapabilitiesRequest,
+    SnapshotSelector, SubscribeRequest,
 };
 pub use response::{
-    FindResponse, InspectEntityResponse, ListResponse, OperationStatusResponse, QueryResponse,
+    FindResponse, InspectEntityResponse, ListResponse, OperationStatusResponse, ProjectResponse,
+    QueryResponse,
 };
 pub use session::{
     SessionBranch, SessionBranchResult, SessionBranchStatus, SessionReadRequest,

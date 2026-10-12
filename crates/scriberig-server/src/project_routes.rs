@@ -10,6 +10,50 @@ use serde_json::{Value, json};
 use crate::http::HttpState;
 use crate::server::ApplicationService;
 
+/// Dispatches a typed project protocol request onto the shared project service.
+///
+/// # Parameters
+/// - `state`: HTTP application state.
+/// - `request`: Typed project operation and payload.
+/// - `correlation_id`: Protocol correlation identity.
+///
+/// # Returns
+/// A correlated typed project response.
+pub(super) fn protocol<S: ApplicationService>(
+    state: &HttpState<S>,
+    request: &scriberig_protocol::ProjectRequest,
+    correlation_id: String,
+) -> scriberig_protocol::ResponseEnvelope {
+    let body = serde_json::to_string(&request.payload).unwrap_or_default();
+    let result = match request.operation.as_str() {
+        "list" => list(state),
+        "scan" => scan(state, &body),
+        "import" => import(state, &body),
+        "relink" => relink(state, &body),
+        _ => Err((404, json!({"code": "unsupported_project_operation"}))),
+    };
+    let response = match result {
+        Ok(value) => scriberig_protocol::Response::Project(scriberig_protocol::ProjectResponse {
+            result: value,
+        }),
+        Err((_, value)) => scriberig_protocol::Response::Error(scriberig_protocol::ProtocolError {
+            code: scriberig_protocol::ProtocolErrorCode::InvalidRequest,
+            message: value
+                .get("message")
+                .and_then(Value::as_str)
+                .unwrap_or("project operation failed")
+                .to_owned(),
+            details: Some(value),
+            correlation_id: Some(correlation_id.clone()),
+        }),
+    };
+    scriberig_protocol::ResponseEnvelope {
+        version: scriberig_protocol::ProtocolVersion::default(),
+        correlation_id,
+        response,
+    }
+}
+
 /// Lists projects in the configured database.
 pub(super) fn list<S: ApplicationService>(state: &HttpState<S>) -> Result<Value, (u16, Value)> {
     let store = state.project_store.as_ref().ok_or_else(unavailable)?;
@@ -242,8 +286,6 @@ fn authorized_path(roots: &[PathBuf], requested: &str) -> Result<PathBuf, (u16, 
 #[cfg(test)]
 mod tests {
     use super::authorized_path;
-    use std::path::PathBuf;
-
     /// Rejects a project path outside the operator-selected root.
     #[test]
     fn path_policy_rejects_outside_root() {
@@ -256,8 +298,8 @@ mod tests {
     /// Accepts a project path contained by a configured root.
     #[test]
     fn path_policy_accepts_existing_child() {
-        let root = std::env::temp_dir();
-        let result = authorized_path(&[PathBuf::from("C:\\")], &root.to_string_lossy());
+        let root = std::fs::canonicalize(std::env::temp_dir()).expect("temporary root");
+        let result = authorized_path(std::slice::from_ref(&root), &root.to_string_lossy());
         assert!(result.is_ok());
     }
 }

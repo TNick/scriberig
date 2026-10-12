@@ -79,6 +79,30 @@ Apply safe automatic fixes and formatters with:
 
 ## Build and install
 
+## Project onboarding
+
+Projects are stored in the selected SQLite database and multiple projects may
+share that database:
+
+```text
+srig project scan PATH --db scriberig.sqlite
+srig project list --db scriberig.sqlite
+srig project import PROJECT_ID --db scriberig.sqlite
+srig project status PROJECT_ID --db scriberig.sqlite
+```
+
+The API server can onboard only paths under explicitly configured roots:
+
+```text
+srig serve --db scriberig.sqlite --project-root PATH
+```
+
+The TUI can scan a project before startup and optionally import it:
+
+```text
+srig tui --db scriberig.sqlite --project PATH --import
+```
+
 Build all Rust workspace targets with:
 
 ```text

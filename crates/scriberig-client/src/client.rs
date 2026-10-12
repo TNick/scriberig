@@ -13,6 +13,8 @@ use scriberig_protocol::{
 
 #[path = "client_agent.rs"]
 mod client_agent;
+#[path = "client_project.rs"]
+mod client_project;
 use scriberig_query::{QueryResult, QuerySpec};
 
 use crate::error::ClientError;

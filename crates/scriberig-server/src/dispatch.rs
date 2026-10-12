@@ -195,6 +195,12 @@ impl<S: ApplicationService> Dispatcher<S> {
                 correlation_id,
             ),
             Request::SessionRead(request) => self.session_read(&request, correlation_id),
+            Request::Project(_) => Response::Error(ProtocolError {
+                code: ProtocolErrorCode::UnsupportedOperation,
+                message: "project operations require the HTTP project catalog".to_owned(),
+                details: None,
+                correlation_id: Some(correlation_id.to_owned()),
+            }),
         }
     }
 
