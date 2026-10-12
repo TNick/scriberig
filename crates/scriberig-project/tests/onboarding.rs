@@ -105,11 +105,16 @@ fn scan_reopen_import_and_delete_are_durable() {
     );
 }
 
-/// Imports common configuration, script, and extensionless files as text.
+/// Imports common configuration, script, and extensionless project files.
 #[test]
 fn imports_common_text_files() {
     let root = temporary_directory("common-text");
     fs::write(root.join("config.toml"), "[package]\nname = \"demo\"\n").expect("TOML");
+    fs::write(
+        root.join("settings.jsonc"),
+        "{\"enabled\": true // comment\n}\n",
+    )
+    .expect("JSONC");
     fs::write(root.join("deploy.sh"), "#!/bin/sh\necho deploy\n").expect("shell");
     fs::write(root.join("Dockerfile"), "FROM alpine\n").expect("Dockerfile");
     fs::write(root.join("diagram.mmd"), "graph TD\nA --> B\n").expect("Mermaid");
@@ -118,18 +123,22 @@ fn imports_common_text_files() {
     let service = ProjectService::new(store.clone());
 
     let scan = service.scan(Some("text".to_owned()), &root).expect("scan");
-    assert!(scan.files.iter().all(|file| file.adapter == "text"));
+    assert!(scan.files.iter().any(|file| file.adapter == "toml"));
+    assert!(scan.files.iter().any(|file| file.adapter == "json"));
+    assert!(scan.files.iter().any(|file| file.adapter == "text"));
     let report = service.import(scan.project.id).expect("import");
 
-    assert_eq!(report.files, 4);
+    assert_eq!(report.files, 5);
     let entities = store.project_entities(scan.project.id).expect("entities");
     assert_eq!(
         entities
             .iter()
             .filter(|entity| entity.kind == "text.document")
             .count(),
-        4
+        3
     );
+    assert!(entities.iter().any(|entity| entity.kind == "json.node"));
+    assert!(entities.iter().any(|entity| entity.kind == "toml.node"));
     assert!(entities.iter().any(|entity| entity.kind == "text.line"));
 }
 

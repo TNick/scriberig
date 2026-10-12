@@ -35,6 +35,7 @@ members = [
   "crates/domains/scriberig-domain-python",
   "crates/domains/scriberig-domain-c",
   "crates/domains/scriberig-domain-text",
+  "crates/domains/scriberig-domain-data",
   "crates/domains/test-support",
   "crates/scriberig-conformance",
   "apps/scriberig",
