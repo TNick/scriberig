@@ -155,6 +155,7 @@ pub(super) fn import<S: ApplicationService>(
         "files": report.files,
         "entities": report.entities,
         "snapshot": report.snapshot.to_string(),
+        "diagnostics": [],
     }))
 }
 

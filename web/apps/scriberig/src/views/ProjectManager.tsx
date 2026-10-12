@@ -12,7 +12,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useState, type FormEvent, type ReactElement } from "react";
-import type { ScriberigClient } from "@scriberig/client";
+import { ServerProtocolError, type ScriberigClient } from "@scriberig/client";
 
 interface Project {
   id: string;
@@ -28,6 +28,15 @@ interface ScanResult {
   gitTracked: boolean;
 }
 
+interface ImportDiagnostic {
+  path: string;
+  adapter: string;
+  stage: string;
+  code: string;
+  message: string;
+  retryable: boolean;
+}
+
 /** Renders the project catalog and reviewable filesystem scan.
  * @returns The project manager view.
  * @throws Network failures are rendered as an error state.
@@ -40,6 +49,7 @@ export function ProjectManager({ client }: { client: ScriberigClient }): ReactEl
   const [scan, setScan] = useState<ScanResult>();
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string>();
+  const [diagnostics, setDiagnostics] = useState<ImportDiagnostic[]>([]);
 
   useEffect(() => {
     void client
@@ -56,6 +66,7 @@ export function ProjectManager({ client }: { client: ScriberigClient }): ReactEl
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     setError(undefined);
+    setDiagnostics([]);
     setScan(undefined);
     try {
       const value = await client.project<ScanResult>("scan", {
@@ -70,6 +81,10 @@ export function ProjectManager({ client }: { client: ScriberigClient }): ReactEl
       ]);
     } catch (reason: unknown) {
       setError(String(reason));
+      if (reason instanceof ServerProtocolError) {
+        const value = reason.error.details?.diagnostics;
+        if (Array.isArray(value)) setDiagnostics(value as ImportDiagnostic[]);
+      }
     }
   }
 
@@ -80,6 +95,7 @@ export function ProjectManager({ client }: { client: ScriberigClient }): ReactEl
   async function importProject(): Promise<void> {
     if (scan === undefined) return;
     setError(undefined);
+    setDiagnostics([]);
     setImporting(true);
     try {
       const value = await client.project<{ project: Project }>("import", {
@@ -92,6 +108,10 @@ export function ProjectManager({ client }: { client: ScriberigClient }): ReactEl
       setScan(undefined);
     } catch (reason: unknown) {
       setError(String(reason));
+      if (reason instanceof ServerProtocolError) {
+        const value = reason.error.details?.diagnostics;
+        if (Array.isArray(value)) setDiagnostics(value as ImportDiagnostic[]);
+      }
     } finally {
       setImporting(false);
     }
@@ -101,6 +121,18 @@ export function ProjectManager({ client }: { client: ScriberigClient }): ReactEl
     <Box>
       <Typography variant="h5">Projects</Typography>
       {error !== undefined && <Alert severity="error">{error}</Alert>}
+      {diagnostics.length > 0 && (
+        <List aria-label="Import diagnostics">
+          {diagnostics.map((diagnostic) => (
+            <ListItem key={`${diagnostic.path}:${diagnostic.code}:${diagnostic.message}`}>
+              <ListItemText
+                primary={`${diagnostic.path} · ${diagnostic.adapter} · ${diagnostic.code}`}
+                secondary={`${diagnostic.stage}: ${diagnostic.message}${diagnostic.retryable ? " (repairable)" : ""}`}
+              />
+            </ListItem>
+          ))}
+        </List>
+      )}
       <List aria-label="Projects">
         {projects.map((project) => (
           <ListItem key={project.id}>

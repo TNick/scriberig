@@ -203,7 +203,37 @@ fn run_scan(args: &ProjectScanArgs) -> Result<(), Box<dyn std::error::Error + Se
 /// # Errors
 /// Returns a project validation, database, or serialization error.
 fn run_import(args: &ProjectImportArgs) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let report = service(&args.db)?.import(args.project)?;
+    let report = match service(&args.db)?.import(args.project) {
+        Ok(report) => report,
+        Err(error) => {
+            if args.json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "code": error.code,
+                        "message": error.message,
+                        "diagnostics": error.diagnostics.iter().map(|diagnostic| serde_json::json!({
+                            "path": diagnostic.path,
+                            "adapter": diagnostic.adapter,
+                            "stage": diagnostic.stage,
+                            "code": diagnostic.code,
+                            "message": diagnostic.message,
+                            "retryable": diagnostic.retryable,
+                        })).collect::<Vec<_>>(),
+                    }))?
+                );
+            } else {
+                eprintln!("{error}");
+                for diagnostic in &error.diagnostics {
+                    eprintln!(
+                        "{} [{}:{}] {}",
+                        diagnostic.path, diagnostic.adapter, diagnostic.code, diagnostic.message
+                    );
+                }
+            }
+            return Err(Box::new(error));
+        }
+    };
     let response = serde_json::json!({
         "project": project_json(std::slice::from_ref(&report.project))[0],
         "files": report.files,
