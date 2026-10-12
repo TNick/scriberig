@@ -52,6 +52,11 @@ fn scan_reopen_import_and_delete_are_durable() {
     )
     .expect("Rust");
     fs::write(root.join("notes.txt"), "unsupported source").expect("text");
+    fs::write(
+        root.join("guide.html"),
+        "<html><head><title>Guide</title></head><body><h1>Title</h1><p>Text</p></body></html>",
+    )
+    .expect("HTML");
     let database = root.with_extension("sqlite");
     let store = Arc::new(SqliteStore::open(&database).expect("database"));
     let service = ProjectService::new(Arc::clone(&store));
@@ -59,20 +64,20 @@ fn scan_reopen_import_and_delete_are_durable() {
     let scan = service
         .scan(Some("fixture".to_owned()), &root)
         .expect("scan");
-    assert_eq!(scan.files.len(), 3);
+    assert_eq!(scan.files.len(), 4);
     assert_eq!(
         store
             .project_files(scan.project.id)
             .expect("manifest")
             .len(),
-        3
+        4
     );
     drop(service);
     let reopened = Arc::new(SqliteStore::open(&database).expect("reopen"));
     let service = ProjectService::new(Arc::clone(&reopened));
     let report = service.import(scan.project.id).expect("import");
-    assert_eq!(report.files, 2);
-    assert!(report.entities >= 4);
+    assert_eq!(report.files, 3);
+    assert!(report.entities >= 6);
     assert_ne!(
         reopened
             .project_entities(scan.project.id)

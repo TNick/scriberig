@@ -41,9 +41,56 @@ pub(crate) fn import_file(
         "markdown" => import_markdown(project, file, source, revisions, changes, &mut ownership)?,
         "rust" => import_rust(project, file, source, revisions, changes, &mut ownership)?,
         "pdf" => import_pdf(project, file, source, revisions, changes, &mut ownership)?,
+        "html" => import_html(project, file, source, revisions, changes, &mut ownership)?,
         _ => {}
     }
     Ok(ownership)
+}
+
+/// Extracts semantic HTML nodes while retaining the exact source artifact.
+///
+/// # Parameters
+/// - `project`: Owning project identity.
+/// - `file`: HTML source file.
+/// - `source`: Source artifact entity.
+/// - `revisions`: Destination revisions.
+/// - `changes`: Destination snapshot changes.
+/// - `ownership`: Destination entity ownership records.
+///
+/// # Returns
+/// Unit after HTML children are added.
+///
+/// # Errors
+/// Returns source parsing or revision errors.
+fn import_html(
+    project: ProjectId,
+    file: &ProjectFileRecord,
+    source: EntityId,
+    revisions: &mut Vec<Revision>,
+    changes: &mut Vec<SnapshotChange>,
+    ownership: &mut Vec<ProjectEntityRecord>,
+) -> Result<(), ProjectError> {
+    let document = scriberig_domain_html::parse(&file.bytes)
+        .map_err(|error| validation_error(&file.relative_path, &error.to_string()))?;
+    for (index, node) in document.nodes.iter().enumerate() {
+        let payload = format!(
+            "kind={}\ndepth={}\ntext={}\nattributes={:?}",
+            node.kind, node.depth, node.text, node.attributes
+        )
+        .into_bytes();
+        add_child(
+            project,
+            file,
+            source,
+            "html.node",
+            index,
+            payload,
+            revisions,
+            changes,
+            ownership,
+        )?;
+    }
+    Ok(())
 }
 
 /// Extracts semantic Markdown block entities.

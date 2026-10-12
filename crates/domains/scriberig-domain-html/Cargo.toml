@@ -1,0 +1,14 @@
+[package]
+name = "scriberig-domain-html"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "HTML parsing and semantic extraction adapter."
+repository.workspace = true
+
+[dependencies]
+kuchiki = "0.8.1"
+
+[lints]
+workspace = true

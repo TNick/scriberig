@@ -112,6 +112,7 @@ fn is_excluded(path: &Path) -> bool {
 /// The selected adapter name.
 fn adapter_for(path: &Path) -> &'static str {
     match path.extension().and_then(|value| value.to_str()) {
+        Some("html" | "htm") => "html",
         Some("md" | "markdown") => "markdown",
         Some("rs") => "rust",
         Some("pdf") => "pdf",
