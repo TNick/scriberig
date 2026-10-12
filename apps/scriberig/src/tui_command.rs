@@ -6,7 +6,11 @@ use scriberig_app::{
     ApplicationBackendComposition, ApplicationContext, ApplicationService, StoreInspectionBackend,
     StoreOperationProvider,
 };
+use scriberig_core::{EntityId, SnapshotId};
 use scriberig_store_sqlite::SqliteStore;
+
+/// Identifies the project context selected for TUI startup.
+type ProjectStartup = (String, Option<EntityId>, Option<SnapshotId>);
 
 /// Starts TUI mode using either a remote endpoint or local project database.
 ///
@@ -42,7 +46,7 @@ pub(super) fn run(
         .project
         .as_ref()
         .map(
-            |path| -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+            |path| -> Result<ProjectStartup, Box<dyn std::error::Error + Send + Sync>> {
                 let name = path
                     .file_name()
                     .and_then(|value| value.to_str())
@@ -51,9 +55,14 @@ pub(super) fn run(
                 let report = service.scan(Some(name.to_owned()), path)?;
                 let project = report.project;
                 if args.import_project {
-                    service.import(project.id)?;
+                    let imported = service.import(project.id)?;
+                    let entity = store
+                        .project_entities(project.id)?
+                        .first()
+                        .map(|record| record.entity);
+                    return Ok((project.id.to_string(), entity, Some(imported.snapshot)));
                 }
-                Ok(project.id.to_string())
+                Ok((project.id.to_string(), None, None))
             },
         )
         .transpose()?;
@@ -70,9 +79,15 @@ pub(super) fn run(
         &context,
         &scriberig_tui::TuiConfig {
             interactive: true,
-            initial_entity: Some(fixture.root_entity),
-            snapshot: Some(fixture.snapshot),
-            project,
+            project: project.as_ref().map(|value| value.0.clone()),
+            initial_entity: project
+                .as_ref()
+                .and_then(|value| value.1)
+                .or(Some(fixture.root_entity)),
+            snapshot: project
+                .as_ref()
+                .and_then(|value| value.2)
+                .or(Some(fixture.snapshot)),
         },
     )?;
     Ok(())
