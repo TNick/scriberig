@@ -1,6 +1,6 @@
 //! Tests the module's deterministic behavior.
 
-use super::{Action, Direction, action_for, bindings, hints, metadata};
+use super::{Action, Context, Direction, action_for, bindings, hints, metadata};
 use crate::{
     event::{Key, KeyCode, Modifiers},
     overlay::Overlay,
@@ -87,5 +87,36 @@ fn palette_keys_control_selection_and_activation() {
 fn help_metadata_covers_all_bound_actions() {
     for binding in bindings() {
         assert!(metadata().iter().any(|item| item.id == binding.action));
+    }
+}
+
+/// Verifies every declared core workflow binding reaches the reducer boundary.
+#[test]
+fn every_core_workflow_binding_is_keyboard_reachable() {
+    for binding in bindings() {
+        let state = match binding.context {
+            Context::Browse => TuiState::default(),
+            Context::Input => TuiState {
+                overlay: Some(Overlay::Input(crate::overlay::input::InputState::default())),
+                ..TuiState::default()
+            },
+            Context::Overlay => TuiState {
+                overlay: Some(Overlay::Help),
+                ..TuiState::default()
+            },
+        };
+        let action = action_for(
+            &state,
+            &Key {
+                code: binding.chord.code,
+                modifiers: binding.chord.modifiers,
+            },
+        );
+        assert!(
+            action.is_some(),
+            "binding {:?} must resolve in {:?} context",
+            binding.action,
+            binding.context
+        );
     }
 }
