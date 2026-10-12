@@ -2,6 +2,8 @@
 
 use std::collections::BTreeMap;
 
+#[path = "snapshot_build.rs"]
+mod snapshot_build;
 #[path = "snapshot_diff.rs"]
 mod snapshot_diff;
 use std::sync::Arc;
@@ -253,11 +255,22 @@ impl Snapshot {
     /// Creates a canonical snapshot from entries.
     #[must_use]
     pub fn from_entries(entries: BTreeMap<EntityId, RevisionId>) -> Self {
-        entries
-            .into_iter()
-            .fold(Self::empty(), |snapshot, (entity, revision)| {
-                snapshot.with_revision(entity, revision)
-            })
+        let entries = entries.into_iter().collect::<Vec<_>>();
+        Self::from_sorted_entries(EncodingVersion::V1, &entries)
+    }
+
+    /// Creates a snapshot from sorted entries at an explicit encoding version.
+    ///
+    /// # Parameters
+    /// - `version`: Snapshot encoding version.
+    /// - `entries`: Entity/revision pairs in ascending entity order.
+    /// - `RevisionId`: Revision component of each entry.
+    ///
+    /// # Returns
+    /// A canonical immutable snapshot.
+    fn from_sorted_entries(version: EncodingVersion, entries: &[(EntityId, RevisionId)]) -> Self {
+        let len = entries.len();
+        Self::from_root(version, snapshot_build::build(entries, 0), len)
     }
     /// Internal snapshot operation.
     /// # Parameters
@@ -357,11 +370,18 @@ impl Snapshot {
     /// Applies storage changes and returns a persistent successor.
     #[must_use]
     pub fn apply(&self, changes: impl IntoIterator<Item = SnapshotChange>) -> Self {
-        changes
-            .into_iter()
-            .fold(self.clone(), |snapshot, change| match change {
-                SnapshotChange::Set(entity, revision) => snapshot.with_revision(entity, revision),
-                SnapshotChange::Remove(entity) => snapshot.without_entity(entity),
-            })
+        let mut entries = self.iter().collect::<BTreeMap<_, _>>();
+        for change in changes {
+            match change {
+                SnapshotChange::Set(entity, revision) => {
+                    entries.insert(entity, revision);
+                }
+                SnapshotChange::Remove(entity) => {
+                    entries.remove(&entity);
+                }
+            }
+        }
+        let entries = entries.into_iter().collect::<Vec<_>>();
+        Self::from_sorted_entries(self.version, &entries)
     }
 }
