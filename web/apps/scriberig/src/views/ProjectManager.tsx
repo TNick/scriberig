@@ -33,6 +33,7 @@ export function ProjectManager(): ReactElement {
   const [path, setPath] = useState("");
   const [name, setName] = useState("");
   const [scan, setScan] = useState<ScanResult>();
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string>();
 
   useEffect(() => {
@@ -69,6 +70,34 @@ export function ProjectManager(): ReactElement {
       ]);
     } catch (reason: unknown) {
       setError(String(reason));
+    }
+  }
+
+  /** Imports the reviewed scan into the selected project snapshot.
+   * @returns A promise completed after import output is applied.
+   * @throws Network and server failures are rendered as an error state.
+   */
+  async function importProject(): Promise<void> {
+    if (scan === undefined) return;
+    setError(undefined);
+    setImporting(true);
+    try {
+      const response = await fetch("/api/projects/import", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ project: scan.project.id }),
+      });
+      if (!response.ok) throw new Error(await response.text());
+      const value = (await response.json()) as { project: Project };
+      setProjects((current) => [
+        ...current.filter((project) => project.id !== value.project.id),
+        value.project,
+      ]);
+      setScan(undefined);
+    } catch (reason: unknown) {
+      setError(String(reason));
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -112,6 +141,14 @@ export function ProjectManager(): ReactElement {
           <Typography>
             {scan.files.length} files discovered for {scan.project.name}.
           </Typography>
+          <Button
+            sx={{ my: 1 }}
+            variant="contained"
+            onClick={() => void importProject()}
+            disabled={importing}
+          >
+            {importing ? "Importing…" : "Import reviewed scan"}
+          </Button>
           <List aria-label="Scan manifest">
             {scan.files.slice(0, 100).map((file) => (
               <ListItem key={file.path}>

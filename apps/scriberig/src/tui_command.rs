@@ -53,6 +53,17 @@ pub(super) fn run(
                     scriberig_store_sqlite::ProjectStatus::ScanReady,
                     None,
                 )?;
+                if args.import_project {
+                    scriberig_cli::project::run(&scriberig_cli::ProjectArgs {
+                        command: scriberig_cli::ProjectCommand::Import(
+                            scriberig_cli::ProjectImportArgs {
+                                project: project.id,
+                                db: args.db.clone(),
+                                json: false,
+                            },
+                        ),
+                    })?;
+                }
                 Ok(project.id.to_string())
             },
         )

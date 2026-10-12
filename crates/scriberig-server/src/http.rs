@@ -18,7 +18,6 @@ use scriberig_store_sqlite::SqliteStore;
 #[path = "http_helpers.rs"]
 mod http_helpers;
 use http_helpers::{object_description, write_json};
-
 #[path = "http_events.rs"]
 mod http_events;
 #[path = "http_migration.rs"]
@@ -130,6 +129,7 @@ pub fn handle_connection<S: ApplicationService>(
         ("GET", "/api/health") => Ok(json!({"status": "ready", "database": "ready"})),
         ("GET", "/api/projects") => project_routes::list(state),
         ("POST", "/api/projects/scan") => project_routes::scan(state, body),
+        ("POST", "/api/projects/import") => project_routes::import(state, body),
         ("POST", "/api/projects/relink") => project_routes::relink(state, body),
         ("POST", "/api/protocol") => protocol(state, body),
         ("POST", "/api/protocol/capabilities") => Ok(capabilities(state)),

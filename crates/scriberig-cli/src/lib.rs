@@ -255,6 +255,9 @@ pub struct TuiArgs {
     /// Optional local filesystem project to register and scan before startup.
     #[arg(long, requires = "db")]
     pub project: Option<std::path::PathBuf>,
+    /// Import the selected project before starting the TUI.
+    #[arg(long = "import", requires = "project")]
+    pub import_project: bool,
 }
 
 /// Configure canonical-state maintenance.
