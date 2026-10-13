@@ -23,6 +23,8 @@ impl<B> ApplicationService<B> {
         failure: impl Into<String>,
     ) -> Result<(), ApplicationError> {
         let failure = failure.into();
+        let cancelled =
+            self.operations.get(&handle.operation)?.status == crate::OperationStatus::Cancelled;
         let mut session =
             self.load_session_state(handle.session)?
                 .ok_or_else(|| ApplicationError::NotFound {
@@ -42,7 +44,11 @@ impl<B> ApplicationService<B> {
             branch: branch.id,
             status: scriberig_session::BranchStatus::Abandoned,
             summary: Some(failure.clone()),
-            result_kind: Some("agent-failure".to_owned()),
+            result_kind: Some(if cancelled {
+                "agent-cancelled".to_owned()
+            } else {
+                "agent-failure".to_owned()
+            }),
             references: Vec::new(),
             result_handles: Vec::new(),
             touched: Vec::new(),
@@ -56,7 +62,7 @@ impl<B> ApplicationService<B> {
                 message: error.to_string(),
             })?;
         self.save_session_state(session)?;
-        if self.operations.get(&handle.operation)?.status != crate::OperationStatus::Cancelled {
+        if !cancelled {
             self.operations.fail(
                 &handle.operation,
                 ApplicationError::Internal { message: failure },

@@ -64,6 +64,16 @@ def main() -> None:
             "tui_pty_self_hosting_validation_failure",
         ]
     )
+    run(
+        [
+            "cargo",
+            "test",
+            "-p",
+            "scriberig",
+            "--test",
+            "tui_pty_self_hosting_cancellation",
+        ]
+    )
     run(["cargo", "test", "-p", "scriberig-project", "--test", "product_conformance"])
     run(["cargo", "test", "-p", "scriberig-server", "--test", "remote_project_conformance"])
 

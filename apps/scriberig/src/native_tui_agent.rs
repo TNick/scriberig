@@ -63,11 +63,19 @@ impl NativeTuiAgentRunner {
                     "self_hosting_php" => NativeProvider::SelfHostingPhp(
                         crate::self_hosting_provider::PhpSelfHostingProvider {
                             validation_failure: false,
+                            cancellation_delay: false,
                         },
                     ),
                     "self_hosting_php_validation_failure" => NativeProvider::SelfHostingPhp(
                         crate::self_hosting_provider::PhpSelfHostingProvider {
                             validation_failure: true,
+                            cancellation_delay: false,
+                        },
+                    ),
+                    "self_hosting_php_cancellation" => NativeProvider::SelfHostingPhp(
+                        crate::self_hosting_provider::PhpSelfHostingProvider {
+                            validation_failure: false,
+                            cancellation_delay: true,
                         },
                     ),
                     unknown => {

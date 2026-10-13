@@ -13,6 +13,8 @@ use crate::deterministic_provider::{BootstrapProvider, parse_handles};
 pub(super) struct PhpSelfHostingProvider {
     /// Whether this deterministic scenario deliberately proposes invalid Rust.
     pub validation_failure: bool,
+    /// Whether to hold the initial onboarding provider response for cancellation tests.
+    pub cancellation_delay: bool,
 }
 
 mod branches;
@@ -42,6 +44,9 @@ impl ProviderAdapter for PhpSelfHostingProvider {
     fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
         let prompt = user_prompt(request);
         if prompt.to_lowercase().contains("onboard") {
+            if self.cancellation_delay && tool_messages(request).is_empty() {
+                std::thread::sleep(std::time::Duration::from_secs(8));
+            }
             return BootstrapProvider.complete(request);
         }
         let scope = project_scope(request)?;

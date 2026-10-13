@@ -169,7 +169,8 @@ real-process browser, native TUI, and cross-surface acceptance suites. These
 currently exercise project activation, named `Calculator`/`add` navigation,
 Rust source projection, reviewed candidate validation, conflict-protected
 materialization, reload durability, and semantically scoped deterministic
-agent candidates. Run `python tools/product_golden.py` to execute the complete
+agent candidates. The self-hosting gates also cover validation failure and
+safe cancellation during onboarding. Run `python tools/product_golden.py` to execute the complete
 acceptance driver. The implementation is not described as product-verified
 until the design checklists also confirm durable candidate/effect recovery and
 public embedded/remote conformance evidence.

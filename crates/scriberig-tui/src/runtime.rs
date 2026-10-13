@@ -47,8 +47,16 @@ pub fn run<S: TuiService + Sync>(
     std::thread::scope(|scope| {
         let (work_sender, work_receiver) = mpsc::sync_channel(32);
         let (message_sender, message_receiver) = mpsc::sync_channel(32);
+        let worker_scope = scope;
+        let worker_context = context.clone();
         let worker = scope.spawn(move || {
-            worker_loop(service, context, &work_receiver, &message_sender);
+            worker_loop(
+                worker_scope,
+                service,
+                worker_context,
+                work_receiver,
+                message_sender,
+            );
         });
         let mut redraw = true;
         try_queue(&work_sender, Work::Effect(Effect::RequestCapabilities));
@@ -91,6 +99,7 @@ pub fn run<S: TuiService + Sync>(
             terminal.draw(|frame| render::render(frame, &state))?;
         }
         drop(work_sender);
+        drop(message_receiver);
         worker
             .join()
             .map_err(|_| io::Error::other("TUI worker panicked"))?;
@@ -117,18 +126,29 @@ enum RuntimeMessage {
 }
 
 /// Runs semantic work until the terminal loop drops its work channel.
-fn worker_loop<S: TuiService + Sync>(
-    service: &S,
-    context: &ApplicationContext,
-    receiver: &Receiver<Work>,
-    sender: &SyncSender<RuntimeMessage>,
+#[allow(clippy::needless_pass_by_value)] // The scoped worker owns these values for its full run.
+fn worker_loop<'scope, S: TuiService + Sync>(
+    scope: &'scope std::thread::Scope<'scope, '_>,
+    service: &'scope S,
+    context: ApplicationContext,
+    receiver: Receiver<Work>,
+    sender: SyncSender<RuntimeMessage>,
 ) {
     while let Ok(work) = receiver.recv() {
+        if let Work::Effect(effect @ Effect::SubmitAgent { .. }) = work {
+            let sender = sender.clone();
+            let context = context.clone();
+            scope.spawn(move || {
+                let action = execute_effect(service, &context, effect);
+                let _ = sender.send(RuntimeMessage::Action(Box::new(action)));
+            });
+            continue;
+        }
         let message = match work {
             Work::Effect(effect) => {
-                RuntimeMessage::Action(Box::new(execute_effect(service, context, effect)))
+                RuntimeMessage::Action(Box::new(execute_effect(service, &context, effect)))
             }
-            Work::PollApplicationEvents => match service.application_events(context) {
+            Work::PollApplicationEvents => match service.application_events(&context) {
                 Ok(events) => RuntimeMessage::ApplicationEvents(events),
                 Err(error) => RuntimeMessage::ApplicationEventsFailed {
                     category: error.category().to_owned(),
@@ -367,7 +387,7 @@ mod tests {
         let context = ApplicationContext::empty();
         std::thread::scope(|scope| {
             let worker = scope.spawn(move || {
-                super::worker_loop(&Fixture, &context, &work_receiver, &message_sender);
+                super::worker_loop(scope, &Fixture, context, work_receiver, message_sender);
             });
             work_sender
                 .send(super::Work::Effect(

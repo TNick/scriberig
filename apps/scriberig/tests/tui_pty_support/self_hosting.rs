@@ -31,6 +31,19 @@ impl TuiPty {
         Self::start_self_hosting_scenario("self_hosting_php_validation_failure")
     }
 
+    /// Starts a copied-checkout TUI whose first onboarding provider response is delayed.
+    ///
+    /// # Returns
+    /// A no-project TUI process prepared for in-flight cancellation.
+    ///
+    /// # Panics
+    /// Panics when the checkout copy, Git index, or PTY process cannot be prepared.
+    #[must_use]
+    #[allow(dead_code)]
+    pub fn start_self_hosting_cancellation() -> Self {
+        Self::start_self_hosting_scenario("self_hosting_php_cancellation")
+    }
+
     /// Starts a copied-checkout TUI with one scripted self-hosting provider scenario.
     ///
     /// # Parameters
