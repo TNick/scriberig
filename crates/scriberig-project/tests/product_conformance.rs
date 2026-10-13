@@ -250,12 +250,20 @@ fn project_candidate_persists_create_and_update_without_touching_live_tree() {
             .snapshot,
         snapshot
     );
-    let reopened = ProjectService::new(Arc::clone(&store))
+    drop(service);
+    drop(store);
+    let reopened_store =
+        Arc::new(SqliteStore::open(root.join("scriberig.sqlite")).expect("reopen database"));
+    let reopened = ProjectService::new(Arc::clone(&reopened_store))
         .candidate(&candidate.id)
         .expect("read candidate")
         .expect("durable candidate");
     assert_eq!(reopened.effects, candidate.effects);
     assert_eq!(reopened.base_snapshot, snapshot);
+    assert_eq!(
+        reopened.effects[1].new.as_deref(),
+        Some(b"pub fn added() {}\n".as_slice())
+    );
 }
 
 /// PROJECT-CANDIDATE negative cases reject ambiguous and escaping paths.
