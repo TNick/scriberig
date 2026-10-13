@@ -159,8 +159,16 @@ fn session_branch_activation_requests_scoped_history() {
             depth: 1,
             label: "branch".to_owned(),
             kind: crate::view::session::SessionRowKind::Branch,
+            candidate: None,
+            snapshot: None,
             transient: true,
         }],
+    });
+    state.agent_handles.push(crate::service::AgentHandle {
+        operation: scriberig_core::OperationId::new("test-operation").expect("operation identity"),
+        session,
+        branch: None,
+        workspace: None,
     });
     state.cursor = 0;
     let effects = activate_current(&mut state);
@@ -187,6 +195,8 @@ fn session_result_activation_navigates_by_stable_reference() {
             depth: 1,
             label: "result".to_owned(),
             kind: crate::view::session::SessionRowKind::Result,
+            candidate: None,
+            snapshot: None,
             transient: false,
         }],
     });
@@ -201,6 +211,35 @@ fn session_result_activation_navigates_by_stable_reference() {
             .and_then(|location| location.selection),
         Some(crate::selection::SemanticReference(result.to_string()))
     );
+}
+
+/// Verifies a durable candidate handle opens review at its recorded exact base.
+#[test]
+fn session_candidate_activation_requests_shared_review() {
+    let result = scriberig_core::EntityId::from_bytes([14; 16]);
+    let snapshot = scriberig_core::SnapshotId::new([15; 32]);
+    let mut state = TuiState {
+        primary_view: crate::selection::PrimaryView::Session,
+        session: crate::inspector::LoadState::Ready(crate::view::session::SessionModel {
+            rows: vec![crate::view::session::SessionRow {
+                reference: result,
+                depth: 2,
+                label: "Review candidate pc_123".to_owned(),
+                kind: crate::view::session::SessionRowKind::Candidate,
+                candidate: Some("pc_123".to_owned()),
+                snapshot: Some(snapshot),
+                transient: false,
+            }],
+        }),
+        ..TuiState::default()
+    };
+
+    let effects = activate_current(&mut state);
+    assert!(matches!(
+        effects.as_slice(),
+        [Effect::Apply { request, .. }]
+            if request.base_snapshot == snapshot && request.change == "pc_123"
+    ));
 }
 
 /// Verifies a transport error marks cached semantic data stale.

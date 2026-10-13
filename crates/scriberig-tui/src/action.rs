@@ -120,6 +120,15 @@ pub enum Action {
         /// Projected review.
         model: crate::view::changes::ChangeReviewModel,
     },
+    /// Records a committed candidate and refreshes the active semantic selection.
+    CommitSucceeded {
+        /// Request generation.
+        request_id: u64,
+        /// Reviewed candidate result.
+        model: crate::view::changes::ChangeReviewModel,
+        /// Authoritative successor snapshot returned by the application.
+        snapshot: scriberig_core::SnapshotId,
+    },
     /// Applies a failed operation result without retrying it.
     OperationFailed {
         /// Request generation.

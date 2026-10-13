@@ -33,6 +33,8 @@ mod service_contract_methods;
 mod service_operations;
 #[path = "service_project_agent.rs"]
 mod service_project_agent;
+#[path = "service_project_candidate_review.rs"]
+mod service_project_candidate_review;
 #[path = "service_project_projection.rs"]
 mod service_project_projection;
 pub(crate) use service_project_agent::{ProjectAgentTool, golden_provider};

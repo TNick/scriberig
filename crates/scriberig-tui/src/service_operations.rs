@@ -73,7 +73,31 @@ pub fn execute_operation_effect<S: TuiOperationService>(
         _ => unreachable!(),
     };
     match service.execute_operation(context, &request) {
-        Ok(scriberig_app::ApplicationResult::History(summary)) => {
+        Ok(result) => map_operation_result(request_id, request, result),
+        Err(error) => Action::OperationFailed {
+            request_id,
+            category: error.category().to_owned(),
+            message: crate::inspector::sanitize(&error.to_string()),
+        },
+    }
+}
+
+/// Converts one successful public operation result into its TUI action.
+///
+/// # Parameters
+/// - `request_id`: Request generation associated with the result.
+/// - `request`: Original application request.
+/// - `result`: Public result returned by the shared application boundary.
+///
+/// # Returns
+/// The presentation action for the operation result.
+fn map_operation_result(
+    request_id: u64,
+    request: scriberig_app::ApplicationRequest,
+    result: scriberig_app::ApplicationResult,
+) -> Action {
+    match result {
+        scriberig_app::ApplicationResult::History(summary) => {
             let snapshot = summary.snapshot.unwrap_or_else(|| match &request {
                 scriberig_app::ApplicationRequest::History(value) => match value.snapshot {
                     scriberig_app::SnapshotSelector::Exact(snapshot) => snapshot,
@@ -88,7 +112,7 @@ pub fn execute_operation_effect<S: TuiOperationService>(
                 model: crate::view::history::HistoryModel::from_summary(snapshot, &summary),
             }
         }
-        Ok(scriberig_app::ApplicationResult::Diff(summary)) => summary.diff.as_ref().map_or_else(
+        scriberig_app::ApplicationResult::Diff(summary) => summary.diff.as_ref().map_or_else(
             || Action::OperationFailed {
                 request_id,
                 category: "invalid_result".to_owned(),
@@ -99,20 +123,18 @@ pub fn execute_operation_effect<S: TuiOperationService>(
                 model: crate::view::diff::DiffModel::from_diff(diff),
             },
         ),
-        Ok(scriberig_app::ApplicationResult::Render(summary)) => {
-            summary.rendered.as_ref().map_or_else(
-                || Action::OperationFailed {
-                    request_id,
-                    category: "invalid_result".to_owned(),
-                    message: "render result did not contain projection content".to_owned(),
-                },
-                |rendered| Action::ProjectionSucceeded {
-                    request_id,
-                    model: crate::view::projection::ProjectionModel::from_rendered(rendered),
-                },
-            )
-        }
-        Ok(scriberig_app::ApplicationResult::Apply(summary)) => {
+        scriberig_app::ApplicationResult::Render(summary) => summary.rendered.as_ref().map_or_else(
+            || Action::OperationFailed {
+                request_id,
+                category: "invalid_result".to_owned(),
+                message: "render result did not contain projection content".to_owned(),
+            },
+            |rendered| Action::ProjectionSucceeded {
+                request_id,
+                model: crate::view::projection::ProjectionModel::from_rendered(rendered),
+            },
+        ),
+        scriberig_app::ApplicationResult::Apply(summary) => {
             let scriberig_app::ApplicationRequest::Apply(request) = request else {
                 unreachable!()
             };
@@ -126,29 +148,32 @@ pub fn execute_operation_effect<S: TuiOperationService>(
                 ),
             }
         }
-        Ok(scriberig_app::ApplicationResult::Commit(summary)) => {
+        scriberig_app::ApplicationResult::Commit(summary) => {
             let scriberig_app::ApplicationRequest::Commit(request) = request else {
                 unreachable!()
             };
-            Action::ReviewSucceeded {
-                request_id,
-                model: crate::view::changes::ChangeReviewModel::from_summary(
-                    request.base_snapshot,
-                    request.change,
-                    request.branch,
-                    &summary,
-                ),
+            match summary.snapshot {
+                Some(snapshot) => Action::CommitSucceeded {
+                    request_id,
+                    model: crate::view::changes::ChangeReviewModel::from_summary(
+                        request.base_snapshot,
+                        request.change,
+                        request.branch,
+                        &summary,
+                    ),
+                    snapshot,
+                },
+                None => Action::OperationFailed {
+                    request_id,
+                    category: "invalid_result".to_owned(),
+                    message: "commit result did not contain its authoritative snapshot".to_owned(),
+                },
             }
         }
-        Ok(_) => Action::OperationFailed {
+        _ => Action::OperationFailed {
             request_id,
             category: "invalid_result".to_owned(),
             message: "application returned an unexpected operation result".to_owned(),
-        },
-        Err(error) => Action::OperationFailed {
-            request_id,
-            category: error.category().to_owned(),
-            message: crate::inspector::sanitize(&error.to_string()),
         },
     }
 }

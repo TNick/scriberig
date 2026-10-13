@@ -12,6 +12,8 @@ pub struct ApplicationOperationAdapter<B> {
     pub(crate) service: ApplicationService<B>,
     pub(crate) explorer_labels: ExplorerLabels,
     pub(crate) project_projection: Option<ProjectProjection>,
+    /// Shared durable project workflow available even before project selection.
+    pub(crate) project_workflow: Option<scriberig_project::ProjectService>,
     pub(crate) project_candidates: std::sync::Arc<
         std::sync::Mutex<std::collections::HashMap<String, scriberig_project::ProjectCandidate>>,
     >,
@@ -33,6 +35,7 @@ impl<B: ApplicationBackend> ApplicationOperationAdapter<B> {
             service,
             explorer_labels: std::collections::HashMap::new(),
             project_projection: None,
+            project_workflow: None,
             project_candidates: std::sync::Arc::new(std::sync::Mutex::new(
                 std::collections::HashMap::new(),
             )),
@@ -81,7 +84,22 @@ impl<B: ApplicationBackend> ApplicationOperationAdapter<B> {
     /// The configured adapter.
     #[must_use]
     pub fn with_project_projection(mut self, projection: ProjectProjection) -> Self {
+        self.project_workflow = Some(projection.workflow.clone());
         self.project_projection = Some(projection);
+        self
+    }
+
+    /// Supplies durable project operations for candidates created after onboarding.
+    ///
+    /// # Parameters
+    /// - `self`: Adapter receiving the shared project workflow.
+    /// - `workflow`: Project service using the product's durable store.
+    ///
+    /// # Returns
+    /// The configured application operation adapter.
+    #[must_use]
+    pub fn with_project_workflow(mut self, workflow: scriberig_project::ProjectService) -> Self {
+        self.project_workflow = Some(workflow);
         self
     }
 }

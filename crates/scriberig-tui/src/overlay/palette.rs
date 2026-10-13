@@ -53,6 +53,7 @@ impl Default for PaletteState {
                 item("edit", "Edit source projection"),
                 item("project-agent", "Agent change selected entity"),
                 item("changes", "View changes/validation"),
+                item("review-candidate", "Review candidate"),
                 item("session", "View session"),
                 item("start-agent", "Start agent session"),
                 item("continue-agent", "Continue selected branch"),

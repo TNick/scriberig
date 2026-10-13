@@ -11,6 +11,9 @@ use crate::{overlay::palette::PaletteState, state::ConnectionState};
 #[path = "state_input_reducer.rs"]
 mod state_input_reducer;
 use state_input_reducer::reduce_input;
+#[path = "state_reducer_commit.rs"]
+mod state_reducer_commit;
+use state_reducer_commit::commit_succeeded;
 /// Applies one action deterministically and returns work for the runtime.
 /// - `state`: Argument named `state`.
 /// - `action`: Argument named `action`.
@@ -215,9 +218,11 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             if matches!(state.review, LoadState::Loading { request_id: current } if current == request_id)
             {
                 state.review = LoadState::Ready(model);
+                state.cursor = 0;
             }
             vec![Effect::None]
         }
+        action @ Action::CommitSucceeded { .. } => commit_succeeded(state, action),
         Action::OperationFailed {
             request_id,
             category,

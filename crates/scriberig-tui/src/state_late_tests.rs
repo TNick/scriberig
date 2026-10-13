@@ -40,6 +40,8 @@ fn palette_continues_agent_session_after_workspace_selection() {
                 depth: 1,
                 label: "onboarding branch".to_owned(),
                 kind: crate::view::session::SessionRowKind::Branch,
+                candidate: None,
+                snapshot: None,
                 transient: false,
             }],
         }),
@@ -194,6 +196,46 @@ fn confirmed_commit_preserves_reviewed_base() {
     );
     assert!(
         matches!(effects.as_slice(), [Effect::Commit { request_id: 1, request }] if request.base_snapshot == base && request.change == "change-2")
+    );
+}
+
+/// Verifies successful commit advances the active selection to its successor snapshot.
+#[test]
+fn committed_candidate_refreshes_active_snapshot() {
+    let mut state = TuiState::default();
+    let entity = scriberig_core::EntityId::new();
+    let base = scriberig_core::SnapshotId::new([5; 32]);
+    let successor = scriberig_core::SnapshotId::new([6; 32]);
+    state.project = Some(format!("project @ {base}"));
+    state.selection = Some(crate::selection::EntitySelection {
+        entity,
+        revision: None,
+        snapshot: Some(base),
+    });
+    state.review = crate::inspector::LoadState::Loading { request_id: 1 };
+    let effects = reduce(
+        &mut state,
+        Action::CommitSucceeded {
+            request_id: 1,
+            model: crate::view::changes::ChangeReviewModel {
+                base_snapshot: base,
+                change: "candidate:1".to_owned(),
+                branch: None,
+                affected_entities: Vec::new(),
+                conflicts: Vec::new(),
+                validation: crate::view::changes::ReviewValidation::Passed,
+                requires_confirmation: true,
+            },
+            snapshot: successor,
+        },
+    );
+    assert_eq!(
+        state.selection.and_then(|selection| selection.snapshot),
+        Some(successor)
+    );
+    assert_eq!(state.project, Some(format!("project @ {successor}")));
+    assert!(
+        matches!(effects.as_slice(), [Effect::InspectEntity { entity: target, snapshot: Some(value), .. }] if *target == entity && *value == successor)
     );
 }
 

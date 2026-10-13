@@ -150,6 +150,27 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
         if state.primary_view == crate::selection::PrimaryView::Session {
             if let LoadState::Ready(model) = &state.session {
                 if let Some(row) = model.rows.get(state.cursor) {
+                    if row.kind == crate::view::session::SessionRowKind::Candidate {
+                        let (Some(candidate), Some(base_snapshot)) =
+                            (row.candidate.clone(), row.snapshot)
+                        else {
+                            "Candidate review is missing its exact base snapshot."
+                                .clone_into(&mut state.shell_message);
+                            return vec![Effect::None];
+                        };
+                        let request_id = state.next_request_id;
+                        state.next_request_id += 1;
+                        state.primary_view = crate::selection::PrimaryView::Changes;
+                        state.review = LoadState::Loading { request_id };
+                        return vec![Effect::Apply {
+                            request_id,
+                            request: scriberig_app::ApplyRequest {
+                                base_snapshot,
+                                branch: None,
+                                change: candidate,
+                            },
+                        }];
+                    }
                     let id = row.reference;
                     if row.kind == crate::view::session::SessionRowKind::Branch {
                         if let Some(session) =
@@ -182,6 +203,35 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
     let Some(item) = filtered.get(palette.selected) else {
         return vec![Effect::None];
     };
+    if item.id == "review-candidate" {
+        let candidate = match &state.session {
+            LoadState::Ready(model) => model
+                .rows
+                .iter()
+                .rev()
+                .find_map(|row| Some((row.candidate.clone()?, row.snapshot?))),
+            _ => None,
+        };
+        let Some((candidate, base_snapshot)) = candidate else {
+            state.overlay = None;
+            "No durable project candidate is available in the selected session."
+                .clone_into(&mut state.shell_message);
+            return vec![Effect::None];
+        };
+        state.overlay = None;
+        let request_id = state.next_request_id;
+        state.next_request_id += 1;
+        state.primary_view = crate::selection::PrimaryView::Changes;
+        state.review = LoadState::Loading { request_id };
+        return vec![Effect::Apply {
+            request_id,
+            request: scriberig_app::ApplyRequest {
+                base_snapshot,
+                branch: None,
+                change: candidate,
+            },
+        }];
+    }
     let action = match item.id.as_str() {
         "help" => Action::HelpOpened,
         "refresh" => Action::RefreshRequested,

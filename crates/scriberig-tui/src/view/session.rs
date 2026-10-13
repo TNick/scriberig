@@ -16,6 +16,10 @@ pub struct SessionRow {
     pub label: String,
     /// Public session object kind.
     pub kind: SessionRowKind,
+    /// Candidate handle when this row exposes a review action.
+    pub candidate: Option<String>,
+    /// Exact candidate base snapshot for review actions.
+    pub snapshot: Option<scriberig_core::SnapshotId>,
     /// Whether the row belongs to an exploratory/non-canonical branch.
     pub transient: bool,
 }
@@ -33,6 +37,8 @@ pub enum SessionRowKind {
     Result,
     /// A tool invocation or result reference attached to a turn.
     Tool,
+    /// A durable candidate handle that can be opened for review.
+    Candidate,
 }
 
 /// Cached session tree presentation model.
@@ -57,6 +63,8 @@ impl SessionModel {
             depth: 0,
             label: format!("Session {}", session.id),
             kind: SessionRowKind::Session,
+            candidate: None,
+            snapshot: None,
             transient: false,
         }];
         let mut visited = BTreeSet::new();
@@ -122,6 +130,8 @@ fn append_branch(
         depth,
         label: format!("{} [{:?}]", source.title, source.status),
         kind: SessionRowKind::Branch,
+        candidate: None,
+        snapshot: None,
         transient,
     });
     let compact = source.parent.is_some() && source.status == BranchStatus::Completed;
@@ -132,6 +142,8 @@ fn append_branch(
                 depth: depth + 1,
                 label: format!("Turn {}", turn.ordinal),
                 kind: SessionRowKind::Turn,
+                candidate: None,
+                snapshot: None,
                 transient,
             });
             for reference in [turn.tool_invocation, turn.tool_result]
@@ -143,6 +155,8 @@ fn append_branch(
                     depth: depth + 2,
                     label: format!("Tool {reference}"),
                     kind: SessionRowKind::Tool,
+                    candidate: None,
+                    snapshot: None,
                     transient,
                 });
             }
@@ -154,6 +168,8 @@ fn append_branch(
             depth: depth + 1,
             label: "Durable branch result".to_owned(),
             kind: SessionRowKind::Result,
+            candidate: None,
+            snapshot: None,
             transient: false,
         });
         rows.extend(result.references.iter().map(|reference| SessionRow {
@@ -161,7 +177,26 @@ fn append_branch(
             depth: depth + 2,
             label: format!("Result reference {reference}"),
             kind: SessionRowKind::Result,
+            candidate: None,
+            snapshot: None,
             transient: false,
+        }));
+        let base = result
+            .result_handles
+            .iter()
+            .find_map(|handle| handle.strip_prefix("snapshot:"))
+            .and_then(|snapshot| snapshot.parse().ok());
+        rows.extend(result.result_handles.iter().filter_map(|handle| {
+            let candidate = handle.strip_prefix("candidate:")?;
+            Some(SessionRow {
+                reference: result.id,
+                depth: depth + 2,
+                label: format!("Review candidate {candidate}"),
+                kind: SessionRowKind::Candidate,
+                candidate: Some(candidate.to_owned()),
+                snapshot: base,
+                transient: false,
+            })
         }));
     }
     let mut children = source.children.clone();
@@ -238,7 +273,10 @@ mod tests {
             summary: Some("done".to_owned()),
             result_kind: Some("agent".to_owned()),
             references: vec![result_id],
-            result_handles: Vec::new(),
+            result_handles: vec![
+                "candidate:pc_123".to_owned(),
+                format!("snapshot:{}", scriberig_core::SnapshotId::new([13; 32])),
+            ],
             touched: Vec::new(),
             produced_changes: Vec::new(),
             validations: Vec::new(),
@@ -253,5 +291,15 @@ mod tests {
         let model = SessionModel::from_session(&session);
         assert!(model.rows.iter().any(|row| row.reference == result_id));
         assert!(!model.rows.iter().any(|row| row.reference == turn_id));
+        let review = model
+            .rows
+            .iter()
+            .find(|row| row.kind == SessionRowKind::Candidate)
+            .expect("candidate review row");
+        assert_eq!(review.candidate.as_deref(), Some("pc_123"));
+        assert_eq!(
+            review.snapshot,
+            Some(scriberig_core::SnapshotId::new([13; 32]))
+        );
     }
 }

@@ -63,6 +63,10 @@ fn cursor_limit(state: &TuiState) -> usize {
                 _ => 0,
             },
             crate::selection::PrimaryView::Operations => state.operations.len().saturating_sub(1),
+            crate::selection::PrimaryView::Changes => match &state.review {
+                LoadState::Ready(model) => model.conflicts.len().saturating_sub(1),
+                _ => 0,
+            },
             _ => 0,
         },
         Focus::Inspector => 0,

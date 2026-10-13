@@ -4,6 +4,9 @@
 
 use super::*;
 
+#[path = "service_operation_helpers/projected.rs"]
+mod projected;
+
 /// Inspects one entity and supplies a project label when needed.
 pub(super) fn inspect_entity<B: ApplicationBackend>(
     adapter: &ApplicationOperationAdapter<B>,
@@ -128,6 +131,20 @@ pub(super) fn execute_operation<B: ApplicationBackend>(
     context: &ApplicationContext,
     request: &ApplicationRequest,
 ) -> Result<Option<ApplicationResult>, ApplicationError> {
+    if let ApplicationRequest::Apply(apply) = request
+        && service_project_projection::parse_edit(&apply.change).is_none()
+        && let Some(workflow) = adapter.project_workflow.as_ref()
+        && let Some(result) =
+            super::service_project_candidate_review::review_candidate(workflow, apply)?
+    {
+        return Ok(Some(result));
+    }
+    if let ApplicationRequest::Commit(commit) = request
+        && let Some(workflow) = adapter.project_workflow.as_ref()
+    {
+        return super::service_project_candidate_review::apply_candidate(workflow, commit)
+            .map(Some);
+    }
     let Some(projection) = &adapter.project_projection else {
         return Ok(None);
     };
@@ -136,98 +153,8 @@ pub(super) fn execute_operation<B: ApplicationBackend>(
     {
         return render_project_source(projection, view).map(Some);
     }
-    if let ApplicationRequest::Apply(apply) = request
-        && let Some((entity, replacement)) = service_project_projection::parse_edit(&apply.change)
-    {
-        let Some((path, bytes)) = projection.sources.get(&entity) else {
-            return Err(ApplicationError::NotFound {
-                subject: entity.to_string(),
-            });
-        };
-        let edited = String::from_utf8_lossy(bytes).replace("left + right", replacement);
-        let candidate = projection
-            .workflow
-            .propose_candidate(projection.project, entity, edited)
-            .map_err(|error| ApplicationError::ValidationFailure {
-                message: error.to_string(),
-            })?;
-        if candidate.base_snapshot != apply.base_snapshot {
-            return Err(ApplicationError::StaleBaseSnapshot {
-                requested: apply.base_snapshot,
-                current: candidate.base_snapshot,
-            });
-        }
-        let (validation, diagnostics) = match &candidate.validation {
-            scriberig_project::CandidateValidation::Pending => {
-                (scriberig_app::ValidationStatus::Skipped, Vec::new())
-            }
-            scriberig_project::CandidateValidation::Passed => {
-                (scriberig_app::ValidationStatus::Passed, Vec::new())
-            }
-            scriberig_project::CandidateValidation::Failed { diagnostics } => {
-                (scriberig_app::ValidationStatus::Failed, diagnostics.clone())
-            }
-        };
-        adapter
-            .project_candidates
-            .lock()
-            .map_err(|_| ApplicationError::Internal {
-                message: "project candidate lock poisoned".to_owned(),
-            })?
-            .insert(candidate.id.clone(), candidate.clone());
-        return Ok(Some(ApplicationResult::Apply(
-            scriberig_app::OperationSummary {
-                handle: candidate.id,
-                snapshot: Some(candidate.base_snapshot),
-                revision: None,
-                branch: None,
-                diff: None,
-                history: None,
-                rendered: None,
-                validation: Some(validation),
-                validation_diagnostics: diagnostics,
-                conflicts: vec![format!(
-                    "{path}: add | old: left + right | new: {replacement}"
-                )],
-            },
-        )));
-    }
-    if let ApplicationRequest::Commit(commit) = request {
-        let candidate = adapter
-            .project_candidates
-            .lock()
-            .map_err(|_| ApplicationError::Internal {
-                message: "project candidate lock poisoned".to_owned(),
-            })?
-            .get(&commit.change)
-            .cloned()
-            .ok_or_else(|| ApplicationError::NotFound {
-                subject: commit.change.clone(),
-            })?;
-        let report = projection
-            .workflow
-            .apply_candidate(&candidate)
-            .map_err(|error| ApplicationError::OperationFailed {
-                operation: error.code.to_owned(),
-                message: error.message,
-            })?;
-        return Ok(Some(ApplicationResult::Commit(
-            scriberig_app::OperationSummary {
-                handle: report.candidate,
-                snapshot: Some(report.successor_snapshot),
-                revision: None,
-                branch: None,
-                diff: None,
-                history: None,
-                rendered: None,
-                validation: Some(scriberig_app::ValidationStatus::Passed),
-                validation_diagnostics: Vec::new(),
-                conflicts: vec![format!("materialized {}", report.path)],
-            },
-        )));
-    }
     let _ = context;
-    Ok(None)
+    projected::execute_projected_change(adapter, projection, request)
 }
 
 /// Reads an operation record from the shared registry.
@@ -309,6 +236,9 @@ pub(super) fn runtime_capabilities<B: ApplicationBackend>(
             "projection_edit_candidate",
             "Review a source projection candidate.",
         ));
+    }
+    if adapter.project_workflow.is_some() {
+        capabilities.push(("change_review", "Review and accept project candidates."));
     }
     capabilities
         .into_iter()

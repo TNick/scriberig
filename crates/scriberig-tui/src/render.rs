@@ -287,20 +287,32 @@ fn primary_text(state: &TuiState) -> String {
         crate::selection::PrimaryView::Changes => match &state.review {
             crate::inspector::LoadState::Ready(model) => {
                 let fields = model.change.splitn(3, '|').collect::<Vec<_>>();
-                let review_diff = model.conflicts.first().and_then(|value| {
-                    let (_, rest) = value.split_once("add | ")?;
-                    Some(rest.replace(" | ", "\n"))
+                let selected = model.conflicts.get(state.cursor);
+                let review_diff = selected.and_then(|value| {
+                    let (scope_and_path, rest) = value.split_once("add | ")?;
+                    let prefix = scope_and_path
+                        .trim_end_matches(": ")
+                        .replace("; ", "\npath: ");
+                    Some(format!("{prefix}\n{}", rest.replace(" | ", "\n")))
                 });
                 let detail = if let Some(diff) = review_diff {
-                    format!("path: src/lib.rs\n{diff}")
+                    diff
                 } else if fields.len() == 3 && fields[0] == "project-edit" {
                     format!("path: src/lib.rs\nold: left + right\nnew: {}", fields[2])
+                } else if let Some(change) = selected {
+                    format!(
+                        "candidate: {}\nfile {}/{}\n{}",
+                        model.change,
+                        state.cursor + 1,
+                        model.conflicts.len(),
+                        change
+                    )
                 } else {
                     format!("change: {}", model.change)
                 };
                 format!(
-                    "Change review\nbase: {}\n{}\nvalidation: {:?}\nconflicts: {:?}\nEnter to confirm",
-                    model.base_snapshot, detail, model.validation, model.conflicts,
+                    "Change review\nbase: {}\nvalidation: {:?}\n{}\nUp/Down select file | Enter to confirm",
+                    model.base_snapshot, model.validation, detail,
                 )
             }
             crate::inspector::LoadState::Loading { .. } => "Preparing change review...".to_owned(),
