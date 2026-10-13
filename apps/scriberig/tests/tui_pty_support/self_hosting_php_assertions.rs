@@ -231,6 +231,10 @@ pub(super) fn assert_durable_candidate_effect(
         candidate.validation,
         scriberig_project::CandidateValidation::Passed
     );
+    assert_eq!(
+        candidate.validation_profile.as_deref(),
+        Some("project-ingestion-e2e")
+    );
     let effect = store
         .project_effect(candidate_id)
         .expect("read effect receipt")

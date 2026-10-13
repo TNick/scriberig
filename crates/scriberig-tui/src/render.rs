@@ -320,8 +320,11 @@ fn primary_text(state: &TuiState) -> String {
                     format!("change: {}", model.change)
                 };
                 format!(
-                    "Change review\nbase: {}\nvalidation: {:?}\n{}\nUp/Down select file | Enter to confirm",
-                    model.base_snapshot, model.validation, detail,
+                    "Change review\nbase: {}\nvalidation: {:?}\nprofile: {}\n{}\nUp/Down select file | Enter to confirm",
+                    model.base_snapshot,
+                    model.validation,
+                    model.validation_profile.as_deref().unwrap_or("unspecified"),
+                    detail,
                 )
             }
             crate::inspector::LoadState::Loading { .. } => "Preparing change review...".to_owned(),

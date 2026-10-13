@@ -73,7 +73,7 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
     assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
     tui.send(b"Add support for ingesting PHP source files.\r");
     let continuation =
-        tui.read_until_for("agent continuation [Completed]", Duration::from_secs(300));
+        tui.read_until_for("agent continuation [Completed]", Duration::from_secs(900));
     let saved_after_continuation = load_session(&database, session);
     assert!(
         continuation,
@@ -239,6 +239,10 @@ fn review_and_apply(
     assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
     let review = tui.screen();
     assert!(review.contains("validation: Passed"), "{review}");
+    assert!(
+        review.contains("profile: project-ingestion-e2e"),
+        "{review}"
+    );
     assert!(review.contains(&candidate[..20]), "{review}");
     let php_path = "crates/domains/scriberig-domain-php";
     for _ in 0..20 {

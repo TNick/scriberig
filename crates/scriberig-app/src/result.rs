@@ -46,6 +46,8 @@ pub struct OperationSummary {
     pub rendered: Option<sr_projection::RenderedProjection>,
     /// Validation outcome when the operation performed validation.
     pub validation: Option<crate::ValidationStatus>,
+    /// Registered policy that produced the current validation outcome.
+    pub validation_profile: Option<String>,
     /// Safe validation diagnostics associated with the operation.
     pub validation_diagnostics: Vec<String>,
     /// Safe conflict summaries associated with the operation.

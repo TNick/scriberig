@@ -21,6 +21,11 @@ mod base;
 mod persistence;
 #[path = "candidate_validation.rs"]
 mod validation;
+#[path = "candidate_validation_lock.rs"]
+mod validation_lock;
+#[path = "candidate_validation_profiles.rs"]
+mod validation_profiles;
+pub use validation_profiles::CandidateValidationProfile;
 
 /// Validation state for a source candidate.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -57,6 +62,8 @@ pub struct ProjectCandidate {
     pub effects: Vec<ProjectSourceEffect>,
     /// Structured validation result.
     pub validation: CandidateValidation,
+    /// Most recent validation profile applied to this exact candidate.
+    pub validation_profile: Option<String>,
 }
 
 /// Describes a project-relative source change and its exact base precondition.
@@ -193,6 +200,7 @@ impl ProjectService {
                 new: Some(new),
             }],
             validation,
+            validation_profile: None,
         };
         self.store
             .put_project_candidate(&candidate.record())

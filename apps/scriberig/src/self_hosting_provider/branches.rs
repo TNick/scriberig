@@ -20,6 +20,14 @@ const IMPLEMENTATION_QUERIES: &[&str] = &[
     "crates/scriberig-project/src/support.rs",
 ];
 
+/// Registered validation profiles required for the PHP self-hosting candidate.
+const PHP_CANDIDATE_PROFILES: &[&str] = &[
+    "php-domain-focused",
+    "project-import-focused",
+    "rust-workspace",
+    "project-ingestion-e2e",
+];
+
 use super::{
     SemanticScope, candidate, delegate, final_response, handle_with_prefix, malformed,
     parse_handles, semantic_entity, tool_call, tool_messages,
@@ -217,10 +225,9 @@ pub(super) fn implementation_branch(
     {
         let candidate = handle_with_prefix(proposal, "candidate:")
             .ok_or_else(|| malformed("candidate proposal omitted identity"))?;
-        if validation_failure
-            && tools
-                .iter()
-                .any(|message| message.contains("validation failed"))
+        if tools
+            .iter()
+            .any(|message| message.contains("validation:failed"))
         {
             if !tools
                 .iter()
@@ -236,13 +243,18 @@ pub(super) fn implementation_branch(
                 scope.snapshot
             )));
         }
-        if !tools
+        let completed_profiles = PHP_CANDIDATE_PROFILES
             .iter()
-            .any(|message| message.contains("validation passed"))
-        {
+            .filter(|profile| {
+                tools
+                    .iter()
+                    .any(|message| message.contains(&format!("validation_profile:{profile}")))
+            })
+            .count();
+        if let Some(profile) = PHP_CANDIDATE_PROFILES.get(completed_profiles) {
             return Ok(tool_call(
                 "project_validate_candidate",
-                json!({"candidate":candidate}),
+                json!({"candidate":candidate,"profile":profile}),
             ));
         }
         if !tools

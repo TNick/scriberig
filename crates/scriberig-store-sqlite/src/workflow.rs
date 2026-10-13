@@ -25,6 +25,8 @@ pub struct ProjectCandidateRecord {
     pub validation: String,
     /// Newline-separated validation diagnostics.
     pub diagnostics: String,
+    /// Most recent registered validation profile, when the candidate was checked.
+    pub validation_profile: Option<String>,
     /// Ordered project source effects belonging to this candidate.
     pub effects: Vec<ProjectSourceEffectRecord>,
 }
@@ -193,11 +195,12 @@ impl SqliteStore {
         transaction.execute(
             "INSERT INTO project_candidates
              (id,project_id,base_snapshot,entity,relative_path,old_bytes,new_bytes,
-              validation,diagnostics,created_at)
-             VALUES (?,?,?,?,?,?,?,?,?,datetime('now'))
+              validation,diagnostics,validation_profile,created_at)
+             VALUES (?,?,?,?,?,?,?,?,?,?,datetime('now'))
              ON CONFLICT(id) DO UPDATE SET
                  validation=excluded.validation,
-                 diagnostics=excluded.diagnostics",
+                 diagnostics=excluded.diagnostics,
+                 validation_profile=excluded.validation_profile",
             params![
                 candidate.id,
                 candidate.project.as_bytes().as_slice(),
@@ -208,6 +211,7 @@ impl SqliteStore {
                 candidate.new,
                 candidate.validation,
                 candidate.diagnostics,
+                candidate.validation_profile,
             ],
         )?;
         transaction.execute(
@@ -252,7 +256,7 @@ impl SqliteStore {
         let mut candidate = connection
             .query_row(
                 "SELECT id,project_id,base_snapshot,entity,relative_path,old_bytes,new_bytes,
-                        validation,diagnostics
+                        validation,diagnostics,validation_profile
                  FROM project_candidates WHERE id=?",
                 [id],
                 |row| {
@@ -278,6 +282,7 @@ impl SqliteStore {
                         new: row.get(6)?,
                         validation: row.get(7)?,
                         diagnostics: row.get(8)?,
+                        validation_profile: row.get(9)?,
                         effects: Vec::new(),
                     })
                 },

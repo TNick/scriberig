@@ -169,6 +169,7 @@ fn confirmation_does_not_mutate_without_explicit_confirm() {
         affected_entities: Vec::new(),
         conflicts: Vec::new(),
         validation: crate::view::changes::ReviewValidation::Passed,
+        validation_profile: None,
         requires_confirmation: true,
     });
     assert_eq!(
@@ -225,6 +226,7 @@ fn committed_candidate_refreshes_active_snapshot() {
                 affected_entities: Vec::new(),
                 conflicts: Vec::new(),
                 validation: crate::view::changes::ReviewValidation::Passed,
+                validation_profile: None,
                 requires_confirmation: true,
             },
             snapshot: successor,
@@ -306,6 +308,7 @@ fn candidate_conflict_preserves_connection_and_clears_after_reinspection() {
                 affected_entities: Vec::new(),
                 conflicts: vec!["update Cargo.toml".to_owned()],
                 validation: crate::view::changes::ReviewValidation::Passed,
+                validation_profile: None,
                 requires_confirmation: true,
             },
         },

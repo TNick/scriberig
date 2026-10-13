@@ -82,9 +82,25 @@ pub(super) fn control_parameters(name: &str) -> serde_json::Value {
             },
             "required": ["project", "base_snapshot", "effects"]
         }),
-        "project_candidate" | "project_validate_candidate" => serde_json::json!({
+        "project_candidate" => serde_json::json!({
             "type": "object",
             "properties": {"candidate": {"type": "string"}},
+            "required": ["candidate"]
+        }),
+        "project_validate_candidate" => serde_json::json!({
+            "type": "object",
+            "properties": {
+                "candidate": {"type": "string"},
+                "profile": {
+                    "type": "string",
+                    "enum": [
+                        "php-domain-focused",
+                        "project-import-focused",
+                        "rust-workspace",
+                        "project-ingestion-e2e"
+                    ]
+                }
+            },
             "required": ["candidate"]
         }),
         _ => serde_json::json!({"type": "object"}),

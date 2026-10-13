@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 use scriberig_core::{EntityId, ProjectId, SnapshotId};
 use scriberig_store_sqlite::ProjectFileRecord;
 
-use crate::{CandidateValidation, ProjectError};
+use crate::{CandidateValidation, CandidateValidationProfile, ProjectError};
 
 /// Builds a stable candidate identity from exact request inputs.
 ///
@@ -166,13 +166,31 @@ fn copy_tree(source: &Path, destination: &Path) -> Result<(), String> {
 /// # Errors
 /// Returns cancellation when validation was stopped by its owning operation.
 pub(super) fn validate_effects(
+    candidate_id: &str,
     files: &[ProjectFileRecord],
     effects: &[super::ProjectSourceEffect],
+    profile: CandidateValidationProfile,
     cancelled: &AtomicBool,
 ) -> Result<CandidateValidation, ProjectError> {
-    static NEXT_WORKSPACE: AtomicU64 = AtomicU64::new(0);
-    let id = NEXT_WORKSPACE.fetch_add(1, Ordering::Relaxed);
-    let root = std::env::temp_dir().join(format!("scriberig-project-validation-{id}"));
+    let _lock = match super::validation_lock::acquire(cancelled) {
+        Ok(guard) => guard,
+        Err(super::validation_lock::ValidationLockError::Cancelled) => {
+            return Err(ProjectError {
+                code: "operation_cancelled",
+                message: "candidate validation was cancelled".to_owned(),
+                diagnostics: Vec::new(),
+            });
+        }
+        Err(super::validation_lock::ValidationLockError::Failed(error)) => {
+            return Ok(CandidateValidation::Failed {
+                diagnostics: vec![error],
+            });
+        }
+    };
+    let workspace_id = blake3::hash(candidate_id.as_bytes()).to_hex().to_string();
+    let root = std::env::temp_dir().join(format!("scriberig-project-validation-{workspace_id}"));
+    let target = std::env::temp_dir().join(format!("scriberig-candidate-target-{workspace_id}"));
+    let _ = fs::remove_dir_all(&root);
     let result = (|| {
         if cancelled.load(Ordering::Acquire) {
             return Err(ProcessFailure::Cancelled);
@@ -208,19 +226,11 @@ pub(super) fn validate_effects(
         }
         let mut command = Command::new("cargo");
         command
-            .args([
-                "check",
-                "--workspace",
-                "--all-targets",
-                "--offline",
-                "--manifest-path",
-            ])
+            .args(profile.cargo_arguments())
+            .arg("--manifest-path")
             .arg(manifest)
             .env("CARGO_NET_OFFLINE", "true")
-            .env(
-                "CARGO_TARGET_DIR",
-                std::env::temp_dir().join("scriberig-candidate-validation-target"),
-            );
+            .env("CARGO_TARGET_DIR", target);
         let output = run_bounded(command, Duration::from_secs(600), cancelled)?;
         if output.status.success() {
             Ok(Vec::new())

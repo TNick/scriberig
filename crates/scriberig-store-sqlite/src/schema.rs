@@ -5,8 +5,12 @@ use std::fmt::{Display, Formatter};
 
 use rusqlite::{Connection, Transaction};
 
+#[cfg(test)]
+#[path = "schema_tests.rs"]
+mod tests;
+
 /// Current SQLite backend schema version.
-pub const CURRENT_SCHEMA_VERSION: u32 = 4;
+pub const CURRENT_SCHEMA_VERSION: u32 = 5;
 
 const INTEGRITY_FORMAT_VERSION: &str = "1";
 const RECOVERY_MODE: &str = "transactional-root-promotion";
@@ -87,7 +91,7 @@ pub fn initialize(connection: &mut Connection) -> rusqlite::Result<u32> {
     let transaction = connection.transaction()?;
     initialize_schema(&transaction)?;
     transaction.execute(
-        "UPDATE metadata SET value=? WHERE key='schema_version' AND value IN ('1','2','3')",
+        "UPDATE metadata SET value=? WHERE key='schema_version' AND value IN ('1','2','3','4')",
         [CURRENT_SCHEMA_VERSION.to_string()],
     )?;
     let has_name = transaction
@@ -98,6 +102,18 @@ pub fn initialize(connection: &mut Connection) -> rusqlite::Result<u32> {
         .any(|column| column == "name");
     if !has_name {
         transaction.execute("ALTER TABLE project_entities ADD COLUMN name TEXT", [])?;
+    }
+    let has_validation_profile = transaction
+        .prepare("PRAGMA table_info(project_candidates)")?
+        .query_map([], |row| row.get::<_, String>(1))?
+        .collect::<rusqlite::Result<Vec<_>>>()?
+        .into_iter()
+        .any(|column| column == "validation_profile");
+    if !has_validation_profile {
+        transaction.execute(
+            "ALTER TABLE project_candidates ADD COLUMN validation_profile TEXT",
+            [],
+        )?;
     }
     let version = metadata_u32(&transaction, "schema_version")?;
     if version > CURRENT_SCHEMA_VERSION || version == 0 {
@@ -168,7 +184,7 @@ fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
              snapshot_id BLOB NOT NULL
          );
          INSERT OR IGNORE INTO metadata(key, value)
-             VALUES ('schema_version', '4');
+             VALUES ('schema_version', '5');
          INSERT OR IGNORE INTO metadata(key, value)
              VALUES ('integrity_format_version', '1');
          INSERT OR IGNORE INTO metadata(key, value)
@@ -217,6 +233,7 @@ fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
              new_bytes BLOB NOT NULL,
              validation TEXT NOT NULL,
              diagnostics TEXT NOT NULL,
+             validation_profile TEXT,
              created_at TEXT NOT NULL,
              FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
          );

@@ -103,6 +103,7 @@ fn create_projected_candidate<B: ApplicationBackend>(
         history: None,
         rendered: None,
         validation: Some(validation),
+        validation_profile: None,
         validation_diagnostics: diagnostics,
         conflicts: vec![format!(
             "{path}: add | old: left + right | new: {replacement}"
@@ -170,6 +171,7 @@ fn apply_projected_candidate<B: ApplicationBackend>(
         history: None,
         rendered: None,
         validation: Some(scriberig_app::ValidationStatus::Passed),
+        validation_profile: None,
         validation_diagnostics: Vec::new(),
         conflicts: vec![format!("materialized {}", report.path)],
     }))

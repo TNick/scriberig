@@ -77,6 +77,7 @@ pub(super) fn review_candidate(
         history: None,
         rendered: None,
         validation: Some(validation),
+        validation_profile: candidate.validation_profile.clone(),
         validation_diagnostics: diagnostics,
         conflicts,
     })))
@@ -128,6 +129,7 @@ pub(super) fn apply_candidate(
         history: None,
         rendered: None,
         validation: Some(ValidationStatus::Passed),
+        validation_profile: candidate.validation_profile,
         validation_diagnostics: Vec::new(),
         conflicts: vec![format!("materialized {}", report.path)],
     }))

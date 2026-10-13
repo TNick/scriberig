@@ -112,6 +112,7 @@ where
             history: None,
             rendered: Some(rendered),
             validation: None,
+            validation_profile: None,
             validation_diagnostics: Vec::new(),
             conflicts: Vec::new(),
         })

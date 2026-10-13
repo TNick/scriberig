@@ -189,6 +189,7 @@ impl ProjectService {
             new: first.new.clone().unwrap_or_default(),
             effects,
             validation: CandidateValidation::Pending,
+            validation_profile: None,
         };
         self.store
             .put_project_candidate(&candidate.record())

@@ -159,6 +159,7 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             history: None,
             rendered: None,
             validation: None,
+            validation_profile: None,
             validation_diagnostics: Vec::new(),
             conflicts: Vec::new(),
         })
@@ -200,6 +201,7 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             history: Some(history.migrations().into_iter().cloned().collect()),
             rendered: None,
             validation: None,
+            validation_profile: None,
             validation_diagnostics: Vec::new(),
             conflicts: Vec::new(),
         })
@@ -260,6 +262,7 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             history: None,
             rendered: None,
             validation: None,
+            validation_profile: None,
             validation_diagnostics: Vec::new(),
             conflicts: Vec::new(),
         })
@@ -298,6 +301,7 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             history: None,
             rendered: None,
             validation: None,
+            validation_profile: None,
             validation_diagnostics: Vec::new(),
             conflicts: Vec::new(),
         })
@@ -343,6 +347,7 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             history: None,
             rendered: None,
             validation: None,
+            validation_profile: None,
             validation_diagnostics: Vec::new(),
             conflicts: Vec::new(),
         })

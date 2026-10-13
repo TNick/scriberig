@@ -43,6 +43,7 @@ impl OperationFixture {
             history: None,
             rendered: None,
             validation: None,
+            validation_profile: None,
             validation_diagnostics: Vec::new(),
             conflicts: Vec::new(),
         }

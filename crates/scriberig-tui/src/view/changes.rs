@@ -28,6 +28,8 @@ pub struct ChangeReviewModel {
     pub conflicts: Vec<String>,
     /// Validation state and safe diagnostics.
     pub validation: ReviewValidation,
+    /// Registered policy that produced the current validation result.
+    pub validation_profile: Option<String>,
     /// Whether the model represents a candidate rather than a promoted state.
     pub requires_confirmation: bool,
 }
@@ -73,6 +75,7 @@ impl ChangeReviewModel {
                 .unwrap_or_default(),
             conflicts: summary.conflicts.clone(),
             validation,
+            validation_profile: summary.validation_profile.clone(),
             requires_confirmation: true,
         }
     }
@@ -107,6 +110,7 @@ mod tests {
             history: None,
             rendered: None,
             validation: Some(ValidationStatus::Failed),
+            validation_profile: Some("rust-workspace".to_owned()),
             validation_diagnostics: vec!["invalid relation".to_owned()],
             conflicts: vec!["entity conflict".to_owned()],
         };
@@ -116,6 +120,7 @@ mod tests {
             model.validation,
             ReviewValidation::Failed("invalid relation".to_owned())
         );
+        assert_eq!(model.validation_profile.as_deref(), Some("rust-workspace"));
         assert_eq!(model.conflicts, vec!["entity conflict"]);
     }
 }

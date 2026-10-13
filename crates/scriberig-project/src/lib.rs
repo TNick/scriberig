@@ -20,8 +20,8 @@ mod project_views;
 #[path = "scan_manifest.rs"]
 mod scan_manifest;
 pub use candidate::{
-    CandidateApplyReport, CandidateValidation, ProjectCandidate, ProjectSourceChange,
-    ProjectSourceChangeKind, ProjectSourceEffect, ProjectSourceEffectKind,
+    CandidateApplyReport, CandidateValidation, CandidateValidationProfile, ProjectCandidate,
+    ProjectSourceChange, ProjectSourceChangeKind, ProjectSourceEffect, ProjectSourceEffectKind,
 };
 pub use manifest::{ProjectManifestEntry, ProjectManifestPage, ProjectManifestSummary};
 pub use project_views::{ProjectSourceProjection, ProjectSymbol};

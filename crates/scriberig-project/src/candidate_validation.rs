@@ -1,6 +1,8 @@
 //! Validates durable project candidates in isolated source workspaces.
 
-use super::{ProjectCandidate, ProjectError, ProjectService, candidate_support};
+use super::{
+    CandidateValidationProfile, ProjectCandidate, ProjectError, ProjectService, candidate_support,
+};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 impl ProjectService {
@@ -37,6 +39,31 @@ impl ProjectService {
         id: &str,
         cancelled: &AtomicBool,
     ) -> Result<ProjectCandidate, ProjectError> {
+        self.validate_candidate_profile_cancellable(
+            id,
+            CandidateValidationProfile::RustWorkspace,
+            cancelled,
+        )
+    }
+
+    /// Validates a durable candidate using one registered isolated-workspace profile.
+    ///
+    /// # Parameters
+    /// - `id`: Stable candidate identity.
+    /// - `profile`: Registered validation policy selected by the application caller.
+    /// - `cancelled`: Shared operation cancellation flag.
+    ///
+    /// # Returns
+    /// Candidate with profile-bound validation status persisted.
+    ///
+    /// # Errors
+    /// Returns an error when the candidate is missing, stale, cancelled, or unavailable.
+    pub fn validate_candidate_profile_cancellable(
+        &self,
+        id: &str,
+        profile: CandidateValidationProfile,
+        cancelled: &AtomicBool,
+    ) -> Result<ProjectCandidate, ProjectError> {
         if cancelled.load(Ordering::Acquire) {
             return Err(cancelled_error());
         }
@@ -55,8 +82,14 @@ impl ProjectService {
         }
         let files =
             super::base::project_files_at(&self.store, candidate.project, candidate.base_snapshot)?;
-        candidate.validation =
-            candidate_support::validate_effects(&files, &candidate.effects, cancelled)?;
+        candidate.validation = candidate_support::validate_effects(
+            &candidate.id,
+            &files,
+            &candidate.effects,
+            profile,
+            cancelled,
+        )?;
+        candidate.validation_profile = Some(profile.identifier().to_owned());
         if cancelled.load(Ordering::Acquire) {
             return Err(cancelled_error());
         }

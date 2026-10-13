@@ -46,6 +46,7 @@ impl ProjectCandidate {
                     new: effect.new.clone(),
                 })
                 .collect(),
+            validation_profile: self.validation_profile.clone(),
         }
     }
 
@@ -119,6 +120,7 @@ impl ProjectCandidate {
             new: record.new,
             effects,
             validation,
+            validation_profile: record.validation_profile,
         })
     }
 }

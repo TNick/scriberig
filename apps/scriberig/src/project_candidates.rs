@@ -4,7 +4,8 @@ use scriberig_agent_core::{ToolError, ToolResult};
 use scriberig_app::ApplicationContext;
 use scriberig_core::{ProjectId, SnapshotId};
 use scriberig_project::{
-    CandidateValidation, ProjectSourceChange, ProjectSourceChangeKind, ProjectSourceEffectKind,
+    CandidateValidation, CandidateValidationProfile, ProjectSourceChange, ProjectSourceChangeKind,
+    ProjectSourceEffectKind,
 };
 
 use crate::agent_tool::LocalAgentTool;
@@ -72,6 +73,12 @@ impl<B: scriberig_app::ApplicationBackend> LocalAgentTool<'_, B> {
                     "snapshot:{}",
                     candidate.base_snapshot
                 )))
+                .chain(
+                    candidate
+                        .validation_profile
+                        .as_ref()
+                        .map(|profile| format!("validation_profile:{profile}")),
+                )
                 .chain(handles)
                 .collect(),
         );
@@ -83,7 +90,7 @@ impl<B: scriberig_app::ApplicationBackend> LocalAgentTool<'_, B> {
     /// Loads candidate identity, base, validation state, and changed paths.
     ///
     /// # Parameters
-    /// - `arguments`: Stable candidate identity.
+    /// - `arguments`: Candidate identity and optional registered profile identifier.
     /// - `super`: Parent module containing the agent tool adapter.
     ///
     /// # Returns
@@ -149,9 +156,17 @@ impl<B: scriberig_app::ApplicationBackend> LocalAgentTool<'_, B> {
         cancelled: &std::sync::atomic::AtomicBool,
     ) -> Result<ToolResult, ToolError> {
         let id = candidate_id(arguments)?;
+        let profile = arguments
+            .get("profile")
+            .and_then(serde_json::Value::as_str)
+            .map_or(
+                Some(CandidateValidationProfile::RustWorkspace),
+                CandidateValidationProfile::from_identifier,
+            )
+            .ok_or_else(|| invalid_argument("unknown validation profile"))?;
         let candidate = self
             .project_service()?
-            .validate_candidate_cancellable(id, cancelled)
+            .validate_candidate_profile_cancellable(id, profile, cancelled)
             .map_err(|error| Self::project_error(&error))?;
         let summary = match &candidate.validation {
             CandidateValidation::Pending => "validation remains pending".to_owned(),
@@ -172,6 +187,8 @@ impl<B: scriberig_app::ApplicationBackend> LocalAgentTool<'_, B> {
             vec![
                 format!("candidate:{}", candidate.id),
                 format!("validation:{}", validation_name(&candidate.validation)),
+                format!("validation_id:{}:{}", candidate.id, profile.identifier()),
+                format!("validation_profile:{}", profile.identifier()),
             ],
         );
         result.snapshot = Some(candidate.base_snapshot);

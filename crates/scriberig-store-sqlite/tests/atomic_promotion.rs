@@ -64,7 +64,7 @@ fn newer_schema_version_is_rejected() {
     let path = temporary_database_path("schema");
     {
         let store = SqliteStore::open(&path).expect("open");
-        assert_eq!(store.schema_version().expect("version"), 4);
+        assert_eq!(store.schema_version().expect("version"), 5);
     }
     let connection = rusqlite::Connection::open(&path).expect("connection");
     connection
@@ -91,7 +91,7 @@ fn incompatible_recovery_metadata_is_rejected() {
     let path = temporary_database_path("metadata");
     {
         let store = SqliteStore::open(&path).expect("open");
-        assert_eq!(store.schema_version().expect("version"), 4);
+        assert_eq!(store.schema_version().expect("version"), 5);
     }
     let connection = rusqlite::Connection::open(&path).expect("connection");
     connection

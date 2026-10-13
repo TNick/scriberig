@@ -22,6 +22,13 @@ fn candidate_tools_use_exact_shared_project_operations() {
     fs::create_dir_all(&root).expect("candidate project root");
     let source = b"base source\n";
     fs::write(root.join("notes.txt"), source).expect("source file");
+    fs::create_dir_all(root.join("src")).expect("Rust source directory");
+    fs::write(
+        root.join("Cargo.toml"),
+        "[package]\nname = \"candidate_fixture\"\nversion = \"0.1.0\"\nedition = \"2024\"\n",
+    )
+    .expect("Cargo manifest");
+    fs::write(root.join("src/lib.rs"), "pub fn value() -> u8 { 1 }\n").expect("Rust source");
     let database = root.with_extension("sqlite");
     let store = Arc::new(SqliteStore::open(&database).expect("database"));
     let project = scriberig_project::ProjectService::new(Arc::clone(&store));
@@ -137,19 +144,7 @@ fn assert_candidate_tool_sequence<B: ApplicationBackend>(
             .iter()
             .any(|value| value.contains("update:notes.txt"))
     );
-    let validation = tool
-        .invoke_named(
-            context,
-            "project_validate_candidate",
-            &serde_json::json!({"candidate": candidate}),
-        )
-        .expect("validate isolated candidate");
-    assert!(
-        validation
-            .summary
-            .as_deref()
-            .is_some_and(|value| value.contains("passed"))
-    );
+    assert_candidate_validation(tool, context, project_service, candidate);
     assert_eq!(
         fs::read(root.join("notes.txt")).expect("live source"),
         source
@@ -172,5 +167,54 @@ fn assert_candidate_tool_sequence<B: ApplicationBackend>(
             }),
         )
         .is_err()
+    );
+}
+
+/// Validates a candidate with a registered profile and verifies durable profile identity.
+///
+/// # Parameters
+/// - `tool`: Shared project-aware local agent tool adapter.
+/// - `context`: Exact-base capability context.
+/// - `project_service`: Shared project candidate service.
+/// - `candidate`: Stable candidate identity.
+fn assert_candidate_validation<B: ApplicationBackend>(
+    tool: &LocalAgentTool<'_, B>,
+    context: &ApplicationContext,
+    project_service: &scriberig_project::ProjectService,
+    candidate: &str,
+) {
+    let validation = tool
+        .invoke_named(
+            context,
+            "project_validate_candidate",
+            &serde_json::json!({"candidate": candidate, "profile": "rust-workspace"}),
+        )
+        .expect("validate isolated candidate");
+    assert!(
+        validation
+            .summary
+            .as_deref()
+            .is_some_and(|value| value.contains("passed"))
+    );
+    assert!(
+        validation
+            .handles
+            .iter()
+            .any(|value| value == "validation_profile:rust-workspace")
+    );
+    assert!(
+        validation
+            .handles
+            .iter()
+            .any(|value| { value == &format!("validation_id:{candidate}:rust-workspace") })
+    );
+    assert_eq!(
+        project_service
+            .candidate(candidate)
+            .expect("durable candidate lookup")
+            .expect("candidate remains persisted")
+            .validation_profile
+            .as_deref(),
+        Some("rust-workspace")
     );
 }
