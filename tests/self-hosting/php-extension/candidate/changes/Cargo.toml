@@ -1,0 +1,59 @@
+[workspace]
+resolver = "3"
+members = [
+  "crates/scriberig-core",
+  "crates/scriberig-store",
+  "crates/sr-change",
+  "crates/scriberig-store-memory",
+  "crates/scriberig-store-sqlite",
+  "crates/scriberig-schema",
+  "crates/scriberig-graph",
+  "crates/scriberig-query",
+  "crates/scriberig-migration",
+  "crates/scriberig-derive",
+  "crates/scriberig-projection",
+  "crates/sr-projection",
+  "crates/sr-projection-fs",
+  "crates/sr-markdown",
+  "crates/scriberig-session",
+  "crates/scriberig-session-sqlite",
+  "crates/scriberig-app",
+  "crates/scriberig-protocol",
+  "crates/scriberig-client",
+  "crates/scriberig-agent-core",
+  "crates/scriberig-agent-runtime",
+  "crates/scriberig-server",
+  "crates/scriberig-tui",
+  "crates/scriberig-cli",
+  "crates/scriberig-project",
+  "crates/domains/scriberig-domain-markdown",
+  "crates/domains/scriberig-domain-code",
+  "crates/domains/scriberig-domain-rust",
+  "crates/domains/scriberig-domain-pdf",
+  "crates/domains/scriberig-domain-html",
+  "crates/domains/scriberig-domain-ecma",
+  "crates/domains/scriberig-domain-python",
+  "crates/domains/scriberig-domain-php",
+  "crates/domains/scriberig-domain-c",
+  "crates/domains/scriberig-domain-text",
+  "crates/domains/scriberig-domain-data",
+  "crates/domains/scriberig-domain-binary",
+  "crates/domains/test-support",
+  "crates/scriberig-conformance",
+  "apps/scriberig",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+repository = "https://github.com/TNick/scriberig"
+
+[workspace.lints.rust]
+warnings = "deny"
+missing_docs = "warn"
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }

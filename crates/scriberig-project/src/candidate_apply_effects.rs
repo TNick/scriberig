@@ -123,7 +123,7 @@ pub(super) fn preflight_project_tree(
     let current = crate::support::scan_directory(root, None)
         .map_err(|error| candidate_error("filesystem_scan_failed", &error.to_string()))?;
     let mut observed = std::collections::HashSet::new();
-    for file in current {
+    for file in current.into_iter().filter(|file| file.status == "ready") {
         if changed.contains(file.relative_path.as_str()) {
             continue;
         }

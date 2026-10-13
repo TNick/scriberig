@@ -60,6 +60,33 @@ pub(super) fn control_parameters(name: &str) -> serde_json::Value {
             },
             "required": ["project", "snapshot", "entity"]
         }),
+        "project_propose" => serde_json::json!({
+            "type": "object",
+            "properties": {
+                "project": {"type": "string"},
+                "base_snapshot": {"type": "string"},
+                "effects": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 512,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "path": {"type": "string"},
+                            "kind": {"type": "string", "enum": ["create", "update", "delete"]},
+                            "content": {"oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 255}}]}
+                        },
+                        "required": ["path", "kind"]
+                    }
+                }
+            },
+            "required": ["project", "base_snapshot", "effects"]
+        }),
+        "project_candidate" | "project_validate_candidate" => serde_json::json!({
+            "type": "object",
+            "properties": {"candidate": {"type": "string"}},
+            "required": ["candidate"]
+        }),
         _ => serde_json::json!({"type": "object"}),
     }
 }

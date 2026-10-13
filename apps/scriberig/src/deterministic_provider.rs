@@ -44,7 +44,10 @@ impl ProviderAdapter for BootstrapProvider {
             .iter()
             .any(|message| message.contains("active semantic workspace"))
         {
-            if tool_messages.len() >= 5 {
+            if tool_messages
+                .iter()
+                .any(|message| message.contains("summary=None"))
+            {
                 return Ok(ModelResponse {
                     text: Some(
                         "The current project is onboarded and its semantic root was inspected."
@@ -76,6 +79,14 @@ impl ProviderAdapter for BootstrapProvider {
                 }),
             )
         } else if tool_messages.is_empty() {
+            tool_call("runtime_capabilities", serde_json::json!({}))
+        } else if tool_messages
+            .iter()
+            .any(|message| message.contains("runtime capabilities available"))
+            && !tool_messages
+                .iter()
+                .any(|message| message.contains("scan persisted for"))
+        {
             tool_call(
                 "project_scan",
                 serde_json::json!({
@@ -99,10 +110,10 @@ impl ProviderAdapter for BootstrapProvider {
                 ProviderError::MalformedResponse("project identity is missing".to_owned())
             })?;
             tool_call("project_workspace", serde_json::json!({"project": project}))
-        } else if tool_messages
+        } else if let Some(manifest_page) = tool_messages
             .iter()
+            .rev()
             .find(|message| message.contains("summary=Some(\"manifest "))
-            .is_some()
         {
             let scan = tool_messages
                 .iter()
@@ -117,10 +128,25 @@ impl ProviderAdapter for BootstrapProvider {
             let manifest_id = handles.get(1).ok_or_else(|| {
                 ProviderError::MalformedResponse("manifest identity is missing".to_owned())
             })?;
-            tool_call(
-                "project_import",
-                serde_json::json!({"project": project, "manifest_id": manifest_id}),
-            )
+            if let Some(next_offset) = parse_handles(manifest_page)?
+                .iter()
+                .find_map(|handle| handle.strip_prefix("next_offset:"))
+            {
+                tool_call(
+                    "project_manifest",
+                    serde_json::json!({
+                        "project": project,
+                        "manifest_id": manifest_id,
+                        "offset": next_offset.parse::<usize>().map_err(|_| ProviderError::MalformedResponse("invalid manifest continuation offset".to_owned()))?,
+                        "limit": 100
+                    }),
+                )
+            } else {
+                tool_call(
+                    "project_import",
+                    serde_json::json!({"project": project, "manifest_id": manifest_id}),
+                )
+            }
         } else if let Some(scan) = tool_messages
             .iter()
             .find(|message| message.contains("scan persisted for"))
@@ -342,12 +368,13 @@ fn tool_call(name: &str, arguments: serde_json::Value) -> ModelResponse {
 /// # Parameters
 /// - `message`: Normalized tool-result message.
 ///
+/// - `super`: Parent module visibility marker.
 /// # Returns
 /// Tool result handles in their emitted order.
 ///
 /// # Errors
 /// Returns malformed-response when a tool result has no handle list.
-fn parse_handles(message: &str) -> Result<Vec<String>, ProviderError> {
+pub(super) fn parse_handles(message: &str) -> Result<Vec<String>, ProviderError> {
     let values = message
         .split_once("handles=[")
         .and_then(|(_, value)| value.split_once(']'))

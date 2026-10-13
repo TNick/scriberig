@@ -17,8 +17,10 @@ mod agent_tool;
 mod agent_tool_helpers;
 mod child_runtime;
 mod deterministic_provider;
+mod native_provider;
 mod native_tui_agent;
 mod remote_commands;
+mod self_hosting_provider;
 mod tui_command;
 use agent_tool::LocalAgentTool;
 use child_runtime::{LocalChildExecutor, inspect_catalog};
@@ -383,6 +385,9 @@ fn agent_actions() -> BTreeSet<CapabilityAction> {
         CapabilityAction::Custom("project_workspace".to_owned()),
         CapabilityAction::Custom("project_rescan".to_owned()),
         CapabilityAction::Custom("project_repair_file".to_owned()),
+        CapabilityAction::Custom("project_propose".to_owned()),
+        CapabilityAction::Custom("project_candidate".to_owned()),
+        CapabilityAction::Custom("project_validate_candidate".to_owned()),
         CapabilityAction::Custom("semantic_find".to_owned()),
         CapabilityAction::Custom("semantic_render".to_owned()),
     ]

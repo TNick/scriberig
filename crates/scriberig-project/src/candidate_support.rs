@@ -196,7 +196,10 @@ pub(super) fn validate_effects(
             ])
             .arg(manifest)
             .env("CARGO_NET_OFFLINE", "true")
-            .env("CARGO_TARGET_DIR", root.join("target"))
+            .env(
+                "CARGO_TARGET_DIR",
+                std::env::temp_dir().join("scriberig-candidate-validation-target"),
+            )
             .output()
             .map_err(|error| error.to_string())?;
         if output.status.success() {

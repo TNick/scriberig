@@ -9,17 +9,54 @@
     "tree_sitter_runtime": "0.25"
   },
   "candidate_paths": [
-    { "kind": "create", "path": "crates/domains/scriberig-domain-php/Cargo.toml" },
-    { "kind": "create", "path": "crates/domains/scriberig-domain-php/src/lib.rs" },
-    { "kind": "create", "path": "crates/domains/scriberig-domain-php/src/syntax.rs" },
-    { "kind": "create", "path": "crates/domains/scriberig-domain-php/src/declarations.rs" },
-    { "kind": "create", "path": "crates/domains/scriberig-domain-php/tests/contract.rs" },
-    { "kind": "update", "path": "Cargo.toml" },
-    { "kind": "update", "path": "crates/scriberig-project/Cargo.toml" },
-    { "kind": "update", "path": "crates/scriberig-project/src/scan.rs" },
-    { "kind": "update", "path": "crates/scriberig-project/src/adapters.rs" },
-    { "kind": "create", "path": "crates/scriberig-project/tests/php_ingestion.rs" },
-    { "kind": "update", "path": "Cargo.lock" }
+    {
+      "kind": "create",
+      "path": "crates/domains/scriberig-domain-php/Cargo.toml"
+    },
+    {
+      "kind": "create",
+      "path": "crates/domains/scriberig-domain-php/src/lib.rs"
+    },
+    {
+      "kind": "create",
+      "path": "crates/domains/scriberig-domain-php/src/syntax.rs"
+    },
+    {
+      "kind": "create",
+      "path": "crates/domains/scriberig-domain-php/src/declarations.rs"
+    },
+    {
+      "kind": "create",
+      "path": "crates/domains/scriberig-domain-php/tests/contract.rs"
+    },
+    {
+      "kind": "update",
+      "path": "Cargo.toml"
+    },
+    {
+      "kind": "update",
+      "path": "crates/scriberig-project/Cargo.toml"
+    },
+    {
+      "kind": "update",
+      "path": "crates/scriberig-project/src/scan.rs"
+    },
+    {
+      "kind": "update",
+      "path": "crates/scriberig-project/src/adapters.rs"
+    },
+    {
+      "kind": "create",
+      "path": "crates/scriberig-project/tests/php_ingestion.rs"
+    },
+    {
+      "kind": "update",
+      "path": "Cargo.lock"
+    },
+    {
+      "kind": "update",
+      "path": "crates/scriberig-project/src/support.rs"
+    }
   ],
   "semantic_acceptance": [
     "complete deterministic syntax tree with ranges, fields, comments, and errors",

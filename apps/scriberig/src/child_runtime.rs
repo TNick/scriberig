@@ -14,6 +14,9 @@ use crate::agent_tool::LocalAgentTool;
 #[path = "child_runtime/control_parameters.rs"]
 mod control_parameters;
 use control_parameters::control_parameters;
+#[path = "child_runtime/handles.rs"]
+mod handles;
+pub(super) use handles::compact_result_handles;
 
 /// Builds the trusted provider-visible catalog for the local agent runtime.
 ///
@@ -158,6 +161,21 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
             "Repair one authorized project-relative source file.",
             "project_repair_file",
         ),
+        (
+            "project_propose",
+            "Propose an exact-base multi-file project source candidate.",
+            "project_propose",
+        ),
+        (
+            "project_candidate",
+            "Inspect a durable project-wide candidate and its path effects.",
+            "project_candidate",
+        ),
+        (
+            "project_validate_candidate",
+            "Validate one exact project candidate in an isolated workspace.",
+            "project_validate_candidate",
+        ),
     ] {
         descriptors.push(ToolDescriptor {
             definition: ToolDefinition {
@@ -175,6 +193,8 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
                     | "project_import"
                     | "project_rescan"
                     | "project_repair_file"
+                    | "project_propose"
+                    | "project_validate_candidate"
             ),
             execution_mode: ToolExecutionMode::Atomic,
             required_capability: Some(required_capability.to_owned()),
@@ -281,7 +301,7 @@ where
             model,
             LocalAgentTool::new(self.service)
                 .with_project_store(std::sync::Arc::clone(&self.project_store)),
-            8,
+            32,
         )
         .run_with_child_executor_at(
             &child_scope,
@@ -353,26 +373,6 @@ fn delegated_capabilities(parent: &CapabilityContext, requested: &[String]) -> C
         })
         .collect();
     CapabilityContext { granted, grants }
-}
-
-/// Keeps bounded stable semantic handles from child tool observations.
-///
-/// # Parameters
-/// - `result`: Completed child runtime result.
-///
-/// # Returns
-/// Deduplicated handles suitable for a durable branch result.
-fn compact_result_handles(result: &scriberig_agent_runtime::AgentResult) -> Vec<String> {
-    let mut handles = std::collections::BTreeSet::new();
-    for message in &result.messages {
-        if let scriberig_agent_runtime::AgentMessage::Tool(tool) = message {
-            handles.extend(tool.handles.iter().take(16).cloned());
-        }
-        if handles.len() >= 32 {
-            break;
-        }
-    }
-    handles.into_iter().take(32).collect()
 }
 
 #[cfg(test)]

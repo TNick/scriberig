@@ -18,7 +18,7 @@ fn php_fixture_effect_manifest_matches_existing_repository_owners() {
     let paths = manifest["candidate_paths"]
         .as_array()
         .expect("candidate paths");
-    assert!(!paths.is_empty());
+    assert_ne!(paths.len(), 0);
     for effect in paths {
         let path = effect["path"].as_str().expect("relative candidate path");
         assert!(!Path::new(path).is_absolute());

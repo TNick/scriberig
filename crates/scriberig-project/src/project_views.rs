@@ -96,6 +96,48 @@ impl ProjectService {
             })
     }
 
+    /// Finds a bounded set of semantic entities at an exact project snapshot.
+    ///
+    /// This uses a filtered ownership query so interactive discovery does not
+    /// deserialize every entity in a large project for each search.
+    ///
+    /// # Parameters
+    /// - `project`: Project whose symbols are requested.
+    /// - `snapshot`: Exact immutable snapshot scope.
+    /// - `query`: Case-insensitive path, kind, or name substring.
+    /// - `limit`: Maximum number of symbols returned.
+    ///
+    /// # Returns
+    /// Snapshot-bound matching symbols and source entities.
+    ///
+    /// # Errors
+    /// Returns a structured error when the snapshot or symbol store is stale.
+    pub fn find_symbols_at(
+        &self,
+        project: ProjectId,
+        snapshot: SnapshotId,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<ProjectSymbol>, ProjectError> {
+        let workspace = self.workspace(project)?;
+        ensure_snapshot(workspace.snapshot, snapshot)?;
+        self.store
+            .find_project_entities(project, query, limit)
+            .map_err(crate::errors::storage_error)
+            .map(|entities| {
+                entities
+                    .into_iter()
+                    .map(|entity| ProjectSymbol {
+                        entity: entity.entity,
+                        snapshot: workspace.snapshot,
+                        path: entity.relative_path,
+                        kind: entity.kind,
+                        name: entity.name,
+                    })
+                    .collect()
+            })
+    }
+
     /// Renders an exact source projection for one semantic entity.
     ///
     /// # Parameters
@@ -138,10 +180,8 @@ impl ProjectService {
         ensure_snapshot(workspace.snapshot, snapshot)?;
         let entity_record = self
             .store
-            .project_entities(project)
+            .project_entity(project, entity)
             .map_err(crate::errors::storage_error)?
-            .into_iter()
-            .find(|record| record.entity == entity)
             .ok_or_else(|| ProjectError {
                 code: "entity_not_found",
                 message: "semantic entity is not owned by the project".to_owned(),

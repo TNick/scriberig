@@ -1,0 +1,34 @@
+[package]
+name = "scriberig-project"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Shared multi-project scanning and semantic onboarding service."
+repository.workspace = true
+
+[dependencies]
+blake3 = "1.8.2"
+scriberig-core = { path = "../scriberig-core" }
+scriberig-domain-html = { path = "../domains/scriberig-domain-html" }
+scriberig-domain-ecma = { path = "../domains/scriberig-domain-ecma" }
+scriberig-domain-c = { path = "../domains/scriberig-domain-c" }
+scriberig-domain-pdf = { path = "../domains/scriberig-domain-pdf" }
+scriberig-domain-python = { path = "../domains/scriberig-domain-python" }
+scriberig-domain-php = { path = "../domains/scriberig-domain-php" }
+scriberig-domain-rust = { path = "../domains/scriberig-domain-rust" }
+scriberig-domain-text = { path = "../domains/scriberig-domain-text" }
+scriberig-domain-data = { path = "../domains/scriberig-domain-data" }
+scriberig-domain-binary = { path = "../domains/scriberig-domain-binary" }
+scriberig-store = { path = "../scriberig-store" }
+scriberig-store-sqlite = { path = "../scriberig-store-sqlite" }
+sr-markdown = { path = "../sr-markdown" }
+sr-projection-fs = { path = "../sr-projection-fs" }
+serde_json = "1.0"
+syn = { version = "2.0.110", features = ["full"] }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+scriberig-store-sqlite = { path = "../scriberig-store-sqlite" }

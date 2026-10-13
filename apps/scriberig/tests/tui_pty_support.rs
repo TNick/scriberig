@@ -18,15 +18,21 @@ use vt100::Parser;
 #[path = "tui_pty_support/lifecycle.rs"]
 mod lifecycle;
 
+#[path = "tui_pty_support/driver.rs"]
+mod tui_pty_driver;
 #[path = "tui_pty_support/fixture.rs"]
 mod tui_pty_fixture;
 #[path = "tui_pty_support/interaction.rs"]
 mod tui_pty_interaction;
 use tui_pty_fixture::{basic_fixture, copy_directory, read_output, temporary_fixture};
 
+#[path = "tui_pty_support/self_hosting.rs"]
+mod self_hosting;
+
 /// Owns one real terminal session used by native TUI workflow tests.
 pub struct TuiPty {
     fixture: PathBuf,
+    project: PathBuf,
     master: Box<dyn portable_pty::MasterPty>,
     child: Box<dyn portable_pty::Child + Send>,
     writer: Box<dyn Write + Send>,
@@ -97,6 +103,7 @@ impl TuiPty {
     #[must_use]
     pub fn start_golden() -> Self {
         let fixture = temporary_fixture();
+        let project = fixture.join("project");
         copy_directory(
             &PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .join("..")
@@ -104,9 +111,9 @@ impl TuiPty {
                 .join("tests")
                 .join("fixtures")
                 .join("golden-rust-project"),
-            &fixture,
+            &project,
         );
-        Self::start_for_fixture(fixture)
+        Self::start_configured(fixture, Some(project), true, None, false)
     }
 
     /// Restarts the native TUI against an existing golden fixture.
@@ -118,7 +125,12 @@ impl TuiPty {
     /// A running TUI session using the existing durable state.
     #[must_use]
     pub fn restart(fixture: PathBuf) -> Self {
-        Self::start_for_fixture(fixture)
+        let project = fixture.join("project");
+        if project.is_dir() {
+            Self::start_configured(fixture, Some(project), true, None, false)
+        } else {
+            Self::start_for_fixture(fixture)
+        }
     }
 
     /// Starts the native process for one prepared fixture.
@@ -172,7 +184,42 @@ impl TuiPty {
         working_directory: Option<PathBuf>,
         deterministic_agent: bool,
     ) -> Self {
+        Self::start_configured_scenario(
+            fixture,
+            project_path,
+            import_project,
+            working_directory,
+            deterministic_agent,
+            None,
+        )
+    }
+
+    /// Starts the native process with an optional deterministic provider scenario.
+    ///
+    /// # Parameters
+    /// - `fixture`: Directory used for the fresh database.
+    /// - `project_path`: Optional project path passed to CLI.
+    /// - `import_project`: Whether startup imports the project directly.
+    /// - `working_directory`: Optional process working directory.
+    /// - `deterministic_agent`: Whether a deterministic provider is selected.
+    /// - `scenario`: Optional deterministic scenario identifier.
+    /// - `super`: Parent PTY support module visibility marker.
+    ///
+    /// # Returns
+    /// A running native TUI process.
+    ///
+    /// # Panics
+    /// Panics when the PTY or child process cannot be created.
+    fn start_configured_scenario(
+        fixture: PathBuf,
+        project_path: Option<PathBuf>,
+        import_project: bool,
+        working_directory: Option<PathBuf>,
+        deterministic_agent: bool,
+        scenario: Option<&str>,
+    ) -> Self {
         let database = fixture.join("scriberig.sqlite");
+        let product_project = project_path.clone().unwrap_or_else(|| fixture.clone());
         let pty_system = native_pty_system();
         let pair = pty_system
             .openpty(PtySize {
@@ -188,6 +235,7 @@ impl TuiPty {
         }
         if deterministic_agent {
             command.env("SCRIBE_AGENT_PROVIDER", "deterministic");
+            command.env("SCRIBE_AGENT_SCENARIO", scenario.unwrap_or("bootstrap"));
         }
         command.args(["tui", "--db", database.to_str().expect("database path")]);
         if let Some(project_path) = project_path {
@@ -204,6 +252,7 @@ impl TuiPty {
         thread::spawn(move || read_output(reader, sender));
         writer.flush().expect("flush terminal writer");
         Self {
+            project: product_project,
             fixture,
             master,
             child,
@@ -212,79 +261,6 @@ impl TuiPty {
             parser: Parser::new(40, 140, 0),
             transcript: Vec::new(),
         }
-    }
-
-    /// Sends raw terminal input to the running TUI.
-    ///
-    /// # Parameters
-    /// - `input`: Terminal bytes to send to the child process.
-    ///
-    /// # Panics
-    /// Panics when the PTY input stream cannot be written.
-    pub fn send(&mut self, input: &[u8]) {
-        self.writer.write_all(input).expect("send terminal input");
-        self.writer.flush().expect("flush terminal input");
-    }
-
-    /// Reads the PTY until a visible screen string appears or a timeout expires.
-    ///
-    /// # Parameters
-    /// - `expected`: Visible text that must appear on the virtual screen.
-    ///
-    /// # Returns
-    /// `true` when the text appears before the timeout.
-    pub fn read_until(&mut self, expected: &str) -> bool {
-        let deadline = Instant::now() + Duration::from_secs(20);
-        while Instant::now() < deadline {
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if !self.receive_frame(remaining) {
-                break;
-            }
-            if self.screen().contains(expected) {
-                return true;
-            }
-        }
-        false
-    }
-
-    /// Reads a fresh PTY frame until a visible string disappears.
-    ///
-    /// # Parameters
-    /// - `unexpected`: Visible text that must disappear from the screen.
-    ///
-    /// # Returns
-    /// `true` when the text disappears before the timeout.
-    pub fn read_until_not(&mut self, unexpected: &str) -> bool {
-        let deadline = Instant::now() + Duration::from_secs(20);
-        while Instant::now() < deadline {
-            let remaining = deadline.saturating_duration_since(Instant::now());
-            if !self.receive_frame(remaining) {
-                break;
-            }
-            if !self.screen().contains(unexpected) {
-                return true;
-            }
-        }
-        false
-    }
-
-    /// Reads and applies one PTY frame, including terminal query responses.
-    ///
-    /// # Parameters
-    /// - `timeout`: Maximum time to wait for a PTY frame.
-    ///
-    /// # Returns
-    /// `true` when a frame was received.
-    fn receive_frame(&mut self, timeout: Duration) -> bool {
-        let Ok(bytes) = self.receiver.recv_timeout(timeout) else {
-            return false;
-        };
-        self.transcript.extend_from_slice(&bytes);
-        if bytes.windows(4).any(|window| window == b"\x1b[6n") {
-            self.send(b"\x1b[1;1R");
-        }
-        self.parser.process(&bytes);
-        true
     }
 
     /// Resizes the native terminal surface.
@@ -326,7 +302,7 @@ impl TuiPty {
     /// Panics when the fixture source cannot be read.
     #[must_use]
     pub fn source(&self) -> String {
-        fs::read_to_string(self.fixture.join("src").join("lib.rs")).expect("read source")
+        fs::read_to_string(self.project.join("src").join("lib.rs")).expect("read source")
     }
 
     /// Adds an external marker to the live Rust source.
@@ -334,7 +310,7 @@ impl TuiPty {
     /// # Panics
     /// Panics when the fixture source cannot be read or written.
     pub fn external_edit(&self) {
-        let path = self.fixture.join("src").join("lib.rs");
+        let path = self.project.join("src").join("lib.rs");
         let source = fs::read_to_string(&path).expect("read source");
         fs::write(path, format!("// external edit\n{source}")).expect("external edit");
     }

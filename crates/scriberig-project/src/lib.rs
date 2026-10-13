@@ -370,14 +370,11 @@ impl ProjectService {
             message: "project has no current semantic snapshot".to_owned(),
             diagnostics: Vec::new(),
         })?;
-        let entities = self
+        let root_entity = self
             .store
-            .project_entities(project)
+            .project_source_root(project)
             .map_err(storage_error)?;
-        let root_entity = entities
-            .iter()
-            .find(|entity| entity.kind == "source" && entity.relative_path == "src/lib.rs")
-            .or_else(|| entities.iter().find(|entity| entity.kind == "source"))
+        let root_entity = root_entity
             .map(|entity| entity.entity)
             .ok_or_else(|| ProjectError {
                 code: "project_root_unavailable",

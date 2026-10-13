@@ -7,7 +7,6 @@ use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::provider::{
     CredentialSource, ProviderAdapter, ProviderConfig, ProviderError,
 };
-use scriberig_agent_runtime::provider::{ModelRequest, ModelResponse};
 use scriberig_agent_runtime::{AgentError, AgentRuntime, ChildExecutionScope};
 use scriberig_app::{
     AgentCommandRequest, AgentSelection, ApplicationBackend, ApplicationContext, ApplicationError,
@@ -18,6 +17,7 @@ use scriberig_store_sqlite::SqliteStore;
 
 use crate::agent_tool::LocalAgentTool;
 use crate::child_runtime::{LocalChildExecutor, inspect_catalog};
+use crate::native_provider::NativeProvider;
 #[path = "native_tui_agent/workspace.rs"]
 mod workspace;
 use workspace::workspace_from_result;
@@ -53,9 +53,23 @@ impl NativeTuiAgentRunner {
         let provider_kind = std::env::var("SCRIBE_AGENT_PROVIDER")
             .unwrap_or_else(|_| "openai_compatible".to_owned());
         let provider = match provider_kind.as_str() {
-            "deterministic" => Some(NativeProvider::Deterministic(
-                crate::deterministic_provider::BootstrapProvider,
-            )),
+            "deterministic" => {
+                let scenario = std::env::var("SCRIBE_AGENT_SCENARIO")
+                    .unwrap_or_else(|_| "bootstrap".to_owned());
+                Some(match scenario.as_str() {
+                    "bootstrap" => NativeProvider::Deterministic(
+                        crate::deterministic_provider::BootstrapProvider,
+                    ),
+                    "self_hosting_php" => NativeProvider::SelfHostingPhp(
+                        crate::self_hosting_provider::PhpSelfHostingProvider,
+                    ),
+                    unknown => {
+                        return Err(ProviderError::Configuration(format!(
+                            "unsupported SCRIBE_AGENT_SCENARIO: {unknown}"
+                        )));
+                    }
+                })
+            }
             "openai_compatible" => std::env::var("SCRIBE_AGENT_BASE_URL")
                 .ok()
                 .map(|base_url| {
@@ -79,35 +93,6 @@ impl NativeTuiAgentRunner {
             model,
             project_store,
         })
-    }
-}
-
-/// Selects the available provider adapter for the local TUI runtime.
-#[derive(Clone)]
-enum NativeProvider {
-    /// Remote OpenAI-compatible model endpoint.
-    OpenAiCompatible(scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider),
-    /// Deterministic onboarding scenario used by product tests.
-    Deterministic(crate::deterministic_provider::BootstrapProvider),
-}
-
-impl ProviderAdapter for NativeProvider {
-    /// Completes through the selected remote or deterministic adapter.
-    ///
-    /// # Parameters
-    /// - `self`: Selected native provider.
-    /// - `request`: Normalized provider request.
-    ///
-    /// # Returns
-    /// The normalized model response.
-    ///
-    /// # Errors
-    /// Returns a classified provider failure.
-    fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
-        match self {
-            Self::OpenAiCompatible(provider) => provider.complete(request),
-            Self::Deterministic(provider) => provider.complete(request),
-        }
     }
 }
 
@@ -177,7 +162,8 @@ impl<B: ApplicationBackend> scriberig_tui::AgentCommandRunner<B> for NativeTuiAg
             }
         };
         let workspace = workspace_from_result(&result)?;
-        let result_handles = workspace.as_ref().map_or_else(
+        let mut result_handles = crate::child_runtime::compact_result_handles(&result);
+        let workspace_handles = workspace.as_ref().map_or_else(
             || selection_handles(selection.as_ref()),
             |workspace| {
                 vec![
@@ -188,6 +174,11 @@ impl<B: ApplicationBackend> scriberig_tui::AgentCommandRunner<B> for NativeTuiAg
                 ]
             },
         );
+        for handle in workspace_handles {
+            if !result_handles.contains(&handle) {
+                result_handles.push(handle);
+            }
+        }
         service.complete_local_agent_with_handles(&handle, result.output, result_handles)?;
         Ok(scriberig_tui::AgentHandle {
             operation: handle.operation,
@@ -384,7 +375,7 @@ where
     let mut runtime = AgentRuntime::new(
         model_provider,
         LocalAgentTool::new(service).with_project_store(Arc::clone(project_store)),
-        8,
+        32,
     );
     runtime.run_with_child_executor_at(
         &scope,

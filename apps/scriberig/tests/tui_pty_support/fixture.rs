@@ -123,6 +123,47 @@ pub(super) fn copy_directory(source: &PathBuf, destination: &PathBuf) {
     }
 }
 
+/// Copies a source checkout while excluding generated and local agent data.
+///
+/// # Parameters
+/// - `source`: Repository checkout to copy.
+/// - `destination`: Temporary isolated checkout destination.
+/// - `super`: Parent PTY support module visibility marker.
+///
+/// # Returns
+/// Unit after all source files and directories have been copied.
+///
+/// # Panics
+/// Panics when a required file cannot be read or copied.
+#[allow(dead_code)]
+pub(super) fn copy_repository_checkout(source: &Path, destination: &Path) {
+    fs::create_dir_all(destination).expect("create repository checkout");
+    for entry in fs::read_dir(source).expect("read repository source") {
+        let entry = entry.expect("read repository entry");
+        if matches!(
+            entry.file_name().to_str(),
+            Some(".git" | ".serena" | "target" | "node_modules")
+        ) {
+            continue;
+        }
+        let source_path = entry.path();
+        let destination_path = destination.join(entry.file_name());
+        if entry
+            .file_type()
+            .expect("inspect repository entry")
+            .is_dir()
+        {
+            copy_repository_checkout(&source_path, &destination_path);
+        } else if entry
+            .file_type()
+            .expect("inspect repository entry")
+            .is_file()
+        {
+            fs::copy(source_path, destination_path).expect("copy repository source file");
+        }
+    }
+}
+
 /// Relays bytes from the PTY reader to the test thread.
 #[allow(clippy::needless_pass_by_value)]
 pub(super) fn read_output<R: Read>(mut reader: R, sender: mpsc::Sender<Vec<u8>>) {

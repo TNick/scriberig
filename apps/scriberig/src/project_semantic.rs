@@ -48,20 +48,9 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
             .workspace(project)
             .map_err(|error| Self::project_error(&error))?;
         let symbols = service
-            .symbols_at(project, snapshot)
+            .find_symbols_at(project, snapshot, &query, limit)
             .map_err(|error| Self::project_error(&error))?;
-        let mut matches = symbols
-            .into_iter()
-            .filter(|symbol| {
-                symbol.path.to_lowercase().contains(&query)
-                    || symbol.kind.to_lowercase().contains(&query)
-                    || symbol
-                        .name
-                        .as_deref()
-                        .is_some_and(|name| name.to_lowercase().contains(&query))
-            })
-            .take(limit)
-            .collect::<Vec<_>>();
+        let mut matches = symbols;
         matches.sort_by(|left, right| {
             left.path
                 .cmp(&right.path)

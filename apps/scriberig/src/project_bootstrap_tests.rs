@@ -38,6 +38,11 @@ mod tests {
         )
         .expect("agent guidance");
         add_architecture_fixture(&root);
+        for index in 0..101 {
+            let path = root.join(format!("docs/page-{index:03}.txt"));
+            fs::create_dir_all(path.parent().expect("page parent")).expect("page directory");
+            fs::write(path, format!("page {index}\n")).expect("manifest pagination fixture");
+        }
         let git = |arguments: &[&str]| {
             assert!(
                 Command::new("git")
@@ -67,6 +72,7 @@ mod tests {
         );
         let service = ApplicationService::new(backend);
         let mut actions = [
+            "runtime_capabilities",
             "inspect",
             "project_scan",
             "project_manifest",
@@ -129,23 +135,36 @@ mod tests {
                 _ => None,
             })
             .collect::<Vec<_>>();
-        assert_eq!(tools.len(), 5);
-        assert!(tools[0].summary.as_ref().unwrap().contains("9 files"));
-        let project: ProjectId = tools[0].handles[0].parse().expect("project identity");
-        let manifest_id = tools[0].handles[1].clone();
-        assert!(tools[1].summary.as_ref().unwrap().contains(&manifest_id));
+        assert_eq!(tools.len(), 7);
+        assert!(tools[1].summary.as_ref().unwrap().contains("110 files"));
+        let project: ProjectId = tools[1].handles[0].parse().expect("project identity");
+        let manifest_id = tools[1].handles[1].clone();
+        assert!(tools[2].summary.as_ref().unwrap().contains(&manifest_id));
         assert!(
-            tools[1]
+            tools[2]
+                .handles
+                .iter()
+                .any(|entry| entry == "next_offset:100")
+        );
+        assert!(
+            tools[3]
+                .summary
+                .as_ref()
+                .unwrap()
+                .contains("page starts at 100")
+        );
+        assert!(
+            tools[2]
                 .handles
                 .iter()
                 .any(|entry| entry.contains("Cargo.toml"))
         );
-        assert!(tools[2].summary.as_ref().unwrap().contains("snapshot"));
-        assert_eq!(tools[3].handles[0], project.to_string());
-        let snapshot: SnapshotId = tools[3].handles[1].parse().expect("snapshot identity");
-        let root_entity: EntityId = tools[3].handles[2].parse().expect("root identity");
-        assert_eq!(tools[4].entity, root_entity);
-        assert_eq!(tools[4].snapshot, Some(snapshot));
+        assert!(tools[4].summary.as_ref().unwrap().contains("snapshot"));
+        assert_eq!(tools[5].handles[0], project.to_string());
+        let snapshot: SnapshotId = tools[5].handles[1].parse().expect("snapshot identity");
+        let root_entity: EntityId = tools[5].handles[2].parse().expect("root identity");
+        assert_eq!(tools[6].entity, root_entity);
+        assert_eq!(tools[6].snapshot, Some(snapshot));
         let semantic_context = context.clone().with_snapshot(snapshot);
         let semantic_tools = LocalAgentTool::new(&service).with_project_store(Arc::clone(&store));
         let find = semantic_tools

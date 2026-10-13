@@ -40,6 +40,16 @@ impl TuiPty {
             if let Some(status) = self.child.try_wait().expect("poll tui") {
                 break status;
             }
+            if let Ok(bytes) = self.receiver.recv_timeout(Duration::from_millis(25)) {
+                self.transcript.extend_from_slice(&bytes);
+                if bytes.windows(4).any(|window| window == b"\x1b[6n") {
+                    self.writer
+                        .write_all(b"\x1b[1;1R")
+                        .expect("reply to terminal cursor query");
+                    self.writer.flush().expect("flush terminal cursor reply");
+                }
+                self.parser.process(&bytes);
+            }
             if Instant::now() >= deadline {
                 self.child.kill().expect("kill tui");
                 break self.child.wait().expect("wait for tui");

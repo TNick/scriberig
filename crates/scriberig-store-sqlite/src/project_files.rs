@@ -2,7 +2,7 @@
 
 use crate::SqliteStore;
 use crate::project_rows::{entity_from_row, file_from_row};
-use rusqlite::params;
+use rusqlite::{OptionalExtension, params};
 use scriberig_core::{EntityId, ProjectId};
 
 /// Describes one file captured by a project scan.
@@ -131,6 +131,109 @@ impl SqliteStore {
         )?;
         let rows = statement.query_map(params![project.as_bytes().as_slice()], entity_from_row)?;
         rows.collect()
+    }
+
+    /// Finds a bounded set of project entities matching semantic text.
+    ///
+    /// # Parameters
+    /// - `project`: Project whose entities are searched.
+    /// - `query`: Case-insensitive path, kind, or name substring.
+    /// - `limit`: Maximum number of matching entities returned.
+    ///
+    /// # Returns
+    /// Matching ownership records in deterministic path and identity order.
+    ///
+    /// # Errors
+    /// Returns a SQLite query or identifier conversion error.
+    pub fn find_project_entities(
+        &self,
+        project: ProjectId,
+        query: &str,
+        limit: usize,
+    ) -> rusqlite::Result<Vec<ProjectEntityRecord>> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        let mut statement = connection.prepare(
+            "SELECT project_id,relative_path,entity,kind,name
+             FROM project_entities
+             WHERE project_id=? AND (lower(relative_path) LIKE ? OR lower(kind) LIKE ? OR lower(name) LIKE ?)
+             ORDER BY CASE WHEN kind='source' THEN 0 ELSE 1 END,
+                      relative_path,entity LIMIT ?",
+        )?;
+        let pattern = format!("%{}%", query.to_lowercase());
+        let rows = statement.query_map(
+            params![
+                project.as_bytes().as_slice(),
+                pattern,
+                pattern,
+                pattern,
+                i64::try_from(limit).unwrap_or(i64::MAX),
+            ],
+            entity_from_row,
+        )?;
+        rows.collect()
+    }
+
+    /// Loads one semantic entity ownership record by project and identity.
+    ///
+    /// # Parameters
+    /// - `project`: Project that must own the entity.
+    /// - `entity`: Stable semantic entity identity.
+    ///
+    /// # Returns
+    /// The ownership record when it belongs to the project.
+    ///
+    /// # Errors
+    /// Returns a SQLite query or identifier conversion error.
+    pub fn project_entity(
+        &self,
+        project: ProjectId,
+        entity: EntityId,
+    ) -> rusqlite::Result<Option<ProjectEntityRecord>> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        connection
+            .query_row(
+                "SELECT project_id,relative_path,entity,kind,name
+                 FROM project_entities WHERE project_id=? AND entity=?",
+                params![project.as_bytes().as_slice(), entity.as_bytes().as_slice()],
+                entity_from_row,
+            )
+            .optional()
+    }
+
+    /// Finds the preferred semantic root source owned by a project.
+    ///
+    /// # Parameters
+    /// - `project`: Project whose root source is requested.
+    ///
+    /// # Returns
+    /// The `src/lib.rs` source when present, otherwise the first source path.
+    ///
+    /// # Errors
+    /// Returns a SQLite query or identifier conversion error.
+    pub fn project_source_root(
+        &self,
+        project: ProjectId,
+    ) -> rusqlite::Result<Option<ProjectEntityRecord>> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        connection
+            .query_row(
+                "SELECT project_id,relative_path,entity,kind,name FROM project_entities
+                 WHERE project_id=? AND kind='source'
+                 ORDER BY CASE WHEN relative_path='src/lib.rs' THEN 0 ELSE 1 END,
+                          relative_path,entity LIMIT 1",
+                params![project.as_bytes().as_slice()],
+                entity_from_row,
+            )
+            .optional()
     }
 
     /// Replaces semantic entity ownership after a successful import.

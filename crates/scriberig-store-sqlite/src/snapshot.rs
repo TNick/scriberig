@@ -2,7 +2,7 @@
 
 use crate::SqliteStore;
 use crate::snapshot_integrity::node_id;
-use rusqlite::{Transaction, params};
+use rusqlite::{OptionalExtension, Transaction, params};
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
 use scriberig_store::{SnapshotChange, SnapshotError, SnapshotStore};
 
@@ -22,7 +22,38 @@ impl SnapshotStore for SqliteStore {
         snapshot: SnapshotId,
         entity: EntityId,
     ) -> Result<Option<RevisionId>, SnapshotError> {
-        Ok(self.snapshot(snapshot)?.resolve(entity))
+        let connection = self
+            .connection()
+            .map_err(|error| SnapshotError::Backend(format!("{error:?}")))?;
+        if snapshot == scriberig_store::Snapshot::empty().id() {
+            return Ok(None);
+        }
+        let revision: Option<Vec<u8>> = connection
+            .query_row(
+                "SELECT revision FROM snapshot_entries WHERE snapshot_id=? AND entity=?",
+                params![snapshot.as_bytes().as_slice(), entity.as_bytes().as_slice()],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(|error| SnapshotError::Backend(format!("{error:?}")))?;
+        if let Some(revision) = revision {
+            let bytes: [u8; 32] = revision.try_into().map_err(|_| {
+                SnapshotError::Backend("invalid stored revision identifier length".to_owned())
+            })?;
+            return Ok(Some(RevisionId::new(bytes)));
+        }
+        let exists: bool = connection
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM snapshots WHERE id=?)",
+                params![snapshot.as_bytes().as_slice()],
+                |row| row.get(0),
+            )
+            .map_err(|error| SnapshotError::Backend(format!("{error:?}")))?;
+        if exists {
+            Ok(None)
+        } else {
+            Err(SnapshotError::UnknownSnapshot(snapshot))
+        }
     }
     /// # Parameters
     /// - `base`: Operation input.
