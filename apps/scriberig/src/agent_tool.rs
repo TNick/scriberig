@@ -1,9 +1,7 @@
 //! Provides local provider-facing agent control tools over shared application state.
 
 use scriberig_agent_core::{InspectTool, Tool, ToolError, ToolInput, ToolResult};
-use scriberig_app::{
-    ApplicationBackend, ApplicationContext, ApplicationService, SessionBackend, SessionRequest,
-};
+use scriberig_app::{ApplicationBackend, ApplicationContext, ApplicationService, SessionBackend};
 use scriberig_core::EntityId;
 use scriberig_project::ProjectService;
 use scriberig_store_sqlite::SqliteStore;
@@ -11,6 +9,9 @@ use scriberig_store_sqlite::SqliteStore;
 use super::agent_tool_helpers::{
     argument_id, argument_operation, invalid_argument, map_error, require_capability,
 };
+
+#[path = "agent_tool_sessions.rs"]
+mod session_operations;
 
 #[path = "project_bootstrap.rs"]
 mod project_bootstrap;
@@ -104,6 +105,7 @@ impl<B: ApplicationBackend> Tool for LocalAgentTool<'_, B> {
     /// - `context`: Trusted application context.
     /// - `name`: Registered control-tool identifier.
     /// - `arguments`: Provider arguments.
+    /// - `cancelled`: Shared cancellation flag for the active branch.
     ///
     /// # Returns
     /// Bounded control result with stable handles.
@@ -115,6 +117,34 @@ impl<B: ApplicationBackend> Tool for LocalAgentTool<'_, B> {
         context: &ApplicationContext,
         name: &str,
         arguments: &serde_json::Value,
+    ) -> Result<ToolResult, ToolError> {
+        self.invoke_named_cancellable(
+            context,
+            name,
+            arguments,
+            &std::sync::atomic::AtomicBool::new(false),
+        )
+    }
+
+    /// Executes one application control tool with cancellation support.
+    ///
+    /// # Parameters
+    /// - `context`: Trusted application context.
+    /// - `name`: Registered control-tool identifier.
+    /// - `arguments`: Provider arguments.
+    /// - `cancelled`: Shared cancellation flag for the active branch.
+    ///
+    /// # Returns
+    /// Bounded control result with stable handles.
+    ///
+    /// # Errors
+    /// Returns authorization, parsing, or application failures.
+    fn invoke_named_cancellable(
+        &self,
+        context: &ApplicationContext,
+        name: &str,
+        arguments: &serde_json::Value,
+        cancelled: &std::sync::atomic::AtomicBool,
     ) -> Result<ToolResult, ToolError> {
         require_capability(context, name)?;
         match name {
@@ -139,7 +169,7 @@ impl<B: ApplicationBackend> Tool for LocalAgentTool<'_, B> {
             "project_repair_file" => self.project_repair_file(arguments),
             "project_propose" => self.project_propose(context, arguments),
             "project_candidate" => self.project_candidate(arguments),
-            "project_validate_candidate" => self.project_validate_candidate(arguments),
+            "project_validate_candidate" => self.project_validate_candidate(arguments, cancelled),
             "session_branch_tree" => self.session_tree(context, arguments),
             "session_branch_activity" => self.session_activity(context, arguments),
             _ => Err(ToolError::Application {
@@ -335,68 +365,6 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
         Ok(Self::result(
             format!("agent command accepted as {operation}"),
             vec![operation.to_string(), session.to_string()],
-        ))
-    }
-
-    /// Reads a compact durable session tree.
-    ///
-    /// # Parameters
-    /// - `context`: Trusted application authorization context.
-    /// - `arguments`: Provider arguments containing a session identifier.
-    ///
-    /// # Returns
-    /// Branch handles and a bounded session summary.
-    ///
-    /// # Errors
-    /// Returns invalid arguments, authorization, or session lookup failures.
-    fn session_tree(
-        &self,
-        context: &ApplicationContext,
-        arguments: &serde_json::Value,
-    ) -> Result<ToolResult, ToolError> {
-        let session = argument_id(arguments, "session")?;
-        let value = self
-            .service
-            .read_session(context, &SessionRequest { session })
-            .map_err(|error| map_error(&error))?;
-        let handles = value
-            .branches
-            .iter()
-            .map(|branch| branch.id.to_string())
-            .collect::<Vec<_>>();
-        Ok(Self::result(
-            format!("session has {} branch(es)", handles.len()),
-            handles,
-        ))
-    }
-
-    /// Reads one branch activity view using the shared session boundary.
-    ///
-    /// # Parameters
-    /// - `context`: Trusted application authorization context.
-    /// - `arguments`: Provider arguments containing session and branch IDs.
-    ///
-    /// # Returns
-    /// The selected branch handle and bounded turn count.
-    ///
-    /// # Errors
-    /// Returns invalid arguments, authorization, or session lookup failures.
-    fn session_activity(
-        &self,
-        context: &ApplicationContext,
-        arguments: &serde_json::Value,
-    ) -> Result<ToolResult, ToolError> {
-        let session = argument_id(arguments, "session")?;
-        let branch = argument_id(arguments, "branch")?;
-        let value = self
-            .service
-            .read_session(context, &SessionRequest { session })
-            .map_err(|error| map_error(&error))?;
-        let selected = value.branches.iter().find(|item| item.id == branch);
-        let turns = selected.map_or(0, |item| item.turns.len());
-        Ok(Self::result(
-            format!("branch {branch} has {turns} turn(s)"),
-            vec![branch.to_string()],
         ))
     }
 }

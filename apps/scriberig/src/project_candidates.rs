@@ -135,21 +135,23 @@ impl<B: scriberig_app::ApplicationBackend> LocalAgentTool<'_, B> {
     ///
     /// # Parameters
     /// - `arguments`: Stable candidate identity.
+    /// - `cancelled`: Shared branch cancellation flag.
     /// - `super`: Parent module containing the agent tool adapter.
     ///
     /// # Returns
     /// Durable validation state and bounded diagnostics.
     ///
     /// # Errors
-    /// Returns invalid input, stale-base, or workspace materialization failure.
+    /// Returns invalid input, stale-base, cancellation, or workspace failure.
     pub(super) fn project_validate_candidate(
         &self,
         arguments: &serde_json::Value,
+        cancelled: &std::sync::atomic::AtomicBool,
     ) -> Result<ToolResult, ToolError> {
         let id = candidate_id(arguments)?;
         let candidate = self
             .project_service()?
-            .validate_candidate(id)
+            .validate_candidate_cancellable(id, cancelled)
             .map_err(|error| Self::project_error(&error))?;
         let summary = match &candidate.validation {
             CandidateValidation::Pending => "validation remains pending".to_owned(),

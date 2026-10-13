@@ -4,7 +4,7 @@ use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, ExitStatus, Output, Stdio};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -162,25 +162,42 @@ fn copy_tree(source: &Path, destination: &Path) -> Result<(), String> {
 ///
 /// # Returns
 /// Candidate validation state with bounded process diagnostics.
+///
+/// # Errors
+/// Returns cancellation when validation was stopped by its owning operation.
 pub(super) fn validate_effects(
     files: &[ProjectFileRecord],
     effects: &[super::ProjectSourceEffect],
-) -> CandidateValidation {
+    cancelled: &AtomicBool,
+) -> Result<CandidateValidation, ProjectError> {
     static NEXT_WORKSPACE: AtomicU64 = AtomicU64::new(0);
     let id = NEXT_WORKSPACE.fetch_add(1, Ordering::Relaxed);
     let root = std::env::temp_dir().join(format!("scriberig-project-validation-{id}"));
     let result = (|| {
-        fs::create_dir_all(&root).map_err(|error| error.to_string())?;
+        if cancelled.load(Ordering::Acquire) {
+            return Err(ProcessFailure::Cancelled);
+        }
+        fs::create_dir_all(&root).map_err(|error| ProcessFailure::Failed(error.to_string()))?;
         for file in files {
-            write_candidate_file(&root, &file.relative_path, &file.bytes)?;
+            if cancelled.load(Ordering::Acquire) {
+                return Err(ProcessFailure::Cancelled);
+            }
+            write_candidate_file(&root, &file.relative_path, &file.bytes)
+                .map_err(ProcessFailure::Failed)?;
         }
         for effect in effects {
-            let path = safe_join(&root, &effect.path).map_err(|error| error.message)?;
+            if cancelled.load(Ordering::Acquire) {
+                return Err(ProcessFailure::Cancelled);
+            }
+            let path = safe_join(&root, &effect.path)
+                .map_err(|error| ProcessFailure::Failed(error.message))?;
             match &effect.new {
-                Some(bytes) => write_candidate_file(&root, &effect.path, bytes)?,
+                Some(bytes) => write_candidate_file(&root, &effect.path, bytes)
+                    .map_err(ProcessFailure::Failed)?,
                 None => {
                     if path.exists() {
-                        fs::remove_file(path).map_err(|error| error.to_string())?;
+                        fs::remove_file(path)
+                            .map_err(|error| ProcessFailure::Failed(error.to_string()))?;
                     }
                 }
             }
@@ -204,7 +221,7 @@ pub(super) fn validate_effects(
                 "CARGO_TARGET_DIR",
                 std::env::temp_dir().join("scriberig-candidate-validation-target"),
             );
-        let output = run_bounded(command, Duration::from_secs(600))?;
+        let output = run_bounded(command, Duration::from_secs(600), cancelled)?;
         if output.status.success() {
             Ok(Vec::new())
         } else {
@@ -217,12 +234,25 @@ pub(super) fn validate_effects(
     })();
     let _ = fs::remove_dir_all(&root);
     match result {
-        Ok(diagnostics) if diagnostics.is_empty() => CandidateValidation::Passed,
-        Ok(diagnostics) => CandidateValidation::Failed { diagnostics },
-        Err(error) => CandidateValidation::Failed {
+        Ok(diagnostics) if diagnostics.is_empty() => Ok(CandidateValidation::Passed),
+        Ok(diagnostics) => Ok(CandidateValidation::Failed { diagnostics }),
+        Err(ProcessFailure::Cancelled) => Err(ProjectError {
+            code: "operation_cancelled",
+            message: "candidate validation was cancelled".to_owned(),
+            diagnostics: Vec::new(),
+        }),
+        Err(ProcessFailure::Failed(error)) => Ok(CandidateValidation::Failed {
             diagnostics: vec![error],
-        },
+        }),
     }
+}
+
+/// Represents a cancelled validation or a bounded process failure.
+enum ProcessFailure {
+    /// Validation was cancelled by its caller.
+    Cancelled,
+    /// Validation could not complete and has a diagnostic.
+    Failed(String),
 }
 
 /// Runs a validation command with a deadline and bounded captured output.
@@ -230,34 +260,41 @@ pub(super) fn validate_effects(
 /// # Parameters
 /// - `command`: Configured validation process.
 /// - `timeout`: Maximum process duration.
+/// - `cancelled`: Shared cancellation flag for the owning operation.
 ///
 /// # Returns
 /// Process output with each stream limited to 64 KiB.
 ///
 /// # Errors
 /// Returns a structured message for startup, timeout, or output-reader failure.
-fn run_bounded(mut command: Command, timeout: Duration) -> Result<Output, String> {
+fn run_bounded(
+    mut command: Command,
+    timeout: Duration,
+    cancelled: &AtomicBool,
+) -> Result<Output, ProcessFailure> {
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
     let mut child = command
         .spawn()
-        .map_err(|error| format!("start failure: {error}"))?;
+        .map_err(|error| ProcessFailure::Failed(format!("start failure: {error}")))?;
     let stdout = child
         .stdout
         .take()
-        .ok_or_else(|| "stdout pipe unavailable".to_owned())?;
+        .ok_or_else(|| ProcessFailure::Failed("stdout pipe unavailable".to_owned()))?;
     let stderr = child
         .stderr
         .take()
-        .ok_or_else(|| "stderr pipe unavailable".to_owned())?;
+        .ok_or_else(|| ProcessFailure::Failed("stderr pipe unavailable".to_owned()))?;
     let stdout_reader = thread::spawn(move || read_bounded(stdout));
     let stderr_reader = thread::spawn(move || read_bounded(stderr));
-    let status = wait_bounded(&mut child, timeout)?;
+    let status = wait_bounded(&mut child, timeout, cancelled)?;
     let stdout = stdout_reader
         .join()
-        .map_err(|_| "stdout reader failed".to_owned())??;
+        .map_err(|_| ProcessFailure::Failed("stdout reader failed".to_owned()))?
+        .map_err(ProcessFailure::Failed)?;
     let stderr = stderr_reader
         .join()
-        .map_err(|_| "stderr reader failed".to_owned())??;
+        .map_err(|_| ProcessFailure::Failed("stderr reader failed".to_owned()))?
+        .map_err(ProcessFailure::Failed)?;
     Ok(Output {
         status,
         stdout,
@@ -270,22 +307,38 @@ fn run_bounded(mut command: Command, timeout: Duration) -> Result<Output, String
 /// # Parameters
 /// - `child`: Running validation process.
 /// - `timeout`: Maximum process duration.
+/// - `cancelled`: Shared cancellation flag for the owning operation.
 ///
 /// # Returns
 /// The completed process status.
 ///
 /// # Errors
 /// Returns a timeout or process polling failure.
-fn wait_bounded(child: &mut Child, timeout: Duration) -> Result<ExitStatus, String> {
+fn wait_bounded(
+    child: &mut Child,
+    timeout: Duration,
+    cancelled: &AtomicBool,
+) -> Result<ExitStatus, ProcessFailure> {
     let deadline = Instant::now() + timeout;
     loop {
-        if let Some(status) = child.try_wait().map_err(|error| error.to_string())? {
+        if cancelled.load(Ordering::Acquire) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(ProcessFailure::Cancelled);
+        }
+        if let Some(status) = child
+            .try_wait()
+            .map_err(|error| ProcessFailure::Failed(error.to_string()))?
+        {
             return Ok(status);
         }
         if Instant::now() >= deadline {
             let _ = child.kill();
             let _ = child.wait();
-            return Err(format!("timeout after {} seconds", timeout.as_secs()));
+            return Err(ProcessFailure::Failed(format!(
+                "timeout after {} seconds",
+                timeout.as_secs()
+            )));
         }
         thread::sleep(Duration::from_millis(50));
     }
@@ -338,18 +391,5 @@ fn write_candidate_file(root: &Path, relative: &str, bytes: &[u8]) -> Result<(),
 }
 
 #[cfg(all(test, unix))]
-mod tests {
-    use super::run_bounded;
-    use std::process::Command;
-    use std::time::Duration;
-
-    /// Verifies that validation processes are terminated at their deadline.
-    #[test]
-    fn validation_process_timeout_is_reported() {
-        let mut command = Command::new("sh");
-        command.args(["-c", "sleep 2"]);
-        let error = run_bounded(command, Duration::from_millis(20))
-            .expect_err("slow process must time out");
-        assert!(error.starts_with("timeout after"), "{error}");
-    }
-}
+#[path = "candidate_support_tests.rs"]
+mod tests;

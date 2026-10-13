@@ -355,6 +355,7 @@ where
                         context,
                         &name,
                         &arguments,
+                        cancelled,
                         operation.as_ref(),
                         &mut state,
                     )?;

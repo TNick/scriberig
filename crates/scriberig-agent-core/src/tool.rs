@@ -108,4 +108,29 @@ pub trait Tool {
             message: format!("agent tool is not configured: {name}"),
         })
     }
+
+    /// Invokes a named provider-facing control tool with branch cancellation.
+    ///
+    /// # Parameters
+    /// - `self`: Tool implementation.
+    /// - `context`: Trusted application context.
+    /// - `name`: Registered control-tool identifier.
+    /// - `arguments`: Validated provider arguments.
+    /// - `cancelled`: Shared cancellation flag for the current branch.
+    ///
+    /// # Returns
+    /// Compact structured control output.
+    ///
+    /// # Errors
+    /// Returns unsupported-operation unless the composed tool owns the name.
+    fn invoke_named_cancellable(
+        &self,
+        context: &scriberig_app::ApplicationContext,
+        name: &str,
+        arguments: &serde_json::Value,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> Result<ToolResult, ToolError> {
+        let _ = cancelled;
+        self.invoke_named(context, name, arguments)
+    }
 }

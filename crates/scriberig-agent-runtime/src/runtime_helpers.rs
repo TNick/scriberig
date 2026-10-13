@@ -66,6 +66,7 @@ where
     /// - `context`: Trusted application request context.
     /// - `name`: Registered control-tool identifier.
     /// - `arguments`: Provider arguments validated by the catalog.
+    /// - `cancelled`: Shared cancellation flag for the active branch.
     /// - `operation`: Optional lifecycle operation.
     /// - `state`: Mutable branch counters.
     ///
@@ -79,6 +80,7 @@ where
         context: &ApplicationContext,
         name: &str,
         arguments: &serde_json::Value,
+        cancelled: &AtomicBool,
         operation: Option<&OperationId>,
         state: &mut BranchRuntimeState,
     ) -> Result<scriberig_agent_core::ToolResult, AgentError> {
@@ -87,11 +89,18 @@ where
         self.emit_event(RuntimeEvent::tool_started(&self.branch_id, name));
         let result = self
             .tool
-            .invoke_named(context, name, arguments)
+            .invoke_named_cancellable(context, name, arguments, cancelled)
             .map_err(|error| {
                 self.emit_event(RuntimeEvent::tool_completed(&self.branch_id, name, false));
-                self.finish_operation(operation, OperationStatus::Failed);
-                AgentError::Tool(error)
+                if cancelled.load(std::sync::atomic::Ordering::Acquire) {
+                    self.emit(BranchPhase::Cancelled);
+                    self.emit_event(RuntimeEvent::branch_execution_cancelled(&self.branch_id));
+                    self.finish_operation(operation, OperationStatus::Cancelled);
+                    AgentError::Cancelled
+                } else {
+                    self.finish_operation(operation, OperationStatus::Failed);
+                    AgentError::Tool(error)
+                }
             })?;
         self.emit_event(RuntimeEvent::tool_completed(&self.branch_id, name, true));
         Ok(result)
