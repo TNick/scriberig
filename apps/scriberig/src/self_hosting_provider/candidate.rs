@@ -9,6 +9,7 @@ use serde_json::{Value, json};
 ///
 /// # Parameters
 /// - `scope`: Exact project and immutable base snapshot.
+/// - `validation_failure`: Whether to propose an intentionally invalid Rust crate root.
 /// - `super`: Parent scenario module.
 ///
 /// # Returns
@@ -16,8 +17,8 @@ use serde_json::{Value, json};
 ///
 /// # Errors
 /// Returns serialization failures as provider errors.
-pub(super) fn project_proposal(scope: &SemanticScope) -> ModelResponse {
-    let effects = candidate_effects();
+pub(super) fn project_proposal(scope: &SemanticScope, validation_failure: bool) -> ModelResponse {
+    let effects = candidate_effects(validation_failure);
     tool_call(
         "project_propose",
         json!({"project":scope.project,"base_snapshot":scope.snapshot,"effects":effects}),
@@ -26,10 +27,13 @@ pub(super) fn project_proposal(scope: &SemanticScope) -> ModelResponse {
 
 /// Loads exact source texts from the deterministic self-hosting reference fixture.
 ///
+/// # Parameters
+/// - `validation_failure`: Whether to replace the crate root with a compile error.
+///
 /// # Returns
 /// Ordered project-relative create/update effects.
-fn candidate_effects() -> Vec<Value> {
-    vec![
+fn candidate_effects(validation_failure: bool) -> Vec<Value> {
+    let mut effects = vec![
         effect(
             "create",
             "crates/domains/scriberig-domain-php/Cargo.toml",
@@ -114,7 +118,18 @@ fn candidate_effects() -> Vec<Value> {
                 "../../../../tests/self-hosting/php-extension/candidate/changes/crates/scriberig-project/tests/php_ingestion.rs"
             ),
         ),
-    ]
+    ];
+    if validation_failure {
+        effects
+            .iter_mut()
+            .find(|effect| {
+                effect.get("path").and_then(Value::as_str)
+                    == Some("crates/domains/scriberig-domain-php/src/lib.rs")
+            })
+            .expect("PHP crate root effect exists")["content"] =
+            Value::String("compile_error!(\"deterministic validation failure\");\n".to_owned());
+    }
+    effects
 }
 
 /// Encodes one UTF-8 candidate source effect.

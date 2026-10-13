@@ -10,7 +10,10 @@ use crate::deterministic_provider::{BootstrapProvider, parse_handles};
 
 /// Deterministic model scenario that proposes PHP support through ordinary tools.
 #[derive(Clone, Copy, Debug, Default)]
-pub(super) struct PhpSelfHostingProvider;
+pub(super) struct PhpSelfHostingProvider {
+    /// Whether this deterministic scenario deliberately proposes invalid Rust.
+    pub validation_failure: bool,
+}
 
 mod branches;
 mod candidate;
@@ -53,9 +56,9 @@ impl ProviderAdapter for PhpSelfHostingProvider {
             return branches::architecture_branch(request, &scope);
         }
         if is_implementation {
-            return branches::implementation_branch(request, &scope);
+            return branches::implementation_branch(request, &scope, self.validation_failure);
         }
-        branches::root_branch(request, &scope)
+        branches::root_branch(request, &scope, self.validation_failure)
     }
 }
 

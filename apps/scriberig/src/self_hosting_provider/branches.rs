@@ -42,6 +42,7 @@ use serde_json::json;
 pub(super) fn root_branch(
     request: &ModelRequest,
     scope: &SemanticScope,
+    validation_failure: bool,
 ) -> Result<ModelResponse, ProviderError> {
     let tools = tool_messages(request);
     if tools.is_empty() {
@@ -114,6 +115,16 @@ pub(super) fn root_branch(
             ],
             "compact validated candidate result with durable refs",
         ));
+    }
+    if validation_failure
+        && child_results
+            .last()
+            .is_some_and(|message| message.contains("validation failed"))
+    {
+        return Ok(final_response(&format!(
+            "The PHP candidate failed isolated validation at exact base {}. It remains reviewable, and no Apply was performed.",
+            scope.snapshot
+        )));
     }
     if tools
         .iter()
@@ -194,6 +205,7 @@ pub(super) fn architecture_branch(
 pub(super) fn implementation_branch(
     request: &ModelRequest,
     scope: &SemanticScope,
+    validation_failure: bool,
 ) -> Result<ModelResponse, ProviderError> {
     let tools = tool_messages(request);
     if let Some(response) = semantic_step(request, scope, IMPLEMENTATION_QUERIES)? {
@@ -205,6 +217,25 @@ pub(super) fn implementation_branch(
     {
         let candidate = handle_with_prefix(proposal, "candidate:")
             .ok_or_else(|| malformed("candidate proposal omitted identity"))?;
+        if validation_failure
+            && tools
+                .iter()
+                .any(|message| message.contains("validation failed"))
+        {
+            if !tools
+                .iter()
+                .any(|message| message.contains("project candidate detail"))
+            {
+                return Ok(tool_call(
+                    "project_candidate",
+                    json!({"candidate":candidate}),
+                ));
+            }
+            return Ok(final_response(&format!(
+                "PHP_IMPLEMENTATION_RESULT: candidate {candidate} validation failed at exact base {}. No Apply was requested.",
+                scope.snapshot
+            )));
+        }
         if !tools
             .iter()
             .any(|message| message.contains("validation passed"))
@@ -228,7 +259,7 @@ pub(super) fn implementation_branch(
             scope.snapshot
         )));
     }
-    Ok(candidate::project_proposal(scope))
+    Ok(candidate::project_proposal(scope, validation_failure))
 }
 
 /// Requests each semantic source target and renders its exact project projection.

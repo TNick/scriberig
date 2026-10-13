@@ -15,6 +15,34 @@ impl TuiPty {
     #[must_use]
     #[allow(dead_code)]
     pub fn start_self_hosting() -> Self {
+        Self::start_self_hosting_scenario("self_hosting_php")
+    }
+
+    /// Starts a copied-checkout TUI with a deterministic PHP validation failure.
+    ///
+    /// # Returns
+    /// A no-project TUI process whose PHP candidate intentionally fails validation.
+    ///
+    /// # Panics
+    /// Panics when the checkout copy, Git index, or PTY process cannot be prepared.
+    #[must_use]
+    #[allow(dead_code)]
+    pub fn start_self_hosting_validation_failure() -> Self {
+        Self::start_self_hosting_scenario("self_hosting_php_validation_failure")
+    }
+
+    /// Starts a copied-checkout TUI with one scripted self-hosting provider scenario.
+    ///
+    /// # Parameters
+    /// - `scenario`: Registered deterministic self-hosting scenario.
+    /// - `super`: Parent TUI support module.
+    ///
+    /// # Returns
+    /// A no-project TUI process using the selected deterministic scenario.
+    ///
+    /// # Panics
+    /// Panics when the checkout copy, Git index, or PTY process cannot be prepared.
+    fn start_self_hosting_scenario(scenario: &str) -> Self {
         let fixture = tui_pty_fixture::temporary_fixture();
         let checkout = fixture.join("scriberig");
         let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
@@ -39,7 +67,7 @@ impl TuiPty {
             false,
             Some(checkout),
             true,
-            Some("self_hosting_php"),
+            Some(scenario),
             None,
         )
     }
