@@ -34,8 +34,8 @@ fn ownership_denies_unmanaged_writes() {
         ProjectionLocation::new("b.txt")
     );
     assert_eq!(
-        ProjectionLocation::new("folder\\.\\nested\\..\\file.txt"),
-        ProjectionLocation::new("folder\\file.txt")
+        ProjectionLocation::new("folder/./nested/../file.txt"),
+        ProjectionLocation::new("folder/file.txt")
     );
 }
 

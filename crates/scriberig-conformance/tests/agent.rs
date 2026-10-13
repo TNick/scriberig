@@ -289,7 +289,9 @@ fn scripted_tool_denial_is_surface_independent() {
                 name: "delegate".to_owned(),
                 arguments: serde_json::json!({
                     "purpose": "focused",
-                    "prompt": "inspect X"
+                    "prompt": "inspect X",
+                    "capabilities": ["inspect.entity"],
+                    "expected_result": "bounded findings"
                 }),
             },
             &CapabilityContext::default(),
