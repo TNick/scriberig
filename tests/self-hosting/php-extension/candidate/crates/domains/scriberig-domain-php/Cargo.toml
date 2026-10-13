@@ -10,5 +10,3 @@ description = "PHP syntax parsing adapter."
 serde = { version = "1.0", features = ["derive"] }
 tree-sitter = "0.25"
 tree-sitter-php = "0.25.1"
-
-[workspace]
