@@ -19,6 +19,7 @@ fn active_branch_budget_is_shared_by_scope() {
         parent_branch: EntityId::from_bytes([7; 16]),
         depth: 0,
         active_branches: active,
+        semantic_scope: None,
     };
     let mut runtime = AgentRuntime::new(EchoProvider, NoopTool, 1).with_limits(
         scriberig_agent_runtime::orchestration::RuntimeLimits {

@@ -126,11 +126,21 @@ impl ToolCatalog {
                     .arguments
                     .get("prompt")
                     .and_then(serde_json::Value::as_str)
+                    .is_none()
+                || call
+                    .arguments
+                    .get("capabilities")
+                    .and_then(serde_json::Value::as_array)
+                    .is_none()
+                || call
+                    .arguments
+                    .get("expected_result")
+                    .and_then(serde_json::Value::as_str)
                     .is_none())
         {
             return Err(ToolValidationError::MissingArgument {
                 tool: call.name.clone(),
-                argument: "purpose and prompt".to_owned(),
+                argument: "purpose, prompt, capabilities, and expected_result".to_owned(),
             });
         }
         Ok(descriptor)

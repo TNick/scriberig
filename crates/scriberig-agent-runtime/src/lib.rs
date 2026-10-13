@@ -41,6 +41,10 @@ pub struct ChildRequest {
     pub purpose: String,
     /// Bounded prompt inherited by the child.
     pub prompt: String,
+    /// Capability identifiers explicitly delegated to the child.
+    pub capabilities: Vec<String>,
+    /// Compact result shape expected from the child.
+    pub expected_result: String,
 }
 
 /// Identifies the durable parent branch for delegated work.
@@ -54,6 +58,8 @@ pub struct ChildExecutionScope {
     pub depth: usize,
     /// Shared active-branch counter for the execution tree.
     pub active_branches: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    /// Exact semantic project scope inherited by this branch tree.
+    pub semantic_scope: Option<context::ProjectSemanticScope>,
 }
 
 /// Compact result projected from a completed child branch.

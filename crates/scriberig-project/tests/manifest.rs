@@ -46,15 +46,29 @@ fn manifest_pages_bind_import_to_reviewed_scan() {
             .import_manifest(scan.project.id, &summary.manifest_id)
             .is_ok()
     );
+    let snapshot = service
+        .workspace(scan.project.id)
+        .expect("workspace")
+        .snapshot;
+    let source = service
+        .symbols_at(scan.project.id, snapshot)
+        .expect("snapshot symbols")
+        .into_iter()
+        .find(|symbol| symbol.path == "src.rs" && symbol.kind == "source")
+        .expect("source symbol");
     fs::write(root.join("src.rs"), "fn main() { let changed = true; }\n").expect("change source");
     let changed = service.scan(None, &root).expect("rescan");
-    assert_ne!(
+    assert_eq!(
         service
-            .manifest_summary(changed.project.id)
-            .expect("updated summary")
-            .manifest_id,
-        summary.manifest_id
+            .projection_at(scan.project.id, snapshot, source.entity)
+            .expect("exact snapshot source")
+            .text,
+        b"fn main() {}\n"
     );
+    let changed_summary = service
+        .manifest_summary(changed.project.id)
+        .expect("updated summary");
+    assert_ne!(changed_summary.manifest_id, summary.manifest_id);
     assert_eq!(
         service
             .import_manifest(scan.project.id, &summary.manifest_id)
@@ -74,6 +88,17 @@ fn manifest_pages_bind_import_to_reviewed_scan() {
                 .expect("authoritative workspace")
                 .snapshot,
         )
+    );
+    let successor = service
+        .import_manifest(scan.project.id, &changed_summary.manifest_id)
+        .expect("import successor snapshot");
+    assert_ne!(successor.snapshot, snapshot);
+    assert_eq!(
+        service
+            .projection_at(scan.project.id, snapshot, source.entity)
+            .expect_err("old source reference must not retarget")
+            .code,
+        "stale_snapshot"
     );
     drop(service);
     drop(store);

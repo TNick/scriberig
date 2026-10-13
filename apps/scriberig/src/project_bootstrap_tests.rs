@@ -32,6 +32,11 @@ mod tests {
         fs::create_dir_all(root.join("src")).expect("fixture root");
         fs::write(root.join("Cargo.toml"), "[package]\nname='fixture'\n").expect("manifest");
         fs::write(root.join("src/lib.rs"), "pub fn value() -> u8 { 1 }\n").expect("source");
+        fs::write(
+            root.join("AGENTS.md"),
+            "# Agent guidance\nUse semantic project references for source discovery.\n",
+        )
+        .expect("agent guidance");
         let git = |arguments: &[&str]| {
             assert!(
                 Command::new("git")
@@ -66,12 +71,15 @@ mod tests {
             "project_manifest",
             "project_import",
             "project_workspace",
+            "semantic_find",
+            "semantic_render",
             "agent_start",
         ]
         .into_iter()
         .map(|name| CapabilityAction::Custom(name.to_owned()))
         .collect::<std::collections::BTreeSet<_>>();
         actions.insert(CapabilityAction::Inspect);
+        actions.insert(CapabilityAction::Query);
         let context = ApplicationContext {
             capabilities: CapabilityContext {
                 granted: vec![
@@ -108,6 +116,7 @@ mod tests {
             session,
             handle.root_branch,
             "Onboard the current project.",
+            None,
         )
         .expect("normal agent orchestration");
         assert!(result.output.contains("semantic root was inspected"));
@@ -120,7 +129,7 @@ mod tests {
             })
             .collect::<Vec<_>>();
         assert_eq!(tools.len(), 5);
-        assert!(tools[0].summary.as_ref().unwrap().contains("2 files"));
+        assert!(tools[0].summary.as_ref().unwrap().contains("3 files"));
         let project: ProjectId = tools[0].handles[0].parse().expect("project identity");
         let manifest_id = tools[0].handles[1].clone();
         assert!(tools[1].summary.as_ref().unwrap().contains(&manifest_id));
@@ -136,6 +145,49 @@ mod tests {
         let root_entity: EntityId = tools[3].handles[2].parse().expect("root identity");
         assert_eq!(tools[4].entity, root_entity);
         assert_eq!(tools[4].snapshot, Some(snapshot));
+        let semantic_context = context.clone().with_snapshot(snapshot);
+        let semantic_tools = LocalAgentTool::new(&service).with_project_store(Arc::clone(&store));
+        let find = semantic_tools
+            .invoke_named(
+                &semantic_context,
+                "semantic_find",
+                &serde_json::json!({
+                    "project": project.to_string(),
+                    "snapshot": snapshot.to_string(),
+                    "query": "AGENTS.md",
+                    "limit": 10
+                }),
+            )
+            .expect("find guidance semantically");
+        let guidance = find
+            .handles
+            .iter()
+            .find(|value| value.contains("AGENTS.md"))
+            .expect("semantic guidance handle");
+        let entity: EntityId = serde_json::from_str::<serde_json::Value>(guidance)
+            .expect("semantic handle")
+            .get("entity")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_else(|| panic!("semantic entity missing from {guidance}"))
+            .parse()
+            .expect("entity identity");
+        let rendered = semantic_tools
+            .invoke_named(
+                &semantic_context,
+                "semantic_render",
+                &serde_json::json!({
+                    "project": project.to_string(),
+                    "snapshot": snapshot.to_string(),
+                    "entity": entity.to_string()
+                }),
+            )
+            .expect("render guidance semantically");
+        assert!(
+            rendered
+                .summary
+                .as_ref()
+                .is_some_and(|text| text.contains("Use semantic project references"))
+        );
         let project_record = store
             .project(project)
             .expect("project record")

@@ -4,10 +4,16 @@ use scriberig_agent_runtime::cache::{CachePolicy, ModelCache};
 use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::provider::{ProviderAdapter, ToolDefinition};
 use scriberig_agent_runtime::{ChildExecutionScope, ChildExecutor, ChildRequest, ChildResult};
-use scriberig_app::{ApplicationBackend, ApplicationContext, ApplicationService};
+use scriberig_app::{
+    ApplicationBackend, ApplicationContext, ApplicationService, Capability, CapabilityAction,
+    CapabilityContext,
+};
 use scriberig_store_sqlite::SqliteStore;
 
 use crate::agent_tool::LocalAgentTool;
+#[path = "child_runtime/control_parameters.rs"]
+mod control_parameters;
+use control_parameters::control_parameters;
 
 /// Builds the trusted provider-visible catalog for the local agent runtime.
 ///
@@ -48,9 +54,11 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
                     "type": "object",
                     "properties": {
                         "purpose": {"type": "string"},
-                        "prompt": {"type": "string"}
+                        "prompt": {"type": "string"},
+                        "capabilities": {"type": "array", "items": {"type": "string"}},
+                        "expected_result": {"type": "string"}
                     },
-                    "required": ["purpose", "prompt"]
+                    "required": ["purpose", "prompt", "capabilities", "expected_result"]
                 }),
             },
             result_shape: "compact child branch result and handles".to_owned(),
@@ -131,6 +139,16 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
             "project_workspace",
         ),
         (
+            "semantic_find",
+            "Find project-owned source and declaration references in one exact snapshot.",
+            "semantic_find",
+        ),
+        (
+            "semantic_render",
+            "Render one project source through an exact semantic entity reference.",
+            "semantic_render",
+        ),
+        (
             "project_rescan",
             "Rescan a project after a source repair.",
             "project_rescan",
@@ -163,50 +181,6 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
         });
     }
     ToolCatalog::new(descriptors)
-}
-
-/// Defines precise JSON inputs for project bootstrap tools.
-///
-/// # Parameters
-/// - `name`: Registered control operation.
-///
-/// # Returns
-/// The provider-visible JSON Schema for the operation's bounded arguments.
-fn control_parameters(name: &str) -> serde_json::Value {
-    match name {
-        "project_scan" => serde_json::json!({
-            "type": "object",
-            "properties": {
-                "path_ref": {"type": "string", "enum": ["current_working_directory"]},
-                "name": {"type": "string"},
-                "git_tracked": {"type": "boolean"}
-            }
-        }),
-        "project_manifest" => serde_json::json!({
-            "type": "object",
-            "properties": {
-                "project": {"type": "string"},
-                "manifest_id": {"type": "string", "minLength": 64, "maxLength": 64},
-                "offset": {"type": "integer", "minimum": 0},
-                "limit": {"type": "integer", "minimum": 1, "maximum": 100}
-            },
-            "required": ["project", "manifest_id"]
-        }),
-        "project_import" => serde_json::json!({
-            "type": "object",
-            "properties": {
-                "project": {"type": "string"},
-                "manifest_id": {"type": "string", "minLength": 64, "maxLength": 64}
-            },
-            "required": ["project", "manifest_id"]
-        }),
-        "project_workspace" => serde_json::json!({
-            "type": "object",
-            "properties": {"project": {"type": "string"}},
-            "required": ["project"]
-        }),
-        _ => serde_json::json!({"type": "object"}),
-    }
 }
 
 /// Executes recursively delegated branches through the public application API.
@@ -256,7 +230,10 @@ where
                 scope.session,
                 scope.parent_branch,
                 "delegated agent branch",
-                request.purpose,
+                format!(
+                    "{}; expected result: {}",
+                    request.purpose, request.expected_result
+                ),
                 prompt.clone(),
             )
             .map_err(|error| error.to_string())?;
@@ -265,6 +242,7 @@ where
             parent_branch: handle.child_branch,
             depth: scope.depth + 1,
             active_branches: std::sync::Arc::clone(&scope.active_branches),
+            semantic_scope: scope.semantic_scope.clone(),
         };
         let mut nested = Self {
             service: self.service,
@@ -273,17 +251,45 @@ where
             cache: self.cache.clone(),
             project_store: std::sync::Arc::clone(&self.project_store),
         };
+        let child_capabilities =
+            delegated_capabilities(&context.capabilities, &request.capabilities);
+        let child_context = ApplicationContext {
+            capabilities: child_capabilities.clone(),
+            ..context.clone()
+        };
+        let mut model = ProviderModel::new(self.provider.clone(), self.model.clone())
+            .with_catalog(inspect_catalog())
+            .with_capabilities(child_capabilities)
+            .with_cache(self.cache.clone(), CachePolicy::ReuseExact)
+            .with_cache_namespace(child_scope.parent_branch.to_string());
+        if let Some(semantic_scope) = child_scope.semantic_scope.clone() {
+            let compiled = scriberig_agent_runtime::context::ContextCompiler::new(
+                scriberig_agent_runtime::context::ContextPolicy::default(),
+            )
+            .compile(
+                &scriberig_agent_runtime::context::BranchExecutionContext::new(
+                    child_scope.session.to_string(),
+                    child_scope.parent_branch.to_string(),
+                    &request.purpose,
+                    &request.prompt,
+                )
+                .with_project_scope(semantic_scope),
+            );
+            model = model.with_compiled_context(compiled);
+        }
         let result = scriberig_agent_runtime::AgentRuntime::new(
-            ProviderModel::new(self.provider.clone(), self.model.clone())
-                .with_catalog(inspect_catalog())
-                .with_capabilities(context.capabilities.clone())
-                .with_cache(self.cache.clone(), CachePolicy::ReuseExact)
-                .with_cache_namespace(child_scope.parent_branch.to_string()),
+            model,
             LocalAgentTool::new(self.service)
                 .with_project_store(std::sync::Arc::clone(&self.project_store)),
             8,
         )
-        .run_with_child_executor_at(&child_scope, context, prompt, cancelled, &mut nested);
+        .run_with_child_executor_at(
+            &child_scope,
+            &child_context,
+            prompt,
+            cancelled,
+            &mut nested,
+        );
         let result = match result {
             Ok(result) => result,
             Err(error) => {
@@ -292,63 +298,83 @@ where
                 return Err(message);
             }
         };
+        let result_handles = compact_result_handles(&result);
         let completed = self
             .service
-            .complete_local_child_agent(&handle, result.output)
+            .complete_local_child_agent_with_handles(&handle, result.output, result_handles.clone())
             .map_err(|error| error.to_string())?;
         Ok(ChildResult {
             summary: completed.final_output,
-            handles: vec![completed.branch_result.to_string()],
+            handles: std::iter::once(completed.branch_result.to_string())
+                .chain(result_handles)
+                .collect(),
         })
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::inspect_catalog;
-    use scriberig_app::{CapabilityContext, CapabilityId};
-
-    /// Verifies project recovery tools are exposed to provider runtimes.
-    #[test]
-    fn catalog_exposes_project_recovery_operations() {
-        let names = inspect_catalog()
-            .definitions()
-            .into_iter()
-            .map(|definition| definition.name)
-            .collect::<Vec<_>>();
-        for name in [
-            "project_import",
-            "project_manifest",
-            "project_repair_file",
-            "project_rescan",
-            "project_scan",
-            "project_workspace",
-        ] {
-            assert!(names.iter().any(|candidate| candidate == name));
-        }
-        let import = inspect_catalog()
-            .definitions()
-            .into_iter()
-            .find(|definition| definition.name == "project_import")
-            .expect("project import descriptor");
-        assert_eq!(
-            import.parameters["required"],
-            serde_json::json!(["project", "manifest_id"])
-        );
-    }
-
-    /// Restricts the bootstrap catalog to capabilities granted to one branch.
-    #[test]
-    fn catalog_filters_bootstrap_tools_by_branch_capability() {
-        let capabilities = CapabilityContext::new([
-            CapabilityId::new("project_scan").expect("scan capability"),
-            CapabilityId::new("inspect.entity").expect("inspect capability"),
-        ]);
-        let names = inspect_catalog()
-            .descriptors_for(&capabilities)
-            .into_iter()
-            .map(|descriptor| descriptor.definition.name)
-            .collect::<Vec<_>>();
-        assert_eq!(names, vec!["inspect", "project_scan"]);
-    }
+/// Restricts child grants to the explicitly delegated capability names.
+///
+/// # Parameters
+/// - `parent`: Capabilities available to the parent branch.
+/// - `requested`: Capability identifiers delegated by the parent model.
+///
+/// # Returns
+/// A child capability context that is no broader than the parent request.
+fn delegated_capabilities(parent: &CapabilityContext, requested: &[String]) -> CapabilityContext {
+    let requested = requested
+        .iter()
+        .map(String::as_str)
+        .collect::<std::collections::BTreeSet<_>>();
+    let granted = parent
+        .granted
+        .iter()
+        .filter(|capability| requested.contains(capability.as_str()))
+        .cloned()
+        .collect();
+    let grants = parent
+        .grants
+        .iter()
+        .filter_map(|grant| {
+            let actions = grant
+                .actions
+                .iter()
+                .filter(|action| match action {
+                    CapabilityAction::Inspect => requested.contains("inspect.entity"),
+                    CapabilityAction::Query => requested.contains("query"),
+                    CapabilityAction::Custom(name) => requested.contains(name.as_str()),
+                    _ => false,
+                })
+                .cloned()
+                .collect::<std::collections::BTreeSet<_>>();
+            (!actions.is_empty()).then(|| Capability {
+                actions,
+                ..grant.clone()
+            })
+        })
+        .collect();
+    CapabilityContext { granted, grants }
 }
+
+/// Keeps bounded stable semantic handles from child tool observations.
+///
+/// # Parameters
+/// - `result`: Completed child runtime result.
+///
+/// # Returns
+/// Deduplicated handles suitable for a durable branch result.
+fn compact_result_handles(result: &scriberig_agent_runtime::AgentResult) -> Vec<String> {
+    let mut handles = std::collections::BTreeSet::new();
+    for message in &result.messages {
+        if let scriberig_agent_runtime::AgentMessage::Tool(tool) = message {
+            handles.extend(tool.handles.iter().take(16).cloned());
+        }
+        if handles.len() >= 32 {
+            break;
+        }
+    }
+    handles.into_iter().take(32).collect()
+}
+
+#[cfg(test)]
+#[path = "child_runtime_tests.rs"]
+mod tests;

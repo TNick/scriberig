@@ -3,8 +3,9 @@
 use std::collections::BTreeMap;
 
 use crate::cache::{CachePolicy, ModelCache};
+use crate::context::CompiledContext;
 use crate::provider::{
-    MessageRole, ModelMessage, ModelRequest, ProviderAdapter, ProviderError, ToolChoice,
+    MessageRole, ModelMessage, ModelRequest, ProviderAdapter, ProviderError, ToolCall, ToolChoice,
 };
 use crate::tools::ToolCatalog;
 use crate::{AgentMessage, ModelDecision};
@@ -29,6 +30,8 @@ pub struct ProviderModel<P> {
     invocation_sequence: u64,
     /// Branch identity included in the cache key.
     cache_namespace: Option<String>,
+    /// Bounded branch context compiled before the provider call.
+    compiled_context: Option<CompiledContext>,
 }
 
 impl<P> ProviderModel<P> {
@@ -51,6 +54,7 @@ impl<P> ProviderModel<P> {
             cache: None,
             invocation_sequence: 0,
             cache_namespace: None,
+            compiled_context: None,
         }
     }
 
@@ -132,6 +136,20 @@ impl<P> ProviderModel<P> {
         self.cache_namespace = Some(namespace.into());
         self
     }
+
+    /// Adds bounded compiled branch context to every normalized request.
+    ///
+    /// # Parameters
+    /// - `self`: Model adapter being configured.
+    /// - `context`: Exact context selected for this branch.
+    ///
+    /// # Returns
+    /// The adapter with provider-visible, cache-bound context.
+    #[must_use]
+    pub fn with_compiled_context(mut self, context: CompiledContext) -> Self {
+        self.compiled_context = Some(context);
+        self
+    }
 }
 
 impl<P: ProviderAdapter> crate::ModelProvider for ProviderModel<P> {
@@ -165,16 +183,7 @@ impl<P: ProviderAdapter> crate::ModelProvider for ProviderModel<P> {
         messages: &[AgentMessage],
         on_text: &mut dyn FnMut(&str),
     ) -> Result<ModelDecision, String> {
-        let request = ModelRequest {
-            model: self.model.clone(),
-            messages: messages.iter().map(message).collect(),
-            tools: self.tools.clone(),
-            tool_choice: ToolChoice::Auto,
-            response_schema: None,
-            temperature: None,
-            max_tokens: None,
-            metadata: BTreeMap::default(),
-        };
+        let request = self.model_request(messages);
         self.invocation_sequence += 1;
         let response = if let Some((cache, policy)) = self.cache.clone() {
             let fingerprint =
@@ -207,26 +216,7 @@ impl<P: ProviderAdapter> crate::ModelProvider for ProviderModel<P> {
                 .map_err(|error| error.to_string())?;
         }
         if call.name != "inspect" {
-            if call.name == "delegate" {
-                let purpose = call
-                    .arguments
-                    .get("purpose")
-                    .and_then(serde_json::Value::as_str)
-                    .ok_or_else(|| "delegate tool requires a purpose".to_owned())?;
-                let prompt = call
-                    .arguments
-                    .get("prompt")
-                    .and_then(serde_json::Value::as_str)
-                    .ok_or_else(|| "delegate tool requires a prompt".to_owned())?;
-                return Ok(ModelDecision::Child(crate::ChildRequest {
-                    purpose: purpose.to_owned(),
-                    prompt: prompt.to_owned(),
-                }));
-            }
-            return Ok(ModelDecision::NamedTool {
-                name: call.name,
-                arguments: call.arguments,
-            });
+            return named_tool_decision(call);
         }
         let entity = call
             .arguments
@@ -256,6 +246,99 @@ impl<P: ProviderAdapter> crate::ModelProvider for ProviderModel<P> {
             detail,
         }))
     }
+}
+
+impl<P: ProviderAdapter> ProviderModel<P> {
+    /// Builds the bounded normalized request for one runtime turn.
+    ///
+    /// # Parameters
+    /// - `messages`: Provider-neutral conversation messages.
+    ///
+    /// # Returns
+    /// The model request with optional compiled context and configured tools.
+    fn model_request(&self, messages: &[AgentMessage]) -> ModelRequest {
+        let mut request_messages =
+            self.compiled_context
+                .as_ref()
+                .map_or_else(Vec::new, |context| {
+                    vec![crate::provider::ModelMessage::system(format!(
+                        "Compiled branch context:\n{}",
+                        context.canonical
+                    ))]
+                });
+        request_messages.extend(messages.iter().map(message));
+        ModelRequest {
+            model: self.model.clone(),
+            messages: request_messages,
+            tools: self.tools.clone(),
+            tool_choice: ToolChoice::Auto,
+            response_schema: None,
+            temperature: None,
+            max_tokens: None,
+            metadata: BTreeMap::default(),
+        }
+    }
+}
+
+/// Converts one non-inspection provider tool call into a runtime decision.
+///
+/// # Parameters
+/// - `call`: Validated provider tool call.
+///
+/// # Returns
+/// A delegated child request or named application tool request.
+///
+/// # Errors
+/// Returns an error when a child call omits required fields.
+fn named_tool_decision(call: ToolCall) -> Result<ModelDecision, String> {
+    if call.name != "delegate" {
+        return Ok(ModelDecision::NamedTool {
+            name: call.name,
+            arguments: call.arguments,
+        });
+    }
+    let purpose = required_string(&call, "purpose")?;
+    let prompt = required_string(&call, "prompt")?;
+    let capabilities = call
+        .arguments
+        .get("capabilities")
+        .and_then(serde_json::Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(serde_json::Value::as_str)
+        .map(str::to_owned)
+        .collect();
+    let expected_result = call
+        .arguments
+        .get("expected_result")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("compact result")
+        .to_owned();
+    Ok(ModelDecision::Child(crate::ChildRequest {
+        purpose,
+        prompt,
+        capabilities,
+        expected_result,
+    }))
+}
+
+/// Reads a required string argument from a provider tool call.
+///
+/// # Parameters
+/// - `call`: Provider tool call containing structured arguments.
+/// - `name`: Required argument name.
+///
+/// # Returns
+/// The copied argument string.
+///
+/// # Errors
+/// Returns an error when the argument is missing or not a string.
+fn required_string(call: &ToolCall, name: &str) -> Result<String, String> {
+    call.arguments
+        .get(name)
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_owned)
+        .ok_or_else(|| format!("delegate tool requires a {name}"))
 }
 
 /// Converts one runtime message into normalized provider context.

@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use scriberig_agent_runtime::cache::{CachePolicy, ModelCache};
 use scriberig_agent_runtime::context::{
-    BranchExecutionContext, ContextActivity, ContextCompiler, ContextPolicy,
+    BranchExecutionContext, ContextActivity, ContextCompiler, ContextPolicy, ProjectSemanticScope,
     RequestFingerprintInput,
 };
 use scriberig_agent_runtime::provider::{FinishReason, ModelResponse, ProviderMetadata};
@@ -34,6 +34,38 @@ fn fingerprint_excludes_credentials_and_changes_for_model_inputs() {
     assert_eq!(first, second);
     assert_ne!(first, changed);
     assert!(!first.contains("one"));
+}
+
+/// Verifies exact workspace references enter bounded context and dependencies.
+#[test]
+fn project_scope_is_explicit_and_snapshot_bound() {
+    let scope = ProjectSemanticScope {
+        project: "prj-scriberig".to_owned(),
+        snapshot: "snp-base".to_owned(),
+        root: "ent-root".to_owned(),
+        selection: Some("ent-code-domain".to_owned()),
+    };
+    let context = BranchExecutionContext::new("session", "branch", "discover", "map adapter")
+        .with_project_scope(scope);
+    let compiled = ContextCompiler::new(ContextPolicy::default()).compile(&context);
+
+    assert!(compiled.canonical.contains("snapshot=snp-base"));
+    assert!(
+        compiled
+            .dependencies
+            .contains(&"project:prj-scriberig".to_owned())
+    );
+    assert!(
+        compiled
+            .dependencies
+            .contains(&"snapshot:snp-base".to_owned())
+    );
+    assert!(compiled.dependencies.contains(&"root:ent-root".to_owned()));
+    assert!(
+        compiled
+            .dependencies
+            .contains(&"selection:ent-code-domain".to_owned())
+    );
 }
 
 /// Verifies exact cache reuse avoids a second provider invocation.

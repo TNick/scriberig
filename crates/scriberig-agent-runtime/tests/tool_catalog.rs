@@ -37,7 +37,7 @@ fn required_argument_is_validated() {
     assert!(error.to_string().contains("entity"));
 }
 
-/// Verifies delegated tools require an explicit purpose and prompt.
+/// Verifies delegated tools require purpose, prompt, scope, and result shape.
 #[test]
 fn delegated_tool_arguments_are_validated() {
     let catalog = ToolCatalog::new(vec![descriptor("delegate")]);
@@ -49,7 +49,7 @@ fn delegated_tool_arguments_are_validated() {
         })
         .expect_err("missing delegated prompt");
 
-    assert!(error.to_string().contains("purpose and prompt"));
+    assert!(error.to_string().contains("capabilities"));
 }
 
 /// Verifies a trusted descriptor cannot bypass the caller capability scope.
@@ -79,7 +79,9 @@ fn required_capability_is_enforced_before_dispatch() {
                 name: "delegate".to_owned(),
                 arguments: serde_json::json!({
                     "purpose": "inspect",
-                    "prompt": "find it"
+                    "prompt": "find it",
+                    "capabilities": ["inspect.entity"],
+                    "expected_result": "compact result"
                 }),
             },
             &context,

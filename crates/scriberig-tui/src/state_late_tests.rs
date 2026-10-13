@@ -21,6 +21,53 @@ fn resize_preserves_navigation() {
     assert_eq!(state.navigation, history);
 }
 
+/// Verifies post-onboarding continuation uses the durable session handle.
+#[test]
+fn palette_continues_agent_session_after_workspace_selection() {
+    let session = scriberig_core::EntityId::new();
+    let semantic_root = scriberig_core::EntityId::new();
+    let branch = scriberig_core::EntityId::new();
+    let mut state = TuiState {
+        selection: Some(crate::selection::EntitySelection {
+            entity: semantic_root,
+            revision: None,
+            snapshot: Some(scriberig_core::SnapshotId::new([9; 32])),
+        }),
+        primary_view: crate::selection::PrimaryView::Session,
+        session: crate::inspector::LoadState::Ready(crate::view::session::SessionModel {
+            rows: vec![crate::view::session::SessionRow {
+                reference: branch,
+                depth: 1,
+                label: "onboarding branch".to_owned(),
+                kind: crate::view::session::SessionRowKind::Branch,
+                transient: false,
+            }],
+        }),
+        agent_handles: vec![crate::service::AgentHandle {
+            operation: scriberig_core::OperationId::new("test-operation")
+                .expect("operation identity"),
+            session,
+            branch: Some(branch),
+            workspace: None,
+        }],
+        ..TuiState::default()
+    };
+    reduce(&mut state, Action::PaletteOpened);
+    reduce(
+        &mut state,
+        Action::InputChanged("continue-agent".to_owned()),
+    );
+    reduce(&mut state, Action::Activated);
+    assert!(matches!(
+        state.overlay,
+        Some(Overlay::Composer(crate::overlay::ComposerState {
+            session: selected_session,
+            branch: Some(selected_branch),
+            ..
+        })) if selected_session == session && selected_branch == branch
+    ));
+}
+
 /// Verifies find input dispatches a snapshot-scoped discovery request.
 #[test]
 fn invalid_entity_input_stays_in_overlay() {

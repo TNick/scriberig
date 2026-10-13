@@ -79,7 +79,12 @@ impl ModelProvider for ScriptedProvider {
         {
             ProviderStep::Final(output) => Ok(ModelDecision::Final(output)),
             ProviderStep::Child { purpose, prompt } => Ok(ModelDecision::Child(
-                scriberig_agent_runtime::ChildRequest { purpose, prompt },
+                scriberig_agent_runtime::ChildRequest {
+                    purpose,
+                    prompt,
+                    capabilities: vec!["inspect.entity".to_owned()],
+                    expected_result: "compact result".to_owned(),
+                },
             )),
             ProviderStep::Tool(input) => Ok(ModelDecision::Tool(input)),
             ProviderStep::Error(error) => Err(error),

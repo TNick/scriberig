@@ -155,6 +155,7 @@ fn run_shared_agent(
         parent_branch: handle.root_branch,
         depth: 0,
         active_branches: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+        semantic_scope: None,
     };
     let runtime_result =
         match run_composed_model(args, &service, &store, &context, &scope, &cancellation) {
@@ -364,6 +365,7 @@ fn local_read_context(principal: &str) -> ApplicationContext {
 fn agent_actions() -> BTreeSet<CapabilityAction> {
     [
         CapabilityAction::Inspect,
+        CapabilityAction::Query,
         CapabilityAction::Custom("agent.delegate".to_owned()),
         CapabilityAction::Custom("runtime_capabilities".to_owned()),
         CapabilityAction::Custom("operation_status".to_owned()),
@@ -381,6 +383,8 @@ fn agent_actions() -> BTreeSet<CapabilityAction> {
         CapabilityAction::Custom("project_workspace".to_owned()),
         CapabilityAction::Custom("project_rescan".to_owned()),
         CapabilityAction::Custom("project_repair_file".to_owned()),
+        CapabilityAction::Custom("semantic_find".to_owned()),
+        CapabilityAction::Custom("semantic_render".to_owned()),
     ]
     .into_iter()
     .collect()

@@ -23,6 +23,22 @@ pub(super) fn storage_error(error: impl Display) -> ProjectError {
     }
 }
 
+/// Converts a debug-only store failure into a project error.
+///
+/// # Parameters
+/// - `error`: Store failure with no `Display` implementation.
+/// - `super`: Parent module containing project error conversion.
+///
+/// # Returns
+/// A structured storage error.
+pub(super) fn storage_debug_error(error: impl std::fmt::Debug) -> ProjectError {
+    ProjectError {
+        code: "storage_error",
+        message: format!("{error:?}"),
+        diagnostics: Vec::new(),
+    }
+}
+
 /// Converts a filesystem failure into a project error.
 ///
 /// # Parameters

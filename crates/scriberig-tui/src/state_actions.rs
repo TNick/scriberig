@@ -152,7 +152,9 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
                 if let Some(row) = model.rows.get(state.cursor) {
                     let id = row.reference;
                     if row.kind == crate::view::session::SessionRowKind::Branch {
-                        if let Some(session) = state.selection.map(|value| value.entity) {
+                        if let Some(session) =
+                            state.agent_handles.last().map(|handle| handle.session)
+                        {
                             return reduce(
                                 state,
                                 Action::SessionRequested {
@@ -290,7 +292,7 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
             );
         }
         "continue-agent" => {
-            let Some(session) = state.selection else {
+            let Some(session) = state.agent_handles.last().map(|handle| handle.session) else {
                 "Select a session before continuing a branch.".clone_into(&mut state.shell_message);
                 state.overlay = None;
                 return vec![Effect::None];
@@ -312,7 +314,7 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
             return reduce(
                 state,
                 Action::ComposerOpened {
-                    session: session.entity,
+                    session,
                     branch: Some(branch),
                 },
             );

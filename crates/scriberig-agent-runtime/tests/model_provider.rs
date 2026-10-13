@@ -1,6 +1,9 @@
 //! Verifies normalized providers drive the existing runtime decision loop.
 
 use scriberig_agent_runtime::cache::{CachePolicy, ModelCache};
+use scriberig_agent_runtime::context::{
+    BranchExecutionContext, ContextCompiler, ContextPolicy, ProjectSemanticScope,
+};
 use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::provider::{
     FakeProvider, FinishReason, ModelResponse, ProviderMetadata, ToolCall, ToolDefinition,
@@ -37,7 +40,9 @@ fn normalized_delegate_response_drives_child_decision() {
             name: "delegate".to_owned(),
             arguments: serde_json::json!({
                 "purpose": "inspect architecture",
-                "prompt": "find the relevant boundary"
+                "prompt": "find the relevant boundary",
+                "capabilities": ["inspect.entity"],
+                "expected_result": "compact architecture map"
             }),
         }],
         finish_reason: FinishReason::ToolCall,
@@ -66,8 +71,41 @@ fn normalized_delegate_response_drives_child_decision() {
         ModelDecision::Child(scriberig_agent_runtime::ChildRequest {
             purpose: "inspect architecture".to_owned(),
             prompt: "find the relevant boundary".to_owned(),
+            capabilities: vec!["inspect.entity".to_owned()],
+            expected_result: "compact architecture map".to_owned(),
         })
     );
+}
+
+/// Verifies compiled exact project scope enters the normalized provider request.
+#[test]
+fn compiled_project_scope_reaches_provider_request() {
+    let provider = FakeProvider::from_responses([Ok(ModelResponse {
+        text: Some("ready".to_owned()),
+        tool_calls: Vec::new(),
+        finish_reason: FinishReason::Stop,
+        usage: None,
+        metadata: ProviderMetadata::default(),
+    })]);
+    let context = ContextCompiler::new(ContextPolicy::default()).compile(
+        &BranchExecutionContext::new("session", "branch", "discover", "inspect code")
+            .with_project_scope(ProjectSemanticScope {
+                project: "prj-one".to_owned(),
+                snapshot: "snp-base".to_owned(),
+                root: "ent-root".to_owned(),
+                selection: Some("ent-selected".to_owned()),
+            }),
+    );
+    let mut model = ProviderModel::new(provider.clone(), "model").with_compiled_context(context);
+    model
+        .decide(&[AgentMessage::User("inspect code".to_owned())])
+        .expect("model decision");
+
+    let request = provider.requests().pop().expect("provider request");
+    assert!(request.messages[0].content.contains("prj-one"));
+    assert!(request.messages[0].content.contains("snp-base"));
+    assert!(request.messages[0].content.contains("ent-root"));
+    assert!(request.messages[0].content.contains("ent-selected"));
 }
 
 /// Verifies exact model request reuse avoids a second provider invocation.

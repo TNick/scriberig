@@ -175,6 +175,7 @@ fn scripted_child_result_preserves_isolation_marker_boundary() {
         parent_branch: EntityId::from_bytes([2; 16]),
         depth: 0,
         active_branches: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+        semantic_scope: None,
     };
     let mut runtime = AgentRuntime::new(provider, UnconfiguredTool, 3);
     let result = runtime
@@ -216,6 +217,7 @@ fn scripted_provider_obeys_model_budget() {
         parent_branch: EntityId::from_bytes([4; 16]),
         depth: 0,
         active_branches: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+        semantic_scope: None,
     };
     let mut runtime = AgentRuntime::new(provider, UnconfiguredTool, 1);
     let error = runtime

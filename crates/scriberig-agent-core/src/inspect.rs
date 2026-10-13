@@ -61,9 +61,14 @@ impl<S: QueryService> Tool for InspectTool<S> {
         }
         let request = InspectRequest {
             entity: input.entity,
-            snapshot: input
-                .snapshot
-                .map_or(SnapshotResolution::Current, SnapshotResolution::At),
+            snapshot: input.snapshot.map_or_else(
+                || {
+                    context
+                        .snapshot
+                        .map_or(SnapshotResolution::Current, SnapshotResolution::At)
+                },
+                SnapshotResolution::At,
+            ),
             detail: match input.detail {
                 ToolDetail::Compact => DetailLevel::Compact,
                 ToolDetail::Detailed => DetailLevel::Detailed,

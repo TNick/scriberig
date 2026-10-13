@@ -100,6 +100,8 @@ fn child_executor_is_an_explicit_runtime_boundary() {
                 return Ok(ModelDecision::Child(ChildRequest {
                     purpose: "inspect".to_owned(),
                     prompt: "inspect the selected entity".to_owned(),
+                    capabilities: vec!["inspect.entity".to_owned()],
+                    expected_result: "compact inspection".to_owned(),
                 }));
             }
             assert!(matches!(messages[1], AgentMessage::Child(_)));
@@ -112,6 +114,7 @@ fn child_executor_is_an_explicit_runtime_boundary() {
         parent_branch: scriberig_core::EntityId::from_bytes([9; 16]),
         depth: 0,
         active_branches: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+        semantic_scope: None,
     };
     let mut runtime = AgentRuntime::new(Provider, scriberig_agent_runtime::UnconfiguredTool, 2);
     let mut children = Fixture;

@@ -2,7 +2,6 @@
 
 use std::sync::Arc;
 
-use scriberig_agent_runtime::AgentMessage;
 use scriberig_agent_runtime::cache::{CachePolicy, ModelCache};
 use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::provider::{
@@ -11,14 +10,21 @@ use scriberig_agent_runtime::provider::{
 use scriberig_agent_runtime::provider::{ModelRequest, ModelResponse};
 use scriberig_agent_runtime::{AgentError, AgentRuntime, ChildExecutionScope};
 use scriberig_app::{
-    AgentCommandRequest, ApplicationBackend, ApplicationContext, ApplicationError,
-    ApplicationService,
+    AgentCommandRequest, AgentSelection, ApplicationBackend, ApplicationContext, ApplicationError,
+    ApplicationService, SessionBackend, SessionRequest,
 };
 use scriberig_core::EntityId;
 use scriberig_store_sqlite::SqliteStore;
 
 use crate::agent_tool::LocalAgentTool;
 use crate::child_runtime::{LocalChildExecutor, inspect_catalog};
+#[path = "native_tui_agent/workspace.rs"]
+mod workspace;
+use workspace::workspace_from_result;
+
+#[cfg(test)]
+#[path = "native_tui_agent_tests.rs"]
+mod tests;
 
 /// Runs provider-backed agent commands submitted through the native TUI.
 pub(super) struct NativeTuiAgentRunner {
@@ -129,11 +135,12 @@ impl<B: ApplicationBackend> scriberig_tui::AgentCommandRunner<B> for NativeTuiAg
         branch: Option<EntityId>,
         prompt: &str,
     ) -> Result<scriberig_tui::AgentHandle, ApplicationError> {
+        let selection = previous_workspace_selection(service, context, session)?;
         let request = AgentCommandRequest {
             session,
             branch,
             prompt: prompt.to_owned(),
-            selection: None,
+            selection: selection.clone(),
         };
         let handle = service.begin_agent_execution(context, &request)?;
         let Some(provider) = self.provider.as_ref() else {
@@ -143,15 +150,20 @@ impl<B: ApplicationBackend> scriberig_tui::AgentCommandRunner<B> for NativeTuiAg
                 operation: message.to_owned(),
             });
         };
+        let runtime_context = selection.as_ref().map_or_else(
+            || context.clone(),
+            |selection| context.clone().with_snapshot(selection.snapshot),
+        );
         let result = execute_agent(
             provider.clone(),
             &self.model,
             service,
             &self.project_store,
-            context,
+            &runtime_context,
             session,
             handle.root_branch,
             prompt,
+            selection.as_ref(),
         );
         let result = match result {
             Ok(result) => result,
@@ -165,14 +177,17 @@ impl<B: ApplicationBackend> scriberig_tui::AgentCommandRunner<B> for NativeTuiAg
             }
         };
         let workspace = workspace_from_result(&result)?;
-        let result_handles = workspace.as_ref().map_or_else(Vec::new, |workspace| {
-            vec![
-                format!("project:{}", workspace.project),
-                format!("snapshot:{}", workspace.snapshot),
-                format!("root:{}", workspace.root),
-                format!("manifest:{}", workspace.manifest_id),
-            ]
-        });
+        let result_handles = workspace.as_ref().map_or_else(
+            || selection_handles(selection.as_ref()),
+            |workspace| {
+                vec![
+                    format!("project:{}", workspace.project),
+                    format!("snapshot:{}", workspace.snapshot),
+                    format!("root:{}", workspace.root),
+                    format!("manifest:{}", workspace.manifest_id),
+                ]
+            },
+        );
         service.complete_local_agent_with_handles(&handle, result.output, result_handles)?;
         Ok(scriberig_tui::AgentHandle {
             operation: handle.operation,
@@ -183,76 +198,107 @@ impl<B: ApplicationBackend> scriberig_tui::AgentCommandRunner<B> for NativeTuiAg
     }
 }
 
-/// Extracts the exact workspace returned by the project workspace tool.
+/// Resolves the latest durable project scope produced in a session.
 ///
 /// # Parameters
-/// - `result`: Completed runtime transcript.
+/// - `service`: Shared application boundary owning durable session state.
+/// - `context`: Trusted authorization context for session reads.
+/// - `session`: Session receiving the next user instruction.
 ///
 /// # Returns
-/// The returned project workspace when the agent activated one.
+/// Exact project, root, selected entity, and snapshot when the session has an
+/// onboarding result.
 ///
 /// # Errors
-/// Returns an internal error when a workspace tool result omits valid references.
-fn workspace_from_result(
-    result: &scriberig_agent_runtime::AgentResult,
-) -> Result<Option<scriberig_tui::AgentWorkspace>, ApplicationError> {
-    let Some(tool) = result
-        .messages
-        .iter()
-        .rev()
-        .find_map(|message| match message {
-            AgentMessage::Tool(tool)
-                if tool.object_type.as_deref() == Some("project_workspace") =>
-            {
-                Some(tool)
-            }
-            _ => None,
-        })
-    else {
+/// Returns session read or malformed durable-handle failures.
+fn previous_workspace_selection<B: ApplicationBackend>(
+    service: &ApplicationService<B>,
+    context: &ApplicationContext,
+    session: EntityId,
+) -> Result<Option<AgentSelection>, ApplicationError> {
+    let saved = match SessionBackend::read_session(service, context, &SessionRequest { session }) {
+        Ok(saved) => saved,
+        Err(ApplicationError::NotFound { .. }) => return Ok(None),
+        Err(error) => return Err(error),
+    };
+    let Some(handles) = saved.branches.iter().rev().find_map(|branch| {
+        let handles = &branch.result.as_ref()?.result_handles;
+        ["project", "snapshot", "root"]
+            .iter()
+            .all(|kind| handle_value(handles, kind).is_some())
+            .then_some(handles)
+    }) else {
         return Ok(None);
     };
-    let manifest_id = result
-        .messages
-        .iter()
-        .find_map(|message| match message {
-            AgentMessage::Tool(tool) if tool.object_type.as_deref() == Some("project_scan") => {
-                tool.handles.get(1).cloned()
-            }
-            _ => None,
-        })
-        .ok_or_else(|| ApplicationError::Internal {
-            message: "project workspace has no reviewed manifest reference".into(),
-        })?;
-    let [project, snapshot, root] = tool.handles.as_slice() else {
-        return Err(ApplicationError::Internal {
-            message: "project workspace result must contain project, snapshot, and root".into(),
-        });
-    };
-    let parse_error = |message: &str| ApplicationError::Internal {
-        message: message.to_owned(),
-    };
-    let project = project
-        .parse()
-        .map_err(|error| parse_error(&format!("invalid workspace project: {error}")))?;
-    let snapshot = snapshot
-        .parse()
-        .map_err(|error| parse_error(&format!("invalid workspace snapshot: {error}")))?;
-    let root = root
-        .parse()
-        .map_err(|error| parse_error(&format!("invalid workspace root: {error}")))?;
-    let name = tool
-        .summary
-        .as_deref()
-        .and_then(|summary| summary.strip_prefix("active semantic workspace "))
-        .and_then(|summary| summary.split_once(" at snapshot ").map(|(name, _)| name))
-        .ok_or_else(|| parse_error("project workspace result omitted its name"))?;
-    Ok(Some(scriberig_tui::AgentWorkspace {
-        project,
-        name: name.to_owned(),
-        snapshot,
-        root,
-        manifest_id,
+    let project = handle_value(handles, "project").expect("complete workspace handle set");
+    let snapshot = handle_value(handles, "snapshot").expect("complete workspace handle set");
+    let root = handle_value(handles, "root").expect("complete workspace handle set");
+    Ok(Some(AgentSelection {
+        project: Some(parse_workspace_handle("project", project)?),
+        root: parse_workspace_handle("root", root)?,
+        entity: parse_workspace_handle("root", root)?,
+        snapshot: parse_workspace_handle("snapshot", snapshot)?,
     }))
+}
+
+/// Parses one typed identity retained by a prior agent branch.
+///
+/// # Parameters
+/// - `name`: Human-readable identity kind for diagnostics.
+/// - `value`: Durable string identity.
+///
+/// # Returns
+/// The typed identity.
+///
+/// # Errors
+/// Returns an invalid-request error when the durable identity is malformed.
+fn parse_workspace_handle<T: std::str::FromStr>(
+    name: &str,
+    value: &str,
+) -> Result<T, ApplicationError>
+where
+    T::Err: std::fmt::Display,
+{
+    value
+        .parse()
+        .map_err(|error| ApplicationError::InvalidRequest {
+            operation: "agent_continue".to_owned(),
+            message: format!("invalid durable {name} reference: {error}"),
+        })
+}
+
+/// Finds one value in a durable branch result handle set.
+///
+/// # Parameters
+/// - `handles`: Stable branch result handles.
+/// - `kind`: Handle prefix to find.
+///
+/// # Returns
+/// The value after `kind:` when present.
+fn handle_value<'a>(handles: &'a [String], kind: &str) -> Option<&'a str> {
+    handles
+        .iter()
+        .find_map(|handle| handle.strip_prefix(&format!("{kind}:")))
+}
+
+/// Converts an exact workspace scope into durable result references.
+///
+/// # Parameters
+/// - `selection`: Prior project context to preserve on the continuation result.
+///
+/// # Returns
+/// Stable project, snapshot, and root handles, or an empty set without scope.
+fn selection_handles(selection: Option<&AgentSelection>) -> Vec<String> {
+    selection.map_or_else(Vec::new, |selection| {
+        let mut handles = vec![
+            format!("snapshot:{}", selection.snapshot),
+            format!("root:{}", selection.root),
+        ];
+        if let Some(project) = selection.project {
+            handles.push(format!("project:{project}"));
+        }
+        handles
+    })
 }
 
 /// Executes one model loop with the shared semantic tool and child-branch adapters.
@@ -283,17 +329,30 @@ pub(super) fn execute_agent<P, B>(
     session: EntityId,
     branch: EntityId,
     prompt: &str,
+    selection: Option<&AgentSelection>,
 ) -> Result<scriberig_agent_runtime::AgentResult, AgentError>
 where
     P: ProviderAdapter + Clone,
     B: ApplicationBackend,
 {
     let cache = ModelCache::new();
+    let semantic_scope =
+        selection.map(
+            |selection| scriberig_agent_runtime::context::ProjectSemanticScope {
+                project: selection
+                    .project
+                    .map_or_else(|| "unknown".to_owned(), |project| project.to_string()),
+                snapshot: selection.snapshot.to_string(),
+                root: selection.root.to_string(),
+                selection: Some(selection.entity.to_string()),
+            },
+        );
     let scope = ChildExecutionScope {
         session,
         parent_branch: branch,
         depth: 0,
         active_branches: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+        semantic_scope: semantic_scope.clone(),
     };
     let mut children = LocalChildExecutor {
         service,
@@ -302,12 +361,28 @@ where
         cache: cache.clone(),
         project_store: Arc::clone(project_store),
     };
+    let mut model_provider = ProviderModel::new(provider, model)
+        .with_catalog(inspect_catalog())
+        .with_capabilities(context.capabilities.clone())
+        .with_cache(cache, CachePolicy::ReuseExact)
+        .with_cache_namespace(branch.to_string());
+    if let Some(semantic_scope) = semantic_scope {
+        let compiled = scriberig_agent_runtime::context::ContextCompiler::new(
+            scriberig_agent_runtime::context::ContextPolicy::default(),
+        )
+        .compile(
+            &scriberig_agent_runtime::context::BranchExecutionContext::new(
+                session.to_string(),
+                branch.to_string(),
+                "semantic project continuation",
+                prompt,
+            )
+            .with_project_scope(semantic_scope),
+        );
+        model_provider = model_provider.with_compiled_context(compiled);
+    }
     let mut runtime = AgentRuntime::new(
-        ProviderModel::new(provider, model)
-            .with_catalog(inspect_catalog())
-            .with_capabilities(context.capabilities.clone())
-            .with_cache(cache, CachePolicy::ReuseExact)
-            .with_cache_namespace(branch.to_string()),
+        model_provider,
         LocalAgentTool::new(service).with_project_store(Arc::clone(project_store)),
         8,
     );

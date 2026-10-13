@@ -80,6 +80,22 @@ fn inspect_adapter_delegates_semantics() {
     assert_eq!(result.handles, vec!["handle:next"]);
 }
 
+/// Uses trusted exact context when the model omits its own snapshot argument.
+#[test]
+fn inspect_defaults_to_the_authoritative_context_snapshot() {
+    let result = InspectTool::new(Fixture)
+        .invoke(
+            &allowed_context().with_snapshot(SnapshotId::new([3; 32])),
+            ToolInput {
+                entity: EntityId::from_bytes([1; 16]),
+                snapshot: None,
+                detail: ToolDetail::Detailed,
+            },
+        )
+        .expect("inspect exact context");
+    assert_eq!(result.snapshot, Some(SnapshotId::new([3; 32])));
+}
+
 /// Verifies capability denial occurs before the application operation.
 #[test]
 fn inspect_adapter_denies_without_capability() {

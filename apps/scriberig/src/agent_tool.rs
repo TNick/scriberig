@@ -19,6 +19,8 @@ mod project_bootstrap;
 mod project_bootstrap_tests;
 #[path = "project_recovery.rs"]
 mod project_recovery;
+#[path = "project_semantic.rs"]
+mod project_semantic;
 
 /// Provides inspect and application-control tools to one local agent branch.
 pub(super) struct LocalAgentTool<'a, B> {
@@ -129,6 +131,8 @@ impl<B: ApplicationBackend> Tool for LocalAgentTool<'_, B> {
             "project_manifest" => self.project_manifest(arguments),
             "project_import" => self.project_import(arguments),
             "project_workspace" => self.project_workspace(arguments),
+            "semantic_find" => self.semantic_find(context, arguments),
+            "semantic_render" => self.semantic_render(context, arguments),
             "project_rescan" => self.project_rescan(arguments),
             "project_repair_file" => self.project_repair_file(arguments),
             "session_branch_tree" => self.session_tree(context, arguments),

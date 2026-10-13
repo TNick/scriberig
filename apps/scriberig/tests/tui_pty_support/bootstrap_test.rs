@@ -30,12 +30,30 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
         .parse::<EntityId>()
         .expect("session identity");
     tui.send(b"Onboard the current project.\r");
+    let onboarded = tui.read_until("The current project is onboarded");
+    let saved = SqliteSessionStore::open(tui.fixture_path().join("scriberig.sqlite"))
+        .expect("open diagnostic session store")
+        .load(session)
+        .expect("read diagnostic session");
+    assert!(onboarded, "{}; saved session: {saved:?}", tui.diagnostic());
+    assert!(tui.read_until("project: scriberig"), "{}", tui.diagnostic());
+    tui.send(b"\x1b[B");
+    tui.send(b":");
+    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
+    tui.send(b"continue-agent\r");
+    assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
     assert!(
-        tui.read_until("The current project is onboarded"),
+        tui.screen().contains(&session.to_string()),
         "{}",
         tui.diagnostic()
     );
-    assert!(tui.read_until("project: scriberig"), "{}", tui.diagnostic());
+    tui.send(b"Discover Scriberig architecture semantically.\r");
+    let discovered = tui.read_until("I found the repository guidance");
+    let saved = SqliteSessionStore::open(tui.fixture_path().join("scriberig.sqlite"))
+        .expect("open discovery diagnostic session store")
+        .load(session)
+        .expect("read discovery diagnostic session");
+    assert!(discovered, "saved session: {saved:?}");
 
     let fixture = tui.fixture_path().to_path_buf();
     let database = fixture.join("scriberig.sqlite");
@@ -60,6 +78,7 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
             .any(|entity| entity.entity == workspace.root_entity)
     );
     assert_durable_session(&database, session);
+    assert_durable_discovery(&database, session, project.id, workspace.snapshot);
     drop(store);
     let fixture = tui.quit_retain_fixture();
 
@@ -69,6 +88,7 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
         "{}",
         reopened.diagnostic()
     );
+    assert_durable_discovery(&database, session, project.id, workspace.snapshot);
     assert!(reopened.shutdown());
 }
 
@@ -83,9 +103,20 @@ fn assert_durable_session(database: &std::path::Path, session: EntityId) {
         .load(session)
         .expect("read session")
         .expect("durable onboarding session");
-    assert_eq!(saved_session.branches.len(), 1);
-    assert_eq!(saved_session.branches[0].status, BranchStatus::Completed);
-    let result_handles = &saved_session.branches[0]
+    assert!(saved_session.branches.len() >= 2);
+    let onboarding = saved_session
+        .branches
+        .iter()
+        .find(|branch| {
+            branch
+                .turns
+                .first()
+                .and_then(|turn| turn.human.as_ref())
+                .is_some()
+        })
+        .expect("durable onboarding branch");
+    assert_eq!(onboarding.status, BranchStatus::Completed);
+    let result_handles = &onboarding
         .result
         .as_ref()
         .expect("durable branch result")
@@ -111,7 +142,7 @@ fn assert_durable_session(database: &std::path::Path, session: EntityId) {
             .any(|value| value.starts_with("manifest:"))
     );
     assert_eq!(
-        saved_session.branches[0].turns[0]
+        onboarding.turns[0]
             .human
             .as_ref()
             .expect("human instruction")
@@ -119,4 +150,68 @@ fn assert_durable_session(database: &std::path::Path, session: EntityId) {
         "Onboard the current project."
     );
     drop(session_store);
+}
+
+/// Verifies semantic child discovery is durable and exact-snapshot scoped.
+///
+/// # Parameters
+/// - `database`: Temporary SQLite database used by the product process.
+/// - `session`: Session receiving parent and child discovery branches.
+/// - `project`: Onboarded project identity.
+/// - `snapshot`: Exact immutable workspace snapshot.
+fn assert_durable_discovery(
+    database: &std::path::Path,
+    session: EntityId,
+    project: scriberig_core::ProjectId,
+    snapshot: scriberig_core::SnapshotId,
+) {
+    let session_store = SqliteSessionStore::open(database).expect("open session store");
+    let saved = session_store
+        .load(session)
+        .expect("read session")
+        .expect("durable discovery session");
+    let child = saved
+        .branches
+        .iter()
+        .find(|branch| {
+            branch
+                .purpose
+                .as_deref()
+                .is_some_and(|purpose| purpose.contains("determine minimal extension points"))
+        })
+        .expect("nested architecture child branch");
+    assert_eq!(child.status, BranchStatus::Completed);
+    assert!(child.parent.is_some());
+    let result = child.result.as_ref().expect("durable child BranchResult");
+    assert!(
+        result
+            .summary
+            .as_deref()
+            .unwrap_or_default()
+            .contains("shared code domain")
+    );
+    assert!(
+        result
+            .result_handles
+            .iter()
+            .any(|handle| handle == &format!("project:{project}"))
+    );
+    assert!(
+        result
+            .result_handles
+            .iter()
+            .any(|handle| handle == &format!("snapshot:{snapshot}"))
+    );
+    assert!(
+        result
+            .result_handles
+            .iter()
+            .any(|handle| handle == "path:src/lib.rs")
+    );
+    assert!(
+        result
+            .result_handles
+            .iter()
+            .any(|handle| handle.starts_with("source_digest:"))
+    );
 }

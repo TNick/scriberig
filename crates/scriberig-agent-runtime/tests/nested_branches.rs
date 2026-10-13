@@ -34,6 +34,8 @@ impl ModelProvider for RecursiveProvider {
             return Ok(ModelDecision::Child(ChildRequest {
                 purpose: format!("depth-{} work", self.depth + 1),
                 prompt: format!("perform depth-{} work", self.depth + 1),
+                capabilities: vec!["inspect.entity".to_owned()],
+                expected_result: "compact result".to_owned(),
             }));
         }
         if let Some(AgentMessage::Child(result)) = messages.last() {
@@ -81,6 +83,7 @@ impl ChildExecutor for RecursiveExecutor {
             ),
             depth: parent.depth + 1,
             active_branches: Arc::clone(&parent.active_branches),
+            semantic_scope: parent.semantic_scope.clone(),
         };
         self.depths
             .lock()
@@ -116,6 +119,7 @@ fn recursive_children_preserve_depth_and_hide_child_history() {
         parent_branch: EntityId::from_bytes([2; 16]),
         depth: 0,
         active_branches: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+        semantic_scope: None,
     };
     let mut executor = RecursiveExecutor {
         depths: Arc::clone(&depths),

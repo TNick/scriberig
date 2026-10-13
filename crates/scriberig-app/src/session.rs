@@ -60,6 +60,10 @@ pub struct AgentCommandRequest {
 /// Identifies the exact semantic scope supplied to an agent.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AgentSelection {
+    /// Semantic project containing the selected entity.
+    pub project: Option<scriberig_core::ProjectId>,
+    /// Semantic project root at the exact snapshot.
+    pub root: EntityId,
     /// Selected semantic entity.
     pub entity: EntityId,
     /// Snapshot containing the selected entity.

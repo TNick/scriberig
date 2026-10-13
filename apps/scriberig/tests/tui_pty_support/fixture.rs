@@ -73,6 +73,11 @@ pub(super) fn bootstrap_project(fixture: &Path) -> PathBuf {
         "pub fn greeting() -> &'static str { \"hello\" }\n",
     )
     .expect("write bootstrap source file");
+    fs::write(
+        checkout.join("AGENTS.md"),
+        "# Fixture guidance\nUse semantic source references at the exact project snapshot.\n",
+    )
+    .expect("write semantic guidance fixture");
     let git = |arguments: &[&str]| {
         assert!(
             Command::new("git")

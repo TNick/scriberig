@@ -5,76 +5,11 @@ use std::sync::atomic::Ordering;
 use super::ApplicationService;
 use crate::ApplicationError;
 use scriberig_core::EntityId;
-use scriberig_session::{Branch, BranchResult, Session, Turn};
+use scriberig_session::{BranchResult, Turn};
+#[path = "service_local_sessions/start_agent.rs"]
+mod start_agent;
 
 impl<B> ApplicationService<B> {
-    /// Creates a local session root and leaves its shared operation running.
-    ///
-    /// # Parameters
-    /// - `self`: Application service owning local session state.
-    /// - `request`: Session, optional branch, and human instruction.
-    ///
-    /// # Returns
-    /// A handle used to complete the same operation after runtime execution.
-    ///
-    /// # Errors
-    /// Returns an application error when session or operation state is invalid.
-    pub fn start_local_agent(
-        &self,
-        request: &crate::AgentCommandRequest,
-    ) -> Result<crate::LocalAgentHandle, ApplicationError> {
-        let branch_id = request.branch.unwrap_or_else(|| self.next_entity(0xB1));
-        let mut session = self
-            .load_session_state(request.session)?
-            .unwrap_or(Session {
-                id: request.session,
-                branches: Vec::new(),
-                goals: Vec::new(),
-                tasks: Vec::new(),
-            });
-        if !session.branches.iter().any(|branch| branch.id == branch_id) {
-            let branch = Branch::new(branch_id, "agent root").map_err(|error| {
-                ApplicationError::InvalidRequest {
-                    operation: "agent_start".to_owned(),
-                    message: error.to_string(),
-                }
-            })?;
-            session.branches.push(branch);
-        }
-        if let Some(branch) = session
-            .branches
-            .iter_mut()
-            .find(|branch| branch.id == branch_id)
-        {
-            branch.push_turn(Turn {
-                id: self.next_entity(0xBA),
-                ordinal: 0,
-                human: Some(scriberig_session::HumanInput {
-                    text: request.prompt.clone(),
-                }),
-                agent: None,
-                tool_invocation: None,
-                tool_result: None,
-            });
-        }
-        self.save_session_state(session)?;
-        let sequence = self.next_agent_handle.fetch_add(1, Ordering::Relaxed);
-        let operation = scriberig_core::OperationId::new(format!("agent-local-{sequence}"))
-            .map_err(|error| ApplicationError::Internal {
-                message: error.to_string(),
-            })?;
-        self.operations
-            .start(operation.clone(), crate::OperationKind::Agent)?;
-        self.operations
-            .transition(&operation, crate::OperationStatus::Running)?;
-        Ok(crate::LocalAgentHandle {
-            operation,
-            session: request.session,
-            root_branch: branch_id,
-            prompt: request.prompt.clone(),
-        })
-    }
-
     /// Creates a child branch and leaves its shared operation running.
     ///
     /// # Parameters
@@ -150,6 +85,28 @@ impl<B> ApplicationService<B> {
         handle: &crate::LocalChildAgentHandle,
         final_output: impl Into<String>,
     ) -> Result<crate::AgentResult, ApplicationError> {
+        self.complete_local_child_agent_with_handles(handle, final_output, Vec::new())
+    }
+
+    /// Completes a child branch with compact semantic result references.
+    ///
+    /// # Parameters
+    /// - `self`: Application service owning local session state.
+    /// - `handle`: Pending child operation handle.
+    /// - `final_output`: Complete externally meaningful child output.
+    /// - `result_handles`: Stable semantic references returned by the child.
+    ///
+    /// # Returns
+    /// The structured application agent result for the child.
+    ///
+    /// # Errors
+    /// Returns an application error when the child branch is unavailable.
+    pub fn complete_local_child_agent_with_handles(
+        &self,
+        handle: &crate::LocalChildAgentHandle,
+        final_output: impl Into<String>,
+        result_handles: Vec<String>,
+    ) -> Result<crate::AgentResult, ApplicationError> {
         let final_output = final_output.into();
         let mut session =
             self.load_session_state(handle.session)?
@@ -183,7 +140,7 @@ impl<B> ApplicationService<B> {
             summary: Some(final_output.clone()),
             result_kind: Some("agent-child".to_owned()),
             references: vec![branch_result],
-            result_handles: Vec::new(),
+            result_handles: result_handles.clone(),
             touched: Vec::new(),
             produced_changes: Vec::new(),
             validations: Vec::new(),
@@ -209,7 +166,9 @@ impl<B> ApplicationService<B> {
             .publish_agent_output(&handle.operation, &result.final_output)?;
         self.operations.complete_agent(
             &handle.operation,
-            vec![branch_result.to_string()],
+            std::iter::once(branch_result.to_string())
+                .chain(result_handles)
+                .collect(),
             result.clone(),
         )?;
         Ok(result)

@@ -8,8 +8,14 @@ use super::{
     ApplicationContext, ApplicationError, ApplicationService, InspectRequest, InspectResult,
     MigrationDetail, OperationId, RuntimeCapability,
 };
+#[path = "server_capabilities.rs"]
+mod server_capabilities;
 use scriberig_protocol::{Event, Operation};
 use scriberig_query::{FindRequest, FindResult, ListRequest, ListResult, QueryResult, QuerySpec};
+use server_capabilities::capabilities;
+#[path = "server_event_cursor.rs"]
+mod server_event_cursor;
+use server_event_cursor::filter_events_after;
 
 // Adapt the shared application façade to the protocol server boundary.
 impl<B> ApplicationService for scriberig_app::ApplicationService<B>
@@ -93,21 +99,7 @@ where
     /// # Returns
     /// One available inspect capability.
     fn capabilities(&self) -> Vec<RuntimeCapability> {
-        [
-            ("inspect_entity", "Inspect one entity"),
-            ("explorer_list", "List entities in an exact snapshot"),
-            ("agent_start", "Start provider-neutral agent work"),
-            ("agent_continue", "Continue work on a session branch"),
-        ]
-        .into_iter()
-        .map(|(id, description)| {
-            RuntimeCapability::new(
-                scriberig_app::CapabilityId::new(id).expect("static capability"),
-                description,
-                true,
-            )
-        })
-        .collect()
+        capabilities()
     }
 
     /// Executes a structured query through the shared application backend.
@@ -262,22 +254,7 @@ where
         event_kinds: &[String],
         after: u64,
     ) -> Result<Vec<Event>, ApplicationError> {
-        let events = self.events(event_kinds)?;
-        if after > 0
-            && events
-                .first()
-                .is_some_and(|event| event.sequence > after.saturating_add(1))
-        {
-            let oldest = events.first().map_or(after, |event| event.sequence);
-            return Err(ApplicationError::ProtocolFailure {
-                category: "cursor_too_old".to_owned(),
-                message: format!("event cursor {after} is older than retained cursor {oldest}"),
-            });
-        }
-        Ok(events
-            .into_iter()
-            .filter(|event| event.sequence > after)
-            .collect())
+        filter_events_after(self.events(event_kinds)?, after)
     }
 
     /// Decodes and executes one command through the shared application façade.
@@ -341,6 +318,30 @@ where
                                 message: format!("invalid semantic selection: {error}"),
                             })?;
                     Some(scriberig_app::AgentSelection {
+                        project: selection
+                            .project_id
+                            .as_deref()
+                            .map(str::parse)
+                            .transpose()
+                            .map_err(|error| ApplicationError::InvalidRequest {
+                                operation: kind.to_owned(),
+                                message: format!("invalid selected project: {error}"),
+                            })?,
+                        root: selection
+                            .root
+                            .as_ref()
+                            .map(|root| root.id.parse())
+                            .transpose()
+                            .map_err(|error| ApplicationError::InvalidRequest {
+                                operation: kind.to_owned(),
+                                message: format!("invalid selected root: {error}"),
+                            })?
+                            .unwrap_or(selection.entity.id.parse().map_err(|error| {
+                                ApplicationError::InvalidRequest {
+                                    operation: kind.to_owned(),
+                                    message: format!("invalid selected entity: {error}"),
+                                }
+                            })?),
                         entity: selection.entity.id.parse().map_err(|error| {
                             ApplicationError::InvalidRequest {
                                 operation: kind.to_owned(),

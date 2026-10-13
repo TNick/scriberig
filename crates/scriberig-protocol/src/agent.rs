@@ -22,6 +22,12 @@ pub struct BranchReference {
 /// Identifies the exact semantic scope supplied to an agent.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct AgentSelection {
+    /// Project identity when the semantic scope is project-oriented.
+    #[serde(default)]
+    pub project_id: Option<String>,
+    /// Semantic root of the selected project workspace.
+    #[serde(default)]
+    pub root: Option<EntityReference>,
     /// Selected semantic entity.
     pub entity: EntityReference,
     /// Snapshot containing the selected entity.

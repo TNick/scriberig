@@ -1,6 +1,7 @@
 //! Exposes snapshot-bound project symbols and source projections.
 
 use scriberig_core::{EntityId, ProjectId, SnapshotId};
+use scriberig_store::{RevisionStore, SnapshotStore};
 
 use crate::{ProjectError, ProjectService};
 
@@ -36,6 +37,8 @@ pub struct ProjectSourceProjection {
     pub path: String,
     /// Source bytes rendered by the projection.
     pub text: Vec<u8>,
+    /// Exact BLAKE3 digest of the imported source bytes.
+    pub source_digest: [u8; 32],
     /// Whether this semantic projection supports editing.
     pub editable: bool,
 }
@@ -53,6 +56,28 @@ impl ProjectService {
     /// Returns a structured error when the project or symbol store is unavailable.
     pub fn symbols(&self, project: ProjectId) -> Result<Vec<ProjectSymbol>, ProjectError> {
         let workspace = self.workspace(project)?;
+        self.symbols_at(project, workspace.snapshot)
+    }
+
+    /// Lists project symbols only when the requested snapshot remains current.
+    ///
+    /// # Parameters
+    /// - `project`: Project whose symbols are requested.
+    /// - `snapshot`: Exact immutable snapshot scope.
+    ///
+    /// # Returns
+    /// Snapshot-bound symbols and source entities.
+    ///
+    /// # Errors
+    /// Returns a structured error when the snapshot is stale or the project
+    /// symbol store is unavailable.
+    pub fn symbols_at(
+        &self,
+        project: ProjectId,
+        snapshot: SnapshotId,
+    ) -> Result<Vec<ProjectSymbol>, ProjectError> {
+        let workspace = self.workspace(project)?;
+        ensure_snapshot(workspace.snapshot, snapshot)?;
         self.store
             .project_entities(project)
             .map_err(crate::errors::storage_error)
@@ -88,6 +113,29 @@ impl ProjectService {
         entity: EntityId,
     ) -> Result<ProjectSourceProjection, ProjectError> {
         let workspace = self.workspace(project)?;
+        self.projection_at(project, workspace.snapshot, entity)
+    }
+
+    /// Renders source only when the requested snapshot remains current.
+    ///
+    /// # Parameters
+    /// - `project`: Project owning the entity.
+    /// - `snapshot`: Exact immutable snapshot scope.
+    /// - `entity`: Semantic entity to render.
+    ///
+    /// # Returns
+    /// Source projection bound to the requested snapshot.
+    ///
+    /// # Errors
+    /// Returns a structured error when the snapshot is stale or source is absent.
+    pub fn projection_at(
+        &self,
+        project: ProjectId,
+        snapshot: SnapshotId,
+        entity: EntityId,
+    ) -> Result<ProjectSourceProjection, ProjectError> {
+        let workspace = self.workspace(project)?;
+        ensure_snapshot(workspace.snapshot, snapshot)?;
         let entity_record = self
             .store
             .project_entities(project)
@@ -99,17 +147,32 @@ impl ProjectService {
                 message: "semantic entity is not owned by the project".to_owned(),
                 diagnostics: Vec::new(),
             })?;
-        let file = self
+        let revision_id = self
             .store
-            .project_files(project)
-            .map_err(crate::errors::storage_error)?
-            .into_iter()
-            .find(|record| record.relative_path == entity_record.relative_path)
+            .resolve(snapshot, entity)
+            .map_err(crate::errors::storage_debug_error)?
             .ok_or_else(|| ProjectError {
                 code: "source_not_found",
-                message: "semantic entity has no source projection".to_owned(),
+                message: "semantic entity is absent from the requested snapshot".to_owned(),
                 diagnostics: Vec::new(),
             })?;
+        let revision = self
+            .store
+            .get(revision_id)
+            .map_err(crate::errors::storage_debug_error)?
+            .ok_or_else(|| ProjectError {
+                code: "source_not_found",
+                message: "semantic source revision is unavailable".to_owned(),
+                diagnostics: Vec::new(),
+            })?;
+        if revision.object_type().as_str() != "project.source" {
+            return Err(ProjectError {
+                code: "not_a_source",
+                message: "semantic entity does not resolve to project source bytes".to_owned(),
+                diagnostics: Vec::new(),
+            });
+        }
+        let source_digest = *blake3::hash(revision.payload()).as_bytes();
         Ok(ProjectSourceProjection {
             project,
             snapshot: workspace.snapshot,
@@ -117,8 +180,31 @@ impl ProjectService {
             name: entity_record.name,
             kind: entity_record.kind.clone(),
             path: entity_record.relative_path,
-            text: file.bytes,
+            text: revision.payload().to_vec(),
+            source_digest,
             editable: entity_record.kind == "rust.method",
         })
     }
+}
+
+/// Requires a project operation to retain its exact workspace snapshot.
+///
+/// # Parameters
+/// - `current`: Authoritative current project snapshot.
+/// - `requested`: Snapshot attached to the caller's semantic references.
+///
+/// # Returns
+/// Unit when both snapshots match.
+///
+/// # Errors
+/// Returns a stale-snapshot error instead of silently retargeting.
+fn ensure_snapshot(current: SnapshotId, requested: SnapshotId) -> Result<(), ProjectError> {
+    if current == requested {
+        return Ok(());
+    }
+    Err(ProjectError {
+        code: "stale_snapshot",
+        message: "project source operation is bound to a superseded snapshot".to_owned(),
+        diagnostics: Vec::new(),
+    })
 }

@@ -2,7 +2,11 @@
 
 use std::fmt::Write;
 
-use crate::provider::{ModelMessage, ProviderCapabilities, ToolDefinition};
+use crate::provider::{ModelMessage, ToolDefinition};
+
+#[path = "context/fingerprint.rs"]
+mod fingerprint;
+pub use fingerprint::RequestFingerprintInput;
 
 /// One bounded semantic activity item available to a branch compiler.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -65,8 +69,23 @@ pub struct BranchExecutionContext {
     pub instruction: String,
     /// Compact selected parent result summary.
     pub parent_summary: Option<String>,
+    /// Exact semantic project scope inherited by this branch.
+    pub project_scope: Option<ProjectSemanticScope>,
     /// Current-branch semantic activities.
     pub activities: Vec<ContextActivity>,
+}
+
+/// Identifies the exact semantic project workspace available to a branch.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectSemanticScope {
+    /// Stable project identity.
+    pub project: String,
+    /// Exact immutable project snapshot.
+    pub snapshot: String,
+    /// Semantic source root identity.
+    pub root: String,
+    /// Optional focused semantic entity.
+    pub selection: Option<String>,
 }
 
 impl BranchExecutionContext {
@@ -93,6 +112,7 @@ impl BranchExecutionContext {
             purpose: purpose.into(),
             instruction: instruction.into(),
             parent_summary: None,
+            project_scope: None,
             activities: Vec::new(),
         }
     }
@@ -122,6 +142,20 @@ impl BranchExecutionContext {
     #[must_use]
     pub fn with_parent_summary(mut self, summary: impl Into<String>) -> Self {
         self.parent_summary = Some(summary.into());
+        self
+    }
+
+    /// Binds this branch to an exact semantic project workspace.
+    ///
+    /// # Parameters
+    /// - `self`: Context being configured.
+    /// - `scope`: Exact project and snapshot references.
+    ///
+    /// # Returns
+    /// The context with explicit semantic workspace scope.
+    #[must_use]
+    pub fn with_project_scope(mut self, scope: ProjectSemanticScope) -> Self {
+        self.project_scope = Some(scope);
         self
     }
 }
@@ -201,6 +235,29 @@ impl ContextCompiler {
             push_message(&mut messages, &mut canonical, "parent", summary);
             dependencies.push(format!("parent-summary:{summary}"));
         }
+        if let Some(scope) = &context.project_scope {
+            let orientation = format!(
+                "project={} snapshot={} root={} selection={}",
+                scope.project,
+                scope.snapshot,
+                scope.root,
+                scope.selection.as_deref().unwrap_or("none")
+            );
+            push_message(
+                &mut messages,
+                &mut canonical,
+                "semantic_project_scope",
+                &orientation,
+            );
+            dependencies.extend([
+                format!("project:{}", scope.project),
+                format!("snapshot:{}", scope.snapshot),
+                format!("root:{}", scope.root),
+            ]);
+            if let Some(selection) = &scope.selection {
+                dependencies.push(format!("selection:{selection}"));
+            }
+        }
         push_message(
             &mut messages,
             &mut canonical,
@@ -240,101 +297,6 @@ impl ContextCompiler {
             omitted_handles,
             canonical,
         }
-    }
-}
-
-/// Inputs that contribute to exact model request identity.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RequestFingerprintInput {
-    /// Fingerprint schema version.
-    pub schema_version: String,
-    /// Provider profile or compatibility identity.
-    pub profile: String,
-    /// Provider model identity.
-    pub model: String,
-    /// Provider capability descriptor.
-    pub capabilities: ProviderCapabilities,
-    /// Canonical compiled context.
-    pub compiled_context: String,
-    /// Canonical tool catalog identity.
-    pub tools: String,
-    /// Secret deliberately excluded from identity material.
-    credential: Option<String>,
-}
-
-impl RequestFingerprintInput {
-    /// Creates a fingerprint input with default capability metadata.
-    ///
-    /// # Parameters
-    /// - `profile`: Provider profile identity.
-    /// - `model`: Provider model identity.
-    /// - `compiled_context`: Canonical context.
-    /// - `tools`: Canonical tool catalog identity.
-    ///
-    /// # Returns
-    /// Fingerprint inputs with secret-free identity material.
-    #[must_use]
-    pub fn new(
-        profile: impl Into<String>,
-        model: impl Into<String>,
-        compiled_context: impl Into<String>,
-        tools: impl Into<String>,
-    ) -> Self {
-        Self {
-            schema_version: "model-request-v1".to_owned(),
-            profile: profile.into(),
-            model: model.into(),
-            capabilities: ProviderCapabilities::default(),
-            compiled_context: compiled_context.into(),
-            tools: tools.into(),
-            credential: None,
-        }
-    }
-
-    /// Replaces the model identity for a fingerprint comparison.
-    ///
-    /// # Parameters
-    /// - `self`: Fingerprint input.
-    /// - `model`: New model identity.
-    ///
-    /// # Returns
-    /// Inputs using the new model identity.
-    #[must_use]
-    pub fn with_model(mut self, model: impl Into<String>) -> Self {
-        self.model = model.into();
-        self
-    }
-
-    /// Adds a secret only to prove it is excluded from identity material.
-    ///
-    /// # Parameters
-    /// - `self`: Fingerprint input.
-    /// - `credential`: Secret value never hashed or serialized.
-    ///
-    /// # Returns
-    /// Inputs retaining the secret outside canonical material.
-    #[must_use]
-    pub fn with_credential(mut self, credential: impl Into<String>) -> Self {
-        self.credential = Some(credential.into());
-        self
-    }
-
-    /// Computes the canonical content fingerprint.
-    ///
-    /// # Returns
-    /// Lowercase BLAKE3 digest over secret-free request identity material.
-    #[must_use]
-    pub fn fingerprint(&self) -> String {
-        let material = format!(
-            "{}\n{}\n{}\n{:?}\n{}\n{}",
-            self.schema_version,
-            self.profile,
-            self.model,
-            self.capabilities,
-            self.compiled_context,
-            self.tools
-        );
-        blake3::hash(material.as_bytes()).to_hex().to_string()
     }
 }
 

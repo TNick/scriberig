@@ -82,6 +82,8 @@ export interface BranchChildrenPage {
 }
 /** Semantic selection attached to an agent request. */
 export interface AgentSelection {
+  projectId?: string;
+  rootId?: EntityId;
   entityId?: EntityId;
   revisionId?: string;
   snapshotId?: string;

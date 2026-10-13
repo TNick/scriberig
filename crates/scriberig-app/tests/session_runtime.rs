@@ -96,7 +96,18 @@ fn fallback_agent_acceptance_retains_session_activity() {
             &scriberig_app::SessionRequest { session },
         )
         .expect("continued session state");
-    assert_eq!(state.branches[0].turns.len(), 2);
+    assert_eq!(state.branches.len(), 2);
+    assert_eq!(state.branches[0].turns.len(), 1);
+    assert_eq!(state.branches[1].parent, Some(branch));
+    assert_eq!(state.branches[1].turns.len(), 1);
+    assert_eq!(
+        state.branches[1].turns[0]
+            .human
+            .as_ref()
+            .expect("continuation input")
+            .text,
+        "second"
+    );
 }
 
 /// Verifies authorized bootstrap execution can create a durable operation without project scope.
@@ -255,7 +266,11 @@ fn local_child_agent_start_creates_parent_link() {
     );
 
     let completed = service
-        .complete_local_child_agent(&child, "child output")
+        .complete_local_child_agent_with_handles(
+            &child,
+            "child output",
+            vec!["project:prj-one".to_owned(), "snapshot:snp-base".to_owned()],
+        )
         .expect("complete child");
     assert_eq!(completed.root_branch, child.child_branch);
     let session = service
@@ -275,7 +290,14 @@ fn local_child_agent_start_creates_parent_link() {
         child_branch.status,
         scriberig_session::BranchStatus::Completed
     );
-    assert!(child_branch.result.is_some());
+    assert_eq!(
+        child_branch
+            .result
+            .as_ref()
+            .expect("durable result")
+            .result_handles,
+        vec!["project:prj-one", "snapshot:snp-base"]
+    );
 }
 
 /// Verifies failed child execution is retained as an abandoned branch result.

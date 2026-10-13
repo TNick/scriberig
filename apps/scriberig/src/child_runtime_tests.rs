@@ -1,0 +1,95 @@
+//! Verifies bounded child runtime tools and capability delegation.
+
+use super::inspect_catalog;
+use scriberig_app::{
+    Capability, CapabilityAction, CapabilityConstraints, CapabilityContext, CapabilityId,
+    CapabilityScope,
+};
+
+/// Verifies project recovery tools are exposed to provider runtimes.
+#[test]
+fn catalog_exposes_project_recovery_operations() {
+    let names = inspect_catalog()
+        .definitions()
+        .into_iter()
+        .map(|definition| definition.name)
+        .collect::<Vec<_>>();
+    for name in [
+        "project_import",
+        "project_manifest",
+        "project_repair_file",
+        "project_rescan",
+        "project_scan",
+        "project_workspace",
+    ] {
+        assert!(names.iter().any(|candidate| candidate == name));
+    }
+    let import = inspect_catalog()
+        .definitions()
+        .into_iter()
+        .find(|definition| definition.name == "project_import")
+        .expect("project import descriptor");
+    assert_eq!(
+        import.parameters["required"],
+        serde_json::json!(["project", "manifest_id"])
+    );
+}
+
+/// Restricts the bootstrap catalog to capabilities granted to one branch.
+#[test]
+fn catalog_filters_bootstrap_tools_by_branch_capability() {
+    let capabilities = CapabilityContext::new([
+        CapabilityId::new("project_scan").expect("scan capability"),
+        CapabilityId::new("inspect.entity").expect("inspect capability"),
+    ]);
+    let names = inspect_catalog()
+        .descriptors_for(&capabilities)
+        .into_iter()
+        .map(|descriptor| descriptor.definition.name)
+        .collect::<Vec<_>>();
+    assert_eq!(names, vec!["inspect", "project_scan"]);
+}
+
+/// Keeps child capabilities within the explicit read-only delegation.
+#[test]
+fn child_capabilities_do_not_inherit_parent_mutations() {
+    let parent = CapabilityContext {
+        granted: vec![
+            CapabilityId::new("inspect.entity").expect("inspect capability"),
+            CapabilityId::new("project_import").expect("import capability"),
+        ],
+        grants: vec![Capability {
+            scope: CapabilityScope::Project,
+            actions: [
+                CapabilityAction::Inspect,
+                CapabilityAction::Custom("project_import".to_owned()),
+                CapabilityAction::Custom("semantic_find".to_owned()),
+                CapabilityAction::Custom("semantic_render".to_owned()),
+            ]
+            .into_iter()
+            .collect(),
+            constraints: CapabilityConstraints::unrestricted(),
+        }],
+    };
+    let child = super::delegated_capabilities(
+        &parent,
+        &[
+            "inspect.entity".to_owned(),
+            "semantic_find".to_owned(),
+            "semantic_render".to_owned(),
+        ],
+    );
+    let names = inspect_catalog()
+        .descriptors_for(&child)
+        .into_iter()
+        .map(|descriptor| descriptor.definition.name)
+        .collect::<Vec<_>>();
+
+    assert!(names.contains(&"inspect".to_owned()));
+    assert!(names.contains(&"semantic_find".to_owned()));
+    assert!(names.contains(&"semantic_render".to_owned()));
+    assert!(!names.contains(&"project_import".to_owned()));
+    assert!(!names.contains(&"project_repair_file".to_owned()));
+    assert!(!names.contains(&"project_rescan".to_owned()));
+    assert!(!child.allows(&CapabilityId::new("project_import").expect("id")));
+}

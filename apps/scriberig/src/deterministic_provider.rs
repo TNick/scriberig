@@ -32,9 +32,7 @@ impl ProviderAdapter for BootstrapProvider {
             .map(|message| message.content.as_str())
             .unwrap_or_default();
         if !prompt.to_lowercase().contains("onboard") {
-            return Err(ProviderError::Configuration(
-                "deterministic bootstrap provider only handles project onboarding".to_owned(),
-            ));
+            return semantic_discovery_response(request);
         }
         let tool_messages = request
             .messages
@@ -151,6 +149,172 @@ impl ProviderAdapter for BootstrapProvider {
     }
 }
 
+/// Drives exact-snapshot semantic discovery and a read-only child branch.
+///
+/// # Parameters
+/// - `request`: Normalized parent or child model request.
+///
+/// # Returns
+/// A semantic tool call, delegated request, or concise completion.
+///
+/// # Errors
+/// Returns malformed-response when the exact project scope or semantic handles are absent.
+fn semantic_discovery_response(request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
+    let scope = project_scope(request)?;
+    let tools = request
+        .messages
+        .iter()
+        .filter(|message| message.role == MessageRole::Tool)
+        .map(|message| message.content.as_str())
+        .collect::<Vec<_>>();
+    let child = request.messages.iter().any(|message| {
+        message.role == MessageRole::User
+            && message.content.contains("Find the existing code-domain")
+    });
+    if child {
+        if tools
+            .iter()
+            .any(|message| message.contains("source_digest:"))
+        {
+            return Ok(final_response(
+                "Use the shared code domain and Tree-sitter adapter pattern; integrate classification, project dispatch, Cargo metadata, registries, and conformance fixtures. Preserve exact bytes, deterministic syntax, diagnostics, and inert parsing.",
+            ));
+        }
+        if let Some(found) = tools
+            .iter()
+            .find(|message| message.contains("semantic find"))
+        {
+            let entity = semantic_entity(found)?;
+            return Ok(tool_call(
+                "semantic_render",
+                serde_json::json!({"project": scope.0, "snapshot": scope.1, "entity": entity}),
+            ));
+        }
+        return Ok(tool_call(
+            "semantic_find",
+            serde_json::json!({
+                "project": scope.0,
+                "snapshot": scope.1,
+                "query": "lib.rs",
+                "limit": 10
+            }),
+        ));
+    }
+    if tools
+        .iter()
+        .any(|message| message.contains("child_summary="))
+    {
+        return Ok(final_response(
+            "I found the repository guidance and delegated a bounded architecture map at the same project snapshot.",
+        ));
+    }
+    if let Some(found) = tools
+        .iter()
+        .find(|message| message.contains("semantic find"))
+    {
+        if tools
+            .iter()
+            .any(|message| message.contains("source_digest:"))
+        {
+            return Ok(tool_call(
+                "delegate",
+                serde_json::json!({
+                    "purpose": "determine minimal extension points for PHP source ingestion",
+                    "prompt": "Find the existing code-domain and Tree-sitter language adapter patterns, then summarize the scanner, importer, Cargo, registry, and conformance integration points.",
+                    "capabilities": ["inspect.entity", "semantic_find", "semantic_render"],
+                    "expected_result": "compact architecture map with exact semantic references"
+                }),
+            ));
+        }
+        let entity = semantic_entity(found)?;
+        return Ok(tool_call(
+            "semantic_render",
+            serde_json::json!({"project": scope.0, "snapshot": scope.1, "entity": entity}),
+        ));
+    }
+    Ok(tool_call(
+        "semantic_find",
+        serde_json::json!({
+            "project": scope.0,
+            "snapshot": scope.1,
+            "query": "AGENTS.md",
+            "limit": 10
+        }),
+    ))
+}
+
+/// Reads exact project and snapshot handles from compiled semantic context.
+///
+/// # Parameters
+/// - `request`: Normalized provider request containing compiled branch context.
+///
+/// # Returns
+/// Exact project and snapshot string identities.
+///
+/// # Errors
+/// Returns malformed-response when project scope is missing.
+fn project_scope(request: &ModelRequest) -> Result<(String, String), ProviderError> {
+    let scope = request
+        .messages
+        .iter()
+        .find(|message| {
+            message.role == MessageRole::System
+                && message.content.contains("semantic_project_scope:")
+        })
+        .and_then(|message| message.content.split_once("semantic_project_scope:"))
+        .map(|(_, scope)| scope)
+        .ok_or_else(|| {
+            ProviderError::Configuration(
+                "project scope is missing from compiled context".to_owned(),
+            )
+        })?;
+    let value = |key: &str| {
+        scope
+            .split_whitespace()
+            .find_map(|part| part.strip_prefix(&format!("{key}=")))
+            .map(str::to_owned)
+            .ok_or_else(|| ProviderError::MalformedResponse(format!("{key} scope is missing")))
+    };
+    Ok((value("project")?, value("snapshot")?))
+}
+
+/// Extracts a semantic entity from a find result's stable JSON handle.
+///
+/// # Parameters
+/// - `message`: Normalized semantic find result.
+///
+/// # Returns
+/// Exact entity identity returned by semantic discovery.
+///
+/// # Errors
+/// Returns malformed-response when no semantic entity handle exists.
+fn semantic_entity(message: &str) -> Result<String, ProviderError> {
+    let handles = parse_handles(message)?;
+    handles
+        .iter()
+        .filter_map(|handle| serde_json::from_str::<serde_json::Value>(handle).ok())
+        .find(|value| value.get("kind").and_then(serde_json::Value::as_str) == Some("source"))
+        .and_then(|value| value.get("entity")?.as_str().map(str::to_owned))
+        .ok_or_else(|| ProviderError::MalformedResponse("semantic entity is missing".to_owned()))
+}
+
+/// Builds a normal deterministic completion without tool calls.
+///
+/// # Parameters
+/// - `text`: Concise assistant response.
+///
+/// # Returns
+/// A normalized stop response.
+fn final_response(text: &str) -> ModelResponse {
+    ModelResponse {
+        text: Some(text.to_owned()),
+        tool_calls: Vec::new(),
+        finish_reason: FinishReason::Stop,
+        usage: None,
+        metadata: ProviderMetadata::default(),
+    }
+}
+
 /// Builds a normal normalized response with one named application tool call.
 ///
 /// # Parameters
@@ -191,9 +355,7 @@ fn parse_handles(message: &str) -> Result<Vec<String>, ProviderError> {
         .ok_or_else(|| {
             ProviderError::MalformedResponse("tool result omitted handles".to_owned())
         })?;
-    Ok(values
-        .split(", ")
-        .map(|value| value.trim_matches('"').to_owned())
-        .filter(|value| !value.is_empty())
-        .collect())
+    serde_json::from_str(&format!("[{values}]")).map_err(|error| {
+        ProviderError::MalformedResponse(format!("invalid tool result handles: {error}"))
+    })
 }
