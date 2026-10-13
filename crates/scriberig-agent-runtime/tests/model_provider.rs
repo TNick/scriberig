@@ -108,6 +108,44 @@ fn compiled_project_scope_reaches_provider_request() {
     assert!(request.messages[0].content.contains("ent-selected"));
 }
 
+/// Verifies parent requests inherit compact child results without child transcripts.
+#[test]
+fn child_result_is_compact_in_parent_provider_context() {
+    let provider = FakeProvider::from_responses([Ok(ModelResponse {
+        text: Some("continue".to_owned()),
+        tool_calls: Vec::new(),
+        finish_reason: FinishReason::Stop,
+        usage: None,
+        metadata: ProviderMetadata::default(),
+    })]);
+    let mut model = ProviderModel::new(provider.clone(), "model");
+    model
+        .decide(&[
+            AgentMessage::User("continue from architecture result".to_owned()),
+            AgentMessage::Child(scriberig_agent_runtime::ChildResult {
+                summary: "Use the shared code domain adapter pattern".to_owned(),
+                handles: vec![
+                    "project:prj-one".to_owned(),
+                    "snapshot:snp-base".to_owned(),
+                    "entity:ent-python-adapter".to_owned(),
+                ],
+            }),
+        ])
+        .expect("parent model decision");
+
+    let request = provider.requests().pop().expect("captured parent request");
+    let context = request
+        .messages
+        .iter()
+        .map(|message| message.content.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(context.contains("Use the shared code domain adapter pattern"));
+    assert!(context.contains("project:prj-one"));
+    assert!(context.contains("snapshot:snp-base"));
+    assert!(!context.contains("child raw tool transcript sentinel"));
+}
+
 /// Verifies exact model request reuse avoids a second provider invocation.
 #[test]
 fn provider_model_reuses_exact_cached_response() {

@@ -37,6 +37,7 @@ mod tests {
             "# Agent guidance\nUse semantic project references for source discovery.\n",
         )
         .expect("agent guidance");
+        add_architecture_fixture(&root);
         let git = |arguments: &[&str]| {
             assert!(
                 Command::new("git")
@@ -129,7 +130,7 @@ mod tests {
             })
             .collect::<Vec<_>>();
         assert_eq!(tools.len(), 5);
-        assert!(tools[0].summary.as_ref().unwrap().contains("3 files"));
+        assert!(tools[0].summary.as_ref().unwrap().contains("9 files"));
         let project: ProjectId = tools[0].handles[0].parse().expect("project identity");
         let manifest_id = tools[0].handles[1].clone();
         assert!(tools[1].summary.as_ref().unwrap().contains(&manifest_id));
@@ -188,6 +189,7 @@ mod tests {
                 .as_ref()
                 .is_some_and(|text| text.contains("Use semantic project references"))
         );
+        assert_semantic_architecture(&semantic_tools, &semantic_context, project, snapshot);
         let project_record = store
             .project(project)
             .expect("project record")
@@ -207,6 +209,117 @@ mod tests {
         drop(store);
         fs::remove_file(database).expect("remove database");
         fs::remove_dir_all(root).expect("remove fixture");
+    }
+
+    /// Copies real architecture entry points into the semantic bootstrap fixture.
+    ///
+    /// # Parameters
+    /// - `root`: Project fixture that receives repository-relative source copies.
+    /// - `super`: Parent test module containing the bootstrap scenario.
+    ///
+    /// # Panics
+    /// Panics when a required Scriberig source or fixture directory cannot be copied.
+    fn add_architecture_fixture(root: &std::path::Path) {
+        let repository = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        for relative in [
+            "Cargo.toml",
+            "capabilities.toml",
+            "crates/domains/scriberig-domain-code/src/lib.rs",
+            "crates/domains/scriberig-domain-python/src/lib.rs",
+            "crates/domains/test-support/src/conformance.rs",
+            "crates/scriberig-project/src/adapters.rs",
+            "crates/scriberig-project/src/scan.rs",
+        ] {
+            let source = repository.join(relative);
+            let target = root.join(relative);
+            fs::create_dir_all(target.parent().expect("architecture parent"))
+                .expect("create architecture fixture directories");
+            fs::copy(source, target).expect("copy real architecture source");
+        }
+    }
+
+    /// Discovers architecture files by semantic source path and exact snapshot.
+    ///
+    /// # Parameters
+    /// - `tools`: Shared project semantic application tool adapter.
+    /// - `context`: Trusted exact-snapshot context for the imported project.
+    /// - `project`: Stable imported project identity.
+    /// - `snapshot`: Exact immutable project snapshot.
+    /// - `super`: Parent test module containing the bootstrap scenario.
+    ///
+    /// # Panics
+    /// Panics when a representative architecture source cannot be found or rendered.
+    fn assert_semantic_architecture(
+        tools: &LocalAgentTool<'_, impl scriberig_app::ApplicationBackend>,
+        context: &ApplicationContext,
+        project: ProjectId,
+        snapshot: SnapshotId,
+    ) {
+        for path in [
+            "Cargo.toml",
+            "capabilities.toml",
+            "crates/domains/scriberig-domain-code/src/lib.rs",
+            "crates/domains/scriberig-domain-python/src/lib.rs",
+            "crates/domains/test-support/src/conformance.rs",
+            "crates/scriberig-project/src/adapters.rs",
+            "crates/scriberig-project/src/scan.rs",
+        ] {
+            let found = tools
+                .invoke_named(
+                    context,
+                    "semantic_find",
+                    &serde_json::json!({
+                        "project": project.to_string(),
+                        "snapshot": snapshot.to_string(),
+                        "query": path,
+                        "limit": 50
+                    }),
+                )
+                .expect("semantic architecture find");
+            let source = found
+                .handles
+                .iter()
+                .filter_map(|handle| serde_json::from_str::<serde_json::Value>(handle).ok())
+                .find(|value| {
+                    value.get("path").and_then(serde_json::Value::as_str) == Some(path)
+                        && value.get("kind").and_then(serde_json::Value::as_str) == Some("source")
+                })
+                .unwrap_or_else(|| {
+                    panic!("exact semantic architecture handle for {path}: {found:?}")
+                });
+            assert_eq!(source["project"], project.to_string());
+            assert_eq!(source["snapshot"], snapshot.to_string());
+            let entity = source["entity"].as_str().expect("semantic source entity");
+            let rendered = tools
+                .invoke_named(
+                    context,
+                    "semantic_render",
+                    &serde_json::json!({
+                        "project": project.to_string(),
+                        "snapshot": snapshot.to_string(),
+                        "entity": entity
+                    }),
+                )
+                .expect("semantic architecture render");
+            assert!(
+                rendered
+                    .handles
+                    .iter()
+                    .any(|handle| { handle == &format!("snapshot:{snapshot}") })
+            );
+            assert!(
+                rendered
+                    .handles
+                    .iter()
+                    .any(|handle| handle.starts_with("source_digest:"))
+            );
+            assert!(
+                rendered
+                    .summary
+                    .as_deref()
+                    .is_some_and(|text| text.contains(path))
+            );
+        }
     }
 
     /// Rejects unauthorized scans and model-supplied filesystem paths.
