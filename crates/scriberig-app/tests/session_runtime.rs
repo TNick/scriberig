@@ -99,6 +99,38 @@ fn fallback_agent_acceptance_retains_session_activity() {
     assert_eq!(state.branches[0].turns.len(), 2);
 }
 
+/// Verifies authorized bootstrap execution can create a durable operation without project scope.
+#[test]
+fn bootstrap_agent_execution_starts_without_semantic_project_scope() {
+    let service = ApplicationService::new(Fixture);
+    let session = EntityId::from_bytes([9; 16]);
+    let context = session_context();
+    let handle = service
+        .begin_agent_execution(
+            &context,
+            &AgentCommandRequest {
+                session,
+                branch: None,
+                prompt: "Onboard the current project.".to_owned(),
+                selection: None,
+            },
+        )
+        .expect("bootstrap operation accepted without project scope");
+    assert_eq!(handle.session, session);
+    assert_eq!(
+        service.operations().get(&handle.operation).unwrap().status,
+        scriberig_app::OperationStatus::Running
+    );
+    let session = service
+        .read_session(&session_context(), &SessionRequest { session })
+        .expect("durable session");
+    assert_eq!(session.branches.len(), 1);
+    assert_eq!(
+        session.branches[0].turns[0].human.as_ref().unwrap().text,
+        "Onboard the current project."
+    );
+}
+
 /// Verifies an agent command cannot bypass the application capability boundary.
 #[test]
 fn agent_submission_without_capability_is_denied() {

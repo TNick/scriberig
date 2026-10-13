@@ -1,5 +1,7 @@
 //! Verifies native TUI workflows through a real pseudo-terminal.
 
+#[path = "tui_pty_support/bootstrap_test.rs"]
+mod tui_pty_bootstrap;
 #[path = "tui_pty_support/lifecycle_test.rs"]
 mod tui_pty_lifecycle;
 mod tui_pty_support;

@@ -2112,6 +2112,7 @@ dependencies = [
  "scriberig-core",
  "scriberig-project",
  "scriberig-server",
+ "scriberig-session",
  "scriberig-session-sqlite",
  "scriberig-store",
  "scriberig-store-sqlite",

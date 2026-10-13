@@ -162,6 +162,7 @@ impl<S: QueryService + SessionBackend> TuiService for ApplicationAdapter<S> {
             operation,
             session,
             branch,
+            workspace: None,
         })
     }
 }

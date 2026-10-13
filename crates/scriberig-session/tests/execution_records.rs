@@ -59,6 +59,7 @@ fn nested_branch_views_are_compact_and_ordered() {
         summary: Some("finished".to_owned()),
         result_kind: Some("agent".to_owned()),
         references: vec![result_id],
+        result_handles: Vec::new(),
         touched: Vec::new(),
         produced_changes: Vec::new(),
         validations: Vec::new(),

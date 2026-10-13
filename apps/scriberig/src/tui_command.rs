@@ -76,7 +76,15 @@ pub(super) fn run(
                         .map(|record| record.entity);
                     return Ok((project.id, entity, Some(imported.snapshot)));
                 }
-                Ok((project.id, None, None))
+                let workspace = project
+                    .current_snapshot
+                    .map(|_| service.workspace(project.id))
+                    .transpose()?;
+                Ok((
+                    project.id,
+                    workspace.as_ref().map(|value| value.root_entity),
+                    workspace.map(|value| value.snapshot),
+                ))
             },
         )
         .transpose()?;
@@ -84,7 +92,10 @@ pub(super) fn run(
         StoreInspectionBackend::new(Arc::clone(&store)),
         StoreOperationProvider::new(Arc::clone(&store)),
     );
-    let service = ApplicationService::new(backend);
+    let session_store = Arc::new(scriberig_session_sqlite::SqliteSessionStore::open(
+        &args.db,
+    )?);
+    let service = ApplicationService::new(backend).with_session_store(session_store);
     let labels = project
         .as_ref()
         .map(|(project_id, _, _)| project_labels(&store, *project_id))
@@ -133,11 +144,14 @@ pub(super) fn run(
         service
     };
     let context = ApplicationContext {
-        capabilities: scriberig_app::CapabilityContext::with_grants([scriberig_app::Capability {
-            scope: scriberig_app::CapabilityScope::Project,
-            actions: super::agent_actions(),
-            constraints: scriberig_app::CapabilityConstraints::unrestricted(),
-        }]),
+        capabilities: scriberig_app::CapabilityContext {
+            granted: vec![scriberig_app::CapabilityId::new("inspect.entity")?],
+            grants: vec![scriberig_app::Capability {
+                scope: scriberig_app::CapabilityScope::Project,
+                actions: super::agent_actions(),
+                constraints: scriberig_app::CapabilityConstraints::unrestricted(),
+            }],
+        },
         principal: Some(scriberig_app::Principal::new("local-tui-agent")),
         ..ApplicationContext::empty().with_bootstrap(BootstrapEnvironment {
             working_directory: std::env::current_dir()?,

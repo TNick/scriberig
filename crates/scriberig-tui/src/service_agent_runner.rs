@@ -81,6 +81,7 @@ impl<B: ApplicationBackend> AgentCommandRunner<B> for SharedAgentCommandRunner {
             operation,
             session,
             branch,
+            workspace: None,
         })
     }
 }

@@ -3,7 +3,8 @@
 use std::{
     fs,
     io::Read,
-    path::PathBuf,
+    path::{Path, PathBuf},
+    process::Command,
     sync::{
         atomic::{AtomicU64, Ordering},
         mpsc,
@@ -46,6 +47,55 @@ pub(super) fn basic_fixture() -> PathBuf {
     )
     .expect("python fixture");
     fixture
+}
+
+/// Creates and commits a small project for the real bootstrap workflow test.
+///
+/// # Parameters
+/// - `fixture`: Temporary owner directory for the Git checkout.
+/// - `super`: Parent PTY support module visibility marker.
+///
+/// # Returns
+/// The committed checkout directory used as the TUI process working directory.
+///
+/// # Panics
+/// Panics when fixture files or Git operations cannot be created.
+pub(super) fn bootstrap_project(fixture: &Path) -> PathBuf {
+    let checkout = fixture.join("scriberig");
+    fs::create_dir_all(checkout.join("src")).expect("create bootstrap source");
+    fs::write(
+        checkout.join("Cargo.toml"),
+        "[package]\nname='scriberig-fixture'\n",
+    )
+    .expect("write bootstrap package");
+    fs::write(
+        checkout.join("src/lib.rs"),
+        "pub fn greeting() -> &'static str { \"hello\" }\n",
+    )
+    .expect("write bootstrap source file");
+    let git = |arguments: &[&str]| {
+        assert!(
+            Command::new("git")
+                .arg("-C")
+                .arg(&checkout)
+                .args(arguments)
+                .status()
+                .expect("git executable")
+                .success()
+        );
+    };
+    git(&["init", "-q"]);
+    git(&["add", "-A"]);
+    git(&[
+        "-c",
+        "user.name=Scriberig Test",
+        "-c",
+        "user.email=test@example.invalid",
+        "commit",
+        "-qm",
+        "bootstrap fixture",
+    ]);
+    checkout
 }
 
 /// Recursively copies a golden project into a temporary test directory.

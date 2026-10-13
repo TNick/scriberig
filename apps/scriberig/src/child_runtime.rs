@@ -38,7 +38,7 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
             result_shape: "compact entity handles and resolved revision".to_owned(),
             state_changing: false,
             execution_mode: ToolExecutionMode::Atomic,
-            required_capability: Some("inspect".to_owned()),
+            required_capability: Some("inspect.entity".to_owned()),
         },
         ToolDescriptor {
             definition: ToolDefinition {
@@ -111,9 +111,24 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
             "agent_streaming_output",
         ),
         (
+            "project_scan",
+            "Scan the trusted current working directory into a persisted project manifest.",
+            "project_scan",
+        ),
+        (
+            "project_manifest",
+            "Review a bounded page of an exact persisted project scan manifest.",
+            "project_manifest",
+        ),
+        (
             "project_import",
-            "Import a scanned project and return recoverable diagnostics.",
+            "Import the exact reviewed scan manifest and return semantic workspace references.",
             "project_import",
+        ),
+        (
+            "project_workspace",
+            "Resolve the current exact semantic workspace for an imported project.",
+            "project_workspace",
         ),
         (
             "project_rescan",
@@ -130,7 +145,7 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
             definition: ToolDefinition {
                 name: name.to_owned(),
                 description: description.to_owned(),
-                parameters: serde_json::json!({"type": "object"}),
+                parameters: control_parameters(name),
             },
             result_shape: "bounded provider-neutral control result".to_owned(),
             state_changing: matches!(
@@ -138,6 +153,7 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
                 "operation_cancel"
                     | "agent_start"
                     | "agent_continue"
+                    | "project_scan"
                     | "project_import"
                     | "project_rescan"
                     | "project_repair_file"
@@ -147,6 +163,50 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
         });
     }
     ToolCatalog::new(descriptors)
+}
+
+/// Defines precise JSON inputs for project bootstrap tools.
+///
+/// # Parameters
+/// - `name`: Registered control operation.
+///
+/// # Returns
+/// The provider-visible JSON Schema for the operation's bounded arguments.
+fn control_parameters(name: &str) -> serde_json::Value {
+    match name {
+        "project_scan" => serde_json::json!({
+            "type": "object",
+            "properties": {
+                "path_ref": {"type": "string", "enum": ["current_working_directory"]},
+                "name": {"type": "string"},
+                "git_tracked": {"type": "boolean"}
+            }
+        }),
+        "project_manifest" => serde_json::json!({
+            "type": "object",
+            "properties": {
+                "project": {"type": "string"},
+                "manifest_id": {"type": "string", "minLength": 64, "maxLength": 64},
+                "offset": {"type": "integer", "minimum": 0},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 100}
+            },
+            "required": ["project", "manifest_id"]
+        }),
+        "project_import" => serde_json::json!({
+            "type": "object",
+            "properties": {
+                "project": {"type": "string"},
+                "manifest_id": {"type": "string", "minLength": 64, "maxLength": 64}
+            },
+            "required": ["project", "manifest_id"]
+        }),
+        "project_workspace" => serde_json::json!({
+            "type": "object",
+            "properties": {"project": {"type": "string"}},
+            "required": ["project"]
+        }),
+        _ => serde_json::json!({"type": "object"}),
+    }
 }
 
 /// Executes recursively delegated branches through the public application API.
@@ -246,6 +306,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::inspect_catalog;
+    use scriberig_app::{CapabilityContext, CapabilityId};
 
     /// Verifies project recovery tools are exposed to provider runtimes.
     #[test]
@@ -255,8 +316,39 @@ mod tests {
             .into_iter()
             .map(|definition| definition.name)
             .collect::<Vec<_>>();
-        for name in ["project_import", "project_repair_file", "project_rescan"] {
+        for name in [
+            "project_import",
+            "project_manifest",
+            "project_repair_file",
+            "project_rescan",
+            "project_scan",
+            "project_workspace",
+        ] {
             assert!(names.iter().any(|candidate| candidate == name));
         }
+        let import = inspect_catalog()
+            .definitions()
+            .into_iter()
+            .find(|definition| definition.name == "project_import")
+            .expect("project import descriptor");
+        assert_eq!(
+            import.parameters["required"],
+            serde_json::json!(["project", "manifest_id"])
+        );
+    }
+
+    /// Restricts the bootstrap catalog to capabilities granted to one branch.
+    #[test]
+    fn catalog_filters_bootstrap_tools_by_branch_capability() {
+        let capabilities = CapabilityContext::new([
+            CapabilityId::new("project_scan").expect("scan capability"),
+            CapabilityId::new("inspect.entity").expect("inspect capability"),
+        ]);
+        let names = inspect_catalog()
+            .descriptors_for(&capabilities)
+            .into_iter()
+            .map(|descriptor| descriptor.definition.name)
+            .collect::<Vec<_>>();
+        assert_eq!(names, vec!["inspect", "project_scan"]);
     }
 }

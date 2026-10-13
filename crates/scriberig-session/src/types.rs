@@ -93,6 +93,9 @@ pub struct BranchResult {
     pub summary: Option<String>,
     pub result_kind: Option<String>,
     pub references: Vec<EntityId>,
+    /// Stable non-entity handles produced by the branch.
+    #[serde(default)]
+    pub result_handles: Vec<String>,
     pub touched: Vec<EntityId>,
     pub produced_changes: Vec<EntityId>,
     pub validations: Vec<EntityId>,

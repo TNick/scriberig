@@ -52,6 +52,9 @@ pub struct SessionBranchResult {
     pub id: String,
     /// Semantic handles produced by the branch.
     pub references: Vec<String>,
+    /// Stable non-entity result handles produced by the branch.
+    #[serde(default)]
+    pub result_handles: Vec<String>,
 }
 
 /// Compact branch tree node returned by session reads.

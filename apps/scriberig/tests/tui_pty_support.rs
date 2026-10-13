@@ -60,6 +60,33 @@ impl TuiPty {
         Self::start_with_project(temporary_fixture(), false)
     }
 
+    /// Starts a fresh-database TUI in a Git-backed checkout with deterministic agent provider.
+    ///
+    /// # Returns
+    /// A TUI process whose trusted bootstrap directory is a temporary Git project.
+    ///
+    /// # Panics
+    /// Panics when the fixture, Git repository, PTY, or child process cannot be created.
+    #[must_use]
+    pub fn start_bootstrap() -> Self {
+        let fixture = temporary_fixture();
+        let checkout = tui_pty_fixture::bootstrap_project(&fixture);
+        Self::start_configured(fixture, None, false, Some(checkout), true)
+    }
+
+    /// Reopens a bootstrap project by its registered checkout after a process restart.
+    ///
+    /// # Parameters
+    /// - `fixture`: Temporary database and checkout owner directory.
+    ///
+    /// # Returns
+    /// A new TUI process using the durable project and session state.
+    #[must_use]
+    pub fn restart_bootstrap(fixture: PathBuf) -> Self {
+        let checkout = fixture.join("scriberig");
+        Self::start_configured(fixture, Some(checkout.clone()), false, Some(checkout), true)
+    }
+
     /// Starts the TUI against the checked-in Rust golden project copy.
     ///
     /// # Returns
@@ -120,6 +147,31 @@ impl TuiPty {
     /// # Panics
     /// Panics when the pseudo-terminal or child process cannot be created.
     fn start_with_project(fixture: PathBuf, import_project: bool) -> Self {
+        let project_path = import_project.then(|| fixture.clone());
+        Self::start_configured(fixture, project_path, import_project, None, false)
+    }
+
+    /// Starts the native process with explicit runtime working directory and provider.
+    ///
+    /// # Parameters
+    /// - `fixture`: Directory used to hold the fresh or durable database.
+    /// - `project_path`: Optional project checkout passed to the product CLI.
+    /// - `import_project`: Whether to pass the fixture as a project to import.
+    /// - `working_directory`: Optional process working directory.
+    /// - `deterministic_agent`: Whether to select the deterministic provider.
+    ///
+    /// # Returns
+    /// A running native TUI session.
+    ///
+    /// # Panics
+    /// Panics when the PTY or child process cannot be created.
+    fn start_configured(
+        fixture: PathBuf,
+        project_path: Option<PathBuf>,
+        import_project: bool,
+        working_directory: Option<PathBuf>,
+        deterministic_agent: bool,
+    ) -> Self {
         let database = fixture.join("scriberig.sqlite");
         let pty_system = native_pty_system();
         let pair = pty_system
@@ -131,13 +183,18 @@ impl TuiPty {
             })
             .expect("open pty");
         let mut command = CommandBuilder::new(env!("CARGO_BIN_EXE_srig"));
+        if let Some(path) = working_directory {
+            command.cwd(path);
+        }
+        if deterministic_agent {
+            command.env("SCRIBE_AGENT_PROVIDER", "deterministic");
+        }
         command.args(["tui", "--db", database.to_str().expect("database path")]);
-        if import_project {
-            command.args([
-                "--project",
-                fixture.to_str().expect("fixture path"),
-                "--import",
-            ]);
+        if let Some(project_path) = project_path {
+            command.args(["--project", project_path.to_str().expect("project path")]);
+            if import_project {
+                command.arg("--import");
+            }
         }
         let child = pair.slave.spawn_command(command).expect("spawn tui");
         let master = pair.master;
@@ -249,6 +306,15 @@ impl TuiPty {
     #[must_use]
     pub fn screen(&self) -> String {
         self.parser.screen().contents()
+    }
+
+    /// Returns the fixture directory used for the database and checkout.
+    ///
+    /// # Returns
+    /// The temporary fixture root.
+    #[must_use]
+    pub fn fixture_path(&self) -> &std::path::Path {
+        &self.fixture
     }
 
     /// Reads the golden source file from the process-owned fixture.

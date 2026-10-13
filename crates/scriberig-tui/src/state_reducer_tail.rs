@@ -41,29 +41,7 @@ pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Ef
             }
             Some(vec![Effect::None])
         }
-        Action::AgentSubmitted(handle) => {
-            let operation = handle.operation.clone();
-            state
-                .agent_handles
-                .retain(|value| value.operation != operation);
-            state.agent_handles.push(handle);
-            let handle = state.agent_handles.last().cloned();
-            let Some(handle) = handle else {
-                return Some(vec![Effect::OperationStatus { operation }]);
-            };
-            state.primary_view = crate::selection::PrimaryView::Session;
-            let request_id = state.next_request_id;
-            state.next_request_id += 1;
-            state.session = LoadState::Loading { request_id };
-            Some(vec![
-                Effect::OperationStatus { operation },
-                Effect::ReadSession {
-                    request_id,
-                    session: handle.session,
-                    branch: handle.branch,
-                },
-            ])
-        }
+        Action::AgentSubmitted(handle) => Some(agent_submitted(state, handle)),
         Action::SessionRequested { session, branch } => {
             let request_id = state.next_request_id;
             state.next_request_id += 1;
@@ -110,4 +88,56 @@ pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Ef
         }
         _ => None,
     }
+}
+
+/// Records an accepted agent operation and activates its returned workspace.
+///
+/// # Parameters
+/// - `state`: TUI state receiving the operation and workspace selection.
+/// - `handle`: Accepted agent operation with optional workspace references.
+///
+/// # Returns
+/// Effects required to refresh operation, session, and workspace views.
+fn agent_submitted(state: &mut TuiState, handle: crate::service::AgentHandle) -> Vec<Effect> {
+    let operation = handle.operation.clone();
+    state
+        .agent_handles
+        .retain(|value| value.operation != operation);
+    state.agent_handles.push(handle);
+    let handle = state.agent_handles.last().cloned();
+    let Some(handle) = handle else {
+        return vec![Effect::OperationStatus { operation }];
+    };
+    let workspace_effect = handle.workspace.as_ref().map(|workspace| {
+        state.project = Some(workspace.name.clone());
+        let selection = crate::selection::EntitySelection {
+            entity: workspace.root,
+            revision: None,
+            snapshot: Some(workspace.snapshot),
+        };
+        state.selection = Some(selection);
+        state.explorer = crate::explorer::ExplorerModel::from_selection(selection);
+        let request_id = state.next_request_id;
+        state.next_request_id += 1;
+        state.inspector = LoadState::Loading { request_id };
+        Effect::InspectEntity {
+            request_id,
+            entity: workspace.root,
+            snapshot: Some(workspace.snapshot),
+        }
+    });
+    state.primary_view = crate::selection::PrimaryView::Session;
+    let request_id = state.next_request_id;
+    state.next_request_id += 1;
+    state.session = LoadState::Loading { request_id };
+    let mut effects = vec![
+        Effect::OperationStatus { operation },
+        Effect::ReadSession {
+            request_id,
+            session: handle.session,
+            branch: handle.branch,
+        },
+    ];
+    effects.extend(workspace_effect);
+    effects
 }

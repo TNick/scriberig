@@ -12,6 +12,11 @@ use super::agent_tool_helpers::{
     argument_id, argument_operation, invalid_argument, map_error, require_capability,
 };
 
+#[path = "project_bootstrap.rs"]
+mod project_bootstrap;
+#[cfg(test)]
+#[path = "project_bootstrap_tests.rs"]
+mod project_bootstrap_tests;
 #[path = "project_recovery.rs"]
 mod project_recovery;
 
@@ -120,7 +125,10 @@ impl<B: ApplicationBackend> Tool for LocalAgentTool<'_, B> {
                 let branch = argument_id(arguments, "branch")?;
                 self.agent_command(context, arguments, Some(branch))
             }
+            "project_scan" => self.project_scan(context, arguments),
+            "project_manifest" => self.project_manifest(arguments),
             "project_import" => self.project_import(arguments),
+            "project_workspace" => self.project_workspace(arguments),
             "project_rescan" => self.project_rescan(arguments),
             "project_repair_file" => self.project_repair_file(arguments),
             "session_branch_tree" => self.session_tree(context, arguments),
@@ -175,7 +183,10 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
             "session_branch_activity",
             "agent_event_subscription",
             "agent_streaming_output",
+            "project_scan",
+            "project_manifest",
             "project_import",
+            "project_workspace",
             "project_rescan",
             "project_repair_file",
         ];

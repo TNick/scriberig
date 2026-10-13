@@ -376,6 +376,7 @@ impl<T: scriberig_protocol::ProtocolTransport> TuiService for RemoteAdapter<T> {
             operation,
             session,
             branch,
+            workspace: None,
         })
     }
 }

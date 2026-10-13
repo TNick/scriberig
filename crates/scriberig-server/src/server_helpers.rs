@@ -56,6 +56,7 @@ pub(super) fn session_response(
                         .into_iter()
                         .map(|value| value.to_string())
                         .collect(),
+                    result_handles: result.result_handles,
                 }),
         })
         .collect::<Vec<_>>();

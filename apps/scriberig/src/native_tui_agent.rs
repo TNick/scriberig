@@ -2,11 +2,13 @@
 
 use std::sync::Arc;
 
+use scriberig_agent_runtime::AgentMessage;
 use scriberig_agent_runtime::cache::{CachePolicy, ModelCache};
 use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::provider::{
     CredentialSource, ProviderAdapter, ProviderConfig, ProviderError,
 };
+use scriberig_agent_runtime::provider::{ModelRequest, ModelResponse};
 use scriberig_agent_runtime::{AgentError, AgentRuntime, ChildExecutionScope};
 use scriberig_app::{
     AgentCommandRequest, ApplicationBackend, ApplicationContext, ApplicationError,
@@ -21,7 +23,7 @@ use crate::child_runtime::{LocalChildExecutor, inspect_catalog};
 /// Runs provider-backed agent commands submitted through the native TUI.
 pub(super) struct NativeTuiAgentRunner {
     /// Configured provider, absent when local provider configuration is missing.
-    provider: Option<scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider>,
+    provider: Option<NativeProvider>,
     /// Model identifier selected by the local runtime configuration.
     model: String,
     /// Shared project store used by application-backed agent tools.
@@ -42,20 +44,64 @@ impl NativeTuiAgentRunner {
     /// Returns a structured provider configuration failure.
     pub(super) fn from_environment(project_store: Arc<SqliteStore>) -> Result<Self, ProviderError> {
         let model = std::env::var("SCRIBE_AGENT_MODEL").unwrap_or_else(|_| "default".to_owned());
-        let base_url = std::env::var("SCRIBE_AGENT_BASE_URL").ok();
-        let provider = base_url
-            .map(|base_url| {
-                let credential = std::env::var("SCRIBE_AGENT_API_KEY_ENV")
-                    .map_or(CredentialSource::None, CredentialSource::Environment);
-                let config = ProviderConfig::new("local", base_url, model.clone(), credential);
-                scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider::new(config)
-            })
-            .transpose()?;
+        let provider_kind = std::env::var("SCRIBE_AGENT_PROVIDER")
+            .unwrap_or_else(|_| "openai_compatible".to_owned());
+        let provider = match provider_kind.as_str() {
+            "deterministic" => Some(NativeProvider::Deterministic(
+                crate::deterministic_provider::BootstrapProvider,
+            )),
+            "openai_compatible" => std::env::var("SCRIBE_AGENT_BASE_URL")
+                .ok()
+                .map(|base_url| {
+                    let credential = std::env::var("SCRIBE_AGENT_API_KEY_ENV")
+                        .map_or(CredentialSource::None, CredentialSource::Environment);
+                    let config = ProviderConfig::new("local", base_url, model.clone(), credential);
+                    scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider::new(
+                        config,
+                    )
+                    .map(NativeProvider::OpenAiCompatible)
+                })
+                .transpose()?,
+            unknown => {
+                return Err(ProviderError::Configuration(format!(
+                    "unsupported SCRIBE_AGENT_PROVIDER: {unknown}"
+                )));
+            }
+        };
         Ok(Self {
             provider,
             model,
             project_store,
         })
+    }
+}
+
+/// Selects the available provider adapter for the local TUI runtime.
+#[derive(Clone)]
+enum NativeProvider {
+    /// Remote OpenAI-compatible model endpoint.
+    OpenAiCompatible(scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider),
+    /// Deterministic onboarding scenario used by product tests.
+    Deterministic(crate::deterministic_provider::BootstrapProvider),
+}
+
+impl ProviderAdapter for NativeProvider {
+    /// Completes through the selected remote or deterministic adapter.
+    ///
+    /// # Parameters
+    /// - `self`: Selected native provider.
+    /// - `request`: Normalized provider request.
+    ///
+    /// # Returns
+    /// The normalized model response.
+    ///
+    /// # Errors
+    /// Returns a classified provider failure.
+    fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
+        match self {
+            Self::OpenAiCompatible(provider) => provider.complete(request),
+            Self::Deterministic(provider) => provider.complete(request),
+        }
     }
 }
 
@@ -118,18 +164,101 @@ impl<B: ApplicationBackend> scriberig_tui::AgentCommandRunner<B> for NativeTuiAg
                 });
             }
         };
-        service.complete_local_agent(&handle, result.output)?;
+        let workspace = workspace_from_result(&result)?;
+        let result_handles = workspace.as_ref().map_or_else(Vec::new, |workspace| {
+            vec![
+                format!("project:{}", workspace.project),
+                format!("snapshot:{}", workspace.snapshot),
+                format!("root:{}", workspace.root),
+                format!("manifest:{}", workspace.manifest_id),
+            ]
+        });
+        service.complete_local_agent_with_handles(&handle, result.output, result_handles)?;
         Ok(scriberig_tui::AgentHandle {
             operation: handle.operation,
             session,
             branch: Some(handle.root_branch),
+            workspace,
         })
     }
+}
+
+/// Extracts the exact workspace returned by the project workspace tool.
+///
+/// # Parameters
+/// - `result`: Completed runtime transcript.
+///
+/// # Returns
+/// The returned project workspace when the agent activated one.
+///
+/// # Errors
+/// Returns an internal error when a workspace tool result omits valid references.
+fn workspace_from_result(
+    result: &scriberig_agent_runtime::AgentResult,
+) -> Result<Option<scriberig_tui::AgentWorkspace>, ApplicationError> {
+    let Some(tool) = result
+        .messages
+        .iter()
+        .rev()
+        .find_map(|message| match message {
+            AgentMessage::Tool(tool)
+                if tool.object_type.as_deref() == Some("project_workspace") =>
+            {
+                Some(tool)
+            }
+            _ => None,
+        })
+    else {
+        return Ok(None);
+    };
+    let manifest_id = result
+        .messages
+        .iter()
+        .find_map(|message| match message {
+            AgentMessage::Tool(tool) if tool.object_type.as_deref() == Some("project_scan") => {
+                tool.handles.get(1).cloned()
+            }
+            _ => None,
+        })
+        .ok_or_else(|| ApplicationError::Internal {
+            message: "project workspace has no reviewed manifest reference".into(),
+        })?;
+    let [project, snapshot, root] = tool.handles.as_slice() else {
+        return Err(ApplicationError::Internal {
+            message: "project workspace result must contain project, snapshot, and root".into(),
+        });
+    };
+    let parse_error = |message: &str| ApplicationError::Internal {
+        message: message.to_owned(),
+    };
+    let project = project
+        .parse()
+        .map_err(|error| parse_error(&format!("invalid workspace project: {error}")))?;
+    let snapshot = snapshot
+        .parse()
+        .map_err(|error| parse_error(&format!("invalid workspace snapshot: {error}")))?;
+    let root = root
+        .parse()
+        .map_err(|error| parse_error(&format!("invalid workspace root: {error}")))?;
+    let name = tool
+        .summary
+        .as_deref()
+        .and_then(|summary| summary.strip_prefix("active semantic workspace "))
+        .and_then(|summary| summary.split_once(" at snapshot ").map(|(name, _)| name))
+        .ok_or_else(|| parse_error("project workspace result omitted its name"))?;
+    Ok(Some(scriberig_tui::AgentWorkspace {
+        project,
+        name: name.to_owned(),
+        snapshot,
+        root,
+        manifest_id,
+    }))
 }
 
 /// Executes one model loop with the shared semantic tool and child-branch adapters.
 ///
 /// # Parameters
+/// - `super`: Parent executable composition module.
 /// - `provider`: Cloneable provider adapter for parent and child branches.
 /// - `model`: Configured model identifier.
 /// - `service`: Shared application operation boundary.
@@ -145,7 +274,7 @@ impl<B: ApplicationBackend> scriberig_tui::AgentCommandRunner<B> for NativeTuiAg
 /// # Errors
 /// Returns a bounded runtime, provider, or tool failure.
 #[allow(clippy::too_many_arguments)]
-fn execute_agent<P, B>(
+pub(super) fn execute_agent<P, B>(
     provider: P,
     model: &str,
     service: &ApplicationService<B>,

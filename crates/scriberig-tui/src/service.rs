@@ -41,7 +41,7 @@ mod service_remote;
 #[path = "service_remote_mapping.rs"]
 mod service_remote_mapping;
 
-pub use agent_handle::AgentHandle;
+pub use agent_handle::{AgentHandle, AgentWorkspace};
 pub use service_agent_runner::{AgentCommandRunner, SharedAgentCommandRunner};
 pub use service_application::ApplicationAdapter;
 use service_effects::select_branch_subtree;

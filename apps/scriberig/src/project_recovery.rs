@@ -23,7 +23,11 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
         &self,
         arguments: &serde_json::Value,
     ) -> Result<ToolResult, ToolError> {
-        let project = self.project_service()?.import(Self::project_id(arguments)?);
+        let project_id = Self::project_id(arguments)?;
+        let manifest_id = Self::manifest_id(arguments)?;
+        let project = self
+            .project_service()?
+            .import_manifest(project_id, &manifest_id);
         match project {
             Ok(report) => Ok(Self::result(
                 format!(
@@ -142,12 +146,15 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Resolves the project service required by recovery operations.
     ///
+    /// # Parameters
+    /// - `super`: Parent agent tool module.
+    ///
     /// # Returns
     /// The configured project service.
     ///
     /// # Errors
     /// Returns a stable unavailable error when this runtime has no project store.
-    fn project_service(&self) -> Result<&ProjectService, ToolError> {
+    pub(super) fn project_service(&self) -> Result<&ProjectService, ToolError> {
         self.project.as_ref().ok_or_else(|| ToolError::Application {
             category: "project_recovery_unavailable".to_owned(),
             message: "project recovery is not configured for this runtime".to_owned(),
@@ -157,6 +164,7 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
     /// Parses a project identity from provider arguments.
     ///
     /// # Parameters
+    /// - `super`: Parent agent tool module.
     /// - `arguments`: Provider argument object.
     ///
     /// # Returns
@@ -164,23 +172,51 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
     ///
     /// # Errors
     /// Returns a structured invalid-request failure.
-    fn project_id(arguments: &serde_json::Value) -> Result<scriberig_core::ProjectId, ToolError> {
-        arguments
+    pub(super) fn project_id(
+        arguments: &serde_json::Value,
+    ) -> Result<scriberig_core::ProjectId, ToolError> {
+        let value = arguments
             .get("project")
             .and_then(serde_json::Value::as_str)
-            .ok_or_else(|| invalid_argument("project"))?
+            .ok_or_else(|| invalid_argument("project"))?;
+        value
             .parse()
-            .map_err(|error| invalid_argument(&format!("project ({error})")))
+            .map_err(|error| invalid_argument(&format!("project {value} ({error})")))
+    }
+
+    /// Parses the exact manifest digest argument.
+    ///
+    /// # Parameters
+    /// - `super`: Parent agent tool module.
+    /// - `arguments`: Provider argument object.
+    ///
+    /// # Returns
+    /// Lowercase hexadecimal manifest identity.
+    ///
+    /// # Errors
+    /// Returns invalid-request when the digest is missing or malformed.
+    pub(super) fn manifest_id(arguments: &serde_json::Value) -> Result<String, ToolError> {
+        let value = arguments
+            .get("manifest_id")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| invalid_argument("manifest_id"))?;
+        if value.len() != 64 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return Err(invalid_argument(
+                "manifest_id (expected 64 hexadecimal characters)",
+            ));
+        }
+        Ok(value.to_ascii_lowercase())
     }
 
     /// Converts a project failure into a bounded provider-facing result.
     ///
     /// # Parameters
+    /// - `super`: Parent agent tool module.
     /// - `error`: Structured project failure.
     ///
     /// # Returns
     /// Provider-neutral diagnostic failure.
-    fn project_error(error: &scriberig_project::ProjectError) -> ToolError {
+    pub(super) fn project_error(error: &scriberig_project::ProjectError) -> ToolError {
         let diagnostics = error
             .diagnostics
             .iter()

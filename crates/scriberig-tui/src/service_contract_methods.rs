@@ -123,6 +123,7 @@ macro_rules! tui_agent_methods {
                 operation,
                 session,
                 branch,
+                workspace: None,
             })
         }
 

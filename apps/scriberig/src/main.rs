@@ -16,6 +16,7 @@ use scriberig_store_sqlite::SqliteStore;
 mod agent_tool;
 mod agent_tool_helpers;
 mod child_runtime;
+mod deterministic_provider;
 mod native_tui_agent;
 mod remote_commands;
 mod tui_command;
@@ -374,7 +375,10 @@ fn agent_actions() -> BTreeSet<CapabilityAction> {
         CapabilityAction::Custom("session_branch_activity".to_owned()),
         CapabilityAction::Custom("agent_event_subscription".to_owned()),
         CapabilityAction::Custom("agent_streaming_output".to_owned()),
+        CapabilityAction::Custom("project_scan".to_owned()),
+        CapabilityAction::Custom("project_manifest".to_owned()),
         CapabilityAction::Custom("project_import".to_owned()),
+        CapabilityAction::Custom("project_workspace".to_owned()),
         CapabilityAction::Custom("project_rescan".to_owned()),
         CapabilityAction::Custom("project_repair_file".to_owned()),
     ]

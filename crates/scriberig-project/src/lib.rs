@@ -15,9 +15,12 @@ mod support;
 use support::import_file;
 #[path = "candidate.rs"]
 mod candidate;
+#[path = "manifest.rs"]
+mod manifest;
 #[path = "project_views.rs"]
 mod project_views;
 pub use candidate::{CandidateApplyReport, CandidateValidation, ProjectCandidate};
+pub use manifest::{ProjectManifestEntry, ProjectManifestPage, ProjectManifestSummary};
 pub use project_views::{ProjectSourceProjection, ProjectSymbol};
 #[path = "errors.rs"]
 mod errors;
@@ -246,12 +249,59 @@ impl ProjectService {
     /// # Errors
     /// Returns a structured validation, storage, or promotion failure.
     pub fn import(&self, project: ProjectId) -> Result<ImportReport, ProjectError> {
+        let files = self.store.project_files(project).map_err(storage_error)?;
+        self.import_file_records(project, &files)
+    }
+
+    /// Imports only when the latest persisted manifest matches its exact digest.
+    ///
+    /// # Parameters
+    /// - `project`: Project owning the persisted scan.
+    /// - `manifest_id`: Digest returned by the scan manifest summary.
+    ///
+    /// # Returns
+    /// Import counts and the promoted immutable snapshot.
+    ///
+    /// # Errors
+    /// Returns a structured error when the project is missing, the manifest is
+    /// stale, or importing the captured manifest fails.
+    pub fn import_manifest(
+        &self,
+        project: ProjectId,
+        manifest_id: &str,
+    ) -> Result<ImportReport, ProjectError> {
+        let files = self.store.project_files(project).map_err(storage_error)?;
+        if manifest::digest(project, &files) != manifest_id {
+            return Err(ProjectError {
+                code: "manifest_changed",
+                message: "persisted project manifest no longer matches the reviewed scan".into(),
+                diagnostics: Vec::new(),
+            });
+        }
+        self.import_file_records(project, &files)
+    }
+
+    /// Imports the exact file records captured by one persisted manifest read.
+    ///
+    /// # Parameters
+    /// - `project`: Project being imported.
+    /// - `files`: Immutable records captured from one persisted manifest read.
+    ///
+    /// # Returns
+    /// Import counts and the promoted immutable snapshot.
+    ///
+    /// # Errors
+    /// Returns a structured validation, storage, or promotion failure.
+    fn import_file_records(
+        &self,
+        project: ProjectId,
+        files: &[ProjectFileRecord],
+    ) -> Result<ImportReport, ProjectError> {
         let record = self
             .store
             .project(project)
             .map_err(storage_error)?
             .ok_or_else(|| missing_project(project))?;
-        let files = self.store.project_files(project).map_err(storage_error)?;
         if files.is_empty() {
             return Err(ProjectError {
                 code: "scan_required",

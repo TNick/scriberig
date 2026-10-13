@@ -181,6 +181,7 @@ pub(crate) fn session_from_response(
                             .iter()
                             .map(|reference| parse_entity(reference))
                             .collect::<Result<Vec<_>, _>>()?,
+                        result_handles: result.result_handles,
                         touched: Vec::new(),
                         produced_changes: Vec::new(),
                         validations: Vec::new(),

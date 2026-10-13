@@ -213,6 +213,7 @@ fn submitted_agent_operation_id_is_stable() {
             operation: operation.clone(),
             session,
             branch: None,
+            workspace: None,
         }),
     );
     assert!(

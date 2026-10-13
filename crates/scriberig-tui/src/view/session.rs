@@ -238,6 +238,7 @@ mod tests {
             summary: Some("done".to_owned()),
             result_kind: Some("agent".to_owned()),
             references: vec![result_id],
+            result_handles: Vec::new(),
             touched: Vec::new(),
             produced_changes: Vec::new(),
             validations: Vec::new(),

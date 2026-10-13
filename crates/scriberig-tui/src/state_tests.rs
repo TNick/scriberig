@@ -196,6 +196,24 @@ fn palette_opens_agent_composer_for_selection() {
     ));
 }
 
+/// Verifies the palette can open the agent composer before a project exists.
+#[test]
+fn palette_opens_bootstrap_agent_composer_without_selection() {
+    let mut state = TuiState::default();
+    reduce(&mut state, Action::PaletteOpened);
+    reduce(&mut state, Action::InputChanged("start-agent".to_owned()));
+    let effects = reduce(&mut state, Action::Activated);
+    assert_eq!(effects, vec![Effect::None]);
+    assert!(matches!(
+        state.overlay,
+        Some(Overlay::Composer(crate::overlay::ComposerState {
+            session,
+            branch: None,
+            ..
+        })) if session != EntityId::from_bytes([0; 16])
+    ));
+}
+
 /// Verifies Diff collects an explicit target snapshot before dispatching.
 #[test]
 fn palette_diff_collects_target_snapshot() {

@@ -256,6 +256,7 @@ fn reconnect_refreshes_active_agent_state() {
         operation: operation.clone(),
         session,
         branch: Some(branch),
+        workspace: None,
     });
 
     let effects = reduce(&mut state, Action::ConnectionRestored);
