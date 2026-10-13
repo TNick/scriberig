@@ -204,7 +204,7 @@ client = "implemented"
 cli = "planned"
 tui = "verified"
 web = "verified"
-agent = "planned"
+agent = "verified"
 
 [[capabilities]]
 id = "semantic_code_navigation"
@@ -220,7 +220,7 @@ client = "implemented"
 cli = "planned"
 tui = "verified"
 web = "verified"
-agent = "planned"
+agent = "verified"
 
 [[capabilities]]
 id = "source_projection"
@@ -236,7 +236,7 @@ client = "implemented"
 cli = "planned"
 tui = "verified"
 web = "verified"
-agent = "planned"
+agent = "verified"
 
 [[capabilities]]
 id = "projection_edit_candidate"

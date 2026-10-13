@@ -41,6 +41,7 @@ pub(super) fn assert_nested_branch_results(
     );
     assert_architecture_result(&children, project, snapshot);
     assert_implementation_result(&children, project, snapshot);
+    assert_no_shortcut_tools(continuation, &children);
 
     let result = continuation
         .result
@@ -76,6 +77,37 @@ pub(super) fn assert_nested_branch_results(
             .iter()
             .any(|handle| handle == "validation:passed")
     );
+}
+
+/// Verifies every PHP implementation tool call uses the bounded semantic and candidate API.
+///
+/// # Parameters
+/// - `continuation`: Root continuation branch.
+/// - `children`: Bounded architecture and implementation branches.
+/// - `super`: Parent PTY support module.
+///
+/// # Panics
+/// Panics when a branch attempts an unregistered or privileged shortcut tool.
+fn assert_no_shortcut_tools(continuation: &Branch, children: &[&Branch]) {
+    let allowed = [
+        "runtime_capabilities",
+        "semantic_find",
+        "semantic_render",
+        "delegate",
+        "project_propose",
+        "project_candidate",
+        "project_validate_candidate",
+    ];
+    for branch in std::iter::once(continuation).chain(children.iter().copied()) {
+        for invocation in &branch.tool_invocations {
+            assert!(
+                allowed.contains(&invocation.name.as_str()),
+                "branch {} invoked shortcut or unregistered tool {}",
+                branch.title,
+                invocation.name
+            );
+        }
+    }
 }
 
 /// Verifies the architecture child retained its semantic discovery result.
