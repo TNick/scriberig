@@ -307,6 +307,29 @@ fn project_candidate_rejects_duplicate_and_escaping_paths() {
     );
 }
 
+/// PROJECT-CANDIDATE exact-base sources ignore a later unimported filesystem scan.
+#[test]
+fn project_candidate_uses_immutable_base_bytes_after_rescan() {
+    let (root, store, project, snapshot, _entity) = setup("exact-base-effects");
+    let base = fs::read(root.join("src/lib.rs")).expect("base source");
+    fs::write(root.join("src/lib.rs"), b"unimported external bytes\n").expect("external edit");
+    let service = ProjectService::new(store);
+    service.scan(None, &root).expect("rescan without import");
+    let candidate = service
+        .propose_project_change(
+            project,
+            snapshot,
+            vec![ProjectSourceChange {
+                path: "src/lib.rs".to_owned(),
+                kind: ProjectSourceChangeKind::Update,
+                content: Some(b"candidate bytes\n".to_vec()),
+            }],
+        )
+        .expect("exact-base candidate");
+    assert_eq!(candidate.effects[0].old.as_deref(), Some(base.as_slice()));
+    assert_eq!(candidate.base_snapshot, snapshot);
+}
+
 /// PROJECT-CANDIDATE-03 proves deletion records exact base bytes without removing the file.
 #[test]
 fn project_candidate_delete_remains_a_reviewable_effect() {
@@ -329,5 +352,52 @@ fn project_candidate_delete_remains_a_reviewable_effect() {
     assert_eq!(
         fs::read(root.join("src/lib.rs")).expect("live source"),
         source
+    );
+}
+
+/// PROJECT-WORKSPACE-VALIDATE-01/02 validate the exact overlay without changing live files.
+#[test]
+fn project_validation_compiles_candidate_overlay_in_isolation() {
+    let (root, store, project, snapshot, _entity) = setup("candidate-validation");
+    let live_source = fs::read(root.join("src/lib.rs")).expect("base source");
+    let candidate = ProjectService::new(Arc::clone(&store))
+        .propose_project_change(
+            project,
+            snapshot,
+            vec![
+                ProjectSourceChange {
+                    path: "src/lib.rs".to_owned(),
+                    kind: ProjectSourceChangeKind::Update,
+                    content: Some(
+                        format!("mod generated;\n{}", String::from_utf8_lossy(&live_source))
+                            .into_bytes(),
+                    ),
+                },
+                ProjectSourceChange {
+                    path: "src/generated.rs".to_owned(),
+                    kind: ProjectSourceChangeKind::Create,
+                    content: Some(b"pub fn generated() -> u8 { 1 }\n".to_vec()),
+                },
+            ],
+        )
+        .expect("candidate");
+    let validated = ProjectService::new(Arc::clone(&store))
+        .validate_candidate(&candidate.id)
+        .expect("validate candidate");
+    assert_eq!(
+        validated.validation,
+        scriberig_project::CandidateValidation::Passed
+    );
+    assert_eq!(
+        fs::read(root.join("src/lib.rs")).expect("live source"),
+        live_source
+    );
+    assert!(!root.join("src/generated.rs").exists());
+    assert_eq!(
+        ProjectService::new(store)
+            .workspace(project)
+            .expect("base workspace")
+            .snapshot,
+        snapshot
     );
 }

@@ -15,8 +15,12 @@ use candidate_support::{candidate_id, safe_join, validate_project};
 
 #[path = "candidate_aggregate.rs"]
 mod aggregate;
+#[path = "candidate_base.rs"]
+mod base;
 #[path = "candidate_persistence.rs"]
 mod persistence;
+#[path = "candidate_validation.rs"]
+mod validation;
 
 /// Validation state for a source candidate.
 #[derive(Clone, Debug, Eq, PartialEq)]

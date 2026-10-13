@@ -12,7 +12,7 @@ mod git;
 pub(crate) use git::git_tracked_paths;
 #[path = "scan.rs"]
 mod scan;
-pub(crate) use scan::scan_directory;
+pub(crate) use scan::{adapter_for, scan_directory};
 #[path = "adapters.rs"]
 mod adapters;
 #[path = "support_identity.rs"]

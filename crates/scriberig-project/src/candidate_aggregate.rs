@@ -144,10 +144,7 @@ impl ProjectService {
                 "requested base is not the active project snapshot",
             ));
         }
-        let files = self
-            .store
-            .project_files(project)
-            .map_err(crate::errors::storage_error)?;
+        let files = super::base::project_files_at(&self.store, project, base_snapshot)?;
         let mut changes = changes;
         changes.sort_by(|left, right| left.path.cmp(&right.path));
         let total_bytes = changes.iter().try_fold(0_usize, |total, change| {

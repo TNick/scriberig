@@ -6,6 +6,7 @@ use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use scriberig_core::{EntityId, ProjectId, SnapshotId};
+use scriberig_store_sqlite::ProjectFileRecord;
 
 use crate::{CandidateValidation, ProjectError};
 
@@ -147,4 +148,94 @@ fn copy_tree(source: &Path, destination: &Path) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/// Validates a source-effect set in an isolated tree reconstructed from base bytes.
+///
+/// # Parameters
+/// - `files`: Exact project source manifest for the candidate base.
+/// - `effects`: Ordered candidate source effects.
+/// - `super`: Parent candidate module visibility.
+///
+/// # Returns
+/// Candidate validation state with bounded process diagnostics.
+pub(super) fn validate_effects(
+    files: &[ProjectFileRecord],
+    effects: &[super::ProjectSourceEffect],
+) -> CandidateValidation {
+    static NEXT_WORKSPACE: AtomicU64 = AtomicU64::new(0);
+    let id = NEXT_WORKSPACE.fetch_add(1, Ordering::Relaxed);
+    let root = std::env::temp_dir().join(format!("scriberig-project-validation-{id}"));
+    let result = (|| {
+        fs::create_dir_all(&root).map_err(|error| error.to_string())?;
+        for file in files {
+            write_candidate_file(&root, &file.relative_path, &file.bytes)?;
+        }
+        for effect in effects {
+            let path = safe_join(&root, &effect.path).map_err(|error| error.message)?;
+            match &effect.new {
+                Some(bytes) => write_candidate_file(&root, &effect.path, bytes)?,
+                None => {
+                    if path.exists() {
+                        fs::remove_file(path).map_err(|error| error.to_string())?;
+                    }
+                }
+            }
+        }
+        let manifest = root.join("Cargo.toml");
+        if !manifest.exists() {
+            return Ok(Vec::new());
+        }
+        let output = Command::new("cargo")
+            .args([
+                "check",
+                "--workspace",
+                "--all-targets",
+                "--offline",
+                "--manifest-path",
+            ])
+            .arg(manifest)
+            .env("CARGO_NET_OFFLINE", "true")
+            .env("CARGO_TARGET_DIR", root.join("target"))
+            .output()
+            .map_err(|error| error.to_string())?;
+        if output.status.success() {
+            Ok(Vec::new())
+        } else {
+            let mut diagnostics = String::from_utf8_lossy(&output.stderr).to_string();
+            if diagnostics.trim().is_empty() {
+                diagnostics = String::from_utf8_lossy(&output.stdout).to_string();
+            }
+            Ok(vec![diagnostics.chars().take(16_384).collect()])
+        }
+    })();
+    let _ = fs::remove_dir_all(&root);
+    match result {
+        Ok(diagnostics) if diagnostics.is_empty() => CandidateValidation::Passed,
+        Ok(diagnostics) => CandidateValidation::Failed { diagnostics },
+        Err(error) => CandidateValidation::Failed {
+            diagnostics: vec![error],
+        },
+    }
+}
+
+/// Writes exact candidate bytes beneath an isolated workspace root.
+///
+/// # Parameters
+/// - `root`: Isolated candidate workspace.
+/// - `relative`: Project-relative path.
+/// - `bytes`: Exact source bytes.
+///
+/// # Returns
+/// Unit after the candidate path is materialized.
+///
+/// # Errors
+/// Returns an error for an unsafe path or failed filesystem operation.
+fn write_candidate_file(root: &Path, relative: &str, bytes: &[u8]) -> Result<(), String> {
+    let path = safe_join(root, relative).map_err(|error| error.message)?;
+    let parent = path
+        .parent()
+        .ok_or_else(|| "candidate path has no parent".to_owned())?;
+    fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    fs::write(path, bytes).map_err(|error| error.to_string())
 }

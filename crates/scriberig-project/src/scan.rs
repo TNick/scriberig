@@ -109,10 +109,11 @@ fn is_excluded(path: &Path) -> bool {
 /// # Parameters
 /// - `path`: File path to classify.
 /// - `bytes`: File bytes used to distinguish unknown text from binary data.
+/// - `crate`: Internal visibility marker.
 ///
 /// # Returns
 /// The selected adapter name.
-fn adapter_for(path: &Path, bytes: &[u8]) -> &'static str {
+pub(crate) fn adapter_for(path: &Path, bytes: &[u8]) -> &'static str {
     let name = path.file_name().and_then(|value| value.to_str());
     if matches!(
         name,
