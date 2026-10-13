@@ -12,6 +12,7 @@ use std::time::Duration;
 use assertions::{
     assert_applied_php, assert_candidate_conflicts_are_visible, assert_durable_candidate_effect,
     assert_materialized_php_fixture, assert_tui_history_transition,
+    assert_unrelated_source_unchanged,
 };
 use scriberig_project::ProjectService;
 use scriberig_session::SessionStore;
@@ -47,6 +48,8 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
     let scan_before =
         fs::read(checkout.join("crates/scriberig-project/src/scan.rs")).expect("baseline scanner");
     let root_manifest_before = fs::read(checkout.join("Cargo.toml")).expect("baseline manifest");
+    let unrelated_source_before =
+        fs::read(checkout.join("crates/scriberig-query/src/lib.rs")).expect("unrelated source");
     let database = tui.fixture_path().join("scriberig.sqlite");
     let store = SqliteStore::open(&database).expect("open onboarding database");
     let project = store
@@ -105,6 +108,7 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
         &candidate,
     );
     assert_tui_history_transition(&mut tui, base.snapshot, applied_snapshot);
+    assert_unrelated_source_unchanged(&checkout, &unrelated_source_before);
     let fixture = tui.quit_retain_fixture();
     restart_and_verify(
         fixture,

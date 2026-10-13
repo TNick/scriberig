@@ -41,6 +41,22 @@ pub(super) fn assert_tui_history_transition(
     );
 }
 
+/// Verifies Apply leaves an unrelated repository source file unchanged.
+///
+/// # Parameters
+/// - `checkout`: Copied repository after candidate application.
+/// - `before`: Exact unrelated source bytes captured before proposal.
+/// - `super`: Parent test module visibility.
+pub(super) fn assert_unrelated_source_unchanged(checkout: &std::path::Path, before: &[u8]) {
+    let source = checkout.join("crates/scriberig-query/src/lib.rs");
+    assert_eq!(
+        fs::read(&source).expect("read unrelated source after Apply"),
+        before,
+        "project-wide candidate changed unrelated source {}",
+        source.display()
+    );
+}
+
 /// Exercises visible update/create conflicts before the candidate's successful Apply.
 ///
 /// # Parameters
