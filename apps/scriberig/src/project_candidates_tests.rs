@@ -10,6 +10,7 @@ use scriberig_app::{
     StoreInspectionBackend, StoreOperationProvider,
 };
 use scriberig_core::{EntityId, SnapshotId};
+use scriberig_project::{ProjectSourceChange, ProjectSourceChangeKind};
 use scriberig_store_sqlite::SqliteStore;
 
 use crate::agent_tool::LocalAgentTool;
@@ -97,6 +98,26 @@ fn assert_candidate_tool_sequence<B: ApplicationBackend>(
     let candidate = proposed.handles[0]
         .strip_prefix("candidate:")
         .expect("candidate handle");
+    let direct = project_service
+        .propose_project_change(
+            project,
+            snapshot,
+            vec![ProjectSourceChange {
+                path: "notes.txt".to_owned(),
+                kind: ProjectSourceChangeKind::Update,
+                content: Some(b"candidate source\n".to_vec()),
+            }],
+        )
+        .expect("equivalent direct application proposal");
+    assert_eq!(candidate, direct.id);
+    assert_eq!(direct.base_snapshot, snapshot);
+    assert_eq!(direct.effects.len(), 1);
+    assert_eq!(direct.effects[0].path, "notes.txt");
+    assert_eq!(direct.effects[0].old.as_deref(), Some(source.as_slice()));
+    assert_eq!(
+        direct.effects[0].new.as_deref(),
+        Some(b"candidate source\n".as_slice())
+    );
     let detail = tool
         .invoke_named(
             context,
