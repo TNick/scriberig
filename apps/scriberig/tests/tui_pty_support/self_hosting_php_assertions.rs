@@ -10,6 +10,37 @@ use scriberig_store::SnapshotStore;
 use scriberig_store_sqlite::SqliteStore;
 use std::time::Duration;
 
+/// Opens native history and verifies the applied candidate transition.
+///
+/// # Parameters
+/// - `tui`: Active native TUI process.
+/// - `base`: Exact snapshot before candidate Apply.
+/// - `successor`: Authoritative snapshot after candidate Apply.
+/// - `super`: Parent test module visibility.
+pub(super) fn assert_tui_history_transition(
+    tui: &mut TuiPty,
+    base: scriberig_core::SnapshotId,
+    successor: scriberig_core::SnapshotId,
+) {
+    tui.send(b":");
+    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
+    tui.send(b"history\r");
+    assert!(
+        tui.read_until_for("History @", Duration::from_secs(30)),
+        "{}",
+        tui.diagnostic()
+    );
+    let history = tui.screen();
+    let base = base.to_string();
+    let successor = successor.to_string();
+    assert!(
+        history.contains(&format!("{} -> {}", &base[..16], &successor[..16])),
+        "TUI history omitted candidate transition {} -> {}: {history}",
+        &base[..16],
+        &successor[..16]
+    );
+}
+
 /// Exercises visible update/create conflicts before the candidate's successful Apply.
 ///
 /// # Parameters

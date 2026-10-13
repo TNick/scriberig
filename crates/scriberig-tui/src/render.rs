@@ -194,6 +194,8 @@ fn primary_text(state: &TuiState) -> String {
                     .iter()
                     .enumerate()
                     .map(|(index, row)| {
+                        let base = row.base.to_string();
+                        let result = row.result.to_string();
                         format!(
                             "{}{}: {} -> {} ({} changed)",
                             if state.focus == Focus::Primary && state.cursor == index {
@@ -201,9 +203,9 @@ fn primary_text(state: &TuiState) -> String {
                             } else {
                                 "  "
                             },
-                            row.id,
-                            row.base,
-                            row.result,
+                            index + 1,
+                            &base[..16],
+                            &result[..16],
                             row.entities.len()
                         )
                     })

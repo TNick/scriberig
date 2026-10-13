@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use assertions::{
     assert_applied_php, assert_candidate_conflicts_are_visible, assert_durable_candidate_effect,
-    assert_materialized_php_fixture,
+    assert_materialized_php_fixture, assert_tui_history_transition,
 };
 use scriberig_project::ProjectService;
 use scriberig_session::SessionStore;
@@ -104,6 +104,7 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
         base.snapshot,
         &candidate,
     );
+    assert_tui_history_transition(&mut tui, base.snapshot, applied_snapshot);
     let fixture = tui.quit_retain_fixture();
     restart_and_verify(
         fixture,
@@ -158,6 +159,7 @@ fn restart_and_verify(
 ) {
     let build = std::process::Command::new("cargo")
         .current_dir(checkout)
+        .env("CARGO_TARGET_DIR", checkout.join("target"))
         .args(["build", "--bin", "srig", "--offline"])
         .output()
         .expect("build candidate checkout executable");
