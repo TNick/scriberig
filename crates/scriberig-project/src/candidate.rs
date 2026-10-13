@@ -230,6 +230,15 @@ impl ProjectService {
         &self,
         candidate: &ProjectCandidate,
     ) -> Result<CandidateApplyReport, ProjectError> {
+        if candidate.effects.len() != 1
+            || candidate.effects[0].kind != ProjectSourceEffectKind::Update
+        {
+            return Err(ProjectError {
+                code: "aggregate_apply_unavailable",
+                message: "project-wide effects require safe aggregate materialization".to_owned(),
+                diagnostics: Vec::new(),
+            });
+        }
         if let CandidateValidation::Pending = &candidate.validation {
             return Err(ProjectError {
                 code: "validation_pending",

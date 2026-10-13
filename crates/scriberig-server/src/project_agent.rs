@@ -5,9 +5,7 @@ use std::sync::{Arc, Mutex};
 use scriberig_agent_core::{Tool, ToolError, ToolInput, ToolResult};
 use scriberig_agent_runtime::AgentRuntime;
 use scriberig_agent_runtime::model_provider::ProviderModel;
-use scriberig_agent_runtime::provider::{
-    FakeProvider, FinishReason, ModelResponse, ProviderMetadata, ToolCall, ToolDefinition,
-};
+use scriberig_agent_runtime::provider::{FakeProvider, ToolCall, ToolDefinition};
 use scriberig_agent_runtime::tools::{ToolCatalog, ToolDescriptor, ToolExecutionMode};
 use scriberig_app::ApplicationContext;
 use scriberig_core::{EntityId, SnapshotId};
@@ -17,6 +15,13 @@ use serde_json::{Value, json};
 use crate::http::HttpState;
 use crate::http::project_routes::propose;
 use crate::server::ApplicationService;
+
+#[path = "project_agent_support.rs"]
+mod support;
+use support::response;
+
+#[path = "project_agent_aggregate.rs"]
+mod aggregate;
 
 /// Request for the deterministic project-agent workflow.
 #[derive(Debug, Deserialize)]
@@ -132,6 +137,15 @@ impl<S: ApplicationService> Tool for ProjectAgentTool<'_, S> {
     ) -> Result<ToolResult, ToolError> {
         if name != "project_propose" {
             return Err(tool_error("unsupported project agent tool"));
+        }
+        if let Some(effects) = arguments.get("effects") {
+            return aggregate::propose(
+                self.state,
+                self.project,
+                self.expected.entity,
+                self.expected.snapshot,
+                effects,
+            );
         }
         let text = arguments
             .get("text")
@@ -378,27 +392,5 @@ fn tool_error(message: &str) -> ToolError {
     ToolError::Application {
         category: "project_agent".to_owned(),
         message: message.to_owned(),
-    }
-}
-
-/// Creates a normalized provider response.
-///
-/// # Parameters
-/// - `tool_call`: Optional tool call emitted by the fake provider.
-/// - `text`: Optional final provider text.
-///
-/// # Returns
-/// A provider response with the corresponding finish reason.
-fn response(tool_call: Option<ToolCall>, text: Option<&str>) -> ModelResponse {
-    ModelResponse {
-        text: text.map(str::to_owned),
-        tool_calls: tool_call.into_iter().collect(),
-        finish_reason: if text.is_some() {
-            FinishReason::Stop
-        } else {
-            FinishReason::ToolCall
-        },
-        usage: None,
-        metadata: ProviderMetadata::default(),
     }
 }

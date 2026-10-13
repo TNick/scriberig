@@ -3,6 +3,7 @@
 #![allow(clippy::wildcard_imports)]
 
 use super::*;
+use scriberig_project::{ProjectSourceChange, ProjectSourceChangeKind};
 
 /// Request body for candidate creation.
 #[derive(serde::Deserialize)]
@@ -15,9 +16,38 @@ pub(super) struct ProposeInput {
     pub text: String,
 }
 
+/// Request body for one aggregate project source candidate.
+#[derive(serde::Deserialize)]
+pub(super) struct ProposeChangeInput {
+    /// Project identity receiving the candidate.
+    project: String,
+    /// Exact active base snapshot.
+    base_snapshot: String,
+    /// Ordered source effect requests.
+    effects: Vec<ProposeChangeEffectInput>,
+}
+
+/// Request body for one aggregate source effect.
+#[derive(serde::Deserialize)]
+struct ProposeChangeEffectInput {
+    /// Project-relative path.
+    path: String,
+    /// Effect kind (`create`, `update`, or `delete`).
+    kind: String,
+    /// New bytes represented as UTF-8 text or a JSON byte array.
+    content: Option<Value>,
+}
+
 /// Request body for candidate application.
 #[derive(serde::Deserialize)]
 struct ApplyInput {
+    /// Stable candidate identity.
+    candidate: String,
+}
+
+/// Request body for candidate detail or validation.
+#[derive(serde::Deserialize)]
+struct CandidateInput {
     /// Stable candidate identity.
     candidate: String,
 }
@@ -62,6 +92,147 @@ pub(super) fn propose<S: ApplicationService>(
         "validation": validation,
         "applyEnabled": apply_enabled,
     }))
+}
+
+/// Creates one exact-base project-wide candidate through the shared project service.
+pub(super) fn propose_change<S: ApplicationService>(
+    state: &HttpState<S>,
+    body: &str,
+) -> Result<Value, (u16, Value)> {
+    let store = state.project_store.as_ref().ok_or_else(unavailable)?;
+    let input: ProposeChangeInput =
+        serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
+    let project = input.project.parse().map_err(|_| invalid_project())?;
+    let base_snapshot = input.base_snapshot.parse().map_err(|_| invalid_project())?;
+    let changes = input
+        .effects
+        .into_iter()
+        .map(|effect| {
+            let kind = match effect.kind.as_str() {
+                "create" => ProjectSourceChangeKind::Create,
+                "update" => ProjectSourceChangeKind::Update,
+                "delete" => ProjectSourceChangeKind::Delete,
+                _ => return Err((400, json!({"code": "invalid_effect_kind"}))),
+            };
+            let content = match effect.content {
+                Some(Value::String(text)) => Some(text.into_bytes()),
+                Some(Value::Array(bytes)) => Some(
+                    bytes
+                        .into_iter()
+                        .map(|byte| byte.as_u64().and_then(|number| u8::try_from(number).ok()))
+                        .collect::<Option<Vec<_>>>()
+                        .ok_or_else(|| (400, json!({"code": "invalid_effect_content"})))?,
+                ),
+                Some(Value::Null) | None => None,
+                _ => return Err((400, json!({"code": "invalid_effect_content"}))),
+            };
+            Ok(ProjectSourceChange {
+                path: effect.path,
+                kind,
+                content,
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let candidate = ProjectService::new(Arc::clone(store))
+        .propose_project_change(project, base_snapshot, changes)
+        .map_err(|error| project_error(&error))?;
+    Ok(json!({
+        "candidate": candidate.id,
+        "project": candidate.project.to_string(),
+        "base": candidate.base_snapshot.to_string(),
+        "validation": "pending",
+        "effects": candidate.effects.iter().map(|effect| json!({
+            "path": effect.path,
+            "kind": match effect.kind {
+                scriberig_project::ProjectSourceEffectKind::Create => "create",
+                scriberig_project::ProjectSourceEffectKind::Update => "update",
+                scriberig_project::ProjectSourceEffectKind::Delete => "delete",
+            },
+            "oldBytes": effect.old,
+            "newBytes": effect.new,
+        })).collect::<Vec<_>>(),
+    }))
+}
+
+/// Loads a durable candidate and all of its path-level source effects.
+///
+/// # Parameters
+/// - `state`: Shared application state.
+/// - `body`: JSON candidate identity.
+///
+/// # Returns
+/// Candidate detail including ordered source effects.
+///
+/// # Errors
+/// Returns a structured request, storage, or not-found error.
+pub(super) fn candidate<S: ApplicationService>(
+    state: &HttpState<S>,
+    body: &str,
+) -> Result<Value, (u16, Value)> {
+    let store = state.project_store.as_ref().ok_or_else(unavailable)?;
+    let input: CandidateInput =
+        serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
+    let candidate = ProjectService::new(Arc::clone(store))
+        .candidate(&input.candidate)
+        .map_err(|error| project_error(&error))?
+        .ok_or_else(|| (404, json!({"code": "candidate_not_found"})))?;
+    Ok(candidate_json(&candidate))
+}
+
+/// Validates one durable candidate in its isolated exact-base workspace.
+///
+/// # Parameters
+/// - `state`: Shared application state.
+/// - `body`: JSON candidate identity.
+///
+/// # Returns
+/// Candidate detail with durable validation state.
+///
+/// # Errors
+/// Returns a structured request, storage, stale-base, or not-found error.
+pub(super) fn validate_candidate<S: ApplicationService>(
+    state: &HttpState<S>,
+    body: &str,
+) -> Result<Value, (u16, Value)> {
+    let store = state.project_store.as_ref().ok_or_else(unavailable)?;
+    let input: CandidateInput =
+        serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
+    let candidate = ProjectService::new(Arc::clone(store))
+        .validate_candidate(&input.candidate)
+        .map_err(|error| project_error(&error))?;
+    Ok(candidate_json(&candidate))
+}
+
+/// Serializes a candidate using the shared effect representation.
+///
+/// # Parameters
+/// - `candidate`: Durable project candidate.
+///
+/// # Returns
+/// Protocol-neutral JSON with exact base bytes and proposed bytes per path.
+fn candidate_json(candidate: &scriberig_project::ProjectCandidate) -> Value {
+    let (validation, diagnostics) = match &candidate.validation {
+        CandidateValidation::Pending => ("pending", Vec::new()),
+        CandidateValidation::Passed => ("passed", Vec::new()),
+        CandidateValidation::Failed { diagnostics } => ("failed", diagnostics.clone()),
+    };
+    json!({
+        "candidate": candidate.id,
+        "project": candidate.project.to_string(),
+        "base": candidate.base_snapshot.to_string(),
+        "validation": validation,
+        "diagnostics": diagnostics,
+        "effects": candidate.effects.iter().map(|effect| json!({
+            "path": effect.path,
+            "kind": match effect.kind {
+                scriberig_project::ProjectSourceEffectKind::Create => "create",
+                scriberig_project::ProjectSourceEffectKind::Update => "update",
+                scriberig_project::ProjectSourceEffectKind::Delete => "delete",
+            },
+            "oldBytes": effect.old,
+            "newBytes": effect.new,
+        })).collect::<Vec<_>>(),
+    })
 }
 
 /// Applies a validated candidate with snapshot and filesystem compare-and-swap.

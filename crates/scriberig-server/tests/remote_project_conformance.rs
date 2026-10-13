@@ -121,6 +121,14 @@ fn golden_conformance_remote_public_project_path() {
     assert_eq!(projection["path"], "src/lib.rs");
     assert_eq!(projection["text"], source);
 
+    exercise_remote_aggregate_candidate(
+        &client,
+        &root,
+        scan.project.id,
+        imported.snapshot,
+        &source,
+    );
+
     let candidate = client
         .project(
             "propose",
@@ -148,4 +156,83 @@ fn golden_conformance_remote_public_project_path() {
             .expect("materialized source")
             .contains("left.saturating_add(right)")
     );
+}
+
+/// Verifies aggregate proposal, detail, and validation through the remote client.
+///
+/// # Parameters
+/// - `client`: Real protocol client for the in-process HTTP server.
+/// - `root`: Live project root that must remain unchanged.
+/// - `project`: Exact project identity.
+/// - `snapshot`: Exact candidate base snapshot.
+/// - `source`: Base source bytes as UTF-8.
+fn exercise_remote_aggregate_candidate(
+    client: &Client<InProcessProjectTransport<TestApplication>>,
+    root: &std::path::Path,
+    project: scriberig_core::ProjectId,
+    snapshot: scriberig_core::SnapshotId,
+    source: &str,
+) {
+    let aggregate = client
+        .project(
+            "propose-change",
+            json!({
+                "project": project.to_string(),
+                "base_snapshot": snapshot.to_string(),
+                "effects": [
+                    {
+                        "path": "src/lib.rs",
+                        "kind": "update",
+                        "content": source.replace("left + right", "left.saturating_add(right)").into_bytes()
+                    },
+                    {
+                        "path": "src/generated.rs",
+                        "kind": "create",
+                        "content": b"pub fn generated() -> u8 { 1 }\n".to_vec()
+                    }
+                ]
+            }),
+        )
+        .expect("remote aggregate candidate");
+    assert_eq!(aggregate["base"], snapshot.to_string());
+    assert_eq!(aggregate["effects"].as_array().expect("effects").len(), 2);
+    assert!(!root.join("src/generated.rs").exists());
+    let inspected = client
+        .project("candidate", json!({"candidate": aggregate["candidate"]}))
+        .expect("durable candidate detail");
+    assert_eq!(inspected["effects"][0]["path"], "src/generated.rs");
+    assert_eq!(
+        inspected["effects"][0]["newBytes"],
+        json!(b"pub fn generated() -> u8 { 1 }\n".to_vec())
+    );
+    assert_eq!(inspected["effects"][1]["path"], "src/lib.rs");
+    assert_eq!(
+        inspected["effects"][1]["oldBytes"],
+        json!(source.as_bytes())
+    );
+    assert_eq!(
+        inspected["effects"][1]["newBytes"],
+        json!(
+            source
+                .replace("left + right", "left.saturating_add(right)")
+                .into_bytes()
+        )
+    );
+    let validated = client
+        .project(
+            "validate-candidate",
+            json!({"candidate": aggregate["candidate"]}),
+        )
+        .expect("isolated candidate validation");
+    assert_eq!(validated["validation"], "passed");
+    assert!(
+        client
+            .project("apply", json!({"candidate": aggregate["candidate"]}))
+            .is_err()
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("src/lib.rs")).expect("live source unchanged"),
+        source
+    );
+    assert!(!root.join("src/generated.rs").exists());
 }

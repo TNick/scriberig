@@ -43,6 +43,9 @@ pub(super) fn protocol<S: ApplicationService>(
         "projection" => projection(state, &body),
         "history" => history(state, &body),
         "propose" => propose(state, &body),
+        "propose-change" => propose_change(state, &body),
+        "candidate" => candidate(state, &body),
+        "validate-candidate" => validate_candidate(state, &body),
         "apply" => apply(state, &body),
         "agent" => project_agent::agent(state, &body),
         "relink" => relink(state, &body),
@@ -96,6 +99,9 @@ pub(super) fn direct<S: ApplicationService>(
         "projection" => projection(state, &request.payload.to_string()),
         "history" => history(state, &request.payload.to_string()),
         "propose" => propose(state, &request.payload.to_string()),
+        "propose-change" => propose_change(state, &request.payload.to_string()),
+        "candidate" => candidate(state, &request.payload.to_string()),
+        "validate-candidate" => validate_candidate(state, &request.payload.to_string()),
         "apply" => apply(state, &request.payload.to_string()),
         "agent" => project_agent::agent(state, &request.payload.to_string()),
         "relink" => relink(state, &request.payload.to_string()),
@@ -363,6 +369,30 @@ pub(super) fn propose<S: ApplicationService>(
     body: &str,
 ) -> Result<Value, (u16, Value)> {
     project_workflow::propose(state, body)
+}
+
+/// Creates one aggregate candidate using the shared project workflow.
+pub(super) fn propose_change<S: ApplicationService>(
+    state: &HttpState<S>,
+    body: &str,
+) -> Result<Value, (u16, Value)> {
+    project_workflow::propose_change(state, body)
+}
+
+/// Loads a candidate through the shared project workflow.
+pub(super) fn candidate<S: ApplicationService>(
+    state: &HttpState<S>,
+    body: &str,
+) -> Result<Value, (u16, Value)> {
+    project_workflow::candidate(state, body)
+}
+
+/// Validates a candidate through the shared project workflow.
+pub(super) fn validate_candidate<S: ApplicationService>(
+    state: &HttpState<S>,
+    body: &str,
+) -> Result<Value, (u16, Value)> {
+    project_workflow::validate_candidate(state, body)
 }
 
 /// Applies a validated candidate with snapshot and filesystem compare-and-swap.

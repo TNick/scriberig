@@ -9,6 +9,7 @@ use scriberig_agent_runtime::provider::{
     FakeProvider, FinishReason, ModelResponse, ProviderMetadata, ToolCall, ToolDefinition,
 };
 use scriberig_agent_runtime::tools::{ToolCatalog, ToolDescriptor, ToolExecutionMode};
+use scriberig_project::{ProjectSourceChange, ProjectSourceChangeKind};
 use serde_json::{Value, json};
 
 /// Executes the project agent's exact inspect and proposal calls.
@@ -86,6 +87,31 @@ impl Tool for ProjectAgentTool<'_> {
                 message: "unsupported project tool".to_owned(),
             });
         }
+        if let Some(effects) = arguments.get("effects").and_then(Value::as_array) {
+            let changes = effects
+                .iter()
+                .map(parse_project_change)
+                .collect::<Result<Vec<_>, _>>()?;
+            let candidate = self
+                .projection
+                .workflow
+                .propose_project_change(self.projection.project, self.snapshot, changes)
+                .map_err(|error| ToolError::Application {
+                    category: error.code.to_owned(),
+                    message: error.message,
+                })?;
+            return Ok(ToolResult {
+                entity: self.entity,
+                revision: None,
+                snapshot: Some(self.snapshot),
+                object_type: Some("migration_candidate".to_owned()),
+                summary: Some(format!(
+                    "candidate created with {} paths",
+                    candidate.effects.len()
+                )),
+                handles: vec![candidate.id],
+            });
+        }
         let text = arguments
             .get("text")
             .and_then(Value::as_str)
@@ -118,6 +144,60 @@ impl Tool for ProjectAgentTool<'_> {
             summary: Some("candidate created".to_owned()),
             handles: vec![candidate.id],
         })
+    }
+}
+
+/// Decodes one bounded provider source effect into the shared request type.
+///
+/// # Parameters
+/// - `value`: Provider's structured effect object.
+///
+/// # Returns
+/// Shared project source change request.
+///
+/// # Errors
+/// Returns a provider tool error for missing or invalid effect fields.
+fn parse_project_change(value: &Value) -> Result<ProjectSourceChange, ToolError> {
+    let path = value
+        .get("path")
+        .and_then(Value::as_str)
+        .ok_or_else(|| project_argument_error("effect path missing"))?;
+    let kind = match value.get("kind").and_then(Value::as_str) {
+        Some("create") => ProjectSourceChangeKind::Create,
+        Some("update") => ProjectSourceChangeKind::Update,
+        Some("delete") => ProjectSourceChangeKind::Delete,
+        _ => return Err(project_argument_error("effect kind invalid")),
+    };
+    let content = match value.get("content") {
+        Some(Value::String(text)) => Some(text.as_bytes().to_vec()),
+        Some(Value::Array(bytes)) => Some(
+            bytes
+                .iter()
+                .map(|byte| byte.as_u64().and_then(|number| u8::try_from(number).ok()))
+                .collect::<Option<Vec<_>>>()
+                .ok_or_else(|| project_argument_error("effect content bytes invalid"))?,
+        ),
+        Some(Value::Null) | None => None,
+        _ => return Err(project_argument_error("effect content invalid")),
+    };
+    Ok(ProjectSourceChange {
+        path: path.to_owned(),
+        kind,
+        content,
+    })
+}
+
+/// Creates a structured provider argument error.
+///
+/// # Parameters
+/// - `message`: Safe argument error detail.
+///
+/// # Returns
+/// Provider tool application error.
+fn project_argument_error(message: &str) -> ToolError {
+    ToolError::Application {
+        category: "project_agent_arguments".to_owned(),
+        message: message.to_owned(),
     }
 }
 
@@ -203,5 +283,30 @@ fn descriptor(name: &str, description: &str, state_changing: bool) -> ToolDescri
         state_changing,
         execution_mode: ToolExecutionMode::Atomic,
         required_capability: None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use scriberig_project::ProjectSourceChangeKind;
+    use serde_json::json;
+
+    use super::parse_project_change;
+
+    /// Decodes provider effects into the shared project operation request.
+    #[test]
+    fn aggregate_effect_arguments_preserve_relative_path_and_content() {
+        let effect = parse_project_change(&json!({
+            "path": "src/generated.php",
+            "kind": "create",
+            "content": "<?php class Example {}"
+        }))
+        .expect("valid provider effect");
+        assert_eq!(effect.path, "src/generated.php");
+        assert_eq!(effect.kind, ProjectSourceChangeKind::Create);
+        assert_eq!(
+            effect.content.as_deref(),
+            Some(b"<?php class Example {}".as_slice())
+        );
     }
 }
