@@ -10,7 +10,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use assertions::{
-    assert_applied_php, assert_durable_candidate_effect, assert_materialized_php_fixture,
+    assert_applied_php, assert_candidate_conflicts_are_visible, assert_durable_candidate_effect,
+    assert_materialized_php_fixture,
 };
 use scriberig_project::ProjectService;
 use scriberig_session::SessionStore;
@@ -264,6 +265,14 @@ fn review_and_apply(
     assert!(update_review.contains(root_manifest), "{update_review}");
     assert!(update_review.contains("old:"), "{update_review}");
     assert!(update_review.contains("new:"), "{update_review}");
+    assert_candidate_conflicts_are_visible(
+        tui,
+        checkout,
+        database,
+        project,
+        base_snapshot,
+        candidate,
+    );
     tui.send(b"\r");
     assert!(tui.read_until("Enter confirm"), "{}", tui.diagnostic());
     tui.send(b"\r");

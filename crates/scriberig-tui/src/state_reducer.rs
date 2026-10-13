@@ -219,6 +219,7 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             {
                 state.review = LoadState::Ready(model);
                 state.cursor = 0;
+                state.operation_error = None;
             }
             vec![Effect::None]
         }
@@ -231,8 +232,6 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             if category == "transport_unavailable" {
                 state.connection = ConnectionState::Disconnected;
                 state.stale = true;
-            } else {
-                state.connection = ConnectionState::Failed;
             }
             state.operation_error = Some((category.clone(), message.clone()));
             if matches!(state.history, LoadState::Loading { request_id: current } if current == request_id)

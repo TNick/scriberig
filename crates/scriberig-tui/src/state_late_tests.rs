@@ -1,6 +1,7 @@
 //! Covers late TUI reducer interaction tests.
 
 use super::*;
+use crate::state::ConnectionState;
 
 /// Verifies resizing preserves semantic navigation history.
 #[test]
@@ -265,6 +266,56 @@ fn stale_operation_failure_is_visible_without_retry() {
     assert!(
         matches!(state.review, crate::inspector::LoadState::Failed { ref category, .. } if category == "stale_base_snapshot")
     );
+}
+
+/// Verifies filesystem conflicts remain operation failures and clear after review succeeds.
+#[test]
+fn candidate_conflict_preserves_connection_and_clears_after_reinspection() {
+    let mut state = TuiState::default();
+    reduce(&mut state, Action::CapabilitiesLoaded(Vec::new()));
+    let request = scriberig_app::ApplyRequest {
+        base_snapshot: scriberig_core::SnapshotId::new([4; 32]),
+        branch: None,
+        change: "candidate".to_owned(),
+    };
+    reduce(
+        &mut state,
+        Action::ReviewRequested {
+            request: request.clone(),
+        },
+    );
+    reduce(
+        &mut state,
+        Action::OperationFailed {
+            request_id: 1,
+            category: "filesystem_conflict".to_owned(),
+            message: "source changed externally: Cargo.toml".to_owned(),
+        },
+    );
+    assert_eq!(state.connection, ConnectionState::Connected);
+    assert!(state.operation_error.is_some());
+    reduce(&mut state, Action::ReviewRequested { request });
+    reduce(
+        &mut state,
+        Action::ReviewSucceeded {
+            request_id: 2,
+            model: crate::view::changes::ChangeReviewModel {
+                base_snapshot: scriberig_core::SnapshotId::new([4; 32]),
+                change: "candidate".to_owned(),
+                branch: None,
+                affected_entities: Vec::new(),
+                conflicts: vec!["update Cargo.toml".to_owned()],
+                validation: crate::view::changes::ReviewValidation::Passed,
+                requires_confirmation: true,
+            },
+        },
+    );
+    assert_eq!(state.connection, ConnectionState::Connected);
+    assert_eq!(state.operation_error, None);
+    assert!(matches!(
+        state.review,
+        crate::inspector::LoadState::Ready(_)
+    ));
 }
 
 /// Verifies pasted multiline composer content remains data and submits intact.

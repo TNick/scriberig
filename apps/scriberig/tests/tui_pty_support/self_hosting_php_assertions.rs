@@ -3,9 +3,127 @@
 use std::fs;
 use std::sync::Arc;
 
+use super::TuiPty;
 use scriberig_project::ProjectService;
+use scriberig_project::ProjectSourceEffectKind;
 use scriberig_store::SnapshotStore;
 use scriberig_store_sqlite::SqliteStore;
+use std::time::Duration;
+
+/// Exercises visible update/create conflicts before the candidate's successful Apply.
+///
+/// # Parameters
+/// - `tui`: Active native TUI process.
+/// - `checkout`: Copied Scriberig checkout.
+/// - `database`: Product database path.
+/// - `project`: Onboarded project identity.
+/// - `base`: Exact candidate base snapshot.
+/// - `candidate_id`: Durable project-wide candidate identity.
+/// - `super`: Parent PTY test module.
+pub(super) fn assert_candidate_conflicts_are_visible(
+    tui: &mut TuiPty,
+    checkout: &std::path::Path,
+    database: &std::path::Path,
+    project: scriberig_core::ProjectId,
+    base: scriberig_core::SnapshotId,
+    candidate_id: &str,
+) {
+    let candidate = ProjectService::new(Arc::new(SqliteStore::open(database).expect("store")))
+        .candidate(candidate_id)
+        .expect("load candidate")
+        .expect("durable candidate");
+    let create = candidate
+        .effects
+        .iter()
+        .find(|effect| {
+            effect.kind == ProjectSourceEffectKind::Create
+                && effect
+                    .path
+                    .starts_with("crates/domains/scriberig-domain-php/")
+        })
+        .expect("PHP adapter create effect");
+    let create_path = checkout.join(&create.path);
+    fs::create_dir_all(create_path.parent().expect("create parent"))
+        .expect("create external path parent");
+    let external_create = b"external bytes must survive Apply conflict\n";
+    tui.send(b"\r");
+    assert!(tui.read_until("Enter confirm"), "{}", tui.diagnostic());
+    fs::write(&create_path, external_create).expect("external create");
+    tui.send(b"\r");
+    assert!(
+        tui.read_until_for("filesystem_conflict", Duration::from_secs(30)),
+        "{}",
+        tui.diagnostic()
+    );
+    assert!(tui.screen().contains("source changed externally:"));
+    assert_eq!(
+        fs::read(&create_path).expect("external create survives"),
+        external_create
+    );
+    assert_candidate_base_unchanged(database, project, base);
+    assert!(
+        !checkout
+            .join("crates/domains/scriberig-domain-php/src/lib.rs")
+            .exists()
+    );
+    fs::remove_dir_all(checkout.join("crates/domains/scriberig-domain-php"))
+        .expect("remove external conflict fixture");
+
+    open_candidate_review(tui);
+    tui.send(b"\r");
+    assert!(tui.read_until("Enter confirm"), "{}", tui.diagnostic());
+    let manifest_path = checkout.join("Cargo.toml");
+    let base_manifest = fs::read(&manifest_path).expect("base manifest");
+    let external_update = b"external manifest edit\n";
+    fs::write(&manifest_path, external_update).expect("external update");
+    tui.send(b"\r");
+    assert!(
+        tui.read_until_for("filesystem_conflict", Duration::from_secs(30)),
+        "{}",
+        tui.diagnostic()
+    );
+    assert!(tui.screen().contains("source changed externally:"));
+    assert_eq!(
+        fs::read(&manifest_path).expect("external update survives"),
+        external_update
+    );
+    assert_candidate_base_unchanged(database, project, base);
+    assert!(
+        !checkout
+            .join("crates/domains/scriberig-domain-php/src/lib.rs")
+            .exists()
+    );
+    fs::write(&manifest_path, base_manifest).expect("restore exact base manifest");
+    open_candidate_review(tui);
+}
+
+/// Opens the durable project candidate review from the native command palette.
+///
+/// # Parameters
+/// - `tui`: Active native TUI process.
+fn open_candidate_review(tui: &mut TuiPty) {
+    tui.send(b":");
+    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
+    tui.send(b"review-candidate\r");
+    assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
+}
+
+/// Verifies a conflict leaves the authoritative project at its exact base.
+///
+/// # Parameters
+/// - `database`: Product database path.
+/// - `project`: Onboarded project identity.
+/// - `base`: Exact candidate base snapshot.
+fn assert_candidate_base_unchanged(
+    database: &std::path::Path,
+    project: scriberig_core::ProjectId,
+    base: scriberig_core::SnapshotId,
+) {
+    let workspace = ProjectService::new(Arc::new(SqliteStore::open(database).expect("store")))
+        .workspace(project)
+        .expect("authoritative project workspace");
+    assert_eq!(workspace.snapshot, base);
+}
 
 /// Verifies durable candidate validation, application receipts, and snapshot lineage.
 ///

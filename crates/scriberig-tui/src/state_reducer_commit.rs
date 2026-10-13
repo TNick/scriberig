@@ -25,6 +25,7 @@ pub(super) fn commit_succeeded(state: &mut TuiState, action: Action) -> Vec<Effe
         return vec![Effect::None];
     }
     state.review = LoadState::Ready(model);
+    state.operation_error = None;
     if let Some(project) = state.project.as_mut() {
         let label = project
             .split_once(" @ ")
