@@ -137,7 +137,8 @@ pub(super) fn run(
         super::native_tui_agent::NativeTuiAgentRunner::from_environment(Arc::clone(&store))?;
     let service = scriberig_tui::ApplicationOperationAdapter::new(service)
         .with_agent_runner(agent_runner)
-        .with_explorer_labels(labels.unwrap_or_default());
+        .with_explorer_labels(labels.unwrap_or_default())
+        .with_project_workflow(scriberig_project::ProjectService::new(Arc::clone(&store)));
     let service = if let Some(value) = projection {
         service.with_project_projection(value)
     } else {

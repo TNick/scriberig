@@ -7,7 +7,10 @@ use scriberig_domain_php::parse;
 /// PHP-DOMAIN-01 through -04 verify declarations, nested syntax, comments, and inline HTML.
 #[test]
 fn parses_complete_php_and_mixed_inline_html() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../php-project/src");
+    let root = fixture_directory(
+        "../../../../php-project/src",
+        "../../../tests/self-hosting/php-extension/php-project/src",
+    );
     let source = std::fs::read_to_string(root.join("Greeter.php")).expect("PHP fixture");
     let document = parse(Path::new("Greeter.php"), &source).expect("valid PHP");
     let kinds = document
@@ -57,8 +60,16 @@ fn parses_complete_php_and_mixed_inline_html() {
 /// PHP-DOMAIN-05 and -06 verify malformed diagnostics and deterministic syntax.
 #[test]
 fn rejects_malformed_php_and_serializes_deterministically() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../php-project/src");
-    let broken = std::fs::read_to_string(root.join("Broken.php")).expect("broken fixture");
+    let root = fixture_directory(
+        "../../../../php-project/src",
+        "../../../tests/self-hosting/php-extension/php-project/src",
+    );
+    let broken_root = fixture_directory(
+        "../../../../fixtures",
+        "../../../tests/self-hosting/php-extension/fixtures",
+    );
+    let broken = std::fs::read_to_string(broken_root.join("Broken.php.txt"))
+        .expect("broken fixture");
     let error = parse(Path::new("Broken.php"), &broken).expect_err("malformed PHP rejected");
     assert!(error.diagnostics.iter().any(|item| item.contains("syntax")));
     assert!(error.diagnostics.iter().any(|item| item.contains("bytes")));
@@ -74,4 +85,22 @@ fn rejects_malformed_php_and_serializes_deterministically() {
     );
     assert_eq!(first.nodes.first().map(|node| node.path.as_str()), Some(""));
     assert!(first.nodes.iter().skip(1).all(|node| !node.path.is_empty()));
+}
+
+/// Resolves checked-in fixtures from the standalone fixture or applied workspace layout.
+///
+/// # Parameters
+/// - `fixture_relative`: Path from the standalone candidate crate location.
+/// - `workspace_relative`: Path from the production package location.
+///
+/// # Returns
+/// The first existing fixture directory.
+fn fixture_directory(fixture_relative: &str, workspace_relative: &str) -> std::path::PathBuf {
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let fixture = manifest.join(fixture_relative);
+    if fixture.is_dir() {
+        fixture
+    } else {
+        manifest.join(workspace_relative)
+    }
 }

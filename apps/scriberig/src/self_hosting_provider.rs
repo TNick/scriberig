@@ -71,6 +71,7 @@ pub(super) fn user_prompt(request: &ModelRequest) -> &str {
     request
         .messages
         .iter()
+        .rev()
         .find(|message| message.role == MessageRole::User)
         .map_or("", |message| message.content.as_str())
 }

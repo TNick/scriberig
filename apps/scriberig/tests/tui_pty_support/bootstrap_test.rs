@@ -21,6 +21,7 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"start-agent\r");
     assert!(tui.read_until("Session:"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
     let session = tui
         .screen()
         .split("Session:")

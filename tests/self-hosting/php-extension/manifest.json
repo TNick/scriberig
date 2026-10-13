@@ -2,6 +2,7 @@
   "schema": 1,
   "baseline_php_adapter": "text",
   "candidate_adapter": "php",
+  "malformed_fixture": "fixtures/Broken.php.txt",
   "dependency": {
     "crate": "tree-sitter-php",
     "version": "0.25.1",

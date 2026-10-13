@@ -7,7 +7,8 @@ use scriberig_domain_php::parse;
 /// PHP-DOMAIN-01 through -04 verify declarations, nested syntax, comments, and inline HTML.
 #[test]
 fn parses_complete_php_and_mixed_inline_html() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../php-project/src");
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../tests/self-hosting/php-extension/php-project/src");
     let source = std::fs::read_to_string(root.join("Greeter.php")).expect("PHP fixture");
     let document = parse(Path::new("Greeter.php"), &source).expect("valid PHP");
     let kinds = document
@@ -57,8 +58,12 @@ fn parses_complete_php_and_mixed_inline_html() {
 /// PHP-DOMAIN-05 and -06 verify malformed diagnostics and deterministic syntax.
 #[test]
 fn rejects_malformed_php_and_serializes_deterministically() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../../php-project/src");
-    let broken = std::fs::read_to_string(root.join("Broken.php")).expect("broken fixture");
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../tests/self-hosting/php-extension/php-project/src");
+    let broken_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../tests/self-hosting/php-extension/fixtures");
+    let broken = std::fs::read_to_string(broken_root.join("Broken.php.txt"))
+        .expect("broken fixture");
     let error = parse(Path::new("Broken.php"), &broken).expect_err("malformed PHP rejected");
     assert!(error.diagnostics.iter().any(|item| item.contains("syntax")));
     assert!(error.diagnostics.iter().any(|item| item.contains("bytes")));

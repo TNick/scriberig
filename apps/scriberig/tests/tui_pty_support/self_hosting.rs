@@ -40,6 +40,37 @@ impl TuiPty {
             Some(checkout),
             true,
             Some("self_hosting_php"),
+            None,
+        )
+    }
+
+    /// Restarts the copied checkout's candidate-built executable and imports its PHP sources.
+    ///
+    /// # Parameters
+    /// - `fixture`: Retained PTY fixture containing the database and checkout.
+    /// - `checkout`: Candidate-applied Scriberig checkout.
+    /// - `executable`: Candidate-built native executable.
+    ///
+    /// # Returns
+    /// A fresh real TUI process using the candidate's compiled domain registry.
+    ///
+    /// # Panics
+    /// Panics when the PTY or child process cannot be prepared.
+    #[must_use]
+    #[allow(dead_code)]
+    pub fn restart_candidate_checkout(
+        fixture: PathBuf,
+        checkout: PathBuf,
+        executable: PathBuf,
+    ) -> Self {
+        Self::start_configured_scenario(
+            fixture,
+            Some(checkout.clone()),
+            true,
+            Some(checkout),
+            false,
+            None,
+            Some(executable),
         )
     }
 }

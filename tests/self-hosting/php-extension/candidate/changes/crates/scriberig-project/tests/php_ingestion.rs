@@ -51,3 +51,47 @@ fn malformed_php_does_not_advance_the_canonical_snapshot() {
     assert_eq!(error.code, "import_diagnostics");
     assert_eq!(service.workspace(scan.project.id).expect("workspace").snapshot, first.snapshot);
 }
+
+/// PHP-IMPORT-07 verifies identical bytes preserve semantic snapshot identity.
+#[test]
+fn unchanged_php_reimport_preserves_snapshot_and_symbols() {
+    let root = std::env::temp_dir().join(format!("scriberig-php-repeat-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(root.join("src")).expect("source directory");
+    let bytes = include_bytes!("../../../tests/self-hosting/php-extension/php-project/src/Greeter.php");
+    fs::write(root.join("src/Greeter.php"), bytes).expect("PHP source");
+    let store = Arc::new(SqliteStore::open(root.with_extension("sqlite")).expect("database"));
+    let service = ProjectService::new(store);
+    let scan = service.scan(Some("php-repeat".to_owned()), &root).expect("scan");
+    let first = service.import(scan.project.id).expect("initial import");
+    service.scan(None, &root).expect("unchanged rescan");
+    let repeated = service.import(scan.project.id).expect("unchanged import");
+    assert_eq!(repeated.snapshot, first.snapshot);
+    assert!(service.symbols(scan.project.id).expect("symbols").iter().any(
+        |symbol| symbol.name.as_deref() == Some("Greeter") && symbol.snapshot == first.snapshot
+    ));
+}
+
+/// PHP-IMPORT-08 reconciles deleted PHP declarations out of the current workspace.
+#[test]
+fn deleted_php_source_is_removed_from_project_ownership() {
+    let root = std::env::temp_dir().join(format!("scriberig-php-delete-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(root.join("src")).expect("source directory");
+    let bytes = include_bytes!("../../../tests/self-hosting/php-extension/php-project/src/Greeter.php");
+    fs::write(root.join("src/Greeter.php"), bytes).expect("PHP source");
+    fs::write(root.join("README.md"), "retained project source\n").expect("project source");
+    let store = Arc::new(SqliteStore::open(root.with_extension("sqlite")).expect("database"));
+    let service = ProjectService::new(store);
+    let scan = service.scan(Some("php-delete".to_owned()), &root).expect("scan");
+    service.import(scan.project.id).expect("initial import");
+    fs::remove_file(root.join("src/Greeter.php")).expect("remove PHP source");
+    service.scan(None, &root).expect("rescan after deletion");
+    let deleted = service.import(scan.project.id).expect("reconcile deletion");
+    let symbols = service.symbols(scan.project.id).expect("symbols");
+    assert!(!symbols.iter().any(|symbol| symbol.path == "src/Greeter.php"));
+    assert_eq!(
+        service.workspace(scan.project.id).expect("workspace").snapshot,
+        deleted.snapshot
+    );
+}

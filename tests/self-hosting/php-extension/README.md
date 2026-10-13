@@ -16,5 +16,7 @@ resolves and records the exact transitive packages in the candidate lockfile;
 the fixture does not vendor parser code.
 
 `manifest.json` lists repository-relative candidate effects and acceptance
-areas. `php-project/` contains valid pure PHP, mixed inline HTML/PHP, and
-malformed input used by candidate tests.
+areas. `php-project/` contains valid pure PHP and mixed inline HTML/PHP sources
+that can be ingested after the candidate is applied. `fixtures/Broken.php.txt`
+contains malformed parser input outside the onboarded project; the import
+negative test writes malformed bytes to a temporary `.php` source file.

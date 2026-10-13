@@ -191,6 +191,7 @@ impl TuiPty {
             working_directory,
             deterministic_agent,
             None,
+            None,
         )
     }
 
@@ -203,6 +204,7 @@ impl TuiPty {
     /// - `working_directory`: Optional process working directory.
     /// - `deterministic_agent`: Whether a deterministic provider is selected.
     /// - `scenario`: Optional deterministic scenario identifier.
+    /// - `executable`: Optional native executable override for restart gates.
     /// - `super`: Parent PTY support module visibility marker.
     ///
     /// # Returns
@@ -217,6 +219,7 @@ impl TuiPty {
         working_directory: Option<PathBuf>,
         deterministic_agent: bool,
         scenario: Option<&str>,
+        executable: Option<PathBuf>,
     ) -> Self {
         let database = fixture.join("scriberig.sqlite");
         let product_project = project_path.clone().unwrap_or_else(|| fixture.clone());
@@ -229,7 +232,9 @@ impl TuiPty {
                 pixel_height: 0,
             })
             .expect("open pty");
-        let mut command = CommandBuilder::new(env!("CARGO_BIN_EXE_srig"));
+        let mut command = CommandBuilder::new(
+            executable.unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_srig"))),
+        );
         if let Some(path) = working_directory {
             command.cwd(path);
         }
