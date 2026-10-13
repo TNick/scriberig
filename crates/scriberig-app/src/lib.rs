@@ -37,7 +37,7 @@ pub use capability_registry::{
 };
 pub use command::{CommandContext, CommandKind};
 pub use composite_backend::CompositeBackend;
-pub use context::{ApplicationContext, CapabilityContext, Principal};
+pub use context::{ApplicationContext, BootstrapEnvironment, CapabilityContext, Principal};
 pub use error::{ApplicationError, ConflictDetails};
 pub use event::ApplicationEvent;
 pub use external_effect::{

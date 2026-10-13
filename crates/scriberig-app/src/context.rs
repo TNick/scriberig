@@ -3,6 +3,7 @@
 use crate::capability::{Capability, CapabilityAction, CapabilityId, CapabilityScope};
 use crate::operation::OperationKind;
 use scriberig_core::SnapshotId;
+use std::path::PathBuf;
 
 /// Identifies the principal on whose behalf an operation runs.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -114,6 +115,15 @@ pub struct ApplicationContext {
     pub capabilities: CapabilityContext,
     /// Optional correlation identifier for tracing one request.
     pub correlation_id: Option<String>,
+    /// Trusted local bootstrap environment, distinct from semantic project scope.
+    pub bootstrap: Option<BootstrapEnvironment>,
+}
+
+/// Supplies bounded local environment data for authorized bootstrap operations.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BootstrapEnvironment {
+    /// Working directory selected by the trusted local product composition.
+    pub working_directory: PathBuf,
 }
 
 impl ApplicationContext {
@@ -138,5 +148,37 @@ impl ApplicationContext {
     pub const fn with_snapshot(mut self, snapshot: SnapshotId) -> Self {
         self.snapshot = Some(snapshot);
         self
+    }
+
+    /// Attaches trusted local bootstrap context to an application request.
+    ///
+    /// # Parameters
+    /// - `self`: Context to update.
+    /// - `bootstrap`: Environment supplied by a trusted local composition root.
+    ///
+    /// # Returns
+    /// The updated context.
+    #[must_use]
+    pub fn with_bootstrap(mut self, bootstrap: BootstrapEnvironment) -> Self {
+        self.bootstrap = Some(bootstrap);
+        self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ApplicationContext, BootstrapEnvironment};
+    use std::path::PathBuf;
+
+    /// Confirms bootstrap paths remain separate from semantic project scope.
+    #[test]
+    fn bootstrap_environment_does_not_create_semantic_scope() {
+        let path = PathBuf::from("/trusted/project");
+        let context = ApplicationContext::empty().with_bootstrap(BootstrapEnvironment {
+            working_directory: path.clone(),
+        });
+
+        assert_eq!(context.bootstrap.unwrap().working_directory, path);
+        assert_eq!(context.snapshot, None);
     }
 }

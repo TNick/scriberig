@@ -45,6 +45,18 @@ impl TuiPty {
         Self::start_for_fixture(basic_fixture())
     }
 
+    /// Starts the native TUI with an empty database and no selected project.
+    ///
+    /// # Returns
+    /// A running TUI session with a fresh database and no project arguments.
+    ///
+    /// # Panics
+    /// Panics when the pseudo-terminal or child process cannot be created.
+    #[must_use]
+    pub fn start_empty() -> Self {
+        Self::start_with_project(temporary_fixture(), false)
+    }
+
     /// Starts the TUI against the checked-in Rust golden project copy.
     ///
     /// # Returns
@@ -90,6 +102,21 @@ impl TuiPty {
     /// # Panics
     /// Panics when the pseudo-terminal or child process cannot be created.
     fn start_for_fixture(fixture: PathBuf) -> Self {
+        Self::start_with_project(fixture, true)
+    }
+
+    /// Starts the native process with optional project-import arguments.
+    ///
+    /// # Parameters
+    /// - `fixture`: Directory used to hold the fresh or durable database.
+    /// - `import_project`: Whether to pass the fixture as a project to import.
+    ///
+    /// # Returns
+    /// A running TUI session.
+    ///
+    /// # Panics
+    /// Panics when the pseudo-terminal or child process cannot be created.
+    fn start_with_project(fixture: PathBuf, import_project: bool) -> Self {
         let database = fixture.join("scriberig.sqlite");
         let pty_system = native_pty_system();
         let pair = pty_system
@@ -101,14 +128,14 @@ impl TuiPty {
             })
             .expect("open pty");
         let mut command = CommandBuilder::new(env!("CARGO_BIN_EXE_srig"));
-        command.args([
-            "tui",
-            "--db",
-            database.to_str().expect("database path"),
-            "--project",
-            fixture.to_str().expect("fixture path"),
-            "--import",
-        ]);
+        command.args(["tui", "--db", database.to_str().expect("database path")]);
+        if import_project {
+            command.args([
+                "--project",
+                fixture.to_str().expect("fixture path"),
+                "--import",
+            ]);
+        }
         let child = pair.slave.spawn_command(command).expect("spawn tui");
         let master = pair.master;
         let mut writer = master.take_writer().expect("take writer");

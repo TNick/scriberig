@@ -5,6 +5,21 @@ mod tui_pty_support;
 use portable_pty::PtySize;
 use tui_pty_support::{TuiPty, test_lock};
 
+/// Verifies a real TUI process starts with a fresh database and no project.
+#[test]
+fn tui_pty_starts_without_a_project() {
+    let _lock = test_lock();
+    let mut tui = TuiPty::start_empty();
+
+    assert!(
+        tui.read_until("project: unselected"),
+        "{}",
+        tui.diagnostic()
+    );
+    assert!(!tui.screen().contains("Entity:"), "{}", tui.diagnostic());
+    assert!(tui.shutdown());
+}
+
 /// Verifies the native TUI project context is visible after startup.
 #[test]
 fn tui_pty_shows_project_context() {

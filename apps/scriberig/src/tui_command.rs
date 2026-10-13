@@ -3,8 +3,8 @@
 use std::sync::Arc;
 
 use scriberig_app::{
-    ApplicationBackendComposition, ApplicationContext, ApplicationService, StoreInspectionBackend,
-    StoreOperationProvider,
+    ApplicationBackendComposition, ApplicationContext, ApplicationService, BootstrapEnvironment,
+    StoreInspectionBackend, StoreOperationProvider,
 };
 use scriberig_core::{EntityId, ProjectId, SnapshotId};
 use scriberig_store_sqlite::SqliteStore;
@@ -80,7 +80,6 @@ pub(super) fn run(
             },
         )
         .transpose()?;
-    let fixture = scriberig_server::ensure_fixture(&store).map_err(std::io::Error::other)?;
     let backend = ApplicationBackendComposition::new(
         StoreInspectionBackend::new(Arc::clone(&store)),
         StoreOperationProvider::new(Arc::clone(&store)),
@@ -130,7 +129,9 @@ pub(super) fn run(
     } else {
         service
     };
-    let context = ApplicationContext::empty();
+    let context = ApplicationContext::empty().with_bootstrap(BootstrapEnvironment {
+        working_directory: std::env::current_dir()?,
+    });
     scriberig_tui::run(
         &service,
         &context,
@@ -147,14 +148,8 @@ pub(super) fn run(
                         .map_or_else(|| "unimported".to_owned(), |snapshot| snapshot.to_string())
                 )
             }),
-            initial_entity: project
-                .as_ref()
-                .and_then(|value| value.1)
-                .or(Some(fixture.root_entity)),
-            snapshot: project
-                .as_ref()
-                .and_then(|value| value.2)
-                .or(Some(fixture.snapshot)),
+            initial_entity: project.as_ref().and_then(|value| value.1),
+            snapshot: project.as_ref().and_then(|value| value.2),
         },
     )?;
     Ok(())
