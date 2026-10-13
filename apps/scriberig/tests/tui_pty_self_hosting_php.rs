@@ -2,6 +2,8 @@
 
 #[path = "tui_pty_support/self_hosting_php_assertions.rs"]
 mod assertions;
+#[path = "tui_pty_support/branch_assertions.rs"]
+mod branch_assertions;
 #[allow(dead_code)]
 mod tui_pty_support;
 
@@ -14,6 +16,7 @@ use assertions::{
     assert_materialized_php_fixture, assert_tui_history_transition,
     assert_unrelated_source_unchanged,
 };
+use branch_assertions::assert_nested_branch_results;
 use scriberig_project::ProjectService;
 use scriberig_session::SessionStore;
 use scriberig_session_sqlite::SqliteSessionStore;
@@ -86,19 +89,8 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
         &root_manifest_before,
     );
     let saved = load_session(&database, session);
-    assert!(saved.branches.iter().any(|branch| {
-        branch
-            .purpose
-            .as_deref()
-            .is_some_and(|purpose| purpose.contains("determine minimal extension points"))
-    }));
+    assert_nested_branch_results(&saved);
     let candidate = assert_candidate_result(&saved);
-    assert!(saved.branches.iter().any(|branch| {
-        branch
-            .purpose
-            .as_deref()
-            .is_some_and(|purpose| purpose.contains("implement PHP ingestion"))
-    }));
     let applied_snapshot = review_and_apply(
         &mut tui,
         &checkout,
