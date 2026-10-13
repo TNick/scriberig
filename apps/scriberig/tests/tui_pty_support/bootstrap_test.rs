@@ -7,6 +7,104 @@ use scriberig_session::{BranchStatus, SessionStore};
 use scriberig_session_sqlite::SqliteSessionStore;
 use scriberig_store_sqlite::SqliteStore;
 
+/// Verifies failed import after manifest review leaves the project inactive and source unchanged.
+#[test]
+fn tui_bootstrap_import_failure_does_not_activate_partial_project() {
+    let _lock = super::tui_pty_support::test_lock();
+    let mut tui = super::tui_pty_support::TuiPty::start_bootstrap_import_failure();
+    assert!(
+        tui.read_until("project: unselected"),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send(b":");
+    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
+    tui.send(b"start-agent\r");
+    assert!(tui.read_until("Session:"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
+    let session = tui
+        .screen()
+        .split("Session:")
+        .nth(1)
+        .and_then(|value| value.split_whitespace().next())
+        .expect("visible session")
+        .parse::<EntityId>()
+        .expect("session identity");
+    let checkout = tui.fixture_path().join("scriberig");
+    let manifest = std::fs::read(checkout.join("Cargo.toml")).expect("baseline manifest");
+    let source = std::fs::read(checkout.join("crates/scriberig-project/src/scan.rs"))
+        .expect("baseline scanner");
+
+    tui.send(b"Onboard the current project.\r");
+    tui.send(b":");
+    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
+    tui.send(b"operations");
+    assert!(tui.read_until("View operations"), "{}", tui.diagnostic());
+    tui.send(b"\r");
+    assert!(
+        tui.read_until_for("Failed", std::time::Duration::from_secs(60)),
+        "{}",
+        tui.diagnostic()
+    );
+
+    assert!(tui.screen().contains("project: unselected"));
+    assert_eq!(
+        std::fs::read(checkout.join("Cargo.toml")).expect("manifest after failure"),
+        manifest
+    );
+    assert_eq!(
+        std::fs::read(checkout.join("crates/scriberig-project/src/scan.rs"))
+            .expect("scanner after failure"),
+        source
+    );
+    let database = tui.fixture_path().join("scriberig.sqlite");
+    let store = SqliteStore::open(&database).expect("product store");
+    let projects = store.list_projects().expect("registered scan projects");
+    assert_eq!(projects.len(), 1, "scan registration remains inspectable");
+    assert!(projects[0].current_snapshot.is_none());
+    assert!(
+        ProjectService::new(std::sync::Arc::new(
+            SqliteStore::open(&database).expect("manifest service store"),
+        ))
+        .manifest_summary(projects[0].id)
+        .expect("persisted reviewed manifest")
+        .file_count
+            > 0
+    );
+    assert!(
+        ProjectService::new(std::sync::Arc::new(
+            SqliteStore::open(&database).expect("project service store"),
+        ))
+        .workspace(projects[0].id)
+        .is_err()
+    );
+
+    let saved = SqliteSessionStore::open(&database)
+        .expect("session store")
+        .load(session)
+        .expect("durable session")
+        .expect("session exists");
+    let branch = saved
+        .branches
+        .iter()
+        .find(|branch| {
+            branch
+                .result
+                .as_ref()
+                .is_some_and(|result| result.result_kind.as_deref() == Some("agent-failure"))
+        })
+        .expect("durable failed onboarding branch");
+    assert!(
+        branch
+            .outcome
+            .as_deref()
+            .is_some_and(|outcome| { outcome.contains("manifest_changed") }),
+        "failure outcome: {:?}",
+        branch.outcome
+    );
+    assert!(tui.shutdown_allow_failure());
+}
+
 /// Runs project onboarding through the deterministic provider in a real TUI PTY.
 #[test]
 fn tui_bootstraps_project_and_reopens_exact_workspace() {

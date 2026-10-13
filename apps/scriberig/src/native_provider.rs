@@ -11,6 +11,8 @@ pub(super) enum NativeProvider {
     OpenAiCompatible(scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider),
     /// Deterministic onboarding scenario used by product tests.
     Deterministic(crate::deterministic_provider::BootstrapProvider),
+    /// Deterministic failure after persisted manifest review.
+    BootstrapImportFailure(crate::bootstrap_failure_provider::BootstrapImportFailureProvider),
     /// Deterministic PHP self-extension flow selected by product-gate configuration.
     SelfHostingPhp(crate::self_hosting_provider::PhpSelfHostingProvider),
 }
@@ -31,6 +33,7 @@ impl ProviderAdapter for NativeProvider {
         match self {
             Self::OpenAiCompatible(provider) => provider.complete(request),
             Self::Deterministic(provider) => provider.complete(request),
+            Self::BootstrapImportFailure(provider) => provider.complete(request),
             Self::SelfHostingPhp(provider) => provider.complete(request),
         }
     }

@@ -15,6 +15,7 @@ use scriberig_store_sqlite::SqliteStore;
 
 mod agent_tool;
 mod agent_tool_helpers;
+mod bootstrap_failure_provider;
 mod child_runtime;
 mod deterministic_provider;
 mod native_provider;

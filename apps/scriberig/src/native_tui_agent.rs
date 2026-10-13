@@ -60,6 +60,9 @@ impl NativeTuiAgentRunner {
                     "bootstrap" => NativeProvider::Deterministic(
                         crate::deterministic_provider::BootstrapProvider,
                     ),
+                    "bootstrap_import_failure" => NativeProvider::BootstrapImportFailure(
+                        crate::bootstrap_failure_provider::BootstrapImportFailureProvider,
+                    ),
                     "self_hosting_php" => NativeProvider::SelfHostingPhp(
                         crate::self_hosting_provider::PhpSelfHostingProvider {
                             validation_failure: false,

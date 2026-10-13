@@ -5,6 +5,18 @@ use std::path::PathBuf;
 use super::{TuiPty, tui_pty_fixture};
 
 impl TuiPty {
+    /// Starts a copied Scriberig checkout with a deterministic import failure after manifest review.
+    ///
+    /// # Returns
+    /// A no-project TUI process prepared to verify failed onboarding remains inactive.
+    ///
+    /// # Panics
+    /// Panics when the checkout copy, Git index, or PTY process cannot be prepared.
+    #[must_use]
+    pub fn start_bootstrap_import_failure() -> Self {
+        Self::start_self_hosting_scenario("bootstrap_import_failure")
+    }
+
     /// Starts a fresh native TUI in a copied Scriberig checkout for self-hosting.
     ///
     /// # Returns
