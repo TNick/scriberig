@@ -15,6 +15,8 @@ fn registry_tracks_lifecycle_and_publishes_events() {
     registry
         .start(id.clone(), OperationKind::Inspect)
         .expect("start");
+    let cancellation = registry.cancellation_flag(&id).expect("cancellation flag");
+    assert!(!cancellation.load(std::sync::atomic::Ordering::Acquire));
     registry
         .transition(&id, OperationStatus::Running)
         .expect("running");
@@ -30,6 +32,7 @@ fn registry_tracks_lifecycle_and_publishes_events() {
         )
         .expect("progress");
     registry.cancel(&id).expect("cancel");
+    assert!(cancellation.load(std::sync::atomic::Ordering::Acquire));
 
     assert_eq!(
         registry.get(&id).expect("record").status,

@@ -3,11 +3,14 @@
 pub use scriberig_core::OperationId;
 
 use crate::{ApplicationError, ApplicationEvent};
+use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::{self, Receiver};
 use std::sync::{Arc, Mutex};
 
 #[path = "operation_agent.rs"]
 mod operation_agent;
+#[path = "operation_cancellation.rs"]
+mod operation_cancellation;
 #[path = "operation_record.rs"]
 mod operation_record;
 #[path = "operation_state.rs"]
@@ -112,7 +115,7 @@ pub struct OperationRecord {
 #[derive(Clone, Default)]
 pub struct OperationRegistry {
     /// Shared mutable lifecycle state and event subscribers.
-    state: Arc<Mutex<OperationRegistryState>>,
+    pub(in crate::operation) state: Arc<Mutex<OperationRegistryState>>,
 }
 
 impl OperationRegistry {
@@ -149,6 +152,9 @@ impl OperationRegistry {
             });
         }
         let record = OperationRecord::queued(id.clone(), kind);
+        state
+            .cancellation
+            .insert(id.clone(), Arc::new(AtomicBool::new(false)));
         state.records.insert(id.clone(), record.clone());
         state.publish(&ApplicationEvent::OperationStarted { operation: id });
         Ok(record)
@@ -314,20 +320,6 @@ impl OperationRegistry {
         Ok(updated)
     }
 
-    /// Cancels one active operation.
-    ///
-    /// # Parameters
-    /// - `id`: Operation identity to cancel.
-    ///
-    /// # Returns
-    /// The cancelled operation record.
-    ///
-    /// # Errors
-    /// Returns a structured failure when cancellation is invalid.
-    pub fn cancel(&self, id: &OperationId) -> Result<OperationRecord, ApplicationError> {
-        self.transition(id, OperationStatus::Cancelled)
-    }
-
     /// Subscribes to future lifecycle events.
     ///
     /// # Returns
@@ -373,12 +365,18 @@ impl OperationRegistry {
 
     /// Acquires the registry state or reports a lock failure.
     ///
+    /// # Parameters
+    /// - `self`: Registry whose state is locked.
+    /// - `super`: Parent module visibility boundary.
+    ///
     /// # Returns
     /// The locked registry state.
     ///
     /// # Errors
     /// Returns an internal error when the mutex is poisoned.
-    fn lock(&self) -> Result<std::sync::MutexGuard<'_, OperationRegistryState>, ApplicationError> {
+    pub(in crate::operation) fn lock(
+        &self,
+    ) -> Result<std::sync::MutexGuard<'_, OperationRegistryState>, ApplicationError> {
         self.state.lock().map_err(|_| ApplicationError::Internal {
             message: "operation registry lock failed".to_owned(),
         })

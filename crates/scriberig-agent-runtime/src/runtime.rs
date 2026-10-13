@@ -332,6 +332,12 @@ where
                         .unwrap_or(usize::MAX),
                 )?;
             }
+            if cancelled.load(Ordering::Acquire) {
+                self.emit(BranchPhase::Cancelled);
+                self.emit_event(RuntimeEvent::branch_execution_cancelled(&self.branch_id));
+                self.finish_operation(operation.as_ref(), OperationStatus::Cancelled);
+                return Err(AgentError::Cancelled);
+            }
             match decision {
                 ModelDecision::Final(output) => {
                     self.emit(BranchPhase::Completing);

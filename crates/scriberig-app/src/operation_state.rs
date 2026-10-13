@@ -1,6 +1,8 @@
 //! Stores operation records and publishes lifecycle events.
 
 use std::collections::BTreeMap;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::Sender;
 
 use crate::{ApplicationError, ApplicationEvent, OperationId, OperationRecord, OperationStatus};
@@ -10,6 +12,8 @@ use crate::{ApplicationError, ApplicationEvent, OperationId, OperationRecord, Op
 pub(super) struct OperationRegistryState {
     /// Operation records keyed by their stable identity.
     pub records: BTreeMap<OperationId, OperationRecord>,
+    /// Cooperative cancellation flags keyed by operation identity.
+    pub cancellation: BTreeMap<OperationId, Arc<AtomicBool>>,
     /// Subscribers receiving lifecycle events.
     subscribers: Vec<Sender<ApplicationEvent>>,
     /// Bounded in-process history available to protocol subscribers.

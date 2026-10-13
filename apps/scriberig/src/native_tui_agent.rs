@@ -135,6 +135,7 @@ impl<B: ApplicationBackend> scriberig_tui::AgentCommandRunner<B> for NativeTuiAg
             selection: selection.clone(),
         };
         let handle = service.begin_agent_execution(context, &request)?;
+        let cancelled = service.operations().cancellation_flag(&handle.operation)?;
         let Some(provider) = self.provider.as_ref() else {
             let message = "configure SCRIBE_AGENT_BASE_URL before starting agent work";
             service.fail_local_agent(&handle, message)?;
@@ -156,6 +157,7 @@ impl<B: ApplicationBackend> scriberig_tui::AgentCommandRunner<B> for NativeTuiAg
             handle.root_branch,
             prompt,
             selection.as_ref(),
+            &cancelled,
         );
         let result = match result {
             Ok(result) => result,
@@ -328,6 +330,7 @@ pub(super) fn execute_agent<P, B>(
     branch: EntityId,
     prompt: &str,
     selection: Option<&AgentSelection>,
+    cancelled: &std::sync::atomic::AtomicBool,
 ) -> Result<scriberig_agent_runtime::AgentResult, AgentError>
 where
     P: ProviderAdapter + Clone,
@@ -384,11 +387,5 @@ where
         LocalAgentTool::new(service).with_project_store(Arc::clone(project_store)),
         32,
     );
-    runtime.run_with_child_executor_at(
-        &scope,
-        context,
-        prompt,
-        &std::sync::atomic::AtomicBool::new(false),
-        &mut children,
-    )
+    runtime.run_with_child_executor_at(&scope, context, prompt, cancelled, &mut children)
 }

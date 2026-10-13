@@ -124,6 +124,10 @@ mod tests {
             handle.root_branch,
             "Onboard the current project.",
             None,
+            &service
+                .operations()
+                .cancellation_flag(&handle.operation)
+                .expect("cancellation flag"),
         )
         .expect("normal agent orchestration");
         assert!(result.output.contains("semantic root was inspected"));

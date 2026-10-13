@@ -56,10 +56,12 @@ impl<B> ApplicationService<B> {
                 message: error.to_string(),
             })?;
         self.save_session_state(session)?;
-        self.operations.fail(
-            &handle.operation,
-            ApplicationError::Internal { message: failure },
-        )?;
+        if self.operations.get(&handle.operation)?.status != crate::OperationStatus::Cancelled {
+            self.operations.fail(
+                &handle.operation,
+                ApplicationError::Internal { message: failure },
+            )?;
+        }
         Ok(())
     }
 
