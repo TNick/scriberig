@@ -6,9 +6,7 @@ use std::sync::Arc;
 
 use scriberig_core::{ProjectId, SnapshotId};
 use scriberig_store::{RootStore, Snapshot, SnapshotChange};
-use scriberig_store_sqlite::{
-    ProjectEntityRecord, ProjectFileRecord, ProjectRecord, ProjectStatus, SqliteStore,
-};
+use scriberig_store_sqlite::{ProjectEntityRecord, ProjectFileRecord, ProjectRecord, SqliteStore};
 
 #[path = "support.rs"]
 mod support;
@@ -19,6 +17,8 @@ mod candidate;
 mod manifest;
 #[path = "project_views.rs"]
 mod project_views;
+#[path = "scan_manifest.rs"]
+mod scan_manifest;
 pub use candidate::{
     CandidateApplyReport, CandidateValidation, ProjectCandidate, ProjectSourceChange,
     ProjectSourceChangeKind, ProjectSourceEffect, ProjectSourceEffectKind,
@@ -27,7 +27,7 @@ pub use manifest::{ProjectManifestEntry, ProjectManifestPage, ProjectManifestSum
 pub use project_views::{ProjectSourceProjection, ProjectSymbol};
 #[path = "errors.rs"]
 mod errors;
-use errors::{filesystem_error, git_error, missing_project, promotion_error, storage_error};
+use errors::{git_error, missing_project, promotion_error, storage_error};
 
 /// Shared project onboarding service used by CLI, HTTP, and TUI surfaces.
 #[derive(Clone, Debug)]
@@ -205,40 +205,7 @@ impl ProjectService {
         } else {
             None
         };
-        let files = support::scan_directory(&project.path, tracked.as_ref())
-            .map_err(|error| filesystem_error(&error))?;
-        let records = files
-            .iter()
-            .map(|file| ProjectFileRecord {
-                project_id: project.id,
-                relative_path: file.relative_path.clone(),
-                entity: support::source_entity(project.id, &file.relative_path),
-                digest: *blake3::hash(&file.bytes).as_bytes(),
-                bytes: file.bytes.clone(),
-                adapter: file.adapter.clone(),
-                status: file.status.clone(),
-            })
-            .collect::<Vec<_>>();
-        self.store
-            .replace_project_files(project.id, &records)
-            .map_err(storage_error)?;
-        self.store
-            .set_project_status(
-                project.id,
-                ProjectStatus::ScanReady,
-                project.current_snapshot,
-            )
-            .map_err(storage_error)?;
-        let project = self
-            .store
-            .project(project.id)
-            .map_err(storage_error)?
-            .ok_or_else(|| missing_project(project.id))?;
-        Ok(ScanReport {
-            project,
-            files,
-            git_tracked: options.git_tracked,
-        })
+        self.persist_scan(&project, tracked.as_ref(), options.git_tracked)
     }
 
     /// Imports the persisted scan into an immutable project snapshot.

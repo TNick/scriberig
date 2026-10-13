@@ -159,7 +159,8 @@ impl SqliteStore {
             "SELECT project_id,relative_path,entity,kind,name
              FROM project_entities
              WHERE project_id=? AND (lower(relative_path) LIKE ? OR lower(kind) LIKE ? OR lower(name) LIKE ?)
-             ORDER BY CASE WHEN kind='source' THEN 0 ELSE 1 END,
+             ORDER BY CASE WHEN name IS NOT NULL THEN 0 ELSE 1 END,
+                      CASE WHEN kind='source' THEN 0 ELSE 1 END,
                       relative_path,entity LIMIT ?",
         )?;
         let pattern = format!("%{}%", query.to_lowercase());

@@ -9,7 +9,7 @@ use crate::errors::{adapter_diagnostics_error, invalid_input};
 
 #[path = "git.rs"]
 mod git;
-pub(crate) use git::git_tracked_paths;
+pub(crate) use git::{git_candidate_paths, git_tracked_paths};
 #[path = "scan.rs"]
 mod scan;
 pub(crate) use scan::{adapter_for, scan_directory};

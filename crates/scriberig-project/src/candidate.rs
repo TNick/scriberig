@@ -13,6 +13,8 @@ use candidate_support::{candidate_id, validate_project};
 mod aggregate;
 #[path = "candidate_apply.rs"]
 mod apply;
+#[path = "candidate_apply_scope.rs"]
+mod apply_scope;
 #[path = "candidate_base.rs"]
 mod base;
 #[path = "candidate_persistence.rs"]

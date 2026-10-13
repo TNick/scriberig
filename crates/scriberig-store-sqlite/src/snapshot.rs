@@ -28,6 +28,7 @@ impl SnapshotStore for SqliteStore {
         if snapshot == scriberig_store::Snapshot::empty().id() {
             return Ok(None);
         }
+        validate_snapshot_root(&connection, snapshot)?;
         let revision: Option<Vec<u8>> = connection
             .query_row(
                 "SELECT revision FROM snapshot_entries WHERE snapshot_id=? AND entity=?",
@@ -138,6 +139,53 @@ impl SnapshotStore for SqliteStore {
             .map_err(|error| SnapshotError::Backend(error.to_string()))?;
         rows.map(|row| row.map_err(|error| SnapshotError::Backend(error.to_string())))
             .collect()
+    }
+}
+
+/// Verifies that a snapshot's persistent map root is present when referenced.
+///
+/// # Parameters
+/// - `connection`: SQLite connection containing snapshot roots and nodes.
+/// - `snapshot`: Exact snapshot identity to check.
+///
+/// # Returns
+/// Unit when the snapshot uses a valid root reference or legacy flat index.
+///
+/// # Errors
+/// Returns a backend error for malformed or missing root nodes.
+fn validate_snapshot_root(
+    connection: &rusqlite::Connection,
+    snapshot: SnapshotId,
+) -> Result<(), SnapshotError> {
+    let root: Option<Vec<u8>> = connection
+        .query_row(
+            "SELECT node_id FROM snapshot_node_roots WHERE snapshot_id=?",
+            params![snapshot.as_bytes().as_slice()],
+            |row| row.get(0),
+        )
+        .optional()
+        .map_err(|error| SnapshotError::Backend(error.to_string()))?;
+    let Some(root) = root else {
+        return Ok(());
+    };
+    if root.len() != 32 {
+        return Err(SnapshotError::Backend(
+            "invalid stored snapshot node identity length".to_owned(),
+        ));
+    }
+    let present: bool = connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM snapshot_nodes WHERE id=?)",
+            params![root],
+            |row| row.get(0),
+        )
+        .map_err(|error| SnapshotError::Backend(error.to_string()))?;
+    if present {
+        Ok(())
+    } else {
+        Err(SnapshotError::Backend(
+            "missing snapshot root node".to_owned(),
+        ))
     }
 }
 

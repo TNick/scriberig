@@ -120,7 +120,8 @@ pub(super) fn preflight_project_tree(
         .iter()
         .map(|file| (file.relative_path.as_str(), file))
         .collect::<std::collections::HashMap<_, _>>();
-    let current = crate::support::scan_directory(root, None)
+    let paths = super::super::apply_scope::candidate_scan_paths(root, base_files, effects)?;
+    let current = crate::support::scan_directory(root, paths.as_ref())
         .map_err(|error| candidate_error("filesystem_scan_failed", &error.to_string()))?;
     let mut observed = std::collections::HashSet::new();
     for file in current.into_iter().filter(|file| file.status == "ready") {

@@ -58,7 +58,15 @@ impl ProjectService {
             self.record_effect(&durable, None, "unknown", Some(&error.message))?;
             return Err(error);
         }
-        if let Err(error) = self.scan(Some(workspace.project.name.clone()), &root) {
+        let refresh =
+            super::apply_scope::candidate_scan_paths(&root, &base_files, &durable.effects)
+                .and_then(|paths| match paths {
+                    Some(paths) => {
+                        self.scan_with_paths(Some(workspace.project.name.clone()), &root, &paths)
+                    }
+                    None => self.scan(Some(workspace.project.name.clone()), &root),
+                });
+        if let Err(error) = refresh {
             self.record_effect(&durable, None, "unknown", Some(&error.message))?;
             return Err(error);
         }
