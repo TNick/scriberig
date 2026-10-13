@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "baseline_php_adapter": "text",
+  "candidate_adapter": "php",
+  "dependency": {
+    "crate": "tree-sitter-php",
+    "version": "0.25.1",
+    "license": "MIT",
+    "tree_sitter_runtime": "0.25"
+  },
+  "candidate_paths": [
+    { "kind": "create", "path": "crates/domains/scriberig-domain-php/Cargo.toml" },
+    { "kind": "create", "path": "crates/domains/scriberig-domain-php/src/lib.rs" },
+    { "kind": "update", "path": "Cargo.toml" },
+    { "kind": "update", "path": "crates/scriberig-project/Cargo.toml" },
+    { "kind": "update", "path": "crates/scriberig-project/src/scan.rs" },
+    { "kind": "update", "path": "crates/scriberig-project/src/adapters.rs" },
+    { "kind": "create", "path": "crates/scriberig-project/tests/php_ingestion.rs" },
+    { "kind": "update", "path": "Cargo.lock" }
+  ],
+  "semantic_acceptance": [
+    "complete deterministic syntax tree with ranges, fields, comments, and errors",
+    "namespace App, class Greeter, method greet, and function helper discoverable",
+    "inline HTML and PHP parse together",
+    "exact project source bytes remain available for projection",
+    "malformed PHP produces structured import diagnostics without promotion"
+  ]
+}
