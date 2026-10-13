@@ -11,6 +11,9 @@
   "candidate_paths": [
     { "kind": "create", "path": "crates/domains/scriberig-domain-php/Cargo.toml" },
     { "kind": "create", "path": "crates/domains/scriberig-domain-php/src/lib.rs" },
+    { "kind": "create", "path": "crates/domains/scriberig-domain-php/src/syntax.rs" },
+    { "kind": "create", "path": "crates/domains/scriberig-domain-php/src/declarations.rs" },
+    { "kind": "create", "path": "crates/domains/scriberig-domain-php/tests/contract.rs" },
     { "kind": "update", "path": "Cargo.toml" },
     { "kind": "update", "path": "crates/scriberig-project/Cargo.toml" },
     { "kind": "update", "path": "crates/scriberig-project/src/scan.rs" },
