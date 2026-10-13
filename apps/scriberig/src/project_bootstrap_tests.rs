@@ -2,6 +2,9 @@
 
 #[cfg(test)]
 mod tests {
+    #[path = "project_bootstrap_semantic_scope_tests.rs"]
+    mod semantic_scope_tests;
+
     use std::fs;
     use std::{process::Command, sync::Arc};
 
@@ -212,7 +215,12 @@ mod tests {
                 .as_ref()
                 .is_some_and(|text| text.contains("Use semantic project references"))
         );
-        assert_semantic_architecture(&semantic_tools, &semantic_context, project, snapshot);
+        semantic_scope_tests::assert_semantic_architecture(
+            &semantic_tools,
+            &semantic_context,
+            project,
+            snapshot,
+        );
         let project_record = store
             .project(project)
             .expect("project record")
@@ -224,6 +232,14 @@ mod tests {
                 .expect("owned entities")
                 .iter()
                 .any(|entity| entity.entity == root_entity)
+        );
+        semantic_scope_tests::assert_stale_discovery_scope(
+            &semantic_tools,
+            &semantic_context,
+            &store,
+            project,
+            snapshot,
+            &root,
         );
         service
             .complete_local_agent(&handle, result.output)
@@ -261,90 +277,7 @@ mod tests {
         }
     }
 
-    /// Discovers architecture files by semantic source path and exact snapshot.
-    ///
-    /// # Parameters
-    /// - `tools`: Shared project semantic application tool adapter.
-    /// - `context`: Trusted exact-snapshot context for the imported project.
-    /// - `project`: Stable imported project identity.
-    /// - `snapshot`: Exact immutable project snapshot.
-    /// - `super`: Parent test module containing the bootstrap scenario.
-    ///
-    /// # Panics
-    /// Panics when a representative architecture source cannot be found or rendered.
-    fn assert_semantic_architecture(
-        tools: &LocalAgentTool<'_, impl scriberig_app::ApplicationBackend>,
-        context: &ApplicationContext,
-        project: ProjectId,
-        snapshot: SnapshotId,
-    ) {
-        for path in [
-            "Cargo.toml",
-            "capabilities.toml",
-            "crates/domains/scriberig-domain-code/src/lib.rs",
-            "crates/domains/scriberig-domain-python/src/lib.rs",
-            "crates/domains/test-support/src/conformance.rs",
-            "crates/scriberig-project/src/adapters.rs",
-            "crates/scriberig-project/src/scan.rs",
-        ] {
-            let found = tools
-                .invoke_named(
-                    context,
-                    "semantic_find",
-                    &serde_json::json!({
-                        "project": project.to_string(),
-                        "snapshot": snapshot.to_string(),
-                        "query": path,
-                        "limit": 50
-                    }),
-                )
-                .expect("semantic architecture find");
-            let source = found
-                .handles
-                .iter()
-                .filter_map(|handle| serde_json::from_str::<serde_json::Value>(handle).ok())
-                .find(|value| {
-                    value.get("path").and_then(serde_json::Value::as_str) == Some(path)
-                        && value.get("kind").and_then(serde_json::Value::as_str) == Some("source")
-                })
-                .unwrap_or_else(|| {
-                    panic!("exact semantic architecture handle for {path}: {found:?}")
-                });
-            assert_eq!(source["project"], project.to_string());
-            assert_eq!(source["snapshot"], snapshot.to_string());
-            let entity = source["entity"].as_str().expect("semantic source entity");
-            let rendered = tools
-                .invoke_named(
-                    context,
-                    "semantic_render",
-                    &serde_json::json!({
-                        "project": project.to_string(),
-                        "snapshot": snapshot.to_string(),
-                        "entity": entity
-                    }),
-                )
-                .expect("semantic architecture render");
-            assert!(
-                rendered
-                    .handles
-                    .iter()
-                    .any(|handle| { handle == &format!("snapshot:{snapshot}") })
-            );
-            assert!(
-                rendered
-                    .handles
-                    .iter()
-                    .any(|handle| handle.starts_with("source_digest:"))
-            );
-            assert!(
-                rendered
-                    .summary
-                    .as_deref()
-                    .is_some_and(|text| text.contains(path))
-            );
-        }
-    }
-
+    /// Rejects unauthorized scans and model-supplied filesystem paths.
     /// Rejects unauthorized scans and model-supplied filesystem paths.
     #[test]
     fn bootstrap_scan_requires_capability_and_trusted_path_reference() {
