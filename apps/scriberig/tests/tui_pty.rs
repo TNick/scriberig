@@ -190,7 +190,7 @@ fn tui_pty_opens_help_overlay() {
 
     assert!(tui.read_until("project: "), "{}", tui.diagnostic());
     tui.send(b"?");
-    assert!(tui.read_until("Ctrl-C"));
+    assert!(tui.read_until("Overlay [Esc close]"));
     let screen = tui.screen();
     assert!(screen.contains("Overlay"));
     for label in [
@@ -311,16 +311,11 @@ fn tui_pty_lists_local_palette_commands() {
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     let screen = tui.screen();
-    for command in [
-        "Open help",
-        "Refresh",
-        "Go back",
-        "Quit",
-        "View overview",
-        "View operations",
-    ] {
+    for command in ["Open help", "Refresh", "Go back", "Quit", "View overview"] {
         assert!(screen.contains(command), "missing {command}: {screen}");
     }
+    tui.send(b"operations");
+    assert!(tui.read_until("View operations"), "{}", tui.diagnostic());
     tui.send(b"\x1b");
     assert!(tui.read_until_not("Search:"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
@@ -336,7 +331,7 @@ fn tui_pty_submits_find_query() {
     tui.send(b"/");
     assert!(tui.read_until("Find:"), "{}", tui.diagnostic());
     tui.send(b"readmx");
-    tui.send(&[8]);
+    tui.send(&[127]);
     tui.send(b"e");
     assert!(tui.read_until("Find: readme"), "{}", tui.diagnostic());
     tui.send(b"\r");
