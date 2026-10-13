@@ -2,678 +2,726 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://tnick.github.io/scriberig/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/cli-reference/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/api/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/api/rust/static.files/SourceSerif4-LICENSE-a2cfd9d5/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/001.%20vision%20and%20principles/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/002.%20universal%20knowledge%20model/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/003.%20identity%20revisions%20and%20snapshots/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/004.%20persistence%20and%20storage%20model/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/005.%20changes%20migrations%20branches%20and%20merge/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/006.%20projections%20and%20bidirectional%20editing/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/007.%20domain%20modeling%20and%20adapters/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/008.%20derived%20knowledge%20caching%20and%20incrementality/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/009.%20agent%20interaction%20and%20sessions/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/010.%20universal%20query%20and%20operation%20model/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/011.%20runtime%20libraries%20protocol%20and%20product%20surfaces/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/012.%20web%20platform%20and%20integrated%20editor/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/013.%20trust%20validation%20capabilities%20and%20provenance/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/013.%20vertical%20product%20completion%20and%20end%20to%20end%20usability/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-1/014.%20agent%20native%20semantic%20self%20hosting/</loc>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/014.%20extensibility%20ecosystem%20and%20licensing/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/015.%20terminal%20user%20interface%20principles/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-1/016.%20model%20driven%20agent%20execution%20and%20branch%20isolation/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/001.%20derived%20knowledge%20runtime%20and%20cache%20design/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/002.%20canonical%20encoding%20and%20revision%20identity/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/003.%20snapshots%20roots%20and%20persistent%20collections/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/004.%20sqlite%20backend%20transactions%20and%20recovery/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/005.%20indexes%20reachability%20gc%20and%20integrity/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/006.%20persistence%20observability%20and%20conformance/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/007.%20projection%20crate%20boundaries%20and%20core%20model/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/008.%20filesystem%20projection%20synchronization/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/009.%20markdown%20editable%20projection%20adapter/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/010.%20universal%20query%20and%20operation%20implementation/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/011.%20application%20operations%20protocol%20and%20runtime%20boundaries/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/012.%20capability%20matrix%20and%20cross%20surface%20conformance/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/013.%20identity%20revision%20snapshot%20implementation/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/014.%20licensing%20artifacts%20package%20metadata%20and%20notices/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/015.%20persistence%20crate%20boundaries/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/016.%20universal%20knowledge%20model%20rust%20libraries/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/017.%20web%20workspace%20packages%20and%20integrated%20editor/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/018.%20workspace%20and%20package%20layout/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/019.%20change%20history%20and%20merge%20crate%20design/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/020.%20repository%20scaffold%20conventions%20and%20native%20command%20surface/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/021.%20terminal%20ui%20runtime%20and%20state%20architecture/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/022.%20terminal%20ui%20views%20interaction%20and%20conformance/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/023.%20agent%20runtime%20model%20provider%20and%20branch%20orchestration/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/024.%20agent%20operations%20protocol%20and%20cross%20surface%20product%20contract/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/025.%20first%20useful%20project%20workflow%20vertical%20slice/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-2/026.%20agent%20native%20self%20hosting%20golden%20workflow/</loc>
+         <lastmod>2026-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-2/027.%20project%20wide%20candidate%20workspaces%20validation%20and%20materialization/</loc>
+         <lastmod>2026-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-2/028.%20php%20code%20domain%20source%20adapter%20target/</loc>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/001.%20bootstrap%20persistence%20workspace%20and%20core%20ids/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/002.%20apply%20licensing%20metadata%20to%20rust%20crates/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/003.%20apply%20licensing%20metadata%20to%20web%20packages/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/004.%20document%20contribution%20licensing%20and%20third%20party%20notices/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/005.%20implement%20derivation%20events%20and%20domain%20registry/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/006.%20add%20derived%20knowledge%20conformance%20tests%20and%20documentation/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/007.%20bootstrap%20projection%20crates%20and%20core%20contracts/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/008.%20expose%20trust%20inspection%20in%20cli/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/009.%20expose%20trust%20inspection%20in%20web%20editor/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/010.%20implement%20domain%20capability%20discovery/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/011.%20add%20trust%20model%20end%20to%20end%20conformance%20tests/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/012.%20implement%20application%20operation%20primitives/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/013.%20implement%20protocol%20contract%20and%20schema%20export/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/014.%20add%20projection%20end%20to%20end%20conformance%20slice/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/015.%20expose%20inspect%20through%20cli%20and%20agent%20adapters/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/016.%20create%20capability%20matrix%20and%20conformance%20harness/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/017.%20implement%20find%20and%20structured%20query%20ast/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/018.%20implement%20universal%20application%20request%20result%20and%20capability%20model/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/019.%20integrate%20universal%20read%20diff%20history%20render%20and%20change%20operations/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/020.%20implement%20operation%20handles%20structured%20errors%20and%20extension%20registry/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/021.%20verify%20universal%20query%20and%20operation%20conformance/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/022.%20bootstrap%20web%20workspace%20and%20package%20scaffolds/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/023.%20bootstrap%20workspace%20and%20identity%20types/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/024.%20create%20repository%20license%20texts%20and%20licensing%20guide/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/024.%20implement%20project%20onboarding%20across%20surfaces/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/025.%20create%20sr-change%20crate%20scaffold/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/026.%20extend%20shared%20core%20with%20knowledge%20values%20and%20provenance/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/027.%20implement%20principal%20and%20capability%20model/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/028.%20initialize%20rust%20foundation%20workspace/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/029.%20scaffold%20derivation%20crate%20profiles%20dependencies%20and%20keys/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/030.%20scaffold%20domain%20adapter%20crates/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/031.%20enforce%20capabilities%20in%20application%20queries/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/032.%20implement%20canonical%20encoding%20and%20revision%20api/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/033.%20implement%20canonical%20encoding%20and%20revision%20hashing/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/034.%20implement%20derived%20result%20records%20and%20repository%20contract/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/035.%20implement%20markdown%20domain%20schema/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/036.%20implement%20migration%20operations%20and%20provenance/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/037.%20implement%20protocol%20package%20boundary/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/038.%20implement%20universal%20schema%20contracts/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/039.%20scaffold%20rust%20application%20and%20product%20layers/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/040.%20implement%20derived%20selection%20freshness%20failure%20and%20retention%20policies/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/041.%20implement%20framework%20independent%20transport%20client/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/042.%20implement%20history%20topology%20and%20lineage/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/043.%20implement%20immutable%20revision%20store/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/044.%20implement%20markdown%20adapter%20mapping/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/045.%20implement%20snapshots%20roots%20collections%20and%20memory%20backend/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/046.%20implement%20universal%20graph%20semantic%20records/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/047.%20implement%20validation%20evidence%20and%20exact%20input%20binding/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/048.%20initialize%20web%20workspace%20and%20headless%20packages/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/049.%20implement%20branches%20workspaces%20and%20promotion/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/050.%20implement%20candidate%20promotion%20and%20approval%20pipeline/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/051.%20implement%20client%20semantic%20model%20and%20incremental%20events/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/052.%20implement%20markdown%20semantic%20reconciliation/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/053.%20implement%20persistent%20snapshots%20and%20diffs/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/054.%20implement%20reverse%20dependency%20invalidation%20and%20explanations/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/055.%20implement%20sqlite%20durable%20backend/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/056.%20scaffold%20web%20ui%20packages%20and%20editor%20shell/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/057.%20verify%20universal%20knowledge%20model%20conformance/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/058.%20implement%20headless%20editor%20core%20primitives/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/059.%20implement%20language%20independent%20code%20domain/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/060.%20implement%20named%20roots%20and%20compare%20and%20swap/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/061.%20implement%20reachability%20gc%20and%20integrity/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/062.%20implement%20universal%20semantic%20diff/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/063.%20persist%20projection%20conflicts%20and%20captured%20evidence/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/064.%20implement%20external%20effect%20receipts%20and%20reconciliation/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/065.%20implement%20observability%20and%20shared%20conformance/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/066.%20implement%20react%20bindings/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/067.%20implement%20rust%20syntax%20domain%20adapter/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/068.%20implement%20three-way%20merge%20and%20conflicts/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/069.%20verify%20identity%20subsystem%20conformance/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/070.%20expose%20trust%20state%20through%20protocol%20and%20events/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/071.%20implement%20neutral%20reusable%20components/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/072.%20implement%20rebase%20and%20semantic%20replay/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/073.%20implement%20rust%20derived%20compiler%20analysis/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/074.%20verify%20persistence%20vertical%20slice/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/075.%20implement%20change%20queries%20and%20summaries/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/076.%20implement%20material%20ui%20component%20package/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/077.%20implement%20pdf%20import%20domain%20adapter/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/078.%20implement%20projection%20specifications%20rendering%20and%20adapter%20api/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/079.%20implement%20change%20subsystem%20conformance%20suite/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/080.%20implement%20filesystem%20projection%20ownership%20hashing%20and%20atomic%20io/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/081.%20implement%20reference%20integrated%20editor/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/082.%20implement%20session%20domain%20structure%20and%20views/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/083.%20implement%20filesystem%20observation%20synchronization%20and%20recovery/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/084.%20implement%20web%20boundary%20and%20conformance%20tests/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/085.%20prevent%20derived%20cache%20access%20leaks/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/086.%20implement%20domain%20conformance%20test%20support/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/087.%20implement%20markdown%20model%20parser%20renderer%20and%20style/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/088.%20scaffold%20runtime%20application%20and%20product%20crates/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/089.%20implement%20domain%20schema%20and%20adapter%20version%20metadata/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/090.%20implement%20markdown%20node%20matching%20and%20semantic%20reconciliation/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/091.%20implement%20rust%20semantic%20reconciliation/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/092.%20implement%20three%20way%20markdown%20synchronization%20and%20conflicts/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/093.%20implement%20server%20client%20inspect%20transport/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/094.%20implement%20universal%20query%20handles%20scope%20and%20pagination/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/095.%20implement%20inspect%20list%20and%20follow%20read%20operations/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/096.%20reconcile%20repository%20scaffold%20and%20quality%20automation/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/097.%20expose%20srig%20native%20command%20stubs/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/098.%20reconcile%20scaffold%20task%20status%20and%20supersession/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/099.%20bootstrap%20ratatui%20terminal%20runtime%20and%20shell/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/100.%20implement%20tui%20actions%20reducer%20navigation%20and%20keymap/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/101.%20implement%20tui%20application%20adapter%20explorer%20and%20inspector/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/102.%20implement%20tui%20history%20diff%20projection%20and%20change%20review%20views/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/103.%20implement%20tui%20sessions%20agent%20interaction%20and%20operation%20observation/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/104.%20wire%20srig%20tui%20to%20local%20application%20composition/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/105.%20add%20remote%20tui%20mode%20through%20scriberig-client/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/106.%20verify%20tui%20conformance%20accessibility%20and%20terminal%20recovery/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/107.%20extend%20session%20records%20for%20model%20execution%20and%20branch%20results/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/108.%20implement%20openai%20compatible%20model%20provider%20transport/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/109.%20implement%20branch%20context%20compiler%20and%20model%20request%20cache/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/110.%20implement%20nested%20branch%20orchestrator%20and%20trusted%20tool%20loop/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/111.%20expose%20agent%20execution%20through%20application%20protocol%20server%20and%20clients/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/112.%20implement%20one%20shot%20agent%20command%20through%20shared%20runtime/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/113.%20implement%20branch%20aware%20web%20agent%20experience/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/114.%20implement%20http%20protocol%20and%20event%20transport%20for%20remote%20clients/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/115.%20verify%20agent%20branch%20isolation%20and%20cross%20surface%20conformance/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/116.%20deliver%20first%20useful%20project%20workflow%20and%20product%20evidence/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/117.%20implement%20active%20project%20workspace%20across%20application%20web%20and%20tui/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/118.%20implement%20named%20semantic%20code%20navigation%20and%20rust%20source%20projection/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/119.%20implement%20projection%20edit%20candidate%20review%20and%20validation/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/120.%20implement%20migration%20apply%20filesystem%20materialization%20refresh%20and%20conflict%20recovery/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/121.%20implement%20semantically%20scoped%20agent%20candidate%20through%20shared%20change%20path/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/122.%20enforce%20real%20process%20golden%20path%20e2e%20product%20gate/</loc>
-         <lastmod>2026-10-12</lastmod>
+         <lastmod>2026-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/123.%20enable%20agent%20bootstrap%20and%20project%20onboarding%20from%20empty%20database/</loc>
+         <lastmod>2026-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/124.%20make%20onboarded%20project%20semantic%20context%20primary%20for%20agent%20discovery/</loc>
+         <lastmod>2026-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/125.%20implement%20project%20wide%20source%20change%20candidates/</loc>
+         <lastmod>2026-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/126.%20validate%20and%20apply%20project%20wide%20candidates%20safely/</loc>
+         <lastmod>2026-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/127.%20define%20php%20self%20extension%20contract%20and%20golden%20candidate%20fixture/</loc>
+         <lastmod>2026-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/128.%20implement%20deterministic%20self%20hosting%20provider%20scenario%20for%20php%20ingestion/</loc>
+         <lastmod>2026-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/129.%20deliver%20native%20tui%20agent%20self%20extension%20workflow%20for%20php%20ingestion/</loc>
+         <lastmod>2026-10-13</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/130.%20enforce%20real%20process%20self%20hosting%20php%20golden%20product%20gate/</loc>
+         <lastmod>2026-10-13</lastmod>
     </url>
 </urlset>
