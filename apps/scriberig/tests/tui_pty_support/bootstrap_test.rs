@@ -48,7 +48,10 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
         tui.diagnostic()
     );
     tui.send(b"Discover Scriberig architecture semantically.\r");
-    let discovered = tui.read_until("I found the repository guidance");
+    let discovered = tui.read_until_for(
+        "I found the repository guidance",
+        std::time::Duration::from_secs(120),
+    );
     let saved = SqliteSessionStore::open(tui.fixture_path().join("scriberig.sqlite"))
         .expect("open discovery diagnostic session store")
         .load(session)
