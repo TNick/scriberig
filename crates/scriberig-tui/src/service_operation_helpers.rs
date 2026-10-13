@@ -158,6 +158,9 @@ pub(super) fn execute_operation<B: ApplicationBackend>(
             });
         }
         let (validation, diagnostics) = match &candidate.validation {
+            scriberig_project::CandidateValidation::Pending => {
+                (scriberig_app::ValidationStatus::Skipped, Vec::new())
+            }
             scriberig_project::CandidateValidation::Passed => {
                 (scriberig_app::ValidationStatus::Passed, Vec::new())
             }

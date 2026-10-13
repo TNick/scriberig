@@ -13,9 +13,16 @@ use crate::{ProjectError, ProjectService};
 mod candidate_support;
 use candidate_support::{candidate_id, safe_join, validate_project};
 
+#[path = "candidate_aggregate.rs"]
+mod aggregate;
+#[path = "candidate_persistence.rs"]
+mod persistence;
+
 /// Validation state for a source candidate.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CandidateValidation {
+    /// Candidate has not yet been validated in its complete project state.
+    Pending,
     /// Semantic and project validation passed.
     Passed,
     /// Semantic parsing passed but project validation failed.
@@ -42,8 +49,56 @@ pub struct ProjectCandidate {
     pub old: Vec<u8>,
     /// Proposed source bytes.
     pub new: Vec<u8>,
+    /// Ordered source effects in this coherent candidate.
+    pub effects: Vec<ProjectSourceEffect>,
     /// Structured validation result.
     pub validation: CandidateValidation,
+}
+
+/// Describes a project-relative source change and its exact base precondition.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectSourceEffect {
+    /// Project-relative path; absolute paths are rejected.
+    pub path: String,
+    /// Kind of source change.
+    pub kind: ProjectSourceEffectKind,
+    /// Exact prior bytes for updates and deletes.
+    pub old: Option<Vec<u8>>,
+    /// Proposed bytes for creates and updates.
+    pub new: Option<Vec<u8>>,
+}
+
+/// Supported source effect kinds for a project candidate.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProjectSourceEffectKind {
+    /// Create a path absent from the exact base.
+    Create,
+    /// Replace a path owned by the exact base.
+    Update,
+    /// Remove a path owned by the exact base.
+    Delete,
+}
+
+/// Describes one requested project-relative source change.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectSourceChange {
+    /// Project-relative path to change.
+    pub path: String,
+    /// Requested source change kind.
+    pub kind: ProjectSourceChangeKind,
+    /// New source bytes, omitted only for delete.
+    pub content: Option<Vec<u8>>,
+}
+
+/// Requested source change operation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ProjectSourceChangeKind {
+    /// Create an absent path.
+    Create,
+    /// Update an owned path.
+    Update,
+    /// Delete an owned path.
+    Delete,
 }
 
 /// Result of applying a validated project candidate.
@@ -59,66 +114,6 @@ pub struct CandidateApplyReport {
     pub path: String,
     /// Durable filesystem effect state.
     pub effect_state: String,
-}
-
-impl ProjectCandidate {
-    /// Converts a project candidate into durable storage data.
-    ///
-    /// # Returns
-    /// Storage-neutral candidate fields.
-    fn record(&self) -> ProjectCandidateRecord {
-        let (validation, diagnostics) = match &self.validation {
-            CandidateValidation::Passed => ("passed", String::new()),
-            CandidateValidation::Failed { diagnostics } => ("failed", diagnostics.join("\n")),
-        };
-        ProjectCandidateRecord {
-            id: self.id.clone(),
-            project: self.project,
-            base_snapshot: self.base_snapshot,
-            entity: self.entity,
-            path: self.path.clone(),
-            old: self.old.clone(),
-            new: self.new.clone(),
-            validation: validation.to_owned(),
-            diagnostics,
-        }
-    }
-
-    /// Reconstructs a candidate loaded from durable storage.
-    ///
-    /// # Parameters
-    /// - `record`: Durable candidate record.
-    ///
-    /// # Returns
-    /// The public project candidate.
-    ///
-    /// # Errors
-    /// Returns a project error when persisted validation state is invalid.
-    fn from_record(record: ProjectCandidateRecord) -> Result<Self, ProjectError> {
-        let validation = match record.validation.as_str() {
-            "passed" => CandidateValidation::Passed,
-            "failed" => CandidateValidation::Failed {
-                diagnostics: record.diagnostics.lines().map(ToOwned::to_owned).collect(),
-            },
-            _ => {
-                return Err(ProjectError {
-                    code: "candidate_corrupt",
-                    message: "unknown durable candidate validation state".to_owned(),
-                    diagnostics: Vec::new(),
-                });
-            }
-        };
-        Ok(Self {
-            id: record.id,
-            project: record.project,
-            base_snapshot: record.base_snapshot,
-            entity: record.entity,
-            path: record.path,
-            old: record.old,
-            new: record.new,
-            validation,
-        })
-    }
 }
 
 impl ProjectService {
@@ -174,14 +169,23 @@ impl ProjectService {
         }
         let validation = validate_project(&self.project_path(project)?, &file.relative_path, &text);
         let id = candidate_id(project, workspace.snapshot, entity, &text);
+        let new = text.into_bytes();
+        let old = file.bytes;
+        let path = file.relative_path;
         let candidate = ProjectCandidate {
             id,
             project,
             base_snapshot: workspace.snapshot,
             entity,
-            path: file.relative_path,
-            old: file.bytes,
-            new: text.into_bytes(),
+            path: path.clone(),
+            old: old.clone(),
+            new: new.clone(),
+            effects: vec![ProjectSourceEffect {
+                path,
+                kind: ProjectSourceEffectKind::Update,
+                old: Some(old),
+                new: Some(new),
+            }],
             validation,
         };
         self.store
@@ -222,6 +226,13 @@ impl ProjectService {
         &self,
         candidate: &ProjectCandidate,
     ) -> Result<CandidateApplyReport, ProjectError> {
+        if let CandidateValidation::Pending = &candidate.validation {
+            return Err(ProjectError {
+                code: "validation_pending",
+                message: "candidate requires exact-state validation before application".to_owned(),
+                diagnostics: Vec::new(),
+            });
+        }
         if let CandidateValidation::Failed { diagnostics } = &candidate.validation {
             return Err(ProjectError {
                 code: "validation_failed",

@@ -37,6 +37,7 @@ pub(super) fn propose<S: ApplicationService>(
         .map_err(|error| project_error(&error))?;
     let id = candidate.id.clone();
     let validation = match &candidate.validation {
+        CandidateValidation::Pending => "pending",
         CandidateValidation::Passed => "passed",
         CandidateValidation::Failed { .. } => "failed",
     };

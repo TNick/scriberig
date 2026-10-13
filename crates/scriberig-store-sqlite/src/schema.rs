@@ -222,6 +222,17 @@ fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
          );
          CREATE INDEX IF NOT EXISTS project_candidates_project_idx
              ON project_candidates(project_id);
+         CREATE TABLE IF NOT EXISTS project_candidate_effects (
+             candidate_id TEXT NOT NULL,
+             ordinal INTEGER NOT NULL,
+             relative_path TEXT NOT NULL,
+             kind TEXT NOT NULL,
+             old_bytes BLOB,
+             new_bytes BLOB,
+             PRIMARY KEY(candidate_id, ordinal),
+             UNIQUE(candidate_id, relative_path),
+             FOREIGN KEY(candidate_id) REFERENCES project_candidates(id) ON DELETE CASCADE
+         );
          CREATE TABLE IF NOT EXISTS project_effects (
              candidate_id TEXT PRIMARY KEY,
              project_id BLOB NOT NULL,

@@ -19,7 +19,10 @@ mod candidate;
 mod manifest;
 #[path = "project_views.rs"]
 mod project_views;
-pub use candidate::{CandidateApplyReport, CandidateValidation, ProjectCandidate};
+pub use candidate::{
+    CandidateApplyReport, CandidateValidation, ProjectCandidate, ProjectSourceChange,
+    ProjectSourceChangeKind, ProjectSourceEffect, ProjectSourceEffectKind,
+};
 pub use manifest::{ProjectManifestEntry, ProjectManifestPage, ProjectManifestSummary};
 pub use project_views::{ProjectSourceProjection, ProjectSymbol};
 #[path = "errors.rs"]

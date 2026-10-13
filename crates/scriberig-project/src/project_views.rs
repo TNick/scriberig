@@ -147,9 +147,14 @@ impl ProjectService {
                 message: "semantic entity is not owned by the project".to_owned(),
                 diagnostics: Vec::new(),
             })?;
+        let source_entity = if entity_record.kind == "source" {
+            entity
+        } else {
+            super::support::source_entity(project, &entity_record.relative_path)
+        };
         let revision_id = self
             .store
-            .resolve(snapshot, entity)
+            .resolve(snapshot, source_entity)
             .map_err(crate::errors::storage_debug_error)?
             .ok_or_else(|| ProjectError {
                 code: "source_not_found",

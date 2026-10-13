@@ -87,6 +87,7 @@ pub(super) fn project_agent<B: ApplicationBackend>(
         })?
         .insert(candidate_value.id.clone(), candidate_value.clone());
     let validation = match &candidate_value.validation {
+        scriberig_project::CandidateValidation::Pending => scriberig_app::ValidationStatus::Skipped,
         scriberig_project::CandidateValidation::Passed => scriberig_app::ValidationStatus::Passed,
         scriberig_project::CandidateValidation::Failed { .. } => {
             scriberig_app::ValidationStatus::Failed

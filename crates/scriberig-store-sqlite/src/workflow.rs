@@ -25,6 +25,21 @@ pub struct ProjectCandidateRecord {
     pub validation: String,
     /// Newline-separated validation diagnostics.
     pub diagnostics: String,
+    /// Ordered project source effects belonging to this candidate.
+    pub effects: Vec<ProjectSourceEffectRecord>,
+}
+
+/// One durable source effect in an aggregate project candidate.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectSourceEffectRecord {
+    /// Project-relative path owned by the candidate.
+    pub path: String,
+    /// Effect kind: `create`, `update`, or `delete`.
+    pub kind: String,
+    /// Exact base bytes, absent for a create.
+    pub old: Option<Vec<u8>>,
+    /// Proposed bytes, absent for a delete.
+    pub new: Option<Vec<u8>>,
 }
 
 /// Durable state for a candidate's filesystem effect.
@@ -65,7 +80,8 @@ impl SqliteStore {
             .connection
             .lock()
             .map_err(|_| rusqlite::Error::InvalidQuery)?;
-        connection.execute(
+        let transaction = connection.unchecked_transaction()?;
+        transaction.execute(
             "INSERT INTO project_candidates
              (id,project_id,base_snapshot,entity,relative_path,old_bytes,new_bytes,
               validation,diagnostics,created_at)
@@ -85,6 +101,27 @@ impl SqliteStore {
                 candidate.diagnostics,
             ],
         )?;
+        transaction.execute(
+            "DELETE FROM project_candidate_effects WHERE candidate_id=?",
+            [&candidate.id],
+        )?;
+        for (ordinal, effect) in candidate.effects.iter().enumerate() {
+            let ordinal = i64::try_from(ordinal).map_err(|_| rusqlite::Error::InvalidQuery)?;
+            transaction.execute(
+                "INSERT INTO project_candidate_effects
+                 (candidate_id,ordinal,relative_path,kind,old_bytes,new_bytes)
+                 VALUES (?,?,?,?,?,?)",
+                params![
+                    candidate.id,
+                    ordinal,
+                    effect.path,
+                    effect.kind,
+                    effect.old,
+                    effect.new
+                ],
+            )?;
+        }
+        transaction.commit()?;
         Ok(())
     }
 
@@ -103,7 +140,7 @@ impl SqliteStore {
             .connection
             .lock()
             .map_err(|_| rusqlite::Error::InvalidQuery)?;
-        connection
+        let mut candidate = connection
             .query_row(
                 "SELECT id,project_id,base_snapshot,entity,relative_path,old_bytes,new_bytes,
                         validation,diagnostics
@@ -132,10 +169,28 @@ impl SqliteStore {
                         new: row.get(6)?,
                         validation: row.get(7)?,
                         diagnostics: row.get(8)?,
+                        effects: Vec::new(),
                     })
                 },
             )
-            .optional()
+            .optional()?;
+        if let Some(candidate) = &mut candidate {
+            let mut statement = connection.prepare(
+                "SELECT relative_path,kind,old_bytes,new_bytes
+                 FROM project_candidate_effects WHERE candidate_id=? ORDER BY ordinal",
+            )?;
+            candidate.effects = statement
+                .query_map([id], |row| {
+                    Ok(ProjectSourceEffectRecord {
+                        path: row.get(0)?,
+                        kind: row.get(1)?,
+                        old: row.get(2)?,
+                        new: row.get(3)?,
+                    })
+                })?
+                .collect::<rusqlite::Result<Vec<_>>>()?;
+        }
+        Ok(candidate)
     }
 
     /// Records the current external materialization effect state.
