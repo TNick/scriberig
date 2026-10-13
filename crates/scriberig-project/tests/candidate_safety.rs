@@ -200,6 +200,75 @@ fn stale_aggregate_candidate_does_not_materialize_effects() {
     assert!(!root.join("src/new.rs").exists());
 }
 
+/// MULTIPROJECT-PROJECT-APPLY-01 scopes aggregate effects to one project root.
+#[test]
+fn aggregate_apply_leaves_other_project_and_snapshot_unchanged() {
+    let (root_a, store, project_a, snapshot_a) = setup("multi-apply-a");
+    let root_b = std::env::temp_dir().join(format!(
+        "scriberig-candidate-safety-multi-b-{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&root_b);
+    fs::create_dir_all(root_b.join("src")).expect("other project source directory");
+    fs::write(
+        root_b.join("Cargo.toml"),
+        "[package]\nname=\"other_project\"\nversion=\"0.1.0\"\nedition=\"2021\"\n",
+    )
+    .expect("other project manifest");
+    let other_bytes = b"pub fn untouched() -> u8 { 9 }\n";
+    fs::write(root_b.join("src/lib.rs"), other_bytes).expect("other project source");
+    let service = ProjectService::new(Arc::clone(&store));
+    let scan_b = service
+        .scan(Some("multi-apply-b".to_owned()), &root_b)
+        .expect("scan other project");
+    let snapshot_b = service
+        .import(scan_b.project.id)
+        .expect("import other project")
+        .snapshot;
+    let candidate = service
+        .propose_project_change(
+            project_a,
+            snapshot_a,
+            vec![
+                ProjectSourceChange {
+                    path: "src/lib.rs".to_owned(),
+                    kind: ProjectSourceChangeKind::Update,
+                    content: Some(b"pub fn base() -> u8 { 2 }\n".to_vec()),
+                },
+                ProjectSourceChange {
+                    path: "src/generated.rs".to_owned(),
+                    kind: ProjectSourceChangeKind::Create,
+                    content: Some(b"pub fn generated() {}\n".to_vec()),
+                },
+            ],
+        )
+        .expect("project A candidate");
+    let candidate = service
+        .validate_candidate(&candidate.id)
+        .expect("candidate validation");
+    service
+        .apply_candidate(&candidate)
+        .expect("apply to project A");
+    assert_eq!(
+        fs::read(root_b.join("src/lib.rs")).expect("other source remains"),
+        other_bytes
+    );
+    assert!(!root_b.join("src/generated.rs").exists());
+    assert_eq!(
+        store
+            .project(scan_b.project.id)
+            .expect("read other project")
+            .expect("other project exists")
+            .current_snapshot,
+        Some(snapshot_b)
+    );
+    assert_eq!(
+        fs::read(root_a.join("src/lib.rs")).expect("project A update"),
+        b"pub fn base() -> u8 { 2 }\n"
+    );
+    assert!(root_a.join("src/generated.rs").exists());
+}
+
 /// PROJECT-WORKSPACE-VALIDATE-03 refuses to apply a failed candidate.
 #[test]
 fn validation_failure_keeps_candidate_inapplicable() {
