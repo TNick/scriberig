@@ -93,3 +93,49 @@ fn child_capabilities_do_not_inherit_parent_mutations() {
     assert!(!names.contains(&"project_rescan".to_owned()));
     assert!(!child.allows(&CapabilityId::new("project_import").expect("id")));
 }
+
+/// Keeps candidate construction and validation available without delegating Apply.
+#[test]
+fn implementation_child_can_validate_but_cannot_apply_candidates() {
+    let parent = CapabilityContext {
+        granted: [
+            "project_propose",
+            "project_validate_candidate",
+            "project_apply",
+        ]
+        .into_iter()
+        .map(|id| CapabilityId::new(id).expect("capability identity"))
+        .collect(),
+        grants: vec![Capability {
+            scope: CapabilityScope::Project,
+            actions: [
+                "project_propose",
+                "project_validate_candidate",
+                "project_apply",
+            ]
+            .into_iter()
+            .map(|name| CapabilityAction::Custom(name.to_owned()))
+            .collect(),
+            constraints: CapabilityConstraints::unrestricted(),
+        }],
+    };
+    let child = super::delegated_capabilities(
+        &parent,
+        &[
+            "project_propose".to_owned(),
+            "project_validate_candidate".to_owned(),
+        ],
+    );
+    let names = inspect_catalog()
+        .descriptors_for(&child)
+        .into_iter()
+        .map(|descriptor| descriptor.definition.name)
+        .collect::<Vec<_>>();
+
+    assert!(child.allows(&CapabilityId::new("project_propose").expect("propose id")));
+    assert!(child.allows(&CapabilityId::new("project_validate_candidate").expect("validation id")));
+    assert!(!child.allows(&CapabilityId::new("project_apply").expect("apply id")));
+    assert!(names.contains(&"project_propose".to_owned()));
+    assert!(names.contains(&"project_validate_candidate".to_owned()));
+    assert!(!names.contains(&"project_apply".to_owned()));
+}

@@ -56,6 +56,9 @@ fn is_primary_handle(handle: &str) -> bool {
         "snapshot:",
         "manifest:",
         "root:",
+        "entity:",
+        "path:",
+        "source_digest:",
     ]
     .iter()
     .any(|prefix| handle.starts_with(prefix))

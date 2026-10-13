@@ -89,7 +89,7 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
         &root_manifest_before,
     );
     let saved = load_session(&database, session);
-    assert_nested_branch_results(&saved);
+    assert_nested_branch_results(&saved, project.id, base.snapshot);
     let candidate = assert_candidate_result(&saved);
     let applied_snapshot = review_and_apply(
         &mut tui,

@@ -1,16 +1,23 @@
 //! Checks durable self-hosting branch outcomes and stable result references.
 
-use scriberig_session::{Branch, BranchStatus, Session};
+use scriberig_core::{ProjectId, SnapshotId};
+use scriberig_session::{Branch, BranchResult, BranchStatus, Session};
 
 /// Verifies durable child results expose bounded architecture and candidate evidence.
 ///
 /// # Parameters
 /// - `session`: Persisted session produced by the real self-hosting workflow.
+/// - `project`: Expected semantic project identity.
+/// - `snapshot`: Exact base snapshot expected in both child results.
 /// - `super`: Parent PTY test module.
 ///
 /// # Panics
 /// Panics when either child is missing or the continuation omits candidate evidence.
-pub(super) fn assert_nested_branch_results(session: &Session) {
+pub(super) fn assert_nested_branch_results(
+    session: &Session,
+    project: ProjectId,
+    snapshot: SnapshotId,
+) {
     let continuation = session
         .branches
         .iter()
@@ -32,13 +39,14 @@ pub(super) fn assert_nested_branch_results(session: &Session) {
         2,
         "expected architecture and implementation children"
     );
-    assert_architecture_result(&children);
-    assert_implementation_result(&children);
+    assert_architecture_result(&children, project, snapshot);
+    assert_implementation_result(&children, project, snapshot);
 
     let result = continuation
         .result
         .as_ref()
         .expect("continuation BranchResult");
+    assert_scope_handles(result, project, snapshot);
     assert!(
         result
             .result_handles
@@ -57,11 +65,13 @@ pub(super) fn assert_nested_branch_results(session: &Session) {
 ///
 /// # Parameters
 /// - `children`: Child branches of the PHP continuation.
+/// - `project`: Exact project expected in child references.
+/// - `snapshot`: Exact immutable base expected in child references.
 /// - `super`: Parent PTY test module.
 ///
 /// # Panics
 /// Panics when the architecture result is incomplete or lacks semantic references.
-fn assert_architecture_result(children: &[&Branch]) {
+fn assert_architecture_result(children: &[&Branch], project: ProjectId, snapshot: SnapshotId) {
     let branch = children
         .iter()
         .find(|branch| {
@@ -72,6 +82,7 @@ fn assert_architecture_result(children: &[&Branch]) {
         })
         .expect("architecture discovery child");
     let result = branch.result.as_ref().expect("architecture BranchResult");
+    assert_scope_handles(result, project, snapshot);
     assert_eq!(branch.status, BranchStatus::Completed);
     assert_eq!(result.status, BranchStatus::Completed);
     assert_eq!(result.result_kind.as_deref(), Some("agent-child"));
@@ -99,11 +110,13 @@ fn assert_architecture_result(children: &[&Branch]) {
 ///
 /// # Parameters
 /// - `children`: Child branches of the PHP continuation.
+/// - `project`: Exact project expected in child references.
+/// - `snapshot`: Exact immutable base expected in child references.
 /// - `super`: Parent PTY test module.
 ///
 /// # Panics
 /// Panics when the implementation result omits its candidate or validation evidence.
-fn assert_implementation_result(children: &[&Branch]) {
+fn assert_implementation_result(children: &[&Branch], project: ProjectId, snapshot: SnapshotId) {
     let branch = children
         .iter()
         .find(|branch| {
@@ -114,6 +127,13 @@ fn assert_implementation_result(children: &[&Branch]) {
         })
         .expect("PHP implementation child");
     let result = branch.result.as_ref().expect("implementation BranchResult");
+    assert_scope_handles(result, project, snapshot);
+    assert!(branch.turns.first().is_some_and(|turn| {
+        turn.human.as_ref().is_some_and(|prompt| {
+            prompt.text.contains("Compact architecture BranchResult")
+                && prompt.text.contains("stable refs:")
+        })
+    }));
     assert_eq!(branch.status, BranchStatus::Completed);
     assert_eq!(result.status, BranchStatus::Completed);
     assert!(
@@ -127,5 +147,45 @@ fn assert_implementation_result(children: &[&Branch]) {
             .result_handles
             .iter()
             .any(|handle| handle == "validation:passed")
+    );
+    for path in [
+        "Cargo.toml",
+        "crates/scriberig-project/Cargo.toml",
+        "crates/scriberig-project/src/scan.rs",
+        "crates/scriberig-project/src/adapters.rs",
+        "crates/scriberig-project/src/support.rs",
+    ] {
+        assert!(
+            result
+                .result_handles
+                .iter()
+                .any(|handle| handle == &format!("path:{path}")),
+            "implementation branch omitted re-inspected source path {path}"
+        );
+    }
+}
+
+/// Verifies a child result retains the exact semantic project and snapshot scope.
+///
+/// # Parameters
+/// - `result`: Durable branch result to inspect.
+/// - `project`: Expected project identity.
+/// - `snapshot`: Expected immutable scope.
+/// - `super`: Parent PTY test module.
+///
+/// # Panics
+/// Panics when the result omits either exact scope handle.
+fn assert_scope_handles(result: &BranchResult, project: ProjectId, snapshot: SnapshotId) {
+    assert!(
+        result
+            .result_handles
+            .iter()
+            .any(|handle| handle == &format!("project:{project}"))
+    );
+    assert!(
+        result
+            .result_handles
+            .iter()
+            .any(|handle| handle == &format!("snapshot:{snapshot}"))
     );
 }
