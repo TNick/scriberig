@@ -46,6 +46,23 @@ pub(super) fn assert_nested_branch_results(
         .result
         .as_ref()
         .expect("continuation BranchResult");
+    assert_tool_trace(
+        continuation,
+        &[
+            "runtime_capabilities",
+            "semantic_find",
+            "semantic_render",
+            "delegate",
+            "project_candidate",
+        ],
+    );
+    assert!(
+        continuation
+            .tool_invocations
+            .iter()
+            .all(|tool| { tool.name != "project_apply_candidate" })
+    );
+    assert_scoped_reads(continuation, project, snapshot);
     assert_scope_handles(result, project, snapshot);
     assert!(
         result
@@ -82,6 +99,14 @@ fn assert_architecture_result(children: &[&Branch], project: ProjectId, snapshot
         })
         .expect("architecture discovery child");
     let result = branch.result.as_ref().expect("architecture BranchResult");
+    assert_tool_trace(branch, &["semantic_find", "semantic_render"]);
+    assert_scoped_reads(branch, project, snapshot);
+    assert!(branch.tool_invocations.iter().all(|tool| {
+        !matches!(
+            tool.name.as_str(),
+            "project_propose" | "project_validate_candidate" | "project_apply_candidate"
+        )
+    }));
     assert_scope_handles(result, project, snapshot);
     assert_eq!(branch.status, BranchStatus::Completed);
     assert_eq!(result.status, BranchStatus::Completed);
@@ -127,6 +152,18 @@ fn assert_implementation_result(children: &[&Branch], project: ProjectId, snapsh
         })
         .expect("PHP implementation child");
     let result = branch.result.as_ref().expect("implementation BranchResult");
+    assert_tool_trace(
+        branch,
+        &[
+            "semantic_find",
+            "semantic_render",
+            "project_propose",
+            "project_validate_candidate",
+            "project_candidate",
+        ],
+    );
+    assert_tool_input_scope(branch, "project_propose", project, snapshot);
+    assert_scoped_reads(branch, project, snapshot);
     assert_scope_handles(result, project, snapshot);
     assert!(branch.turns.first().is_some_and(|turn| {
         turn.human.as_ref().is_some_and(|prompt| {
@@ -162,6 +199,81 @@ fn assert_implementation_result(children: &[&Branch], project: ProjectId, snapsh
                 .any(|handle| handle == &format!("path:{path}")),
             "implementation branch omitted re-inspected source path {path}"
         );
+    }
+}
+
+/// Verifies required provider-facing calls have durable structured results.
+///
+/// # Parameters
+/// - `branch`: Durable branch to inspect.
+/// - `required`: Required tool names.
+///
+/// # Panics
+/// Panics when an invocation, result, or JSON shape is missing.
+fn assert_tool_trace(branch: &Branch, required: &[&str]) {
+    for name in required {
+        let invocation = branch
+            .tool_invocations
+            .iter()
+            .find(|invocation| invocation.name == *name)
+            .unwrap_or_else(|| panic!("branch {} omitted tool {name}", branch.title));
+        let result = branch
+            .tool_results
+            .iter()
+            .find(|result| result.invocation == invocation.id)
+            .unwrap_or_else(|| panic!("tool {name} has no durable result"));
+        assert!(!result.failed, "tool {name} failed in the success scenario");
+        let input: serde_json::Value =
+            serde_json::from_slice(&invocation.input).expect("structured tool input");
+        let output: serde_json::Value =
+            serde_json::from_slice(&result.output).expect("structured tool result");
+        assert!(input.is_object());
+        assert!(output.is_object());
+    }
+}
+
+/// Verifies a candidate proposal is bound to its exact project snapshot.
+///
+/// # Parameters
+/// - `branch`: Durable implementation branch.
+/// - `name`: Proposal tool name.
+/// - `project`: Expected semantic project identity.
+/// - `snapshot`: Expected exact base snapshot.
+///
+/// # Panics
+/// Panics when the durable proposal arguments omit or mismatch scope.
+fn assert_tool_input_scope(branch: &Branch, name: &str, project: ProjectId, snapshot: SnapshotId) {
+    let invocation = branch
+        .tool_invocations
+        .iter()
+        .find(|invocation| invocation.name == name)
+        .expect("project proposal invocation");
+    let input: serde_json::Value =
+        serde_json::from_slice(&invocation.input).expect("proposal JSON arguments");
+    assert_eq!(input["project"], project.to_string());
+    assert_eq!(input["base_snapshot"], snapshot.to_string());
+}
+
+/// Verifies all semantic read calls are bound to one exact project snapshot.
+///
+/// # Parameters
+/// - `branch`: Durable branch to inspect.
+/// - `project`: Expected semantic project identity.
+/// - `snapshot`: Expected immutable snapshot.
+///
+/// # Panics
+/// Panics when a semantic read omits or changes its exact scope.
+fn assert_scoped_reads(branch: &Branch, project: ProjectId, snapshot: SnapshotId) {
+    for invocation in branch.tool_invocations.iter().filter(|invocation| {
+        matches!(
+            invocation.name.as_str(),
+            "semantic_find" | "semantic_render"
+        )
+    }) {
+        let input: serde_json::Value =
+            serde_json::from_slice(&invocation.input).expect("semantic tool JSON arguments");
+        assert_eq!(input["project"], project.to_string());
+        assert_eq!(input["snapshot"], snapshot.to_string());
     }
 }
 

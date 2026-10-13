@@ -190,6 +190,7 @@ fn restart_and_verify(
         evidence.applied_snapshot
     );
     let restored_session = load_session(database, evidence.session);
+    assert_nested_branch_results(&restored_session, evidence.project, evidence.base_snapshot);
     assert_eq!(
         assert_candidate_result(&restored_session),
         evidence.candidate

@@ -37,6 +37,19 @@ pub struct CandidateChange {
     pub validation: Vec<String>,
 }
 
+/// Carries one executed tool call across the shared runtime/application boundary.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ToolExecutionEvidence {
+    /// Stable provider-facing tool name.
+    pub name: String,
+    /// Exact JSON arguments submitted to the application tool.
+    pub input: Vec<u8>,
+    /// Structured bounded tool result encoded as JSON.
+    pub output: Vec<u8>,
+    /// Whether the tool returned a structured failure.
+    pub failed: bool,
+}
+
 /// Identifies a session read request.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SessionRequest {

@@ -311,4 +311,6 @@ pub struct AgentResult {
     pub output: String,
     /// Tool observations collected before completion.
     pub messages: Vec<AgentMessage>,
+    /// Executed tool calls with exact arguments and bounded structured results.
+    pub tool_evidence: Vec<scriberig_app::ToolExecutionEvidence>,
 }

@@ -5,9 +5,43 @@ use std::sync::atomic::Ordering;
 use super::ApplicationService;
 use crate::ApplicationError;
 use scriberig_core::EntityId;
-use scriberig_session::{BranchResult, Turn};
+use scriberig_session::{
+    Branch, BranchResult, ExecutionActivity, ToolInvocation, ToolResult, Turn,
+};
 #[path = "service_local_sessions/start_agent.rs"]
 mod start_agent;
+
+/// Persists tool invocation/result pairs in their owning durable branch.
+///
+/// # Parameters
+/// - `service`: Application identity allocator.
+/// - `branch`: Session branch that owns the execution evidence.
+/// - `evidence`: Ordered tool inputs and bounded outputs from the runtime.
+fn persist_tool_evidence<B>(
+    service: &ApplicationService<B>,
+    branch: &mut Branch,
+    evidence: Vec<crate::ToolExecutionEvidence>,
+) {
+    for evidence in evidence {
+        let invocation = service.next_entity(0xB7);
+        let result = service.next_entity(0xB8);
+        branch.tool_invocations.push(ToolInvocation {
+            id: invocation,
+            name: evidence.name,
+            input: evidence.input,
+        });
+        branch.tool_results.push(ToolResult {
+            id: result,
+            invocation,
+            output: evidence.output,
+            failed: evidence.failed,
+        });
+        branch
+            .activity
+            .push(ExecutionActivity::ToolInvocation(invocation));
+        branch.activity.push(ExecutionActivity::ToolResult(result));
+    }
+}
 
 impl<B> ApplicationService<B> {
     /// Creates a child branch and leaves its shared operation running.
@@ -107,6 +141,35 @@ impl<B> ApplicationService<B> {
         final_output: impl Into<String>,
         result_handles: Vec<String>,
     ) -> Result<crate::AgentResult, ApplicationError> {
+        self.complete_local_child_agent_with_evidence(
+            handle,
+            final_output,
+            result_handles,
+            Vec::new(),
+        )
+    }
+
+    /// Completes a child branch and persists its executed tool evidence.
+    ///
+    /// # Parameters
+    /// - `self`: Application service owning local session state.
+    /// - `handle`: Pending child operation handle.
+    /// - `final_output`: Complete externally meaningful child output.
+    /// - `result_handles`: Stable semantic references returned by the child.
+    /// - `tool_evidence`: Exact tool arguments and bounded structured results.
+    ///
+    /// # Returns
+    /// The structured application agent result for the child.
+    ///
+    /// # Errors
+    /// Returns an application error when the child branch is unavailable.
+    pub fn complete_local_child_agent_with_evidence(
+        &self,
+        handle: &crate::LocalChildAgentHandle,
+        final_output: impl Into<String>,
+        result_handles: Vec<String>,
+        tool_evidence: Vec<crate::ToolExecutionEvidence>,
+    ) -> Result<crate::AgentResult, ApplicationError> {
         let final_output = final_output.into();
         let mut session =
             self.load_session_state(handle.session)?
@@ -120,6 +183,7 @@ impl<B> ApplicationService<B> {
             .ok_or_else(|| ApplicationError::NotFound {
                 subject: handle.child_branch.to_string(),
             })?;
+        persist_tool_evidence(self, branch, tool_evidence);
         branch.push_turn(Turn {
             id: self.next_entity(0xB5),
             ordinal: 0,
@@ -213,6 +277,30 @@ impl<B> ApplicationService<B> {
         final_output: impl Into<String>,
         result_handles: Vec<String>,
     ) -> Result<crate::AgentResult, ApplicationError> {
+        self.complete_local_agent_with_evidence(handle, final_output, result_handles, Vec::new())
+    }
+
+    /// Completes a root branch and persists its executed tool evidence.
+    ///
+    /// # Parameters
+    /// - `self`: Application service owning local session state.
+    /// - `handle`: Pending operation and branch handle.
+    /// - `final_output`: Complete externally meaningful agent output.
+    /// - `result_handles`: Stable semantic references returned by the agent.
+    /// - `tool_evidence`: Exact tool arguments and bounded structured results.
+    ///
+    /// # Returns
+    /// The structured application agent result stored on the operation.
+    ///
+    /// # Errors
+    /// Returns an application error when the branch or operation is unavailable.
+    pub fn complete_local_agent_with_evidence(
+        &self,
+        handle: &crate::LocalAgentHandle,
+        final_output: impl Into<String>,
+        result_handles: Vec<String>,
+        tool_evidence: Vec<crate::ToolExecutionEvidence>,
+    ) -> Result<crate::AgentResult, ApplicationError> {
         let final_output = final_output.into();
         let mut session =
             self.load_session_state(handle.session)?
@@ -226,6 +314,7 @@ impl<B> ApplicationService<B> {
             .ok_or_else(|| ApplicationError::NotFound {
                 subject: handle.root_branch.to_string(),
             })?;
+        persist_tool_evidence(self, branch, tool_evidence);
         if let Some(turn) = branch.turns.iter_mut().rev().find(|turn| {
             turn.agent.is_none()
                 && turn

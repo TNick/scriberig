@@ -199,7 +199,12 @@ impl<B: ApplicationBackend> scriberig_tui::AgentCommandRunner<B> for NativeTuiAg
                 result_handles.push(handle);
             }
         }
-        service.complete_local_agent_with_handles(&handle, result.output, result_handles)?;
+        service.complete_local_agent_with_evidence(
+            &handle,
+            result.output,
+            result_handles,
+            result.tool_evidence,
+        )?;
         Ok(scriberig_tui::AgentHandle {
             operation: handle.operation,
             session,

@@ -321,7 +321,12 @@ where
         let result_handles = compact_result_handles(&result);
         let completed = self
             .service
-            .complete_local_child_agent_with_handles(&handle, result.output, result_handles.clone())
+            .complete_local_child_agent_with_evidence(
+                &handle,
+                result.output,
+                result_handles.clone(),
+                result.tool_evidence,
+            )
             .map_err(|error| error.to_string())?;
         Ok(ChildResult {
             summary: completed.final_output,

@@ -14,8 +14,16 @@ use crate::{
     ModelProvider, OutputCallback,
 };
 
+#[path = "runtime/evidence.rs"]
+mod evidence;
 #[path = "runtime_helpers.rs"]
 mod runtime_helpers;
+use evidence::{child_evidence_record, tool_evidence_record};
+#[path = "runtime/cancellation.rs"]
+mod cancellation;
+pub use cancellation::cancellation_flag;
+#[path = "runtime/configuration.rs"]
+mod configuration;
 
 /// Releases one shared execution-tree branch slot when a branch exits.
 struct ActiveBranchGuard {
@@ -126,20 +134,6 @@ where
     #[must_use]
     pub fn with_branch_id(mut self, branch_id: impl Into<String>) -> Self {
         self.branch_id = branch_id.into();
-        self
-    }
-
-    /// Replaces the runtime budgets enforced by the execution loop.
-    ///
-    /// # Parameters
-    /// - `self`: Runtime being configured.
-    /// - `limits`: Maximum work permitted for each branch.
-    ///
-    /// # Returns
-    /// The runtime with explicit budgets.
-    #[must_use]
-    pub fn with_limits(mut self, limits: RuntimeLimits) -> Self {
-        self.limits = limits;
         self
     }
 
@@ -271,6 +265,7 @@ where
         self.emit(BranchPhase::AwaitingModel);
         let operation = self.start_operation()?;
         let mut messages = vec![AgentMessage::User(prompt)];
+        let mut tool_evidence = Vec::new();
         loop {
             if cancelled.load(Ordering::Acquire) {
                 self.emit(BranchPhase::Cancelled);
@@ -348,11 +343,28 @@ where
                     self.finish_operation(operation.as_ref(), OperationStatus::Completed);
                     self.emit(BranchPhase::Completed);
                     self.emit_event(RuntimeEvent::branch_execution_completed(&self.branch_id));
-                    return Ok(AgentResult { output, messages });
+                    return Ok(AgentResult {
+                        output,
+                        messages,
+                        tool_evidence,
+                    });
                 }
                 ModelDecision::Tool(input) => {
-                    let result =
-                        self.run_atomic_tool(context, input, operation.as_ref(), &mut state)?;
+                    let result = self.run_atomic_tool(
+                        context,
+                        input.clone(),
+                        operation.as_ref(),
+                        &mut state,
+                    )?;
+                    tool_evidence.push(tool_evidence_record(
+                        "inspect",
+                        &serde_json::json!({
+                            "entity": input.entity.to_string(),
+                            "snapshot": input.snapshot.map(|snapshot| snapshot.to_string()),
+                            "detail": format!("{:?}", input.detail),
+                        }),
+                        &result,
+                    ));
                     messages.push(AgentMessage::Tool(result));
                     self.emit(BranchPhase::AwaitingModel);
                 }
@@ -365,6 +377,7 @@ where
                         operation.as_ref(),
                         &mut state,
                     )?;
+                    tool_evidence.push(tool_evidence_record(&name, &arguments, &result));
                     messages.push(AgentMessage::Tool(result));
                     self.emit(BranchPhase::AwaitingModel);
                 }
@@ -372,25 +385,17 @@ where
                     let result = self.run_child_tool(
                         context,
                         scope.cloned(),
-                        request,
+                        request.clone(),
                         cancelled,
                         operation.as_ref(),
                         &mut state,
                         &mut children,
                     )?;
+                    tool_evidence.push(child_evidence_record(&request, &result));
                     messages.push(AgentMessage::Child(result));
                     self.emit(BranchPhase::AwaitingModel);
                 }
             }
         }
     }
-}
-
-/// Creates a cancellation flag suitable for one runtime invocation.
-///
-/// # Returns
-/// A clear, shared cancellation flag.
-#[must_use]
-pub fn cancellation_flag() -> Arc<AtomicBool> {
-    Arc::new(AtomicBool::new(false))
 }

@@ -76,6 +76,7 @@ mod tests {
     fn primary_candidate_handles_survive_detail_compaction() {
         let result = AgentResult {
             output: String::new(),
+            tool_evidence: Vec::new(),
             messages: vec![AgentMessage::Tool(ToolResult {
                 entity: EntityId::from_bytes([0; 16]),
                 revision: None,

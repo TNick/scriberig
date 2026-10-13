@@ -222,6 +222,61 @@ fn local_agent_completion_uses_runtime_output() {
     );
 }
 
+/// Verifies tool execution evidence is linked and retained by its durable branch.
+#[test]
+fn local_agent_completion_persists_tool_invocation_and_result() {
+    let service = ApplicationService::new(Fixture);
+    let handle = service
+        .start_local_agent(&AgentCommandRequest {
+            session: EntityId::from_bytes([12; 16]),
+            branch: None,
+            prompt: "run a semantic lookup".to_owned(),
+            selection: None,
+        })
+        .expect("pending agent operation");
+    service
+        .complete_local_agent_with_evidence(
+            &handle,
+            "lookup completed",
+            vec!["entity:demo".to_owned()],
+            vec![scriberig_app::ToolExecutionEvidence {
+                name: "semantic_find".to_owned(),
+                input: br#"{"query":"Greeter"}"#.to_vec(),
+                output: br#"{"handles":["entity:demo"]}"#.to_vec(),
+                failed: false,
+            }],
+        )
+        .expect("complete agent with tool evidence");
+    let session = service
+        .read_session(
+            &session_context(),
+            &SessionRequest {
+                session: handle.session,
+            },
+        )
+        .expect("durable session");
+    let branch = &session.branches[0];
+    assert_eq!(branch.tool_invocations.len(), 1);
+    assert_eq!(branch.tool_invocations[0].name, "semantic_find");
+    assert_eq!(branch.tool_invocations[0].input, br#"{"query":"Greeter"}"#);
+    assert_eq!(branch.tool_results.len(), 1);
+    assert_eq!(
+        branch.tool_results[0].invocation,
+        branch.tool_invocations[0].id
+    );
+    assert_eq!(
+        branch.tool_results[0].output,
+        br#"{"handles":["entity:demo"]}"#
+    );
+    assert_eq!(
+        branch.activity,
+        vec![
+            scriberig_session::ExecutionActivity::ToolInvocation(branch.tool_invocations[0].id),
+            scriberig_session::ExecutionActivity::ToolResult(branch.tool_results[0].id),
+        ]
+    );
+}
+
 /// Verifies child operation startup creates an explicit session graph edge.
 #[test]
 fn local_child_agent_start_creates_parent_link() {
