@@ -243,6 +243,16 @@ fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
              diagnostic TEXT,
              updated_at TEXT NOT NULL,
              FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+         );
+         CREATE TABLE IF NOT EXISTS project_effect_paths (
+             candidate_id TEXT NOT NULL,
+             relative_path TEXT NOT NULL,
+             state TEXT NOT NULL,
+             expected_digest BLOB,
+             observed_digest BLOB,
+             diagnostic TEXT,
+             updated_at TEXT NOT NULL,
+             PRIMARY KEY(candidate_id,relative_path)
          );",
     )
 }

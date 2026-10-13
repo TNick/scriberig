@@ -39,7 +39,7 @@ fn setup(
         "pub mod math { pub struct Calculator; impl Calculator { pub fn add(&self, left: i32, right: i32) -> i32 { left + right } } }\n",
     )
     .expect("source");
-    let database = root.join("scriberig.sqlite");
+    let database = root.with_extension("scriberig.sqlite");
     let store = Arc::new(SqliteStore::open(database).expect("database"));
     let service = ProjectService::new(Arc::clone(&store));
     let scan = service.scan(Some(label.to_owned()), &root).expect("scan");

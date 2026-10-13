@@ -11,6 +11,8 @@ pub enum IoError {
     Read(std::io::Error),
     Write(std::io::Error),
     Rename(std::io::Error),
+    Directory(std::io::Error),
+    Remove(std::io::Error),
     OwnershipDenied,
 }
 impl std::fmt::Display for IoError {
@@ -96,6 +98,30 @@ pub trait FileSystem {
     /// # Errors
     /// Returns an IO error when replacement fails.
     fn write_atomic(&self, path: &Path, bytes: &[u8]) -> Result<(), IoError>;
+    /// Creates missing parent directories for an authorized materialization.
+    ///
+    /// # Parameters
+    /// - `self`: Filesystem implementation.
+    /// - `path`: Directory path to create.
+    ///
+    /// # Returns
+    /// Unit after the directory exists.
+    ///
+    /// # Errors
+    /// Returns an IO error when directory creation fails.
+    fn create_dir_all(&self, path: &Path) -> Result<(), IoError>;
+    /// Removes one authorized file after caller precondition checks.
+    ///
+    /// # Parameters
+    /// - `self`: Filesystem implementation.
+    /// - `path`: File path to remove.
+    ///
+    /// # Returns
+    /// Unit after the file is removed.
+    ///
+    /// # Errors
+    /// Returns an IO error when removal fails.
+    fn remove_file(&self, path: &Path) -> Result<(), IoError>;
 }
 
 impl<F: FileSystem + ?Sized> FileSystem for &F {
@@ -143,6 +169,36 @@ impl<F: FileSystem + ?Sized> FileSystem for &F {
     /// Returns the delegated filesystem error.
     fn write_atomic(&self, path: &Path, bytes: &[u8]) -> Result<(), IoError> {
         (**self).write_atomic(path, bytes)
+    }
+
+    /// Creates missing directories through the borrowed filesystem.
+    ///
+    /// # Parameters
+    /// - `self`: Borrowed filesystem implementation.
+    /// - `path`: Directory path to create.
+    ///
+    /// # Returns
+    /// Unit after directory creation.
+    ///
+    /// # Errors
+    /// Returns the delegated IO error.
+    fn create_dir_all(&self, path: &Path) -> Result<(), IoError> {
+        (**self).create_dir_all(path)
+    }
+
+    /// Removes one file through the borrowed filesystem.
+    ///
+    /// # Parameters
+    /// - `self`: Borrowed filesystem implementation.
+    /// - `path`: File path to remove.
+    ///
+    /// # Returns
+    /// Unit after removal.
+    ///
+    /// # Errors
+    /// Returns the delegated IO error.
+    fn remove_file(&self, path: &Path) -> Result<(), IoError> {
+        (**self).remove_file(path)
     }
 }
 
@@ -222,5 +278,35 @@ impl FileSystem for LocalFileSystem {
             return Err(IoError::Rename(e));
         }
         Ok(())
+    }
+
+    /// Creates a local directory tree.
+    ///
+    /// # Parameters
+    /// - `self`: Local filesystem.
+    /// - `path`: Directory path to create.
+    ///
+    /// # Returns
+    /// Unit after the directory exists.
+    ///
+    /// # Errors
+    /// Returns an IO error when creation fails.
+    fn create_dir_all(&self, path: &Path) -> Result<(), IoError> {
+        std::fs::create_dir_all(path).map_err(IoError::Directory)
+    }
+
+    /// Removes one local file.
+    ///
+    /// # Parameters
+    /// - `self`: Local filesystem.
+    /// - `path`: File path to remove.
+    ///
+    /// # Returns
+    /// Unit after removal.
+    ///
+    /// # Errors
+    /// Returns an IO error when removal fails.
+    fn remove_file(&self, path: &Path) -> Result<(), IoError> {
+        std::fs::remove_file(path).map_err(IoError::Remove)
     }
 }

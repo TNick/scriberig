@@ -1,20 +1,18 @@
 //! Implements shared project source candidates and safe application.
 
-use std::fs;
-use std::path::PathBuf;
-
 use scriberig_core::{EntityId, ProjectId, SnapshotId};
-use scriberig_store_sqlite::{ProjectCandidateRecord, ProjectEffectRecord};
-use sr_projection_fs::{FileSystem, LocalFileSystem};
+use scriberig_store_sqlite::ProjectCandidateRecord;
 
 use crate::{ProjectError, ProjectService};
 
 #[path = "candidate_support.rs"]
 mod candidate_support;
-use candidate_support::{candidate_id, safe_join, validate_project};
+use candidate_support::{candidate_id, validate_project};
 
 #[path = "candidate_aggregate.rs"]
 mod aggregate;
+#[path = "candidate_apply.rs"]
+mod apply;
 #[path = "candidate_base.rs"]
 mod base;
 #[path = "candidate_persistence.rs"]
@@ -116,6 +114,8 @@ pub struct CandidateApplyReport {
     pub successor_snapshot: SnapshotId,
     /// Materialized project-relative path.
     pub path: String,
+    /// All project-relative paths materialized by the aggregate candidate.
+    pub paths: Vec<String>,
     /// Durable filesystem effect state.
     pub effect_state: String,
 }
@@ -216,133 +216,6 @@ impl ProjectService {
             .transpose()
     }
 
-    /// Applies a validated candidate using snapshot and filesystem CAS checks.
-    ///
-    /// # Parameters
-    /// - `candidate`: Candidate to apply.
-    ///
-    /// # Returns
-    /// The promoted successor snapshot and materialization receipt.
-    ///
-    /// # Errors
-    /// Returns a stale, conflict, validation, filesystem, or import error.
-    pub fn apply_candidate(
-        &self,
-        candidate: &ProjectCandidate,
-    ) -> Result<CandidateApplyReport, ProjectError> {
-        if candidate.effects.len() != 1
-            || candidate.effects[0].kind != ProjectSourceEffectKind::Update
-        {
-            return Err(ProjectError {
-                code: "aggregate_apply_unavailable",
-                message: "project-wide effects require safe aggregate materialization".to_owned(),
-                diagnostics: Vec::new(),
-            });
-        }
-        if let CandidateValidation::Pending = &candidate.validation {
-            return Err(ProjectError {
-                code: "validation_pending",
-                message: "candidate requires exact-state validation before application".to_owned(),
-                diagnostics: Vec::new(),
-            });
-        }
-        if let CandidateValidation::Failed { diagnostics } = &candidate.validation {
-            return Err(ProjectError {
-                code: "validation_failed",
-                message: diagnostics.join("; "),
-                diagnostics: Vec::new(),
-            });
-        }
-        self.record_effect(candidate, None, "attempted", None)?;
-        let workspace = self.workspace(candidate.project)?;
-        if workspace.snapshot != candidate.base_snapshot {
-            return Err(ProjectError {
-                code: "stale_candidate",
-                message: "project snapshot advanced since candidate creation".to_owned(),
-                diagnostics: Vec::new(),
-            });
-        }
-        let root = self.project_path(candidate.project)?;
-        let path = safe_join(&root, &candidate.path)?;
-        let actual = fs::read(&path).map_err(|error| ProjectError {
-            code: "filesystem_read_failed",
-            message: error.to_string(),
-            diagnostics: Vec::new(),
-        })?;
-        if actual != candidate.old {
-            let error = ProjectError {
-                code: "filesystem_conflict",
-                message: "source changed externally since candidate creation".to_owned(),
-                diagnostics: Vec::new(),
-            };
-            self.record_effect(candidate, None, "failed", Some(&error.message))?;
-            return Err(error);
-        }
-        if let Err(error) = LocalFileSystem
-            .write_atomic(&path, &candidate.new)
-            .map_err(|error| ProjectError {
-                code: "filesystem_write_failed",
-                message: error.to_string(),
-                diagnostics: Vec::new(),
-            })
-        {
-            self.record_effect(candidate, None, "failed", Some(&error.message))?;
-            return Err(error);
-        }
-        if let Err(error) = self.scan(Some(workspace.project.name.clone()), &root) {
-            self.record_effect(candidate, None, "unknown", Some(&error.message))?;
-            return Err(error);
-        }
-        let imported = match self.import(candidate.project) {
-            Ok(imported) => imported,
-            Err(error) => {
-                self.record_effect(candidate, None, "unknown", Some(&error.message))?;
-                return Err(error);
-            }
-        };
-        self.record_effect(candidate, Some(imported.snapshot), "applied", None)?;
-        Ok(CandidateApplyReport {
-            candidate: candidate.id.clone(),
-            base_snapshot: candidate.base_snapshot,
-            successor_snapshot: imported.snapshot,
-            path: candidate.path.clone(),
-            effect_state: "applied".to_owned(),
-        })
-    }
-
-    /// Records the durable state of a candidate's filesystem effect.
-    ///
-    /// # Parameters
-    /// - `candidate`: Candidate whose effect is changing.
-    /// - `successor`: Promoted snapshot, when known.
-    /// - `state`: Durable effect state.
-    /// - `diagnostic`: Safe failure or recovery detail.
-    ///
-    /// # Returns
-    /// Unit after the receipt is persisted.
-    ///
-    /// # Errors
-    /// Returns a storage error when the receipt cannot be persisted.
-    fn record_effect(
-        &self,
-        candidate: &ProjectCandidate,
-        successor: Option<SnapshotId>,
-        state: &str,
-        diagnostic: Option<&str>,
-    ) -> Result<(), ProjectError> {
-        self.store
-            .put_project_effect(&ProjectEffectRecord {
-                candidate: candidate.id.clone(),
-                project: candidate.project,
-                base_snapshot: candidate.base_snapshot,
-                successor_snapshot: successor,
-                path: candidate.path.clone(),
-                state: state.to_owned(),
-                diagnostic: diagnostic.map(ToOwned::to_owned),
-            })
-            .map_err(crate::errors::storage_error)
-    }
-
     /// Converts durable candidate storage data into a public candidate.
     ///
     /// # Parameters
@@ -357,27 +230,5 @@ impl ProjectService {
         record: ProjectCandidateRecord,
     ) -> Result<ProjectCandidate, ProjectError> {
         ProjectCandidate::from_record(record)
-    }
-
-    /// Resolves one project's authorized filesystem root.
-    ///
-    /// # Parameters
-    /// - `project`: Project identity.
-    ///
-    /// # Returns
-    /// The registered project root.
-    ///
-    /// # Errors
-    /// Returns an error when the project is unavailable or storage fails.
-    fn project_path(&self, project: ProjectId) -> Result<PathBuf, ProjectError> {
-        self.store
-            .project(project)
-            .map_err(crate::errors::storage_error)?
-            .map(|record| record.path)
-            .ok_or_else(|| ProjectError {
-                code: "project_not_found",
-                message: project.to_string(),
-                diagnostics: Vec::new(),
-            })
     }
 }

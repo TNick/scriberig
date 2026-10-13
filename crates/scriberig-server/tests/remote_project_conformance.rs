@@ -48,7 +48,8 @@ fn fixture(label: &str) -> (PathBuf, Arc<SqliteStore>) {
         "pub mod math { pub struct Calculator; impl Calculator { pub fn add(&self, left: i32, right: i32) -> i32 { left + right } } }\n",
     )
     .expect("source");
-    let store = Arc::new(SqliteStore::open(root.join("scriberig.sqlite")).expect("database"));
+    let store =
+        Arc::new(SqliteStore::open(root.with_extension("scriberig.sqlite")).expect("database"));
     (root, store)
 }
 
@@ -121,13 +122,14 @@ fn golden_conformance_remote_public_project_path() {
     assert_eq!(projection["path"], "src/lib.rs");
     assert_eq!(projection["text"], source);
 
-    exercise_remote_aggregate_candidate(
+    let aggregate_successor = exercise_remote_aggregate_candidate(
         &client,
         &root,
         scan.project.id,
         imported.snapshot,
         &source,
     );
+    let aggregate_source = fs::read_to_string(root.join("src/lib.rs")).expect("aggregate source");
 
     let candidate = client
         .project(
@@ -135,15 +137,15 @@ fn golden_conformance_remote_public_project_path() {
             json!({
                 "project": scan.project.id.to_string(),
                 "entity": entity.to_string(),
-                "text": source.replace("left + right", "left.saturating_add(right)")
+                "text": aggregate_source
             }),
         )
         .expect("remote candidate");
-    assert_eq!(candidate["base"], imported.snapshot.to_string());
+    assert_eq!(candidate["base"], aggregate_successor);
     assert_eq!(candidate["validation"], "passed");
     assert_eq!(
         fs::read_to_string(root.join("src/lib.rs")).expect("unchanged source"),
-        source
+        aggregate_source
     );
 
     let applied = client
@@ -166,13 +168,16 @@ fn golden_conformance_remote_public_project_path() {
 /// - `project`: Exact project identity.
 /// - `snapshot`: Exact candidate base snapshot.
 /// - `source`: Base source bytes as UTF-8.
+///
+/// # Returns
+/// Successor snapshot ID after aggregate Apply.
 fn exercise_remote_aggregate_candidate(
     client: &Client<InProcessProjectTransport<TestApplication>>,
     root: &std::path::Path,
     project: scriberig_core::ProjectId,
     snapshot: scriberig_core::SnapshotId,
     source: &str,
-) {
+) -> String {
     let aggregate = client
         .project(
             "propose-change",
@@ -225,14 +230,42 @@ fn exercise_remote_aggregate_candidate(
         )
         .expect("isolated candidate validation");
     assert_eq!(validated["validation"], "passed");
-    assert!(
-        client
-            .project("apply", json!({"candidate": aggregate["candidate"]}))
-            .is_err()
-    );
     assert_eq!(
         fs::read_to_string(root.join("src/lib.rs")).expect("live source unchanged"),
         source
     );
-    assert!(!root.join("src/generated.rs").exists());
+    let applied = client
+        .project("apply", json!({"candidate": aggregate["candidate"]}))
+        .expect("apply aggregate candidate");
+    assert_eq!(applied["materialization"], "applied");
+    assert_eq!(applied["paths"].as_array().expect("paths").len(), 2);
+    let effect_detail = client
+        .project("candidate", json!({"candidate": aggregate["candidate"]}))
+        .expect("durable effect detail");
+    assert_eq!(
+        effect_detail["effectPaths"]
+            .as_array()
+            .expect("path receipts")
+            .len(),
+        2
+    );
+    assert!(
+        effect_detail["effectPaths"]
+            .as_array()
+            .expect("path receipts")
+            .iter()
+            .all(|receipt| receipt["state"] == "applied")
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("src/lib.rs")).expect("materialized source"),
+        source.replace("left + right", "left.saturating_add(right)")
+    );
+    assert_eq!(
+        fs::read(root.join("src/generated.rs")).expect("materialized candidate file"),
+        b"pub fn generated() -> u8 { 1 }\n"
+    );
+    applied["successor"]
+        .as_str()
+        .expect("successor snapshot")
+        .to_owned()
 }

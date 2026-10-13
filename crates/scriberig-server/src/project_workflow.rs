@@ -176,7 +176,20 @@ pub(super) fn candidate<S: ApplicationService>(
         .candidate(&input.candidate)
         .map_err(|error| project_error(&error))?
         .ok_or_else(|| (404, json!({"code": "candidate_not_found"})))?;
-    Ok(candidate_json(&candidate))
+    let mut result = candidate_json(&candidate);
+    result["effectPaths"] = json!(store
+        .project_effect_paths(&candidate.id)
+        .map_err(storage_error)?
+        .into_iter()
+        .map(|receipt| json!({
+            "path": receipt.path,
+            "state": receipt.state,
+            "expectedDigest": receipt.expected_digest.map(blake3::Hash::from_bytes).map(|hash| hash.to_hex().to_string()),
+            "observedDigest": receipt.observed_digest.map(blake3::Hash::from_bytes).map(|hash| hash.to_hex().to_string()),
+            "diagnostic": receipt.diagnostic,
+        }))
+        .collect::<Vec<_>>());
+    Ok(result)
 }
 
 /// Validates one durable candidate in its isolated exact-base workspace.
@@ -250,13 +263,25 @@ pub(super) fn apply<S: ApplicationService>(
     let report = service.apply_candidate(&candidate).map_err(|error| {
         let status = match error.code {
             "stale_candidate" | "filesystem_conflict" => 409,
-            "validation_failed" => 422,
+            "validation_failed" | "validation_pending" => 422,
             _ => 500,
         };
         let mut response = json!({"code": error.code, "message": error.message});
         if let Ok(Some(effect)) = store.project_effect(&input.candidate) {
             response["effectState"] = json!(effect.state);
             response["effectDiagnostic"] = json!(effect.diagnostic);
+        }
+        if let Ok(effects) = store.project_effect_paths(&input.candidate) {
+            response["effectPaths"] = json!(
+                effects
+                    .iter()
+                    .map(|effect| json!({
+                        "path": effect.path,
+                        "state": effect.state,
+                        "diagnostic": effect.diagnostic,
+                    }))
+                    .collect::<Vec<_>>()
+            );
         }
         (status, response)
     })?;
@@ -265,6 +290,7 @@ pub(super) fn apply<S: ApplicationService>(
         "base": report.base_snapshot.to_string(),
         "successor": report.successor_snapshot.to_string(),
         "path": report.path,
+        "paths": report.paths,
         "materialization": report.effect_state,
         "history": true,
     }))

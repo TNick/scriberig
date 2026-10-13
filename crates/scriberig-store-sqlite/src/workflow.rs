@@ -61,7 +61,116 @@ pub struct ProjectEffectRecord {
     pub diagnostic: Option<String>,
 }
 
+/// Durable receipt for one project-relative candidate effect.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectEffectPathRecord {
+    /// Candidate whose effect is tracked.
+    pub candidate: String,
+    /// Project-relative affected path.
+    pub path: String,
+    /// State such as `not_attempted`, `applied`, or `conflict`.
+    pub state: String,
+    /// BLAKE3 digest expected from the exact base, when present.
+    pub expected_digest: Option<[u8; 32]>,
+    /// BLAKE3 digest observed after the effect, when present.
+    pub observed_digest: Option<[u8; 32]>,
+    /// Bounded safe diagnostic.
+    pub diagnostic: Option<String>,
+}
+
+/// Converts an optional SQLite blob into an exact BLAKE3 digest.
+///
+/// # Parameters
+/// - `bytes`: Stored digest bytes.
+///
+/// # Returns
+/// A digest when the column is populated.
+///
+/// # Errors
+/// Returns a query conversion error for an invalid digest length.
+fn digest_from_column(bytes: Option<Vec<u8>>) -> rusqlite::Result<Option<[u8; 32]>> {
+    bytes
+        .map(|value| value.try_into().map_err(|_| rusqlite::Error::InvalidQuery))
+        .transpose()
+}
+
 impl SqliteStore {
+    /// Persists the latest durable state for one candidate path effect.
+    ///
+    /// # Parameters
+    /// - `effect`: Per-path receipt to persist.
+    ///
+    /// # Returns
+    /// Unit after the receipt is durable.
+    ///
+    /// # Errors
+    /// Returns a SQLite transaction or digest conversion error.
+    pub fn put_project_effect_path(
+        &self,
+        effect: &ProjectEffectPathRecord,
+    ) -> rusqlite::Result<()> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        connection.execute(
+            "INSERT INTO project_effect_paths
+             (candidate_id,relative_path,state,expected_digest,observed_digest,diagnostic,updated_at)
+             VALUES (?,?,?,?,?,?,datetime('now'))
+             ON CONFLICT(candidate_id,relative_path) DO UPDATE SET
+                 state=excluded.state,
+                 expected_digest=excluded.expected_digest,
+                 observed_digest=excluded.observed_digest,
+                 diagnostic=excluded.diagnostic,
+                 updated_at=excluded.updated_at",
+            params![
+                effect.candidate,
+                effect.path,
+                effect.state,
+                effect.expected_digest.map(|value| value.to_vec()),
+                effect.observed_digest.map(|value| value.to_vec()),
+                effect.diagnostic,
+            ],
+        )?;
+        Ok(())
+    }
+
+    /// Loads path-level receipts for one aggregate candidate.
+    ///
+    /// # Parameters
+    /// - `candidate`: Stable candidate identity.
+    ///
+    /// # Returns
+    /// Deterministically ordered effect receipts.
+    ///
+    /// # Errors
+    /// Returns a SQLite query or digest conversion error.
+    pub fn project_effect_paths(
+        &self,
+        candidate: &str,
+    ) -> rusqlite::Result<Vec<ProjectEffectPathRecord>> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        let mut statement = connection.prepare(
+            "SELECT candidate_id,relative_path,state,expected_digest,observed_digest,diagnostic
+             FROM project_effect_paths WHERE candidate_id=? ORDER BY relative_path",
+        )?;
+        statement
+            .query_map([candidate], |row| {
+                Ok(ProjectEffectPathRecord {
+                    candidate: row.get(0)?,
+                    path: row.get(1)?,
+                    state: row.get(2)?,
+                    expected_digest: digest_from_column(row.get(3)?)?,
+                    observed_digest: digest_from_column(row.get(4)?)?,
+                    diagnostic: row.get(5)?,
+                })
+            })?
+            .collect()
+    }
+
     /// Stores or replaces a durable project candidate.
     ///
     /// # Parameters

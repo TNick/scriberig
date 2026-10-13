@@ -41,7 +41,7 @@ fn setup(
         "pub mod math { pub struct Calculator; impl Calculator { pub fn add(&self, left: i32, right: i32) -> i32 { left + right } } }\n",
     )
     .expect("source");
-    let database = root.join("scriberig.sqlite");
+    let database = root.with_extension("scriberig.sqlite");
     let store = Arc::new(SqliteStore::open(database).expect("database"));
     let service = ProjectService::new(Arc::clone(&store));
     let scan = service.scan(Some(label.to_owned()), &root).expect("scan");
@@ -101,8 +101,9 @@ fn project_candidate_persists_create_and_update_without_touching_live_tree() {
     );
     drop(service);
     drop(store);
-    let reopened_store =
-        Arc::new(SqliteStore::open(root.join("scriberig.sqlite")).expect("reopen database"));
+    let reopened_store = Arc::new(
+        SqliteStore::open(root.with_extension("scriberig.sqlite")).expect("reopen database"),
+    );
     let reopened = ProjectService::new(Arc::clone(&reopened_store))
         .candidate(&candidate.id)
         .expect("read candidate")
@@ -182,32 +183,65 @@ fn project_candidate_uses_immutable_base_bytes_after_rescan() {
 /// PROJECT-CANDIDATE-03 proves deletion records exact base bytes without removing the file.
 #[test]
 fn project_candidate_delete_remains_a_reviewable_effect() {
-    let (root, store, project, snapshot, _entity) = setup("delete-aggregate");
-    let source = fs::read(root.join("src/lib.rs")).expect("source");
-    let candidate = ProjectService::new(Arc::clone(&store))
+    let (root, store, project, _snapshot, _entity) = setup("delete-aggregate");
+    fs::write(root.join("src/obsolete.rs"), b"pub fn obsolete() {}\n").expect("extra source");
+    let lib_path = root.join("src/lib.rs");
+    let base_lib = fs::read_to_string(&lib_path).expect("base source");
+    fs::write(&lib_path, format!("mod obsolete;\n{base_lib}")).expect("module reference");
+    let workflow = ProjectService::new(Arc::clone(&store));
+    workflow.scan(None, &root).expect("rescan");
+    let snapshot = workflow
+        .import(project)
+        .expect("import extra source")
+        .snapshot;
+    let source = fs::read_to_string(&lib_path).expect("source");
+    let candidate_source = source.replace("mod obsolete;\n", "");
+    let candidate = workflow
         .propose_project_change(
             project,
             snapshot,
-            vec![ProjectSourceChange {
-                path: "src/lib.rs".to_owned(),
-                kind: ProjectSourceChangeKind::Delete,
-                content: None,
-            }],
+            vec![
+                ProjectSourceChange {
+                    path: "src/lib.rs".to_owned(),
+                    kind: ProjectSourceChangeKind::Update,
+                    content: Some(candidate_source.as_bytes().to_vec()),
+                },
+                ProjectSourceChange {
+                    path: "src/obsolete.rs".to_owned(),
+                    kind: ProjectSourceChangeKind::Delete,
+                    content: None,
+                },
+            ],
         )
         .expect("delete candidate");
-    assert_eq!(candidate.effects[0].kind, ProjectSourceEffectKind::Delete);
-    assert_eq!(candidate.effects[0].old.as_deref(), Some(source.as_slice()));
-    assert_eq!(candidate.effects[0].new, None);
+    let delete = candidate
+        .effects
+        .iter()
+        .find(|effect| effect.path == "src/obsolete.rs")
+        .expect("delete effect");
+    assert_eq!(delete.kind, ProjectSourceEffectKind::Delete);
     assert_eq!(
-        ProjectService::new(Arc::clone(&store))
-            .apply_candidate(&candidate)
-            .expect_err("aggregate delete must not use single-file apply")
-            .code,
-        "aggregate_apply_unavailable"
+        delete.old.as_deref(),
+        Some(b"pub fn obsolete() {}\n".as_slice())
     );
+    assert_eq!(delete.new, None);
+    let validated = workflow
+        .validate_candidate(&candidate.id)
+        .expect("validate delete");
     assert_eq!(
-        fs::read(root.join("src/lib.rs")).expect("live source"),
-        source
+        validated.validation,
+        scriberig_project::CandidateValidation::Passed
+    );
+    let report = workflow.apply_candidate(&validated).expect("apply delete");
+    assert_eq!(
+        report.successor_snapshot,
+        workflow.workspace(project).expect("workspace").snapshot
+    );
+    assert_ne!(report.successor_snapshot, snapshot);
+    assert!(!root.join("src/obsolete.rs").exists());
+    assert_eq!(
+        fs::read_to_string(root.join("src/lib.rs")).expect("updated live source"),
+        candidate_source
     );
 }
 
@@ -250,10 +284,52 @@ fn project_validation_compiles_candidate_overlay_in_isolation() {
     );
     assert!(!root.join("src/generated.rs").exists());
     assert_eq!(
-        ProjectService::new(store)
+        ProjectService::new(Arc::clone(&store))
             .workspace(project)
             .expect("base workspace")
             .snapshot,
         snapshot
+    );
+    let report = ProjectService::new(Arc::clone(&store))
+        .apply_candidate(&validated)
+        .expect("apply aggregate candidate");
+    assert_eq!(report.paths.len(), 2);
+    assert_ne!(report.successor_snapshot, snapshot);
+    assert!(
+        fs::read_to_string(root.join("src/lib.rs"))
+            .expect("materialized source")
+            .starts_with("mod generated;\n")
+    );
+    assert_eq!(
+        fs::read(root.join("src/generated.rs")).expect("materialized create"),
+        b"pub fn generated() -> u8 { 1 }\n"
+    );
+    assert!(
+        store
+            .project_effect_paths(&candidate.id)
+            .expect("path receipts")
+            .iter()
+            .all(|receipt| receipt.state == "applied")
+    );
+    let candidate_id = candidate.id.clone();
+    drop(store);
+    let reopened = Arc::new(
+        SqliteStore::open(root.with_extension("scriberig.sqlite")).expect("reopen database"),
+    );
+    assert_eq!(
+        reopened
+            .project_effect_paths(&candidate_id)
+            .expect("durable path receipts")
+            .iter()
+            .filter(|receipt| receipt.state == "applied")
+            .count(),
+        2
+    );
+    assert_eq!(
+        ProjectService::new(reopened)
+            .workspace(project)
+            .expect("successor workspace")
+            .snapshot,
+        report.successor_snapshot
     );
 }

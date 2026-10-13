@@ -36,7 +36,9 @@ pub struct SqliteStore {
 
 pub use project_files::{ProjectEntityRecord, ProjectFileRecord};
 pub use projects::{ProjectRecord, ProjectStatus};
-pub use workflow::{ProjectCandidateRecord, ProjectEffectRecord, ProjectSourceEffectRecord};
+pub use workflow::{
+    ProjectCandidateRecord, ProjectEffectPathRecord, ProjectEffectRecord, ProjectSourceEffectRecord,
+};
 
 /// Reports a failure while atomically preparing and promoting a snapshot.
 #[derive(Clone, Debug, Eq, PartialEq)]
