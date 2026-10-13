@@ -23,7 +23,9 @@ pub use reachability::{ProtectedRoots, ReachableObjects, SnapshotNodeId, Unreach
 pub use revision::Revision;
 pub use revision_store::{RevisionStore, StoreError};
 pub use roots::{CasOutcome, RootError, RootStore};
-pub use snapshot::{Snapshot, SnapshotChange, SnapshotDiff, SnapshotError};
+pub use snapshot::{
+    Snapshot, SnapshotChange, SnapshotChangeProvenance, SnapshotDiff, SnapshotError,
+};
 pub use snapshot_store::SnapshotStore;
 pub use stats::{
     GcReport, IndexStatus, RootStatus, StoreErrorCategory, StoreObservability, StoreOperationError,
@@ -168,6 +170,23 @@ impl<T: SnapshotStore + ?Sized> SnapshotStore for Arc<T> {
         snapshot: scriberig_core::SnapshotId,
     ) -> Result<Vec<scriberig_core::SnapshotId>, SnapshotError> {
         (**self).parents(snapshot)
+    }
+
+    /// Delegates immutable snapshot change provenance lookup.
+    ///
+    /// # Parameters
+    /// - `snapshot`: Exact result snapshot to query.
+    ///
+    /// # Returns
+    /// The backend's retained source-change identity, when present.
+    ///
+    /// # Errors
+    /// Returns the backend snapshot error.
+    fn change_provenance(
+        &self,
+        snapshot: scriberig_core::SnapshotId,
+    ) -> Result<Option<SnapshotChangeProvenance>, SnapshotError> {
+        (**self).change_provenance(snapshot)
     }
 }
 

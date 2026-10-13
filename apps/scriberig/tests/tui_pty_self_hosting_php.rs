@@ -99,7 +99,7 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
         base.snapshot,
         &candidate,
     );
-    assert_tui_history_transition(&mut tui, base.snapshot, applied_snapshot);
+    assert_tui_history_transition(&mut tui, base.snapshot, applied_snapshot, &candidate);
     assert_unrelated_source_unchanged(&checkout, &unrelated_source_before);
     let fixture = tui.quit_retain_fixture();
     restart_and_verify(

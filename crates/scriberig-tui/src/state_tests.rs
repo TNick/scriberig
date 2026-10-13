@@ -263,6 +263,7 @@ fn history_row_activation_inspects_historical_entity() {
                 result: snapshot,
                 entities: vec![(entity, None)],
                 workspace: None,
+                source_change_id: None,
             }],
         }),
         ..TuiState::default()

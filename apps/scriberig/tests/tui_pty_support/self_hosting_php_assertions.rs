@@ -4,6 +4,7 @@ use std::fs;
 use std::sync::Arc;
 
 use super::TuiPty;
+use scriberig_app::{ApplicationContext, HistoryRequest, OperationProvider, SnapshotSelector};
 use scriberig_project::ProjectService;
 use scriberig_project::ProjectSourceEffectKind;
 use scriberig_store::SnapshotStore;
@@ -16,11 +17,13 @@ use std::time::Duration;
 /// - `tui`: Active native TUI process.
 /// - `base`: Exact snapshot before candidate Apply.
 /// - `successor`: Authoritative snapshot after candidate Apply.
+/// - `candidate`: Accepted project candidate identity.
 /// - `super`: Parent test module visibility.
 pub(super) fn assert_tui_history_transition(
     tui: &mut TuiPty,
     base: scriberig_core::SnapshotId,
     successor: scriberig_core::SnapshotId,
+    candidate: &str,
 ) {
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
@@ -31,14 +34,40 @@ pub(super) fn assert_tui_history_transition(
         tui.diagnostic()
     );
     let history = tui.screen();
-    let base = base.to_string();
-    let successor = successor.to_string();
+    let base_label = base.to_string();
+    let successor_label = successor.to_string();
     assert!(
-        history.contains(&format!("{} -> {}", &base[..16], &successor[..16])),
+        history.contains(&format!(
+            "{} -> {}",
+            &base_label[..16],
+            &successor_label[..16]
+        )),
         "TUI history omitted candidate transition {} -> {}: {history}",
-        &base[..16],
-        &successor[..16]
+        &base_label[..16],
+        &successor_label[..16]
     );
+    assert!(
+        history.contains(&format!("C1:{}", &candidate[..candidate.len().min(8)])),
+        "TUI history omitted accepted candidate {candidate}: {history}"
+    );
+    let database = tui.fixture_path().join("scriberig.sqlite");
+    let history_summary = scriberig_app::StoreOperationProvider::new(Arc::new(
+        SqliteStore::open(database).expect("history database"),
+    ))
+    .history(
+        &ApplicationContext::empty(),
+        &HistoryRequest {
+            snapshot: SnapshotSelector::Exact(successor),
+        },
+    )
+    .expect("shared exact history operation");
+    assert!(history_summary.history.as_deref().is_some_and(|entries| {
+        entries.iter().any(|entry| {
+            entry.base == base
+                && entry.result == successor
+                && entry.source_change_id.as_deref() == Some(candidate)
+        })
+    }));
 }
 
 /// Verifies Apply leaves an unrelated repository source file unchanged.

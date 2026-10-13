@@ -19,6 +19,13 @@ pub enum SnapshotChange {
     Remove(EntityId),
 }
 
+/// Identifies the source change that produced one immutable snapshot.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SnapshotChangeProvenance {
+    /// Stable identity of the accepted source change.
+    pub change_id: String,
+}
+
 /// Describes one semantic difference between two immutable snapshots.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SnapshotDiff {

@@ -22,6 +22,8 @@ pub struct MigrationReference {
     pub deltas: Vec<EntityDelta>,
     /// Optional workspace or branch provenance.
     pub workspace: Option<String>,
+    /// Accepted source change producing this result snapshot, when retained.
+    pub source_change_id: Option<String>,
 }
 
 /// Describes one entity revision transition in history.
@@ -283,6 +285,7 @@ mod tests {
             parents: parents.into_iter().map(str::to_owned).collect(),
             deltas: Vec::new(),
             workspace: None,
+            source_change_id: None,
         }
     }
 

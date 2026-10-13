@@ -196,8 +196,14 @@ fn primary_text(state: &TuiState) -> String {
                     .map(|(index, row)| {
                         let base = row.base.to_string();
                         let result = row.result.to_string();
+                        let change =
+                            row.source_change_id
+                                .as_ref()
+                                .map_or_else(String::new, |change| {
+                                    format!(" [C1:{}]", change.chars().take(8).collect::<String>())
+                                });
                         format!(
-                            "{}{}: {} -> {} ({} changed)",
+                            "{}{}: {} -> {} (+{}){}",
                             if state.focus == Focus::Primary && state.cursor == index {
                                 "> "
                             } else {
@@ -206,7 +212,8 @@ fn primary_text(state: &TuiState) -> String {
                             index + 1,
                             &base[..16],
                             &result[..16],
-                            row.entities.len()
+                            row.entities.len(),
+                            change
                         )
                     })
                     .collect::<Vec<_>>()

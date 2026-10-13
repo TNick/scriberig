@@ -4,7 +4,7 @@ use crate::SqliteStore;
 use crate::snapshot_integrity::node_id;
 use rusqlite::{OptionalExtension, Transaction, params};
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
-use scriberig_store::{SnapshotChange, SnapshotError, SnapshotStore};
+use scriberig_store::{SnapshotChange, SnapshotChangeProvenance, SnapshotError, SnapshotStore};
 
 impl SnapshotStore for SqliteStore {
     /// # Parameters
@@ -139,6 +139,35 @@ impl SnapshotStore for SqliteStore {
             .map_err(|error| SnapshotError::Backend(error.to_string()))?;
         rows.map(|row| row.map_err(|error| SnapshotError::Backend(error.to_string())))
             .collect()
+    }
+
+    /// Reads the durable accepted change associated with an exact result snapshot.
+    ///
+    /// # Parameters
+    /// - `snapshot`: Exact immutable result snapshot.
+    ///
+    /// # Returns
+    /// The accepted project source-change identity when one produced this snapshot.
+    ///
+    /// # Errors
+    /// Returns a backend error when the receipt cannot be read.
+    fn change_provenance(
+        &self,
+        snapshot: SnapshotId,
+    ) -> Result<Option<SnapshotChangeProvenance>, SnapshotError> {
+        let connection = self
+            .connection()
+            .map_err(|error| SnapshotError::Backend(format!("{error:?}")))?;
+        let change_id = connection
+            .query_row(
+                "SELECT candidate_id FROM project_effects
+                 WHERE successor_snapshot=? AND state='applied' ORDER BY candidate_id LIMIT 1",
+                params![snapshot.as_bytes().as_slice()],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(|error| SnapshotError::Backend(error.to_string()))?;
+        Ok(change_id.map(|change_id| SnapshotChangeProvenance { change_id }))
     }
 }
 

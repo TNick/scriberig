@@ -15,6 +15,8 @@ pub struct HistoryRow {
     pub entities: Vec<(EntityId, Option<RevisionId>)>,
     /// Optional workspace or branch provenance.
     pub workspace: Option<String>,
+    /// Accepted project source change that produced the result snapshot.
+    pub source_change_id: Option<String>,
 }
 
 /// Bounded history projection for one exact snapshot context.
@@ -50,6 +52,7 @@ impl HistoryModel {
                     .map(|delta| (delta.entity, delta.after.or(delta.before)))
                     .collect(),
                 workspace: migration.workspace.clone(),
+                source_change_id: migration.source_change_id.clone(),
             })
             .collect();
         Self { snapshot, rows }
@@ -98,6 +101,7 @@ mod tests {
                 parents: Vec::new(),
                 deltas: vec![EntityDelta::new(entity, None, Some(revision)).expect("delta")],
                 workspace: None,
+                source_change_id: Some("candidate-php".to_owned()),
             }]),
             rendered: None,
             validation: None,
@@ -105,6 +109,10 @@ mod tests {
             conflicts: Vec::new(),
         };
         let model = HistoryModel::from_summary(snapshot, &summary);
+        assert_eq!(
+            model.rows[0].source_change_id.as_deref(),
+            Some("candidate-php")
+        );
         assert_eq!(
             model.selection(0, 0),
             Some((entity, Some(revision), snapshot))

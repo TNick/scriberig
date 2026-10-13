@@ -71,6 +71,7 @@ fn history_queries_return_structured_topology() {
         parents: Vec::new(),
         deltas: vec![EntityDelta::new(entity, None, Some(first)).expect("delta")],
         workspace: Some("workspace-a".to_owned()),
+        source_change_id: None,
     });
     graph.insert(MigrationReference {
         id: "b".to_owned(),
@@ -79,6 +80,7 @@ fn history_queries_return_structured_topology() {
         parents: vec!["a".to_owned()],
         deltas: vec![EntityDelta::new(entity, Some(first), Some(second)).expect("delta")],
         workspace: Some("workspace-b".to_owned()),
+        source_change_id: None,
     });
     graph.insert(MigrationReference {
         id: "c".to_owned(),
@@ -87,6 +89,7 @@ fn history_queries_return_structured_topology() {
         parents: vec!["a".to_owned()],
         deltas: Vec::new(),
         workspace: Some("workspace-a".to_owned()),
+        source_change_id: None,
     });
     assert_eq!(introduced_by(&graph, second)[0].id, "b");
     assert_eq!(entity_history(&graph, entity).len(), 2);
@@ -113,6 +116,7 @@ fn common_ancestor_prefers_the_most_specific_topological_ancestor() {
         parents: Vec::new(),
         deltas: Vec::new(),
         workspace: None,
+        source_change_id: None,
     });
     history.insert(MigrationReference {
         id: "left".to_owned(),
@@ -121,6 +125,7 @@ fn common_ancestor_prefers_the_most_specific_topological_ancestor() {
         parents: vec!["base".to_owned()],
         deltas: Vec::new(),
         workspace: None,
+        source_change_id: None,
     });
     history.insert(MigrationReference {
         id: "right".to_owned(),
@@ -129,6 +134,7 @@ fn common_ancestor_prefers_the_most_specific_topological_ancestor() {
         parents: vec!["base".to_owned()],
         deltas: Vec::new(),
         workspace: None,
+        source_change_id: None,
     });
 
     assert_eq!(

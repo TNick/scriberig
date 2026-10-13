@@ -3,7 +3,7 @@
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
 use std::collections::BTreeSet;
 
-use crate::{SnapshotChange, SnapshotError};
+use crate::{SnapshotChange, SnapshotChangeProvenance, SnapshotError};
 
 /// Defines backend-neutral snapshot operations.
 pub trait SnapshotStore {
@@ -82,6 +82,23 @@ pub trait SnapshotStore {
     /// # Errors
     /// Returns an error when the snapshot is unavailable.
     fn parents(&self, snapshot: SnapshotId) -> Result<Vec<SnapshotId>, SnapshotError>;
+
+    /// Returns the accepted source change that produced a snapshot, when retained.
+    ///
+    /// # Parameters
+    /// - `_snapshot`: Exact immutable result snapshot.
+    ///
+    /// # Returns
+    /// Stable source-change identity when the backend records one.
+    ///
+    /// # Errors
+    /// Returns an error when provenance cannot be read.
+    fn change_provenance(
+        &self,
+        _snapshot: SnapshotId,
+    ) -> Result<Option<SnapshotChangeProvenance>, SnapshotError> {
+        Ok(None)
+    }
 
     /// Walks immutable snapshot ancestry without exposing backend details.
     ///

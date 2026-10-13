@@ -59,6 +59,11 @@ impl<S> StoreOperationProvider<S> {
                     parents: vec![format!("snapshot:{parent}")],
                     deltas,
                     workspace: None,
+                    source_change_id: self
+                        .store
+                        .change_provenance(result)
+                        .map_err(|_| ApplicationError::SnapshotUnavailable { snapshot: result })?
+                        .map(|provenance| provenance.change_id),
                 });
                 pending.push_back(parent);
             }
