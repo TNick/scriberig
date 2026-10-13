@@ -122,16 +122,27 @@ pub(super) fn run(
                     }
                 })
             });
+    let agent_runner =
+        super::native_tui_agent::NativeTuiAgentRunner::from_environment(Arc::clone(&store))?;
     let service = scriberig_tui::ApplicationOperationAdapter::new(service)
+        .with_agent_runner(agent_runner)
         .with_explorer_labels(labels.unwrap_or_default());
     let service = if let Some(value) = projection {
         service.with_project_projection(value)
     } else {
         service
     };
-    let context = ApplicationContext::empty().with_bootstrap(BootstrapEnvironment {
-        working_directory: std::env::current_dir()?,
-    });
+    let context = ApplicationContext {
+        capabilities: scriberig_app::CapabilityContext::with_grants([scriberig_app::Capability {
+            scope: scriberig_app::CapabilityScope::Project,
+            actions: super::agent_actions(),
+            constraints: scriberig_app::CapabilityConstraints::unrestricted(),
+        }]),
+        principal: Some(scriberig_app::Principal::new("local-tui-agent")),
+        ..ApplicationContext::empty().with_bootstrap(BootstrapEnvironment {
+            working_directory: std::env::current_dir()?,
+        })
+    };
     scriberig_tui::run(
         &service,
         &context,

@@ -14,12 +14,16 @@ use std::str::FromStr;
 
 #[path = "agent_handle.rs"]
 mod agent_handle;
+#[path = "service_agent_runner.rs"]
+mod service_agent_runner;
 #[path = "service_application.rs"]
 mod service_application;
 #[path = "service_effects.rs"]
 mod service_effects;
 #[path = "service_operation_adapter.rs"]
 mod service_operation_adapter;
+#[path = "service_operation_agent.rs"]
+mod service_operation_agent;
 #[path = "service_operation_helpers.rs"]
 mod service_operation_helpers;
 #[macro_use]
@@ -38,6 +42,7 @@ mod service_remote;
 mod service_remote_mapping;
 
 pub use agent_handle::AgentHandle;
+pub use service_agent_runner::{AgentCommandRunner, SharedAgentCommandRunner};
 pub use service_application::ApplicationAdapter;
 use service_effects::select_branch_subtree;
 pub use service_effects::{TuiOperationService, execute_effect};

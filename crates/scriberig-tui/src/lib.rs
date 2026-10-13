@@ -86,8 +86,9 @@ impl From<io::Error> for TuiError {
 
 /// Provides semantic operations required by the TUI shell.
 pub use service::{
-    ApplicationAdapter, ApplicationOperationAdapter, ExplorerLabels, ProjectProjection,
-    RemoteAdapter, TuiOperationService, TuiService,
+    AgentCommandRunner, AgentHandle, ApplicationAdapter, ApplicationOperationAdapter,
+    ExplorerLabels, ProjectProjection, RemoteAdapter, SharedAgentCommandRunner,
+    TuiOperationService, TuiService,
 };
 
 /// Runs the line-oriented TUI shell over an application service.

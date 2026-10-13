@@ -284,31 +284,6 @@ pub(super) fn submit_agent_command<B: ApplicationBackend>(
     )
 }
 
-/// Submits agent work and preserves accepted operation handles.
-pub(super) fn submit_agent_handle<B: ApplicationBackend>(
-    adapter: &ApplicationOperationAdapter<B>,
-    context: &ApplicationContext,
-    session: EntityId,
-    branch: Option<EntityId>,
-    prompt: &str,
-) -> Result<super::AgentHandle, ApplicationError> {
-    let operation = submit_agent_command(adapter, context, session, branch, prompt)?;
-    let branch = branch.or_else(|| {
-        scriberig_app::SessionBackend::read_session(
-            &adapter.service,
-            context,
-            &scriberig_app::SessionRequest { session },
-        )
-        .ok()
-        .and_then(|value| value.branches.last().map(|value| value.id))
-    });
-    Ok(super::AgentHandle {
-        operation,
-        session,
-        branch,
-    })
-}
-
 /// Builds capability descriptors exposed by the operation adapter.
 pub(super) fn runtime_capabilities<B: ApplicationBackend>(
     adapter: &ApplicationOperationAdapter<B>,

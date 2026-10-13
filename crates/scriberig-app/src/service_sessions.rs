@@ -11,6 +11,9 @@ use scriberig_session::{Branch, BranchResult, Session, Turn};
 mod service_session_authorization;
 use service_session_authorization::{authorize_agent_command, authorize_session_read};
 
+#[path = "service_agent_execution.rs"]
+mod service_agent_execution;
+
 impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
     /// Delegates a session read to the backend or reads application-owned state.
     ///

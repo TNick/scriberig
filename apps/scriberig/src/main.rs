@@ -16,6 +16,7 @@ use scriberig_store_sqlite::SqliteStore;
 mod agent_tool;
 mod agent_tool_helpers;
 mod child_runtime;
+mod native_tui_agent;
 mod remote_commands;
 mod tui_command;
 use agent_tool::LocalAgentTool;

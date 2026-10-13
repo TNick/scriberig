@@ -1,5 +1,7 @@
 //! Verifies native TUI workflows through a real pseudo-terminal.
 
+#[path = "tui_pty_support/lifecycle_test.rs"]
+mod tui_pty_lifecycle;
 mod tui_pty_support;
 
 use portable_pty::PtySize;
@@ -338,17 +340,6 @@ fn tui_pty_submits_find_query() {
     tui.send(b"\r");
     assert!(tui.screen().contains("Find: readme"));
     assert!(tui.shutdown());
-}
-
-/// Verifies the single-key quit command exits the native TUI cleanly.
-#[test]
-fn tui_pty_quits_with_q() {
-    let _lock = test_lock();
-    let mut tui = TuiPty::start();
-
-    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
-    tui.send(b"q");
-    assert!(tui.wait_for_exit());
 }
 
 /// Verifies palette selection, activation, and view routing in the live TUI.

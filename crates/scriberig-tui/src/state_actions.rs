@@ -278,16 +278,13 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
         }
         "session" => Action::ViewSelected(crate::selection::PrimaryView::Session),
         "start-agent" => {
-            let Some(selection) = state.selection else {
-                "Select an entity before starting an agent.".clone_into(&mut state.shell_message);
-                state.overlay = None;
-                return vec![Effect::None];
-            };
             state.overlay = None;
             return reduce(
                 state,
                 Action::ComposerOpened {
-                    session: selection.entity,
+                    session: state
+                        .selection
+                        .map_or_else(scriberig_core::EntityId::new, |selection| selection.entity),
                     branch: None,
                 },
             );

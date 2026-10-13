@@ -4,8 +4,6 @@
 
 use super::*;
 
-use scriberig_agent_runtime::AgentRuntime;
-
 /// Optional local project labels keyed by stable entity identity.
 pub type ExplorerLabels = std::collections::HashMap<EntityId, String>;
 
@@ -17,10 +15,11 @@ pub struct ApplicationOperationAdapter<B> {
     pub(crate) project_candidates: std::sync::Arc<
         std::sync::Mutex<std::collections::HashMap<String, scriberig_project::ProjectCandidate>>,
     >,
+    pub(crate) agent_runner: std::sync::Arc<dyn super::AgentCommandRunner<B>>,
 }
 
 /// Adapts the public protocol client to the TUI inspection boundary.
-impl<B> ApplicationOperationAdapter<B> {
+impl<B: ApplicationBackend> ApplicationOperationAdapter<B> {
     /// Creates an operation adapter around an application service.
     ///
     /// # Parameters
@@ -37,7 +36,25 @@ impl<B> ApplicationOperationAdapter<B> {
             project_candidates: std::sync::Arc::new(std::sync::Mutex::new(
                 std::collections::HashMap::new(),
             )),
+            agent_runner: std::sync::Arc::new(super::SharedAgentCommandRunner),
         }
+    }
+
+    /// Supplies the runtime that executes agent commands for this TUI client.
+    ///
+    /// # Parameters
+    /// - `self`: Adapter receiving the runtime.
+    /// - `runner`: Product-composed provider and orchestration adapter.
+    ///
+    /// # Returns
+    /// The configured application operation adapter.
+    #[must_use]
+    pub fn with_agent_runner<R>(mut self, runner: R) -> Self
+    where
+        R: super::AgentCommandRunner<B> + 'static,
+    {
+        self.agent_runner = std::sync::Arc::new(runner);
+        self
     }
 
     /// Supplies project-relative labels for local explorer navigation.
@@ -70,6 +87,31 @@ impl<B> ApplicationOperationAdapter<B> {
 }
 
 impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
+    /// Submits local agent work through the runtime composed by the product.
+    ///
+    /// # Parameters
+    /// - `self`: Adapter with the injected shared runtime boundary.
+    /// - `context`: Application context for the operation.
+    /// - `session`: Stable session identity.
+    /// - `branch`: Optional continuation branch.
+    /// - `prompt`: User-authored instruction.
+    ///
+    /// # Returns
+    /// Stable operation, session, and branch handles.
+    ///
+    /// # Errors
+    /// Returns an application submission or session-read error.
+    fn submit_agent_handle(
+        &self,
+        context: &ApplicationContext,
+        session: EntityId,
+        branch: Option<EntityId>,
+        prompt: &str,
+    ) -> Result<super::AgentHandle, ApplicationError> {
+        self.agent_runner
+            .submit(&self.service, context, session, branch, prompt)
+    }
+
     /// Reports the semantic operations exposed by the embedded application.
     ///
     /// # Parameters
@@ -108,87 +150,7 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         snapshot: SnapshotId,
         prompt: &str,
     ) -> Result<ApplicationResult, ApplicationError> {
-        let projection = self.project_projection.as_ref().ok_or_else(|| {
-            ApplicationError::UnsupportedOperation {
-                operation: "project agent".to_owned(),
-            }
-        })?;
-        let (path, bytes) =
-            projection
-                .sources
-                .get(&entity)
-                .ok_or_else(|| ApplicationError::NotFound {
-                    subject: entity.to_string(),
-                })?;
-        let replacement =
-            String::from_utf8_lossy(bytes).replace("left + right", "left.saturating_add(right)");
-        let tool = ProjectAgentTool {
-            projection,
-            entity,
-            snapshot,
-        };
-        let mut runtime = AgentRuntime::new(golden_provider(entity, snapshot), tool, 4);
-        let result = runtime
-            .run(context, prompt, &std::sync::atomic::AtomicBool::new(false))
-            .map_err(|error| ApplicationError::OperationFailed {
-                operation: "project_agent".to_owned(),
-                message: error.to_string(),
-            })?;
-        let candidate = result
-            .messages
-            .iter()
-            .rev()
-            .find_map(|message| match message {
-                scriberig_agent_runtime::AgentMessage::Tool(value)
-                    if value.object_type.as_deref() == Some("migration_candidate") =>
-                {
-                    value.handles.first().cloned()
-                }
-                _ => None,
-            })
-            .ok_or_else(|| ApplicationError::OperationFailed {
-                operation: "project_agent".to_owned(),
-                message: "agent did not create a candidate".to_owned(),
-            })?;
-        let candidate_value = projection
-            .workflow
-            .propose_candidate(projection.project, entity, replacement)
-            .map_err(|error| ApplicationError::ValidationFailure {
-                message: error.to_string(),
-            })?;
-        if candidate != candidate_value.id {
-            return Err(ApplicationError::Internal {
-                message: "agent candidate identity changed between tool calls".to_owned(),
-            });
-        }
-        self.project_candidates
-            .lock()
-            .map_err(|_| ApplicationError::Internal {
-                message: "project candidate lock poisoned".to_owned(),
-            })?
-            .insert(candidate_value.id.clone(), candidate_value.clone());
-        let validation = match &candidate_value.validation {
-            scriberig_project::CandidateValidation::Passed => {
-                scriberig_app::ValidationStatus::Passed
-            }
-            scriberig_project::CandidateValidation::Failed { .. } => {
-                scriberig_app::ValidationStatus::Failed
-            }
-        };
-        Ok(ApplicationResult::Apply(scriberig_app::OperationSummary {
-            handle: candidate_value.id,
-            snapshot: Some(snapshot),
-            revision: None,
-            branch: None,
-            diff: None,
-            history: None,
-            rendered: None,
-            validation: Some(validation),
-            validation_diagnostics: Vec::new(),
-            conflicts: vec![format!(
-                "scope: entity={entity} snapshot={snapshot}; {path}: add | old: left + right | new: left.saturating_add(right)"
-            )],
-        }))
+        service_operation_agent::project_agent(self, context, entity, snapshot, prompt)
     }
 
     /// Delegates inspection through the public application facade.
@@ -374,28 +336,5 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         prompt: &str,
     ) -> Result<scriberig_core::OperationId, ApplicationError> {
         service_operation_helpers::submit_agent_command(self, context, session, branch, prompt)
-    }
-
-    /// Submits local agent work and preserves the accepted branch identity.
-    ///
-    /// # Parameters
-    /// - `context`: Application context for the operation.
-    /// - `session`: Stable session identity.
-    /// - `branch`: Optional continuation branch.
-    /// - `prompt`: User-authored instruction.
-    ///
-    /// # Returns
-    /// Stable operation, session, and branch handles.
-    ///
-    /// # Errors
-    /// Returns the application submission or session-read error.
-    fn submit_agent_handle(
-        &self,
-        context: &ApplicationContext,
-        session: EntityId,
-        branch: Option<EntityId>,
-        prompt: &str,
-    ) -> Result<super::AgentHandle, ApplicationError> {
-        service_operation_helpers::submit_agent_handle(self, context, session, branch, prompt)
     }
 }
