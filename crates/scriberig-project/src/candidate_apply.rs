@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 use scriberig_core::{ProjectId, SnapshotId};
 use scriberig_store_sqlite::{ProjectEffectPathRecord, ProjectEffectRecord};
+use sr_projection_fs::{FileSystem, LocalFileSystem};
 
 #[path = "candidate_apply_effects.rs"]
 mod effects;
@@ -28,6 +29,28 @@ impl ProjectService {
     pub fn apply_candidate(
         &self,
         candidate: &ProjectCandidate,
+    ) -> Result<CandidateApplyReport, ProjectError> {
+        self.apply_candidate_with_filesystem(candidate, &LocalFileSystem)
+    }
+
+    /// Applies one candidate using the supplied filesystem boundary.
+    ///
+    /// This internal boundary keeps live effects on the shared filesystem
+    /// contract and permits deterministic recovery testing without global flags.
+    ///
+    /// # Parameters
+    /// - `candidate`: Durable candidate returned by shared project operations.
+    /// - `filesystem`: Filesystem capability used only for candidate effects.
+    ///
+    /// # Returns
+    /// The successor snapshot and durable per-path materialization receipts.
+    ///
+    /// # Errors
+    /// Returns stale, validation, ownership, path, conflict, I/O, or import errors.
+    fn apply_candidate_with_filesystem(
+        &self,
+        candidate: &ProjectCandidate,
+        filesystem: &dyn FileSystem,
     ) -> Result<CandidateApplyReport, ProjectError> {
         let durable = self
             .candidate(&candidate.id)?
@@ -54,7 +77,9 @@ impl ProjectService {
         let root = self.project_path(durable.project)?;
         preflight_project_tree(&base_files, &durable.effects, &root)?;
         let plans = preflight_effects(self, &durable, &base_files, &root)?;
-        if let Err(error) = materialize_effects(self, &durable, &plans, &base_files, &root) {
+        if let Err(error) =
+            materialize_effects(self, &durable, &plans, &base_files, &root, filesystem)
+        {
             self.record_effect(&durable, None, "unknown", Some(&error.message))?;
             return Err(error);
         }
@@ -248,3 +273,7 @@ fn candidate_error(code: &'static str, message: &str) -> ProjectError {
 fn digest(bytes: &[u8]) -> [u8; 32] {
     *blake3::hash(bytes).as_bytes()
 }
+
+#[cfg(test)]
+#[path = "candidate_apply_tests.rs"]
+mod tests;

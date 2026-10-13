@@ -3,7 +3,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use sr_projection_fs::{FileSystem, LocalFileSystem};
+use sr_projection_fs::FileSystem;
 
 use super::super::{
     ProjectCandidate, ProjectError, ProjectService, ProjectSourceEffect, ProjectSourceEffectKind,
@@ -232,6 +232,7 @@ pub(super) fn materialize_effects(
     plans: &[EffectPlan<'_>],
     base_files: &[scriberig_store_sqlite::ProjectFileRecord],
     root: &Path,
+    filesystem: &dyn FileSystem,
 ) -> Result<(), ProjectError> {
     for plan in plans {
         let (current_path, current_action, current) =
@@ -266,10 +267,10 @@ pub(super) fn materialize_effects(
                     .path
                     .parent()
                     .ok_or_else(|| candidate_error("unsafe_project_path", &plan.effect.path))?;
-                LocalFileSystem
+                filesystem
                     .create_dir_all(parent)
                     .and_then(|()| {
-                        LocalFileSystem.write_atomic(
+                        filesystem.write_atomic(
                             &plan.path,
                             plan.effect.new.as_deref().unwrap_or_default(),
                         )
@@ -277,7 +278,7 @@ pub(super) fn materialize_effects(
                     .map_err(|error| candidate_error("filesystem_write_failed", &error.to_string()))
                     .map(|()| plan.effect.new.clone())
             }
-            EffectAction::Delete => LocalFileSystem
+            EffectAction::Delete => filesystem
                 .remove_file(&plan.path)
                 .map_err(|error| candidate_error("filesystem_delete_failed", &error.to_string()))
                 .map(|()| None),
