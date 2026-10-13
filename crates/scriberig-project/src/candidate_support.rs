@@ -1,9 +1,12 @@
 //! Provides candidate identity, path, and isolated validation helpers.
 
 use std::fs;
+use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Child, Command, ExitStatus, Output, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::thread;
+use std::time::{Duration, Instant};
 
 use scriberig_core::{EntityId, ProjectId, SnapshotId};
 use scriberig_store_sqlite::ProjectFileRecord;
@@ -186,7 +189,8 @@ pub(super) fn validate_effects(
         if !manifest.exists() {
             return Ok(Vec::new());
         }
-        let output = Command::new("cargo")
+        let mut command = Command::new("cargo");
+        command
             .args([
                 "check",
                 "--workspace",
@@ -199,9 +203,8 @@ pub(super) fn validate_effects(
             .env(
                 "CARGO_TARGET_DIR",
                 std::env::temp_dir().join("scriberig-candidate-validation-target"),
-            )
-            .output()
-            .map_err(|error| error.to_string())?;
+            );
+        let output = run_bounded(command, Duration::from_secs(600))?;
         if output.status.success() {
             Ok(Vec::new())
         } else {
@@ -219,6 +222,97 @@ pub(super) fn validate_effects(
         Err(error) => CandidateValidation::Failed {
             diagnostics: vec![error],
         },
+    }
+}
+
+/// Runs a validation command with a deadline and bounded captured output.
+///
+/// # Parameters
+/// - `command`: Configured validation process.
+/// - `timeout`: Maximum process duration.
+///
+/// # Returns
+/// Process output with each stream limited to 64 KiB.
+///
+/// # Errors
+/// Returns a structured message for startup, timeout, or output-reader failure.
+fn run_bounded(mut command: Command, timeout: Duration) -> Result<Output, String> {
+    command.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let mut child = command
+        .spawn()
+        .map_err(|error| format!("start failure: {error}"))?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| "stdout pipe unavailable".to_owned())?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| "stderr pipe unavailable".to_owned())?;
+    let stdout_reader = thread::spawn(move || read_bounded(stdout));
+    let stderr_reader = thread::spawn(move || read_bounded(stderr));
+    let status = wait_bounded(&mut child, timeout)?;
+    let stdout = stdout_reader
+        .join()
+        .map_err(|_| "stdout reader failed".to_owned())??;
+    let stderr = stderr_reader
+        .join()
+        .map_err(|_| "stderr reader failed".to_owned())??;
+    Ok(Output {
+        status,
+        stdout,
+        stderr,
+    })
+}
+
+/// Waits for a child process and terminates it when its deadline expires.
+///
+/// # Parameters
+/// - `child`: Running validation process.
+/// - `timeout`: Maximum process duration.
+///
+/// # Returns
+/// The completed process status.
+///
+/// # Errors
+/// Returns a timeout or process polling failure.
+fn wait_bounded(child: &mut Child, timeout: Duration) -> Result<ExitStatus, String> {
+    let deadline = Instant::now() + timeout;
+    loop {
+        if let Some(status) = child.try_wait().map_err(|error| error.to_string())? {
+            return Ok(status);
+        }
+        if Instant::now() >= deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(format!("timeout after {} seconds", timeout.as_secs()));
+        }
+        thread::sleep(Duration::from_millis(50));
+    }
+}
+
+/// Drains a process stream while retaining only a bounded prefix.
+///
+/// # Parameters
+/// - `reader`: Child process output stream.
+///
+/// # Returns
+/// At most 64 KiB of output.
+///
+/// # Errors
+/// Returns a stream read failure.
+fn read_bounded(mut reader: impl Read) -> Result<Vec<u8>, String> {
+    let mut retained = Vec::new();
+    let mut buffer = [0_u8; 8192];
+    loop {
+        let count = reader
+            .read(&mut buffer)
+            .map_err(|error| error.to_string())?;
+        if count == 0 {
+            return Ok(retained);
+        }
+        let remaining = 65_536_usize.saturating_sub(retained.len());
+        retained.extend_from_slice(&buffer[..count.min(remaining)]);
     }
 }
 
@@ -241,4 +335,21 @@ fn write_candidate_file(root: &Path, relative: &str, bytes: &[u8]) -> Result<(),
         .ok_or_else(|| "candidate path has no parent".to_owned())?;
     fs::create_dir_all(parent).map_err(|error| error.to_string())?;
     fs::write(path, bytes).map_err(|error| error.to_string())
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::run_bounded;
+    use std::process::Command;
+    use std::time::Duration;
+
+    /// Verifies that validation processes are terminated at their deadline.
+    #[test]
+    fn validation_process_timeout_is_reported() {
+        let mut command = Command::new("sh");
+        command.args(["-c", "sleep 2"]);
+        let error = run_bounded(command, Duration::from_millis(20))
+            .expect_err("slow process must time out");
+        assert!(error.starts_with("timeout after"), "{error}");
+    }
 }
