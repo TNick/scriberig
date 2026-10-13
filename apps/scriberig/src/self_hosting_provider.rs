@@ -13,6 +13,8 @@ use crate::deterministic_provider::{BootstrapProvider, parse_handles};
 pub(super) struct PhpSelfHostingProvider {
     /// Whether this deterministic scenario deliberately proposes invalid Rust.
     pub validation_failure: bool,
+    /// Whether an invalid first candidate must be repaired through a second proposal.
+    pub validation_repair: bool,
     /// Whether to hold the initial onboarding provider response for cancellation tests.
     pub cancellation_delay: bool,
 }
@@ -61,7 +63,12 @@ impl ProviderAdapter for PhpSelfHostingProvider {
             return branches::architecture_branch(request, &scope);
         }
         if is_implementation {
-            return branches::implementation_branch(request, &scope, self.validation_failure);
+            return branches::implementation_branch(
+                request,
+                &scope,
+                self.validation_failure,
+                self.validation_repair,
+            );
         }
         branches::root_branch(request, &scope, self.validation_failure)
     }

@@ -214,22 +214,29 @@ pub(super) fn implementation_branch(
     request: &ModelRequest,
     scope: &SemanticScope,
     validation_failure: bool,
+    validation_repair: bool,
 ) -> Result<ModelResponse, ProviderError> {
     let tools = tool_messages(request);
     if let Some(response) = semantic_step(request, scope, IMPLEMENTATION_QUERIES)? {
         return Ok(response);
     }
-    if let Some(proposal) = tools
+    let proposals = tools
         .iter()
-        .find(|message| message.contains("project-wide candidate"))
-    {
+        .filter(|message| message.contains("project-wide candidate"))
+        .collect::<Vec<_>>();
+    if let Some(proposal) = proposals.last() {
         let candidate = handle_with_prefix(proposal, "candidate:")
             .ok_or_else(|| malformed("candidate proposal omitted identity"))?;
-        if tools
+        let candidate_tools = tools
+            .iter()
+            .filter(|message| message.contains(&candidate))
+            .copied()
+            .collect::<Vec<_>>();
+        if candidate_tools
             .iter()
             .any(|message| message.contains("validation:failed"))
         {
-            if !tools
+            if !candidate_tools
                 .iter()
                 .any(|message| message.contains("project candidate detail"))
             {
@@ -237,6 +244,9 @@ pub(super) fn implementation_branch(
                     "project_candidate",
                     json!({"candidate":candidate}),
                 ));
+            }
+            if validation_repair && proposals.len() == 1 {
+                return Ok(candidate::project_proposal(scope, false));
             }
             return Ok(final_response(&format!(
                 "PHP_IMPLEMENTATION_RESULT: candidate {candidate} validation failed at exact base {}. No Apply was requested.",
@@ -246,7 +256,7 @@ pub(super) fn implementation_branch(
         let completed_profiles = PHP_CANDIDATE_PROFILES
             .iter()
             .filter(|profile| {
-                tools
+                candidate_tools
                     .iter()
                     .any(|message| message.contains(&format!("validation_profile:{profile}")))
             })
@@ -257,7 +267,7 @@ pub(super) fn implementation_branch(
                 json!({"candidate":candidate,"profile":profile}),
             ));
         }
-        if !tools
+        if !candidate_tools
             .iter()
             .any(|message| message.contains("project candidate detail"))
         {

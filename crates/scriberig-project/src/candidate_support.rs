@@ -1,17 +1,19 @@
 //! Provides candidate identity, path, and isolated validation helpers.
 
 use std::fs;
-use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, ExitStatus, Output, Stdio};
+use std::process::Command;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use scriberig_core::{EntityId, ProjectId, SnapshotId};
 use scriberig_store_sqlite::ProjectFileRecord;
 
 use crate::{CandidateValidation, CandidateValidationProfile, ProjectError};
+
+#[path = "candidate_validation_process.rs"]
+mod validation_process;
+use validation_process::{ProcessFailure, run_bounded};
 
 /// Builds a stable candidate identity from exact request inputs.
 ///
@@ -189,7 +191,7 @@ pub(super) fn validate_effects(
     };
     let workspace_id = blake3::hash(candidate_id.as_bytes()).to_hex().to_string();
     let root = std::env::temp_dir().join(format!("scriberig-project-validation-{workspace_id}"));
-    let target = std::env::temp_dir().join(format!("scriberig-candidate-target-{workspace_id}"));
+    let target = candidate_target(candidate_id);
     let _ = fs::remove_dir_all(&root);
     let result = (|| {
         if cancelled.load(Ordering::Acquire) {
@@ -230,7 +232,7 @@ pub(super) fn validate_effects(
             .arg("--manifest-path")
             .arg(manifest)
             .env("CARGO_NET_OFFLINE", "true")
-            .env("CARGO_TARGET_DIR", target);
+            .env("CARGO_TARGET_DIR", &target);
         let output = run_bounded(command, Duration::from_secs(600), cancelled)?;
         if output.status.success() {
             Ok(Vec::new())
@@ -245,138 +247,46 @@ pub(super) fn validate_effects(
     let _ = fs::remove_dir_all(&root);
     match result {
         Ok(diagnostics) if diagnostics.is_empty() => Ok(CandidateValidation::Passed),
-        Ok(diagnostics) => Ok(CandidateValidation::Failed { diagnostics }),
-        Err(ProcessFailure::Cancelled) => Err(ProjectError {
-            code: "operation_cancelled",
-            message: "candidate validation was cancelled".to_owned(),
-            diagnostics: Vec::new(),
-        }),
-        Err(ProcessFailure::Failed(error)) => Ok(CandidateValidation::Failed {
-            diagnostics: vec![error],
-        }),
+        Ok(diagnostics) => {
+            let _ = fs::remove_dir_all(&target);
+            Ok(CandidateValidation::Failed { diagnostics })
+        }
+        Err(ProcessFailure::Cancelled) => {
+            let _ = fs::remove_dir_all(&target);
+            Err(ProjectError {
+                code: "operation_cancelled",
+                message: "candidate validation was cancelled".to_owned(),
+                diagnostics: Vec::new(),
+            })
+        }
+        Err(ProcessFailure::Failed(error)) => {
+            let _ = fs::remove_dir_all(&target);
+            Ok(CandidateValidation::Failed {
+                diagnostics: vec![error],
+            })
+        }
     }
 }
 
-/// Represents a cancelled validation or a bounded process failure.
-enum ProcessFailure {
-    /// Validation was cancelled by its caller.
-    Cancelled,
-    /// Validation could not complete and has a diagnostic.
-    Failed(String),
-}
-
-/// Runs a validation command with a deadline and bounded captured output.
+/// Resolves the isolated Cargo target cache for one exact candidate.
 ///
 /// # Parameters
-/// - `command`: Configured validation process.
-/// - `timeout`: Maximum process duration.
-/// - `cancelled`: Shared cancellation flag for the owning operation.
+/// - `candidate_id`: Stable candidate identity.
 ///
 /// # Returns
-/// Process output with each stream limited to 64 KiB.
-///
-/// # Errors
-/// Returns a structured message for startup, timeout, or output-reader failure.
-fn run_bounded(
-    mut command: Command,
-    timeout: Duration,
-    cancelled: &AtomicBool,
-) -> Result<Output, ProcessFailure> {
-    command.stdout(Stdio::piped()).stderr(Stdio::piped());
-    let mut child = command
-        .spawn()
-        .map_err(|error| ProcessFailure::Failed(format!("start failure: {error}")))?;
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| ProcessFailure::Failed("stdout pipe unavailable".to_owned()))?;
-    let stderr = child
-        .stderr
-        .take()
-        .ok_or_else(|| ProcessFailure::Failed("stderr pipe unavailable".to_owned()))?;
-    let stdout_reader = thread::spawn(move || read_bounded(stdout));
-    let stderr_reader = thread::spawn(move || read_bounded(stderr));
-    let status = wait_bounded(&mut child, timeout, cancelled)?;
-    let stdout = stdout_reader
-        .join()
-        .map_err(|_| ProcessFailure::Failed("stdout reader failed".to_owned()))?
-        .map_err(ProcessFailure::Failed)?;
-    let stderr = stderr_reader
-        .join()
-        .map_err(|_| ProcessFailure::Failed("stderr reader failed".to_owned()))?
-        .map_err(ProcessFailure::Failed)?;
-    Ok(Output {
-        status,
-        stdout,
-        stderr,
-    })
+/// Candidate-specific build artifact directory.
+fn candidate_target(candidate_id: &str) -> PathBuf {
+    let workspace_id = blake3::hash(candidate_id.as_bytes()).to_hex().to_string();
+    std::env::temp_dir().join(format!("scriberig-candidate-target-{workspace_id}"))
 }
 
-/// Waits for a child process and terminates it when its deadline expires.
+/// Removes cached build artifacts after a candidate reaches a terminal Apply outcome.
 ///
 /// # Parameters
-/// - `child`: Running validation process.
-/// - `timeout`: Maximum process duration.
-/// - `cancelled`: Shared cancellation flag for the owning operation.
-///
-/// # Returns
-/// The completed process status.
-///
-/// # Errors
-/// Returns a timeout or process polling failure.
-fn wait_bounded(
-    child: &mut Child,
-    timeout: Duration,
-    cancelled: &AtomicBool,
-) -> Result<ExitStatus, ProcessFailure> {
-    let deadline = Instant::now() + timeout;
-    loop {
-        if cancelled.load(Ordering::Acquire) {
-            let _ = child.kill();
-            let _ = child.wait();
-            return Err(ProcessFailure::Cancelled);
-        }
-        if let Some(status) = child
-            .try_wait()
-            .map_err(|error| ProcessFailure::Failed(error.to_string()))?
-        {
-            return Ok(status);
-        }
-        if Instant::now() >= deadline {
-            let _ = child.kill();
-            let _ = child.wait();
-            return Err(ProcessFailure::Failed(format!(
-                "timeout after {} seconds",
-                timeout.as_secs()
-            )));
-        }
-        thread::sleep(Duration::from_millis(50));
-    }
-}
-
-/// Drains a process stream while retaining only a bounded prefix.
-///
-/// # Parameters
-/// - `reader`: Child process output stream.
-///
-/// # Returns
-/// At most 64 KiB of output.
-///
-/// # Errors
-/// Returns a stream read failure.
-fn read_bounded(mut reader: impl Read) -> Result<Vec<u8>, String> {
-    let mut retained = Vec::new();
-    let mut buffer = [0_u8; 8192];
-    loop {
-        let count = reader
-            .read(&mut buffer)
-            .map_err(|error| error.to_string())?;
-        if count == 0 {
-            return Ok(retained);
-        }
-        let remaining = 65_536_usize.saturating_sub(retained.len());
-        retained.extend_from_slice(&buffer[..count.min(remaining)]);
-    }
+/// - `candidate_id`: Stable candidate identity whose target cache can be released.
+/// - `super`: Parent candidate module visibility marker.
+pub(super) fn cleanup_candidate_target(candidate_id: &str) {
+    let _ = fs::remove_dir_all(candidate_target(candidate_id));
 }
 
 /// Writes exact candidate bytes beneath an isolated workspace root.

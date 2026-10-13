@@ -4,9 +4,7 @@ use std::sync::Arc;
 
 use scriberig_agent_runtime::cache::{CachePolicy, ModelCache};
 use scriberig_agent_runtime::model_provider::ProviderModel;
-use scriberig_agent_runtime::provider::{
-    CredentialSource, ProviderAdapter, ProviderConfig, ProviderError,
-};
+use scriberig_agent_runtime::provider::{ProviderAdapter, ProviderError};
 use scriberig_agent_runtime::{AgentError, AgentRuntime, ChildExecutionScope};
 use scriberig_app::{
     AgentCommandRequest, AgentSelection, ApplicationBackend, ApplicationContext, ApplicationError,
@@ -21,6 +19,8 @@ use crate::native_provider::NativeProvider;
 #[path = "native_tui_agent/workspace.rs"]
 mod workspace;
 use workspace::workspace_from_result;
+#[path = "native_tui_agent/provider_config.rs"]
+mod provider_config;
 
 #[cfg(test)]
 #[path = "native_tui_agent_tests.rs"]
@@ -52,60 +52,7 @@ impl NativeTuiAgentRunner {
         let model = std::env::var("SCRIBE_AGENT_MODEL").unwrap_or_else(|_| "default".to_owned());
         let provider_kind = std::env::var("SCRIBE_AGENT_PROVIDER")
             .unwrap_or_else(|_| "openai_compatible".to_owned());
-        let provider = match provider_kind.as_str() {
-            "deterministic" => {
-                let scenario = std::env::var("SCRIBE_AGENT_SCENARIO")
-                    .unwrap_or_else(|_| "bootstrap".to_owned());
-                Some(match scenario.as_str() {
-                    "bootstrap" => NativeProvider::Deterministic(
-                        crate::deterministic_provider::BootstrapProvider,
-                    ),
-                    "bootstrap_import_failure" => NativeProvider::BootstrapImportFailure(
-                        crate::bootstrap_failure_provider::BootstrapImportFailureProvider,
-                    ),
-                    "self_hosting_php" => NativeProvider::SelfHostingPhp(
-                        crate::self_hosting_provider::PhpSelfHostingProvider {
-                            validation_failure: false,
-                            cancellation_delay: false,
-                        },
-                    ),
-                    "self_hosting_php_validation_failure" => NativeProvider::SelfHostingPhp(
-                        crate::self_hosting_provider::PhpSelfHostingProvider {
-                            validation_failure: true,
-                            cancellation_delay: false,
-                        },
-                    ),
-                    "self_hosting_php_cancellation" => NativeProvider::SelfHostingPhp(
-                        crate::self_hosting_provider::PhpSelfHostingProvider {
-                            validation_failure: false,
-                            cancellation_delay: true,
-                        },
-                    ),
-                    unknown => {
-                        return Err(ProviderError::Configuration(format!(
-                            "unsupported SCRIBE_AGENT_SCENARIO: {unknown}"
-                        )));
-                    }
-                })
-            }
-            "openai_compatible" => std::env::var("SCRIBE_AGENT_BASE_URL")
-                .ok()
-                .map(|base_url| {
-                    let credential = std::env::var("SCRIBE_AGENT_API_KEY_ENV")
-                        .map_or(CredentialSource::None, CredentialSource::Environment);
-                    let config = ProviderConfig::new("local", base_url, model.clone(), credential);
-                    scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider::new(
-                        config,
-                    )
-                    .map(NativeProvider::OpenAiCompatible)
-                })
-                .transpose()?,
-            unknown => {
-                return Err(ProviderError::Configuration(format!(
-                    "unsupported SCRIBE_AGENT_PROVIDER: {unknown}"
-                )));
-            }
-        };
+        let provider = provider_config::from_environment(&provider_kind, &model)?;
         Ok(Self {
             provider,
             model,

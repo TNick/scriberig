@@ -43,6 +43,19 @@ impl TuiPty {
         Self::start_self_hosting_scenario("self_hosting_php_validation_failure")
     }
 
+    /// Starts a copied-checkout TUI that repairs a failed PHP candidate by normal reproposal.
+    ///
+    /// # Returns
+    /// A no-project TUI process with a deterministic candidate repair scenario.
+    ///
+    /// # Panics
+    /// Panics when the checkout copy, Git index, or PTY process cannot be prepared.
+    #[must_use]
+    #[allow(dead_code)]
+    pub fn start_self_hosting_validation_repair() -> Self {
+        Self::start_self_hosting_scenario("self_hosting_php_validation_repair")
+    }
+
     /// Starts a copied-checkout TUI whose first onboarding provider response is delayed.
     ///
     /// # Returns

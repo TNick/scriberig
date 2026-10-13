@@ -103,6 +103,7 @@ impl ProjectService {
             }
         };
         self.record_effect(&durable, Some(imported.snapshot), "applied", None)?;
+        super::candidate_support::cleanup_candidate_target(&durable.id);
         Ok(CandidateApplyReport {
             candidate: durable.id.clone(),
             base_snapshot: durable.base_snapshot,

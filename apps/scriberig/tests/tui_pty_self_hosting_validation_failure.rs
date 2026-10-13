@@ -19,13 +19,108 @@ use tui_pty_support::{TuiPty, test_lock};
 #[test]
 fn tui_validation_failure_keeps_candidate_pending_review_and_project_at_base() {
     let _lock = test_lock();
-    let mut scenario = onboard_failure_scenario();
-    submit_php_continuation(&mut scenario.tui);
+    let mut scenario = onboard_failure_scenario(false);
+    submit_php_continuation(&mut scenario.tui, Duration::from_secs(300));
     let candidate = assert_failed_candidate(&scenario.database, scenario.session);
     assert_project_unchanged(&scenario, &candidate);
     review_failed_candidate(&mut scenario.tui);
     let fixture = scenario.tui.quit_retain_fixture();
     fs::remove_dir_all(fixture).expect("remove validation failure fixture");
+}
+
+/// Verifies the agent repairs an invalid candidate through a second normal proposal.
+#[test]
+fn tui_agent_repairs_validation_failure_with_a_new_project_candidate() {
+    let _lock = test_lock();
+    let mut scenario = onboard_failure_scenario(true);
+    submit_php_continuation(&mut scenario.tui, Duration::from_secs(900));
+    let saved = SqliteSessionStore::open(&scenario.database)
+        .expect("session store")
+        .load(scenario.session)
+        .expect("load session")
+        .expect("durable session");
+    let implementation = saved
+        .branches
+        .iter()
+        .find(|branch| {
+            branch
+                .purpose
+                .as_deref()
+                .is_some_and(|purpose| purpose.contains("implement PHP ingestion"))
+        })
+        .expect("implementation branch");
+    let proposals = implementation
+        .tool_invocations
+        .iter()
+        .filter(|invocation| invocation.name == "project_propose")
+        .collect::<Vec<_>>();
+    assert_eq!(
+        proposals.len(),
+        2,
+        "repair must use a second normal proposal"
+    );
+    let candidates = proposals
+        .iter()
+        .map(|invocation| {
+            let input: serde_json::Value =
+                serde_json::from_slice(&invocation.input).expect("proposal input");
+            input["effects"]
+                .as_array()
+                .expect("candidate effects")
+                .iter()
+                .find(|effect| effect["path"] == "crates/domains/scriberig-domain-php/src/lib.rs")
+                .expect("PHP adapter root effect")["content"]
+                .as_str()
+                .expect("PHP adapter root content")
+                .to_owned()
+        })
+        .collect::<Vec<_>>();
+    assert!(candidates[0].contains("deterministic validation failure"));
+    assert!(!candidates[1].contains("deterministic validation failure"));
+    let repaired_result = implementation
+        .tool_results
+        .iter()
+        .find(|result| result.invocation == proposals[1].id)
+        .expect("second proposal result");
+    let repaired_output: serde_json::Value =
+        serde_json::from_slice(&repaired_result.output).expect("second proposal output");
+    let repaired_id = repaired_output["handles"]
+        .as_array()
+        .expect("candidate handles")
+        .iter()
+        .filter_map(serde_json::Value::as_str)
+        .find_map(|handle| handle.strip_prefix("candidate:"))
+        .expect("repaired candidate handle");
+    let repaired = ProjectService::new(Arc::new(
+        SqliteStore::open(&scenario.database).expect("project store"),
+    ))
+    .candidate(repaired_id)
+    .expect("load repaired candidate")
+    .expect("repaired candidate exists");
+    assert_eq!(repaired.validation, CandidateValidation::Passed);
+    assert_project_unchanged(&scenario, repaired_id);
+    let continuation = saved
+        .branches
+        .iter()
+        .find(|branch| {
+            branch.result.as_ref().is_some_and(|result| {
+                result.summary.as_deref().is_some_and(|summary| {
+                    summary.contains("validated PHP implementation candidate")
+                })
+            })
+        })
+        .expect("successful repair continuation");
+    assert!(
+        continuation
+            .result
+            .as_ref()
+            .expect("continuation result")
+            .result_handles
+            .iter()
+            .any(|handle| handle == &format!("candidate:{repaired_id}"))
+    );
+    let fixture = scenario.tui.quit_retain_fixture();
+    fs::remove_dir_all(fixture).expect("remove validation repair fixture");
 }
 
 /// Identifies durable onboarding state used by the failed-validation scenario.
@@ -62,10 +157,17 @@ struct FailureScenario {
 
 /// Starts the failure scenario and onboards its copied checkout through the TUI.
 ///
+/// # Parameters
+/// - `repair`: Selects the invalid-first-proposal repair provider scenario.
+///
 /// # Returns
 /// Durable session, exact base project scope, and original live source bytes.
-fn onboard_failure_scenario() -> FailureScenario {
-    let mut tui = TuiPty::start_self_hosting_validation_failure();
+fn onboard_failure_scenario(repair: bool) -> FailureScenario {
+    let mut tui = if repair {
+        TuiPty::start_self_hosting_validation_repair()
+    } else {
+        TuiPty::start_self_hosting_validation_failure()
+    };
     assert!(
         tui.read_until("project: unselected"),
         "{}",
@@ -117,7 +219,8 @@ fn onboard_failure_scenario() -> FailureScenario {
 ///
 /// # Parameters
 /// - `tui`: Active TUI displaying the onboarded project.
-fn submit_php_continuation(tui: &mut TuiPty) {
+/// - `timeout`: Maximum wait for the agent continuation.
+fn submit_php_continuation(tui: &mut TuiPty, timeout: Duration) {
     tui.send(b"\x1b[B");
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
@@ -125,7 +228,7 @@ fn submit_php_continuation(tui: &mut TuiPty) {
     assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
     tui.send(b"Add support for ingesting PHP source files.\r");
     assert!(
-        tui.read_until_for("agent continuation [Completed]", Duration::from_secs(300)),
+        tui.read_until_for("agent continuation [Completed]", timeout),
         "{}",
         tui.diagnostic()
     );
