@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["ARCHITECTURE_QUERIES","IMPLEMENTATION_QUERIES","PHP_CANDIDATE_PROFILES"],"fn":["architecture_branch","child_summary","implementation_branch","root_branch","semantic_step"]};
+window.SIDEBAR_ITEMS = {"constant":["ARCHITECTURE_QUERIES","IMPLEMENTATION_QUERIES","PHP_CANDIDATE_PROFILES"],"fn":["architecture_branch","child_summary","implementation_branch","implementation_child","root_branch","semantic_step"]};
