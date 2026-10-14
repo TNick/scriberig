@@ -11,8 +11,8 @@ mod effects;
 use effects::{materialize_effects, preflight_effects, preflight_project_tree};
 
 use super::{
-    CandidateApplyReport, CandidateValidation, ProjectCandidate, ProjectError, ProjectService,
-    ProjectSourceEffect,
+    CandidateApplyReport, CandidateValidation, CandidateValidationProfile, ProjectCandidate,
+    ProjectError, ProjectService, ProjectSourceEffect,
 };
 
 impl ProjectService {
@@ -236,6 +236,15 @@ impl ProjectService {
 /// Returns a validation-pending or validation-failed error.
 fn require_validation(candidate: &ProjectCandidate) -> Result<(), ProjectError> {
     match &candidate.validation {
+        CandidateValidation::Passed
+            if candidate.validation_profile.as_deref()
+                == Some(CandidateValidationProfile::CargoDependencyResolution.identifier()) =>
+        {
+            Err(candidate_error(
+                "validation_pending",
+                "dependency acquisition succeeded; candidate code validation is still required",
+            ))
+        }
         CandidateValidation::Passed => Ok(()),
         CandidateValidation::Pending => Err(candidate_error(
             "validation_pending",

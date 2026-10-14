@@ -176,6 +176,11 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
             "Validate one exact project candidate in an isolated workspace.",
             "project_validate_candidate",
         ),
+        (
+            "project_resolve_dependencies",
+            "Acquire dependencies pinned by an exact candidate lockfile with bounded network access.",
+            "project_resolve_dependencies",
+        ),
     ] {
         descriptors.push(ToolDescriptor {
             definition: ToolDefinition {
@@ -195,6 +200,7 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
                     | "project_repair_file"
                     | "project_propose"
                     | "project_validate_candidate"
+                    | "project_resolve_dependencies"
             ),
             execution_mode: ToolExecutionMode::Atomic,
             required_capability: Some(required_capability.to_owned()),

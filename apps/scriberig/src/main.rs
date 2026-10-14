@@ -389,6 +389,7 @@ fn agent_actions() -> BTreeSet<CapabilityAction> {
         CapabilityAction::Custom("project_propose".to_owned()),
         CapabilityAction::Custom("project_candidate".to_owned()),
         CapabilityAction::Custom("project_validate_candidate".to_owned()),
+        CapabilityAction::Custom("project_resolve_dependencies".to_owned()),
         CapabilityAction::Custom("semantic_find".to_owned()),
         CapabilityAction::Custom("semantic_render".to_owned()),
     ]

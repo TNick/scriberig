@@ -35,6 +35,24 @@ fn catalog_exposes_project_recovery_operations() {
     );
 }
 
+/// Exposes bounded dependency acquisition as an independently granted operation.
+#[test]
+fn catalog_exposes_locked_dependency_acquisition() {
+    let descriptor = inspect_catalog()
+        .descriptors_for(&CapabilityContext::new([CapabilityId::new(
+            "project_resolve_dependencies",
+        )
+        .expect("dependency capability")]))
+        .into_iter()
+        .find(|descriptor| descriptor.definition.name == "project_resolve_dependencies")
+        .expect("dependency acquisition descriptor");
+    assert!(descriptor.state_changing);
+    assert_eq!(
+        descriptor.definition.parameters["required"],
+        serde_json::json!(["candidate"])
+    );
+}
+
 /// Restricts the bootstrap catalog to capabilities granted to one branch.
 #[test]
 fn catalog_filters_bootstrap_tools_by_branch_capability() {

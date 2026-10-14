@@ -4,7 +4,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::time::Duration;
 
 use scriberig_core::{EntityId, ProjectId, SnapshotId};
 use scriberig_store_sqlite::ProjectFileRecord;
@@ -103,6 +102,7 @@ pub(super) fn validate_project(root: &Path, relative: &str, text: &str) -> Candi
             command.arg("check");
         }
         let output = command
+            .current_dir(&temporary)
             .args(["--offline", "--manifest-path"])
             .arg(manifest)
             .env("CARGO_NET_OFFLINE", "true")
@@ -222,27 +222,7 @@ pub(super) fn validate_effects(
                 }
             }
         }
-        let manifest = root.join("Cargo.toml");
-        if !manifest.exists() {
-            return Ok(Vec::new());
-        }
-        let mut command = Command::new("cargo");
-        command
-            .args(profile.cargo_arguments())
-            .arg("--manifest-path")
-            .arg(manifest)
-            .env("CARGO_NET_OFFLINE", "true")
-            .env("CARGO_TARGET_DIR", &target);
-        let output = run_bounded(command, Duration::from_secs(600), cancelled)?;
-        if output.status.success() {
-            Ok(Vec::new())
-        } else {
-            let mut diagnostics = String::from_utf8_lossy(&output.stderr).to_string();
-            if diagnostics.trim().is_empty() {
-                diagnostics = String::from_utf8_lossy(&output.stdout).to_string();
-            }
-            Ok(vec![diagnostics.chars().take(16_384).collect()])
-        }
+        run_candidate_cargo(&root, &target, profile, cancelled)
     })();
     let _ = fs::remove_dir_all(&root);
     match result {
@@ -266,6 +246,74 @@ pub(super) fn validate_effects(
             })
         }
     }
+}
+
+/// Runs one registered Cargo profile against an isolated candidate root.
+///
+/// # Parameters
+/// - `root`: Materialized candidate workspace root.
+/// - `target`: Candidate-specific Cargo artifact directory.
+/// - `profile`: Application-selected Cargo policy.
+/// - `cancelled`: Shared operation cancellation flag.
+///
+/// # Returns
+/// Empty diagnostics on success or bounded failure details.
+///
+/// # Errors
+/// Returns when execution is cancelled or process setup fails.
+fn run_candidate_cargo(
+    root: &Path,
+    target: &Path,
+    profile: CandidateValidationProfile,
+    cancelled: &AtomicBool,
+) -> Result<Vec<String>, ProcessFailure> {
+    let manifest = root.join("Cargo.toml");
+    if !manifest.exists() {
+        return Ok(Vec::new());
+    }
+    if profile.allows_dependency_acquisition() {
+        if !root.join("Cargo.lock").is_file() {
+            return Ok(vec![
+                "dependency resolution requires the exact candidate Cargo.lock".to_owned(),
+            ]);
+        }
+        if root.join(".cargo/config").exists() || root.join(".cargo/config.toml").exists() {
+            return Ok(vec![
+                "dependency resolution rejects candidate-local Cargo configuration".to_owned(),
+            ]);
+        }
+    }
+    let mut command = Command::new("cargo");
+    command
+        .args(profile.cargo_arguments())
+        .arg("--manifest-path")
+        .arg(manifest)
+        .current_dir(root)
+        .env(
+            "CARGO_NET_OFFLINE",
+            if profile.allows_dependency_acquisition() {
+                "false"
+            } else {
+                "true"
+            },
+        )
+        .env("CARGO_TARGET_DIR", target);
+    if profile.allows_dependency_acquisition() {
+        command
+            .env("CARGO_NET_RETRY", "1")
+            .env("CARGO_HTTP_TIMEOUT", "30");
+    }
+    let output = run_bounded(command, profile.timeout(), cancelled)?;
+    if output.status.success() {
+        return Ok(Vec::new());
+    }
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let diagnostics = if stderr.trim().is_empty() {
+        String::from_utf8_lossy(&output.stdout).into_owned()
+    } else {
+        stderr.into_owned()
+    };
+    Ok(vec![diagnostics.chars().take(16_384).collect()])
 }
 
 /// Resolves the isolated Cargo target cache for one exact candidate.

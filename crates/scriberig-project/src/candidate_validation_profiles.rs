@@ -11,6 +11,8 @@ pub enum CandidateValidationProfile {
     RustWorkspace,
     /// Runs the complete PHP project ingestion conformance test target.
     ProjectIngestionE2e,
+    /// Fetches only dependencies fixed by the exact candidate lockfile.
+    CargoDependencyResolution,
 }
 
 impl CandidateValidationProfile {
@@ -28,6 +30,7 @@ impl CandidateValidationProfile {
             "project-import-focused" => Some(Self::ProjectImportFocused),
             "rust-workspace" => Some(Self::RustWorkspace),
             "project-ingestion-e2e" => Some(Self::ProjectIngestionE2e),
+            "cargo-dependency-resolution" => Some(Self::CargoDependencyResolution),
             _ => None,
         }
     }
@@ -43,6 +46,7 @@ impl CandidateValidationProfile {
             Self::ProjectImportFocused => "project-import-focused",
             Self::RustWorkspace => "rust-workspace",
             Self::ProjectIngestionE2e => "project-ingestion-e2e",
+            Self::CargoDependencyResolution => "cargo-dependency-resolution",
         }
     }
 
@@ -71,6 +75,29 @@ impl CandidateValidationProfile {
                 "--test",
                 "php_ingestion",
             ],
+            Self::CargoDependencyResolution => &["fetch", "--locked"],
+        }
+    }
+
+    /// Returns whether this profile may access declared dependency sources.
+    ///
+    /// # Returns
+    /// `true` only for the bounded, lockfile-based dependency acquisition profile.
+    pub(super) const fn allows_dependency_acquisition(self) -> bool {
+        matches!(self, Self::CargoDependencyResolution)
+    }
+
+    /// Returns the maximum process duration for this profile.
+    ///
+    /// # Returns
+    /// A bounded profile-specific execution deadline.
+    pub(super) const fn timeout(self) -> std::time::Duration {
+        match self {
+            Self::CargoDependencyResolution => std::time::Duration::from_secs(300),
+            Self::PhpDomainFocused
+            | Self::ProjectImportFocused
+            | Self::RustWorkspace
+            | Self::ProjectIngestionE2e => std::time::Duration::from_secs(600),
         }
     }
 }
@@ -87,6 +114,7 @@ mod tests {
             CandidateValidationProfile::ProjectImportFocused,
             CandidateValidationProfile::RustWorkspace,
             CandidateValidationProfile::ProjectIngestionE2e,
+            CandidateValidationProfile::CargoDependencyResolution,
         ];
         for (index, profile) in profiles.iter().enumerate() {
             assert_eq!(
@@ -102,6 +130,15 @@ mod tests {
         assert_eq!(
             CandidateValidationProfile::from_identifier("arbitrary-shell"),
             None
+        );
+        let acquisition = CandidateValidationProfile::CargoDependencyResolution;
+        assert_eq!(acquisition.cargo_arguments(), &["fetch", "--locked"]);
+        assert!(acquisition.allows_dependency_acquisition());
+        assert_eq!(acquisition.timeout().as_secs(), 300);
+        assert!(
+            profiles[..profiles.len() - 1]
+                .iter()
+                .all(|profile| !profile.allows_dependency_acquisition())
         );
     }
 }

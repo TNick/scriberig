@@ -6,6 +6,33 @@ use super::{
 use std::sync::atomic::{AtomicBool, Ordering};
 
 impl ProjectService {
+    /// Resolves dependencies locked by one exact candidate in isolation.
+    ///
+    /// Cargo fetch is restricted to the candidate's existing lockfile, cannot
+    /// update candidate source, and never executes dependency build scripts.
+    ///
+    /// # Parameters
+    /// - `id`: Stable candidate identity.
+    /// - `cancelled`: Shared operation cancellation flag.
+    ///
+    /// # Returns
+    /// Candidate with durable dependency-resolution evidence.
+    ///
+    /// # Errors
+    /// Returns an error when the candidate is missing, stale, cancelled, or
+    /// dependency acquisition fails.
+    pub fn resolve_candidate_dependencies_cancellable(
+        &self,
+        id: &str,
+        cancelled: &AtomicBool,
+    ) -> Result<ProjectCandidate, ProjectError> {
+        self.validate_candidate_profile_cancellable(
+            id,
+            CandidateValidationProfile::CargoDependencyResolution,
+            cancelled,
+        )
+    }
+
     /// Validates a durable candidate reconstructed from exact base source bytes.
     ///
     /// # Parameters

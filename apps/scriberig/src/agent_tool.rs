@@ -170,6 +170,9 @@ impl<B: ApplicationBackend> Tool for LocalAgentTool<'_, B> {
             "project_propose" => self.project_propose(context, arguments),
             "project_candidate" => self.project_candidate(arguments),
             "project_validate_candidate" => self.project_validate_candidate(arguments, cancelled),
+            "project_resolve_dependencies" => {
+                self.project_resolve_dependencies(arguments, cancelled)
+            }
             "session_branch_tree" => self.session_tree(context, arguments),
             "session_branch_activity" => self.session_activity(context, arguments),
             _ => Err(ToolError::Application {
@@ -231,6 +234,7 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
             "project_propose",
             "project_candidate",
             "project_validate_candidate",
+            "project_resolve_dependencies",
         ];
         Self::result(
             "runtime capabilities available",
