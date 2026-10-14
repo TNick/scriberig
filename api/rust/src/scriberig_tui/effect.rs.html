@@ -92,34 +92,36 @@
 <a href=#92 id=92 data-nosnippet>92</a>        <span class="doccomment">/// Operation identity to cancel.
 <a href=#93 id=93 data-nosnippet>93</a>        </span>operation: scriberig_core::OperationId,
 <a href=#94 id=94 data-nosnippet>94</a>    },
-<a href=#95 id=95 data-nosnippet>95</a>    <span class="doccomment">/// Read a public session tree.
-<a href=#96 id=96 data-nosnippet>96</a>    </span>ReadSession {
-<a href=#97 id=97 data-nosnippet>97</a>        <span class="doccomment">/// Request generation.
-<a href=#98 id=98 data-nosnippet>98</a>        </span>request_id: u64,
-<a href=#99 id=99 data-nosnippet>99</a>        <span class="doccomment">/// Stable session identity.
-<a href=#100 id=100 data-nosnippet>100</a>        </span>session: scriberig_core::EntityId,
-<a href=#101 id=101 data-nosnippet>101</a>        <span class="doccomment">/// Optional branch whose activity is loaded on demand.
-<a href=#102 id=102 data-nosnippet>102</a>        </span>branch: <span class="prelude-ty">Option</span>&lt;scriberig_core::EntityId&gt;,
-<a href=#103 id=103 data-nosnippet>103</a>    },
-<a href=#104 id=104 data-nosnippet>104</a>    <span class="doccomment">/// Submit a command to a session branch through the application boundary.
-<a href=#105 id=105 data-nosnippet>105</a>    </span>SubmitAgent {
-<a href=#106 id=106 data-nosnippet>106</a>        <span class="doccomment">/// Stable session identity.
-<a href=#107 id=107 data-nosnippet>107</a>        </span>session: scriberig_core::EntityId,
-<a href=#108 id=108 data-nosnippet>108</a>        <span class="doccomment">/// Optional target branch.
-<a href=#109 id=109 data-nosnippet>109</a>        </span>branch: <span class="prelude-ty">Option</span>&lt;scriberig_core::EntityId&gt;,
-<a href=#110 id=110 data-nosnippet>110</a>        <span class="doccomment">/// User-authored command text.
-<a href=#111 id=111 data-nosnippet>111</a>        </span>prompt: String,
-<a href=#112 id=112 data-nosnippet>112</a>    },
-<a href=#113 id=113 data-nosnippet>113</a>    <span class="doccomment">/// Run the deterministic semantic project agent for the selected entity.
-<a href=#114 id=114 data-nosnippet>114</a>    </span>ProjectAgent {
-<a href=#115 id=115 data-nosnippet>115</a>        <span class="doccomment">/// Monotonic request identifier.
-<a href=#116 id=116 data-nosnippet>116</a>        </span>request_id: u64,
-<a href=#117 id=117 data-nosnippet>117</a>        <span class="doccomment">/// Selected semantic entity.
-<a href=#118 id=118 data-nosnippet>118</a>        </span>entity: scriberig_core::EntityId,
-<a href=#119 id=119 data-nosnippet>119</a>        <span class="doccomment">/// Exact base snapshot.
-<a href=#120 id=120 data-nosnippet>120</a>        </span>snapshot: scriberig_core::SnapshotId,
-<a href=#121 id=121 data-nosnippet>121</a>        <span class="doccomment">/// User instruction sent to the provider.
-<a href=#122 id=122 data-nosnippet>122</a>        </span>prompt: String,
-<a href=#123 id=123 data-nosnippet>123</a>    },
-<a href=#124 id=124 data-nosnippet>124</a>}
+<a href=#95 id=95 data-nosnippet>95</a>    <span class="doccomment">/// Refresh the tracked application operation records.
+<a href=#96 id=96 data-nosnippet>96</a>    </span>ListOperations,
+<a href=#97 id=97 data-nosnippet>97</a>    <span class="doccomment">/// Read a public session tree.
+<a href=#98 id=98 data-nosnippet>98</a>    </span>ReadSession {
+<a href=#99 id=99 data-nosnippet>99</a>        <span class="doccomment">/// Request generation.
+<a href=#100 id=100 data-nosnippet>100</a>        </span>request_id: u64,
+<a href=#101 id=101 data-nosnippet>101</a>        <span class="doccomment">/// Stable session identity.
+<a href=#102 id=102 data-nosnippet>102</a>        </span>session: scriberig_core::EntityId,
+<a href=#103 id=103 data-nosnippet>103</a>        <span class="doccomment">/// Optional branch whose activity is loaded on demand.
+<a href=#104 id=104 data-nosnippet>104</a>        </span>branch: <span class="prelude-ty">Option</span>&lt;scriberig_core::EntityId&gt;,
+<a href=#105 id=105 data-nosnippet>105</a>    },
+<a href=#106 id=106 data-nosnippet>106</a>    <span class="doccomment">/// Submit a command to a session branch through the application boundary.
+<a href=#107 id=107 data-nosnippet>107</a>    </span>SubmitAgent {
+<a href=#108 id=108 data-nosnippet>108</a>        <span class="doccomment">/// Stable session identity.
+<a href=#109 id=109 data-nosnippet>109</a>        </span>session: scriberig_core::EntityId,
+<a href=#110 id=110 data-nosnippet>110</a>        <span class="doccomment">/// Optional target branch.
+<a href=#111 id=111 data-nosnippet>111</a>        </span>branch: <span class="prelude-ty">Option</span>&lt;scriberig_core::EntityId&gt;,
+<a href=#112 id=112 data-nosnippet>112</a>        <span class="doccomment">/// User-authored command text.
+<a href=#113 id=113 data-nosnippet>113</a>        </span>prompt: String,
+<a href=#114 id=114 data-nosnippet>114</a>    },
+<a href=#115 id=115 data-nosnippet>115</a>    <span class="doccomment">/// Run the deterministic semantic project agent for the selected entity.
+<a href=#116 id=116 data-nosnippet>116</a>    </span>ProjectAgent {
+<a href=#117 id=117 data-nosnippet>117</a>        <span class="doccomment">/// Monotonic request identifier.
+<a href=#118 id=118 data-nosnippet>118</a>        </span>request_id: u64,
+<a href=#119 id=119 data-nosnippet>119</a>        <span class="doccomment">/// Selected semantic entity.
+<a href=#120 id=120 data-nosnippet>120</a>        </span>entity: scriberig_core::EntityId,
+<a href=#121 id=121 data-nosnippet>121</a>        <span class="doccomment">/// Exact base snapshot.
+<a href=#122 id=122 data-nosnippet>122</a>        </span>snapshot: scriberig_core::SnapshotId,
+<a href=#123 id=123 data-nosnippet>123</a>        <span class="doccomment">/// User instruction sent to the provider.
+<a href=#124 id=124 data-nosnippet>124</a>        </span>prompt: String,
+<a href=#125 id=125 data-nosnippet>125</a>    },
+<a href=#126 id=126 data-nosnippet>126</a>}
 </code></pre></div></section></main></body></html>

@@ -7,20 +7,7 @@
 </ul>
 <h5 id="returns"><a class="doc-anchor" href="#returns">§</a>Returns</h5>
 <p>The service configured to persist session graphs.</p>
-</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-ApplicationService%3CB%3E-1" class="impl"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions/start_agent.rs.html#9-106">Source</a><a href="#impl-ApplicationService%3CB%3E-1" class="anchor">§</a><h3 class="code-header">impl&lt;B&gt; <a class="struct" href="struct.ApplicationService.html" title="struct scriberig_app::service::ApplicationService">ApplicationService</a>&lt;B&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.start_local_agent" class="method"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions/start_agent.rs.html#21-105">Source</a><h4 class="code-header">pub fn <a href="#method.start_local_agent" class="fn">start_local_agent</a>(
-    &amp;self,
-    request: &amp;<a class="struct" href="../session/struct.AgentCommandRequest.html" title="struct scriberig_app::session::AgentCommandRequest">AgentCommandRequest</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../session/struct.LocalAgentHandle.html" title="struct scriberig_app::session::LocalAgentHandle">LocalAgentHandle</a>, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class="docblock"><p>Creates a local session root and leaves its shared operation running.</p>
-<h5 id="parameters-1"><a class="doc-anchor" href="#parameters-1">§</a>Parameters</h5>
-<ul>
-<li><code>self</code>: Application service owning local session state.</li>
-<li><code>request</code>: Session, optional branch, and human instruction.</li>
-</ul>
-<h5 id="returns-1"><a class="doc-anchor" href="#returns-1">§</a>Returns</h5>
-<p>A handle used to complete the same operation after runtime execution.</p>
-<h5 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h5>
-<p>Returns an application error when session or operation state is invalid.</p>
-</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-ApplicationService%3CB%3E-2" class="impl"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions.rs.html#46-404">Source</a><a href="#impl-ApplicationService%3CB%3E-2" class="anchor">§</a><h3 class="code-header">impl&lt;B&gt; <a class="struct" href="struct.ApplicationService.html" title="struct scriberig_app::service::ApplicationService">ApplicationService</a>&lt;B&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.start_local_child_agent" class="method"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions.rs.html#62-103">Source</a><h4 class="code-header">pub fn <a href="#method.start_local_child_agent" class="fn">start_local_child_agent</a>(
+</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-ApplicationService%3CB%3E-1" class="impl"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions/operations.rs.html#10-375">Source</a><a href="#impl-ApplicationService%3CB%3E-1" class="anchor">§</a><h3 class="code-header">impl&lt;B&gt; <a class="struct" href="struct.ApplicationService.html" title="struct scriberig_app::service::ApplicationService">ApplicationService</a>&lt;B&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.start_local_child_agent" class="method"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions/operations.rs.html#26-67">Source</a><h4 class="code-header">pub fn <a href="#method.start_local_child_agent" class="fn">start_local_child_agent</a>(
     &amp;self,
     session_id: EntityId,
     parent_branch: EntityId,
@@ -28,7 +15,7 @@
     purpose: impl <a class="trait" href="https://doc.rust-lang.org/1.99.0/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     prompt: impl <a class="trait" href="https://doc.rust-lang.org/1.99.0/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../session/struct.LocalChildAgentHandle.html" title="struct scriberig_app::session::LocalChildAgentHandle">LocalChildAgentHandle</a>, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class="docblock"><p>Creates a child branch and leaves its shared operation running.</p>
-<h5 id="parameters-2"><a class="doc-anchor" href="#parameters-2">§</a>Parameters</h5>
+<h5 id="parameters-1"><a class="doc-anchor" href="#parameters-1">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Application service owning local session state.</li>
 <li><code>session_id</code>: Session containing the parent branch.</li>
@@ -37,50 +24,50 @@
 <li><code>purpose</code>: Focused child purpose.</li>
 <li><code>prompt</code>: Child model instruction.</li>
 </ul>
-<h5 id="returns-2"><a class="doc-anchor" href="#returns-2">§</a>Returns</h5>
+<h5 id="returns-1"><a class="doc-anchor" href="#returns-1">§</a>Returns</h5>
 <p>A handle used to complete the child operation.</p>
-<h5 id="errors-1"><a class="doc-anchor" href="#errors-1">§</a>Errors</h5>
+<h5 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h5>
 <p>Returns an application error when the session graph is unavailable.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.complete_local_child_agent" class="method"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions.rs.html#117-123">Source</a><h4 class="code-header">pub fn <a href="#method.complete_local_child_agent" class="fn">complete_local_child_agent</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.complete_local_child_agent" class="method"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions/operations.rs.html#81-87">Source</a><h4 class="code-header">pub fn <a href="#method.complete_local_child_agent" class="fn">complete_local_child_agent</a>(
     &amp;self,
     handle: &amp;<a class="struct" href="../session/struct.LocalChildAgentHandle.html" title="struct scriberig_app::session::LocalChildAgentHandle">LocalChildAgentHandle</a>,
     final_output: impl <a class="trait" href="https://doc.rust-lang.org/1.99.0/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../session/struct.AgentResult.html" title="struct scriberig_app::session::AgentResult">AgentResult</a>, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class="docblock"><p>Completes a child operation and records its durable branch result.</p>
-<h5 id="parameters-3"><a class="doc-anchor" href="#parameters-3">§</a>Parameters</h5>
+<h5 id="parameters-2"><a class="doc-anchor" href="#parameters-2">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Application service owning local session state.</li>
 <li><code>handle</code>: Pending child operation handle.</li>
 <li><code>final_output</code>: Complete externally meaningful child output.</li>
 </ul>
-<h5 id="returns-3"><a class="doc-anchor" href="#returns-3">§</a>Returns</h5>
+<h5 id="returns-2"><a class="doc-anchor" href="#returns-2">§</a>Returns</h5>
 <p>The structured application agent result for the child.</p>
-<h5 id="errors-2"><a class="doc-anchor" href="#errors-2">§</a>Errors</h5>
+<h5 id="errors-1"><a class="doc-anchor" href="#errors-1">§</a>Errors</h5>
 <p>Returns an application error when the child branch is unavailable.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.complete_local_child_agent_with_handles" class="method"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions.rs.html#138-150">Source</a><h4 class="code-header">pub fn <a href="#method.complete_local_child_agent_with_handles" class="fn">complete_local_child_agent_with_handles</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.complete_local_child_agent_with_handles" class="method"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions/operations.rs.html#102-114">Source</a><h4 class="code-header">pub fn <a href="#method.complete_local_child_agent_with_handles" class="fn">complete_local_child_agent_with_handles</a>(
     &amp;self,
     handle: &amp;<a class="struct" href="../session/struct.LocalChildAgentHandle.html" title="struct scriberig_app::session::LocalChildAgentHandle">LocalChildAgentHandle</a>,
     final_output: impl <a class="trait" href="https://doc.rust-lang.org/1.99.0/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     result_handles: <a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../session/struct.AgentResult.html" title="struct scriberig_app::session::AgentResult">AgentResult</a>, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class="docblock"><p>Completes a child branch with compact semantic result references.</p>
-<h5 id="parameters-4"><a class="doc-anchor" href="#parameters-4">§</a>Parameters</h5>
+<h5 id="parameters-3"><a class="doc-anchor" href="#parameters-3">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Application service owning local session state.</li>
 <li><code>handle</code>: Pending child operation handle.</li>
 <li><code>final_output</code>: Complete externally meaningful child output.</li>
 <li><code>result_handles</code>: Stable semantic references returned by the child.</li>
 </ul>
-<h5 id="returns-4"><a class="doc-anchor" href="#returns-4">§</a>Returns</h5>
+<h5 id="returns-3"><a class="doc-anchor" href="#returns-3">§</a>Returns</h5>
 <p>The structured application agent result for the child.</p>
-<h5 id="errors-3"><a class="doc-anchor" href="#errors-3">§</a>Errors</h5>
+<h5 id="errors-2"><a class="doc-anchor" href="#errors-2">§</a>Errors</h5>
 <p>Returns an application error when the child branch is unavailable.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.complete_local_child_agent_with_evidence" class="method"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions.rs.html#166-239">Source</a><h4 class="code-header">pub fn <a href="#method.complete_local_child_agent_with_evidence" class="fn">complete_local_child_agent_with_evidence</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.complete_local_child_agent_with_evidence" class="method"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions/operations.rs.html#130-203">Source</a><h4 class="code-header">pub fn <a href="#method.complete_local_child_agent_with_evidence" class="fn">complete_local_child_agent_with_evidence</a>(
     &amp;self,
     handle: &amp;<a class="struct" href="../session/struct.LocalChildAgentHandle.html" title="struct scriberig_app::session::LocalChildAgentHandle">LocalChildAgentHandle</a>,
     final_output: impl <a class="trait" href="https://doc.rust-lang.org/1.99.0/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     result_handles: <a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     tool_evidence: <a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../session/struct.ToolExecutionEvidence.html" title="struct scriberig_app::session::ToolExecutionEvidence">ToolExecutionEvidence</a>&gt;,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../session/struct.AgentResult.html" title="struct scriberig_app::session::AgentResult">AgentResult</a>, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class="docblock"><p>Completes a child branch and persists its executed tool evidence.</p>
-<h5 id="parameters-5"><a class="doc-anchor" href="#parameters-5">§</a>Parameters</h5>
+<h5 id="parameters-4"><a class="doc-anchor" href="#parameters-4">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Application service owning local session state.</li>
 <li><code>handle</code>: Pending child operation handle.</li>
@@ -88,50 +75,50 @@
 <li><code>result_handles</code>: Stable semantic references returned by the child.</li>
 <li><code>tool_evidence</code>: Exact tool arguments and bounded structured results.</li>
 </ul>
-<h5 id="returns-5"><a class="doc-anchor" href="#returns-5">§</a>Returns</h5>
+<h5 id="returns-4"><a class="doc-anchor" href="#returns-4">§</a>Returns</h5>
 <p>The structured application agent result for the child.</p>
-<h5 id="errors-4"><a class="doc-anchor" href="#errors-4">§</a>Errors</h5>
+<h5 id="errors-3"><a class="doc-anchor" href="#errors-3">§</a>Errors</h5>
 <p>Returns an application error when the child branch is unavailable.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.complete_local_agent" class="method"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions.rs.html#253-259">Source</a><h4 class="code-header">pub fn <a href="#method.complete_local_agent" class="fn">complete_local_agent</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.complete_local_agent" class="method"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions/operations.rs.html#217-223">Source</a><h4 class="code-header">pub fn <a href="#method.complete_local_agent" class="fn">complete_local_agent</a>(
     &amp;self,
     handle: &amp;<a class="struct" href="../session/struct.LocalAgentHandle.html" title="struct scriberig_app::session::LocalAgentHandle">LocalAgentHandle</a>,
     final_output: impl <a class="trait" href="https://doc.rust-lang.org/1.99.0/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../session/struct.AgentResult.html" title="struct scriberig_app::session::AgentResult">AgentResult</a>, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class="docblock"><p>Commits final runtime output into a pending local agent operation.</p>
-<h5 id="parameters-6"><a class="doc-anchor" href="#parameters-6">§</a>Parameters</h5>
+<h5 id="parameters-5"><a class="doc-anchor" href="#parameters-5">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Application service owning local session state.</li>
 <li><code>handle</code>: Pending operation and branch handle.</li>
 <li><code>final_output</code>: Complete externally meaningful agent output.</li>
 </ul>
-<h5 id="returns-6"><a class="doc-anchor" href="#returns-6">§</a>Returns</h5>
+<h5 id="returns-5"><a class="doc-anchor" href="#returns-5">§</a>Returns</h5>
 <p>The structured application agent result stored on the operation.</p>
-<h5 id="errors-5"><a class="doc-anchor" href="#errors-5">§</a>Errors</h5>
+<h5 id="errors-4"><a class="doc-anchor" href="#errors-4">§</a>Errors</h5>
 <p>Returns an application error when the branch or operation is unavailable.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.complete_local_agent_with_handles" class="method"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions.rs.html#274-281">Source</a><h4 class="code-header">pub fn <a href="#method.complete_local_agent_with_handles" class="fn">complete_local_agent_with_handles</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.complete_local_agent_with_handles" class="method"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions/operations.rs.html#238-245">Source</a><h4 class="code-header">pub fn <a href="#method.complete_local_agent_with_handles" class="fn">complete_local_agent_with_handles</a>(
     &amp;self,
     handle: &amp;<a class="struct" href="../session/struct.LocalAgentHandle.html" title="struct scriberig_app::session::LocalAgentHandle">LocalAgentHandle</a>,
     final_output: impl <a class="trait" href="https://doc.rust-lang.org/1.99.0/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     result_handles: <a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../session/struct.AgentResult.html" title="struct scriberig_app::session::AgentResult">AgentResult</a>, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class="docblock"><p>Commits final output and stable result handles into a local agent branch.</p>
-<h5 id="parameters-7"><a class="doc-anchor" href="#parameters-7">§</a>Parameters</h5>
+<h5 id="parameters-6"><a class="doc-anchor" href="#parameters-6">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Application service owning local session state.</li>
 <li><code>handle</code>: Pending operation and branch handle.</li>
 <li><code>final_output</code>: Complete externally meaningful agent output.</li>
 <li><code>result_handles</code>: Stable project, snapshot, manifest, or candidate handles.</li>
 </ul>
-<h5 id="returns-7"><a class="doc-anchor" href="#returns-7">§</a>Returns</h5>
+<h5 id="returns-6"><a class="doc-anchor" href="#returns-6">§</a>Returns</h5>
 <p>The structured application agent result stored on the operation.</p>
-<h5 id="errors-6"><a class="doc-anchor" href="#errors-6">§</a>Errors</h5>
+<h5 id="errors-5"><a class="doc-anchor" href="#errors-5">§</a>Errors</h5>
 <p>Returns an application error when the branch or operation is unavailable.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.complete_local_agent_with_evidence" class="method"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions.rs.html#297-382">Source</a><h4 class="code-header">pub fn <a href="#method.complete_local_agent_with_evidence" class="fn">complete_local_agent_with_evidence</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.complete_local_agent_with_evidence" class="method"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions/operations.rs.html#261-353">Source</a><h4 class="code-header">pub fn <a href="#method.complete_local_agent_with_evidence" class="fn">complete_local_agent_with_evidence</a>(
     &amp;self,
     handle: &amp;<a class="struct" href="../session/struct.LocalAgentHandle.html" title="struct scriberig_app::session::LocalAgentHandle">LocalAgentHandle</a>,
     final_output: impl <a class="trait" href="https://doc.rust-lang.org/1.99.0/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     result_handles: <a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     tool_evidence: <a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../session/struct.ToolExecutionEvidence.html" title="struct scriberig_app::session::ToolExecutionEvidence">ToolExecutionEvidence</a>&gt;,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../session/struct.AgentResult.html" title="struct scriberig_app::session::AgentResult">AgentResult</a>, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class="docblock"><p>Completes a root branch and persists its executed tool evidence.</p>
-<h5 id="parameters-8"><a class="doc-anchor" href="#parameters-8">§</a>Parameters</h5>
+<h5 id="parameters-7"><a class="doc-anchor" href="#parameters-7">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Application service owning local session state.</li>
 <li><code>handle</code>: Pending operation and branch handle.</li>
@@ -139,10 +126,23 @@
 <li><code>result_handles</code>: Stable semantic references returned by the agent.</li>
 <li><code>tool_evidence</code>: Exact tool arguments and bounded structured results.</li>
 </ul>
-<h5 id="returns-8"><a class="doc-anchor" href="#returns-8">§</a>Returns</h5>
+<h5 id="returns-7"><a class="doc-anchor" href="#returns-7">§</a>Returns</h5>
 <p>The structured application agent result stored on the operation.</p>
-<h5 id="errors-7"><a class="doc-anchor" href="#errors-7">§</a>Errors</h5>
+<h5 id="errors-6"><a class="doc-anchor" href="#errors-6">§</a>Errors</h5>
 <p>Returns an application error when the branch or operation is unavailable.</p>
+</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-ApplicationService%3CB%3E-2" class="impl"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions/start_agent.rs.html#9-106">Source</a><a href="#impl-ApplicationService%3CB%3E-2" class="anchor">§</a><h3 class="code-header">impl&lt;B&gt; <a class="struct" href="struct.ApplicationService.html" title="struct scriberig_app::service::ApplicationService">ApplicationService</a>&lt;B&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.start_local_agent" class="method"><a class="src rightside" href="../../src/scriberig_app/service_local_sessions/start_agent.rs.html#21-105">Source</a><h4 class="code-header">pub fn <a href="#method.start_local_agent" class="fn">start_local_agent</a>(
+    &amp;self,
+    request: &amp;<a class="struct" href="../session/struct.AgentCommandRequest.html" title="struct scriberig_app::session::AgentCommandRequest">AgentCommandRequest</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../session/struct.LocalAgentHandle.html" title="struct scriberig_app::session::LocalAgentHandle">LocalAgentHandle</a>, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class="docblock"><p>Creates a local session root and leaves its shared operation running.</p>
+<h5 id="parameters-8"><a class="doc-anchor" href="#parameters-8">§</a>Parameters</h5>
+<ul>
+<li><code>self</code>: Application service owning local session state.</li>
+<li><code>request</code>: Session, optional branch, and human instruction.</li>
+</ul>
+<h5 id="returns-8"><a class="doc-anchor" href="#returns-8">§</a>Returns</h5>
+<p>A handle used to complete the same operation after runtime execution.</p>
+<h5 id="errors-7"><a class="doc-anchor" href="#errors-7">§</a>Errors</h5>
+<p>Returns an application error when session or operation state is invalid.</p>
 </div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-ApplicationService%3CB%3E-3" class="impl"><a class="src rightside" href="../../src/scriberig_app/service_agent_execution.rs.html#7-31">Source</a><a href="#impl-ApplicationService%3CB%3E-3" class="anchor">§</a><h3 class="code-header">impl&lt;B&gt; <a class="struct" href="struct.ApplicationService.html" title="struct scriberig_app::service::ApplicationService">ApplicationService</a>&lt;B&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.begin_agent_execution" class="method"><a class="src rightside" href="../../src/scriberig_app/service_agent_execution.rs.html#23-30">Source</a><h4 class="code-header">pub fn <a href="#method.begin_agent_execution" class="fn">begin_agent_execution</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,

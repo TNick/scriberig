@@ -107,112 +107,120 @@
 <a href=#107 id=107 data-nosnippet>107</a>                category: error.category().to_owned(),
 <a href=#108 id=108 data-nosnippet>108</a>                message: <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>error.to_string()),
 <a href=#109 id=109 data-nosnippet>109</a>            }),
-<a href=#110 id=110 data-nosnippet>110</a>        Effect::ReadSession {
-<a href=#111 id=111 data-nosnippet>111</a>            request_id,
-<a href=#112 id=112 data-nosnippet>112</a>            session,
-<a href=#113 id=113 data-nosnippet>113</a>            branch,
-<a href=#114 id=114 data-nosnippet>114</a>        } =&gt; branch
-<a href=#115 id=115 data-nosnippet>115</a>            .map_or_else(
-<a href=#116 id=116 data-nosnippet>116</a>                || service.read_session(context, session),
-<a href=#117 id=117 data-nosnippet>117</a>                |branch| service.read_session_branch(context, session, branch),
-<a href=#118 id=118 data-nosnippet>118</a>            )
-<a href=#119 id=119 data-nosnippet>119</a>            .map(|value| Action::SessionSucceeded {
-<a href=#120 id=120 data-nosnippet>120</a>                request_id,
-<a href=#121 id=121 data-nosnippet>121</a>                model: <span class="kw">crate</span>::view::session::SessionModel::from_session(<span class="kw-2">&amp;</span>value),
-<a href=#122 id=122 data-nosnippet>122</a>            })
-<a href=#123 id=123 data-nosnippet>123</a>            .unwrap_or_else(|error| Action::OperationFailed {
-<a href=#124 id=124 data-nosnippet>124</a>                request_id,
-<a href=#125 id=125 data-nosnippet>125</a>                category: error.category().to_owned(),
-<a href=#126 id=126 data-nosnippet>126</a>                message: <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>error.to_string()),
-<a href=#127 id=127 data-nosnippet>127</a>            }),
-<a href=#128 id=128 data-nosnippet>128</a>        Effect::SubmitAgent {
-<a href=#129 id=129 data-nosnippet>129</a>            session,
-<a href=#130 id=130 data-nosnippet>130</a>            branch,
-<a href=#131 id=131 data-nosnippet>131</a>            prompt,
-<a href=#132 id=132 data-nosnippet>132</a>        } =&gt; service
-<a href=#133 id=133 data-nosnippet>133</a>            .submit_agent_handle(context, session, branch, <span class="kw-2">&amp;</span>prompt)
-<a href=#134 id=134 data-nosnippet>134</a>            .map(Action::AgentSubmitted)
-<a href=#135 id=135 data-nosnippet>135</a>            .unwrap_or_else(|error| Action::OperationFailed {
-<a href=#136 id=136 data-nosnippet>136</a>                request_id: <span class="number">0</span>,
-<a href=#137 id=137 data-nosnippet>137</a>                category: error.category().to_owned(),
-<a href=#138 id=138 data-nosnippet>138</a>                message: <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>error.to_string()),
-<a href=#139 id=139 data-nosnippet>139</a>            }),
-<a href=#140 id=140 data-nosnippet>140</a>        Effect::ProjectAgent {
-<a href=#141 id=141 data-nosnippet>141</a>            request_id,
-<a href=#142 id=142 data-nosnippet>142</a>            entity,
-<a href=#143 id=143 data-nosnippet>143</a>            snapshot,
-<a href=#144 id=144 data-nosnippet>144</a>            prompt,
-<a href=#145 id=145 data-nosnippet>145</a>        } =&gt; <span class="kw">match </span>service.project_agent(context, entity, snapshot, <span class="kw-2">&amp;</span>prompt) {
-<a href=#146 id=146 data-nosnippet>146</a>            <span class="prelude-val">Ok</span>(ApplicationResult::Apply(summary)) =&gt; Action::ReviewSucceeded {
-<a href=#147 id=147 data-nosnippet>147</a>                request_id,
-<a href=#148 id=148 data-nosnippet>148</a>                model: <span class="kw">crate</span>::view::changes::ChangeReviewModel::from_summary(
-<a href=#149 id=149 data-nosnippet>149</a>                    snapshot,
-<a href=#150 id=150 data-nosnippet>150</a>                    summary.handle.clone(),
-<a href=#151 id=151 data-nosnippet>151</a>                    <span class="prelude-val">None</span>,
-<a href=#152 id=152 data-nosnippet>152</a>                    <span class="kw-2">&amp;</span>summary,
-<a href=#153 id=153 data-nosnippet>153</a>                ),
-<a href=#154 id=154 data-nosnippet>154</a>            },
-<a href=#155 id=155 data-nosnippet>155</a>            <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; Action::OperationFailed {
-<a href=#156 id=156 data-nosnippet>156</a>                request_id,
-<a href=#157 id=157 data-nosnippet>157</a>                category: <span class="string">"invalid_result"</span>.to_owned(),
-<a href=#158 id=158 data-nosnippet>158</a>                message: <span class="string">"project agent did not produce a candidate"</span>.to_owned(),
-<a href=#159 id=159 data-nosnippet>159</a>            },
-<a href=#160 id=160 data-nosnippet>160</a>            <span class="prelude-val">Err</span>(error) =&gt; Action::OperationFailed {
-<a href=#161 id=161 data-nosnippet>161</a>                request_id,
-<a href=#162 id=162 data-nosnippet>162</a>                category: error.category().to_owned(),
-<a href=#163 id=163 data-nosnippet>163</a>                message: <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>error.to_string()),
-<a href=#164 id=164 data-nosnippet>164</a>            },
-<a href=#165 id=165 data-nosnippet>165</a>        },
-<a href=#166 id=166 data-nosnippet>166</a>        Effect::RequestRefresh =&gt; Action::RefreshRequested,
-<a href=#167 id=167 data-nosnippet>167</a>        Effect::RequestQuit =&gt; Action::QuitRequested,
-<a href=#168 id=168 data-nosnippet>168</a>        Effect::RequestFind {
-<a href=#169 id=169 data-nosnippet>169</a>            request_id,
-<a href=#170 id=170 data-nosnippet>170</a>            text,
-<a href=#171 id=171 data-nosnippet>171</a>            snapshot,
-<a href=#172 id=172 data-nosnippet>172</a>        } =&gt; service
-<a href=#173 id=173 data-nosnippet>173</a>            .find_entities(context, snapshot, <span class="kw-2">&amp;</span>text)
-<a href=#174 id=174 data-nosnippet>174</a>            .map(|model| Action::FindSucceeded { request_id, model })
-<a href=#175 id=175 data-nosnippet>175</a>            .unwrap_or_else(|error| Action::OperationFailed {
-<a href=#176 id=176 data-nosnippet>176</a>                request_id: <span class="number">0</span>,
-<a href=#177 id=177 data-nosnippet>177</a>                category: error.category().to_owned(),
-<a href=#178 id=178 data-nosnippet>178</a>                message: <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>error.to_string()),
-<a href=#179 id=179 data-nosnippet>179</a>            }),
-<a href=#180 id=180 data-nosnippet>180</a>        Effect::RequestSemanticAction { id, .. } =&gt; Action::OperationFailed {
-<a href=#181 id=181 data-nosnippet>181</a>            request_id: <span class="number">0</span>,
-<a href=#182 id=182 data-nosnippet>182</a>            category: <span class="string">"unsupported"</span>.to_owned(),
-<a href=#183 id=183 data-nosnippet>183</a>            message: <span class="macro">format!</span>(<span class="string">"semantic action is not available through this TUI service: {id}"</span>),
-<a href=#184 id=184 data-nosnippet>184</a>        },
-<a href=#185 id=185 data-nosnippet>185</a>        Effect::None =&gt; Action::Noop,
-<a href=#186 id=186 data-nosnippet>186</a>    }
-<a href=#187 id=187 data-nosnippet>187</a>}
-<a href=#188 id=188 data-nosnippet>188</a>
-<a href=#189 id=189 data-nosnippet>189</a><span class="doccomment">/// Selects one branch and all descendants from an authoritative session.
-<a href=#190 id=190 data-nosnippet>190</a>///
-<a href=#191 id=191 data-nosnippet>191</a>/// # Parameters
-<a href=#192 id=192 data-nosnippet>192</a>/// - `session`: Session graph to filter.
-<a href=#193 id=193 data-nosnippet>193</a>/// - `branch`: Selected branch identity.
-<a href=#194 id=194 data-nosnippet>194</a>/// - `crate`: Internal visibility marker.
-<a href=#195 id=195 data-nosnippet>195</a>///
-<a href=#196 id=196 data-nosnippet>196</a>/// # Returns
-<a href=#197 id=197 data-nosnippet>197</a>/// A session containing the selected branch and descendants.
-<a href=#198 id=198 data-nosnippet>198</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>select_branch_subtree(<span class="kw-2">mut </span>session: Session, branch: EntityId) -&gt; Session {
-<a href=#199 id=199 data-nosnippet>199</a>    <span class="kw">let </span><span class="kw-2">mut </span>selected = BTreeSet::from([branch]);
-<a href=#200 id=200 data-nosnippet>200</a>    <span class="kw">let </span><span class="kw-2">mut </span>changed = <span class="bool-val">true</span>;
-<a href=#201 id=201 data-nosnippet>201</a>    <span class="kw">while </span>changed {
-<a href=#202 id=202 data-nosnippet>202</a>        changed = <span class="bool-val">false</span>;
-<a href=#203 id=203 data-nosnippet>203</a>        <span class="kw">for </span>candidate <span class="kw">in </span><span class="kw-2">&amp;</span>session.branches {
-<a href=#204 id=204 data-nosnippet>204</a>            <span class="kw">if </span>candidate
-<a href=#205 id=205 data-nosnippet>205</a>                .parent
-<a href=#206 id=206 data-nosnippet>206</a>                .is_some_and(|parent| selected.contains(<span class="kw-2">&amp;</span>parent))
-<a href=#207 id=207 data-nosnippet>207</a>                &amp;&amp; selected.insert(candidate.id)
-<a href=#208 id=208 data-nosnippet>208</a>            {
-<a href=#209 id=209 data-nosnippet>209</a>                changed = <span class="bool-val">true</span>;
-<a href=#210 id=210 data-nosnippet>210</a>            }
-<a href=#211 id=211 data-nosnippet>211</a>        }
-<a href=#212 id=212 data-nosnippet>212</a>    }
-<a href=#213 id=213 data-nosnippet>213</a>    session
-<a href=#214 id=214 data-nosnippet>214</a>        .branches
-<a href=#215 id=215 data-nosnippet>215</a>        .retain(|candidate| selected.contains(<span class="kw-2">&amp;</span>candidate.id));
-<a href=#216 id=216 data-nosnippet>216</a>    session
-<a href=#217 id=217 data-nosnippet>217</a>}
+<a href=#110 id=110 data-nosnippet>110</a>        Effect::ListOperations =&gt; service
+<a href=#111 id=111 data-nosnippet>111</a>            .operation_records(context)
+<a href=#112 id=112 data-nosnippet>112</a>            .map(Action::OperationsLoaded)
+<a href=#113 id=113 data-nosnippet>113</a>            .unwrap_or_else(|error| Action::OperationFailed {
+<a href=#114 id=114 data-nosnippet>114</a>                request_id: <span class="number">0</span>,
+<a href=#115 id=115 data-nosnippet>115</a>                category: error.category().to_owned(),
+<a href=#116 id=116 data-nosnippet>116</a>                message: <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>error.to_string()),
+<a href=#117 id=117 data-nosnippet>117</a>            }),
+<a href=#118 id=118 data-nosnippet>118</a>        Effect::ReadSession {
+<a href=#119 id=119 data-nosnippet>119</a>            request_id,
+<a href=#120 id=120 data-nosnippet>120</a>            session,
+<a href=#121 id=121 data-nosnippet>121</a>            branch,
+<a href=#122 id=122 data-nosnippet>122</a>        } =&gt; branch
+<a href=#123 id=123 data-nosnippet>123</a>            .map_or_else(
+<a href=#124 id=124 data-nosnippet>124</a>                || service.read_session(context, session),
+<a href=#125 id=125 data-nosnippet>125</a>                |branch| service.read_session_branch(context, session, branch),
+<a href=#126 id=126 data-nosnippet>126</a>            )
+<a href=#127 id=127 data-nosnippet>127</a>            .map(|value| Action::SessionSucceeded {
+<a href=#128 id=128 data-nosnippet>128</a>                request_id,
+<a href=#129 id=129 data-nosnippet>129</a>                model: <span class="kw">crate</span>::view::session::SessionModel::from_session(<span class="kw-2">&amp;</span>value),
+<a href=#130 id=130 data-nosnippet>130</a>            })
+<a href=#131 id=131 data-nosnippet>131</a>            .unwrap_or_else(|error| Action::OperationFailed {
+<a href=#132 id=132 data-nosnippet>132</a>                request_id,
+<a href=#133 id=133 data-nosnippet>133</a>                category: error.category().to_owned(),
+<a href=#134 id=134 data-nosnippet>134</a>                message: <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>error.to_string()),
+<a href=#135 id=135 data-nosnippet>135</a>            }),
+<a href=#136 id=136 data-nosnippet>136</a>        Effect::SubmitAgent {
+<a href=#137 id=137 data-nosnippet>137</a>            session,
+<a href=#138 id=138 data-nosnippet>138</a>            branch,
+<a href=#139 id=139 data-nosnippet>139</a>            prompt,
+<a href=#140 id=140 data-nosnippet>140</a>        } =&gt; service
+<a href=#141 id=141 data-nosnippet>141</a>            .submit_agent_handle(context, session, branch, <span class="kw-2">&amp;</span>prompt)
+<a href=#142 id=142 data-nosnippet>142</a>            .map(Action::AgentSubmitted)
+<a href=#143 id=143 data-nosnippet>143</a>            .unwrap_or_else(|error| Action::OperationFailed {
+<a href=#144 id=144 data-nosnippet>144</a>                request_id: <span class="number">0</span>,
+<a href=#145 id=145 data-nosnippet>145</a>                category: error.category().to_owned(),
+<a href=#146 id=146 data-nosnippet>146</a>                message: <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>error.to_string()),
+<a href=#147 id=147 data-nosnippet>147</a>            }),
+<a href=#148 id=148 data-nosnippet>148</a>        Effect::ProjectAgent {
+<a href=#149 id=149 data-nosnippet>149</a>            request_id,
+<a href=#150 id=150 data-nosnippet>150</a>            entity,
+<a href=#151 id=151 data-nosnippet>151</a>            snapshot,
+<a href=#152 id=152 data-nosnippet>152</a>            prompt,
+<a href=#153 id=153 data-nosnippet>153</a>        } =&gt; <span class="kw">match </span>service.project_agent(context, entity, snapshot, <span class="kw-2">&amp;</span>prompt) {
+<a href=#154 id=154 data-nosnippet>154</a>            <span class="prelude-val">Ok</span>(ApplicationResult::Apply(summary)) =&gt; Action::ReviewSucceeded {
+<a href=#155 id=155 data-nosnippet>155</a>                request_id,
+<a href=#156 id=156 data-nosnippet>156</a>                model: <span class="kw">crate</span>::view::changes::ChangeReviewModel::from_summary(
+<a href=#157 id=157 data-nosnippet>157</a>                    snapshot,
+<a href=#158 id=158 data-nosnippet>158</a>                    summary.handle.clone(),
+<a href=#159 id=159 data-nosnippet>159</a>                    <span class="prelude-val">None</span>,
+<a href=#160 id=160 data-nosnippet>160</a>                    <span class="kw-2">&amp;</span>summary,
+<a href=#161 id=161 data-nosnippet>161</a>                ),
+<a href=#162 id=162 data-nosnippet>162</a>            },
+<a href=#163 id=163 data-nosnippet>163</a>            <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; Action::OperationFailed {
+<a href=#164 id=164 data-nosnippet>164</a>                request_id,
+<a href=#165 id=165 data-nosnippet>165</a>                category: <span class="string">"invalid_result"</span>.to_owned(),
+<a href=#166 id=166 data-nosnippet>166</a>                message: <span class="string">"project agent did not produce a candidate"</span>.to_owned(),
+<a href=#167 id=167 data-nosnippet>167</a>            },
+<a href=#168 id=168 data-nosnippet>168</a>            <span class="prelude-val">Err</span>(error) =&gt; Action::OperationFailed {
+<a href=#169 id=169 data-nosnippet>169</a>                request_id,
+<a href=#170 id=170 data-nosnippet>170</a>                category: error.category().to_owned(),
+<a href=#171 id=171 data-nosnippet>171</a>                message: <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>error.to_string()),
+<a href=#172 id=172 data-nosnippet>172</a>            },
+<a href=#173 id=173 data-nosnippet>173</a>        },
+<a href=#174 id=174 data-nosnippet>174</a>        Effect::RequestRefresh =&gt; Action::RefreshRequested,
+<a href=#175 id=175 data-nosnippet>175</a>        Effect::RequestQuit =&gt; Action::QuitRequested,
+<a href=#176 id=176 data-nosnippet>176</a>        Effect::RequestFind {
+<a href=#177 id=177 data-nosnippet>177</a>            request_id,
+<a href=#178 id=178 data-nosnippet>178</a>            text,
+<a href=#179 id=179 data-nosnippet>179</a>            snapshot,
+<a href=#180 id=180 data-nosnippet>180</a>        } =&gt; service
+<a href=#181 id=181 data-nosnippet>181</a>            .find_entities(context, snapshot, <span class="kw-2">&amp;</span>text)
+<a href=#182 id=182 data-nosnippet>182</a>            .map(|model| Action::FindSucceeded { request_id, model })
+<a href=#183 id=183 data-nosnippet>183</a>            .unwrap_or_else(|error| Action::OperationFailed {
+<a href=#184 id=184 data-nosnippet>184</a>                request_id: <span class="number">0</span>,
+<a href=#185 id=185 data-nosnippet>185</a>                category: error.category().to_owned(),
+<a href=#186 id=186 data-nosnippet>186</a>                message: <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>error.to_string()),
+<a href=#187 id=187 data-nosnippet>187</a>            }),
+<a href=#188 id=188 data-nosnippet>188</a>        Effect::RequestSemanticAction { id, .. } =&gt; Action::OperationFailed {
+<a href=#189 id=189 data-nosnippet>189</a>            request_id: <span class="number">0</span>,
+<a href=#190 id=190 data-nosnippet>190</a>            category: <span class="string">"unsupported"</span>.to_owned(),
+<a href=#191 id=191 data-nosnippet>191</a>            message: <span class="macro">format!</span>(<span class="string">"semantic action is not available through this TUI service: {id}"</span>),
+<a href=#192 id=192 data-nosnippet>192</a>        },
+<a href=#193 id=193 data-nosnippet>193</a>        Effect::None =&gt; Action::Noop,
+<a href=#194 id=194 data-nosnippet>194</a>    }
+<a href=#195 id=195 data-nosnippet>195</a>}
+<a href=#196 id=196 data-nosnippet>196</a>
+<a href=#197 id=197 data-nosnippet>197</a><span class="doccomment">/// Selects one branch and all descendants from an authoritative session.
+<a href=#198 id=198 data-nosnippet>198</a>///
+<a href=#199 id=199 data-nosnippet>199</a>/// # Parameters
+<a href=#200 id=200 data-nosnippet>200</a>/// - `session`: Session graph to filter.
+<a href=#201 id=201 data-nosnippet>201</a>/// - `branch`: Selected branch identity.
+<a href=#202 id=202 data-nosnippet>202</a>/// - `crate`: Internal visibility marker.
+<a href=#203 id=203 data-nosnippet>203</a>///
+<a href=#204 id=204 data-nosnippet>204</a>/// # Returns
+<a href=#205 id=205 data-nosnippet>205</a>/// A session containing the selected branch and descendants.
+<a href=#206 id=206 data-nosnippet>206</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>select_branch_subtree(<span class="kw-2">mut </span>session: Session, branch: EntityId) -&gt; Session {
+<a href=#207 id=207 data-nosnippet>207</a>    <span class="kw">let </span><span class="kw-2">mut </span>selected = BTreeSet::from([branch]);
+<a href=#208 id=208 data-nosnippet>208</a>    <span class="kw">let </span><span class="kw-2">mut </span>changed = <span class="bool-val">true</span>;
+<a href=#209 id=209 data-nosnippet>209</a>    <span class="kw">while </span>changed {
+<a href=#210 id=210 data-nosnippet>210</a>        changed = <span class="bool-val">false</span>;
+<a href=#211 id=211 data-nosnippet>211</a>        <span class="kw">for </span>candidate <span class="kw">in </span><span class="kw-2">&amp;</span>session.branches {
+<a href=#212 id=212 data-nosnippet>212</a>            <span class="kw">if </span>candidate
+<a href=#213 id=213 data-nosnippet>213</a>                .parent
+<a href=#214 id=214 data-nosnippet>214</a>                .is_some_and(|parent| selected.contains(<span class="kw-2">&amp;</span>parent))
+<a href=#215 id=215 data-nosnippet>215</a>                &amp;&amp; selected.insert(candidate.id)
+<a href=#216 id=216 data-nosnippet>216</a>            {
+<a href=#217 id=217 data-nosnippet>217</a>                changed = <span class="bool-val">true</span>;
+<a href=#218 id=218 data-nosnippet>218</a>            }
+<a href=#219 id=219 data-nosnippet>219</a>        }
+<a href=#220 id=220 data-nosnippet>220</a>    }
+<a href=#221 id=221 data-nosnippet>221</a>    session
+<a href=#222 id=222 data-nosnippet>222</a>        .branches
+<a href=#223 id=223 data-nosnippet>223</a>        .retain(|candidate| selected.contains(<span class="kw-2">&amp;</span>candidate.id));
+<a href=#224 id=224 data-nosnippet>224</a>    session
+<a href=#225 id=225 data-nosnippet>225</a>}
 </code></pre></div></section></main></body></html>
