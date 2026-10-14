@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["workspace_from_result"]};

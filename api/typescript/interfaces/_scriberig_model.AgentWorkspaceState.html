@@ -16,7 +16,7 @@
 </div></section>
 <div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">AgentWorkspaceState</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#activity">activity</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="_scriberig_protocol.BranchActivityPage.html" class="tsd-signature-type tsd-kind-interface">BranchActivityPage</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#branches">branches</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="_scriberig_model.BranchDescriptor.html" class="tsd-signature-type tsd-kind-interface">BranchDescriptor</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#children">children</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="_scriberig_protocol.BranchChildrenPage.html" class="tsd-signature-type tsd-kind-interface">BranchChildrenPage</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#error">error</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#eventcursor">eventCursor</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#operations">operations</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="_scriberig_model.Operation.html" class="tsd-signature-type tsd-kind-interface">Operation</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#stale">stale</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#transientstreams">transientStreams</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/29a0e1e6f125d45b1783ee647eb33bc65f5c8764/web/packages/model/src/agent-workspace.ts#L13">model/src/agent-workspace.ts:13</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/324fc364685e7d057f8feac5cdc4ae16fa91bad1/web/packages/model/src/agent-workspace.ts#L13">model/src/agent-workspace.ts:13</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -42,56 +42,56 @@
 <div class="tsd-comment tsd-typography"><p>Loaded activity pages keyed by branch identity.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/29a0e1e6f125d45b1783ee647eb33bc65f5c8764/web/packages/model/src/agent-workspace.ts#L19">model/src/agent-workspace.ts:19</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/324fc364685e7d057f8feac5cdc4ae16fa91bad1/web/packages/model/src/agent-workspace.ts#L19">model/src/agent-workspace.ts:19</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="branches"><span>branches</span><a href="#branches" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">branches</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="_scriberig_model.BranchDescriptor.html" class="tsd-signature-type tsd-kind-interface">BranchDescriptor</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></div>
 <div class="tsd-comment tsd-typography"><p>Authoritative branch descriptors keyed by branch identity.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/29a0e1e6f125d45b1783ee647eb33bc65f5c8764/web/packages/model/src/agent-workspace.ts#L15">model/src/agent-workspace.ts:15</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/324fc364685e7d057f8feac5cdc4ae16fa91bad1/web/packages/model/src/agent-workspace.ts#L15">model/src/agent-workspace.ts:15</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="children"><span>children</span><a href="#children" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">children</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="_scriberig_protocol.BranchChildrenPage.html" class="tsd-signature-type tsd-kind-interface">BranchChildrenPage</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></div>
 <div class="tsd-comment tsd-typography"><p>Loaded child pages keyed by parent branch identity.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/29a0e1e6f125d45b1783ee647eb33bc65f5c8764/web/packages/model/src/agent-workspace.ts#L17">model/src/agent-workspace.ts:17</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/324fc364685e7d057f8feac5cdc4ae16fa91bad1/web/packages/model/src/agent-workspace.ts#L17">model/src/agent-workspace.ts:17</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="error"><code class="tsd-tag">Optional</code><span>error</span><a href="#error" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">error</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div>
 <div class="tsd-comment tsd-typography"><p>Last safe error, when one was observed.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/29a0e1e6f125d45b1783ee647eb33bc65f5c8764/web/packages/model/src/agent-workspace.ts#L29">model/src/agent-workspace.ts:29</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/324fc364685e7d057f8feac5cdc4ae16fa91bad1/web/packages/model/src/agent-workspace.ts#L29">model/src/agent-workspace.ts:29</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="eventcursor"><span>event<wbr/>Cursor</span><a href="#eventcursor" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">eventCursor</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 <div class="tsd-comment tsd-typography"><p>Last accepted event sequence.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/29a0e1e6f125d45b1783ee647eb33bc65f5c8764/web/packages/model/src/agent-workspace.ts#L25">model/src/agent-workspace.ts:25</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/324fc364685e7d057f8feac5cdc4ae16fa91bad1/web/packages/model/src/agent-workspace.ts#L25">model/src/agent-workspace.ts:25</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="operations"><span>operations</span><a href="#operations" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">operations</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <a href="_scriberig_model.Operation.html" class="tsd-signature-type tsd-kind-interface">Operation</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></div>
 <div class="tsd-comment tsd-typography"><p>Authoritative operation records keyed by operation identity.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/29a0e1e6f125d45b1783ee647eb33bc65f5c8764/web/packages/model/src/agent-workspace.ts#L21">model/src/agent-workspace.ts:21</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/324fc364685e7d057f8feac5cdc4ae16fa91bad1/web/packages/model/src/agent-workspace.ts#L21">model/src/agent-workspace.ts:21</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="stale"><span>stale</span><a href="#stale" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">stale</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
 <div class="tsd-comment tsd-typography"><p>Whether a reconnect requires authoritative refresh.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/29a0e1e6f125d45b1783ee647eb33bc65f5c8764/web/packages/model/src/agent-workspace.ts#L27">model/src/agent-workspace.ts:27</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/324fc364685e7d057f8feac5cdc4ae16fa91bad1/web/packages/model/src/agent-workspace.ts#L27">model/src/agent-workspace.ts:27</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="transientstreams"><span>transient<wbr/>Streams</span><a href="#transientstreams" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">transientStreams</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></div>
 <div class="tsd-comment tsd-typography"><p>Discardable partial model text keyed by operation identity.</p>
 </div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/29a0e1e6f125d45b1783ee647eb33bc65f5c8764/web/packages/model/src/agent-workspace.ts#L23">model/src/agent-workspace.ts:23</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/324fc364685e7d057f8feac5cdc4ae16fa91bad1/web/packages/model/src/agent-workspace.ts#L23">model/src/agent-workspace.ts:23</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">

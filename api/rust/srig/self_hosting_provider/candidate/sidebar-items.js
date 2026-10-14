@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["candidate_effects","effect","project_proposal"]};

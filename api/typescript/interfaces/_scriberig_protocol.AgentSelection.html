@@ -14,9 +14,9 @@
 <section class="tsd-panel tsd-comment">
 <div class="tsd-comment tsd-typography"><p>Semantic selection attached to an agent request.</p>
 </div></section>
-<div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">AgentSelection</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#entityid">entityId</a><span class="tsd-signature-symbol">?:</span> <a href="../types/_scriberig_protocol.EntityId.html" class="tsd-signature-type tsd-kind-type-alias">EntityId</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#location">location</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#revisionid">revisionId</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#snapshotid">snapshotId</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
+<div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">AgentSelection</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#entityid">entityId</a><span class="tsd-signature-symbol">?:</span> <a href="../types/_scriberig_protocol.EntityId.html" class="tsd-signature-type tsd-kind-type-alias">EntityId</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#location">location</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#projectid">projectId</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#revisionid">revisionId</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#rootid">rootId</a><span class="tsd-signature-symbol">?:</span> <a href="../types/_scriberig_protocol.EntityId.html" class="tsd-signature-type tsd-kind-type-alias">EntityId</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#snapshotid">snapshotId</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/29a0e1e6f125d45b1783ee647eb33bc65f5c8764/web/packages/protocol/src/sessions.ts#L84">sessions.ts:84</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/324fc364685e7d057f8feac5cdc4ae16fa91bad1/web/packages/protocol/src/sessions.ts#L84">sessions.ts:84</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -26,7 +26,9 @@
 <h3 class="tsd-index-heading tsd-anchor-link" id="properties">Properties<a href="#properties" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-index-list"><a href="#entityid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>entity<wbr/>Id?</span></a>
 <a href="#location" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>location?</span></a>
+<a href="#projectid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>project<wbr/>Id?</span></a>
 <a href="#revisionid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>revision<wbr/>Id?</span></a>
+<a href="#rootid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>root<wbr/>Id?</span></a>
 <a href="#snapshotid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>snapshot<wbr/>Id?</span></a>
 </div></section></div></details></section></section>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -36,22 +38,32 @@
 <h3 class="tsd-anchor-link" id="entityid"><code class="tsd-tag">Optional</code><span>entity<wbr/>Id</span><a href="#entityid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">entityId</span><span class="tsd-signature-symbol">?:</span> <a href="../types/_scriberig_protocol.EntityId.html" class="tsd-signature-type tsd-kind-type-alias">EntityId</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/29a0e1e6f125d45b1783ee647eb33bc65f5c8764/web/packages/protocol/src/sessions.ts#L85">sessions.ts:85</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/324fc364685e7d057f8feac5cdc4ae16fa91bad1/web/packages/protocol/src/sessions.ts#L87">sessions.ts:87</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="location"><code class="tsd-tag">Optional</code><span>location</span><a href="#location" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">location</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/29a0e1e6f125d45b1783ee647eb33bc65f5c8764/web/packages/protocol/src/sessions.ts#L88">sessions.ts:88</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/324fc364685e7d057f8feac5cdc4ae16fa91bad1/web/packages/protocol/src/sessions.ts#L90">sessions.ts:90</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="projectid"><code class="tsd-tag">Optional</code><span>project<wbr/>Id</span><a href="#projectid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">projectId</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/324fc364685e7d057f8feac5cdc4ae16fa91bad1/web/packages/protocol/src/sessions.ts#L85">sessions.ts:85</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="revisionid"><code class="tsd-tag">Optional</code><span>revision<wbr/>Id</span><a href="#revisionid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">revisionId</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/29a0e1e6f125d45b1783ee647eb33bc65f5c8764/web/packages/protocol/src/sessions.ts#L86">sessions.ts:86</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/324fc364685e7d057f8feac5cdc4ae16fa91bad1/web/packages/protocol/src/sessions.ts#L88">sessions.ts:88</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="rootid"><code class="tsd-tag">Optional</code><span>root<wbr/>Id</span><a href="#rootid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">rootId</span><span class="tsd-signature-symbol">?:</span> <a href="../types/_scriberig_protocol.EntityId.html" class="tsd-signature-type tsd-kind-type-alias">EntityId</a></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/324fc364685e7d057f8feac5cdc4ae16fa91bad1/web/packages/protocol/src/sessions.ts#L86">sessions.ts:86</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="snapshotid"><code class="tsd-tag">Optional</code><span>snapshot<wbr/>Id</span><a href="#snapshotid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">snapshotId</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/29a0e1e6f125d45b1783ee647eb33bc65f5c8764/web/packages/protocol/src/sessions.ts#L87">sessions.ts:87</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/324fc364685e7d057f8feac5cdc4ae16fa91bad1/web/packages/protocol/src/sessions.ts#L89">sessions.ts:89</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -67,7 +79,7 @@
 <h3>On This Page</h3></summary>
 <div class="tsd-accordion-details">
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Properties</summary>
-<div><a href="#entityid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>entity<wbr/>Id</span></a><a href="#location"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>location</span></a><a href="#revisionid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>revision<wbr/>Id</span></a><a href="#snapshotid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>snapshot<wbr/>Id</span></a></div></details></div></details></div>
+<div><a href="#entityid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>entity<wbr/>Id</span></a><a href="#location"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>location</span></a><a href="#projectid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>project<wbr/>Id</span></a><a href="#revisionid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>revision<wbr/>Id</span></a><a href="#rootid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>root<wbr/>Id</span></a><a href="#snapshotid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>snapshot<wbr/>Id</span></a></div></details></div></details></div>
 <div class="site-menu">
 <nav class="tsd-navigation"><a href="../index.html">Documentation</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">

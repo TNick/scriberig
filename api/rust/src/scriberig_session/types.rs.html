@@ -93,16 +93,19 @@
 <a href=#93 id=93 data-nosnippet>93</a>    <span class="kw">pub </span>summary: <span class="prelude-ty">Option</span>&lt;String&gt;,
 <a href=#94 id=94 data-nosnippet>94</a>    <span class="kw">pub </span>result_kind: <span class="prelude-ty">Option</span>&lt;String&gt;,
 <a href=#95 id=95 data-nosnippet>95</a>    <span class="kw">pub </span>references: Vec&lt;EntityId&gt;,
-<a href=#96 id=96 data-nosnippet>96</a>    <span class="kw">pub </span>touched: Vec&lt;EntityId&gt;,
-<a href=#97 id=97 data-nosnippet>97</a>    <span class="kw">pub </span>produced_changes: Vec&lt;EntityId&gt;,
-<a href=#98 id=98 data-nosnippet>98</a>    <span class="kw">pub </span>validations: Vec&lt;EntityId&gt;,
-<a href=#99 id=99 data-nosnippet>99</a>    <span class="kw">pub </span>unresolved_questions: Vec&lt;EntityId&gt;,
-<a href=#100 id=100 data-nosnippet>100</a>}
-<a href=#101 id=101 data-nosnippet>101</a><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
-<a href=#102 id=102 data-nosnippet>102</a></span><span class="doccomment">/// Session-domain structured value.
-<a href=#103 id=103 data-nosnippet>103</a></span><span class="kw">pub struct </span>Summary {
-<a href=#104 id=104 data-nosnippet>104</a>    <span class="kw">pub </span>id: EntityId,
-<a href=#105 id=105 data-nosnippet>105</a>    <span class="kw">pub </span>text: String,
-<a href=#106 id=106 data-nosnippet>106</a>    <span class="kw">pub </span>provenance: Provenance,
-<a href=#107 id=107 data-nosnippet>107</a>}
+<a href=#96 id=96 data-nosnippet>96</a>    <span class="doccomment">/// Stable non-entity handles produced by the branch.
+<a href=#97 id=97 data-nosnippet>97</a>    </span><span class="attr">#[serde(default)]
+<a href=#98 id=98 data-nosnippet>98</a>    </span><span class="kw">pub </span>result_handles: Vec&lt;String&gt;,
+<a href=#99 id=99 data-nosnippet>99</a>    <span class="kw">pub </span>touched: Vec&lt;EntityId&gt;,
+<a href=#100 id=100 data-nosnippet>100</a>    <span class="kw">pub </span>produced_changes: Vec&lt;EntityId&gt;,
+<a href=#101 id=101 data-nosnippet>101</a>    <span class="kw">pub </span>validations: Vec&lt;EntityId&gt;,
+<a href=#102 id=102 data-nosnippet>102</a>    <span class="kw">pub </span>unresolved_questions: Vec&lt;EntityId&gt;,
+<a href=#103 id=103 data-nosnippet>103</a>}
+<a href=#104 id=104 data-nosnippet>104</a><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#105 id=105 data-nosnippet>105</a></span><span class="doccomment">/// Session-domain structured value.
+<a href=#106 id=106 data-nosnippet>106</a></span><span class="kw">pub struct </span>Summary {
+<a href=#107 id=107 data-nosnippet>107</a>    <span class="kw">pub </span>id: EntityId,
+<a href=#108 id=108 data-nosnippet>108</a>    <span class="kw">pub </span>text: String,
+<a href=#109 id=109 data-nosnippet>109</a>    <span class="kw">pub </span>provenance: Provenance,
+<a href=#110 id=110 data-nosnippet>110</a>}
 </code></pre></div></section></main></body></html>

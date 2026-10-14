@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["inspect_catalog"],"struct":["LocalChildExecutor"]};
+window.SIDEBAR_ITEMS = {"fn":["delegated_capabilities","inspect_catalog"],"mod":["control_parameters","handles"],"struct":["LocalChildExecutor"]};

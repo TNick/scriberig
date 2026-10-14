@@ -9,10 +9,10 @@
 <a href=#9 id=9 data-nosnippet>9</a>
 <a href=#10 id=10 data-nosnippet>10</a><span class="attr">#[path = <span class="string">"git.rs"</span>]
 <a href=#11 id=11 data-nosnippet>11</a></span><span class="kw">mod </span>git;
-<a href=#12 id=12 data-nosnippet>12</a><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use </span>git::git_tracked_paths;
+<a href=#12 id=12 data-nosnippet>12</a><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use </span>git::{git_candidate_paths, git_tracked_paths};
 <a href=#13 id=13 data-nosnippet>13</a><span class="attr">#[path = <span class="string">"scan.rs"</span>]
 <a href=#14 id=14 data-nosnippet>14</a></span><span class="kw">mod </span>scan;
-<a href=#15 id=15 data-nosnippet>15</a><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use </span>scan::scan_directory;
+<a href=#15 id=15 data-nosnippet>15</a><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use </span>scan::{adapter_for, scan_directory};
 <a href=#16 id=16 data-nosnippet>16</a><span class="attr">#[path = <span class="string">"adapters.rs"</span>]
 <a href=#17 id=17 data-nosnippet>17</a></span><span class="kw">mod </span>adapters;
 <a href=#18 id=18 data-nosnippet>18</a><span class="attr">#[path = <span class="string">"support_identity.rs"</span>]

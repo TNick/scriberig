@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["execute_agent","handle_value","parse_workspace_handle","previous_workspace_selection","selection_handles"],"mod":["provider_config","workspace"],"struct":["NativeTuiAgentRunner"]};

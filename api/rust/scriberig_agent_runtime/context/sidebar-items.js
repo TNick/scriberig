@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["tool_catalog_identity"],"struct":["BranchExecutionContext","CompiledContext","ContextActivity","ContextCompiler","ContextPolicy","RequestFingerprintInput"]};
+window.SIDEBAR_ITEMS = {"fn":["tool_catalog_identity"],"struct":["BranchExecutionContext","CompiledContext","ContextActivity","ContextCompiler","ContextPolicy","ProjectSemanticScope","RequestFingerprintInput"]};

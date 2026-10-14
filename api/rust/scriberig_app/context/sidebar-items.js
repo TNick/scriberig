@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["ApplicationContext","CapabilityContext","Principal"]};
+window.SIDEBAR_ITEMS = {"struct":["ApplicationContext","BootstrapEnvironment","CapabilityContext","Principal"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["compact_result_handles","is_primary_handle"]};

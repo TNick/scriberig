@@ -3,7 +3,7 @@
 <a href=#3 id=3 data-nosnippet>3</a></span><span class="kw">use </span>scriberig_core::{EntityId, RevisionId, SnapshotId};
 <a href=#4 id=4 data-nosnippet>4</a><span class="kw">use </span>std::collections::BTreeSet;
 <a href=#5 id=5 data-nosnippet>5</a>
-<a href=#6 id=6 data-nosnippet>6</a><span class="kw">use crate</span>::{SnapshotChange, SnapshotError};
+<a href=#6 id=6 data-nosnippet>6</a><span class="kw">use crate</span>::{SnapshotChange, SnapshotChangeProvenance, SnapshotError};
 <a href=#7 id=7 data-nosnippet>7</a>
 <a href=#8 id=8 data-nosnippet>8</a><span class="doccomment">/// Defines backend-neutral snapshot operations.
 <a href=#9 id=9 data-nosnippet>9</a></span><span class="kw">pub trait </span>SnapshotStore {
@@ -83,29 +83,46 @@
 <a href=#83 id=83 data-nosnippet>83</a>    /// Returns an error when the snapshot is unavailable.
 <a href=#84 id=84 data-nosnippet>84</a>    </span><span class="kw">fn </span>parents(<span class="kw-2">&amp;</span><span class="self">self</span>, snapshot: SnapshotId) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;SnapshotId&gt;, SnapshotError&gt;;
 <a href=#85 id=85 data-nosnippet>85</a>
-<a href=#86 id=86 data-nosnippet>86</a>    <span class="doccomment">/// Walks immutable snapshot ancestry without exposing backend details.
+<a href=#86 id=86 data-nosnippet>86</a>    <span class="doccomment">/// Returns the accepted source change that produced a snapshot, when retained.
 <a href=#87 id=87 data-nosnippet>87</a>    ///
 <a href=#88 id=88 data-nosnippet>88</a>    /// # Parameters
-<a href=#89 id=89 data-nosnippet>89</a>    /// - `snapshot`: Exact snapshot at which to begin the walk.
+<a href=#89 id=89 data-nosnippet>89</a>    /// - `_snapshot`: Exact immutable result snapshot.
 <a href=#90 id=90 data-nosnippet>90</a>    ///
 <a href=#91 id=91 data-nosnippet>91</a>    /// # Returns
-<a href=#92 id=92 data-nosnippet>92</a>    /// Ancestors in deterministic breadth-first order, excluding `snapshot`.
+<a href=#92 id=92 data-nosnippet>92</a>    /// Stable source-change identity when the backend records one.
 <a href=#93 id=93 data-nosnippet>93</a>    ///
 <a href=#94 id=94 data-nosnippet>94</a>    /// # Errors
-<a href=#95 id=95 data-nosnippet>95</a>    /// Returns an error when the starting snapshot or an ancestor is unavailable.
-<a href=#96 id=96 data-nosnippet>96</a>    </span><span class="kw">fn </span>ancestors(<span class="kw-2">&amp;</span><span class="self">self</span>, snapshot: SnapshotId) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;SnapshotId&gt;, SnapshotError&gt; {
-<a href=#97 id=97 data-nosnippet>97</a>        <span class="kw">let </span><span class="kw-2">mut </span>visited = BTreeSet::new();
-<a href=#98 id=98 data-nosnippet>98</a>        <span class="kw">let </span><span class="kw-2">mut </span>pending = <span class="self">self</span>.parents(snapshot)<span class="question-mark">?</span>;
-<a href=#99 id=99 data-nosnippet>99</a>        <span class="kw">let </span><span class="kw-2">mut </span>result = Vec::new();
-<a href=#100 id=100 data-nosnippet>100</a>        <span class="kw">while let </span><span class="prelude-val">Some</span>(candidate) = pending.pop() {
-<a href=#101 id=101 data-nosnippet>101</a>            <span class="kw">if </span>!visited.insert(candidate) {
-<a href=#102 id=102 data-nosnippet>102</a>                <span class="kw">continue</span>;
-<a href=#103 id=103 data-nosnippet>103</a>            }
-<a href=#104 id=104 data-nosnippet>104</a>            result.push(candidate);
-<a href=#105 id=105 data-nosnippet>105</a>            pending.extend(<span class="self">self</span>.parents(candidate)<span class="question-mark">?</span>);
-<a href=#106 id=106 data-nosnippet>106</a>        }
-<a href=#107 id=107 data-nosnippet>107</a>        result.sort();
-<a href=#108 id=108 data-nosnippet>108</a>        <span class="prelude-val">Ok</span>(result)
-<a href=#109 id=109 data-nosnippet>109</a>    }
-<a href=#110 id=110 data-nosnippet>110</a>}
+<a href=#95 id=95 data-nosnippet>95</a>    /// Returns an error when provenance cannot be read.
+<a href=#96 id=96 data-nosnippet>96</a>    </span><span class="kw">fn </span>change_provenance(
+<a href=#97 id=97 data-nosnippet>97</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
+<a href=#98 id=98 data-nosnippet>98</a>        _snapshot: SnapshotId,
+<a href=#99 id=99 data-nosnippet>99</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SnapshotChangeProvenance&gt;, SnapshotError&gt; {
+<a href=#100 id=100 data-nosnippet>100</a>        <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
+<a href=#101 id=101 data-nosnippet>101</a>    }
+<a href=#102 id=102 data-nosnippet>102</a>
+<a href=#103 id=103 data-nosnippet>103</a>    <span class="doccomment">/// Walks immutable snapshot ancestry without exposing backend details.
+<a href=#104 id=104 data-nosnippet>104</a>    ///
+<a href=#105 id=105 data-nosnippet>105</a>    /// # Parameters
+<a href=#106 id=106 data-nosnippet>106</a>    /// - `snapshot`: Exact snapshot at which to begin the walk.
+<a href=#107 id=107 data-nosnippet>107</a>    ///
+<a href=#108 id=108 data-nosnippet>108</a>    /// # Returns
+<a href=#109 id=109 data-nosnippet>109</a>    /// Ancestors in deterministic breadth-first order, excluding `snapshot`.
+<a href=#110 id=110 data-nosnippet>110</a>    ///
+<a href=#111 id=111 data-nosnippet>111</a>    /// # Errors
+<a href=#112 id=112 data-nosnippet>112</a>    /// Returns an error when the starting snapshot or an ancestor is unavailable.
+<a href=#113 id=113 data-nosnippet>113</a>    </span><span class="kw">fn </span>ancestors(<span class="kw-2">&amp;</span><span class="self">self</span>, snapshot: SnapshotId) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;SnapshotId&gt;, SnapshotError&gt; {
+<a href=#114 id=114 data-nosnippet>114</a>        <span class="kw">let </span><span class="kw-2">mut </span>visited = BTreeSet::new();
+<a href=#115 id=115 data-nosnippet>115</a>        <span class="kw">let </span><span class="kw-2">mut </span>pending = <span class="self">self</span>.parents(snapshot)<span class="question-mark">?</span>;
+<a href=#116 id=116 data-nosnippet>116</a>        <span class="kw">let </span><span class="kw-2">mut </span>result = Vec::new();
+<a href=#117 id=117 data-nosnippet>117</a>        <span class="kw">while let </span><span class="prelude-val">Some</span>(candidate) = pending.pop() {
+<a href=#118 id=118 data-nosnippet>118</a>            <span class="kw">if </span>!visited.insert(candidate) {
+<a href=#119 id=119 data-nosnippet>119</a>                <span class="kw">continue</span>;
+<a href=#120 id=120 data-nosnippet>120</a>            }
+<a href=#121 id=121 data-nosnippet>121</a>            result.push(candidate);
+<a href=#122 id=122 data-nosnippet>122</a>            pending.extend(<span class="self">self</span>.parents(candidate)<span class="question-mark">?</span>);
+<a href=#123 id=123 data-nosnippet>123</a>        }
+<a href=#124 id=124 data-nosnippet>124</a>        result.sort();
+<a href=#125 id=125 data-nosnippet>125</a>        <span class="prelude-val">Ok</span>(result)
+<a href=#126 id=126 data-nosnippet>126</a>    }
+<a href=#127 id=127 data-nosnippet>127</a>}
 </code></pre></div></section></main></body></html>

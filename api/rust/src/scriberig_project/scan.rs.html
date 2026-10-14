@@ -109,72 +109,73 @@
 <a href=#109 id=109 data-nosnippet>109</a>/// # Parameters
 <a href=#110 id=110 data-nosnippet>110</a>/// - `path`: File path to classify.
 <a href=#111 id=111 data-nosnippet>111</a>/// - `bytes`: File bytes used to distinguish unknown text from binary data.
-<a href=#112 id=112 data-nosnippet>112</a>///
-<a href=#113 id=113 data-nosnippet>113</a>/// # Returns
-<a href=#114 id=114 data-nosnippet>114</a>/// The selected adapter name.
-<a href=#115 id=115 data-nosnippet>115</a></span><span class="kw">fn </span>adapter_for(path: <span class="kw-2">&amp;</span>Path, bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
-<a href=#116 id=116 data-nosnippet>116</a>    <span class="kw">let </span>name = path.file_name().and_then(|value| value.to_str());
-<a href=#117 id=117 data-nosnippet>117</a>    <span class="kw">if </span><span class="macro">matches!</span>(
-<a href=#118 id=118 data-nosnippet>118</a>        name,
-<a href=#119 id=119 data-nosnippet>119</a>        <span class="prelude-val">Some</span>(
-<a href=#120 id=120 data-nosnippet>120</a>            <span class="string">"Dockerfile"
-<a href=#121 id=121 data-nosnippet>121</a>                </span>| <span class="string">"Makefile"
-<a href=#122 id=122 data-nosnippet>122</a>                </span>| <span class="string">"justfile"
-<a href=#123 id=123 data-nosnippet>123</a>                </span>| <span class="string">"Taskfile"
-<a href=#124 id=124 data-nosnippet>124</a>                </span>| <span class="string">"LICENSE"
-<a href=#125 id=125 data-nosnippet>125</a>                </span>| <span class="string">"README"
-<a href=#126 id=126 data-nosnippet>126</a>                </span>| <span class="string">".gitignore"
-<a href=#127 id=127 data-nosnippet>127</a>                </span>| <span class="string">".gitattributes"
-<a href=#128 id=128 data-nosnippet>128</a>                </span>| <span class="string">".editorconfig"
-<a href=#129 id=129 data-nosnippet>129</a>                </span>| <span class="string">".gitmodules"
-<a href=#130 id=130 data-nosnippet>130</a>                </span>| <span class="string">".npmrc"
-<a href=#131 id=131 data-nosnippet>131</a>                </span>| <span class="string">".yarnrc"
-<a href=#132 id=132 data-nosnippet>132</a>                </span>| <span class="string">".prettierrc"
-<a href=#133 id=133 data-nosnippet>133</a>                </span>| <span class="string">".eslintrc"
-<a href=#134 id=134 data-nosnippet>134</a>                </span>| <span class="string">".babelrc"
-<a href=#135 id=135 data-nosnippet>135</a>                </span>| <span class="string">".flake8"
-<a href=#136 id=136 data-nosnippet>136</a>                </span>| <span class="string">"gradlew"
-<a href=#137 id=137 data-nosnippet>137</a>                </span>| <span class="string">"Gemfile"
-<a href=#138 id=138 data-nosnippet>138</a>                </span>| <span class="string">"Rakefile"
-<a href=#139 id=139 data-nosnippet>139</a>                </span>| <span class="string">"Brewfile"
-<a href=#140 id=140 data-nosnippet>140</a>                </span>| <span class="string">"Vagrantfile"
-<a href=#141 id=141 data-nosnippet>141</a>                </span>| <span class="string">"Procfile"
-<a href=#142 id=142 data-nosnippet>142</a>        </span>)
-<a href=#143 id=143 data-nosnippet>143</a>    ) {
-<a href=#144 id=144 data-nosnippet>144</a>        <span class="kw">return </span><span class="string">"text"</span>;
-<a href=#145 id=145 data-nosnippet>145</a>    }
-<a href=#146 id=146 data-nosnippet>146</a>    <span class="kw">match </span>path
-<a href=#147 id=147 data-nosnippet>147</a>        .extension()
-<a href=#148 id=148 data-nosnippet>148</a>        .and_then(|value| value.to_str())
-<a href=#149 id=149 data-nosnippet>149</a>        .map(str::to_ascii_lowercase)
-<a href=#150 id=150 data-nosnippet>150</a>        .as_deref()
-<a href=#151 id=151 data-nosnippet>151</a>    {
-<a href=#152 id=152 data-nosnippet>152</a>        <span class="prelude-val">Some</span>(<span class="string">"html" </span>| <span class="string">"htm"</span>) =&gt; <span class="string">"html"</span>,
-<a href=#153 id=153 data-nosnippet>153</a>        <span class="prelude-val">Some</span>(<span class="string">"c" </span>| <span class="string">"h"</span>) =&gt; <span class="string">"c"</span>,
-<a href=#154 id=154 data-nosnippet>154</a>        <span class="prelude-val">Some</span>(<span class="string">"cc" </span>| <span class="string">"cpp" </span>| <span class="string">"cxx" </span>| <span class="string">"hpp" </span>| <span class="string">"hh" </span>| <span class="string">"hxx"</span>) =&gt; <span class="string">"cpp"</span>,
-<a href=#155 id=155 data-nosnippet>155</a>        <span class="prelude-val">Some</span>(<span class="string">"js" </span>| <span class="string">"mjs" </span>| <span class="string">"cjs" </span>| <span class="string">"jsx"</span>) =&gt; <span class="string">"javascript"</span>,
-<a href=#156 id=156 data-nosnippet>156</a>        <span class="prelude-val">Some</span>(<span class="string">"ts" </span>| <span class="string">"mts" </span>| <span class="string">"cts" </span>| <span class="string">"tsx"</span>) =&gt; <span class="string">"typescript"</span>,
-<a href=#157 id=157 data-nosnippet>157</a>        <span class="prelude-val">Some</span>(<span class="string">"md" </span>| <span class="string">"markdown"</span>) =&gt; <span class="string">"markdown"</span>,
-<a href=#158 id=158 data-nosnippet>158</a>        <span class="prelude-val">Some</span>(<span class="string">"py" </span>| <span class="string">"pyi" </span>| <span class="string">"pyw"</span>) =&gt; <span class="string">"python"</span>,
-<a href=#159 id=159 data-nosnippet>159</a>        <span class="prelude-val">Some</span>(<span class="string">"rs"</span>) =&gt; <span class="string">"rust"</span>,
-<a href=#160 id=160 data-nosnippet>160</a>        <span class="prelude-val">Some</span>(<span class="string">"pdf"</span>) =&gt; <span class="string">"pdf"</span>,
-<a href=#161 id=161 data-nosnippet>161</a>        <span class="prelude-val">Some</span>(
-<a href=#162 id=162 data-nosnippet>162</a>            <span class="string">"sh" </span>| <span class="string">"bash" </span>| <span class="string">"zsh" </span>| <span class="string">"fish" </span>| <span class="string">"ps1" </span>| <span class="string">"psm1" </span>| <span class="string">"bat" </span>| <span class="string">"cmd" </span>| <span class="string">"mmd" </span>| <span class="string">"mermaid"
-<a href=#163 id=163 data-nosnippet>163</a>            </span>| <span class="string">"svg" </span>| <span class="string">"txt" </span>| <span class="string">"log" </span>| <span class="string">"env" </span>| <span class="string">"xml" </span>| <span class="string">"ini" </span>| <span class="string">"cfg" </span>| <span class="string">"properties" </span>| <span class="string">"csv" </span>| <span class="string">"tsv"
-<a href=#164 id=164 data-nosnippet>164</a>            </span>| <span class="string">"rst" </span>| <span class="string">"adoc" </span>| <span class="string">"tex" </span>| <span class="string">"graphql" </span>| <span class="string">"gql" </span>| <span class="string">"proto" </span>| <span class="string">"sql" </span>| <span class="string">"go" </span>| <span class="string">"java" </span>| <span class="string">"kt"
-<a href=#165 id=165 data-nosnippet>165</a>            </span>| <span class="string">"kts" </span>| <span class="string">"cs" </span>| <span class="string">"swift" </span>| <span class="string">"php" </span>| <span class="string">"rb" </span>| <span class="string">"lua" </span>| <span class="string">"dart" </span>| <span class="string">"scala" </span>| <span class="string">"m" </span>| <span class="string">"mm" </span>| <span class="string">"hs"
-<a href=#166 id=166 data-nosnippet>166</a>            </span>| <span class="string">"ex" </span>| <span class="string">"exs" </span>| <span class="string">"erl" </span>| <span class="string">"zig" </span>| <span class="string">"lock" </span>| <span class="string">"sum" </span>| <span class="string">"mod" </span>| <span class="string">"gradle"</span>,
-<a href=#167 id=167 data-nosnippet>167</a>        ) =&gt; <span class="string">"text"</span>,
-<a href=#168 id=168 data-nosnippet>168</a>        <span class="prelude-val">Some</span>(<span class="string">"json" </span>| <span class="string">"jsonc" </span>| <span class="string">"ipynb"</span>) =&gt; <span class="string">"json"</span>,
-<a href=#169 id=169 data-nosnippet>169</a>        <span class="prelude-val">Some</span>(<span class="string">"yaml" </span>| <span class="string">"yml"</span>) =&gt; <span class="string">"yaml"</span>,
-<a href=#170 id=170 data-nosnippet>170</a>        <span class="prelude-val">Some</span>(<span class="string">"toml"</span>) =&gt; <span class="string">"toml"</span>,
-<a href=#171 id=171 data-nosnippet>171</a>        <span class="prelude-val">Some</span>(
-<a href=#172 id=172 data-nosnippet>172</a>            <span class="string">"png" </span>| <span class="string">"jpg" </span>| <span class="string">"jpeg" </span>| <span class="string">"gif" </span>| <span class="string">"webp" </span>| <span class="string">"ico" </span>| <span class="string">"bmp" </span>| <span class="string">"woff" </span>| <span class="string">"woff2" </span>| <span class="string">"ttf"
-<a href=#173 id=173 data-nosnippet>173</a>            </span>| <span class="string">"otf" </span>| <span class="string">"wasm" </span>| <span class="string">"zip" </span>| <span class="string">"gz" </span>| <span class="string">"tar" </span>| <span class="string">"7z" </span>| <span class="string">"jar" </span>| <span class="string">"exe" </span>| <span class="string">"dll" </span>| <span class="string">"o" </span>| <span class="string">"a"
-<a href=#174 id=174 data-nosnippet>174</a>            </span>| <span class="string">"so"</span>,
-<a href=#175 id=175 data-nosnippet>175</a>        ) =&gt; <span class="string">"binary"</span>,
-<a href=#176 id=176 data-nosnippet>176</a>        <span class="kw">_ if </span>std::str::from_utf8(bytes).is_ok() =&gt; <span class="string">"text"</span>,
-<a href=#177 id=177 data-nosnippet>177</a>        <span class="kw">_ </span>=&gt; <span class="string">"binary"</span>,
-<a href=#178 id=178 data-nosnippet>178</a>    }
-<a href=#179 id=179 data-nosnippet>179</a>}
+<a href=#112 id=112 data-nosnippet>112</a>/// - `crate`: Internal visibility marker.
+<a href=#113 id=113 data-nosnippet>113</a>///
+<a href=#114 id=114 data-nosnippet>114</a>/// # Returns
+<a href=#115 id=115 data-nosnippet>115</a>/// The selected adapter name.
+<a href=#116 id=116 data-nosnippet>116</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>adapter_for(path: <span class="kw-2">&amp;</span>Path, bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+<a href=#117 id=117 data-nosnippet>117</a>    <span class="kw">let </span>name = path.file_name().and_then(|value| value.to_str());
+<a href=#118 id=118 data-nosnippet>118</a>    <span class="kw">if </span><span class="macro">matches!</span>(
+<a href=#119 id=119 data-nosnippet>119</a>        name,
+<a href=#120 id=120 data-nosnippet>120</a>        <span class="prelude-val">Some</span>(
+<a href=#121 id=121 data-nosnippet>121</a>            <span class="string">"Dockerfile"
+<a href=#122 id=122 data-nosnippet>122</a>                </span>| <span class="string">"Makefile"
+<a href=#123 id=123 data-nosnippet>123</a>                </span>| <span class="string">"justfile"
+<a href=#124 id=124 data-nosnippet>124</a>                </span>| <span class="string">"Taskfile"
+<a href=#125 id=125 data-nosnippet>125</a>                </span>| <span class="string">"LICENSE"
+<a href=#126 id=126 data-nosnippet>126</a>                </span>| <span class="string">"README"
+<a href=#127 id=127 data-nosnippet>127</a>                </span>| <span class="string">".gitignore"
+<a href=#128 id=128 data-nosnippet>128</a>                </span>| <span class="string">".gitattributes"
+<a href=#129 id=129 data-nosnippet>129</a>                </span>| <span class="string">".editorconfig"
+<a href=#130 id=130 data-nosnippet>130</a>                </span>| <span class="string">".gitmodules"
+<a href=#131 id=131 data-nosnippet>131</a>                </span>| <span class="string">".npmrc"
+<a href=#132 id=132 data-nosnippet>132</a>                </span>| <span class="string">".yarnrc"
+<a href=#133 id=133 data-nosnippet>133</a>                </span>| <span class="string">".prettierrc"
+<a href=#134 id=134 data-nosnippet>134</a>                </span>| <span class="string">".eslintrc"
+<a href=#135 id=135 data-nosnippet>135</a>                </span>| <span class="string">".babelrc"
+<a href=#136 id=136 data-nosnippet>136</a>                </span>| <span class="string">".flake8"
+<a href=#137 id=137 data-nosnippet>137</a>                </span>| <span class="string">"gradlew"
+<a href=#138 id=138 data-nosnippet>138</a>                </span>| <span class="string">"Gemfile"
+<a href=#139 id=139 data-nosnippet>139</a>                </span>| <span class="string">"Rakefile"
+<a href=#140 id=140 data-nosnippet>140</a>                </span>| <span class="string">"Brewfile"
+<a href=#141 id=141 data-nosnippet>141</a>                </span>| <span class="string">"Vagrantfile"
+<a href=#142 id=142 data-nosnippet>142</a>                </span>| <span class="string">"Procfile"
+<a href=#143 id=143 data-nosnippet>143</a>        </span>)
+<a href=#144 id=144 data-nosnippet>144</a>    ) {
+<a href=#145 id=145 data-nosnippet>145</a>        <span class="kw">return </span><span class="string">"text"</span>;
+<a href=#146 id=146 data-nosnippet>146</a>    }
+<a href=#147 id=147 data-nosnippet>147</a>    <span class="kw">match </span>path
+<a href=#148 id=148 data-nosnippet>148</a>        .extension()
+<a href=#149 id=149 data-nosnippet>149</a>        .and_then(|value| value.to_str())
+<a href=#150 id=150 data-nosnippet>150</a>        .map(str::to_ascii_lowercase)
+<a href=#151 id=151 data-nosnippet>151</a>        .as_deref()
+<a href=#152 id=152 data-nosnippet>152</a>    {
+<a href=#153 id=153 data-nosnippet>153</a>        <span class="prelude-val">Some</span>(<span class="string">"html" </span>| <span class="string">"htm"</span>) =&gt; <span class="string">"html"</span>,
+<a href=#154 id=154 data-nosnippet>154</a>        <span class="prelude-val">Some</span>(<span class="string">"c" </span>| <span class="string">"h"</span>) =&gt; <span class="string">"c"</span>,
+<a href=#155 id=155 data-nosnippet>155</a>        <span class="prelude-val">Some</span>(<span class="string">"cc" </span>| <span class="string">"cpp" </span>| <span class="string">"cxx" </span>| <span class="string">"hpp" </span>| <span class="string">"hh" </span>| <span class="string">"hxx"</span>) =&gt; <span class="string">"cpp"</span>,
+<a href=#156 id=156 data-nosnippet>156</a>        <span class="prelude-val">Some</span>(<span class="string">"js" </span>| <span class="string">"mjs" </span>| <span class="string">"cjs" </span>| <span class="string">"jsx"</span>) =&gt; <span class="string">"javascript"</span>,
+<a href=#157 id=157 data-nosnippet>157</a>        <span class="prelude-val">Some</span>(<span class="string">"ts" </span>| <span class="string">"mts" </span>| <span class="string">"cts" </span>| <span class="string">"tsx"</span>) =&gt; <span class="string">"typescript"</span>,
+<a href=#158 id=158 data-nosnippet>158</a>        <span class="prelude-val">Some</span>(<span class="string">"md" </span>| <span class="string">"markdown"</span>) =&gt; <span class="string">"markdown"</span>,
+<a href=#159 id=159 data-nosnippet>159</a>        <span class="prelude-val">Some</span>(<span class="string">"py" </span>| <span class="string">"pyi" </span>| <span class="string">"pyw"</span>) =&gt; <span class="string">"python"</span>,
+<a href=#160 id=160 data-nosnippet>160</a>        <span class="prelude-val">Some</span>(<span class="string">"rs"</span>) =&gt; <span class="string">"rust"</span>,
+<a href=#161 id=161 data-nosnippet>161</a>        <span class="prelude-val">Some</span>(<span class="string">"pdf"</span>) =&gt; <span class="string">"pdf"</span>,
+<a href=#162 id=162 data-nosnippet>162</a>        <span class="prelude-val">Some</span>(
+<a href=#163 id=163 data-nosnippet>163</a>            <span class="string">"sh" </span>| <span class="string">"bash" </span>| <span class="string">"zsh" </span>| <span class="string">"fish" </span>| <span class="string">"ps1" </span>| <span class="string">"psm1" </span>| <span class="string">"bat" </span>| <span class="string">"cmd" </span>| <span class="string">"mmd" </span>| <span class="string">"mermaid"
+<a href=#164 id=164 data-nosnippet>164</a>            </span>| <span class="string">"svg" </span>| <span class="string">"txt" </span>| <span class="string">"log" </span>| <span class="string">"env" </span>| <span class="string">"xml" </span>| <span class="string">"ini" </span>| <span class="string">"cfg" </span>| <span class="string">"properties" </span>| <span class="string">"csv" </span>| <span class="string">"tsv"
+<a href=#165 id=165 data-nosnippet>165</a>            </span>| <span class="string">"rst" </span>| <span class="string">"adoc" </span>| <span class="string">"tex" </span>| <span class="string">"graphql" </span>| <span class="string">"gql" </span>| <span class="string">"proto" </span>| <span class="string">"sql" </span>| <span class="string">"go" </span>| <span class="string">"java" </span>| <span class="string">"kt"
+<a href=#166 id=166 data-nosnippet>166</a>            </span>| <span class="string">"kts" </span>| <span class="string">"cs" </span>| <span class="string">"swift" </span>| <span class="string">"php" </span>| <span class="string">"rb" </span>| <span class="string">"lua" </span>| <span class="string">"dart" </span>| <span class="string">"scala" </span>| <span class="string">"m" </span>| <span class="string">"mm" </span>| <span class="string">"hs"
+<a href=#167 id=167 data-nosnippet>167</a>            </span>| <span class="string">"ex" </span>| <span class="string">"exs" </span>| <span class="string">"erl" </span>| <span class="string">"zig" </span>| <span class="string">"lock" </span>| <span class="string">"sum" </span>| <span class="string">"mod" </span>| <span class="string">"gradle"</span>,
+<a href=#168 id=168 data-nosnippet>168</a>        ) =&gt; <span class="string">"text"</span>,
+<a href=#169 id=169 data-nosnippet>169</a>        <span class="prelude-val">Some</span>(<span class="string">"json" </span>| <span class="string">"jsonc" </span>| <span class="string">"ipynb"</span>) =&gt; <span class="string">"json"</span>,
+<a href=#170 id=170 data-nosnippet>170</a>        <span class="prelude-val">Some</span>(<span class="string">"yaml" </span>| <span class="string">"yml"</span>) =&gt; <span class="string">"yaml"</span>,
+<a href=#171 id=171 data-nosnippet>171</a>        <span class="prelude-val">Some</span>(<span class="string">"toml"</span>) =&gt; <span class="string">"toml"</span>,
+<a href=#172 id=172 data-nosnippet>172</a>        <span class="prelude-val">Some</span>(
+<a href=#173 id=173 data-nosnippet>173</a>            <span class="string">"png" </span>| <span class="string">"jpg" </span>| <span class="string">"jpeg" </span>| <span class="string">"gif" </span>| <span class="string">"webp" </span>| <span class="string">"ico" </span>| <span class="string">"bmp" </span>| <span class="string">"woff" </span>| <span class="string">"woff2" </span>| <span class="string">"ttf"
+<a href=#174 id=174 data-nosnippet>174</a>            </span>| <span class="string">"otf" </span>| <span class="string">"wasm" </span>| <span class="string">"zip" </span>| <span class="string">"gz" </span>| <span class="string">"tar" </span>| <span class="string">"7z" </span>| <span class="string">"jar" </span>| <span class="string">"exe" </span>| <span class="string">"dll" </span>| <span class="string">"o" </span>| <span class="string">"a"
+<a href=#175 id=175 data-nosnippet>175</a>            </span>| <span class="string">"so"</span>,
+<a href=#176 id=176 data-nosnippet>176</a>        ) =&gt; <span class="string">"binary"</span>,
+<a href=#177 id=177 data-nosnippet>177</a>        <span class="kw">_ if </span>std::str::from_utf8(bytes).is_ok() =&gt; <span class="string">"text"</span>,
+<a href=#178 id=178 data-nosnippet>178</a>        <span class="kw">_ </span>=&gt; <span class="string">"binary"</span>,
+<a href=#179 id=179 data-nosnippet>179</a>    }
+<a href=#180 id=180 data-nosnippet>180</a>}
 </code></pre></div></section></main></body></html>

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["project_id","require_context_snapshot","snapshot_id"]};
