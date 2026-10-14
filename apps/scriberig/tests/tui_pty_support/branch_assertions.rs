@@ -255,7 +255,27 @@ fn assert_validation_profiles(branch: &Branch) {
         .iter()
         .filter(|invocation| invocation.name == "project_validate_candidate")
         .collect::<Vec<_>>();
-    assert_eq!(invocations.len(), expected.len());
+    assert_eq!(
+        invocations.len(),
+        expected.len(),
+        "validation profile calls: {:?}; validation results: {:?}",
+        invocations
+            .iter()
+            .map(
+                |invocation| serde_json::from_slice::<serde_json::Value>(&invocation.input)
+                    .ok()
+                    .and_then(|input| input["profile"].as_str().map(str::to_owned))
+            )
+            .collect::<Vec<_>>(),
+        branch
+            .tool_results
+            .iter()
+            .map(|result| (
+                result.failed,
+                String::from_utf8_lossy(&result.output).into_owned()
+            ))
+            .collect::<Vec<_>>()
+    );
     for (invocation, expected_profile) in invocations.iter().zip(expected) {
         let input: serde_json::Value =
             serde_json::from_slice(&invocation.input).expect("validation profile input");
