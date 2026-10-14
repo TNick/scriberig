@@ -23,8 +23,14 @@ export default async function globalTeardown(_config: FullConfig): Promise<void>
       resolve(repositoryRoot, "output/playwright/golden-fixture-root"),
       "utf8",
     );
+    const databaseRoot = await readFile(
+      resolve(repositoryRoot, "output/playwright/golden-database-root"),
+      "utf8",
+    );
     await rm(fixtureRoot.trim(), { recursive: true, force: true });
+    await rm(databaseRoot.trim(), { recursive: true, force: true });
     await rm(resolve(repositoryRoot, "output/playwright/golden-fixture-root"), { force: true });
+    await rm(resolve(repositoryRoot, "output/playwright/golden-database-root"), { force: true });
   } catch {
     // Preserve the original teardown behavior when the fixture was not created.
   }

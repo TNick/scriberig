@@ -12,6 +12,12 @@ from pathlib import Path
 from dev_toolchain import cargo_command
 ROOT = Path(__file__).resolve().parents[1]
 RUNTIME = ROOT / "playground" / "dev-app-runtime"
+DATABASE = Path(
+    os.environ.get(
+        "SCRIBE_DATABASE_PATH",
+        str(RUNTIME / "scriberig.sqlite"),
+    )
+).expanduser()
 API_URL = "http://127.0.0.1:7337/api/health"
 WEB_URL = "http://127.0.0.1:5173"
 SERVICES = ("api", "web")
@@ -217,7 +223,7 @@ def wait_until_ready(api_log: Path, api_started_before: bool) -> tuple[bool, boo
     for _ in range(120):
         try:
             api_started = api_started_before or (
-                (RUNTIME / "scriberig.sqlite").is_file()
+                DATABASE.is_file()
                 and "Scriberig API listening" in api_log.read_text(encoding="utf-8")
             )
         except OSError:
@@ -288,6 +294,7 @@ def start() -> None:
     """
     # Store the database, service logs, and process markers together.
     RUNTIME.mkdir(parents=True, exist_ok=True)
+    DATABASE.parent.mkdir(parents=True, exist_ok=True)
     project_roots = os.environ.get("SCRIBERIG_PROJECT_ROOT")
     project_root_arguments = []
     if project_roots:
@@ -306,7 +313,7 @@ def start() -> None:
             "--port",
             "7337",
             "--db",
-            "playground/dev-app-runtime/scriberig.sqlite",
+            str(DATABASE),
             *project_root_arguments,
         ],
     )
@@ -350,7 +357,7 @@ def start() -> None:
         browser_marker.write_text("opened\n", encoding="utf-8")
     print("Scriberig is open at " + WEB_URL)
     print("API health: " + API_URL)
-    print("Database: playground/dev-app-runtime/scriberig.sqlite")
+    print("Database: " + str(DATABASE))
     if not api_health:
         print("Warning: API started, but its health route is unreachable.")
     print("Run make dev-stop to stop the development processes.")

@@ -34,11 +34,14 @@ async function waitFor(url: string): Promise<void> {
  */
 export default async function globalSetup(_config: FullConfig): Promise<void> {
   const fixtureRoot = await mkdtemp(join(tmpdir(), "scriberig-web-golden-"));
+  const databaseRoot = await mkdtemp(join(tmpdir(), "scriberig-web-database-"));
+  const databasePath = join(databaseRoot, "scriberig.sqlite");
   await cp(resolve(repositoryRoot, "tests/fixtures/golden-rust-project"), fixtureRoot, {
     recursive: true,
   });
   await mkdir(resolve(repositoryRoot, "output/playwright"), { recursive: true });
   await writeFile(resolve(repositoryRoot, "output/playwright/golden-fixture-root"), fixtureRoot);
+  await writeFile(resolve(repositoryRoot, "output/playwright/golden-database-root"), databaseRoot);
   spawnSync("python", ["tools/dev.py", "stop"], {
     cwd: repositoryRoot,
     stdio: "ignore",
@@ -51,6 +54,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
       ...process.env,
       SCRIBERIG_NO_BROWSER: "1",
       SCRIBERIG_PROJECT_ROOT: fixtureRoot,
+      SCRIBE_DATABASE_PATH: databasePath,
     },
     stdio: "ignore",
     windowsHide: true,
