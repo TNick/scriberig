@@ -76,9 +76,9 @@ fn capabilities_loaded_reports_attached_service() {
     assert_eq!(state.connection, crate::state::ConnectionState::Connected);
 }
 
-/// Verifies transient output is discarded after authoritative session refresh.
+/// Verifies an authoritative session refresh preserves output observed during submission.
 #[test]
-fn authoritative_session_refresh_clears_transient_output() {
+fn authoritative_session_refresh_preserves_transient_output() {
     let mut state = TuiState::default();
     let operation = scriberig_core::OperationId::new("durable-result").expect("operation");
     let mut completed =
@@ -103,11 +103,35 @@ fn authoritative_session_refresh_clears_transient_output() {
             model: crate::view::session::SessionModel::default(),
         },
     );
-    assert_eq!(state.agent_output_observations, Vec::<String>::new());
+    assert_eq!(state.agent_output_observations, vec!["working".to_owned()]);
     assert_eq!(
         state.operations[0].result_handles,
         vec!["branch-result:durable".to_owned()]
     );
+}
+
+/// Verifies selecting a session clears output observed for the prior session.
+#[test]
+fn selecting_session_clears_prior_transient_output() {
+    let mut state = TuiState::default();
+    let session = scriberig_core::EntityId::from_bytes([9; 16]);
+    reduce(
+        &mut state,
+        Action::AgentOutputObserved("prior answer".to_owned()),
+    );
+
+    assert!(matches!(
+        reduce(
+            &mut state,
+            Action::SessionRequested {
+                session,
+                branch: None,
+            },
+        )
+        .as_slice(),
+        [Effect::ReadSession { session: requested, .. }] if *requested == session
+    ));
+    assert_eq!(state.agent_output_observations, Vec::<String>::new());
 }
 
 /// Verifies entering the session view requests the selected session entity.

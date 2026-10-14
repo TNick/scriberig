@@ -37,7 +37,6 @@ pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Ef
             if matches!(state.session, LoadState::Loading { request_id: current } if current == request_id)
             {
                 state.session = LoadState::Ready(model);
-                state.agent_output_observations.clear();
             }
             Some(vec![Effect::None])
         }
@@ -45,6 +44,7 @@ pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Ef
         Action::SessionRequested { session, branch } => {
             let request_id = state.next_request_id;
             state.next_request_id += 1;
+            state.agent_output_observations.clear();
             state.session = LoadState::Loading { request_id };
             Some(vec![Effect::ReadSession {
                 request_id,

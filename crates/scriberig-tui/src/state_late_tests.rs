@@ -328,6 +328,10 @@ fn composer_submission_preserves_multiline_prompt() {
     let session = scriberig_core::EntityId::from_bytes([3; 16]);
     reduce(
         &mut state,
+        Action::AgentOutputObserved("previous answer".to_owned()),
+    );
+    reduce(
+        &mut state,
         Action::ComposerOpened {
             session,
             branch: None,
@@ -342,6 +346,7 @@ fn composer_submission_preserves_multiline_prompt() {
             prompt: "line one\nline two".to_owned(),
         }]
     );
+    assert_eq!(state.agent_output_observations, Vec::<String>::new());
 }
 
 /// Verifies submission refreshes both operation and session state.
