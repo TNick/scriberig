@@ -74,13 +74,10 @@ impl ProviderAdapter for PhpSelfHostingProvider {
             }
             return BootstrapProvider.complete(request);
         }
-        let messages = tool_messages(request);
         let phase_delay = self.cancellation == Some(CancellationPhase::Discovery)
-            && prompt.contains("ARCHITECTURE_DISCOVERY_TASK")
-            && messages.is_empty();
+            && request_contains(request, "ARCHITECTURE_DISCOVERY_TASK");
         let implementation_delay = self.cancellation == Some(CancellationPhase::Implementation)
-            && prompt.contains("PHP_IMPLEMENTATION_TASK")
-            && messages.is_empty();
+            && request_contains(request, "PHP_IMPLEMENTATION_TASK");
         if phase_delay || implementation_delay {
             await_test_release()?;
         }
@@ -102,6 +99,21 @@ impl ProviderAdapter for PhpSelfHostingProvider {
     }
 }
 
+/// Checks whether any normalized request message contains a scenario task anchor.
+///
+/// # Parameters
+/// - `request`: Normalized provider request.
+/// - `anchor`: Stable task marker to find.
+///
+/// # Returns
+/// `true` when the marker occurs in any request message.
+fn request_contains(request: &ModelRequest, anchor: &str) -> bool {
+    request
+        .messages
+        .iter()
+        .any(|message| message.content.contains(anchor))
+}
+
 /// Holds a cancellation scenario response until the PTY test releases its synchronization gate.
 ///
 /// # Returns
@@ -114,9 +126,20 @@ fn await_test_release() -> Result<(), ProviderError> {
         return Ok(());
     };
     let path = std::path::PathBuf::from(path);
+    let waiting = path.with_extension("waiting");
+    std::fs::write(&waiting, b"provider reached the cancellation gate").map_err(|error| {
+        ProviderError::Configuration(format!("cannot mark provider gate as waiting: {error}"))
+    })?;
     loop {
         match std::fs::metadata(&path) {
-            Ok(_) => return Ok(()),
+            Ok(_) => {
+                std::fs::remove_file(&waiting).map_err(|error| {
+                    ProviderError::Configuration(format!(
+                        "cannot remove provider gate waiting marker: {error}"
+                    ))
+                })?;
+                return Ok(());
+            }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
                 std::thread::sleep(std::time::Duration::from_millis(10));
             }

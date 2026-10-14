@@ -75,6 +75,7 @@ fn submit_input(state: &mut TuiState) -> Vec<Effect> {
             state.overlay = Some(Overlay::Composer(composer));
             return vec![Effect::None];
         }
+        state.session_branch_focus = composer.branch;
         state.agent_output_observations.clear();
         return vec![Effect::SubmitAgent {
             session: composer.session,

@@ -17,6 +17,8 @@ pub struct ApplicationOperationAdapter<B> {
     pub(crate) project_candidates: std::sync::Arc<
         std::sync::Mutex<std::collections::HashMap<String, scriberig_project::ProjectCandidate>>,
     >,
+    /// Last local lifecycle event sequence observed by this TUI adapter.
+    pub(crate) event_cursor: std::sync::Mutex<Option<u64>>,
     pub(crate) agent_runner: std::sync::Arc<dyn super::AgentCommandRunner<B>>,
 }
 
@@ -39,6 +41,7 @@ impl<B: ApplicationBackend> ApplicationOperationAdapter<B> {
             project_candidates: std::sync::Arc::new(std::sync::Mutex::new(
                 std::collections::HashMap::new(),
             )),
+            event_cursor: std::sync::Mutex::new(None),
             agent_runner: std::sync::Arc::new(super::SharedAgentCommandRunner),
         }
     }
@@ -295,6 +298,23 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         operation: &scriberig_core::OperationId,
     ) -> Result<scriberig_app::OperationRecord, ApplicationError> {
         service_operation_helpers::cancel_operation(self, operation)
+    }
+
+    /// Lists current shared application operation records.
+    ///
+    /// # Parameters
+    /// - `_context`: Application context for operation visibility.
+    ///
+    /// # Returns
+    /// Current application operation records.
+    ///
+    /// # Errors
+    /// This local adapter has no separate listing failure path.
+    fn operation_records(
+        &self,
+        _context: &ApplicationContext,
+    ) -> Result<Vec<scriberig_app::OperationRecord>, ApplicationError> {
+        Ok(self.service.operations().list())
     }
 
     /// Returns lifecycle events retained by the shared application registry.

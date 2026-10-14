@@ -20,6 +20,19 @@ fn renders_all_required_sizes() {
     }
 }
 
+/// Verifies a refreshed long session selects its latest row inside the viewport.
+#[test]
+fn primary_session_scroll_keeps_latest_cursor_visible() {
+    let state = TuiState {
+        primary_view: crate::selection::PrimaryView::Session,
+        focus: Focus::Primary,
+        cursor: 39,
+        ..TuiState::default()
+    };
+
+    assert_eq!(super::primary_scroll(&state, 40), (3, 0));
+}
+
 /// Verifies the narrow shell preserves a readable primary message.
 #[test]
 fn narrow_frame_contains_primary_text() {

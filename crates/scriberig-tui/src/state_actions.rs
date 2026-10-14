@@ -24,19 +24,27 @@ pub(super) fn reduce_application_event(
         }
         _ => {}
     }
-    let operation = match event {
+    let previous = match event {
         scriberig_app::ApplicationEvent::OperationStarted { operation }
         | scriberig_app::ApplicationEvent::OperationProgressed { operation, .. }
         | scriberig_app::ApplicationEvent::OperationCompleted { operation }
         | scriberig_app::ApplicationEvent::OperationFailed { operation, .. }
-        | scriberig_app::ApplicationEvent::OperationCancelled { operation } => operation.clone(),
+        | scriberig_app::ApplicationEvent::OperationCancelled { operation } => {
+            state.operations.iter().find(|value| &value.id == operation)
+        }
         _ => return vec![Effect::None],
     };
-    if state.pending_operation_refresh.contains(&operation) {
+    let Some(model) = crate::view::operations::OperationModel::from_event(event, previous) else {
         return vec![Effect::None];
+    };
+    let needs_detail = previous.is_none() && !model.status.is_terminal();
+    let operation = model.id.clone();
+    let mut effects = reduce(state, Action::OperationObserved(model));
+    if needs_detail && !state.pending_operation_refresh.contains(&operation) {
+        state.pending_operation_refresh.push(operation.clone());
+        effects.extend(reduce(state, Action::OperationStatusRequested(operation)));
     }
-    state.pending_operation_refresh.push(operation.clone());
-    reduce(state, Action::OperationStatusRequested(operation))
+    effects
 }
 
 /// Activates the selected local palette item without invoking semantic services.

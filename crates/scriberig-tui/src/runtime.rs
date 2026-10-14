@@ -1,5 +1,6 @@
 //! Runs the event-driven terminal shell.
 
+use std::collections::VecDeque;
 use std::io::{self, IsTerminal};
 use std::sync::mpsc::{self, Receiver, SyncSender, TrySendError};
 use std::time::Duration;
@@ -18,6 +19,9 @@ use crate::{
     terminal::TerminalGuard,
 };
 use scriberig_app::ApplicationContext;
+
+/// Maximum lifecycle events reduced before returning to terminal input handling.
+const APPLICATION_EVENT_BATCH_SIZE: usize = 128;
 
 /// Runs the interactive shell until a local quit event is received.
 ///
@@ -59,7 +63,12 @@ pub fn run<S: TuiService + Sync>(
             );
         });
         let mut redraw = true;
-        try_queue(&work_sender, Work::Effect(Effect::RequestCapabilities));
+        let mut pending_effects = VecDeque::new();
+        queue_effects(
+            &work_sender,
+            &mut pending_effects,
+            vec![Effect::RequestCapabilities],
+        );
         if let Some(entity) = config.initial_entity {
             let request_id = state.next_request_id;
             state.next_request_id += 1;
@@ -71,20 +80,29 @@ pub fn run<S: TuiService + Sync>(
                     snapshot: config.snapshot,
                 },
             );
-            queue_effects(&work_sender, effects);
+            queue_effects(&work_sender, &mut pending_effects, effects);
         }
-        let mut event_cursor = 0_usize;
+        let mut pending_events = VecDeque::new();
         let mut poll_in_flight = false;
         while !state.should_quit {
             drain_messages(
                 &message_receiver,
                 &mut state,
-                &mut event_cursor,
                 &mut poll_in_flight,
                 &work_sender,
+                &mut pending_effects,
+                &mut pending_events,
                 &mut redraw,
             );
-            if !poll_in_flight {
+            dispatch_pending_events(
+                &mut state,
+                &mut pending_events,
+                &work_sender,
+                &mut pending_effects,
+                &mut redraw,
+            );
+            flush_effects(&work_sender, &mut pending_effects);
+            if !poll_in_flight && pending_events.is_empty() {
                 poll_in_flight = try_queue(&work_sender, Work::PollApplicationEvents);
             }
             if redraw {
@@ -95,7 +113,11 @@ pub fn run<S: TuiService + Sync>(
             if matches!(input, TuiEvent::Tick) {
                 continue;
             }
-            queue_effects(&work_sender, state.apply_event(&input));
+            queue_effects(
+                &work_sender,
+                &mut pending_effects,
+                state.apply_event(&input),
+            );
             terminal.draw(|frame| render::render(frame, &state))?;
         }
         drop(work_sender);
@@ -177,15 +199,34 @@ fn try_queue(sender: &SyncSender<Work>, work: Work) -> bool {
     }
 }
 
-/// Queues all reducer effects that fit in the bounded worker queue.
+/// Retains reducer effects and queues as many as the bounded worker accepts.
 ///
 /// # Parameters
 /// - `sender`: Bounded worker queue.
+/// - `pending`: Effects retained until worker capacity returns.
 /// - `effects`: Reducer effects to enqueue.
-fn queue_effects(sender: &SyncSender<Work>, effects: Vec<Effect>) {
-    for effect in effects {
-        if !try_queue(sender, Work::Effect(effect)) {
-            break;
+fn queue_effects(sender: &SyncSender<Work>, pending: &mut VecDeque<Effect>, effects: Vec<Effect>) {
+    pending.extend(effects);
+    flush_effects(sender, pending);
+}
+
+/// Queues retained effects until the bounded worker queue is full.
+///
+/// # Parameters
+/// - `sender`: Bounded worker queue.
+/// - `pending`: Effects retained until worker capacity returns.
+fn flush_effects(sender: &SyncSender<Work>, pending: &mut VecDeque<Effect>) {
+    while let Some(effect) = pending.pop_front() {
+        match sender.try_send(Work::Effect(effect)) {
+            Ok(()) => {}
+            Err(TrySendError::Full(Work::Effect(effect))) => {
+                pending.push_front(effect);
+                break;
+            }
+            Err(TrySendError::Disconnected(_)) => break,
+            Err(TrySendError::Full(Work::PollApplicationEvents)) => {
+                unreachable!("only effects are queued through this helper")
+            }
         }
     }
 }
@@ -195,38 +236,37 @@ fn queue_effects(sender: &SyncSender<Work>, effects: Vec<Effect>) {
 /// # Parameters
 /// - `receiver`: Completed worker message queue.
 /// - `state`: Mutable TUI state.
-/// - `event_cursor`: Cursor into retained application events.
 /// - `poll_in_flight`: Whether an event poll is active.
 /// - `sender`: Bounded worker queue.
+/// - `pending_effects`: Effects retained until worker capacity returns.
+/// - `pending_events`: Lifecycle events retained until dispatched.
 /// - `redraw`: Whether the terminal needs repainting.
 fn drain_messages(
     receiver: &Receiver<RuntimeMessage>,
     state: &mut TuiState,
-    event_cursor: &mut usize,
     poll_in_flight: &mut bool,
     sender: &SyncSender<Work>,
+    pending_effects: &mut VecDeque<Effect>,
+    pending_events: &mut VecDeque<scriberig_app::ApplicationEvent>,
     redraw: &mut bool,
 ) {
     while let Ok(message) = receiver.try_recv() {
         match message {
             RuntimeMessage::Action(action) => {
                 *redraw = true;
-                queue_effects(sender, reduce(state, *action));
+                queue_effects(sender, pending_effects, reduce(state, *action));
             }
             RuntimeMessage::ApplicationEvents(events) => {
                 *poll_in_flight = false;
                 if state.connection == crate::state::ConnectionState::Disconnected {
                     *redraw = true;
-                    queue_effects(sender, reduce(state, Action::ConnectionRestored));
+                    queue_effects(
+                        sender,
+                        pending_effects,
+                        reduce(state, Action::ConnectionRestored),
+                    );
                 }
-                let start = (*event_cursor).min(events.len());
-                let end = (start + 32).min(events.len());
-                for application_event in &events[start..end] {
-                    *redraw = true;
-                    let event = TuiEvent::Application(application_event.clone());
-                    queue_effects(sender, state.apply_event(&event));
-                }
-                *event_cursor = end;
+                pending_events.extend(events);
             }
             RuntimeMessage::ApplicationEventsFailed { category, message } => {
                 *poll_in_flight = false;
@@ -241,6 +281,31 @@ fn drain_messages(
                 );
             }
         }
+    }
+}
+
+/// Applies one bounded batch of retained application lifecycle events.
+///
+/// # Parameters
+/// - `state`: TUI state receiving event reductions.
+/// - `pending_events`: Events waiting for reducer processing.
+/// - `sender`: Bounded worker queue for resulting semantic effects.
+/// - `pending_effects`: Effects retained until worker capacity returns.
+/// - `redraw`: Whether visible state changed.
+fn dispatch_pending_events(
+    state: &mut TuiState,
+    pending_events: &mut VecDeque<scriberig_app::ApplicationEvent>,
+    sender: &SyncSender<Work>,
+    pending_effects: &mut VecDeque<Effect>,
+    redraw: &mut bool,
+) {
+    for _ in 0..APPLICATION_EVENT_BATCH_SIZE {
+        let Some(application_event) = pending_events.pop_front() else {
+            break;
+        };
+        *redraw = true;
+        let event = TuiEvent::Application(application_event);
+        queue_effects(sender, pending_effects, state.apply_event(&event));
     }
 }
 
@@ -303,101 +368,5 @@ fn validate_interactive_terminal(
 }
 
 #[cfg(test)]
-mod tests {
-    use scriberig_app::{ApplicationContext, ApplicationError, InspectResult};
-
-    use crate::TuiService;
-    use crate::{
-        event::{Key, KeyCode, Modifiers, TuiEvent},
-        state::TuiState,
-    };
-
-    /// Provides an unsupported operation for runtime composition tests.
-    struct Fixture;
-
-    impl TuiService for Fixture {
-        /// Rejects inspection while keeping the runtime test deterministic.
-        ///
-        /// # Parameters
-        /// - `_context`: Test application context.
-        /// - `_entity`: Test entity identity.
-        /// - `_snapshot`: Optional test snapshot.
-        ///
-        /// # Returns
-        /// Never returns a successful result.
-        ///
-        /// # Errors
-        /// Always returns an unsupported-operation error.
-        fn inspect_entity(
-            &self,
-            _context: &ApplicationContext,
-            _entity: scriberig_core::EntityId,
-            _snapshot: Option<scriberig_core::SnapshotId>,
-        ) -> Result<InspectResult, ApplicationError> {
-            Err(ApplicationError::UnsupportedOperation {
-                operation: "test".to_owned(),
-            })
-        }
-    }
-
-    /// Verifies a runtime quit event is handled without a terminal backend.
-    /// Verifies non-interactive composition avoids terminal takeover.
-    /// Verifies headless execution does not take over a terminal.
-    #[test]
-    fn quit_event_terminates_state_loop() {
-        let mut state = TuiState::default();
-        state.apply_event(&TuiEvent::Key(Key {
-            code: KeyCode::Char('q'),
-            modifiers: Modifiers::default(),
-        }));
-        assert!(state.should_quit);
-    }
-
-    /// Verifies non-interactive startup is rejected before terminal takeover.
-    #[test]
-    fn rejects_noninteractive_terminal_for_interactive_runtime() {
-        let error = super::validate_interactive_terminal(true, false, true)
-            .expect_err("non-terminal input must be rejected");
-        assert_eq!(error.kind(), std::io::ErrorKind::NotConnected);
-    }
-
-    /// Verifies headless composition does not require an attached terminal.
-    #[test]
-    fn accepts_noninteractive_composition_without_terminal() {
-        super::validate_interactive_terminal(false, false, false)
-            .expect("headless composition must remain usable");
-    }
-
-    /// Verifies headless startup does not enter terminal mode.
-    #[test]
-    fn noninteractive_run_does_not_take_over_terminal() {
-        let result = super::run(
-            &Fixture,
-            &ApplicationContext::empty(),
-            &crate::TuiConfig::default(),
-        );
-        assert!(result.is_ok());
-    }
-
-    /// Verifies semantic effects are routed through the worker boundary.
-    #[test]
-    fn worker_routes_effect_results_back_to_runtime() {
-        let (work_sender, work_receiver) = std::sync::mpsc::sync_channel(1);
-        let (message_sender, message_receiver) = std::sync::mpsc::sync_channel(1);
-        let context = ApplicationContext::empty();
-        std::thread::scope(|scope| {
-            let worker = scope.spawn(move || {
-                super::worker_loop(scope, &Fixture, context, work_receiver, message_sender);
-            });
-            work_sender
-                .send(super::Work::Effect(
-                    crate::effect::Effect::RequestCapabilities,
-                ))
-                .expect("worker accepts effect");
-            drop(work_sender);
-            let message = message_receiver.recv().expect("worker result");
-            assert!(matches!(message, super::RuntimeMessage::Action(_)));
-            worker.join().expect("worker exits");
-        });
-    }
-}
+#[path = "runtime_tests.rs"]
+mod tests;

@@ -181,6 +181,18 @@ impl OperationRegistry {
             })
     }
 
+    /// Lists the current in-process operation records in stable identity order.
+    ///
+    /// # Returns
+    /// A snapshot of all tracked operations.
+    #[must_use]
+    pub fn list(&self) -> Vec<OperationRecord> {
+        self.state
+            .lock()
+            .map(|state| state.records.values().cloned().collect())
+            .unwrap_or_default()
+    }
+
     /// Transitions an operation to a new lifecycle state.
     ///
     /// # Parameters

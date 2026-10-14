@@ -44,6 +44,25 @@ fn registry_tracks_lifecycle_and_publishes_events() {
     ));
 }
 
+/// Verifies operation snapshots include current active records for late observers.
+#[test]
+fn registry_lists_current_records_for_late_observers() {
+    let registry = OperationRegistry::new();
+    let id = OperationId::new("operation-active").expect("operation id");
+    registry
+        .start(id.clone(), OperationKind::Agent)
+        .expect("start");
+    registry
+        .transition(&id, OperationStatus::Running)
+        .expect("running");
+
+    let records = registry.list();
+
+    assert_eq!(records.len(), 1);
+    assert_eq!(records[0].reference, id);
+    assert_eq!(records[0].status, OperationStatus::Running);
+}
+
 /// Verifies failed operations retain the structured diagnostic they publish.
 #[test]
 fn registry_retains_failure_details() {

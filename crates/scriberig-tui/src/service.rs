@@ -242,6 +242,23 @@ pub trait TuiService {
         })
     }
 
+    /// Returns a snapshot of the application's tracked operation records.
+    ///
+    /// # Parameters
+    /// - `_context`: Application context for operation visibility.
+    ///
+    /// # Returns
+    /// Current operation records available to this service.
+    ///
+    /// # Errors
+    /// Returns an operation access error when the service cannot list records.
+    fn operation_records(
+        &self,
+        _context: &ApplicationContext,
+    ) -> Result<Vec<scriberig_app::OperationRecord>, ApplicationError> {
+        Ok(Vec::new())
+    }
+
     /// Returns application events observed since the previous runtime poll.
     ///
     /// # Parameters

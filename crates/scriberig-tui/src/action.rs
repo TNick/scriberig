@@ -90,6 +90,8 @@ pub enum Action {
     },
     /// Apply runtime capability metadata returned by the application.
     CapabilitiesLoaded(Vec<scriberig_app::RuntimeCapability>),
+    /// Replace observed lifecycle state with a current application snapshot.
+    OperationsLoaded(Vec<scriberig_app::OperationRecord>),
     /// Switches the primary view without changing semantic selection.
     ViewSelected(crate::selection::PrimaryView),
     /// Applies a history operation result.

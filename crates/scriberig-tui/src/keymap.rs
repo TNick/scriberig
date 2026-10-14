@@ -6,6 +6,9 @@ use crate::{
     state::TuiState,
 };
 
+#[path = "keymap_operation.rs"]
+mod keymap_operation;
+
 /// Interaction context used when resolving a key chord.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[allow(missing_docs)]
@@ -304,18 +307,8 @@ pub fn action_for(state: &TuiState, key: &Key) -> Option<Action> {
     } else {
         Context::Browse
     };
-    if key.code == KeyCode::Char('x')
-        && key.modifiers == NONE
-        && state
-            .capabilities
-            .iter()
-            .any(|capability| capability.available && capability.id.as_str() == "operation_cancel")
-    {
-        return state
-            .operations
-            .iter()
-            .find(|operation| operation.cancellable())
-            .map(|operation| Action::OperationCancelRequested(operation.id.clone()));
+    if key.code == KeyCode::Char('x') && key.modifiers == NONE {
+        return keymap_operation::cancel_active_operation(state);
     }
     bindings()
         .iter()

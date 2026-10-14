@@ -356,9 +356,9 @@ fn refresh_reissues_selected_inspection() {
     );
 }
 
-/// Verifies application lifecycle events request authoritative operation state.
+/// Verifies a start event exposes a cancellable operation before detail lookup completes.
 #[test]
-fn application_operation_event_requests_authoritative_refresh() {
+fn application_operation_event_immediately_exposes_running_state() {
     let mut state = TuiState::default();
     let operation = scriberig_core::OperationId::new("running").expect("operation id");
     let effects = state.apply_event(&crate::event::TuiEvent::Application(
@@ -366,7 +366,13 @@ fn application_operation_event_requests_authoritative_refresh() {
             operation: operation.clone(),
         },
     ));
-    assert_eq!(effects, vec![Effect::OperationStatus { operation }]);
+    assert_eq!(state.operations[0].id, operation);
+    assert_eq!(
+        state.operations[0].status,
+        scriberig_app::OperationStatus::Running
+    );
+    assert!(state.operations[0].cancellable());
+    assert!(effects.contains(&Effect::OperationStatus { operation }));
 }
 
 /// Verifies closing the operations presentation cannot cancel application work.
@@ -392,5 +398,7 @@ fn closing_overlay_does_not_cancel_operation() {
 
 #[path = "state_late_tests.rs"]
 mod state_late_tests;
+#[path = "state_refresh_tests.rs"]
+mod state_refresh_tests;
 #[path = "state_tail_tests.rs"]
 mod state_tail_tests;

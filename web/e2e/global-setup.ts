@@ -15,7 +15,7 @@ const repositoryRoot = resolve(process.cwd(), "..");
  * @throws When the service does not become ready before the timeout.
  */
 async function waitFor(url: string): Promise<void> {
-  for (let attempt = 0; attempt < 120; attempt += 1) {
+  for (let attempt = 0; attempt < 600; attempt += 1) {
     try {
       const response = await fetch(url);
       if (response.ok) return;

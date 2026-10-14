@@ -215,12 +215,12 @@ def wait_until_ready(api_log: Path, api_started_before: bool) -> tuple[bool, boo
     Returns:
         Tuple containing API startup, API health, and web readiness.
     """
-    # Allow time for a first Cargo build while bounding startup to two minutes.
+    # Allow time for a clean Cargo build while bounding startup to ten minutes.
     api_started = False
     api_health = False
     api_health_checked = False
     web_ready = False
-    for _ in range(120):
+    for _ in range(600):
         try:
             api_started = api_started_before or (
                 DATABASE.is_file()

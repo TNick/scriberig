@@ -102,6 +102,8 @@ pub struct TuiState {
     pub operations: Vec<crate::view::operations::OperationModel>,
     /// Session tree request/result state.
     pub session: LoadState<crate::view::session::SessionModel>,
+    /// Branch to reveal after the matching agent submission finishes.
+    pub session_branch_focus: Option<scriberig_core::EntityId>,
     /// Operation identities with an authoritative refresh already requested.
     pub pending_operation_refresh: Vec<scriberig_core::OperationId>,
     /// Bounded stream/output handles shown as in-progress observations.
@@ -142,6 +144,7 @@ impl Default for TuiState {
             review_proposal: None,
             operations: Vec::new(),
             session: LoadState::NotRequested,
+            session_branch_focus: None,
             pending_operation_refresh: Vec::new(),
             agent_output_observations: Vec::new(),
             agent_handles: Vec::new(),

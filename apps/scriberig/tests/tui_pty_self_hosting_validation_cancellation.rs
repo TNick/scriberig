@@ -191,7 +191,7 @@ fn cancel_active_agent(tui: &mut TuiPty) {
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"operations");
-    assert!(tui.read_until("View operations"), "{}", tui.diagnostic());
+    assert!(tui.read_until("> View operations"), "{}", tui.diagnostic());
     tui.send(b"\r");
     assert!(
         tui.read_until_for("Running", Duration::from_secs(10)),

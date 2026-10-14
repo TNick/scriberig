@@ -45,6 +45,61 @@ impl OperationModel {
         }
     }
 
+    /// Applies a lifecycle event while preserving details from an earlier observation.
+    ///
+    /// # Parameters
+    /// - `event`: Shared lifecycle event for one operation.
+    /// - `previous`: Earlier operation details, when already observed.
+    ///
+    /// # Returns
+    /// An updated terminal model for operation lifecycle events.
+    #[must_use]
+    pub fn from_event(
+        event: &scriberig_app::ApplicationEvent,
+        previous: Option<&Self>,
+    ) -> Option<Self> {
+        let (id, status, progress, error) = match event {
+            scriberig_app::ApplicationEvent::OperationStarted { operation } => {
+                (operation, OperationStatus::Running, None, None)
+            }
+            scriberig_app::ApplicationEvent::OperationProgressed {
+                operation,
+                progress,
+            } => (
+                operation,
+                OperationStatus::Running,
+                progress.phase.clone().or_else(|| {
+                    progress
+                        .completed
+                        .zip(progress.total)
+                        .map(|(done, total)| format!("{done}/{total}"))
+                }),
+                None,
+            ),
+            scriberig_app::ApplicationEvent::OperationCompleted { operation } => {
+                (operation, OperationStatus::Completed, None, None)
+            }
+            scriberig_app::ApplicationEvent::OperationFailed { operation, error } => (
+                operation,
+                OperationStatus::Failed,
+                None,
+                Some(error.clone()),
+            ),
+            scriberig_app::ApplicationEvent::OperationCancelled { operation } => {
+                (operation, OperationStatus::Cancelled, None, None)
+            }
+            _ => return None,
+        };
+        Some(Self {
+            id: id.clone(),
+            kind: previous.map_or_else(|| "Operation".to_owned(), |value| value.kind.clone()),
+            status,
+            progress: progress.or_else(|| previous.and_then(|value| value.progress.clone())),
+            result_handles: previous.map_or_else(Vec::new, |value| value.result_handles.clone()),
+            error: error.or_else(|| previous.and_then(|value| value.error.clone())),
+        })
+    }
+
     /// Reports whether this operation may still be cancelled.
     #[must_use]
     pub const fn cancellable(&self) -> bool {

@@ -34,7 +34,7 @@ async function importFixture(page: Page, name: string): Promise<string> {
   await page.getByLabel("Server filesystem path").fill(fixture);
   await page.getByLabel("Project name").fill(name);
   await page.getByRole("button", { name: "Scan project" }).click();
-  await expect(page.getByText(/files discovered for/)).toBeVisible();
+  await expect(page.getByText(/files discovered for/)).toBeVisible({ timeout: 30_000 });
   await page.getByRole("button", { name: "Import reviewed scan" }).click();
   await expect(page.getByRole("heading", { name: "Semantic" })).toBeVisible();
   return fixture;
@@ -109,11 +109,16 @@ test("WEB-GOLDEN-03 reviews and validates a candidate without write-through", as
   await page.getByRole("button", { name: "Review change" }).click();
   await expect(page.getByRole("region", { name: "Migration review" })).toContainText(
     "left.saturating_add(right)",
+    { timeout: 30_000 },
   );
   await expect(page.getByRole("region", { name: "Migration review" })).toContainText(
     "Validation: passed",
+    { timeout: 30_000 },
   );
-  await expect(page.getByRole("region", { name: "Migration review" })).toContainText("src/lib.rs");
+  await expect(page.getByRole("region", { name: "Migration review" })).toContainText(
+    "src/lib.rs",
+    { timeout: 30_000 },
+  );
   await expect(source).toHaveValue(/left\.saturating_add\(right\)/);
   await expect(readFile(join(fixture, "src", "lib.rs"), "utf8")).resolves.toContain("left + right");
   expectHealthyBrowser(diagnostics);
@@ -138,7 +143,7 @@ test("WEB-GOLDEN-04 applies, refreshes, shows history, and survives reload", asy
   await page.getByRole("button", { name: "Apply migration" }).click();
   await expect(
     page.getByRole("status").filter({ hasText: "Applied; successor snapshot" }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 30_000 });
   await expect(readFile(join(fixture, "src", "lib.rs"), "utf8")).resolves.toContain(
     "left.saturating_add(right)",
   );

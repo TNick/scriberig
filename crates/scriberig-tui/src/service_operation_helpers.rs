@@ -177,8 +177,23 @@ pub(super) fn cancel_operation<B: ApplicationBackend>(
 pub(super) fn application_events<B: ApplicationBackend>(
     adapter: &ApplicationOperationAdapter<B>,
 ) -> Vec<scriberig_app::ApplicationEvent> {
-    let _ = adapter;
-    adapter.service.operations().events()
+    let cursor = adapter
+        .event_cursor
+        .lock()
+        .map(|value| *value)
+        .unwrap_or_default();
+    let events = adapter.service.operations().events_with_sequences();
+    let pending = events
+        .iter()
+        .filter(|(sequence, _)| cursor.is_none_or(|cursor| *sequence > cursor))
+        .map(|(_, event)| event.clone())
+        .collect::<Vec<_>>();
+    if let Some(sequence) = events.iter().map(|(sequence, _)| *sequence).max()
+        && let Ok(mut cursor) = adapter.event_cursor.lock()
+    {
+        *cursor = Some(sequence);
+    }
+    pending
 }
 
 /// Reads one session through the shared application boundary.

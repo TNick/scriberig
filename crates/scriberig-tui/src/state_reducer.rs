@@ -14,6 +14,8 @@ use state_input_reducer::reduce_input;
 #[path = "state_reducer_commit.rs"]
 mod state_reducer_commit;
 use state_reducer_commit::commit_succeeded;
+#[path = "state_reducer_failure.rs"]
+mod state_reducer_failure;
 /// Applies one action deterministically and returns work for the runtime.
 /// - `state`: Argument named `state`.
 /// - `action`: Argument named `action`.
@@ -29,6 +31,7 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             | Action::ComposerOpened { .. }
             | Action::AgentOutputObserved(_)
             | Action::CapabilitiesLoaded(_)
+            | Action::OperationsLoaded(_)
             | Action::OperationObserved(_)
             | Action::OperationStatusRequested(_)
             | Action::OperationCancelRequested(_)
@@ -172,6 +175,9 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
         }
         Action::ViewSelected(view) => {
             state.primary_view = view;
+            if view == crate::selection::PrimaryView::Operations {
+                return vec![Effect::ListOperations];
+            }
             if view == crate::selection::PrimaryView::Session {
                 if let Some(selection) = state.selection {
                     return reduce(
@@ -228,54 +234,7 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             request_id,
             category,
             message,
-        } => {
-            if category == "transport_unavailable" {
-                state.connection = ConnectionState::Disconnected;
-                state.stale = true;
-            }
-            state.operation_error = Some((category.clone(), message.clone()));
-            if matches!(state.history, LoadState::Loading { request_id: current } if current == request_id)
-            {
-                state.history = LoadState::Failed {
-                    category: category.clone(),
-                    message: message.clone(),
-                    stale: false,
-                };
-            }
-            if matches!(state.find, LoadState::Loading { request_id: current } if current == request_id)
-            {
-                state.find = LoadState::Failed {
-                    category: category.clone(),
-                    message: message.clone(),
-                    stale: false,
-                };
-            }
-            if matches!(state.diff, LoadState::Loading { request_id: current } if current == request_id)
-            {
-                state.diff = LoadState::Failed {
-                    category: category.clone(),
-                    message: message.clone(),
-                    stale: false,
-                };
-            }
-            if matches!(state.projection, LoadState::Loading { request_id: current } if current == request_id)
-            {
-                state.projection = LoadState::Failed {
-                    category: category.clone(),
-                    message: message.clone(),
-                    stale: false,
-                };
-            }
-            if matches!(state.review, LoadState::Loading { request_id: current } if current == request_id)
-            {
-                state.review = LoadState::Failed {
-                    category,
-                    message,
-                    stale: state.review_proposal.is_some(),
-                };
-            }
-            vec![Effect::None]
-        }
+        } => state_reducer_failure::operation_failed(state, request_id, &category, &message),
         Action::ConfirmReview => {
             if let Some(Overlay::Confirm(confirm)) = state.overlay.take() {
                 return reduce(state, Action::CommitConfirmed(confirm.commit));

@@ -29,13 +29,15 @@ fn tui_cancellation_persists_abandoned_branch_without_project_or_source_mutation
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"start-agent\r");
     assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Session:"), "{}", tui.diagnostic());
     let session = visible_session(&tui.screen());
     tui.send(b"Onboard the current project.\r");
+    wait_for_provider_gate(&tui);
 
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"operations");
-    assert!(tui.read_until("View operations"), "{}", tui.diagnostic());
+    assert!(tui.read_until("> View operations"), "{}", tui.diagnostic());
     tui.send(b"\r");
     assert!(
         tui.read_until_for("Running", Duration::from_secs(10)),
@@ -113,6 +115,27 @@ fn tui_cancellation_persists_abandoned_branch_without_project_or_source_mutation
 
     let fixture = tui.quit_retain_fixture();
     fs::remove_dir_all(fixture).expect("remove cancellation fixture");
+}
+
+/// Waits until the deterministic provider is blocked before opening Operations.
+///
+/// # Parameters
+/// - `tui`: Active native TUI process owning the provider gate.
+///
+/// # Panics
+/// Panics when the provider never reaches its wait marker or already received release.
+fn wait_for_provider_gate(tui: &TuiPty) {
+    let waiting = tui.fixture_path().join("agent-provider.waiting");
+    let release = tui.fixture_path().join("agent-provider.release");
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while !waiting.is_file() {
+        assert!(
+            Instant::now() < deadline,
+            "provider did not reach its cancellation barrier"
+        );
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert!(!release.exists(), "provider release marker already exists");
 }
 
 /// Reads the durable session identity displayed by the agent composer.

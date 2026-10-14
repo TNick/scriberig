@@ -202,6 +202,7 @@ fn submit_discovery(tui: &mut TuiPty, session: EntityId, database: &std::path::P
     assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
     tui.send(b"Add support for ingesting PHP source files.\r");
     wait_for_discovery(database, session);
+    assert_provider_gate_waiting(tui);
 }
 
 /// Submits PHP work and waits until its implementation child enters the delayed phase.
@@ -218,6 +219,20 @@ fn submit_implementation(tui: &mut TuiPty, session: EntityId, database: &std::pa
     assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
     tui.send(b"Add support for ingesting PHP source files.\r");
     wait_for_branch(database, session, "implement PHP ingestion");
+    assert_provider_gate_waiting(tui);
+}
+
+/// Verifies the deterministic provider reached the explicit cancellation barrier.
+///
+/// # Parameters
+/// - `tui`: Active native TUI process owning the test gate path.
+fn assert_provider_gate_waiting(tui: &TuiPty) {
+    let release = tui.fixture_path().join("agent-provider.release");
+    assert!(
+        tui.fixture_path().join("agent-provider.waiting").is_file(),
+        "provider did not reach its cancellation barrier"
+    );
+    assert!(!release.exists(), "provider release marker already exists");
 }
 
 /// Cancels the active agent from the shared operations view.
@@ -228,7 +243,7 @@ fn cancel_active_agent(tui: &mut TuiPty) {
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"operations");
-    assert!(tui.read_until("View operations"), "{}", tui.diagnostic());
+    assert!(tui.read_until("> View operations"), "{}", tui.diagnostic());
     tui.send(b"\r");
     assert!(
         tui.read_until_for("Running", Duration::from_secs(10)),
@@ -346,9 +361,23 @@ fn wait_for_cancellation(
         }) {
             return saved;
         }
+        let branches = saved
+            .branches
+            .iter()
+            .map(|branch| {
+                (
+                    branch.title.as_str(),
+                    branch.status,
+                    branch
+                        .result
+                        .as_ref()
+                        .and_then(|result| result.result_kind.as_deref()),
+                )
+            })
+            .collect::<Vec<_>>();
         assert!(
             Instant::now() < deadline,
-            "cancelled result was not persisted"
+            "cancelled result was not persisted: {branches:?}"
         );
         thread::sleep(Duration::from_millis(50));
     }

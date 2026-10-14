@@ -92,6 +92,8 @@ pub enum Effect {
         /// Operation identity to cancel.
         operation: scriberig_core::OperationId,
     },
+    /// Refresh the tracked application operation records.
+    ListOperations,
     /// Read a public session tree.
     ReadSession {
         /// Request generation.
