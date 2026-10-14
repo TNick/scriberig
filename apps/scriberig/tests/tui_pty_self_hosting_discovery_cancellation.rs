@@ -241,6 +241,7 @@ fn cancel_active_agent(tui: &mut TuiPty) {
         "{}",
         tui.diagnostic()
     );
+    tui.release_agent_provider();
 }
 
 /// Waits for the running discovery branch before requesting cancellation.

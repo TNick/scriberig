@@ -70,7 +70,7 @@ impl ProviderAdapter for PhpSelfHostingProvider {
             if self.cancellation == Some(CancellationPhase::Onboarding)
                 && tool_messages(request).is_empty()
             {
-                std::thread::sleep(std::time::Duration::from_secs(8));
+                await_test_release()?;
             }
             return BootstrapProvider.complete(request);
         }
@@ -82,7 +82,7 @@ impl ProviderAdapter for PhpSelfHostingProvider {
             && prompt.contains("PHP_IMPLEMENTATION_TASK")
             && messages.is_empty();
         if phase_delay || implementation_delay {
-            std::thread::sleep(std::time::Duration::from_secs(8));
+            await_test_release()?;
         }
         let scope = project_scope(request)?;
         if !prompt.to_lowercase().contains("php") {
@@ -99,6 +99,33 @@ impl ProviderAdapter for PhpSelfHostingProvider {
             return branches::implementation_branch(request, &scope, self.validation);
         }
         branches::root_branch(request, &scope, self.validation != ValidationMode::Normal)
+    }
+}
+
+/// Holds a cancellation scenario response until the PTY test releases its synchronization gate.
+///
+/// # Returns
+/// Unit after the test writes its release marker, or immediately outside gated PTY tests.
+///
+/// # Errors
+/// Returns a provider configuration error when the configured release marker is invalid.
+fn await_test_release() -> Result<(), ProviderError> {
+    let Ok(path) = std::env::var("SCRIBE_AGENT_TEST_PROVIDER_GATE") else {
+        return Ok(());
+    };
+    let path = std::path::PathBuf::from(path);
+    loop {
+        match std::fs::metadata(&path) {
+            Ok(_) => return Ok(()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+            Err(error) => {
+                return Err(ProviderError::Configuration(format!(
+                    "cannot inspect test provider release marker: {error}"
+                )));
+            }
+        }
     }
 }
 

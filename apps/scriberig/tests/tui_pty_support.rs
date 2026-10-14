@@ -242,6 +242,22 @@ impl TuiPty {
             command.env("SCRIBE_AGENT_PROVIDER", "deterministic");
             command.env("SCRIBE_AGENT_SCENARIO", scenario.unwrap_or("bootstrap"));
         }
+        if matches!(
+            scenario,
+            Some(
+                "self_hosting_php_cancellation"
+                    | "self_hosting_php_discovery_cancellation"
+                    | "self_hosting_php_implementation_cancellation"
+            )
+        ) {
+            command.env(
+                "SCRIBE_AGENT_TEST_PROVIDER_GATE",
+                fixture
+                    .join("agent-provider.release")
+                    .to_str()
+                    .expect("provider release marker path"),
+            );
+        }
         command.args(["tui", "--db", database.to_str().expect("database path")]);
         if let Some(project_path) = project_path {
             command.args(["--project", project_path.to_str().expect("project path")]);

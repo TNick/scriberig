@@ -3,6 +3,19 @@
 use super::*;
 
 impl TuiPty {
+    /// Releases a deterministic cancellation scenario after the UI confirms cancellation.
+    ///
+    /// # Parameters
+    /// - `self`: Active TUI process and owning fixture directory.
+    ///
+    /// # Panics
+    /// Panics when the provider release marker cannot be written.
+    #[allow(dead_code)]
+    pub fn release_agent_provider(&self) {
+        fs::write(self.fixture.join("agent-provider.release"), b"release")
+            .expect("release deterministic provider gate");
+    }
+
     /// Requests normal shutdown and bounds cleanup if the process does not exit.
     ///
     /// # Parameters

@@ -48,6 +48,7 @@ fn tui_cancellation_persists_abandoned_branch_without_project_or_source_mutation
         "{}",
         tui.diagnostic()
     );
+    tui.release_agent_provider();
 
     assert!(
         !checkout
