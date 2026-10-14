@@ -98,31 +98,7 @@ pub(super) fn root_branch(
         return Err(malformed("architecture BranchResult missing"));
     }
     if child_results.len() == 1 {
-        let architecture = child_results[0];
-        let summary = child_summary(architecture)?;
-        let references = parse_handles(architecture)?
-            .into_iter()
-            .filter(|handle| {
-                handle.starts_with("entity:")
-                    || handle.starts_with("path:")
-                    || handle.starts_with("source_digest:")
-            })
-            .collect::<Vec<_>>();
-        return Ok(delegate(
-            "implement PHP ingestion as one exact-base project candidate",
-            &format!(
-                "PHP_IMPLEMENTATION_TASK: Re-inspect exact Cargo, scanner, importer, and adapter targets at this project snapshot. Compact architecture BranchResult: {summary}; stable refs: {references:?}. Construct one candidate from the checked-in PHP source fixture, validate it, inspect its paths, and return CandidateId plus validation evidence."
-            ),
-            &[
-                "inspect.entity",
-                "semantic_find",
-                "semantic_render",
-                "project_propose",
-                "project_candidate",
-                "project_validate_candidate",
-            ],
-            "compact validated candidate result with durable refs",
-        ));
+        return implementation_child(child_results[0]);
     }
     if validation_failure
         && child_results
@@ -151,6 +127,45 @@ pub(super) fn root_branch(
     Ok(tool_call(
         "project_candidate",
         json!({"candidate":candidate}),
+    ))
+}
+
+/// Delegates exact-base PHP implementation with candidate validation and dependency acquisition.
+///
+/// # Parameters
+/// - `architecture`: Completed discovery child result and stable semantic references.
+/// - `super`: Parent scenario module.
+///
+/// # Returns
+/// A bounded implementation child request.
+///
+/// # Errors
+/// Returns malformed-response when the architecture result omits its compact summary.
+fn implementation_child(architecture: &str) -> Result<ModelResponse, ProviderError> {
+    let summary = child_summary(architecture)?;
+    let references = parse_handles(architecture)?
+        .into_iter()
+        .filter(|handle| {
+            handle.starts_with("entity:")
+                || handle.starts_with("path:")
+                || handle.starts_with("source_digest:")
+        })
+        .collect::<Vec<_>>();
+    Ok(delegate(
+        "implement PHP ingestion as one exact-base project candidate",
+        &format!(
+            "PHP_IMPLEMENTATION_TASK: Re-inspect exact Cargo, scanner, importer, and adapter targets at this project snapshot. Compact architecture BranchResult: {summary}; stable refs: {references:?}. Construct one candidate from the checked-in PHP source fixture, validate it, inspect its paths, and return CandidateId plus validation evidence."
+        ),
+        &[
+            "inspect.entity",
+            "semantic_find",
+            "semantic_render",
+            "project_propose",
+            "project_candidate",
+            "project_resolve_dependencies",
+            "project_validate_candidate",
+        ],
+        "compact validated candidate result with durable refs",
     ))
 }
 
@@ -251,6 +266,15 @@ pub(super) fn implementation_branch(
                 "PHP_IMPLEMENTATION_RESULT: candidate {candidate} validation failed at exact base {}. No Apply was requested.",
                 scope.snapshot
             )));
+        }
+        if !candidate_tools
+            .iter()
+            .any(|message| message.contains("dependency_resolution:passed"))
+        {
+            return Ok(tool_call(
+                "project_resolve_dependencies",
+                json!({"candidate":candidate}),
+            ));
         }
         let completed_profiles = PHP_CANDIDATE_PROFILES
             .iter()

@@ -3,6 +3,9 @@
 use scriberig_core::{ProjectId, SnapshotId};
 use scriberig_session::{Branch, BranchResult, BranchStatus, Session};
 
+#[path = "branch_assertions/validation.rs"]
+mod validation;
+
 /// Verifies durable child results expose bounded architecture and candidate evidence.
 ///
 /// # Parameters
@@ -96,6 +99,7 @@ fn assert_no_shortcut_tools(continuation: &Branch, children: &[&Branch]) {
         "delegate",
         "project_propose",
         "project_candidate",
+        "project_resolve_dependencies",
         "project_validate_candidate",
     ];
     for branch in std::iter::once(continuation).chain(children.iter().copied()) {
@@ -192,9 +196,11 @@ fn assert_implementation_result(children: &[&Branch], project: ProjectId, snapsh
             "project_propose",
             "project_validate_candidate",
             "project_candidate",
+            "project_resolve_dependencies",
         ],
     );
-    assert_validation_profiles(branch);
+    validation::assert_dependency_resolution_precedes_validation(branch);
+    validation::assert_validation_profiles(branch);
     assert_tool_input_scope(branch, "project_propose", project, snapshot);
     assert_scoped_reads(branch, project, snapshot);
     assert_scope_handles(result, project, snapshot);
@@ -232,67 +238,6 @@ fn assert_implementation_result(children: &[&Branch], project: ProjectId, snapsh
                 .any(|handle| handle == &format!("path:{path}")),
             "implementation branch omitted re-inspected source path {path}"
         );
-    }
-}
-
-/// Verifies the implementation child requested every registered profile in policy order.
-///
-/// # Parameters
-/// - `branch`: Durable implementation branch.
-/// - `super`: Parent PTY support module.
-///
-/// # Panics
-/// Panics when a profile call or its durable successful result is missing.
-fn assert_validation_profiles(branch: &Branch) {
-    let expected = [
-        "php-domain-focused",
-        "project-import-focused",
-        "rust-workspace",
-        "project-ingestion-e2e",
-    ];
-    let invocations = branch
-        .tool_invocations
-        .iter()
-        .filter(|invocation| invocation.name == "project_validate_candidate")
-        .collect::<Vec<_>>();
-    assert_eq!(
-        invocations.len(),
-        expected.len(),
-        "validation profile calls: {:?}; validation results: {:?}",
-        invocations
-            .iter()
-            .map(
-                |invocation| serde_json::from_slice::<serde_json::Value>(&invocation.input)
-                    .ok()
-                    .and_then(|input| input["profile"].as_str().map(str::to_owned))
-            )
-            .collect::<Vec<_>>(),
-        branch
-            .tool_results
-            .iter()
-            .map(|result| (
-                result.failed,
-                String::from_utf8_lossy(&result.output).into_owned()
-            ))
-            .collect::<Vec<_>>()
-    );
-    for (invocation, expected_profile) in invocations.iter().zip(expected) {
-        let input: serde_json::Value =
-            serde_json::from_slice(&invocation.input).expect("validation profile input");
-        assert_eq!(input["profile"], expected_profile);
-        let result = branch
-            .tool_results
-            .iter()
-            .find(|result| result.invocation == invocation.id)
-            .expect("durable validation result");
-        assert!(!result.failed, "profile {expected_profile} failed");
-        let output: serde_json::Value =
-            serde_json::from_slice(&result.output).expect("validation result JSON");
-        assert!(output["handles"].as_array().is_some_and(|handles| {
-            handles
-                .iter()
-                .any(|handle| handle == &format!("validation_profile:{expected_profile}"))
-        }));
     }
 }
 
