@@ -146,7 +146,13 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
         "{}",
         tui.diagnostic()
     );
-    tui.send(b"Discover Scriberig architecture semantically.\r");
+    tui.send(b"Discover Scriberig architecture semantically.");
+    assert!(
+        tui.read_until("Discover Scriberig architecture semantically."),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send(b"\r");
     let discovered = tui.read_until_for(
         "I found the repository guidance",
         std::time::Duration::from_secs(120),
@@ -155,7 +161,7 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
         .expect("open discovery diagnostic session store")
         .load(session)
         .expect("read discovery diagnostic session");
-    assert!(discovered, "saved session: {saved:?}");
+    assert!(discovered, "{}; saved session: {saved:?}", tui.diagnostic());
 
     let fixture = tui.fixture_path().to_path_buf();
     let database = fixture.join("scriberig.sqlite");
