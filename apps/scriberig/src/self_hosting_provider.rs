@@ -11,12 +11,31 @@ use crate::deterministic_provider::{BootstrapProvider, parse_handles};
 /// Deterministic model scenario that proposes PHP support through ordinary tools.
 #[derive(Clone, Copy, Debug, Default)]
 pub(super) struct PhpSelfHostingProvider {
-    /// Whether this deterministic scenario deliberately proposes invalid Rust.
-    pub validation_failure: bool,
-    /// Whether an invalid first candidate must be repaired through a second proposal.
-    pub validation_repair: bool,
-    /// Whether to hold the initial onboarding provider response for cancellation tests.
-    pub cancellation_delay: bool,
+    /// Validation behavior selected for the first candidate.
+    pub validation: ValidationMode,
+    /// Optional provider call held for phase cancellation coverage.
+    pub cancellation: Option<CancellationPhase>,
+}
+
+/// Selects whether the deterministic provider proposes a failed first candidate.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(super) enum ValidationMode {
+    /// Propose and validate one valid candidate.
+    #[default]
+    Normal,
+    /// Propose an invalid candidate and leave it reviewable after failure.
+    FailFirst,
+    /// Repair the invalid first candidate through a second normal proposal.
+    RepairFirst,
+}
+
+/// Identifies a delayed provider call used by real TUI cancellation tests.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum CancellationPhase {
+    /// Delay initial project onboarding.
+    Onboarding,
+    /// Delay architecture discovery before its first semantic read.
+    Discovery,
 }
 
 mod branches;
@@ -46,10 +65,19 @@ impl ProviderAdapter for PhpSelfHostingProvider {
     fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
         let prompt = user_prompt(request);
         if prompt.to_lowercase().contains("onboard") {
-            if self.cancellation_delay && tool_messages(request).is_empty() {
+            if self.cancellation == Some(CancellationPhase::Onboarding)
+                && tool_messages(request).is_empty()
+            {
                 std::thread::sleep(std::time::Duration::from_secs(8));
             }
             return BootstrapProvider.complete(request);
+        }
+        let messages = tool_messages(request);
+        let phase_delay = self.cancellation == Some(CancellationPhase::Discovery)
+            && prompt.contains("ARCHITECTURE_DISCOVERY_TASK")
+            && messages.is_empty();
+        if phase_delay {
+            std::thread::sleep(std::time::Duration::from_secs(8));
         }
         let scope = project_scope(request)?;
         if !prompt.to_lowercase().contains("php") {
@@ -63,14 +91,9 @@ impl ProviderAdapter for PhpSelfHostingProvider {
             return branches::architecture_branch(request, &scope);
         }
         if is_implementation {
-            return branches::implementation_branch(
-                request,
-                &scope,
-                self.validation_failure,
-                self.validation_repair,
-            );
+            return branches::implementation_branch(request, &scope, self.validation);
         }
-        branches::root_branch(request, &scope, self.validation_failure)
+        branches::root_branch(request, &scope, self.validation != ValidationMode::Normal)
     }
 }
 

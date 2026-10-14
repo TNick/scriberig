@@ -69,6 +69,16 @@ impl TuiPty {
         Self::start_self_hosting_scenario("self_hosting_php_cancellation")
     }
 
+    /// Starts a self-hosting scenario delayed during architecture discovery.
+    ///
+    /// # Returns
+    /// A no-project TUI process prepared to cancel a read-only discovery child.
+    #[must_use]
+    #[allow(dead_code)]
+    pub fn start_self_hosting_discovery_cancellation() -> Self {
+        Self::start_self_hosting_scenario("self_hosting_php_discovery_cancellation")
+    }
+
     /// Starts a copied-checkout TUI with one scripted self-hosting provider scenario.
     ///
     /// # Parameters

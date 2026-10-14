@@ -81,6 +81,16 @@ def main() -> None:
             "-p",
             "scriberig",
             "--test",
+            "tui_pty_self_hosting_discovery_cancellation",
+        ]
+    )
+    run(
+        [
+            "cargo",
+            "test",
+            "-p",
+            "scriberig",
+            "--test",
             "tui_pty_self_hosting_stale_base",
         ]
     )

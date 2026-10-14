@@ -3,6 +3,7 @@
 use scriberig_agent_runtime::provider::{CredentialSource, ProviderConfig, ProviderError};
 
 use crate::native_provider::NativeProvider;
+use crate::self_hosting_provider::{CancellationPhase, ValidationMode};
 
 /// Builds one configured provider adapter for the TUI runtime.
 ///
@@ -55,10 +56,15 @@ fn deterministic_provider() -> Result<Option<NativeProvider>, ProviderError> {
         "bootstrap_import_failure" => NativeProvider::BootstrapImportFailure(
             crate::bootstrap_failure_provider::BootstrapImportFailureProvider,
         ),
-        "self_hosting_php" => self_hosting(false, false, false),
-        "self_hosting_php_validation_failure" => self_hosting(true, false, false),
-        "self_hosting_php_validation_repair" => self_hosting(true, true, false),
-        "self_hosting_php_cancellation" => self_hosting(false, false, true),
+        "self_hosting_php" => self_hosting(ValidationMode::Normal, None),
+        "self_hosting_php_validation_failure" => self_hosting(ValidationMode::FailFirst, None),
+        "self_hosting_php_validation_repair" => self_hosting(ValidationMode::RepairFirst, None),
+        "self_hosting_php_cancellation" => {
+            self_hosting(ValidationMode::Normal, Some(CancellationPhase::Onboarding))
+        }
+        "self_hosting_php_discovery_cancellation" => {
+            self_hosting(ValidationMode::Normal, Some(CancellationPhase::Discovery))
+        }
         unknown => {
             return Err(ProviderError::Configuration(format!(
                 "unsupported SCRIBE_AGENT_SCENARIO: {unknown}"
@@ -68,23 +74,20 @@ fn deterministic_provider() -> Result<Option<NativeProvider>, ProviderError> {
     Ok(Some(provider))
 }
 
-/// Builds a PHP self-hosting scenario with explicit validation and delay behavior.
+/// Builds a PHP self-hosting scenario with explicit validation and cancellation behavior.
 ///
 /// # Parameters
-/// - `validation_failure`: Whether the first proposed candidate is invalid.
-/// - `validation_repair`: Whether the model repairs a failed candidate.
-/// - `cancellation_delay`: Whether onboarding is delayed for cancellation tests.
+/// - `validation`: First-candidate validation behavior.
+/// - `cancellation`: Optional delayed operation phase.
 ///
 /// # Returns
 /// Provider-neutral deterministic PHP scenario.
 fn self_hosting(
-    validation_failure: bool,
-    validation_repair: bool,
-    cancellation_delay: bool,
+    validation: ValidationMode,
+    cancellation: Option<CancellationPhase>,
 ) -> NativeProvider {
     NativeProvider::SelfHostingPhp(crate::self_hosting_provider::PhpSelfHostingProvider {
-        validation_failure,
-        validation_repair,
-        cancellation_delay,
+        validation,
+        cancellation,
     })
 }

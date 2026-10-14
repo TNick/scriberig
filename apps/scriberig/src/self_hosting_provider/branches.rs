@@ -29,8 +29,8 @@ const PHP_CANDIDATE_PROFILES: &[&str] = &[
 ];
 
 use super::{
-    SemanticScope, candidate, delegate, final_response, handle_with_prefix, malformed,
-    parse_handles, semantic_entity, tool_call, tool_messages,
+    SemanticScope, ValidationMode, candidate, delegate, final_response, handle_with_prefix,
+    malformed, parse_handles, semantic_entity, tool_call, tool_messages,
 };
 use scriberig_agent_runtime::provider::{ModelRequest, ModelResponse, ProviderError};
 use serde_json::json;
@@ -213,8 +213,7 @@ pub(super) fn architecture_branch(
 pub(super) fn implementation_branch(
     request: &ModelRequest,
     scope: &SemanticScope,
-    validation_failure: bool,
-    validation_repair: bool,
+    validation: ValidationMode,
 ) -> Result<ModelResponse, ProviderError> {
     let tools = tool_messages(request);
     if let Some(response) = semantic_step(request, scope, IMPLEMENTATION_QUERIES)? {
@@ -245,7 +244,7 @@ pub(super) fn implementation_branch(
                     json!({"candidate":candidate}),
                 ));
             }
-            if validation_repair && proposals.len() == 1 {
+            if validation == ValidationMode::RepairFirst && proposals.len() == 1 {
                 return Ok(candidate::project_proposal(scope, false));
             }
             return Ok(final_response(&format!(
@@ -281,7 +280,10 @@ pub(super) fn implementation_branch(
             scope.snapshot
         )));
     }
-    Ok(candidate::project_proposal(scope, validation_failure))
+    Ok(candidate::project_proposal(
+        scope,
+        validation != ValidationMode::Normal,
+    ))
 }
 
 /// Requests each semantic source target and renders its exact project projection.
