@@ -3,10 +3,11 @@
 use std::sync::Arc;
 
 use scriberig_project::{CandidateValidation, ProjectService, ScanOptions};
-use scriberig_store::SnapshotStore;
 use serde_json::{Value, json};
 #[path = "project_agent.rs"]
 mod project_agent;
+#[path = "project_history.rs"]
+mod project_history;
 #[path = "project_routes_support.rs"]
 mod project_routes_support;
 #[path = "project_workflow.rs"]
@@ -297,26 +298,7 @@ pub(super) fn history<S: ApplicationService>(
     state: &HttpState<S>,
     body: &str,
 ) -> Result<Value, (u16, Value)> {
-    let store = state.project_store.as_ref().ok_or_else(unavailable)?;
-    let input: ProjectInput =
-        serde_json::from_str(body).map_err(|error| invalid_request(&error))?;
-    let project = input.project.parse().map_err(|_| invalid_project())?;
-    let workspace = ProjectService::new(Arc::clone(store))
-        .workspace(project)
-        .map_err(|error| project_error(&error))?;
-    let mut snapshots = vec![workspace.snapshot.to_string()];
-    let mut current = workspace.snapshot;
-    for _ in 0..16 {
-        let parents = store
-            .parents(current)
-            .map_err(|error| storage_error(format!("{error:?}")))?;
-        let Some(parent) = parents.first().copied() else {
-            break;
-        };
-        snapshots.push(parent.to_string());
-        current = parent;
-    }
-    Ok(json!({"project": project.to_string(), "snapshots": snapshots}))
+    project_history::history(state, body)
 }
 
 /// Request body for a project scan.
@@ -338,13 +320,6 @@ struct RelinkInput {
     project: String,
     /// New filesystem path.
     path: String,
-}
-
-/// Request body for project-scoped history.
-#[derive(serde::Deserialize)]
-struct ProjectInput {
-    /// Stable project identity.
-    project: String,
 }
 
 /// Request body for a project import.

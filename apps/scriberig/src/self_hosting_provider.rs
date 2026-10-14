@@ -36,6 +36,8 @@ pub(super) enum CancellationPhase {
     Onboarding,
     /// Delay architecture discovery before its first semantic read.
     Discovery,
+    /// Delay implementation before its first semantic reinspection.
+    Implementation,
 }
 
 mod branches;
@@ -76,7 +78,10 @@ impl ProviderAdapter for PhpSelfHostingProvider {
         let phase_delay = self.cancellation == Some(CancellationPhase::Discovery)
             && prompt.contains("ARCHITECTURE_DISCOVERY_TASK")
             && messages.is_empty();
-        if phase_delay {
+        let implementation_delay = self.cancellation == Some(CancellationPhase::Implementation)
+            && prompt.contains("PHP_IMPLEMENTATION_TASK")
+            && messages.is_empty();
+        if phase_delay || implementation_delay {
             std::thread::sleep(std::time::Duration::from_secs(8));
         }
         let scope = project_scope(request)?;

@@ -18,7 +18,7 @@ use tui_pty_support::{TuiPty, test_lock};
 #[test]
 fn tui_cancels_php_discovery_without_project_or_source_mutation() {
     let _lock = test_lock();
-    let mut evidence = onboard_project();
+    let mut evidence = onboard_project(false);
     submit_discovery(&mut evidence.tui, evidence.session, &evidence.database);
     cancel_active_agent(&mut evidence.tui);
     let saved = wait_for_cancellation(&evidence.database, evidence.session);
@@ -71,6 +71,31 @@ fn tui_cancels_php_discovery_without_project_or_source_mutation() {
     fs::remove_dir_all(fixture).expect("remove cancellation fixture");
 }
 
+/// Cancels implementation after bounded B1 discovery and before candidate creation.
+#[test]
+fn tui_cancels_php_implementation_without_project_or_source_mutation() {
+    let _lock = test_lock();
+    let mut evidence = onboard_project(true);
+    submit_implementation(&mut evidence.tui, evidence.session, &evidence.database);
+    cancel_active_agent(&mut evidence.tui);
+    let saved = wait_for_cancellation(&evidence.database, evidence.session);
+    let implementation = saved
+        .branches
+        .iter()
+        .find(|branch| {
+            branch
+                .purpose
+                .as_deref()
+                .is_some_and(|purpose| purpose.contains("implement PHP ingestion"))
+        })
+        .expect("cancelled implementation branch");
+    assert_eq!(implementation.status, BranchStatus::Abandoned);
+    assert_eq!(implementation.tool_invocations.len(), 0);
+    assert_project_and_checkout_unchanged(&evidence);
+    let fixture = evidence.tui.quit_retain_fixture();
+    fs::remove_dir_all(fixture).expect("remove cancellation fixture");
+}
+
 /// Captures the onboarding identities and unchanged checkout bytes for cancellation assertions.
 ///
 /// Public members: None.
@@ -106,12 +131,16 @@ struct OnboardingEvidence {
 /// Starts the real TUI and onboards its copied checkout through agent tools.
 ///
 /// # Parameters
-/// - `phase`: Provider delay scenario to configure.
+/// - `implementation`: Select the delayed nested branch phase.
 ///
 /// # Returns
 /// Durable onboarding state and exact source bytes for post-cancellation checks.
-fn onboard_project() -> OnboardingEvidence {
-    let mut tui = TuiPty::start_self_hosting_discovery_cancellation();
+fn onboard_project(implementation: bool) -> OnboardingEvidence {
+    let mut tui = if implementation {
+        TuiPty::start_self_hosting_implementation_cancellation()
+    } else {
+        TuiPty::start_self_hosting_discovery_cancellation()
+    };
     assert!(
         tui.read_until("project: unselected"),
         "{}",
@@ -175,6 +204,22 @@ fn submit_discovery(tui: &mut TuiPty, session: EntityId, database: &std::path::P
     wait_for_discovery(database, session);
 }
 
+/// Submits PHP work and waits until its implementation child enters the delayed phase.
+///
+/// # Parameters
+/// - `tui`: Onboarded native TUI process.
+/// - `session`: Durable agent session identity.
+/// - `database`: Durable product database.
+fn submit_implementation(tui: &mut TuiPty, session: EntityId, database: &std::path::Path) {
+    tui.send(b"\x1b[B");
+    tui.send(b":");
+    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
+    tui.send(b"continue-agent\r");
+    assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
+    tui.send(b"Add support for ingesting PHP source files.\r");
+    wait_for_branch(database, session, "implement PHP ingestion");
+}
+
 /// Cancels the active agent from the shared operations view.
 ///
 /// # Parameters
@@ -204,6 +249,16 @@ fn cancel_active_agent(tui: &mut TuiPty) {
 /// - `database`: Durable product database.
 /// - `session`: Agent session identity.
 fn wait_for_discovery(database: &std::path::Path, session: EntityId) {
+    wait_for_branch(database, session, "determine minimal extension points");
+}
+
+/// Waits for one delayed child branch to start before requesting cancellation.
+///
+/// # Parameters
+/// - `database`: Durable product database.
+/// - `session`: Agent session identity.
+/// - `purpose`: Unique substring of the child purpose.
+fn wait_for_branch(database: &std::path::Path, session: EntityId, purpose: &str) {
     let store = SqliteSessionStore::open(database).expect("session store");
     let deadline = Instant::now() + Duration::from_secs(120);
     loop {
@@ -215,17 +270,52 @@ fn wait_for_discovery(database: &std::path::Path, session: EntityId) {
             branch
                 .purpose
                 .as_deref()
-                .is_some_and(|purpose| purpose.contains("determine minimal extension points"))
+                .is_some_and(|branch_purpose| branch_purpose.contains(purpose))
                 && branch.tool_invocations.is_empty()
         }) {
             return;
         }
         assert!(
             Instant::now() < deadline,
-            "architecture branch did not start"
+            "child branch {purpose:?} did not start"
         );
         thread::sleep(Duration::from_millis(50));
     }
+}
+
+/// Verifies cancellation leaves canonical project state and copied source bytes unchanged.
+///
+/// # Parameters
+/// - `evidence`: Onboarded project identities and exact source bytes.
+fn assert_project_and_checkout_unchanged(evidence: &OnboardingEvidence) {
+    assert_eq!(
+        ProjectService::new(std::sync::Arc::new(
+            SqliteStore::open(&evidence.database).expect("reopen project store"),
+        ))
+        .workspace(evidence.project)
+        .expect("project remains active")
+        .snapshot,
+        evidence.base
+    );
+    assert_eq!(
+        fs::read(evidence.checkout.join("Cargo.toml")).expect("manifest"),
+        evidence.manifest
+    );
+    assert_eq!(
+        fs::read(
+            evidence
+                .checkout
+                .join("crates/scriberig-project/src/scan.rs")
+        )
+        .expect("scanner"),
+        evidence.scanner
+    );
+    assert!(
+        !evidence
+            .checkout
+            .join("crates/domains/scriberig-domain-php")
+            .exists()
+    );
 }
 
 /// Waits for the session store to persist an agent cancellation result.

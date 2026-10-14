@@ -65,6 +65,10 @@ fn deterministic_provider() -> Result<Option<NativeProvider>, ProviderError> {
         "self_hosting_php_discovery_cancellation" => {
             self_hosting(ValidationMode::Normal, Some(CancellationPhase::Discovery))
         }
+        "self_hosting_php_implementation_cancellation" => self_hosting(
+            ValidationMode::Normal,
+            Some(CancellationPhase::Implementation),
+        ),
         unknown => {
             return Err(ProviderError::Configuration(format!(
                 "unsupported SCRIBE_AGENT_SCENARIO: {unknown}"
