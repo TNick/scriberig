@@ -28,6 +28,11 @@ fn candidate_tools_use_exact_shared_project_operations() {
         "[package]\nname = \"candidate_fixture\"\nversion = \"0.1.0\"\nedition = \"2024\"\n",
     )
     .expect("Cargo manifest");
+    fs::write(
+        root.join("Cargo.lock"),
+        "version = 4\n\n[[package]]\nname = \"candidate_fixture\"\nversion = \"0.1.0\"\n",
+    )
+    .expect("Cargo lockfile");
     fs::write(root.join("src/lib.rs"), "pub fn value() -> u8 { 1 }\n").expect("Rust source");
     let database = root.with_extension("sqlite");
     let store = Arc::new(SqliteStore::open(&database).expect("database"));
@@ -40,6 +45,7 @@ fn candidate_tools_use_exact_shared_project_operations() {
         "project_propose",
         "project_candidate",
         "project_validate_candidate",
+        "project_resolve_dependencies",
     ]
     .into_iter()
     .map(|name| CapabilityAction::Custom(name.to_owned()))
@@ -144,6 +150,7 @@ fn assert_candidate_tool_sequence<B: ApplicationBackend>(
             .iter()
             .any(|value| value.contains("update:notes.txt"))
     );
+    assert_dependency_resolution(tool, context, project_service, candidate);
     assert_candidate_validation(tool, context, project_service, candidate);
     assert_eq!(
         fs::read(root.join("notes.txt")).expect("live source"),
@@ -167,6 +174,55 @@ fn assert_candidate_tool_sequence<B: ApplicationBackend>(
             }),
         )
         .is_err()
+    );
+}
+
+/// Acquires locked dependencies and proves acquisition alone cannot authorize Apply.
+///
+/// # Parameters
+/// - `tool`: Shared project-aware local agent tool adapter.
+/// - `context`: Capability context granting the specific dependency operation.
+/// - `project_service`: Shared project candidate service.
+/// - `candidate`: Stable candidate identity.
+fn assert_dependency_resolution<B: ApplicationBackend>(
+    tool: &LocalAgentTool<'_, B>,
+    context: &ApplicationContext,
+    project_service: &scriberig_project::ProjectService,
+    candidate: &str,
+) {
+    let resolution = tool
+        .invoke_named(
+            context,
+            "project_resolve_dependencies",
+            &serde_json::json!({"candidate": candidate}),
+        )
+        .expect("resolve dependencies through bounded Cargo profile");
+    assert!(
+        resolution
+            .handles
+            .iter()
+            .any(|value| value == "dependency_resolution:passed")
+    );
+    assert!(
+        resolution
+            .handles
+            .iter()
+            .any(|value| { value == "validation_profile:cargo-dependency-resolution" })
+    );
+    let resolved = project_service
+        .candidate(candidate)
+        .expect("durable resolution result")
+        .expect("candidate persists");
+    assert_eq!(
+        resolved.validation_profile.as_deref(),
+        Some("cargo-dependency-resolution")
+    );
+    assert_eq!(
+        project_service
+            .apply_candidate(&resolved)
+            .expect_err("dependency acquisition is not code validation")
+            .code,
+        "validation_pending"
     );
 }
 
