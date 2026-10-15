@@ -29,6 +29,8 @@ use tui_pty_support::{TuiPty, test_lock};
 fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_self_hosting();
+    let checkout = tui.fixture_path().join("scriberig");
+    assertions::assert_tracked_serena_configuration(&checkout);
     assert!(
         tui.read_until("project: unselected"),
         "{}",
@@ -47,7 +49,6 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
         tui.diagnostic()
     );
     assert!(tui.read_until("project: scriberig"), "{}", tui.diagnostic());
-    let checkout = tui.fixture_path().join("scriberig");
     let scan_before =
         fs::read(checkout.join("crates/scriberig-project/src/scan.rs")).expect("baseline scanner");
     let root_manifest_before = fs::read(checkout.join("Cargo.toml")).expect("baseline manifest");

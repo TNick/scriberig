@@ -2,8 +2,8 @@
 
 use scriberig_core::{EncodingVersion, EntityId, ObjectType, RevisionId, RootName, SnapshotId};
 use scriberig_store::{
-    ProtectedRoots, Revision, RevisionStore, RootError, RootStore, SnapshotChange, SnapshotStore,
-    StoreObservability,
+    ProtectedRoots, Revision, RevisionStore, RootError, RootStore, SnapshotChange, SnapshotDiff,
+    SnapshotStore, StoreObservability,
 };
 use scriberig_store_memory::MemoryStore;
 use scriberig_store_sqlite::SqliteStore;
@@ -114,6 +114,24 @@ fn persistence_vertical_slice_is_backend_independent_and_durable() {
     assert_eq!(memory_scenario.s1, sqlite_scenario.s1);
     assert_eq!(memory_scenario.s2, sqlite_scenario.s2);
     assert_eq!(memory_scenario.s3, sqlite_scenario.s3);
+    let updated = EntityId::from_bytes([1; 16]);
+    let expected_diff = vec![SnapshotDiff::Changed {
+        entity: updated,
+        from: sqlite_scenario.a1,
+        to: sqlite_scenario.a2,
+    }];
+    assert_eq!(
+        sqlite
+            .diff_snapshot_revisions(sqlite_scenario.s1, sqlite_scenario.s2)
+            .expect("sqlite semantic diff"),
+        expected_diff
+    );
+    assert_eq!(
+        memory
+            .diff_snapshot_revisions(memory_scenario.s1, memory_scenario.s2)
+            .expect("memory semantic diff"),
+        expected_diff
+    );
     let root = RootName::new("main").expect("root");
     let stale =
         sqlite.compare_and_set_root(root.clone(), Some(sqlite_scenario.s1), sqlite_scenario.s3);

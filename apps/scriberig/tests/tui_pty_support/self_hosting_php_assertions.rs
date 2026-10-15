@@ -1,6 +1,7 @@
 //! Verifies durable PHP candidate application and semantic restart evidence.
 
 use std::fs;
+use std::path::Path;
 use std::sync::Arc;
 
 use super::TuiPty;
@@ -10,6 +11,26 @@ use scriberig_project::ProjectSourceEffectKind;
 use scriberig_store::SnapshotStore;
 use scriberig_store_sqlite::SqliteStore;
 use std::time::Duration;
+
+/// Verifies tracked Serena configuration is copied without local overrides.
+///
+/// # Parameters
+/// - `checkout`: Isolated copied checkout.
+/// - `super`: Parent test module visibility marker.
+///
+/// # Panics
+/// Panics when tracked Serena project configuration differs from the source.
+pub(super) fn assert_tracked_serena_configuration(checkout: &Path) {
+    let repository = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let source = repository.join(".serena/project.yml");
+    if source.is_file() {
+        assert_eq!(
+            fs::read(checkout.join(".serena/project.yml"))
+                .expect("tracked Serena configuration in copied checkout"),
+            fs::read(source).expect("source Serena configuration")
+        );
+    }
+}
 
 /// Opens native history and verifies the applied candidate transition.
 ///

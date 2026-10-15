@@ -155,6 +155,25 @@ impl<T: SnapshotStore + ?Sized> SnapshotStore for Arc<T> {
         (**self).diff_snapshots(from, to)
     }
 
+    /// Delegates semantic revision comparison to the shared backend.
+    ///
+    /// # Parameters
+    /// - `from`: Starting immutable snapshot.
+    /// - `to`: Target immutable snapshot.
+    ///
+    /// # Returns
+    /// Exact entity revision transitions in deterministic order.
+    ///
+    /// # Errors
+    /// Returns the backend snapshot error.
+    fn diff_snapshot_revisions(
+        &self,
+        from: scriberig_core::SnapshotId,
+        to: scriberig_core::SnapshotId,
+    ) -> Result<Vec<SnapshotDiff>, SnapshotError> {
+        (**self).diff_snapshot_revisions(from, to)
+    }
+
     /// Delegates snapshot parent lookup to the shared backend.
     ///
     /// # Parameters

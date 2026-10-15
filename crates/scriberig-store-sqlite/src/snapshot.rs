@@ -4,7 +4,9 @@ use crate::SqliteStore;
 use crate::snapshot_integrity::node_id;
 use rusqlite::{OptionalExtension, Transaction, params};
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
-use scriberig_store::{SnapshotChange, SnapshotChangeProvenance, SnapshotError, SnapshotStore};
+use scriberig_store::{
+    SnapshotChange, SnapshotChangeProvenance, SnapshotDiff, SnapshotError, SnapshotStore,
+};
 
 impl SnapshotStore for SqliteStore {
     /// # Parameters
@@ -105,6 +107,25 @@ impl SnapshotStore for SqliteStore {
         Ok(self.snapshot(from)?.diff_changes(&self.snapshot(to)?))
     }
 
+    /// Computes semantic revision transitions from one read of each snapshot.
+    ///
+    /// # Parameters
+    /// - `from`: Starting snapshot identity.
+    /// - `to`: Ending snapshot identity.
+    ///
+    /// # Returns
+    /// Deterministically ordered additions, removals, and revision changes.
+    ///
+    /// # Errors
+    /// Returns an error when either snapshot is unavailable or unreadable.
+    fn diff_snapshot_revisions(
+        &self,
+        from: SnapshotId,
+        to: SnapshotId,
+    ) -> Result<Vec<SnapshotDiff>, SnapshotError> {
+        Ok(self.snapshot(from)?.diff(&self.snapshot(to)?))
+    }
+
     /// Returns direct immutable predecessors retained for one snapshot.
     ///
     /// # Parameters
@@ -116,10 +137,22 @@ impl SnapshotStore for SqliteStore {
     /// # Errors
     /// Returns an error when the snapshot or parent records cannot be read.
     fn parents(&self, snapshot: SnapshotId) -> Result<Vec<SnapshotId>, SnapshotError> {
-        let _ = self.snapshot(snapshot)?;
+        if snapshot == scriberig_store::Snapshot::empty().id() {
+            return Ok(Vec::new());
+        }
         let connection = self
             .connection()
             .map_err(|error| SnapshotError::Backend(format!("{error:?}")))?;
+        let exists: bool = connection
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM snapshots WHERE id=?)",
+                params![snapshot.as_bytes().as_slice()],
+                |row| row.get(0),
+            )
+            .map_err(|error| SnapshotError::Backend(error.to_string()))?;
+        if !exists {
+            return Err(SnapshotError::UnknownSnapshot(snapshot));
+        }
         let mut statement = connection
             .prepare(
                 "SELECT parent_id FROM snapshot_parents

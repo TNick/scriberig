@@ -5,7 +5,7 @@ use crate::{
     HistoryRequest, MigrationDelta, MigrationDetail, OperationProvider, OperationSummary,
     RenderRequest,
 };
-use scriberig_store::{RootError, RootStore, SnapshotChange, SnapshotStore};
+use scriberig_store::{RootError, RootStore, SnapshotChange, SnapshotDiff, SnapshotStore};
 use sr_change::{EntityDelta, HistoryGraph, MigrationReference};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Mutex;

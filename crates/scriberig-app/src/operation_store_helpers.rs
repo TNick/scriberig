@@ -39,16 +39,22 @@ impl<S> StoreOperationProvider<S> {
             for parent in parents {
                 let changes = self
                     .store
-                    .diff_snapshots(parent, result)
+                    .diff_snapshot_revisions(parent, result)
                     .map_err(|_| ApplicationError::SnapshotUnavailable { snapshot: result })?;
                 let deltas = changes
                     .into_iter()
                     .filter_map(|change| {
-                        let (entity, after) = match change {
-                            SnapshotChange::Set(entity, revision) => (entity, Some(revision)),
-                            SnapshotChange::Remove(entity) => (entity, None),
+                        let (entity, before, after) = match change {
+                            SnapshotDiff::Added { entity, revision } => {
+                                (entity, None, Some(revision))
+                            }
+                            SnapshotDiff::Removed { entity, revision } => {
+                                (entity, Some(revision), None)
+                            }
+                            SnapshotDiff::Changed { entity, from, to } => {
+                                (entity, Some(from), Some(to))
+                            }
                         };
-                        let before = self.store.resolve(parent, entity).ok().flatten();
                         EntityDelta::new(entity, before, after).ok()
                     })
                     .collect();

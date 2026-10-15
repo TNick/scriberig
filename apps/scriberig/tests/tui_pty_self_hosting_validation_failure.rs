@@ -311,7 +311,13 @@ fn assert_project_unchanged(scenario: &FailureScenario, candidate: &str) {
 fn review_failed_candidate(tui: &mut TuiPty) {
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"review-candidate\r");
+    tui.send(b"review-candidate");
+    assert!(
+        tui.read_until("Search: review-candidate"),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send(b"\r");
     assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
     assert!(
         tui.screen().contains("validation: Failed"),

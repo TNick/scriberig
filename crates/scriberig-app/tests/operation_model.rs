@@ -136,10 +136,30 @@ fn storage_history_is_snapshot_bound() {
 fn storage_history_derives_snapshot_transition() {
     let store = MemoryStore::new();
     let base = store.empty_snapshot();
-    let entity = EntityId::from_bytes([1; 16]);
-    let revision = RevisionId::new([2; 32]);
+    let updated = EntityId::from_bytes([1; 16]);
+    let removed = EntityId::from_bytes([2; 16]);
+    let created = EntityId::from_bytes([3; 16]);
+    let old_revision = RevisionId::new([4; 32]);
+    let updated_revision = RevisionId::new([5; 32]);
+    let removed_revision = RevisionId::new([6; 32]);
+    let populated = store
+        .apply_changes(
+            base,
+            &[
+                SnapshotChange::Set(updated, old_revision),
+                SnapshotChange::Set(removed, removed_revision),
+            ],
+        )
+        .expect("populated base");
     let snapshot = store
-        .apply_changes(base, &[SnapshotChange::Set(entity, revision)])
+        .apply_changes(
+            populated,
+            &[
+                SnapshotChange::Set(updated, updated_revision),
+                SnapshotChange::Remove(removed),
+                SnapshotChange::Set(created, RevisionId::new([7; 32])),
+            ],
+        )
         .expect("snapshot");
 
     let result = StoreOperationProvider::new(store)
@@ -152,10 +172,25 @@ fn storage_history_derives_snapshot_transition() {
         .expect("derived history");
 
     let history = result.history.expect("history rows");
-    assert_eq!(history.len(), 1);
-    assert_eq!(history[0].base, base);
-    assert_eq!(history[0].result, snapshot);
-    assert_eq!(history[0].deltas[0].entity, entity);
+    let transition = history
+        .iter()
+        .find(|transition| transition.result == snapshot)
+        .expect("requested snapshot transition");
+    assert_eq!(transition.base, populated);
+    let deltas = transition
+        .deltas
+        .iter()
+        .map(|delta| (delta.entity, (delta.before, delta.after)))
+        .collect::<BTreeMap<_, _>>();
+    assert_eq!(
+        deltas.get(&updated),
+        Some(&(Some(old_revision), Some(updated_revision)))
+    );
+    assert_eq!(deltas.get(&removed), Some(&(Some(removed_revision), None)));
+    assert_eq!(
+        deltas.get(&created),
+        Some(&(None, Some(RevisionId::new([7; 32]))))
+    );
 }
 
 /// Verifies apply is candidate-only while commit performs root promotion.

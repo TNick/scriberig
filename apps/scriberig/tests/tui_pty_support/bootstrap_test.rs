@@ -139,7 +139,13 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
     tui.send(b"\x1b[B");
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"continue-agent\r");
+    tui.send(b"continue-agent");
+    assert!(
+        tui.read_until("Search: continue-agent"),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send(b"\r");
     assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
     assert!(
         tui.screen().contains(&session.to_string()),

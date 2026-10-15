@@ -137,6 +137,19 @@ pub(super) fn copy_directory(source: &PathBuf, destination: &PathBuf) {
 /// Panics when a required file cannot be read or copied.
 #[allow(dead_code)]
 pub(super) fn copy_repository_checkout(source: &Path, destination: &Path) {
+    copy_repository_entries(source, destination);
+    copy_tracked_serena_configuration(source, destination);
+}
+
+/// Copies ordinary repository entries recursively while excluding generated state.
+///
+/// # Parameters
+/// - `source`: Directory whose repository entries are copied.
+/// - `destination`: Isolated directory receiving the copied entries.
+///
+/// # Panics
+/// Panics when a directory cannot be read or a file cannot be copied.
+fn copy_repository_entries(source: &Path, destination: &Path) {
     fs::create_dir_all(destination).expect("create repository checkout");
     for entry in fs::read_dir(source).expect("read repository source") {
         let entry = entry.expect("read repository entry");
@@ -153,7 +166,7 @@ pub(super) fn copy_repository_checkout(source: &Path, destination: &Path) {
             .expect("inspect repository entry")
             .is_dir()
         {
-            copy_repository_checkout(&source_path, &destination_path);
+            copy_repository_entries(&source_path, &destination_path);
         } else if entry
             .file_type()
             .expect("inspect repository entry")
@@ -161,6 +174,43 @@ pub(super) fn copy_repository_checkout(source: &Path, destination: &Path) {
         {
             fs::copy(source_path, destination_path).expect("copy repository source file");
         }
+    }
+}
+
+/// Copies tracked Serena project configuration while excluding local Serena state.
+///
+/// # Parameters
+/// - `source`: Repository checkout with Git metadata.
+/// - `destination`: Isolated checkout receiving the tracked configuration.
+///
+/// # Panics
+/// Panics when Git cannot enumerate tracked Serena files or a tracked file cannot
+/// be copied.
+fn copy_tracked_serena_configuration(source: &Path, destination: &Path) {
+    let output = std::process::Command::new("git")
+        .arg("-C")
+        .arg(source)
+        .args(["ls-files", "--cached", "-z", "--", ".serena"])
+        .output()
+        .expect("enumerate tracked Serena configuration");
+    assert!(
+        output.status.success(),
+        "Git could not list tracked Serena files"
+    );
+    for relative in output
+        .stdout
+        .split(|byte| *byte == 0)
+        .filter(|path| !path.is_empty())
+    {
+        let relative = std::str::from_utf8(relative).expect("tracked path is UTF-8");
+        let source_file = source.join(relative);
+        if !source_file.is_file() {
+            continue;
+        }
+        let destination_file = destination.join(relative);
+        fs::create_dir_all(destination_file.parent().expect("Serena file parent"))
+            .expect("create Serena configuration directory");
+        fs::copy(source_file, destination_file).expect("copy tracked Serena configuration");
     }
 }
 

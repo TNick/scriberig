@@ -3,7 +3,7 @@
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
 use std::collections::BTreeSet;
 
-use crate::{SnapshotChange, SnapshotChangeProvenance, SnapshotError};
+use crate::{SnapshotChange, SnapshotChangeProvenance, SnapshotDiff, SnapshotError};
 
 /// Defines backend-neutral snapshot operations.
 pub trait SnapshotStore {
@@ -70,6 +70,60 @@ pub trait SnapshotStore {
         from: SnapshotId,
         to: SnapshotId,
     ) -> Result<Vec<SnapshotChange>, SnapshotError>;
+
+    /// Computes exact entity revision transitions between stored snapshots.
+    ///
+    /// Backends can override this method to compare each retained snapshot in a
+    /// single read. The default implementation uses deterministic snapshot
+    /// iteration and keeps before/after revisions available to history callers.
+    ///
+    /// # Parameters
+    /// - `from`: Starting snapshot identity.
+    /// - `to`: Ending snapshot identity.
+    ///
+    /// # Returns
+    /// Deterministically ordered additions, removals, and revision changes.
+    ///
+    /// # Errors
+    /// Returns an error when either snapshot is unavailable.
+    fn diff_snapshot_revisions(
+        &self,
+        from: SnapshotId,
+        to: SnapshotId,
+    ) -> Result<Vec<SnapshotDiff>, SnapshotError> {
+        let before = self
+            .iter(from)?
+            .into_iter()
+            .collect::<std::collections::BTreeMap<_, _>>();
+        let after = self
+            .iter(to)?
+            .into_iter()
+            .collect::<std::collections::BTreeMap<_, _>>();
+        let entities = before
+            .keys()
+            .chain(after.keys())
+            .copied()
+            .collect::<BTreeSet<_>>();
+        Ok(entities
+            .into_iter()
+            .filter_map(|entity| match (before.get(&entity), after.get(&entity)) {
+                (None, Some(revision)) => Some(SnapshotDiff::Added {
+                    entity,
+                    revision: *revision,
+                }),
+                (Some(revision), None) => Some(SnapshotDiff::Removed {
+                    entity,
+                    revision: *revision,
+                }),
+                (Some(before), Some(after)) if before != after => Some(SnapshotDiff::Changed {
+                    entity,
+                    from: *before,
+                    to: *after,
+                }),
+                _ => None,
+            })
+            .collect())
+    }
 
     /// Returns the direct immutable predecessors of a snapshot.
     ///
