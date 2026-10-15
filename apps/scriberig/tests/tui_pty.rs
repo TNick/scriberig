@@ -381,8 +381,8 @@ fn tui_pty_opens_history_and_agent_composer() {
 
     tui.send(b":");
     assert!(tui.read_until("Search:"));
-    tui.send(b"start-agent");
-    assert!(tui.read_until("Search: start-agent"));
+    tui.type_palette_query("start-agent")
+        .expect("palette query");
     tui.send(b"\r");
     assert!(tui.read_until("Session:"), "{}", tui.diagnostic());
     tui.send(b"\x1b");
