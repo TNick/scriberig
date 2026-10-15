@@ -198,10 +198,12 @@ fn submit_discovery(tui: &mut TuiPty, session: EntityId, database: &std::path::P
     tui.send(b"\x1b[B");
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"continue-agent\r");
+    tui.type_palette_query("continue-agent")
+        .expect("palette query");
+    tui.send(b"\r");
     assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
     tui.send(b"Add support for ingesting PHP source files.\r");
-    wait_for_discovery(database, session);
+    wait_for_branch(database, session, "determine minimal extension points");
     assert_provider_gate_waiting(tui);
 }
 
@@ -215,7 +217,9 @@ fn submit_implementation(tui: &mut TuiPty, session: EntityId, database: &std::pa
     tui.send(b"\x1b[B");
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"continue-agent\r");
+    tui.type_palette_query("continue-agent")
+        .expect("palette query");
+    tui.send(b"\r");
     assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
     tui.send(b"Add support for ingesting PHP source files.\r");
     wait_for_branch(database, session, "implement PHP ingestion");
@@ -257,15 +261,6 @@ fn cancel_active_agent(tui: &mut TuiPty) {
         tui.diagnostic()
     );
     tui.release_agent_provider();
-}
-
-/// Waits for the running discovery branch before requesting cancellation.
-///
-/// # Parameters
-/// - `database`: Durable product database.
-/// - `session`: Agent session identity.
-fn wait_for_discovery(database: &std::path::Path, session: EntityId) {
-    wait_for_branch(database, session, "determine minimal extension points");
 }
 
 /// Waits for one delayed child branch to start before requesting cancellation.
