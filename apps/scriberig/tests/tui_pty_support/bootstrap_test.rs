@@ -160,7 +160,7 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
     );
     tui.send(b"\r");
     let discovered = tui.read_until_for(
-        "I found the repository guidance",
+        "agent continuation [Completed]",
         std::time::Duration::from_secs(120),
     );
     let saved = SqliteSessionStore::open(tui.fixture_path().join("scriberig.sqlite"))
