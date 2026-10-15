@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Defines backend-neutral snapshot operations."><title>SnapshotStore in scriberig_store::snapshot_store - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-0c87338a.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="scriberig_store" data-themes="" data-resource-suffix="" data-rustdoc-version="1.99.0 (b940084d7 2026-09-28)" data-channel="1.99.0" data-search-js="search-cf4fc35e.js" data-stringdex-js="stringdex-b5109af9.js" data-settings-js="settings-170eb4bf.js" ><script src="../../static.files/storage-41dd4d93.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-417ebf0a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-9f56287d.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc trait"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">SnapshotStore</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../scriberig_store/index.html">scriberig_<wbr>store</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Snapshot<wbr>Store</a></h2><h3><a href="#required-methods">Required Methods</a></h3><ul class="block"><li><a href="#tymethod.apply_changes" title="apply_changes">apply_changes</a></li><li><a href="#tymethod.diff_snapshots" title="diff_snapshots">diff_snapshots</a></li><li><a href="#tymethod.iter" title="iter">iter</a></li><li><a href="#tymethod.parents" title="parents">parents</a></li><li><a href="#tymethod.resolve" title="resolve">resolve</a></li></ul><h3><a href="#provided-methods">Provided Methods</a></h3><ul class="block"><li><a href="#method.ancestors" title="ancestors">ancestors</a></li><li><a href="#method.change_provenance" title="change_provenance">change_provenance</a></li></ul><h3><a href="#foreign-impls">Implementations on Foreign Types</a></h3><ul class="block"><li><a href="#impl-SnapshotStore-for-Arc%3CT%3E" title="Arc&#60;T&#62;">Arc&#60;T&#62;</a></li></ul><h3><a href="#implementors">Implementors</a></h3></section><div id="rustdoc-modnav"><h2><a href="index.html">In scriberig_<wbr>store::<wbr>snapshot_<wbr>store</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">scriberig_store</a>::<wbr><a href="index.html">snapshot_store</a></div><h1>Trait <span class="trait">Snapshot<wbr>Store</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/scriberig_store/snapshot_store.rs.html#9-127">Source</a> </span></div><pre class="rust item-decl"><code>pub trait SnapshotStore {
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Defines backend-neutral snapshot operations."><title>SnapshotStore in scriberig_store::snapshot_store - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-0c87338a.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="scriberig_store" data-themes="" data-resource-suffix="" data-rustdoc-version="1.99.0 (b940084d7 2026-09-28)" data-channel="1.99.0" data-search-js="search-cf4fc35e.js" data-stringdex-js="stringdex-b5109af9.js" data-settings-js="settings-170eb4bf.js" ><script src="../../static.files/storage-41dd4d93.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-417ebf0a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-9f56287d.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc trait"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">SnapshotStore</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../scriberig_store/index.html">scriberig_<wbr>store</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Snapshot<wbr>Store</a></h2><h3><a href="#required-methods">Required Methods</a></h3><ul class="block"><li><a href="#tymethod.apply_changes" title="apply_changes">apply_changes</a></li><li><a href="#tymethod.diff_snapshots" title="diff_snapshots">diff_snapshots</a></li><li><a href="#tymethod.iter" title="iter">iter</a></li><li><a href="#tymethod.parents" title="parents">parents</a></li><li><a href="#tymethod.resolve" title="resolve">resolve</a></li></ul><h3><a href="#provided-methods">Provided Methods</a></h3><ul class="block"><li><a href="#method.ancestors" title="ancestors">ancestors</a></li><li><a href="#method.change_provenance" title="change_provenance">change_provenance</a></li><li><a href="#method.diff_snapshot_revisions" title="diff_snapshot_revisions">diff_snapshot_revisions</a></li></ul><h3><a href="#foreign-impls">Implementations on Foreign Types</a></h3><ul class="block"><li><a href="#impl-SnapshotStore-for-Arc%3CT%3E" title="Arc&#60;T&#62;">Arc&#60;T&#62;</a></li></ul><h3><a href="#implementors">Implementors</a></h3></section><div id="rustdoc-modnav"><h2><a href="index.html">In scriberig_<wbr>store::<wbr>snapshot_<wbr>store</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">scriberig_store</a>::<wbr><a href="index.html">snapshot_store</a></div><h1>Trait <span class="trait">Snapshot<wbr>Store</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/scriberig_store/snapshot_store.rs.html#9-181">Source</a> </span></div><pre class="rust item-decl"><code>pub trait SnapshotStore {
     // Required methods
     fn <a href="#tymethod.resolve" class="fn">resolve</a>(
         &amp;self,
@@ -25,7 +25,12 @@
     ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;SnapshotId&gt;, <a class="enum" href="../snapshot/enum.SnapshotError.html" title="enum scriberig_store::snapshot::SnapshotError">SnapshotError</a>&gt;;
 
     // Provided methods
-    fn <a href="#method.change_provenance" class="fn">change_provenance</a>(
+    fn <a href="#method.diff_snapshot_revisions" class="fn">diff_snapshot_revisions</a>(
+        &amp;self,
+        from: SnapshotId,
+        to: SnapshotId,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="enum" href="../snapshot/enum.SnapshotDiff.html" title="enum scriberig_store::snapshot::SnapshotDiff">SnapshotDiff</a>&gt;, <a class="enum" href="../snapshot/enum.SnapshotError.html" title="enum scriberig_store::snapshot::SnapshotError">SnapshotError</a>&gt; { ... }
+<span class="item-spacer"></span>    fn <a href="#method.change_provenance" class="fn">change_provenance</a>(
         &amp;self,
         _snapshot: SnapshotId,
     ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="enum" href="https://doc.rust-lang.org/1.99.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="../snapshot/struct.SnapshotChangeProvenance.html" title="struct scriberig_store::snapshot::SnapshotChangeProvenance">SnapshotChangeProvenance</a>&gt;, <a class="enum" href="../snapshot/enum.SnapshotError.html" title="enum scriberig_store::snapshot::SnapshotError">SnapshotError</a>&gt; { ... }
@@ -88,7 +93,7 @@
 <p>Deterministically ordered storage changes.</p>
 <h5 id="errors-3"><a class="doc-anchor" href="#errors-3">§</a>Errors</h5>
 <p>Returns an error when either snapshot is unavailable.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="tymethod.parents" class="method"><a class="src rightside" href="../../src/scriberig_store/snapshot_store.rs.html#84">Source</a><h4 class="code-header">fn <a href="#tymethod.parents" class="fn">parents</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="tymethod.parents" class="method"><a class="src rightside" href="../../src/scriberig_store/snapshot_store.rs.html#138">Source</a><h4 class="code-header">fn <a href="#tymethod.parents" class="fn">parents</a>(
     &amp;self,
     snapshot: SnapshotId,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;SnapshotId&gt;, <a class="enum" href="../snapshot/enum.SnapshotError.html" title="enum scriberig_store::snapshot::SnapshotError">SnapshotError</a>&gt;</h4></section></summary><div class="docblock"><p>Returns the direct immutable predecessors of a snapshot.</p>
@@ -100,107 +105,138 @@
 <p>Deterministically ordered direct parent snapshots.</p>
 <h5 id="errors-4"><a class="doc-anchor" href="#errors-4">§</a>Errors</h5>
 <p>Returns an error when the snapshot is unavailable.</p>
-</div></details></div><h2 id="provided-methods" class="section-header">Provided Methods<a href="#provided-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="method.change_provenance" class="method"><a class="src rightside" href="../../src/scriberig_store/snapshot_store.rs.html#96-101">Source</a><h4 class="code-header">fn <a href="#method.change_provenance" class="fn">change_provenance</a>(
+</div></details></div><h2 id="provided-methods" class="section-header">Provided Methods<a href="#provided-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="method.diff_snapshot_revisions" class="method"><a class="src rightside" href="../../src/scriberig_store/snapshot_store.rs.html#89-126">Source</a><h4 class="code-header">fn <a href="#method.diff_snapshot_revisions" class="fn">diff_snapshot_revisions</a>(
+    &amp;self,
+    from: SnapshotId,
+    to: SnapshotId,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="enum" href="../snapshot/enum.SnapshotDiff.html" title="enum scriberig_store::snapshot::SnapshotDiff">SnapshotDiff</a>&gt;, <a class="enum" href="../snapshot/enum.SnapshotError.html" title="enum scriberig_store::snapshot::SnapshotError">SnapshotError</a>&gt;</h4></section></summary><div class="docblock"><p>Computes exact entity revision transitions between stored snapshots.</p>
+<p>Backends can override this method to compare each retained snapshot in a
+single read. The default implementation uses deterministic snapshot
+iteration and keeps before/after revisions available to history callers.</p>
+<h5 id="parameters-5"><a class="doc-anchor" href="#parameters-5">§</a>Parameters</h5>
+<ul>
+<li><code>from</code>: Starting snapshot identity.</li>
+<li><code>to</code>: Ending snapshot identity.</li>
+</ul>
+<h5 id="returns-5"><a class="doc-anchor" href="#returns-5">§</a>Returns</h5>
+<p>Deterministically ordered additions, removals, and revision changes.</p>
+<h5 id="errors-5"><a class="doc-anchor" href="#errors-5">§</a>Errors</h5>
+<p>Returns an error when either snapshot is unavailable.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.change_provenance" class="method"><a class="src rightside" href="../../src/scriberig_store/snapshot_store.rs.html#150-155">Source</a><h4 class="code-header">fn <a href="#method.change_provenance" class="fn">change_provenance</a>(
     &amp;self,
     _snapshot: SnapshotId,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="enum" href="https://doc.rust-lang.org/1.99.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="../snapshot/struct.SnapshotChangeProvenance.html" title="struct scriberig_store::snapshot::SnapshotChangeProvenance">SnapshotChangeProvenance</a>&gt;, <a class="enum" href="../snapshot/enum.SnapshotError.html" title="enum scriberig_store::snapshot::SnapshotError">SnapshotError</a>&gt;</h4></section></summary><div class="docblock"><p>Returns the accepted source change that produced a snapshot, when retained.</p>
-<h5 id="parameters-5"><a class="doc-anchor" href="#parameters-5">§</a>Parameters</h5>
+<h5 id="parameters-6"><a class="doc-anchor" href="#parameters-6">§</a>Parameters</h5>
 <ul>
 <li><code>_snapshot</code>: Exact immutable result snapshot.</li>
 </ul>
-<h5 id="returns-5"><a class="doc-anchor" href="#returns-5">§</a>Returns</h5>
+<h5 id="returns-6"><a class="doc-anchor" href="#returns-6">§</a>Returns</h5>
 <p>Stable source-change identity when the backend records one.</p>
-<h5 id="errors-5"><a class="doc-anchor" href="#errors-5">§</a>Errors</h5>
+<h5 id="errors-6"><a class="doc-anchor" href="#errors-6">§</a>Errors</h5>
 <p>Returns an error when provenance cannot be read.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.ancestors" class="method"><a class="src rightside" href="../../src/scriberig_store/snapshot_store.rs.html#113-126">Source</a><h4 class="code-header">fn <a href="#method.ancestors" class="fn">ancestors</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.ancestors" class="method"><a class="src rightside" href="../../src/scriberig_store/snapshot_store.rs.html#167-180">Source</a><h4 class="code-header">fn <a href="#method.ancestors" class="fn">ancestors</a>(
     &amp;self,
     snapshot: SnapshotId,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;SnapshotId&gt;, <a class="enum" href="../snapshot/enum.SnapshotError.html" title="enum scriberig_store::snapshot::SnapshotError">SnapshotError</a>&gt;</h4></section></summary><div class="docblock"><p>Walks immutable snapshot ancestry without exposing backend details.</p>
-<h5 id="parameters-6"><a class="doc-anchor" href="#parameters-6">§</a>Parameters</h5>
+<h5 id="parameters-7"><a class="doc-anchor" href="#parameters-7">§</a>Parameters</h5>
 <ul>
 <li><code>snapshot</code>: Exact snapshot at which to begin the walk.</li>
 </ul>
-<h5 id="returns-6"><a class="doc-anchor" href="#returns-6">§</a>Returns</h5>
+<h5 id="returns-7"><a class="doc-anchor" href="#returns-7">§</a>Returns</h5>
 <p>Ancestors in deterministic breadth-first order, excluding <code>snapshot</code>.</p>
-<h5 id="errors-6"><a class="doc-anchor" href="#errors-6">§</a>Errors</h5>
+<h5 id="errors-7"><a class="doc-anchor" href="#errors-7">§</a>Errors</h5>
 <p>Returns an error when the starting snapshot or an ancestor is unavailable.</p>
-</div></details></div><h2 id="dyn-compatibility" class="section-header">Dyn Compatibility<a href="#dyn-compatibility" class="anchor">§</a></h2><div class="dyn-compatibility-info"><p>This trait <b>is</b> <a href="https://doc.rust-lang.org/1.99.0/reference/items/traits.html#dyn-compatibility">dyn compatible</a>.</p><p><i>In older versions of Rust, dyn compatibility was called "object safety".</i></p></div><h2 id="foreign-impls" class="section-header">Implementations on Foreign Types<a href="#foreign-impls" class="anchor">§</a></h2><details class="toggle implementors-toggle"><summary><section id="impl-SnapshotStore-for-Arc%3CT%3E" class="impl"><a class="src rightside" href="../../src/scriberig_store/lib.rs.html#83-191">Source</a><a href="#impl-SnapshotStore-for-Arc%3CT%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T: <a class="trait" href="trait.SnapshotStore.html" title="trait scriberig_store::snapshot_store::SnapshotStore">SnapshotStore</a> + ?<a class="trait" href="https://doc.rust-lang.org/1.99.0/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a>&gt; <a class="trait" href="trait.SnapshotStore.html" title="trait scriberig_store::snapshot_store::SnapshotStore">SnapshotStore</a> for <a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;T&gt;</h3><div class="docblock"><p>Shares snapshot storage without changing the backend contract.</p>
+</div></details></div><h2 id="dyn-compatibility" class="section-header">Dyn Compatibility<a href="#dyn-compatibility" class="anchor">§</a></h2><div class="dyn-compatibility-info"><p>This trait <b>is</b> <a href="https://doc.rust-lang.org/1.99.0/reference/items/traits.html#dyn-compatibility">dyn compatible</a>.</p><p><i>In older versions of Rust, dyn compatibility was called "object safety".</i></p></div><h2 id="foreign-impls" class="section-header">Implementations on Foreign Types<a href="#foreign-impls" class="anchor">§</a></h2><details class="toggle implementors-toggle"><summary><section id="impl-SnapshotStore-for-Arc%3CT%3E" class="impl"><a class="src rightside" href="../../src/scriberig_store/lib.rs.html#83-210">Source</a><a href="#impl-SnapshotStore-for-Arc%3CT%3E" class="anchor">§</a><h3 class="code-header">impl&lt;T: <a class="trait" href="trait.SnapshotStore.html" title="trait scriberig_store::snapshot_store::SnapshotStore">SnapshotStore</a> + ?<a class="trait" href="https://doc.rust-lang.org/1.99.0/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a>&gt; <a class="trait" href="trait.SnapshotStore.html" title="trait scriberig_store::snapshot_store::SnapshotStore">SnapshotStore</a> for <a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;T&gt;</h3><div class="docblock"><p>Shares snapshot storage without changing the backend contract.</p>
 </div></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.resolve" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_store/lib.rs.html#95-101">Source</a><a href="#method.resolve" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.resolve" class="fn">resolve</a>(
     &amp;self,
     snapshot: SnapshotId,
     entity: EntityId,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="enum" href="https://doc.rust-lang.org/1.99.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;RevisionId&gt;, <a class="enum" href="../snapshot/enum.SnapshotError.html" title="enum scriberig_store::snapshot::SnapshotError">SnapshotError</a>&gt;</h4></section></summary><div class="docblock"><p>Delegates entity resolution to the shared backend.</p>
-<h5 id="parameters-7"><a class="doc-anchor" href="#parameters-7">§</a>Parameters</h5>
+<h5 id="parameters-8"><a class="doc-anchor" href="#parameters-8">§</a>Parameters</h5>
 <ul>
 <li><code>snapshot</code>: Snapshot in which to resolve the entity.</li>
 <li><code>entity</code>: Entity identifier to resolve.</li>
 </ul>
-<h5 id="returns-7"><a class="doc-anchor" href="#returns-7">§</a>Returns</h5>
+<h5 id="returns-8"><a class="doc-anchor" href="#returns-8">§</a>Returns</h5>
 <p>The revision visible for the entity, when present.</p>
-<h5 id="errors-7"><a class="doc-anchor" href="#errors-7">§</a>Errors</h5>
+<h5 id="errors-8"><a class="doc-anchor" href="#errors-8">§</a>Errors</h5>
 <p>Returns the backend snapshot error.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.apply_changes" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_store/lib.rs.html#114-120">Source</a><a href="#method.apply_changes" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.apply_changes" class="fn">apply_changes</a>(
     &amp;self,
     base: SnapshotId,
     changes: &amp;[<a class="enum" href="../snapshot/enum.SnapshotChange.html" title="enum scriberig_store::snapshot::SnapshotChange">SnapshotChange</a>],
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SnapshotId, <a class="enum" href="../snapshot/enum.SnapshotError.html" title="enum scriberig_store::snapshot::SnapshotError">SnapshotError</a>&gt;</h4></section></summary><div class="docblock"><p>Delegates immutable snapshot application to the shared backend.</p>
-<h5 id="parameters-8"><a class="doc-anchor" href="#parameters-8">§</a>Parameters</h5>
+<h5 id="parameters-9"><a class="doc-anchor" href="#parameters-9">§</a>Parameters</h5>
 <ul>
 <li><code>base</code>: Snapshot receiving the changes.</li>
 <li><code>changes</code>: Immutable entity changes to apply.</li>
 </ul>
-<h5 id="returns-8"><a class="doc-anchor" href="#returns-8">§</a>Returns</h5>
+<h5 id="returns-9"><a class="doc-anchor" href="#returns-9">§</a>Returns</h5>
 <p>The resulting snapshot identifier.</p>
-<h5 id="errors-8"><a class="doc-anchor" href="#errors-8">§</a>Errors</h5>
+<h5 id="errors-9"><a class="doc-anchor" href="#errors-9">§</a>Errors</h5>
 <p>Returns the backend snapshot error.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.iter" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_store/lib.rs.html#132-137">Source</a><a href="#method.iter" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.iter" class="fn">iter</a>(
     &amp;self,
     snapshot: SnapshotId,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;(EntityId, RevisionId)&gt;, <a class="enum" href="../snapshot/enum.SnapshotError.html" title="enum scriberig_store::snapshot::SnapshotError">SnapshotError</a>&gt;</h4></section></summary><div class="docblock"><p>Delegates deterministic snapshot iteration to the shared backend.</p>
-<h5 id="parameters-9"><a class="doc-anchor" href="#parameters-9">§</a>Parameters</h5>
+<h5 id="parameters-10"><a class="doc-anchor" href="#parameters-10">§</a>Parameters</h5>
 <ul>
 <li><code>snapshot</code>: Snapshot to enumerate.</li>
 </ul>
-<h5 id="returns-9"><a class="doc-anchor" href="#returns-9">§</a>Returns</h5>
+<h5 id="returns-10"><a class="doc-anchor" href="#returns-10">§</a>Returns</h5>
 <p>Entity and revision pairs visible in the snapshot.</p>
-<h5 id="errors-9"><a class="doc-anchor" href="#errors-9">§</a>Errors</h5>
+<h5 id="errors-10"><a class="doc-anchor" href="#errors-10">§</a>Errors</h5>
 <p>Returns the backend snapshot error.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.diff_snapshots" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_store/lib.rs.html#150-156">Source</a><a href="#method.diff_snapshots" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.diff_snapshots" class="fn">diff_snapshots</a>(
     &amp;self,
     from: SnapshotId,
     to: SnapshotId,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="enum" href="../snapshot/enum.SnapshotChange.html" title="enum scriberig_store::snapshot::SnapshotChange">SnapshotChange</a>&gt;, <a class="enum" href="../snapshot/enum.SnapshotError.html" title="enum scriberig_store::snapshot::SnapshotError">SnapshotError</a>&gt;</h4></section></summary><div class="docblock"><p>Delegates snapshot diffing to the shared backend.</p>
-<h5 id="parameters-10"><a class="doc-anchor" href="#parameters-10">§</a>Parameters</h5>
+<h5 id="parameters-11"><a class="doc-anchor" href="#parameters-11">§</a>Parameters</h5>
 <ul>
 <li><code>from</code>: Earlier snapshot.</li>
 <li><code>to</code>: Later snapshot.</li>
 </ul>
-<h5 id="returns-10"><a class="doc-anchor" href="#returns-10">§</a>Returns</h5>
+<h5 id="returns-11"><a class="doc-anchor" href="#returns-11">§</a>Returns</h5>
 <p>Changes needed to transform <code>from</code> into <code>to</code>.</p>
-<h5 id="errors-10"><a class="doc-anchor" href="#errors-10">§</a>Errors</h5>
+<h5 id="errors-11"><a class="doc-anchor" href="#errors-11">§</a>Errors</h5>
 <p>Returns the backend snapshot error.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.parents" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_store/lib.rs.html#168-173">Source</a><a href="#method.parents" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.parents" class="fn">parents</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.diff_snapshot_revisions-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_store/lib.rs.html#169-175">Source</a><a href="#method.diff_snapshot_revisions-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.diff_snapshot_revisions" class="fn">diff_snapshot_revisions</a>(
+    &amp;self,
+    from: SnapshotId,
+    to: SnapshotId,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="enum" href="../snapshot/enum.SnapshotDiff.html" title="enum scriberig_store::snapshot::SnapshotDiff">SnapshotDiff</a>&gt;, <a class="enum" href="../snapshot/enum.SnapshotError.html" title="enum scriberig_store::snapshot::SnapshotError">SnapshotError</a>&gt;</h4></section></summary><div class="docblock"><p>Delegates semantic revision comparison to the shared backend.</p>
+<h5 id="parameters-12"><a class="doc-anchor" href="#parameters-12">§</a>Parameters</h5>
+<ul>
+<li><code>from</code>: Starting immutable snapshot.</li>
+<li><code>to</code>: Target immutable snapshot.</li>
+</ul>
+<h5 id="returns-12"><a class="doc-anchor" href="#returns-12">§</a>Returns</h5>
+<p>Exact entity revision transitions in deterministic order.</p>
+<h5 id="errors-12"><a class="doc-anchor" href="#errors-12">§</a>Errors</h5>
+<p>Returns the backend snapshot error.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.parents" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_store/lib.rs.html#187-192">Source</a><a href="#method.parents" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.parents" class="fn">parents</a>(
     &amp;self,
     snapshot: SnapshotId,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;SnapshotId&gt;, <a class="enum" href="../snapshot/enum.SnapshotError.html" title="enum scriberig_store::snapshot::SnapshotError">SnapshotError</a>&gt;</h4></section></summary><div class="docblock"><p>Delegates snapshot parent lookup to the shared backend.</p>
-<h5 id="parameters-11"><a class="doc-anchor" href="#parameters-11">§</a>Parameters</h5>
+<h5 id="parameters-13"><a class="doc-anchor" href="#parameters-13">§</a>Parameters</h5>
 <ul>
 <li><code>snapshot</code>: Snapshot whose parents are requested.</li>
 </ul>
-<h5 id="returns-11"><a class="doc-anchor" href="#returns-11">§</a>Returns</h5>
+<h5 id="returns-13"><a class="doc-anchor" href="#returns-13">§</a>Returns</h5>
 <p>Direct parent snapshot identifiers.</p>
-<h5 id="errors-11"><a class="doc-anchor" href="#errors-11">§</a>Errors</h5>
+<h5 id="errors-13"><a class="doc-anchor" href="#errors-13">§</a>Errors</h5>
 <p>Returns the backend snapshot error.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.change_provenance-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_store/lib.rs.html#185-190">Source</a><a href="#method.change_provenance-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.change_provenance" class="fn">change_provenance</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.change_provenance-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_store/lib.rs.html#204-209">Source</a><a href="#method.change_provenance-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.change_provenance" class="fn">change_provenance</a>(
     &amp;self,
     snapshot: SnapshotId,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="enum" href="https://doc.rust-lang.org/1.99.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="../snapshot/struct.SnapshotChangeProvenance.html" title="struct scriberig_store::snapshot::SnapshotChangeProvenance">SnapshotChangeProvenance</a>&gt;, <a class="enum" href="../snapshot/enum.SnapshotError.html" title="enum scriberig_store::snapshot::SnapshotError">SnapshotError</a>&gt;</h4></section></summary><div class="docblock"><p>Delegates immutable snapshot change provenance lookup.</p>
-<h5 id="parameters-12"><a class="doc-anchor" href="#parameters-12">§</a>Parameters</h5>
+<h5 id="parameters-14"><a class="doc-anchor" href="#parameters-14">§</a>Parameters</h5>
 <ul>
 <li><code>snapshot</code>: Exact result snapshot to query.</li>
 </ul>
-<h5 id="returns-12"><a class="doc-anchor" href="#returns-12">§</a>Returns</h5>
+<h5 id="returns-14"><a class="doc-anchor" href="#returns-14">§</a>Returns</h5>
 <p>The backend’s retained source-change identity, when present.</p>
-<h5 id="errors-12"><a class="doc-anchor" href="#errors-12">§</a>Errors</h5>
+<h5 id="errors-14"><a class="doc-anchor" href="#errors-14">§</a>Errors</h5>
 <p>Returns the backend snapshot error.</p>
 </div></details></div></details><h2 id="implementors" class="section-header">Implementors<a href="#implementors" class="anchor">§</a></h2><div id="implementors-list"></div><script src="../../trait.impl/scriberig_store/snapshot_store/trait.SnapshotStore.js" data-ignore-extern-crates="alloc" async></script></section></div></main></body></html>

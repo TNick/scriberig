@@ -186,7 +186,11 @@ Computes deterministic changes between retained snapshots.</p>
 <p>Direct parents in deterministic order.</p>
 <h5 id="errors-13"><a class="doc-anchor" href="#errors-13">§</a>Errors</h5>
 <p>Returns an error when the snapshot is unavailable or the store lock is poisoned.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.change_provenance" class="method trait-impl"><a href="#method.change_provenance" class="anchor">§</a><h4 class="code-header">fn <a class="fn">change_provenance</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.diff_snapshot_revisions" class="method trait-impl"><a href="#method.diff_snapshot_revisions" class="anchor">§</a><h4 class="code-header">fn <a class="fn">diff_snapshot_revisions</a>(
+    &amp;self,
+    from: SnapshotId,
+    to: SnapshotId,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.0/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;SnapshotDiff&gt;, SnapshotError&gt;</h4></section></summary><div class='docblock'>Computes exact entity revision transitions between stored snapshots. <a>Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.change_provenance" class="method trait-impl"><a href="#method.change_provenance" class="anchor">§</a><h4 class="code-header">fn <a class="fn">change_provenance</a>(
     &amp;self,
     _snapshot: SnapshotId,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="enum" href="https://doc.rust-lang.org/1.99.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;SnapshotChangeProvenance&gt;, SnapshotError&gt;</h4></section></summary><div class='docblock'>Returns the accepted source change that produced a snapshot, when retained. <a>Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.ancestors" class="method trait-impl"><a href="#method.ancestors" class="anchor">§</a><h4 class="code-header">fn <a class="fn">ancestors</a>(
