@@ -115,7 +115,8 @@ pub fn match_nodes(base: &[CanonicalNode], candidate: &MarkdownDocument) -> Matc
 /// - `used`: Argument named `used`.
 /// - `results`: Argument named `results`.
 /// - `candidates`: Argument named `candidates`.
-/// - `MarkdownBlock`: Argument named `MarkdownBlock`.
+/// - `path`: Candidate block path within the document tree.
+/// - `block`: Candidate block to match against canonical nodes.
 ///
 /// # Returns
 /// The value produced by the declaration.

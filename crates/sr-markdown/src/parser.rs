@@ -327,6 +327,8 @@ fn push_text_block(blocks: &mut Vec<MarkdownBlock>, text: &str) {
 
 /// Appends inline text to the active list item or block text buffer.
 /// - `lists`: Argument named `lists`.
+/// - `value`: Inline text to append.
+/// - `text`: Fallback buffer outside an active list item.
 fn append_list_text(lists: &mut [(bool, Vec<ListItem>)], value: &str, text: &mut String) {
     if let Some((_, items)) = lists.last_mut() {
         if let Some(ListItem { blocks }) = items.last_mut() {

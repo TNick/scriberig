@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use scriberig_agent_runtime::ChildExecutionScope;
 use scriberig_agent_runtime::model_provider::ProviderModel;
-use scriberig_agent_runtime::provider::{CredentialSource, ProviderConfig};
+use scriberig_agent_runtime::provider::ProviderConfig;
 use scriberig_app::{
     ApplicationBackendComposition, ApplicationContext, ApplicationService, Capability,
     CapabilityAction, CapabilityConstraints, CapabilityContext, CapabilityScope,
@@ -13,6 +13,7 @@ use scriberig_app::{
 };
 use scriberig_store_sqlite::SqliteStore;
 
+mod agent_config;
 mod agent_tool;
 mod agent_tool_helpers;
 mod bootstrap_failure_provider;
@@ -20,8 +21,10 @@ mod child_runtime;
 mod deterministic_provider;
 mod native_provider;
 mod native_tui_agent;
-mod remote_commands;
 mod self_hosting_provider;
+mod doctor_command;
+mod remote_commands;
+mod secrets_command;
 mod tui_command;
 use agent_tool::LocalAgentTool;
 use child_runtime::{LocalChildExecutor, inspect_catalog};
@@ -105,6 +108,20 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         scriberig_cli::Command::Project(args) => {
             scriberig_cli::project::run(&args)?;
         }
+        scriberig_cli::Command::Config(args) => {
+            agent_config::config_command(&args)?;
+        }
+        scriberig_cli::Command::Secrets(args) => {
+            if let Err(error) = secrets_command::run(&args) {
+                eprintln!("secrets: {error}");
+                std::process::exit(error.exit_code());
+            }
+        }
+        scriberig_cli::Command::Doctor(args) => {
+            if !doctor_command::run(&args) {
+                std::process::exit(1);
+            }
+        }
     }
     Ok(())
 }
@@ -122,6 +139,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 fn run_shared_agent(
     args: &scriberig_cli::RunArgs,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let args = agent_config::resolve_run_config(args)?;
     let store = Arc::new(SqliteStore::open(&args.db)?);
     let backend = ApplicationBackendComposition::new(
         StoreInspectionBackend::new(Arc::clone(&store)),
@@ -161,7 +179,7 @@ fn run_shared_agent(
         semantic_scope: None,
     };
     let runtime_result =
-        match run_composed_model(args, &service, &store, &context, &scope, &cancellation) {
+        match run_composed_model(&args, &service, &store, &context, &scope, &cancellation) {
             Ok(result) => result,
             Err(error) => {
                 if matches!(error, scriberig_agent_runtime::AgentError::Cancelled) {
@@ -222,10 +240,8 @@ fn run_composed_model<B: scriberig_app::ApplicationBackend>(
                 as std::sync::Arc<dyn Fn(&str) + Send + Sync>
         });
     if let Some(base_url) = &args.base_url {
-        let credential_source = args
-            .api_key_env
-            .clone()
-            .map_or(CredentialSource::None, CredentialSource::Environment);
+        let credential_source = agent_config::credential_source(args)
+            .map_err(|error| scriberig_agent_runtime::AgentError::Provider(error.to_string()))?;
         let config = ProviderConfig::new(
             args.provider.clone(),
             base_url,

@@ -34,6 +34,9 @@ The executable requires a subcommand. Standard Clap help and version flags are a
 | `events` | `srig events [OPTIONS]` | Reads buffered lifecycle or agent output events. |
 | `session` | `srig session <tree\|activity> ... [OPTIONS]` | Reads durable session and branch state. |
 | `agent-continue` | `srig agent-continue <SESSION> <BRANCH> <PROMPT> [OPTIONS]` | Continues an agent operation on an existing branch. |
+| `config` | `srig config show [--format <human\|json>]` | Prints effective local-agent settings and their sources. |
+| `secrets` | `srig secrets <set\|list\|status\|delete\|bind\|unbind> ...` | Manages local OS credentials and exact destination bindings. |
+| `doctor` | `srig doctor [--format <human\|json>]` | Sends a bounded provider request using the effective credential policy. |
 
 Each subcommand also supports `-h` / `--help`.
 
@@ -104,10 +107,83 @@ one machine-readable result and does not emit transient stream text.
 | `--provider <PROFILE>` | `default` | Safe provider profile identifier. |
 | `--model <MODEL>` | `default` | Provider model identifier when using `--base-url`. |
 | `--base-url <URL>` | unset | OpenAI-compatible provider base URL. When omitted, deterministic local execution is used. |
-| `--api-key-env <NAME>` | unset | Environment variable containing the provider credential; requires `--base-url`. |
+| `--api-key-env <NAME>` | unset | Compatibility environment credential reference; conflicts with `--credential-ref`. |
+| `--credential-ref <REFERENCE>` | unset | `keyring:NAME`, `environment:NAME`, `file:ABSOLUTE_PATH`, or `none` to clear an inherited credential. |
+
+`run` and `agent` resolve each setting independently in this order: system
+configuration file, user configuration file, nearest project configuration
+file, matching `SRIG_*` environment variable, explicitly supplied option, then
+the built-in default. Files are named `config.yaml`, `config.yml`, or
+`config.json` and contain a flat object of setting names such as `provider`,
+`model`, `base_url`, and `no_stream`.
+
+On Windows, system and user files are searched under `%ProgramData%\Scriberig`
+and `%APPDATA%\Scriberig`. On macOS they are searched under
+`/etc/scriberig` and `~/Library/Application Support/Scriberig`. On other Unix
+systems they are searched under `/etc/scriberig` and `$XDG_CONFIG_HOME/scriberig`
+(or `~/.config/scriberig` when `XDG_CONFIG_HOME` is unset). Project discovery
+walks upward from the working directory. At each level, YAML is preferred over
+YML, which is preferred over JSON.
+
+Environment names use the `SRIG_` prefix and uppercase property name, for
+example `SRIG_PROVIDER`, `SRIG_BASE_URL`, and `SRIG_NO_STREAM`. Credential
+values remain indirect: `api_key_env` names the environment variable to read
+for the provider request.
+
+Inspect effective values and their winning source with:
+
+```text
+srig config show [--format human|json]
+```
+
+The command reports each supported setting, its value, and a source path or
+designator such as `env:SRIG_MODEL`, `cli:--model`, or `default`. The credential
+environment variable name may appear in the atomic `credential` reference. The named
+secret variable is not read or printed by this command.
+
+Credential references require an explicit destination/project binding before
+the value is retrieved. An explicit local CLI environment reference paired with
+an explicit `--base-url` supplies a binding for that invocation only, subject to
+administrator restrictions. Project configuration cannot authorize new uses.
+URLs cannot contain embedded credentials, queries, or fragments.
 
 Pressing Ctrl-C requests cancellation of the shared operation. The command
 preserves the operation/session record and exits with status `130`.
+
+## `srig secrets`
+
+```text
+srig secrets set NAME [--stdin] [--replace]
+srig secrets list [--format human|json]
+srig secrets status NAME [--format human|json]
+srig secrets delete NAME
+srig secrets bind NAME --base-url URL --project-root PATH [--service]
+srig secrets unbind NAME --base-url URL --project-root PATH [--service]
+```
+
+`set` reads a hidden terminal prompt or explicitly selected bounded stdin. It
+never accepts a value argument. `list` reads secret-free registry metadata;
+`status` checks native-store metadata without a provider request. Binding names
+may be managed keyring aliases or typed environment/file references. Management
+is local CLI only. See [Managing secrets](SECRETS.md) for storage locations,
+deployment guidance, stable error statuses, rotation, and exposure recovery.
+
+## `srig doctor`
+
+Check the effective provider connection and credential:
+
+```text
+srig doctor [--format human|json]
+```
+
+Doctor resolves layered provider settings from the same system, user, project,
+and environment sources as `run`, checks saved credential authorization for
+the current project and endpoint, then asks the configured model to end its
+response with `MODEL OK`. Brief reasoning may precede that marker. The request
+is bounded to 512 output tokens; doctor does not print the response or
+credential. The request may use provider quota. A failed check exits with
+status `1`; JSON output includes the provider, model, endpoint, credential
+status, API status, and safe error detail.
 
 ## `srig agent`
 

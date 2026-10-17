@@ -64,7 +64,9 @@ pub(super) fn safe_join(root: &Path, relative: &str) -> Result<PathBuf, ProjectE
             diagnostics: Vec::new(),
         });
     }
-    Ok(root.join(relative))
+    let path = root.join(relative);
+    crate::project_security::require_public_path(&path)?;
+    Ok(path)
 }
 
 /// Validates a candidate in an isolated copy of the project.
@@ -78,12 +80,17 @@ pub(super) fn safe_join(root: &Path, relative: &str) -> Result<PathBuf, ProjectE
 /// # Returns
 /// Semantic and Cargo validation state.
 pub(super) fn validate_project(root: &Path, relative: &str, text: &str) -> CandidateValidation {
-    static NEXT: AtomicU64 = AtomicU64::new(0);
-    let id = NEXT.fetch_add(1, Ordering::Relaxed);
-    let temporary = std::env::temp_dir().join(format!("scriberig-candidate-{id}"));
+    let Ok(temporary_dir) = tempfile::tempdir() else {
+        return CandidateValidation::Failed {
+            diagnostics: vec!["isolated validation directory unavailable".to_owned()],
+        };
+    };
+    let temporary = temporary_dir.path();
     let result = (|| {
-        copy_tree(root, &temporary)?;
-        let path = safe_join(&temporary, relative).map_err(|error| error.message)?;
+        let sensitive = scriberig_secrets::sensitive::SensitivePaths::from_process()
+            .map_err(|_| "secret exclusion policy unavailable".to_owned())?;
+        copy_tree(root, temporary, &sensitive)?;
+        let path = safe_join(temporary, relative).map_err(|error| error.message)?;
         fs::write(path, text).map_err(|error| error.to_string())?;
         let manifest = temporary.join("Cargo.toml");
         if !manifest.exists() {
@@ -96,6 +103,7 @@ pub(super) fn validate_project(root: &Path, relative: &str, text: &str) -> Candi
         let mut command = rustup
             .filter(|_| use_rustup)
             .map_or_else(|| Command::new("cargo"), Command::new);
+        scriberig_secrets::process::prepare_command(&mut command);
         if use_rustup {
             command.args(["run", "stable", "cargo", "check"]);
         } else {
@@ -118,7 +126,6 @@ pub(super) fn validate_project(root: &Path, relative: &str, text: &str) -> Candi
             Ok(vec![diagnostics])
         }
     })();
-    let _ = fs::remove_dir_all(&temporary);
     match result {
         Ok(diagnostics) if diagnostics.is_empty() => CandidateValidation::Passed,
         Ok(diagnostics) => CandidateValidation::Failed { diagnostics },
@@ -133,21 +140,29 @@ pub(super) fn validate_project(root: &Path, relative: &str, text: &str) -> Candi
 /// # Parameters
 /// - `source`: Project root to copy.
 /// - `destination`: Isolated destination tree.
+/// - `sensitive`: Secret-file exclusions read before copying the project.
 ///
 /// # Returns
 /// Unit after the copy completes.
 ///
 /// # Errors
 /// Returns an error when a filesystem operation fails.
-fn copy_tree(source: &Path, destination: &Path) -> Result<(), String> {
+fn copy_tree(
+    source: &Path,
+    destination: &Path,
+    sensitive: &scriberig_secrets::sensitive::SensitivePaths,
+) -> Result<(), String> {
     fs::create_dir_all(destination).map_err(|error| error.to_string())?;
     for entry in fs::read_dir(source).map_err(|error| error.to_string())? {
         let entry = entry.map_err(|error| error.to_string())?;
         let source_path = entry.path();
+        if sensitive.contains(&source_path) {
+            continue;
+        }
         let destination_path = destination.join(entry.file_name());
         let file_type = entry.file_type().map_err(|error| error.to_string())?;
         if file_type.is_dir() {
-            copy_tree(&source_path, &destination_path)?;
+            copy_tree(&source_path, &destination_path, sensitive)?;
         } else if file_type.is_file() {
             fs::copy(source_path, destination_path).map_err(|error| error.to_string())?;
         }

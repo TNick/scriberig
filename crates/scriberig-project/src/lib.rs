@@ -15,6 +15,7 @@ use support::import_file;
 mod candidate;
 #[path = "manifest.rs"]
 mod manifest;
+mod project_security;
 #[path = "project_views.rs"]
 mod project_views;
 #[path = "scan_manifest.rs"]
@@ -272,6 +273,9 @@ impl ProjectService {
             .project(project)
             .map_err(storage_error)?
             .ok_or_else(|| missing_project(project))?;
+        for file in files {
+            project_security::require_public_path(&record.path.join(&file.relative_path))?;
+        }
         if files.is_empty() {
             return Err(ProjectError {
                 code: "scan_required",

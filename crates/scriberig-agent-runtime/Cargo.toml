@@ -9,6 +9,8 @@ repository.workspace = true
 publish = false
 
 [dependencies]
+scriberig-secrets = { path = "../scriberig-secrets" }
+zeroize = "1"
 scriberig-agent-core = { path = "../scriberig-agent-core" }
 scriberig-app = { path = "../scriberig-app" }
 scriberig-core = { path = "../scriberig-core" }

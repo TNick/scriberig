@@ -144,8 +144,9 @@ impl StreamAssembler {
             })?;
             return Ok(true);
         }
-        let wire: WireChunk = serde_json::from_str(data)
-            .map_err(|error| ProviderError::MalformedResponse(error.to_string()))?;
+        let wire: WireChunk = serde_json::from_str(data).map_err(|_| {
+            ProviderError::MalformedResponse("invalid provider stream fragment".to_owned())
+        })?;
         self.push(wire.into_chunk())?;
         Ok(false)
     }
@@ -167,10 +168,8 @@ impl StreamAssembler {
             .tool_calls
             .into_values()
             .map(|call| {
-                let arguments = serde_json::from_str(&call.arguments).map_err(|error| {
-                    ProviderError::MalformedResponse(format!(
-                        "tool call arguments are not JSON: {error}"
-                    ))
+                let arguments = serde_json::from_str(&call.arguments).map_err(|_| {
+                    ProviderError::MalformedResponse("tool call arguments are not JSON".to_owned())
                 })?;
                 Ok(ToolCall {
                     id: call.id,

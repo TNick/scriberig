@@ -16,7 +16,9 @@ use std::process::Command;
 /// # Errors
 /// Returns an error when Git is unavailable or the root is not a repository.
 pub(crate) fn git_tracked_paths(root: &Path) -> std::io::Result<BTreeSet<String>> {
-    let output = Command::new("git")
+    let mut command = Command::new("git");
+    scriberig_secrets::process::prepare_command(&mut command);
+    let output = command
         .arg("-C")
         .arg(root)
         .args(["ls-files", "--cached", "-z"])

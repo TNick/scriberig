@@ -187,6 +187,9 @@ impl ProjectService {
                 message: "semantic entity is not owned by the project".to_owned(),
                 diagnostics: Vec::new(),
             })?;
+        crate::project_security::require_public_path(
+            &workspace.project.path.join(&entity_record.relative_path),
+        )?;
         let source_entity = if entity_record.kind == "source" {
             entity
         } else {

@@ -94,6 +94,9 @@ pub fn read_event(timeout: Duration) -> io::Result<TuiEvent> {
 
 /// Translates one Crossterm event at the terminal boundary.
 ///
+/// # Parameters
+/// - `result`: Terminal event or source read failure.
+///
 /// # Errors
 /// Returns the source event error unchanged.
 /// - `crate`: Argument named `crate`.

@@ -5,7 +5,13 @@ use scriberig_core::EntityId;
 use crate::{CanonicalNode, MarkdownBlock, MarkdownDocument, NodeMatch};
 
 /// Checks whether an unchanged neighboring candidate anchors a base node.
-/// - `crate`: Argument named `crate`.
+///
+/// # Parameters
+/// - `base`: Canonical nodes from the base snapshot.
+/// - `results`: Matches established for preceding candidates.
+/// - `candidates`: Candidate paths and blocks.
+/// - `path`: Structural path being matched.
+/// - `node`: Base node being considered.
 ///
 /// # Returns
 /// The value produced by the declaration.
@@ -45,7 +51,10 @@ pub(crate) fn nearby_anchor(
 }
 
 /// Computes conservative word-overlap similarity for same-kind text blocks.
-/// - `crate`: Argument named `crate`.
+///
+/// # Parameters
+/// - `left`: First semantic block.
+/// - `right`: Second semantic block.
 ///
 /// # Returns
 /// The value produced by the declaration.
@@ -94,7 +103,12 @@ fn block_text(block: &MarkdownBlock) -> String {
 }
 
 /// Detects a likely insertion before a later unchanged section heading.
-/// - `crate`: Argument named `crate`.
+///
+/// # Parameters
+/// - `base`: Canonical nodes from the base snapshot.
+/// - `candidates`: Candidate paths and blocks.
+/// - `path`: Candidate structural path.
+/// - `block`: Candidate semantic block.
 ///
 /// # Returns
 /// The value produced by the declaration.
@@ -137,7 +151,12 @@ pub(crate) fn section_precedes_heading_anchor(
 }
 
 /// Checks whether a canonical node belongs to the candidate's known parent.
-/// - `crate`: Argument named `crate`.
+///
+/// # Parameters
+/// - `node_parent`: Base node's parent identity.
+/// - `mapped_parent`: Matched candidate parent identity.
+/// - `path`: Candidate structural path.
+/// - `root_context`: Whether matching requires a canonical root.
 ///
 /// # Returns
 /// The value produced by the declaration.
@@ -155,7 +174,10 @@ pub(crate) fn parent_matches(
 }
 
 /// Resolves the known parent context for one candidate path.
-/// - `crate`: Argument named `crate`.
+///
+/// # Parameters
+/// - `path`: Candidate structural path.
+/// - `results`: Matches established for candidate ancestors.
 ///
 /// # Returns
 /// The value produced by the declaration.
@@ -182,7 +204,9 @@ pub(crate) fn candidate_context(path: &[usize], results: &[NodeMatch]) -> (Optio
 }
 
 /// Flattens nested semantic blocks into stable structural paths.
-/// - `crate`: Argument named `crate`.
+///
+/// # Parameters
+/// - `document`: Semantic Markdown document to flatten.
 ///
 /// # Returns
 /// The value produced by the declaration.
@@ -215,7 +239,10 @@ fn flatten_block(
 }
 
 /// Reports whether two blocks have the same semantic kind.
-/// - `crate`: Argument named `crate`.
+///
+/// # Parameters
+/// - `left`: First semantic block.
+/// - `right`: Second semantic block.
 ///
 /// # Returns
 /// The value produced by the declaration.
@@ -224,7 +251,10 @@ pub(crate) fn same_kind(left: &MarkdownBlock, right: &MarkdownBlock) -> bool {
 }
 
 /// Reports whether two blocks share enough stable context for a changed edit.
-/// - `crate`: Argument named `crate`.
+///
+/// # Parameters
+/// - `left`: First semantic block.
+/// - `right`: Second semantic block.
 ///
 /// # Returns
 /// The value produced by the declaration.

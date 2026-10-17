@@ -34,16 +34,18 @@ pub enum CompatibilityProfile {
 }
 
 /// Selects an indirect source for a provider credential.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone)]
 pub enum CredentialSource {
     /// Read the credential from the named environment variable.
     Environment(String),
+    /// Resolve through an injected destination-authorized secret boundary.
+    Authorized(std::sync::Arc<dyn scriberig_secrets::CredentialProvider>),
     /// Send no credential header.
     None,
 }
 
 /// Runtime provider configuration without an embedded secret value.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct ProviderConfig {
     /// Safe profile identifier used in diagnostics.
     pub profile_id: String,
@@ -102,27 +104,71 @@ impl ProviderConfig {
     /// Returns a configuration error when the environment source is missing
     /// or empty.
     pub fn resolve_credential(&self) -> Result<Option<ResolvedCredential>, ProviderError> {
-        match &self.credential_source {
-            CredentialSource::Environment(name) => {
-                let value = std::env::var(name).map_err(|_| {
-                    ProviderError::Configuration(format!(
-                        "credential environment variable {name} is not set"
-                    ))
-                })?;
-                if value.is_empty() {
-                    return Err(ProviderError::Configuration(format!(
-                        "credential environment variable {name} is empty"
-                    )));
-                }
-                Ok(Some(ResolvedCredential(value)))
-            }
+        let value = match &self.credential_source {
+            CredentialSource::Environment(name) => resolve_environment(name, &self.base_url),
+            CredentialSource::Authorized(provider) => provider.credential(&self.base_url),
             CredentialSource::None => Ok(None),
         }
+        .map_err(|error| ProviderError::Configuration(error.to_string()))?;
+        Ok(value.map(ResolvedCredential))
     }
 }
 
+impl fmt::Debug for CredentialSource {
+    /// Prints source kind without credential-provider internals.
+    ///
+    /// # Parameters
+    /// - `formatter`: Output formatter.
+    ///
+    /// # Returns
+    /// Formatting success.
+    ///
+    /// # Errors
+    /// Returns formatter failures.
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::None => "None",
+            Self::Environment(_) => "Environment([reference])",
+            Self::Authorized(_) => "Authorized([reference])",
+        })
+    }
+}
+
+/// Resolves a legacy environment reference through live policy enforcement.
+///
+/// # Parameters
+/// - `name`: Environment variable reference.
+/// - `endpoint`: Actual provider destination.
+///
+/// # Returns
+/// An authorized protected credential.
+///
+/// # Errors
+/// Returns safe policy or source failures.
+fn resolve_environment(
+    name: &str,
+    endpoint: &str,
+) -> Result<Option<scriberig_secrets::SecretValue>, scriberig_secrets::SecretError> {
+    use scriberig_secrets::{CredentialProvider, ExecutionMode, SecretUseContext};
+    let provider = scriberig_secrets::registry::AuthorizedCredential {
+        reference: scriberig_secrets::SecretRef::Environment {
+            name: name.to_owned(),
+        },
+        context: SecretUseContext {
+            project_root: std::env::current_dir()
+                .map_err(|_| scriberig_secrets::SecretError::Denied)?,
+            purpose: "model_provider".to_owned(),
+            mode: ExecutionMode::Interactive,
+        },
+        locations: scriberig_secrets::registry::RegistryLocations::from_process()?,
+        invocation_binding: None,
+        resolver: std::sync::Arc::new(scriberig_secrets::SourceResolver),
+    };
+    provider.credential(endpoint)
+}
+
 /// Opaque credential value resolved only inside the provider adapter.
-pub struct ResolvedCredential(String);
+pub struct ResolvedCredential(scriberig_secrets::SecretValue);
 
 impl ResolvedCredential {
     /// Returns the secret for constructing an outbound authorization header.
@@ -131,7 +177,7 @@ impl ResolvedCredential {
     /// The resolved credential value.
     #[must_use]
     pub fn as_str(&self) -> &str {
-        &self.0
+        self.0.expose()
     }
 }
 
@@ -159,7 +205,9 @@ mod tests {
     /// Verifies credentials are never rendered in diagnostics.
     #[test]
     fn resolved_credentials_are_redacted() {
-        let credential = ResolvedCredential("secret-value".to_owned());
+        let credential = ResolvedCredential(
+            scriberig_secrets::SecretValue::new("secret-value".to_owned()).expect("valid secret"),
+        );
 
         assert!(!format!("{credential:?}").contains("secret-value"));
     }

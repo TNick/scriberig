@@ -23,15 +23,13 @@ fn child_context_is_bounded_and_preserves_omitted_handles() {
     assert!(compiled.omitted_handles.contains(&"h-old".to_owned()));
 }
 
-/// Verifies request fingerprints change for semantic inputs but ignore secrets.
+/// Verifies request fingerprints change when model semantics change.
 #[test]
 fn fingerprint_excludes_credentials_and_changes_for_model_inputs() {
     let input = RequestFingerprintInput::new("profile", "model", "compiled", "tools");
-    let first = input.clone().with_credential("one").fingerprint();
-    let second = input.clone().with_credential("two").fingerprint();
+    let first = input.clone().fingerprint();
     let changed = input.with_model("other").fingerprint();
 
-    assert_eq!(first, second);
     assert_ne!(first, changed);
     assert!(!first.contains("one"));
 }

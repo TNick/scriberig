@@ -1,0 +1,39 @@
+[package]
+name = "scriberig-secrets"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Reusable protected secret storage and destination authorization; independent of product and semantic storage."
+repository.workspace = true
+
+[features]
+native-tests = []
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+secrecy = "0.10"
+zeroize = "1"
+url = "2"
+fs2 = "0.4"
+
+[target.'cfg(windows)'.dependencies]
+windows-permissions = "0.2.4"
+windows-native-keyring-store = "=0.5.1"
+keyring-core = "0.7.2"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3.6", features = ["apple-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+keyring = { version = "3.6", features = ["sync-secret-service", "crypto-rust", "vendored"] }
+
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "1", features = ["process", "fs"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

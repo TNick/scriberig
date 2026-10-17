@@ -43,13 +43,19 @@ impl OpenAiCompatibleProvider {
     /// # Errors
     /// Returns a configuration error when the HTTP client cannot be built.
     pub fn new(config: ProviderConfig) -> Result<Self, ProviderError> {
+        scriberig_secrets::validate_public_endpoint(&config.base_url).map_err(|_| {
+            ProviderError::Configuration("invalid provider endpoint descriptor".to_owned())
+        })?;
         let client = reqwest::blocking::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
             .connect_timeout(config.connect_timeout)
             .no_proxy()
             .http1_only()
             .user_agent("scriberig-agent-runtime/0.1")
             .build()
-            .map_err(|error| ProviderError::Configuration(error.to_string()))?;
+            .map_err(|_| {
+                ProviderError::Configuration("provider client could not be initialized".to_owned())
+            })?;
         let transport = Arc::new(ReqwestCompletionTransport::new(client.clone()));
         Ok(Self {
             config,
@@ -128,14 +134,24 @@ impl ProviderAdapter for OpenAiCompatibleProvider {
             credential.as_ref().map(ResolvedCredential::as_str),
             self.config.request_timeout,
         )?;
-        let request_id = response.request_id;
+        let request_id = response.request_id.filter(|id| {
+            credential
+                .as_ref()
+                .is_none_or(|secret| !id.contains(secret.as_str()))
+        });
         let status = response.status;
         if !status.is_success() {
             return Err(classify_status(status, request_id));
         }
-        let wire: WireResponse = serde_json::from_slice(&response.body)
-            .map_err(|error| ProviderError::MalformedResponse(error.to_string()))?;
-        wire.into_response(request_id)
+        let wire: WireResponse = serde_json::from_slice(&response.body).map_err(|_| {
+            ProviderError::MalformedResponse("invalid provider response".to_owned())
+        })?;
+        let mut normalized = wire.into_response(request_id)?;
+        crate::credential_redaction::redact_response(
+            &mut normalized,
+            credential.as_ref().map(ResolvedCredential::as_str),
+        );
+        Ok(normalized)
     }
 
     /// Completes through SSE while forwarding assistant text fragments.
@@ -323,12 +339,9 @@ impl WireResponse {
             .unwrap_or_default()
             .into_iter()
             .map(|call| {
-                let arguments =
-                    serde_json::from_str(&call.function.arguments).map_err(|error| {
-                        ProviderError::MalformedResponse(format!(
-                            "tool call arguments are not JSON: {error}"
-                        ))
-                    })?;
+                let arguments = serde_json::from_str(&call.function.arguments).map_err(|_| {
+                    ProviderError::MalformedResponse("tool call arguments are not JSON".to_owned())
+                })?;
                 Ok(ToolCall {
                     id: call.id,
                     name: call.function.name,

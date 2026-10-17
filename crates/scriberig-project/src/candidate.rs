@@ -173,6 +173,9 @@ impl ProjectService {
                 message: "selected entity has no source projection".to_owned(),
                 diagnostics: Vec::new(),
             })?;
+        crate::project_security::require_public_path(
+            &self.project_path(project)?.join(&file.relative_path),
+        )?;
         if file.adapter == "rust" {
             scriberig_domain_rust::named_symbols(&text).map_err(|error| ProjectError {
                 code: "validation_failed",
@@ -219,11 +222,17 @@ impl ProjectService {
     /// # Errors
     /// Returns a storage or corruption error.
     pub fn candidate(&self, id: &str) -> Result<Option<ProjectCandidate>, ProjectError> {
-        self.store
+        let record = self
+            .store
             .project_candidate(id)
-            .map_err(crate::errors::storage_error)?
-            .map(Self::candidate_from_record)
-            .transpose()
+            .map_err(crate::errors::storage_error)?;
+        let Some(record) = record else {
+            return Ok(None);
+        };
+        crate::project_security::require_public_path(
+            &self.project_path(record.project)?.join(&record.path),
+        )?;
+        Self::candidate_from_record(record).map(Some)
     }
 
     /// Converts durable candidate storage data into a public candidate.

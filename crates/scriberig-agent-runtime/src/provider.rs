@@ -250,6 +250,44 @@ impl std::error::Error for ProviderError {}
 
 /// Provider-neutral model adapter boundary.
 pub trait ProviderAdapter: Send + Sync {
+    /// Checks model output and API access through the normal credential path.
+    ///
+    /// # Parameters
+    /// - `model`: Configured model identifier used for the check.
+    ///
+    /// # Returns
+    /// Unit when the provider completes the request with the required marker.
+    ///
+    /// # Errors
+    /// Returns the classified credential, transport, HTTP, or response failure.
+    fn check_connection(&self, model: &str) -> Result<(), ProviderError> {
+        let mut request = ModelRequest::new(
+            model,
+            vec![ModelMessage::user(
+                "Connection check: reply only with `MODEL OK`. You may emit brief reasoning before the final answer; end with exactly `MODEL OK`.",
+            )],
+        );
+        request.max_tokens = Some(512);
+        request.tool_choice = ToolChoice::None;
+        let response = self.complete(&request)?;
+        if response.finish_reason == FinishReason::Refusal {
+            return Err(ProviderError::MalformedResponse(
+                "provider refused the connection check".to_owned(),
+            ));
+        }
+        if response.finish_reason != FinishReason::Stop
+            || !response
+                .text
+                .as_deref()
+                .is_some_and(|text| text.trim_end().ends_with("MODEL OK"))
+        {
+            return Err(ProviderError::MalformedResponse(
+                "provider did not finish the connection check with MODEL OK".to_owned(),
+            ));
+        }
+        Ok(())
+    }
+
     /// Completes one normalized model request.
     ///
     /// # Parameters

@@ -12,6 +12,7 @@ fn stable_commands_parse() {
         ("run", vec!["srig", "run", "prompt"]),
         ("agent", vec!["srig", "agent", "prompt"]),
         ("maintenance", vec!["srig", "maintenance"]),
+        ("doctor", vec!["srig", "doctor"]),
         (
             "inspect",
             vec!["srig", "inspect", "ent_01010101010101010101010101010101"],
@@ -67,6 +68,7 @@ fn standard_help_and_version_are_available() {
         "run",
         "agent",
         "maintenance",
+        "doctor",
         "capabilities",
         "operation",
         "events",
@@ -93,4 +95,11 @@ fn malformed_arguments_are_rejected() {
         ])
         .is_err()
     );
+}
+
+/// Doctor accepts its documented machine-readable output selection.
+#[test]
+fn doctor_format_parses() {
+    assert!(Cli::try_parse_from(["srig", "doctor", "--format", "json"]).is_ok());
+    assert!(Cli::try_parse_from(["srig", "doctor", "--format", "invalid"]).is_err());
 }

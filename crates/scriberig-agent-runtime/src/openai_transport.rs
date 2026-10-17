@@ -94,10 +94,14 @@ impl CompletionTransport for ReqwestCompletionTransport {
             .or_else(|| response.headers().get("request-id"))
             .and_then(|value| value.to_str().ok())
             .map(str::to_owned);
+        let request_id =
+            request_id.filter(|id| credential.is_none_or(|secret| !id.contains(secret)));
         let status = response.status();
         let body = response
             .bytes()
-            .map_err(|error| ProviderError::Transport(error.to_string()))?
+            .map_err(|_| {
+                ProviderError::Transport("provider response could not be read".to_owned())
+            })?
             .to_vec();
         Ok(TransportResponse {
             status,
@@ -150,7 +154,7 @@ impl OpenAiCompatibleProvider {
             .post(self.endpoint())
             .timeout(self.config.request_timeout)
             .json(&payload);
-        if let Some(credential) = credential {
+        if let Some(credential) = &credential {
             builder = builder.bearer_auth(credential.as_str());
         }
         let response = builder.send().map_err(|error| classify_transport(&error))?;
@@ -160,13 +164,20 @@ impl OpenAiCompatibleProvider {
             .or_else(|| response.headers().get("request-id"))
             .and_then(|value| value.to_str().ok())
             .map(str::to_owned);
+        let secret = credential
+            .as_ref()
+            .map(crate::config::ResolvedCredential::as_str);
+        let request_id = request_id.filter(|id| secret.is_none_or(|value| !id.contains(value)));
         let status = response.status();
         if !status.is_success() {
             return Err(classify_status(status, request_id));
         }
         let mut assembler = StreamAssembler::new();
+        let mut redactor = crate::credential_redaction::DeltaRedactor::new(secret);
         for line in BufReader::new(response).lines() {
-            let line = line.map_err(|error| ProviderError::Transport(error.to_string()))?;
+            let line = line.map_err(|_| {
+                ProviderError::Transport("provider stream could not be read".to_owned())
+            })?;
             if line.trim().is_empty() {
                 continue;
             }
@@ -175,11 +186,19 @@ impl OpenAiCompatibleProvider {
                 break;
             }
             if let Some(delta) = assembler.text_since(before) {
-                on_text(delta);
+                let safe = redactor.push(delta);
+                if !safe.is_empty() {
+                    on_text(&safe);
+                }
             }
         }
         let mut normalized = assembler.finish()?;
         normalized.metadata.request_id = request_id;
+        let suffix = redactor.finish();
+        if !suffix.is_empty() {
+            on_text(&suffix);
+        }
+        crate::credential_redaction::redact_response(&mut normalized, secret);
         Ok(normalized)
     }
 }
@@ -194,11 +213,11 @@ impl OpenAiCompatibleProvider {
 /// A provider-neutral transport category.
 pub(super) fn classify_transport(error: &reqwest::Error) -> ProviderError {
     if error.is_timeout() {
-        ProviderError::Timeout(format!("provider request timed out: {error}"))
+        ProviderError::Timeout("provider request timed out".to_owned())
     } else if error.is_builder() {
-        ProviderError::Configuration(format!("provider request could not be built: {error}"))
+        ProviderError::Configuration("provider request could not be built".to_owned())
     } else {
-        ProviderError::Transport(format!("provider request failed: {error}"))
+        ProviderError::Transport("provider request failed".to_owned())
     }
 }
 
@@ -216,6 +235,12 @@ pub(super) fn classify_status(
     request_id: Option<String>,
 ) -> ProviderError {
     let suffix = request_id
+        .filter(|id| {
+            id.len() <= 128
+                && id
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || b"._:-".contains(&byte))
+        })
         .map(|id| format!(" (request {id})"))
         .unwrap_or_default();
     let message = format!("HTTP status {status}{suffix}");

@@ -9,6 +9,7 @@ use scriberig_core::EntityId;
 pub mod cache;
 pub mod config;
 pub mod context;
+mod credential_redaction;
 pub mod events;
 pub mod model_provider;
 pub mod openai_compatible;

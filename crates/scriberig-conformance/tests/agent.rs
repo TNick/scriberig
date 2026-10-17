@@ -333,7 +333,6 @@ fn provider_secret_is_absent_from_public_fingerprint() {
         "compiled semantic context",
         "inspect:v1",
     )
-    .with_credential(secret)
     .fingerprint();
 
     assert!(!fingerprint.contains(secret));

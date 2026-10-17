@@ -13,6 +13,8 @@ name = "srig"
 path = "src/main.rs"
 
 [dependencies]
+scriberig-secrets = { path = "../../crates/scriberig-secrets" }
+rpassword = "7"
 scriberig-agent-core = { path = "../../crates/scriberig-agent-core" }
 scriberig-agent-runtime = { path = "../../crates/scriberig-agent-runtime" }
 scriberig-app = { path = "../../crates/scriberig-app" }
@@ -29,6 +31,7 @@ serde_json = "1.0"
 ctrlc = "3.4"
 
 [dev-dependencies]
+tempfile = "3"
 portable-pty = "0.9"
 vt100 = "0.15.2"
 scriberig-session = { path = "../../crates/scriberig-session" }

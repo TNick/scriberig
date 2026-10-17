@@ -7,6 +7,7 @@ import re
 
 from .common import declaration_text
 from .config import RUST_FUNCTION, RUST_TYPE, TS_CLASS, TS_FUNCTION, TS_METHOD
+from .rust_parameters import rust_parameter_names
 
 
 def rust_docs_before(lines: list[str], declaration_index: int) -> str:
@@ -82,16 +83,9 @@ def _check_rust_function(lines: list[str], index: int, name: str, issues: list[s
         issues.append(f"L{index + 1} {name}: DOC: every function/method requires `///` documentation.")
         return
     declaration = declaration_text(lines, index)
-    parameters_match = re.search(r"\((.*?)\)", declaration)
-    if parameters_match:
-        for raw in parameters_match.group(1).split(","):
-            parameter = raw.strip()
-            if not parameter or parameter in {"self", "&self", "&mut self"}:
-                continue
-            parameter_name = parameter.split(":", 1)[0].strip().removeprefix("mut ").strip()
-            if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", parameter_name):
-                if f"`{parameter_name}`" not in docs:
-                    issues.append(f"L{index + 1} {name}: PARAM_DOC: document `{parameter_name}`.")
+    for parameter_name in rust_parameter_names(declaration):
+        if f"`{parameter_name}`" not in docs:
+            issues.append(f"L{index + 1} {name}: PARAM_DOC: document `{parameter_name}`.")
     return_match = re.search(r"->\s*([^\{]+)", declaration)
     if return_match:
         return_type = return_match.group(1).strip()

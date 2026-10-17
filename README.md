@@ -44,6 +44,10 @@ The intended result is a system where humans, agents, compilers, editors, and th
 
 ## Documentation
 
+Provider credentials and their destination bindings are described in
+[Managing secrets](SECRETS.md). Use `srig config show` to inspect references and
+configuration provenance without retrieving credential values.
+
 The GitHub Pages site publishes the project documentation together with generated API references:
 
 - [CLI reference](https://tnick.github.io/scriberig/cli-reference/)
