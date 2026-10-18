@@ -71,6 +71,12 @@ pub struct Event {
     pub snapshot: Option<SnapshotReference>,
     /// Optional operation handle.
     pub operation: Option<OperationReference>,
+    /// Typed provider-neutral activity category when this event carries one.
+    #[serde(default)]
+    pub activity_kind: Option<crate::SessionActivityKind>,
+    /// Typed lifecycle state when this event carries agent activity.
+    #[serde(default)]
+    pub activity_state: Option<crate::SessionActivityState>,
     /// Concise metadata safe for all clients.
     pub metadata: Vec<(String, String)>,
 }

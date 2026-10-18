@@ -301,6 +301,17 @@ pub(super) fn selection_response(
         model_profile: selection.model_profile,
         model: selection.model,
         thinking_level: selection.thinking_level,
+        history: selection
+            .history
+            .into_iter()
+            .map(|change| scriberig_protocol::SessionExecutionChange {
+                revision: change.revision,
+                kind: change.kind,
+                summary: change.summary,
+                model: change.model,
+                thinking_level: change.thinking_level,
+            })
+            .collect(),
     }
 }
 

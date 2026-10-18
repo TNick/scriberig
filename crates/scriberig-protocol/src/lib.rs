@@ -50,9 +50,9 @@ pub use response::{
 pub use session::{
     ModelRequestDetailRequest, ModelRequestDetailResponse, ModelRequestMessageDetail,
     ModelRequestToolDetail, SessionActivityItem, SessionActivityKind, SessionActivityState,
-    SessionBranch, SessionBranchResult, SessionBranchStatus, SessionExecutionSelection,
-    SessionReadRequest, SessionReadResponse, SessionTurn, ToolResultDetailRequest,
-    ToolResultDetailResponse,
+    SessionBranch, SessionBranchResult, SessionBranchStatus, SessionExecutionChange,
+    SessionExecutionSelection, SessionReadRequest, SessionReadResponse, SessionTurn,
+    ToolResultDetailRequest, ToolResultDetailResponse,
 };
 pub use transport::{ProtocolTransport, Request, RequestEnvelope, Response, ResponseEnvelope};
 pub use trust::{
@@ -128,6 +128,7 @@ mod tests {
                 model_profile: Some("profile-1".to_owned()),
                 model: Some("model-1".to_owned()),
                 thinking_level: Some("careful".to_owned()),
+                history: Vec::new(),
             },
         });
         model_contracts_round_trip();
@@ -249,6 +250,8 @@ mod tests {
             revision: None,
             snapshot: None,
             operation: None,
+            activity_kind: None,
+            activity_state: None,
             metadata: vec![("source".to_owned(), "test".to_owned())],
         });
     }
@@ -304,6 +307,8 @@ mod tests {
             operation: Some(OperationReference {
                 id: "op-1".to_owned(),
             }),
+            activity_kind: None,
+            activity_state: None,
             metadata: vec![("candidate".to_owned(), "snapshot-2".to_owned())],
         });
         round_trip(&PromotionResult {

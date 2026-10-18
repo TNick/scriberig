@@ -2,6 +2,7 @@
 
 use crate::SessionReference;
 use schemars::JsonSchema;
+pub use scriberig_session::{SessionActivityKind, SessionActivityState};
 use serde::{Deserialize, Serialize};
 
 /// Requests one durable session tree.
@@ -115,36 +116,6 @@ pub struct SessionTurn {
     pub tool_result: Option<String>,
 }
 
-/// Provider-neutral category for a durable causal activity record.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-pub enum SessionActivityKind {
-    /// Human supplied a prompt or instruction.
-    HumanInput,
-    /// Model request was issued.
-    ModelInvocation,
-    /// Externally meaningful model output was committed.
-    AssistantOutput,
-    /// A trusted tool was invoked.
-    ToolInvocation,
-    /// A tool returned or failed.
-    ToolResult,
-    /// A child branch was created.
-    ChildBranch,
-    /// A durable branch result was committed.
-    BranchResult,
-}
-
-/// Lifecycle state of a durable activity item.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-pub enum SessionActivityState {
-    /// Activity has completed successfully.
-    Completed,
-    /// Activity remains in progress.
-    Running,
-    /// Activity completed with a failure.
-    Failed,
-}
-
 /// Safe projection of one durable execution activity.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct SessionActivityItem {
@@ -234,6 +205,24 @@ pub struct SessionExecutionSelection {
     pub model: Option<String>,
     /// Model-advertised thinking level, when selected.
     #[serde(default)]
+    pub thinking_level: Option<String>,
+    /// Bounded replayable model and thinking selection provenance.
+    #[serde(default)]
+    pub history: Vec<SessionExecutionChange>,
+}
+
+/// One durable model or thinking selection change.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct SessionExecutionChange {
+    /// Selection mutation revision that produced this record.
+    pub revision: u64,
+    /// Semantic category of the changed selection.
+    pub kind: SessionActivityKind,
+    /// Safe concise description of the resulting selection.
+    pub summary: String,
+    /// Resolved model identity after the change, when selected.
+    pub model: Option<String>,
+    /// Resolved thinking level after the change, when selected.
     pub thinking_level: Option<String>,
 }
 

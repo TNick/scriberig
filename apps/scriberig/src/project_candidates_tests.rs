@@ -219,12 +219,12 @@ fn assert_dependency_resolution<B: ApplicationBackend>(
         resolved.validation_profile.as_deref(),
         Some("cargo-dependency-resolution")
     );
+    let apply_error = project_service
+        .apply_candidate(&resolved)
+        .expect_err("dependency acquisition is not code validation");
     assert_eq!(
-        project_service
-            .apply_candidate(&resolved)
-            .expect_err("dependency acquisition is not code validation")
-            .code,
-        "validation_pending"
+        apply_error.code, "validation_pending",
+        "dependency acquisition must not authorize Apply: {apply_error:?}"
     );
 }
 

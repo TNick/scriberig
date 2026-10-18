@@ -11,50 +11,66 @@ use crate::orchestration::{BranchPhase, RuntimeEvent};
 /// Public kind, state, and summary for displayable lifecycle activity.
 pub(super) fn project_runtime_activity(
     event: &RuntimeEvent,
-) -> Option<(&'static str, &'static str, String)> {
+) -> Option<(
+    scriberig_session::AgentActivityKind,
+    scriberig_session::AgentActivityState,
+    String,
+)> {
     match event {
         RuntimeEvent::PhaseChanged { phase, .. } => Some((
-            "status",
+            scriberig_session::AgentActivityKind::RuntimeStatus,
             match phase {
-                BranchPhase::Completed => "completed",
-                BranchPhase::Failed | BranchPhase::BudgetExceeded => "failed",
-                BranchPhase::Cancelled => "cancelled",
-                _ => "running",
+                BranchPhase::Completed => scriberig_session::AgentActivityState::Completed,
+                BranchPhase::Failed | BranchPhase::BudgetExceeded => {
+                    scriberig_session::AgentActivityState::Failed
+                }
+                BranchPhase::Cancelled => scriberig_session::AgentActivityState::Cancelled,
+                _ => scriberig_session::AgentActivityState::Running,
             },
             format!("Phase: {phase:?}"),
         )),
         RuntimeEvent::ModelInvocationStarted { step, .. } => Some((
-            "modelInvocation",
-            "running",
+            scriberig_session::AgentActivityKind::ModelInvocation,
+            scriberig_session::AgentActivityState::Running,
             format!("Model request {step}"),
         )),
         RuntimeEvent::ReasoningSummary { summary, .. } => Some((
-            "reasoningSummary",
-            "completed",
+            scriberig_session::AgentActivityKind::ReasoningSummary,
+            scriberig_session::AgentActivityState::Completed,
             summary.chars().take(256).collect(),
         )),
-        RuntimeEvent::ToolStarted { tool, .. } => {
-            Some(("toolInvocation", "running", format!("Tool: {tool}")))
-        }
+        RuntimeEvent::ToolStarted { tool, .. } => Some((
+            scriberig_session::AgentActivityKind::ToolInvocation,
+            scriberig_session::AgentActivityState::Running,
+            format!("Tool: {tool}"),
+        )),
         RuntimeEvent::ToolCompleted { tool, success, .. } => Some((
-            "toolResult",
-            if *success { "completed" } else { "failed" },
+            scriberig_session::AgentActivityKind::ToolResult,
+            if *success {
+                scriberig_session::AgentActivityState::Completed
+            } else {
+                scriberig_session::AgentActivityState::Failed
+            },
             format!(
                 "Tool {tool} {}",
                 if *success { "completed" } else { "failed" }
             ),
         )),
-        RuntimeEvent::BranchResultProduced { summary, .. } => {
-            Some(("branchResult", "completed", summary.clone()))
-        }
+        RuntimeEvent::BranchResultProduced { summary, .. } => Some((
+            scriberig_session::AgentActivityKind::BranchCompleted,
+            scriberig_session::AgentActivityState::Completed,
+            summary.clone(),
+        )),
         RuntimeEvent::BranchExecutionFailed { category, .. } => Some((
-            "branch",
-            "failed",
+            scriberig_session::AgentActivityKind::Error,
+            scriberig_session::AgentActivityState::Failed,
             format!("Agent branch failed ({category})"),
         )),
-        RuntimeEvent::BranchExecutionCancelled { .. } => {
-            Some(("branch", "cancelled", "Agent branch cancelled".to_owned()))
-        }
+        RuntimeEvent::BranchExecutionCancelled { .. } => Some((
+            scriberig_session::AgentActivityKind::BranchCompleted,
+            scriberig_session::AgentActivityState::Cancelled,
+            "Agent branch cancelled".to_owned(),
+        )),
         RuntimeEvent::BranchExecutionStarted { .. }
         | RuntimeEvent::ModelTextDelta { .. }
         | RuntimeEvent::ChildBranchStarted { .. }
@@ -89,7 +105,11 @@ mod tests {
 
         assert_eq!(
             project_runtime_activity(&event),
-            Some(("status", "failed", "Phase: Failed".to_owned()))
+            Some((
+                scriberig_session::AgentActivityKind::RuntimeStatus,
+                scriberig_session::AgentActivityState::Failed,
+                "Phase: Failed".to_owned()
+            ))
         );
     }
 
@@ -104,8 +124,8 @@ mod tests {
         assert_eq!(
             project_runtime_activity(&event),
             Some((
-                "reasoningSummary",
-                "completed",
+                scriberig_session::AgentActivityKind::ReasoningSummary,
+                scriberig_session::AgentActivityState::Completed,
                 "I will compare the two revisions.".to_owned()
             ))
         );

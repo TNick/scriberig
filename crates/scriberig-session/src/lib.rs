@@ -78,8 +78,9 @@ pub use branch::{Branch, BranchStatus};
 pub use description::Description;
 pub use error::SessionError;
 pub use execution::{
-    CacheDisposition, ExecutionActivity, ModelInvocation, ModelOutput, ModelRequestMessage,
-    ModelRequestProjection, ModelRequestTool, SelectionError, SessionExecutionSelection,
+    AgentActivityKind, AgentActivityState, CacheDisposition, ExecutionActivity, ModelInvocation,
+    ModelOutput, ModelRequestMessage, ModelRequestProjection, ModelRequestTool, SelectionError,
+    SessionActivityKind, SessionActivityState, SessionExecutionChange, SessionExecutionSelection,
 };
 pub use repository::{SelectionStoreError, SessionStore};
 pub use turn::{AgentOutput, HumanInput, ToolInvocation, ToolResult, Turn};

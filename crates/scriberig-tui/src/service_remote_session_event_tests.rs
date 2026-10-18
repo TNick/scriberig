@@ -17,11 +17,13 @@ fn remote_session_change_event_is_preserved() {
         revision: None,
         snapshot: None,
         operation: None,
+        activity_kind: None,
+        activity_state: None,
         metadata: Vec::new(),
     };
 
     assert!(matches!(
-        map_remote_event(event),
+        map_remote_event(&event),
         Some(scriberig_app::ApplicationEvent::SessionChanged { session: value })
             if value == session
     ));
@@ -40,20 +42,19 @@ fn remote_session_selection_event_is_preserved() {
         revision: None,
         snapshot: None,
         operation: None,
-        metadata: vec![
-            ("activity_kind".to_owned(), "modelSelection".to_owned()),
-            ("summary".to_owned(), "Model selected: Model A".to_owned()),
-        ],
+        activity_kind: Some(scriberig_protocol::SessionActivityKind::ModelSelectionChanged),
+        activity_state: None,
+        metadata: vec![("summary".to_owned(), "Model selected: Model A".to_owned())],
     };
 
     assert!(matches!(
-        map_remote_event(event),
+        map_remote_event(&event),
         Some(scriberig_app::ApplicationEvent::SessionSelectionChanged {
             session: value,
             activity_kind,
             summary,
         }) if value == session
-            && activity_kind == "modelSelection"
+            && activity_kind == scriberig_session::AgentActivityKind::ModelSelectionChanged
             && summary == "Model selected: Model A"
     ));
 }
@@ -70,16 +71,16 @@ fn remote_agent_activity_event_is_preserved() {
         operation: Some(OperationReference {
             id: "op_agent-1".to_owned(),
         }),
+        activity_kind: Some(scriberig_protocol::SessionActivityKind::ToolInvocation),
+        activity_state: Some(scriberig_protocol::SessionActivityState::Running),
         metadata: vec![
             ("branch".to_owned(), "branch-1".to_owned()),
-            ("activity_kind".to_owned(), "toolInvocation".to_owned()),
-            ("state".to_owned(), "running".to_owned()),
             ("summary".to_owned(), "Tool: search".to_owned()),
         ],
     };
 
     assert!(matches!(
-        map_remote_event(event),
+        map_remote_event(&event),
         Some(scriberig_app::ApplicationEvent::AgentActivity {
             branch,
             activity_kind,
@@ -87,8 +88,8 @@ fn remote_agent_activity_event_is_preserved() {
             summary,
             ..
         }) if branch == "branch-1"
-            && activity_kind == "toolInvocation"
-            && state == "running"
+            && activity_kind == scriberig_session::AgentActivityKind::ToolInvocation
+            && state == scriberig_session::AgentActivityState::Running
             && summary == "Tool: search"
     ));
 }

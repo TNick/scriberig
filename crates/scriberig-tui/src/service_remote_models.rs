@@ -176,6 +176,17 @@ fn to_session_selection(
         model_profile: selection.model_profile,
         model: selection.model,
         thinking_level: selection.thinking_level,
+        history: selection
+            .history
+            .into_iter()
+            .map(|change| scriberig_session::SessionExecutionChange {
+                revision: change.revision,
+                kind: change.kind,
+                summary: change.summary,
+                model: change.model,
+                thinking_level: change.thinking_level,
+            })
+            .collect(),
     }
 }
 

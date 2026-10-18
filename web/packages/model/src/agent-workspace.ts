@@ -53,21 +53,23 @@ export interface TransientAgentActivity {
   /** Durable branch associated with the runtime event. */
   branchId: string;
   /** Provider-neutral activity category. */
-  activityKind: string;
+  activityKind: import("@scriberig/protocol").SessionActivityItem["kind"];
   /** Current lifecycle state. */
-  state: string;
+  state: import("@scriberig/protocol").SessionActivityItem["state"];
   /** Safe bounded display summary. */
   summary: string;
 }
 
 /** One safe model or thinking selection notification received by the client. */
 export interface SessionSelectionActivity {
-  /** Monotonic event sequence used for replay and deduplication. */
-  sequence: number;
+  /** Monotonic event cursor, present for transient notifications. */
+  sequence?: number;
+  /** Session execution mutation revision, present for durable history. */
+  selectionRevision?: number;
   /** Stable session identity whose future execution selection changed. */
   sessionId: string;
-  /** Selection category such as modelSelection or thinkingSelection. */
-  activityKind: string;
+  /** Typed model or thinking selection category. */
+  activityKind: "ModelSelectionChanged" | "ThinkingLevelChanged";
   /** Bounded safe user-facing summary. */
   summary: string;
 }
@@ -269,9 +271,9 @@ export function storeAgentSession(
                   kind:
                     item.kind === "HumanInput"
                       ? "human"
-                      : item.kind === "ChildBranch"
+                      : item.kind === "BranchStarted"
                         ? "child"
-                        : item.kind === "BranchResult"
+                        : item.kind === "BranchCompleted"
                           ? "result"
                           : item.kind.startsWith("Tool")
                             ? "tool"
@@ -280,7 +282,7 @@ export function storeAgentSession(
                   state: item.state,
                   summary: item.summary,
                   handles:
-                    item.kind === "ChildBranch"
+                    item.kind === "BranchStarted"
                       ? [item.id]
                       : item.durableRef === undefined
                         ? []
@@ -312,7 +314,19 @@ export function storeAgentSession(
       },
     };
   }
-  return { ...state, branches, execution: session.execution, stale: false };
+  const selectionActivities = (session.execution.history ?? []).map((change) => ({
+    selectionRevision: change.revision,
+    sessionId: session.session.id,
+    activityKind: change.kind,
+    summary: change.summary,
+  }));
+  return {
+    ...state,
+    branches,
+    execution: session.execution,
+    selectionActivities,
+    stale: false,
+  };
 }
 
 /** Stores the safe public model library without persisting provider secrets.

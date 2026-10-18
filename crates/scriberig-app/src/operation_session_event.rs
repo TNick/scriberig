@@ -14,13 +14,13 @@ impl OperationRegistry {
     pub fn publish_session_selection_changed(
         &self,
         session: EntityId,
-        activity_kind: &str,
+        activity_kind: scriberig_session::AgentActivityKind,
         summary: &str,
     ) {
         if let Ok(mut state) = self.state.lock() {
             state.publish(&ApplicationEvent::SessionSelectionChanged {
                 session,
-                activity_kind: activity_kind.chars().take(64).collect(),
+                activity_kind,
                 summary: summary.chars().take(256).collect(),
             });
         }

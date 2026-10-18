@@ -1,5 +1,8 @@
 /** @file Defines long-running operations and exhaustive public events. */
 import type { BranchId, EntityId, OperationId, SessionId, SnapshotId } from "./ids";
+import type { SessionActivityItem } from "./sessions";
+type AgentActivityKind = SessionActivityItem["kind"];
+type AgentActivityState = SessionActivityItem["state"];
 /** Operation lifecycle states. */
 export type OperationStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 /** Public operation handle and state. */
@@ -28,7 +31,7 @@ export type ProtocolEvent = { sequence?: number } & (
   | {
       kind: "sessionSelectionChanged";
       sessionId: string;
-      activityKind: string;
+      activityKind: "ModelSelectionChanged" | "ThinkingLevelChanged";
       summary: string;
     }
   | { kind: "migrationCompleted"; migrationId: string }
@@ -43,8 +46,8 @@ export type ProtocolEvent = { sequence?: number } & (
       kind: "agentActivity";
       operationId: OperationId;
       branchId: BranchId;
-      activityKind: string;
-      state: string;
+      activityKind: AgentActivityKind;
+      state: AgentActivityState;
       summary: string;
     }
   | { kind: "operationFailed"; operationId: OperationId; error: string }
@@ -59,7 +62,7 @@ export type AgentEvent =
       kind: "sessionSelectionChanged";
       sequence: number;
       sessionId: SessionId;
-      activityKind: string;
+      activityKind: "ModelSelectionChanged" | "ThinkingLevelChanged";
       summary: string;
     }
   | { kind: "modelTextDelta"; sequence: number; operationId: OperationId; text: string }
@@ -68,8 +71,8 @@ export type AgentEvent =
       sequence: number;
       operationId: OperationId;
       branchId: BranchId;
-      activityKind: string;
-      state: string;
+      activityKind: AgentActivityKind;
+      state: AgentActivityState;
       summary: string;
     }
   | { kind: "agentOutputCommitted"; sequence: number; operationId: OperationId }

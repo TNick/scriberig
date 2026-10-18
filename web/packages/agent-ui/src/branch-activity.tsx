@@ -51,6 +51,16 @@ export function BranchActivityView({
   const [requested, setRequested] = useState<Record<string, true>>({});
   const [resultDetails, setResultDetails] = useState<Record<string, ToolResultDetailResponse>>({});
   const [resultRequested, setResultRequested] = useState<Record<string, true>>({});
+  const visibleItems = page.items.filter(
+    (item) =>
+      presentation?.reasoning === "shown" ||
+      (item.activityKind !== "ReasoningSummary" && item.activityKind !== "RuntimeStatus"),
+  );
+  const visibleTransientItems = transientItems.filter(
+    (item) =>
+      presentation?.reasoning === "shown" ||
+      (item.activityKind !== "ReasoningSummary" && item.activityKind !== "RuntimeStatus"),
+  );
   useEffect(() => {
     if (
       presentation?.prompt !== "shown" ||
@@ -79,7 +89,7 @@ export function BranchActivityView({
     }
   }, [onLoadModelRequest, page, presentation?.prompt, requestDetails, requested]);
   const depthById = new Map<string, number>();
-  const depths = page.items.map((item) => {
+  const depths = visibleItems.map((item) => {
     const depth =
       item.parentId === undefined ? 0 : Math.min(8, (depthById.get(item.parentId) ?? -1) + 1);
     depthById.set(item.id, depth);
@@ -89,7 +99,7 @@ export function BranchActivityView({
     <section aria-label={`Branch activity ${page.branchId}`}>
       <h2>Branch activity</h2>
       <ol>
-        {page.items.map((item, index) => {
+        {visibleItems.map((item, index) => {
           const depth = depths[index] ?? 0;
           const isToolInvocation = item.activityKind === "ToolInvocation";
           const isToolResult = item.activityKind === "ToolResult";
@@ -213,11 +223,11 @@ export function BranchActivityView({
           );
         })}
       </ol>
-      {transientItems.length > 0 && presentation?.reasoning === "shown" ? (
+      {visibleTransientItems.length > 0 ? (
         <section aria-label="Live activity">
           <h3>Live activity</h3>
           <ol>
-            {transientItems.map((item) => (
+            {visibleTransientItems.map((item) => (
               <li key={item.sequence} data-activity-state={item.state}>
                 <strong>{item.activityKind}</strong>: {item.summary}
               </li>

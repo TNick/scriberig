@@ -45,6 +45,7 @@ fn selection_methods_preserve_mutation_revisions() {
             model_profile: Some("profile-a".to_owned()),
             model: Some("model-a".to_owned()),
             thinking_level: Some("careful".to_owned()),
+            history: Vec::new(),
         }),
         request: Arc::clone(&observed),
     });

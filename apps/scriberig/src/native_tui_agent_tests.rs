@@ -51,6 +51,7 @@ fn session_model_and_thinking_selection_resolve_for_native_runtime() {
         model_profile: Some("local-profile".to_owned()),
         model: Some("scriberig-model".to_owned()),
         thinking_level: Some("deliberate".to_owned()),
+        history: Vec::new(),
     };
 
     let resolved = resolve_selected_runtime_model(&library, &selection, "runtime-default")
@@ -82,6 +83,7 @@ fn running_invocation_keeps_its_model_and_thinking_snapshot() {
         model_profile: Some("profile-a".to_owned()),
         model: Some("model-a".to_owned()),
         thinking_level: Some("medium".to_owned()),
+        history: Vec::new(),
     };
     let active_invocation =
         resolve_selected_runtime_model(&library, &active_selection, "runtime-default")
@@ -109,6 +111,7 @@ fn running_invocation_keeps_its_model_and_thinking_snapshot() {
         model_profile: Some("profile-b".to_owned()),
         model: Some("model-b".to_owned()),
         thinking_level: Some("high".to_owned()),
+        history: Vec::new(),
     };
     let next_invocation =
         resolve_selected_runtime_model(&library, &next_selection, "runtime-default")

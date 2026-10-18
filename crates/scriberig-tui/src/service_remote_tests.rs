@@ -295,6 +295,7 @@ fn remote_session_read_reconstructs_branch_activity() {
                     model_profile: Some("profile-a".to_owned()),
                     model: Some("model-a".to_owned()),
                     thinking_level: Some("careful".to_owned()),
+                    history: Vec::new(),
                 },
             }),
         },

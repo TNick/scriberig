@@ -99,9 +99,9 @@ pub struct TransientAgentActivity {
     /// Runtime branch associated with the activity.
     pub branch: String,
     /// Provider-neutral activity category.
-    pub activity_kind: String,
+    pub activity_kind: scriberig_session::AgentActivityKind,
     /// Lifecycle state such as running or completed.
-    pub state: String,
+    pub state: scriberig_session::AgentActivityState,
     /// Safe bounded user-facing summary.
     pub summary: String,
 }

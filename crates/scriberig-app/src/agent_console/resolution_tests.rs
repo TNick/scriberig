@@ -18,6 +18,7 @@ fn selection(profile: &str, model: &str, thinking: Option<&str>) -> SessionExecu
         model_profile: Some(profile.to_owned()),
         model: Some(model.to_owned()),
         thinking_level: thinking.map(str::to_owned),
+        history: Vec::new(),
     }
 }
 

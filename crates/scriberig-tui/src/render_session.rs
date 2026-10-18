@@ -65,20 +65,40 @@ pub(super) fn session_text(state: &TuiState, available_width: usize) -> Text<'st
             crate::inspector::sanitize(output)
         ))
     }));
+    lines.extend(model.execution.history.iter().map(|change| {
+        let label = match change.kind {
+            scriberig_session::AgentActivityKind::ModelSelectionChanged => "Model selection",
+            scriberig_session::AgentActivityKind::ThinkingLevelChanged => "Thinking selection",
+            _ => "Execution selection",
+        };
+        Line::from(format!(
+            "[{label} · revision {}] {}",
+            change.revision,
+            crate::inspector::sanitize(&change.summary)
+        ))
+    }));
     if state.reasoning_visibility == crate::state::ReasoningVisibility::Shown {
-        lines.extend(state.transient_agent_activities.iter().map(|activity| {
-            let label = if activity.activity_kind == "reasoningSummary" {
-                "Reasoning summary"
-            } else {
-                "Live activity"
-            };
-            Line::from(format!(
-                "[{label}] {}: {} ({})",
-                activity.branch,
-                crate::inspector::sanitize(&activity.summary),
-                activity.state
-            ))
-        }));
+        lines.extend(
+            state
+                .transient_agent_activities
+                .iter()
+                .map(|activity| {
+                    let label = if activity.activity_kind
+                        == scriberig_session::AgentActivityKind::ReasoningSummary
+                    {
+                        "Reasoning summary"
+                    } else {
+                        "Live activity"
+                    };
+                    Line::from(format!(
+                        "[{label}] {}: {} ({:?})",
+                        activity.branch,
+                        crate::inspector::sanitize(&activity.summary),
+                        activity.state
+                    ))
+                })
+                .collect::<Vec<_>>(),
+        );
     }
     Text::from(lines)
 }

@@ -15,6 +15,8 @@ pub fn event_from_application(event: ApplicationEvent) -> Event {
     let mut revision = None;
     let mut snapshot = None;
     let mut operation = None;
+    let mut typed_activity_kind = None;
+    let mut typed_activity_state = None;
     let mut metadata = Vec::new();
     let kind = match event {
         ApplicationEvent::SessionChanged { session } => {
@@ -28,10 +30,10 @@ pub fn event_from_application(event: ApplicationEvent) -> Event {
             activity_kind,
             summary,
         } => {
+            typed_activity_kind = Some(activity_kind);
             entity = Some(scriberig_protocol::EntityReference {
                 id: session.to_string(),
             });
-            metadata.push(("activity_kind".to_owned(), activity_kind));
             metadata.push(("summary".to_owned(), summary));
             EventKind::SessionSelectionChanged
         }
@@ -135,10 +137,10 @@ pub fn event_from_application(event: ApplicationEvent) -> Event {
             state,
             summary,
         } => {
+            typed_activity_kind = Some(activity_kind);
+            typed_activity_state = Some(state);
             operation = Some(value);
             metadata.push(("branch".to_owned(), branch));
-            metadata.push(("activity_kind".to_owned(), activity_kind));
-            metadata.push(("state".to_owned(), state));
             metadata.push(("summary".to_owned(), summary));
             EventKind::AgentActivity
         }
@@ -152,6 +154,8 @@ pub fn event_from_application(event: ApplicationEvent) -> Event {
         operation: operation.map(|value| scriberig_protocol::OperationReference {
             id: value.to_string(),
         }),
+        activity_kind: typed_activity_kind,
+        activity_state: typed_activity_state,
         metadata,
     }
 }
@@ -183,11 +187,15 @@ mod tests {
         let session = EntityId::new();
         let event = event_from_application(ApplicationEvent::SessionSelectionChanged {
             session,
-            activity_kind: "thinkingSelection".to_owned(),
+            activity_kind: scriberig_session::AgentActivityKind::ThinkingLevelChanged,
             summary: "Thinking level selected: careful".to_owned(),
         });
 
         assert_eq!(event.kind, EventKind::SessionSelectionChanged);
+        assert_eq!(
+            event.activity_kind,
+            Some(scriberig_protocol::SessionActivityKind::ThinkingLevelChanged)
+        );
         assert_eq!(
             event.entity.expect("session reference").id,
             session.to_string()
@@ -195,13 +203,10 @@ mod tests {
         assert!(event.operation.is_none());
         assert_eq!(
             event.metadata,
-            vec![
-                ("activity_kind".to_owned(), "thinkingSelection".to_owned()),
-                (
-                    "summary".to_owned(),
-                    "Thinking level selected: careful".to_owned()
-                )
-            ]
+            vec![(
+                "summary".to_owned(),
+                "Thinking level selected: careful".to_owned()
+            )]
         );
     }
 
@@ -212,12 +217,20 @@ mod tests {
         let event = event_from_application(ApplicationEvent::AgentActivity {
             operation,
             branch: "branch-1".to_owned(),
-            activity_kind: "toolInvocation".to_owned(),
-            state: "running".to_owned(),
+            activity_kind: scriberig_session::AgentActivityKind::ToolInvocation,
+            state: scriberig_session::AgentActivityState::Running,
             summary: "Tool: search".to_owned(),
         });
 
         assert_eq!(event.kind, EventKind::AgentActivity);
+        assert_eq!(
+            event.activity_kind,
+            Some(scriberig_protocol::SessionActivityKind::ToolInvocation)
+        );
+        assert_eq!(
+            event.activity_state,
+            Some(scriberig_protocol::SessionActivityState::Running)
+        );
         assert_eq!(
             event.operation.expect("operation reference").id,
             "op_agent-activity-test"
@@ -226,8 +239,6 @@ mod tests {
             event.metadata,
             vec![
                 ("branch".to_owned(), "branch-1".to_owned()),
-                ("activity_kind".to_owned(), "toolInvocation".to_owned()),
-                ("state".to_owned(), "running".to_owned()),
                 ("summary".to_owned(), "Tool: search".to_owned()),
             ]
         );

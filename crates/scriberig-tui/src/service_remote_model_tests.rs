@@ -146,6 +146,7 @@ fn sets_session_model_with_expected_revision() {
             model_profile: Some("profile-a".to_owned()),
             model: Some("model-a".to_owned()),
             thinking_level: Some("careful".to_owned()),
+            history: Vec::new(),
         }),
         request: Arc::clone(&observed),
     }));

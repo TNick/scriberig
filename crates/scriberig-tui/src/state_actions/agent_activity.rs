@@ -17,14 +17,14 @@ use crate::state::TuiState;
 pub(super) fn observe_agent_activity(
     state: &mut TuiState,
     branch: &str,
-    activity_kind: &str,
-    activity_state: &str,
+    activity_kind: scriberig_session::AgentActivityKind,
+    activity_state: scriberig_session::AgentActivityState,
     summary: &str,
 ) -> Vec<Effect> {
     let activity = crate::state::TransientAgentActivity {
         branch: branch.chars().take(128).collect(),
-        activity_kind: activity_kind.chars().take(64).collect(),
-        state: activity_state.chars().take(32).collect(),
+        activity_kind,
+        state: activity_state,
         summary: summary.chars().take(256).collect(),
     };
     if state.transient_agent_activities.last() != Some(&activity) {
@@ -37,7 +37,9 @@ pub(super) fn observe_agent_activity(
         return vec![Effect::None];
     }
     state.shell_message = match activity_kind {
-        "reasoningSummary" => format!("Reasoning summary: {summary}"),
+        scriberig_session::AgentActivityKind::ReasoningSummary => {
+            format!("Reasoning summary: {summary}")
+        }
         _ => summary.to_owned(),
     };
     vec![Effect::None]
@@ -59,11 +61,17 @@ mod tests {
         observe_agent_activity(
             &mut state,
             "branch-1",
-            "reasoningSummary",
-            "completed",
+            scriberig_session::AgentActivityKind::ReasoningSummary,
+            scriberig_session::AgentActivityState::Completed,
             "safe summary",
         );
-        observe_agent_activity(&mut state, "branch-1", "status", "running", "running");
+        observe_agent_activity(
+            &mut state,
+            "branch-1",
+            scriberig_session::AgentActivityKind::RuntimeStatus,
+            scriberig_session::AgentActivityState::Running,
+            "running",
+        );
 
         assert_eq!(state.shell_message, "unchanged");
         assert_eq!(state.transient_agent_activities.len(), 2);
@@ -80,8 +88,8 @@ mod tests {
         observe_agent_activity(
             &mut state,
             "branch-1",
-            "reasoningSummary",
-            "completed",
+            scriberig_session::AgentActivityKind::ReasoningSummary,
+            scriberig_session::AgentActivityState::Completed,
             "safe summary",
         );
 

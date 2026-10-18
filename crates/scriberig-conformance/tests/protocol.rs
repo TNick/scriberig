@@ -86,6 +86,8 @@ fn operation_and_event_round_trip() {
         operation: Some(OperationReference {
             id: "op-1".to_owned(),
         }),
+        activity_kind: None,
+        activity_state: None,
         metadata: vec![("source".to_owned(), "fixture".to_owned())],
     };
     assert_eq!(round_trip(&event), event);

@@ -34,8 +34,8 @@ pub(in crate::state) fn reduce_application_event(
             return super::agent_activity::observe_agent_activity(
                 state,
                 branch,
-                activity_kind,
-                activity_state,
+                *activity_kind,
+                *activity_state,
                 summary,
             );
         }
@@ -47,8 +47,8 @@ pub(in crate::state) fn reduce_application_event(
             let effects = super::agent_activity::observe_agent_activity(
                 state,
                 "session",
-                activity_kind,
-                "completed",
+                *activity_kind,
+                scriberig_session::AgentActivityState::Completed,
                 summary,
             );
             state.shell_message.clone_from(summary);
@@ -92,7 +92,7 @@ mod tests {
             &mut state,
             &scriberig_app::ApplicationEvent::SessionSelectionChanged {
                 session: scriberig_core::EntityId::new(),
-                activity_kind: "modelSelection".to_owned(),
+                activity_kind: scriberig_session::AgentActivityKind::ModelSelectionChanged,
                 summary: "Model selected: Model A".to_owned(),
             },
         );

@@ -109,6 +109,16 @@ fn execution_selection_compare_and_swap_is_atomic() {
             Some("careful".to_owned()),
         )
         .expect("propose selection");
+    proposed
+        .execution
+        .history
+        .push(scriberig_session::SessionExecutionChange {
+            revision: proposed.execution.revision,
+            kind: scriberig_session::AgentActivityKind::ModelSelectionChanged,
+            summary: "Model selected: model-a".to_owned(),
+            model: proposed.execution.model.clone(),
+            thinking_level: proposed.execution.thinking_level.clone(),
+        });
     let mut branch_update = store
         .load(session_id)
         .expect("load branch snapshot")
@@ -155,4 +165,9 @@ fn execution_selection_compare_and_swap_is_atomic() {
         stored.execution.model.as_deref(),
         Some("model-a" | "model-b")
     ));
+    assert_eq!(stored.execution.history.len(), 1);
+    assert_eq!(
+        stored.execution.history[0].model.as_deref(),
+        stored.execution.model.as_deref()
+    );
 }

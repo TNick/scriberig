@@ -83,6 +83,17 @@ pub(super) fn session_response(
             model_profile: execution.model_profile,
             model: execution.model,
             thinking_level: execution.thinking_level,
+            history: execution
+                .history
+                .into_iter()
+                .map(|change| scriberig_protocol::SessionExecutionChange {
+                    revision: change.revision,
+                    kind: change.kind,
+                    summary: change.summary,
+                    model: change.model,
+                    thinking_level: change.thinking_level,
+                })
+                .collect(),
         },
     }
 }

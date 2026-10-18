@@ -24,6 +24,8 @@ fn event_references_survive_serialization() {
         operation: Some(OperationReference {
             id: "op_fixture".to_owned(),
         }),
+        activity_kind: None,
+        activity_state: None,
         metadata: vec![("authority".to_owned(), "canonical".to_owned())],
     };
     let encoded = serde_json::to_string(&event).expect("serialize event");
@@ -59,6 +61,8 @@ fn event_subject_resolves_through_the_public_read_boundary() {
             id: fixture.snapshot.to_string(),
         }),
         operation: None,
+        activity_kind: None,
+        activity_state: None,
         metadata: Vec::new(),
     };
     let response = client

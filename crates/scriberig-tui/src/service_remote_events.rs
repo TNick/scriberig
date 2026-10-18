@@ -48,7 +48,7 @@ pub(super) fn application_events<T: scriberig_protocol::ProtocolTransport>(
     }
     let mut application_events = events
         .into_iter()
-        .filter_map(map_remote_event)
+        .filter_map(|event| map_remote_event(&event))
         .collect::<Vec<_>>();
     application_events.extend(
         refresh_sessions

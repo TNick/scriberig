@@ -121,6 +121,15 @@ describe("session client projections", () => {
             model_profile: "profile-a",
             model: "model-a",
             thinking_level: "careful",
+            history: [
+              {
+                revision: 3,
+                kind: "ThinkingLevelChanged",
+                summary: "Thinking level selected: careful",
+                model: "model-a",
+                thinking_level: "careful",
+              },
+            ],
           },
           branches: [
             {
@@ -175,6 +184,15 @@ describe("session client projections", () => {
       modelProfile: "profile-a",
       model: "model-a",
       thinkingLevel: "careful",
+      history: [
+        {
+          revision: 3,
+          kind: "ThinkingLevelChanged",
+          summary: "Thinking level selected: careful",
+          model: "model-a",
+          thinkingLevel: "careful",
+        },
+      ],
     });
     expect(session.branches[0]?.turns[0]?.hasHumanInput).toBe(true);
     expect(await client.getBranch("session-1" as never, "child" as never)).toMatchObject({

@@ -4,6 +4,7 @@ import type {
   ModelDescriptor,
   ModelProfile,
   SessionExecutionSelection,
+  SessionExecutionChange,
 } from "@scriberig/protocol";
 
 /** Normalizes Rust or JavaScript model-library field casing.
@@ -101,11 +102,34 @@ function normalizeProfile(value: unknown): ModelProfile {
 export function normalizeExecutionSelection(value: unknown): SessionExecutionSelection {
   const record =
     typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
+  const history = Array.isArray(record.history)
+    ? record.history.flatMap((value) => {
+        if (typeof value !== "object" || value === null) return [];
+        const change = value as Record<string, unknown>;
+        const kind = change.kind;
+        if (
+          (kind !== "ModelSelectionChanged" && kind !== "ThinkingLevelChanged") ||
+          typeof change.revision !== "number" ||
+          typeof change.summary !== "string"
+        )
+          return [];
+        return [
+          {
+            revision: change.revision,
+            kind: kind as SessionExecutionChange["kind"],
+            summary: change.summary,
+            ...optionalString(change.model, "model"),
+            ...optionalString(change.thinking_level ?? change.thinkingLevel, "thinkingLevel"),
+          },
+        ];
+      })
+    : undefined;
   return {
     revision: typeof record.revision === "number" ? record.revision : 0,
     ...optionalString(record.model_profile ?? record.modelProfile, "modelProfile"),
     ...optionalString(record.model, "model"),
     ...optionalString(record.thinking_level ?? record.thinkingLevel, "thinkingLevel"),
+    ...(history === undefined ? {} : { history }),
   };
 }
 

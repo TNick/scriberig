@@ -2,6 +2,7 @@
 
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import type { TransientAgentActivity } from "@scriberig/model";
 import { BranchActivityView } from "../src/branch-activity";
 
 describe("agent activity", () => {
@@ -104,5 +105,94 @@ describe("agent activity", () => {
     expect(detailed).toContain('data-activity-id="result-1"');
     expect(page.items).toEqual(originalItems);
     expect(toolResultReads).toBe(0);
+  });
+
+  it("filters durable and live reasoning/status without changing captured activity", () => {
+    const page = {
+      branchId: "root" as never,
+      items: [
+        {
+          id: "reason-1",
+          ordinal: 0,
+          kind: "model" as const,
+          activityKind: "ReasoningSummary" as const,
+          summary: "Safe summary",
+          handles: [],
+        },
+        {
+          id: "status-1",
+          ordinal: 1,
+          kind: "model" as const,
+          activityKind: "RuntimeStatus" as const,
+          summary: "Planning",
+          handles: [],
+        },
+        {
+          id: "output-1",
+          ordinal: 2,
+          kind: "model" as const,
+          activityKind: "AssistantOutput" as const,
+          summary: "Final answer",
+          handles: [],
+        },
+      ],
+    };
+    const transientItems: TransientAgentActivity[] = [
+      {
+        sequence: 3,
+        operationId: "op-1",
+        branchId: "root",
+        activityKind: "ReasoningSummary",
+        state: "Completed",
+        summary: "Live safe summary",
+      },
+      {
+        sequence: 4,
+        operationId: "op-1",
+        branchId: "root",
+        activityKind: "RuntimeStatus",
+        state: "Running",
+        summary: "Live planning",
+      },
+    ];
+    const capturedPage = structuredClone(page);
+    const capturedTail = structuredClone(transientItems);
+    const hidden = renderToStaticMarkup(
+      <BranchActivityView
+        page={page}
+        transientItems={transientItems}
+        presentation={{
+          reasoning: "hidden",
+          toolInvocation: "simple",
+          toolOutput: "summary",
+          prompt: "hidden",
+        }}
+      />,
+    );
+    const shown = renderToStaticMarkup(
+      <BranchActivityView
+        page={page}
+        transientItems={transientItems}
+        presentation={{
+          reasoning: "shown",
+          toolInvocation: "simple",
+          toolOutput: "summary",
+          prompt: "hidden",
+        }}
+      />,
+    );
+
+    expect(hidden).not.toContain("Safe summary");
+    expect(hidden).not.toContain("Planning");
+    expect(hidden).not.toContain("Live safe summary");
+    expect(hidden).not.toContain("Live planning");
+    expect(hidden).toContain("Final answer");
+    expect(shown).toContain("Safe summary");
+    expect(shown).toContain("Planning");
+    expect(shown).toContain("Live safe summary");
+    expect(shown).toContain("Live planning");
+    expect(shown).toContain("Final answer");
+    expect(page).toEqual(capturedPage);
+    expect(transientItems).toEqual(capturedTail);
   });
 });

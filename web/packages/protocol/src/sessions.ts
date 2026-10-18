@@ -31,9 +31,17 @@ export interface SessionActivityItem {
     | "AssistantOutput"
     | "ToolInvocation"
     | "ToolResult"
-    | "ChildBranch"
-    | "BranchResult";
-  state: "Completed" | "Running" | "Failed";
+    | "ReasoningSummary"
+    | "RuntimeStatus"
+    | "ModelRequest"
+    | "BranchStarted"
+    | "BranchCompleted"
+    | "OperationProgress"
+    | "Validation"
+    | "ModelSelectionChanged"
+    | "ThinkingLevelChanged"
+    | "Error";
+  state: "Completed" | "Running" | "Failed" | "Cancelled";
   summary: string;
   durableRef?: string;
   model?: string;
@@ -62,6 +70,15 @@ export interface SessionBranch {
 export interface SessionExecutionSelection {
   revision: number;
   modelProfile?: string;
+  model?: string;
+  thinkingLevel?: string;
+  history?: readonly SessionExecutionChange[];
+}
+/** One durable future-invocation selection change. */
+export interface SessionExecutionChange {
+  revision: number;
+  kind: "ModelSelectionChanged" | "ThinkingLevelChanged";
+  summary: string;
   model?: string;
   thinkingLevel?: string;
 }

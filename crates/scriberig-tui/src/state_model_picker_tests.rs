@@ -27,6 +27,7 @@ fn picker_state(model: Option<&str>) -> TuiState {
                 model_profile: None,
                 model: model.map(str::to_owned),
                 thinking_level: None,
+                history: Vec::new(),
             },
             tool_invocation_details: std::collections::BTreeMap::default(),
         }),
@@ -160,6 +161,7 @@ fn selection_response_updates_session_header_and_revision() {
                 model_profile: Some("profile-a".to_owned()),
                 model: Some("model-a".to_owned()),
                 thinking_level: Some("careful".to_owned()),
+                history: Vec::new(),
             },
         ),
     );

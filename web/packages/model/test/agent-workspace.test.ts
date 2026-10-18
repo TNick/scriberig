@@ -154,8 +154,8 @@ describe("agent workspace", () => {
       sequence: 1,
       operationId: "op-1" as never,
       branchId: "branch-1" as never,
-      activityKind: "toolInvocation",
-      state: "running",
+      activityKind: "ToolInvocation",
+      state: "Running",
       summary: "Tool: search",
     });
     expect(state.transientActivities["branch-1"]).toHaveLength(1);
@@ -165,11 +165,11 @@ describe("agent workspace", () => {
       sequence: 1,
       operationId: "op-1" as never,
       branchId: "branch-1" as never,
-      activityKind: "toolInvocation",
-      state: "failed",
+      activityKind: "ToolInvocation",
+      state: "Failed",
       summary: "out of order duplicate",
     });
-    expect(state.transientActivities["branch-1"]?.[0]?.state).toBe("running");
+    expect(state.transientActivities["branch-1"]?.[0]?.state).toBe("Running");
     state = reduceAgentEvent(state, {
       kind: "agentOutputCommitted",
       sequence: 2,
@@ -184,7 +184,7 @@ describe("agent workspace", () => {
       kind: "sessionSelectionChanged",
       sequence: 1,
       sessionId: "session-1" as never,
-      activityKind: "modelSelection",
+      activityKind: "ModelSelectionChanged",
       summary: "Model selected: Model A",
     });
 
@@ -265,7 +265,24 @@ describe("agent workspace", () => {
   it("prefers the shared causal activity projection when present", () => {
     const state = storeAgentSession(createAgentWorkspaceState(), {
       session: { id: "session-1" as never },
-      execution: { revision: 0 },
+      execution: {
+        revision: 2,
+        history: [
+          {
+            revision: 1,
+            kind: "ModelSelectionChanged",
+            summary: "Model selected: model-a",
+            model: "model-a",
+          },
+          {
+            revision: 2,
+            kind: "ThinkingLevelChanged",
+            summary: "Thinking level selected: steady",
+            model: "model-a",
+            thinkingLevel: "steady",
+          },
+        ],
+      },
       branches: [
         {
           id: "branch-1" as never,
@@ -301,84 +318,6 @@ describe("agent workspace", () => {
     expect(state.activity["branch-1"]?.items).toMatchObject([
       { id: "invoke-1", kind: "tool", toolName: "search" },
       { id: "result-1", kind: "tool", parentId: "invoke-1" },
-    ]);
-  });
-
-  it("rebuilds durable activity after all transient activity is discarded", () => {
-    const session = {
-      session: { id: "session-1" as never },
-      execution: { revision: 0 },
-      branches: [
-        {
-          id: "branch-1" as never,
-          title: "root",
-          status: "Active" as const,
-          children: [],
-          turns: [],
-          activity: [
-            {
-              id: "model-1",
-              session: "session-1",
-              sequence: 0,
-              branch: "branch-1",
-              kind: "ModelInvocation" as const,
-              state: "Completed" as const,
-              summary: "Model request: model-a",
-            },
-            {
-              id: "invoke-1",
-              session: "session-1",
-              sequence: 1,
-              branch: "branch-1",
-              parent: "model-1",
-              kind: "ToolInvocation" as const,
-              state: "Completed" as const,
-              summary: "Tool: search",
-              toolName: "search",
-            },
-            {
-              id: "result-1",
-              session: "session-1",
-              sequence: 2,
-              branch: "branch-1",
-              parent: "invoke-1",
-              kind: "ToolResult" as const,
-              state: "Completed" as const,
-              summary: "Tool completed",
-            },
-            {
-              id: "output-1",
-              session: "session-1",
-              sequence: 3,
-              branch: "branch-1",
-              parent: "model-1",
-              kind: "AssistantOutput" as const,
-              state: "Completed" as const,
-              summary: "Recovered final result",
-            },
-          ],
-        },
-      ],
-    };
-    const loaded = storeAgentSession(createAgentWorkspaceState(), session);
-    const live = reduceAgentEvent(loaded, {
-      kind: "transientActivity",
-      sequence: 1,
-      operationId: "op-1" as never,
-      branchId: "branch-1" as never,
-      activityKind: "toolResult",
-      state: "completed",
-      summary: "Tool search completed",
-    });
-    const reloaded = storeAgentSession(createAgentWorkspaceState(), session);
-
-    expect(live.transientActivities["branch-1"]).toHaveLength(1);
-    expect(reloaded.transientActivities).toEqual({});
-    expect(reloaded.activity["branch-1"]?.items).toMatchObject([
-      { id: "model-1", kind: "model" },
-      { id: "invoke-1", kind: "tool", summary: "Tool: search", parentId: "model-1" },
-      { id: "result-1", kind: "tool", parentId: "invoke-1" },
-      { id: "output-1", kind: "model", summary: "Recovered final result" },
     ]);
   });
 

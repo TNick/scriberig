@@ -3113,6 +3113,7 @@ version = "0.1.0"
 dependencies = [
  "schemars",
  "scriberig-core",
+ "scriberig-session",
  "serde",
  "serde_json",
 ]
@@ -3179,6 +3180,7 @@ dependencies = [
 name = "scriberig-session"
 version = "0.1.0"
 dependencies = [
+ "schemars",
  "scriberig-core",
  "scriberig-graph",
  "scriberig-migration",

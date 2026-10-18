@@ -11,6 +11,7 @@ import type {
   ProtocolEvent,
   ProtocolError,
   SnapshotId,
+  SessionActivityItem,
 } from "@scriberig/protocol";
 import { SseParser } from "./sse-parser";
 
@@ -20,6 +21,8 @@ type WireEvent = {
   entity?: { id?: unknown };
   operation?: { id?: unknown };
   snapshot?: { id?: unknown };
+  activity_kind?: unknown;
+  activity_state?: unknown;
   metadata?: unknown;
 };
 
@@ -99,7 +102,9 @@ export function normalizeProtocolEvent(value: unknown): ProtocolEvent | undefine
         ? withSequence({ kind: "sessionChanged", sessionId: entityId as never })
         : undefined;
     case "SessionSelectionChanged": {
-      const activityKind = metadataValue(event, "activity_kind");
+      const activityKind = selectionActivityKind(
+        typeof event.activity_kind === "string" ? event.activity_kind : undefined,
+      );
       const summary = metadataValue(event, "summary");
       return typeof entityId === "string" && activityKind !== undefined && summary !== undefined
         ? withSequence({
@@ -161,8 +166,12 @@ export function normalizeProtocolEvent(value: unknown): ProtocolEvent | undefine
     }
     case "AgentActivity": {
       const branchId = metadataValue(event, "branch");
-      const activityKind = metadataValue(event, "activity_kind");
-      const state = metadataValue(event, "state");
+      const activityKind = sharedActivityKind(
+        typeof event.activity_kind === "string" ? event.activity_kind : undefined,
+      );
+      const state = activityState(
+        typeof event.activity_state === "string" ? event.activity_state : undefined,
+      );
       const summary = metadataValue(event, "summary");
       return typeof operationId === "string" &&
         branchId !== undefined &&
@@ -182,6 +191,54 @@ export function normalizeProtocolEvent(value: unknown): ProtocolEvent | undefine
     default:
       return undefined;
   }
+}
+
+/** Validates a serialized shared activity kind before exposing it to clients.
+ * @param value Wire value from event metadata.
+ * @returns Typed activity kind, or undefined when the server sent an unknown value.
+ * @throws Never; unrecognized values return undefined.
+ */
+function sharedActivityKind(value: string | undefined): SessionActivityItem["kind"] | undefined {
+  const kinds: readonly SessionActivityItem["kind"][] = [
+    "HumanInput",
+    "AssistantOutput",
+    "ReasoningSummary",
+    "RuntimeStatus",
+    "ModelInvocation",
+    "ModelRequest",
+    "ToolInvocation",
+    "ToolResult",
+    "BranchStarted",
+    "BranchCompleted",
+    "OperationProgress",
+    "Validation",
+    "ModelSelectionChanged",
+    "ThinkingLevelChanged",
+    "Error",
+  ];
+  return kinds.find((kind) => kind === value);
+}
+
+/** Validates serialized selection-change categories.
+ * @param value Wire value from event metadata.
+ * @returns A typed selection category, or undefined when unrecognized.
+ * @throws Never; unrecognized values return undefined.
+ */
+function selectionActivityKind(
+  value: string | undefined,
+): "ModelSelectionChanged" | "ThinkingLevelChanged" | undefined {
+  return value === "ModelSelectionChanged" || value === "ThinkingLevelChanged" ? value : undefined;
+}
+
+/** Validates serialized activity lifecycle states.
+ * @param value Wire value from event metadata.
+ * @returns A typed lifecycle state, or undefined when unrecognized.
+ * @throws Never; unrecognized values return undefined.
+ */
+function activityState(value: string | undefined): SessionActivityItem["state"] | undefined {
+  return value === "Running" || value === "Completed" || value === "Failed" || value === "Cancelled"
+    ? value
+    : undefined;
 }
 /** Fetch-backed semantic transport with centralized operation mapping.
  *

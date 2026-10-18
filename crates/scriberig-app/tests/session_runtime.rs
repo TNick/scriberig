@@ -3,6 +3,9 @@
 mod support;
 use support::{Fixture, session_context};
 
+#[path = "session_runtime_access_tests/mod.rs"]
+mod access_tests;
+
 use scriberig_app::{
     AgentCommandRequest, AgentConsoleBackend, ApplicationContext, ApplicationError,
     ApplicationService, CredentialRef, ModelCapabilities, ModelDescriptor, ModelId, ModelLibrary,
@@ -156,6 +159,21 @@ fn session_model_selection_uses_library_and_mutation_revision() {
             .count(),
         3
     );
+    assert_selection_events(&service, session);
+    assert_replayed_selection_history(&service, &context, session, &selected);
+    let available = service
+        .agent_model_library(&context)
+        .expect("authorized model library");
+    assert_eq!(available.profiles.len(), 2);
+    assert!(!format!("{available:?}").contains("resolved-secret"));
+}
+
+/// Verifies typed live selection events include model and fallback activity.
+///
+/// # Parameters
+/// - `service`: Application service publishing the selection events.
+/// - `session`: Session identity whose events are inspected.
+fn assert_selection_events(service: &ApplicationService<Fixture>, session: EntityId) {
     let selection_events = service
         .operations()
         .events()
@@ -169,30 +187,49 @@ fn session_model_selection_uses_library_and_mutation_revision() {
             _ => None,
         })
         .collect::<Vec<_>>();
+
     assert_eq!(selection_events.len(), 5);
     assert!(selection_events.iter().any(|(kind, summary)| {
-        kind == "modelSelection" && summary == "Model selected: Model A"
+        *kind == scriberig_session::AgentActivityKind::ModelSelectionChanged
+            && summary == "Model selected: Model A"
     }));
     assert!(selection_events.iter().any(|(kind, summary)| {
-        kind == "thinkingSelection" && summary == "Thinking level selected: steady"
+        *kind == scriberig_session::AgentActivityKind::ThinkingLevelChanged
+            && summary == "Thinking level selected: steady"
     }));
-    let available = service
-        .agent_model_library(&context)
-        .expect("authorized model library");
-    assert_eq!(available.profiles.len(), 2);
-    assert!(!format!("{available:?}").contains("resolved-secret"));
 }
 
-/// Verifies model selection fails without the model library capability.
-#[test]
-fn model_library_read_requires_agent_configuration_capability() {
-    let service = ApplicationService::new(Fixture);
-
-    let error = service
-        .agent_model_library(&ApplicationContext::empty())
-        .expect_err("model library must be authorized");
-
-    assert_eq!(error.category(), "permission_denied");
+/// Verifies durable selection history reloads with the fallback provenance.
+///
+/// # Parameters
+/// - `service`: Application service owning the session state.
+/// - `context`: Authorized context for the session read.
+/// - `session`: Session identity whose history is reloaded.
+/// - `selected`: Selection returned by the latest successful mutation.
+fn assert_replayed_selection_history(
+    service: &ApplicationService<Fixture>,
+    context: &ApplicationContext,
+    session: EntityId,
+    selected: &scriberig_session::SessionExecutionSelection,
+) {
+    let reloaded = service
+        .read_session(context, &SessionRequest { session })
+        .expect("selection history reload");
+    assert_eq!(reloaded.execution.history, selected.history);
+    assert!(reloaded.execution.history.iter().any(|change| {
+        change.kind == scriberig_session::AgentActivityKind::ThinkingLevelChanged
+            && change.thinking_level.as_deref() == Some("steady")
+    }));
+    assert!(reloaded.execution.history.iter().any(|change| {
+        change.revision == 3
+            && change.kind == scriberig_session::AgentActivityKind::ModelSelectionChanged
+            && change.model.as_deref() == Some("model-b")
+    }));
+    assert!(reloaded.execution.history.iter().any(|change| {
+        change.revision == 3
+            && change.kind == scriberig_session::AgentActivityKind::ThinkingLevelChanged
+            && change.thinking_level.as_deref() == Some("steady")
+    }));
 }
 
 /// Verifies local agent acceptance creates and updates a session branch.
@@ -304,25 +341,6 @@ fn agent_submission_without_capability_is_denied() {
     assert!(matches!(
         error,
         ApplicationError::PermissionDenied { action, .. } if action == "agent_start"
-    ));
-}
-
-/// Verifies session-tree reads cannot bypass the application capability boundary.
-#[test]
-fn session_read_without_capability_is_denied() {
-    let service = ApplicationService::new(Fixture);
-    let error = service
-        .read_session(
-            &ApplicationContext::empty(),
-            &SessionRequest {
-                session: EntityId::from_bytes([5; 16]),
-            },
-        )
-        .expect_err("session capability must be required");
-
-    assert!(matches!(
-        error,
-        ApplicationError::PermissionDenied { action, .. } if action == "session_branch_tree"
     ));
 }
 

@@ -16,6 +16,9 @@ pub(crate) use remote_find::find_entities;
 #[path = "service_remote_presentation.rs"]
 mod remote_presentation;
 pub(crate) use remote_presentation::presentation_response;
+#[path = "service_remote_event_mapping.rs"]
+mod event_mapping;
+pub(crate) use event_mapping::map_remote_event;
 
 /// Lists remote snapshot entities for the TUI explorer.
 ///
@@ -190,13 +193,37 @@ pub(crate) fn session_from_response(
         branches,
         goals: Vec::new(),
         tasks: Vec::new(),
-        execution: scriberig_session::SessionExecutionSelection {
-            revision: response.execution.revision,
-            model_profile: response.execution.model_profile,
-            model: response.execution.model,
-            thinking_level: response.execution.thinking_level,
-        },
+        execution: execution_from_response(response.execution),
     })
+}
+
+/// Converts the public execution selection and history into the session owner.
+///
+/// # Parameters
+/// - `selection`: Protocol selection carried by the session response.
+///
+/// # Returns
+/// Equivalent session-domain execution selection.
+fn execution_from_response(
+    selection: scriberig_protocol::SessionExecutionSelection,
+) -> scriberig_session::SessionExecutionSelection {
+    scriberig_session::SessionExecutionSelection {
+        revision: selection.revision,
+        model_profile: selection.model_profile,
+        model: selection.model,
+        thinking_level: selection.thinking_level,
+        history: selection
+            .history
+            .into_iter()
+            .map(|change| scriberig_session::SessionExecutionChange {
+                revision: change.revision,
+                kind: change.kind,
+                summary: change.summary,
+                model: change.model,
+                thinking_level: change.thinking_level,
+            })
+            .collect(),
+    }
 }
 
 /// Parses one remote entity identity and sanitizes malformed responses.
@@ -231,109 +258,6 @@ pub(super) fn parse_snapshot(value: &str) -> Result<scriberig_core::SnapshotId, 
     scriberig_core::SnapshotId::from_str(value).map_err(|error| ApplicationError::Internal {
         message: format!("remote response contained invalid snapshot identity: {error}"),
     })
-}
-
-/// Converts operation-related protocol events into shared application events.
-/// - `event`: Argument named `event`.
-///
-/// # Returns
-/// The value produced by the declaration.
-/// - `crate`: Internal visibility marker.
-pub(crate) fn map_remote_event(
-    event: scriberig_protocol::Event,
-) -> Option<scriberig_app::ApplicationEvent> {
-    if event.kind == scriberig_protocol::EventKind::SessionChanged {
-        let session = parse_entity(&event.entity?.id).ok()?;
-        return Some(scriberig_app::ApplicationEvent::SessionChanged { session });
-    }
-    if event.kind == scriberig_protocol::EventKind::SessionSelectionChanged {
-        let session = parse_entity(&event.entity?.id).ok()?;
-        let value = |key: &str| {
-            event
-                .metadata
-                .iter()
-                .find(|(name, _)| name == key)
-                .map(|(_, value)| value.clone())
-        };
-        return Some(scriberig_app::ApplicationEvent::SessionSelectionChanged {
-            session,
-            activity_kind: value("activity_kind")?,
-            summary: value("summary")?,
-        });
-    }
-    let operation = event.operation?.id.parse().ok()?;
-    match event.kind {
-        scriberig_protocol::EventKind::OperationStarted => {
-            Some(scriberig_app::ApplicationEvent::OperationStarted { operation })
-        }
-        scriberig_protocol::EventKind::OperationProgressed => {
-            let progress = event
-                .metadata
-                .iter()
-                .find(|(key, _)| key == "percent")
-                .and_then(|(_, value)| value.parse::<u8>().ok())
-                .map(|percent| scriberig_app::OperationProgress {
-                    status: scriberig_app::OperationStatus::Running,
-                    completed: Some(u64::from(percent)),
-                    total: Some(100),
-                    phase: None,
-                })?;
-            Some(scriberig_app::ApplicationEvent::OperationProgressed {
-                operation,
-                progress,
-            })
-        }
-        scriberig_protocol::EventKind::OperationCompleted => {
-            Some(scriberig_app::ApplicationEvent::OperationCompleted { operation })
-        }
-        scriberig_protocol::EventKind::OperationFailed => {
-            Some(scriberig_app::ApplicationEvent::OperationFailed {
-                operation,
-                error: event
-                    .metadata
-                    .iter()
-                    .find(|(key, _)| key == "error")
-                    .map(|(_, value)| value.clone())
-                    .unwrap_or_else(|| "operation failed".to_owned()),
-            })
-        }
-        scriberig_protocol::EventKind::OperationCancelled => {
-            Some(scriberig_app::ApplicationEvent::OperationCancelled { operation })
-        }
-        scriberig_protocol::EventKind::AgentOutputProduced => {
-            let output = event
-                .metadata
-                .iter()
-                .find(|(key, _)| key == "output")
-                .map(|(_, value)| value.clone())?;
-            Some(scriberig_app::ApplicationEvent::AgentOutputProduced { operation, output })
-        }
-        scriberig_protocol::EventKind::AgentOutputDelta => {
-            let text = event
-                .metadata
-                .iter()
-                .find(|(key, _)| key == "text")
-                .map(|(_, value)| value.clone())?;
-            Some(scriberig_app::ApplicationEvent::AgentOutputDelta { operation, text })
-        }
-        scriberig_protocol::EventKind::AgentActivity => {
-            let value = |key: &str| {
-                event
-                    .metadata
-                    .iter()
-                    .find(|(name, _)| name == key)
-                    .map(|(_, value)| value.clone())
-            };
-            Some(scriberig_app::ApplicationEvent::AgentActivity {
-                operation,
-                branch: value("branch")?,
-                activity_kind: value("activity_kind")?,
-                state: value("state")?,
-                summary: value("summary")?,
-            })
-        }
-        _ => None,
-    }
 }
 
 /// Converts client/protocol failures into safe application-boundary errors.

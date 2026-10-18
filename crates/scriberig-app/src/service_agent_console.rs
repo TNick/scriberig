@@ -2,22 +2,26 @@
 
 #[path = "service_agent_console_detail.rs"]
 mod service_agent_console_detail;
+#[path = "service_agent_console_history.rs"]
+mod service_agent_console_history;
 #[path = "service_agent_console_principal.rs"]
 mod service_agent_console_principal;
 #[path = "service_agent_console_request.rs"]
 mod service_agent_console_request;
 #[path = "service_agent_console_selection.rs"]
 mod service_agent_console_selection;
+use service_agent_console_history::record_selection_change;
 use service_agent_console_principal::presentation_principal;
+use service_agent_console_selection::{ensure_revision, invalid_selection, selection_error};
 
 use super::service_sessions::{authorize_model_library_read, authorize_session_model_selection};
 use crate::session::ToolResultDetail;
 use crate::{
-    ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService, ConflictDetails,
-    ModelDescriptor, ModelProfile, SessionModelSelectionRequest, SessionThinkingSelectionRequest,
+    ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService, ModelDescriptor,
+    ModelProfile, SessionModelSelectionRequest, SessionThinkingSelectionRequest,
 };
 use scriberig_core::EntityId;
-use scriberig_session::{SelectionError, SelectionStoreError, Session, SessionExecutionSelection};
+use scriberig_session::{Session, SessionExecutionSelection};
 
 impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B> {
     /// Lists the configured safe model library for an authorized caller.
@@ -122,19 +126,37 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
                 thinking,
             )
             .map_err(|error| selection_error(error, request.session))?;
+        if previous_profile != session.execution.model_profile {
+            record_selection_change(
+                &mut session.execution,
+                scriberig_session::AgentActivityKind::ModelSelectionChanged,
+                format!("Model selected: {}", model.display_name),
+            );
+        }
+        if previous_thinking != session.execution.thinking_level {
+            let summary = session.execution.thinking_level.as_ref().map_or_else(
+                || "Thinking level cleared".to_owned(),
+                |level| format!("Thinking level selected: {level}"),
+            );
+            record_selection_change(
+                &mut session.execution,
+                scriberig_session::AgentActivityKind::ThinkingLevelChanged,
+                summary,
+            );
+        }
         let selection = session.execution.clone();
         self.persist_selection(context, session, backend_owned, request.expected_revision)?;
         if previous_profile != selection.model_profile {
             self.operations.publish_session_selection_changed(
                 request.session,
-                "modelSelection",
+                scriberig_session::AgentActivityKind::ModelSelectionChanged,
                 &format!("Model selected: {}", model.display_name),
             );
         }
         if previous_thinking != selection.thinking_level {
             self.operations.publish_session_selection_changed(
                 request.session,
-                "thinkingSelection",
+                scriberig_session::AgentActivityKind::ThinkingLevelChanged,
                 &selection.thinking_level.as_ref().map_or_else(
                     || "Thinking level cleared".to_owned(),
                     |level| format!("Thinking level selected: {level}"),
@@ -194,12 +216,23 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
                 Some(request.thinking_level.clone()),
             )
             .map_err(|error| selection_error(error, request.session))?;
+        if previous_thinking != session.execution.thinking_level {
+            let summary = session.execution.thinking_level.as_ref().map_or_else(
+                || "Thinking level cleared".to_owned(),
+                |level| format!("Thinking level selected: {level}"),
+            );
+            record_selection_change(
+                &mut session.execution,
+                scriberig_session::AgentActivityKind::ThinkingLevelChanged,
+                summary,
+            );
+        }
         let selection = session.execution.clone();
         self.persist_selection(context, session, backend_owned, request.expected_revision)?;
         if previous_thinking != selection.thinking_level {
             self.operations.publish_session_selection_changed(
                 request.session,
-                "thinkingSelection",
+                scriberig_session::AgentActivityKind::ThinkingLevelChanged,
                 &selection.thinking_level.as_ref().map_or_else(
                     || "Thinking level cleared".to_owned(),
                     |level| format!("Thinking level selected: {level}"),
@@ -323,68 +356,4 @@ fn resolve_thinking(
                 .first()
                 .map(|level| level.id.as_str().to_owned())
         })
-}
-
-/// Rejects a stale session selection mutation before configuration is read.
-///
-/// # Parameters
-/// - `expected`: Revision observed by the caller.
-/// - `actual`: Current selection revision.
-/// - `session`: Session being changed.
-///
-/// # Returns
-/// Unit when the observed revision is current.
-///
-/// # Errors
-/// Returns a structured conflict when revisions differ.
-fn ensure_revision(expected: u64, actual: u64, session: EntityId) -> Result<(), ApplicationError> {
-    if expected == actual {
-        return Ok(());
-    }
-    Err(selection_error(
-        SelectionError::RevisionConflict { expected, actual },
-        session,
-    ))
-}
-
-/// Converts a selection-domain failure into a stable application error.
-///
-/// # Parameters
-/// - `error`: Selection mutation failure.
-/// - `session`: Session whose selection was targeted.
-///
-/// # Returns
-/// Structured conflict or invalid-request error.
-fn selection_error(error: SelectionError, session: EntityId) -> ApplicationError {
-    match error {
-        SelectionError::RevisionConflict { expected, actual } => ApplicationError::Conflict {
-            subject: format!("session {session} execution selection"),
-            details: Box::new(ConflictDetails {
-                operation: Some(format!(
-                    "stale selection revision {expected}; current revision is {actual}"
-                )),
-                ..ConflictDetails::default()
-            }),
-        },
-        SelectionError::InconsistentSelection => {
-            invalid_selection("model profile and model must be selected or cleared together")
-        }
-        SelectionError::RevisionExhausted => ApplicationError::Internal {
-            message: "session execution selection revision is exhausted".to_owned(),
-        },
-    }
-}
-
-/// Creates a safe invalid model-selection request error.
-///
-/// # Parameters
-/// - `message`: Configuration diagnostic without provider credentials.
-///
-/// # Returns
-/// The application error for invalid selection input.
-fn invalid_selection(message: impl Into<String>) -> ApplicationError {
-    ApplicationError::InvalidRequest {
-        operation: "session model selection".to_owned(),
-        message: message.into(),
-    }
 }

@@ -273,8 +273,8 @@ describe("agent UI", () => {
             sequence: 7,
             operationId: "op-1",
             branchId: "root",
-            activityKind: "toolInvocation",
-            state: "running",
+            activityKind: "ToolInvocation",
+            state: "Running",
             summary: "Tool: search",
           },
         ]}
@@ -282,7 +282,7 @@ describe("agent UI", () => {
     );
     expect(html).toContain('aria-label="Live activity"');
     expect(html).toContain("Tool: search");
-    expect(html).toContain('data-activity-state="running"');
+    expect(html).toContain('data-activity-state="Running"');
 
     const hidden = renderToStaticMarkup(
       <BranchActivityView
@@ -298,8 +298,8 @@ describe("agent UI", () => {
             sequence: 7,
             operationId: "op-1",
             branchId: "root",
-            activityKind: "reasoningSummary",
-            state: "completed",
+            activityKind: "ReasoningSummary",
+            state: "Completed",
             summary: "safe summary",
           },
         ]}

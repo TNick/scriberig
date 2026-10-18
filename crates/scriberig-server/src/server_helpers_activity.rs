@@ -299,7 +299,7 @@ fn child_branch_projection(id: EntityId, parent: Option<EntityId>) -> ActivityPr
     ActivityProjection {
         id,
         parent: parent.map(|parent| parent.to_string()),
-        kind: Kind::ChildBranch,
+        kind: Kind::BranchStarted,
         state: State::Running,
         summary: "Child branch".to_owned(),
         model: None,
@@ -321,7 +321,7 @@ fn project_branch_result(id: EntityId, branch: &Branch) -> Option<ActivityProjec
     Some(ActivityProjection {
         id,
         parent: None,
-        kind: Kind::BranchResult,
+        kind: Kind::BranchCompleted,
         state: match result.status {
             BranchStatus::Completed => State::Completed,
             BranchStatus::Active => State::Running,

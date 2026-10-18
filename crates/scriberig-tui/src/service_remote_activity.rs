@@ -173,7 +173,7 @@ fn restore_activity_record(
             });
             branch.activity.push(ExecutionActivity::ToolResult(id));
         }
-        SessionActivityKind::ChildBranch => {
+        SessionActivityKind::BranchStarted => {
             if let Some(parent) = item.parent.as_deref() {
                 branch.activity.push(ExecutionActivity::ChildBranchSpawned {
                     branch: id,
@@ -183,9 +183,10 @@ fn restore_activity_record(
                 branch.activity.push(ExecutionActivity::ChildBranch(id));
             }
         }
-        SessionActivityKind::BranchResult => {
+        SessionActivityKind::BranchCompleted => {
             branch.activity.push(ExecutionActivity::BranchResult(id));
         }
+        _ => {}
     }
     Ok(())
 }
@@ -293,7 +294,7 @@ mod tests {
                     sequence: 3,
                     branch: branch_id,
                     parent: Some(tool.to_string()),
-                    kind: SessionActivityKind::ChildBranch,
+                    kind: SessionActivityKind::BranchStarted,
                     state: SessionActivityState::Running,
                     summary: "Child branch".to_owned(),
                     durable_ref: Some(child.to_string()),

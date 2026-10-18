@@ -280,8 +280,11 @@ export function SessionAgentView({
   return (
     <section aria-label="Session and Agent">
       <h1>Session / Agent</h1>
-      {agentState.selectionActivities.slice(-1).map((activity) => (
-        <output key={activity.sequence} aria-label="Agent model selection activity">
+      {agentState.selectionActivities.slice(-50).map((activity, index) => (
+        <output
+          key={`${activity.selectionRevision ?? "event"}:${activity.sequence ?? index}`}
+          aria-label="Agent model selection activity"
+        >
           {activity.summary}
         </output>
       ))}

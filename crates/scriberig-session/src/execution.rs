@@ -13,7 +13,95 @@ pub struct SessionExecutionSelection {
     pub model: Option<String>,
     /// Selected model-advertised thinking-level identity.
     pub thinking_level: Option<String>,
+    /// Bounded replayable model and thinking selection provenance.
+    #[serde(default)]
+    pub history: Vec<SessionExecutionChange>,
 }
+
+/// Records one durable future-invocation selection change.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct SessionExecutionChange {
+    /// Selection mutation revision that produced this record.
+    pub revision: u64,
+    /// Semantic category of the changed selection.
+    pub kind: AgentActivityKind,
+    /// Safe concise description of the resulting selection.
+    pub summary: String,
+    /// Resolved model identity after the change, when selected.
+    pub model: Option<String>,
+    /// Resolved thinking level after the change, when selected.
+    pub thinking_level: Option<String>,
+}
+
+#[derive(
+    Clone, Copy, Debug, Eq, PartialEq, schemars::JsonSchema, serde::Deserialize, serde::Serialize,
+)]
+/// Provider-neutral execution activity kinds shared by persistence and events.
+///
+/// # Public members
+/// Each variant identifies one shared semantic activity kind.
+///
+/// # Private members
+/// None.
+pub enum SessionActivityKind {
+    /// Human supplied a prompt or instruction.
+    HumanInput,
+    /// Externally meaningful model output was committed.
+    AssistantOutput,
+    /// Safe user-facing reasoning summary.
+    ReasoningSummary,
+    /// Scriberig runtime phase or status.
+    RuntimeStatus,
+    /// Model request was issued.
+    ModelInvocation,
+    /// Safe captured model request detail.
+    ModelRequest,
+    /// A trusted tool was invoked.
+    ToolInvocation,
+    /// A tool returned or failed.
+    ToolResult,
+    /// A child branch was created.
+    BranchStarted,
+    /// A child branch completed.
+    BranchCompleted,
+    /// Operation progress changed.
+    OperationProgress,
+    /// Validation completed.
+    Validation,
+    /// Future model selection changed.
+    ModelSelectionChanged,
+    /// Future thinking-level selection changed.
+    ThinkingLevelChanged,
+    /// An operation or activity failed.
+    Error,
+}
+
+#[derive(
+    Clone, Copy, Debug, Eq, PartialEq, schemars::JsonSchema, serde::Deserialize, serde::Serialize,
+)]
+/// Lifecycle state of shared execution activity.
+///
+/// # Public members
+/// Each variant identifies one activity lifecycle state.
+///
+/// # Private members
+/// None.
+pub enum SessionActivityState {
+    /// Activity remains in progress.
+    Running,
+    /// Activity completed successfully.
+    Completed,
+    /// Activity completed with a failure.
+    Failed,
+    /// Activity was cancelled.
+    Cancelled,
+}
+
+/// Shared application-facing name for session activity categories.
+pub type AgentActivityKind = SessionActivityKind;
+
+/// Shared application-facing name for session activity lifecycle states.
+pub type AgentActivityState = SessionActivityState;
 
 impl SessionExecutionSelection {
     /// Replaces the future-invocation selection using optimistic concurrency.

@@ -38,8 +38,8 @@ fn reasoning_visibility_rerenders_cached_live_activity_without_execution() {
         session: crate::inspector::LoadState::Ready(crate::view::session::SessionModel::default()),
         transient_agent_activities: vec![crate::state::TransientAgentActivity {
             branch: "branch-1".to_owned(),
-            activity_kind: "reasoningSummary".to_owned(),
-            state: "completed".to_owned(),
+            activity_kind: scriberig_session::AgentActivityKind::ReasoningSummary,
+            state: scriberig_session::AgentActivityState::Completed,
             summary: "Compare the selected revisions.".to_owned(),
         }],
         ..TuiState::default()
@@ -53,6 +53,37 @@ fn reasoning_visibility_rerenders_cached_live_activity_without_execution() {
         super::render_primary::primary_text(&state).contains("Compare the selected revisions.")
     );
     assert_eq!(state.transient_agent_activities.len(), 1);
+}
+
+/// Renders durable model and thinking selection provenance after reload.
+#[test]
+fn session_activity_shows_recovered_execution_selection_history() {
+    let state = TuiState {
+        primary_view: crate::selection::PrimaryView::Session,
+        session: crate::inspector::LoadState::Ready(crate::view::session::SessionModel {
+            rows: Vec::new(),
+            execution: scriberig_session::SessionExecutionSelection {
+                revision: 2,
+                model_profile: Some("profile-b".to_owned()),
+                model: Some("model-b".to_owned()),
+                thinking_level: Some("careful".to_owned()),
+                history: vec![scriberig_session::SessionExecutionChange {
+                    revision: 2,
+                    kind: scriberig_session::AgentActivityKind::ThinkingLevelChanged,
+                    summary: "Thinking level selected: careful".to_owned(),
+                    model: Some("model-b".to_owned()),
+                    thinking_level: Some("careful".to_owned()),
+                }],
+            },
+            tool_invocation_details: std::collections::BTreeMap::default(),
+        }),
+        ..TuiState::default()
+    };
+
+    let output = super::render_session::session_text(&state, 100).to_string();
+
+    assert!(output.contains("Thinking selection · revision 2"));
+    assert!(output.contains("Thinking level selected: careful"));
 }
 
 /// Verifies nested durable activity uses visible terminal depth rails.

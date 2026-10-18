@@ -195,13 +195,15 @@ pub(crate) fn primary_text(state: &TuiState) -> String {
                         .into_iter()
                         .flatten()
                         .map(|activity| {
-                            let label = if activity.activity_kind == "reasoningSummary" {
+                            let label = if activity.activity_kind
+                                == scriberig_session::AgentActivityKind::ReasoningSummary
+                            {
                                 "Reasoning summary"
                             } else {
                                 "Live activity"
                             };
                             format!(
-                                "[{label}] {}: {} ({})",
+                                "[{label}] {}: {} ({:?})",
                                 activity.branch,
                                 crate::inspector::sanitize(&activity.summary),
                                 activity.state

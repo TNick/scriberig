@@ -8,10 +8,10 @@ describe("agent activity event mapping", () => {
       normalizeProtocolEvent({
         kind: "AgentActivity",
         operation: { id: "op-1" },
+        activity_kind: "ToolInvocation",
+        activity_state: "Running",
         metadata: [
           ["branch", "branch-1"],
-          ["activity_kind", "toolInvocation"],
-          ["state", "running"],
           ["summary", "Tool: search"],
         ],
       }),
@@ -19,8 +19,8 @@ describe("agent activity event mapping", () => {
       kind: "agentActivity",
       operationId: "op-1",
       branchId: "branch-1",
-      activityKind: "toolInvocation",
-      state: "running",
+      activityKind: "ToolInvocation",
+      state: "Running",
       summary: "Tool: search",
     });
   });
@@ -30,15 +30,13 @@ describe("agent activity event mapping", () => {
       normalizeProtocolEvent({
         kind: "SessionSelectionChanged",
         entity: { id: "session-1" },
-        metadata: [
-          ["activity_kind", "modelSelection"],
-          ["summary", "Model selected: Model A"],
-        ],
+        activity_kind: "ModelSelectionChanged",
+        metadata: [["summary", "Model selected: Model A"]],
       }),
     ).toEqual({
       kind: "sessionSelectionChanged",
       sessionId: "session-1",
-      activityKind: "modelSelection",
+      activityKind: "ModelSelectionChanged",
       summary: "Model selected: Model A",
     });
   });

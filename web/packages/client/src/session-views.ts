@@ -7,7 +7,11 @@ import type {
   SessionId,
   SessionReadResponse,
   SessionActivityItem,
+  SessionExecutionChange,
 } from "@scriberig/protocol";
+import { branchActivity, branchDescriptor } from "./session-activity-views.js";
+
+export { branchActivity, branchDescriptor } from "./session-activity-views.js";
 
 /** Normalizes a wire session response. @param value Unknown response. @returns Public session tree. @throws For invalid responses. */
 export function normalizeSession(value: unknown): SessionReadResponse {
@@ -105,7 +109,43 @@ function normalizeExecution(value: unknown): SessionReadResponse["execution"] {
     ...(typeof modelProfile === "string" ? { modelProfile } : {}),
     ...(typeof record.model === "string" ? { model: record.model } : {}),
     ...(typeof thinkingLevel === "string" ? { thinkingLevel } : {}),
+    ...(Array.isArray(record.history)
+      ? { history: record.history.map(normalizeExecutionChange).filter(isExecutionChange) }
+      : {}),
   };
+}
+
+/** Normalizes one durable model/thinking selection history item.
+ * @param value Unknown history item.
+ * @returns A typed item, or undefined for malformed values.
+ */
+function normalizeExecutionChange(value: unknown): SessionExecutionChange | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const item = value as Record<string, unknown>;
+  const kind = item.kind;
+  if (kind !== "ModelSelectionChanged" && kind !== "ThinkingLevelChanged") return undefined;
+  if (typeof item.revision !== "number" || typeof item.summary !== "string") return undefined;
+  return {
+    revision: item.revision,
+    kind,
+    summary: item.summary,
+    ...(typeof item.model === "string" ? { model: item.model } : {}),
+    ...(typeof item.thinking_level === "string"
+      ? { thinkingLevel: item.thinking_level }
+      : typeof item.thinkingLevel === "string"
+        ? { thinkingLevel: item.thinkingLevel }
+        : {}),
+  };
+}
+
+/** Narrows normalized execution history items.
+ * @param value Candidate selection history item.
+ * @returns Whether the candidate was valid.
+ */
+function isExecutionChange(
+  value: SessionExecutionChange | undefined,
+): value is SessionExecutionChange {
+  return value !== undefined;
 }
 
 /** Normalizes a wire branch. @param value Unknown branch. @returns Public branch. */
@@ -209,8 +249,16 @@ function isActivityKind(value: unknown): value is SessionActivityItem["kind"] {
     "AssistantOutput",
     "ToolInvocation",
     "ToolResult",
-    "ChildBranch",
-    "BranchResult",
+    "ReasoningSummary",
+    "RuntimeStatus",
+    "ModelRequest",
+    "BranchStarted",
+    "BranchCompleted",
+    "OperationProgress",
+    "Validation",
+    "ModelSelectionChanged",
+    "ThinkingLevelChanged",
+    "Error",
   ].includes(value as string);
 }
 
@@ -219,7 +267,9 @@ function isActivityKind(value: unknown): value is SessionActivityItem["kind"] {
  * @returns Whether the state is supported.
  */
 function isActivityState(value: unknown): value is SessionActivityItem["state"] {
-  return value === "Completed" || value === "Running" || value === "Failed";
+  return (
+    value === "Completed" || value === "Running" || value === "Failed" || value === "Cancelled"
+  );
 }
 
 /** Narrows an optional activity item for array filtering.
@@ -251,100 +301,4 @@ function normalizeTurn(value: unknown): SessionReadResponse["branches"][number][
     ...(typeof toolInvocation === "string" ? { toolInvocation } : {}),
     ...(typeof toolResult === "string" ? { toolResult } : {}),
   };
-}
-
-/** Projects a branch descriptor. @param branch Durable branch. @returns Compact descriptor. */
-export function branchDescriptor(
-  branch: SessionReadResponse["branches"][number],
-): BranchChildrenPage["items"][number] {
-  return {
-    branchId: branch.id,
-    name: branch.title,
-    status: branch.status.toLowerCase() as BranchChildrenPage["items"][number]["status"],
-    ...(branch.parent === undefined ? {} : { parentBranchId: branch.parent }),
-    childCount: branch.children.length,
-    activityCount: branch.turns.length,
-    ...(branch.result === undefined
-      ? {}
-      : {
-          result: {
-            branchId: branch.id,
-            resultId: branch.result.id,
-            handles: branch.result.references,
-          },
-        }),
-  };
-}
-
-/** Projects bounded branch activity. @param branch Durable branch. @returns Activity page. */
-export function branchActivity(
-  branch: SessionReadResponse["branches"][number],
-): BranchActivityPage {
-  const recorded = branch.activity ?? [];
-  if (recorded.length > 0) {
-    return {
-      branchId: branch.id,
-      ...(recorded[0]?.session === undefined
-        ? {}
-        : { sessionId: recorded[0].session as SessionId }),
-      items: recorded.map((item) => ({
-        id: item.id,
-        ordinal: item.sequence,
-        kind: activityKind(item.kind),
-        activityKind: item.kind,
-        state: item.state,
-        summary: item.summary,
-        handles:
-          item.kind === "ChildBranch"
-            ? [item.id]
-            : item.durableRef === undefined
-              ? []
-              : [item.durableRef],
-        ...(item.parent === undefined ? {} : { parentId: item.parent }),
-        ...(item.model === undefined ? {} : { model: item.model }),
-        ...(item.thinkingLevel === undefined ? {} : { thinkingLevel: item.thinkingLevel }),
-        ...(item.toolName === undefined ? {} : { toolName: item.toolName }),
-        ...(item.toolArguments === undefined ? {} : { toolArguments: item.toolArguments }),
-        ...(item.toolResultPreview === undefined
-          ? {}
-          : { toolResultPreview: item.toolResultPreview }),
-      })),
-    };
-  }
-  return {
-    branchId: branch.id,
-    items: branch.turns.map((turn) => ({
-      id: turn.id,
-      ordinal: turn.ordinal,
-      kind: turn.hasAgentOutput ? "model" : turn.toolInvocation ? "tool" : "human",
-      summary: turn.agentOutput ?? (turn.hasHumanInput ? "Human input" : "Activity"),
-      handles: [
-        ...(turn.toolInvocation === undefined ? [] : [turn.toolInvocation]),
-        ...(turn.toolResult === undefined ? [] : [turn.toolResult]),
-      ],
-    })),
-  };
-}
-
-/** Converts a protocol activity kind to its presentation category.
- * @param kind Durable protocol activity kind.
- * @returns Compact category used by the activity view.
- */
-function activityKind(
-  kind: NonNullable<SessionReadResponse["branches"][number]["activity"]>[number]["kind"],
-): BranchActivityPage["items"][number]["kind"] {
-  switch (kind) {
-    case "HumanInput":
-      return "human";
-    case "ModelInvocation":
-    case "AssistantOutput":
-      return "model";
-    case "ToolInvocation":
-    case "ToolResult":
-      return "tool";
-    case "ChildBranch":
-      return "child";
-    case "BranchResult":
-      return "result";
-  }
 }

@@ -351,6 +351,8 @@ impl ProtocolTransport for CursorTransport {
                 operation: Some(OperationReference {
                     id: "op-1".to_owned(),
                 }),
+                activity_kind: None,
+                activity_state: None,
                 metadata: Vec::new(),
             }]),
         }

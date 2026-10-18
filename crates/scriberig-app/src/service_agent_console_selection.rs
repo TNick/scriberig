@@ -2,9 +2,10 @@
 
 use super::{
     ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService, EntityId,
-    ModelDescriptor, ModelProfile, SelectionError, SelectionStoreError, Session, empty_session,
-    ensure_revision, invalid_selection, selection_error,
+    ModelDescriptor, ModelProfile, Session, empty_session,
 };
+use crate::ConflictDetails;
+use scriberig_session::{SelectionError, SelectionStoreError};
 
 impl<B: ApplicationBackend> ApplicationService<B> {
     /// Resolves an enabled profile and its model descriptor.
@@ -132,5 +133,73 @@ impl<B: ApplicationBackend> ApplicationService<B> {
             sessions.insert(session.id, session);
         }
         Ok(())
+    }
+}
+
+/// Rejects a stale session selection mutation before configuration is read.
+///
+/// # Parameters
+/// - `expected`: Revision observed by the caller.
+/// - `actual`: Current selection revision.
+/// - `session`: Session being changed.
+///
+/// # Returns
+/// Unit when the observed revision is current.
+///
+/// # Errors
+/// Returns a structured conflict when revisions differ.
+pub(super) fn ensure_revision(
+    expected: u64,
+    actual: u64,
+    session: EntityId,
+) -> Result<(), ApplicationError> {
+    if expected == actual {
+        return Ok(());
+    }
+    Err(selection_error(
+        SelectionError::RevisionConflict { expected, actual },
+        session,
+    ))
+}
+
+/// Converts a selection-domain failure into a stable application error.
+///
+/// # Parameters
+/// - `error`: Selection mutation failure.
+/// - `session`: Session whose selection was targeted.
+///
+/// # Returns
+/// Structured conflict or invalid-request error.
+pub(super) fn selection_error(error: SelectionError, session: EntityId) -> ApplicationError {
+    match error {
+        SelectionError::RevisionConflict { expected, actual } => ApplicationError::Conflict {
+            subject: format!("session {session} execution selection"),
+            details: Box::new(ConflictDetails {
+                operation: Some(format!(
+                    "stale selection revision {expected}; current revision is {actual}"
+                )),
+                ..ConflictDetails::default()
+            }),
+        },
+        SelectionError::InconsistentSelection => {
+            invalid_selection("model profile and model must be selected or cleared together")
+        }
+        SelectionError::RevisionExhausted => ApplicationError::Internal {
+            message: "session execution selection revision is exhausted".to_owned(),
+        },
+    }
+}
+
+/// Creates a safe invalid model-selection request error.
+///
+/// # Parameters
+/// - `message`: Configuration diagnostic without provider credentials.
+///
+/// # Returns
+/// The application error for invalid selection input.
+pub(super) fn invalid_selection(message: impl Into<String>) -> ApplicationError {
+    ApplicationError::InvalidRequest {
+        operation: "session model selection".to_owned(),
+        message: message.into(),
     }
 }

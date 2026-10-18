@@ -32,11 +32,11 @@ describe("createRuntime", () => {
             {
               kind: "AgentActivity",
               sequence: 5,
+              activity_kind: "ToolInvocation",
+              activity_state: "Running",
               operation: { id: "op-1" },
               metadata: [
                 ["branch", "branch-1"],
-                ["activity_kind", "toolInvocation"],
-                ["state", "running"],
                 ["summary", "Tool: search"],
               ],
             },

@@ -33,8 +33,8 @@ impl OperationRegistry {
         &self,
         id: &OperationId,
         branch: impl Into<String>,
-        activity_kind: impl Into<String>,
-        state: impl Into<String>,
+        activity_kind: scriberig_session::AgentActivityKind,
+        state: scriberig_session::AgentActivityState,
         summary: impl Into<String>,
     ) -> Result<(), ApplicationError> {
         let mut state_guard = self.lock()?;
@@ -46,8 +46,6 @@ impl OperationRegistry {
             });
         }
         let branch = bounded_value(&branch.into(), 128);
-        let activity_kind = bounded_value(&activity_kind.into(), 64);
-        let state = bounded_value(&state.into(), 32);
         let summary = bounded_value(&summary.into(), 256);
         state_guard.publish(&ApplicationEvent::AgentActivity {
             operation: id.clone(),

@@ -111,8 +111,8 @@ fn runtime_publishes_transient_activity_without_owning_operation_lifecycle() {
     assert!(activity.iter().any(|item| {
         item.0 == operation
             && item.1 == "branch-live"
-            && item.2 == "status"
-            && item.3 == "running"
+            && item.2 == scriberig_session::AgentActivityKind::RuntimeStatus
+            && item.3 == scriberig_session::AgentActivityState::Running
             && item.4.contains("AwaitingModel")
     }));
     let activity_sequences = registry

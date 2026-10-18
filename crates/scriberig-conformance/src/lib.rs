@@ -313,6 +313,8 @@ impl ApplicationService for Fixture {
                 id: self.snapshot.to_string(),
             }),
             operation: None,
+            activity_kind: None,
+            activity_state: None,
             metadata: vec![("authority".to_owned(), "canonical".to_owned())],
         }])
     }

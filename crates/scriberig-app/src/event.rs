@@ -16,7 +16,7 @@ pub enum ApplicationEvent {
         /// Stable session identity.
         session: EntityId,
         /// Stable selection activity category.
-        activity_kind: String,
+        activity_kind: scriberig_session::AgentActivityKind,
         /// Safe concise model or thinking selection summary.
         summary: String,
     },
@@ -104,9 +104,9 @@ pub enum ApplicationEvent {
         /// Durable branch identity correlated with runtime activity.
         branch: String,
         /// Stable public activity category.
-        activity_kind: String,
+        activity_kind: scriberig_session::AgentActivityKind,
         /// Activity lifecycle state such as `running`, `completed`, or `failed`.
-        state: String,
+        state: scriberig_session::AgentActivityState,
         /// Safe concise text for transient presentation.
         summary: String,
     },
