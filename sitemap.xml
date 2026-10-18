@@ -101,6 +101,10 @@
          <lastmod>2026-10-18</lastmod>
     </url>
     <url>
+         <loc>https://tnick.github.io/scriberig/level-1/020.%20provider%20continuation%20state%20and%20observable%20model%20execution/</loc>
+         <lastmod>2026-10-18</lastmod>
+    </url>
+    <url>
          <loc>https://tnick.github.io/scriberig/level-2/001.%20derived%20knowledge%20runtime%20and%20cache%20design/</loc>
          <lastmod>2026-10-18</lastmod>
     </url>
@@ -198,6 +202,10 @@
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-2/025.%20first%20useful%20project%20workflow%20vertical%20slice/</loc>
+         <lastmod>2026-10-18</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-2/025.%20provider%20continuation%20and%20observable%20model%20execution/</loc>
          <lastmod>2026-10-18</lastmod>
     </url>
     <url>
@@ -758,6 +766,10 @@
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/135.%20implement%20recursive%20semantic%20agent%20plans%20dependencies%20and%20tree%20tui/</loc>
+         <lastmod>2026-10-18</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/136.%20implement%20provider%20continuation%20full%20prompt%20and%20observable%20reasoning/</loc>
          <lastmod>2026-10-18</lastmod>
     </url>
 </urlset>
