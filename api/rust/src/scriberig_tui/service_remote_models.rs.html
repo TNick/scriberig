@@ -176,10 +176,21 @@
 <a href=#176 id=176 data-nosnippet>176</a>        model_profile: selection.model_profile,
 <a href=#177 id=177 data-nosnippet>177</a>        model: selection.model,
 <a href=#178 id=178 data-nosnippet>178</a>        thinking_level: selection.thinking_level,
-<a href=#179 id=179 data-nosnippet>179</a>    }
-<a href=#180 id=180 data-nosnippet>180</a>}
-<a href=#181 id=181 data-nosnippet>181</a>
-<a href=#182 id=182 data-nosnippet>182</a><span class="attr">#[cfg(test)]
-<a href=#183 id=183 data-nosnippet>183</a>#[path = <span class="string">"service_remote_model_tests.rs"</span>]
-<a href=#184 id=184 data-nosnippet>184</a></span><span class="kw">mod </span>tests;
+<a href=#179 id=179 data-nosnippet>179</a>        history: selection
+<a href=#180 id=180 data-nosnippet>180</a>            .history
+<a href=#181 id=181 data-nosnippet>181</a>            .into_iter()
+<a href=#182 id=182 data-nosnippet>182</a>            .map(|change| scriberig_session::SessionExecutionChange {
+<a href=#183 id=183 data-nosnippet>183</a>                revision: change.revision,
+<a href=#184 id=184 data-nosnippet>184</a>                kind: change.kind,
+<a href=#185 id=185 data-nosnippet>185</a>                summary: change.summary,
+<a href=#186 id=186 data-nosnippet>186</a>                model: change.model,
+<a href=#187 id=187 data-nosnippet>187</a>                thinking_level: change.thinking_level,
+<a href=#188 id=188 data-nosnippet>188</a>            })
+<a href=#189 id=189 data-nosnippet>189</a>            .collect(),
+<a href=#190 id=190 data-nosnippet>190</a>    }
+<a href=#191 id=191 data-nosnippet>191</a>}
+<a href=#192 id=192 data-nosnippet>192</a>
+<a href=#193 id=193 data-nosnippet>193</a><span class="attr">#[cfg(test)]
+<a href=#194 id=194 data-nosnippet>194</a>#[path = <span class="string">"service_remote_model_tests.rs"</span>]
+<a href=#195 id=195 data-nosnippet>195</a></span><span class="kw">mod </span>tests;
 </code></pre></div></section></main></body></html>

@@ -313,17 +313,19 @@
 <a href=#313 id=313 data-nosnippet>313</a>                id: <span class="self">self</span>.snapshot.to_string(),
 <a href=#314 id=314 data-nosnippet>314</a>            }),
 <a href=#315 id=315 data-nosnippet>315</a>            operation: <span class="prelude-val">None</span>,
-<a href=#316 id=316 data-nosnippet>316</a>            metadata: <span class="macro">vec!</span>[(<span class="string">"authority"</span>.to_owned(), <span class="string">"canonical"</span>.to_owned())],
-<a href=#317 id=317 data-nosnippet>317</a>        }])
-<a href=#318 id=318 data-nosnippet>318</a>    }
-<a href=#319 id=319 data-nosnippet>319</a>}
-<a href=#320 id=320 data-nosnippet>320</a>
-<a href=#321 id=321 data-nosnippet>321</a><span class="doccomment">/// Constructs the provider-neutral inspect adapter for a fixture.
-<a href=#322 id=322 data-nosnippet>322</a>///
-<a href=#323 id=323 data-nosnippet>323</a>/// # Returns
-<a href=#324 id=324 data-nosnippet>324</a>/// An inspect tool backed by the shared application query implementation.
-<a href=#325 id=325 data-nosnippet>325</a></span><span class="attr">#[must_use]
-<a href=#326 id=326 data-nosnippet>326</a></span><span class="kw">pub fn </span>inspect_tool() -&gt; InspectTool&lt;Fixture&gt; {
-<a href=#327 id=327 data-nosnippet>327</a>    InspectTool::new(fixture())
-<a href=#328 id=328 data-nosnippet>328</a>}
+<a href=#316 id=316 data-nosnippet>316</a>            activity_kind: <span class="prelude-val">None</span>,
+<a href=#317 id=317 data-nosnippet>317</a>            activity_state: <span class="prelude-val">None</span>,
+<a href=#318 id=318 data-nosnippet>318</a>            metadata: <span class="macro">vec!</span>[(<span class="string">"authority"</span>.to_owned(), <span class="string">"canonical"</span>.to_owned())],
+<a href=#319 id=319 data-nosnippet>319</a>        }])
+<a href=#320 id=320 data-nosnippet>320</a>    }
+<a href=#321 id=321 data-nosnippet>321</a>}
+<a href=#322 id=322 data-nosnippet>322</a>
+<a href=#323 id=323 data-nosnippet>323</a><span class="doccomment">/// Constructs the provider-neutral inspect adapter for a fixture.
+<a href=#324 id=324 data-nosnippet>324</a>///
+<a href=#325 id=325 data-nosnippet>325</a>/// # Returns
+<a href=#326 id=326 data-nosnippet>326</a>/// An inspect tool backed by the shared application query implementation.
+<a href=#327 id=327 data-nosnippet>327</a></span><span class="attr">#[must_use]
+<a href=#328 id=328 data-nosnippet>328</a></span><span class="kw">pub fn </span>inspect_tool() -&gt; InspectTool&lt;Fixture&gt; {
+<a href=#329 id=329 data-nosnippet>329</a>    InspectTool::new(fixture())
+<a href=#330 id=330 data-nosnippet>330</a>}
 </code></pre></div></section></main></body></html>

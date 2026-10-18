@@ -25,7 +25,7 @@
     
     
       
-        <title>Make Agent Conversation the Default TUI and Move Auxiliary Views Behind Slash Commands - Scriberig</title>
+        <title>Make the Recursive Agent Tree the Default TUI and Move Auxiliary Views Behind Slash Commands - Scriberig</title>
       
     
     
@@ -66,7 +66,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#make-agent-conversation-the-default-tui-and-move-auxiliary-views-behind-slash-commands" class="md-skip">
+        <a href="#make-the-recursive-agent-tree-the-default-tui-and-move-auxiliary-views-behind-slash-commands" class="md-skip">
           Skip to content
         </a>
       
@@ -102,7 +102,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Make Agent Conversation the Default TUI and Move Auxiliary Views Behind Slash Commands
+              Make the Recursive Agent Tree the Default TUI and Move Auxiliary Views Behind Slash Commands
             
           </span>
         </div>
@@ -503,6 +503,10 @@
   
     
     
+      
+        
+      
+        
       
         
       
@@ -1106,6 +1110,62 @@
     
   
     Recursive Agent Decomposition and Context Isolation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/018.%20durable%20plans%20dependency%20scheduling%20and%20multi-model%20execution/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Durable Plans, Dependency Scheduling, and Multi-Model Execution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/019.%20semantic%20agent%20operations%20and%20projection-first%20editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Semantic Agent Operations and Projection-First Editing
   
 
     
@@ -6158,7 +6218,7 @@
   <span class="md-ellipsis">
     
   
-    Make Agent Conversation the Default TUI and Move Auxiliary Views Behind Slash Commands
+    Make the Recursive Agent Tree the Default TUI and Move Auxiliary Views Behind Slash Commands
   
 
     
@@ -6176,7 +6236,7 @@
   <span class="md-ellipsis">
     
   
-    Make Agent Conversation the Default TUI and Move Auxiliary Views Behind Slash Commands
+    Make the Recursive Agent Tree the Default TUI and Move Auxiliary Views Behind Slash Commands
   
 
     
@@ -6285,1052 +6345,589 @@
   
 
 
-<h1 id="make-agent-conversation-the-default-tui-and-move-auxiliary-views-behind-slash-commands">Make Agent Conversation the Default TUI and Move Auxiliary Views Behind Slash Commands<a class="headerlink" href="#make-agent-conversation-the-default-tui-and-move-auxiliary-views-behind-slash-commands" title="Permanent link">&para;</a></h1>
+<h1 id="make-the-recursive-agent-tree-the-default-tui-and-move-auxiliary-views-behind-slash-commands">Make the Recursive Agent Tree the Default TUI and Move Auxiliary Views Behind Slash Commands<a class="headerlink" href="#make-the-recursive-agent-tree-the-default-tui-and-move-auxiliary-views-behind-slash-commands" title="Permanent link">&para;</a></h1>
 <p><strong>Status: [ ] In Progress</strong></p>
 <h2 id="objective">Objective<a class="headerlink" href="#objective" title="Permanent link">&para;</a></h2>
-<p>Restructure the native Scriberig TUI so that its ordinary, default experience is an agent conversation similar in interaction shape to Pi, PiG, Codex, or Claude Code:</p>
+<p>Restructure the native Scriberig TUI so that its ordinary experience is a conversation-like projection of the real recursive session tree rather than a linear transcript or multi-pane semantic browser.</p>
+<p>The user should still experience the simplicity of Pi/Codex/Claude-style terminal interaction:</p>
 <ul>
-<li>Scriberig starts in an agent conversation surface;</li>
-<li>the user can type immediately without first opening a composer or pressing <code>i</code>;</li>
-<li>normal text is submitted as an agent message;</li>
-<li>the main viewport shows the current session/current branch conversation history plus configured agent activity;</li>
-<li>the composer remains visible at the bottom of the conversation;</li>
-<li>model, thinking, trace, session-tree, explorer, inspector, history, changes, operations, and other secondary surfaces are opened explicitly through <code>/commands</code>;</li>
-<li>closing a secondary surface returns to the conversation;</li>
-<li>the existing semantic browser and session-tree implementations are preserved and reused, but are no longer the default shell layout.</li>
+<li>launch directly into the agent surface;</li>
+<li>type immediately;</li>
+<li>see human messages, assistant results, semantic operations, branches, plans, and progress in one main viewport;</li>
+<li>keep a persistent composer at the bottom;</li>
+<li>use slash commands to open secondary controls/views.</li>
 </ul>
-<p>The key product rule is:</p>
+<p>But the underlying and visible interaction is explicitly tree-aware:</p>
+<ul>
+<li>agents recursively create child branches;</li>
+<li><code>/plan</code> creates durable planned nodes in the same tree;</li>
+<li>plan dependencies can block/enable sibling work;</li>
+<li>different branches may be assigned to different model/provider profiles;</li>
+<li>one auto-advancing plan coordinator exists at a time;</li>
+<li>the user can navigate to a stable historical replyable node and continue from it;</li>
+<li>new activity appears at its structural location rather than always at the bottom;</li>
+<li>completed children collapse to compact <code>BranchResult</code>-style summaries but remain expandable;</li>
+<li>nesting is shown by colored vertical depth rails;</li>
+<li>the current reply anchor has a distinct background highlight;</li>
+<li>per-activity detail settings control rendering without affecting context;</li>
+<li>source/document edits are normally semantic/domain operations, not generic file writes.</li>
+</ul>
+<p>The controlling product rule is:</p>
 <blockquote>
-<p><strong>Conversation is home. Everything else is an explicit tool/view opened from the conversation.</strong></p>
+<p><strong>Conversation is home, but the conversation is a projection of the recursive session/plan tree. Auxiliary inspection/control surfaces are explicit slash-command destinations.</strong></p>
 </blockquote>
-<p>This task builds on task 133. Do not create a second agent runtime, second session model, second model selector, or second tool/activity system.</p>
+<p>This task depends on and must preserve the invariants in:</p>
+<ul>
+<li><code>design/level-1/017. recursive agent decomposition and context isolation.md</code>;</li>
+<li><code>design/level-1/018. durable plans dependency scheduling and multi-model execution.md</code>;</li>
+<li><code>design/level-1/019. semantic agent operations and projection-first editing.md</code>;</li>
+<li>task 133 shared model/thinking/trace controls.</li>
+</ul>
+<p>The cross-layer implementation sequence is defined in task 135. Do not implement TUI-owned substitutes for missing shared semantics.</p>
 <hr />
 <h1 id="instructions-for-the-implementation-agent">Instructions for the Implementation Agent<a class="headerlink" href="#instructions-for-the-implementation-agent" title="Permanent link">&para;</a></h1>
-<p>This document is intentionally detailed for a smaller implementation agent. Follow it in order. Do not skip ahead because a later step looks easier.</p>
+<p>This file is intentionally prescriptive.</p>
 <p>Before modifying code:</p>
 <ol>
-<li>read the repository root <code>AGENTS.md</code>;</li>
+<li>read repository root <code>AGENTS.md</code>;</li>
 <li>read <code>crates/scriberig-tui/AGENTS.md</code>;</li>
-<li>read every additional nearest <code>AGENTS.md</code> for directories you modify;</li>
-<li>read this document fully before coding;</li>
-<li>read task 133 and the Level 1/2 TUI/session documents listed below;</li>
-<li>inspect the current implementation before choosing new file/type names;</li>
-<li>prefer extending existing reducers, effects, view models, and application boundaries over adding parallel abstractions.</li>
+<li>read nearest <code>AGENTS.md</code> for every additional crate you touch;</li>
+<li>read this file fully;</li>
+<li>read Level-1 documents 009, 014, 015, 016, 017, 018, and 019;</li>
+<li>read Level-2 documents 021, 022, 023, and 024;</li>
+<li>read Level-3 tasks 103, 133, and 135;</li>
+<li>inspect current code before choosing names;</li>
+<li>reuse existing application/session/model/activity abstractions;</li>
+<li>do not implement backend/session/runtime behavior in the TUI merely to make a screen work.</li>
 </ol>
 <h2 id="checklist-discipline">Checklist discipline<a class="headerlink" href="#checklist-discipline" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Keep this file open while implementing.</li>
-<li>[ ] Tick each checkbox from <code>[ ]</code> to <code>[x]</code> immediately after that exact item is implemented and its targeted verification passes.</li>
-<li>[ ] Never bulk-tick checkboxes at the end.</li>
-<li>[ ] If a checked item later becomes false because of another change, immediately change it back to <code>[ ]</code>.</li>
-<li>[ ] If the repository has moved since this document was written, update the relevant “Current implementation facts” entry before implementing the changed step.</li>
-<li>[ ] Before setting this task to Complete, re-read every checked item against the final code and test evidence.</li>
+<li>[ ] Keep this file open while implementing TUI work.</li>
+<li>[ ] Tick an item immediately after that exact behavior is implemented and targeted verification passes.</li>
+<li>[ ] Never bulk-tick items at the end.</li>
+<li>[ ] If later work invalidates an item, change it back to <code>[ ]</code> immediately.</li>
+<li>[ ] Before marking Complete, re-read every checked item against final code and test evidence.</li>
 </ul>
-<h2 id="mandatory-test-discipline">Mandatory test discipline<a class="headerlink" href="#mandatory-test-discipline" title="Permanent link">&para;</a></h2>
-<p>While implementation checkboxes remain incomplete, run only targeted tests/checks for the crate/module/behavior just changed.</p>
-<p>Do <strong>not</strong> run workspace-wide/full-suite commands during implementation, including:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cargo test --workspace
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cargo check --workspace --all-targets
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>cargo clippy --workspace --all-targets -- -D warnings
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>pnpm --dir web test
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>pnpm --dir web typecheck
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>pnpm --dir web build
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>python3 tools/lint_repo.py
+<h2 id="test-discipline">Test discipline<a class="headerlink" href="#test-discipline" title="Permanent link">&para;</a></h2>
+<p>During implementation run only focused tests/checks for changed behavior.</p>
+<p>Do not run the full workspace gate until every implementation checkbox is complete.</p>
+<p>Useful focused examples include:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cargo test -p scriberig-tui conversation
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cargo test -p scriberig-tui tree_projection
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>cargo test -p scriberig-tui reply_anchor
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>cargo test -p scriberig-tui slash_command
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>cargo test -p scriberig-tui plan
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>cargo test -p scriberig-tui presentation
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>cargo test -p scriberig-tui layout
 </code></pre></div>
-<p>Use narrow commands while iterating, for example:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cargo test -p scriberig-tui conversation
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>cargo test -p scriberig-tui slash_command
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>cargo test -p scriberig-tui composer
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>cargo test -p scriberig-tui layout
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>cargo test -p scriberig-app &lt;focused-filter&gt;
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>cargo test -p scriberig-protocol &lt;focused-filter&gt;
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>cargo test -p scriberig-server &lt;focused-filter&gt;
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>cargo test -p scriberig-client &lt;focused-filter&gt;
-</code></pre></div>
-<p>If the shared application/protocol contract must change to support creation of a new session from the first message, use focused tests for those exact crates while implementing that path.</p>
-<p>Only after every implementation checkbox and targeted-verification checkbox is complete may the final full-suite gate at the end of this document be run.</p>
 <hr />
-<h1 id="read-first">Read First<a class="headerlink" href="#read-first" title="Permanent link">&para;</a></h1>
-<p>Read these documents before coding:</p>
-<ol>
-<li><code>design/level-1/009. agent interaction and sessions.md</code>;</li>
-<li><code>design/level-1/011. runtime libraries protocol and product surfaces.md</code>;</li>
-<li><code>design/level-1/012. web platform and integrated editor.md</code>;</li>
-<li><code>design/level-1/016. model driven agent execution and branch isolation.md</code>;</li>
-<li><code>design/level-2/021. terminal ui runtime and state architecture.md</code>;</li>
-<li><code>design/level-2/022. terminal ui views interaction and conformance.md</code>;</li>
-<li><code>design/level-2/023. agent runtime model provider and branch orchestration.md</code>;</li>
-<li><code>design/level-2/024. agent operations protocol and cross surface product contract.md</code>;</li>
-<li><code>design/level-3/103. implement tui sessions agent interaction and operation observation.md</code>;</li>
-<li><code>design/level-3/133. implement shared agent console model thinking and trace controls.md</code>.</li>
-</ol>
-<p>The golden scenario is also normative for this task. In particular, it says that the TUI opens in agent mode, can begin with no active project, accepts a user command directly, and submits that command through shared application agent semantics.</p>
-<hr />
-<h1 id="current-implementation-facts">Current Implementation Facts<a class="headerlink" href="#current-implementation-facts" title="Permanent link">&para;</a></h1>
-<p>Verify these facts against <code>main</code> before changing them. Update this section if they are no longer true.</p>
+<h1 id="current-implementation-facts-to-verify-first">Current Implementation Facts to Verify First<a class="headerlink" href="#current-implementation-facts-to-verify-first" title="Permanent link">&para;</a></h1>
+<p>Before coding, verify these against current <code>main</code> and update this section if repository structure has changed.</p>
 <ul>
-<li><code>crates/scriberig-tui/src/state.rs</code> currently defaults <code>primary_view</code> to <code>PrimaryView::Overview</code>.</li>
-<li><code>crates/scriberig-tui/src/runtime.rs</code> starts interactive state from <code>TuiState::default()</code> plus optional project configuration, so the shell does not currently start in the agent conversation.</li>
-<li><code>crates/scriberig-tui/src/layout.rs</code> currently chooses panels from terminal width:</li>
-<li>wide: Explorer + Primary + Inspector;</li>
-<li>medium: Explorer + Primary;</li>
-<li>narrow: Primary only.</li>
-<li><code>crates/scriberig-tui/src/render.rs</code> renders those responsive panes automatically.</li>
-<li>the persistent session composer introduced by task 133 is rendered only while <code>PrimaryView::Session</code> is selected and a <code>session_composer</code> exists.</li>
-<li>the persistent composer currently requires pressing <code>i</code> to focus it after browsing.</li>
-<li><code>/</code> in browse context currently opens semantic Find.</li>
-<li><code>:</code> currently opens the command palette.</li>
-<li><code>PrimaryView::Session</code> currently renders the structural session projection (<code>SessionModel</code>) rather than a normal conversational projection.</li>
-<li><code>crates/scriberig-tui/src/view/session.rs</code> is useful and must be preserved as the structural session-tree view.</li>
-<li><code>crates/scriberig-tui/src/render_session.rs</code> already knows how to render depth rails and trace activity.</li>
-<li>model selection, thinking-level selection, reasoning visibility, tool invocation detail, tool output verbosity, and prompt visibility were implemented by task 133 and must be reused.</li>
-<li><code>Effect::SubmitAgent</code> currently requires an existing <code>session: EntityId</code>.</li>
-<li><code>scriberig_app::AgentCommandRequest</code> currently requires an existing session identity.</li>
-<li><code>scriberig_protocol::AgentStartRequest</code> currently also requires a session identity.</li>
-<li>therefore the ordinary product flow “launch with no session, type a first message, and let the shared application create the session” is not yet fully represented by the current public contract.</li>
+<li><code>TuiState</code> currently starts in <code>PrimaryView::Overview</code> rather than a conversation home.</li>
+<li>interactive startup derives from <code>TuiState::default()</code> and does not automatically create a session.</li>
+<li>layout currently auto-adds Explorer/Inspector panes based on terminal width.</li>
+<li>persistent session composer exists but is tied to the structural Session surface.</li>
+<li>pressing <code>i</code> is currently required to focus the persistent composer after browsing.</li>
+<li><code>/</code> currently maps to Find in browse context rather than slash-command composition.</li>
+<li><code>:</code> opens an existing command palette.</li>
+<li><code>PrimaryView::Session</code> is currently a structural session-tree projection and must be preserved as <code>/session</code>.</li>
+<li>task-133 model/thinking/reasoning/tool/prompt controls exist and must be reused.</li>
+<li>current submission contracts may require an existing session identity.</li>
+<li>current branch continuation APIs may identify only session + branch rather than an exact historical reply anchor.</li>
+<li>current durable activity/session types may not yet represent planned nodes, dependency edges, coordinator state, per-node assignments, or execution leases.</li>
 </ul>
-<p>Do not work around the last point by inventing a session identifier inside the TUI. If no existing shared session-creation/start operation exists when implementation begins, add the smallest shared application/protocol operation necessary to create the session through the owning session subsystem.</p>
+<p>Do not work around any missing shared contract by inventing local fake IDs, local plan state, or TUI-only continuation semantics.</p>
 <hr />
-<h1 id="product-contract">Product Contract<a class="headerlink" href="#product-contract" title="Permanent link">&para;</a></h1>
-<p>The implementation is successful only if the following behavior is true from the user’s point of view.</p>
+<h1 id="required-home-surface">Required Home Surface<a class="headerlink" href="#required-home-surface" title="Permanent link">&para;</a></h1>
 <h2 id="normal-launch">Normal launch<a class="headerlink" href="#normal-launch" title="Permanent link">&para;</a></h2>
-<p>Running the native interactive TUI should ordinarily produce a screen conceptually equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a> scriberig · no active project                         model-name · thinking high
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a> No conversation yet.
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a> Type a message to start a session.
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>──────────────────────────────────────────────────────────────────────────────
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>&gt; _
+<p>The native interactive TUI must open directly into the recursive agent conversation surface.</p>
+<p>Conceptual first frame:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>scriberig · no active project                         default-model · medium
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>No conversation yet.
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>Type a message to start a session.
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>──────────────────────────────────────────────────────────────────────────────
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>&gt; _
 </code></pre></div>
-<p>The cursor is in the composer immediately.</p>
-<p>The user does <strong>not</strong> need to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>press i
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>open a modal
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>select Session from a palette
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>select a semantic object
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>select a project
+<p>The composer owns ordinary typing immediately.</p>
+<p>The user must not have to:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>press i
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>open a composer modal
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>select Session
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>open a palette
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>select a project
 </code></pre></div>
 <p>before typing the first agent message.</p>
-<h2 id="normal-conversation">Normal conversation<a class="headerlink" href="#normal-conversation" title="Permanent link">&para;</a></h2>
-<p>After messages exist, the normal screen should look conceptually like:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a> scriberig · project-name                              sonnet · thinking high
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a> You
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a> Onboard the current project.
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a> ▏ Thinking…
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a> ▏ project.scan .
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a> ▏ ✓ 317 files
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a> ▏ project.import manifest:...
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a> ▏ ✓ snapshot a1b2...
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a> Onboarded Scriberig.
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a> Project: scriberig
-<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a> Snapshot: a1b2...
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>
-<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>──────────────────────────────────────────────────────────────────────────────
-<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>&gt; Add support for PHP ingestion. _
+<h2 id="ordinary-unbranched-interaction">Ordinary unbranched interaction<a class="headerlink" href="#ordinary-unbranched-interaction" title="Permanent link">&para;</a></h2>
+<p>When no visible branch divergence exists, the surface may feel almost linear:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>You
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>Inspect the parser architecture.
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>▏ inspect Function parse_type
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>▏ ✓ 4 code groups
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>Assistant
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>The parser is split into prefix, named-type, nullable-suffix, and result groups.
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>──────────────────────────────────────────────────────────────────────────────
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>&gt; _
 </code></pre></div>
-<p>The exact typography is implementation-dependent. The semantic requirements are not.</p>
-<h2 id="special-views">Special views<a class="headerlink" href="#special-views" title="Permanent link">&para;</a></h2>
-<p>Auxiliary functionality should be entered explicitly from the conversation with commands such as:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>/model
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>/thinking
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>/view
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>/session
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>/explorer
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>/inspect
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>/find
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>/history
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>/diff
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>/projection
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>/changes
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>/operations
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>/project
-<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>/status
-<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>/help
-</code></pre></div>
-<p>A special view replaces or overlays the conversation body deliberately. It must not appear automatically because the terminal became wider.</p>
-<p><code>Esc</code> from a special view returns to the conversation unless an inner modal first needs to close.</p>
+<p>The canonical model is still tree-shaped.</p>
 <hr />
-<h1 id="architectural-invariants">Architectural Invariants<a class="headerlink" href="#architectural-invariants" title="Permanent link">&para;</a></h1>
-<h2 id="1-conversation-is-a-projection-not-new-canonical-state">1. Conversation is a projection, not new canonical state<a class="headerlink" href="#1-conversation-is-a-projection-not-new-canonical-state" title="Permanent link">&para;</a></h2>
-<p>Do not create a second transcript store.</p>
-<p>The conversation screen is a projection over the same durable session/branch/model/tool records already owned by Scriberig.</p>
-<p>The structural session tree remains available as another projection through <code>/session</code>.</p>
-<p>Conceptually:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>                    durable Session graph
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>                           │
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>                 ┌─────────┴─────────┐
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>                 │                   │
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>        conversation projection   structural projection
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>             DEFAULT                  /session
+<h1 id="tree-aware-conversation-projection">Tree-Aware Conversation Projection<a class="headerlink" href="#tree-aware-conversation-projection" title="Permanent link">&para;</a></h1>
+<p>The normal conversation must be a dedicated projection over durable session/plan/activity state.</p>
+<p>Do not reuse the structural <code>/session</code> tree rows directly as the default transcript.</p>
+<p>Conceptually, build UI-neutral rows equivalent to:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>HumanMessage
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>AssistantMessage
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>BranchHeader
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>BranchResult
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>PlanNode
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>DependencySummary
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>ModelInvocation
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>ReasoningSummary
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>RuntimeStatus
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>SemanticOperationInvocation
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>ToolInvocation
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>OperationResult
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>ToolResult
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>Validation
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>Selection/AssignmentChange
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>Error
 </code></pre></div>
-<h2 id="2-tui-must-not-own-session-or-agent-semantics">2. TUI must not own session or agent semantics<a class="headerlink" href="#2-tui-must-not-own-session-or-agent-semantics" title="Permanent link">&para;</a></h2>
-<p><code>scriberig-tui</code> remains a presentation/controller layer over shared application operations.</p>
-<p>Do not:</p>
-<ul>
-<li>allocate canonical session IDs in the TUI;</li>
-<li>mutate session persistence directly;</li>
-<li>invoke provider APIs directly;</li>
-<li>create TUI-only model/thinking state that changes execution;</li>
-<li>duplicate model/runtime behavior from task 133.</li>
-</ul>
-<p>If the first-message/new-session flow requires a shared application change, implement it below the TUI and expose the same semantics to protocol/server/client layers as required by repository dependency rules.</p>
-<h2 id="3-structural-session-tree-remains-intact">3. Structural session tree remains intact<a class="headerlink" href="#3-structural-session-tree-remains-intact" title="Permanent link">&para;</a></h2>
-<p>Do not delete <code>SessionModel</code>, structural branch rows, candidate links, or branch/result inspection.</p>
-<p>They move behind <code>/session</code>.</p>
-<h2 id="4-explorerinspectoretc-remain-useful">4. Explorer/Inspector/etc. remain useful<a class="headerlink" href="#4-explorerinspectoretc-remain-useful" title="Permanent link">&para;</a></h2>
-<p>Do not delete the existing semantic Explorer, Inspector, History, Find, Diff, Projection, Changes, or Operations view models merely because they are no longer always visible.</p>
-<p>The task changes <strong>navigation and prominence</strong>, not the ownership of those capabilities.</p>
-<h2 id="5-width-controls-wrapping-not-product-mode">5. Width controls wrapping, not product mode<a class="headerlink" href="#5-width-controls-wrapping-not-product-mode" title="Permanent link">&para;</a></h2>
-<p>Terminal width may change:</p>
-<ul>
-<li>text wrapping;</li>
-<li>bounded rail count;</li>
-<li>compact labels;</li>
-<li>truncation;</li>
-<li>optional minor chrome.</li>
-</ul>
-<p>Terminal width must not automatically change the product from conversation mode into Explorer/Inspector mode.</p>
-<h2 id="6-slash-commands-are-local-ui-commands">6. Slash commands are local UI commands<a class="headerlink" href="#6-slash-commands-are-local-ui-commands" title="Permanent link">&para;</a></h2>
-<p>A recognized <code>/command</code> is handled locally and must not be sent to the model.</p>
-<p>A normal user message is sent to the agent.</p>
-<p>Unknown slash commands must not accidentally become model prompts.</p>
-<p>Provide an explicit escape for a user who really wants a prompt beginning with <code>/</code>.</p>
-<p>Recommended rule:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>/model          -&gt; local command
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>/unknown        -&gt; local error + suggestions; do not send to model
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>//literal       -&gt; send the prompt "/literal" to the agent
-</code></pre></div>
-<h2 id="7-the-composer-remains-independent-from-active-agent-execution">7. The composer remains independent from active agent execution<a class="headerlink" href="#7-the-composer-remains-independent-from-active-agent-execution" title="Permanent link">&para;</a></h2>
-<p>While an agent invocation is running:</p>
-<ul>
-<li>the composer remains editable;</li>
-<li>submitting another normal message follows the already-defined queue/continuation policy;</li>
-<li>cancellation remains explicit and separate;</li>
-<li>typing must not implicitly cancel the running invocation.</li>
-</ul>
-<h2 id="8-child-branches-do-not-flood-the-default-conversation">8. Child branches do not flood the default conversation<a class="headerlink" href="#8-child-branches-do-not-flood-the-default-conversation" title="Permanent link">&para;</a></h2>
-<p>The normal conversation follows the current conversational branch.</p>
-<p>Nested child branches should appear as compact branch activity/result summaries unless the user explicitly opens <code>/session</code> or navigates into that branch.</p>
-<p>This preserves the branch-isolation/context-management model.</p>
+<p>Exact enum names may differ.</p>
+<p>Each rendered row must retain stable references to its semantic/session/plan/activity source.</p>
+<p>Never use visual row index as semantic identity.</p>
 <hr />
-<h1 id="required-tui-state-model">Required TUI State Model<a class="headerlink" href="#required-tui-state-model" title="Permanent link">&para;</a></h1>
-<p>Exact names may differ, but keep these concepts distinct.</p>
-<h2 id="home-mode-versus-auxiliary-mode">Home mode versus auxiliary mode<a class="headerlink" href="#home-mode-versus-auxiliary-mode" title="Permanent link">&para;</a></h2>
-<p>Introduce an explicit top-level presentation concept equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">enum</span><span class="w"> </span><span class="nc">TuiSurface</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">    </span><span class="n">Conversation</span><span class="p">,</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="n">Auxiliary</span><span class="p">(</span><span class="n">AuxiliaryView</span><span class="p">),</span>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="p">}</span>
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="k">enum</span><span class="w"> </span><span class="nc">AuxiliaryView</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">    </span><span class="n">SessionTree</span><span class="p">,</span>
-<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">    </span><span class="n">Explorer</span><span class="p">,</span>
-<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">    </span><span class="n">Inspector</span><span class="p">,</span>
-<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">    </span><span class="n">Find</span><span class="p">,</span>
-<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">    </span><span class="n">History</span><span class="p">,</span>
-<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="w">    </span><span class="n">Diff</span><span class="p">,</span>
-<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="w">    </span><span class="n">Projection</span><span class="p">,</span>
-<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="w">    </span><span class="n">Changes</span><span class="p">,</span>
-<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="w">    </span><span class="n">Operations</span><span class="p">,</span>
-<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="w">    </span><span class="n">Project</span><span class="p">,</span>
-<a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="w">    </span><span class="n">Status</span><span class="p">,</span>
-<a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="w">    </span><span class="n">Help</span><span class="p">,</span>
-<a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="p">}</span>
-</code></pre></div>
-<p>Do not blindly add this exact enum if <code>PrimaryView</code> can be cleanly adapted. The semantic requirement is:</p>
-<ul>
-<li>one clearly identifiable conversation home;</li>
-<li>explicit temporary auxiliary views;</li>
-<li>deterministic return-to-conversation behavior.</li>
-</ul>
-<p>If keeping <code>PrimaryView</code>, prefer adding a <code>Conversation</code> variant and treating the existing variants as auxiliary destinations.</p>
-<p>Do not rename structural <code>Session</code> to <code>Conversation</code>; they are different views.</p>
-<h2 id="conversation-target">Conversation target<a class="headerlink" href="#conversation-target" title="Permanent link">&para;</a></h2>
-<p>The default composer must work both before and after a session exists.</p>
-<p>Use a concept equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">enum</span><span class="w"> </span><span class="nc">ConversationTarget</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span><span class="n">NewSession</span><span class="p">,</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="n">Existing</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">        </span><span class="n">session</span><span class="p">:</span><span class="w"> </span><span class="nc">EntityId</span><span class="p">,</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">        </span><span class="n">branch</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">EntityId</span><span class="o">&gt;</span><span class="p">,</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">    </span><span class="p">},</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="p">}</span>
-</code></pre></div>
-<p>The existing <code>SessionComposerState</code> currently always contains <code>session: EntityId</code>; that shape cannot accurately represent the initial no-session composer.</p>
-<p>Refactor it so the TUI can hold an ordinary draft before a session exists.</p>
-<p>Do not create a fake/dummy <code>EntityId</code> for <code>NewSession</code>.</p>
-<h2 id="current-sessioncurrent-branch">Current session/current branch<a class="headerlink" href="#current-sessioncurrent-branch" title="Permanent link">&para;</a></h2>
-<p>Keep explicit state for the active conversation identity after the first submission is accepted:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>current session
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>current conversational branch
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>current operation, if any
-</code></pre></div>
-<p>When the first shared start operation returns stable handles, update the conversation target to the returned session/branch.</p>
-<p>When continuing an existing conversation, use the returned/durable branch according to shared session policy.</p>
-<hr />
-<h1 id="conversation-projection">Conversation Projection<a class="headerlink" href="#conversation-projection" title="Permanent link">&para;</a></h1>
-<p>Add a dedicated TUI conversation projection instead of using the raw structural session rows as the default transcript.</p>
-<p>A likely owner is a new focused module such as:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>crates/scriberig-tui/src/view/conversation.rs
-</code></pre></div>
-<p>but inspect existing file-size/module organization before choosing the final path.</p>
-<p>The conversation projection should derive from provider-neutral session/activity state and produce UI-neutral rows such as conceptual equivalents of:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">enum</span><span class="w"> </span><span class="nc">ConversationRowKind</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">    </span><span class="n">HumanMessage</span><span class="p">,</span>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span><span class="n">AssistantMessage</span><span class="p">,</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">    </span><span class="n">ReasoningSummary</span><span class="p">,</span>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">    </span><span class="n">RuntimeStatus</span><span class="p">,</span>
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">    </span><span class="n">ModelInvocation</span><span class="p">,</span>
-<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">    </span><span class="n">ToolInvocation</span><span class="p">,</span>
-<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">    </span><span class="n">ToolResult</span><span class="p">,</span>
-<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">    </span><span class="n">ChildBranchSummary</span><span class="p">,</span>
-<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">    </span><span class="n">SelectionChange</span><span class="p">,</span>
-<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="w">    </span><span class="n">Error</span><span class="p">,</span>
-<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="p">}</span>
-</code></pre></div>
-<p>Do not persist these row types as canonical session state merely for the TUI.</p>
-<h2 id="conversation-ordering">Conversation ordering<a class="headerlink" href="#conversation-ordering" title="Permanent link">&para;</a></h2>
-<p>Preserve causal/recorded order from the session/activity data.</p>
-<p>Do not sort by formatted labels or rely on wall-clock timestamps when a stable sequence/ordinal already exists.</p>
-<p>A typical turn should project approximately as:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>HumanInput
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>  safe/runtime activity when enabled
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>  model invocation when useful
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    optional prompt detail when enabled
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    tool invocation(s)
-<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>      tool result(s)
-<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>  AssistantOutput
-</code></pre></div>
-<h2 id="human-messages">Human messages<a class="headerlink" href="#human-messages" title="Permanent link">&para;</a></h2>
-<p>Render human input as ordinary conversation content, for example:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>You
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>Add support for PHP ingestion.
-</code></pre></div>
-<p>Do not show the entity ID by default.</p>
-<p>IDs belong in <code>/session</code>, <code>/inspect</code>, or debug/status views unless necessary for an error.</p>
-<h2 id="assistant-messages">Assistant messages<a class="headerlink" href="#assistant-messages" title="Permanent link">&para;</a></h2>
-<p>Render provider-neutral final/assistant output as ordinary conversation content.</p>
-<p>Do not prefix ordinary final output with implementation labels such as:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>ModelOutput 1234...
-</code></pre></div>
-<p>unless the user has deliberately opened a structural/debug view.</p>
-<h2 id="tool-activity">Tool activity<a class="headerlink" href="#tool-activity" title="Permanent link">&para;</a></h2>
-<p>Reuse task-133 presentation preferences:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>tool invocation: simple | detailed
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>tool output: hidden | summary | full
-</code></pre></div>
-<p>Simple example:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>▏ project.scan .
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>▏ ✓ 317 files
-</code></pre></div>
-<p>Detailed example:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>▏ project.scan
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>▏   path: .
-<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>▏   selection_policy: git_tracked
-<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>▏ ✓
-<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>▏   317 files
-<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>▏   0 blocking diagnostics
-</code></pre></div>
-<p>Do not duplicate redaction/detail-fetch logic that task 133 already implemented.</p>
-<h2 id="reasoningstatus">Reasoning/status<a class="headerlink" href="#reasoningstatus" title="Permanent link">&para;</a></h2>
-<p>Reuse task-133 reasoning visibility.</p>
-<p>When hidden, omit safe reasoning/runtime-status rows from the conversation projection.</p>
-<p>When shown, display only safe user-facing reasoning summaries/status already allowed by task 133.</p>
-<p>Never expose private chain-of-thought.</p>
-<h2 id="prompt-display">Prompt display<a class="headerlink" href="#prompt-display" title="Permanent link">&para;</a></h2>
-<p>Prompt/model-request visibility remains an opt-in trace/detail feature.</p>
-<p>It may expand beneath a model invocation in the conversation when enabled.</p>
-<p>Do not display it by default.</p>
-<h2 id="child-branches">Child branches<a class="headerlink" href="#child-branches" title="Permanent link">&para;</a></h2>
-<p>In the normal parent conversation, render a child branch compactly, for example:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>▏ Architecture investigation
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>▏ ✓ completed — 6 relevant extension points
-</code></pre></div>
-<p>Do not flatten the child branch’s complete conversation into its parent.</p>
-<p>The user can inspect the detailed structure through <code>/session</code>.</p>
-<hr />
-<h1 id="slash-command-system">Slash Command System<a class="headerlink" href="#slash-command-system" title="Permanent link">&para;</a></h1>
-<p>Implement slash commands as a first-class TUI presentation feature.</p>
-<p>Do not send recognized slash commands to the model.</p>
-<h2 id="parsing-rules">Parsing rules<a class="headerlink" href="#parsing-rules" title="Permanent link">&para;</a></h2>
-<p>Use deterministic rules equivalent to:</p>
+<h1 id="structural-placement-not-append-only-placement">Structural Placement, Not Append-Only Placement<a class="headerlink" href="#structural-placement-not-append-only-placement" title="Permanent link">&para;</a></h1>
+<p>The conversation is not a vector whose only update operation is <code>push</code>.</p>
+<p>When new activity arrives:</p>
 <ol>
-<li>inspect the submitted composer text;</li>
-<li>if it begins with <code>//</code>, remove one leading slash and submit the remainder to the agent;</li>
-<li>otherwise, if the first non-whitespace character is <code>/</code>, parse a local slash command;</li>
-<li>otherwise submit the text as a normal agent message.</li>
+<li>update durable/shared state or local observation cache;</li>
+<li>rebuild/incrementally update the tree projection;</li>
+<li>locate the activity's structural parent/branch/plan node;</li>
+<li>place it beneath that location;</li>
+<li>preserve deterministic sibling/activity ordering using shared sequence/ordinal data;</li>
+<li>adjust scroll/follow state without changing semantic selection.</li>
 </ol>
-<p>Prefer requiring slash commands to start at the beginning of the composer after optional leading whitespace.</p>
-<p>Do not scan arbitrary message paragraphs for <code>/commands</code>.</p>
-<h2 id="unknown-commands">Unknown commands<a class="headerlink" href="#unknown-commands" title="Permanent link">&para;</a></h2>
-<p>For:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>/does-not-exist
-</code></pre></div>
-<p>show a local error such as:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>Unknown command: /does-not-exist
-<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>Type /help to list commands.
-</code></pre></div>
-<p>Do not send it to the model.</p>
-<p>Optionally show nearest command matches when deterministic and easy.</p>
-<h2 id="command-registry">Command registry<a class="headerlink" href="#command-registry" title="Permanent link">&para;</a></h2>
-<p>Do not implement slash dispatch as a growing chain of unrelated string comparisons spread across reducers.</p>
-<p>Create one registry/descriptor owner equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="k">struct</span><span class="w"> </span><span class="nc">SlashCommandDescriptor</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">    </span><span class="n">name</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="o">'</span><span class="nb">static</span><span class="w"> </span><span class="kt">str</span><span class="p">,</span>
-<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="w">    </span><span class="n">aliases</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="o">'</span><span class="nb">static</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;'</span><span class="nb">static</span><span class="w"> </span><span class="kt">str</span><span class="p">],</span>
-<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="w">    </span><span class="n">summary</span><span class="p">:</span><span class="w"> </span><span class="kp">&amp;</span><span class="o">'</span><span class="nb">static</span><span class="w"> </span><span class="kt">str</span><span class="p">,</span>
-<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="w">    </span><span class="n">argument_hint</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;&amp;'</span><span class="nb">static</span><span class="w"> </span><span class="kt">str</span><span class="o">&gt;</span><span class="p">,</span>
-<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="w">    </span><span class="n">availability</span><span class="p">:</span><span class="w"> </span><span class="nc">CommandAvailability</span><span class="p">,</span>
-<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="p">}</span>
-</code></pre></div>
-<p>The registry should drive:</p>
-<ul>
-<li>parsing/lookup;</li>
-<li><code>/help</code> listing;</li>
-<li>autocomplete suggestions;</li>
-<li>labels/hints where practical.</li>
-</ul>
-<p>Keep actual command effects/reducer actions typed.</p>
-<h2 id="minimum-command-set">Minimum command set<a class="headerlink" href="#minimum-command-set" title="Permanent link">&para;</a></h2>
-<p>Implement at least these commands, adapting to actual existing capabilities:</p>
-<h3 id="help"><code>/help</code><a class="headerlink" href="#help" title="Permanent link">&para;</a></h3>
-<p>Show the slash-command list and brief descriptions.</p>
-<h3 id="model"><code>/model</code><a class="headerlink" href="#model" title="Permanent link">&para;</a></h3>
-<p>Open/reuse the existing model picker from task 133.</p>
-<p>If an argument form is practical, support:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>/model &lt;profile-id-or-unambiguous-name&gt;
-</code></pre></div>
-<p>but the picker is sufficient for the first implementation.</p>
-<h3 id="thinking"><code>/thinking</code><a class="headerlink" href="#thinking" title="Permanent link">&para;</a></h3>
-<p>Open/reuse the existing thinking-level picker for the current model.</p>
-<h3 id="view"><code>/view</code><a class="headerlink" href="#view" title="Permanent link">&para;</a></h3>
-<p>Open/reuse presentation controls for:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>reasoning       hidden | shown
-<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>tool calls      simple | detailed
-<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>tool output     hidden | summary | full
-<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>prompt          hidden | shown
-</code></pre></div>
-<h3 id="session"><code>/session</code><a class="headerlink" href="#session" title="Permanent link">&para;</a></h3>
-<p>Open the existing structural session tree view.</p>
-<p>This is where branch IDs, nested branches, durable result rows, candidate references, and exact structure can be inspected.</p>
-<h3 id="explorer"><code>/explorer</code><a class="headerlink" href="#explorer" title="Permanent link">&para;</a></h3>
-<p>Open the semantic Explorer as an explicit auxiliary surface.</p>
-<p>If there is no semantic selection/project context, show a clear local empty-state message rather than failing silently.</p>
-<h3 id="inspect-reference"><code>/inspect [reference]</code><a class="headerlink" href="#inspect-reference" title="Permanent link">&para;</a></h3>
-<p>Open the existing inspector.</p>
-<p>If an argument is supplied, resolve/use it through the existing inspection path.</p>
-<p>If no argument is supplied, inspect the current semantic selection when available or use the existing input flow.</p>
-<h3 id="find-query"><code>/find [query]</code><a class="headerlink" href="#find-query" title="Permanent link">&para;</a></h3>
-<p>Replace the current global <code>/</code> shortcut with a named slash command.</p>
-<p>If <code>query</code> is supplied, execute the existing Find flow directly.</p>
-<p>If no query is supplied, open the existing find input UI.</p>
-<h3 id="history"><code>/history</code><a class="headerlink" href="#history" title="Permanent link">&para;</a></h3>
-<p>Open the existing history surface for the current applicable selection/snapshot.</p>
-<h3 id="diff"><code>/diff</code><a class="headerlink" href="#diff" title="Permanent link">&para;</a></h3>
-<p>Open the existing diff flow. Reuse existing target-selection/input behavior.</p>
-<h3 id="projection"><code>/projection</code><a class="headerlink" href="#projection" title="Permanent link">&para;</a></h3>
-<p>Open the existing projection surface for the applicable selection.</p>
-<h3 id="changes"><code>/changes</code><a class="headerlink" href="#changes" title="Permanent link">&para;</a></h3>
-<p>Open the existing change/candidate review surface.</p>
-<p>Do not bypass existing explicit confirmation/promotion behavior.</p>
-<h3 id="operations"><code>/operations</code><a class="headerlink" href="#operations" title="Permanent link">&para;</a></h3>
-<p>Open the existing operations surface.</p>
-<h3 id="project"><code>/project</code><a class="headerlink" href="#project" title="Permanent link">&para;</a></h3>
-<p>Show current project/workspace context or the nearest existing project selection surface. Do not invent project semantics inside the TUI.</p>
-<h3 id="status"><code>/status</code><a class="headerlink" href="#status" title="Permanent link">&para;</a></h3>
-<p>Show debugging/status information that is useful but too noisy for normal conversation chrome, including connection state and other safe runtime status already available locally.</p>
-<h3 id="new"><code>/new</code><a class="headerlink" href="#new" title="Permanent link">&para;</a></h3>
-<p>Start a fresh conversation target.</p>
-<p>This command must not fabricate persistent session state in the TUI. It resets the local conversation target to <code>NewSession</code>; the next normal message invokes the shared new-session start path.</p>
-<p>If product semantics support immediate empty-session creation and that is preferred by the shared application owner, use that shared operation instead. Do not invent local persistence.</p>
+<p>If the user replies to an earlier node, the new continuation appears there.</p>
+<p>If an agent creates a child branch halfway through a root turn, that child appears there.</p>
+<p>If a planned node starts later, execution fills that planned location rather than appearing only at the bottom because wall-clock time advanced.</p>
 <hr />
-<h1 id="slash-autocomplete">Slash Autocomplete<a class="headerlink" href="#slash-autocomplete" title="Permanent link">&para;</a></h1>
-<p>When the composer begins with <code>/</code>, show bounded command suggestions near the composer.</p>
-<p>Example:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>&gt; /th
-<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>  /thinking    Change the thinking level for future invocations
+<h1 id="branch-presentation">Branch Presentation<a class="headerlink" href="#branch-presentation" title="Permanent link">&para;</a></h1>
+<h2 id="compact-completed-child">Compact completed child<a class="headerlink" href="#compact-completed-child" title="Permanent link">&para;</a></h2>
+<p>Default completed branch rendering:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>▏ Implement parser capability
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>▏ ✓ parser entities created and validated
+</code></pre></div>
+<h2 id="expanded-child">Expanded child<a class="headerlink" href="#expanded-child" title="Permanent link">&para;</a></h2>
+<p>Expanded rendering may show:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>▏ Implement parser capability
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>▏
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>▏ ▏ inspect Function parse_type
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>▏ ▏ ✓ 4 code groups
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>▏
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>▏ ▏ replace expression in nullable-suffix group
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>▏ ▏ ✓ Expression E17 updated
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>▏
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>▏ ▏ Validate parser
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>▏ ▏ ▏ cargo test -p scriberig-domain-php ...
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>▏ ▏ ▏ ✓ 12 tests passed
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>▏
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>▏ ✓ parser entities created and validated
+</code></pre></div>
+<p>Expansion is presentation state only.</p>
+<p>The parent model context must continue to receive the compact branch result rather than expanded child transcript unless context policy explicitly reopens it.</p>
+<hr />
+<h1 id="vertical-depth-rails">Vertical Depth Rails<a class="headerlink" href="#vertical-depth-rails" title="Permanent link">&para;</a></h1>
+<p>Render one visible rail per ancestor depth.</p>
+<p>Conceptually:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>▏ depth 1
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>▏ ▏ depth 2
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>▏ ▏ ▏ depth 3
 </code></pre></div>
 <p>Requirements:</p>
 <ul>
-<li>suggestions are local and deterministic;</li>
-<li>suggestions are derived from the command registry;</li>
-<li>they do not require a model call;</li>
-<li>Up/Down selects suggestions while the suggestion list is active;</li>
-<li>Enter accepts/executes the selected command according to ordinary input rules;</li>
-<li>Esc dismisses suggestions without leaving conversation mode;</li>
-<li>autocomplete must not destroy the draft;</li>
-<li>no autocomplete panel should permanently occupy screen space when the user is not typing a slash command.</li>
+<li>each depth receives a stable color from a theme palette;</li>
+<li>the palette may cycle;</li>
+<li>all ancestor rails should be shown when width permits;</li>
+<li>color is supplemental; rail count/position must preserve nesting without color;</li>
+<li>narrow terminals may compact older ancestors with an explicit marker such as <code>… ▏ ▏</code>;</li>
+<li>rail color/depth is derived, never persisted as canonical state;</li>
+<li>
+<p>activity-local depth and branch depth may combine visually but remain distinguishable in source data.</p>
+</li>
+<li>
+<p>[ ] Branch ancestry produces deterministic rail depth.</p>
+</li>
+<li>[ ] Rail colors are stable for a given depth during a session.</li>
+<li>[ ] No semantic behavior depends on terminal color support.</li>
+<li>[ ] Narrow layout preserves understandable ancestry.</li>
 </ul>
-<p>Keep this simple. A bounded list of command-name prefix matches is enough.</p>
 <hr />
-<h1 id="input-and-key-behavior">Input and Key Behavior<a class="headerlink" href="#input-and-key-behavior" title="Permanent link">&para;</a></h1>
-<h2 id="normal-conversation-mode">Normal conversation mode<a class="headerlink" href="#normal-conversation-mode" title="Permanent link">&para;</a></h2>
-<p>The composer should own ordinary text input immediately.</p>
-<p>Recommended behavior:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>printable characters -&gt; insert in composer
-<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>Enter                -&gt; submit message or execute slash command
-<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>Ctrl+J               -&gt; newline
-<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>paste                -&gt; insert paste text
-<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>Esc                   -&gt; dismiss autocomplete/inner overlay first; otherwise no destructive action
-<a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>Ctrl+C                -&gt; preserve repository/global quit/cancel policy
+<h1 id="navigation-cursor-reply-anchor-and-coordinator-cursor">Navigation Cursor, Reply Anchor, and Coordinator Cursor<a class="headerlink" href="#navigation-cursor-reply-anchor-and-coordinator-cursor" title="Permanent link">&para;</a></h1>
+<p>The TUI must keep these separate:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>navigation cursor
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>reply anchor
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>coordinator cursor
 </code></pre></div>
-<p>Do not require <code>i</code> to enter edit mode in the default conversation.</p>
-<p>The old <code>i</code> binding may be removed from the ordinary flow once no longer needed.</p>
-<h2 id="browsenavigation-keys">Browse/navigation keys<a class="headerlink" href="#browsenavigation-keys" title="Permanent link">&para;</a></h2>
-<p>Up/Down currently drive row selection in browse mode. After this task:</p>
+<h2 id="navigation-cursor">Navigation cursor<a class="headerlink" href="#navigation-cursor" title="Permanent link">&para;</a></h2>
+<p>Indicates the node currently being browsed.</p>
+<p>It may move without changing where the next message will attach.</p>
+<h2 id="reply-anchor">Reply anchor<a class="headerlink" href="#reply-anchor" title="Permanent link">&para;</a></h2>
+<p>Identifies the stable replyable session location that receives the next human message.</p>
+<p>It must survive:</p>
 <ul>
-<li>if slash autocomplete is active, Up/Down navigate suggestions;</li>
-<li>if composer has text and the product does not yet support message-history recall, do not unexpectedly move the transcript cursor;</li>
-<li>transcript scrolling should use explicit keys or only use Up/Down when the composer is not in active text editing according to a clearly tested rule;</li>
-<li>special views may retain their existing browse key behavior.</li>
+<li>rerendering;</li>
+<li>width changes;</li>
+<li>activity verbosity changes;</li>
+<li>collapse/expand changes;</li>
+<li>live insertion of unrelated sibling activity.</li>
 </ul>
-<p>Prefer simple predictable behavior over clever mode switching.</p>
-<h2 id="special-view-behavior">Special view behavior<a class="headerlink" href="#special-view-behavior" title="Permanent link">&para;</a></h2>
-<p>When an auxiliary view is open:</p>
+<h2 id="coordinator-cursor">Coordinator cursor<a class="headerlink" href="#coordinator-cursor" title="Permanent link">&para;</a></h2>
+<p>Represents the current location of the single auto-advancing <code>/plan</code> coordinator.</p>
+<p>While the user is idle/following, reply anchor may auto-follow coordinator cursor.</p>
+<p>Once the user deliberately pins another node or begins composing against it, coordinator movement must not steal the reply target.</p>
 <ul>
-<li>the auxiliary surface owns its existing navigation keys;</li>
-<li><code>Esc</code> returns to conversation when no inner overlay/modal is active;</li>
-<li>the current conversation draft must be preserved;</li>
-<li>returning to conversation restores composer focus;</li>
-<li>opening a special view must not submit or clear the draft.</li>
+<li>[ ] No cursor/anchor is represented only by row number.</li>
+<li>[ ] Selecting a historical replyable node can set reply anchor.</li>
+<li>[ ] Reply anchor remains stable while unrelated rows appear/disappear.</li>
+<li>[ ] Coordinator auto-follow pauses when the user browses/pins another node.</li>
+<li>[ ] Explicit action returns the UI to coordinator-follow mode.</li>
 </ul>
 <hr />
-<h1 id="new-session-bootstrap">New Session Bootstrap<a class="headerlink" href="#new-session-bootstrap" title="Permanent link">&para;</a></h1>
-<p>This is a required part of the task.</p>
-<p>The user must be able to launch Scriberig with no current session and type a message immediately.</p>
-<p>The current public TUI/application path requires an existing session identity, so first inspect whether another shared operation already creates a session.</p>
-<h2 id="if-a-shared-operation-already-exists">If a shared operation already exists<a class="headerlink" href="#if-a-shared-operation-already-exists" title="Permanent link">&para;</a></h2>
-<p>Reuse it.</p>
-<p>Wire the TUI’s <code>ConversationTarget::NewSession</code> submission through that operation and consume the returned:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>OperationRef
-<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>SessionRef
-<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>BranchRef
+<h1 id="reply-anchor-visual-treatment">Reply-Anchor Visual Treatment<a class="headerlink" href="#reply-anchor-visual-treatment" title="Permanent link">&para;</a></h1>
+<p>The current reply anchor must have a strong background highlight or equivalent non-rail treatment.</p>
+<p>Do not use the rail color to communicate reply targeting.</p>
+<p>The two cues mean different things:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>background highlight -&gt; next human message attaches here
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>rail(s)              -&gt; structural ancestry/depth
 </code></pre></div>
-<p>Then update TUI state to the returned existing-session target and begin observing/loading the session.</p>
-<h2 id="if-no-shared-operation-exists">If no shared operation exists<a class="headerlink" href="#if-no-shared-operation-exists" title="Permanent link">&para;</a></h2>
-<p>Add the smallest shared application operation with semantics equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>agent_start {
-<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>    prompt
-<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>    session: CreateNew
-<a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>    selection?
-<a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>    agent_profile/default execution selection as appropriate
-<a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>}
+<p>When replying to the normal current/coordinator head, the composer may remain visually quiet.</p>
+<p>When pinned to a historical/sibling node, show a compact context hint such as:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>Replying to: “The parser has four code groups…”
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>&gt; _
 </code></pre></div>
-<p>The owning application/session subsystem must create stable durable identities for the session/root branch/human input/operation.</p>
-<p>The TUI receives the handles; it does not create them.</p>
-<p>Keep existing continuation semantics for messages sent after the session exists.</p>
-<p>If adding this operation requires protocol/server/Rust-client/TypeScript-client updates to preserve cross-surface equivalence, implement those narrow adaptations too. Do not make “start a new session” a TUI-only semantic capability.</p>
-<p>Add focused tests proving:</p>
-<ul>
-<li>first message from no-session state creates/returns a durable session;</li>
-<li>the exact user text becomes the first human input;</li>
-<li>the returned session can be read through the normal session API;</li>
-<li>a second message uses continuation semantics rather than creating another session;</li>
-<li>no fake session ID exists in TUI state before acceptance of the first start operation.</li>
-</ul>
+<p>Important state must remain understandable without color alone.</p>
 <hr />
-<h1 id="navigation-model">Navigation Model<a class="headerlink" href="#navigation-model" title="Permanent link">&para;</a></h1>
-<p>The conversation is the stable home route.</p>
-<p>Auxiliary views are temporary.</p>
-<p>A simple model is preferred:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>Conversation
-<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>    |
-<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>    +-- /session ---- Esc --&gt; Conversation
-<a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>    +-- /explorer --- Esc --&gt; Conversation
-<a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>    +-- /changes ---- Esc --&gt; Conversation
-<a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a>    +-- /operations - Esc --&gt; Conversation
-<a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a>    +-- /model ------ close -&gt; Conversation
-<a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a>    +-- /thinking --- close -&gt; Conversation
+<h1 id="replyable-nodes">Replyable Nodes<a class="headerlink" href="#replyable-nodes" title="Permanent link">&para;</a></h1>
+<p>For the first implementation, prefer a conservative set of replyable semantic nodes, such as:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>HumanInput
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>AssistantOutput
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>completed Turn
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>BranchResult
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>PlanNode/branch head when shared continuation semantics allow it
 </code></pre></div>
-<p>Do not create a complicated browser-like navigation stack merely to satisfy this task.</p>
-<p>Existing Back/Forward semantics for semantic navigation can remain inside applicable auxiliary views.</p>
-<p>The important invariant is that closing a top-level auxiliary command returns to conversation.</p>
+<p>Do not allow arbitrary tool-result/activity rows to become continuation anchors unless the shared context compiler defines exact semantics for them.</p>
+<p>Non-replyable rows remain navigable/inspectable.</p>
 <hr />
-<h1 id="layout-changes">Layout Changes<a class="headerlink" href="#layout-changes" title="Permanent link">&para;</a></h1>
-<p>The current width-driven multi-pane shell must stop being the ordinary layout.</p>
-<h2 id="conversation-layout">Conversation layout<a class="headerlink" href="#conversation-layout" title="Permanent link">&para;</a></h2>
-<p>For all usable terminal widths, reserve:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>optional compact header
-<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>conversation viewport
-<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>composer
-<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>optional compact status/footer
+<h1 id="first-message-and-new-session">First Message and New Session<a class="headerlink" href="#first-message-and-new-session" title="Permanent link">&para;</a></h1>
+<p>The initial composer must represent a true <code>NewSession</code> target rather than a fake session ID.</p>
+<p>Conceptually:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>ConversationTarget::NewSession
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>ConversationTarget::Existing { session, reply_anchor }
 </code></pre></div>
-<p>A conceptual layout helper could return:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="k">struct</span><span class="w"> </span><span class="nc">ConversationLayout</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="w">    </span><span class="n">header</span><span class="p">:</span><span class="w"> </span><span class="nc">Rect</span><span class="p">,</span>
-<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="w">    </span><span class="n">transcript</span><span class="p">:</span><span class="w"> </span><span class="nc">Rect</span><span class="p">,</span>
-<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="w">    </span><span class="n">composer</span><span class="p">:</span><span class="w"> </span><span class="nc">Rect</span><span class="p">,</span>
-<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="w">    </span><span class="n">status</span><span class="p">:</span><span class="w"> </span><span class="nc">Rect</span><span class="p">,</span>
-<a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="p">}</span>
+<p>Submission from <code>NewSession</code> must call a shared application start/create operation.</p>
+<p>When accepted:</p>
+<ol>
+<li>receive authoritative session/root-branch/operation handles;</li>
+<li>replace local target with those handles;</li>
+<li>render the user input from durable/shared state;</li>
+<li>observe execution through normal activity/operation semantics.</li>
+</ol>
+<p>Do not allocate canonical session identities inside <code>scriberig-tui</code>.</p>
+<hr />
+<h1 id="historical-continuation">Historical Continuation<a class="headerlink" href="#historical-continuation" title="Permanent link">&para;</a></h1>
+<p>Submitting against a historical reply anchor must call a shared continuation operation that identifies the exact semantic continuation location.</p>
+<p>The TUI must not construct provider context itself.</p>
+<p>The application/runtime context compiler decides which ancestor turns, branch descriptors/results, dependency results, decisions, semantic handles, and recent local activity belong in the new branch context.</p>
+<p>Later siblings must not enter the continuation merely because they were created later in wall-clock time.</p>
+<hr />
+<h1 id="plan-presentation"><code>/plan</code> Presentation<a class="headerlink" href="#plan-presentation" title="Permanent link">&para;</a></h1>
+<p>The plan is rendered in the same home tree.</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>/ Plan: PHP ingestion
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>▏ ✓ Discover architecture                     local-fast
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>▏ ◉ Implement parser                          openai-codex
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>▏ ○ Implement importer                        openrouter-claude
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>▏   waits: parser
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>▏ ◉ Research PHP edge cases                   local-research
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>▏ ○ Integration                               openai-codex
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>    waits: parser, importer, research
 </code></pre></div>
-<p>Do not force this exact type if existing layout types can be adapted cleanly.</p>
-<h2 id="composer-height">Composer height<a class="headerlink" href="#composer-height" title="Permanent link">&para;</a></h2>
-<p>Use a bounded dynamic or fixed composer height that supports multiline text without consuming most of the screen.</p>
-<p>A reasonable initial implementation is:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>minimum 3 lines
-<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>maximum approximately 6-8 lines or a bounded fraction of terminal height
+<p>Requirements:</p>
+<ul>
+<li>planned/blocked/ready/running/completed/failed state has textual/symbolic cues;</li>
+<li>assignment is compactly visible when useful;</li>
+<li>dependencies are compact by default and inspectable in detail;</li>
+<li>starting a planned node fills that structural location;</li>
+<li>plan revision/replanning does not erase historical durable nodes;</li>
+<li>coordinator position can be indicated without confusing it with user reply anchor;</li>
+<li>many worker branches may show running concurrently.</li>
+</ul>
+<hr />
+<h1 id="plan-command-family"><code>/plan</code> Command Family<a class="headerlink" href="#plan-command-family" title="Permanent link">&para;</a></h1>
+<p>Recognized commands should map to shared plan operations, conceptually:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>/plan &lt;goal&gt;
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>/plan start
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>/plan pause
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>/plan resume
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>/plan replan
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>/plan stop
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>/plan show
 </code></pre></div>
-<p>The exact numbers may follow existing tests/layout conventions.</p>
-<h2 id="auxiliary-layout">Auxiliary layout<a class="headerlink" href="#auxiliary-layout" title="Permanent link">&para;</a></h2>
-<p>Existing panels may reuse nearly all available body space when opened explicitly.</p>
-<p>Do not automatically add Explorer or Inspector columns based on width.</p>
-<p>If a special view later wants a deliberate split layout, that is allowed, but it must be a property of that view, not a global width side effect.</p>
-<h2 id="too-small-terminal">Too-small terminal<a class="headerlink" href="#too-small-terminal" title="Permanent link">&para;</a></h2>
-<p>Retain the existing safe “terminal too small” behavior.</p>
-<p>Do not regress terminal restoration/error handling.</p>
+<p>The first implementation should prefer plan creation/review before autonomous start.</p>
+<p>Do not keep plan structure only in TUI state.</p>
 <hr />
-<h1 id="header-and-status-chrome">Header and Status Chrome<a class="headerlink" href="#header-and-status-chrome" title="Permanent link">&para;</a></h1>
-<p>The ordinary conversation should be quiet.</p>
-<p>Do not show debug-oriented information such as <code>focus: Primary</code> in normal chrome.</p>
-<p>Prefer a compact header conceptually like:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>scriberig · project-name                         sonnet · high
+<h1 id="per-branch-assignment">Per-Branch Assignment<a class="headerlink" href="#per-branch-assignment" title="Permanent link">&para;</a></h1>
+<p>The user must be able to assign a model/profile to a selected planned/ready branch without changing every other branch.</p>
+<p>Use a local command such as:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>/assign
 </code></pre></div>
-<p>Possible safe fields:</p>
-<ul>
-<li>product name;</li>
-<li>active project display name or “no active project”;</li>
-<li>active model display name;</li>
-<li>thinking level;</li>
-<li>a minimal running-operation marker when useful.</li>
-</ul>
-<p>Connection internals, focus enum values, request IDs, and other implementation detail belong in <code>/status</code> or debug output unless the connection is degraded and needs a visible warning.</p>
-<hr />
-<h1 id="structural-session-view">Structural <code>/session</code> View<a class="headerlink" href="#structural-session-view" title="Permanent link">&para;</a></h1>
-<p>Reuse the existing structural session implementation.</p>
-<p><code>/session</code> should show the richer tree representation currently supplied by <code>SessionModel</code>, including:</p>
-<ul>
-<li>session root;</li>
-<li>branches;</li>
-<li>nested branches;</li>
-<li>turns/activity;</li>
-<li>model invocation rows;</li>
-<li>tool invocation/result rows;</li>
-<li>branch results;</li>
-<li>candidate review links;</li>
-<li>execution selection where useful.</li>
-</ul>
-<p>Do not attempt to make the structural view look like ordinary conversation.</p>
-<p>Its purpose is inspection/debugging/navigation.</p>
-<p><code>Esc</code> returns to the conversation and restores the draft.</p>
-<hr />
-<h1 id="explorer-and-inspector">Explorer and Inspector<a class="headerlink" href="#explorer-and-inspector" title="Permanent link">&para;</a></h1>
-<h2 id="explorer_1"><code>/explorer</code><a class="headerlink" href="#explorer_1" title="Permanent link">&para;</a></h2>
-<p>The existing Explorer becomes an explicit full-body/auxiliary surface.</p>
-<p>It may still use semantic row selection and the existing list operations.</p>
-<p>It should not appear automatically on wide terminals.</p>
-<h2 id="inspect"><code>/inspect</code><a class="headerlink" href="#inspect" title="Permanent link">&para;</a></h2>
-<p>The current Inspector should become an explicit auxiliary view/overlay reached via slash command or activation from another semantic view.</p>
-<p>It should not occupy a permanent right-hand column in the normal conversation.</p>
-<p>When a user activates an entity from <code>/explorer</code>, it is acceptable to transition into <code>/inspect</code> or show a deliberate explorer+inspect special layout. The important point is that this occurs because the user explicitly entered semantic browsing, not because the terminal is wide.</p>
-<hr />
-<h1 id="model-thinking-and-presentation-controls">Model, Thinking, and Presentation Controls<a class="headerlink" href="#model-thinking-and-presentation-controls" title="Permanent link">&para;</a></h1>
-<p>Reuse task 133.</p>
-<p>Do not recreate selectors.</p>
-<p>Slash commands are only new entry points:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>/model    -&gt; existing model-library picker
-<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>/thinking -&gt; existing model-specific thinking picker
-<a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>/view     -&gt; existing presentation preferences
+<p>or another unambiguous command chosen by the shared command registry.</p>
+<p>Do not overload <code>/model</code> ambiguously.</p>
+<p>Recommended meaning:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>/model   -&gt; session/default future model selection
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>/assign  -&gt; selected plan node/branch execution assignment
 </code></pre></div>
-<p>The normal header should reflect the authoritative current model/thinking selection after successful mutation.</p>
-<p>A mutation conflict/error remains an application error and must not be hidden by the slash-command layer.</p>
+<p>Assignment UI consumes the shared model library/profile capabilities from task 133.</p>
+<p>It never stores credentials.</p>
 <hr />
-<h1 id="cancellation">Cancellation<a class="headerlink" href="#cancellation" title="Permanent link">&para;</a></h1>
-<p>Retain explicit cancellation semantics.</p>
-<p>Do not make <code>Esc</code> from conversation implicitly cancel the active agent operation.</p>
-<p>Do not make typing a new message cancel it.</p>
-<p>If there is an existing cancel key/action, preserve it and expose it in <code>/help</code>.</p>
-<p>If a <code>/cancel</code> alias is cheap to add over the existing application cancellation action, it may be added, but do not build new cancellation semantics in this task.</p>
-<hr />
-<h1 id="implementation-phases">Implementation Phases<a class="headerlink" href="#implementation-phases" title="Permanent link">&para;</a></h1>
-<p>Implement in this order.</p>
-<h2 id="phase-a-baseline-and-regression-fixtures">Phase A — Baseline and Regression Fixtures<a class="headerlink" href="#phase-a-baseline-and-regression-fixtures" title="Permanent link">&para;</a></h2>
-<ul>
-<li>[ ] Re-read root and TUI <code>AGENTS.md</code> plus the design documents listed above.</li>
-<li>[ ] Verify every statement in “Current Implementation Facts”.</li>
-<li>[ ] Update that section where the repository has changed.</li>
-<li>[ ] Identify the current focused TUI tests for default state, layout, keymap, session composer, session rendering, and runtime startup.</li>
-<li>[ ] Add/adjust a focused fixture that can represent: no session, one human turn, one assistant output, one tool call/result, and one child branch summary.</li>
-<li>[ ] Run only the focused baseline tests you will rely on during this task.</li>
-</ul>
-<p>Do not change product behavior yet in this phase.</p>
-<h2 id="phase-b-add-explicit-conversation-home-state">Phase B — Add Explicit Conversation Home State<a class="headerlink" href="#phase-b-add-explicit-conversation-home-state" title="Permanent link">&para;</a></h2>
-<ul>
-<li>[ ] Add a distinct conversation/home view to the TUI presentation model.</li>
-<li>[ ] Change default interactive TUI state so conversation is the selected home surface.</li>
-<li>[ ] Ensure default state does not require a semantic selection/project/session.</li>
-<li>[ ] Preserve auxiliary existing view states without deleting them.</li>
-<li>[ ] Add tests proving <code>TuiState::default()</code> selects conversation home.</li>
-<li>[ ] Add tests proving startup does not automatically select Overview/Explorer/Inspector.</li>
-<li>[ ] Run only focused state/startup tests for this phase.</li>
-</ul>
-<h2 id="phase-c-refactor-composer-target-to-support-no-session">Phase C — Refactor Composer Target to Support No Session<a class="headerlink" href="#phase-c-refactor-composer-target-to-support-no-session" title="Permanent link">&para;</a></h2>
-<ul>
-<li>[ ] Refactor the persistent composer so it can target <code>NewSession</code> without a fake <code>EntityId</code>.</li>
-<li>[ ] Preserve existing drafts while switching between conversation and auxiliary views.</li>
-<li>[ ] Make ordinary conversation start with composer focus active.</li>
-<li>[ ] Remove the ordinary requirement to press <code>i</code> before typing.</li>
-<li>[ ] Preserve Ctrl+J multiline behavior.</li>
-<li>[ ] Preserve paste behavior.</li>
-<li>[ ] Add tests for immediate typing after startup.</li>
-<li>[ ] Add tests for draft preservation across auxiliary-view open/close.</li>
-<li>[ ] Run only focused composer/keymap tests for this phase.</li>
-</ul>
-<h2 id="phase-d-implement-shared-first-messagenew-session-start">Phase D — Implement Shared First-Message/New-Session Start<a class="headerlink" href="#phase-d-implement-shared-first-messagenew-session-start" title="Permanent link">&para;</a></h2>
-<ul>
-<li>[ ] Inspect whether a shared application new-session agent-start operation already exists.</li>
-<li>[ ] If it exists, reuse it and document the exact owner here.</li>
-<li>[ ] If it does not exist, add the smallest shared application operation that creates the session/root branch through the session owner and accepts the first prompt.</li>
-<li>[ ] Do not allocate canonical session IDs in the TUI.</li>
-<li>[ ] Extend protocol/server/client surfaces only as required to preserve the shared product contract.</li>
-<li>[ ] Update TUI effect/service adapters to accept a <code>NewSession</code> target.</li>
-<li>[ ] On acceptance, replace the local new-session target with returned stable session/branch handles.</li>
-<li>[ ] Load/observe the resulting session through the normal existing paths.</li>
-<li>[ ] Add focused application tests for first-message session creation.</li>
-<li>[ ] Add focused TUI tests for transition from <code>NewSession</code> to returned session/branch.</li>
-<li>[ ] Add focused test that the second message continues the existing session rather than creating a new one.</li>
-<li>[ ] Run only the owning focused tests for this phase.</li>
-</ul>
-<h2 id="phase-e-add-conversation-projection">Phase E — Add Conversation Projection<a class="headerlink" href="#phase-e-add-conversation-projection" title="Permanent link">&para;</a></h2>
-<ul>
-<li>[ ] Add a dedicated conversation view model/projection separate from the structural session tree.</li>
-<li>[ ] Project human input as ordinary user-message rows.</li>
-<li>[ ] Project final model output as ordinary assistant-message rows.</li>
-<li>[ ] Reuse task-133 tool call/result presentation controls.</li>
-<li>[ ] Reuse task-133 reasoning visibility.</li>
-<li>[ ] Reuse task-133 prompt visibility.</li>
-<li>[ ] Project child branches compactly rather than flattening child transcripts.</li>
-<li>[ ] Preserve stable causal ordering.</li>
-<li>[ ] Do not expose raw IDs in ordinary user/assistant text unless needed for an error.</li>
-<li>[ ] Add focused projection tests from one exact session fixture.</li>
-<li>[ ] Add a test proving conversation and structural session projections are different views over the same session.</li>
-<li>[ ] Run only focused conversation/session projection tests.</li>
-</ul>
-<h2 id="phase-f-render-conversation-as-the-main-screen">Phase F — Render Conversation as the Main Screen<a class="headerlink" href="#phase-f-render-conversation-as-the-main-screen" title="Permanent link">&para;</a></h2>
-<ul>
-<li>[ ] Add the conversation renderer using the conversation projection.</li>
-<li>[ ] Render composer beneath the conversation for every normal usable width.</li>
-<li>[ ] Keep task-133 depth rails/activity formatting where appropriate.</li>
-<li>[ ] Keep safe truncation/redaction/detail loading behavior.</li>
-<li>[ ] Render a useful no-history empty state before the first message.</li>
-<li>[ ] Render current draft/error without replacing transcript history.</li>
-<li>[ ] Ensure active streamed output can appear without becoming fake durable history.</li>
-<li>[ ] Add focused rendering tests for empty, normal, running, and completed conversations.</li>
-<li>[ ] Run only focused render tests for this phase.</li>
-</ul>
-<h2 id="phase-g-replace-automatic-multi-pane-home-layout">Phase G — Replace Automatic Multi-Pane Home Layout<a class="headerlink" href="#phase-g-replace-automatic-multi-pane-home-layout" title="Permanent link">&para;</a></h2>
-<ul>
-<li>[ ] Change normal shell layout so wide/medium/narrow widths all remain conversation-first.</li>
-<li>[ ] Stop automatically showing Explorer at wide/medium widths.</li>
-<li>[ ] Stop automatically showing Inspector at wide widths.</li>
-<li>[ ] Keep too-small-terminal handling.</li>
-<li>[ ] Add tests proving a wide terminal does not automatically show Explorer/Inspector.</li>
-<li>[ ] Add tests proving width changes affect layout dimensions/wrapping without changing the selected product surface.</li>
-<li>[ ] Run only focused layout/render tests for this phase.</li>
-</ul>
-<h2 id="phase-h-implement-slash-command-registry-and-parsing">Phase H — Implement Slash Command Registry and Parsing<a class="headerlink" href="#phase-h-implement-slash-command-registry-and-parsing" title="Permanent link">&para;</a></h2>
-<ul>
-<li>[ ] Add one command registry/descriptor source of truth.</li>
-<li>[ ] Add parsing for <code>/command [arguments]</code>.</li>
-<li>[ ] Add <code>//literal</code> escape to submit a prompt beginning with <code>/</code>.</li>
-<li>[ ] Ensure unknown commands stay local and are never submitted to the agent.</li>
-<li>[ ] Add <code>/help</code> derived from the registry.</li>
-<li>[ ] Move semantic Find from the bare <code>/</code> browse shortcut to <code>/find</code>.</li>
-<li>[ ] Decide whether <code>:</code> remains as an expert palette shortcut; if retained, it must not be the primary discoverable command path.</li>
-<li>[ ] Add focused parser tests for normal message, recognized command, unknown command, escaped slash, leading whitespace, and command arguments.</li>
-<li>[ ] Run only focused slash-command tests.</li>
-</ul>
-<h2 id="phase-i-slash-autocomplete">Phase I — Slash Autocomplete<a class="headerlink" href="#phase-i-slash-autocomplete" title="Permanent link">&para;</a></h2>
-<ul>
-<li>[ ] Show bounded registry-driven suggestions when the active draft begins with <code>/</code>.</li>
-<li>[ ] Support Up/Down selection while suggestions are active.</li>
-<li>[ ] Enter executes/accepts the selected command.</li>
-<li>[ ] Esc dismisses suggestions without leaving conversation.</li>
-<li>[ ] Preserve the draft while suggestions open/close.</li>
-<li>[ ] Do not call the model/application merely to compute suggestions.</li>
-<li>[ ] Add focused autocomplete/keymap tests.</li>
-<li>[ ] Run only those targeted tests.</li>
-</ul>
-<h2 id="phase-j-wire-required-commands-to-existing-views">Phase J — Wire Required Commands to Existing Views<a class="headerlink" href="#phase-j-wire-required-commands-to-existing-views" title="Permanent link">&para;</a></h2>
-<ul>
-<li>[ ] <code>/model</code> opens the existing model picker.</li>
-<li>[ ] <code>/thinking</code> opens the existing thinking picker.</li>
-<li>[ ] <code>/view</code> opens existing trace/presentation controls.</li>
-<li>[ ] <code>/session</code> opens the existing structural session tree.</li>
-<li>[ ] <code>/explorer</code> opens the existing semantic Explorer.</li>
-<li>[ ] <code>/inspect</code> opens/reuses the existing Inspector flow.</li>
-<li>[ ] <code>/find</code> opens/runs existing Find.</li>
-<li>[ ] <code>/history</code> opens existing History.</li>
-<li>[ ] <code>/diff</code> opens existing Diff.</li>
-<li>[ ] <code>/projection</code> opens existing Projection.</li>
-<li>[ ] <code>/changes</code> opens existing change/candidate review.</li>
-<li>[ ] <code>/operations</code> opens existing operations view.</li>
-<li>[ ] <code>/project</code> exposes existing project/workspace context without adding TUI-owned semantics.</li>
-<li>[ ] <code>/status</code> exposes safe connection/debug status that no longer belongs in normal chrome.</li>
-<li>[ ] <code>/new</code> resets to a new-conversation target without creating fake persistence.</li>
-<li>[ ] <code>/help</code> lists all supported commands and concise descriptions.</li>
-<li>[ ] Add focused tests that each command reaches the expected typed action/view.</li>
-<li>[ ] Run only command/view-specific tests.</li>
-</ul>
-<h2 id="phase-k-auxiliary-view-return-semantics">Phase K — Auxiliary View Return Semantics<a class="headerlink" href="#phase-k-auxiliary-view-return-semantics" title="Permanent link">&para;</a></h2>
-<ul>
-<li>[ ] Make <code>Esc</code> return a top-level auxiliary view to conversation when no inner modal is active.</li>
-<li>[ ] Close inner overlays/pickers before returning to conversation.</li>
-<li>[ ] Preserve the conversation draft while auxiliary views are active.</li>
-<li>[ ] Restore composer focus when returning home.</li>
-<li>[ ] Preserve current session/branch and running-operation observation while auxiliary views are open.</li>
-<li>[ ] Keep semantic Back/Forward behavior scoped to applicable auxiliary navigation.</li>
-<li>[ ] Add focused navigation tests.</li>
-<li>[ ] Run only those targeted tests.</li>
-</ul>
-<h2 id="phase-l-quiet-normal-chrome">Phase L — Quiet Normal Chrome<a class="headerlink" href="#phase-l-quiet-normal-chrome" title="Permanent link">&para;</a></h2>
-<ul>
-<li>[ ] Remove <code>focus: ...</code> and similar debug-only state from the ordinary conversation header.</li>
-<li>[ ] Show active project/no-project status compactly.</li>
-<li>[ ] Show active model and thinking level compactly when available.</li>
-<li>[ ] Show degraded/disconnected state visibly when user action is required.</li>
-<li>[ ] Put detailed connection/runtime debugging information in <code>/status</code>.</li>
-<li>[ ] Add focused header/status rendering tests.</li>
-<li>[ ] Run only those targeted tests.</li>
-</ul>
-<h2 id="phase-m-preserve-task-133-trace-behavior">Phase M — Preserve Task-133 Trace Behavior<a class="headerlink" href="#phase-m-preserve-task-133-trace-behavior" title="Permanent link">&para;</a></h2>
-<p>Using one captured conversation fixture, verify all of the following without re-executing work:</p>
-<ul>
-<li>[ ] reasoning Hidden -&gt; Shown -&gt; Hidden changes only rendering;</li>
-<li>[ ] tool invocation Simple -&gt; Detailed changes only rendering;</li>
-<li>[ ] tool output Hidden -&gt; Summary -&gt; Full changes only rendering/detail retrieval;</li>
-<li>[ ] prompt Hidden -&gt; Shown changes only rendering/detail retrieval;</li>
-<li>[ ] no presentation toggle creates a model invocation;</li>
-<li>[ ] no presentation toggle creates a tool invocation;</li>
-<li>[ ] sensitive redacted values stay absent;</li>
-<li>[ ] private chain-of-thought stays absent;</li>
-<li>[ ] the same underlying session can still be opened structurally through <code>/session</code>.</li>
-</ul>
-<p>Run only the focused TUI/task-133 compatibility tests here.</p>
-<h2 id="phase-n-product-level-tui-scenarios">Phase N — Product-Level TUI Scenarios<a class="headerlink" href="#phase-n-product-level-tui-scenarios" title="Permanent link">&para;</a></h2>
-<p>Add focused deterministic tests for at least these scenarios:</p>
-<h3 id="scenario-1-fresh-launch">Scenario 1 — Fresh launch<a class="headerlink" href="#scenario-1-fresh-launch" title="Permanent link">&para;</a></h3>
-<ul>
-<li>[ ] launch state has no session;</li>
-<li>[ ] conversation is home;</li>
-<li>[ ] composer is focused;</li>
-<li>[ ] user can type immediately;</li>
-<li>[ ] Explorer/Inspector are not automatically visible.</li>
-</ul>
-<h3 id="scenario-2-first-message">Scenario 2 — First message<a class="headerlink" href="#scenario-2-first-message" title="Permanent link">&para;</a></h3>
-<ul>
-<li>[ ] user enters normal text;</li>
-<li>[ ] shared start operation creates/returns stable session and root branch;</li>
-<li>[ ] message appears as human history;</li>
-<li>[ ] resulting assistant output appears in the same conversation;</li>
-<li>[ ] composer remains available.</li>
-</ul>
-<h3 id="scenario-3-continued-conversation">Scenario 3 — Continued conversation<a class="headerlink" href="#scenario-3-continued-conversation" title="Permanent link">&para;</a></h3>
-<ul>
-<li>[ ] second message uses existing session continuation;</li>
-<li>[ ] earlier history remains visible;</li>
-<li>[ ] no second session is created.</li>
-</ul>
-<h3 id="scenario-4-slash-command">Scenario 4 — Slash command<a class="headerlink" href="#scenario-4-slash-command" title="Permanent link">&para;</a></h3>
-<ul>
-<li>[ ] <code>/session</code> is handled locally;</li>
-<li>[ ] no provider invocation is produced;</li>
-<li>[ ] structural session view opens;</li>
-<li>[ ] Esc returns to conversation with draft preserved.</li>
-</ul>
-<h3 id="scenario-5-literal-slash-prompt">Scenario 5 — Literal slash prompt<a class="headerlink" href="#scenario-5-literal-slash-prompt" title="Permanent link">&para;</a></h3>
-<ul>
-<li>[ ] <code>//explain-this</code> submits <code>/explain-this</code> to the agent;</li>
-<li>[ ] it does not execute a local slash command.</li>
-</ul>
-<h3 id="scenario-6-nested-branch">Scenario 6 — Nested branch<a class="headerlink" href="#scenario-6-nested-branch" title="Permanent link">&para;</a></h3>
-<ul>
-<li>[ ] parent conversation displays compact child-branch activity/result;</li>
-<li>[ ] child transcript is not flattened into parent;</li>
-<li>[ ] <code>/session</code> exposes the branch structure.</li>
-</ul>
-<h3 id="scenario-7-wide-terminal">Scenario 7 — Wide terminal<a class="headerlink" href="#scenario-7-wide-terminal" title="Permanent link">&para;</a></h3>
-<ul>
-<li>[ ] conversation remains the home view at wide width;</li>
-<li>[ ] Explorer/Inspector do not appear merely because of width.</li>
-</ul>
-<p>Run only the focused scenario tests before proceeding.</p>
-<hr />
-<h1 id="files-likely-to-change">Files Likely to Change<a class="headerlink" href="#files-likely-to-change" title="Permanent link">&para;</a></h1>
-<p>This list is guidance, not permission to edit every file.</p>
-<p>Inspect before modifying.</p>
-<p>Likely TUI files/modules:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>crates/scriberig-tui/src/state.rs
-<a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>crates/scriberig-tui/src/action.rs
-<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>crates/scriberig-tui/src/effect.rs
-<a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a>crates/scriberig-tui/src/keymap.rs
-<a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a>crates/scriberig-tui/src/keymap_session_composer.rs
-<a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a>crates/scriberig-tui/src/layout.rs
-<a id="__codelineno-35-7" name="__codelineno-35-7" href="#__codelineno-35-7"></a>crates/scriberig-tui/src/render.rs
-<a id="__codelineno-35-8" name="__codelineno-35-8" href="#__codelineno-35-8"></a>crates/scriberig-tui/src/render_primary.rs
-<a id="__codelineno-35-9" name="__codelineno-35-9" href="#__codelineno-35-9"></a>crates/scriberig-tui/src/render_session.rs
-<a id="__codelineno-35-10" name="__codelineno-35-10" href="#__codelineno-35-10"></a>crates/scriberig-tui/src/selection.rs
-<a id="__codelineno-35-11" name="__codelineno-35-11" href="#__codelineno-35-11"></a>crates/scriberig-tui/src/service_effects.rs
-<a id="__codelineno-35-12" name="__codelineno-35-12" href="#__codelineno-35-12"></a>crates/scriberig-tui/src/view/session.rs
+<h1 id="semantic-operations-in-the-conversation">Semantic Operations in the Conversation<a class="headerlink" href="#semantic-operations-in-the-conversation" title="Permanent link">&para;</a></h1>
+<p>Tool/activity rendering must reflect that most known source/document work is semantic.</p>
+<p>Compact semantic operation:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>▏ add function parse_union_type to php::parser
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>▏ ✓ Function F194 created
 </code></pre></div>
-<p>Likely new focused modules if they help preserve the 400-line source rule:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>crates/scriberig-tui/src/view/conversation.rs
-<a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>crates/scriberig-tui/src/slash_command.rs
-<a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>crates/scriberig-tui/src/render_conversation.rs
+<p>Full one-line/wrapped form:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>▏ code.add_function module=php::parser after=parse_named_type name=parse_union_type return_type=TypeResult
 </code></pre></div>
-<p>Do not force these exact names if an existing module is clearly the owner.</p>
-<p>If first-message/new-session semantics are missing, likely shared layers may include:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a>crates/scriberig-app/src/session.rs
-<a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>crates/scriberig-protocol/src/agent.rs
-<a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a>crates/scriberig-server/...
-<a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a>crates/scriberig-client/...
-<a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a>web/packages/protocol/...
-<a id="__codelineno-37-6" name="__codelineno-37-6" href="#__codelineno-37-6"></a>web/packages/client/...
+<p>Structured parameter form:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>▏ code.add_function
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>▏   module: php::parser
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>▏   after: parse_named_type
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>▏   name: parse_union_type
+<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>▏   return_type: TypeResult
 </code></pre></div>
-<p>Only change those shared layers if necessary for a real shared new-session start operation.</p>
-<p>Do not move ordinary conversation projection into <code>scriberig-app</code> unless another product surface genuinely needs that exact presentation model. Provider-neutral session/activity semantics remain shared; terminal-specific row formatting stays in the TUI.</p>
+<p>Actual external process:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>▏ cargo test -p scriberig-domain-php ...
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>▏ ✓ 12 tests passed
+</code></pre></div>
+<p>Do not render every operation as though it were shell syntax.</p>
 <hr />
-<h1 id="things-not-to-do">Things Not To Do<a class="headerlink" href="#things-not-to-do" title="Permanent link">&para;</a></h1>
-<p>This task is incorrect if it does any of the following:</p>
+<h1 id="per-activity-presentation-preferences">Per-Activity Presentation Preferences<a class="headerlink" href="#per-activity-presentation-preferences" title="Permanent link">&para;</a></h1>
+<p>Preserve task-133 execution/presentation separation, but generalize rendering around activity kind.</p>
+<p>The shared preference model may evolve to support concepts equivalent to:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>semantic/tool invocation:
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>  Hidden
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>  CompactTruncated
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>  Full
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>  StructuredParameters
+<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>
+<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>operation/tool result:
+<a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>  Hidden
+<a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a>  Summary
+<a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a>  Preview
+<a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a>  FullBounded
+<a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a>
+<a id="__codelineno-21-13" name="__codelineno-21-13" href="#__codelineno-21-13"></a>reasoning summary:
+<a id="__codelineno-21-14" name="__codelineno-21-14" href="#__codelineno-21-14"></a>  Hidden
+<a id="__codelineno-21-15" name="__codelineno-21-15" href="#__codelineno-21-15"></a>  Shown
+<a id="__codelineno-21-16" name="__codelineno-21-16" href="#__codelineno-21-16"></a>
+<a id="__codelineno-21-17" name="__codelineno-21-17" href="#__codelineno-21-17"></a>model request:
+<a id="__codelineno-21-18" name="__codelineno-21-18" href="#__codelineno-21-18"></a>  Hidden
+<a id="__codelineno-21-19" name="__codelineno-21-19" href="#__codelineno-21-19"></a>  Summary
+<a id="__codelineno-21-20" name="__codelineno-21-20" href="#__codelineno-21-20"></a>  StructuredFull
+<a id="__codelineno-21-21" name="__codelineno-21-21" href="#__codelineno-21-21"></a>
+<a id="__codelineno-21-22" name="__codelineno-21-22" href="#__codelineno-21-22"></a>branch:
+<a id="__codelineno-21-23" name="__codelineno-21-23" href="#__codelineno-21-23"></a>  Compact
+<a id="__codelineno-21-24" name="__codelineno-21-24" href="#__codelineno-21-24"></a>  Expanded
+<a id="__codelineno-21-25" name="__codelineno-21-25" href="#__codelineno-21-25"></a>
+<a id="__codelineno-21-26" name="__codelineno-21-26" href="#__codelineno-21-26"></a>plan dependency/assignment:
+<a id="__codelineno-21-27" name="__codelineno-21-27" href="#__codelineno-21-27"></a>  Compact
+<a id="__codelineno-21-28" name="__codelineno-21-28" href="#__codelineno-21-28"></a>  Detailed
+</code></pre></div>
+<p>Do not force all activity types into one generic verbosity enum if their meaningful presentation modes differ.</p>
+<p>Presentation changes must not:</p>
 <ul>
-<li>[ ] leaves <code>Overview</code> as the default visible home screen;</li>
-<li>[ ] requires the user to press <code>i</code> before ordinary typing;</li>
-<li>[ ] automatically shows Explorer/Inspector because the terminal is wide;</li>
-<li>[ ] uses the raw structural session tree as the normal conversation transcript;</li>
-<li>[ ] deletes the structural session tree instead of moving it behind <code>/session</code>;</li>
-<li>[ ] sends recognized slash commands to the model;</li>
-<li>[ ] sends unknown slash commands to the model silently;</li>
-<li>[ ] makes <code>/</code> a global Find shortcut while the ordinary composer needs it for commands;</li>
-<li>[ ] fabricates a session ID in the TUI for the first message;</li>
-<li>[ ] creates a TUI-only new-session semantic path when a shared application path is required;</li>
-<li>[ ] clears the user draft when opening <code>/model</code>, <code>/session</code>, <code>/explorer</code>, or another auxiliary view;</li>
-<li>[ ] makes <code>Esc</code> cancel running agent work merely because the user wants to leave a special view;</li>
-<li>[ ] flattens nested child-branch transcripts into the parent conversation;</li>
-<li>[ ] exposes private chain-of-thought;</li>
-<li>[ ] duplicates model/thinking/trace controls from task 133;</li>
-<li>[ ] runs the full workspace test suite before all implementation checkboxes are complete.</li>
+<li>alter context compilation;</li>
+<li>change reply anchor;</li>
+<li>rerun work;</li>
+<li>change durable plan state;</li>
+<li>change scheduling;</li>
+<li>expose secrets or hidden chain-of-thought.</li>
 </ul>
-<p>The checkboxes in this section are negative acceptance checks. Before completion, confirm every statement above remains false; then mark each item <code>[x]</code> to mean “verified not present”.</p>
 <hr />
-<h1 id="acceptance-criteria">Acceptance Criteria<a class="headerlink" href="#acceptance-criteria" title="Permanent link">&para;</a></h1>
-<p>The task is complete only when all of these are true.</p>
-<h2 id="default-experience">Default experience<a class="headerlink" href="#default-experience" title="Permanent link">&para;</a></h2>
+<h1 id="slash-commands-are-the-ui-escape-hatch">Slash Commands Are the UI Escape Hatch<a class="headerlink" href="#slash-commands-are-the-ui-escape-hatch" title="Permanent link">&para;</a></h1>
+<p>The default home remains the conversation/tree.</p>
+<p>Auxiliary controls/views are explicit local commands, for example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>/model
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>/assign
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>/thinking
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>/view
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>/plan
+<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>/session
+<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>/explorer
+<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>/inspect
+<a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a>/find
+<a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a>/history
+<a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a>/diff
+<a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a>/projection
+<a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a>/changes
+<a id="__codelineno-22-14" name="__codelineno-22-14" href="#__codelineno-22-14"></a>/operations
+<a id="__codelineno-22-15" name="__codelineno-22-15" href="#__codelineno-22-15"></a>/project
+<a id="__codelineno-22-16" name="__codelineno-22-16" href="#__codelineno-22-16"></a>/status
+<a id="__codelineno-22-17" name="__codelineno-22-17" href="#__codelineno-22-17"></a>/help
+<a id="__codelineno-22-18" name="__codelineno-22-18" href="#__codelineno-22-18"></a>/new
+</code></pre></div>
+<p>A recognized command must never be sent to the model.</p>
+<p>Unknown slash commands must not silently become model input.</p>
+<p>Use an explicit literal escape, recommended:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>//literal -&gt; send "/literal" as ordinary agent input
+</code></pre></div>
+<p>Slash completion must operate while typing:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>&gt; /mo
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>  /model
+</code></pre></div>
+<p>and:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>&gt; /pl
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>  /plan
+</code></pre></div>
+<hr />
+<h1 id="auxiliary-view-behavior">Auxiliary View Behavior<a class="headerlink" href="#auxiliary-view-behavior" title="Permanent link">&para;</a></h1>
+<p>Explorer, Inspector, History, Find, Diff, Projection, Changes, Operations, structural Session tree, model/thinking/view controls, plan detail, and status/debug remain available.</p>
+<p>They do not auto-appear based on terminal width.</p>
+<p>Opening one deliberately replaces/overlays the body.</p>
+<p><code>Esc</code> returns toward Conversation after closing any inner modal.</p>
+<p>Do not delete existing view models merely because they are no longer always visible.</p>
+<p><code>/session</code> specifically preserves the low-level structural session view with IDs/status/provenance useful for deep inspection.</p>
+<hr />
+<h1 id="layout">Layout<a class="headerlink" href="#layout" title="Permanent link">&para;</a></h1>
+<p>All normal terminal widths should share the same product mode:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>quiet header
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>conversation/tree viewport
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>persistent composer
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>optional compact status
+</code></pre></div>
+<p>Width may change:</p>
 <ul>
-<li>[ ] interactive TUI opens directly into conversation home;</li>
-<li>[ ] user can immediately type a free-text message;</li>
-<li>[ ] no project is required to begin an agent session;</li>
-<li>[ ] no existing session is required to type the first message;</li>
-<li>[ ] the first message uses shared application/session creation semantics;</li>
-<li>[ ] normal history shows human/assistant conversation rather than a raw session tree;</li>
-<li>[ ] composer remains visible and editable during the session;</li>
-<li>[ ] wide terminal width does not automatically reveal semantic browser panels.</li>
+<li>wrapping;</li>
+<li>truncation;</li>
+<li>number of visible ancestor rails;</li>
+<li>minor chrome;</li>
+<li>compact metadata.</li>
 </ul>
-<h2 id="agent-activity">Agent activity<a class="headerlink" href="#agent-activity" title="Permanent link">&para;</a></h2>
+<p>Width must not automatically open Explorer or Inspector.</p>
+<hr />
+<h1 id="quiet-chrome">Quiet Chrome<a class="headerlink" href="#quiet-chrome" title="Permanent link">&para;</a></h1>
+<p>Prefer a header similar to:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>scriberig · project-name                         codex · high
+</code></pre></div>
+<p>Optional status line may contain concise information such as:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>main · context 34% · plan running · 3 workers
+</code></pre></div>
+<p>Do not continuously show internal focus enum, verbose service status, or UUID noise in ordinary mode.</p>
+<p>Detailed connection/runtime/debug information belongs behind <code>/status</code> or debug/structural views.</p>
+<hr />
+<h1 id="composer-behavior">Composer Behavior<a class="headerlink" href="#composer-behavior" title="Permanent link">&para;</a></h1>
+<p>Normal mode:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>ordinary key -&gt; edit draft
+<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>Enter        -&gt; submit
+<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>Ctrl+J       -&gt; newline
+</code></pre></div>
+<p>No <code>i</code> is required.</p>
+<p><code>Esc</code> may enter tree-navigation/browse mode or close the current special view according to final keymap design, but returning to ordinary conversation typing must be direct and obvious.</p>
+<p>While agent work runs:</p>
 <ul>
-<li>[ ] safe reasoning/status follows task-133 visibility settings;</li>
-<li>[ ] tool invocation simple/detailed presentation works in conversation;</li>
-<li>[ ] tool output hidden/summary/full works in conversation;</li>
-<li>[ ] prompt hidden/shown works in conversation;</li>
-<li>[ ] nested branch work is compact in parent conversation;</li>
-<li>[ ] structural detail remains available through <code>/session</code>.</li>
+<li>composer remains usable;</li>
+<li>submission follows shared queue/continuation policy;</li>
+<li>typing does not implicitly cancel;</li>
+<li>cancellation is explicit.</li>
 </ul>
-<h2 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">&para;</a></h2>
+<p>Do not let coordinator auto-advance steal a pinned reply anchor or draft.</p>
+<hr />
+<h1 id="required-tests">Required Tests<a class="headerlink" href="#required-tests" title="Permanent link">&para;</a></h1>
+<p>Add targeted tests proving at least:</p>
 <ul>
-<li>[ ] <code>/help</code> is discoverable;</li>
-<li>[ ] slash commands are local;</li>
-<li>[ ] unknown commands are not sent to the model;</li>
-<li>[ ] <code>//</code> can escape a literal leading slash;</li>
-<li>[ ] <code>/model</code>, <code>/thinking</code>, <code>/view</code>, <code>/session</code>, <code>/explorer</code>, <code>/inspect</code>, <code>/find</code>, <code>/history</code>, <code>/changes</code>, <code>/operations</code>, <code>/status</code>, and <code>/new</code> work according to this document;</li>
-<li>[ ] slash autocomplete is bounded and local;</li>
-<li>[ ] closing a special view returns to conversation.</li>
+<li>[ ] default startup is Conversation, not Overview/Explorer;</li>
+<li>[ ] ordinary typing immediately edits composer;</li>
+<li>[ ] first message uses shared new-session semantics;</li>
+<li>[ ] normal message continues from stable reply anchor;</li>
+<li>[ ] historical reply creates/continues at exact structural location;</li>
+<li>[ ] new activity is inserted structurally, not append-only;</li>
+<li>[ ] autonomous agent child branches appear in the default tree;</li>
+<li>[ ] recursively nested branches produce multiple depth rails;</li>
+<li>[ ] completed child branches collapse by default;</li>
+<li>[ ] expansion does not change model/context semantics;</li>
+<li>[ ] reply anchor survives collapse/verbosity/layout changes;</li>
+<li>[ ] reply anchor receives distinct background treatment;</li>
+<li>[ ] plan nodes appear before execution and retain identity when execution begins;</li>
+<li>[ ] blocked plan nodes show dependency state;</li>
+<li>[ ] concurrent worker branches render in one tree;</li>
+<li>[ ] coordinator-follow and pinned reply anchor remain independent;</li>
+<li>[ ] semantic operations render differently from actual process/shell activity;</li>
+<li>[ ] each supported per-activity verbosity mode renders deterministically;</li>
+<li>[ ] hidden reasoning never exposes private chain-of-thought;</li>
+<li>[ ] <code>/model</code> opens session model controls locally;</li>
+<li>[ ] <code>/assign</code> changes selected node assignment through shared semantics;</li>
+<li>[ ] <code>/plan</code> commands are local and never reach the model;</li>
+<li>[ ] unknown slash command is not sent to model;</li>
+<li>[ ] <code>//literal</code> sends a literal slash-prefixed prompt;</li>
+<li>[ ] <code>/session</code> opens structural tree and Esc returns to Conversation;</li>
+<li>[ ] wide terminal does not auto-open Explorer/Inspector;</li>
+<li>[ ] narrow terminal preserves understandable depth rails;</li>
+<li>[ ] connection refresh/reload reconstructs durable tree/plan without provider-stream replay.</li>
 </ul>
-<h2 id="preservation">Preservation<a class="headerlink" href="#preservation" title="Permanent link">&para;</a></h2>
+<hr />
+<h1 id="do-not-do">Do Not Do<a class="headerlink" href="#do-not-do" title="Permanent link">&para;</a></h1>
+<p>Do not:</p>
 <ul>
-<li>[ ] existing semantic explorer behavior still works when explicitly opened;</li>
-<li>[ ] existing inspector behavior still works when explicitly opened;</li>
-<li>[ ] change review still uses normal confirmation/promotion semantics;</li>
-<li>[ ] operation cancellation remains explicit;</li>
-<li>[ ] task-133 model/thinking/trace semantics are reused rather than duplicated;</li>
-<li>[ ] no canonical session/project semantics moved into the TUI.</li>
+<li>create a second session/transcript store;</li>
+<li>create TUI-only plan/dependency state;</li>
+<li>create fake session/branch/plan IDs;</li>
+<li>let row indices become continuation identity;</li>
+<li>append every event at the bottom regardless of structure;</li>
+<li>treat human branching as the only source of branches;</li>
+<li>flatten autonomous child transcripts into parent context;</li>
+<li>use terminal width to switch product modes;</li>
+<li>require <code>i</code> for ordinary typing;</li>
+<li>send recognized slash commands to the model;</li>
+<li>implement provider/model selection locally in the TUI;</li>
+<li>display secrets;</li>
+<li>expose hidden chain-of-thought;</li>
+<li>present every semantic operation as a shell command;</li>
+<li>implement source editing through raw file writes when shared semantic capabilities exist;</li>
+<li>silently merge concurrent worker candidates because dependencies completed;</li>
+<li>allow more than one auto-advancing coordinator for one plan.</li>
 </ul>
+<hr />
+<h1 id="final-acceptance-criterion">Final Acceptance Criterion<a class="headerlink" href="#final-acceptance-criterion" title="Permanent link">&para;</a></h1>
+<p>The task is complete when all of the following are true:</p>
+<blockquote>
+<p>Launching the native TUI opens a persistent agent composer and a tree-aware conversation projection. The user can type immediately, navigate stable replyable nodes, pin an earlier reply anchor, and submit a continuation whose new activity appears at that exact structural location. Autonomous recursive agent branches and <code>/plan</code> nodes appear in the same tree, completed branches collapse to compact results, dependency/assignment state is visible, multiple worker models can be observed concurrently, one coordinator can auto-advance while the user independently navigates, and nesting is rendered with colored vertical rails plus a distinct reply-anchor highlight. Known project edits are presented as semantic operations, with raw shell/file activity reserved for actual fallback/runtime use. Auxiliary views and controls are entered explicitly through slash commands and return to the conversation when closed.</p>
+</blockquote>
 <hr />
 <h1 id="final-full-suite-gate">Final Full-Suite Gate<a class="headerlink" href="#final-full-suite-gate" title="Permanent link">&para;</a></h1>
-<p>Run this section only after every implementation and focused-verification checkbox above is complete.</p>
-<p>Follow current root <code>AGENTS.md</code> if its required commands have changed.</p>
-<p>At minimum run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>python3 tools/lint_repo.py --fix
-<a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>cargo fmt --all
-<a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>cargo check --workspace --all-targets
-<a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a>cargo clippy --workspace --all-targets -- -D warnings
-<a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a>cargo test --workspace
-<a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a>pnpm --dir web format
-<a id="__codelineno-38-7" name="__codelineno-38-7" href="#__codelineno-38-7"></a>pnpm --dir web typecheck
-</code></pre></div>
-<p>If this task changed web protocol/client code for the shared new-session start operation, also run the required full web tests/build according to current repository instructions, including:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>pnpm --dir web test
-<a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>pnpm --dir web build
-</code></pre></div>
-<p>Final gate checklist:</p>
-<ul>
-<li>[ ] repository lint passes;</li>
-<li>[ ] Rust formatting passes;</li>
-<li>[ ] Rust workspace check passes;</li>
-<li>[ ] Rust clippy passes with warnings denied;</li>
-<li>[ ] full Rust workspace test suite passes;</li>
-<li>[ ] web formatting passes;</li>
-<li>[ ] web typecheck passes;</li>
-<li>[ ] full web tests/build pass when required by the files changed;</li>
-<li>[ ] no source file violates the repository 400-line rule;</li>
-<li>[ ] every source function/type added by this task satisfies repository documentation rules;</li>
-<li>[ ] every checked item in this document has been re-audited against final code/test evidence;</li>
-<li>[ ] task 133 behavior remains intact;</li>
-<li>[ ] this document status is changed to <code>**Status: [x] Complete**</code> only after all required boxes above are genuinely complete.</li>
-</ul>
-<hr />
-<h1 id="final-expected-user-experience">Final Expected User Experience<a class="headerlink" href="#final-expected-user-experience" title="Permanent link">&para;</a></h1>
-<p>A correct implementation should make this the common path:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>$ srig tui
-<a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a>
-<a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a> scriberig · no active project                         sonnet · high
-<a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a>
-<a id="__codelineno-40-5" name="__codelineno-40-5" href="#__codelineno-40-5"></a> Type a message to start a session.
-<a id="__codelineno-40-6" name="__codelineno-40-6" href="#__codelineno-40-6"></a>
-<a id="__codelineno-40-7" name="__codelineno-40-7" href="#__codelineno-40-7"></a>──────────────────────────────────────────────────────────────────────────────
-<a id="__codelineno-40-8" name="__codelineno-40-8" href="#__codelineno-40-8"></a>&gt; Onboard the current project._
+<p>Only after every implementation and targeted-test checkbox above is complete, run the repository-wide final gate required by root <code>AGENTS.md</code>, including at least:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>python3 tools/lint_repo.py --fix
+<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>cargo fmt --all
+<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>cargo check --workspace --all-targets
+<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>cargo clippy --workspace --all-targets -- -D warnings
+<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>cargo test --workspace
+<a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>pnpm --dir web format
+<a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a>pnpm --dir web typecheck
+<a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>pnpm --dir web test
+<a id="__codelineno-30-9" name="__codelineno-30-9" href="#__codelineno-30-9"></a>pnpm --dir web build
 </code></pre></div>
 <p>Then:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a> scriberig · scriberig                                 sonnet · high
-<a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>
-<a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a> You
-<a id="__codelineno-41-4" name="__codelineno-41-4" href="#__codelineno-41-4"></a> Onboard the current project.
-<a id="__codelineno-41-5" name="__codelineno-41-5" href="#__codelineno-41-5"></a>
-<a id="__codelineno-41-6" name="__codelineno-41-6" href="#__codelineno-41-6"></a> ▏ project.scan .
-<a id="__codelineno-41-7" name="__codelineno-41-7" href="#__codelineno-41-7"></a> ▏ ✓ 317 files
-<a id="__codelineno-41-8" name="__codelineno-41-8" href="#__codelineno-41-8"></a> ▏ project.import ...
-<a id="__codelineno-41-9" name="__codelineno-41-9" href="#__codelineno-41-9"></a> ▏ ✓ snapshot a1b2...
-<a id="__codelineno-41-10" name="__codelineno-41-10" href="#__codelineno-41-10"></a>
-<a id="__codelineno-41-11" name="__codelineno-41-11" href="#__codelineno-41-11"></a> Onboarded Scriberig.
-<a id="__codelineno-41-12" name="__codelineno-41-12" href="#__codelineno-41-12"></a>
-<a id="__codelineno-41-13" name="__codelineno-41-13" href="#__codelineno-41-13"></a>──────────────────────────────────────────────────────────────────────────────
-<a id="__codelineno-41-14" name="__codelineno-41-14" href="#__codelineno-41-14"></a>&gt; _
-</code></pre></div>
-<p>And when the user needs deeper product machinery:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>&gt; /session
-<a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>&gt; /explorer
-<a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a>&gt; /model
-<a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a>&gt; /thinking
-<a id="__codelineno-42-5" name="__codelineno-42-5" href="#__codelineno-42-5"></a>&gt; /view
-<a id="__codelineno-42-6" name="__codelineno-42-6" href="#__codelineno-42-6"></a>&gt; /changes
-</code></pre></div>
-<p>those commands deliberately open the richer Scriberig surfaces.</p>
-<p>The ordinary user should spend most of their time in the conversation and only enter those views when they ask for them.</p>
+<ul>
+<li>[ ] Re-read this document against final behavior.</li>
+<li>[ ] Re-read tasks 133 and 135 for cross-task regressions.</li>
+<li>[ ] Confirm no checked item is aspirational/unverified.</li>
+<li>[ ] Change the status to Complete only after the final gate passes.</li>
+</ul>
 
 
 

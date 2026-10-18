@@ -16,7 +16,7 @@
         <link rel="prev" href="../016.%20model%20driven%20agent%20execution%20and%20branch%20isolation/">
       
       
-        <link rel="next" href="../../level-2/001.%20derived%20knowledge%20runtime%20and%20cache%20design/">
+        <link rel="next" href="../018.%20durable%20plans%20dependency%20scheduling%20and%20multi-model%20execution/">
       
       
         
@@ -507,6 +507,10 @@
   
     
     
+      
+        
+      
+        
       
         
       
@@ -1184,10 +1188,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-branches-may-be-created-by-humans-agents-or-runtime-policy" class="md-nav__link">
+  <a href="#3-branches-may-be-created-by-humans-agents-plans-or-runtime-policy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Branches May Be Created by Humans, Agents, or Runtime Policy
+        3. Branches May Be Created by Humans, Agents, Plans, or Runtime Policy
       
     </span>
   </a>
@@ -1206,10 +1210,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-atomic-tool-calls-and-branch-producing-work-are-different" class="md-nav__link">
+  <a href="#5-atomic-operations-and-branch-producing-work-are-different" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5. Atomic Tool Calls and Branch-Producing Work Are Different
+        5. Atomic Operations and Branch-Producing Work Are Different
       
     </span>
   </a>
@@ -1217,10 +1221,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-child-context-is-selected-not-copied" class="md-nav__link">
+  <a href="#6-semantic-operations-are-the-normal-work-primitive" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6. Child Context Is Selected, Not Copied
+        6. Semantic Operations Are the Normal Work Primitive
       
     </span>
   </a>
@@ -1228,10 +1232,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#7-branch-completion-produces-a-compact-contract" class="md-nav__link">
+  <a href="#7-child-context-is-selected-not-copied" class="md-nav__link">
     <span class="md-ellipsis">
       
-        7. Branch Completion Produces a Compact Contract
+        7. Child Context Is Selected, Not Copied
       
     </span>
   </a>
@@ -1239,10 +1243,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#8-parent-context-uses-results-not-child-transcripts" class="md-nav__link">
+  <a href="#8-branch-completion-produces-a-compact-contract" class="md-nav__link">
     <span class="md-ellipsis">
       
-        8. Parent Context Uses Results, Not Child Transcripts
+        8. Branch Completion Produces a Compact Contract
       
     </span>
   </a>
@@ -1250,10 +1254,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#9-sibling-branches-should-communicate-through-results" class="md-nav__link">
+  <a href="#9-parent-context-uses-results-not-child-transcripts" class="md-nav__link">
     <span class="md-ellipsis">
       
-        9. Sibling Branches Should Communicate through Results
+        9. Parent Context Uses Results, Not Child Transcripts
       
     </span>
   </a>
@@ -1261,10 +1265,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#10-user-continuations-use-the-same-tree" class="md-nav__link">
+  <a href="#10-sibling-branches-communicate-through-results-and-semantic-state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        10. User Continuations Use the Same Tree
+        10. Sibling Branches Communicate through Results and Semantic State
       
     </span>
   </a>
@@ -1272,15 +1276,59 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#11-branch-tree-and-execution-activity-are-distinct" class="md-nav__link">
+  <a href="#11-user-continuations-use-the-same-tree" class="md-nav__link">
     <span class="md-ellipsis">
       
-        11. Branch Tree and Execution Activity Are Distinct
+        11. User Continuations Use the Same Tree
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="11. Branch Tree and Execution Activity Are Distinct">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-plans-reuse-the-branch-tree-but-add-dependency-edges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Plans Reuse the Branch Tree but Add Dependency Edges
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-multiple-models-share-the-same-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Multiple Models Share the Same Tree
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-plan-dependencies-carry-compact-results-not-transcripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Plan Dependencies Carry Compact Results, Not Transcripts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-branch-tree-plan-dependency-graph-knowledge-graph-and-activity-causality-are-distinct" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Branch Tree, Plan Dependency Graph, Knowledge Graph, and Activity Causality Are Distinct
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="15. Branch Tree, Plan Dependency Graph, Knowledge Graph, and Activity Causality Are Distinct">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1295,10 +1343,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#local-executionactivity-structure" class="md-nav__link">
+  <a href="#plan-dependency-graph" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Local execution/activity structure
+        Plan dependency graph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#semantic-knowledge-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Semantic knowledge graph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#local-executionactivity-causality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local execution/activity causality
       
     </span>
   </a>
@@ -1311,10 +1381,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#12-tui-conversation-is-a-projection-of-this-recursive-tree" class="md-nav__link">
+  <a href="#16-the-default-tui-is-a-tree-aware-conversation-projection" class="md-nav__link">
     <span class="md-ellipsis">
       
-        12. TUI Conversation Is a Projection of This Recursive Tree
+        16. The Default TUI Is a Tree-Aware Conversation Projection
       
     </span>
   </a>
@@ -1322,10 +1392,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#13-depth-rails-encode-structural-nesting" class="md-nav__link">
+  <a href="#17-depth-rails-encode-structural-nesting" class="md-nav__link">
     <span class="md-ellipsis">
       
-        13. Depth Rails Encode Structural Nesting
+        17. Depth Rails Encode Structural Nesting
       
     </span>
   </a>
@@ -1333,10 +1403,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#14-completed-children-are-compact-by-default-expandable-on-demand" class="md-nav__link">
+  <a href="#18-completed-children-are-compact-by-default-expandable-on-demand" class="md-nav__link">
     <span class="md-ellipsis">
       
-        14. Completed Children Are Compact by Default, Expandable on Demand
+        18. Completed Children Are Compact by Default, Expandable on Demand
       
     </span>
   </a>
@@ -1344,10 +1414,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#15-per-activity-presentation-is-independent-from-context" class="md-nav__link">
+  <a href="#19-per-activity-presentation-is-independent-from-context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        15. Per-Activity Presentation Is Independent from Context
+        19. Per-Activity Presentation Is Independent from Context
       
     </span>
   </a>
@@ -1355,10 +1425,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#16-navigation-and-reply-anchors-use-stable-session-identity" class="md-nav__link">
+  <a href="#20-navigation-cursor-reply-anchor-and-coordinator-cursor-are-distinct" class="md-nav__link">
     <span class="md-ellipsis">
       
-        16. Navigation and Reply Anchors Use Stable Session Identity
+        20. Navigation Cursor, Reply Anchor, and Coordinator Cursor Are Distinct
       
     </span>
   </a>
@@ -1366,10 +1436,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#17-new-activity-is-placed-structurally-not-appended-by-time" class="md-nav__link">
+  <a href="#21-the-reply-anchor-is-visually-distinct" class="md-nav__link">
     <span class="md-ellipsis">
       
-        17. New Activity Is Placed Structurally, Not Appended by Time
+        21. The Reply Anchor Is Visually Distinct
       
     </span>
   </a>
@@ -1377,10 +1447,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#18-guiding-example" class="md-nav__link">
+  <a href="#22-new-activity-is-placed-structurally-not-appended-by-time" class="md-nav__link">
     <span class="md-ellipsis">
       
-        18. Guiding Example
+        22. New Activity Is Placed Structurally, Not Appended by Time
       
     </span>
   </a>
@@ -1388,10 +1458,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#19-product-surface-invariant" class="md-nav__link">
+  <a href="#23-auto-follow-is-presentation-state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        19. Product-Surface Invariant
+        23. Auto-Follow Is Presentation State
       
     </span>
   </a>
@@ -1399,10 +1469,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#20-non-negotiable-summary" class="md-nav__link">
+  <a href="#24-guiding-example" class="md-nav__link">
     <span class="md-ellipsis">
       
-        20. Non-Negotiable Summary
+        24. Guiding Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#25-product-surface-invariant" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        25. Product-Surface Invariant
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#26-non-negotiable-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26. Non-Negotiable Summary
       
     </span>
   </a>
@@ -1413,6 +1505,62 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../018.%20durable%20plans%20dependency%20scheduling%20and%20multi-model%20execution/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Durable Plans, Dependency Scheduling, and Multi-Model Execution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../019.%20semantic%20agent%20operations%20and%20projection-first%20editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Semantic Agent Operations and Projection-First Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -6446,7 +6594,7 @@
   <span class="md-ellipsis">
     
   
-    Make Agent Conversation the Default TUI and Move Auxiliary Views Behind Slash Commands
+    Make the Recursive Agent Tree the Default TUI and Move Auxiliary Views Behind Slash Commands
   
 
     
@@ -6516,10 +6664,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-branches-may-be-created-by-humans-agents-or-runtime-policy" class="md-nav__link">
+  <a href="#3-branches-may-be-created-by-humans-agents-plans-or-runtime-policy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Branches May Be Created by Humans, Agents, or Runtime Policy
+        3. Branches May Be Created by Humans, Agents, Plans, or Runtime Policy
       
     </span>
   </a>
@@ -6538,10 +6686,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-atomic-tool-calls-and-branch-producing-work-are-different" class="md-nav__link">
+  <a href="#5-atomic-operations-and-branch-producing-work-are-different" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5. Atomic Tool Calls and Branch-Producing Work Are Different
+        5. Atomic Operations and Branch-Producing Work Are Different
       
     </span>
   </a>
@@ -6549,10 +6697,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-child-context-is-selected-not-copied" class="md-nav__link">
+  <a href="#6-semantic-operations-are-the-normal-work-primitive" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6. Child Context Is Selected, Not Copied
+        6. Semantic Operations Are the Normal Work Primitive
       
     </span>
   </a>
@@ -6560,10 +6708,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#7-branch-completion-produces-a-compact-contract" class="md-nav__link">
+  <a href="#7-child-context-is-selected-not-copied" class="md-nav__link">
     <span class="md-ellipsis">
       
-        7. Branch Completion Produces a Compact Contract
+        7. Child Context Is Selected, Not Copied
       
     </span>
   </a>
@@ -6571,10 +6719,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#8-parent-context-uses-results-not-child-transcripts" class="md-nav__link">
+  <a href="#8-branch-completion-produces-a-compact-contract" class="md-nav__link">
     <span class="md-ellipsis">
       
-        8. Parent Context Uses Results, Not Child Transcripts
+        8. Branch Completion Produces a Compact Contract
       
     </span>
   </a>
@@ -6582,10 +6730,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#9-sibling-branches-should-communicate-through-results" class="md-nav__link">
+  <a href="#9-parent-context-uses-results-not-child-transcripts" class="md-nav__link">
     <span class="md-ellipsis">
       
-        9. Sibling Branches Should Communicate through Results
+        9. Parent Context Uses Results, Not Child Transcripts
       
     </span>
   </a>
@@ -6593,10 +6741,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#10-user-continuations-use-the-same-tree" class="md-nav__link">
+  <a href="#10-sibling-branches-communicate-through-results-and-semantic-state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        10. User Continuations Use the Same Tree
+        10. Sibling Branches Communicate through Results and Semantic State
       
     </span>
   </a>
@@ -6604,15 +6752,59 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#11-branch-tree-and-execution-activity-are-distinct" class="md-nav__link">
+  <a href="#11-user-continuations-use-the-same-tree" class="md-nav__link">
     <span class="md-ellipsis">
       
-        11. Branch Tree and Execution Activity Are Distinct
+        11. User Continuations Use the Same Tree
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="11. Branch Tree and Execution Activity Are Distinct">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-plans-reuse-the-branch-tree-but-add-dependency-edges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Plans Reuse the Branch Tree but Add Dependency Edges
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-multiple-models-share-the-same-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Multiple Models Share the Same Tree
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-plan-dependencies-carry-compact-results-not-transcripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Plan Dependencies Carry Compact Results, Not Transcripts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-branch-tree-plan-dependency-graph-knowledge-graph-and-activity-causality-are-distinct" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Branch Tree, Plan Dependency Graph, Knowledge Graph, and Activity Causality Are Distinct
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="15. Branch Tree, Plan Dependency Graph, Knowledge Graph, and Activity Causality Are Distinct">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -6627,10 +6819,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#local-executionactivity-structure" class="md-nav__link">
+  <a href="#plan-dependency-graph" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Local execution/activity structure
+        Plan dependency graph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#semantic-knowledge-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Semantic knowledge graph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#local-executionactivity-causality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local execution/activity causality
       
     </span>
   </a>
@@ -6643,10 +6857,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#12-tui-conversation-is-a-projection-of-this-recursive-tree" class="md-nav__link">
+  <a href="#16-the-default-tui-is-a-tree-aware-conversation-projection" class="md-nav__link">
     <span class="md-ellipsis">
       
-        12. TUI Conversation Is a Projection of This Recursive Tree
+        16. The Default TUI Is a Tree-Aware Conversation Projection
       
     </span>
   </a>
@@ -6654,10 +6868,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#13-depth-rails-encode-structural-nesting" class="md-nav__link">
+  <a href="#17-depth-rails-encode-structural-nesting" class="md-nav__link">
     <span class="md-ellipsis">
       
-        13. Depth Rails Encode Structural Nesting
+        17. Depth Rails Encode Structural Nesting
       
     </span>
   </a>
@@ -6665,10 +6879,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#14-completed-children-are-compact-by-default-expandable-on-demand" class="md-nav__link">
+  <a href="#18-completed-children-are-compact-by-default-expandable-on-demand" class="md-nav__link">
     <span class="md-ellipsis">
       
-        14. Completed Children Are Compact by Default, Expandable on Demand
+        18. Completed Children Are Compact by Default, Expandable on Demand
       
     </span>
   </a>
@@ -6676,10 +6890,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#15-per-activity-presentation-is-independent-from-context" class="md-nav__link">
+  <a href="#19-per-activity-presentation-is-independent-from-context" class="md-nav__link">
     <span class="md-ellipsis">
       
-        15. Per-Activity Presentation Is Independent from Context
+        19. Per-Activity Presentation Is Independent from Context
       
     </span>
   </a>
@@ -6687,10 +6901,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#16-navigation-and-reply-anchors-use-stable-session-identity" class="md-nav__link">
+  <a href="#20-navigation-cursor-reply-anchor-and-coordinator-cursor-are-distinct" class="md-nav__link">
     <span class="md-ellipsis">
       
-        16. Navigation and Reply Anchors Use Stable Session Identity
+        20. Navigation Cursor, Reply Anchor, and Coordinator Cursor Are Distinct
       
     </span>
   </a>
@@ -6698,10 +6912,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#17-new-activity-is-placed-structurally-not-appended-by-time" class="md-nav__link">
+  <a href="#21-the-reply-anchor-is-visually-distinct" class="md-nav__link">
     <span class="md-ellipsis">
       
-        17. New Activity Is Placed Structurally, Not Appended by Time
+        21. The Reply Anchor Is Visually Distinct
       
     </span>
   </a>
@@ -6709,10 +6923,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#18-guiding-example" class="md-nav__link">
+  <a href="#22-new-activity-is-placed-structurally-not-appended-by-time" class="md-nav__link">
     <span class="md-ellipsis">
       
-        18. Guiding Example
+        22. New Activity Is Placed Structurally, Not Appended by Time
       
     </span>
   </a>
@@ -6720,10 +6934,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#19-product-surface-invariant" class="md-nav__link">
+  <a href="#23-auto-follow-is-presentation-state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        19. Product-Surface Invariant
+        23. Auto-Follow Is Presentation State
       
     </span>
   </a>
@@ -6731,10 +6945,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#20-non-negotiable-summary" class="md-nav__link">
+  <a href="#24-guiding-example" class="md-nav__link">
     <span class="md-ellipsis">
       
-        20. Non-Negotiable Summary
+        24. Guiding Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#25-product-surface-invariant" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        25. Product-Surface Invariant
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#26-non-negotiable-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        26. Non-Negotiable Summary
       
     </span>
   </a>
@@ -6763,71 +6999,76 @@
 
 <h1 id="recursive-agent-decomposition-and-context-isolation">Recursive Agent Decomposition and Context Isolation<a class="headerlink" href="#recursive-agent-decomposition-and-context-isolation" title="Permanent link">&para;</a></h1>
 <h2 id="1-purpose">1. Purpose<a class="headerlink" href="#1-purpose" title="Permanent link">&para;</a></h2>
-<p>Scriberig sessions are trees because agent work is recursively decomposed into focused units whose internal work should not automatically pollute the context of their parents or siblings.</p>
+<p>Scriberig sessions are trees because agent work is recursively decomposed into focused units whose internal reasoning/tool activity should not automatically pollute the context of parents, siblings, later workers, or the long-running coordinator.</p>
 <p>This document makes that principle explicit and easy to reference. It refines, but does not replace:</p>
 <ol>
 <li><code>009. agent interaction and sessions.md</code>;</li>
+<li><code>014. agent native semantic self hosting.md</code>;</li>
 <li><code>015. terminal user interface principles.md</code>;</li>
 <li><code>016. model driven agent execution and branch isolation.md</code>;</li>
+<li><code>018. durable plans dependency scheduling and multi-model execution.md</code>;</li>
+<li><code>019. semantic agent operations and projection-first editing.md</code>;</li>
 <li><code>design/level-2/023. agent runtime model provider and branch orchestration.md</code>.</li>
 </ol>
 <p>The controlling rule is:</p>
 <blockquote>
-<p>A branch is a context-isolation boundary for one focused goal. The branch may perform arbitrary model/tool back-and-forth and may recursively create children. Its parent normally receives only a compact result, durable handles, and the small amount of information needed to continue.</p>
+<p>A branch is a context-isolation boundary for one focused goal. It may perform arbitrary model/semantic-operation/tool back-and-forth and may recursively create children. Its parent normally receives only a compact result, exact semantic handles, validation/candidate references, and the small amount of information needed to continue.</p>
 </blockquote>
-<p>A branch is not primarily a visual indentation feature and it is not primarily a user-created chat fork. User continuations, agent delegation, retries, focused edits, investigation, validation, and conflict resolution all use the same branch model.</p>
+<p>A branch is not primarily a visual indentation feature and it is not primarily a user-created chat fork. User continuations, agent delegation, planned work, retries, focused semantic edits, research, validation, conflict resolution, and alternative attempts all use the same branch model.</p>
 <hr />
 <h2 id="2-why-the-session-is-a-tree">2. Why the Session Is a Tree<a class="headerlink" href="#2-why-the-session-is-a-tree" title="Permanent link">&para;</a></h2>
 <p>A linear transcript forces every later model step to inherit noise from all earlier work. That is acceptable for short chats but scales poorly for implementation work.</p>
-<p>Consider a root task:</p>
+<p>Consider a root goal:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Implement feature X
 </code></pre></div>
-<p>The agent may decompose it into work such as:</p>
+<p>A semantic agent may decompose it into work such as:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Root: Implement feature X
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>|
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>+-- Understand architecture
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>|
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>+-- Create new source file
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>+-- Implement parser capability
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>|   |
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>|   +-- Determine exact structure
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>|   +-- Write the file
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>|   +-- Repair syntax/type errors
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>|   +-- Validate the file
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>|   +-- Decide semantic structure
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>|   +-- Create/update module/function entities
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>|   +-- Repair semantic/API incompatibilities
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>|   +-- Validate candidate projection
 <a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>|
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>+-- Add tests for the completed source file
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>+-- Add tests against the completed semantic result
 <a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>|
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>+-- Integrate feature
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>+-- Integrate sibling candidates
 <a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>|
 <a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>+-- Validate feature
 </code></pre></div>
-<p>Creating the source file may require many model calls, write operations, inspections, compiler errors, corrections, and local validation. The later test-writing task usually does not need that conversational history. It needs the completed file, its public behavior, relevant semantic handles, and possibly validation evidence.</p>
-<p>The root task also does not need the full implementation dialogue. It needs a compact statement equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>File created successfully.
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>Purpose: implements X.
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>Important interfaces: A, B, C.
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>Source/entity handles: ...
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>Validation: passed.
+<p>The parser branch may require many model invocations, semantic reads, semantic edits, child branches, compiler diagnostics, corrections, and local validation. The later test-writing task does not need that conversational history. It needs the completed semantic result, exact handles/revisions, candidate/workspace state, public behavior, relevant decisions, and validation evidence.</p>
+<p>The root also does not need the full implementation dialogue. It needs a compact result equivalent to:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Parser capability implemented.
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>Touched semantic entities: Module M, Function F1, Function F2.
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>Candidate: C18.
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>Validation: passed.
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>Relevant source projection: src/php/parser.rs.
 </code></pre></div>
-<p>The tree exists so detailed work can remain fully inspectable without becoming permanent context for unrelated later work.</p>
+<p>The tree exists so detailed work can remain durable and inspectable without becoming permanent context for unrelated later work.</p>
 <hr />
-<h2 id="3-branches-may-be-created-by-humans-agents-or-runtime-policy">3. Branches May Be Created by Humans, Agents, or Runtime Policy<a class="headerlink" href="#3-branches-may-be-created-by-humans-agents-or-runtime-policy" title="Permanent link">&para;</a></h2>
+<h2 id="3-branches-may-be-created-by-humans-agents-plans-or-runtime-policy">3. Branches May Be Created by Humans, Agents, Plans, or Runtime Policy<a class="headerlink" href="#3-branches-may-be-created-by-humans-agents-plans-or-runtime-policy" title="Permanent link">&para;</a></h2>
 <p>Do not treat human-created forks as a special branch architecture.</p>
 <p>A branch may begin because:</p>
 <ul>
-<li>the user chooses to continue from an earlier session location;</li>
+<li>the user chooses to continue from an earlier replyable session location;</li>
 <li>the current agent delegates a focused subtask;</li>
-<li>a branch-producing tool contract starts isolated work;</li>
+<li><code>/plan</code> materializes or starts a planned node;</li>
+<li>a branch-producing semantic tool contract starts isolated work;</li>
 <li>the runtime isolates a speculative mutation or retry;</li>
 <li>validation failure triggers a repair branch;</li>
-<li>the agent compares alternatives in independent branches;</li>
-<li>conflict resolution requires a focused branch;</li>
+<li>the agent compares alternatives in sibling branches;</li>
+<li>two different model profiles are asked to attempt the same goal independently;</li>
+<li>conflict resolution requires focused work;</li>
 <li>a child agent recursively decomposes its own task.</li>
 </ul>
 <p>The same canonical branch semantics apply in every case.</p>
-<p>Origin may be useful provenance, but origin must not create incompatible kinds of session trees.</p>
+<p>Origin, assignment, model/provider, plan membership, and coordinator/worker role are useful provenance. They must not create incompatible kinds of session trees.</p>
 <hr />
 <h2 id="4-recursive-decomposition-is-expected-behavior">4. Recursive Decomposition Is Expected Behavior<a class="headerlink" href="#4-recursive-decomposition-is-expected-behavior" title="Permanent link">&para;</a></h2>
-<p>A model-driven agent is expected to decompose work when doing so improves context quality, isolation, validation, or recoverability.</p>
+<p>A model-driven agent is expected to decompose work when doing so improves context quality, isolation, validation, recoverability, scheduling, parallelism, or semantic scope.</p>
 <p>A child branch may create another child branch using the same rules. There is no architectural distinction between the first delegation level and deeper delegation levels.</p>
 <p>Conceptually:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Root task
@@ -6842,40 +7083,83 @@
 <a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>|
 <a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>+-- Child B
 </code></pre></div>
-<p>Runtime budgets may limit depth, child count, token use, cost, or elapsed time. Those limits are execution policy. They do not change the semantic fact that branches may nest recursively.</p>
+<p>Runtime budgets may limit depth, child count, token use, cost, operation count, or elapsed time. Those limits are execution policy. They do not change the semantic fact that branches may nest recursively.</p>
 <hr />
-<h2 id="5-atomic-tool-calls-and-branch-producing-work-are-different">5. Atomic Tool Calls and Branch-Producing Work Are Different<a class="headerlink" href="#5-atomic-tool-calls-and-branch-producing-work-are-different" title="Permanent link">&para;</a></h2>
-<p>Do not create a branch for every small tool invocation.</p>
+<h2 id="5-atomic-operations-and-branch-producing-work-are-different">5. Atomic Operations and Branch-Producing Work Are Different<a class="headerlink" href="#5-atomic-operations-and-branch-producing-work-are-different" title="Permanent link">&para;</a></h2>
+<p>Do not create a branch for every small operation.</p>
 <p>An atomic operation can remain inside the current branch when it does not need an independent reasoning loop. Examples include:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>inspect one entity
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>read one bounded relation page
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>query operation status
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>fetch one compact semantic result
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>inspect one semantic entity
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>list one bounded child collection
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>follow one relation page
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>query one bounded semantic fact
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>render one selected source/document fragment
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>read one operation status
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>apply one small capability-scoped semantic operation whose result is immediately known
 </code></pre></div>
-<p>Create or delegate to a child branch when the work can require its own model/tool loop, speculative state, retries, validation, or further decomposition. Examples include:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>implement one file
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>edit one function
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>investigate a failing test
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>reconcile a projection
+<p>Create or delegate to a child branch when the work can require its own model/operation loop, speculative state, retries, validation, reconciliation, merge, or further decomposition. Examples include:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>implement one semantic module/capability
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>edit one complex function
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>investigate a failing validation
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>reconcile an ambiguous projection
 <a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>research one architectural question
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>compare an alternative implementation
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>resolve a conflict
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>compare alternative implementations
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>resolve a semantic merge conflict
 <a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>validate and repair a candidate
 </code></pre></div>
 <p>This distinction prevents branch explosion while preserving context isolation where it matters.</p>
 <hr />
-<h2 id="6-child-context-is-selected-not-copied">6. Child Context Is Selected, Not Copied<a class="headerlink" href="#6-child-context-is-selected-not-copied" title="Permanent link">&para;</a></h2>
+<h2 id="6-semantic-operations-are-the-normal-work-primitive">6. Semantic Operations Are the Normal Work Primitive<a class="headerlink" href="#6-semantic-operations-are-the-normal-work-primitive" title="Permanent link">&para;</a></h2>
+<p>For understood domains, branch activity should primarily use semantic knowledge and domain operations rather than generic raw file manipulation.</p>
+<p>A branch working on source code may operate on:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>Module
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>Type
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>Function
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>Parameter
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>CodeGroup
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>Statement
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>Expression
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>Comment
+</code></pre></div>
+<p>A branch working on Markdown may operate on:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>Document
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>Section
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>Paragraph
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>List
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>Table
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>TableRow
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>TableCell
+</code></pre></div>
+<p>Typical operations are semantic/capability driven:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>inspect
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>list
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>follow
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>find
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>query
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>render
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>code.add_function
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>code.insert_statement
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>code.replace_expression
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>document.insert_paragraph
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>validate
+</code></pre></div>
+<p>Source files and documents are projections of canonical semantic state. Raw write and shell capabilities remain fallback/bootstrap/interoperability/validation mechanisms as defined by <code>019. semantic agent operations and projection-first editing.md</code>.</p>
+<p>Do not describe branch isolation as though its ordinary purpose were to hide a sequence of <code>write_file</code> and <code>bash</code> calls. Its ordinary purpose is to hide local semantic implementation detail while returning exact semantic results.</p>
+<hr />
+<h2 id="7-child-context-is-selected-not-copied">7. Child Context Is Selected, Not Copied<a class="headerlink" href="#7-child-context-is-selected-not-copied" title="Permanent link">&para;</a></h2>
 <p>Creating a child branch does not copy the complete parent transcript.</p>
 <p>The child receives an explicit inheritance plan containing only the information required for its goal. Depending on the task, that may include:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>child purpose and expected result
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>parent branch descriptor
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>selected parent result handles
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>accepted decisions or constraints
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>semantic selection and exact snapshot/workspace
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>specific source/entity handles
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>capability subset
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>explicit delegation instruction
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>small bounded parent excerpt when policy deliberately allows it
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>child purpose and expected result
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>parent branch descriptor
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>selected parent result handles
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>fulfilled plan dependency results
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>accepted decisions or constraints
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>semantic selection and exact snapshot/workspace
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>specific entity/revision handles
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>candidate/workspace handles
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>capability subset
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>agent/model profile and branch policy
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>explicit delegation instruction
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>small bounded parent excerpt when policy deliberately allows it
 </code></pre></div>
 <p>Unrelated parent activity is omitted.</p>
 <p>This is important in both directions:</p>
@@ -6883,132 +7167,179 @@
 <li>the child does not automatically inherit all parent history;</li>
 <li>the parent does not automatically inherit all child history.</li>
 </ul>
-<p>Context construction is a projection over the session graph and project knowledge, not transcript concatenation.</p>
+<p>Context construction is a projection over session knowledge, plan/dependency results, and project semantic knowledge—not transcript concatenation.</p>
 <hr />
-<h2 id="7-branch-completion-produces-a-compact-contract">7. Branch Completion Produces a Compact Contract<a class="headerlink" href="#7-branch-completion-produces-a-compact-contract" title="Permanent link">&para;</a></h2>
+<h2 id="8-branch-completion-produces-a-compact-contract">8. Branch Completion Produces a Compact Contract<a class="headerlink" href="#8-branch-completion-produces-a-compact-contract" title="Permanent link">&para;</a></h2>
 <p>A completed branch produces a durable <code>BranchResult</code> or an explicit no-result/failure outcome.</p>
 <p>A useful result contains concepts equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>branch identity
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>status
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>short outcome summary
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>result kind
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>important semantic handles
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>produced candidate/migration/workspace handles
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>important touched entities
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>validation handles
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>unresolved questions
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>failure summary when unsuccessful
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>branch identity
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>status
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>short outcome summary
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>result kind
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>important semantic handles and exact revisions
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>produced candidate/migration/workspace handles
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>important touched entities
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>projection/materialization references when relevant
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>validation handles
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>unresolved questions
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>failure summary when unsuccessful
 </code></pre></div>
-<p>The result is the normal information boundary between parent and child.</p>
+<p>The result is the normal information boundary between parent and child and the normal fulfillment artifact for plan dependencies.</p>
 <p>The full child history remains stored and inspectable by stable reference. It can be reopened if the result is insufficient, but it is not implicitly inserted into the parent's next model request.</p>
 <hr />
-<h2 id="8-parent-context-uses-results-not-child-transcripts">8. Parent Context Uses Results, Not Child Transcripts<a class="headerlink" href="#8-parent-context-uses-results-not-child-transcripts" title="Permanent link">&para;</a></h2>
+<h2 id="9-parent-context-uses-results-not-child-transcripts">9. Parent Context Uses Results, Not Child Transcripts<a class="headerlink" href="#9-parent-context-uses-results-not-child-transcripts" title="Permanent link">&para;</a></h2>
 <p>After a child finishes, the parent normally continues with context equivalent to:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>current parent goal
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>recent parent activity
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>child descriptor
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>child BranchResult
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>relevant project state/result handles
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>other selected completed child results
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>current parent goal
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>recent parent-local activity
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>child descriptor
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>child BranchResult
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>relevant semantic project/candidate state
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>selected completed child/dependency results
 </code></pre></div>
 <p>It does not normally receive:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>every child model response
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>every child tool call
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>every failed edit attempt
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>every compiler diagnostic already resolved
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>every correction step
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>every grandchild transcript
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>every child model response
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>every child tool/semantic-operation invocation
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>every failed semantic edit attempt
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>every compiler diagnostic already resolved
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>every correction step
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>every grandchild transcript
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>raw provider streams
 </code></pre></div>
 <p>The omitted history remains available for audit and inspection.</p>
 <p>This is the principal mechanism that prevents a long implementation session from degrading into an ever-growing prompt.</p>
 <hr />
-<h2 id="9-sibling-branches-should-communicate-through-results">9. Sibling Branches Should Communicate through Results<a class="headerlink" href="#9-sibling-branches-should-communicate-through-results" title="Permanent link">&para;</a></h2>
+<h2 id="10-sibling-branches-communicate-through-results-and-semantic-state">10. Sibling Branches Communicate through Results and Semantic State<a class="headerlink" href="#10-sibling-branches-communicate-through-results-and-semantic-state" title="Permanent link">&para;</a></h2>
 <p>Sibling tasks should not depend on one another's internal conversational history.</p>
 <p>For example:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>Root: implement feature
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>|
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>+-- Child A: create parser.rs
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>|     -&gt; BranchResult: parser implementation + handles + validation
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>|
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>+-- Child B: write parser tests
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>Root: implement feature
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>|
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>+-- Child A: implement parser capability
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>|     -&gt; BranchResult: semantic handles + candidate + validation
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>|
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>+-- Child B: write parser tests
 </code></pre></div>
-<p>Child B may receive the result of Child A, the exact created semantic/source state, and relevant design constraints. It does not need the back-and-forth that Child A used to arrive there.</p>
-<p>If Child B discovers a defect, it may create or request another focused repair branch. That repair branch returns a new result rather than causing all previous implementation history to be copied into Child B's permanent context.</p>
+<p>Child B may receive the result of Child A, exact created/updated semantic state, relevant dependency handles, and design constraints. It does not need the back-and-forth that Child A used to arrive there.</p>
+<p>If Child B discovers a defect, it may create/request another focused repair branch. That repair branch returns a new result rather than causing all previous implementation history to be copied into Child B's permanent context.</p>
 <hr />
-<h2 id="10-user-continuations-use-the-same-tree">10. User Continuations Use the Same Tree<a class="headerlink" href="#10-user-continuations-use-the-same-tree" title="Permanent link">&para;</a></h2>
+<h2 id="11-user-continuations-use-the-same-tree">11. User Continuations Use the Same Tree<a class="headerlink" href="#11-user-continuations-use-the-same-tree" title="Permanent link">&para;</a></h2>
 <p>A user may navigate to a historical replyable node and continue from that semantic location.</p>
 <p>That continuation is another branch operation over the same session graph. It is not a separate chat-fork mechanism.</p>
-<p>The context compiler resolves the exact continuation location and constructs context from the path and results relevant to that point. Later sibling work is not silently injected merely because it occurred later in wall-clock time.</p>
-<p>The default user behavior may continue from the current root/head so ordinary use feels linear, but the canonical session remains tree-shaped.</p>
+<p>The context compiler resolves the exact continuation location and constructs context from the branch path, semantic state, decisions, and results relevant to that point. Later sibling work is not silently injected merely because it occurred later in wall-clock time.</p>
+<p>The default user behavior may continue from the current root/coordinator position so ordinary use feels fluid, but the canonical session remains tree-shaped.</p>
 <hr />
-<h2 id="11-branch-tree-and-execution-activity-are-distinct">11. Branch Tree and Execution Activity Are Distinct<a class="headerlink" href="#11-branch-tree-and-execution-activity-are-distinct" title="Permanent link">&para;</a></h2>
-<p>Two structures coexist:</p>
-<h3 id="session-branch-tree">Session branch tree<a class="headerlink" href="#session-branch-tree" title="Permanent link">&para;</a></h3>
-<p>Represents focused work decomposition:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>root task
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>  child task
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    grandchild task
+<h2 id="12-plans-reuse-the-branch-tree-but-add-dependency-edges">12. Plans Reuse the Branch Tree but Add Dependency Edges<a class="headerlink" href="#12-plans-reuse-the-branch-tree-but-add-dependency-edges" title="Permanent link">&para;</a></h2>
+<p><code>/plan</code> creates durable planned work that is shown in the same tree used by executed branches.</p>
+<p>Structural parent/child relations still mean context ownership and decomposition.</p>
+<p>Plan dependencies are separate edges that mean execution ordering/readiness.</p>
+<p>Conceptually:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>Root
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>  Parser
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>  Importer
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>  Integration
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>Dependencies:
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>  Integration depends_on Parser
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>  Integration depends_on Importer
 </code></pre></div>
-<h3 id="local-executionactivity-structure">Local execution/activity structure<a class="headerlink" href="#local-executionactivity-structure" title="Permanent link">&para;</a></h3>
-<p>Represents causal activity inside one branch:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>model invocation
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>  tool invocation
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    tool result
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>  model invocation
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>  final output
+<p>Do not fake dependencies by nesting siblings under one another.</p>
+<p>A planned node can be visible before its branch executes. When execution begins, it becomes or binds to the branch that owns the work.</p>
+<p>The complete scheduling model is defined by <code>018. durable plans dependency scheduling and multi-model execution.md</code>.</p>
+<hr />
+<h2 id="13-multiple-models-share-the-same-tree">13. Multiple Models Share the Same Tree<a class="headerlink" href="#13-multiple-models-share-the-same-tree" title="Permanent link">&para;</a></h2>
+<p>Different branches may be assigned to different model/provider profiles.</p>
+<p>For example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>Discover architecture   -&gt; local model
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>Implement parser        -&gt; OpenAI/Codex profile
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>Research edge cases     -&gt; OpenRouter profile
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>Documentation           -&gt; local inexpensive profile
+</code></pre></div>
+<p>This does not create separate sessions.</p>
+<p>One plan has at most one auto-advancing coordinator, but many workers may execute ready branches concurrently.</p>
+<p>One branch normally has one active executing owner. If two models should independently attempt the same goal, create sibling attempt branches and compare their results explicitly.</p>
+<hr />
+<h2 id="14-plan-dependencies-carry-compact-results-not-transcripts">14. Plan Dependencies Carry Compact Results, Not Transcripts<a class="headerlink" href="#14-plan-dependencies-carry-compact-results-not-transcripts" title="Permanent link">&para;</a></h2>
+<p>A dependent node should become ready because required result contracts were fulfilled, not because predecessor output happened earlier in a transcript.</p>
+<p>For example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>ParserImplementationResult
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>  Function parse_type @ R22
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>  Function parse_union_type @ R1
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>  Candidate C18
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>  Validation V7
+</code></pre></div>
+<p>may satisfy the dependency of a test branch.</p>
+<p>That test branch does not inherit the parser worker's model/tool history.</p>
+<p>This makes dependency edges useful context declarations as well as scheduling constraints.</p>
+<hr />
+<h2 id="15-branch-tree-plan-dependency-graph-knowledge-graph-and-activity-causality-are-distinct">15. Branch Tree, Plan Dependency Graph, Knowledge Graph, and Activity Causality Are Distinct<a class="headerlink" href="#15-branch-tree-plan-dependency-graph-knowledge-graph-and-activity-causality-are-distinct" title="Permanent link">&para;</a></h2>
+<p>Four different structures coexist:</p>
+<h3 id="session-branch-tree">Session branch tree<a class="headerlink" href="#session-branch-tree" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>root task
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>  child task
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>    grandchild task
+</code></pre></div>
+<h3 id="plan-dependency-graph">Plan dependency graph<a class="headerlink" href="#plan-dependency-graph" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>A ----\
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>       -&gt; C
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>B ----/
+</code></pre></div>
+<h3 id="semantic-knowledge-graph">Semantic knowledge graph<a class="headerlink" href="#semantic-knowledge-graph" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>Project -&gt; Module -&gt; Function -&gt; Statement -&gt; Expression
+</code></pre></div>
+<h3 id="local-executionactivity-causality">Local execution/activity causality<a class="headerlink" href="#local-executionactivity-causality" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>model invocation
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>  semantic operation/tool invocation
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>    operation/tool result
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>  model invocation
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>  branch result
 </code></pre></div>
 <p>Do not collapse these into one canonical relation.</p>
-<p>A UI may combine them into one visual tree, but it must preserve which depth comes from branch ancestry and which depth comes from local activity causality.</p>
+<p>A UI may combine them into one visual tree, but it must preserve the underlying meanings.</p>
 <hr />
-<h2 id="12-tui-conversation-is-a-projection-of-this-recursive-tree">12. TUI Conversation Is a Projection of This Recursive Tree<a class="headerlink" href="#12-tui-conversation-is-a-projection-of-this-recursive-tree" title="Permanent link">&para;</a></h2>
-<p>The default TUI should feel like a conventional coding-agent conversation while faithfully representing recursive decomposition.</p>
-<p>Normal root interaction may look nearly linear:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>You
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>Implement X.
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>Assistant
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>Working on it...
-</code></pre></div>
-<p>When the agent creates focused children, the TUI inserts them structurally at the location where they belong rather than appending them only by timestamp.</p>
+<h2 id="16-the-default-tui-is-a-tree-aware-conversation-projection">16. The Default TUI Is a Tree-Aware Conversation Projection<a class="headerlink" href="#16-the-default-tui-is-a-tree-aware-conversation-projection" title="Permanent link">&para;</a></h2>
+<p>The default TUI should feel like a conventional coding-agent conversation while faithfully representing recursive agent decomposition, planned work, dependencies, assignments, and user continuations.</p>
+<p>Normal root interaction may look nearly linear when no branching is visible.</p>
+<p>When the agent or plan creates focused children, the TUI inserts them structurally at the location where they belong rather than appending them only by timestamp.</p>
 <p>A compact completed child may render like:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>▏ Create parser.rs
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>▏ ✓ completed — parser implementation created and validated
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>▏ Implement parser capability
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>▏ ✓ parser entities created and validated
 </code></pre></div>
-<p>An active or expanded child may reveal its internal activity:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>▏ Create parser.rs
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>▏
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>▏ ▏ inspect existing parser conventions
-<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>▏ ▏ ✓ ...
-<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>▏
-<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>▏ ▏ Write parser.rs
-<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>▏ ▏ ...
-<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>▏
-<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>▏ ▏ Fix compile error
-<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>▏ ▏ ...
-<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>▏
-<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>▏ ✓ completed — parser implementation created and validated
+<p>An active/expanded child may reveal its internal activity:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>▏ Implement parser capability
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>▏
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>▏ ▏ inspect Function parse_type
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>▏ ▏ ✓ 4 code groups
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>▏
+<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>▏ ▏ replace expression in nullable-suffix group
+<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>▏ ▏ ✓ Expression E17 -&gt; Revision R9
+<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>▏
+<a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a>▏ ▏ Validate parser candidate
+<a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a>▏ ▏ ▏ cargo test -p scriberig-domain-php ...
+<a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a>▏ ▏ ▏ ✓ 12 tests passed
+<a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a>▏
+<a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a>▏ ✓ parser capability implemented
 </code></pre></div>
-<p>If that child itself delegates validation, another rail depth appears beneath it.</p>
+<p>The external <code>cargo test</code> is displayed as a shell-like process because it actually is one. Semantic edits are displayed as semantic operations.</p>
 <p>The fact that the UI can expand the child does not mean the parent model received the expanded history.</p>
 <hr />
-<h2 id="13-depth-rails-encode-structural-nesting">13. Depth Rails Encode Structural Nesting<a class="headerlink" href="#13-depth-rails-encode-structural-nesting" title="Permanent link">&para;</a></h2>
-<p>Terminal presentation should encode nesting with one visible vertical rail per ancestor depth.</p>
+<h2 id="17-depth-rails-encode-structural-nesting">17. Depth Rails Encode Structural Nesting<a class="headerlink" href="#17-depth-rails-encode-structural-nesting" title="Permanent link">&para;</a></h2>
+<p>Terminal presentation should encode branch/activity nesting with visible vertical rails.</p>
 <p>Conceptually:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>▏ depth 1
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>▏ ▏ depth 2
-<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>▏ ▏ ▏ depth 3
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>▏ depth 1
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>▏ ▏ depth 2
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>▏ ▏ ▏ depth 3
 </code></pre></div>
 <p>Each depth uses a stable theme color from a finite palette. The palette may cycle at deep levels.</p>
 <p>Color is supplemental. Nesting must remain understandable through rail count/position when color is unavailable.</p>
 <p>For narrow terminals, older ancestor rails may be compacted with an explicit marker such as:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>… ▏ ▏ deeply nested activity
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>… ▏ ▏ deeply nested activity
 </code></pre></div>
 <p>Do not persist depth color or indentation as semantic state. Derive them from branch/activity ancestry.</p>
 <hr />
-<h2 id="14-completed-children-are-compact-by-default-expandable-on-demand">14. Completed Children Are Compact by Default, Expandable on Demand<a class="headerlink" href="#14-completed-children-are-compact-by-default-expandable-on-demand" title="Permanent link">&para;</a></h2>
+<h2 id="18-completed-children-are-compact-by-default-expandable-on-demand">18. Completed Children Are Compact by Default, Expandable on Demand<a class="headerlink" href="#18-completed-children-are-compact-by-default-expandable-on-demand" title="Permanent link">&para;</a></h2>
 <p>The ordinary conversation projection should prefer attention-efficient presentation.</p>
 <p>Recommended behavior:</p>
 <ul>
+<li>planned node: compact state/assignment/dependency indicator;</li>
 <li>active branch: show enough live activity to understand progress;</li>
 <li>completed child branch: collapse to descriptor + result by default;</li>
 <li>failed child branch: show compact failure result and status;</li>
@@ -7016,125 +7347,175 @@
 <li>parent branch: continue after the compact child result without reproducing child history.</li>
 </ul>
 <p>Expansion is presentation state only.</p>
-<p>Collapsing or expanding a branch must not change model context, branch semantics, or durable records.</p>
+<p>Collapsing or expanding a branch must not change model context, branch semantics, durable plan state, or result dependencies.</p>
 <hr />
-<h2 id="15-per-activity-presentation-is-independent-from-context">15. Per-Activity Presentation Is Independent from Context<a class="headerlink" href="#15-per-activity-presentation-is-independent-from-context" title="Permanent link">&para;</a></h2>
+<h2 id="19-per-activity-presentation-is-independent-from-context">19. Per-Activity Presentation Is Independent from Context<a class="headerlink" href="#19-per-activity-presentation-is-independent-from-context" title="Permanent link">&para;</a></h2>
 <p>Each visible activity/message kind may have its own client presentation policy.</p>
 <p>Examples include:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>tool invocation:
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>  hidden
-<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>  command truncated
-<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>  command full
-<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>  parameters one per line
-<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>
-<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>tool result:
-<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>  hidden
-<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>  summary
-<a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a>  preview
-<a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a>  full bounded detail
-<a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a>
-<a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a>reasoning summary:
-<a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a>  hidden
-<a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a>  shown
-<a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a>
-<a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a>model request/prompt:
-<a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a>  hidden
-<a id="__codelineno-18-19" name="__codelineno-18-19" href="#__codelineno-18-19"></a>  summary
-<a id="__codelineno-18-20" name="__codelineno-18-20" href="#__codelineno-18-20"></a>  structured full
-<a id="__codelineno-18-21" name="__codelineno-18-21" href="#__codelineno-18-21"></a>
-<a id="__codelineno-18-22" name="__codelineno-18-22" href="#__codelineno-18-22"></a>branch:
-<a id="__codelineno-18-23" name="__codelineno-18-23" href="#__codelineno-18-23"></a>  compact result
-<a id="__codelineno-18-24" name="__codelineno-18-24" href="#__codelineno-18-24"></a>  expanded activity
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>semantic/tool invocation:
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>  hidden
+<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>  compact/truncated
+<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>  full one-line/wrapped
+<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>  structured parameters one per line
+<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>
+<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a>tool/operation result:
+<a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a>  hidden
+<a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a>  summary
+<a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a>  preview
+<a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a>  full bounded detail
+<a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a>
+<a id="__codelineno-25-13" name="__codelineno-25-13" href="#__codelineno-25-13"></a>reasoning summary:
+<a id="__codelineno-25-14" name="__codelineno-25-14" href="#__codelineno-25-14"></a>  hidden
+<a id="__codelineno-25-15" name="__codelineno-25-15" href="#__codelineno-25-15"></a>  shown
+<a id="__codelineno-25-16" name="__codelineno-25-16" href="#__codelineno-25-16"></a>
+<a id="__codelineno-25-17" name="__codelineno-25-17" href="#__codelineno-25-17"></a>model request/prompt:
+<a id="__codelineno-25-18" name="__codelineno-25-18" href="#__codelineno-25-18"></a>  hidden
+<a id="__codelineno-25-19" name="__codelineno-25-19" href="#__codelineno-25-19"></a>  summary
+<a id="__codelineno-25-20" name="__codelineno-25-20" href="#__codelineno-25-20"></a>  structured full
+<a id="__codelineno-25-21" name="__codelineno-25-21" href="#__codelineno-25-21"></a>
+<a id="__codelineno-25-22" name="__codelineno-25-22" href="#__codelineno-25-22"></a>branch:
+<a id="__codelineno-25-23" name="__codelineno-25-23" href="#__codelineno-25-23"></a>  compact result
+<a id="__codelineno-25-24" name="__codelineno-25-24" href="#__codelineno-25-24"></a>  expanded activity
+<a id="__codelineno-25-25" name="__codelineno-25-25" href="#__codelineno-25-25"></a>
+<a id="__codelineno-25-26" name="__codelineno-25-26" href="#__codelineno-25-26"></a>plan node:
+<a id="__codelineno-25-27" name="__codelineno-25-27" href="#__codelineno-25-27"></a>  compact
+<a id="__codelineno-25-28" name="__codelineno-25-28" href="#__codelineno-25-28"></a>  dependencies/assignment detail
 </code></pre></div>
-<p>These settings affect rendering only.</p>
-<p>They must not change:</p>
-<ul>
-<li>what was captured;</li>
-<li>branch ancestry;</li>
-<li>continuation identity;</li>
-<li>context compilation;</li>
-<li>tool execution;</li>
-<li>provider execution.</li>
-</ul>
-<p>Changing a presentation mode never reruns work.</p>
+<p>A compact semantic invocation may look like:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>▏ add function parse_union_type to php::parser
+</code></pre></div>
+<p>A structured version may look like:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>▏ code.add_function
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>▏   module: php::parser
+<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>▏   after: parse_named_type
+<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>▏   name: parse_union_type
+</code></pre></div>
+<p>An actual process invocation may use shell-command formatting.</p>
+<p>These settings affect rendering only. They must not change captured activity, ancestry, continuation identity, context compilation, tool execution, provider execution, or scheduling.</p>
 <hr />
-<h2 id="16-navigation-and-reply-anchors-use-stable-session-identity">16. Navigation and Reply Anchors Use Stable Session Identity<a class="headerlink" href="#16-navigation-and-reply-anchors-use-stable-session-identity" title="Permanent link">&para;</a></h2>
+<h2 id="20-navigation-cursor-reply-anchor-and-coordinator-cursor-are-distinct">20. Navigation Cursor, Reply Anchor, and Coordinator Cursor Are Distinct<a class="headerlink" href="#20-navigation-cursor-reply-anchor-and-coordinator-cursor-are-distinct" title="Permanent link">&para;</a></h2>
 <p>A user-facing row number, terminal cursor position, scroll offset, indentation level, or current rendering mode is never a continuation identity.</p>
-<p>When the user chooses a historical reply point, the TUI resolves that row to a stable semantic session object/continuation anchor.</p>
-<p>Changing presentation detail may add or remove visual rows without changing the selected continuation target.</p>
-<p>The application/session layer, not the TUI, decides how context is compiled for that continuation anchor.</p>
+<p>The TUI needs three distinct concepts:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>navigation cursor
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>  where the user is browsing
+<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>
+<a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>reply anchor
+<a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>  where the next human message will attach
+<a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>
+<a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a>coordinator cursor
+<a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a>  where the single auto-advancing plan coordinator is currently operating/evaluating
+</code></pre></div>
+<p>Normally the reply anchor may auto-follow the coordinator cursor while the user is idle.</p>
+<p>When the user deliberately selects a historical/sibling node or starts typing against it, the reply anchor becomes pinned. Coordinator progress must not move it underneath an in-progress draft.</p>
+<p>All anchors resolve to stable session/plan identities, never terminal row numbers.</p>
 <hr />
-<h2 id="17-new-activity-is-placed-structurally-not-appended-by-time">17. New Activity Is Placed Structurally, Not Appended by Time<a class="headerlink" href="#17-new-activity-is-placed-structurally-not-appended-by-time" title="Permanent link">&para;</a></h2>
+<h2 id="21-the-reply-anchor-is-visually-distinct">21. The Reply Anchor Is Visually Distinct<a class="headerlink" href="#21-the-reply-anchor-is-visually-distinct" title="Permanent link">&para;</a></h2>
+<p>The current reply anchor should use a background highlight or equivalent strong focus treatment.</p>
+<p>Depth rail color must not double as reply-anchor state.</p>
+<p>The background answers:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>Where will my next message attach?
+</code></pre></div>
+<p>The rails answer:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>What structural ancestry does this content have?
+</code></pre></div>
+<p>The composer may show a compact <code>Replying to ...</code> label when the anchor is not the ordinary current/coordinator head.</p>
+<p>Important state must not depend on color alone.</p>
+<hr />
+<h2 id="22-new-activity-is-placed-structurally-not-appended-by-time">22. New Activity Is Placed Structurally, Not Appended by Time<a class="headerlink" href="#22-new-activity-is-placed-structurally-not-appended-by-time" title="Permanent link">&para;</a></h2>
 <p>The UI must not treat the conversation as an append-only list.</p>
-<p>When a child branch or historical continuation produces new activity, the view recomputes a deterministic tree projection and places that activity beneath its semantic parent.</p>
-<p>Creation time and event sequence remain useful for ordering siblings and activity where the session model defines them, but wall-clock append position is not the canonical layout rule.</p>
+<p>When a planned branch, autonomous child, historical user continuation, worker result, or nested repair branch produces new activity, the view recomputes a deterministic tree projection and places that activity beneath its semantic parent.</p>
+<p>Creation time and event sequence remain useful for ordering siblings/activity where the session model defines them, but wall-clock append position is not the canonical layout rule.</p>
 <p>This applies equally to:</p>
 <ul>
 <li>user-created continuations;</li>
 <li>agent-created children;</li>
+<li>planned nodes and their later execution;</li>
 <li>recursively delegated grandchildren;</li>
 <li>repair branches;</li>
 <li>validation branches;</li>
-<li>alternative implementations.</li>
+<li>alternative model attempts;</li>
+<li>concurrent worker results.</li>
 </ul>
 <hr />
-<h2 id="18-guiding-example">18. Guiding Example<a class="headerlink" href="#18-guiding-example" title="Permanent link">&para;</a></h2>
-<p>A useful complete mental model is:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>Root: Add PHP ingestion
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>|
-<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>+-- Discover architecture
-<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>|   +-- inspect code-domain conventions
-<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>|   +-- inspect project import dispatch
-<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>|   `-- Result: required extension points
-<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>|
-<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>+-- Implement PHP adapter
-<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>|   |
-<a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>|   +-- Create parser module
-<a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>|   |   +-- draft implementation
-<a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a>|   |   +-- repair syntax/API mismatch
-<a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a>|   |   `-- Result: parser module validated
-<a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a>|   |
-<a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a>|   +-- Add adapter registration
-<a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a>|   |   `-- Result: scanner/import dispatch updated
-<a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a>|   |
-<a id="__codelineno-19-18" name="__codelineno-19-18" href="#__codelineno-19-18"></a>|   +-- Write focused tests
-<a id="__codelineno-19-19" name="__codelineno-19-19" href="#__codelineno-19-19"></a>|   |   `-- Result: domain tests pass
-<a id="__codelineno-19-20" name="__codelineno-19-20" href="#__codelineno-19-20"></a>|   |
-<a id="__codelineno-19-21" name="__codelineno-19-21" href="#__codelineno-19-21"></a>|   `-- Result: validated implementation candidate
-<a id="__codelineno-19-22" name="__codelineno-19-22" href="#__codelineno-19-22"></a>|
-<a id="__codelineno-19-23" name="__codelineno-19-23" href="#__codelineno-19-23"></a>+-- End-to-end validation
-<a id="__codelineno-19-24" name="__codelineno-19-24" href="#__codelineno-19-24"></a>|   `-- Result: PHP onboarding fixture passes
-<a id="__codelineno-19-25" name="__codelineno-19-25" href="#__codelineno-19-25"></a>|
-<a id="__codelineno-19-26" name="__codelineno-19-26" href="#__codelineno-19-26"></a>`-- Root result: PHP ingestion candidate ready for review
+<h2 id="23-auto-follow-is-presentation-state">23. Auto-Follow Is Presentation State<a class="headerlink" href="#23-auto-follow-is-presentation-state" title="Permanent link">&para;</a></h2>
+<p>When a long-running plan is active, the TUI may automatically keep the viewport near the coordinator cursor.</p>
+<p>Recommended behavior:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>user idle -&gt; follow coordinator
+<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>user scrolls/selects -&gt; pause follow
+<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>user explicitly resumes follow -&gt; follow coordinator again
+</code></pre></div>
+<p>This is presentation state only. It has no effect on scheduling or context.</p>
+<hr />
+<h2 id="24-guiding-example">24. Guiding Example<a class="headerlink" href="#24-guiding-example" title="Permanent link">&para;</a></h2>
+<p>A synchronized mental model is:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>Root: Add PHP ingestion
+<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>|
+<a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>+-- Discover architecture                     [local-fast]
+<a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>|   +-- inspect code-domain conventions
+<a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a>|   +-- inspect project import registry
+<a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a>|   `-- Result: required semantic extension points
+<a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a>|
+<a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a>+-- Implement PHP adapter                     [OpenAI profile]
+<a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a>|   |
+<a id="__codelineno-32-10" name="__codelineno-32-10" href="#__codelineno-32-10"></a>|   +-- Add PHP syntax/domain entities
+<a id="__codelineno-32-11" name="__codelineno-32-11" href="#__codelineno-32-11"></a>|   |   +-- create/update semantic schema nodes
+<a id="__codelineno-32-12" name="__codelineno-32-12" href="#__codelineno-32-12"></a>|   |   +-- create parser functions/code groups
+<a id="__codelineno-32-13" name="__codelineno-32-13" href="#__codelineno-32-13"></a>|   |   `-- Result: parser semantic candidate
+<a id="__codelineno-32-14" name="__codelineno-32-14" href="#__codelineno-32-14"></a>|   |
+<a id="__codelineno-32-15" name="__codelineno-32-15" href="#__codelineno-32-15"></a>|   +-- Register adapter
+<a id="__codelineno-32-16" name="__codelineno-32-16" href="#__codelineno-32-16"></a>|   |   `-- Result: source-domain registry candidate
+<a id="__codelineno-32-17" name="__codelineno-32-17" href="#__codelineno-32-17"></a>|   |
+<a id="__codelineno-32-18" name="__codelineno-32-18" href="#__codelineno-32-18"></a>|   +-- Validate parser
+<a id="__codelineno-32-19" name="__codelineno-32-19" href="#__codelineno-32-19"></a>|   |   +-- materialize candidate projection
+<a id="__codelineno-32-20" name="__codelineno-32-20" href="#__codelineno-32-20"></a>|   |   +-- external compiler/test validation
+<a id="__codelineno-32-21" name="__codelineno-32-21" href="#__codelineno-32-21"></a>|   |   `-- Result: validation evidence
+<a id="__codelineno-32-22" name="__codelineno-32-22" href="#__codelineno-32-22"></a>|   |
+<a id="__codelineno-32-23" name="__codelineno-32-23" href="#__codelineno-32-23"></a>|   `-- Result: validated adapter candidate
+<a id="__codelineno-32-24" name="__codelineno-32-24" href="#__codelineno-32-24"></a>|
+<a id="__codelineno-32-25" name="__codelineno-32-25" href="#__codelineno-32-25"></a>+-- Research PHP edge cases                   [OpenRouter profile]
+<a id="__codelineno-32-26" name="__codelineno-32-26" href="#__codelineno-32-26"></a>|   `-- Result: accepted edge-case constraints
+<a id="__codelineno-32-27" name="__codelineno-32-27" href="#__codelineno-32-27"></a>|
+<a id="__codelineno-32-28" name="__codelineno-32-28" href="#__codelineno-32-28"></a>+-- Add tests                                 [local/other profile]
+<a id="__codelineno-32-29" name="__codelineno-32-29" href="#__codelineno-32-29"></a>|   depends_on: adapter result, research result
+<a id="__codelineno-32-30" name="__codelineno-32-30" href="#__codelineno-32-30"></a>|   `-- Result: semantic test entities + validation
+<a id="__codelineno-32-31" name="__codelineno-32-31" href="#__codelineno-32-31"></a>|
+<a id="__codelineno-32-32" name="__codelineno-32-32" href="#__codelineno-32-32"></a>+-- Integration
+<a id="__codelineno-32-33" name="__codelineno-32-33" href="#__codelineno-32-33"></a>|   depends_on: adapter, tests
+<a id="__codelineno-32-34" name="__codelineno-32-34" href="#__codelineno-32-34"></a>|   `-- Result: merged candidate
+<a id="__codelineno-32-35" name="__codelineno-32-35" href="#__codelineno-32-35"></a>|
+<a id="__codelineno-32-36" name="__codelineno-32-36" href="#__codelineno-32-36"></a>`-- Root result: PHP ingestion candidate ready for review
 </code></pre></div>
 <p>The root model does not need every operation under every descendant.</p>
-<p>The implementation child does not need the architecture child's raw tool transcript once it has the architecture result.</p>
-<p>The test-writing child does not need the parser-writing child's syntax-correction dialogue once it has the validated parser source and result handles.</p>
+<p>The test branch receives exact adapter/research results, not their transcripts.</p>
 <p>The complete histories remain durable and inspectable for provenance, debugging, audit, and later reopening.</p>
 <hr />
-<h2 id="19-product-surface-invariant">19. Product-Surface Invariant<a class="headerlink" href="#19-product-surface-invariant" title="Permanent link">&para;</a></h2>
-<p>CLI, TUI, web, server clients, and future agents must agree on the same branch topology and compact-result semantics.</p>
-<p>The TUI may offer the richest immediate visualization, but it does not own recursive decomposition.</p>
-<p>The runtime may create branches autonomously, but it does not own their canonical meaning.</p>
-<p>The session domain stores the tree, the runtime orchestrates work within it, the context compiler selects what each branch sees, and product surfaces render and navigate the resulting shared semantics.</p>
+<h2 id="25-product-surface-invariant">25. Product-Surface Invariant<a class="headerlink" href="#25-product-surface-invariant" title="Permanent link">&para;</a></h2>
+<p>CLI, TUI, web, server clients, and future agents must agree on the same branch topology, plan-node identities, dependency results, semantic handles, compact-result semantics, and execution assignments.</p>
+<p>The TUI may offer the richest immediate visualization, but it does not own recursive decomposition, plan scheduling, semantic editing, or model assignment.</p>
+<p>The session domain stores the tree; the plan subsystem records intended work/dependencies; the runtime orchestrates branch execution; the semantic application/domain layers own reads and mutations; the context compiler selects what each branch sees; product surfaces render and navigate the resulting shared semantics.</p>
 <hr />
-<h2 id="20-non-negotiable-summary">20. Non-Negotiable Summary<a class="headerlink" href="#20-non-negotiable-summary" title="Permanent link">&para;</a></h2>
-<p>Future design and implementation work should preserve these rules:</p>
+<h2 id="26-non-negotiable-summary">26. Non-Negotiable Summary<a class="headerlink" href="#26-non-negotiable-summary" title="Permanent link">&para;</a></h2>
+<p>Future design and implementation work must preserve these rules:</p>
 <ol>
 <li>A session is a graph/tree, not a transcript log.</li>
 <li>Branches are context-isolation boundaries for focused work.</li>
 <li>Agents are expected to create branches recursively when useful.</li>
-<li>Users and agents use the same branch model.</li>
-<li>Atomic tool calls may remain inside a branch; independent reasoning loops belong in child branches.</li>
-<li>A child receives selected parent context, not the complete parent transcript.</li>
+<li>Users, plans, agents, and runtime policy use the same branch model.</li>
+<li>Atomic semantic operations may remain inside a branch; independent reasoning loops belong in child branches.</li>
+<li>Known source/document work is semantic-first; raw file/shell primitives are fallback/runtime mechanisms.</li>
+<li>A child receives selected parent/dependency context, not the complete parent transcript.</li>
 <li>A parent normally receives <code>BranchResult</code>, not the complete child transcript.</li>
 <li>Siblings communicate through semantic state/results, not inherited conversational noise.</li>
+<li>Plan dependencies are separate from branch parentage and are satisfied by durable results.</li>
+<li>Many model profiles may execute different branches; one plan has one auto-advancing coordinator.</li>
 <li>Full child history remains durable and inspectable by reference.</li>
 <li>Context compilation is independent from UI expansion and verbosity.</li>
-<li>The default TUI renders the same recursive tree, with completed children compact by default and expandable on demand.</li>
+<li>The default TUI renders the same recursive/planned tree, with completed children compact by default and expandable on demand.</li>
 <li>New activity is inserted at its structural location, not blindly appended by wall-clock time.</li>
 <li>Vertical depth rails are derived presentation of ancestry, not canonical data.</li>
-<li>User reply anchors are stable session identities and use the same tree as autonomous agent delegation.</li>
+<li>Navigation cursor, reply anchor, and coordinator cursor are distinct stable concepts.</li>
+<li>The current reply anchor uses a strong visual highlight separate from rail colors.</li>
+<li>Per-activity detail modes are presentation only and include semantic-operation-specific forms.</li>
 <li>No product surface may rebuild these semantics independently.</li>
 </ol>
 

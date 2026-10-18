@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["CacheDisposition","ExecutionActivity","SelectionError"],"struct":["ModelInvocation","ModelOutput","ModelRequestMessage","ModelRequestProjection","ModelRequestTool","SessionExecutionSelection"]};
+window.SIDEBAR_ITEMS = {"enum":["CacheDisposition","ExecutionActivity","SelectionError","SessionActivityKind","SessionActivityState"],"struct":["ModelInvocation","ModelOutput","ModelRequestMessage","ModelRequestProjection","ModelRequestTool","SessionExecutionChange","SessionExecutionSelection"],"type":["AgentActivityKind","AgentActivityState"]};

@@ -16,7 +16,7 @@
 <a href=#16 id=16 data-nosnippet>16</a>        <span class="doccomment">/// Stable session identity.
 <a href=#17 id=17 data-nosnippet>17</a>        </span>session: EntityId,
 <a href=#18 id=18 data-nosnippet>18</a>        <span class="doccomment">/// Stable selection activity category.
-<a href=#19 id=19 data-nosnippet>19</a>        </span>activity_kind: String,
+<a href=#19 id=19 data-nosnippet>19</a>        </span>activity_kind: scriberig_session::AgentActivityKind,
 <a href=#20 id=20 data-nosnippet>20</a>        <span class="doccomment">/// Safe concise model or thinking selection summary.
 <a href=#21 id=21 data-nosnippet>21</a>        </span>summary: String,
 <a href=#22 id=22 data-nosnippet>22</a>    },
@@ -104,9 +104,9 @@
 <a href=#104 id=104 data-nosnippet>104</a>        <span class="doccomment">/// Durable branch identity correlated with runtime activity.
 <a href=#105 id=105 data-nosnippet>105</a>        </span>branch: String,
 <a href=#106 id=106 data-nosnippet>106</a>        <span class="doccomment">/// Stable public activity category.
-<a href=#107 id=107 data-nosnippet>107</a>        </span>activity_kind: String,
+<a href=#107 id=107 data-nosnippet>107</a>        </span>activity_kind: scriberig_session::AgentActivityKind,
 <a href=#108 id=108 data-nosnippet>108</a>        <span class="doccomment">/// Activity lifecycle state such as `running`, `completed`, or `failed`.
-<a href=#109 id=109 data-nosnippet>109</a>        </span>state: String,
+<a href=#109 id=109 data-nosnippet>109</a>        </span>state: scriberig_session::AgentActivityState,
 <a href=#110 id=110 data-nosnippet>110</a>        <span class="doccomment">/// Safe concise text for transient presentation.
 <a href=#111 id=111 data-nosnippet>111</a>        </span>summary: String,
 <a href=#112 id=112 data-nosnippet>112</a>    },

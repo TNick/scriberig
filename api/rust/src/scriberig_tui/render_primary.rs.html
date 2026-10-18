@@ -195,204 +195,206 @@
 <a href=#195 id=195 data-nosnippet>195</a>                        .into_iter()
 <a href=#196 id=196 data-nosnippet>196</a>                        .flatten()
 <a href=#197 id=197 data-nosnippet>197</a>                        .map(|activity| {
-<a href=#198 id=198 data-nosnippet>198</a>                            <span class="kw">let </span>label = <span class="kw">if </span>activity.activity_kind == <span class="string">"reasoningSummary" </span>{
-<a href=#199 id=199 data-nosnippet>199</a>                                <span class="string">"Reasoning summary"
-<a href=#200 id=200 data-nosnippet>200</a>                            </span>} <span class="kw">else </span>{
-<a href=#201 id=201 data-nosnippet>201</a>                                <span class="string">"Live activity"
-<a href=#202 id=202 data-nosnippet>202</a>                            </span>};
-<a href=#203 id=203 data-nosnippet>203</a>                            <span class="macro">format!</span>(
-<a href=#204 id=204 data-nosnippet>204</a>                                <span class="string">"[{label}] {}: {} ({})"</span>,
-<a href=#205 id=205 data-nosnippet>205</a>                                activity.branch,
-<a href=#206 id=206 data-nosnippet>206</a>                                <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>activity.summary),
-<a href=#207 id=207 data-nosnippet>207</a>                                activity.state
-<a href=#208 id=208 data-nosnippet>208</a>                            )
-<a href=#209 id=209 data-nosnippet>209</a>                        }),
-<a href=#210 id=210 data-nosnippet>210</a>                )
-<a href=#211 id=211 data-nosnippet>211</a>                .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
-<a href=#212 id=212 data-nosnippet>212</a>                .join(<span class="string">"\n"</span>),
-<a href=#213 id=213 data-nosnippet>213</a>            <span class="kw">crate</span>::inspector::LoadState::Loading { .. } =&gt; <span class="string">"Loading session..."</span>.to_owned(),
-<a href=#214 id=214 data-nosnippet>214</a>            <span class="kw">crate</span>::inspector::LoadState::Failed { message, .. } =&gt; message.clone(),
-<a href=#215 id=215 data-nosnippet>215</a>            <span class="kw">crate</span>::inspector::LoadState::NotRequested =&gt; {
-<a href=#216 id=216 data-nosnippet>216</a>                <span class="kw">if </span>state
-<a href=#217 id=217 data-nosnippet>217</a>                    .session_composer
-<a href=#218 id=218 data-nosnippet>218</a>                    .as_ref()
-<a href=#219 id=219 data-nosnippet>219</a>                    .is_some_and(|composer| composer.branch.is_none())
-<a href=#220 id=220 data-nosnippet>220</a>                {
-<a href=#221 id=221 data-nosnippet>221</a>                    <span class="string">"New agent session"</span>.to_owned()
-<a href=#222 id=222 data-nosnippet>222</a>                } <span class="kw">else </span>{
-<a href=#223 id=223 data-nosnippet>223</a>                    <span class="string">"Session not loaded"</span>.to_owned()
-<a href=#224 id=224 data-nosnippet>224</a>                }
-<a href=#225 id=225 data-nosnippet>225</a>            }
-<a href=#226 id=226 data-nosnippet>226</a>        },
-<a href=#227 id=227 data-nosnippet>227</a>        <span class="kw">crate</span>::selection::PrimaryView::Operations =&gt; {
-<a href=#228 id=228 data-nosnippet>228</a>            <span class="kw">if </span>state.operations.is_empty() {
-<a href=#229 id=229 data-nosnippet>229</a>                <span class="string">"No observed operations"</span>.to_owned()
-<a href=#230 id=230 data-nosnippet>230</a>            } <span class="kw">else </span>{
-<a href=#231 id=231 data-nosnippet>231</a>                state
-<a href=#232 id=232 data-nosnippet>232</a>                    .operations
-<a href=#233 id=233 data-nosnippet>233</a>                    .iter()
-<a href=#234 id=234 data-nosnippet>234</a>                    .enumerate()
-<a href=#235 id=235 data-nosnippet>235</a>                    .map(|(index, operation)| {
-<a href=#236 id=236 data-nosnippet>236</a>                        <span class="macro">format!</span>(
-<a href=#237 id=237 data-nosnippet>237</a>                            <span class="string">"{}{} [{:?}] {}"</span>,
-<a href=#238 id=238 data-nosnippet>238</a>                            <span class="kw">if </span>state.focus == Focus::Primary &amp;&amp; state.cursor == index {
-<a href=#239 id=239 data-nosnippet>239</a>                                <span class="string">"&gt; "
-<a href=#240 id=240 data-nosnippet>240</a>                            </span>} <span class="kw">else </span>{
-<a href=#241 id=241 data-nosnippet>241</a>                                <span class="string">"  "
-<a href=#242 id=242 data-nosnippet>242</a>                            </span>},
-<a href=#243 id=243 data-nosnippet>243</a>                            operation.id,
-<a href=#244 id=244 data-nosnippet>244</a>                            operation.status,
-<a href=#245 id=245 data-nosnippet>245</a>                            operation.kind
-<a href=#246 id=246 data-nosnippet>246</a>                        )
-<a href=#247 id=247 data-nosnippet>247</a>                    })
-<a href=#248 id=248 data-nosnippet>248</a>                    .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
-<a href=#249 id=249 data-nosnippet>249</a>                    .join(<span class="string">"\n"</span>)
-<a href=#250 id=250 data-nosnippet>250</a>            }
-<a href=#251 id=251 data-nosnippet>251</a>        }
-<a href=#252 id=252 data-nosnippet>252</a>    }
-<a href=#253 id=253 data-nosnippet>253</a>}
-<a href=#254 id=254 data-nosnippet>254</a>
-<a href=#255 id=255 data-nosnippet>255</a><span class="doccomment">/// Resolves the current client-local activity presentation for one row.
-<a href=#256 id=256 data-nosnippet>256</a>///
-<a href=#257 id=257 data-nosnippet>257</a>/// # Parameters
-<a href=#258 id=258 data-nosnippet>258</a>/// - `state`: Cached TUI state with local visibility and loaded detail.
-<a href=#259 id=259 data-nosnippet>259</a>/// - `row`: Session activity row to render.
-<a href=#260 id=260 data-nosnippet>260</a>///
-<a href=#261 id=261 data-nosnippet>261</a>/// # Returns
-<a href=#262 id=262 data-nosnippet>262</a>/// A safe row label or bounded detail presentation.
-<a href=#263 id=263 data-nosnippet>263</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>session_row_label(
-<a href=#264 id=264 data-nosnippet>264</a>    state: <span class="kw-2">&amp;</span>TuiState,
-<a href=#265 id=265 data-nosnippet>265</a>    row: <span class="kw-2">&amp;</span><span class="kw">crate</span>::view::session::SessionRow,
-<a href=#266 id=266 data-nosnippet>266</a>) -&gt; String {
-<a href=#267 id=267 data-nosnippet>267</a>    <span class="kw">if </span>row.kind == <span class="kw">crate</span>::view::session::SessionRowKind::ToolInvocation
-<a href=#268 id=268 data-nosnippet>268</a>        &amp;&amp; state.tool_invocation_visibility == <span class="kw">crate</span>::state::ToolInvocationVisibility::Detailed
-<a href=#269 id=269 data-nosnippet>269</a>        &amp;&amp; <span class="kw">let </span><span class="kw">crate</span>::inspector::LoadState::Ready(model) = <span class="kw-2">&amp;</span>state.session
-<a href=#270 id=270 data-nosnippet>270</a>        &amp;&amp; <span class="kw">let </span><span class="prelude-val">Some</span>(detail) = model.tool_invocation_details.get(<span class="kw-2">&amp;</span>row.reference)
-<a href=#271 id=271 data-nosnippet>271</a>    {
-<a href=#272 id=272 data-nosnippet>272</a>        <span class="kw">return </span><span class="macro">format!</span>(<span class="string">"{}\n  Arguments:\n{}"</span>, row.label, detail);
-<a href=#273 id=273 data-nosnippet>273</a>    }
-<a href=#274 id=274 data-nosnippet>274</a>    <span class="kw">if </span>row.kind == <span class="kw">crate</span>::view::session::SessionRowKind::ToolInvocation
-<a href=#275 id=275 data-nosnippet>275</a>        &amp;&amp; state.tool_invocation_visibility == <span class="kw">crate</span>::state::ToolInvocationVisibility::Simple
-<a href=#276 id=276 data-nosnippet>276</a>        &amp;&amp; <span class="kw">let </span><span class="kw">crate</span>::inspector::LoadState::Ready(model) = <span class="kw-2">&amp;</span>state.session
-<a href=#277 id=277 data-nosnippet>277</a>        &amp;&amp; <span class="kw">let </span><span class="prelude-val">Some</span>(detail) = model.tool_invocation_details.get(<span class="kw-2">&amp;</span>row.reference)
-<a href=#278 id=278 data-nosnippet>278</a>    {
-<a href=#279 id=279 data-nosnippet>279</a>        <span class="kw">return </span><span class="macro">format!</span>(<span class="string">"{}{}"</span>, row.label, compact_tool_arguments(detail));
-<a href=#280 id=280 data-nosnippet>280</a>    }
-<a href=#281 id=281 data-nosnippet>281</a>    <span class="kw">if </span>row.kind == <span class="kw">crate</span>::view::session::SessionRowKind::ModelInvocation
-<a href=#282 id=282 data-nosnippet>282</a>        &amp;&amp; state.prompt_visibility == <span class="kw">crate</span>::state::PromptVisibility::Shown
-<a href=#283 id=283 data-nosnippet>283</a>        &amp;&amp; <span class="kw">let </span><span class="prelude-val">Some</span>(detail) = state.model_request_details.get(<span class="kw-2">&amp;</span>row.reference)
-<a href=#284 id=284 data-nosnippet>284</a>    {
-<a href=#285 id=285 data-nosnippet>285</a>        <span class="kw">return </span><span class="macro">format!</span>(<span class="string">"{}{}"</span>, row.label, format_model_request_detail(detail));
-<a href=#286 id=286 data-nosnippet>286</a>    }
-<a href=#287 id=287 data-nosnippet>287</a>    <span class="kw">if </span>row.kind != <span class="kw">crate</span>::view::session::SessionRowKind::ToolResult {
-<a href=#288 id=288 data-nosnippet>288</a>        <span class="kw">return </span>row.label.clone();
-<a href=#289 id=289 data-nosnippet>289</a>    }
-<a href=#290 id=290 data-nosnippet>290</a>    <span class="kw">match </span>state.tool_output_visibility {
-<a href=#291 id=291 data-nosnippet>291</a>        <span class="kw">crate</span>::state::ToolOutputVisibility::Hidden =&gt; <span class="string">"Tool result hidden"</span>.to_owned(),
-<a href=#292 id=292 data-nosnippet>292</a>        <span class="kw">crate</span>::state::ToolOutputVisibility::Summary =&gt; row.label.clone(),
-<a href=#293 id=293 data-nosnippet>293</a>        <span class="kw">crate</span>::state::ToolOutputVisibility::Full =&gt; {
-<a href=#294 id=294 data-nosnippet>294</a>            state.tool_result_details.get(<span class="kw-2">&amp;</span>row.reference).map_or_else(
-<a href=#295 id=295 data-nosnippet>295</a>                || <span class="string">"Loading tool result detail…"</span>.to_owned(),
-<a href=#296 id=296 data-nosnippet>296</a>                |detail| {
-<a href=#297 id=297 data-nosnippet>297</a>                    <span class="kw">let </span>content = serde_json::to_string_pretty(<span class="kw-2">&amp;</span>detail.detail)
-<a href=#298 id=298 data-nosnippet>298</a>                        .unwrap_or_else(|<span class="kw">_</span>| <span class="string">"{}"</span>.to_owned());
-<a href=#299 id=299 data-nosnippet>299</a>                    <span class="macro">format!</span>(
-<a href=#300 id=300 data-nosnippet>300</a>                        <span class="string">"Tool result detail{}: {content}"</span>,
-<a href=#301 id=301 data-nosnippet>301</a>                        <span class="kw">if </span>detail.truncated { <span class="string">" (truncated)" </span>} <span class="kw">else </span>{ <span class="string">"" </span>}
-<a href=#302 id=302 data-nosnippet>302</a>                    )
-<a href=#303 id=303 data-nosnippet>303</a>                },
-<a href=#304 id=304 data-nosnippet>304</a>            )
-<a href=#305 id=305 data-nosnippet>305</a>        }
-<a href=#306 id=306 data-nosnippet>306</a>    }
-<a href=#307 id=307 data-nosnippet>307</a>}
-<a href=#308 id=308 data-nosnippet>308</a>
-<a href=#309 id=309 data-nosnippet>309</a><span class="doccomment">/// Formats bounded redacted arguments as compact command options.
-<a href=#310 id=310 data-nosnippet>310</a>///
-<a href=#311 id=311 data-nosnippet>311</a>/// # Parameters
-<a href=#312 id=312 data-nosnippet>312</a>/// - `detail`: Structured presentation JSON retained for one invocation.
-<a href=#313 id=313 data-nosnippet>313</a>///
-<a href=#314 id=314 data-nosnippet>314</a>/// # Returns
-<a href=#315 id=315 data-nosnippet>315</a>/// A safe, bounded command suffix or an empty string for invalid detail.
-<a href=#316 id=316 data-nosnippet>316</a></span><span class="kw">fn </span>compact_tool_arguments(detail: <span class="kw-2">&amp;</span>str) -&gt; String {
-<a href=#317 id=317 data-nosnippet>317</a>    <span class="kw">let </span><span class="prelude-val">Ok</span>(serde_json::Value::Object(arguments)) = serde_json::from_str(detail) <span class="kw">else </span>{
-<a href=#318 id=318 data-nosnippet>318</a>        <span class="kw">return </span>String::new();
-<a href=#319 id=319 data-nosnippet>319</a>    };
-<a href=#320 id=320 data-nosnippet>320</a>    <span class="kw">let </span><span class="kw-2">mut </span>suffix = String::new();
-<a href=#321 id=321 data-nosnippet>321</a>    <span class="kw">for </span>(name, value) <span class="kw">in </span>arguments.iter().take(<span class="number">8</span>) {
-<a href=#322 id=322 data-nosnippet>322</a>        <span class="kw">let </span>value = value
-<a href=#323 id=323 data-nosnippet>323</a>            .as_str()
-<a href=#324 id=324 data-nosnippet>324</a>            .map_or_else(|| value.to_string(), str::to_owned);
-<a href=#325 id=325 data-nosnippet>325</a>        <span class="kw">let </span>name = <span class="kw">crate</span>::inspector::sanitize(name)
-<a href=#326 id=326 data-nosnippet>326</a>            .chars()
-<a href=#327 id=327 data-nosnippet>327</a>            .take(<span class="number">64</span>)
-<a href=#328 id=328 data-nosnippet>328</a>            .collect::&lt;String&gt;();
-<a href=#329 id=329 data-nosnippet>329</a>        <span class="kw">let </span>value = <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>value)
-<a href=#330 id=330 data-nosnippet>330</a>            .chars()
-<a href=#331 id=331 data-nosnippet>331</a>            .take(<span class="number">128</span>)
-<a href=#332 id=332 data-nosnippet>332</a>            .collect::&lt;String&gt;();
-<a href=#333 id=333 data-nosnippet>333</a>        <span class="kw">let _ </span>= <span class="macro">write!</span>(suffix, <span class="string">" --{name} {value}"</span>);
-<a href=#334 id=334 data-nosnippet>334</a>    }
-<a href=#335 id=335 data-nosnippet>335</a>    suffix.chars().take(<span class="number">512</span>).collect()
-<a href=#336 id=336 data-nosnippet>336</a>}
-<a href=#337 id=337 data-nosnippet>337</a>
-<a href=#338 id=338 data-nosnippet>338</a><span class="doccomment">/// Formats grouped safe request sections for the opt-in prompt view.
-<a href=#339 id=339 data-nosnippet>339</a>///
-<a href=#340 id=340 data-nosnippet>340</a>/// # Parameters
-<a href=#341 id=341 data-nosnippet>341</a>/// - `detail`: Bounded captured provider-neutral request.
-<a href=#342 id=342 data-nosnippet>342</a>///
-<a href=#343 id=343 data-nosnippet>343</a>/// # Returns
-<a href=#344 id=344 data-nosnippet>344</a>/// Sanitized model, message, tool-schema, and truncation sections.
-<a href=#345 id=345 data-nosnippet>345</a></span><span class="kw">fn </span>format_model_request_detail(detail: <span class="kw-2">&amp;</span>scriberig_protocol::ModelRequestDetailResponse) -&gt; String {
-<a href=#346 id=346 data-nosnippet>346</a>    <span class="kw">let </span><span class="kw-2">mut </span>sections = <span class="macro">format!</span>(
-<a href=#347 id=347 data-nosnippet>347</a>        <span class="string">"\nModel request\n  Model: {}\n  Thinking: {}"</span>,
-<a href=#348 id=348 data-nosnippet>348</a>        <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>detail.model),
-<a href=#349 id=349 data-nosnippet>349</a>        detail
-<a href=#350 id=350 data-nosnippet>350</a>            .thinking_level
-<a href=#351 id=351 data-nosnippet>351</a>            .as_deref()
-<a href=#352 id=352 data-nosnippet>352</a>            .map_or_else(|| <span class="string">"unspecified"</span>.to_owned(), <span class="kw">crate</span>::inspector::sanitize)
-<a href=#353 id=353 data-nosnippet>353</a>    );
-<a href=#354 id=354 data-nosnippet>354</a>    <span class="kw">for </span>message <span class="kw">in </span><span class="kw-2">&amp;</span>detail.messages {
-<a href=#355 id=355 data-nosnippet>355</a>        <span class="kw">let _ </span>= <span class="macro">write!</span>(
-<a href=#356 id=356 data-nosnippet>356</a>            sections,
-<a href=#357 id=357 data-nosnippet>357</a>            <span class="string">"\n  {}\n{}"</span>,
-<a href=#358 id=358 data-nosnippet>358</a>            <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>message.role),
-<a href=#359 id=359 data-nosnippet>359</a>            safe_multiline_text(<span class="kw-2">&amp;</span>message.content)
-<a href=#360 id=360 data-nosnippet>360</a>                .lines()
-<a href=#361 id=361 data-nosnippet>361</a>                .map(|line| <span class="macro">format!</span>(<span class="string">"    {line}"</span>))
-<a href=#362 id=362 data-nosnippet>362</a>                .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
-<a href=#363 id=363 data-nosnippet>363</a>                .join(<span class="string">"\n"</span>)
-<a href=#364 id=364 data-nosnippet>364</a>        );
-<a href=#365 id=365 data-nosnippet>365</a>    }
-<a href=#366 id=366 data-nosnippet>366</a>    <span class="kw">if </span>!detail.tools.is_empty() {
-<a href=#367 id=367 data-nosnippet>367</a>        sections.push_str(<span class="string">"\n  Tools"</span>);
-<a href=#368 id=368 data-nosnippet>368</a>    }
-<a href=#369 id=369 data-nosnippet>369</a>    <span class="kw">for </span>tool <span class="kw">in </span><span class="kw-2">&amp;</span>detail.tools {
-<a href=#370 id=370 data-nosnippet>370</a>        <span class="kw">let _ </span>= <span class="macro">write!</span>(
-<a href=#371 id=371 data-nosnippet>371</a>            sections,
-<a href=#372 id=372 data-nosnippet>372</a>            <span class="string">"\n    {}: {}"</span>,
-<a href=#373 id=373 data-nosnippet>373</a>            <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>tool.name),
-<a href=#374 id=374 data-nosnippet>374</a>            <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>tool.description)
-<a href=#375 id=375 data-nosnippet>375</a>        );
-<a href=#376 id=376 data-nosnippet>376</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(parameters) = <span class="kw-2">&amp;</span>tool.parameters {
-<a href=#377 id=377 data-nosnippet>377</a>            <span class="kw">let _ </span>= <span class="macro">write!</span>(sections, <span class="string">"\n{}"</span>, safe_multiline_text(parameters));
-<a href=#378 id=378 data-nosnippet>378</a>        }
-<a href=#379 id=379 data-nosnippet>379</a>    }
-<a href=#380 id=380 data-nosnippet>380</a>    <span class="kw">if </span>detail.truncated {
-<a href=#381 id=381 data-nosnippet>381</a>        sections.push_str(<span class="string">"\n  Request capture truncated"</span>);
-<a href=#382 id=382 data-nosnippet>382</a>    }
-<a href=#383 id=383 data-nosnippet>383</a>    sections
-<a href=#384 id=384 data-nosnippet>384</a>}
-<a href=#385 id=385 data-nosnippet>385</a>
-<a href=#386 id=386 data-nosnippet>386</a><span class="doccomment">/// Removes unsafe terminal controls while preserving safe line structure.
-<a href=#387 id=387 data-nosnippet>387</a>///
-<a href=#388 id=388 data-nosnippet>388</a>/// # Parameters
-<a href=#389 id=389 data-nosnippet>389</a>/// - `text`: Captured model-request text.
-<a href=#390 id=390 data-nosnippet>390</a>///
-<a href=#391 id=391 data-nosnippet>391</a>/// # Returns
-<a href=#392 id=392 data-nosnippet>392</a>/// Sanitized request text with line breaks preserved.
-<a href=#393 id=393 data-nosnippet>393</a></span><span class="kw">fn </span>safe_multiline_text(text: <span class="kw-2">&amp;</span>str) -&gt; String {
-<a href=#394 id=394 data-nosnippet>394</a>    text.chars()
-<a href=#395 id=395 data-nosnippet>395</a>        .filter(|character| <span class="kw-2">*</span>character == <span class="string">'\n' </span>|| !character.is_control())
-<a href=#396 id=396 data-nosnippet>396</a>        .collect()
-<a href=#397 id=397 data-nosnippet>397</a>}
+<a href=#198 id=198 data-nosnippet>198</a>                            <span class="kw">let </span>label = <span class="kw">if </span>activity.activity_kind
+<a href=#199 id=199 data-nosnippet>199</a>                                == scriberig_session::AgentActivityKind::ReasoningSummary
+<a href=#200 id=200 data-nosnippet>200</a>                            {
+<a href=#201 id=201 data-nosnippet>201</a>                                <span class="string">"Reasoning summary"
+<a href=#202 id=202 data-nosnippet>202</a>                            </span>} <span class="kw">else </span>{
+<a href=#203 id=203 data-nosnippet>203</a>                                <span class="string">"Live activity"
+<a href=#204 id=204 data-nosnippet>204</a>                            </span>};
+<a href=#205 id=205 data-nosnippet>205</a>                            <span class="macro">format!</span>(
+<a href=#206 id=206 data-nosnippet>206</a>                                <span class="string">"[{label}] {}: {} ({:?})"</span>,
+<a href=#207 id=207 data-nosnippet>207</a>                                activity.branch,
+<a href=#208 id=208 data-nosnippet>208</a>                                <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>activity.summary),
+<a href=#209 id=209 data-nosnippet>209</a>                                activity.state
+<a href=#210 id=210 data-nosnippet>210</a>                            )
+<a href=#211 id=211 data-nosnippet>211</a>                        }),
+<a href=#212 id=212 data-nosnippet>212</a>                )
+<a href=#213 id=213 data-nosnippet>213</a>                .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
+<a href=#214 id=214 data-nosnippet>214</a>                .join(<span class="string">"\n"</span>),
+<a href=#215 id=215 data-nosnippet>215</a>            <span class="kw">crate</span>::inspector::LoadState::Loading { .. } =&gt; <span class="string">"Loading session..."</span>.to_owned(),
+<a href=#216 id=216 data-nosnippet>216</a>            <span class="kw">crate</span>::inspector::LoadState::Failed { message, .. } =&gt; message.clone(),
+<a href=#217 id=217 data-nosnippet>217</a>            <span class="kw">crate</span>::inspector::LoadState::NotRequested =&gt; {
+<a href=#218 id=218 data-nosnippet>218</a>                <span class="kw">if </span>state
+<a href=#219 id=219 data-nosnippet>219</a>                    .session_composer
+<a href=#220 id=220 data-nosnippet>220</a>                    .as_ref()
+<a href=#221 id=221 data-nosnippet>221</a>                    .is_some_and(|composer| composer.branch.is_none())
+<a href=#222 id=222 data-nosnippet>222</a>                {
+<a href=#223 id=223 data-nosnippet>223</a>                    <span class="string">"New agent session"</span>.to_owned()
+<a href=#224 id=224 data-nosnippet>224</a>                } <span class="kw">else </span>{
+<a href=#225 id=225 data-nosnippet>225</a>                    <span class="string">"Session not loaded"</span>.to_owned()
+<a href=#226 id=226 data-nosnippet>226</a>                }
+<a href=#227 id=227 data-nosnippet>227</a>            }
+<a href=#228 id=228 data-nosnippet>228</a>        },
+<a href=#229 id=229 data-nosnippet>229</a>        <span class="kw">crate</span>::selection::PrimaryView::Operations =&gt; {
+<a href=#230 id=230 data-nosnippet>230</a>            <span class="kw">if </span>state.operations.is_empty() {
+<a href=#231 id=231 data-nosnippet>231</a>                <span class="string">"No observed operations"</span>.to_owned()
+<a href=#232 id=232 data-nosnippet>232</a>            } <span class="kw">else </span>{
+<a href=#233 id=233 data-nosnippet>233</a>                state
+<a href=#234 id=234 data-nosnippet>234</a>                    .operations
+<a href=#235 id=235 data-nosnippet>235</a>                    .iter()
+<a href=#236 id=236 data-nosnippet>236</a>                    .enumerate()
+<a href=#237 id=237 data-nosnippet>237</a>                    .map(|(index, operation)| {
+<a href=#238 id=238 data-nosnippet>238</a>                        <span class="macro">format!</span>(
+<a href=#239 id=239 data-nosnippet>239</a>                            <span class="string">"{}{} [{:?}] {}"</span>,
+<a href=#240 id=240 data-nosnippet>240</a>                            <span class="kw">if </span>state.focus == Focus::Primary &amp;&amp; state.cursor == index {
+<a href=#241 id=241 data-nosnippet>241</a>                                <span class="string">"&gt; "
+<a href=#242 id=242 data-nosnippet>242</a>                            </span>} <span class="kw">else </span>{
+<a href=#243 id=243 data-nosnippet>243</a>                                <span class="string">"  "
+<a href=#244 id=244 data-nosnippet>244</a>                            </span>},
+<a href=#245 id=245 data-nosnippet>245</a>                            operation.id,
+<a href=#246 id=246 data-nosnippet>246</a>                            operation.status,
+<a href=#247 id=247 data-nosnippet>247</a>                            operation.kind
+<a href=#248 id=248 data-nosnippet>248</a>                        )
+<a href=#249 id=249 data-nosnippet>249</a>                    })
+<a href=#250 id=250 data-nosnippet>250</a>                    .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
+<a href=#251 id=251 data-nosnippet>251</a>                    .join(<span class="string">"\n"</span>)
+<a href=#252 id=252 data-nosnippet>252</a>            }
+<a href=#253 id=253 data-nosnippet>253</a>        }
+<a href=#254 id=254 data-nosnippet>254</a>    }
+<a href=#255 id=255 data-nosnippet>255</a>}
+<a href=#256 id=256 data-nosnippet>256</a>
+<a href=#257 id=257 data-nosnippet>257</a><span class="doccomment">/// Resolves the current client-local activity presentation for one row.
+<a href=#258 id=258 data-nosnippet>258</a>///
+<a href=#259 id=259 data-nosnippet>259</a>/// # Parameters
+<a href=#260 id=260 data-nosnippet>260</a>/// - `state`: Cached TUI state with local visibility and loaded detail.
+<a href=#261 id=261 data-nosnippet>261</a>/// - `row`: Session activity row to render.
+<a href=#262 id=262 data-nosnippet>262</a>///
+<a href=#263 id=263 data-nosnippet>263</a>/// # Returns
+<a href=#264 id=264 data-nosnippet>264</a>/// A safe row label or bounded detail presentation.
+<a href=#265 id=265 data-nosnippet>265</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>session_row_label(
+<a href=#266 id=266 data-nosnippet>266</a>    state: <span class="kw-2">&amp;</span>TuiState,
+<a href=#267 id=267 data-nosnippet>267</a>    row: <span class="kw-2">&amp;</span><span class="kw">crate</span>::view::session::SessionRow,
+<a href=#268 id=268 data-nosnippet>268</a>) -&gt; String {
+<a href=#269 id=269 data-nosnippet>269</a>    <span class="kw">if </span>row.kind == <span class="kw">crate</span>::view::session::SessionRowKind::ToolInvocation
+<a href=#270 id=270 data-nosnippet>270</a>        &amp;&amp; state.tool_invocation_visibility == <span class="kw">crate</span>::state::ToolInvocationVisibility::Detailed
+<a href=#271 id=271 data-nosnippet>271</a>        &amp;&amp; <span class="kw">let </span><span class="kw">crate</span>::inspector::LoadState::Ready(model) = <span class="kw-2">&amp;</span>state.session
+<a href=#272 id=272 data-nosnippet>272</a>        &amp;&amp; <span class="kw">let </span><span class="prelude-val">Some</span>(detail) = model.tool_invocation_details.get(<span class="kw-2">&amp;</span>row.reference)
+<a href=#273 id=273 data-nosnippet>273</a>    {
+<a href=#274 id=274 data-nosnippet>274</a>        <span class="kw">return </span><span class="macro">format!</span>(<span class="string">"{}\n  Arguments:\n{}"</span>, row.label, detail);
+<a href=#275 id=275 data-nosnippet>275</a>    }
+<a href=#276 id=276 data-nosnippet>276</a>    <span class="kw">if </span>row.kind == <span class="kw">crate</span>::view::session::SessionRowKind::ToolInvocation
+<a href=#277 id=277 data-nosnippet>277</a>        &amp;&amp; state.tool_invocation_visibility == <span class="kw">crate</span>::state::ToolInvocationVisibility::Simple
+<a href=#278 id=278 data-nosnippet>278</a>        &amp;&amp; <span class="kw">let </span><span class="kw">crate</span>::inspector::LoadState::Ready(model) = <span class="kw-2">&amp;</span>state.session
+<a href=#279 id=279 data-nosnippet>279</a>        &amp;&amp; <span class="kw">let </span><span class="prelude-val">Some</span>(detail) = model.tool_invocation_details.get(<span class="kw-2">&amp;</span>row.reference)
+<a href=#280 id=280 data-nosnippet>280</a>    {
+<a href=#281 id=281 data-nosnippet>281</a>        <span class="kw">return </span><span class="macro">format!</span>(<span class="string">"{}{}"</span>, row.label, compact_tool_arguments(detail));
+<a href=#282 id=282 data-nosnippet>282</a>    }
+<a href=#283 id=283 data-nosnippet>283</a>    <span class="kw">if </span>row.kind == <span class="kw">crate</span>::view::session::SessionRowKind::ModelInvocation
+<a href=#284 id=284 data-nosnippet>284</a>        &amp;&amp; state.prompt_visibility == <span class="kw">crate</span>::state::PromptVisibility::Shown
+<a href=#285 id=285 data-nosnippet>285</a>        &amp;&amp; <span class="kw">let </span><span class="prelude-val">Some</span>(detail) = state.model_request_details.get(<span class="kw-2">&amp;</span>row.reference)
+<a href=#286 id=286 data-nosnippet>286</a>    {
+<a href=#287 id=287 data-nosnippet>287</a>        <span class="kw">return </span><span class="macro">format!</span>(<span class="string">"{}{}"</span>, row.label, format_model_request_detail(detail));
+<a href=#288 id=288 data-nosnippet>288</a>    }
+<a href=#289 id=289 data-nosnippet>289</a>    <span class="kw">if </span>row.kind != <span class="kw">crate</span>::view::session::SessionRowKind::ToolResult {
+<a href=#290 id=290 data-nosnippet>290</a>        <span class="kw">return </span>row.label.clone();
+<a href=#291 id=291 data-nosnippet>291</a>    }
+<a href=#292 id=292 data-nosnippet>292</a>    <span class="kw">match </span>state.tool_output_visibility {
+<a href=#293 id=293 data-nosnippet>293</a>        <span class="kw">crate</span>::state::ToolOutputVisibility::Hidden =&gt; <span class="string">"Tool result hidden"</span>.to_owned(),
+<a href=#294 id=294 data-nosnippet>294</a>        <span class="kw">crate</span>::state::ToolOutputVisibility::Summary =&gt; row.label.clone(),
+<a href=#295 id=295 data-nosnippet>295</a>        <span class="kw">crate</span>::state::ToolOutputVisibility::Full =&gt; {
+<a href=#296 id=296 data-nosnippet>296</a>            state.tool_result_details.get(<span class="kw-2">&amp;</span>row.reference).map_or_else(
+<a href=#297 id=297 data-nosnippet>297</a>                || <span class="string">"Loading tool result detail…"</span>.to_owned(),
+<a href=#298 id=298 data-nosnippet>298</a>                |detail| {
+<a href=#299 id=299 data-nosnippet>299</a>                    <span class="kw">let </span>content = serde_json::to_string_pretty(<span class="kw-2">&amp;</span>detail.detail)
+<a href=#300 id=300 data-nosnippet>300</a>                        .unwrap_or_else(|<span class="kw">_</span>| <span class="string">"{}"</span>.to_owned());
+<a href=#301 id=301 data-nosnippet>301</a>                    <span class="macro">format!</span>(
+<a href=#302 id=302 data-nosnippet>302</a>                        <span class="string">"Tool result detail{}: {content}"</span>,
+<a href=#303 id=303 data-nosnippet>303</a>                        <span class="kw">if </span>detail.truncated { <span class="string">" (truncated)" </span>} <span class="kw">else </span>{ <span class="string">"" </span>}
+<a href=#304 id=304 data-nosnippet>304</a>                    )
+<a href=#305 id=305 data-nosnippet>305</a>                },
+<a href=#306 id=306 data-nosnippet>306</a>            )
+<a href=#307 id=307 data-nosnippet>307</a>        }
+<a href=#308 id=308 data-nosnippet>308</a>    }
+<a href=#309 id=309 data-nosnippet>309</a>}
+<a href=#310 id=310 data-nosnippet>310</a>
+<a href=#311 id=311 data-nosnippet>311</a><span class="doccomment">/// Formats bounded redacted arguments as compact command options.
+<a href=#312 id=312 data-nosnippet>312</a>///
+<a href=#313 id=313 data-nosnippet>313</a>/// # Parameters
+<a href=#314 id=314 data-nosnippet>314</a>/// - `detail`: Structured presentation JSON retained for one invocation.
+<a href=#315 id=315 data-nosnippet>315</a>///
+<a href=#316 id=316 data-nosnippet>316</a>/// # Returns
+<a href=#317 id=317 data-nosnippet>317</a>/// A safe, bounded command suffix or an empty string for invalid detail.
+<a href=#318 id=318 data-nosnippet>318</a></span><span class="kw">fn </span>compact_tool_arguments(detail: <span class="kw-2">&amp;</span>str) -&gt; String {
+<a href=#319 id=319 data-nosnippet>319</a>    <span class="kw">let </span><span class="prelude-val">Ok</span>(serde_json::Value::Object(arguments)) = serde_json::from_str(detail) <span class="kw">else </span>{
+<a href=#320 id=320 data-nosnippet>320</a>        <span class="kw">return </span>String::new();
+<a href=#321 id=321 data-nosnippet>321</a>    };
+<a href=#322 id=322 data-nosnippet>322</a>    <span class="kw">let </span><span class="kw-2">mut </span>suffix = String::new();
+<a href=#323 id=323 data-nosnippet>323</a>    <span class="kw">for </span>(name, value) <span class="kw">in </span>arguments.iter().take(<span class="number">8</span>) {
+<a href=#324 id=324 data-nosnippet>324</a>        <span class="kw">let </span>value = value
+<a href=#325 id=325 data-nosnippet>325</a>            .as_str()
+<a href=#326 id=326 data-nosnippet>326</a>            .map_or_else(|| value.to_string(), str::to_owned);
+<a href=#327 id=327 data-nosnippet>327</a>        <span class="kw">let </span>name = <span class="kw">crate</span>::inspector::sanitize(name)
+<a href=#328 id=328 data-nosnippet>328</a>            .chars()
+<a href=#329 id=329 data-nosnippet>329</a>            .take(<span class="number">64</span>)
+<a href=#330 id=330 data-nosnippet>330</a>            .collect::&lt;String&gt;();
+<a href=#331 id=331 data-nosnippet>331</a>        <span class="kw">let </span>value = <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>value)
+<a href=#332 id=332 data-nosnippet>332</a>            .chars()
+<a href=#333 id=333 data-nosnippet>333</a>            .take(<span class="number">128</span>)
+<a href=#334 id=334 data-nosnippet>334</a>            .collect::&lt;String&gt;();
+<a href=#335 id=335 data-nosnippet>335</a>        <span class="kw">let _ </span>= <span class="macro">write!</span>(suffix, <span class="string">" --{name} {value}"</span>);
+<a href=#336 id=336 data-nosnippet>336</a>    }
+<a href=#337 id=337 data-nosnippet>337</a>    suffix.chars().take(<span class="number">512</span>).collect()
+<a href=#338 id=338 data-nosnippet>338</a>}
+<a href=#339 id=339 data-nosnippet>339</a>
+<a href=#340 id=340 data-nosnippet>340</a><span class="doccomment">/// Formats grouped safe request sections for the opt-in prompt view.
+<a href=#341 id=341 data-nosnippet>341</a>///
+<a href=#342 id=342 data-nosnippet>342</a>/// # Parameters
+<a href=#343 id=343 data-nosnippet>343</a>/// - `detail`: Bounded captured provider-neutral request.
+<a href=#344 id=344 data-nosnippet>344</a>///
+<a href=#345 id=345 data-nosnippet>345</a>/// # Returns
+<a href=#346 id=346 data-nosnippet>346</a>/// Sanitized model, message, tool-schema, and truncation sections.
+<a href=#347 id=347 data-nosnippet>347</a></span><span class="kw">fn </span>format_model_request_detail(detail: <span class="kw-2">&amp;</span>scriberig_protocol::ModelRequestDetailResponse) -&gt; String {
+<a href=#348 id=348 data-nosnippet>348</a>    <span class="kw">let </span><span class="kw-2">mut </span>sections = <span class="macro">format!</span>(
+<a href=#349 id=349 data-nosnippet>349</a>        <span class="string">"\nModel request\n  Model: {}\n  Thinking: {}"</span>,
+<a href=#350 id=350 data-nosnippet>350</a>        <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>detail.model),
+<a href=#351 id=351 data-nosnippet>351</a>        detail
+<a href=#352 id=352 data-nosnippet>352</a>            .thinking_level
+<a href=#353 id=353 data-nosnippet>353</a>            .as_deref()
+<a href=#354 id=354 data-nosnippet>354</a>            .map_or_else(|| <span class="string">"unspecified"</span>.to_owned(), <span class="kw">crate</span>::inspector::sanitize)
+<a href=#355 id=355 data-nosnippet>355</a>    );
+<a href=#356 id=356 data-nosnippet>356</a>    <span class="kw">for </span>message <span class="kw">in </span><span class="kw-2">&amp;</span>detail.messages {
+<a href=#357 id=357 data-nosnippet>357</a>        <span class="kw">let _ </span>= <span class="macro">write!</span>(
+<a href=#358 id=358 data-nosnippet>358</a>            sections,
+<a href=#359 id=359 data-nosnippet>359</a>            <span class="string">"\n  {}\n{}"</span>,
+<a href=#360 id=360 data-nosnippet>360</a>            <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>message.role),
+<a href=#361 id=361 data-nosnippet>361</a>            safe_multiline_text(<span class="kw-2">&amp;</span>message.content)
+<a href=#362 id=362 data-nosnippet>362</a>                .lines()
+<a href=#363 id=363 data-nosnippet>363</a>                .map(|line| <span class="macro">format!</span>(<span class="string">"    {line}"</span>))
+<a href=#364 id=364 data-nosnippet>364</a>                .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
+<a href=#365 id=365 data-nosnippet>365</a>                .join(<span class="string">"\n"</span>)
+<a href=#366 id=366 data-nosnippet>366</a>        );
+<a href=#367 id=367 data-nosnippet>367</a>    }
+<a href=#368 id=368 data-nosnippet>368</a>    <span class="kw">if </span>!detail.tools.is_empty() {
+<a href=#369 id=369 data-nosnippet>369</a>        sections.push_str(<span class="string">"\n  Tools"</span>);
+<a href=#370 id=370 data-nosnippet>370</a>    }
+<a href=#371 id=371 data-nosnippet>371</a>    <span class="kw">for </span>tool <span class="kw">in </span><span class="kw-2">&amp;</span>detail.tools {
+<a href=#372 id=372 data-nosnippet>372</a>        <span class="kw">let _ </span>= <span class="macro">write!</span>(
+<a href=#373 id=373 data-nosnippet>373</a>            sections,
+<a href=#374 id=374 data-nosnippet>374</a>            <span class="string">"\n    {}: {}"</span>,
+<a href=#375 id=375 data-nosnippet>375</a>            <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>tool.name),
+<a href=#376 id=376 data-nosnippet>376</a>            <span class="kw">crate</span>::inspector::sanitize(<span class="kw-2">&amp;</span>tool.description)
+<a href=#377 id=377 data-nosnippet>377</a>        );
+<a href=#378 id=378 data-nosnippet>378</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(parameters) = <span class="kw-2">&amp;</span>tool.parameters {
+<a href=#379 id=379 data-nosnippet>379</a>            <span class="kw">let _ </span>= <span class="macro">write!</span>(sections, <span class="string">"\n{}"</span>, safe_multiline_text(parameters));
+<a href=#380 id=380 data-nosnippet>380</a>        }
+<a href=#381 id=381 data-nosnippet>381</a>    }
+<a href=#382 id=382 data-nosnippet>382</a>    <span class="kw">if </span>detail.truncated {
+<a href=#383 id=383 data-nosnippet>383</a>        sections.push_str(<span class="string">"\n  Request capture truncated"</span>);
+<a href=#384 id=384 data-nosnippet>384</a>    }
+<a href=#385 id=385 data-nosnippet>385</a>    sections
+<a href=#386 id=386 data-nosnippet>386</a>}
+<a href=#387 id=387 data-nosnippet>387</a>
+<a href=#388 id=388 data-nosnippet>388</a><span class="doccomment">/// Removes unsafe terminal controls while preserving safe line structure.
+<a href=#389 id=389 data-nosnippet>389</a>///
+<a href=#390 id=390 data-nosnippet>390</a>/// # Parameters
+<a href=#391 id=391 data-nosnippet>391</a>/// - `text`: Captured model-request text.
+<a href=#392 id=392 data-nosnippet>392</a>///
+<a href=#393 id=393 data-nosnippet>393</a>/// # Returns
+<a href=#394 id=394 data-nosnippet>394</a>/// Sanitized request text with line breaks preserved.
+<a href=#395 id=395 data-nosnippet>395</a></span><span class="kw">fn </span>safe_multiline_text(text: <span class="kw-2">&amp;</span>str) -&gt; String {
+<a href=#396 id=396 data-nosnippet>396</a>    text.chars()
+<a href=#397 id=397 data-nosnippet>397</a>        .filter(|character| <span class="kw-2">*</span>character == <span class="string">'\n' </span>|| !character.is_control())
+<a href=#398 id=398 data-nosnippet>398</a>        .collect()
+<a href=#399 id=399 data-nosnippet>399</a>}
 </code></pre></div></section></main></body></html>

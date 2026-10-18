@@ -299,7 +299,7 @@
 <a href=#299 id=299 data-nosnippet>299</a>    ActivityProjection {
 <a href=#300 id=300 data-nosnippet>300</a>        id,
 <a href=#301 id=301 data-nosnippet>301</a>        parent: parent.map(|parent| parent.to_string()),
-<a href=#302 id=302 data-nosnippet>302</a>        kind: Kind::ChildBranch,
+<a href=#302 id=302 data-nosnippet>302</a>        kind: Kind::BranchStarted,
 <a href=#303 id=303 data-nosnippet>303</a>        state: State::Running,
 <a href=#304 id=304 data-nosnippet>304</a>        summary: <span class="string">"Child branch"</span>.to_owned(),
 <a href=#305 id=305 data-nosnippet>305</a>        model: <span class="prelude-val">None</span>,
@@ -321,7 +321,7 @@
 <a href=#321 id=321 data-nosnippet>321</a>    <span class="prelude-val">Some</span>(ActivityProjection {
 <a href=#322 id=322 data-nosnippet>322</a>        id,
 <a href=#323 id=323 data-nosnippet>323</a>        parent: <span class="prelude-val">None</span>,
-<a href=#324 id=324 data-nosnippet>324</a>        kind: Kind::BranchResult,
+<a href=#324 id=324 data-nosnippet>324</a>        kind: Kind::BranchCompleted,
 <a href=#325 id=325 data-nosnippet>325</a>        state: <span class="kw">match </span>result.status {
 <a href=#326 id=326 data-nosnippet>326</a>            BranchStatus::Completed =&gt; State::Completed,
 <a href=#327 id=327 data-nosnippet>327</a>            BranchStatus::Active =&gt; State::Running,

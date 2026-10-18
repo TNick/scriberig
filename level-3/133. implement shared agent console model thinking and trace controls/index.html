@@ -544,6 +544,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1108,6 +1112,62 @@
     
   
     Recursive Agent Decomposition and Context Isolation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/018.%20durable%20plans%20dependency%20scheduling%20and%20multi-model%20execution/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Durable Plans, Dependency Scheduling, and Multi-Model Execution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/019.%20semantic%20agent%20operations%20and%20projection-first%20editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Semantic Agent Operations and Projection-First Editing
   
 
     
@@ -6458,7 +6518,7 @@
   <span class="md-ellipsis">
     
   
-    Make Agent Conversation the Default TUI and Move Auxiliary Views Behind Slash Commands
+    Make the Recursive Agent Tree the Default TUI and Move Auxiliary Views Behind Slash Commands
   
 
     
@@ -7108,6 +7168,14 @@ and <code>nested_branches.rs</code>; no single combined fixture has been identif
 <a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a>Error
 </code></pre></div>
 <p>Do not add an activity kind for raw hidden chain-of-thought.</p>
+<p>Model and thinking selection changes are retained in the session execution
+selection's bounded history (latest 100 records), keyed by mutation revision.
+They are replayed with the session read and are not conversation turns.</p>
+<p>Safe reasoning summaries and runtime status currently use the typed transient
+operation event stream. They remain available for local hidden/shown rerenders
+while that client retains its live tail. Disconnect discards that tail; session
+refresh restores durable execution activity, current selection, selection
+history, and final results. Visibility changes do not request new execution.</p>
 <hr />
 <h1 id="implementation-phases">Implementation Phases<a class="headerlink" href="#implementation-phases" title="Permanent link">&para;</a></h1>
 <p>Work in this order. Do not begin a later surface until the shared owner it depends on is implemented and targeted tests pass.</p>
@@ -7154,7 +7222,7 @@ and <code>nested_branches.rs</code>; no single combined fixture has been identif
 <li>[x] Implement documented resolution order: invocation -&gt; branch -&gt; session -&gt; project -&gt; profile/user -&gt; runtime fallback.</li>
 <li>[x] Implement deterministic fallback when a model change makes the current thinking level unsupported.</li>
 <li>[x] Emit/record a safe visible selection-change activity when a user changes model.</li>
-<li>[x] Emit/record a safe visible thinking-level-change activity when a user changes thinking level, including automatic fallback caused by model change.</li>
+<li>[x] Persist/replay safe visible model/thinking selection-change activity, including automatic fallback caused by model change.</li>
 <li>[x] Ensure a running invocation snapshots its already-resolved model/thinking and does not change when session selection changes.</li>
 <li>[x] Ensure the next invocation uses the newly selected model/thinking.</li>
 <li>[x] Extend <code>ModelInvocation</code> provenance with the resolved safe model/thinking identifiers required for historical inspection.</li>
@@ -7532,9 +7600,9 @@ and <code>nested_branches.rs</code>; no single combined fixture has been identif
 </ul>
 <h3 id="shared-activity-and-safe-inspection">Shared activity and safe inspection<a class="headerlink" href="#shared-activity-and-safe-inspection" title="Permanent link">&para;</a></h3>
 <ul>
-<li>[x] Causal session activity projection exists with stable ids/sequence/parents.</li>
-<li>[x] Durable activity and transient live tail are distinct.</li>
-<li>[x] Reasoning summary/status is distinct from assistant output and private reasoning is never exposed.</li>
+<li>[x] Causal session activity projection exists with stable ids/sequence/parents and typed provider-neutral kinds.</li>
+<li>[x] Durable activity and transient live tail are distinct, with typed shared semantics for both.</li>
+<li>[x] Safe reasoning summary/status is distinct from assistant output; private reasoning is excluded, and transient reconnect behavior is documented and tested.</li>
 <li>[x] Tool invocation retains structured arguments plus safe compact presentation.</li>
 <li>[x] Tool result retains deterministic summary/preview plus durable full-result reference.</li>
 <li>[x] Safe structured model-request projection exists and is redacted.</li>
@@ -7609,10 +7677,16 @@ and <code>nested_branches.rs</code>; no single combined fixture has been identif
 <li>[x] Full Rust workspace check passes.</li>
 <li>[x] Full Rust workspace Clippy passes with warnings denied.</li>
 <li>[ ] Full Rust workspace test suite passes.</li>
-<li>Focused PHP self-hosting verification passes after candidate restart was
-  updated to use <code>--git-tracked</code>, the fixture copier began honoring standard Git
-  excludes, and the test dropped its open SQLite handle before teardown. The
-  full Rust workspace test gate remains unchecked pending the full suite.</li>
+<li>Focused PHP self-hosting candidate validation passes with <code>TEMP</code>/<code>TMP</code> on a
+  D: temporary directory outside the checkout. The first workspace attempt
+  exhausted D: while linking; <code>cargo clean</code> reclaimed generated artifacts.
+  The subsequent workspace run passed the PHP candidate, stale-base,
+  cancellation, and validation-failure scenarios, then stopped at
+  <code>provider_secrets_test</code>: Portmaster logged the test executable's
+  <code>127.0.0.1</code> connections as blocked while a prompt was pending. No Portmaster
+  policy or networking settings were changed, and the blocked test was not
+  retried. The full Rust workspace test gate remains unchecked pending owner
+  resolution of that Portmaster prompt and a successful complete rerun.</li>
 <li>[x] Full web formatting completes.</li>
 <li>[x] Full web typecheck passes.</li>
 <li>[x] Full web test suite passes.</li>
