@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["agent","capability","error","event","operation","refs","request","response","session","transport","trust","version"]};
+window.SIDEBAR_ITEMS = {"mod":["agent","capability","error","event","model","operation","presentation","refs","request","response","session","transport","trust","version"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["SecretsCommand"],"struct":["BindingArgs","SecretsArgs"]};

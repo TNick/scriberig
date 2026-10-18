@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["resolve_authorized"],"struct":["AuthorizedCredential","Registry","RegistryGuard","RegistryLocations"]};

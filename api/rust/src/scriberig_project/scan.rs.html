@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `crates/scriberig-project/src/scan.rs`."><title>scan.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-0c87338a.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="scriberig_project" data-themes="" data-resource-suffix="" data-rustdoc-version="1.99.0 (b940084d7 2026-09-28)" data-channel="1.99.0" data-search-js="search-cf4fc35e.js" data-stringdex-js="stringdex-b5109af9.js" data-settings-js="settings-170eb4bf.js" ><script src="../../static.files/storage-41dd4d93.js"></script><script defer src="../../static.files/src-script-813739b1.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-417ebf0a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-9f56287d.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><h1><div class="sub-heading">scriberig_project/</div>scan.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="doccomment">//! Implements deterministic project filesystem scanning and file classification.
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `crates/scriberig-project/src/scan.rs`."><title>scan.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-0c87338a.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="scriberig_project" data-themes="" data-resource-suffix="" data-rustdoc-version="1.99.1 (58cf8f9c3 2026-10-13)" data-channel="1.99.1" data-search-js="search-cf4fc35e.js" data-stringdex-js="stringdex-b5109af9.js" data-settings-js="settings-170eb4bf.js" ><script src="../../static.files/storage-41dd4d93.js"></script><script defer src="../../static.files/src-script-813739b1.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-417ebf0a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-9f56287d.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><h1><div class="sub-heading">scriberig_project/</div>scan.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="doccomment">//! Implements deterministic project filesystem scanning and file classification.
 <a href=#2 id=2 data-nosnippet>2</a>
 <a href=#3 id=3 data-nosnippet>3</a></span><span class="kw">use </span>std::collections::BTreeSet;
 <a href=#4 id=4 data-nosnippet>4</a><span class="kw">use </span>std::path::Path;
@@ -22,160 +22,164 @@
 <a href=#22 id=22 data-nosnippet>22</a>    tracked: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>BTreeSet&lt;String&gt;&gt;,
 <a href=#23 id=23 data-nosnippet>23</a>) -&gt; std::io::Result&lt;Vec&lt;ScanFile&gt;&gt; {
 <a href=#24 id=24 data-nosnippet>24</a>    <span class="kw">let </span><span class="kw-2">mut </span>files = Vec::new();
-<a href=#25 id=25 data-nosnippet>25</a>    visit_directory(root, root, tracked, <span class="kw-2">&amp;mut </span>files)<span class="question-mark">?</span>;
-<a href=#26 id=26 data-nosnippet>26</a>    files.sort_by(|left, right| left.relative_path.cmp(<span class="kw-2">&amp;</span>right.relative_path));
-<a href=#27 id=27 data-nosnippet>27</a>    <span class="prelude-val">Ok</span>(files)
-<a href=#28 id=28 data-nosnippet>28</a>}
-<a href=#29 id=29 data-nosnippet>29</a>
-<a href=#30 id=30 data-nosnippet>30</a><span class="doccomment">/// Visits a directory recursively without following symlinks or generated trees.
-<a href=#31 id=31 data-nosnippet>31</a>///
-<a href=#32 id=32 data-nosnippet>32</a>/// # Parameters
-<a href=#33 id=33 data-nosnippet>33</a>/// - `root`: Project root used for relative paths.
-<a href=#34 id=34 data-nosnippet>34</a>/// - `directory`: Directory currently being visited.
-<a href=#35 id=35 data-nosnippet>35</a>/// - `tracked`: Optional set of paths selected by Git.
-<a href=#36 id=36 data-nosnippet>36</a>/// - `files`: Scan results being collected.
-<a href=#37 id=37 data-nosnippet>37</a>///
-<a href=#38 id=38 data-nosnippet>38</a>/// # Returns
-<a href=#39 id=39 data-nosnippet>39</a>/// Unit after the directory has been visited.
+<a href=#25 id=25 data-nosnippet>25</a>    <span class="kw">let </span>sensitive = scriberig_secrets::sensitive::SensitivePaths::from_process()
+<a href=#26 id=26 data-nosnippet>26</a>        .map_err(std::io::Error::other)<span class="question-mark">?</span>;
+<a href=#27 id=27 data-nosnippet>27</a>    visit_directory(root, root, tracked, <span class="kw-2">&amp;mut </span>files, <span class="kw-2">&amp;</span>sensitive)<span class="question-mark">?</span>;
+<a href=#28 id=28 data-nosnippet>28</a>    files.sort_by(|left, right| left.relative_path.cmp(<span class="kw-2">&amp;</span>right.relative_path));
+<a href=#29 id=29 data-nosnippet>29</a>    <span class="prelude-val">Ok</span>(files)
+<a href=#30 id=30 data-nosnippet>30</a>}
+<a href=#31 id=31 data-nosnippet>31</a>
+<a href=#32 id=32 data-nosnippet>32</a><span class="doccomment">/// Visits a directory recursively without following symlinks or generated trees.
+<a href=#33 id=33 data-nosnippet>33</a>///
+<a href=#34 id=34 data-nosnippet>34</a>/// # Parameters
+<a href=#35 id=35 data-nosnippet>35</a>/// - `root`: Project root used for relative paths.
+<a href=#36 id=36 data-nosnippet>36</a>/// - `directory`: Directory currently being visited.
+<a href=#37 id=37 data-nosnippet>37</a>/// - `tracked`: Optional set of paths selected by Git.
+<a href=#38 id=38 data-nosnippet>38</a>/// - `files`: Scan results being collected.
+<a href=#39 id=39 data-nosnippet>39</a>/// - `sensitive`: Credential paths excluded before reading any source bytes.
 <a href=#40 id=40 data-nosnippet>40</a>///
-<a href=#41 id=41 data-nosnippet>41</a>/// # Errors
-<a href=#42 id=42 data-nosnippet>42</a>/// Returns a filesystem traversal or read error.
-<a href=#43 id=43 data-nosnippet>43</a></span><span class="kw">fn </span>visit_directory(
-<a href=#44 id=44 data-nosnippet>44</a>    root: <span class="kw-2">&amp;</span>Path,
-<a href=#45 id=45 data-nosnippet>45</a>    directory: <span class="kw-2">&amp;</span>Path,
-<a href=#46 id=46 data-nosnippet>46</a>    tracked: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>BTreeSet&lt;String&gt;&gt;,
-<a href=#47 id=47 data-nosnippet>47</a>    files: <span class="kw-2">&amp;mut </span>Vec&lt;ScanFile&gt;,
-<a href=#48 id=48 data-nosnippet>48</a>) -&gt; std::io::Result&lt;()&gt; {
-<a href=#49 id=49 data-nosnippet>49</a>    <span class="kw">for </span>entry <span class="kw">in </span>std::fs::read_dir(directory)<span class="question-mark">? </span>{
-<a href=#50 id=50 data-nosnippet>50</a>        <span class="kw">let </span>entry = entry<span class="question-mark">?</span>;
-<a href=#51 id=51 data-nosnippet>51</a>        <span class="kw">let </span>path = entry.path();
-<a href=#52 id=52 data-nosnippet>52</a>        <span class="kw">let </span>relative = path.strip_prefix(root).unwrap_or(<span class="kw-2">&amp;</span>path);
-<a href=#53 id=53 data-nosnippet>53</a>        <span class="kw">if </span>is_excluded(relative) || entry.file_type()<span class="question-mark">?</span>.is_symlink() {
-<a href=#54 id=54 data-nosnippet>54</a>            <span class="kw">continue</span>;
-<a href=#55 id=55 data-nosnippet>55</a>        }
-<a href=#56 id=56 data-nosnippet>56</a>        <span class="kw">let </span>file_type = entry.file_type()<span class="question-mark">?</span>;
-<a href=#57 id=57 data-nosnippet>57</a>        <span class="kw">if </span>file_type.is_dir() {
-<a href=#58 id=58 data-nosnippet>58</a>            visit_directory(root, <span class="kw-2">&amp;</span>path, tracked, files)<span class="question-mark">?</span>;
-<a href=#59 id=59 data-nosnippet>59</a>        } <span class="kw">else if </span>file_type.is_file() {
-<a href=#60 id=60 data-nosnippet>60</a>            <span class="kw">let </span>relative_path = relative.to_string_lossy().replace(<span class="string">'\\'</span>, <span class="string">"/"</span>);
-<a href=#61 id=61 data-nosnippet>61</a>            <span class="kw">if </span>tracked.is_some_and(|paths| !paths.contains(<span class="kw-2">&amp;</span>relative_path)) {
-<a href=#62 id=62 data-nosnippet>62</a>                <span class="kw">continue</span>;
-<a href=#63 id=63 data-nosnippet>63</a>            }
-<a href=#64 id=64 data-nosnippet>64</a>            <span class="kw">let </span>bytes = std::fs::read(<span class="kw-2">&amp;</span>path)<span class="question-mark">?</span>;
-<a href=#65 id=65 data-nosnippet>65</a>            <span class="kw">let </span>adapter = adapter_for(<span class="kw-2">&amp;</span>path, <span class="kw-2">&amp;</span>bytes).to_owned();
-<a href=#66 id=66 data-nosnippet>66</a>            files.push(ScanFile {
-<a href=#67 id=67 data-nosnippet>67</a>                relative_path,
-<a href=#68 id=68 data-nosnippet>68</a>                bytes,
-<a href=#69 id=69 data-nosnippet>69</a>                status: <span class="kw">if </span>adapter == <span class="string">"unsupported" </span>{
-<a href=#70 id=70 data-nosnippet>70</a>                    <span class="string">"unsupported"</span>.to_owned()
-<a href=#71 id=71 data-nosnippet>71</a>                } <span class="kw">else </span>{
-<a href=#72 id=72 data-nosnippet>72</a>                    <span class="string">"ready"</span>.to_owned()
-<a href=#73 id=73 data-nosnippet>73</a>                },
-<a href=#74 id=74 data-nosnippet>74</a>                adapter,
-<a href=#75 id=75 data-nosnippet>75</a>            });
-<a href=#76 id=76 data-nosnippet>76</a>        }
-<a href=#77 id=77 data-nosnippet>77</a>    }
-<a href=#78 id=78 data-nosnippet>78</a>    <span class="prelude-val">Ok</span>(())
-<a href=#79 id=79 data-nosnippet>79</a>}
-<a href=#80 id=80 data-nosnippet>80</a>
-<a href=#81 id=81 data-nosnippet>81</a><span class="doccomment">/// Returns whether a project-relative path is excluded by default.
-<a href=#82 id=82 data-nosnippet>82</a>///
-<a href=#83 id=83 data-nosnippet>83</a>/// # Parameters
-<a href=#84 id=84 data-nosnippet>84</a>/// - `path`: Relative path to classify.
-<a href=#85 id=85 data-nosnippet>85</a>///
-<a href=#86 id=86 data-nosnippet>86</a>/// # Returns
-<a href=#87 id=87 data-nosnippet>87</a>/// Whether the path belongs to a generated or hidden tree.
-<a href=#88 id=88 data-nosnippet>88</a></span><span class="kw">fn </span>is_excluded(path: <span class="kw-2">&amp;</span>Path) -&gt; bool {
-<a href=#89 id=89 data-nosnippet>89</a>    path.components().any(|component| {
-<a href=#90 id=90 data-nosnippet>90</a>        <span class="macro">matches!</span>(
-<a href=#91 id=91 data-nosnippet>91</a>            component.as_os_str().to_str(),
-<a href=#92 id=92 data-nosnippet>92</a>            <span class="prelude-val">Some</span>(
-<a href=#93 id=93 data-nosnippet>93</a>                <span class="string">".git"
-<a href=#94 id=94 data-nosnippet>94</a>                    </span>| <span class="string">"target"
-<a href=#95 id=95 data-nosnippet>95</a>                    </span>| <span class="string">"node_modules"
-<a href=#96 id=96 data-nosnippet>96</a>                    </span>| <span class="string">"dist"
-<a href=#97 id=97 data-nosnippet>97</a>                    </span>| <span class="string">"build"
-<a href=#98 id=98 data-nosnippet>98</a>                    </span>| <span class="string">".pages"
-<a href=#99 id=99 data-nosnippet>99</a>                    </span>| <span class="string">"__pycache__"
-<a href=#100 id=100 data-nosnippet>100</a>                    </span>| <span class="string">".venv"
-<a href=#101 id=101 data-nosnippet>101</a>                    </span>| <span class="string">".cache"
-<a href=#102 id=102 data-nosnippet>102</a>            </span>)
-<a href=#103 id=103 data-nosnippet>103</a>        )
-<a href=#104 id=104 data-nosnippet>104</a>    })
-<a href=#105 id=105 data-nosnippet>105</a>}
-<a href=#106 id=106 data-nosnippet>106</a>
-<a href=#107 id=107 data-nosnippet>107</a><span class="doccomment">/// Selects a supported source adapter by file extension.
-<a href=#108 id=108 data-nosnippet>108</a>///
-<a href=#109 id=109 data-nosnippet>109</a>/// # Parameters
-<a href=#110 id=110 data-nosnippet>110</a>/// - `path`: File path to classify.
-<a href=#111 id=111 data-nosnippet>111</a>/// - `bytes`: File bytes used to distinguish unknown text from binary data.
-<a href=#112 id=112 data-nosnippet>112</a>/// - `crate`: Internal visibility marker.
-<a href=#113 id=113 data-nosnippet>113</a>///
-<a href=#114 id=114 data-nosnippet>114</a>/// # Returns
-<a href=#115 id=115 data-nosnippet>115</a>/// The selected adapter name.
-<a href=#116 id=116 data-nosnippet>116</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>adapter_for(path: <span class="kw-2">&amp;</span>Path, bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
-<a href=#117 id=117 data-nosnippet>117</a>    <span class="kw">let </span>name = path.file_name().and_then(|value| value.to_str());
-<a href=#118 id=118 data-nosnippet>118</a>    <span class="kw">if </span><span class="macro">matches!</span>(
-<a href=#119 id=119 data-nosnippet>119</a>        name,
-<a href=#120 id=120 data-nosnippet>120</a>        <span class="prelude-val">Some</span>(
-<a href=#121 id=121 data-nosnippet>121</a>            <span class="string">"Dockerfile"
-<a href=#122 id=122 data-nosnippet>122</a>                </span>| <span class="string">"Makefile"
-<a href=#123 id=123 data-nosnippet>123</a>                </span>| <span class="string">"justfile"
-<a href=#124 id=124 data-nosnippet>124</a>                </span>| <span class="string">"Taskfile"
-<a href=#125 id=125 data-nosnippet>125</a>                </span>| <span class="string">"LICENSE"
-<a href=#126 id=126 data-nosnippet>126</a>                </span>| <span class="string">"README"
-<a href=#127 id=127 data-nosnippet>127</a>                </span>| <span class="string">".gitignore"
-<a href=#128 id=128 data-nosnippet>128</a>                </span>| <span class="string">".gitattributes"
-<a href=#129 id=129 data-nosnippet>129</a>                </span>| <span class="string">".editorconfig"
-<a href=#130 id=130 data-nosnippet>130</a>                </span>| <span class="string">".gitmodules"
-<a href=#131 id=131 data-nosnippet>131</a>                </span>| <span class="string">".npmrc"
-<a href=#132 id=132 data-nosnippet>132</a>                </span>| <span class="string">".yarnrc"
-<a href=#133 id=133 data-nosnippet>133</a>                </span>| <span class="string">".prettierrc"
-<a href=#134 id=134 data-nosnippet>134</a>                </span>| <span class="string">".eslintrc"
-<a href=#135 id=135 data-nosnippet>135</a>                </span>| <span class="string">".babelrc"
-<a href=#136 id=136 data-nosnippet>136</a>                </span>| <span class="string">".flake8"
-<a href=#137 id=137 data-nosnippet>137</a>                </span>| <span class="string">"gradlew"
-<a href=#138 id=138 data-nosnippet>138</a>                </span>| <span class="string">"Gemfile"
-<a href=#139 id=139 data-nosnippet>139</a>                </span>| <span class="string">"Rakefile"
-<a href=#140 id=140 data-nosnippet>140</a>                </span>| <span class="string">"Brewfile"
-<a href=#141 id=141 data-nosnippet>141</a>                </span>| <span class="string">"Vagrantfile"
-<a href=#142 id=142 data-nosnippet>142</a>                </span>| <span class="string">"Procfile"
-<a href=#143 id=143 data-nosnippet>143</a>        </span>)
-<a href=#144 id=144 data-nosnippet>144</a>    ) {
-<a href=#145 id=145 data-nosnippet>145</a>        <span class="kw">return </span><span class="string">"text"</span>;
-<a href=#146 id=146 data-nosnippet>146</a>    }
-<a href=#147 id=147 data-nosnippet>147</a>    <span class="kw">match </span>path
-<a href=#148 id=148 data-nosnippet>148</a>        .extension()
-<a href=#149 id=149 data-nosnippet>149</a>        .and_then(|value| value.to_str())
-<a href=#150 id=150 data-nosnippet>150</a>        .map(str::to_ascii_lowercase)
-<a href=#151 id=151 data-nosnippet>151</a>        .as_deref()
-<a href=#152 id=152 data-nosnippet>152</a>    {
-<a href=#153 id=153 data-nosnippet>153</a>        <span class="prelude-val">Some</span>(<span class="string">"html" </span>| <span class="string">"htm"</span>) =&gt; <span class="string">"html"</span>,
-<a href=#154 id=154 data-nosnippet>154</a>        <span class="prelude-val">Some</span>(<span class="string">"c" </span>| <span class="string">"h"</span>) =&gt; <span class="string">"c"</span>,
-<a href=#155 id=155 data-nosnippet>155</a>        <span class="prelude-val">Some</span>(<span class="string">"cc" </span>| <span class="string">"cpp" </span>| <span class="string">"cxx" </span>| <span class="string">"hpp" </span>| <span class="string">"hh" </span>| <span class="string">"hxx"</span>) =&gt; <span class="string">"cpp"</span>,
-<a href=#156 id=156 data-nosnippet>156</a>        <span class="prelude-val">Some</span>(<span class="string">"js" </span>| <span class="string">"mjs" </span>| <span class="string">"cjs" </span>| <span class="string">"jsx"</span>) =&gt; <span class="string">"javascript"</span>,
-<a href=#157 id=157 data-nosnippet>157</a>        <span class="prelude-val">Some</span>(<span class="string">"ts" </span>| <span class="string">"mts" </span>| <span class="string">"cts" </span>| <span class="string">"tsx"</span>) =&gt; <span class="string">"typescript"</span>,
-<a href=#158 id=158 data-nosnippet>158</a>        <span class="prelude-val">Some</span>(<span class="string">"md" </span>| <span class="string">"markdown"</span>) =&gt; <span class="string">"markdown"</span>,
-<a href=#159 id=159 data-nosnippet>159</a>        <span class="prelude-val">Some</span>(<span class="string">"py" </span>| <span class="string">"pyi" </span>| <span class="string">"pyw"</span>) =&gt; <span class="string">"python"</span>,
-<a href=#160 id=160 data-nosnippet>160</a>        <span class="prelude-val">Some</span>(<span class="string">"rs"</span>) =&gt; <span class="string">"rust"</span>,
-<a href=#161 id=161 data-nosnippet>161</a>        <span class="prelude-val">Some</span>(<span class="string">"pdf"</span>) =&gt; <span class="string">"pdf"</span>,
-<a href=#162 id=162 data-nosnippet>162</a>        <span class="prelude-val">Some</span>(
-<a href=#163 id=163 data-nosnippet>163</a>            <span class="string">"sh" </span>| <span class="string">"bash" </span>| <span class="string">"zsh" </span>| <span class="string">"fish" </span>| <span class="string">"ps1" </span>| <span class="string">"psm1" </span>| <span class="string">"bat" </span>| <span class="string">"cmd" </span>| <span class="string">"mmd" </span>| <span class="string">"mermaid"
-<a href=#164 id=164 data-nosnippet>164</a>            </span>| <span class="string">"svg" </span>| <span class="string">"txt" </span>| <span class="string">"log" </span>| <span class="string">"env" </span>| <span class="string">"xml" </span>| <span class="string">"ini" </span>| <span class="string">"cfg" </span>| <span class="string">"properties" </span>| <span class="string">"csv" </span>| <span class="string">"tsv"
-<a href=#165 id=165 data-nosnippet>165</a>            </span>| <span class="string">"rst" </span>| <span class="string">"adoc" </span>| <span class="string">"tex" </span>| <span class="string">"graphql" </span>| <span class="string">"gql" </span>| <span class="string">"proto" </span>| <span class="string">"sql" </span>| <span class="string">"go" </span>| <span class="string">"java" </span>| <span class="string">"kt"
-<a href=#166 id=166 data-nosnippet>166</a>            </span>| <span class="string">"kts" </span>| <span class="string">"cs" </span>| <span class="string">"swift" </span>| <span class="string">"php" </span>| <span class="string">"rb" </span>| <span class="string">"lua" </span>| <span class="string">"dart" </span>| <span class="string">"scala" </span>| <span class="string">"m" </span>| <span class="string">"mm" </span>| <span class="string">"hs"
-<a href=#167 id=167 data-nosnippet>167</a>            </span>| <span class="string">"ex" </span>| <span class="string">"exs" </span>| <span class="string">"erl" </span>| <span class="string">"zig" </span>| <span class="string">"lock" </span>| <span class="string">"sum" </span>| <span class="string">"mod" </span>| <span class="string">"gradle"</span>,
-<a href=#168 id=168 data-nosnippet>168</a>        ) =&gt; <span class="string">"text"</span>,
-<a href=#169 id=169 data-nosnippet>169</a>        <span class="prelude-val">Some</span>(<span class="string">"json" </span>| <span class="string">"jsonc" </span>| <span class="string">"ipynb"</span>) =&gt; <span class="string">"json"</span>,
-<a href=#170 id=170 data-nosnippet>170</a>        <span class="prelude-val">Some</span>(<span class="string">"yaml" </span>| <span class="string">"yml"</span>) =&gt; <span class="string">"yaml"</span>,
-<a href=#171 id=171 data-nosnippet>171</a>        <span class="prelude-val">Some</span>(<span class="string">"toml"</span>) =&gt; <span class="string">"toml"</span>,
-<a href=#172 id=172 data-nosnippet>172</a>        <span class="prelude-val">Some</span>(
-<a href=#173 id=173 data-nosnippet>173</a>            <span class="string">"png" </span>| <span class="string">"jpg" </span>| <span class="string">"jpeg" </span>| <span class="string">"gif" </span>| <span class="string">"webp" </span>| <span class="string">"ico" </span>| <span class="string">"bmp" </span>| <span class="string">"woff" </span>| <span class="string">"woff2" </span>| <span class="string">"ttf"
-<a href=#174 id=174 data-nosnippet>174</a>            </span>| <span class="string">"otf" </span>| <span class="string">"wasm" </span>| <span class="string">"zip" </span>| <span class="string">"gz" </span>| <span class="string">"tar" </span>| <span class="string">"7z" </span>| <span class="string">"jar" </span>| <span class="string">"exe" </span>| <span class="string">"dll" </span>| <span class="string">"o" </span>| <span class="string">"a"
-<a href=#175 id=175 data-nosnippet>175</a>            </span>| <span class="string">"so"</span>,
-<a href=#176 id=176 data-nosnippet>176</a>        ) =&gt; <span class="string">"binary"</span>,
-<a href=#177 id=177 data-nosnippet>177</a>        <span class="kw">_ if </span>std::str::from_utf8(bytes).is_ok() =&gt; <span class="string">"text"</span>,
-<a href=#178 id=178 data-nosnippet>178</a>        <span class="kw">_ </span>=&gt; <span class="string">"binary"</span>,
-<a href=#179 id=179 data-nosnippet>179</a>    }
-<a href=#180 id=180 data-nosnippet>180</a>}
+<a href=#41 id=41 data-nosnippet>41</a>/// # Returns
+<a href=#42 id=42 data-nosnippet>42</a>/// Unit after the directory has been visited.
+<a href=#43 id=43 data-nosnippet>43</a>///
+<a href=#44 id=44 data-nosnippet>44</a>/// # Errors
+<a href=#45 id=45 data-nosnippet>45</a>/// Returns a filesystem traversal or read error.
+<a href=#46 id=46 data-nosnippet>46</a></span><span class="kw">fn </span>visit_directory(
+<a href=#47 id=47 data-nosnippet>47</a>    root: <span class="kw-2">&amp;</span>Path,
+<a href=#48 id=48 data-nosnippet>48</a>    directory: <span class="kw-2">&amp;</span>Path,
+<a href=#49 id=49 data-nosnippet>49</a>    tracked: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>BTreeSet&lt;String&gt;&gt;,
+<a href=#50 id=50 data-nosnippet>50</a>    files: <span class="kw-2">&amp;mut </span>Vec&lt;ScanFile&gt;,
+<a href=#51 id=51 data-nosnippet>51</a>    sensitive: <span class="kw-2">&amp;</span>scriberig_secrets::sensitive::SensitivePaths,
+<a href=#52 id=52 data-nosnippet>52</a>) -&gt; std::io::Result&lt;()&gt; {
+<a href=#53 id=53 data-nosnippet>53</a>    <span class="kw">for </span>entry <span class="kw">in </span>std::fs::read_dir(directory)<span class="question-mark">? </span>{
+<a href=#54 id=54 data-nosnippet>54</a>        <span class="kw">let </span>entry = entry<span class="question-mark">?</span>;
+<a href=#55 id=55 data-nosnippet>55</a>        <span class="kw">let </span>path = entry.path();
+<a href=#56 id=56 data-nosnippet>56</a>        <span class="kw">let </span>relative = path.strip_prefix(root).unwrap_or(<span class="kw-2">&amp;</span>path);
+<a href=#57 id=57 data-nosnippet>57</a>        <span class="kw">if </span>is_excluded(relative) || sensitive.contains(<span class="kw-2">&amp;</span>path) || entry.file_type()<span class="question-mark">?</span>.is_symlink() {
+<a href=#58 id=58 data-nosnippet>58</a>            <span class="kw">continue</span>;
+<a href=#59 id=59 data-nosnippet>59</a>        }
+<a href=#60 id=60 data-nosnippet>60</a>        <span class="kw">let </span>file_type = entry.file_type()<span class="question-mark">?</span>;
+<a href=#61 id=61 data-nosnippet>61</a>        <span class="kw">if </span>file_type.is_dir() {
+<a href=#62 id=62 data-nosnippet>62</a>            visit_directory(root, <span class="kw-2">&amp;</span>path, tracked, files, sensitive)<span class="question-mark">?</span>;
+<a href=#63 id=63 data-nosnippet>63</a>        } <span class="kw">else if </span>file_type.is_file() {
+<a href=#64 id=64 data-nosnippet>64</a>            <span class="kw">let </span>relative_path = relative.to_string_lossy().replace(<span class="string">'\\'</span>, <span class="string">"/"</span>);
+<a href=#65 id=65 data-nosnippet>65</a>            <span class="kw">if </span>tracked.is_some_and(|paths| !paths.contains(<span class="kw-2">&amp;</span>relative_path)) {
+<a href=#66 id=66 data-nosnippet>66</a>                <span class="kw">continue</span>;
+<a href=#67 id=67 data-nosnippet>67</a>            }
+<a href=#68 id=68 data-nosnippet>68</a>            <span class="kw">let </span>bytes = std::fs::read(<span class="kw-2">&amp;</span>path)<span class="question-mark">?</span>;
+<a href=#69 id=69 data-nosnippet>69</a>            <span class="kw">let </span>adapter = adapter_for(<span class="kw-2">&amp;</span>path, <span class="kw-2">&amp;</span>bytes).to_owned();
+<a href=#70 id=70 data-nosnippet>70</a>            files.push(ScanFile {
+<a href=#71 id=71 data-nosnippet>71</a>                relative_path,
+<a href=#72 id=72 data-nosnippet>72</a>                bytes,
+<a href=#73 id=73 data-nosnippet>73</a>                status: <span class="kw">if </span>adapter == <span class="string">"unsupported" </span>{
+<a href=#74 id=74 data-nosnippet>74</a>                    <span class="string">"unsupported"</span>.to_owned()
+<a href=#75 id=75 data-nosnippet>75</a>                } <span class="kw">else </span>{
+<a href=#76 id=76 data-nosnippet>76</a>                    <span class="string">"ready"</span>.to_owned()
+<a href=#77 id=77 data-nosnippet>77</a>                },
+<a href=#78 id=78 data-nosnippet>78</a>                adapter,
+<a href=#79 id=79 data-nosnippet>79</a>            });
+<a href=#80 id=80 data-nosnippet>80</a>        }
+<a href=#81 id=81 data-nosnippet>81</a>    }
+<a href=#82 id=82 data-nosnippet>82</a>    <span class="prelude-val">Ok</span>(())
+<a href=#83 id=83 data-nosnippet>83</a>}
+<a href=#84 id=84 data-nosnippet>84</a>
+<a href=#85 id=85 data-nosnippet>85</a><span class="doccomment">/// Returns whether a project-relative path is excluded by default.
+<a href=#86 id=86 data-nosnippet>86</a>///
+<a href=#87 id=87 data-nosnippet>87</a>/// # Parameters
+<a href=#88 id=88 data-nosnippet>88</a>/// - `path`: Relative path to classify.
+<a href=#89 id=89 data-nosnippet>89</a>///
+<a href=#90 id=90 data-nosnippet>90</a>/// # Returns
+<a href=#91 id=91 data-nosnippet>91</a>/// Whether the path belongs to a generated or hidden tree.
+<a href=#92 id=92 data-nosnippet>92</a></span><span class="kw">fn </span>is_excluded(path: <span class="kw-2">&amp;</span>Path) -&gt; bool {
+<a href=#93 id=93 data-nosnippet>93</a>    path.components().any(|component| {
+<a href=#94 id=94 data-nosnippet>94</a>        <span class="macro">matches!</span>(
+<a href=#95 id=95 data-nosnippet>95</a>            component.as_os_str().to_str(),
+<a href=#96 id=96 data-nosnippet>96</a>            <span class="prelude-val">Some</span>(
+<a href=#97 id=97 data-nosnippet>97</a>                <span class="string">".git"
+<a href=#98 id=98 data-nosnippet>98</a>                    </span>| <span class="string">"target"
+<a href=#99 id=99 data-nosnippet>99</a>                    </span>| <span class="string">"node_modules"
+<a href=#100 id=100 data-nosnippet>100</a>                    </span>| <span class="string">"dist"
+<a href=#101 id=101 data-nosnippet>101</a>                    </span>| <span class="string">"build"
+<a href=#102 id=102 data-nosnippet>102</a>                    </span>| <span class="string">".pages"
+<a href=#103 id=103 data-nosnippet>103</a>                    </span>| <span class="string">"__pycache__"
+<a href=#104 id=104 data-nosnippet>104</a>                    </span>| <span class="string">".venv"
+<a href=#105 id=105 data-nosnippet>105</a>                    </span>| <span class="string">".cache"
+<a href=#106 id=106 data-nosnippet>106</a>            </span>)
+<a href=#107 id=107 data-nosnippet>107</a>        )
+<a href=#108 id=108 data-nosnippet>108</a>    })
+<a href=#109 id=109 data-nosnippet>109</a>}
+<a href=#110 id=110 data-nosnippet>110</a>
+<a href=#111 id=111 data-nosnippet>111</a><span class="doccomment">/// Selects a supported source adapter by file extension.
+<a href=#112 id=112 data-nosnippet>112</a>///
+<a href=#113 id=113 data-nosnippet>113</a>/// # Parameters
+<a href=#114 id=114 data-nosnippet>114</a>/// - `path`: File path to classify.
+<a href=#115 id=115 data-nosnippet>115</a>/// - `bytes`: File bytes used to distinguish unknown text from binary data.
+<a href=#116 id=116 data-nosnippet>116</a>/// - `crate`: Internal visibility marker.
+<a href=#117 id=117 data-nosnippet>117</a>///
+<a href=#118 id=118 data-nosnippet>118</a>/// # Returns
+<a href=#119 id=119 data-nosnippet>119</a>/// The selected adapter name.
+<a href=#120 id=120 data-nosnippet>120</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>adapter_for(path: <span class="kw-2">&amp;</span>Path, bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+<a href=#121 id=121 data-nosnippet>121</a>    <span class="kw">let </span>name = path.file_name().and_then(|value| value.to_str());
+<a href=#122 id=122 data-nosnippet>122</a>    <span class="kw">if </span><span class="macro">matches!</span>(
+<a href=#123 id=123 data-nosnippet>123</a>        name,
+<a href=#124 id=124 data-nosnippet>124</a>        <span class="prelude-val">Some</span>(
+<a href=#125 id=125 data-nosnippet>125</a>            <span class="string">"Dockerfile"
+<a href=#126 id=126 data-nosnippet>126</a>                </span>| <span class="string">"Makefile"
+<a href=#127 id=127 data-nosnippet>127</a>                </span>| <span class="string">"justfile"
+<a href=#128 id=128 data-nosnippet>128</a>                </span>| <span class="string">"Taskfile"
+<a href=#129 id=129 data-nosnippet>129</a>                </span>| <span class="string">"LICENSE"
+<a href=#130 id=130 data-nosnippet>130</a>                </span>| <span class="string">"README"
+<a href=#131 id=131 data-nosnippet>131</a>                </span>| <span class="string">".gitignore"
+<a href=#132 id=132 data-nosnippet>132</a>                </span>| <span class="string">".gitattributes"
+<a href=#133 id=133 data-nosnippet>133</a>                </span>| <span class="string">".editorconfig"
+<a href=#134 id=134 data-nosnippet>134</a>                </span>| <span class="string">".gitmodules"
+<a href=#135 id=135 data-nosnippet>135</a>                </span>| <span class="string">".npmrc"
+<a href=#136 id=136 data-nosnippet>136</a>                </span>| <span class="string">".yarnrc"
+<a href=#137 id=137 data-nosnippet>137</a>                </span>| <span class="string">".prettierrc"
+<a href=#138 id=138 data-nosnippet>138</a>                </span>| <span class="string">".eslintrc"
+<a href=#139 id=139 data-nosnippet>139</a>                </span>| <span class="string">".babelrc"
+<a href=#140 id=140 data-nosnippet>140</a>                </span>| <span class="string">".flake8"
+<a href=#141 id=141 data-nosnippet>141</a>                </span>| <span class="string">"gradlew"
+<a href=#142 id=142 data-nosnippet>142</a>                </span>| <span class="string">"Gemfile"
+<a href=#143 id=143 data-nosnippet>143</a>                </span>| <span class="string">"Rakefile"
+<a href=#144 id=144 data-nosnippet>144</a>                </span>| <span class="string">"Brewfile"
+<a href=#145 id=145 data-nosnippet>145</a>                </span>| <span class="string">"Vagrantfile"
+<a href=#146 id=146 data-nosnippet>146</a>                </span>| <span class="string">"Procfile"
+<a href=#147 id=147 data-nosnippet>147</a>        </span>)
+<a href=#148 id=148 data-nosnippet>148</a>    ) {
+<a href=#149 id=149 data-nosnippet>149</a>        <span class="kw">return </span><span class="string">"text"</span>;
+<a href=#150 id=150 data-nosnippet>150</a>    }
+<a href=#151 id=151 data-nosnippet>151</a>    <span class="kw">match </span>path
+<a href=#152 id=152 data-nosnippet>152</a>        .extension()
+<a href=#153 id=153 data-nosnippet>153</a>        .and_then(|value| value.to_str())
+<a href=#154 id=154 data-nosnippet>154</a>        .map(str::to_ascii_lowercase)
+<a href=#155 id=155 data-nosnippet>155</a>        .as_deref()
+<a href=#156 id=156 data-nosnippet>156</a>    {
+<a href=#157 id=157 data-nosnippet>157</a>        <span class="prelude-val">Some</span>(<span class="string">"html" </span>| <span class="string">"htm"</span>) =&gt; <span class="string">"html"</span>,
+<a href=#158 id=158 data-nosnippet>158</a>        <span class="prelude-val">Some</span>(<span class="string">"c" </span>| <span class="string">"h"</span>) =&gt; <span class="string">"c"</span>,
+<a href=#159 id=159 data-nosnippet>159</a>        <span class="prelude-val">Some</span>(<span class="string">"cc" </span>| <span class="string">"cpp" </span>| <span class="string">"cxx" </span>| <span class="string">"hpp" </span>| <span class="string">"hh" </span>| <span class="string">"hxx"</span>) =&gt; <span class="string">"cpp"</span>,
+<a href=#160 id=160 data-nosnippet>160</a>        <span class="prelude-val">Some</span>(<span class="string">"js" </span>| <span class="string">"mjs" </span>| <span class="string">"cjs" </span>| <span class="string">"jsx"</span>) =&gt; <span class="string">"javascript"</span>,
+<a href=#161 id=161 data-nosnippet>161</a>        <span class="prelude-val">Some</span>(<span class="string">"ts" </span>| <span class="string">"mts" </span>| <span class="string">"cts" </span>| <span class="string">"tsx"</span>) =&gt; <span class="string">"typescript"</span>,
+<a href=#162 id=162 data-nosnippet>162</a>        <span class="prelude-val">Some</span>(<span class="string">"md" </span>| <span class="string">"markdown"</span>) =&gt; <span class="string">"markdown"</span>,
+<a href=#163 id=163 data-nosnippet>163</a>        <span class="prelude-val">Some</span>(<span class="string">"py" </span>| <span class="string">"pyi" </span>| <span class="string">"pyw"</span>) =&gt; <span class="string">"python"</span>,
+<a href=#164 id=164 data-nosnippet>164</a>        <span class="prelude-val">Some</span>(<span class="string">"rs"</span>) =&gt; <span class="string">"rust"</span>,
+<a href=#165 id=165 data-nosnippet>165</a>        <span class="prelude-val">Some</span>(<span class="string">"pdf"</span>) =&gt; <span class="string">"pdf"</span>,
+<a href=#166 id=166 data-nosnippet>166</a>        <span class="prelude-val">Some</span>(
+<a href=#167 id=167 data-nosnippet>167</a>            <span class="string">"sh" </span>| <span class="string">"bash" </span>| <span class="string">"zsh" </span>| <span class="string">"fish" </span>| <span class="string">"ps1" </span>| <span class="string">"psm1" </span>| <span class="string">"bat" </span>| <span class="string">"cmd" </span>| <span class="string">"mmd" </span>| <span class="string">"mermaid"
+<a href=#168 id=168 data-nosnippet>168</a>            </span>| <span class="string">"svg" </span>| <span class="string">"txt" </span>| <span class="string">"log" </span>| <span class="string">"env" </span>| <span class="string">"xml" </span>| <span class="string">"ini" </span>| <span class="string">"cfg" </span>| <span class="string">"properties" </span>| <span class="string">"csv" </span>| <span class="string">"tsv"
+<a href=#169 id=169 data-nosnippet>169</a>            </span>| <span class="string">"rst" </span>| <span class="string">"adoc" </span>| <span class="string">"tex" </span>| <span class="string">"graphql" </span>| <span class="string">"gql" </span>| <span class="string">"proto" </span>| <span class="string">"sql" </span>| <span class="string">"go" </span>| <span class="string">"java" </span>| <span class="string">"kt"
+<a href=#170 id=170 data-nosnippet>170</a>            </span>| <span class="string">"kts" </span>| <span class="string">"cs" </span>| <span class="string">"swift" </span>| <span class="string">"php" </span>| <span class="string">"rb" </span>| <span class="string">"lua" </span>| <span class="string">"dart" </span>| <span class="string">"scala" </span>| <span class="string">"m" </span>| <span class="string">"mm" </span>| <span class="string">"hs"
+<a href=#171 id=171 data-nosnippet>171</a>            </span>| <span class="string">"ex" </span>| <span class="string">"exs" </span>| <span class="string">"erl" </span>| <span class="string">"zig" </span>| <span class="string">"lock" </span>| <span class="string">"sum" </span>| <span class="string">"mod" </span>| <span class="string">"gradle"</span>,
+<a href=#172 id=172 data-nosnippet>172</a>        ) =&gt; <span class="string">"text"</span>,
+<a href=#173 id=173 data-nosnippet>173</a>        <span class="prelude-val">Some</span>(<span class="string">"json" </span>| <span class="string">"jsonc" </span>| <span class="string">"ipynb"</span>) =&gt; <span class="string">"json"</span>,
+<a href=#174 id=174 data-nosnippet>174</a>        <span class="prelude-val">Some</span>(<span class="string">"yaml" </span>| <span class="string">"yml"</span>) =&gt; <span class="string">"yaml"</span>,
+<a href=#175 id=175 data-nosnippet>175</a>        <span class="prelude-val">Some</span>(<span class="string">"toml"</span>) =&gt; <span class="string">"toml"</span>,
+<a href=#176 id=176 data-nosnippet>176</a>        <span class="prelude-val">Some</span>(
+<a href=#177 id=177 data-nosnippet>177</a>            <span class="string">"png" </span>| <span class="string">"jpg" </span>| <span class="string">"jpeg" </span>| <span class="string">"gif" </span>| <span class="string">"webp" </span>| <span class="string">"ico" </span>| <span class="string">"bmp" </span>| <span class="string">"woff" </span>| <span class="string">"woff2" </span>| <span class="string">"ttf"
+<a href=#178 id=178 data-nosnippet>178</a>            </span>| <span class="string">"otf" </span>| <span class="string">"wasm" </span>| <span class="string">"zip" </span>| <span class="string">"gz" </span>| <span class="string">"tar" </span>| <span class="string">"7z" </span>| <span class="string">"jar" </span>| <span class="string">"exe" </span>| <span class="string">"dll" </span>| <span class="string">"o" </span>| <span class="string">"a"
+<a href=#179 id=179 data-nosnippet>179</a>            </span>| <span class="string">"so"</span>,
+<a href=#180 id=180 data-nosnippet>180</a>        ) =&gt; <span class="string">"binary"</span>,
+<a href=#181 id=181 data-nosnippet>181</a>        <span class="kw">_ if </span>std::str::from_utf8(bytes).is_ok() =&gt; <span class="string">"text"</span>,
+<a href=#182 id=182 data-nosnippet>182</a>        <span class="kw">_ </span>=&gt; <span class="string">"binary"</span>,
+<a href=#183 id=183 data-nosnippet>183</a>    }
+<a href=#184 id=184 data-nosnippet>184</a>}
 </code></pre></div></section></main></body></html>

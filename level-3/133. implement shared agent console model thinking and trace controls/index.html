@@ -1,0 +1,7631 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Design documentation for the Scriberig structured knowledge and agent platform.">
+      
+      
+      
+        <link rel="canonical" href="https://tnick.github.io/scriberig/level-3/133.%20implement%20shared%20agent%20console%20model%20thinking%20and%20trace%20controls/">
+      
+      
+        <link rel="prev" href="../132.%20add%20provider%20api%20doctor%20command/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Implement Shared Agent Console, Model/Thinking Controls, and Trace Presentation - Scriberig</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#implement-shared-agent-console-modelthinking-controls-and-trace-presentation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Scriberig" class="md-header__button md-logo" aria-label="Scriberig" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Scriberig
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Implement Shared Agent Console, Model/Thinking Controls, and Trace Presentation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/TNick/scriberig" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    TNick/scriberig
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Scriberig" class="md-nav__button md-logo" aria-label="Scriberig" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Scriberig
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/TNick/scriberig" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    TNick/scriberig
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scriberig
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    srig CLI reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../api/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Api
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Api
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rust
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Rust
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2_1" id="__nav_3_2_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Static.files
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_3_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Static.files
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/rust/static.files/SourceSerif4-LICENSE-a2cfd9d5/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SourceSerif4 LICENSE a2cfd9d5
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Level 1
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Level 1
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/001.%20vision%20and%20principles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scriberig Vision and Principles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/002.%20universal%20knowledge%20model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Universal Knowledge Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/003.%20identity%20revisions%20and%20snapshots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Identity, Revisions, and Snapshots
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/004.%20persistence%20and%20storage%20model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Persistence and Storage Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/005.%20changes%20migrations%20branches%20and%20merge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changes, Migrations, Branches, and Merge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/006.%20projections%20and%20bidirectional%20editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Projections and Bidirectional Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/007.%20domain%20modeling%20and%20adapters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Domain Modeling and Adapters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/008.%20derived%20knowledge%20caching%20and%20incrementality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Derived Knowledge, Caching, and Incrementality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/009.%20agent%20interaction%20and%20sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Interaction and Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/010.%20universal%20query%20and%20operation%20model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Universal Query and Operation Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/011.%20runtime%20libraries%20protocol%20and%20product%20surfaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime Libraries, Protocol, and Product Surfaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/012.%20web%20platform%20and%20integrated%20editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Platform and Integrated Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/013.%20trust%20validation%20capabilities%20and%20provenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trust, Validation, Capabilities, and Provenance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/013.%20vertical%20product%20completion%20and%20end%20to%20end%20usability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vertical Product Completion and End-to-End Usability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/014.%20agent%20native%20semantic%20self%20hosting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent-Native Semantic Self-Hosting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/014.%20extensibility%20ecosystem%20and%20licensing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extensibility, Ecosystem, and Licensing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/015.%20terminal%20user%20interface%20principles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terminal User Interface Principles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-1/016.%20model%20driven%20agent%20execution%20and%20branch%20isolation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model-Driven Agent Execution and Branch Isolation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Level 2
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Level 2
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/001.%20derived%20knowledge%20runtime%20and%20cache%20design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Derived Knowledge Runtime and Cache Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/002.%20canonical%20encoding%20and%20revision%20identity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canonical Encoding and Revision Identity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/003.%20snapshots%20roots%20and%20persistent%20collections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Snapshots, Roots, and Persistent Collections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/004.%20sqlite%20backend%20transactions%20and%20recovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQLite Backend, Transactions, and Recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/005.%20indexes%20reachability%20gc%20and%20integrity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Indexes, Reachability, Garbage Collection, and Integrity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/006.%20persistence%20observability%20and%20conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Persistence Observability and Conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/007.%20projection%20crate%20boundaries%20and%20core%20model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Projection Crate Boundaries and Core Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/008.%20filesystem%20projection%20synchronization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Filesystem Projection Synchronization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/009.%20markdown%20editable%20projection%20adapter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Markdown Editable Projection Adapter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/010.%20universal%20query%20and%20operation%20implementation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Universal Query and Operation Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/011.%20application%20operations%20protocol%20and%20runtime%20boundaries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application Operations, Protocol, and Runtime Boundaries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/012.%20capability%20matrix%20and%20cross%20surface%20conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Capability Matrix and Cross-Surface Conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/013.%20identity%20revision%20snapshot%20implementation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Identity, Revision, and Snapshot Implementation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/014.%20licensing%20artifacts%20package%20metadata%20and%20notices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Licensing Artifacts, Package Metadata, and Notices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/015.%20persistence%20crate%20boundaries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Persistence Crate Boundaries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/016.%20universal%20knowledge%20model%20rust%20libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Universal Knowledge Model Rust Libraries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/017.%20web%20workspace%20packages%20and%20integrated%20editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Workspace, Packages, and Integrated Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/018.%20workspace%20and%20package%20layout/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace and Package Layout
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/019.%20change%20history%20and%20merge%20crate%20design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change History and Merge Crate Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/020.%20repository%20scaffold%20conventions%20and%20native%20command%20surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Repository Scaffold, Conventions, and Native Command Surface
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/021.%20terminal%20ui%20runtime%20and%20state%20architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terminal UI Runtime and State Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/022.%20terminal%20ui%20views%20interaction%20and%20conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terminal UI Views, Interaction, and Conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/023.%20agent%20runtime%20model%20provider%20and%20branch%20orchestration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Runtime, Model Provider, and Branch Orchestration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/024.%20agent%20operations%20protocol%20and%20cross%20surface%20product%20contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Operations, Protocol, and Cross-Surface Product Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/025.%20first%20useful%20project%20workflow%20vertical%20slice/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    First Useful Project Workflow Vertical Slice
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/026.%20agent%20native%20self%20hosting%20golden%20workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent-Native Self-Hosting Golden Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/027.%20project%20wide%20candidate%20workspaces%20validation%20and%20materialization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project-Wide Candidate Workspaces, Validation, and Materialization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/028.%20php%20code%20domain%20source%20adapter%20target/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PHP Code Domain Source Adapter Target
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../level-2/029.%20secrets%20storage%20authorization%20and%20lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secrets Storage, Authorization, and Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Level 3
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Level 3
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../001.%20bootstrap%20persistence%20workspace%20and%20core%20ids/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Bootstrap Persistence Workspace and Core IDs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../002.%20apply%20licensing%20metadata%20to%20rust%20crates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Apply Licensing Metadata to Rust Crates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../003.%20apply%20licensing%20metadata%20to%20web%20packages/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Apply Licensing Metadata to Web Packages
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../004.%20document%20contribution%20licensing%20and%20third%20party%20notices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Document Contribution Licensing and Third-Party Notices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../005.%20implement%20derivation%20events%20and%20domain%20registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Derivation Events and Domain Registry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../006.%20add%20derived%20knowledge%20conformance%20tests%20and%20documentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Add Derived Knowledge Conformance Tests and Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../007.%20bootstrap%20projection%20crates%20and%20core%20contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Bootstrap Projection Crates and Core Contracts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../008.%20expose%20trust%20inspection%20in%20cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expose Trust Inspection in CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../009.%20expose%20trust%20inspection%20in%20web%20editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expose Trust Inspection in Web Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../010.%20implement%20domain%20capability%20discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Domain Capability Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../011.%20add%20trust%20model%20end%20to%20end%20conformance%20tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Add Trust Model End-to-End Conformance Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../012.%20implement%20application%20operation%20primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Application Operation Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../013.%20implement%20protocol%20contract%20and%20schema%20export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Protocol Contract and Schema Export
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../014.%20add%20projection%20end%20to%20end%20conformance%20slice/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Projection End-to-End Conformance Slice
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../015.%20expose%20inspect%20through%20cli%20and%20agent%20adapters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expose Inspect Through CLI and Agent Adapters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../016.%20create%20capability%20matrix%20and%20conformance%20harness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Create Capability Matrix and Conformance Harness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../017.%20implement%20find%20and%20structured%20query%20ast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Find and the Structured Query AST
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../018.%20implement%20universal%20application%20request%20result%20and%20capability%20model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Universal Application Request, Result, and Capability Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../019.%20integrate%20universal%20read%20diff%20history%20render%20and%20change%20operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrate Universal Read, Diff, History, Render, and Change Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../020.%20implement%20operation%20handles%20structured%20errors%20and%20extension%20registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Operation Handles, Structured Errors, and the Extension Registry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../021.%20verify%20universal%20query%20and%20operation%20conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verify Universal Query and Operation Conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../022.%20bootstrap%20web%20workspace%20and%20package%20scaffolds/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bootstrap Web Workspace and Package Scaffolds
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../023.%20bootstrap%20workspace%20and%20identity%20types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Workspace and Identity Types
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../024.%20create%20repository%20license%20texts%20and%20licensing%20guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Create Repository License Texts and Licensing Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../024.%20implement%20project%20onboarding%20across%20surfaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement project onboarding across product surfaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../025.%20create%20sr-change%20crate%20scaffold/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Create the sr-change Crate Scaffold
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../026.%20extend%20shared%20core%20with%20knowledge%20values%20and%20provenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extend Shared Core with Knowledge Values and Provenance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../027.%20implement%20principal%20and%20capability%20model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Principal and Capability Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../028.%20initialize%20rust%20foundation%20workspace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Initialize Rust Foundation Workspace
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../029.%20scaffold%20derivation%20crate%20profiles%20dependencies%20and%20keys/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scaffold Derivation Crate, Profiles, Dependencies, and Keys
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../030.%20scaffold%20domain%20adapter%20crates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scaffold Domain Adapter Crates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../031.%20enforce%20capabilities%20in%20application%20queries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enforce Capabilities in Application Queries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../032.%20implement%20canonical%20encoding%20and%20revision%20api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Canonical Encoding and Revision API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../033.%20implement%20canonical%20encoding%20and%20revision%20hashing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Canonical Encoding and Revision Hashing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../034.%20implement%20derived%20result%20records%20and%20repository%20contract/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Derived Result Records and Repository Contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../035.%20implement%20markdown%20domain%20schema/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Markdown Domain Schema
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../036.%20implement%20migration%20operations%20and%20provenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Implement Migration, Operations, and Provenance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../037.%20implement%20protocol%20package%20boundary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Protocol Package Boundary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../038.%20implement%20universal%20schema%20contracts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Universal Schema Contracts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../039.%20scaffold%20rust%20application%20and%20product%20layers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scaffold Rust Application and Product Layers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../040.%20implement%20derived%20selection%20freshness%20failure%20and%20retention%20policies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Derived Selection, Freshness, Failure, and Retention Policies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../041.%20implement%20framework%20independent%20transport%20client/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Framework-Independent Transport Client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../042.%20implement%20history%20topology%20and%20lineage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Implement History Topology and Lineage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../043.%20implement%20immutable%20revision%20store/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Immutable Revision Store
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../044.%20implement%20markdown%20adapter%20mapping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Markdown Adapter Mapping
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../045.%20implement%20snapshots%20roots%20collections%20and%20memory%20backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Snapshots, Roots, Collections, and Memory Backend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../046.%20implement%20universal%20graph%20semantic%20records/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Universal Graph Semantic Records
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../047.%20implement%20validation%20evidence%20and%20exact%20input%20binding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Validation Evidence and Exact Input Binding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../048.%20initialize%20web%20workspace%20and%20headless%20packages/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Initialize Web Workspace and Headless Packages
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../049.%20implement%20branches%20workspaces%20and%20promotion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Implement Branches, Workspaces, and Promotion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../050.%20implement%20candidate%20promotion%20and%20approval%20pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Candidate Promotion and Approval Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../051.%20implement%20client%20semantic%20model%20and%20incremental%20events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Client Semantic Model and Incremental Events
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../052.%20implement%20markdown%20semantic%20reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Markdown Semantic Reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../053.%20implement%20persistent%20snapshots%20and%20diffs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Persistent Snapshots and Snapshot Diffs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../054.%20implement%20reverse%20dependency%20invalidation%20and%20explanations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Reverse Dependency Invalidation and Explanations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../055.%20implement%20sqlite%20durable%20backend/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: SQLite Durable Backend
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../056.%20scaffold%20web%20ui%20packages%20and%20editor%20shell/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scaffold Web UI Packages and Editor Shell
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../057.%20verify%20universal%20knowledge%20model%20conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verify Universal Knowledge Model Conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../058.%20implement%20headless%20editor%20core%20primitives/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Headless Editor-Core Primitives
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../059.%20implement%20language%20independent%20code%20domain/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Language-Independent Code Domain
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../060.%20implement%20named%20roots%20and%20compare%20and%20swap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Named Roots and Compare-and-Swap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../061.%20implement%20reachability%20gc%20and%20integrity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Reachability, Garbage Collection, and Integrity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../062.%20implement%20universal%20semantic%20diff/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Implement Universal Semantic Diff
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../063.%20persist%20projection%20conflicts%20and%20captured%20evidence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Persist Projection Conflicts and Captured Evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../064.%20implement%20external%20effect%20receipts%20and%20reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement External Effect Receipts and Reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../065.%20implement%20observability%20and%20shared%20conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Observability and Shared Store Conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../066.%20implement%20react%20bindings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement React Bindings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../067.%20implement%20rust%20syntax%20domain%20adapter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Rust Syntax Domain Adapter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../068.%20implement%20three-way%20merge%20and%20conflicts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Implement Three-Way Merge and Structured Conflicts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../069.%20verify%20identity%20subsystem%20conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verify Identity Subsystem Conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../070.%20expose%20trust%20state%20through%20protocol%20and%20events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expose Trust State Through Protocol and Events
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../071.%20implement%20neutral%20reusable%20components/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Neutral Reusable Components
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../072.%20implement%20rebase%20and%20semantic%20replay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Implement Rebase and Semantic Replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../073.%20implement%20rust%20derived%20compiler%20analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Rust Derived Compiler Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../074.%20verify%20persistence%20vertical%20slice/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verify: Persistence Vertical Slice
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../075.%20implement%20change%20queries%20and%20summaries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Implement Change Queries and Progressive Summaries
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../076.%20implement%20material%20ui%20component%20package/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Material UI Component Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../077.%20implement%20pdf%20import%20domain%20adapter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement PDF Import Domain Adapter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../078.%20implement%20projection%20specifications%20rendering%20and%20adapter%20api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Projection Specifications, Rendering, and Adapter API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../079.%20implement%20change%20subsystem%20conformance%20suite/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Task: Implement the Change Subsystem Conformance Suite
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../080.%20implement%20filesystem%20projection%20ownership%20hashing%20and%20atomic%20io/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Filesystem Projection Ownership, Hashing, and Atomic IO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../081.%20implement%20reference%20integrated%20editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Reference Integrated Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../082.%20implement%20session%20domain%20structure%20and%20views/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Session Domain Structure and Views
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../083.%20implement%20filesystem%20observation%20synchronization%20and%20recovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Filesystem Observation, Synchronization, and Recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../084.%20implement%20web%20boundary%20and%20conformance%20tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Web Boundary and Conformance Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../085.%20prevent%20derived%20cache%20access%20leaks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prevent Derived Cache Access Leaks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../086.%20implement%20domain%20conformance%20test%20support/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Domain Conformance Test Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../087.%20implement%20markdown%20model%20parser%20renderer%20and%20style/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Markdown Model, Parser, Renderer, and Style
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../088.%20scaffold%20runtime%20application%20and%20product%20crates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scaffold Runtime Application and Product Crates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../089.%20implement%20domain%20schema%20and%20adapter%20version%20metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Domain Schema and Adapter Version Metadata
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../090.%20implement%20markdown%20node%20matching%20and%20semantic%20reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Markdown Node Matching and Semantic Reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../091.%20implement%20rust%20semantic%20reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Rust Semantic Reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../092.%20implement%20three%20way%20markdown%20synchronization%20and%20conflicts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement: Three-Way Markdown Synchronization and Conflicts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../093.%20implement%20server%20client%20inspect%20transport/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Server/Client Inspect Transport
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../094.%20implement%20universal%20query%20handles%20scope%20and%20pagination/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Universal Query Handles, Scope, and Pagination
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../095.%20implement%20inspect%20list%20and%20follow%20read%20operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Inspect, List, and Follow Read Operations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../096.%20reconcile%20repository%20scaffold%20and%20quality%20automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reconcile Repository Scaffold and Quality Automation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../097.%20expose%20srig%20native%20command%20stubs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expose srig Native Command Stubs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../098.%20reconcile%20scaffold%20task%20status%20and%20supersession/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reconcile Scaffold Task Status and Supersession
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../099.%20bootstrap%20ratatui%20terminal%20runtime%20and%20shell/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bootstrap Ratatui Terminal Runtime and Shell
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../100.%20implement%20tui%20actions%20reducer%20navigation%20and%20keymap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement TUI Actions, Reducer, Navigation, and Keymap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../101.%20implement%20tui%20application%20adapter%20explorer%20and%20inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement TUI Application Adapter, Explorer, and Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../102.%20implement%20tui%20history%20diff%20projection%20and%20change%20review%20views/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement TUI History, Diff, Projection, and Change Review Views
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../103.%20implement%20tui%20sessions%20agent%20interaction%20and%20operation%20observation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement TUI Sessions, Agent Interaction, and Operation Observation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../104.%20wire%20srig%20tui%20to%20local%20application%20composition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Wire srig tui to Local Application Composition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../105.%20add%20remote%20tui%20mode%20through%20scriberig-client/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Add Remote TUI Mode Through scriberig-client
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../106.%20verify%20tui%20conformance%20accessibility%20and%20terminal%20recovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verify TUI Conformance, Accessibility, and Terminal Recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../107.%20extend%20session%20records%20for%20model%20execution%20and%20branch%20results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extend Session Records for Model Execution and Branch Results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../108.%20implement%20openai%20compatible%20model%20provider%20transport/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement OpenAI-Compatible Model Provider Transport
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../109.%20implement%20branch%20context%20compiler%20and%20model%20request%20cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Branch Context Compiler and Model Request Cache
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../110.%20implement%20nested%20branch%20orchestrator%20and%20trusted%20tool%20loop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Nested Branch Orchestrator and Trusted Tool Loop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../111.%20expose%20agent%20execution%20through%20application%20protocol%20server%20and%20clients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Expose Agent Execution through Application, Protocol, Server, and Clients
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../112.%20implement%20one%20shot%20agent%20command%20through%20shared%20runtime/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement One-Shot Agent Command through Shared Runtime
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../113.%20implement%20branch%20aware%20web%20agent%20experience/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Branch-Aware Web Agent Experience
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../114.%20implement%20http%20protocol%20and%20event%20transport%20for%20remote%20clients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement HTTP Protocol and Event Transport for Remote Clients
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../115.%20verify%20agent%20branch%20isolation%20and%20cross%20surface%20conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verify Agent Branch Isolation and Cross-Surface Conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../116.%20deliver%20first%20useful%20project%20workflow%20and%20product%20evidence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deliver First Useful Project Workflow and Product Evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../117.%20implement%20active%20project%20workspace%20across%20application%20web%20and%20tui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Active Project Workspace Across Application, Web, and TUI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../118.%20implement%20named%20semantic%20code%20navigation%20and%20rust%20source%20projection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Named Semantic Code Navigation and Rust Source Projection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../119.%20implement%20projection%20edit%20candidate%20review%20and%20validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Projection Edit Candidate Review and Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../120.%20implement%20migration%20apply%20filesystem%20materialization%20refresh%20and%20conflict%20recovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Migration Apply, Filesystem Materialization, Refresh, and Conflict Recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../121.%20implement%20semantically%20scoped%20agent%20candidate%20through%20shared%20change%20path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Semantically Scoped Agent Candidate Through Shared Change Path
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../122.%20enforce%20real%20process%20golden%20path%20e2e%20product%20gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enforce Real-Process Golden Path E2E Product Gate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../123.%20enable%20agent%20bootstrap%20and%20project%20onboarding%20from%20empty%20database/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enable Agent Bootstrap and Project Onboarding From an Empty Database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../124.%20make%20onboarded%20project%20semantic%20context%20primary%20for%20agent%20discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Make Onboarded Project Semantic Context Primary for Agent Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../125.%20implement%20project%20wide%20source%20change%20candidates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Project-Wide Source Change Candidates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../126.%20validate%20and%20apply%20project%20wide%20candidates%20safely/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validate and Apply Project-Wide Candidates Safely
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../127.%20define%20php%20self%20extension%20contract%20and%20golden%20candidate%20fixture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Define PHP Self-Extension Contract and Golden Candidate Fixture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../128.%20implement%20deterministic%20self%20hosting%20provider%20scenario%20for%20php%20ingestion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Deterministic Self-Hosting Provider Scenario for PHP Ingestion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../129.%20deliver%20native%20tui%20agent%20self%20extension%20workflow%20for%20php%20ingestion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deliver Native TUI Agent Self-Extension Workflow for PHP Ingestion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../130.%20enforce%20real%20process%20self%20hosting%20php%20golden%20product%20gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enforce Real-Process Self-Hosting PHP Golden Product Gate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../131.%20implement%20secure%20secrets%20management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Secure Secrets Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../132.%20add%20provider%20api%20doctor%20command/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Add provider API doctor command
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Shared Agent Console, Model/Thinking Controls, and Trace Presentation
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Shared Agent Console, Model/Thinking Controls, and Trace Presentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#objective" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objective
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#instructions-for-the-implementation-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instructions for the Implementation Agent
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Instructions for the Implementation Agent">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#checklist-discipline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checklist discipline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mandatory-test-discipline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mandatory test discipline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#read-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Read First
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architectural-invariants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architectural Invariants
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architectural Invariants">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-execution-configuration-and-presentation-preferences-are-different" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Execution configuration and presentation preferences are different
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-capture-once-render-many-ways" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Capture once, render many ways
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-never-expose-private-chain-of-thought" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Never expose private chain-of-thought
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-persist-causality-not-ui-indentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Persist causality, not UI indentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-branch-tree-and-activity-tree-remain-distinct" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Branch tree and activity tree remain distinct
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-credentials-never-enter-publicsession-activity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Credentials never enter public/session activity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-running-invocations-are-immutable-with-respect-to-later-selection-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Running invocations are immutable with respect to later selection changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-observation-ordering-and-mutation-concurrency-are-separate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Observation ordering and mutation concurrency are separate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-conceptual-data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Conceptual Data Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Required Conceptual Data Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#model-descriptor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model descriptor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#model-profilelibrary-entry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model profile/library entry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#execution-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution selection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resolved-invocation-provenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resolved invocation provenance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#presentation-preferences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Presentation preferences
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#structured-model-request-for-prompt-display" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Structured model request for prompt display
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shared-session-activity-item" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared session activity item
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#objective" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objective
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#instructions-for-the-implementation-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Instructions for the Implementation Agent
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Instructions for the Implementation Agent">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#checklist-discipline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checklist discipline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mandatory-test-discipline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mandatory test discipline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#read-first" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Read First
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architectural-invariants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architectural Invariants
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architectural Invariants">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-execution-configuration-and-presentation-preferences-are-different" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Execution configuration and presentation preferences are different
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-capture-once-render-many-ways" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Capture once, render many ways
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-never-expose-private-chain-of-thought" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Never expose private chain-of-thought
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-persist-causality-not-ui-indentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Persist causality, not UI indentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-branch-tree-and-activity-tree-remain-distinct" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Branch tree and activity tree remain distinct
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-credentials-never-enter-publicsession-activity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Credentials never enter public/session activity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-running-invocations-are-immutable-with-respect-to-later-selection-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Running invocations are immutable with respect to later selection changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-observation-ordering-and-mutation-concurrency-are-separate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Observation ordering and mutation concurrency are separate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-conceptual-data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Conceptual Data Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Required Conceptual Data Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#model-descriptor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model descriptor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#model-profilelibrary-entry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model profile/library entry
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#execution-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution selection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resolved-invocation-provenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resolved invocation provenance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#presentation-preferences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Presentation preferences
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#structured-model-request-for-prompt-display" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Structured model request for prompt display
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shared-session-activity-item" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared session activity item
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="implement-shared-agent-console-modelthinking-controls-and-trace-presentation">Implement Shared Agent Console, Model/Thinking Controls, and Trace Presentation<a class="headerlink" href="#implement-shared-agent-console-modelthinking-controls-and-trace-presentation" title="Permanent link">&para;</a></h1>
+<p><strong>Status: [ ] In Progress</strong></p>
+<h2 id="objective">Objective<a class="headerlink" href="#objective" title="Permanent link">&para;</a></h2>
+<p>Implement one shared Agent Console capability across Scriberig's application, protocol, TUI, reusable web packages, and integrated web application.</p>
+<p>The completed feature must provide:</p>
+<ul>
+<li>a persistent free-text agent composer in the normal TUI/session surface, not only a modal overlay;</li>
+<li>the equivalent persistent composer in the reusable web agent UI;</li>
+<li>a user-visible model library and session-scoped active model selection;</li>
+<li>model-declared available thinking levels and a user-selectable current thinking level;</li>
+<li>a structured, causal activity view for model execution, reasoning summaries/status, tool calls, tool results, nested branches, validation, and final output;</li>
+<li>colored nesting rails: a narrow terminal rail in TUI and a literal <code>2px</code> rail in web;</li>
+<li>independent presentation controls for reasoning visibility, tool invocation detail, tool output verbosity, and prompt/model-request visibility;</li>
+<li>synchronized execution semantics between TUI, web, server/client, and other future clients;</li>
+<li>durable provenance for execution-affecting configuration without polluting session semantics with presentation-only preferences;</li>
+<li>deterministic cross-surface tests proving that the same underlying activity/model state is rendered with different verbosity without re-executing work.</li>
+</ul>
+<p>This task integrates and extends the completed work in tasks 103, 107, 111, 113, 114, and 115. Do not create a parallel agent/session implementation.</p>
+<hr />
+<h2 id="instructions-for-the-implementation-agent">Instructions for the Implementation Agent<a class="headerlink" href="#instructions-for-the-implementation-agent" title="Permanent link">&para;</a></h2>
+<p>This plan is intentionally written for a smaller implementation agent such as Luna. Follow it literally and in order. Do not assume architectural details that are not verified in the repository.</p>
+<p>Before modifying any subsystem:</p>
+<ol>
+<li>read the repository root <code>AGENTS.md</code>;</li>
+<li>read the nearest <code>AGENTS.md</code> for every directory you will modify;</li>
+<li>read the referenced Level 1, Level 2, and Level 3 design documents;</li>
+<li>inspect the current implementation before choosing a file or type name;</li>
+<li>extend the existing owner of a concept rather than creating a competing abstraction.</li>
+</ol>
+<h3 id="checklist-discipline">Checklist discipline<a class="headerlink" href="#checklist-discipline" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[ ] Keep this file open while implementing.</li>
+<li>[ ] Tick a checkbox from <code>[ ]</code> to <code>[x]</code> <strong>immediately after that exact item is implemented and its targeted verification passes</strong>.</li>
+<li>[ ] Never tick an item because nearby work is complete.</li>
+<li>[ ] Never bulk-tick the checklist at the end.</li>
+<li>[ ] If the repository has moved since this plan was written, update this document with the actual file/type owner before implementing the changed step.</li>
+<li>[ ] Before declaring the task complete, re-read every checked item and confirm the code and tests still prove it.</li>
+</ul>
+<h3 id="mandatory-test-discipline">Mandatory test discipline<a class="headerlink" href="#mandatory-test-discipline" title="Permanent link">&para;</a></h3>
+<p>During implementation, run <strong>only targeted tests/checks for the crate, package, module, or behavior just changed</strong>.</p>
+<p>Do not run any of the following while implementation checkboxes remain incomplete:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cargo test --workspace
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cargo check --workspace --all-targets
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>cargo clippy --workspace --all-targets -- -D warnings
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>pnpm --dir web test
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>pnpm --dir web typecheck
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>pnpm --dir web build
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>python3 tools/lint_repo.py           # repository-wide mode
+</code></pre></div>
+<p>Use narrow commands instead, for example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cargo test -p scriberig-agent-runtime &lt;focused_test_filter&gt;
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>cargo test -p scriberig-app &lt;focused_test_filter&gt;
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>cargo test -p scriberig-protocol &lt;focused_test_filter&gt;
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>cargo test -p scriberig-tui &lt;focused_test_filter&gt;
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>cargo test -p scriberig-server &lt;focused_test_filter&gt;
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>cargo test -p scriberig-client &lt;focused_test_filter&gt;
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>pnpm --dir web --filter @scriberig/protocol test
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>pnpm --dir web --filter @scriberig/model test
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>pnpm --dir web --filter @scriberig/agent-ui test
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>pnpm --dir web --filter @scriberig/agent-ui typecheck
+</code></pre></div>
+<p>It is acceptable to run a targeted formatter/check for files or the one changed crate/package. Do not use a workspace-wide command merely "to be safe" during implementation.</p>
+<p><strong>Only after every implementation and targeted-verification checkbox in this plan is complete may the Final Full-Suite Gate be run.</strong></p>
+<p>If a targeted test exposes a dependency-layer failure, fix that failure and run the smallest tests that prove the fix. Do not escalate to the full suite early.</p>
+<hr />
+<h2 id="read-first">Read First<a class="headerlink" href="#read-first" title="Permanent link">&para;</a></h2>
+<p>Read these documents before coding:</p>
+<ol>
+<li><code>design/level-1/009. agent interaction and sessions.md</code>;</li>
+<li><code>design/level-1/012. web platform and integrated editor.md</code>;</li>
+<li><code>design/level-1/016. model driven agent execution and branch isolation.md</code>;</li>
+<li><code>design/level-2/011. application operations protocol and runtime boundaries.md</code>;</li>
+<li><code>design/level-2/012. capability matrix and cross surface conformance.md</code>;</li>
+<li><code>design/level-2/017. web workspace packages and integrated editor.md</code>;</li>
+<li><code>design/level-2/021. terminal ui runtime and state architecture.md</code>;</li>
+<li><code>design/level-2/022. terminal ui views interaction and conformance.md</code>;</li>
+<li><code>design/level-2/023. agent runtime model provider and branch orchestration.md</code>;</li>
+<li><code>design/level-2/024. agent operations protocol and cross surface product contract.md</code>;</li>
+<li><code>design/level-3/103. implement tui sessions agent interaction and operation observation.md</code>;</li>
+<li><code>design/level-3/107. extend session records for model execution and branch results.md</code>;</li>
+<li><code>design/level-3/111. expose agent execution through application protocol server and clients.md</code>;</li>
+<li><code>design/level-3/113. implement branch aware web agent experience.md</code>;</li>
+<li><code>design/level-3/114. implement http protocol and event transport for remote clients.md</code>;</li>
+<li><code>design/level-3/115. verify agent branch isolation and cross surface conformance.md</code>;</li>
+<li><code>design/level-3/131. implement secure secrets management.md</code>.</li>
+</ol>
+<p>Current implementation facts to verify before changing them:</p>
+<ul>
+<li><code>crates/scriberig-tui/src/overlay/mod.rs</code> currently owns a multiline <code>ComposerState</code>, but it is an <code>Overlay::Composer</code> rather than persistent session-surface state;</li>
+<li><code>crates/scriberig-tui/src/view/session.rs</code> already projects branch depth and generic tool rows, but it does not expose the richer causal execution activity required here;</li>
+<li><code>crates/scriberig-agent-runtime/src/events.rs</code> currently emits bounded runtime events such as phase, model delta, and tool start/completion, but not the complete structured activity contract required here;</li>
+<li><code>crates/scriberig-agent-runtime/src/config.rs</code> currently has a provider profile with one model string and provider capabilities, but no model library or model-specific thinking-level descriptors;</li>
+<li><code>crates/scriberig-app/src/event.rs</code> currently reduces public agent observation mostly to output produced/delta plus generic operation events;</li>
+<li><code>crates/scriberig-protocol/src/agent.rs</code> currently exposes provider-neutral start/continue/result structures but no public model library, thinking selection, or activity projection;</li>
+<li><code>crates/scriberig-protocol/src/event.rs</code> has a monotonic public event sequence which can be reused rather than replaced;</li>
+<li><code>web/packages/agent-ui</code> already exists and is the reusable web owner; <code>AgentComposer</code> and <code>BranchActivityView</code> are currently intentionally simple and must be extended rather than replaced by app-local semantics.</li>
+</ul>
+<p>Baseline inventory verified for this task:</p>
+<ul>
+<li>The shared application model library now belongs to
+  <code>scriberig-app::agent_console::model</code>; the integrated runtime's
+  <code>ProviderConfig</code> remains the provider connection owner and still selects a
+  single provider model until adapter-library integration is implemented.</li>
+<li>Runtime provider/model configuration is owned by <code>ProviderConfig</code> in
+  <code>crates/scriberig-agent-runtime/src/config.rs</code>; <code>ProviderModel</code> in
+  <code>src/model_provider.rs</code> binds one provider adapter to one model string.</li>
+<li>Durable execution records are owned by <code>scriberig-session</code>: <code>Branch</code>
+  aggregates ordered <code>ExecutionActivity</code>, <code>ModelInvocation</code>, <code>ModelOutput</code>,
+  <code>ToolInvocation</code>, and <code>ToolResult</code>; <code>ModelInvocation</code> records safe provider,
+  model, profile, thinking, and request/context fingerprint provenance.</li>
+<li><code>Session.execution</code> now owns the persistent session-scoped profile/model/
+  thinking selection and independent mutation revision; the protocol session
+  read projection carries the same fields for clients.</li>
+<li>Shared application entry points currently accept agent commands through
+  <code>SessionBackend</code> and <code>ApplicationService</code>; runtime events are projected
+  through <code>scriberig-app::ApplicationEvent</code> and the public event sequence.</li>
+<li>Server event streaming and Rust/TypeScript clients already exist. Safe model
+  library and session selection APIs now cross the app, protocol, server, and
+  client boundaries; causal activity query/mutation APIs do not yet exist.</li>
+<li>TUI prompt submission already routes through <code>SessionBackend</code>; multiline
+  editing is currently available only through <code>Overlay::Composer</code>.</li>
+<li>Web protocol and client already expose branch pages and agent operation
+  events; <code>@scriberig/model</code> owns durable branch/activity state plus transient
+  output, and <code>@scriberig/agent-ui</code> owns reusable composer/activity rendering.</li>
+<li>Deterministic runtime coverage exists in separate fixtures (<code>FakeProvider</code>
+  model tests and nested branch tests), but no single shared fixture currently
+  spans model response, tool result, and nested child causality. Extend the
+  existing runtime fixtures as the owning behavior is implemented.</li>
+</ul>
+<p>The focused baseline <code>cargo test -p scriberig-agent-runtime --test
+nested_branches recursive_children_preserve_depth_and_hide_child_history</code>
+initially exposed a duplicate <code>RequestFingerprintInput</code> definition in
+<code>context.rs</code>, left behind after extraction to <code>context/fingerprint.rs</code>. The
+duplicate was removed and the same focused fixture now passes. The runtime
+fixture inventory remains split across <code>model_provider.rs</code>, <code>named_tools.rs</code>,
+and <code>nested_branches.rs</code>; no single combined fixture has been identified yet.</p>
+<p>If any of those statements are no longer true, update this section before continuing.</p>
+<hr />
+<h2 id="architectural-invariants">Architectural Invariants<a class="headerlink" href="#architectural-invariants" title="Permanent link">&para;</a></h2>
+<p>These rules are not optional.</p>
+<h3 id="1-execution-configuration-and-presentation-preferences-are-different">1. Execution configuration and presentation preferences are different<a class="headerlink" href="#1-execution-configuration-and-presentation-preferences-are-different" title="Permanent link">&para;</a></h3>
+<p>Execution configuration changes what the model does:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>model
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>thinking level
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>generation parameters when exposed later
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>branch/invocation overrides
+</code></pre></div>
+<p>Presentation preferences change only what a client renders:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>reasoning visibility
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>tool invocation simple/detailed
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>tool output hidden/summary/full
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>prompt/model-request hidden/shown
+</code></pre></div>
+<p>Do not store presentation-only changes as semantic session turns or model invocations.</p>
+<h3 id="2-capture-once-render-many-ways">2. Capture once, render many ways<a class="headerlink" href="#2-capture-once-render-many-ways" title="Permanent link">&para;</a></h3>
+<p>The runtime/session/application layers must capture enough safe structured activity that the user can change presentation mode without rerunning the model or tool.</p>
+<p>Changing:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>tool output: hidden -&gt; full
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>reasoning: hidden -&gt; shown
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>prompt: hidden -&gt; shown
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>tool invocation: simple -&gt; detailed
+</code></pre></div>
+<p>must not execute anything again.</p>
+<h3 id="3-never-expose-private-chain-of-thought">3. Never expose private chain-of-thought<a class="headerlink" href="#3-never-expose-private-chain-of-thought" title="Permanent link">&para;</a></h3>
+<p>"Show thinking" means:</p>
+<ul>
+<li>Scriberig-generated runtime status such as <code>Thinking</code>, <code>Planning</code>, <code>Waiting for tool</code>, or equivalent safe phase information;</li>
+<li>provider/model content explicitly intended to be shown to the user, represented as a reasoning summary when available.</li>
+</ul>
+<p>It does <strong>not</strong> mean capturing, persisting, requesting, or displaying hidden/private chain-of-thought.</p>
+<h3 id="4-persist-causality-not-ui-indentation">4. Persist causality, not UI indentation<a class="headerlink" href="#4-persist-causality-not-ui-indentation" title="Permanent link">&para;</a></h3>
+<p>The canonical/shared activity representation stores parent/correlation relationships. TUI/web derive visual depth.</p>
+<p>Do not persist fields such as <code>indent_pixels</code>, <code>terminal_depth</code>, or a color index as semantic state.</p>
+<h3 id="5-branch-tree-and-activity-tree-remain-distinct">5. Branch tree and activity tree remain distinct<a class="headerlink" href="#5-branch-tree-and-activity-tree-remain-distinct" title="Permanent link">&para;</a></h3>
+<p>The session graph owns branch ancestry.</p>
+<p>The activity projection owns immediate execution causality such as:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>model invocation
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>  reasoning summary
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>  tool invocation
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    tool result
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>  child branch start
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    child activity
+</code></pre></div>
+<p>Do not replace the existing session branch graph with an arbitrary UI activity tree.</p>
+<h3 id="6-credentials-never-enter-publicsession-activity">6. Credentials never enter public/session activity<a class="headerlink" href="#6-credentials-never-enter-publicsession-activity" title="Permanent link">&para;</a></h3>
+<p>Credentials remain references resolved at the runtime/provider boundary.</p>
+<p>Never place these into session records, protocol DTOs, prompt-display payloads, TUI state, web state, logs, test snapshots, or model profiles:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>API key value
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>Authorization header value
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>secret environment value
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>resolved credential value
+</code></pre></div>
+<h3 id="7-running-invocations-are-immutable-with-respect-to-later-selection-changes">7. Running invocations are immutable with respect to later selection changes<a class="headerlink" href="#7-running-invocations-are-immutable-with-respect-to-later-selection-changes" title="Permanent link">&para;</a></h3>
+<p>Changing model or thinking level while an invocation is running affects the <strong>next</strong> invocation only.</p>
+<p>The running invocation keeps the resolved model/thinking configuration it started with.</p>
+<h3 id="8-observation-ordering-and-mutation-concurrency-are-separate">8. Observation ordering and mutation concurrency are separate<a class="headerlink" href="#8-observation-ordering-and-mutation-concurrency-are-separate" title="Permanent link">&para;</a></h3>
+<p>Reuse monotonic event/activity cursor semantics for observation/replay.</p>
+<p>Use session/config revision or equivalent optimistic-concurrency data for mutations where simultaneous TUI/web changes can conflict.</p>
+<p>Do not use an event cursor as a mutation revision.</p>
+<hr />
+<h2 id="required-conceptual-data-model">Required Conceptual Data Model<a class="headerlink" href="#required-conceptual-data-model" title="Permanent link">&para;</a></h2>
+<p>Use existing repository naming/owners when equivalents already exist. The following shapes define semantics, not mandatory exact Rust names.</p>
+<h3 id="model-descriptor">Model descriptor<a class="headerlink" href="#model-descriptor" title="Permanent link">&para;</a></h3>
+<p>A model known to the system must expose safe capabilities:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">struct</span><span class="w"> </span><span class="nc">ModelDescriptor</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span><span class="n">id</span><span class="p">:</span><span class="w"> </span><span class="nc">ModelId</span><span class="p">,</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">    </span><span class="n">display_name</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="n">provider_profile</span><span class="p">:</span><span class="w"> </span><span class="nc">ProviderProfileId</span><span class="p">,</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">    </span><span class="n">provider_model_id</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">    </span><span class="n">capabilities</span><span class="p">:</span><span class="w"> </span><span class="nc">ModelCapabilities</span><span class="p">,</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">    </span><span class="n">thinking_levels</span><span class="p">:</span><span class="w"> </span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">ThinkingLevelDescriptor</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">    </span><span class="n">default_thinking_level</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">ThinkingLevelId</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="p">}</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="k">struct</span><span class="w"> </span><span class="nc">ThinkingLevelDescriptor</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">    </span><span class="n">id</span><span class="p">:</span><span class="w"> </span><span class="nc">ThinkingLevelId</span><span class="p">,</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">    </span><span class="n">label</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">    </span><span class="n">description</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">    </span><span class="n">order</span><span class="p">:</span><span class="w"> </span><span class="kt">u32</span><span class="p">,</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="p">}</span>
+</code></pre></div>
+<p>Do not define one global <code>Low/Medium/High</code> enum. The available levels belong to the model/provider capability declaration.</p>
+<h3 id="model-profilelibrary-entry">Model profile/library entry<a class="headerlink" href="#model-profilelibrary-entry" title="Permanent link">&para;</a></h3>
+<p>User/project configuration should be able to describe a curated model entry without containing a resolved secret:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">struct</span><span class="w"> </span><span class="nc">ModelProfile</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">    </span><span class="n">id</span><span class="p">:</span><span class="w"> </span><span class="nc">ModelProfileId</span><span class="p">,</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="n">display_name</span><span class="p">:</span><span class="w"> </span><span class="nb">String</span><span class="p">,</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">    </span><span class="n">model</span><span class="p">:</span><span class="w"> </span><span class="nc">ModelId</span><span class="p">,</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="n">connection</span><span class="p">:</span><span class="w"> </span><span class="nc">ConnectionRef</span><span class="p">,</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="n">credential</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">CredentialRef</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">    </span><span class="n">default_thinking_level</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">ThinkingLevelId</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">    </span><span class="n">enabled</span><span class="p">:</span><span class="w"> </span><span class="kt">bool</span><span class="p">,</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="p">}</span>
+</code></pre></div>
+<p>Adapt this to existing provider/profile configuration rather than duplicating it.</p>
+<h3 id="execution-selection">Execution selection<a class="headerlink" href="#execution-selection" title="Permanent link">&para;</a></h3>
+<p>Interactive resolution order must be explicit and tested:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>invocation override
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>  -&gt; branch override
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>  -&gt; session active selection
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>  -&gt; project default
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>  -&gt; user/model-profile default
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>  -&gt; runtime/provider fallback
+</code></pre></div>
+<p>The session-level selection is the ordinary interactive default.</p>
+<h3 id="resolved-invocation-provenance">Resolved invocation provenance<a class="headerlink" href="#resolved-invocation-provenance" title="Permanent link">&para;</a></h3>
+<p>Every actual invocation records safe resolved provenance sufficient to explain history later:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>provider profile/display id
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>provider model id/model descriptor id
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>model profile id when used
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>thinking level actually used
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>safe generation parameters when applicable
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>context/request fingerprint already supported by session/runtime design
+</code></pre></div>
+<p>Editing/deleting a model profile later must not make old invocation provenance ambiguous.</p>
+<h3 id="presentation-preferences">Presentation preferences<a class="headerlink" href="#presentation-preferences" title="Permanent link">&para;</a></h3>
+<p>Use independent fields equivalent to:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">enum</span><span class="w"> </span><span class="nc">ReasoningVisibility</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Hidden</span><span class="p">,</span><span class="w"> </span><span class="n">Shown</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="k">enum</span><span class="w"> </span><span class="nc">ToolInvocationPresentation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Simple</span><span class="p">,</span><span class="w"> </span><span class="n">Detailed</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="k">enum</span><span class="w"> </span><span class="nc">ToolOutputVisibility</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Hidden</span><span class="p">,</span><span class="w"> </span><span class="n">Summary</span><span class="p">,</span><span class="w"> </span><span class="n">Full</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="k">enum</span><span class="w"> </span><span class="nc">PromptVisibility</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">Hidden</span><span class="p">,</span><span class="w"> </span><span class="n">Shown</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="k">struct</span><span class="w"> </span><span class="nc">AgentPresentationPreferences</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">    </span><span class="n">reasoning</span><span class="p">:</span><span class="w"> </span><span class="nc">ReasoningVisibility</span><span class="p">,</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">    </span><span class="n">tool_invocation</span><span class="p">:</span><span class="w"> </span><span class="nc">ToolInvocationPresentation</span><span class="p">,</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">    </span><span class="n">tool_output</span><span class="p">:</span><span class="w"> </span><span class="nc">ToolOutputVisibility</span><span class="p">,</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">    </span><span class="n">prompt</span><span class="p">:</span><span class="w"> </span><span class="nc">PromptVisibility</span><span class="p">,</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="p">}</span>
+</code></pre></div>
+<p>Optional presets may map to those fields:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>Minimal -&gt; hidden / simple / hidden / hidden
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>Normal  -&gt; shown  / simple / summary / hidden
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>Verbose -&gt; shown  / detailed / full / hidden
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>Debug   -&gt; shown  / detailed / full / shown
+</code></pre></div>
+<p>Presets are shortcuts only. Do not replace the independent fields with one <code>trace_level</code> enum.</p>
+<h3 id="structured-model-request-for-prompt-display">Structured model request for prompt display<a class="headerlink" href="#structured-model-request-for-prompt-display" title="Permanent link">&para;</a></h3>
+<p>Do not model "prompt" as one flat string if the runtime already compiles multiple sections/messages/tools.</p>
+<p>Expose a safe structured representation equivalent to:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>ModelRequestRecord
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>  invocation
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>  instruction sections
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>  conversation/messages
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>  semantic/context references or safe rendered context
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>  tool definitions/references
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>  resolved model configuration
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>  optional token estimate
+</code></pre></div>
+<p>The visible representation is the canonical Scriberig request immediately before provider-specific serialization, not raw outbound HTTP JSON.</p>
+<p>Secret values, authorization information, and sensitive tool parameters must be redacted/omitted before this structure reaches a public/application activity stream.</p>
+<h3 id="shared-session-activity-item">Shared session activity item<a class="headerlink" href="#shared-session-activity-item" title="Permanent link">&para;</a></h3>
+<p>Create or extend a UI-neutral projection equivalent to:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">struct</span><span class="w"> </span><span class="nc">SessionActivityItem</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">    </span><span class="n">id</span><span class="p">:</span><span class="w"> </span><span class="nc">ActivityId</span><span class="p">,</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">    </span><span class="n">sequence</span><span class="p">:</span><span class="w"> </span><span class="nc">ActivitySequence</span><span class="p">,</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span><span class="n">session</span><span class="p">:</span><span class="w"> </span><span class="nc">SessionRef</span><span class="p">,</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">    </span><span class="n">branch</span><span class="p">:</span><span class="w"> </span><span class="nc">BranchRef</span><span class="p">,</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">    </span><span class="n">parent</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">ActivityId</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">    </span><span class="n">kind</span><span class="p">:</span><span class="w"> </span><span class="nc">ActivityKind</span><span class="p">,</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">    </span><span class="n">state</span><span class="p">:</span><span class="w"> </span><span class="nc">ActivityState</span><span class="p">,</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="w">    </span><span class="n">content</span><span class="p">:</span><span class="w"> </span><span class="nc">ActivityContent</span><span class="p">,</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="w">    </span><span class="n">durable_ref</span><span class="p">:</span><span class="w"> </span><span class="nb">Option</span><span class="o">&lt;</span><span class="n">SemanticRef</span><span class="o">&gt;</span><span class="p">,</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="p">}</span>
+</code></pre></div>
+<p>Required kinds include semantic equivalents of:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>HumanInput
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>AssistantOutput
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>ReasoningSummary
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>RuntimeStatus
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>ModelInvocation
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>ModelRequest
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>ToolInvocation
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>ToolResult
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>BranchStarted
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>BranchCompleted
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>OperationProgress
+<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>Validation
+<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a>ModelSelectionChanged
+<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a>ThinkingLevelChanged
+<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a>Error
+</code></pre></div>
+<p>Do not add an activity kind for raw hidden chain-of-thought.</p>
+<hr />
+<h1 id="implementation-phases">Implementation Phases<a class="headerlink" href="#implementation-phases" title="Permanent link">&para;</a></h1>
+<p>Work in this order. Do not begin a later surface until the shared owner it depends on is implemented and targeted tests pass.</p>
+<h2 id="phase-a-baseline-inventory-and-test-fixtures">Phase A - Baseline Inventory and Test Fixtures<a class="headerlink" href="#phase-a-baseline-inventory-and-test-fixtures" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[x] Re-read root, crate, TUI, web, and package <code>AGENTS.md</code> files for every planned modification.</li>
+<li>[x] Inspect current model/provider types and record in this plan which existing type owns provider/model configuration.</li>
+<li>[x] Inspect current session <code>ModelInvocation</code>, <code>ToolInvocation</code>, and <code>ToolResult</code> records and reuse them where possible.</li>
+<li>[x] Inspect current application agent start/continue/event APIs and identify the exact owner for model selection and activity observation.</li>
+<li>[x] Inspect current server/Rust-client/TypeScript-client event transport before adding any endpoint or stream.</li>
+<li>[x] Inspect TUI reducer/effect/keymap/rendering files and identify the existing composer submit path; do not create a second submit path.</li>
+<li>[x] Inspect <code>@scriberig/protocol</code>, <code>@scriberig/client</code>, <code>@scriberig/model</code>, <code>@scriberig/react</code>, and <code>@scriberig/agent-ui</code> before adding web state.</li>
+<li>[x] Identify existing deterministic fake-provider tests in the runtime and inspect task 115's shared-fixture requirements.</li>
+<li>[x] Add or identify a minimal fixture capable of a model response, a tool call/result, and a nested child branch; use it throughout later targeted tests.</li>
+</ul>
+<p>Targeted verification only:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>Run the smallest existing fixture/unit test that proves the inspected agent path is healthy.
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>Do not run a whole workspace/package family in this phase.
+</code></pre></div>
+<h2 id="phase-b-provider-neutral-model-library-and-thinking-capabilities">Phase B - Provider-Neutral Model Library and Thinking Capabilities<a class="headerlink" href="#phase-b-provider-neutral-model-library-and-thinking-capabilities" title="Permanent link">&para;</a></h2>
+<p>Architectural owner: provider-neutral model identity/capability types at the lowest appropriate agent layer; runtime owns provider translation; application owns user-facing selection policy.</p>
+<ul>
+<li>[x] Add provider-neutral <code>ModelId</code>/descriptor/profile concepts only if equivalent types do not already exist.</li>
+<li>[x] Add ordered <code>ThinkingLevelDescriptor</code> support to model capabilities.</li>
+<li>[x] Allow a model descriptor/profile to declare a default thinking level.</li>
+<li>[x] Validate that configured default/current thinking ids are members of the selected model's supported levels.</li>
+<li>[x] Extend provider adapter configuration so one provider connection can expose/select model entries without embedding credentials into public descriptors.</li>
+<li>[x] Add provider-adapter translation from Scriberig thinking-level id to the provider-specific request setting.</li>
+<li>[x] Keep provider-specific wire names/values inside the provider adapter.</li>
+<li>[x] Add deterministic fake-provider support for asserting which model and thinking level were resolved.</li>
+<li>[x] Add tests proving two models may advertise different thinking-level lists.</li>
+<li>[x] Add tests proving the code does not assume <code>low/medium/high</code> globally.</li>
+<li>[x] Add tests proving credential values are absent from model descriptor/profile serialization/debug output.</li>
+</ul>
+<p>Targeted verification examples:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>cargo test -p scriberig-agent-runtime thinking
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>cargo test -p scriberig-agent-runtime model
+</code></pre></div>
+<p>Use a narrower filter if available.</p>
+<h2 id="phase-c-session-scoped-model-and-thinking-selection">Phase C - Session-Scoped Model and Thinking Selection<a class="headerlink" href="#phase-c-session-scoped-model-and-thinking-selection" title="Permanent link">&para;</a></h2>
+<p>Application semantics own this behavior. TUI/web must not mutate provider config directly.</p>
+<ul>
+<li>[x] Add/extend session execution configuration with active model profile/model and thinking level.</li>
+<li>[x] Implement documented resolution order: invocation -&gt; branch -&gt; session -&gt; project -&gt; profile/user -&gt; runtime fallback.</li>
+<li>[x] Implement deterministic fallback when a model change makes the current thinking level unsupported.</li>
+<li>[x] Emit/record a safe visible selection-change activity when a user changes model.</li>
+<li>[x] Emit/record a safe visible thinking-level-change activity when a user changes thinking level, including automatic fallback caused by model change.</li>
+<li>[x] Ensure a running invocation snapshots its already-resolved model/thinking and does not change when session selection changes.</li>
+<li>[x] Ensure the next invocation uses the newly selected model/thinking.</li>
+<li>[x] Extend <code>ModelInvocation</code> provenance with the resolved safe model/thinking identifiers required for historical inspection.</li>
+<li>[x] Ensure deleting/editing a model profile cannot erase historical resolved invocation provenance.</li>
+<li>[x] Add optimistic concurrency/revision validation for session execution-setting mutations if the existing app mutation contract supports concurrent clients.</li>
+<li>[x] Add application operations for listing model library entries, reading current selection, setting model, and setting thinking level.</li>
+<li>[x] Keep provider credentials/configuration resolution inside runtime/server composition rather than exposing it through session operations.</li>
+</ul>
+<p>Targeted tests must prove at least:</p>
+<ul>
+<li>[x] model change affects next invocation only;</li>
+<li>[x] thinking-level change affects next invocation only;</li>
+<li>[x] model change falls back from an unsupported thinking level deterministically;</li>
+<li>[x] concurrent/stale selection mutation is rejected rather than silently overwriting when revision checking is available;</li>
+<li>[x] historical invocation retains exact model/thinking provenance.</li>
+</ul>
+<p>Targeted verification examples:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>cargo test -p scriberig-app model_selection
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>cargo test -p scriberig-app thinking
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>cargo test -p scriberig-session model_invocation
+</code></pre></div>
+<p>Run only the owning tests, not every crate together.</p>
+<h2 id="phase-d-safe-structured-model-request-and-prompt-visibility-source">Phase D - Safe Structured Model Request and Prompt Visibility Source<a class="headerlink" href="#phase-d-safe-structured-model-request-and-prompt-visibility-source" title="Permanent link">&para;</a></h2>
+<p>The runtime compiles the request. The public/application layer receives only a safe structured projection.</p>
+<ul>
+<li>[x] Identify the existing provider-neutral compiled request type from task 109/provider runtime and extend/reuse it rather than creating a second prompt builder.</li>
+<li>[x] Add a safe inspectable model-request record/projection containing instructions/messages/context/tool definitions/resolved execution settings as appropriate.</li>
+<li>[x] Capture the safe request at the point immediately before provider-specific serialization.</li>
+<li>[x] Add redaction/omission rules for credentials, authorization headers, secret values, sensitive tool parameters, and transport-only metadata.</li>
+<li>[x] Do not store raw provider HTTP request JSON as the canonical prompt-display source.</li>
+<li>[x] Associate the request projection with the exact model invocation/activity id.</li>
+<li>[x] Make the projection retrievable after the invocation so toggling prompt visibility later does not rerun the model.</li>
+<li>[x] Bound very large sections and retain canonical references/expand handles where needed instead of forcing huge payloads into live event frames.</li>
+<li>[x] Add a fake unmistakable secret marker test and prove the marker cannot appear in the public request projection.</li>
+<li>[x] Add a test proving prompt hidden -&gt; shown uses already captured request data and performs zero additional provider calls.</li>
+</ul>
+<p>Targeted verification examples:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>cargo test -p scriberig-agent-runtime model_request
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>cargo test -p scriberig-agent-runtime redaction
+</code></pre></div>
+<h2 id="phase-e-structured-tool-invocation-and-tool-result-presentation-metadata">Phase E - Structured Tool Invocation and Tool Result Presentation Metadata<a class="headerlink" href="#phase-e-structured-tool-invocation-and-tool-result-presentation-metadata" title="Permanent link">&para;</a></h2>
+<p>Do not make React or Ratatui guess how arbitrary tool JSON should be summarized.</p>
+<ul>
+<li>[x] Extend/reuse trusted tool descriptors so a tool can provide a compact human-readable invocation presentation where appropriate.</li>
+<li>[x] Preserve structured invocation arguments for detailed rendering.</li>
+<li>[x] Mark/redact sensitive parameters through tool schema/metadata rather than string matching in individual UIs.</li>
+<li>[x] Extend/reuse tool result representation with deterministic presentation metadata equivalent to <code>summary</code> and bounded <code>preview</code>.</li>
+<li>[x] Keep the canonical/full result addressable through a durable result/reference even when UI output mode is hidden or summary.</li>
+<li>[x] Ensure <code>summary</code> is preferably produced by the tool/result boundary, not by an extra LLM call.</li>
+<li>[x] Add a safe generic fallback summary when a tool does not supply one.</li>
+<li>[x] Ensure full mode remains bounded in the immediate list view; huge results expose expansion/retrieval rather than dumping unbounded text.</li>
+<li>[x] Add tests proving simple and detailed invocation modes reference the same invocation id and arguments.</li>
+<li>[x] Add tests proving hidden, summary, and full result modes reference the same captured result and do not rerun the tool.</li>
+<li>[x] Add a sensitive argument test proving detailed mode renders a redacted value.</li>
+</ul>
+<p>Targeted verification examples:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>cargo test -p scriberig-agent-core tool
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>cargo test -p scriberig-agent-runtime tool
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>cargo test -p scriberig-session tool
+</code></pre></div>
+<p>Only run the crate/filter that owns the changed behavior.</p>
+<h2 id="phase-f-shared-causal-session-activity-projection">Phase F - Shared Causal Session Activity Projection<a class="headerlink" href="#phase-f-shared-causal-session-activity-projection" title="Permanent link">&para;</a></h2>
+<p>This phase is the central contract between execution and presentation.</p>
+<ul>
+<li>[x] Add/extend a provider-neutral <code>SessionActivityItem</code> projection with stable id, sequence, session, branch, causal parent, kind, state/content, and optional durable reference.</li>
+<li>[x] Derive causal parent relationships from explicit runtime/session correlations; do not infer causality from timestamps or current screen order.</li>
+<li>[x] Map durable session inputs/outputs/model/tool/branch/result records into activity items.</li>
+<li>[x] Map safe runtime status/progress events into transient/live activity items.</li>
+<li>[x] Represent user-displayable reasoning summaries distinctly from runtime status and assistant output.</li>
+<li>[x] Never generate an activity containing hidden chain-of-thought.</li>
+<li>[x] Associate tool result activity with its exact tool invocation parent.</li>
+<li>[x] Associate child branch activity/start with the activity that spawned the child where that relation is known.</li>
+<li>[x] Preserve the existing session branch tree independently from activity causality.</li>
+<li>[x] Give activity observation a monotonic cursor/sequence suitable for replay/deduplication.</li>
+<li>[x] Merge durable history with a live tail so reconnect can reconstruct durable activity and then resume observation.</li>
+<li>[x] Ensure duplicate/out-of-order live events cannot regress a newer activity state.</li>
+<li>[x] Ensure a committed durable output/result replaces or settles corresponding transient activity instead of creating duplicate fake history.</li>
+<li>[x] Keep large tool/model-request bodies behind bounded summaries plus durable expansion references.</li>
+</ul>
+<p>Targeted tests must cover:</p>
+<ul>
+<li>[x] model invocation -&gt; tool invocation -&gt; tool result parent chain;</li>
+<li>[x] nested child branch activity causality;</li>
+<li>[x] duplicate/out-of-order event handling;</li>
+<li>[x] durable reload after losing all transient events;</li>
+<li>[x] one activity sequence renders with multiple presentation modes without semantic changes.</li>
+</ul>
+<p>Targeted verification examples:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>cargo test -p scriberig-app activity
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>cargo test -p scriberig-session activity
+</code></pre></div>
+<p>Use the exact owning crate after inspection.</p>
+<h2 id="phase-g-public-protocol-server-rust-client-and-web-protocolclient">Phase G - Public Protocol, Server, Rust Client, and Web Protocol/Client<a class="headerlink" href="#phase-g-public-protocol-server-rust-client-and-web-protocolclient" title="Permanent link">&para;</a></h2>
+<p>Expose the shared concepts without leaking runtime/provider internals.</p>
+<ul>
+<li>[x] Add protocol DTOs for model descriptors/profiles safe for clients.</li>
+<li>[x] Add protocol DTOs for available thinking levels and current resolved/session selection.</li>
+<li>[x] Add protocol DTOs for execution-setting mutations.</li>
+<li>[x] Add protocol DTOs for causal session activity and activity cursor/replay.</li>
+<li>[x] Add protocol DTOs/references for safe model-request inspection.</li>
+<li>[x] Add protocol DTOs/references for bounded tool presentation metadata where not already part of activity content.</li>
+<li>[x] Confirm protocol DTOs contain no credential source values, secret material, provider raw request bodies, or hidden reasoning.</li>
+<li>[x] Extend server dispatch for model library/query, model/thinking selection, activity observation/replay, and safe request/result detail retrieval.</li>
+<li>[x] Reuse the existing event transport/SSE boundary from task 114 rather than adding a second streaming stack.</li>
+<li>[x] Keep mutations as ordinary request/response operations and observation as the existing resumable event/activity flow unless current transport architecture requires another existing abstraction.</li>
+<li>[x] Extend the Rust client with semantic methods rather than exposing envelopes.</li>
+<li>[x] Update generated/authoritative TypeScript protocol exports.</li>
+<li>[x] Extend <code>@scriberig/client</code> with the same semantic methods.</li>
+<li>[x] Test cursor resume and authoritative refresh after a missed/transient event window.</li>
+<li>[x] Test stale concurrent model/thinking mutation behavior across two clients when revision protection is implemented.</li>
+</ul>
+<p>Targeted verification examples:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>cargo test -p scriberig-protocol agent
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>cargo test -p scriberig-server agent
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>cargo test -p scriberig-client agent
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>pnpm --dir web --filter @scriberig/protocol test
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>pnpm --dir web --filter @scriberig/client test
+</code></pre></div>
+<p>Run these one at a time as each owner changes. Do not run the complete web test command.</p>
+<h2 id="phase-h-presentation-preferences-and-presets">Phase H - Presentation Preferences and Presets<a class="headerlink" href="#phase-h-presentation-preferences-and-presets" title="Permanent link">&para;</a></h2>
+<p>Presentation preferences are not semantic session history.</p>
+<ul>
+<li>[x] Add a shared/user-preference representation for reasoning visibility.</li>
+<li>[x] Add tool invocation <code>Simple | Detailed</code> preference.</li>
+<li>[x] Add tool output <code>Hidden | Summary | Full</code> preference.</li>
+<li>[x] Add prompt <code>Hidden | Shown</code> preference.</li>
+<li>[x] Implement optional <code>Minimal</code>, <code>Normal</code>, <code>Verbose</code>, and <code>Debug</code> presets strictly as setters over the independent fields.</li>
+<li>[x] Allow a client-local override layer so TUI and web may intentionally use different presentation verbosity while observing the same session execution state.</li>
+<li>[x] Define and test preference resolution order: client-local override -&gt; shared/user preference -&gt; built-in default.</li>
+<li>[x] Ensure changing any presentation preference emits no semantic session turn, no model-selection activity, and no provider/tool invocation.</li>
+<li>[x] Ensure presentation preferences can be applied to already-loaded activity immediately.</li>
+<li>[x] Keep execution selection (<code>model</code>, <code>thinking level</code>) out of this presentation-preference structure.</li>
+</ul>
+<p>If the repository does not yet have a general user-preference persistence boundary, implement the smallest reusable owner consistent with application architecture; do not bury these settings in TUI-only or <code>web/apps/scriberig</code>-only state.</p>
+<p>Targeted tests:</p>
+<ul>
+<li>[x] preference resolution order;</li>
+<li>[x] preset expansion into individual fields;</li>
+<li>[x] client-local override does not mutate shared session execution configuration;</li>
+<li>[x] changing view settings produces zero model/tool calls.</li>
+</ul>
+<h2 id="phase-i-persistent-tui-agent-console">Phase I - Persistent TUI Agent Console<a class="headerlink" href="#phase-i-persistent-tui-agent-console" title="Permanent link">&para;</a></h2>
+<p><code>scriberig-tui</code> remains a renderer/controller over shared application semantics.</p>
+<h3 id="persistent-composer">Persistent composer<a class="headerlink" href="#persistent-composer" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] Extract/reuse the existing multiline composer editing behavior from <code>Overlay::Composer</code> so the normal Agent/Session surface owns a persistent composer state.</li>
+<li>[x] Keep modal input behavior available where it is still useful, but do not require opening a modal before every agent message.</li>
+<li>[x] Route submit through the existing shared agent submission effect/service path; do not create a second provider/runtime path.</li>
+<li>[x] When no active session exists, shared application semantics start work; when a session/branch is active, shared application semantics continue it according to existing policy.</li>
+<li>[x] Keep the composer usable while an agent operation is running.</li>
+<li>[x] Keep submit/send separate from stop/cancel.</li>
+<li>[x] Do not reinterpret a second submit as cancellation.</li>
+<li>[x] Support multiline input without depending only on <code>Shift+Enter</code>; preserve terminal-compatible newline bindings such as <code>Ctrl+J</code>/configured equivalent if current keymap uses them.</li>
+<li>[x] Paste must remain literal input data rather than command replay.</li>
+</ul>
+<h3 id="model-and-thinking-controls">Model and thinking controls<a class="headerlink" href="#model-and-thinking-controls" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] Show current model in the Agent/Session header/status area.</li>
+<li>[x] Show current thinking level beside the model.</li>
+<li>[x] Add a model picker backed by the shared model library.</li>
+<li>[x] Add a thinking picker whose entries come only from the selected model's advertised thinking levels.</li>
+<li>[x] Reflect model/thinking changes made by another client after authoritative refresh/event observation.</li>
+<li>[x] If a model change forces thinking fallback, display the resulting shared activity/status rather than silently hiding it.</li>
+<li>[x] Add <code>/model</code>, <code>/thinking</code>, and <code>/view</code> composer commands only as convenience adapters to shared application operations/preferences.</li>
+<li>[x] Do not implement slash commands as TUI-local canonical state changes.</li>
+</ul>
+<h3 id="activity-renderer">Activity renderer<a class="headerlink" href="#activity-renderer" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] Render causal activity items rather than formatting generic runtime strings ad hoc.</li>
+<li>[x] Render depth using a narrow vertical rail glyph, preferably <code>▏</code> with <code>│</code> fallback where necessary.</li>
+<li>[x] Give each nesting level a distinct theme color and cycle safely after a finite palette.</li>
+<li>[x] Preserve indent/rail structure when color is unavailable so hierarchy never relies on color alone.</li>
+<li>[x] Prefer drawing all active ancestor rails for deep nesting when terminal width permits.</li>
+<li>[x] Keep branch nesting usable at narrow terminal widths.</li>
+<li>[x] Show runtime/reasoning rows only when reasoning visibility is <code>Shown</code>.</li>
+<li>[x] In <code>Simple</code> tool invocation mode, render a command-like compact line.</li>
+<li>[x] In <code>Detailed</code> mode, render one parameter per line with nested structured indentation and redaction.</li>
+<li>[x] In tool output <code>Hidden</code>, show invocation/status but no output body.</li>
+<li>[x] In <code>Summary</code>, show deterministic result summary only.</li>
+<li>[x] In <code>Full</code>, show bounded preview/full detail with expansion/navigation for large results.</li>
+<li>[x] When prompt visibility is <code>Shown</code>, render grouped safe model-request sections; when hidden, omit them entirely.</li>
+<li>[x] Toggling any of these modes must re-render already captured data without rerunning work.</li>
+</ul>
+<h3 id="tui-targeted-tests">TUI targeted tests<a class="headerlink" href="#tui-targeted-tests" title="Permanent link">&para;</a></h3>
+<p>Use reducer/service tests and Ratatui test backend only for the affected behaviors.</p>
+<ul>
+<li>[x] persistent composer submits start/continue through existing service boundary;</li>
+<li>[x] multiline typing and paste remain correct;</li>
+<li>[x] composer remains editable during active operation;</li>
+<li>[x] cancel invokes shared cancellation and submit does not cancel;</li>
+<li>[x] model picker shows shared model library;</li>
+<li>[x] thinking picker changes when selected model changes;</li>
+<li>[x] nested activity renders rails with depth structure;</li>
+<li>[x] reasoning hidden/shown changes only rendered rows;</li>
+<li>[x] simple/detailed tool calls are two renderings of one activity;</li>
+<li>[x] hidden/summary/full outputs are three renderings of one result;</li>
+<li>[x] prompt hidden/shown uses one captured request;</li>
+<li>[x] sensitive values never appear in detailed tool/prompt frames.</li>
+</ul>
+<p>Targeted verification example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>cargo test -p scriberig-tui composer
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>cargo test -p scriberig-tui activity
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>cargo test -p scriberig-tui model
+</code></pre></div>
+<p>Use the smallest relevant filter after inspecting the test names.</p>
+<h2 id="phase-j-reusable-web-agent-console-and-integrated-app">Phase J - Reusable Web Agent Console and Integrated App<a class="headerlink" href="#phase-j-reusable-web-agent-console-and-integrated-app" title="Permanent link">&para;</a></h2>
+<p>Do not put the semantic implementation only in <code>web/apps/scriberig</code>.</p>
+<h3 id="web-modelreact-state">Web model/react state<a class="headerlink" href="#web-modelreact-state" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] Extend <code>@scriberig/model</code> with model library, current execution selection, activity cursor/state, and presentation preferences without duplicating Rust/server semantics.</li>
+<li>[x] Keep durable activity separate from transient live tail.</li>
+<li>[x] Extend reducer logic for duplicate/out-of-order activity events and reconnect refresh.</li>
+<li>[x] Add reusable hooks/controllers in <code>@scriberig/react</code> only where generic bindings are needed.</li>
+</ul>
+<h3 id="scriberigagent-ui"><code>@scriberig/agent-ui</code><a class="headerlink" href="#scriberigagent-ui" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] Extend the existing <code>AgentComposer</code> rather than replacing it with an app-local composer.</li>
+<li>[x] Keep composer available while execution is running and expose separate cancel/stop controls.</li>
+<li>[x] Add reusable model picker.</li>
+<li>[x] Add reusable thinking-level picker whose options derive from active model capabilities.</li>
+<li>[x] Add reusable view/trace controls for reasoning, invocation detail, tool output, and prompt visibility.</li>
+<li>[x] Extend/replace the simple <code>BranchActivityView</code> rendering with the shared causal activity projection.</li>
+<li>[x] Render a literal CSS <code>2px</code> vertical depth rail per visible nesting level.</li>
+<li>[x] Use distinct depth colors but retain indentation/borders/text so hierarchy is accessible without color.</li>
+<li>[x] Render simple tool invocation as a compact command-like line.</li>
+<li>[x] Render detailed invocation with one parameter per line and nested structured values.</li>
+<li>[x] Render tool output hidden/summary/full according to preference without new server execution.</li>
+<li>[x] Render safe prompt/model-request sections only when enabled.</li>
+<li>[x] Render reasoning summaries/status only when enabled.</li>
+<li>[x] Ensure screen-reader/live-region behavior does not announce every token/status update noisily.</li>
+<li>[x] Ensure all controls are keyboard operable and expose accessible labels/state.</li>
+</ul>
+<h3 id="integrated-app">Integrated app<a class="headerlink" href="#integrated-app" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] Compose the reusable controls/activity renderer in the official Scriberig app.</li>
+<li>[x] MUI-specific styling may live in <code>components-mui</code>/integrated app, but model/thinking/activity semantics remain in public packages.</li>
+<li>[x] Confirm the integrated app imports no provider SDK/config secret and does not contact model providers directly.</li>
+</ul>
+<h3 id="web-targeted-tests">Web targeted tests<a class="headerlink" href="#web-targeted-tests" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] composer submit/continue and cancel are separate actions;</li>
+<li>[x] model and thinking selectors use shared client/model state;</li>
+<li>[x] TUI-originated model/thinking change can be reflected after event/refresh;</li>
+<li>[x] 2px rails represent nested activity depth;</li>
+<li>[x] visibility/detail controls rerender existing activity without network execution;</li>
+<li>[x] prompt/tool sensitive markers are absent from rendered DOM/text;</li>
+<li>[x] reconnect reconstructs durable activity and attaches the live tail;</li>
+<li>[x] keyboard/accessibility behavior for selectors, activity expansion, and controls is covered.</li>
+</ul>
+<p>Targeted verification examples:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>pnpm --dir web --filter @scriberig/model test
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>pnpm --dir web --filter @scriberig/react test
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>pnpm --dir web --filter @scriberig/agent-ui test
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>pnpm --dir web --filter @scriberig/agent-ui typecheck
+</code></pre></div>
+<p>Do not run <code>pnpm --dir web test</code>, <code>typecheck</code>, or <code>build</code> for the entire workspace yet.</p>
+<h2 id="phase-k-cross-surface-conformance-scenarios">Phase K - Cross-Surface Conformance Scenarios<a class="headerlink" href="#phase-k-cross-surface-conformance-scenarios" title="Permanent link">&para;</a></h2>
+<p>Extend the existing deterministic conformance fixture set from task 115. Semantic conformance compares shared state/results, not terminal cells versus React markup.</p>
+<ul>
+<li>[x] Scenario: TUI selects model B; web refresh/event observation sees model B for the same session.</li>
+<li>[x] Scenario: web selects model A; TUI refresh/event observation sees model A.</li>
+<li>[x] Scenario: a running invocation on model A remains on A after session switches to B; the next invocation uses B.</li>
+<li>[x] Scenario: a running invocation at thinking <code>medium</code> remains <code>medium</code>; next invocation uses newly selected <code>high</code> or equivalent model-advertised id.</li>
+<li>[x] Scenario: switching to a model that does not support the current thinking id resolves the documented fallback and emits visible safe change activity.</li>
+<li>[x] Scenario: TUI and web may use different presentation preferences while observing the exact same underlying activity ids/results.</li>
+<li>[x] Scenario: reasoning hidden versus shown changes no semantic session/activity source data and performs no extra model call.</li>
+<li>[x] Scenario: tool output hidden/summary/full performs no extra tool call.</li>
+<li>[x] Scenario: tool invocation simple/detailed performs no extra tool call.</li>
+<li>[x] Scenario: prompt hidden/shown performs no extra provider call.</li>
+<li>[x] Scenario: nested model -&gt; tool -&gt; child branch -&gt; tool result has stable parent relationships independent of renderer.</li>
+<li>[x] Scenario: disconnect/reconnect loses transient events but reconstructs durable activity and final result.</li>
+<li>[x] Scenario: huge tool result stays bounded in primary activity UI and remains retrievable by stable reference.</li>
+<li>[x] Scenario: an unmistakable fake provider secret is absent from protocol/activity/TUI/web/model-request presentation.</li>
+<li>[x] Scenario: an unmistakable fake sensitive tool parameter is redacted in detailed tool invocation on both surfaces.</li>
+<li>[x] Scenario: no fixture/assertion depends on private chain-of-thought.</li>
+<li>[x] Scenario: cancel semantics remain shared and are not triggered by submit, navigation, closing a panel, or changing view preferences.</li>
+</ul>
+<p>During this phase run only the specific conformance test/scenario being added or fixed.</p>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>cargo test -p scriberig-conformance &lt;specific_scenario_name&gt;
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>pnpm --dir web --filter &lt;owning-package&gt; test -- &lt;specific-test-filter-if-supported&gt;
+</code></pre></div>
+<p>Do not run the complete conformance/full suite until the final gate.</p>
+<hr />
+<h2 id="ui-behavior-reference">UI Behavior Reference<a class="headerlink" href="#ui-behavior-reference" title="Permanent link">&para;</a></h2>
+<h3 id="compactdefault-presentation">Compact/default presentation<a class="headerlink" href="#compactdefault-presentation" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>Agent                                  Sonnet Coding ▾  thinking: high ▾
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>You
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>Inspect why the importer is failing.
+<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>
+<a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>▏ Thinking…
+<a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a>▏ inspect crates/.../importer.rs
+<a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>▏ ✓ 241 lines · manifest loader found
+<a id="__codelineno-26-9" name="__codelineno-26-9" href="#__codelineno-26-9"></a>▏
+<a id="__codelineno-26-10" name="__codelineno-26-10" href="#__codelineno-26-10"></a>▏ The manifest is stale because ...
+<a id="__codelineno-26-11" name="__codelineno-26-11" href="#__codelineno-26-11"></a>
+<a id="__codelineno-26-12" name="__codelineno-26-12" href="#__codelineno-26-12"></a>&gt; Ask Scriberig…
+</code></pre></div>
+<h3 id="nested-activity">Nested activity<a class="headerlink" href="#nested-activity" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>▏ Thinking…
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>▏ inspect session runtime
+<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>▏
+<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>▏ ▏ Branch: inspect provider architecture
+<a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>▏ ▏ Thinking…
+<a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>▏ ▏ search_code "ProviderConfig"
+<a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a>▏ ▏ ✓ 8 matches
+<a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>▏ ▏ Done
+<a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a>▏
+<a id="__codelineno-27-10" name="__codelineno-27-10" href="#__codelineno-27-10"></a>▏ I have enough information to continue.
+</code></pre></div>
+<p>The TUI rail is a terminal glyph. The web equivalent is an actual <code>2px</code> CSS rail.</p>
+<h3 id="detailed-tool-invocation">Detailed tool invocation<a class="headerlink" href="#detailed-tool-invocation" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>▏ search_code
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>▏   repository: TNick/scriberig
+<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>▏   query: ThinkingLevel
+<a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>▏   path: crates/
+<a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>▏   case_sensitive: false
+</code></pre></div>
+<h3 id="simple-tool-invocation">Simple tool invocation<a class="headerlink" href="#simple-tool-invocation" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>▏ search_code "ThinkingLevel" in TNick/scriberig
+</code></pre></div>
+<h3 id="promptmodel-request-view">Prompt/model-request view<a class="headerlink" href="#promptmodel-request-view" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>▏ Model request
+<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>▏   System instructions
+<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>▏     ...safe visible section...
+<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>▏   Project instructions
+<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>▏     ...safe visible section...
+<a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>▏   Context
+<a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a>▏     ...bounded safe projection/reference...
+<a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>▏   User
+<a id="__codelineno-30-9" name="__codelineno-30-9" href="#__codelineno-30-9"></a>▏     Propose the change.
+<a id="__codelineno-30-10" name="__codelineno-30-10" href="#__codelineno-30-10"></a>▏   Tools
+<a id="__codelineno-30-11" name="__codelineno-30-11" href="#__codelineno-30-11"></a>▏     inspect
+<a id="__codelineno-30-12" name="__codelineno-30-12" href="#__codelineno-30-12"></a>▏     search_code
+</code></pre></div>
+<p>Never render credentials, authorization values, or private reasoning in this view.</p>
+<hr />
+<h2 id="do-not-do">Do Not Do<a class="headerlink" href="#do-not-do" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Do not add a second transcript database.</li>
+<li>Do not flatten the canonical session into a chat-only model.</li>
+<li>Do not make the TUI own model/provider execution semantics.</li>
+<li>Do not make the web app own model/provider execution semantics.</li>
+<li>Do not create TUI-only or web-only model selection state as the authoritative selection.</li>
+<li>Do not create a process-global mutable <code>active_model</code> as the interactive source of truth.</li>
+<li>Do not hard-code one universal list of thinking levels.</li>
+<li>Do not change a running invocation when the user changes future model/thinking selection.</li>
+<li>Do not expose hidden/private chain-of-thought.</li>
+<li>Do not use presentation visibility to decide whether activity/result data is captured.</li>
+<li>Do not rerun a tool/model merely because the user expands or changes verbosity.</li>
+<li>Do not dump unbounded tool results or raw provider JSON into TUI/web activity.</li>
+<li>Do not send credentials to browser/TUI clients.</li>
+<li>Do not place secret values in model profiles, protocol DTOs, session records, or prompt-display data.</li>
+<li>Do not infer causal nesting only from timestamps.</li>
+<li>Do not store colors/pixels/terminal indentation in semantic activity records.</li>
+<li>Do not conflate event cursors with mutation revisions.</li>
+<li>Do not add a new agent-specific network stack when existing HTTP/event transport is adequate.</li>
+<li>Do not bypass shared cancellation, session, operation, or migration semantics.</li>
+<li>Do not run the full repository test suite before the Final Full-Suite Gate.</li>
+</ul>
+<hr />
+<h2 id="implementation-completion-checklist">Implementation Completion Checklist<a class="headerlink" href="#implementation-completion-checklist" title="Permanent link">&para;</a></h2>
+<p>All boxes below must be checked from work completed in the phases above before the final full-suite gate begins.</p>
+<h3 id="shared-execution-semantics">Shared execution semantics<a class="headerlink" href="#shared-execution-semantics" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] Model library/profile abstraction exists at the correct shared layer.</li>
+<li>[x] Models advertise their own ordered thinking levels and defaults.</li>
+<li>[x] Provider adapters translate thinking ids without leaking provider wire semantics upward.</li>
+<li>[x] Session model selection is shared and scoped rather than process-global.</li>
+<li>[x] Session thinking selection is shared and scoped.</li>
+<li>[x] Running invocations are unaffected by later selection changes.</li>
+<li>[x] Invocation provenance records resolved model and thinking safely.</li>
+<li>[x] Unsupported thinking after a model switch falls back deterministically and visibly.</li>
+</ul>
+<h3 id="shared-activity-and-safe-inspection">Shared activity and safe inspection<a class="headerlink" href="#shared-activity-and-safe-inspection" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] Causal session activity projection exists with stable ids/sequence/parents.</li>
+<li>[x] Durable activity and transient live tail are distinct.</li>
+<li>[x] Reasoning summary/status is distinct from assistant output and private reasoning is never exposed.</li>
+<li>[x] Tool invocation retains structured arguments plus safe compact presentation.</li>
+<li>[x] Tool result retains deterministic summary/preview plus durable full-result reference.</li>
+<li>[x] Safe structured model-request projection exists and is redacted.</li>
+<li>[x] Activity replay/reconnect reconstructs durable state without requiring stream history.</li>
+</ul>
+<h3 id="presentation-controls">Presentation controls<a class="headerlink" href="#presentation-controls" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] Reasoning visibility supports hidden/shown.</li>
+<li>[x] Tool invocation supports simple/detailed.</li>
+<li>[x] Tool output supports hidden/summary/full.</li>
+<li>[x] Prompt/model-request supports hidden/shown.</li>
+<li>[x] Optional verbosity presets only set independent controls.</li>
+<li>[x] Presentation changes never create model/tool invocations or semantic session history.</li>
+<li>[x] Client-local presentation override can coexist with shared/user default.</li>
+</ul>
+<h3 id="protocolclientserver">Protocol/client/server<a class="headerlink" href="#protocolclientserver" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] Rust protocol exposes safe model/thinking/activity operations.</li>
+<li>[x] Server dispatch and existing event transport expose them without provider secrets.</li>
+<li>[x] Rust client exposes semantic APIs.</li>
+<li>[x] TypeScript protocol/client expose equivalent APIs.</li>
+<li>[x] Observation cursor and mutation revision semantics are not conflated.</li>
+</ul>
+<h3 id="tui">TUI<a class="headerlink" href="#tui" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] Free-text multiline composer is persistent in normal Agent/Session UI.</li>
+<li>[x] Existing shared submit/cancel service paths are reused.</li>
+<li>[x] Composer remains usable while work is running.</li>
+<li>[x] Model picker and thinking picker are functional.</li>
+<li>[x] <code>/model</code>, <code>/thinking</code>, <code>/view</code> conveniences map to shared semantics if implemented.</li>
+<li>[x] Causal activity renders terminal depth rails with non-color hierarchy fallback.</li>
+<li>[x] Thinking, tool-call detail, tool-output verbosity, and prompt display controls all work without rerun.</li>
+<li>[x] Sensitive values are redacted in TUI detail modes.</li>
+</ul>
+<h3 id="web">Web<a class="headerlink" href="#web" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] Reusable public web packages, not only the app, own agent-console behavior.</li>
+<li>[x] Persistent composer, model picker, thinking picker, and view controls are reusable.</li>
+<li>[x] Activity uses literal <code>2px</code> nesting rails plus accessible non-color hierarchy.</li>
+<li>[x] Thinking, tool-call detail, tool-output verbosity, and prompt display controls all work without rerun.</li>
+<li>[x] Integrated app consumes only public package semantics.</li>
+<li>[x] Sensitive values are redacted in web detail modes.</li>
+</ul>
+<h3 id="targeted-verification">Targeted verification<a class="headerlink" href="#targeted-verification" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[x] Every implementation checkbox above was accompanied by the smallest relevant targeted test/check.</li>
+<li>[x] Cross-surface deterministic scenarios for model/thinking synchronization pass individually.</li>
+<li>[x] Cross-surface deterministic scenarios for presentation-only changes pass individually.</li>
+<li>[x] Secret/sensitive-value leakage scenarios pass individually.</li>
+<li>[x] Reconnect/durable-recovery scenario passes individually.</li>
+<li>[x] No full workspace/repository test suite was run before this point.</li>
+</ul>
+<hr />
+<h1 id="final-full-suite-gate">Final Full-Suite Gate<a class="headerlink" href="#final-full-suite-gate" title="Permanent link">&para;</a></h1>
+<p><strong>Do not enter this section until every implementation and targeted-verification checkbox above is <code>[x]</code>.</strong></p>
+<p>This is the one point at which repository-wide verification is intentionally required.</p>
+<p>Run the repository-wide quality/test commands required by current <code>AGENTS.md</code> and workspace scripts. At minimum, unless repository instructions have changed:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>python3 tools/lint_repo.py --fix
+<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>cargo fmt --all
+<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>cargo check --workspace --all-targets
+<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>cargo clippy --workspace --all-targets -- -D warnings
+<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>cargo test --workspace
+<a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a>pnpm --dir web format
+<a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a>pnpm --dir web typecheck
+<a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a>pnpm --dir web test
+<a id="__codelineno-31-9" name="__codelineno-31-9" href="#__codelineno-31-9"></a>pnpm --dir web build
+</code></pre></div>
+<p>If formatting changes files, inspect them and rerun the affected final checks as needed. Do not mark a command complete merely because it was started.</p>
+<ul>
+<li>[x] Repository lint/fix completes without unresolved violations.</li>
+<li>[x] Rust formatting completes and leaves intended source changes only.</li>
+<li>[x] Full Rust workspace check passes.</li>
+<li>[x] Full Rust workspace Clippy passes with warnings denied.</li>
+<li>[ ] Full Rust workspace test suite passes.</li>
+<li>Focused PHP self-hosting verification passes after candidate restart was
+  updated to use <code>--git-tracked</code>, the fixture copier began honoring standard Git
+  excludes, and the test dropped its open SQLite handle before teardown. The
+  full Rust workspace test gate remains unchecked pending the full suite.</li>
+<li>[x] Full web formatting completes.</li>
+<li>[x] Full web typecheck passes.</li>
+<li>[x] Full web test suite passes.</li>
+<li>[x] Full web build passes.</li>
+<li>[x] Relevant capability/conformance status is updated honestly if this feature adds or advances capability rows.</li>
+<li>[ ] Re-read all checked items in this plan against the final code after formatting/fixes.</li>
+<li>[x] Confirm no credential/private-reasoning/sensitive-tool marker appears in public protocol fixtures, TUI snapshots, web snapshots, or captured safe model-request data.</li>
+<li>[ ] Set the document status to <code>[x] Complete</code> only after every checkbox in this file that is required by the final implementation is checked and the full-suite gate is green.</li>
+</ul>
+<hr />
+<h2 id="final-acceptance-contract">Final Acceptance Contract<a class="headerlink" href="#final-acceptance-contract" title="Permanent link">&para;</a></h2>
+<p>The task is complete only when this statement is true:</p>
+<blockquote>
+<p>A user can type freely into either the TUI or web Agent Console, inspect nested agent activity at a chosen verbosity, switch the active model and a model-supported thinking level for future invocations, hide or show reasoning summaries/status and safe model requests, choose simple or detailed tool invocations, choose hidden/summary/full tool results, and observe the same underlying session execution from both surfaces. Execution-affecting changes are durable and provenance-safe; presentation-only changes cause no re-execution and do not pollute semantic history; credentials, sensitive parameters, and private chain-of-thought never enter the public trace.</p>
+</blockquote>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.indexes", "navigation.top", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

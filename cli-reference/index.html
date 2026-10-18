@@ -366,6 +366,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#srig-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        srig secrets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#srig-doctor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        srig doctor
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#srig-agent" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1320,6 +1342,8 @@
       
         
       
+        
+      
     
     
     
@@ -2149,6 +2173,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../level-2/029.%20secrets%20storage%20authorization%20and%20lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secrets Storage, Authorization, and Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2164,6 +2216,12 @@
   
     
     
+      
+        
+      
+        
+      
+        
       
         
       
@@ -6140,6 +6198,90 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../level-3/131.%20implement%20secure%20secrets%20management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Secure Secrets Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../level-3/132.%20add%20provider%20api%20doctor%20command/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Add provider API doctor command
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../level-3/133.%20implement%20shared%20agent%20console%20model%20thinking%20and%20trace%20controls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Shared Agent Console, Model/Thinking Controls, and Trace Presentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -6222,6 +6364,28 @@
     <span class="md-ellipsis">
       
         srig run
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#srig-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        srig secrets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#srig-doctor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        srig doctor
       
     </span>
   </a>
@@ -6395,6 +6559,21 @@
 <td><code>srig agent-continue &lt;SESSION&gt; &lt;BRANCH&gt; &lt;PROMPT&gt; [OPTIONS]</code></td>
 <td>Continues an agent operation on an existing branch.</td>
 </tr>
+<tr>
+<td><code>config</code></td>
+<td><code>srig config show [--format &lt;human\|json&gt;]</code></td>
+<td>Prints effective local-agent settings and their sources.</td>
+</tr>
+<tr>
+<td><code>secrets</code></td>
+<td><code>srig secrets &lt;set\|list\|status\|delete\|bind\|unbind&gt; ...</code></td>
+<td>Manages local OS credentials and exact destination bindings.</td>
+</tr>
+<tr>
+<td><code>doctor</code></td>
+<td><code>srig doctor [--format &lt;human\|json&gt;]</code></td>
+<td>Sends a bounded provider request using the effective credential policy.</td>
+</tr>
 </tbody>
 </table>
 <p>Each subcommand also supports <code>-h</code> / <code>--help</code>.</p>
@@ -6519,24 +6698,84 @@ one machine-readable result and does not emit transient stream text.</p>
 <tr>
 <td><code>--api-key-env &lt;NAME&gt;</code></td>
 <td>unset</td>
-<td>Environment variable containing the provider credential; requires <code>--base-url</code>.</td>
+<td>Compatibility environment credential reference; conflicts with <code>--credential-ref</code>.</td>
+</tr>
+<tr>
+<td><code>--credential-ref &lt;REFERENCE&gt;</code></td>
+<td>unset</td>
+<td><code>keyring:NAME</code>, <code>environment:NAME</code>, <code>file:ABSOLUTE_PATH</code>, or <code>none</code> to clear an inherited credential.</td>
 </tr>
 </tbody>
 </table>
+<p><code>run</code> and <code>agent</code> resolve each setting independently in this order: system
+configuration file, user configuration file, nearest project configuration
+file, matching <code>SRIG_*</code> environment variable, explicitly supplied option, then
+the built-in default. Files are named <code>config.yaml</code>, <code>config.yml</code>, or
+<code>config.json</code> and contain a flat object of setting names such as <code>provider</code>,
+<code>model</code>, <code>base_url</code>, and <code>no_stream</code>.</p>
+<p>On Windows, system and user files are searched under <code>%ProgramData%\Scriberig</code>
+and <code>%APPDATA%\Scriberig</code>. On macOS they are searched under
+<code>/etc/scriberig</code> and <code>~/Library/Application Support/Scriberig</code>. On other Unix
+systems they are searched under <code>/etc/scriberig</code> and <code>$XDG_CONFIG_HOME/scriberig</code>
+(or <code>~/.config/scriberig</code> when <code>XDG_CONFIG_HOME</code> is unset). Project discovery
+walks upward from the working directory. At each level, YAML is preferred over
+YML, which is preferred over JSON.</p>
+<p>Environment names use the <code>SRIG_</code> prefix and uppercase property name, for
+example <code>SRIG_PROVIDER</code>, <code>SRIG_BASE_URL</code>, and <code>SRIG_NO_STREAM</code>. Credential
+values remain indirect: <code>api_key_env</code> names the environment variable to read
+for the provider request.</p>
+<p>Inspect effective values and their winning source with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>srig config show [--format human|json]
+</code></pre></div>
+<p>The command reports each supported setting, its value, and a source path or
+designator such as <code>env:SRIG_MODEL</code>, <code>cli:--model</code>, or <code>default</code>. The credential
+environment variable name may appear in the atomic <code>credential</code> reference. The named
+secret variable is not read or printed by this command.</p>
+<p>Credential references require an explicit destination/project binding before
+the value is retrieved. An explicit local CLI environment reference paired with
+an explicit <code>--base-url</code> supplies a binding for that invocation only, subject to
+administrator restrictions. Project configuration cannot authorize new uses.
+URLs cannot contain embedded credentials, queries, or fragments.</p>
 <p>Pressing Ctrl-C requests cancellation of the shared operation. The command
 preserves the operation/session record and exits with status <code>130</code>.</p>
+<h2 id="srig-secrets"><code>srig secrets</code><a class="headerlink" href="#srig-secrets" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>srig secrets set NAME [--stdin] [--replace]
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>srig secrets list [--format human|json]
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>srig secrets status NAME [--format human|json]
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>srig secrets delete NAME
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>srig secrets bind NAME --base-url URL --project-root PATH [--service]
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>srig secrets unbind NAME --base-url URL --project-root PATH [--service]
+</code></pre></div>
+<p><code>set</code> reads a hidden terminal prompt or explicitly selected bounded stdin. It
+never accepts a value argument. <code>list</code> reads secret-free registry metadata;
+<code>status</code> checks native-store metadata without a provider request. Binding names
+may be managed keyring aliases or typed environment/file references. Management
+is local CLI only. See <a href="SECRETS.md">Managing secrets</a> for storage locations,
+deployment guidance, stable error statuses, rotation, and exposure recovery.</p>
+<h2 id="srig-doctor"><code>srig doctor</code><a class="headerlink" href="#srig-doctor" title="Permanent link">&para;</a></h2>
+<p>Check the effective provider connection and credential:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>srig doctor [--format human|json]
+</code></pre></div>
+<p>Doctor resolves layered provider settings from the same system, user, project,
+and environment sources as <code>run</code>, checks saved credential authorization for
+the current project and endpoint, then asks the configured model to end its
+response with <code>MODEL OK</code>. Brief reasoning may precede that marker. The request
+is bounded to 512 output tokens; doctor does not print the response or
+credential. The request may use provider quota. A failed check exits with
+status <code>1</code>; JSON output includes the provider, model, endpoint, credential
+status, API status, and safe error detail.</p>
 <h2 id="srig-agent"><code>srig agent</code><a class="headerlink" href="#srig-agent" title="Permanent link">&para;</a></h2>
 <p>Accept one prompt for the integrated agent runtime.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>srig agent &lt;PROMPT&gt; [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>srig agent &lt;PROMPT&gt; [OPTIONS]
 </code></pre></div>
 <p><code>&lt;PROMPT&gt;</code> is one required positional string. Quote prompts that contain shell whitespace.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>srig agent "Implement the next focused design task"
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>srig agent "Implement the next focused design task"
 </code></pre></div>
 <p><code>agent</code> delegates to exactly the same shared application operation path as
 <code>run</code>; the two spellings are retained for compatibility.</p>
 <h2 id="srig-maintenance"><code>srig maintenance</code><a class="headerlink" href="#srig-maintenance" title="Permanent link">&para;</a></h2>
 <p>Select repository or database maintenance mode.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>srig maintenance [--db &lt;PATH&gt;]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>srig maintenance [--db &lt;PATH&gt;]
 </code></pre></div>
 <table>
 <thead>
@@ -6558,7 +6797,7 @@ preserves the operation/session record and exits with status <code>130</code>.</
 database and reports corruption and unreachable snapshot counts.</p>
 <h2 id="srig-inspect"><code>srig inspect</code><a class="headerlink" href="#srig-inspect" title="Permanent link">&para;</a></h2>
 <p>Inspect trust metadata for one semantic entity.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>srig inspect &lt;ENTITY&gt; [OPTIONS]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>srig inspect &lt;ENTITY&gt; [OPTIONS]
 </code></pre></div>
 <table>
 <thead>
@@ -6598,13 +6837,13 @@ denials use exit status <code>77</code>.</p>
 <h2 id="remote-operation-commands">Remote operation commands<a class="headerlink" href="#remote-operation-commands" title="Permanent link">&para;</a></h2>
 <p>The following commands use the public protocol client. They default to
 <code>http://127.0.0.1:7337</code> and accept <code>--connect &lt;URL&gt;</code> for another server.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>srig capabilities [--connect &lt;URL&gt;] [--json]
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>srig operation status &lt;OPERATION&gt; [--connect &lt;URL&gt;]
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>srig operation cancel &lt;OPERATION&gt; [--connect &lt;URL&gt;]
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>srig events [--kind &lt;EVENT_KIND&gt;]... [--after &lt;CURSOR&gt;] [--connect &lt;URL&gt;]
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>srig session tree &lt;SESSION&gt; [--connect &lt;URL&gt;]
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>srig session activity &lt;SESSION&gt; &lt;BRANCH&gt; [--connect &lt;URL&gt;]
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>srig agent-continue &lt;SESSION&gt; &lt;BRANCH&gt; &lt;PROMPT&gt; [--connect &lt;URL&gt;]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>srig capabilities [--connect &lt;URL&gt;] [--json]
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>srig operation status &lt;OPERATION&gt; [--connect &lt;URL&gt;]
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>srig operation cancel &lt;OPERATION&gt; [--connect &lt;URL&gt;]
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>srig events [--kind &lt;EVENT_KIND&gt;]... [--after &lt;CURSOR&gt;] [--connect &lt;URL&gt;]
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>srig session tree &lt;SESSION&gt; [--connect &lt;URL&gt;]
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>srig session activity &lt;SESSION&gt; &lt;BRANCH&gt; [--connect &lt;URL&gt;]
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>srig agent-continue &lt;SESSION&gt; &lt;BRANCH&gt; &lt;PROMPT&gt; [--connect &lt;URL&gt;]
 </code></pre></div>
 <p><code>events --kind agent_output_delta</code> observes bounded streaming output. Events
 are returned as structured JSON so callers can retain the cursor and recover

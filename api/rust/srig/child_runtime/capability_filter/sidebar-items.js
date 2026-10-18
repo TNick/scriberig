@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["delegated_capabilities"]};

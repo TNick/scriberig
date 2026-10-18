@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["create_private_dir","create_private_file","open_private","open_system_policy","protect_new_file","read_secret","read_secret_file","reject_links"]};

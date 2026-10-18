@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ConfigSource"],"fn":["render","source_designator"],"struct":["ConfigEntry","ConfigError","ConfigResolver","ResolvedConfig"]};

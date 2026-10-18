@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["CredentialRef","ModelCapabilities","ModelDescriptor","ModelLibraryResponse","ModelProfile","ThinkingLevelDescriptor"]};

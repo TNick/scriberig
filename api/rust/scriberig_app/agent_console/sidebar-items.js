@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["configuration","detail","library","model","preferences","resolution"]};

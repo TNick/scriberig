@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["PromptVisibility","ReasoningVisibility","ToolInvocationDetail","ToolOutputVisibility"],"struct":["AgentPresentationPreferences","AgentPresentationPreferencesReadRequest","AgentPresentationPreferencesResponse","AgentPresentationPreferencesSetRequest"]};

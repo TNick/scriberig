@@ -1307,6 +1307,8 @@
       
         
       
+        
+      
     
     
     
@@ -2136,6 +2138,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="level-2/029.%20secrets%20storage%20authorization%20and%20lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secrets Storage, Authorization, and Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2151,6 +2181,12 @@
   
     
     
+      
+        
+      
+        
+      
+        
       
         
       
@@ -6127,6 +6163,90 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="level-3/131.%20implement%20secure%20secrets%20management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Secure Secrets Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="level-3/132.%20add%20provider%20api%20doctor%20command/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Add provider API doctor command
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="level-3/133.%20implement%20shared%20agent%20console%20model%20thinking%20and%20trace%20controls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implement Shared Agent Console, Model/Thinking Controls, and Trace Presentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -6315,6 +6435,9 @@
 </ul>
 <p>The intended result is a system where humans, agents, compilers, editors, and third-party applications can work with different views of the same persistent semantic state without each inventing a separate storage or mutation model.</p>
 <h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
+<p>Provider credentials and their destination bindings are described in
+<a href="SECRETS.md">Managing secrets</a>. Use <code>srig config show</code> to inspect references and
+configuration provenance without retrieving credential values.</p>
 <p>The GitHub Pages site publishes the project documentation together with generated API references:</p>
 <ul>
 <li><a href="https://tnick.github.io/scriberig/cli-reference/">CLI reference</a></li>
@@ -6369,19 +6492,47 @@ same text adapter, so no file is silently dropped from onboarding.</p>
 <p>The TUI can scan a project before startup and optionally import it:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>srig tui --db scriberig.sqlite --project PATH --import
 </code></pre></div>
+<p>The native agent reads an optional JSON model catalog from
+<code>SCRIBE_AGENT_MODEL_CATALOG</code>. Each catalog entry supplies a stable model <code>id</code>,
+<code>display_name</code>, provider-native <code>provider_model_id</code>, and optional
+<code>thinking_levels</code>. A thinking level has an <code>id</code>, <code>label</code>, and optional
+provider-specific <code>provider_parameters</code> object. These parameters stay in the
+runtime adapter and are never returned in the public model library. If the
+variable is unset, the configured <code>SCRIBE_AGENT_MODEL</code> is exposed as the only
+model and has no thinking levels.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">"models"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="p">{</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">      </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"local-reasoner"</span><span class="p">,</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">      </span><span class="nt">"display_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Local Reasoner"</span><span class="p">,</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">      </span><span class="nt">"provider_model_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"reasoner-v2"</span><span class="p">,</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">      </span><span class="nt">"thinking_levels"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">        </span><span class="p">{</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">          </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"deliberate"</span><span class="p">,</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="w">          </span><span class="nt">"label"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Deliberate"</span><span class="p">,</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="w">          </span><span class="nt">"provider_parameters"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="w">            </span><span class="nt">"reasoning_effort"</span><span class="p">:</span><span class="w"> </span><span class="s2">"high"</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="w">          </span><span class="p">}</span>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="w">      </span><span class="p">],</span>
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="w">      </span><span class="nt">"default_thinking_level"</span><span class="p">:</span><span class="w"> </span><span class="s2">"deliberate"</span>
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="p">}</span>
+</code></pre></div>
 <p>Build all Rust workspace targets with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>make build
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>make build
 </code></pre></div>
 <p>Build and install the <code>srig</code> executable into Cargo's bin directory with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>make install
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>make install
 </code></pre></div>
 <h2 id="local-app">Local app<a class="headerlink" href="#local-app" title="Permanent link">&para;</a></h2>
 <p>Start or reuse the API and web application, create the ignored SQLite database
 under <code>playground/dev-app-runtime/</code>, and open the editor in your browser with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>make dev
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>make dev
 </code></pre></div>
 <p>Stop the processes started by that command with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>make dev-stop
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>make dev-stop
 </code></pre></div>
 <p>The Make targets work on Linux and Windows. Repeating <code>make dev</code> reuses the
 running services; <code>make dev-stop</code> stops them. The current API exposes health and

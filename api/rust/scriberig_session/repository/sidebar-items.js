@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"trait":["SessionStore"]};
+window.SIDEBAR_ITEMS = {"enum":["SelectionStoreError"],"trait":["SessionStore"]};

@@ -14,9 +14,9 @@
 <section class="tsd-panel tsd-comment">
 <div class="tsd-comment tsd-typography"><p>A cursor-bounded branch activity page.</p>
 </div></section>
-<div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">BranchActivityPage</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#branchid">branchId</a><span class="tsd-signature-symbol">:</span> <a href="../types/_scriberig_protocol.BranchId.html" class="tsd-signature-type tsd-kind-type-alias">BranchId</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#items">items</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <a href="_scriberig_protocol.BranchActivity.html" class="tsd-signature-type tsd-kind-interface">BranchActivity</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#nextcursor">nextCursor</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
+<div class="tsd-signature"><span class="tsd-signature-keyword">interface</span> <span class="tsd-kind-interface">BranchActivityPage</span> <span class="tsd-signature-symbol">{</span><br/>    <a class="tsd-kind-property" href="#branchid">branchId</a><span class="tsd-signature-symbol">:</span> <a href="../types/_scriberig_protocol.BranchId.html" class="tsd-signature-type tsd-kind-type-alias">BranchId</a><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#items">items</a><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <a href="_scriberig_protocol.BranchActivity.html" class="tsd-signature-type tsd-kind-interface">BranchActivity</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#nextcursor">nextCursor</a><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">;</span><br/>    <a class="tsd-kind-property" href="#sessionid">sessionId</a><span class="tsd-signature-symbol">?:</span> <a href="../types/_scriberig_protocol.SessionId.html" class="tsd-signature-type tsd-kind-type-alias">SessionId</a><span class="tsd-signature-symbol">;</span><br/><span class="tsd-signature-symbol">}</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/291813d1b4ef15b571ad778541375f7fbf1cd092/web/packages/protocol/src/sessions.ts#L72">sessions.ts:72</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/efd9d58375c392615a21ced6eb97190390eca29d/web/packages/protocol/src/sessions.ts#L139">sessions.ts:139</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -27,6 +27,7 @@
 <div class="tsd-index-list"><a href="#branchid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>branch<wbr/>Id</span></a>
 <a href="#items" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>items</span></a>
 <a href="#nextcursor" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>next<wbr/>Cursor?</span></a>
+<a href="#sessionid" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>session<wbr/>Id?</span></a>
 </div></section></div></details></section></section>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="properties-1">Properties<a href="#properties-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
@@ -35,17 +36,22 @@
 <h3 class="tsd-anchor-link" id="branchid"><span>branch<wbr/>Id</span><a href="#branchid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">branchId</span><span class="tsd-signature-symbol">:</span> <a href="../types/_scriberig_protocol.BranchId.html" class="tsd-signature-type tsd-kind-type-alias">BranchId</a></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/291813d1b4ef15b571ad778541375f7fbf1cd092/web/packages/protocol/src/sessions.ts#L73">sessions.ts:73</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/efd9d58375c392615a21ced6eb97190390eca29d/web/packages/protocol/src/sessions.ts#L140">sessions.ts:140</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="items"><span>items</span><a href="#items" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">items</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-keyword">readonly</span> <a href="_scriberig_protocol.BranchActivity.html" class="tsd-signature-type tsd-kind-interface">BranchActivity</a><span class="tsd-signature-symbol">[]</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/291813d1b4ef15b571ad778541375f7fbf1cd092/web/packages/protocol/src/sessions.ts#L74">sessions.ts:74</a></li></ul></aside></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/efd9d58375c392615a21ced6eb97190390eca29d/web/packages/protocol/src/sessions.ts#L142">sessions.ts:142</a></li></ul></aside></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="nextcursor"><code class="tsd-tag">Optional</code><span>next<wbr/>Cursor</span><a href="#nextcursor" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <div class="tsd-signature"><span class="tsd-kind-property">nextCursor</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">string</span></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/291813d1b4ef15b571ad778541375f7fbf1cd092/web/packages/protocol/src/sessions.ts#L75">sessions.ts:75</a></li></ul></aside></section></section></details></div>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/efd9d58375c392615a21ced6eb97190390eca29d/web/packages/protocol/src/sessions.ts#L143">sessions.ts:143</a></li></ul></aside></section>
+<section class="tsd-panel tsd-member">
+<h3 class="tsd-anchor-link" id="sessionid"><code class="tsd-tag">Optional</code><span>session<wbr/>Id</span><a href="#sessionid" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<div class="tsd-signature"><span class="tsd-kind-property">sessionId</span><span class="tsd-signature-symbol">?:</span> <a href="../types/_scriberig_protocol.SessionId.html" class="tsd-signature-type tsd-kind-type-alias">SessionId</a></div><aside class="tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/efd9d58375c392615a21ced6eb97190390eca29d/web/packages/protocol/src/sessions.ts#L141">sessions.ts:141</a></li></ul></aside></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -61,7 +67,7 @@
 <h3>On This Page</h3></summary>
 <div class="tsd-accordion-details">
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Properties</summary>
-<div><a href="#branchid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>branch<wbr/>Id</span></a><a href="#items"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>items</span></a><a href="#nextcursor"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>next<wbr/>Cursor</span></a></div></details></div></details></div>
+<div><a href="#branchid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>branch<wbr/>Id</span></a><a href="#items"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>items</span></a><a href="#nextcursor"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>next<wbr/>Cursor</span></a><a href="#sessionid"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>session<wbr/>Id</span></a></div></details></div></details></div>
 <div class="site-menu">
 <nav class="tsd-navigation"><a href="../index.html">Documentation</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">
