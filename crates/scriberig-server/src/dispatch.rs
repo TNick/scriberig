@@ -1,26 +1,28 @@
 //! Dispatches protocol requests through the injected application boundary.
 
+mod agent_console;
 mod helpers;
-
-use std::str::FromStr;
+mod inspect;
+mod query;
+#[path = "dispatch/session.rs"]
+mod session;
 
 use scriberig_app::{
-    ApplicationContext, CapabilityContext, CapabilityId, DetailLevel, InspectRequest,
-    SnapshotResolution,
+    ApplicationContext, Capability, CapabilityAction, CapabilityConstraints, CapabilityContext,
+    CapabilityId, CapabilityScope, OperationKind,
 };
-use scriberig_core::{EntityId, SnapshotId};
 use scriberig_protocol::{
     CapabilitiesResponse, CapabilityInfo, OperationStatusResponse, ProtocolError,
     ProtocolErrorCode, ProtocolVersion, Request, RequestEnvelope, Response, ResponseEnvelope,
     RuntimeFeature,
 };
-use scriberig_query::QuerySpec;
 
 use crate::server::ApplicationService;
 
 /// Server-side protocol dispatcher for the initial vertical slice.
 pub struct Dispatcher<S> {
     service: S,
+    principal: Option<scriberig_app::Principal>,
 }
 
 impl<S> Dispatcher<S> {
@@ -33,7 +35,26 @@ impl<S> Dispatcher<S> {
     /// A protocol dispatcher.
     #[must_use]
     pub fn new(service: S) -> Self {
-        Self { service }
+        Self {
+            service,
+            principal: None,
+        }
+    }
+
+    /// Creates a dispatcher bound to a trusted caller identity.
+    ///
+    /// # Parameters
+    /// - `service`: Application implementation receiving semantic requests.
+    /// - `principal`: Identity established by the trusted transport boundary.
+    ///
+    /// # Returns
+    /// A protocol dispatcher carrying that caller identity.
+    #[must_use]
+    pub fn for_principal(service: S, principal: scriberig_app::Principal) -> Self {
+        Self {
+            service,
+            principal: Some(principal),
+        }
     }
 }
 
@@ -76,7 +97,7 @@ impl<S: ApplicationService> Dispatcher<S> {
     #[allow(clippy::too_many_lines)]
     fn dispatch_request(&self, request: Request, correlation_id: &str) -> Response {
         match request {
-            Request::Inspect(request) => self.inspect(request, correlation_id),
+            Request::Inspect(request) => inspect::inspect(&self.service, request, correlation_id),
             Request::Capabilities(_) => self.capabilities(),
             Request::OperationStatus(request) => self
                 .service
@@ -100,69 +121,13 @@ impl<S: ApplicationService> Dispatcher<S> {
                     Response::Events,
                 ),
             Request::Query(request) => {
-                let Ok(specification) = serde_json::from_value::<QuerySpec>(request.specification)
-                else {
-                    return Response::Error(ProtocolError {
-                        code: ProtocolErrorCode::SchemaViolation,
-                        message: "invalid query specification".to_owned(),
-                        details: None,
-                        correlation_id: Some(correlation_id.to_owned()),
-                    });
-                };
-                self.service
-                    .query(&ApplicationContext::empty(), &specification)
-                    .map_or_else(
-                        |error| Response::Error(helpers::map_error(&error, correlation_id)),
-                        |result| {
-                            Response::Query(scriberig_protocol::QueryResponse {
-                                result: serde_json::to_value(result).unwrap_or_default(),
-                            })
-                        },
-                    )
+                query::query(&self.service, request.specification, correlation_id)
             }
             Request::List(request) => {
-                let Ok(specification) =
-                    serde_json::from_value::<scriberig_query::ListRequest>(request.specification)
-                else {
-                    return Response::Error(ProtocolError {
-                        code: ProtocolErrorCode::SchemaViolation,
-                        message: "invalid list specification".to_owned(),
-                        details: None,
-                        correlation_id: Some(correlation_id.to_owned()),
-                    });
-                };
-                self.service
-                    .list(&ApplicationContext::empty(), &specification)
-                    .map_or_else(
-                        |error| Response::Error(helpers::map_error(&error, correlation_id)),
-                        |result| {
-                            Response::List(scriberig_protocol::ListResponse {
-                                result: serde_json::to_value(result).unwrap_or_default(),
-                            })
-                        },
-                    )
+                query::list(&self.service, request.specification, correlation_id)
             }
             Request::Find(request) => {
-                let Ok(specification) =
-                    serde_json::from_value::<scriberig_query::FindRequest>(request.specification)
-                else {
-                    return Response::Error(ProtocolError {
-                        code: ProtocolErrorCode::SchemaViolation,
-                        message: "invalid find specification".to_owned(),
-                        details: None,
-                        correlation_id: Some(correlation_id.to_owned()),
-                    });
-                };
-                self.service
-                    .find(&ApplicationContext::empty(), &specification)
-                    .map_or_else(
-                        |error| Response::Error(helpers::map_error(&error, correlation_id)),
-                        |result| {
-                            Response::Find(scriberig_protocol::FindResponse {
-                                result: serde_json::to_value(result).unwrap_or_default(),
-                            })
-                        },
-                    )
+                query::find(&self.service, request.specification, correlation_id)
             }
             Request::Command(request) => self
                 .service
@@ -197,6 +162,52 @@ impl<S: ApplicationService> Dispatcher<S> {
                 correlation_id,
             ),
             Request::SessionRead(request) => self.session_read(&request, correlation_id),
+            Request::ModelRequestDetail(request) => self
+                .service
+                .model_request_detail(
+                    &command_context("session_branch_tree"),
+                    &request.session.id,
+                    &request.branch.id,
+                    &request.invocation,
+                )
+                .map_or_else(
+                    |error| Response::Error(helpers::map_error(&error, correlation_id)),
+                    Response::ModelRequestDetail,
+                ),
+            Request::ToolResultDetail(request) => self
+                .service
+                .tool_result_detail(
+                    &command_context("session_branch_tree"),
+                    &request.session.id,
+                    &request.branch.id,
+                    &request.result,
+                )
+                .map_or_else(
+                    |error| Response::Error(helpers::map_error(&error, correlation_id)),
+                    Response::ToolResultDetail,
+                ),
+            Request::ModelLibrary(_) => agent_console::model_library(
+                &self.service,
+                &command_context("agent_model_library"),
+                correlation_id,
+            ),
+            Request::AgentPresentationPreferencesRead(_) => agent_console::read_preferences(
+                &self.service,
+                &agent_console::presentation_context(self.principal.as_ref()),
+                correlation_id,
+            ),
+            Request::AgentPresentationPreferencesSet(request) => agent_console::set_preferences(
+                &self.service,
+                &agent_console::presentation_context(self.principal.as_ref()),
+                &request,
+                correlation_id,
+            ),
+            Request::SessionModelSelection(request) => {
+                agent_console::set_model(&self.service, &request, correlation_id)
+            }
+            Request::SessionThinkingSelection(request) => {
+                agent_console::set_thinking(&self.service, &request, correlation_id)
+            }
             Request::Project(_) => Response::Error(ProtocolError {
                 code: ProtocolErrorCode::UnsupportedOperation,
                 message: "project operations require the HTTP project catalog".to_owned(),
@@ -206,6 +217,11 @@ impl<S: ApplicationService> Dispatcher<S> {
         }
     }
 
+    /// Builds the least-capability context for principal-scoped display settings.
+    ///
+    /// # Returns
+    /// Context restricted to the model-library capability and bound to the
+    /// trusted transport principal, when one was configured.
     /// Builds the capability response from the injected application service.
     ///
     /// # Returns
@@ -230,31 +246,6 @@ impl<S: ApplicationService> Dispatcher<S> {
                 enabled: true,
             }],
         })
-    }
-
-    /// Reads one durable session through the application boundary.
-    ///
-    /// # Parameters
-    /// - `request`: Typed session read request.
-    /// - `correlation_id`: Request correlation identity.
-    ///
-    /// # Returns
-    /// Typed session response or protocol error.
-    fn session_read(
-        &self,
-        request: &scriberig_protocol::SessionReadRequest,
-        correlation_id: &str,
-    ) -> Response {
-        self.service
-            .read_session(&command_context("session_branch_tree"), &request.session.id)
-            .map_or_else(
-                |error| Response::Error(helpers::map_error(&error, correlation_id)),
-                |response| {
-                    Response::Session(request.branch.as_ref().map_or(response.clone(), |branch| {
-                        helpers::select_branch_subtree(response, &branch.id)
-                    }))
-                },
-            )
     }
 
     /// Dispatches one typed agent request through the shared command boundary.
@@ -322,61 +313,6 @@ impl<S: ApplicationService> Dispatcher<S> {
                 },
             )
     }
-
-    /// Maps one protocol inspection request to the shared application request.
-    ///
-    /// # Parameters
-    /// - `request`: Protocol inspection request.
-    /// - `correlation_id`: Request correlation identity.
-    ///
-    /// # Returns
-    /// Typed protocol inspection response.
-    fn inspect(
-        &self,
-        request: scriberig_protocol::InspectEntityRequest,
-        correlation_id: &str,
-    ) -> Response {
-        let Ok(entity) = EntityId::from_str(&request.entity.id) else {
-            return Response::Error(ProtocolError {
-                code: ProtocolErrorCode::SchemaViolation,
-                message: "invalid entity identifier".to_owned(),
-                details: None,
-                correlation_id: Some(correlation_id.to_owned()),
-            });
-        };
-        let snapshot = match request.snapshot {
-            scriberig_protocol::SnapshotSelector::Current
-            | scriberig_protocol::SnapshotSelector::NamedRoot(_) => SnapshotResolution::Current,
-            scriberig_protocol::SnapshotSelector::Exact(reference) => {
-                match SnapshotId::from_str(&reference.id) {
-                    Ok(value) => SnapshotResolution::At(value),
-                    Err(_) => {
-                        return Response::Error(ProtocolError {
-                            code: ProtocolErrorCode::SchemaViolation,
-                            message: "invalid snapshot identifier".to_owned(),
-                            details: None,
-                            correlation_id: Some(correlation_id.to_owned()),
-                        });
-                    }
-                }
-            }
-        };
-        let result = self.service.inspect(
-            &ApplicationContext::empty(),
-            &InspectRequest {
-                entity,
-                snapshot,
-                detail: match request.detail {
-                    scriberig_protocol::request::DetailLevel::Compact => DetailLevel::Compact,
-                    scriberig_protocol::request::DetailLevel::Deep => DetailLevel::Detailed,
-                },
-            },
-        );
-        result.map_or_else(
-            |error| Response::Error(helpers::map_error(&error, correlation_id)),
-            |result| Response::Inspect(helpers::map_inspect(result)),
-        )
-    }
 }
 
 /// Builds the trusted server context for an exposed command family.
@@ -393,6 +329,32 @@ fn command_context(kind: &str) -> ApplicationContext {
     }
     ApplicationContext {
         capabilities: CapabilityContext::new(capabilities),
+        ..ApplicationContext::empty()
+    }
+}
+
+/// Grants the trusted session-selection action for one exact session.
+///
+/// # Parameters
+/// - `session`: Stable session identity from the protocol request.
+///
+/// # Returns
+/// Application context authorizing session model configuration.
+fn session_selection_context(session: &str) -> ApplicationContext {
+    ApplicationContext {
+        capabilities: CapabilityContext {
+            granted: vec![
+                CapabilityId::new("session_branch_tree").expect("session read capability"),
+            ],
+            grants: vec![Capability {
+                scope: CapabilityScope::Session(session.to_owned()),
+                actions: [CapabilityAction::ModifyBranch].into_iter().collect(),
+                constraints: CapabilityConstraints {
+                    operation: Some(OperationKind::Agent),
+                    ..CapabilityConstraints::unrestricted()
+                },
+            }],
+        },
         ..ApplicationContext::empty()
     }
 }

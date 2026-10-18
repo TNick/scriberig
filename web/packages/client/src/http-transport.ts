@@ -5,7 +5,13 @@ import {
   type SemanticTransport,
   type TransportConnectionState,
 } from "./transport";
-import type { OperationId, ProtocolEvent, ProtocolError, SnapshotId } from "@scriberig/protocol";
+import type {
+  BranchId,
+  OperationId,
+  ProtocolEvent,
+  ProtocolError,
+  SnapshotId,
+} from "@scriberig/protocol";
 import { SseParser } from "./sse-parser";
 
 type WireEvent = {
@@ -88,6 +94,22 @@ export function normalizeProtocolEvent(value: unknown): ProtocolEvent | undefine
       const branchId = metadataValue(event, "branch");
       return branchId === undefined ? undefined : withSequence({ kind: "branchChanged", branchId });
     }
+    case "SessionChanged":
+      return typeof entityId === "string"
+        ? withSequence({ kind: "sessionChanged", sessionId: entityId as never })
+        : undefined;
+    case "SessionSelectionChanged": {
+      const activityKind = metadataValue(event, "activity_kind");
+      const summary = metadataValue(event, "summary");
+      return typeof entityId === "string" && activityKind !== undefined && summary !== undefined
+        ? withSequence({
+            kind: "sessionSelectionChanged",
+            sessionId: entityId as never,
+            activityKind,
+            summary,
+          })
+        : undefined;
+    }
     case "MigrationCreated": {
       const migrationId = metadataValue(event, "migration");
       return migrationId === undefined
@@ -135,6 +157,26 @@ export function normalizeProtocolEvent(value: unknown): ProtocolEvent | undefine
       const text = metadataValue(event, "text");
       return typeof operationId === "string" && text !== undefined
         ? withSequence({ kind: "modelTextDelta", operationId: operationId as OperationId, text })
+        : undefined;
+    }
+    case "AgentActivity": {
+      const branchId = metadataValue(event, "branch");
+      const activityKind = metadataValue(event, "activity_kind");
+      const state = metadataValue(event, "state");
+      const summary = metadataValue(event, "summary");
+      return typeof operationId === "string" &&
+        branchId !== undefined &&
+        activityKind !== undefined &&
+        state !== undefined &&
+        summary !== undefined
+        ? withSequence({
+            kind: "agentActivity",
+            operationId: operationId as OperationId,
+            branchId: branchId as BranchId,
+            activityKind,
+            state,
+            summary,
+          })
         : undefined;
     }
     default:

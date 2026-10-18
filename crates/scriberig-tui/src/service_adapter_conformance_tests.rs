@@ -17,6 +17,9 @@ use scriberig_protocol::{
 };
 use scriberig_session::{AgentOutput, Branch, HumanInput, Session, Turn};
 
+#[path = "service_adapter_agent_console_tests.rs"]
+mod agent_console_fixtures;
+
 /// Supplies one deterministic local session to the application adapter.
 #[derive(Clone)]
 struct LocalSessionFixture {
@@ -152,6 +155,7 @@ fn session_fixture() -> Session {
         branches: vec![root],
         goals: Vec::new(),
         tasks: Vec::new(),
+        execution: scriberig_session::SessionExecutionSelection::default(),
     }
 }
 
@@ -236,8 +240,10 @@ fn local_and_remote_session_adapters_share_semantics() {
                         tool_invocation: None,
                         tool_result: None,
                     }],
+                    activity: Vec::new(),
                     result: None,
                 }],
+                execution: scriberig_protocol::SessionExecutionSelection::default(),
             }),
         },
     };
@@ -284,6 +290,7 @@ fn remote_nested_branch_tree_preserves_parent_and_child_handles() {
                         title: "root".to_owned(),
                         status: SessionBranchStatus::Active,
                         turns: Vec::new(),
+                        activity: Vec::new(),
                         result: None,
                     },
                     SessionBranch {
@@ -293,9 +300,11 @@ fn remote_nested_branch_tree_preserves_parent_and_child_handles() {
                         title: "focused".to_owned(),
                         status: SessionBranchStatus::Completed,
                         turns: Vec::new(),
+                        activity: Vec::new(),
                         result: None,
                     },
                 ],
+                execution: scriberig_protocol::SessionExecutionSelection::default(),
             }),
         },
     };

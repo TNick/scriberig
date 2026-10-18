@@ -187,6 +187,8 @@ fn session_branch_activation_requests_scoped_history() {
             snapshot: None,
             transient: true,
         }],
+        execution: scriberig_session::SessionExecutionSelection::default(),
+        tool_invocation_details: std::collections::BTreeMap::default(),
     });
     state.agent_handles.push(crate::service::AgentHandle {
         operation: scriberig_core::OperationId::new("test-operation").expect("operation identity"),
@@ -223,6 +225,8 @@ fn session_result_activation_navigates_by_stable_reference() {
             snapshot: None,
             transient: false,
         }],
+        execution: scriberig_session::SessionExecutionSelection::default(),
+        tool_invocation_details: std::collections::BTreeMap::default(),
     });
 
     let effects = activate_current(&mut state);
@@ -254,6 +258,8 @@ fn session_candidate_activation_requests_shared_review() {
                 snapshot: Some(snapshot),
                 transient: false,
             }],
+            execution: scriberig_session::SessionExecutionSelection::default(),
+            tool_invocation_details: std::collections::BTreeMap::default(),
         }),
         ..TuiState::default()
     };

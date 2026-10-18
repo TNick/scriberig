@@ -77,6 +77,7 @@ fn child_executor_is_an_explicit_runtime_boundary() {
             Ok(ChildResult {
                 summary: "child complete".to_owned(),
                 handles: vec!["ent_result".to_owned()],
+                branch: None,
             })
         }
     }

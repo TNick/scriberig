@@ -106,6 +106,7 @@ impl ChildExecutor for RecursiveExecutor {
         Ok(ChildResult {
             summary: result.output,
             handles: vec![format!("child-depth-{}", child.depth)],
+            branch: None,
         })
     }
 }

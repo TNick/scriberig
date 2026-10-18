@@ -14,6 +14,9 @@ use super::*;
 pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Effect>> {
     match action {
         Action::CapabilitiesLoaded(capabilities) => Some(capabilities_loaded(state, capabilities)),
+        Action::PresentationPreferencesLoaded(response) => Some(
+            super::state_presentation::apply_shared_preferences(state, response),
+        ),
         Action::OperationsLoaded(records) => Some(operations_loaded(state, records)),
         Action::ExplorerSucceeded {
             request_id,
@@ -29,51 +32,41 @@ pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Ef
             Some(vec![Effect::None])
         }
         Action::SessionSucceeded { request_id, model } => {
-            if matches!(state.session, LoadState::Loading { request_id: current } if current == request_id)
-            {
-                if let Some(branch) = state.session_branch_focus.take()
-                    && let Some(index) = model.rows.iter().position(|row| {
-                        row.reference == branch
-                            && row.kind == crate::view::session::SessionRowKind::Branch
-                    })
-                {
-                    state.cursor = index;
-                }
-                state.session = LoadState::Ready(model);
+            Some(session_succeeded(state, request_id, model))
+        }
+        Action::ModelLibraryLoaded {
+            request_id,
+            library,
+        } => Some(model_library_loaded(state, request_id, library)),
+        Action::ToolResultDetailLoaded(detail) => {
+            if let Ok(result) = detail.result.parse() {
+                state.tool_result_details.insert(result, detail);
             }
             Some(vec![Effect::None])
+        }
+        Action::ModelRequestDetailLoaded(detail) => {
+            if let Ok(invocation) = detail.invocation.parse() {
+                state.model_request_details.insert(invocation, detail);
+                state.shell_message = "Captured model request loaded.".to_owned();
+            }
+            Some(vec![Effect::None])
+        }
+        Action::SessionExecutionSelectionUpdated(selection) => {
+            Some(session_selection_updated(state, selection))
         }
         Action::AgentSubmitted(handle) => Some(agent_submitted(state, handle)),
         Action::SessionRequested { session, branch } => {
-            let request_id = state.next_request_id;
-            state.next_request_id += 1;
-            state.agent_output_observations.clear();
-            state.session = LoadState::Loading { request_id };
-            Some(vec![Effect::ReadSession {
-                request_id,
-                session,
-                branch,
-            }])
+            Some(session_requested(state, session, branch))
         }
-        Action::ComposerOpened { session, branch } => {
-            state.overlay = Some(Overlay::Composer(crate::overlay::ComposerState {
-                session,
-                branch,
-                text: String::new(),
-                error: None,
-            }));
+        Action::ComposerOpened { session, branch } => Some(composer_opened(state, session, branch)),
+        Action::SessionComposerOpened { session, branch } => {
+            Some(session_composer_opened(state, session, branch))
+        }
+        Action::SessionComposerFocused(focused) => {
+            state.session_composer_focused = focused && state.session_composer.is_some();
             Some(vec![Effect::None])
         }
-        Action::AgentOutputObserved(output) => {
-            state
-                .agent_output_observations
-                .push(crate::inspector::sanitize(&output));
-            if state.agent_output_observations.len() > 32 {
-                state.agent_output_observations.remove(0);
-            }
-            state.shell_message = "agent output observed (non-canonical)".to_owned();
-            Some(vec![Effect::None])
-        }
+        Action::AgentOutputObserved(output) => Some(agent_output_observed(state, &output)),
         Action::OperationObserved(model) => {
             let operation_id = model.id.clone();
             let was_terminal = state
@@ -109,147 +102,6 @@ pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Ef
     }
 }
 
-/// Applies refreshed runtime capabilities to the shell state.
-///
-/// # Parameters
-/// - `state`: TUI presentation receiving runtime capabilities.
-/// - `capabilities`: Public capability descriptors from the application.
-///
-/// # Returns
-/// A no-op effect after updating connection state.
-fn capabilities_loaded(
-    state: &mut TuiState,
-    capabilities: Vec<scriberig_app::RuntimeCapability>,
-) -> Vec<Effect> {
-    state.capabilities = capabilities;
-    state.connection = ConnectionState::Connected;
-    state.stale = false;
-    state.shell_message = "Semantic service attached.".to_owned();
-    vec![Effect::None]
-}
-
-/// Updates the local presentation cache from an authoritative operation snapshot.
-///
-/// # Parameters
-/// - `state`: TUI presentation receiving operation records.
-/// - `records`: Current records supplied by the shared application service.
-///
-/// # Returns
-/// A no-op effect after refreshing operation models.
-fn operations_loaded(
-    state: &mut TuiState,
-    records: Vec<scriberig_app::OperationRecord>,
-) -> Vec<Effect> {
-    for record in records {
-        let model = crate::view::operations::OperationModel::from_record(&record);
-        if let Some(existing) = state
-            .operations
-            .iter_mut()
-            .find(|existing| existing.id == model.id)
-        {
-            *existing = model;
-        } else {
-            state.operations.push(model);
-        }
-    }
-    vec![Effect::None]
-}
-
-/// Refreshes the selected session after an agent operation reaches a terminal state.
-///
-/// # Parameters
-/// - `state`: TUI state containing the operation and its accepted agent handle.
-/// - `operation_id`: Exact operation whose terminal state was observed.
-/// - `was_terminal`: Whether this operation had already reached a terminal state.
-///
-/// # Returns
-/// A session read effect when the operation just completed for an agent handle.
-fn refresh_terminal_agent_session(
-    state: &mut TuiState,
-    operation_id: &scriberig_core::OperationId,
-    was_terminal: bool,
-) -> Vec<Effect> {
-    let Some(operation_is_terminal) = state
-        .operations
-        .iter()
-        .find(|operation| &operation.id == operation_id)
-        .map(|operation| operation.status.is_terminal())
-    else {
-        return vec![Effect::None];
-    };
-    if was_terminal
-        || !operation_is_terminal
-        || state.primary_view != crate::selection::PrimaryView::Session
-        || !matches!(state.session, LoadState::Ready(_))
-    {
-        return vec![Effect::None];
-    }
-    let Some(handle) = state
-        .agent_handles
-        .iter()
-        .rev()
-        .find(|handle| &handle.operation == operation_id)
-    else {
-        return vec![Effect::None];
-    };
-    let request_id = state.next_request_id;
-    state.next_request_id += 1;
-    state.session = LoadState::Loading { request_id };
-    vec![Effect::ReadSession {
-        request_id,
-        session: handle.session,
-        branch: handle.branch,
-    }]
-}
-
-/// Records an accepted agent operation and activates its returned workspace.
-///
-/// # Parameters
-/// - `state`: TUI state receiving the operation and workspace selection.
-/// - `handle`: Accepted agent operation with optional workspace references.
-///
-/// # Returns
-/// Effects required to refresh operation, session, and workspace views.
-fn agent_submitted(state: &mut TuiState, handle: crate::service::AgentHandle) -> Vec<Effect> {
-    let operation = handle.operation.clone();
-    state
-        .agent_handles
-        .retain(|value| value.operation != operation);
-    state.agent_handles.push(handle);
-    let handle = state.agent_handles.last().cloned();
-    let Some(handle) = handle else {
-        return vec![Effect::OperationStatus { operation }];
-    };
-    let workspace_effect = handle.workspace.as_ref().map(|workspace| {
-        state.project = Some(workspace.name.clone());
-        let selection = crate::selection::EntitySelection {
-            entity: workspace.root,
-            revision: None,
-            snapshot: Some(workspace.snapshot),
-        };
-        state.selection = Some(selection);
-        state.explorer = crate::explorer::ExplorerModel::from_selection(selection);
-        let request_id = state.next_request_id;
-        state.next_request_id += 1;
-        state.inspector = LoadState::Loading { request_id };
-        Effect::InspectEntity {
-            request_id,
-            entity: workspace.root,
-            snapshot: Some(workspace.snapshot),
-        }
-    });
-    state.primary_view = crate::selection::PrimaryView::Session;
-    let request_id = state.next_request_id;
-    state.next_request_id += 1;
-    state.session = LoadState::Loading { request_id };
-    let mut effects = vec![
-        Effect::OperationStatus { operation },
-        Effect::ReadSession {
-            request_id,
-            session: handle.session,
-            branch: handle.branch,
-        },
-    ];
-    effects.extend(workspace_effect);
-    effects
-}
+#[path = "state_reducer_tail_handlers.rs"]
+mod handlers;
+use handlers::*;

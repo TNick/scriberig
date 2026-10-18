@@ -1,9 +1,11 @@
 //! Verifies real HTTP credential isolation, streaming redaction, and redirect denial.
 
+use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider;
 use scriberig_agent_runtime::provider::{
     CredentialSource, ModelMessage, ModelRequest, ProviderAdapter, ProviderConfig,
 };
+use scriberig_agent_runtime::{AgentMessage, ModelProvider};
 use scriberig_secrets::{CredentialProvider, SecretError, SecretValue};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -149,6 +151,12 @@ fn credentials_are_headers_only_and_reflections_are_scrubbed() {
         "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
         "data: [DONE]\n\n",
     );
+    let reflected_stream = concat!(
+        "data: {\"choices\":[{\"delta\":{\"content\":\"CAN\"},\"finish_reason\":null}]}\n\n",
+        "data: {\"choices\":[{\"delta\":{\"content\":\"ARY_C answer\"},\"finish_reason\":null}]}\n\n",
+        "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n",
+        "data: [DONE]\n\n",
+    );
     let credentials = Arc::new(RotatingCredential {
         calls: AtomicUsize::new(0),
     });
@@ -159,13 +167,14 @@ fn credentials_are_headers_only_and_reflections_are_scrubbed() {
         CredentialSource::Authorized(credentials.clone()),
     ))
     .expect("provider");
-    let check = r#"{"choices":[{"message":{"content":"OK"},"finish_reason":"stop"}]}"#;
+    let check = r#"{"choices":[{"message":{"content":"MODEL OK"},"finish_reason":"stop"}]}"#;
     let worker = serve(
         listener,
         vec![
             response(normal, "CANARY_A"),
             response(stream, "trace-2"),
             response(check, "trace-3"),
+            response(reflected_stream, "trace-4"),
         ],
     );
     let request = ModelRequest::new("model", vec![ModelMessage::user("hello")]);
@@ -177,12 +186,26 @@ fn credentials_are_headers_only_and_reflections_are_scrubbed() {
     provider
         .check_connection("model")
         .expect("authenticated connection check");
-    assert_eq!(credentials.calls.load(Ordering::Relaxed), 3);
+    let mut model = ProviderModel::new(provider.clone(), "model");
+    let decision = model
+        .decide(&[AgentMessage::User("hello".to_owned())])
+        .expect("provider model decision");
+    let projections = model.take_request_projections();
+    assert_eq!(credentials.calls.load(Ordering::Relaxed), 4);
     assert_eq!(normal_result.text.as_deref(), Some("[REDACTED] answer"));
     assert_eq!(deltas, "[REDACTED] answer");
     assert!(!format!("{normal_result:?}{streamed:?}").contains("CANARY"));
+    assert_eq!(
+        decision,
+        scriberig_agent_runtime::ModelDecision::Final("[REDACTED] answer".to_owned())
+    );
+    assert_eq!(projections.len(), 1);
+    assert!(!format!("{:?}", projections[0]).contains("CANARY_C"));
     let requests = worker.join().expect("fixture worker");
-    for (request, credential) in requests.iter().zip(["CANARY_A", "CANARY_B", "CANARY_C"]) {
+    for (request, credential) in requests
+        .iter()
+        .zip(["CANARY_A", "CANARY_B", "CANARY_C", "CANARY_C"])
+    {
         assert!(
             request
                 .to_ascii_lowercase()

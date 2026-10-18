@@ -3,7 +3,7 @@
 use scriberig_core::EntityId;
 use scriberig_session::{
     Branch, BranchResult, BranchStatus, CacheDisposition, ExecutionActivity, ModelInvocation,
-    ModelOutput, Session, SessionViews,
+    ModelOutput, SelectionError, Session, SessionExecutionSelection, SessionViews,
 };
 
 /// Verifies model provenance and output are provider-neutral and secret-free.
@@ -20,9 +20,13 @@ fn model_execution_records_are_explicit() {
         context_fingerprint: Some("ctx".to_owned()),
         provider_profile: Some("local".to_owned()),
         model: Some("model-a".to_owned()),
+        model_profile: Some("profile-a".to_owned()),
+        provider_model_id: Some("native-model-a".to_owned()),
+        thinking_level: Some("careful".to_owned()),
         request_fingerprint: Some("req".to_owned()),
         cache: CacheDisposition::Miss,
         output: Some(output),
+        request: None,
     };
     let result = ModelOutput {
         id: output,
@@ -70,9 +74,85 @@ fn nested_branch_views_are_compact_and_ordered() {
         branches: vec![parent, child],
         goals: Vec::new(),
         tasks: Vec::new(),
+        execution: SessionExecutionSelection::default(),
     };
     let summaries = SessionViews::child_summaries(&session, parent_id);
     assert_eq!(summaries.len(), 1);
     assert_eq!(summaries[0].result_handles, vec![result_id]);
     assert_eq!(SessionViews::branches(&session)[0].activity_count, 1);
+}
+
+/// Verifies selection changes are revision-checked and affect only future work.
+#[test]
+fn session_execution_selection_is_optimistic_and_versioned() {
+    let mut selection = SessionExecutionSelection::default();
+    selection
+        .replace(
+            0,
+            Some("profile-a".to_owned()),
+            Some("model-a".to_owned()),
+            Some("careful".to_owned()),
+        )
+        .expect("first selection");
+    let invocation = ModelInvocation {
+        id: EntityId::from_bytes([8; 16]),
+        branch: EntityId::from_bytes([9; 16]),
+        ordinal: 1,
+        agent_profile: None,
+        context_fingerprint: None,
+        provider_profile: Some("provider".to_owned()),
+        model: Some("model-a".to_owned()),
+        model_profile: Some("profile-a".to_owned()),
+        provider_model_id: Some("native-model-a".to_owned()),
+        thinking_level: Some("careful".to_owned()),
+        request_fingerprint: None,
+        cache: CacheDisposition::NotUsed,
+        output: None,
+        request: None,
+    };
+
+    selection
+        .replace(
+            1,
+            Some("profile-b".to_owned()),
+            Some("model-b".to_owned()),
+            Some("deep-dive".to_owned()),
+        )
+        .expect("future selection");
+
+    assert_eq!(invocation.model.as_deref(), Some("model-a"));
+    assert_eq!(invocation.model_profile.as_deref(), Some("profile-a"));
+    assert_eq!(
+        invocation.provider_model_id.as_deref(),
+        Some("native-model-a")
+    );
+    assert_eq!(invocation.thinking_level.as_deref(), Some("careful"));
+    // The invocation owns resolved identifiers independently of the current
+    // session selection or model-profile catalog.
+    assert_eq!(selection.model.as_deref(), Some("model-b"));
+    assert_eq!(selection.revision, 2);
+    assert_eq!(
+        selection.replace(
+            1,
+            Some("profile-c".to_owned()),
+            Some("model-c".to_owned()),
+            None,
+        ),
+        Err(SelectionError::RevisionConflict {
+            expected: 1,
+            actual: 2,
+        })
+    );
+}
+
+/// Verifies model and profile selection cannot be persisted inconsistently.
+#[test]
+fn session_execution_selection_rejects_orphan_thinking_level() {
+    let mut selection = SessionExecutionSelection::default();
+
+    assert_eq!(
+        selection.replace(0, None, None, Some("careful".to_owned())),
+        Err(SelectionError::InconsistentSelection)
+    );
+    assert_eq!(selection.revision, 0);
 }

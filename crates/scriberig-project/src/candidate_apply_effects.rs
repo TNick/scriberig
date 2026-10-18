@@ -219,6 +219,9 @@ fn inspect_effect(
 /// - `service`: Project service storing durable progress.
 /// - `candidate`: Candidate being materialized.
 /// - `plans`: Full preflight result.
+/// - `base_files`: File records used to verify the base state.
+/// - `root`: Canonical project root on disk.
+/// - `filesystem`: Filesystem adapter used for safe reads and writes.
 /// - `super`: Parent module visibility.
 ///
 /// # Returns

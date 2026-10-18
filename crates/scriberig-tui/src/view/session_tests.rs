@@ -22,6 +22,7 @@ fn builds_nested_session_rows() {
         branches: vec![branch],
         goals: Vec::new(),
         tasks: Vec::new(),
+        execution: scriberig_session::SessionExecutionSelection::default(),
     };
     let model = SessionModel::from_session(&session);
     assert_eq!(model.rows[0].kind, SessionRowKind::Session);
@@ -53,6 +54,7 @@ fn shows_durable_agent_output_in_turn_row() {
         branches: vec![branch],
         goals: Vec::new(),
         tasks: Vec::new(),
+        execution: scriberig_session::SessionExecutionSelection::default(),
     };
 
     let model = SessionModel::from_session(&session);
@@ -63,6 +65,214 @@ fn shows_durable_agent_output_in_turn_row() {
                 .label
                 .contains("The current project is onboarded and ready.")
     }));
+}
+
+/// Verifies a shared selection update refreshes the visible session header.
+#[test]
+fn updated_execution_selection_refreshes_session_header() {
+    let session = Session {
+        id: EntityId::from_bytes([33; 16]),
+        branches: Vec::new(),
+        goals: Vec::new(),
+        tasks: Vec::new(),
+        execution: scriberig_session::SessionExecutionSelection::default(),
+    };
+    let mut model = SessionModel::from_session(&session);
+
+    model.set_execution(scriberig_session::SessionExecutionSelection {
+        revision: 2,
+        model_profile: Some("profile-a".to_owned()),
+        model: Some("model-a".to_owned()),
+        thinking_level: Some("careful".to_owned()),
+    });
+
+    assert_eq!(model.execution.revision, 2);
+    assert!(model.rows[0].label.contains("Model model-a"));
+    assert!(model.rows[0].label.contains("Thinking careful"));
+}
+
+/// Verifies model and tool records render as nested rows without raw payloads.
+#[test]
+fn renders_durable_model_and_tool_activity_without_raw_tool_output() {
+    use scriberig_session::{
+        CacheDisposition, ExecutionActivity, ModelInvocation, ModelOutput, ToolInvocation,
+        ToolResult,
+    };
+
+    let session_id = EntityId::from_bytes([51; 16]);
+    let branch_id = EntityId::from_bytes([52; 16]);
+    let invocation_id = EntityId::from_bytes([53; 16]);
+    let tool_id = EntityId::from_bytes([54; 16]);
+    let result_id = EntityId::from_bytes([55; 16]);
+    let output_id = EntityId::from_bytes([56; 16]);
+    let mut branch = Branch::new(branch_id, "main").expect("branch");
+    branch.activity = vec![
+        ExecutionActivity::ModelInvocation(invocation_id),
+        ExecutionActivity::ToolInvocation(tool_id),
+        ExecutionActivity::ToolResult(result_id),
+        ExecutionActivity::ModelOutput(output_id),
+    ];
+    branch.model_invocations.push(ModelInvocation {
+        id: invocation_id,
+        branch: branch_id,
+        ordinal: 0,
+        agent_profile: None,
+        context_fingerprint: None,
+        provider_profile: None,
+        model: Some("model-a".to_owned()),
+        model_profile: None,
+        provider_model_id: None,
+        thinking_level: Some("careful".to_owned()),
+        request_fingerprint: None,
+        cache: CacheDisposition::NotUsed,
+        output: Some(output_id),
+        request: None,
+    });
+    branch.tool_invocations.push(ToolInvocation {
+        id: tool_id,
+        name: "inspect".to_owned(),
+        input: br#"{"private_payload":"SECRET_MARKER"}"#.to_vec(),
+        parent_model_invocation: Some(invocation_id),
+        presentation_input: Some(
+            br#"{"filter":{"path":"src/lib.rs"},"token":"[REDACTED]"}"#.to_vec(),
+        ),
+        presentation_label: None,
+    });
+    branch.tool_results.push(ToolResult {
+        id: result_id,
+        invocation: tool_id,
+        output: br#"{"private_payload":"SECRET_MARKER"}"#.to_vec(),
+        failed: false,
+        presentation_preview: Some(
+            br#"{"summary":"Three matches","private_payload":"SECRET_MARKER"}"#.to_vec(),
+        ),
+    });
+    branch.model_outputs.push(ModelOutput {
+        id: output_id,
+        invocation: invocation_id,
+        text: Some("Completed safely.".to_owned()),
+        structured_output: None,
+        finish_reason: None,
+        usage: None,
+    });
+    let session = Session {
+        id: session_id,
+        branches: vec![branch],
+        goals: Vec::new(),
+        tasks: Vec::new(),
+        execution: scriberig_session::SessionExecutionSelection::default(),
+    };
+
+    let model = SessionModel::from_session(&session);
+    assert_durable_activity_is_safe(model, invocation_id, tool_id);
+}
+
+/// Verifies projected activity details and terminal rendering stay sanitized.
+///
+/// # Parameters
+/// - `model`: Projection built from durable execution activity.
+/// - `invocation_id`: Stable model invocation identity.
+/// - `tool_id`: Stable tool invocation identity.
+fn assert_durable_activity_is_safe(
+    model: SessionModel,
+    invocation_id: EntityId,
+    tool_id: EntityId,
+) {
+    let invocation = model
+        .rows
+        .iter()
+        .find(|row| row.kind == SessionRowKind::ModelInvocation)
+        .expect("model invocation row");
+    let tool = model
+        .rows
+        .iter()
+        .find(|row| row.kind == SessionRowKind::ToolInvocation)
+        .expect("tool invocation row");
+    let result = model
+        .rows
+        .iter()
+        .find(|row| row.kind == SessionRowKind::ToolResult)
+        .expect("tool result row");
+
+    assert!(invocation.label.contains("model-a"));
+    assert!(invocation.label.contains("careful"));
+    assert!(tool.label.contains("inspect"));
+    assert_eq!(
+        model
+            .tool_invocation_details
+            .get(&tool_id)
+            .map(String::as_str),
+        Some(
+            "{\n  \"filter\": {\n    \"path\": \"src/lib.rs\"\n  },\n  \"token\": \"[REDACTED]\"\n}",
+        )
+    );
+    assert!(result.depth > tool.depth);
+    assert!(result.label.contains("Three matches"));
+    assert!(
+        !model
+            .rows
+            .iter()
+            .any(|row| row.label.contains("SECRET_MARKER"))
+    );
+    assert!(
+        !model
+            .tool_invocation_details
+            .values()
+            .any(|detail| detail.contains("SECRET_MARKER"))
+    );
+    assert!(model.tool_invocation_details[&tool_id].contains("[REDACTED]"));
+
+    let render_state = crate::state::TuiState {
+        primary_view: crate::selection::PrimaryView::Session,
+        session: crate::inspector::LoadState::Ready(model),
+        tool_invocation_visibility: crate::state::ToolInvocationVisibility::Detailed,
+        tool_output_visibility: crate::state::ToolOutputVisibility::Full,
+        prompt_visibility: crate::state::PromptVisibility::Shown,
+        model_request_details: [(
+            invocation_id,
+            scriberig_protocol::ModelRequestDetailResponse {
+                invocation: invocation_id.to_string(),
+                model: "model-a".to_owned(),
+                thinking_level: Some("careful".to_owned()),
+                messages: vec![scriberig_protocol::ModelRequestMessageDetail {
+                    role: "user".to_owned(),
+                    content: "Safe captured request".to_owned(),
+                }],
+                tools: Vec::new(),
+                truncated: false,
+            },
+        )]
+        .into_iter()
+        .collect(),
+        ..crate::state::TuiState::default()
+    };
+    let rendered = crate::render::primary_text(&render_state);
+    assert!(rendered.contains("[REDACTED]"));
+    assert!(rendered.contains("Safe captured request"));
+    assert!(!rendered.contains("SECRET_MARKER"));
+    assert!(!rendered.contains("private_payload"));
+}
+
+/// Shows current session model and thinking selection in the session header row.
+#[test]
+fn shows_shared_model_and_thinking_selection() {
+    let session = Session {
+        id: EntityId::from_bytes([24; 16]),
+        branches: Vec::new(),
+        goals: Vec::new(),
+        tasks: Vec::new(),
+        execution: scriberig_session::SessionExecutionSelection {
+            revision: 4,
+            model_profile: Some("local-profile".to_owned()),
+            model: Some("model-b".to_owned()),
+            thinking_level: Some("deliberate".to_owned()),
+        },
+    };
+
+    let model = SessionModel::from_session(&session);
+
+    assert!(model.rows[0].label.contains("Model model-b"));
+    assert!(model.rows[0].label.contains("Thinking deliberate"));
 }
 
 /// Verifies completed child branches collapse to result references.
@@ -105,6 +315,7 @@ fn collapses_completed_child_activity() {
         branches: vec![parent, child],
         goals: Vec::new(),
         tasks: Vec::new(),
+        execution: scriberig_session::SessionExecutionSelection::default(),
     };
     let model = SessionModel::from_session(&session);
     assert!(model.rows.iter().any(|row| row.reference == result_id));

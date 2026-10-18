@@ -2,50 +2,15 @@
 
 #![allow(clippy::wildcard_imports)]
 
+use super::activate_palette_control;
 use super::*;
-
-/// Converts shared events into bounded local operation observations.
-/// - `super`: Parent-module imports used by this helper.
-/// - `state`: TUI state to update.
-/// - `event`: Application event to observe.
-///
-/// # Returns
-/// Effects produced by the observation.
-pub(super) fn reduce_application_event(
-    state: &mut TuiState,
-    event: &scriberig_app::ApplicationEvent,
-) -> Vec<Effect> {
-    match event {
-        scriberig_app::ApplicationEvent::AgentOutputProduced { output, .. } => {
-            return reduce(state, Action::AgentOutputObserved(output.clone()));
-        }
-        scriberig_app::ApplicationEvent::AgentOutputDelta { text, .. } => {
-            return reduce(state, Action::AgentOutputObserved(text.clone()));
-        }
-        _ => {}
-    }
-    let previous = match event {
-        scriberig_app::ApplicationEvent::OperationStarted { operation }
-        | scriberig_app::ApplicationEvent::OperationProgressed { operation, .. }
-        | scriberig_app::ApplicationEvent::OperationCompleted { operation }
-        | scriberig_app::ApplicationEvent::OperationFailed { operation, .. }
-        | scriberig_app::ApplicationEvent::OperationCancelled { operation } => {
-            state.operations.iter().find(|value| &value.id == operation)
-        }
-        _ => return vec![Effect::None],
-    };
-    let Some(model) = crate::view::operations::OperationModel::from_event(event, previous) else {
-        return vec![Effect::None];
-    };
-    let needs_detail = previous.is_none() && !model.status.is_terminal();
-    let operation = model.id.clone();
-    let mut effects = reduce(state, Action::OperationObserved(model));
-    if needs_detail && !state.pending_operation_refresh.contains(&operation) {
-        state.pending_operation_refresh.push(operation.clone());
-        effects.extend(reduce(state, Action::OperationStatusRequested(operation)));
-    }
-    effects
-}
+#[path = "state_actions/application_event.rs"]
+mod application_event;
+pub(super) use application_event::reduce_application_event;
+#[path = "state_actions/agent_activity.rs"]
+mod agent_activity;
+#[path = "state_actions/session_changed.rs"]
+mod session_changed;
 
 /// Activates the selected local palette item without invoking semantic services.
 /// - `super`: Parent-module imports used by this helper.
@@ -240,6 +205,9 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
             },
         }];
     }
+    if let Some(effects) = activate_palette_control(state, &item.id) {
+        return effects;
+    }
     let action = match item.id.as_str() {
         "help" => Action::HelpOpened,
         "refresh" => Action::RefreshRequested,
@@ -341,7 +309,7 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
             state.overlay = None;
             return reduce(
                 state,
-                Action::ComposerOpened {
+                Action::SessionComposerOpened {
                     session: state
                         .selection
                         .map_or_else(scriberig_core::EntityId::new, |selection| selection.entity),
@@ -371,7 +339,7 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
             state.overlay = None;
             return reduce(
                 state,
-                Action::ComposerOpened {
+                Action::SessionComposerOpened {
                     session,
                     branch: Some(branch),
                 },

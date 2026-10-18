@@ -24,6 +24,21 @@ impl<S> InProcessTransport<S> {
             dispatcher: Dispatcher::new(service),
         }
     }
+
+    /// Creates an in-process transport bound to a trusted caller identity.
+    ///
+    /// # Parameters
+    /// - `service`: Application implementation receiving semantic requests.
+    /// - `principal`: Caller identity established by the embedding runtime.
+    ///
+    /// # Returns
+    /// An in-process protocol transport with principal-scoped operations.
+    #[must_use]
+    pub fn for_principal(service: S, principal: scriberig_app::Principal) -> Self {
+        Self {
+            dispatcher: Dispatcher::for_principal(service, principal),
+        }
+    }
 }
 
 impl<S: ApplicationService> ProtocolTransport for InProcessTransport<S> {

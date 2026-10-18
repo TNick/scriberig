@@ -384,8 +384,12 @@ fn tui_pty_opens_history_and_agent_composer() {
     tui.type_palette_query("start-agent")
         .expect("palette query");
     tui.send(b"\r");
-    assert!(tui.read_until("Session:"), "{}", tui.diagnostic());
+    assert!(
+        tui.read_until("Agent composer · ent_"),
+        "{}",
+        tui.diagnostic()
+    );
     tui.send(b"\x1b");
-    assert!(tui.read_until_not("Session:"));
+    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }

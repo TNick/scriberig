@@ -4,12 +4,15 @@ use scriberig_agent_runtime::provider::{CredentialSource, ProviderConfig, Provid
 
 use crate::native_provider::NativeProvider;
 use crate::self_hosting_provider::{CancellationPhase, ValidationMode};
+#[path = "provider_config/catalog.rs"]
+pub(super) mod catalog;
 
 /// Builds one configured provider adapter for the TUI runtime.
 ///
 /// # Parameters
 /// - `provider_kind`: Trusted provider selection from process configuration.
 /// - `model`: Configured model name.
+/// - `catalog`: Safe model descriptors and provider-private thinking mappings.
 /// - `super`: Parent native agent runtime module.
 ///
 /// # Returns
@@ -20,6 +23,7 @@ use crate::self_hosting_provider::{CancellationPhase, ValidationMode};
 pub(super) fn from_environment(
     provider_kind: &str,
     model: &str,
+    catalog: &catalog::ProviderCatalog,
 ) -> Result<Option<NativeProvider>, ProviderError> {
     match provider_kind {
         "deterministic" => deterministic_provider(),
@@ -29,8 +33,18 @@ pub(super) fn from_environment(
                 let credential = std::env::var("SCRIBE_AGENT_API_KEY_ENV")
                     .map_or(CredentialSource::None, CredentialSource::Environment);
                 let config = ProviderConfig::new("local", base_url, model.to_owned(), credential);
-                scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider::new(config)
-                    .map(NativeProvider::OpenAiCompatible)
+                let mut provider =
+                    scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider::new(
+                        config,
+                    )?;
+                for (model, level, parameters) in &catalog.thinking_parameters {
+                    provider = provider.with_model_thinking_parameters(
+                        model.clone(),
+                        level.clone(),
+                        parameters.clone(),
+                    );
+                }
+                Ok(NativeProvider::OpenAiCompatible(Box::new(provider)))
             })
             .transpose(),
         unknown => Err(ProviderError::Configuration(format!(

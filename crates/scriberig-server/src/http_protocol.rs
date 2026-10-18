@@ -40,11 +40,13 @@ pub(super) fn dispatch<S: ApplicationService>(
             )
         });
     }
-    let response = Dispatcher::new(&state.service).dispatch(scriberig_protocol::RequestEnvelope {
-        version: scriberig_protocol::ProtocolVersion::default(),
-        correlation_id,
-        request,
-    });
+    let response = Dispatcher::for_principal(&state.service, state.principal.clone()).dispatch(
+        scriberig_protocol::RequestEnvelope {
+            version: scriberig_protocol::ProtocolVersion::default(),
+            correlation_id,
+            request,
+        },
+    );
     serde_json::to_value(response).map_err(|error| {
         (
             500,
@@ -105,6 +107,31 @@ fn decode_request(
         "session" | "session_read" => {
             scriberig_protocol::Request::SessionRead(serde_json::from_str(body).map_err(invalid)?)
         }
+        "model_request_detail" => scriberig_protocol::Request::ModelRequestDetail(
+            serde_json::from_str(body).map_err(invalid)?,
+        ),
+        "tool_result_detail" => scriberig_protocol::Request::ToolResultDetail(
+            serde_json::from_str(body).map_err(invalid)?,
+        ),
+        "model_library" => {
+            scriberig_protocol::Request::ModelLibrary(serde_json::from_str(body).map_err(invalid)?)
+        }
+        "agent_presentation_preferences" => {
+            scriberig_protocol::Request::AgentPresentationPreferencesRead(
+                serde_json::from_str(body).map_err(invalid)?,
+            )
+        }
+        "set_agent_presentation_preferences" => {
+            scriberig_protocol::Request::AgentPresentationPreferencesSet(
+                serde_json::from_str(body).map_err(invalid)?,
+            )
+        }
+        "session_model_selection" => scriberig_protocol::Request::SessionModelSelection(
+            serde_json::from_str(body).map_err(invalid)?,
+        ),
+        "session_thinking_selection" => scriberig_protocol::Request::SessionThinkingSelection(
+            serde_json::from_str(body).map_err(invalid)?,
+        ),
         "project" => {
             scriberig_protocol::Request::Project(serde_json::from_str(body).map_err(invalid)?)
         }
@@ -119,4 +146,46 @@ fn decode_request(
         }
     };
     Ok(request)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::decode_request;
+
+    /// Verifies HTTP operations decode model-library and selection requests.
+    #[test]
+    fn model_library_and_selection_operations_decode() {
+        assert!(matches!(
+            decode_request("model_library", "{}"),
+            Ok(scriberig_protocol::Request::ModelLibrary(_))
+        ));
+        assert!(matches!(
+            decode_request(
+                "model_request_detail",
+                r#"{"session":{"id":"session-1"},"branch":{"id":"branch-1"},"invocation":"invocation-1"}"#
+            ),
+            Ok(scriberig_protocol::Request::ModelRequestDetail(_))
+        ));
+        assert!(matches!(
+            decode_request(
+                "tool_result_detail",
+                r#"{"session":{"id":"session-1"},"branch":{"id":"branch-1"},"result":"result-1"}"#
+            ),
+            Ok(scriberig_protocol::Request::ToolResultDetail(_))
+        ));
+        assert!(matches!(
+            decode_request(
+                "session_model_selection",
+                r#"{"session":{"id":"session-1"},"expected_revision":2,"model_profile":"profile-1"}"#
+            ),
+            Ok(scriberig_protocol::Request::SessionModelSelection(_))
+        ));
+        assert!(matches!(
+            decode_request(
+                "session_thinking_selection",
+                r#"{"session":{"id":"session-1"},"expected_revision":3,"thinking_level":"deep-dive"}"#
+            ),
+            Ok(scriberig_protocol::Request::SessionThinkingSelection(_))
+        ));
+    }
 }

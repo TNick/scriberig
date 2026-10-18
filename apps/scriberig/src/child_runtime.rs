@@ -4,16 +4,18 @@ use scriberig_agent_runtime::cache::{CachePolicy, ModelCache};
 use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::provider::{ProviderAdapter, ToolDefinition};
 use scriberig_agent_runtime::{ChildExecutionScope, ChildExecutor, ChildRequest, ChildResult};
-use scriberig_app::{
-    ApplicationBackend, ApplicationContext, ApplicationService, Capability, CapabilityAction,
-    CapabilityContext,
-};
+use scriberig_app::{ApplicationBackend, ApplicationContext, ApplicationService};
 use scriberig_store_sqlite::SqliteStore;
 
 use crate::agent_tool::LocalAgentTool;
+#[path = "child_runtime/construction.rs"]
+mod construction;
 #[path = "child_runtime/control_parameters.rs"]
 mod control_parameters;
 use control_parameters::control_parameters;
+#[path = "child_runtime/capability_filter.rs"]
+mod capability_filter;
+use capability_filter::delegated_capabilities;
 #[path = "child_runtime/handles.rs"]
 mod handles;
 pub(super) use handles::compact_result_handles;
@@ -45,6 +47,7 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
                 }),
             },
             result_shape: "compact entity handles and resolved revision".to_owned(),
+            invocation_label: Some("Inspect entity".to_owned()),
             state_changing: false,
             execution_mode: ToolExecutionMode::Atomic,
             required_capability: Some("inspect.entity".to_owned()),
@@ -65,6 +68,7 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
                 }),
             },
             result_shape: "compact child branch result and handles".to_owned(),
+            invocation_label: None,
             state_changing: false,
             execution_mode: ToolExecutionMode::ChildBranch,
             required_capability: Some("agent.delegate".to_owned()),
@@ -189,6 +193,7 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
                 parameters: control_parameters(name),
             },
             result_shape: "bounded provider-neutral control result".to_owned(),
+            invocation_label: None,
             state_changing: matches!(
                 name,
                 "operation_cancel"
@@ -213,10 +218,14 @@ pub(super) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
 pub(super) struct LocalChildExecutor<'a, B, P> {
     /// Application service owning session and operation state.
     pub(super) service: &'a ApplicationService<B>,
+    /// Root operation that owns transient child activity.
+    pub(super) operation: Option<scriberig_app::OperationId>,
     /// Cloneable provider adapter used for each child request.
     pub(super) provider: P,
     /// Model identifier shared by child provider requests.
     pub(super) model: String,
+    /// Thinking capability snapshotted for this execution tree.
+    pub(super) thinking_level: Option<String>,
     /// Shared exact-response cache scoped by branch namespace.
     pub(super) cache: ModelCache,
     /// Shared project store used by nested recovery tools.
@@ -272,8 +281,10 @@ where
         };
         let mut nested = Self {
             service: self.service,
+            operation: self.operation.clone(),
             provider: self.provider.clone(),
             model: self.model.clone(),
+            thinking_level: self.thinking_level.clone(),
             cache: self.cache.clone(),
             project_store: std::sync::Arc::clone(&self.project_store),
         };
@@ -283,32 +294,25 @@ where
             capabilities: child_capabilities.clone(),
             ..context.clone()
         };
-        let mut model = ProviderModel::new(self.provider.clone(), self.model.clone())
+        let model = ProviderModel::new(self.provider.clone(), self.model.clone())
+            .with_thinking_level(self.thinking_level.clone())
             .with_catalog(inspect_catalog())
             .with_capabilities(child_capabilities)
             .with_cache(self.cache.clone(), CachePolicy::ReuseExact)
             .with_cache_namespace(child_scope.parent_branch.to_string());
-        if let Some(semantic_scope) = child_scope.semantic_scope.clone() {
-            let compiled = scriberig_agent_runtime::context::ContextCompiler::new(
-                scriberig_agent_runtime::context::ContextPolicy::default(),
-            )
-            .compile(
-                &scriberig_agent_runtime::context::BranchExecutionContext::new(
-                    child_scope.session.to_string(),
-                    child_scope.parent_branch.to_string(),
-                    &request.purpose,
-                    &request.prompt,
-                )
-                .with_project_scope(semantic_scope),
-            );
-            model = model.with_compiled_context(compiled);
-        }
+        let model = with_child_context(model, &child_scope, &request);
         let result = scriberig_agent_runtime::AgentRuntime::new(
             model,
             LocalAgentTool::new(self.service)
                 .with_project_store(std::sync::Arc::clone(&self.project_store)),
             32,
         )
+        .with_branch_id(handle.child_branch.to_string());
+        let result = if let Some(operation) = &self.operation {
+            result.with_observed_operation(self.service.operations().clone(), operation.clone())
+        } else {
+            result
+        }
         .run_with_child_executor_at(
             &child_scope,
             &child_context,
@@ -332,6 +336,7 @@ where
                 result.output,
                 result_handles.clone(),
                 result.tool_evidence,
+                result.model_requests,
             )
             .map_err(|error| error.to_string())?;
         Ok(ChildResult {
@@ -339,51 +344,41 @@ where
             handles: std::iter::once(completed.branch_result.to_string())
                 .chain(result_handles)
                 .collect(),
+            branch: Some(handle.child_branch),
         })
     }
 }
 
-/// Restricts child grants to the explicitly delegated capability names.
+/// Adds a bounded project context to one delegated child model request.
 ///
 /// # Parameters
-/// - `parent`: Capabilities available to the parent branch.
-/// - `requested`: Capability identifiers delegated by the parent model.
+/// - `model`: Configured provider model for this child branch.
+/// - `scope`: Child session, branch, and optional semantic scope.
+/// - `request`: Validated child purpose and prompt.
 ///
 /// # Returns
-/// A child capability context that is no broader than the parent request.
-fn delegated_capabilities(parent: &CapabilityContext, requested: &[String]) -> CapabilityContext {
-    let requested = requested
-        .iter()
-        .map(String::as_str)
-        .collect::<std::collections::BTreeSet<_>>();
-    let granted = parent
-        .granted
-        .iter()
-        .filter(|capability| requested.contains(capability.as_str()))
-        .cloned()
-        .collect();
-    let grants = parent
-        .grants
-        .iter()
-        .filter_map(|grant| {
-            let actions = grant
-                .actions
-                .iter()
-                .filter(|action| match action {
-                    CapabilityAction::Inspect => requested.contains("inspect.entity"),
-                    CapabilityAction::Query => requested.contains("query"),
-                    CapabilityAction::Custom(name) => requested.contains(name.as_str()),
-                    _ => false,
-                })
-                .cloned()
-                .collect::<std::collections::BTreeSet<_>>();
-            (!actions.is_empty()).then(|| Capability {
-                actions,
-                ..grant.clone()
-            })
-        })
-        .collect();
-    CapabilityContext { granted, grants }
+/// The model with compiled context when a semantic scope is present.
+fn with_child_context<P>(
+    model: ProviderModel<P>,
+    scope: &ChildExecutionScope,
+    request: &ChildRequest,
+) -> ProviderModel<P> {
+    let Some(semantic_scope) = scope.semantic_scope.clone() else {
+        return model;
+    };
+    let compiled = scriberig_agent_runtime::context::ContextCompiler::new(
+        scriberig_agent_runtime::context::ContextPolicy::default(),
+    )
+    .compile(
+        &scriberig_agent_runtime::context::BranchExecutionContext::new(
+            scope.session.to_string(),
+            scope.parent_branch.to_string(),
+            &request.purpose,
+            &request.prompt,
+        )
+        .with_project_scope(semantic_scope),
+    );
+    model.with_compiled_context(compiled)
 }
 
 #[cfg(test)]

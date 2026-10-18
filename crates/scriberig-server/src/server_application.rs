@@ -1,8 +1,11 @@
 //! Adapts the shared application façade to the protocol server boundary.
 
-use super::server_commands::decode_command;
+#[macro_use]
+#[path = "server_application_presentation.rs"]
+mod presentation_methods;
+use super::server_agent_console;
 use super::server_helpers::{
-    event_from_application, event_matches, operation_from_record, result_handles, session_response,
+    event_from_application, event_matches, operation_from_record, session_response,
 };
 use super::{
     ApplicationContext, ApplicationError, ApplicationService, InspectRequest, InspectResult,
@@ -92,6 +95,112 @@ where
             },
         )?;
         Ok(session_response(value))
+    }
+
+    /// Reads a previously captured model request from an authorized session.
+    ///
+    /// # Parameters
+    /// - `context`: Trusted request context.
+    /// - `session`: Serialized session identity.
+    /// - `branch`: Serialized branch identity.
+    /// - `invocation`: Serialized model invocation identity.
+    ///
+    /// # Returns
+    /// Bounded safe request detail captured before provider serialization.
+    ///
+    /// # Errors
+    /// Returns invalid-request or not-found errors for unavailable records.
+    fn model_request_detail(
+        &self,
+        context: &ApplicationContext,
+        session: &str,
+        branch: &str,
+        invocation: &str,
+    ) -> Result<scriberig_protocol::ModelRequestDetailResponse, ApplicationError> {
+        server_agent_console::model_request_detail(self, context, session, branch, invocation)
+    }
+
+    /// Reads bounded safe tool-result detail from an authorized session.
+    ///
+    /// # Parameters
+    /// - `context`: Trusted request context.
+    /// - `session`: Serialized session identity.
+    /// - `branch`: Serialized branch identity.
+    /// - `result`: Serialized tool result identity.
+    ///
+    /// # Returns
+    /// Safe result detail captured by the trusted tool boundary.
+    ///
+    /// # Errors
+    /// Returns invalid-request or not-found for unavailable records.
+    fn tool_result_detail(
+        &self,
+        context: &ApplicationContext,
+        session: &str,
+        branch: &str,
+        result: &str,
+    ) -> Result<scriberig_protocol::ToolResultDetailResponse, ApplicationError> {
+        server_agent_console::tool_result_detail(self, context, session, branch, result)
+    }
+
+    agent_presentation_impl_methods!();
+
+    /// Selects a model profile for future session invocations.
+    ///
+    /// # Parameters
+    /// - `context`: Trusted capability context.
+    /// - `session`: Stable session identity.
+    /// - `expected_revision`: Selection revision observed by the caller.
+    /// - `model_profile`: Curated profile identity.
+    ///
+    /// # Returns
+    /// Updated session execution selection.
+    ///
+    /// # Errors
+    /// Returns authorization, validation, conflict, or persistence failures.
+    fn set_session_model(
+        &self,
+        context: &ApplicationContext,
+        session: &str,
+        expected_revision: u64,
+        model_profile: &str,
+    ) -> Result<scriberig_protocol::SessionExecutionSelection, ApplicationError> {
+        server_agent_console::set_session_model(
+            self,
+            context,
+            session,
+            expected_revision,
+            model_profile,
+        )
+    }
+
+    /// Selects a thinking level for future session invocations.
+    ///
+    /// # Parameters
+    /// - `context`: Trusted capability context.
+    /// - `session`: Stable session identity.
+    /// - `expected_revision`: Selection revision observed by the caller.
+    /// - `thinking_level`: Advertised thinking capability identity.
+    ///
+    /// # Returns
+    /// Updated session execution selection.
+    ///
+    /// # Errors
+    /// Returns authorization, validation, conflict, or persistence failures.
+    fn set_session_thinking_level(
+        &self,
+        context: &ApplicationContext,
+        session: &str,
+        expected_revision: u64,
+        thinking_level: &str,
+    ) -> Result<scriberig_protocol::SessionExecutionSelection, ApplicationError> {
+        server_agent_console::set_session_thinking_level(
+            self,
+            context,
+            session,
+            expected_revision,
+            thinking_level,
+        )
     }
 
     /// Advertises the generic inspect capability supplied by this façade.
@@ -257,147 +366,24 @@ where
         filter_events_after(self.events(event_kinds)?, after)
     }
 
-    /// Decodes and executes one command through the shared application façade.
-    /// - `context`: Argument named `context`.
-    /// - `kind`: Argument named `kind`.
-    /// - `payload`: Argument named `payload`.
+    /// Decodes and executes one command through the shared application boundary.
+    ///
+    /// # Parameters
+    /// - `context`: Trusted request context.
+    /// - `kind`: Stable command family.
+    /// - `payload`: Typed command payload.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The accepted or completed shared operation.
     ///
     /// # Errors
-    /// Returns an error when the operation cannot complete.
-    #[allow(clippy::too_many_lines)]
+    /// Returns a structured application failure.
     fn command(
         &self,
         context: &ApplicationContext,
         kind: &str,
         payload: &serde_json::Value,
     ) -> Result<Operation, ApplicationError> {
-        if matches!(kind, "agent_start" | "agent_continue") {
-            let session = payload
-                .get("session")
-                .and_then(serde_json::Value::as_str)
-                .ok_or_else(|| ApplicationError::InvalidRequest {
-                    operation: kind.to_owned(),
-                    message: "session is required".to_owned(),
-                })?
-                .parse::<scriberig_core::EntityId>()
-                .map_err(|error| ApplicationError::InvalidRequest {
-                    operation: kind.to_owned(),
-                    message: format!("invalid session: {error}"),
-                })?;
-            let branch = payload
-                .get("branch")
-                .and_then(serde_json::Value::as_str)
-                .map(str::parse::<scriberig_core::EntityId>)
-                .transpose()
-                .map_err(|error| ApplicationError::InvalidRequest {
-                    operation: kind.to_owned(),
-                    message: format!("invalid branch: {error}"),
-                })?;
-            let prompt = payload
-                .get("prompt")
-                .and_then(serde_json::Value::as_str)
-                .filter(|value| !value.trim().is_empty())
-                .ok_or_else(|| ApplicationError::InvalidRequest {
-                    operation: kind.to_owned(),
-                    message: "prompt is required".to_owned(),
-                })?;
-            let selection = match payload
-                .get("selection")
-                .filter(|value| !value.is_null())
-                .cloned()
-            {
-                None => None,
-                Some(value) => {
-                    let selection =
-                        serde_json::from_value::<scriberig_protocol::AgentSelection>(value)
-                            .map_err(|error| ApplicationError::InvalidRequest {
-                                operation: kind.to_owned(),
-                                message: format!("invalid semantic selection: {error}"),
-                            })?;
-                    Some(scriberig_app::AgentSelection {
-                        project: selection
-                            .project_id
-                            .as_deref()
-                            .map(str::parse)
-                            .transpose()
-                            .map_err(|error| ApplicationError::InvalidRequest {
-                                operation: kind.to_owned(),
-                                message: format!("invalid selected project: {error}"),
-                            })?,
-                        root: selection
-                            .root
-                            .as_ref()
-                            .map(|root| root.id.parse())
-                            .transpose()
-                            .map_err(|error| ApplicationError::InvalidRequest {
-                                operation: kind.to_owned(),
-                                message: format!("invalid selected root: {error}"),
-                            })?
-                            .unwrap_or(selection.entity.id.parse().map_err(|error| {
-                                ApplicationError::InvalidRequest {
-                                    operation: kind.to_owned(),
-                                    message: format!("invalid selected entity: {error}"),
-                                }
-                            })?),
-                        entity: selection.entity.id.parse().map_err(|error| {
-                            ApplicationError::InvalidRequest {
-                                operation: kind.to_owned(),
-                                message: format!("invalid selected entity: {error}"),
-                            }
-                        })?,
-                        snapshot: selection.snapshot.id.parse().map_err(|error| {
-                            ApplicationError::InvalidRequest {
-                                operation: kind.to_owned(),
-                                message: format!("invalid selected snapshot: {error}"),
-                            }
-                        })?,
-                    })
-                }
-            };
-            let operation = scriberig_app::SessionBackend::submit_agent_command(
-                self,
-                context,
-                &scriberig_app::AgentCommandRequest {
-                    session,
-                    branch,
-                    prompt: prompt.to_owned(),
-                    selection,
-                },
-            )?;
-            return self.operation_status(&operation.to_string());
-        }
-        let (operation_kind, request) = decode_command(kind, payload)?;
-        let operation_id = OperationId::new(format!(
-            "command-{kind}-{}",
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map_err(|error| ApplicationError::Internal {
-                    message: error.to_string(),
-                })?
-                .as_nanos()
-        ))
-        .map_err(|error| ApplicationError::Internal {
-            message: error.to_string(),
-        })?;
-        self.operations()
-            .start(operation_id.clone(), operation_kind)?;
-        self.operations()
-            .transition(&operation_id, scriberig_app::OperationStatus::Running)?;
-        let result = self.execute(context, &request);
-        match result {
-            Ok(result) => {
-                let handles = result_handles(&result);
-                Ok(operation_from_record(
-                    self.operations().complete(&operation_id, handles)?,
-                ))
-            }
-            Err(error) => {
-                let _ = self.operations().fail(&operation_id, error.clone());
-                Err(error)
-            }
-        }
+        super::server_agent_command::execute(self, context, kind, payload)
     }
 }

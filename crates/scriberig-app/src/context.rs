@@ -111,6 +111,8 @@ pub struct ApplicationContext {
     pub snapshot: Option<SnapshotId>,
     /// Optional caller identity for provenance and audit.
     pub principal: Option<Principal>,
+    /// Trusted user identity that owns shared display preferences.
+    pub user_preferences_principal: Option<String>,
     /// Capabilities supplied by the trusted runtime boundary.
     pub capabilities: CapabilityContext,
     /// Optional correlation identifier for tracing one request.
@@ -161,6 +163,20 @@ impl ApplicationContext {
     #[must_use]
     pub fn with_bootstrap(mut self, bootstrap: BootstrapEnvironment) -> Self {
         self.bootstrap = Some(bootstrap);
+        self
+    }
+
+    /// Binds shared preferences independently from the execution actor.
+    ///
+    /// # Parameters
+    /// - `self`: Context to update.
+    /// - `principal`: Trusted stable user identity from the composition root.
+    ///
+    /// # Returns
+    /// The updated request context.
+    #[must_use]
+    pub fn with_user_preferences_principal(mut self, principal: impl Into<String>) -> Self {
+        self.user_preferences_principal = Some(principal.into());
         self
     }
 }

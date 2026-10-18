@@ -29,6 +29,8 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             | Action::AgentSubmitted(_)
             | Action::SessionRequested { .. }
             | Action::ComposerOpened { .. }
+            | Action::SessionComposerOpened { .. }
+            | Action::SessionComposerFocused(_)
             | Action::AgentOutputObserved(_)
             | Action::CapabilitiesLoaded(_)
             | Action::OperationsLoaded(_)

@@ -27,6 +27,7 @@ scriberig-session-sqlite = { path = "../../crates/scriberig-session-sqlite" }
 scriberig-tui = { path = "../../crates/scriberig-tui" }
 scriberig-client = { path = "../../crates/scriberig-client" }
 scriberig-core = { path = "../../crates/scriberig-core" }
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ctrlc = "3.4"
 

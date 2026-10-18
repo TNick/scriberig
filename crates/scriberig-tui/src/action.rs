@@ -188,6 +188,21 @@ pub enum Action {
         /// Projected session tree.
         model: crate::view::session::SessionModel,
     },
+    /// Applies a successful model-library read.
+    ModelLibraryLoaded {
+        /// Request generation.
+        request_id: u64,
+        /// Credential-safe model and profile descriptors.
+        library: scriberig_protocol::ModelLibraryResponse,
+    },
+    /// Applies shared presentation defaults without replacing local overrides.
+    PresentationPreferencesLoaded(scriberig_protocol::AgentPresentationPreferencesResponse),
+    /// Applies expanded safe detail for one durable tool result.
+    ToolResultDetailLoaded(scriberig_protocol::ToolResultDetailResponse),
+    /// Store one captured provider-neutral model request detail response.
+    ModelRequestDetailLoaded(scriberig_protocol::ModelRequestDetailResponse),
+    /// Applies an authoritative future-invocation execution selection.
+    SessionExecutionSelectionUpdated(scriberig_session::SessionExecutionSelection),
     /// Tracks the operation returned by an agent command submission.
     AgentSubmitted(crate::service::AgentHandle),
     /// Requests a public session tree.
@@ -204,6 +219,15 @@ pub enum Action {
         /// Optional branch receiving the new turn.
         branch: Option<scriberig_core::EntityId>,
     },
+    /// Opens the persistent composer on the session surface.
+    SessionComposerOpened {
+        /// Session receiving the command.
+        session: scriberig_core::EntityId,
+        /// Optional branch receiving the new turn.
+        branch: Option<scriberig_core::EntityId>,
+    },
+    /// Changes keyboard focus for the persistent session composer.
+    SessionComposerFocused(bool),
     /// Records successful contact after a remote disconnect.
     ConnectionRestored,
     /// Records non-canonical agent output observation.

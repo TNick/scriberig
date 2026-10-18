@@ -25,6 +25,12 @@ export type ProtocolEvent = { sequence?: number } & (
   | { kind: "projectionChanged"; projectionId: string }
   | { kind: "branchChanged"; branchId: string }
   | { kind: "sessionChanged"; sessionId: string }
+  | {
+      kind: "sessionSelectionChanged";
+      sessionId: string;
+      activityKind: string;
+      summary: string;
+    }
   | { kind: "migrationCompleted"; migrationId: string }
   | { kind: "migrationCreated"; migrationId: string }
   | { kind: "validationCompleted"; operationId: OperationId }
@@ -33,6 +39,14 @@ export type ProtocolEvent = { sequence?: number } & (
   | { kind: "operationProgress"; operationId: OperationId; progress: number }
   | { kind: "agentOutput"; operationId: OperationId; text: string }
   | { kind: "modelTextDelta"; operationId: OperationId; text: string }
+  | {
+      kind: "agentActivity";
+      operationId: OperationId;
+      branchId: BranchId;
+      activityKind: string;
+      state: string;
+      summary: string;
+    }
   | { kind: "operationFailed"; operationId: OperationId; error: string }
   | { kind: "operationCancelled"; operationId: OperationId }
 );
@@ -41,7 +55,23 @@ export type ProtocolEvent = { sequence?: number } & (
 export type AgentEvent =
   | { kind: "branchCreated"; sequence: number; branch: import("./sessions").BranchDescriptor }
   | { kind: "branchChanged"; sequence: number; branchId: BranchId }
+  | {
+      kind: "sessionSelectionChanged";
+      sequence: number;
+      sessionId: SessionId;
+      activityKind: string;
+      summary: string;
+    }
   | { kind: "modelTextDelta"; sequence: number; operationId: OperationId; text: string }
+  | {
+      kind: "transientActivity";
+      sequence: number;
+      operationId: OperationId;
+      branchId: BranchId;
+      activityKind: string;
+      state: string;
+      summary: string;
+    }
   | { kind: "agentOutputCommitted"; sequence: number; operationId: OperationId }
   | { kind: "operationProgress"; sequence: number; operationId: OperationId; phase?: string }
   | { kind: "operationCompleted"; sequence: number; operationId: OperationId }

@@ -5,7 +5,9 @@ use std::fs;
 use scriberig_client::Client;
 use scriberig_core::EntityId;
 use scriberig_server::{InProcessProjectTransport, InProcessTransport};
-use scriberig_session::{Branch, BranchResult, BranchStatus, Session, SessionStore};
+use scriberig_session::{
+    Branch, BranchResult, BranchStatus, Session, SessionExecutionSelection, SessionStore,
+};
 use scriberig_session_sqlite::SqliteSessionStore;
 use serde_json::json;
 
@@ -146,6 +148,7 @@ pub(super) fn candidate_branch_result(candidate: &str, successor: &str) -> Sessi
         branches: vec![Branch::new(root_id, "root").expect("root branch")],
         goals: Vec::new(),
         tasks: Vec::new(),
+        execution: SessionExecutionSelection::default(),
     };
     session
         .add_child_branch(child_id, root_id, "PHP implementation", "produce candidate")

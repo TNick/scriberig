@@ -71,6 +71,66 @@ fn runtime_emits_model_text_delta_to_attached_log() {
     )));
 }
 
+/// Verifies safe runtime phases are published on the active operation stream.
+#[test]
+fn runtime_publishes_transient_activity_without_owning_operation_lifecycle() {
+    let registry = scriberig_app::OperationRegistry::new();
+    let operation = scriberig_app::OperationId::new("observed-agent-1").expect("operation");
+    registry
+        .start(operation.clone(), scriberig_app::OperationKind::Agent)
+        .expect("start operation");
+    registry
+        .transition(&operation, scriberig_app::OperationStatus::Running)
+        .expect("run operation");
+    let mut runtime = AgentRuntime::new(EchoProvider, scriberig_agent_runtime::UnconfiguredTool, 1)
+        .with_observed_operation(registry.clone(), operation.clone())
+        .with_branch_id("branch-live");
+
+    runtime
+        .run(
+            &ApplicationContext::empty(),
+            "live answer",
+            &AtomicBool::new(false),
+        )
+        .expect("runtime result");
+
+    let activity = registry
+        .events()
+        .into_iter()
+        .filter_map(|event| match event {
+            scriberig_app::ApplicationEvent::AgentActivity {
+                operation: event_operation,
+                branch,
+                activity_kind,
+                state,
+                summary,
+            } => Some((event_operation, branch, activity_kind, state, summary)),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert!(activity.iter().any(|item| {
+        item.0 == operation
+            && item.1 == "branch-live"
+            && item.2 == "status"
+            && item.3 == "running"
+            && item.4.contains("AwaitingModel")
+    }));
+    let activity_sequences = registry
+        .events_with_sequences()
+        .into_iter()
+        .filter_map(|(sequence, event)| {
+            matches!(event, scriberig_app::ApplicationEvent::AgentActivity { .. })
+                .then_some(sequence)
+        })
+        .collect::<Vec<_>>();
+    assert_ne!(activity_sequences, Vec::<u64>::new());
+    assert!(activity_sequences.windows(2).all(|pair| pair[0] < pair[1]));
+    assert_eq!(
+        registry.get(&operation).expect("operation state").status,
+        scriberig_app::OperationStatus::Running
+    );
+}
+
 /// Verifies runtime text fragments reach an attached presentation callback.
 #[test]
 fn runtime_forwards_model_text_to_callback() {

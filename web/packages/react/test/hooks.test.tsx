@@ -5,6 +5,7 @@ import { WorkspaceModel } from "@scriberig/model";
 import type { EntityId, SnapshotId } from "@scriberig/protocol";
 import { createSnapshotState, advanceSnapshot } from "@scriberig/model";
 import { useMigrationReview } from "../src/use-migration-review";
+import { createAgentExecutionSelectionController } from "../src/use-agent-execution-selection";
 
 describe("headless hook dependencies", () => {
   it("shares selection and tree controllers across consumers", () => {
@@ -56,5 +57,44 @@ describe("headless hook dependencies", () => {
     expect(review.state.proposalId).toBe("proposal-1");
     expect(review.apply).toBe(apply);
     expect(review.reject).toBe(reject);
+  });
+
+  it("uses the latest session revision and refreshes shared selection state", async () => {
+    const model = new WorkspaceModel();
+    const sessionId = "session-1" as never;
+    const requests: Array<[string, number, string]> = [];
+    let revision = 4;
+    const client = {
+      getSession: async () => ({
+        session: { id: sessionId },
+        branches: [],
+        execution: { revision },
+      }),
+      setSessionModel: async (_session: unknown, expected: number, profile: string) => {
+        requests.push(["model", expected, profile]);
+        revision += 1;
+        return { revision };
+      },
+      setSessionThinkingLevel: async (_session: unknown, expected: number, level: string) => {
+        requests.push(["thinking", expected, level]);
+        revision += 1;
+        return { revision };
+      },
+    } as never;
+    model.setAgentSession({
+      session: { id: sessionId },
+      branches: [],
+      execution: { revision: 4 },
+    });
+    const controller = createAgentExecutionSelectionController(client, model, sessionId);
+
+    await controller.selectModel("profile-b");
+    await controller.selectThinkingLevel("deep");
+
+    expect(requests).toEqual([
+      ["model", 4, "profile-b"],
+      ["thinking", 5, "deep"],
+    ]);
+    expect(model.getAgentState().execution.revision).toBe(6);
   });
 });

@@ -7,6 +7,8 @@ export * from "./query";
 export * from "./changes";
 export * from "./operations";
 export * from "./sessions";
+export * from "./models";
+export * from "./presentation";
 export * from "./projections";
 export * from "./capabilities";
 export * from "./errors";

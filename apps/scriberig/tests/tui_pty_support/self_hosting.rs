@@ -121,8 +121,11 @@ impl TuiPty {
         git(&["add", "-A"]);
         Self::start_configured_scenario(
             fixture,
-            None,
-            false,
+            super::ProjectStartupOptions {
+                path: None,
+                import: false,
+                git_tracked: false,
+            },
             Some(checkout),
             true,
             Some(scenario),
@@ -151,8 +154,11 @@ impl TuiPty {
     ) -> Self {
         Self::start_configured_scenario(
             fixture,
-            Some(checkout.clone()),
-            true,
+            super::ProjectStartupOptions {
+                path: Some(checkout.clone()),
+                import: true,
+                git_tracked: true,
+            },
             Some(checkout),
             false,
             None,

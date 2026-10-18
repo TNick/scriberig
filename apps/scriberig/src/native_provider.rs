@@ -8,7 +8,7 @@ use scriberig_agent_runtime::provider::{
 #[derive(Clone)]
 pub(super) enum NativeProvider {
     /// Remote OpenAI-compatible model endpoint.
-    OpenAiCompatible(scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider),
+    OpenAiCompatible(Box<scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider>),
     /// Deterministic onboarding scenario used by product tests.
     Deterministic(crate::deterministic_provider::BootstrapProvider),
     /// Deterministic failure after persisted manifest review.

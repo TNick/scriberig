@@ -11,6 +11,8 @@ use crate::{
 /// Provides an unsupported operation for runtime composition tests.
 struct Fixture;
 
+impl crate::service::TuiModelRequestService for Fixture {}
+
 impl TuiService for Fixture {
     /// Rejects inspection while keeping the runtime test deterministic.
     ///

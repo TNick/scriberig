@@ -129,14 +129,27 @@ function applyAgentProtocolEvent(
   switch (event.kind) {
     case "agentOutput":
       agentEvent = {
-        kind: "modelTextDelta",
+        kind: "agentOutputCommitted",
         sequence,
         operationId: event.operationId,
-        text: event.text,
+      };
+      break;
+    case "agentActivity":
+      agentEvent = {
+        kind: "transientActivity",
+        sequence,
+        operationId: event.operationId,
+        branchId: event.branchId,
+        activityKind: event.activityKind,
+        state: event.state,
+        summary: event.summary,
       };
       break;
     case "branchChanged":
       agentEvent = { kind: "branchChanged", sequence, branchId: event.branchId as never };
+      break;
+    case "sessionChanged":
+      agentEvent = { kind: "branchChanged", sequence, branchId: event.sessionId as never };
       break;
     case "operationProgress":
       agentEvent = { kind: "operationProgress", sequence, operationId: event.operationId };

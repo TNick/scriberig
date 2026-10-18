@@ -15,6 +15,8 @@ mod operation_cancellation;
 mod operation_record;
 #[path = "operation_state.rs"]
 mod operation_state;
+#[path = "operation_session_event.rs"]
+mod session_event;
 use operation_state::{OperationRegistryState, operation_event};
 
 /// Classifies the semantic work performed by an operation.

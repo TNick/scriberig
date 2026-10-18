@@ -1,5 +1,7 @@
 //! Verifies cancellation terminates isolated candidate validation in the native product.
 
+#[path = "tui_pty_support/onboarding_wait.rs"]
+mod onboarding_wait;
 #[allow(dead_code)]
 mod tui_pty_support;
 
@@ -9,6 +11,7 @@ use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, Instant};
 
+use onboarding_wait::wait_for_onboarding;
 use scriberig_core::EntityId;
 use scriberig_project::ProjectService;
 use scriberig_session::{BranchStatus, SessionStore};
@@ -34,15 +37,14 @@ fn tui_cancels_php_validation_without_project_or_live_source_mutation() {
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"start-agent\r");
-    assert!(tui.read_until("Session:"), "{}", tui.diagnostic());
-    assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
-    let session = visible_session(&tui.screen());
-    tui.send(b"Onboard the current project.\r");
     assert!(
-        tui.read_until_for("The current project is onboarded", Duration::from_secs(120)),
+        tui.read_until("Agent composer · ent_"),
         "{}",
         tui.diagnostic()
     );
+    let session = visible_session(&tui.screen());
+    tui.send(b"Onboard the current project.\r");
+    wait_for_onboarding(&tui, session);
     assert!(tui.read_until("project: scriberig"), "{}", tui.diagnostic());
 
     let database = tui.fixture_path().join("scriberig.sqlite");
@@ -61,11 +63,15 @@ fn tui_cancels_php_validation_without_project_or_live_source_mutation() {
     .expect("active project workspace")
     .snapshot;
     let preexisting = validation_workspaces();
+    tui.send(b"\x1b");
+    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
     tui.send(b"\x1b[B");
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"continue-agent\r");
-    assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Write a message..."), "{}", tui.diagnostic());
+    tui.send(b"i");
+    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     tui.send(b"Add support for ingesting PHP source files.\r");
 
     let validation_root = wait_for_candidate_validation(&preexisting);
@@ -188,6 +194,8 @@ fn is_candidate_validation_workspace(root: &Path) -> bool {
 /// # Parameters
 /// - `tui`: Active product process.
 fn cancel_active_agent(tui: &mut TuiPty) {
+    tui.send(b"\x1b");
+    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"operations");
@@ -247,7 +255,7 @@ fn wait_for_cancellation(database: &Path, session: EntityId) -> scriberig_sessio
 /// Stable session entity identity.
 fn visible_session(screen: &str) -> EntityId {
     screen
-        .split("Session:")
+        .split("Agent composer · ")
         .nth(1)
         .and_then(|text| text.split_whitespace().next())
         .expect("session displayed")

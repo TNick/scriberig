@@ -28,12 +28,17 @@ fn tui_cancellation_persists_abandoned_branch_without_project_or_source_mutation
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"start-agent\r");
-    assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
-    assert!(tui.read_until("Session:"), "{}", tui.diagnostic());
+    assert!(
+        tui.read_until("Agent composer · ent_"),
+        "{}",
+        tui.diagnostic()
+    );
     let session = visible_session(&tui.screen());
     tui.send(b"Onboard the current project.\r");
     wait_for_provider_gate(&tui);
 
+    tui.send(b"\x1b");
+    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"operations");
@@ -52,28 +57,7 @@ fn tui_cancellation_persists_abandoned_branch_without_project_or_source_mutation
     );
     tui.release_agent_provider();
 
-    assert!(
-        !checkout
-            .join("crates/domains/scriberig-domain-php")
-            .exists()
-    );
-    assert_eq!(
-        fs::read(checkout.join("Cargo.toml")).expect("manifest"),
-        manifest
-    );
-    assert_eq!(
-        fs::read(checkout.join("crates/scriberig-project/src/scan.rs")).expect("scanner"),
-        scanner
-    );
-    assert!(
-        SqliteStore::open(tui.fixture_path().join("scriberig.sqlite"))
-            .expect("store")
-            .list_projects()
-            .expect("project list")
-            .is_empty(),
-        "cancelled onboarding imported a project"
-    );
-
+    assert_source_unchanged(&checkout, &manifest, &scanner);
     let database = tui.fixture_path().join("scriberig.sqlite");
     let session_store = SqliteSessionStore::open(&database).expect("session store");
     let deadline = Instant::now() + Duration::from_secs(15);
@@ -112,9 +96,40 @@ fn tui_cancellation_persists_abandoned_branch_without_project_or_source_mutation
             .as_deref()
             .is_some_and(|outcome| outcome.contains("cancel"))
     );
+    assert!(
+        SqliteStore::open(&database)
+            .expect("store")
+            .list_projects()
+            .expect("project list")
+            .is_empty(),
+        "cancelled onboarding imported a project"
+    );
 
+    drop(session_store);
     let fixture = tui.quit_retain_fixture();
     fs::remove_dir_all(fixture).expect("remove cancellation fixture");
+}
+
+/// Confirms the cancelled agent left the copied checkout unchanged.
+///
+/// # Parameters
+/// - `checkout`: Copied Scriberig repository.
+/// - `manifest`: Original manifest bytes.
+/// - `scanner`: Original scanner source bytes.
+fn assert_source_unchanged(checkout: &std::path::Path, manifest: &[u8], scanner: &[u8]) {
+    assert!(
+        !checkout
+            .join("crates/domains/scriberig-domain-php")
+            .exists()
+    );
+    assert_eq!(
+        fs::read(checkout.join("Cargo.toml")).expect("manifest"),
+        manifest
+    );
+    assert_eq!(
+        fs::read(checkout.join("crates/scriberig-project/src/scan.rs")).expect("scanner"),
+        scanner
+    );
 }
 
 /// Waits until the deterministic provider is blocked before opening Operations.
@@ -147,7 +162,7 @@ fn wait_for_provider_gate(tui: &TuiPty) {
 /// The session identity rendered by the composer.
 fn visible_session(screen: &str) -> scriberig_core::EntityId {
     screen
-        .split("Session:")
+        .split("Agent composer · ")
         .nth(1)
         .and_then(|text| text.split_whitespace().next())
         .expect("session visible in composer")

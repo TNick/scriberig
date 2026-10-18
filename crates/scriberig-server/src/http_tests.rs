@@ -7,14 +7,37 @@ use super::{
 use crate::development::DevelopmentFixture;
 use crate::server::ApplicationService;
 use scriberig_app::{
-    ApplicationContext, ApplicationError, InspectRequest, InspectResult, MigrationDetail,
-    RuntimeCapability,
+    ApplicationBackend, ApplicationContext, ApplicationError, ApplicationRequest,
+    ApplicationResult, InspectRequest, InspectResult, MigrationDetail, RuntimeCapability,
 };
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
 use serde_json::Value;
 
 /// Supplies one migration detail to the HTTP adapter test.
 struct Fixture;
+
+impl ApplicationBackend for Fixture {
+    /// Rejects universal operations because this fixture only tests HTTP mapping.
+    ///
+    /// # Parameters
+    /// - `_context`: Application authorization context.
+    /// - `_request`: Universal request, unused by this fixture.
+    ///
+    /// # Returns
+    /// Never returns a result.
+    ///
+    /// # Errors
+    /// Always returns unsupported-operation.
+    fn execute(
+        &self,
+        _context: &ApplicationContext,
+        _request: &ApplicationRequest,
+    ) -> Result<ApplicationResult, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "HTTP fixture backend".to_owned(),
+        })
+    }
+}
 
 impl ApplicationService for Fixture {
     /// Rejects inspection because this test only exercises migration detail.
@@ -99,6 +122,7 @@ impl ApplicationService for Fixture {
 fn migration_route_maps_canonical_detail() {
     let state = HttpState {
         service: Fixture,
+        principal: scriberig_app::Principal::new("test-user"),
         allowed_origin: None,
         project_store: None,
         allowed_project_roots: Vec::new(),
@@ -123,6 +147,7 @@ fn migration_route_maps_canonical_detail() {
 fn typed_operation_route_preserves_correlation() {
     let state = HttpState {
         service: Fixture,
+        principal: scriberig_app::Principal::new("test-user"),
         allowed_origin: None,
         project_store: None,
         allowed_project_roots: Vec::new(),
@@ -138,11 +163,52 @@ fn typed_operation_route_preserves_correlation() {
     assert!(response["response"]["Capabilities"].is_object());
 }
 
+/// Verifies HTTP preference operations carry the trusted local principal.
+#[test]
+fn typed_preference_operations_use_the_http_principal() {
+    let state = HttpState {
+        service: scriberig_app::ApplicationService::new(Fixture),
+        principal: scriberig_app::Principal::new("http-user"),
+        allowed_origin: None,
+        project_store: None,
+        allowed_project_roots: Vec::new(),
+        fixture: DevelopmentFixture {
+            root_entity: EntityId::from_bytes([1; 16]),
+            child_entities: Vec::new(),
+            snapshot: SnapshotId::new([1; 32]),
+        },
+    };
+    let response = dispatch(
+        &state,
+        "agent_presentation_preferences",
+        "{}",
+        "preferences-read".to_owned(),
+    )
+    .expect("read shared preferences");
+    assert_eq!(
+        response["response"]["AgentPresentationPreferences"]["revision"],
+        0
+    );
+
+    let response = dispatch(
+        &state,
+        "set_agent_presentation_preferences",
+        r#"{"expected_revision":0,"preferences":{"reasoning":"shown","tool_invocation":"detailed","tool_output":"full","prompt":"shown"}}"#,
+        "preferences-write".to_owned(),
+    )
+    .expect("update shared preferences");
+    assert_eq!(
+        response["response"]["AgentPresentationPreferences"]["revision"],
+        1
+    );
+}
+
 /// Verifies unknown operation identifiers fail before application dispatch.
 #[test]
 fn typed_operation_route_rejects_unknown_operation() {
     let state = HttpState {
         service: Fixture,
+        principal: scriberig_app::Principal::new("test-user"),
         allowed_origin: None,
         project_store: None,
         allowed_project_roots: Vec::new(),
@@ -163,6 +229,7 @@ fn typed_operation_route_rejects_unknown_operation() {
 fn direct_project_route_preserves_project_errors() {
     let state = HttpState {
         service: Fixture,
+        principal: scriberig_app::Principal::new("test-user"),
         allowed_origin: None,
         project_store: None,
         allowed_project_roots: Vec::new(),

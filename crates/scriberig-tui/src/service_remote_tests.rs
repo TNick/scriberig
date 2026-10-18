@@ -9,9 +9,15 @@ use scriberig_core::{EntityId, RevisionId, SnapshotId};
 use scriberig_protocol::{
     AgentAcceptedResponse, CapabilitiesResponse, CapabilityInfo, EntityReference,
     InspectEntityResponse, Operation, OperationStatusResponse, ProtocolTransport, ProtocolVersion,
-    RequestEnvelope, Response, ResponseEnvelope, RevisionReference, RuntimeFeature, SessionBranch,
+    RequestEnvelope, Response, ResponseEnvelope, RevisionReference, RuntimeFeature,
+    SessionActivityItem, SessionActivityKind, SessionActivityState, SessionBranch,
     SessionBranchStatus, SessionReadResponse, SessionReference, SessionTurn, SnapshotReference,
 };
+
+#[path = "service_remote_reconnect_tests.rs"]
+mod reconnect_tests;
+#[path = "service_remote_session_event_tests.rs"]
+mod session_event_tests;
 
 /// Returns one deterministic inspect response without network access.
 #[derive(Clone)]
@@ -248,8 +254,48 @@ fn remote_session_read_reconstructs_branch_activity() {
                         tool_invocation: None,
                         tool_result: None,
                     }],
+                    activity: vec![
+                        SessionActivityItem {
+                            id: format!("{turn}:human"),
+                            session: session.to_string(),
+                            sequence: 0,
+                            branch: branch.to_string(),
+                            parent: None,
+                            kind: SessionActivityKind::HumanInput,
+                            state: SessionActivityState::Completed,
+                            summary: "Human input".to_owned(),
+                            durable_ref: Some(turn.to_string()),
+                            model: None,
+                            thinking_level: None,
+                            tool_name: None,
+                            tool_arguments: None,
+                            tool_result_preview: None,
+                        },
+                        SessionActivityItem {
+                            id: format!("{turn}:assistant"),
+                            session: session.to_string(),
+                            sequence: 1,
+                            branch: branch.to_string(),
+                            parent: Some(format!("{turn}:human")),
+                            kind: SessionActivityKind::AssistantOutput,
+                            state: SessionActivityState::Completed,
+                            summary: "fixture output".to_owned(),
+                            durable_ref: Some(turn.to_string()),
+                            model: None,
+                            thinking_level: None,
+                            tool_name: None,
+                            tool_arguments: None,
+                            tool_result_preview: None,
+                        },
+                    ],
                     result: None,
                 }],
+                execution: scriberig_protocol::SessionExecutionSelection {
+                    revision: 4,
+                    model_profile: Some("profile-a".to_owned()),
+                    model: Some("model-a".to_owned()),
+                    thinking_level: Some("careful".to_owned()),
+                },
             }),
         },
     };
@@ -262,11 +308,21 @@ fn remote_session_read_reconstructs_branch_activity() {
     assert_eq!(value.branches[0].id, branch);
     assert_eq!(value.branches[0].turns[0].id, turn);
     assert_eq!(value.branches[0].turns[0].ordinal, 3);
+    assert_eq!(value.execution.revision, 4);
+    assert_eq!(value.execution.model.as_deref(), Some("model-a"));
+    assert_eq!(value.execution.thinking_level.as_deref(), Some("careful"));
     assert!(value.branches[0].turns[0].human.is_some());
     assert!(value.branches[0].turns[0].agent.is_some());
     assert_eq!(
         value.branches[0].turns[0].agent.as_ref().unwrap().text,
         "fixture output"
+    );
+    assert_eq!(
+        value.branches[0].activity,
+        vec![
+            scriberig_session::ExecutionActivity::HumanInput(turn),
+            scriberig_session::ExecutionActivity::AgentOutput(turn),
+        ]
     );
 }
 

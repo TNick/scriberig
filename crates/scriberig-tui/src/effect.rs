@@ -103,6 +103,35 @@ pub enum Effect {
         /// Optional branch whose activity is loaded on demand.
         branch: Option<scriberig_core::EntityId>,
     },
+    /// Read credential-safe model profiles and capabilities.
+    ReadModelLibrary {
+        /// Request generation.
+        request_id: u64,
+    },
+    /// Read shared presentation defaults for this trusted application user.
+    ReadPresentationPreferences,
+    /// Read expanded safe detail for one durable tool result.
+    ReadToolResultDetail {
+        /// Session containing the result.
+        session: scriberig_core::EntityId,
+        /// Branch containing the result.
+        branch: scriberig_core::EntityId,
+        /// Stable tool-result identity.
+        result: scriberig_core::EntityId,
+    },
+    /// Read captured safe request detail for one model invocation.
+    ReadModelRequestDetail {
+        /// Session containing the invocation.
+        session: scriberig_core::EntityId,
+        /// Branch containing the invocation.
+        branch: scriberig_core::EntityId,
+        /// Stable model-invocation identity.
+        invocation: scriberig_core::EntityId,
+    },
+    /// Select a model profile for future invocations in one session.
+    SetSessionModel(scriberig_app::SessionModelSelectionRequest),
+    /// Select a thinking level for future invocations in one session.
+    SetSessionThinkingLevel(scriberig_app::SessionThinkingSelectionRequest),
     /// Submit a command to a session branch through the application boundary.
     SubmitAgent {
         /// Stable session identity.

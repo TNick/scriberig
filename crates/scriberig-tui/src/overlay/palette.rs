@@ -55,6 +55,24 @@ impl Default for PaletteState {
                 item("changes", "View changes/validation"),
                 item("review-candidate", "Review candidate"),
                 item("session", "View session"),
+                item("model-picker", "Select model"),
+                item("thinking-picker", "Select thinking level"),
+                item(
+                    "toggle-tool-output",
+                    "Cycle tool result display: hidden/summary/full",
+                ),
+                item(
+                    "toggle-tool-invocation",
+                    "Toggle tool call detail: simple/detailed",
+                ),
+                item(
+                    "toggle-prompt",
+                    "Toggle captured model request: hidden/shown",
+                ),
+                item(
+                    "toggle-reasoning",
+                    "Toggle safe reasoning summaries and status: hidden/shown",
+                ),
                 item("start-agent", "Start agent session"),
                 item("continue-agent", "Continue selected branch"),
                 item("operations", "View operations"),

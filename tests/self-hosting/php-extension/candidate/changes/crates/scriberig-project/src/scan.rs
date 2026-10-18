@@ -22,7 +22,9 @@ pub(crate) fn scan_directory(
     tracked: Option<&BTreeSet<String>>,
 ) -> std::io::Result<Vec<ScanFile>> {
     let mut files = Vec::new();
-    visit_directory(root, root, tracked, &mut files)?;
+    let sensitive = scriberig_secrets::sensitive::SensitivePaths::from_process()
+        .map_err(std::io::Error::other)?;
+    visit_directory(root, root, tracked, &mut files, &sensitive)?;
     files.sort_by(|left, right| left.relative_path.cmp(&right.relative_path));
     Ok(files)
 }
@@ -34,6 +36,7 @@ pub(crate) fn scan_directory(
 /// - `directory`: Directory currently being visited.
 /// - `tracked`: Optional set of paths selected by Git.
 /// - `files`: Scan results being collected.
+/// - `sensitive`: Credential paths excluded before reading any source bytes.
 ///
 /// # Returns
 /// Unit after the directory has been visited.
@@ -45,17 +48,18 @@ fn visit_directory(
     directory: &Path,
     tracked: Option<&BTreeSet<String>>,
     files: &mut Vec<ScanFile>,
+    sensitive: &scriberig_secrets::sensitive::SensitivePaths,
 ) -> std::io::Result<()> {
     for entry in std::fs::read_dir(directory)? {
         let entry = entry?;
         let path = entry.path();
         let relative = path.strip_prefix(root).unwrap_or(&path);
-        if is_excluded(relative) || entry.file_type()?.is_symlink() {
+        if is_excluded(relative) || sensitive.contains(&path) || entry.file_type()?.is_symlink() {
             continue;
         }
         let file_type = entry.file_type()?;
         if file_type.is_dir() {
-            visit_directory(root, &path, tracked, files)?;
+            visit_directory(root, &path, tracked, files, sensitive)?;
         } else if file_type.is_file() {
             let relative_path = relative.to_string_lossy().replace('\\', "/");
             if tracked.is_some_and(|paths| !paths.contains(&relative_path)) {
@@ -151,13 +155,13 @@ pub(crate) fn adapter_for(path: &Path, bytes: &[u8]) -> &'static str {
         .as_deref()
     {
         Some("html" | "htm") => "html",
+        Some("php") => "php",
         Some("c" | "h") => "c",
         Some("cc" | "cpp" | "cxx" | "hpp" | "hh" | "hxx") => "cpp",
         Some("js" | "mjs" | "cjs" | "jsx") => "javascript",
         Some("ts" | "mts" | "cts" | "tsx") => "typescript",
         Some("md" | "markdown") => "markdown",
         Some("py" | "pyi" | "pyw") => "python",
-        Some("php") => "php",
         Some("rs") => "rust",
         Some("pdf") => "pdf",
         Some(

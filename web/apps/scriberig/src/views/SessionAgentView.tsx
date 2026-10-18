@@ -2,11 +2,18 @@
 
 import {
   AgentComposer,
+  AgentModelControls,
+  AgentPresentationControls,
   AgentOperationPanel,
   BranchActivityView,
   SessionBranchTree,
 } from "@scriberig/agent-ui";
-import { useOperation, useSelection, useScriberig } from "@scriberig/react";
+import {
+  useAgentExecutionSelection,
+  useOperation,
+  useSelection,
+  useScriberig,
+} from "@scriberig/react";
 import type { BranchDescriptor, Operation } from "@scriberig/model";
 import type { AgentSelection, BranchId, OperationId, SessionId } from "@scriberig/protocol";
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactElement } from "react";
@@ -78,6 +85,8 @@ export function SessionAgentView({
   const [activeBranchId, setActiveBranchId] = useState<BranchId>();
   const [prompt, setPrompt] = useState("");
   const [status, setStatus] = useState("Ready");
+  const { modelLibrary, presentation } = agentState;
+  const executionSelection = useAgentExecutionSelection(sessionId);
   const { operation } = useOperation(activeOperationId);
   const visibleBranches = useMemo(() => {
     const discovered = Object.values(agentState.branches);
@@ -88,6 +97,33 @@ export function SessionAgentView({
   const currentSelection = toAgentSelection(selection);
   const canStartAgent = capabilityAvailable(capabilities, "agent_start");
   const canCancelOperation = capabilityAvailable(capabilities, "operation_cancel");
+  useEffect(() => {
+    let active = true;
+    void client
+      .getModelLibrary()
+      .then((library) => {
+        if (active) model.setAgentModelLibrary(library);
+      })
+      .catch((error: unknown) => {
+        if (active) setStatus(error instanceof Error ? error.message : "Model library unavailable");
+      });
+    void client
+      .getAgentPresentationPreferences()
+      .then(({ preferences }) => {
+        if (active) {
+          model.setSharedAgentPresentation({
+            reasoning: preferences.reasoning,
+            toolInvocation: preferences.toolInvocation,
+            toolOutput: preferences.toolOutput,
+            prompt: preferences.prompt,
+          });
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [client, model]);
   useEffect(() => {
     let storedOperation: string | null = null;
     try {
@@ -118,6 +154,19 @@ export function SessionAgentView({
     };
     void restore();
   }, [client, model, sessionId]);
+  useEffect(() => {
+    if (!agentState.stale) return;
+    let active = true;
+    void client
+      .getSession(sessionId)
+      .then((session) => {
+        if (active) model.setAgentSession(session);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [agentState.stale, client, model, sessionId]);
   const navigateResult = (handle: string): void => {
     if (selection === undefined) {
       setStatus(`Result ${handle} is ready to open`);
@@ -188,6 +237,28 @@ export function SessionAgentView({
     }
   };
 
+  const selectModel = async (profileId: string): Promise<void> => {
+    if (profileId.length === 0) return;
+    setStatus("Updating model");
+    try {
+      await executionSelection.selectModel(profileId);
+      setStatus("Model updated for the next invocation");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Model selection failed");
+    }
+  };
+
+  const selectThinkingLevel = async (level: string): Promise<void> => {
+    if (level.length === 0) return;
+    setStatus("Updating thinking level");
+    try {
+      await executionSelection.selectThinkingLevel(level);
+      setStatus("Thinking level updated for the next invocation");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Thinking selection failed");
+    }
+  };
+
   const cancel = async (): Promise<void> => {
     if (activeOperationId === undefined) return;
     try {
@@ -209,13 +280,42 @@ export function SessionAgentView({
   return (
     <section aria-label="Session and Agent">
       <h1>Session / Agent</h1>
+      {agentState.selectionActivities.slice(-1).map((activity) => (
+        <output key={activity.sequence} aria-label="Agent model selection activity">
+          {activity.summary}
+        </output>
+      ))}
       <SessionBranchTree
         branches={visibleBranches}
         onSelect={(branch) => setActiveBranchId(branch.branchId)}
         onNavigate={navigateResult}
       />
+      {modelLibrary ? (
+        <AgentModelControls
+          library={modelLibrary}
+          selection={agentState.execution}
+          onModelChange={(profileId) => void selectModel(profileId)}
+          onThinkingChange={(level) => void selectThinkingLevel(level)}
+          disabled={executionSelection.mutating || !canStartAgent}
+        />
+      ) : null}
+      <AgentPresentationControls
+        value={presentation}
+        onChange={(value) => model.setAgentPresentation(value)}
+      />
       {activeActivity ? (
-        <BranchActivityView page={activeActivity} onNavigate={navigateResult} />
+        <BranchActivityView
+          page={activeActivity}
+          transientItems={agentState.transientActivities[activeActivity.branchId] ?? []}
+          presentation={presentation}
+          onNavigate={navigateResult}
+          onLoadModelRequest={(session, branch, invocation) =>
+            client.getModelRequestDetail(session as SessionId, branch as BranchId, invocation)
+          }
+          onLoadToolResult={(session, branch, result) =>
+            client.getToolResultDetail(session as SessionId, branch as BranchId, result)
+          }
+        />
       ) : null}
       <AgentComposer
         {...(currentSelection === undefined ? {} : { selection: currentSelection })}

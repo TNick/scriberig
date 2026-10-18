@@ -40,6 +40,7 @@ use serde_json::json;
 /// # Parameters
 /// - `request`: Normalized parent branch request.
 /// - `scope`: Exact project and snapshot references.
+/// - `validation_failure`: Whether the scenario should exercise validation failure.
 /// - `super`: Parent scenario module.
 ///
 /// # Returns
@@ -217,6 +218,7 @@ pub(super) fn architecture_branch(
 /// # Parameters
 /// - `request`: Normalized implementation child request.
 /// - `scope`: Exact project and snapshot references.
+/// - `validation`: Validation mode for candidate materialization.
 /// - `super`: Parent scenario module.
 /// - `scope`: Exact project and snapshot inherited by the child.
 ///

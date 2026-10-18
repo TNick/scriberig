@@ -16,16 +16,48 @@ export function toAgentEvent(
       return {
         sequence: nextSequence,
         event: {
-          kind: "modelTextDelta",
+          kind: "agentOutputCommitted",
           sequence: nextSequence,
           operationId: event.operationId,
-          text: event.text,
         },
       };
     case "branchChanged":
       return {
         sequence: nextSequence,
         event: { kind: "branchChanged", sequence: nextSequence, branchId: event.branchId as never },
+      };
+    case "agentActivity":
+      return {
+        sequence: nextSequence,
+        event: {
+          kind: "transientActivity",
+          sequence: nextSequence,
+          operationId: event.operationId,
+          branchId: event.branchId,
+          activityKind: event.activityKind,
+          state: event.state,
+          summary: event.summary,
+        },
+      };
+    case "sessionChanged":
+      return {
+        sequence: nextSequence,
+        event: {
+          kind: "branchChanged",
+          sequence: nextSequence,
+          branchId: event.sessionId as never,
+        },
+      };
+    case "sessionSelectionChanged":
+      return {
+        sequence: nextSequence,
+        event: {
+          kind: "sessionSelectionChanged",
+          sequence: nextSequence,
+          sessionId: event.sessionId as never,
+          activityKind: event.activityKind,
+          summary: event.summary,
+        },
       };
     case "operationProgress":
       return {

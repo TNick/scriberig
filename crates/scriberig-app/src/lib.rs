@@ -1,5 +1,6 @@
 //! Defines shared semantic operations consumed by every product surface.
 
+pub mod agent_console;
 pub mod capability;
 pub mod capability_registry;
 pub mod command;
@@ -26,6 +27,17 @@ pub mod session;
 pub mod trust;
 pub mod validation;
 
+pub use agent_console::configuration::model_library_from_json;
+pub use agent_console::model::{
+    CredentialRef, ModelCapabilities, ModelDescriptor, ModelId, ModelLibrary, ModelProfile,
+    ThinkingLevelDescriptor, ThinkingLevelId,
+};
+pub use agent_console::preferences::{
+    AgentPresentationPreferenceSnapshot, AgentPresentationPreferenceStore,
+    AgentPresentationPreferences, InMemoryAgentPresentationPreferenceStore, PromptVisibility,
+    ReasoningVisibility, ToolInvocationDetail, ToolOutputVisibility,
+};
+pub use agent_console::resolution::{ExecutionSelectionSources, resolve_execution_selection};
 pub use capability::{
     AuthorizationDenial, BranchContext, Capability, CapabilityAction, CapabilityConstraints,
     CapabilityDescriptor, CapabilityId, CapabilityKind, CapabilityScope, DomainOperationRequest,
@@ -66,11 +78,13 @@ pub use request::{
 pub use result::{
     ApplicationResult, MigrationDelta, MigrationDetail, OperationStarted, OperationSummary,
 };
+pub use scriberig_session::SessionExecutionSelection;
 pub use service::{ApplicationBackend, ApplicationService};
 pub use service_store::StoreInspectionBackend;
 pub use session::{
-    AgentCommandRequest, AgentResult, AgentSelection, CandidateChange, LocalAgentHandle,
-    LocalChildAgentHandle, SessionBackend, SessionRequest, ToolExecutionEvidence,
+    AgentCommandRequest, AgentConsoleBackend, AgentResult, AgentSelection, CandidateChange,
+    LocalAgentHandle, LocalChildAgentHandle, SessionBackend, SessionModelSelectionRequest,
+    SessionRequest, SessionThinkingSelectionRequest, ToolExecutionEvidence,
 };
 pub use trust::{
     ApprovalSummary, CapabilityDenial, ConflictSummary, ExternalEffectSummary, PolicyDecision,

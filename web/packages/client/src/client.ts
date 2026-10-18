@@ -17,16 +17,30 @@ import type {
   BranchResultReference,
   SessionId,
   SessionReadResponse,
+  ModelRequestDetailResponse,
+  ToolResultDetailResponse,
   AgentResult,
   AgentEvent,
   ProtocolEvent,
   QueryRequest,
   ReadResponse,
+  ModelLibraryResponse,
+  SessionExecutionSelection,
+  AgentPresentationPreferences,
+  AgentPresentationPreferencesResponse,
 } from "@scriberig/protocol";
 import { toAgentEvent } from "./agent-events";
 import { subscribeEvents, type EventSubscription } from "./event-stream";
 import { normalizeAcceptedAgent, normalizeOperation } from "./response-normalizers";
-import { branchActivity, branchDescriptor, normalizeSession } from "./session-views";
+import {
+  activityFromSession,
+  branchFromSession,
+  childrenFromSession,
+  normalizeSession,
+  resultFromSession,
+} from "./session-views";
+import { normalizeExecutionSelection, normalizeModelLibrary } from "./model-views";
+import { readPresentationPreferences, replacePresentationPreferences } from "./presentation-views";
 import type { SemanticTransport, TransportConnectionState } from "./transport";
 
 /** Framework-independent client for shared semantic operations.
@@ -196,17 +210,128 @@ export class ScriberigClient {
       .request("session", { session: { id: sessionId } }, signal)
       .then(normalizeSession);
   }
+  /** Reads a previously captured safe model request without invoking a provider. */
+  getModelRequestDetail(
+    sessionId: SessionId,
+    branchId: BranchId,
+    invocationId: string,
+    signal?: AbortSignal,
+  ): Promise<ModelRequestDetailResponse> {
+    return this.transport.request(
+      "model_request_detail",
+      {
+        session: { id: sessionId },
+        branch: { id: branchId },
+        invocation: invocationId,
+      },
+      signal,
+    );
+  }
+  /** Reads bounded safe detail for one durable tool result. */
+  getToolResultDetail(
+    sessionId: SessionId,
+    branchId: BranchId,
+    resultId: string,
+    signal?: AbortSignal,
+  ): Promise<ToolResultDetailResponse> {
+    return this.transport.request(
+      "tool_result_detail",
+      {
+        session: { id: sessionId },
+        branch: { id: branchId },
+        result: resultId,
+      },
+      signal,
+    );
+  }
+  /** Reads the safe model library used by agent model and thinking controls.
+   * @param signal Optional request cancellation signal.
+   * @returns Safe model descriptors and curated profiles.
+   */
+  getModelLibrary(signal?: AbortSignal): Promise<ModelLibraryResponse> {
+    return this.transport.request("model_library", {}, signal).then(normalizeModelLibrary);
+  }
+  /** Reads shared presentation defaults for the authenticated principal.
+   * @param signal Optional request cancellation signal.
+   * @returns Revisioned shared defaults.
+   */
+  getAgentPresentationPreferences(
+    signal?: AbortSignal,
+  ): Promise<AgentPresentationPreferencesResponse> {
+    return readPresentationPreferences(this.transport, signal);
+  }
+  /** Replaces shared presentation defaults at the observed revision.
+   * @param expectedRevision Last observed preference revision.
+   * @param preferences Complete independent display choices.
+   * @param signal Optional request cancellation signal.
+   * @returns Updated revisioned defaults.
+   */
+  setAgentPresentationPreferences(
+    expectedRevision: number,
+    preferences: AgentPresentationPreferences,
+    signal?: AbortSignal,
+  ): Promise<AgentPresentationPreferencesResponse> {
+    return replacePresentationPreferences(this.transport, expectedRevision, preferences, signal);
+  }
+  /** Selects a model profile for future invocations in one session.
+   * @param sessionId Target durable session.
+   * @param expectedRevision Selection mutation revision observed by the caller.
+   * @param modelProfile Curated profile id to select.
+   * @param signal Optional request cancellation signal.
+   * @returns Updated shared execution selection.
+   */
+  setSessionModel(
+    sessionId: SessionId,
+    expectedRevision: number,
+    modelProfile: string,
+    signal?: AbortSignal,
+  ): Promise<SessionExecutionSelection> {
+    return this.transport
+      .request(
+        "session_model_selection",
+        {
+          session: { id: sessionId },
+          expected_revision: expectedRevision,
+          model_profile: modelProfile,
+        },
+        signal,
+      )
+      .then(normalizeExecutionSelection);
+  }
+  /** Selects an advertised thinking level for future session invocations.
+   * @param sessionId Target durable session.
+   * @param expectedRevision Selection mutation revision observed by the caller.
+   * @param thinkingLevel Advertised capability id selected for the session.
+   * @param signal Optional request cancellation signal.
+   * @returns Updated shared execution selection.
+   */
+  setSessionThinkingLevel(
+    sessionId: SessionId,
+    expectedRevision: number,
+    thinkingLevel: string,
+    signal?: AbortSignal,
+  ): Promise<SessionExecutionSelection> {
+    return this.transport
+      .request(
+        "session_thinking_selection",
+        {
+          session: { id: sessionId },
+          expected_revision: expectedRevision,
+          thinking_level: thinkingLevel,
+        },
+        signal,
+      )
+      .then(normalizeExecutionSelection);
+  }
   /** Reads one branch from the authoritative session tree. */
   getBranch(
     sessionId: SessionId,
     branchId: BranchId,
     signal?: AbortSignal,
   ): Promise<BranchChildrenPage["items"][number]> {
-    return this.getSession(sessionId, signal).then((session) => {
-      const branch = session.branches.find((candidate) => candidate.id === branchId);
-      if (branch === undefined) throw new Error("branch is not present in session");
-      return branchDescriptor(branch);
-    });
+    return this.getSession(sessionId, signal).then((session) =>
+      branchFromSession(session, branchId),
+    );
   }
   /** Reads child branch descriptors without loading their full activity. */
   listBranchChildren(
@@ -216,17 +341,9 @@ export class ScriberigClient {
     signal?: AbortSignal,
   ): Promise<BranchChildrenPage> {
     void cursor;
-    return this.getSession(sessionId, signal).then((session) => {
-      const branch = session.branches.find((candidate) => candidate.id === branchId);
-      if (branch === undefined) throw new Error("branch is not present in session");
-      const children = new Set(branch.children);
-      return {
-        branchId,
-        items: session.branches
-          .filter((candidate) => children.has(candidate.id))
-          .map(branchDescriptor),
-      };
-    });
+    return this.getSession(sessionId, signal).then((session) =>
+      childrenFromSession(session, branchId),
+    );
   }
   /** Reads one bounded activity page for a branch. */
   listBranchActivity(
@@ -236,11 +353,9 @@ export class ScriberigClient {
     signal?: AbortSignal,
   ): Promise<BranchActivityPage> {
     void cursor;
-    return this.getSession(sessionId, signal).then((session) => {
-      const branch = session.branches.find((candidate) => candidate.id === branchId);
-      if (branch === undefined) throw new Error("branch is not present in session");
-      return branchActivity(branch);
-    });
+    return this.getSession(sessionId, signal).then((session) =>
+      activityFromSession(session, branchId),
+    );
   }
   /** Reads a durable branch result by reference. */
   getBranchResult(
@@ -248,15 +363,9 @@ export class ScriberigClient {
     resultId: string,
     signal?: AbortSignal,
   ): Promise<BranchResultReference> {
-    return this.getSession(sessionId, signal).then((session) => {
-      const branch = session.branches.find((candidate) => candidate.result?.id === resultId);
-      if (branch?.result === undefined) throw new Error("branch result is not present in session");
-      return {
-        branchId: branch.id,
-        resultId: branch.result.id,
-        handles: branch.result.references,
-      };
-    });
+    return this.getSession(sessionId, signal).then((session) =>
+      resultFromSession(session, resultId),
+    );
   }
   /** Subscribes to semantic events. */ events(
     listener: (event: ProtocolEvent) => void,

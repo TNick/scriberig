@@ -1,8 +1,11 @@
 //! Defines the transport-neutral in-process protocol envelope boundary.
 
 use crate::{
-    AgentContinueRequest, AgentStartRequest, CancelOperationRequest, CommandRequest, Event,
-    FindRequest, ListRequest, ProjectRequest, QueryRequest, SessionReadRequest, SubscribeRequest,
+    AgentContinueRequest, AgentPresentationPreferencesReadRequest,
+    AgentPresentationPreferencesSetRequest, AgentStartRequest, CancelOperationRequest,
+    CommandRequest, Event, FindRequest, ListRequest, ModelLibraryRequest,
+    ModelRequestDetailRequest, ProjectRequest, QueryRequest, SessionModelSelectionRequest,
+    SessionReadRequest, SessionThinkingSelectionRequest, SubscribeRequest, ToolResultDetailRequest,
 };
 use crate::{
     CapabilitiesResponse, InspectEntityRequest, InspectEntityResponse, OperationStatusRequest,
@@ -39,6 +42,20 @@ pub enum Request {
     AgentContinue(AgentContinueRequest),
     /// Read one compact durable session tree.
     SessionRead(SessionReadRequest),
+    /// Read a bounded safe model request projection.
+    ModelRequestDetail(ModelRequestDetailRequest),
+    /// Read bounded safe detail for one tool result.
+    ToolResultDetail(ToolResultDetailRequest),
+    /// Read the safe model library.
+    ModelLibrary(ModelLibraryRequest),
+    /// Select a model profile for future invocations.
+    SessionModelSelection(SessionModelSelectionRequest),
+    /// Select a thinking level for future invocations.
+    SessionThinkingSelection(SessionThinkingSelectionRequest),
+    /// Read shared presentation defaults for the authenticated principal.
+    AgentPresentationPreferencesRead(AgentPresentationPreferencesReadRequest),
+    /// Replace shared presentation defaults using an expected revision.
+    AgentPresentationPreferencesSet(AgentPresentationPreferencesSetRequest),
     /// Execute one project onboarding operation.
     Project(ProjectRequest),
 }
@@ -68,6 +85,16 @@ pub enum Response {
     AgentAccepted(crate::AgentAcceptedResponse),
     /// Compact durable session tree.
     Session(crate::SessionReadResponse),
+    /// Safe normalized request captured for one model invocation.
+    ModelRequestDetail(crate::ModelRequestDetailResponse),
+    /// Bounded safe detail for one tool result.
+    ToolResultDetail(crate::ToolResultDetailResponse),
+    /// Safe model library.
+    ModelLibrary(crate::ModelLibraryResponse),
+    /// Updated session execution selection.
+    SessionExecution(crate::SessionExecutionSelection),
+    /// Shared presentation defaults for the authenticated principal.
+    AgentPresentationPreferences(crate::AgentPresentationPreferencesResponse),
     /// Project onboarding result.
     Project(ProjectResponse),
     /// Structured protocol failure.

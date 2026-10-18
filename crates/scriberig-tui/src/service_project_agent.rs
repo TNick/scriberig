@@ -280,6 +280,7 @@ fn descriptor(name: &str, description: &str, state_changing: bool) -> ToolDescri
             parameters: json!({"type": "object"}),
         },
         result_shape: "semantic result".to_owned(),
+        invocation_label: None,
         state_changing,
         execution_mode: ToolExecutionMode::Atomic,
         required_capability: None,

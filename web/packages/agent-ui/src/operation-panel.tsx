@@ -18,7 +18,11 @@ export function AgentOperationPanel({
   return (
     <section aria-label={`Agent operation ${operation.operationId}`}>
       <p>Status: {operation.status}</p>
-      {stream ? <output aria-label="Transient model output">{stream}</output> : null}
+      {stream ? (
+        <pre aria-label="Transient model output" aria-live="off">
+          {stream}
+        </pre>
+      ) : null}
       {operation.result ? <p>Result: {operation.result.finalOutput}</p> : null}
       {(operation.result?.candidateChanges ?? []).map((candidate) =>
         candidate.migrationId && onReviewCandidate ? (

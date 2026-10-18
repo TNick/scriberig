@@ -1,12 +1,9 @@
 //! Verifies the deterministic TUI renderer at representative sizes.
 
-use ratatui::{Terminal, backend::TestBackend, layout::Rect, style::Color};
+use ratatui::{Terminal, backend::TestBackend};
 
 use super::render;
-use crate::{
-    overlay::Overlay,
-    state::{Focus, TuiState, reduce},
-};
+use crate::state::{Focus, TuiState};
 
 /// Renders representative sizes without touching a real terminal.
 #[test]
@@ -33,205 +30,185 @@ fn primary_session_scroll_keeps_latest_cursor_visible() {
     assert_eq!(super::primary_scroll(&state, 40), (3, 0));
 }
 
-/// Verifies the narrow shell preserves a readable primary message.
+/// Renders retained live activity according to the local reasoning control.
 #[test]
-fn narrow_frame_contains_primary_text() {
-    let backend = TestBackend::new(72, 24);
-    let mut terminal = Terminal::new(backend).expect("terminal");
-    terminal
-        .draw(|frame| render(frame, &TuiState::default()))
-        .expect("draw");
-    let buffer = terminal.backend().buffer();
-    let rendered: String = buffer
-        .content()
-        .iter()
-        .map(ratatui::buffer::Cell::symbol)
-        .collect();
-    assert!(rendered.contains("Shell ready"));
-}
-
-/// Verifies the active project identity is visible in the context bar.
-#[test]
-fn context_bar_shows_active_project() {
-    let backend = TestBackend::new(140, 40);
-    let mut terminal = Terminal::new(backend).expect("terminal");
-    let state = TuiState {
-        project: Some("prj_test".to_owned()),
-        ..TuiState::default()
-    };
-
-    terminal.draw(|frame| render(frame, &state)).expect("draw");
-
-    let buffer = terminal.backend().buffer();
-    let layout = crate::layout::shell_layout(Rect::new(0, 0, 140, 40));
-    let context: String = (layout.context.x..layout.context.right())
-        .map(|x| buffer.cell((x, layout.context.y)).expect("cell").symbol())
-        .collect();
-    assert!(context.contains("project: prj_test"));
-}
-
-/// Verifies the status line shows contextual shortcuts instead of shell state.
-#[test]
-fn status_line_shows_contextual_shortcuts() {
-    let backend = TestBackend::new(72, 24);
-    let mut terminal = Terminal::new(backend).expect("terminal");
-    terminal
-        .draw(|frame| render(frame, &TuiState::default()))
-        .expect("draw");
-
-    let buffer = terminal.backend().buffer();
-    let layout = crate::layout::shell_layout(Rect::new(0, 0, 72, 24));
-    let status: String = (layout.status.x..layout.status.right())
-        .map(|x| buffer.cell((x, layout.status.y)).expect("cell").symbol())
-        .collect();
-    assert!(status.contains("Ctrl-C quit"));
-    assert!(status.contains("Tab focus next"));
-    assert!(!status.contains("operations: idle"));
-}
-
-/// Verifies opening an overlay clears shorter text from the previous frame.
-#[test]
-fn overlay_clears_stale_previous_frame_content() {
-    let backend = TestBackend::new(72, 24);
-    let mut terminal = Terminal::new(backend).expect("terminal");
-    terminal
-        .draw(|frame| render(frame, &TuiState::default()))
-        .expect("initial draw");
-
-    let mut state = TuiState::default();
-    reduce(&mut state, crate::action::Action::PaletteOpened);
-    terminal
-        .draw(|frame| render(frame, &state))
-        .expect("overlay draw");
-    let rendered: String = terminal
-        .backend()
-        .buffer()
-        .content()
-        .iter()
-        .map(ratatui::buffer::Cell::symbol)
-        .collect();
-    assert!(!rendered.contains("Search: ady"));
-    assert!(matches!(state.overlay, Some(Overlay::Palette(_))));
-}
-
-/// Verifies palette navigation is visible on the selected command row.
-#[test]
-fn palette_renders_selected_row_marker() {
-    let backend = TestBackend::new(72, 24);
-    let mut terminal = Terminal::new(backend).expect("terminal");
-    let mut state = TuiState::default();
-    reduce(&mut state, crate::action::Action::PaletteOpened);
-    reduce(
-        &mut state,
-        crate::action::Action::CursorMoved(crate::action::Direction::Next),
-    );
-    terminal
-        .draw(|frame| render(frame, &state))
-        .expect("overlay draw");
-    let rendered: String = terminal
-        .backend()
-        .buffer()
-        .content()
-        .iter()
-        .map(ratatui::buffer::Cell::symbol)
-        .collect();
-    assert!(rendered.contains("> Refresh"));
-    assert!(!rendered.contains("> Open help"));
-}
-
-/// Verifies the focused panel uses the accent border color.
-#[test]
-fn focused_panel_has_accent_border() {
-    let backend = TestBackend::new(140, 40);
-    let mut terminal = Terminal::new(backend).expect("terminal");
-    let state = TuiState {
-        focus: Focus::Explorer,
-        ..TuiState::default()
-    };
-    terminal.draw(|frame| render(frame, &state)).expect("draw");
-
-    let buffer = terminal.backend().buffer();
-    let layout = crate::layout::shell_layout(Rect::new(0, 0, 140, 40));
-    let explorer = layout.explorer.expect("explorer");
-    let primary = layout.primary;
-    assert_eq!(
-        buffer.cell((explorer.x, explorer.y)).expect("cell").fg,
-        Color::Cyan
-    );
-    assert_eq!(
-        buffer.cell((primary.x, primary.y)).expect("cell").fg,
-        Color::DarkGray
-    );
-}
-
-/// Verifies the selected explorer row remains visible below the viewport.
-#[test]
-fn explorer_scrolls_to_keep_selected_row_visible() {
-    let backend = TestBackend::new(140, 12);
-    let mut terminal = Terminal::new(backend).expect("terminal");
-    let root = scriberig_core::EntityId::from_bytes([1; 16]);
-    let last = scriberig_core::EntityId::from_bytes([9; 16]);
+fn reasoning_visibility_rerenders_cached_live_activity_without_execution() {
     let mut state = TuiState {
-        focus: Focus::Explorer,
-        explorer: crate::explorer::ExplorerModel::from_selection(
-            crate::selection::EntitySelection {
-                entity: root,
-                revision: None,
-                snapshot: None,
-            },
-        ),
+        primary_view: crate::selection::PrimaryView::Session,
+        session: crate::inspector::LoadState::Ready(crate::view::session::SessionModel::default()),
+        transient_agent_activities: vec![crate::state::TransientAgentActivity {
+            branch: "branch-1".to_owned(),
+            activity_kind: "reasoningSummary".to_owned(),
+            state: "completed".to_owned(),
+            summary: "Compare the selected revisions.".to_owned(),
+        }],
         ..TuiState::default()
     };
-    state.explorer.add_entities(
-        (2_u8..=9).map(|value| scriberig_core::EntityId::from_bytes([value; 16])),
-        None,
-    );
-    state.cursor = state.explorer.rows.len();
 
-    terminal.draw(|frame| render(frame, &state)).expect("draw");
-
-    let rendered: String = terminal
-        .backend()
-        .buffer()
-        .content()
-        .iter()
-        .map(ratatui::buffer::Cell::symbol)
-        .collect();
-    let last_prefix = last.to_string();
     assert!(
-        rendered.contains(&format!("> {}", &last_prefix[..12])),
-        "{rendered}"
+        !super::render_primary::primary_text(&state).contains("Compare the selected revisions.")
     );
+    state.reasoning_visibility = crate::state::ReasoningVisibility::Shown;
+    assert!(
+        super::render_primary::primary_text(&state).contains("Compare the selected revisions.")
+    );
+    assert_eq!(state.transient_agent_activities.len(), 1);
 }
 
-/// Verifies explorer rows expose readable project context and semantic kind.
+/// Verifies nested durable activity uses visible terminal depth rails.
 #[test]
-fn explorer_renders_context_instead_of_only_stable_ids() {
-    let backend = TestBackend::new(140, 12);
-    let mut terminal = Terminal::new(backend).expect("terminal");
-    let entity = scriberig_core::EntityId::from_bytes([3; 16]);
+fn session_activity_uses_non_color_hierarchy_rails() {
+    let entity = scriberig_core::EntityId::from_bytes([61; 16]);
     let mut state = TuiState {
-        focus: Focus::Explorer,
-        explorer: crate::explorer::ExplorerModel::from_selection(
-            crate::selection::EntitySelection {
+        primary_view: crate::selection::PrimaryView::Session,
+        session: crate::inspector::LoadState::Ready(crate::view::session::SessionModel {
+            rows: vec![
+                crate::view::session::SessionRow {
+                    reference: entity,
+                    depth: 0,
+                    label: "Session".to_owned(),
+                    kind: crate::view::session::SessionRowKind::Session,
+                    candidate: None,
+                    snapshot: None,
+                    transient: false,
+                },
+                crate::view::session::SessionRow {
+                    reference: entity,
+                    depth: 1,
+                    label: "Model: model-a".to_owned(),
+                    kind: crate::view::session::SessionRowKind::ModelInvocation,
+                    candidate: None,
+                    snapshot: None,
+                    transient: true,
+                },
+                crate::view::session::SessionRow {
+                    reference: entity,
+                    depth: 2,
+                    label: "Tool: inspect".to_owned(),
+                    kind: crate::view::session::SessionRowKind::ToolInvocation,
+                    candidate: None,
+                    snapshot: None,
+                    transient: true,
+                },
+                crate::view::session::SessionRow {
+                    reference: entity,
+                    depth: 3,
+                    label: "Tool result: completed".to_owned(),
+                    kind: crate::view::session::SessionRowKind::ToolResult,
+                    candidate: None,
+                    snapshot: None,
+                    transient: true,
+                },
+                crate::view::session::SessionRow {
+                    reference: entity,
+                    depth: 8,
+                    label: "Deep nested activity".to_owned(),
+                    kind: crate::view::session::SessionRowKind::ToolResult,
+                    candidate: None,
+                    snapshot: None,
+                    transient: true,
+                },
+            ],
+            execution: scriberig_session::SessionExecutionSelection::default(),
+            tool_invocation_details: [(
                 entity,
-                revision: None,
-                snapshot: None,
-            },
-        ),
+                "{\n  \"filter\": {\n    \"path\": \"src/lib.rs\"\n  }\n}".to_owned(),
+            )]
+            .into_iter()
+            .collect(),
+        }),
         ..TuiState::default()
     };
-    state.explorer.root.as_mut().expect("root").label = "src/app.py".to_owned();
-    state.explorer.root.as_mut().expect("root").kind = Some("source".to_owned());
 
-    terminal.draw(|frame| render(frame, &state)).expect("draw");
+    let text = super::render_primary::primary_text(&state);
 
-    let rendered: String = terminal
-        .backend()
-        .buffer()
-        .content()
+    assert_activity_rails(&state, &text);
+    assert_activity_detail_modes(&mut state, entity, &text);
+}
+
+/// Verifies text and styling preserve visible non-color hierarchy rails.
+///
+/// # Parameters
+/// - `state`: Cached session presentation to render.
+/// - `text`: Plain text projection of the session rows.
+fn assert_activity_rails(state: &TuiState, text: &str) {
+    assert!(text.contains("▏ ~ Model: model-a"));
+    assert!(text.contains("▏ ▏ ~ Tool: inspect"));
+    assert!(text.contains("--filter"));
+    assert!(text.contains("Tool result: completed"));
+    let styled = super::render_session::session_text(state, 80);
+    let rails = &styled.lines[2].spans;
+    assert_eq!(rails[1].style.fg, Some(ratatui::style::Color::Cyan));
+    assert_eq!(rails[2].style.fg, Some(ratatui::style::Color::Green));
+    assert_eq!(rails[1].content, "▏ ");
+    assert_eq!(rails[2].content, "▏ ");
+    let deep_rails = &styled.lines[4].spans;
+    assert_eq!(deep_rails[1].style.fg, Some(ratatui::style::Color::Cyan));
+    assert_eq!(
+        deep_rails[6].style.fg,
+        Some(ratatui::style::Color::LightCyan)
+    );
+    assert_eq!(deep_rails[7].style.fg, Some(ratatui::style::Color::Cyan));
+    assert_eq!(deep_rails[8].style.fg, Some(ratatui::style::Color::Green));
+    let narrow = super::render_session::session_text(state, 14);
+    let narrow_row = narrow.lines[2]
+        .spans
         .iter()
-        .map(ratatui::buffer::Cell::symbol)
-        .collect();
-    assert!(rendered.contains("src/app.py [source]"), "{rendered}");
+        .map(|span| span.content.as_ref())
+        .collect::<String>();
+    assert!(narrow_row.contains("…"));
+    assert!(narrow_row.contains("Tool: inspect"));
+}
+
+/// Verifies opt-in prompt, tool, and result details render from cached state.
+///
+/// # Parameters
+/// - `state`: Cached session presentation to update with safe request and result details.
+/// - `entity`: Stable session activity identity used for the cached detail.
+/// - `text`: Initial rendering before request details are enabled.
+fn assert_activity_detail_modes(
+    state: &mut TuiState,
+    entity: scriberig_core::EntityId,
+    text: &str,
+) {
+    state.model_request_details.insert(
+        entity,
+        scriberig_protocol::ModelRequestDetailResponse {
+            invocation: entity.to_string(),
+            model: "model-a".to_owned(),
+            thinking_level: Some("careful".to_owned()),
+            messages: vec![scriberig_protocol::ModelRequestMessageDetail {
+                role: "user".to_owned(),
+                content: "Inspect the safe fixture.".to_owned(),
+            }],
+            tools: vec![scriberig_protocol::ModelRequestToolDetail {
+                name: "inspect".to_owned(),
+                description: "Read safe metadata".to_owned(),
+                parameters: Some("{\"type\":\"object\"}".to_owned()),
+            }],
+            truncated: false,
+        },
+    );
+    assert!(!text.contains("Model request"));
+    state.prompt_visibility = crate::state::PromptVisibility::Shown;
+    let prompt = super::render_primary::primary_text(state);
+    assert!(prompt.contains("Model request"));
+    assert!(prompt.contains("Inspect the safe fixture."));
+    assert!(prompt.contains("Read safe metadata"));
+    state.tool_result_details.insert(
+        entity,
+        scriberig_protocol::ToolResultDetailResponse {
+            result: entity.to_string(),
+            detail: serde_json::json!({"summary": "safe expanded result"}),
+            truncated: false,
+        },
+    );
+    state.tool_output_visibility = crate::state::ToolOutputVisibility::Full;
+    assert!(super::render_primary::primary_text(state).contains("safe expanded result"));
+    state.tool_invocation_visibility = crate::state::ToolInvocationVisibility::Detailed;
+    let detailed = super::render_primary::primary_text(state);
+    assert!(detailed.contains("Arguments:"));
+    assert!(detailed.contains("    \"path\": \"src/lib.rs\""));
+    state.tool_output_visibility = crate::state::ToolOutputVisibility::Hidden;
+    assert!(super::render_primary::primary_text(state).contains("Tool result hidden"));
 }

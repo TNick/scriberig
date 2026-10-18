@@ -70,6 +70,8 @@ pub struct ChildResult {
     pub summary: String,
     /// Stable semantic handles produced by the child.
     pub handles: Vec<String>,
+    /// Durable branch identity when the child executor persists a session branch.
+    pub branch: Option<EntityId>,
 }
 
 /// Executes a trusted child branch on behalf of the parent runtime.
@@ -107,6 +109,10 @@ pub enum ModelDecision {
         name: String,
         /// Validated JSON arguments supplied by the provider.
         arguments: serde_json::Value,
+        /// Schema-redacted arguments safe for detailed presentation.
+        presentation_arguments: serde_json::Value,
+        /// Optional trusted compact label for human presentation.
+        presentation_label: Option<String>,
     },
     /// Delegate focused work to a nested branch.
     Child(ChildRequest),
@@ -127,6 +133,14 @@ pub trait ModelProvider {
     /// # Errors
     /// Returns a provider-specific failure.
     fn decide(&mut self, messages: &[AgentMessage]) -> Result<ModelDecision, String>;
+
+    /// Returns and clears captured safe request projections since the last call.
+    ///
+    /// # Returns
+    /// Provider-neutral requests prepared for completed invocations.
+    fn take_request_projections(&mut self) -> Vec<scriberig_session::ModelRequestProjection> {
+        Vec::new()
+    }
 
     /// Produces a decision while forwarding provider-neutral text fragments.
     ///
@@ -314,4 +328,6 @@ pub struct AgentResult {
     pub messages: Vec<AgentMessage>,
     /// Executed tool calls with exact arguments and bounded structured results.
     pub tool_evidence: Vec<scriberig_app::ToolExecutionEvidence>,
+    /// Bounded safe requests captured immediately before provider calls.
+    pub model_requests: Vec<scriberig_session::ModelRequestProjection>,
 }

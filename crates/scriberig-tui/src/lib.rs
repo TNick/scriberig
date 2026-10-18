@@ -88,7 +88,7 @@ impl From<io::Error> for TuiError {
 pub use service::{
     AgentCommandRunner, AgentHandle, AgentWorkspace, ApplicationAdapter,
     ApplicationOperationAdapter, ExplorerLabels, ProjectProjection, RemoteAdapter,
-    SharedAgentCommandRunner, TuiOperationService, TuiService,
+    SharedAgentCommandRunner, TuiModelRequestService, TuiOperationService, TuiService,
 };
 
 /// Runs the line-oriented TUI shell over an application service.

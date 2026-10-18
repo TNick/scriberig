@@ -18,6 +18,30 @@ export interface SessionTurn {
   toolInvocation?: string;
   toolResult?: string;
 }
+/** Safe, ordered activity record projected from durable session execution data. */
+export interface SessionActivityItem {
+  id: string;
+  session: string;
+  sequence: number;
+  branch: string;
+  parent?: string;
+  kind:
+    | "HumanInput"
+    | "ModelInvocation"
+    | "AssistantOutput"
+    | "ToolInvocation"
+    | "ToolResult"
+    | "ChildBranch"
+    | "BranchResult";
+  state: "Completed" | "Running" | "Failed";
+  summary: string;
+  durableRef?: string;
+  model?: string;
+  thinkingLevel?: string;
+  toolName?: string;
+  toolArguments?: Readonly<Record<string, unknown>>;
+  toolResultPreview?: Readonly<Record<string, unknown>>;
+}
 /** Compact durable result reference returned for a branch. */
 export interface SessionBranchResult {
   id: string;
@@ -31,12 +55,47 @@ export interface SessionBranch {
   title: string;
   status: "Active" | "Completed" | "Abandoned";
   turns: readonly SessionTurn[];
+  activity?: readonly SessionActivityItem[];
   result?: SessionBranchResult;
+}
+/** Future-invocation model selection shared across session clients. */
+export interface SessionExecutionSelection {
+  revision: number;
+  modelProfile?: string;
+  model?: string;
+  thinkingLevel?: string;
 }
 /** Compact durable session tree returned by the public protocol. */
 export interface SessionReadResponse {
   session: { id: SessionId };
   branches: readonly SessionBranch[];
+  execution: SessionExecutionSelection;
+}
+/** One normalized message retained for a durable model invocation. */
+export interface ModelRequestMessageDetail {
+  role: string;
+  content: string;
+}
+/** One trusted tool definition retained for a durable model invocation. */
+export interface ModelRequestToolDetail {
+  name: string;
+  description: string;
+  parameters?: string;
+}
+/** Safe normalized request captured before provider-specific serialization. */
+export interface ModelRequestDetailResponse {
+  invocation: string;
+  model: string;
+  thinkingLevel?: string;
+  messages: readonly ModelRequestMessageDetail[];
+  tools: readonly ModelRequestToolDetail[];
+  truncated: boolean;
+}
+/** Expanded safe detail for one durable tool result. */
+export interface ToolResultDetailResponse {
+  result: string;
+  detail: Readonly<Record<string, unknown>>;
+  truncated: boolean;
 }
 /** Branch summary and purpose. */
 export interface BranchSummary {
@@ -67,10 +126,19 @@ export interface BranchActivity {
   kind: "human" | "model" | "tool" | "child" | "result";
   summary: string;
   handles: readonly string[];
+  parentId?: string;
+  model?: string;
+  thinkingLevel?: string;
+  toolName?: string;
+  toolArguments?: Readonly<Record<string, unknown>>;
+  toolResultPreview?: Readonly<Record<string, unknown>>;
+  activityKind?: SessionActivityItem["kind"];
+  state?: SessionActivityItem["state"];
 }
 /** A cursor-bounded branch activity page. */
 export interface BranchActivityPage {
   branchId: BranchId;
+  sessionId?: SessionId;
   items: readonly BranchActivity[];
   nextCursor?: string;
 }

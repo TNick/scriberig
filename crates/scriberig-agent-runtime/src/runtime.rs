@@ -18,7 +18,7 @@ use crate::{
 mod evidence;
 #[path = "runtime_helpers.rs"]
 mod runtime_helpers;
-use evidence::{child_evidence_record, tool_evidence_record};
+use evidence::{child_evidence_record, inspect_evidence_record};
 #[path = "runtime/cancellation.rs"]
 mod cancellation;
 pub use cancellation::cancellation_flag;
@@ -43,6 +43,8 @@ pub struct AgentRuntime<P, T> {
     provider: P,
     tool: T,
     registry: Option<OperationRegistry>,
+    observed_operation: Option<scriberig_app::OperationId>,
+    active_operation: Option<scriberig_app::OperationId>,
     next_operation: u64,
     event_log: Option<RuntimeEventLog>,
     output_callback: Option<OutputCallback>,
@@ -70,6 +72,8 @@ where
             provider,
             tool,
             registry: None,
+            observed_operation: None,
+            active_operation: None,
             next_operation: 1,
             event_log: None,
             output_callback: None,
@@ -79,62 +83,6 @@ where
                 ..RuntimeLimits::default()
             },
         }
-    }
-
-    /// Attaches an application operation registry to this runtime.
-    ///
-    /// # Parameters
-    /// - `self`: Runtime being configured.
-    /// - `registry`: Shared lifecycle registry.
-    ///
-    /// # Returns
-    /// The configured runtime.
-    #[must_use]
-    pub fn with_operation_registry(mut self, registry: OperationRegistry) -> Self {
-        self.registry = Some(registry);
-        self
-    }
-
-    /// Attaches a bounded event log to this runtime.
-    ///
-    /// # Parameters
-    /// - `self`: Runtime being configured.
-    /// - `event_log`: Event destination for lifecycle observations.
-    ///
-    /// # Returns
-    /// The runtime configured to emit safe phase events.
-    #[must_use]
-    pub fn with_event_log(mut self, event_log: RuntimeEventLog) -> Self {
-        self.event_log = Some(event_log);
-        self
-    }
-
-    /// Attaches a callback for bounded provider-neutral text fragments.
-    ///
-    /// # Parameters
-    /// - `self`: Runtime being configured.
-    /// - `callback`: Thread-safe presentation or observation callback.
-    ///
-    /// # Returns
-    /// The runtime configured to forward text fragments.
-    #[must_use]
-    pub fn with_output_callback(mut self, callback: OutputCallback) -> Self {
-        self.output_callback = Some(callback);
-        self
-    }
-
-    /// Assigns a stable branch correlation identifier for emitted events.
-    ///
-    /// # Parameters
-    /// - `self`: Runtime being configured.
-    /// - `branch_id`: Safe branch correlation identifier.
-    ///
-    /// # Returns
-    /// The runtime configured with the branch identifier.
-    #[must_use]
-    pub fn with_branch_id(mut self, branch_id: impl Into<String>) -> Self {
-        self.branch_id = branch_id.into();
-        self
     }
 
     /// Executes one prompt until a final model response or failure.
@@ -249,7 +197,7 @@ where
         state.depth = scope.as_ref().map_or(0, |value| value.depth);
         if state.depth > self.limits.max_depth {
             self.emit(BranchPhase::BudgetExceeded);
-            self.emit_event(RuntimeEvent::branch_execution_failed(
+            self.emit_event(&RuntimeEvent::branch_execution_failed(
                 &self.branch_id,
                 "branch depth budget",
             ));
@@ -260,16 +208,22 @@ where
         }
         let _active_guard = self.acquire_active_branch(scope)?;
         self.emit(BranchPhase::Created);
-        self.emit_event(RuntimeEvent::branch_execution_started(&self.branch_id));
+        self.emit_event(&RuntimeEvent::branch_execution_started(&self.branch_id));
         self.emit(BranchPhase::CompilingContext);
         self.emit(BranchPhase::AwaitingModel);
         let operation = self.start_operation()?;
+        self.emit_event(&RuntimeEvent::phase_changed(
+            &self.branch_id,
+            BranchPhase::AwaitingModel,
+        ));
         let mut messages = vec![AgentMessage::User(prompt)];
         let mut tool_evidence = Vec::new();
+        let mut model_requests = Vec::new();
+        let mut activity_ordinal = 0;
         loop {
             if cancelled.load(Ordering::Acquire) {
                 self.emit(BranchPhase::Cancelled);
-                self.emit_event(RuntimeEvent::branch_execution_cancelled(&self.branch_id));
+                self.emit_event(&RuntimeEvent::branch_execution_cancelled(&self.branch_id));
                 self.finish_operation(operation.as_ref(), OperationStatus::Cancelled);
                 return Err(AgentError::Cancelled);
             }
@@ -287,7 +241,7 @@ where
                     }),
                 )?;
             }
-            self.emit_event(RuntimeEvent::model_invocation_started(
+            self.emit_event(&RuntimeEvent::model_invocation_started(
                 &self.branch_id,
                 state.model_steps,
             ));
@@ -312,13 +266,18 @@ where
                 })
                 .map_err(|error| {
                     self.emit(BranchPhase::Failed);
-                    self.emit_event(RuntimeEvent::branch_execution_failed(
+                    self.emit_event(&RuntimeEvent::branch_execution_failed(
                         &self.branch_id,
                         "provider",
                     ));
                     self.finish_operation(operation.as_ref(), OperationStatus::Failed);
                     AgentError::Provider(error)
                 })?;
+            for mut request in self.provider.take_request_projections() {
+                request.ordinal = activity_ordinal;
+                activity_ordinal += 1;
+                model_requests.push(request);
+            }
             if provider_started.elapsed() > self.limits.max_provider_duration {
                 self.fail_budget(
                     operation.as_ref(),
@@ -329,24 +288,25 @@ where
             }
             if cancelled.load(Ordering::Acquire) {
                 self.emit(BranchPhase::Cancelled);
-                self.emit_event(RuntimeEvent::branch_execution_cancelled(&self.branch_id));
+                self.emit_event(&RuntimeEvent::branch_execution_cancelled(&self.branch_id));
                 self.finish_operation(operation.as_ref(), OperationStatus::Cancelled);
                 return Err(AgentError::Cancelled);
             }
             match decision {
                 ModelDecision::Final(output) => {
                     self.emit(BranchPhase::Completing);
-                    self.emit_event(RuntimeEvent::branch_result_produced(
+                    self.emit_event(&RuntimeEvent::branch_result_produced(
                         &self.branch_id,
                         &output,
                     ));
                     self.finish_operation(operation.as_ref(), OperationStatus::Completed);
                     self.emit(BranchPhase::Completed);
-                    self.emit_event(RuntimeEvent::branch_execution_completed(&self.branch_id));
+                    self.emit_event(&RuntimeEvent::branch_execution_completed(&self.branch_id));
                     return Ok(AgentResult {
                         output,
                         messages,
                         tool_evidence,
+                        model_requests,
                     });
                 }
                 ModelDecision::Tool(input) => {
@@ -356,28 +316,33 @@ where
                         operation.as_ref(),
                         &mut state,
                     )?;
-                    tool_evidence.push(tool_evidence_record(
-                        "inspect",
-                        &serde_json::json!({
-                            "entity": input.entity.to_string(),
-                            "snapshot": input.snapshot.map(|snapshot| snapshot.to_string()),
-                            "detail": format!("{:?}", input.detail),
-                        }),
-                        &result,
-                    ));
+                    let mut evidence = inspect_evidence_record(&input, &result);
+                    evidence.ordinal = activity_ordinal;
+                    activity_ordinal += 1;
+                    tool_evidence.push(evidence);
                     messages.push(AgentMessage::Tool(result));
                     self.emit(BranchPhase::AwaitingModel);
                 }
-                ModelDecision::NamedTool { name, arguments } => {
-                    let result = self.run_named_tool(
+                ModelDecision::NamedTool {
+                    name,
+                    arguments,
+                    presentation_arguments,
+                    presentation_label,
+                } => {
+                    let (result, evidence) = self.run_named_tool_with_evidence(
                         context,
                         &name,
                         &arguments,
+                        &presentation_arguments,
+                        presentation_label.as_deref(),
                         cancelled,
                         operation.as_ref(),
                         &mut state,
                     )?;
-                    tool_evidence.push(tool_evidence_record(&name, &arguments, &result));
+                    let mut evidence = evidence;
+                    evidence.ordinal = activity_ordinal;
+                    activity_ordinal += 1;
+                    tool_evidence.push(evidence);
                     messages.push(AgentMessage::Tool(result));
                     self.emit(BranchPhase::AwaitingModel);
                 }
@@ -391,7 +356,10 @@ where
                         &mut state,
                         &mut children,
                     )?;
-                    tool_evidence.push(child_evidence_record(&request, &result));
+                    let mut evidence = child_evidence_record(&request, &result);
+                    evidence.ordinal = activity_ordinal;
+                    activity_ordinal += 1;
+                    tool_evidence.push(evidence);
                     messages.push(AgentMessage::Child(result));
                     self.emit(BranchPhase::AwaitingModel);
                 }

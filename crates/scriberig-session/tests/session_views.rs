@@ -1,6 +1,6 @@
 //! Verifies deterministic progressive session views.
 use scriberig_core::EntityId;
-use scriberig_session::{Branch, Session, SessionViews, Turn};
+use scriberig_session::{Branch, Session, SessionExecutionSelection, SessionViews, Turn};
 
 /// Checks compact branch metadata and chronological turn views.
 #[test]
@@ -19,6 +19,7 @@ fn views_do_not_require_turn_bodies() {
         branches: vec![branch.clone()],
         goals: Vec::new(),
         tasks: Vec::new(),
+        execution: SessionExecutionSelection::default(),
     };
     assert_eq!(SessionViews::branches(&session)[0].turn_count, 1);
     assert_eq!(SessionViews::turns(&branch)[0].ordinal, 0);

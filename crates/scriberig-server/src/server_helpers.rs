@@ -1,7 +1,14 @@
 //! Converts application results and events into protocol values.
 
-use crate::server::{ApplicationEvent, Event, EventKind, Operation};
+use crate::server::{Event, Operation};
 use scriberig_app::ApplicationError;
+
+#[path = "server_helpers_activity.rs"]
+mod activity;
+#[path = "server_helpers_event.rs"]
+mod event;
+
+pub(super) use event::event_from_application;
 
 /// Converts a durable session into a compact provider-neutral response.
 ///
@@ -15,49 +22,54 @@ pub(super) fn session_response(
     session: scriberig_session::Session,
 ) -> scriberig_protocol::SessionReadResponse {
     let session_id = session.id;
+    let execution = session.execution;
     let mut branches = session
         .branches
         .into_iter()
-        .map(|branch| scriberig_protocol::SessionBranch {
-            id: branch.id.to_string(),
-            parent: branch.parent.map(|value| value.to_string()),
-            children: branch.children.iter().map(ToString::to_string).collect(),
-            title: branch.title,
-            status: match branch.status {
-                scriberig_session::BranchStatus::Active => {
-                    scriberig_protocol::SessionBranchStatus::Active
-                }
-                scriberig_session::BranchStatus::Completed => {
-                    scriberig_protocol::SessionBranchStatus::Completed
-                }
-                scriberig_session::BranchStatus::Abandoned => {
-                    scriberig_protocol::SessionBranchStatus::Abandoned
-                }
-            },
-            turns: branch
-                .turns
-                .into_iter()
-                .map(|turn| scriberig_protocol::SessionTurn {
-                    id: turn.id.to_string(),
-                    ordinal: turn.ordinal,
-                    has_human_input: turn.human.is_some(),
-                    has_agent_output: turn.agent.is_some(),
-                    agent_output: turn.agent.map(|value| value.text),
-                    tool_invocation: turn.tool_invocation.map(|value| value.to_string()),
-                    tool_result: turn.tool_result.map(|value| value.to_string()),
-                })
-                .collect(),
-            result: branch
-                .result
-                .map(|result| scriberig_protocol::SessionBranchResult {
-                    id: result.id.to_string(),
-                    references: result
-                        .references
-                        .into_iter()
-                        .map(|value| value.to_string())
-                        .collect(),
-                    result_handles: result.result_handles,
-                }),
+        .map(|branch| {
+            let activity = activity::branch_execution_activity(&session_id.to_string(), &branch);
+            scriberig_protocol::SessionBranch {
+                id: branch.id.to_string(),
+                parent: branch.parent.map(|value| value.to_string()),
+                children: branch.children.iter().map(ToString::to_string).collect(),
+                title: branch.title,
+                status: match branch.status {
+                    scriberig_session::BranchStatus::Active => {
+                        scriberig_protocol::SessionBranchStatus::Active
+                    }
+                    scriberig_session::BranchStatus::Completed => {
+                        scriberig_protocol::SessionBranchStatus::Completed
+                    }
+                    scriberig_session::BranchStatus::Abandoned => {
+                        scriberig_protocol::SessionBranchStatus::Abandoned
+                    }
+                },
+                turns: branch
+                    .turns
+                    .into_iter()
+                    .map(|turn| scriberig_protocol::SessionTurn {
+                        id: turn.id.to_string(),
+                        ordinal: turn.ordinal,
+                        has_human_input: turn.human.is_some(),
+                        has_agent_output: turn.agent.is_some(),
+                        agent_output: turn.agent.map(|value| value.text),
+                        tool_invocation: turn.tool_invocation.map(|value| value.to_string()),
+                        tool_result: turn.tool_result.map(|value| value.to_string()),
+                    })
+                    .collect(),
+                activity,
+                result: branch
+                    .result
+                    .map(|result| scriberig_protocol::SessionBranchResult {
+                        id: result.id.to_string(),
+                        references: result
+                            .references
+                            .into_iter()
+                            .map(|value| value.to_string())
+                            .collect(),
+                        result_handles: result.result_handles,
+                    }),
+            }
         })
         .collect::<Vec<_>>();
     branches.sort_by(|left, right| left.id.cmp(&right.id));
@@ -66,6 +78,12 @@ pub(super) fn session_response(
             id: session_id.to_string(),
         },
         branches,
+        execution: scriberig_protocol::SessionExecutionSelection {
+            revision: execution.revision,
+            model_profile: execution.model_profile,
+            model: execution.model,
+            thinking_level: execution.thinking_level,
+        },
     }
 }
 
@@ -279,126 +297,5 @@ fn agent_result(result: scriberig_app::AgentResult) -> scriberig_protocol::Agent
                 validation: value.validation,
             })
             .collect(),
-    }
-}
-
-/// Converts one application lifecycle event to a stable protocol envelope.
-/// - `super`: Parent-module imports used by this helper.
-/// - `event`: Argument named `event`.
-///
-/// # Returns
-/// The value produced by the declaration.
-#[allow(clippy::too_many_lines)]
-pub(super) fn event_from_application(event: ApplicationEvent) -> Event {
-    let mut entity = None;
-    let mut revision = None;
-    let mut snapshot = None;
-    let mut operation = None;
-    let mut metadata = Vec::new();
-    let kind = match event {
-        ApplicationEvent::OperationStarted { operation: value } => {
-            operation = Some(value);
-            EventKind::OperationStarted
-        }
-        ApplicationEvent::OperationProgressed {
-            operation: value,
-            progress,
-        } => {
-            operation = Some(value);
-            if let Some(total) = progress.total.filter(|total| *total > 0) {
-                let percent = progress
-                    .completed
-                    .unwrap_or_default()
-                    .saturating_mul(100)
-                    .checked_div(total)
-                    .unwrap_or_default()
-                    .min(100);
-                metadata.push(("percent".to_owned(), percent.to_string()));
-            }
-            EventKind::OperationProgressed
-        }
-        ApplicationEvent::OperationCompleted { operation: value } => {
-            operation = Some(value);
-            EventKind::OperationCompleted
-        }
-        ApplicationEvent::OperationFailed {
-            operation: value,
-            error,
-        } => {
-            operation = Some(value);
-            metadata.push(("error".to_owned(), error));
-            EventKind::OperationFailed
-        }
-        ApplicationEvent::OperationCancelled { operation: value } => {
-            operation = Some(value);
-            EventKind::OperationCancelled
-        }
-        ApplicationEvent::SnapshotChanged { snapshot: value } => {
-            snapshot = Some(scriberig_protocol::SnapshotReference {
-                id: value.to_string(),
-            });
-            EventKind::SnapshotChanged
-        }
-        ApplicationEvent::EntityChanged {
-            entity: value,
-            revision: value_revision,
-        } => {
-            entity = Some(scriberig_protocol::EntityReference {
-                id: value.to_string(),
-            });
-            revision = Some(scriberig_protocol::RevisionReference {
-                entity: scriberig_protocol::EntityReference {
-                    id: value.to_string(),
-                },
-                id: value_revision.to_string(),
-            });
-            EventKind::EntityChanged
-        }
-        ApplicationEvent::ProjectionChanged { subject } => {
-            entity = Some(scriberig_protocol::EntityReference {
-                id: subject.to_string(),
-            });
-            EventKind::ProjectionChanged
-        }
-        ApplicationEvent::BranchChanged { branch } => {
-            metadata.push(("branch".to_owned(), branch));
-            EventKind::BranchChanged
-        }
-        ApplicationEvent::MigrationCreated { migration } => {
-            metadata.push(("migration".to_owned(), migration));
-            EventKind::MigrationCreated
-        }
-        ApplicationEvent::ValidationCompleted { subject, passed } => {
-            metadata.push(("subject".to_owned(), subject));
-            metadata.push(("passed".to_owned(), passed.to_string()));
-            EventKind::ValidationCompleted
-        }
-        ApplicationEvent::AgentOutputProduced {
-            operation: value,
-            output,
-        } => {
-            operation = Some(value);
-            metadata.push(("output".to_owned(), output));
-            EventKind::AgentOutputProduced
-        }
-        ApplicationEvent::AgentOutputDelta {
-            operation: value,
-            text,
-        } => {
-            operation = Some(value);
-            metadata.push(("text".to_owned(), text));
-            EventKind::AgentOutputDelta
-        }
-    };
-    Event {
-        sequence: 0,
-        kind,
-        entity,
-        revision,
-        snapshot,
-        operation: operation.map(|value| scriberig_protocol::OperationReference {
-            id: value.to_string(),
-        }),
-        metadata,
     }
 }

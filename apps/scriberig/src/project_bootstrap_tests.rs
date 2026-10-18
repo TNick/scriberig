@@ -41,7 +41,7 @@ mod tests {
         )
         .expect("agent guidance");
         add_architecture_fixture(&root);
-        for index in 0..101 {
+        for index in 0..1201 {
             let path = root.join(format!("docs/page-{index:03}.txt"));
             fs::create_dir_all(path.parent().expect("page parent")).expect("page directory");
             fs::write(path, format!("page {index}\n")).expect("manifest pagination fixture");
@@ -60,6 +60,8 @@ mod tests {
         git(&["init", "-q"]);
         git(&["add", "-A"]);
         git(&[
+            "-c",
+            "commit.gpgsign=false",
             "-c",
             "user.name=Scriberig Test",
             "-c",
@@ -120,11 +122,13 @@ mod tests {
         let result = execute_agent(
             BootstrapProvider,
             "deterministic-bootstrap",
+            None,
             &service,
             &store,
             &context,
             session,
             handle.root_branch,
+            handle.operation.clone(),
             "Onboard the current project.",
             None,
             &service
@@ -142,8 +146,8 @@ mod tests {
                 _ => None,
             })
             .collect::<Vec<_>>();
-        assert_eq!(tools.len(), 7);
-        assert!(tools[1].summary.as_ref().unwrap().contains("110 files"));
+        assert_eq!(tools.len(), 18);
+        assert!(tools[1].summary.as_ref().unwrap().contains("1210 files"));
         let project: ProjectId = tools[1].handles[0].parse().expect("project identity");
         let manifest_id = tools[1].handles[1].clone();
         assert!(tools[2].summary.as_ref().unwrap().contains(&manifest_id));
@@ -161,17 +165,24 @@ mod tests {
                 .contains("page starts at 100")
         );
         assert!(
+            tools[14]
+                .summary
+                .as_ref()
+                .unwrap()
+                .contains("page starts at 1200")
+        );
+        assert!(
             tools[2]
                 .handles
                 .iter()
                 .any(|entry| entry.contains("Cargo.toml"))
         );
-        assert!(tools[4].summary.as_ref().unwrap().contains("snapshot"));
-        assert_eq!(tools[5].handles[0], project.to_string());
-        let snapshot: SnapshotId = tools[5].handles[1].parse().expect("snapshot identity");
-        let root_entity: EntityId = tools[5].handles[2].parse().expect("root identity");
-        assert_eq!(tools[6].entity, root_entity);
-        assert_eq!(tools[6].snapshot, Some(snapshot));
+        assert!(tools[15].summary.as_ref().unwrap().contains("snapshot"));
+        assert_eq!(tools[16].handles[0], project.to_string());
+        let snapshot: SnapshotId = tools[16].handles[1].parse().expect("snapshot identity");
+        let root_entity: EntityId = tools[16].handles[2].parse().expect("root identity");
+        assert_eq!(tools[17].entity, root_entity);
+        assert_eq!(tools[17].snapshot, Some(snapshot));
         let semantic_context = context.clone().with_snapshot(snapshot);
         let semantic_tools = LocalAgentTool::new(&service).with_project_store(Arc::clone(&store));
         let find = semantic_tools
@@ -244,6 +255,7 @@ mod tests {
         service
             .complete_local_agent(&handle, result.output)
             .expect("durable result");
+        drop(semantic_tools);
         drop(service);
         drop(store);
         fs::remove_file(database).expect("remove database");

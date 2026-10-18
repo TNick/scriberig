@@ -92,6 +92,8 @@ fn runtime_executes_named_control_tools() {
                 return Ok(ModelDecision::NamedTool {
                     name: "operation_status".to_owned(),
                     arguments: serde_json::json!({"operation": "op-1"}),
+                    presentation_arguments: serde_json::json!({"operation": "op-1"}),
+                    presentation_label: None,
                 });
             }
             assert!(matches!(messages[1], AgentMessage::Tool(_)));

@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use scriberig_app::{ApplicationContext, InspectRequest, SnapshotResolution};
+use scriberig_app::{ApplicationContext, InspectRequest, Principal, SnapshotResolution};
 use scriberig_core::{EntityId, SnapshotId};
 use serde_json::{Value, json};
 
@@ -40,6 +40,8 @@ use http_request::{allowed_origin, header_value, request_id};
 pub struct HttpState<S> {
     /// Application boundary used for semantic inspection.
     pub service: S,
+    /// Trusted identity for this single-user local transport instance.
+    pub principal: Principal,
     /// Development identities advertised to the browser.
     pub fixture: DevelopmentFixture,
     /// Optional exact browser origin allowed by the server.

@@ -2807,6 +2807,7 @@ dependencies = [
  "scriberig-store",
  "scriberig-store-sqlite",
  "scriberig-tui",
+ "serde",
  "serde_json",
  "tempfile",
  "vt100",
@@ -2852,6 +2853,7 @@ dependencies = [
  "scriberig-store",
  "scriberig-store-memory",
  "serde",
+ "serde_json",
  "sr-change",
  "sr-projection",
 ]

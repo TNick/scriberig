@@ -4,7 +4,7 @@ use std::sync::atomic::Ordering;
 
 use super::super::ApplicationService;
 use crate::ApplicationError;
-use scriberig_session::{Branch, BranchStatus, Session, Turn};
+use scriberig_session::{Branch, BranchStatus, Session, SessionExecutionSelection, Turn};
 
 impl<B> ApplicationService<B> {
     /// Creates a local session root and leaves its shared operation running.
@@ -29,6 +29,7 @@ impl<B> ApplicationService<B> {
                 branches: Vec::new(),
                 goals: Vec::new(),
                 tasks: Vec::new(),
+                execution: SessionExecutionSelection::default(),
             });
         let branch_id = if let Some(parent) = request.branch {
             let existing = session
@@ -75,8 +76,9 @@ impl<B> ApplicationService<B> {
             .iter_mut()
             .find(|branch| branch.id == branch_id)
         {
+            let turn_id = self.next_entity(0xBA);
             branch.push_turn(Turn {
-                id: self.next_entity(0xBA),
+                id: turn_id,
                 ordinal: 0,
                 human: Some(scriberig_session::HumanInput {
                     text: request.prompt.clone(),
@@ -85,6 +87,9 @@ impl<B> ApplicationService<B> {
                 tool_invocation: None,
                 tool_result: None,
             });
+            branch
+                .activity
+                .push(scriberig_session::ExecutionActivity::HumanInput(turn_id));
         }
         self.save_session_state(session)?;
         let sequence = self.next_agent_handle.fetch_add(1, Ordering::Relaxed);

@@ -62,6 +62,7 @@ fn required_capability_is_enforced_before_dispatch() {
             parameters: serde_json::json!({"type": "object"}),
         },
         result_shape: "compact child result".to_owned(),
+        invocation_label: None,
         state_changing: false,
         execution_mode: ToolExecutionMode::ChildBranch,
         required_capability: Some("agent.delegate".to_owned()),
@@ -91,6 +92,19 @@ fn required_capability_is_enforced_before_dispatch() {
     assert!(error.to_string().contains("agent.delegate"));
 }
 
+/// Bounds and sanitizes descriptor labels before client presentation.
+#[test]
+fn invocation_labels_are_bounded_and_control_free() {
+    let mut trusted = descriptor("inspect");
+    trusted.invocation_label = Some(format!("Inspect\n{}", "x".repeat(140)));
+    trusted.required_capability = None;
+    let catalog = ToolCatalog::new(vec![trusted]);
+    let label = &catalog.descriptors_for(&CapabilityContext::default())[0].invocation_label;
+
+    assert_eq!(label.as_ref().unwrap().chars().count(), 128);
+    assert!(!label.as_ref().unwrap().chars().any(char::is_control));
+}
+
 /// Creates the minimal trusted inspect descriptor used by these tests.
 ///
 /// # Parameters
@@ -106,6 +120,7 @@ fn descriptor(name: &str) -> ToolDescriptor {
             parameters: serde_json::json!({"type": "object"}),
         },
         result_shape: "compact semantic result".to_owned(),
+        invocation_label: None,
         state_changing: false,
         execution_mode: ToolExecutionMode::Atomic,
         required_capability: Some("inspect.entity".to_owned()),

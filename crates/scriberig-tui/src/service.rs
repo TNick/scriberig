@@ -18,6 +18,8 @@ mod agent_handle;
 mod service_agent_runner;
 #[path = "service_application.rs"]
 mod service_application;
+#[path = "service_application_model_request.rs"]
+mod service_application_model_request;
 #[path = "service_effects.rs"]
 mod service_effects;
 #[path = "service_operation_adapter.rs"]
@@ -26,11 +28,16 @@ mod service_operation_adapter;
 mod service_operation_agent;
 #[path = "service_operation_helpers.rs"]
 mod service_operation_helpers;
+#[path = "service_operation_model_request.rs"]
+mod service_operation_model_request;
 #[macro_use]
 #[path = "service_contract_methods.rs"]
 mod service_contract_methods;
+#[path = "service_model_request.rs"]
+mod service_model_request;
 #[path = "service_operations.rs"]
 mod service_operations;
+pub use service_model_request::TuiModelRequestService;
 #[path = "service_project_agent.rs"]
 mod service_project_agent;
 #[path = "service_project_candidate_review.rs"]
@@ -40,8 +47,14 @@ mod service_project_projection;
 pub(crate) use service_project_agent::{ProjectAgentTool, golden_provider};
 #[path = "service_remote.rs"]
 mod service_remote;
+#[path = "service_remote_agent.rs"]
+mod service_remote_agent;
 #[path = "service_remote_mapping.rs"]
 mod service_remote_mapping;
+#[path = "service_remote_model_request.rs"]
+mod service_remote_model_request;
+#[path = "service_remote_models.rs"]
+mod service_remote_models;
 
 pub use agent_handle::{AgentHandle, AgentWorkspace};
 pub use service_agent_runner::{AgentCommandRunner, SharedAgentCommandRunner};
@@ -55,7 +68,7 @@ use service_project_projection::render as render_project_source;
 pub use service_remote::RemoteAdapter;
 
 /// Supplies semantic reads to the TUI without exposing storage internals.
-pub trait TuiService {
+pub trait TuiService: TuiModelRequestService {
     /// Inspects one entity through the shared application contract.
     ///
     /// # Parameters
@@ -104,18 +117,12 @@ pub trait TuiService {
     }
 
     /// Executes snapshot-scoped semantic discovery.
-    ///
     /// # Parameters
-    /// - `context`: Application context for the request.
-    /// - `snapshot`: Exact discovery scope.
-    /// - `query`: User-authored search text.
     /// - `_context`: Application context for the request.
     /// - `_snapshot`: Exact discovery scope.
     /// - `_query`: User-authored search text.
-    ///
     /// # Returns
     /// A bounded find model.
-    ///
     /// # Errors
     /// Returns the structured discovery error.
     fn find_entities(
@@ -130,13 +137,10 @@ pub trait TuiService {
     }
 
     /// Returns runtime capabilities exposed by the application composition.
-    ///
     /// # Parameters
     /// - `_context`: Application context for capability resolution.
-    ///
     /// # Returns
     /// The capabilities available to the TUI.
-    ///
     /// # Errors
     /// Returns the structured application error.
     fn runtime_capabilities(
@@ -147,14 +151,11 @@ pub trait TuiService {
     }
 
     /// Executes one shared application operation when the adapter supports it.
-    ///
     /// # Parameters
     /// - `_context`: Application context for the operation.
     /// - `_request`: Public operation request.
-    ///
     /// # Returns
     /// The operation result when supported.
-    ///
     /// # Errors
     /// Returns a structured application error when the operation is unavailable
     /// or rejected by the owning application subsystem.
@@ -308,6 +309,89 @@ pub trait TuiService {
     ) -> Result<scriberig_session::Session, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "session read".to_owned(),
+        })
+    }
+
+    /// Reads bounded safe detail for one tool result.
+    /// # Parameters
+    /// - `_context`: Authorized request context.
+    /// - `_session`: Session containing the result.
+    /// - `_branch`: Branch containing the result.
+    /// - `_result`: Stable tool-result identity.
+    /// # Returns
+    /// Bounded allowlisted result detail.
+    /// # Errors
+    /// Returns unsupported-operation when unavailable.
+    fn tool_result_detail(
+        &self,
+        _context: &ApplicationContext,
+        _session: EntityId,
+        _branch: EntityId,
+        _result: EntityId,
+    ) -> Result<scriberig_protocol::ToolResultDetailResponse, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "tool result detail".to_owned(),
+        })
+    }
+
+    /// Reads the credential-safe model library for interactive selection.
+    ///
+    /// # Parameters
+    /// - `_context`: Application context for the request.
+    ///
+    /// # Returns
+    /// Safe model and profile descriptors.
+    ///
+    /// # Errors
+    /// Returns an unsupported-operation error by default.
+    fn model_library(
+        &self,
+        _context: &ApplicationContext,
+    ) -> Result<scriberig_protocol::ModelLibraryResponse, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "model library".to_owned(),
+        })
+    }
+
+    /// Updates a session's future model selection using its observed revision.
+    ///
+    /// # Parameters
+    /// - `_context`: Application context for the mutation.
+    /// - `_request`: Session, expected revision, and selected profile.
+    ///
+    /// # Returns
+    /// The authoritative updated execution selection.
+    ///
+    /// # Errors
+    /// Returns an unsupported-operation error by default.
+    fn set_session_model(
+        &self,
+        _context: &ApplicationContext,
+        _request: &scriberig_app::SessionModelSelectionRequest,
+    ) -> Result<scriberig_session::SessionExecutionSelection, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "session model selection".to_owned(),
+        })
+    }
+
+    /// Updates a session's future thinking selection using its revision.
+    ///
+    /// # Parameters
+    /// - `_context`: Application context for the mutation.
+    /// - `_request`: Session, expected revision, and thinking level.
+    ///
+    /// # Returns
+    /// The authoritative updated execution selection.
+    ///
+    /// # Errors
+    /// Returns an unsupported-operation error by default.
+    fn set_session_thinking_level(
+        &self,
+        _context: &ApplicationContext,
+        _request: &scriberig_app::SessionThinkingSelectionRequest,
+    ) -> Result<scriberig_session::SessionExecutionSelection, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "session thinking selection".to_owned(),
         })
     }
 

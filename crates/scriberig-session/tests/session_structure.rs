@@ -1,6 +1,8 @@
 //! Verifies provider-neutral session structure and lifecycle.
 use scriberig_core::EntityId;
-use scriberig_session::{Branch, BranchStatus, Session, SessionError, Turn};
+use scriberig_session::{
+    Branch, BranchStatus, Session, SessionError, SessionExecutionSelection, Turn,
+};
 
 /// Checks branch ordering, cross-domain handles, and lifecycle validation.
 #[test]
@@ -32,6 +34,7 @@ fn branch_structure_is_navigable() {
         branches: vec![branch],
         goals: Vec::new(),
         tasks: Vec::new(),
+        execution: SessionExecutionSelection::default(),
     };
     assert_eq!(session.branches.len(), 1);
 }
@@ -46,6 +49,7 @@ fn child_branch_insertion_is_validated_and_linked() {
         branches: vec![Branch::new(root_id, "root").expect("root")],
         goals: Vec::new(),
         tasks: Vec::new(),
+        execution: SessionExecutionSelection::default(),
     };
 
     session

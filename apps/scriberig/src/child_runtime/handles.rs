@@ -77,6 +77,7 @@ mod tests {
         let result = AgentResult {
             output: String::new(),
             tool_evidence: Vec::new(),
+            model_requests: Vec::new(),
             messages: vec![AgentMessage::Tool(ToolResult {
                 entity: EntityId::from_bytes([0; 16]),
                 revision: None,

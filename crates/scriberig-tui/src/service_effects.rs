@@ -133,6 +133,65 @@ pub fn execute_effect<S: TuiService>(
                 category: error.category().to_owned(),
                 message: crate::inspector::sanitize(&error.to_string()),
             }),
+        Effect::ReadModelLibrary { request_id } => service
+            .model_library(context)
+            .map(|library| Action::ModelLibraryLoaded {
+                request_id,
+                library,
+            })
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
+        Effect::ReadPresentationPreferences => service
+            .agent_presentation_preferences(context)
+            .map(Action::PresentationPreferencesLoaded)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
+        Effect::ReadToolResultDetail {
+            session,
+            branch,
+            result,
+        } => service
+            .tool_result_detail(context, session, branch, result)
+            .map(Action::ToolResultDetailLoaded)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
+        Effect::ReadModelRequestDetail {
+            session,
+            branch,
+            invocation,
+        } => service
+            .model_request_detail(context, session, branch, invocation)
+            .map(Action::ModelRequestDetailLoaded)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
+        Effect::SetSessionModel(request) => service
+            .set_session_model(context, &request)
+            .map(Action::SessionExecutionSelectionUpdated)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
+        Effect::SetSessionThinkingLevel(request) => service
+            .set_session_thinking_level(context, &request)
+            .map(Action::SessionExecutionSelectionUpdated)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
         Effect::SubmitAgent {
             session,
             branch,

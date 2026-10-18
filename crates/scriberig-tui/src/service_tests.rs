@@ -88,6 +88,69 @@ impl SessionBackend for Fixture {
     }
 }
 
+impl scriberig_app::AgentConsoleBackend for Fixture {
+    /// Rejects model-library reads in this query-only fixture.
+    ///
+    /// # Parameters
+    /// - `_context`: Application request context.
+    ///
+    /// # Returns
+    /// Never returns a model library.
+    ///
+    /// # Errors
+    /// Always returns an unsupported-operation error.
+    fn agent_model_library(
+        &self,
+        _context: &ApplicationContext,
+    ) -> Result<scriberig_app::ModelLibrary, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "test model library".to_owned(),
+        })
+    }
+
+    /// Rejects model selection in this query-only fixture.
+    ///
+    /// # Parameters
+    /// - `_context`: Application request context.
+    /// - `_request`: Requested session model selection.
+    ///
+    /// # Returns
+    /// Never returns an updated selection.
+    ///
+    /// # Errors
+    /// Always returns an unsupported-operation error.
+    fn set_session_model(
+        &self,
+        _context: &ApplicationContext,
+        _request: &scriberig_app::SessionModelSelectionRequest,
+    ) -> Result<scriberig_session::SessionExecutionSelection, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "test model selection".to_owned(),
+        })
+    }
+
+    /// Rejects thinking selection in this query-only fixture.
+    ///
+    /// # Parameters
+    /// - `_context`: Application request context.
+    /// - `_request`: Requested session thinking selection.
+    ///
+    /// # Returns
+    /// Never returns an updated selection.
+    ///
+    /// # Errors
+    /// Always returns an unsupported-operation error.
+    fn set_session_thinking_level(
+        &self,
+        _context: &ApplicationContext,
+        _request: &scriberig_app::SessionThinkingSelectionRequest,
+    ) -> Result<scriberig_session::SessionExecutionSelection, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "test thinking selection".to_owned(),
+        })
+    }
+}
+
 /// Verifies the adapter preserves exact public snapshot context.
 #[test]
 fn delegates_public_inspection_contract() {

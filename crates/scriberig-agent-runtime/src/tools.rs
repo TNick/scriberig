@@ -22,6 +22,8 @@ pub struct ToolDescriptor {
     pub definition: ToolDefinition,
     /// Bounded result-shape description.
     pub result_shape: String,
+    /// Optional trusted command-like label for compact invocation display.
+    pub invocation_label: Option<String>,
     /// Whether the operation can change canonical state.
     pub state_changing: bool,
     /// Execution mode selected by the application runtime.
@@ -46,6 +48,13 @@ impl ToolCatalog {
     /// A catalog with deterministic provider exposure order.
     #[must_use]
     pub fn new(mut descriptors: Vec<ToolDescriptor>) -> Self {
+        for descriptor in &mut descriptors {
+            descriptor.invocation_label = descriptor
+                .invocation_label
+                .as_deref()
+                .map(bounded_invocation_label)
+                .filter(|label| !label.is_empty());
+        }
         descriptors.sort_by(|left, right| left.definition.name.cmp(&right.definition.name));
         Self { descriptors }
     }
@@ -170,6 +179,21 @@ impl ToolCatalog {
         }
         Ok(descriptor)
     }
+}
+
+/// Sanitizes and bounds one trusted invocation label for client presentation.
+///
+/// # Parameters
+/// - `label`: Descriptor-provided human-readable label.
+///
+/// # Returns
+/// At most 128 non-control Unicode scalar values.
+fn bounded_invocation_label(label: &str) -> String {
+    label
+        .chars()
+        .filter(|character| !character.is_control())
+        .take(128)
+        .collect()
 }
 
 /// Checks both named grants and scoped application grants.

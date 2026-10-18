@@ -95,7 +95,11 @@ pub(super) fn run(
     let session_store = Arc::new(scriberig_session_sqlite::SqliteSessionStore::open(
         &args.db,
     )?);
-    let service = ApplicationService::new(backend).with_session_store(session_store);
+    let agent_runner =
+        super::native_tui_agent::NativeTuiAgentRunner::from_environment(Arc::clone(&store))?;
+    let service = ApplicationService::new(backend)
+        .with_session_store(session_store)
+        .with_model_library(agent_runner.model_library());
     let labels = project
         .as_ref()
         .map(|(project_id, _, _)| project_labels(&store, *project_id))
@@ -133,8 +137,6 @@ pub(super) fn run(
                     }
                 })
             });
-    let agent_runner =
-        super::native_tui_agent::NativeTuiAgentRunner::from_environment(Arc::clone(&store))?;
     let service = scriberig_tui::ApplicationOperationAdapter::new(service)
         .with_agent_runner(agent_runner)
         .with_explorer_labels(labels.unwrap_or_default())
@@ -157,7 +159,8 @@ pub(super) fn run(
         ..ApplicationContext::empty().with_bootstrap(BootstrapEnvironment {
             working_directory: std::env::current_dir()?,
         })
-    };
+    }
+    .with_user_preferences_principal("local-user");
     scriberig_tui::run(
         &service,
         &context,

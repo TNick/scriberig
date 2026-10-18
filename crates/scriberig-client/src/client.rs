@@ -15,6 +15,8 @@ use scriberig_protocol::{
 mod client_agent;
 #[path = "client_project.rs"]
 mod client_project;
+#[path = "client_session.rs"]
+mod client_session;
 use scriberig_query::{QueryResult, QuerySpec};
 
 use crate::error::ClientError;
@@ -139,35 +141,6 @@ impl<T: ProtocolTransport> Client<T> {
             .send(Request::SessionRead(SessionReadRequest {
                 session: SessionReference { id: session.into() },
                 branch: None,
-            }))?
-            .response
-        {
-            Response::Session(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
-            _ => Err(ClientError::UnexpectedResponse),
-        }
-    }
-
-    /// Reads one branch and its nested descendants on demand.
-    ///
-    /// # Parameters
-    /// - `session`: Stable session identity.
-    /// - `branch`: Stable branch identity whose activity is requested.
-    ///
-    /// # Returns
-    /// The selected branch subtree without unrelated branch histories.
-    ///
-    /// # Errors
-    /// Returns a structured server error or response mismatch.
-    pub fn read_session_branch(
-        &self,
-        session: impl Into<String>,
-        branch: impl Into<String>,
-    ) -> Result<SessionReadResponse, ClientError> {
-        match self
-            .send(Request::SessionRead(SessionReadRequest {
-                session: SessionReference { id: session.into() },
-                branch: Some(scriberig_protocol::BranchReference { id: branch.into() }),
             }))?
             .response
         {

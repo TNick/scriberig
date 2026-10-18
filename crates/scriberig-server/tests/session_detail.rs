@@ -1,0 +1,193 @@
+//! Verifies durable request and tool-result detail reads.
+
+use scriberig_app::{
+    AgentConsoleBackend, ApplicationBackend, ApplicationContext, ApplicationError,
+    ApplicationRequest, ApplicationResult, ApplicationService, CapabilityContext, CapabilityId,
+    SessionBackend,
+};
+use scriberig_protocol::{ProtocolVersion, Request, RequestEnvelope, Response, SessionReference};
+use scriberig_server::Dispatcher;
+
+/// Leaves local session state to the application service fallback.
+struct Fixture;
+
+impl ApplicationBackend for Fixture {
+    /// Rejects universal operations because this test targets durable details.
+    ///
+    /// # Parameters
+    /// - `_context`: Application context, unused by the fixture.
+    /// - `_request`: Universal request, intentionally unsupported.
+    ///
+    /// # Returns
+    /// Never returns a universal result.
+    ///
+    /// # Errors
+    /// Always returns unsupported-operation.
+    fn execute(
+        &self,
+        _context: &ApplicationContext,
+        _request: &ApplicationRequest,
+    ) -> Result<ApplicationResult, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "fixture universal request".to_owned(),
+        })
+    }
+}
+
+/// Reads captured requests and safe result detail by stable activity identity.
+#[test]
+fn durable_detail_reads_do_not_reexecute_tools_or_models() {
+    let service = ApplicationService::new(Fixture);
+    let handle = service
+        .start_local_agent(&scriberig_app::AgentCommandRequest {
+            session: scriberig_core::EntityId::from_bytes([31; 16]),
+            branch: None,
+            prompt: "inspect safely".to_owned(),
+            selection: None,
+        })
+        .expect("start local agent");
+    service
+        .complete_local_agent_with_evidence(
+            &handle,
+            "done",
+            Vec::new(),
+            vec![scriberig_app::ToolExecutionEvidence {
+                ordinal: 1,
+                name: "inspect".to_owned(),
+                input: br"{}".to_vec(),
+                presentation_input: None,
+                presentation_label: None,
+                output: serde_json::to_vec(&serde_json::json!({
+                    "summary": "s".repeat(6_000),
+                    "private_payload": "FAKE_PRIVATE_RESULT_8391",
+                }))
+                .expect("oversized structured result"),
+                failed: false,
+                child_branch: None,
+            }],
+            vec![scriberig_session::ModelRequestProjection {
+                ordinal: 0,
+                model: "model-a".to_owned(),
+                thinking_level: Some("careful".to_owned()),
+                messages: vec![scriberig_session::ModelRequestMessage {
+                    role: "user".to_owned(),
+                    content: "inspect safely".to_owned(),
+                }],
+                tools: Vec::new(),
+                truncated: false,
+            }],
+        )
+        .expect("complete local agent");
+
+    let read_context = ApplicationContext {
+        capabilities: CapabilityContext::new(vec![
+            CapabilityId::new("session_branch_tree").expect("session read capability"),
+        ]),
+        ..ApplicationContext::empty()
+    };
+    let branch = service
+        .read_session(
+            &read_context,
+            &scriberig_app::SessionRequest {
+                session: handle.session,
+            },
+        )
+        .expect("read durable session")
+        .branches[0]
+        .clone();
+    assert_details_are_read_only(&service, &handle, &read_context, &branch);
+}
+
+/// Verifies public detail reads return bounded cached data without execution.
+///
+/// # Parameters
+/// - `service`: Application service holding completed session evidence.
+/// - `handle`: Accepted local-agent session identities.
+/// - `read_context`: Authorized session read context.
+/// - `branch`: Durable branch containing the captured activity.
+fn assert_details_are_read_only(
+    service: &ApplicationService<Fixture>,
+    handle: &scriberig_app::LocalAgentHandle,
+    read_context: &ApplicationContext,
+    branch: &scriberig_session::Branch,
+) {
+    let dispatcher = Dispatcher::new(service);
+    let shared_detail = service
+        .model_request_detail(
+            read_context,
+            handle.session,
+            handle.root_branch,
+            branch.model_invocations[0].id,
+        )
+        .expect("shared application request detail");
+    assert_eq!(shared_detail.model, "model-a");
+    assert_eq!(shared_detail.messages[0].content, "inspect safely");
+    let request = Request::ModelRequestDetail(scriberig_protocol::ModelRequestDetailRequest {
+        session: SessionReference {
+            id: handle.session.to_string(),
+        },
+        branch: scriberig_protocol::BranchReference {
+            id: handle.root_branch.to_string(),
+        },
+        invocation: branch.model_invocations[0].id.to_string(),
+    });
+    let response = dispatcher.dispatch(RequestEnvelope {
+        version: ProtocolVersion::default(),
+        correlation_id: "request-detail".to_owned(),
+        request,
+    });
+    let Response::ModelRequestDetail(detail) = response.response else {
+        panic!("unexpected response: {:?}", response.response);
+    };
+    assert_eq!(detail.model, "model-a");
+    assert_eq!(detail.thinking_level.as_deref(), Some("careful"));
+    assert_eq!(detail.messages[0].content, "inspect safely");
+
+    let result_id = branch.tool_results[0].id.to_string();
+    let response = dispatcher.dispatch(RequestEnvelope {
+        version: ProtocolVersion::default(),
+        correlation_id: "tool-result-detail".to_owned(),
+        request: Request::ToolResultDetail(scriberig_protocol::ToolResultDetailRequest {
+            session: SessionReference {
+                id: handle.session.to_string(),
+            },
+            branch: scriberig_protocol::BranchReference {
+                id: handle.root_branch.to_string(),
+            },
+            result: result_id.clone(),
+        }),
+    });
+    let Response::ToolResultDetail(detail) = response.response else {
+        panic!("unexpected response: {:?}", response.response);
+    };
+    assert_eq!(detail.result, result_id);
+    assert_eq!(
+        detail.detail["summary"].as_str().unwrap().chars().count(),
+        4096
+    );
+    assert!(detail.truncated);
+    assert!(detail.detail.get("private_payload").is_none());
+
+    let response = dispatcher.dispatch(RequestEnvelope {
+        version: ProtocolVersion::default(),
+        correlation_id: "session-activity".to_owned(),
+        request: Request::SessionRead(scriberig_protocol::SessionReadRequest {
+            session: SessionReference {
+                id: handle.session.to_string(),
+            },
+            branch: None,
+        }),
+    });
+    let Response::Session(session) = response.response else {
+        panic!("unexpected response: {:?}", response.response);
+    };
+    let activity = session.branches[0]
+        .activity
+        .iter()
+        .find(|item| item.kind == scriberig_protocol::SessionActivityKind::ToolResult)
+        .expect("bounded tool result activity");
+    assert_eq!(activity.durable_ref.as_deref(), Some(result_id.as_str()));
+    assert_eq!(activity.summary.chars().count(), 513);
+    assert!(activity.summary.ends_with('…'));
+    assert!(activity.tool_result_preview.is_some());
+}

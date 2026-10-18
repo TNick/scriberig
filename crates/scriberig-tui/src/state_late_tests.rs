@@ -45,6 +45,8 @@ fn palette_continues_agent_session_after_workspace_selection() {
                 snapshot: None,
                 transient: false,
             }],
+            execution: scriberig_session::SessionExecutionSelection::default(),
+            tool_invocation_details: std::collections::BTreeMap::default(),
         }),
         agent_handles: vec![crate::service::AgentHandle {
             operation: scriberig_core::OperationId::new("test-operation")
@@ -62,13 +64,14 @@ fn palette_continues_agent_session_after_workspace_selection() {
     );
     reduce(&mut state, Action::Activated);
     assert!(matches!(
-        state.overlay,
-        Some(Overlay::Composer(crate::overlay::ComposerState {
+        state.session_composer,
+        Some(crate::state::SessionComposerState {
             session: selected_session,
             branch: Some(selected_branch),
             ..
-        })) if selected_session == session && selected_branch == branch
+        }) if selected_session == session && selected_branch == branch
     ));
+    assert!(state.overlay.is_none());
 }
 
 /// Verifies find input dispatches a snapshot-scoped discovery request.

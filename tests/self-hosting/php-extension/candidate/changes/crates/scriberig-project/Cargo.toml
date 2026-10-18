@@ -8,6 +8,8 @@ description = "Shared multi-project scanning and semantic onboarding service."
 repository.workspace = true
 
 [dependencies]
+scriberig-secrets = { path = "../scriberig-secrets" }
+tempfile = "3"
 blake3 = "1.8.2"
 scriberig-core = { path = "../scriberig-core" }
 scriberig-domain-html = { path = "../domains/scriberig-domain-html" }

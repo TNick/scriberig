@@ -12,6 +12,14 @@ import {
   storeAgentSession,
   markAgentWorkspaceStale,
   type AgentWorkspaceState,
+  type AgentPresentationPreferences,
+  type AgentPresentationPreferenceLayer,
+} from "./agent-workspace";
+import type { ModelLibraryResponse } from "@scriberig/protocol";
+import {
+  storeAgentModelLibrary,
+  storeAgentPresentation,
+  storeSharedAgentPresentation,
 } from "./agent-workspace";
 import type { AgentEvent } from "@scriberig/protocol";
 /** Client-side semantic state coordinated by immutable server identities.
@@ -63,6 +71,29 @@ export class WorkspaceModel {
   /** Stores an authoritative session branch tree. @param session Session response. */
   setAgentSession(session: import("@scriberig/protocol").SessionReadResponse): void {
     this.agentState = storeAgentSession(this.agentState, session);
+    this.agentChanges.notify(this.agentState);
+  }
+
+  /** Stores the safe public model library for reusable agent controls.
+   * @param library Shared model descriptors and profiles.
+   */
+  setAgentModelLibrary(library: ModelLibraryResponse): void {
+    this.agentState = storeAgentModelLibrary(this.agentState, library);
+    this.agentChanges.notify(this.agentState);
+  }
+
+  /** Updates local display choices without creating session history.
+   * @param presentation Client-local activity presentation choices.
+   */
+  setAgentPresentation(presentation: AgentPresentationPreferenceLayer): void {
+    this.agentState = storeAgentPresentation(this.agentState, presentation);
+    this.agentChanges.notify(this.agentState);
+  }
+  /** Applies shared defaults beneath any client-local presentation overrides.
+   * @param presentation Shared preferences for the authenticated principal.
+   */
+  setSharedAgentPresentation(presentation: AgentPresentationPreferenceLayer): void {
+    this.agentState = storeSharedAgentPresentation(this.agentState, presentation);
     this.agentChanges.notify(this.agentState);
   }
   /** Marks agent state stale until a reconnect refresh completes. */

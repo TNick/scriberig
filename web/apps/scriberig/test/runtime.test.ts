@@ -27,7 +27,28 @@ describe("createRuntime", () => {
     const fetch = vi.fn(async (url: string) => {
       if (url.includes("/events")) {
         return new Response(
-          `data: ${JSON.stringify({ kind: "snapshotAdvanced", snapshotId: "s2" })}\n\n`,
+          [
+            { kind: "snapshotAdvanced", snapshotId: "s2" },
+            {
+              kind: "AgentActivity",
+              sequence: 5,
+              operation: { id: "op-1" },
+              metadata: [
+                ["branch", "branch-1"],
+                ["activity_kind", "toolInvocation"],
+                ["state", "running"],
+                ["summary", "Tool: search"],
+              ],
+            },
+            {
+              kind: "AgentOutputProduced",
+              sequence: 6,
+              operation: { id: "op-1" },
+              metadata: [["output", "committed answer"]],
+            },
+          ]
+            .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+            .join(""),
           {
             headers: { "content-type": "text/event-stream" },
             status: 200,
@@ -59,12 +80,20 @@ describe("createRuntime", () => {
     vi.stubGlobal("fetch", fetch);
 
     const runtime = createRuntime("http://test/api");
+    let liveActivityObserved = false;
+    runtime.model.subscribeAgent((state) => {
+      liveActivityObserved ||=
+        state.transientActivities["branch-1"]?.some((item) => item.summary === "Tool: search") ===
+        true;
+    });
     await runtime.bootstrap();
 
     expect(runtime.connection).toBe("connected");
     expect(runtime.tree.get("root")?.entityId).toBe(ROOT);
     expect(runtime.commands.map((command) => command.id)).toEqual(["inspect", "list"]);
     await vi.waitFor(() => expect(runtime.model.getState().snapshots.current).toBe("s2"));
+    await vi.waitFor(() => expect(liveActivityObserved).toBe(true));
+    expect(runtime.model.getAgentState().transientActivities).toEqual({});
     expect(fetch).toHaveBeenCalledTimes(3);
   });
 

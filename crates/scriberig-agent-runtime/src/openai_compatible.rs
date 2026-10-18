@@ -1,21 +1,23 @@
 //! Implements the non-streaming OpenAI-compatible provider adapter.
 
-use serde::Serialize;
 use std::sync::Arc;
 
 use crate::config::ResolvedCredential;
+use crate::provider::ProviderConfig;
 use crate::provider::{
     FinishReason, ModelRequest, ModelResponse, ProviderAdapter, ProviderCapabilities,
-    ProviderError, ProviderMetadata, ToolCall, ToolChoice, Usage,
+    ProviderError, ProviderMetadata, ToolCall, Usage,
 };
-use crate::provider::{MessageRole, ProviderConfig};
 use openai_wire::WireResponse;
 #[path = "openai_cancellation.rs"]
 mod openai_cancellation;
+#[path = "openai_request.rs"]
+mod openai_request;
 #[path = "openai_transport.rs"]
 mod openai_transport;
 #[path = "openai_wire.rs"]
 mod openai_wire;
+use openai_request::WireRequest;
 use openai_transport::{CompletionTransport, ReqwestCompletionTransport, classify_status};
 
 /// OpenAI-compatible chat-completions provider.
@@ -29,6 +31,14 @@ pub struct OpenAiCompatibleProvider {
     transport: Arc<dyn CompletionTransport>,
     /// Declared capabilities for this compatibility adapter.
     capabilities: ProviderCapabilities,
+    /// Adapter-local translation from public level ids to wire fields.
+    thinking_parameters:
+        std::collections::BTreeMap<String, std::collections::BTreeMap<String, serde_json::Value>>,
+    /// Model-specific translation from public levels to wire fields.
+    model_thinking_parameters: std::collections::BTreeMap<
+        (String, String),
+        std::collections::BTreeMap<String, serde_json::Value>,
+    >,
 }
 
 impl OpenAiCompatibleProvider {
@@ -69,7 +79,50 @@ impl OpenAiCompatibleProvider {
                 provider_model_fingerprint: true,
                 ..ProviderCapabilities::default()
             },
+            thinking_parameters: std::collections::BTreeMap::new(),
+            model_thinking_parameters: std::collections::BTreeMap::new(),
         })
+    }
+
+    /// Configures this adapter's translation for one advertised thinking id.
+    ///
+    /// # Parameters
+    /// - `self`: OpenAI-compatible provider adapter.
+    /// - `level`: Provider-neutral thinking capability id.
+    /// - `parameters`: Provider-specific request fields for this adapter.
+    ///
+    /// # Returns
+    /// The adapter with the translation installed.
+    #[must_use]
+    pub fn with_thinking_parameters(
+        mut self,
+        level: impl Into<String>,
+        parameters: std::collections::BTreeMap<String, serde_json::Value>,
+    ) -> Self {
+        self.thinking_parameters.insert(level.into(), parameters);
+        self
+    }
+
+    /// Configures a model-specific thinking-level translation.
+    ///
+    /// # Parameters
+    /// - `self`: OpenAI-compatible provider adapter.
+    /// - `model`: Provider-native model identifier.
+    /// - `level`: Model-advertised thinking capability id.
+    /// - `parameters`: Provider-specific request fields for this model level.
+    ///
+    /// # Returns
+    /// The adapter with the model-specific translation installed.
+    #[must_use]
+    pub fn with_model_thinking_parameters(
+        mut self,
+        model: impl Into<String>,
+        level: impl Into<String>,
+        parameters: std::collections::BTreeMap<String, serde_json::Value>,
+    ) -> Self {
+        self.model_thinking_parameters
+            .insert((model.into(), level.into()), parameters);
+        self
     }
 
     /// Replaces the completion transport for deterministic adapter tests.
@@ -127,7 +180,12 @@ impl ProviderAdapter for OpenAiCompatibleProvider {
     /// Returns a classified transport, HTTP, configuration, or parse failure.
     fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
         let credential = self.config.resolve_credential()?;
-        let payload = WireRequest::from_request(request, false);
+        let payload = WireRequest::from_request_for_models(
+            request,
+            false,
+            &self.thinking_parameters,
+            &self.model_thinking_parameters,
+        );
         let response = self.transport.send(
             &self.endpoint(),
             &payload,
@@ -171,149 +229,6 @@ impl ProviderAdapter for OpenAiCompatibleProvider {
         on_text: &mut dyn FnMut(&str),
     ) -> Result<ModelResponse, ProviderError> {
         self.complete_streaming_with(request, on_text)
-    }
-}
-
-/// Serializes a provider-neutral request into the compatible wire subset.
-#[derive(Serialize)]
-struct WireRequest {
-    model: String,
-    messages: Vec<WireMessage>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    tools: Vec<WireTool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    tool_choice: Option<serde_json::Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    response_format: Option<serde_json::Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    temperature: Option<f32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    max_tokens: Option<u32>,
-    #[serde(skip_serializing_if = "is_false")]
-    stream: bool,
-}
-
-impl WireRequest {
-    /// Converts a provider-neutral request into wire fields.
-    ///
-    /// # Parameters
-    /// - `request`: Provider-neutral request.
-    /// - `stream`: Whether the provider should stream SSE fragments.
-    ///
-    /// # Returns
-    /// OpenAI-compatible request fields.
-    fn from_request(request: &ModelRequest, stream: bool) -> Self {
-        let tool_choice = match &request.tool_choice {
-            ToolChoice::Auto => Some(serde_json::json!("auto")),
-            ToolChoice::None => Some(serde_json::json!("none")),
-            ToolChoice::Required(name) => Some(serde_json::json!({
-                "type": "function",
-                "function": {"name": name},
-            })),
-        };
-        let response_format = request.response_schema.as_ref().map(|schema| {
-            serde_json::json!({
-                "type": "json_schema",
-                "json_schema": {"name": "scriberig_output", "schema": schema},
-            })
-        });
-        Self {
-            model: request.model.clone(),
-            messages: request
-                .messages
-                .iter()
-                .map(WireMessage::from_message)
-                .collect(),
-            tools: request
-                .tools
-                .iter()
-                .map(WireTool::from_definition)
-                .collect(),
-            tool_choice,
-            response_format,
-            temperature: request.temperature,
-            max_tokens: request.max_tokens,
-            stream,
-        }
-    }
-}
-
-/// Omits the default false streaming flag from ordinary requests.
-#[allow(clippy::trivially_copy_pass_by_ref)]
-///
-/// # Parameters
-/// - `value`: Streaming flag to inspect.
-///
-/// # Returns
-/// `true` when the flag is false.
-fn is_false(value: &bool) -> bool {
-    !*value
-}
-
-/// Serializes one provider-neutral message.
-#[derive(Serialize)]
-struct WireMessage {
-    role: &'static str,
-    content: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    tool_call_id: Option<String>,
-}
-
-impl WireMessage {
-    /// Converts a semantic message role to its wire spelling.
-    ///
-    /// # Parameters
-    /// - `message`: Provider-neutral message.
-    ///
-    /// # Returns
-    /// Wire-compatible message fields.
-    fn from_message(message: &crate::provider::ModelMessage) -> Self {
-        let role = match message.role {
-            MessageRole::System => "system",
-            MessageRole::User => "user",
-            MessageRole::Assistant => "assistant",
-            MessageRole::Tool => "tool",
-        };
-        Self {
-            role,
-            content: message.content.clone(),
-            tool_call_id: message.tool_call_id.clone(),
-        }
-    }
-}
-
-#[derive(Serialize)]
-/// Serializes one function tool declaration.
-struct WireTool {
-    r#type: &'static str,
-    function: WireFunction,
-}
-
-#[derive(Serialize)]
-/// Serializes the function portion of a tool declaration.
-struct WireFunction {
-    name: String,
-    description: String,
-    parameters: serde_json::Value,
-}
-
-impl WireTool {
-    /// Converts a trusted tool definition to a function declaration.
-    ///
-    /// # Parameters
-    /// - `definition`: Trusted provider-neutral tool definition.
-    ///
-    /// # Returns
-    /// Wire-compatible function tool fields.
-    fn from_definition(definition: &crate::provider::ToolDefinition) -> Self {
-        Self {
-            r#type: "function",
-            function: WireFunction {
-                name: definition.name.clone(),
-                description: definition.description.clone(),
-                parameters: definition.parameters.clone(),
-            },
-        }
     }
 }
 

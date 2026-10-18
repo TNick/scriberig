@@ -19,8 +19,11 @@ use crate::native_provider::NativeProvider;
 #[path = "native_tui_agent/workspace.rs"]
 mod workspace;
 use workspace::workspace_from_result;
+#[path = "native_tui_agent/model_selection.rs"]
+mod model_selection;
 #[path = "native_tui_agent/provider_config.rs"]
 mod provider_config;
+use model_selection::selected_runtime_model;
 
 #[cfg(test)]
 #[path = "native_tui_agent_tests.rs"]
@@ -32,6 +35,8 @@ pub(super) struct NativeTuiAgentRunner {
     provider: Option<NativeProvider>,
     /// Model identifier selected by the local runtime configuration.
     model: String,
+    /// Safe models and selectable profiles exposed to the application service.
+    model_library: scriberig_app::ModelLibrary,
     /// Shared project store used by application-backed agent tools.
     project_store: Arc<SqliteStore>,
 }
@@ -52,12 +57,22 @@ impl NativeTuiAgentRunner {
         let model = std::env::var("SCRIBE_AGENT_MODEL").unwrap_or_else(|_| "default".to_owned());
         let provider_kind = std::env::var("SCRIBE_AGENT_PROVIDER")
             .unwrap_or_else(|_| "openai_compatible".to_owned());
-        let provider = provider_config::from_environment(&provider_kind, &model)?;
+        let catalog = provider_config::catalog::from_environment(&model)?;
+        let provider = provider_config::from_environment(&provider_kind, &model, &catalog)?;
         Ok(Self {
             provider,
             model,
+            model_library: catalog.library,
             project_store,
         })
+    }
+
+    /// Returns the safe model library installed in the application service.
+    ///
+    /// # Returns
+    /// Configured model descriptors and selectable profiles.
+    pub(super) fn model_library(&self) -> scriberig_app::ModelLibrary {
+        self.model_library.clone()
     }
 }
 
@@ -93,6 +108,8 @@ impl<B: ApplicationBackend> scriberig_tui::AgentCommandRunner<B> for NativeTuiAg
             selection: selection.clone(),
         };
         let handle = service.begin_agent_execution(context, &request)?;
+        let (model, thinking_level) =
+            selected_runtime_model(service, context, session, &self.model)?;
         let cancelled = service.operations().cancellation_flag(&handle.operation)?;
         let Some(provider) = self.provider.as_ref() else {
             let message = "configure SCRIBE_AGENT_BASE_URL before starting agent work";
@@ -107,12 +124,14 @@ impl<B: ApplicationBackend> scriberig_tui::AgentCommandRunner<B> for NativeTuiAg
         );
         let result = execute_agent(
             provider.clone(),
-            &self.model,
+            &model,
+            thinking_level.as_deref(),
             service,
             &self.project_store,
             &runtime_context,
             session,
             handle.root_branch,
+            handle.operation.clone(),
             prompt,
             selection.as_ref(),
             &cancelled,
@@ -151,6 +170,7 @@ impl<B: ApplicationBackend> scriberig_tui::AgentCommandRunner<B> for NativeTuiAg
             result.output,
             result_handles,
             result.tool_evidence,
+            result.model_requests,
         )?;
         Ok(scriberig_tui::AgentHandle {
             operation: handle.operation,
@@ -286,11 +306,13 @@ fn selection_handles(selection: Option<&AgentSelection>) -> Vec<String> {
 pub(super) fn execute_agent<P, B>(
     provider: P,
     model: &str,
+    thinking_level: Option<&str>,
     service: &ApplicationService<B>,
     project_store: &Arc<SqliteStore>,
     context: &ApplicationContext,
     session: EntityId,
     branch: EntityId,
+    operation: scriberig_app::OperationId,
     prompt: &str,
     selection: Option<&AgentSelection>,
     cancelled: &std::sync::atomic::AtomicBool,
@@ -320,12 +342,15 @@ where
     };
     let mut children = LocalChildExecutor {
         service,
+        operation: Some(operation.clone()),
         provider: provider.clone(),
         model: model.to_owned(),
+        thinking_level: thinking_level.map(str::to_owned),
         cache: cache.clone(),
         project_store: Arc::clone(project_store),
     };
     let mut model_provider = ProviderModel::new(provider, model)
+        .with_thinking_level(thinking_level.map(str::to_owned))
         .with_catalog(inspect_catalog())
         .with_capabilities(context.capabilities.clone())
         .with_cache(cache, CachePolicy::ReuseExact)
@@ -349,6 +374,8 @@ where
         model_provider,
         LocalAgentTool::new(service).with_project_store(Arc::clone(project_store)),
         32,
-    );
+    )
+    .with_observed_operation(service.operations().clone(), operation)
+    .with_branch_id(branch.to_string());
     runtime.run_with_child_executor_at(&scope, context, prompt, cancelled, &mut children)
 }

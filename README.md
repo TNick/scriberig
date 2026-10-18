@@ -132,6 +132,37 @@ The TUI can scan a project before startup and optionally import it:
 srig tui --db scriberig.sqlite --project PATH --import
 ```
 
+The native agent reads an optional JSON model catalog from
+`SCRIBE_AGENT_MODEL_CATALOG`. Each catalog entry supplies a stable model `id`,
+`display_name`, provider-native `provider_model_id`, and optional
+`thinking_levels`. A thinking level has an `id`, `label`, and optional
+provider-specific `provider_parameters` object. These parameters stay in the
+runtime adapter and are never returned in the public model library. If the
+variable is unset, the configured `SCRIBE_AGENT_MODEL` is exposed as the only
+model and has no thinking levels.
+
+```json
+{
+  "models": [
+    {
+      "id": "local-reasoner",
+      "display_name": "Local Reasoner",
+      "provider_model_id": "reasoner-v2",
+      "thinking_levels": [
+        {
+          "id": "deliberate",
+          "label": "Deliberate",
+          "provider_parameters": {
+            "reasoning_effort": "high"
+          }
+        }
+      ],
+      "default_thinking_level": "deliberate"
+    }
+  ]
+}
+```
+
 Build all Rust workspace targets with:
 
 ```text

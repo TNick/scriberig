@@ -4,7 +4,6 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use scriberig_agent_runtime::ChildExecutionScope;
-use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::provider::ProviderConfig;
 use scriberig_app::{
     ApplicationBackendComposition, ApplicationContext, ApplicationService, Capability,
@@ -19,15 +18,16 @@ mod agent_tool_helpers;
 mod bootstrap_failure_provider;
 mod child_runtime;
 mod deterministic_provider;
+mod doctor_command;
+mod main_agent_execution;
 mod native_provider;
 mod native_tui_agent;
-mod self_hosting_provider;
-mod doctor_command;
 mod remote_commands;
 mod secrets_command;
+mod self_hosting_provider;
 mod tui_command;
 use agent_tool::LocalAgentTool;
-use child_runtime::{LocalChildExecutor, inspect_catalog};
+use main_agent_execution::execute_model;
 
 /// Start the integrated `srig` executable and report runtime failures.
 ///
@@ -276,63 +276,6 @@ fn run_composed_model<B: scriberig_app::ApplicationBackend>(
         runtime
     };
     runtime.run(context, &args.prompt, cancellation)
-}
-
-/// Runs one provider-neutral model through the shared runtime loop.
-///
-/// # Parameters
-/// - `provider`: Model decision provider.
-/// - `context`: Trusted application context.
-/// - `prompt`: Human instruction.
-/// - `cancellation`: Shared cancellation flag.
-///
-/// # Returns
-/// Completed runtime output and tool observations.
-///
-/// # Errors
-/// Returns the runtime's structured failure.
-#[allow(clippy::too_many_arguments)]
-fn execute_model<
-    P: scriberig_agent_runtime::provider::ProviderAdapter + Clone,
-    B: scriberig_app::ApplicationBackend,
->(
-    provider: P,
-    model: String,
-    service: &scriberig_app::ApplicationService<B>,
-    project_store: &Arc<SqliteStore>,
-    context: &ApplicationContext,
-    scope: &ChildExecutionScope,
-    prompt: &str,
-    cancellation: &std::sync::atomic::AtomicBool,
-    output_callback: Option<scriberig_agent_runtime::OutputCallback>,
-) -> Result<scriberig_agent_runtime::AgentResult, scriberig_agent_runtime::AgentError> {
-    let catalog = inspect_catalog();
-    let cache = scriberig_agent_runtime::cache::ModelCache::new();
-    let mut children = LocalChildExecutor {
-        service,
-        provider: provider.clone(),
-        model: model.clone(),
-        cache: cache.clone(),
-        project_store: Arc::clone(project_store),
-    };
-    let runtime = scriberig_agent_runtime::AgentRuntime::new(
-        ProviderModel::new(provider, model)
-            .with_catalog(catalog)
-            .with_capabilities(context.capabilities.clone())
-            .with_cache(
-                cache,
-                scriberig_agent_runtime::cache::CachePolicy::ReuseExact,
-            )
-            .with_cache_namespace(scope.parent_branch.to_string()),
-        LocalAgentTool::new(service).with_project_store(Arc::clone(project_store)),
-        8,
-    );
-    let mut runtime = if let Some(callback) = output_callback {
-        runtime.with_output_callback(callback)
-    } else {
-        runtime
-    };
-    runtime.run_with_child_executor_at(scope, context, prompt, cancellation, &mut children)
 }
 
 /// Allocates a fresh session identity for one local command invocation.

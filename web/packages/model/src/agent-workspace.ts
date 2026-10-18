@@ -1,12 +1,13 @@
 /** @file Maintains durable agent branch state separately from transient streams. */
 
 import type {
-  AgentEvent,
   BranchActivityPage,
   BranchChildrenPage,
   BranchDescriptor,
   Operation,
   SessionReadResponse,
+  SessionExecutionSelection,
+  ModelLibraryResponse,
 } from "@scriberig/protocol";
 
 /** Browser-owned state for one branch-aware agent workspace. */
@@ -21,12 +22,139 @@ export interface AgentWorkspaceState {
   operations: Readonly<Record<string, Operation>>;
   /** Discardable partial model text keyed by operation identity. */
   transientStreams: Readonly<Record<string, string>>;
+  /** Discardable runtime activity keyed by durable branch identity. */
+  transientActivities: Readonly<Record<string, readonly TransientAgentActivity[]>>;
+  /** Bounded safe model and thinking selection changes observed from events. */
+  selectionActivities: readonly SessionSelectionActivity[];
   /** Last accepted event sequence. */
   eventCursor: number;
   /** Whether a reconnect requires authoritative refresh. */
   stale: boolean;
+  /** Current session model and thinking selection for future invocations. */
+  execution: SessionExecutionSelection;
+  /** Public model descriptors loaded from the shared client API. */
+  modelLibrary?: ModelLibraryResponse;
+  /** Client-local display choices that never alter session execution. */
+  presentation: AgentPresentationPreferences;
+  /** Shared user defaults received from the application. */
+  sharedPresentation: AgentPresentationPreferenceLayer;
+  /** Client-local overrides that take precedence over shared defaults. */
+  localPresentation: AgentPresentationPreferenceLayer;
   /** Last safe error, when one was observed. */
   error?: string;
+}
+
+/** One transient safe status item received from the operation event stream. */
+export interface TransientAgentActivity {
+  /** Monotonic event sequence used for replay and deduplication. */
+  sequence: number;
+  /** Operation owning this live activity. */
+  operationId: string;
+  /** Durable branch associated with the runtime event. */
+  branchId: string;
+  /** Provider-neutral activity category. */
+  activityKind: string;
+  /** Current lifecycle state. */
+  state: string;
+  /** Safe bounded display summary. */
+  summary: string;
+}
+
+/** One safe model or thinking selection notification received by the client. */
+export interface SessionSelectionActivity {
+  /** Monotonic event sequence used for replay and deduplication. */
+  sequence: number;
+  /** Stable session identity whose future execution selection changed. */
+  sessionId: string;
+  /** Selection category such as modelSelection or thinkingSelection. */
+  activityKind: string;
+  /** Bounded safe user-facing summary. */
+  summary: string;
+}
+
+/** Independent display choices for already captured activity. */
+export interface AgentPresentationPreferences {
+  /** Whether safe reasoning summaries and status are visible. */
+  reasoning: "hidden" | "shown";
+  /** Whether tool parameters are compact or expanded. */
+  toolInvocation: "simple" | "detailed";
+  /** How much captured tool output is visible. */
+  toolOutput: "hidden" | "summary" | "full";
+  /** Whether captured safe model request data is visible. */
+  prompt: "hidden" | "shown";
+}
+
+/** Partial client-local or shared preference layer. */
+export type AgentPresentationPreferenceLayer = Partial<AgentPresentationPreferences>;
+
+/** Named convenience preset that expands into independent display choices. */
+export type AgentPresentationPreset = "minimal" | "normal" | "verbose" | "debug";
+
+/** Creates default local presentation choices. @returns Default preferences. */
+export function createAgentPresentationPreferences(): AgentPresentationPreferences {
+  return {
+    reasoning: "hidden",
+    toolInvocation: "simple",
+    toolOutput: "summary",
+    prompt: "hidden",
+  };
+}
+
+/** Expands one preset into independent presentation fields.
+ * @param preset Named verbosity preset.
+ * @returns Complete preference values without changing execution state.
+ */
+export function agentPresentationPreset(
+  preset: AgentPresentationPreset,
+): AgentPresentationPreferences {
+  switch (preset) {
+    case "minimal":
+      return {
+        reasoning: "hidden",
+        toolInvocation: "simple",
+        toolOutput: "hidden",
+        prompt: "hidden",
+      };
+    case "normal":
+      return {
+        reasoning: "hidden",
+        toolInvocation: "simple",
+        toolOutput: "summary",
+        prompt: "hidden",
+      };
+    case "verbose":
+      return {
+        reasoning: "shown",
+        toolInvocation: "detailed",
+        toolOutput: "full",
+        prompt: "hidden",
+      };
+    case "debug":
+      return {
+        reasoning: "shown",
+        toolInvocation: "detailed",
+        toolOutput: "full",
+        prompt: "shown",
+      };
+  }
+}
+
+/** Resolves client-local choices over shared choices and built-in defaults.
+ * @param local Client-local overrides, when present.
+ * @param shared Shared or user preference values, when present.
+ * @returns Fully resolved display choices.
+ */
+export function resolveAgentPresentation(
+  local: AgentPresentationPreferenceLayer = {},
+  shared: AgentPresentationPreferenceLayer = {},
+): AgentPresentationPreferences {
+  const defaults = createAgentPresentationPreferences();
+  return {
+    reasoning: local.reasoning ?? shared.reasoning ?? defaults.reasoning,
+    toolInvocation: local.toolInvocation ?? shared.toolInvocation ?? defaults.toolInvocation,
+    toolOutput: local.toolOutput ?? shared.toolOutput ?? defaults.toolOutput,
+    prompt: local.prompt ?? shared.prompt ?? defaults.prompt,
+  };
 }
 
 /** Creates an empty agent workspace state. @returns Initial state. */
@@ -37,63 +165,18 @@ export function createAgentWorkspaceState(): AgentWorkspaceState {
     activity: {},
     operations: {},
     transientStreams: {},
+    transientActivities: {},
+    selectionActivities: [],
     eventCursor: 0,
     stale: false,
+    execution: { revision: 0 },
+    presentation: createAgentPresentationPreferences(),
+    sharedPresentation: {},
+    localPresentation: {},
   };
 }
 
-/** Applies one ordered agent event without promoting transient text to durable state.
- * @param state Current agent workspace state.
- * @param event Incoming provider-neutral event.
- * @returns Updated state.
- */
-export function reduceAgentEvent(
-  state: AgentWorkspaceState,
-  event: AgentEvent,
-): AgentWorkspaceState {
-  if (event.sequence <= state.eventCursor) return state;
-  const next = { ...state, eventCursor: event.sequence };
-  const clearTransient = (operationId: string): Readonly<Record<string, string>> => {
-    const streams = { ...state.transientStreams };
-    delete streams[operationId];
-    return streams;
-  };
-  switch (event.kind) {
-    case "branchCreated":
-      return {
-        ...next,
-        branches: { ...state.branches, [event.branch.branchId]: event.branch },
-      };
-    case "branchChanged":
-      return { ...next, stale: true };
-    case "modelTextDelta":
-      return {
-        ...next,
-        transientStreams: {
-          ...state.transientStreams,
-          [event.operationId]: `${state.transientStreams[event.operationId] ?? ""}${event.text}`,
-        },
-      };
-    case "agentOutputCommitted": {
-      const streams = { ...state.transientStreams };
-      delete streams[event.operationId];
-      return { ...next, transientStreams: streams, stale: true };
-    }
-    case "operationProgress":
-      return { ...next, stale: true };
-    case "operationCompleted":
-      return { ...next, transientStreams: clearTransient(event.operationId), stale: true };
-    case "operationCancelled":
-      return { ...next, transientStreams: clearTransient(event.operationId), stale: true };
-    case "operationFailed":
-      return {
-        ...next,
-        transientStreams: clearTransient(event.operationId),
-        stale: true,
-        error: event.failure.message,
-      };
-  }
-}
+export { reduceAgentEvent } from "./agent-workspace/events";
 
 /** Replaces an authoritative branch-child page. @param state Current state. @param page Loaded page. @returns Updated state. */
 export function storeBranchChildren(
@@ -154,13 +237,14 @@ export function storeAgentSession(
 ): AgentWorkspaceState {
   const branches = { ...state.branches };
   for (const branch of session.branches) {
+    const recordedActivity = branch.activity ?? [];
     branches[branch.id] = {
       branchId: branch.id,
       name: branch.title,
       status: branch.status.toLowerCase() as BranchDescriptor["status"],
       ...(branch.parent === undefined ? {} : { parentBranchId: branch.parent }),
       childCount: branch.children.length,
-      activityCount: branch.turns.length,
+      activityCount: recordedActivity.length || branch.turns.length,
       ...(branch.result === undefined
         ? {}
         : {
@@ -175,21 +259,103 @@ export function storeAgentSession(
       ...state,
       activity: {
         ...state.activity,
-        [branch.id]: {
-          branchId: branch.id,
-          items: branch.turns.map((turn) => ({
-            id: turn.id,
-            ordinal: turn.ordinal,
-            kind: turn.hasAgentOutput ? "model" : turn.toolInvocation ? "tool" : "human",
-            summary: turn.agentOutput ?? (turn.hasHumanInput ? "Human input" : "Activity"),
-            handles: [
-              ...(turn.toolInvocation === undefined ? [] : [turn.toolInvocation]),
-              ...(turn.toolResult === undefined ? [] : [turn.toolResult]),
-            ],
-          })),
-        },
+        [branch.id]:
+          recordedActivity.length > 0
+            ? {
+                branchId: branch.id,
+                items: recordedActivity.map((item) => ({
+                  id: item.id,
+                  ordinal: item.sequence,
+                  kind:
+                    item.kind === "HumanInput"
+                      ? "human"
+                      : item.kind === "ChildBranch"
+                        ? "child"
+                        : item.kind === "BranchResult"
+                          ? "result"
+                          : item.kind.startsWith("Tool")
+                            ? "tool"
+                            : "model",
+                  activityKind: item.kind,
+                  state: item.state,
+                  summary: item.summary,
+                  handles:
+                    item.kind === "ChildBranch"
+                      ? [item.id]
+                      : item.durableRef === undefined
+                        ? []
+                        : [item.durableRef],
+                  ...(item.parent === undefined ? {} : { parentId: item.parent }),
+                  ...(item.model === undefined ? {} : { model: item.model }),
+                  ...(item.thinkingLevel === undefined
+                    ? {}
+                    : { thinkingLevel: item.thinkingLevel }),
+                  ...(item.toolName === undefined ? {} : { toolName: item.toolName }),
+                  ...(item.toolArguments === undefined
+                    ? {}
+                    : { toolArguments: item.toolArguments }),
+                })),
+              }
+            : {
+                branchId: branch.id,
+                items: branch.turns.map((turn) => ({
+                  id: turn.id,
+                  ordinal: turn.ordinal,
+                  kind: turn.hasAgentOutput ? "model" : turn.toolInvocation ? "tool" : "human",
+                  summary: turn.agentOutput ?? (turn.hasHumanInput ? "Human input" : "Activity"),
+                  handles: [
+                    ...(turn.toolInvocation === undefined ? [] : [turn.toolInvocation]),
+                    ...(turn.toolResult === undefined ? [] : [turn.toolResult]),
+                  ],
+                })),
+              },
       },
     };
   }
-  return { ...state, branches, stale: false };
+  return { ...state, branches, execution: session.execution, stale: false };
+}
+
+/** Stores the safe public model library without persisting provider secrets.
+ * @param state Current agent workspace state.
+ * @param library Safe model descriptors and profiles.
+ * @returns Updated workspace state.
+ */
+export function storeAgentModelLibrary(
+  state: AgentWorkspaceState,
+  library: ModelLibraryResponse,
+): AgentWorkspaceState {
+  return { ...state, modelLibrary: library };
+}
+
+/** Replaces client-local presentation choices without changing execution state.
+ * @param state Current agent workspace state.
+ * @param presentation Display choices for captured activity.
+ * @returns Updated workspace state.
+ */
+export function storeAgentPresentation(
+  state: AgentWorkspaceState,
+  presentation: AgentPresentationPreferenceLayer,
+): AgentWorkspaceState {
+  const localPresentation = { ...state.localPresentation, ...presentation };
+  return {
+    ...state,
+    localPresentation,
+    presentation: resolveAgentPresentation(localPresentation, state.sharedPresentation),
+  };
+}
+
+/** Stores shared defaults and resolves them beneath any client-local overrides.
+ * @param state Current workspace state.
+ * @param presentation Shared user defaults.
+ * @returns Updated state with presentation choices resolved immediately.
+ */
+export function storeSharedAgentPresentation(
+  state: AgentWorkspaceState,
+  presentation: AgentPresentationPreferenceLayer,
+): AgentWorkspaceState {
+  return {
+    ...state,
+    sharedPresentation: presentation,
+    presentation: resolveAgentPresentation(state.localPresentation, presentation),
+  };
 }

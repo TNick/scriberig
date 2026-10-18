@@ -15,6 +15,10 @@ pub enum EventKind {
     ProjectionChanged,
     /// Branch changed.
     BranchChanged,
+    /// Session state changed and should be refreshed.
+    SessionChanged,
+    /// Safe session model or thinking selection activity was emitted.
+    SessionSelectionChanged,
     /// Migration was created.
     MigrationCreated,
     /// Operation started.
@@ -33,6 +37,8 @@ pub enum EventKind {
     AgentOutputProduced,
     /// Incremental transient agent output text.
     AgentOutputDelta,
+    /// Transient safe agent status activity.
+    AgentActivity,
     /// A candidate snapshot was created.
     CandidateCreated,
     /// Validation started for a candidate or operation.

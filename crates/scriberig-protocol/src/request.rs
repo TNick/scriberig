@@ -101,3 +101,29 @@ pub struct ProjectRequest {
     /// Operation-specific JSON payload.
     pub payload: serde_json::Value,
 }
+
+/// Requests the credential-safe model library.
+#[derive(Clone, Debug, Default, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct ModelLibraryRequest {}
+
+/// Requests a session model-profile selection mutation.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct SessionModelSelectionRequest {
+    /// Stable session identity.
+    pub session: crate::SessionReference,
+    /// Mutation revision observed by the caller.
+    pub expected_revision: u64,
+    /// Curated model profile to select.
+    pub model_profile: String,
+}
+
+/// Requests a session thinking-level mutation.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct SessionThinkingSelectionRequest {
+    /// Stable session identity.
+    pub session: crate::SessionReference,
+    /// Mutation revision observed by the caller.
+    pub expected_revision: u64,
+    /// Advertised thinking id to select.
+    pub thinking_level: String,
+}

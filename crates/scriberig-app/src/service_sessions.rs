@@ -13,6 +13,9 @@ mod service_local_sessions;
 #[path = "service_session_authorization.rs"]
 mod service_session_authorization;
 use service_session_authorization::{authorize_agent_command, authorize_session_read};
+pub(super) use service_session_authorization::{
+    authorize_model_library_read, authorize_session_model_selection,
+};
 
 #[path = "service_agent_execution.rs"]
 mod service_agent_execution;

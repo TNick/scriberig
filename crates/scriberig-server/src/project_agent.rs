@@ -336,6 +336,7 @@ fn tool_descriptor(
             parameters: json!({"type": "object"}),
         },
         result_shape: result_shape.to_owned(),
+        invocation_label: None,
         state_changing,
         execution_mode: ToolExecutionMode::Atomic,
         required_capability: None,

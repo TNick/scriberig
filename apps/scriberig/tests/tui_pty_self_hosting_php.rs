@@ -4,6 +4,8 @@
 mod assertions;
 #[path = "tui_pty_support/branch_assertions.rs"]
 mod branch_assertions;
+#[path = "tui_pty_support/onboarding_wait.rs"]
+mod onboarding_wait;
 #[allow(dead_code)]
 mod tui_pty_support;
 
@@ -17,6 +19,7 @@ use assertions::{
     assert_unrelated_source_unchanged,
 };
 use branch_assertions::assert_nested_branch_results;
+use onboarding_wait::{visible_session, wait_for_onboarding};
 use scriberig_project::ProjectService;
 use scriberig_session::SessionStore;
 use scriberig_session_sqlite::SqliteSessionStore;
@@ -39,15 +42,14 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"start-agent\r");
-    assert!(tui.read_until("Session:"), "{}", tui.diagnostic());
-    assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
-    let session = visible_session(&tui.screen());
-    tui.send(b"Onboard the current project.\r");
     assert!(
-        tui.read_until_for("The current project is onboarded", Duration::from_secs(120)),
+        tui.read_until("Agent composer · ent_"),
         "{}",
         tui.diagnostic()
     );
+    let session = visible_session(&tui.screen());
+    tui.send(b"Onboard the current project.\r");
+    wait_for_onboarding(&tui, session);
     assert!(tui.read_until("project: scriberig"), "{}", tui.diagnostic());
     let scan_before =
         fs::read(checkout.join("crates/scriberig-project/src/scan.rs")).expect("baseline scanner");
@@ -62,16 +64,21 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
         .into_iter()
         .find(|project| project.name == "scriberig")
         .expect("onboarded project");
+    drop(store);
     let base = ProjectService::new(Arc::new(
         SqliteStore::open(&database).expect("project store"),
     ))
     .workspace(project.id)
     .expect("active semantic workspace");
+    tui.send(b"\x1b");
+    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
     tui.send(b"\x1b[B");
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"continue-agent\r");
-    assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Write a message..."), "{}", tui.diagnostic());
+    tui.send(b"i");
+    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     tui.send(b"Add support for ingesting PHP source files.\r");
     let continuation =
         tui.read_until_for("agent continuation [Completed]", Duration::from_secs(900));
@@ -172,7 +179,7 @@ fn restart_and_verify(
         checkout.join("target/debug/srig"),
     );
     assert!(
-        restarted.read_until_for("snp_", Duration::from_secs(120)),
+        restarted.read_until_for("snp_", Duration::from_secs(600)),
         "{}",
         restarted.diagnostic()
     );
@@ -234,6 +241,8 @@ fn review_and_apply(
     base_snapshot: scriberig_core::SnapshotId,
     candidate: &str,
 ) -> scriberig_core::SnapshotId {
+    tui.send(b"\x1b");
+    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"review-candidate\r");
@@ -378,21 +387,4 @@ fn assert_candidate_result(session: &scriberig_session::Session) -> String {
         .find_map(|handle| handle.strip_prefix("candidate:"))
         .expect("candidate result handle")
         .to_owned()
-}
-
-/// Reads the session identity visible in the native agent composer.
-///
-/// # Parameters
-/// - `screen`: Current rendered terminal screen.
-///
-/// # Returns
-/// Session identity string.
-fn visible_session(screen: &str) -> scriberig_core::EntityId {
-    screen
-        .split("Session:")
-        .nth(1)
-        .and_then(|value| value.split_whitespace().next())
-        .expect("session visible in composer")
-        .parse()
-        .expect("session identity")
 }

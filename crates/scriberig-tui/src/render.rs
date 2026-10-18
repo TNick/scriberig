@@ -2,9 +2,10 @@
 
 use ratatui::{
     Frame,
-    layout::Rect,
+    layout::{Constraint, Layout, Rect},
     style::{Color, Style},
-    widgets::{Block, Borders, Clear, Paragraph},
+    text::Text,
+    widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
 
 use crate::{
@@ -18,9 +19,11 @@ mod render_helpers;
 use render_helpers::{inspector_text, panel_block, render_status};
 #[path = "render_primary.rs"]
 mod render_primary;
-use render_primary::primary_text;
+pub(crate) use render_primary::primary_text;
 #[path = "render_explorer.rs"]
 mod render_explorer;
+#[path = "render_session.rs"]
+mod render_session;
 use render_explorer::{explorer_scroll, explorer_text};
 
 /// Renders one complete shell frame without semantic I/O.
@@ -163,18 +166,70 @@ fn render_body(frame: &mut Frame<'_>, layout: &ShellLayout, state: &TuiState) {
             area,
         );
     }
-    frame.render_widget(
-        Paragraph::new(primary_text(state))
-            .scroll(primary_scroll(state, layout.primary.height))
-            .block(panel_block(" Primary ", state.focus == Focus::Primary)),
-        layout.primary,
-    );
+    if state.primary_view == crate::selection::PrimaryView::Session
+        && let Some(composer) = state.session_composer.as_ref()
+    {
+        let regions =
+            Layout::vertical([Constraint::Min(2), Constraint::Length(5)]).split(layout.primary);
+        frame.render_widget(
+            Paragraph::new(primary_view_text(state, regions[0].width))
+                .scroll(primary_scroll(state, regions[0].height))
+                .block(panel_block(" Session ", state.focus == Focus::Primary)),
+            regions[0],
+        );
+        let title = if state.session_composer_focused {
+            format!(
+                " Agent composer · {} · Enter send · Ctrl+J newline · Esc browse ",
+                composer.session
+            )
+        } else {
+            format!(" Agent composer · {} · press i to edit ", composer.session)
+        };
+        let draft = if composer.text.is_empty() {
+            "Write a message..."
+        } else {
+            composer.text.as_str()
+        };
+        let content = composer
+            .error
+            .as_ref()
+            .map_or_else(|| draft.to_owned(), |error| format!("{draft}\n{error}"));
+        frame.render_widget(
+            Paragraph::new(content)
+                .wrap(Wrap { trim: false })
+                .block(panel_block(&title, state.session_composer_focused)),
+            regions[1],
+        );
+    } else {
+        frame.render_widget(
+            Paragraph::new(primary_view_text(state, layout.primary.width))
+                .scroll(primary_scroll(state, layout.primary.height))
+                .block(panel_block(" Primary ", state.focus == Focus::Primary)),
+            layout.primary,
+        );
+    }
     if let Some(area) = layout.inspector {
         frame.render_widget(
             Paragraph::new(inspector_text(state))
                 .block(panel_block(" Inspector ", state.focus == Focus::Inspector)),
             area,
         );
+    }
+}
+
+/// Builds the active primary view with depth-aware session rail styles.
+///
+/// # Parameters
+/// - `state`: Cached presentation state.
+/// - `width`: Available primary view width.
+///
+/// # Returns
+/// Styled session rows or plain text for other primary views.
+fn primary_view_text(state: &TuiState, width: u16) -> Text<'static> {
+    if state.primary_view == crate::selection::PrimaryView::Session {
+        render_session::session_text(state, width.saturating_sub(2) as usize)
+    } else {
+        Text::from(primary_text(state))
     }
 }
 
@@ -197,6 +252,15 @@ fn primary_scroll(state: &TuiState, height: u16) -> (u16, u16) {
     (u16::try_from(first_visible).unwrap_or(u16::MAX), 0)
 }
 
+#[cfg(test)]
+#[path = "render_context_tests.rs"]
+mod context_tests;
+#[cfg(test)]
+#[path = "render_narrow_tests.rs"]
+mod narrow_tests;
+#[cfg(test)]
+#[path = "render_style_tests.rs"]
+mod style_tests;
 #[cfg(test)]
 #[path = "render_tests.rs"]
 mod tests;

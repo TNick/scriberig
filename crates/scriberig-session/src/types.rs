@@ -1,5 +1,6 @@
 //! Defines session-level entities and cross-domain handles.
 use crate::branch::Branch;
+use crate::execution::SessionExecutionSelection;
 use scriberig_core::{EntityId, Provenance};
 #[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 /// Session-domain structured value.
@@ -8,6 +9,9 @@ pub struct Session {
     pub branches: Vec<Branch>,
     pub goals: Vec<Goal>,
     pub tasks: Vec<Task>,
+    /// Durable selection used as the default for future model invocations.
+    #[serde(default)]
+    pub execution: SessionExecutionSelection,
 }
 
 impl Session {

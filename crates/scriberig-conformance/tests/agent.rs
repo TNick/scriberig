@@ -99,6 +99,7 @@ impl ChildExecutor for ChildFixture {
         Ok(ChildResult {
             summary: "child compact result".to_owned(),
             handles: vec!["branch-result:child".to_owned()],
+            branch: None,
         })
     }
 }
@@ -278,6 +279,7 @@ fn scripted_tool_denial_is_surface_independent() {
             parameters: serde_json::json!({"type": "object"}),
         },
         result_shape: "compact child result".to_owned(),
+        invocation_label: None,
         state_changing: false,
         execution_mode: ToolExecutionMode::ChildBranch,
         required_capability: Some("agent.delegate".to_owned()),

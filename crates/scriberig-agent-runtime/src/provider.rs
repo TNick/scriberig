@@ -93,6 +93,8 @@ pub enum ToolChoice {
 pub struct ModelRequest {
     /// Provider model identifier.
     pub model: String,
+    /// Provider-neutral thinking capability selected for this invocation.
+    pub thinking_level: Option<String>,
     /// Ordered semantic context messages.
     pub messages: Vec<ModelMessage>,
     /// Trusted tools exposed to the model.
@@ -122,6 +124,7 @@ impl ModelRequest {
     pub fn new(model: impl Into<String>, messages: Vec<ModelMessage>) -> Self {
         Self {
             model: model.into(),
+            thinking_level: None,
             messages,
             tools: Vec::new(),
             tool_choice: ToolChoice::Auto,

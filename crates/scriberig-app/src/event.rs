@@ -6,6 +6,20 @@ use scriberig_core::{EntityId, RevisionId, SnapshotId};
 /// Reports a semantic state transition or operation update.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ApplicationEvent {
+    /// Session state changed and interested clients should refresh it.
+    SessionChanged {
+        /// Stable session identity.
+        session: EntityId,
+    },
+    /// Safe model/thinking selection changed for future session invocations.
+    SessionSelectionChanged {
+        /// Stable session identity.
+        session: EntityId,
+        /// Stable selection activity category.
+        activity_kind: String,
+        /// Safe concise model or thinking selection summary.
+        summary: String,
+    },
     /// The accepted snapshot root changed.
     SnapshotChanged {
         /// New accepted snapshot identity.
@@ -82,5 +96,18 @@ pub enum ApplicationEvent {
         operation: crate::OperationId,
         /// Bounded transient text fragment.
         text: String,
+    },
+    /// Bounded transient status activity emitted during an agent operation.
+    AgentActivity {
+        /// Operation producing this activity.
+        operation: crate::OperationId,
+        /// Durable branch identity correlated with runtime activity.
+        branch: String,
+        /// Stable public activity category.
+        activity_kind: String,
+        /// Activity lifecycle state such as `running`, `completed`, or `failed`.
+        state: String,
+        /// Safe concise text for transient presentation.
+        summary: String,
     },
 }

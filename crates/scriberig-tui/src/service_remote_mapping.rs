@@ -4,9 +4,18 @@ use std::str::FromStr;
 
 use super::{ApplicationError, EntityId};
 
+#[path = "service_remote_activity.rs"]
+mod remote_activity;
+
 #[path = "service_remote_operation_mapping.rs"]
 mod operation_mapping;
 pub(crate) use operation_mapping::map_remote_operation;
+#[path = "service_remote_find.rs"]
+mod remote_find;
+pub(crate) use remote_find::find_entities;
+#[path = "service_remote_presentation.rs"]
+mod remote_presentation;
+pub(crate) use remote_presentation::presentation_response;
 
 /// Lists remote snapshot entities for the TUI explorer.
 ///
@@ -78,23 +87,6 @@ pub(crate) fn list_explorer<T: scriberig_protocol::ProtocolTransport>(
 ///
 /// # Errors
 /// Returns a sanitized remote application error.
-pub(crate) fn find_entities<T: scriberig_protocol::ProtocolTransport>(
-    client: &scriberig_client::Client<T>,
-    snapshot: scriberig_core::SnapshotId,
-    query: &str,
-) -> Result<crate::view::find::FindModel, ApplicationError> {
-    let result = client
-        .find(scriberig_query::FindRequest {
-            scope: scriberig_query::QueryScope::Snapshot(snapshot),
-            query: query.to_owned(),
-            strategy: scriberig_query::FindStrategy::ExactText,
-            page: scriberig_query::PageRequest::default(),
-            detail: scriberig_query::DetailLevel::Compact,
-        })
-        .map_err(remote_error)?;
-    Ok(crate::view::find::FindModel::from_result(query, &result))
-}
-
 /// Converts a compact protocol session response to the shared session model.
 ///
 /// # Parameters
@@ -189,6 +181,7 @@ pub(crate) fn session_from_response(
                     })
                 })
                 .transpose()?;
+            remote_activity::restore_activity(&mut branch, value.activity)?;
             Ok(branch)
         })
         .collect::<Result<Vec<_>, ApplicationError>>()?;
@@ -197,6 +190,12 @@ pub(crate) fn session_from_response(
         branches,
         goals: Vec::new(),
         tasks: Vec::new(),
+        execution: scriberig_session::SessionExecutionSelection {
+            revision: response.execution.revision,
+            model_profile: response.execution.model_profile,
+            model: response.execution.model,
+            thinking_level: response.execution.thinking_level,
+        },
     })
 }
 
@@ -243,6 +242,25 @@ pub(super) fn parse_snapshot(value: &str) -> Result<scriberig_core::SnapshotId, 
 pub(crate) fn map_remote_event(
     event: scriberig_protocol::Event,
 ) -> Option<scriberig_app::ApplicationEvent> {
+    if event.kind == scriberig_protocol::EventKind::SessionChanged {
+        let session = parse_entity(&event.entity?.id).ok()?;
+        return Some(scriberig_app::ApplicationEvent::SessionChanged { session });
+    }
+    if event.kind == scriberig_protocol::EventKind::SessionSelectionChanged {
+        let session = parse_entity(&event.entity?.id).ok()?;
+        let value = |key: &str| {
+            event
+                .metadata
+                .iter()
+                .find(|(name, _)| name == key)
+                .map(|(_, value)| value.clone())
+        };
+        return Some(scriberig_app::ApplicationEvent::SessionSelectionChanged {
+            session,
+            activity_kind: value("activity_kind")?,
+            summary: value("summary")?,
+        });
+    }
     let operation = event.operation?.id.parse().ok()?;
     match event.kind {
         scriberig_protocol::EventKind::OperationStarted => {
@@ -297,6 +315,22 @@ pub(crate) fn map_remote_event(
                 .find(|(key, _)| key == "text")
                 .map(|(_, value)| value.clone())?;
             Some(scriberig_app::ApplicationEvent::AgentOutputDelta { operation, text })
+        }
+        scriberig_protocol::EventKind::AgentActivity => {
+            let value = |key: &str| {
+                event
+                    .metadata
+                    .iter()
+                    .find(|(name, _)| name == key)
+                    .map(|(_, value)| value.clone())
+            };
+            Some(scriberig_app::ApplicationEvent::AgentActivity {
+                operation,
+                branch: value("branch")?,
+                activity_kind: value("activity_kind")?,
+                state: value("state")?,
+                summary: value("summary")?,
+            })
         }
         _ => None,
     }

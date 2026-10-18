@@ -1,5 +1,15 @@
 //! Defines the application service boundary accepted by the server adapter.
 
+#[macro_use]
+#[path = "server_presentation_contract.rs"]
+mod server_presentation_contract;
+#[path = "server_agent_command.rs"]
+mod server_agent_command;
+#[path = "server_agent_console.rs"]
+mod server_agent_console;
+#[path = "server_agent_preferences.rs"]
+mod server_agent_preferences;
+
 use scriberig_app::{
     ApplicationContext, ApplicationError, ApplicationEvent, ApplicationRequest, ApplyRequest,
     BranchRequest, CommitRequest, DiffRequest, InspectRequest, InspectResult, MigrationDetail,
@@ -72,6 +82,127 @@ pub trait ApplicationService {
     ) -> Result<scriberig_protocol::SessionReadResponse, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "session read".to_owned(),
+        })
+    }
+
+    /// Reads one captured safe request by session, branch, and invocation.
+    ///
+    /// # Parameters
+    /// - `_context`: Trusted request context.
+    /// - `_session`: Stable session identity.
+    /// - `_branch`: Stable branch identity.
+    /// - `_invocation`: Durable model invocation identity.
+    ///
+    /// # Returns
+    /// Safe normalized request detail for the selected invocation.
+    ///
+    /// # Errors
+    /// Returns unsupported-operation when detail reads are unavailable.
+    fn model_request_detail(
+        &self,
+        _context: &ApplicationContext,
+        _session: &str,
+        _branch: &str,
+        _invocation: &str,
+    ) -> Result<scriberig_protocol::ModelRequestDetailResponse, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "model request detail".to_owned(),
+        })
+    }
+
+    /// Reads expanded bounded detail for one durable tool result.
+    ///
+    /// # Parameters
+    /// - `_context`: Trusted request context.
+    /// - `_session`: Stable session identity.
+    /// - `_branch`: Stable branch identity.
+    /// - `_result`: Durable tool result identity.
+    ///
+    /// # Returns
+    /// Whitelisted safe result detail.
+    ///
+    /// # Errors
+    /// Returns unsupported-operation when detail reads are unavailable.
+    fn tool_result_detail(
+        &self,
+        _context: &ApplicationContext,
+        _session: &str,
+        _branch: &str,
+        _result: &str,
+    ) -> Result<scriberig_protocol::ToolResultDetailResponse, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "tool result detail".to_owned(),
+        })
+    }
+
+    /// Reads safe model descriptors and curated profiles.
+    ///
+    /// # Parameters
+    /// - `_context`: Trusted caller context.
+    ///
+    /// # Returns
+    /// Credential-safe public model library.
+    ///
+    /// # Errors
+    /// Returns unsupported-operation when model configuration is unavailable.
+    fn model_library(
+        &self,
+        _context: &ApplicationContext,
+    ) -> Result<scriberig_protocol::ModelLibraryResponse, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "model library".to_owned(),
+        })
+    }
+
+    agent_presentation_methods!();
+
+    /// Changes the model profile used by future session invocations.
+    ///
+    /// # Parameters
+    /// - `_context`: Trusted caller context.
+    /// - `_session`: Stable session identity.
+    /// - `_expected_revision`: Selection revision observed by the caller.
+    /// - `_model_profile`: Curated profile identity to select.
+    ///
+    /// # Returns
+    /// Updated session execution selection.
+    ///
+    /// # Errors
+    /// Returns unsupported-operation when selection mutation is unavailable.
+    fn set_session_model(
+        &self,
+        _context: &ApplicationContext,
+        _session: &str,
+        _expected_revision: u64,
+        _model_profile: &str,
+    ) -> Result<scriberig_protocol::SessionExecutionSelection, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "session model selection".to_owned(),
+        })
+    }
+
+    /// Changes the thinking level used by future session invocations.
+    ///
+    /// # Parameters
+    /// - `_context`: Trusted caller context.
+    /// - `_session`: Stable session identity.
+    /// - `_expected_revision`: Selection revision observed by the caller.
+    /// - `_thinking_level`: Advertised thinking id to select.
+    ///
+    /// # Returns
+    /// Updated session execution selection.
+    ///
+    /// # Errors
+    /// Returns unsupported-operation when selection mutation is unavailable.
+    fn set_session_thinking_level(
+        &self,
+        _context: &ApplicationContext,
+        _session: &str,
+        _expected_revision: u64,
+        _thinking_level: &str,
+    ) -> Result<scriberig_protocol::SessionExecutionSelection, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "session thinking selection".to_owned(),
         })
     }
 
@@ -226,160 +357,10 @@ pub trait ApplicationService {
     }
 }
 
-impl<S: ApplicationService + ?Sized> ApplicationService for &S {
-    /// Delegates migration detail to the borrowed application service.
-    ///
-    /// # Parameters
-    /// - `context`: Trusted request context.
-    /// - `migration_id`: Stable migration handle.
-    ///
-    /// # Returns
-    /// Snapshot-bound migration detail.
-    ///
-    /// # Errors
-    /// Returns the delegated service error.
-    fn migration_detail(
-        &self,
-        context: &ApplicationContext,
-        migration_id: &str,
-    ) -> Result<MigrationDetail, ApplicationError> {
-        (**self).migration_detail(context, migration_id)
-    }
-
-    /// Delegates inspection to the borrowed application service.
-    /// - `context`: Argument named `context`.
-    /// - `request`: Argument named `request`.
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    ///
-    /// # Errors
-    /// Returns an error when the operation cannot complete.
-    fn inspect(
-        &self,
-        context: &ApplicationContext,
-        request: &InspectRequest,
-    ) -> Result<InspectResult, ApplicationError> {
-        (**self).inspect(context, request)
-    }
-
-    /// Delegates capability discovery to the borrowed application service.
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    fn capabilities(&self) -> Vec<RuntimeCapability> {
-        (**self).capabilities()
-    }
-
-    /// Delegates compact session reads to the borrowed service.
-    /// - `context`: Trusted request context.
-    /// - `session`: Stable session identity.
-    ///
-    /// # Returns
-    /// Compact session tree response.
-    ///
-    /// # Errors
-    /// Returns the service's structured failure.
-    fn read_session(
-        &self,
-        context: &ApplicationContext,
-        session: &str,
-    ) -> Result<scriberig_protocol::SessionReadResponse, ApplicationError> {
-        (**self).read_session(context, session)
-    }
-
-    /// Delegates operation status to the borrowed application service.
-    /// - `operation_id`: Argument named `operation_id`.
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    ///
-    /// # Errors
-    /// Returns an error when the operation cannot complete.
-    fn operation_status(&self, operation_id: &str) -> Result<Operation, ApplicationError> {
-        (**self).operation_status(operation_id)
-    }
-
-    /// Delegates operation cancellation to the borrowed application service.
-    /// - `operation_id`: Argument named `operation_id`.
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    ///
-    /// # Errors
-    /// Returns an error when the operation cannot complete.
-    fn cancel_operation(&self, operation_id: &str) -> Result<Operation, ApplicationError> {
-        (**self).cancel_operation(operation_id)
-    }
-
-    /// Delegates event observation to the borrowed application service.
-    /// - `event_kinds`: Argument named `event_kinds`.
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    ///
-    /// # Errors
-    /// Returns an error when the operation cannot complete.
-    fn events(&self, event_kinds: &[String]) -> Result<Vec<Event>, ApplicationError> {
-        (**self).events(event_kinds)
-    }
-
-    /// Delegates cursor-based event observation to the borrowed service.
-    /// - `event_kinds`: Event kind filters.
-    /// - `after`: Last cursor already processed by the caller.
-    ///
-    /// # Returns
-    /// Events newer than `after`.
-    ///
-    /// # Errors
-    /// Returns an error when replay is unavailable.
-    fn events_after(
-        &self,
-        event_kinds: &[String],
-        after: u64,
-    ) -> Result<Vec<Event>, ApplicationError> {
-        (**self).events_after(event_kinds, after)
-    }
-
-    /// Delegates structured queries to the borrowed application service.
-    /// - `context`: Argument named `context`.
-    /// - `request`: Argument named `request`.
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    ///
-    /// # Errors
-    /// Returns an error when the operation cannot complete.
-    fn query(
-        &self,
-        context: &ApplicationContext,
-        request: &QuerySpec,
-    ) -> Result<QueryResult, ApplicationError> {
-        (**self).query(context, request)
-    }
-
-    /// Delegates declared commands to the borrowed application service.
-    /// - `context`: Argument named `context`.
-    /// - `kind`: Argument named `kind`.
-    /// - `payload`: Argument named `payload`.
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    ///
-    /// # Errors
-    /// Returns an error when the operation cannot complete.
-    fn command(
-        &self,
-        context: &ApplicationContext,
-        kind: &str,
-        payload: &serde_json::Value,
-    ) -> Result<Operation, ApplicationError> {
-        (**self).command(context, kind, payload)
-    }
-}
-
 #[path = "server_application.rs"]
 mod server_application;
+#[path = "server_borrowed.rs"]
+mod server_borrowed;
 
 /// Decodes a protocol command into the transport-independent application model.
 /// - `kind`: Argument named `kind`.

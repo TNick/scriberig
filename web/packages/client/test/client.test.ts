@@ -1,6 +1,6 @@
 /** @file Verifies client operation mapping and event subscription wiring. */
 import { describe, expect, it, vi } from "vitest";
-import type { ProtocolEvent } from "@scriberig/protocol";
+import type { BranchId, ProtocolEvent, SessionId } from "@scriberig/protocol";
 import { HttpTransport, ScriberigClient, normalizeProtocolEvent } from "../src";
 describe("ScriberigClient", () => {
   it("maps operations through injected transport", async () => {
@@ -251,14 +251,13 @@ describe("ScriberigClient", () => {
       kind: "agentOutput",
       sequence: 4,
       operationId: "op-1" as never,
-      text: "partial",
+      text: "committed answer",
     });
     expect(received).toEqual([
       {
-        kind: "modelTextDelta",
+        kind: "agentOutputCommitted",
         sequence: 4,
         operationId: "op-1",
-        text: "partial",
       },
     ]);
   });
@@ -378,5 +377,12 @@ describe("ScriberigClient", () => {
         metadata: [["percent", "25"]],
       }),
     ).toEqual({ kind: "operationProgress", operationId: "op-1", progress: 0.25 });
+    expect(
+      normalizeProtocolEvent({
+        kind: "SessionChanged",
+        entity: { id: "session-1" },
+        metadata: [],
+      }),
+    ).toEqual({ kind: "sessionChanged", sessionId: "session-1" });
   });
 });

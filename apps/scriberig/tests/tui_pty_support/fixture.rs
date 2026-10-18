@@ -93,6 +93,8 @@ pub(super) fn bootstrap_project(fixture: &Path) -> PathBuf {
     git(&["add", "-A"]);
     git(&[
         "-c",
+        "commit.gpgsign=false",
+        "-c",
         "user.name=Scriberig Test",
         "-c",
         "user.email=test@example.invalid",
@@ -141,38 +143,62 @@ pub(super) fn copy_repository_checkout(source: &Path, destination: &Path) {
     copy_tracked_serena_configuration(source, destination);
 }
 
-/// Copies ordinary repository entries recursively while excluding generated state.
+/// Copies Git-visible repository entries while excluding generated state.
 ///
 /// # Parameters
 /// - `source`: Directory whose repository entries are copied.
 /// - `destination`: Isolated directory receiving the copied entries.
 ///
 /// # Panics
-/// Panics when a directory cannot be read or a file cannot be copied.
+/// Panics when Git cannot enumerate repository files or a file cannot be copied.
 fn copy_repository_entries(source: &Path, destination: &Path) {
     fs::create_dir_all(destination).expect("create repository checkout");
-    for entry in fs::read_dir(source).expect("read repository source") {
-        let entry = entry.expect("read repository entry");
-        if matches!(
-            entry.file_name().to_str(),
-            Some(".git" | ".serena" | "target" | "node_modules")
-        ) {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(source)
+        .args([
+            "ls-files",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+            "-z",
+        ])
+        .output()
+        .expect("enumerate Git-visible repository files");
+    assert!(
+        output.status.success(),
+        "Git could not enumerate repository files"
+    );
+    for relative in output
+        .stdout
+        .split(|byte| *byte == 0)
+        .filter(|path| !path.is_empty())
+    {
+        let relative = std::str::from_utf8(relative).expect("repository path is UTF-8");
+        let relative_path = Path::new(relative);
+        if relative_path.components().any(|component| {
+            matches!(
+                component.as_os_str().to_str(),
+                Some(
+                    ".git"
+                        | ".serena"
+                        | "target"
+                        | "node_modules"
+                        | "web"
+                        | "site"
+                        | "playground"
+                        | "output"
+                )
+            )
+        }) {
             continue;
         }
-        let source_path = entry.path();
-        let destination_path = destination.join(entry.file_name());
-        if entry
-            .file_type()
-            .expect("inspect repository entry")
-            .is_dir()
-        {
-            copy_repository_entries(&source_path, &destination_path);
-        } else if entry
-            .file_type()
-            .expect("inspect repository entry")
-            .is_file()
-        {
-            fs::copy(source_path, destination_path).expect("copy repository source file");
+        let source_file = source.join(relative_path);
+        if source_file.is_file() {
+            let destination_file = destination.join(relative_path);
+            fs::create_dir_all(destination_file.parent().expect("repository file parent"))
+                .expect("create repository directory");
+            fs::copy(source_file, destination_file).expect("copy repository source file");
         }
     }
 }

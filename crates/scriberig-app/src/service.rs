@@ -15,6 +15,8 @@ use crate::SessionBackend;
 
 use self::service_query_helpers::{inspect_result, query_request};
 
+#[path = "service_agent_console.rs"]
+mod service_agent_console;
 #[path = "service_configuration.rs"]
 mod service_configuration;
 #[path = "service_query_helpers.rs"]
@@ -108,6 +110,31 @@ pub trait ApplicationBackend {
         })
     }
 
+    /// Atomically persists a session execution selection through its owner.
+    ///
+    /// # Parameters
+    /// - `_context`: Authorized application context.
+    /// - `_session`: Session snapshot with the updated selection.
+    /// - `_expected_revision`: Selection revision observed by the caller; the
+    ///   owner must compare it atomically with the persisted revision.
+    ///
+    /// # Returns
+    /// Unit after the update is persisted.
+    ///
+    /// # Errors
+    /// Returns conflict for a stale revision, or unsupported-operation when
+    /// the backend cannot atomically mutate session state.
+    fn update_session_execution_selection(
+        &self,
+        _context: &ApplicationContext,
+        _session: &scriberig_session::Session,
+        _expected_revision: u64,
+    ) -> Result<(), ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "session execution selection update".to_owned(),
+        })
+    }
+
     /// Starts an agent command through the owning application subsystem.
     ///
     /// # Parameters
@@ -137,6 +164,8 @@ pub struct ApplicationService<B> {
     sessions: Arc<Mutex<BTreeMap<EntityId, Session>>>,
     next_agent_handle: AtomicU64,
     session_store: Option<Arc<dyn scriberig_session::SessionStore>>,
+    model_library: crate::ModelLibrary,
+    presentation_preferences: Arc<dyn crate::AgentPresentationPreferenceStore>,
 }
 
 impl<B> ApplicationService<B> {
@@ -155,6 +184,10 @@ impl<B> ApplicationService<B> {
             sessions: Arc::new(Mutex::new(BTreeMap::new())),
             next_agent_handle: AtomicU64::new(1),
             session_store: None,
+            model_library: crate::ModelLibrary::default(),
+            presentation_preferences: Arc::new(
+                crate::InMemoryAgentPresentationPreferenceStore::default(),
+            ),
         }
     }
 

@@ -73,9 +73,18 @@ pub fn serve_with_origin(
     let session_store = Arc::new(scriberig_session_sqlite::SqliteSessionStore::open(
         database_path,
     )?);
-    let service = scriberig_app::ApplicationService::new(backend).with_session_store(session_store);
+    let fallback_model =
+        std::env::var("SCRIBE_AGENT_MODEL").unwrap_or_else(|_| "default".to_owned());
+    let model_catalog = std::env::var("SCRIBE_AGENT_MODEL_CATALOG").ok();
+    let model_library =
+        scriberig_app::model_library_from_json(model_catalog.as_deref(), &fallback_model)
+            .map_err(std::io::Error::other)?;
+    let service = scriberig_app::ApplicationService::new(backend)
+        .with_session_store(session_store)
+        .with_model_library(model_library);
     let state = http::HttpState {
         service,
+        principal: scriberig_app::Principal::new("local-user"),
         fixture,
         allowed_origin: allowed_origin.map(ToOwned::to_owned),
         project_store: Some(Arc::clone(&store)),

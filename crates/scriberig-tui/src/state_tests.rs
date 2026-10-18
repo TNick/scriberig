@@ -187,13 +187,14 @@ fn palette_opens_agent_composer_for_selection() {
     let effects = reduce(&mut state, Action::Activated);
     assert_eq!(effects, vec![Effect::None]);
     assert!(matches!(
-        state.overlay,
-        Some(Overlay::Composer(crate::overlay::ComposerState {
+        state.session_composer,
+        Some(crate::state::SessionComposerState {
             session: selected,
             branch: None,
             ..
-        })) if selected == entity
+        }) if selected == entity
     ));
+    assert!(state.overlay.is_none());
 }
 
 /// Verifies the palette can open the agent composer before a project exists.
@@ -205,13 +206,14 @@ fn palette_opens_bootstrap_agent_composer_without_selection() {
     let effects = reduce(&mut state, Action::Activated);
     assert_eq!(effects, vec![Effect::None]);
     assert!(matches!(
-        state.overlay,
-        Some(Overlay::Composer(crate::overlay::ComposerState {
+        state.session_composer,
+        Some(crate::state::SessionComposerState {
             session,
             branch: None,
             ..
-        })) if session != EntityId::from_bytes([0; 16])
+        }) if session != EntityId::from_bytes([0; 16])
     ));
+    assert!(state.overlay.is_none());
 }
 
 /// Verifies Diff collects an explicit target snapshot before dispatching.
@@ -400,5 +402,7 @@ fn closing_overlay_does_not_cancel_operation() {
 mod state_late_tests;
 #[path = "state_refresh_tests.rs"]
 mod state_refresh_tests;
+#[path = "state_session_composer_tests.rs"]
+mod state_session_composer_tests;
 #[path = "state_tail_tests.rs"]
 mod state_tail_tests;

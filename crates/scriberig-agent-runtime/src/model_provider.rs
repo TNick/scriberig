@@ -5,12 +5,19 @@ use std::collections::BTreeMap;
 use crate::cache::{CachePolicy, ModelCache};
 use crate::context::CompiledContext;
 use crate::provider::{
-    MessageRole, ModelMessage, ModelRequest, ProviderAdapter, ProviderError, ToolCall, ToolChoice,
+    MessageRole, ModelMessage, ModelRequest, ProviderAdapter, ProviderError, ToolChoice,
 };
 use crate::tools::ToolCatalog;
 use crate::{AgentMessage, ModelDecision};
 use scriberig_agent_core::{ToolDetail, ToolInput};
 use scriberig_app::CapabilityContext;
+
+#[path = "model_provider/decision.rs"]
+mod decision;
+#[path = "model_provider/presentation.rs"]
+mod presentation;
+#[path = "model_provider/request_projection.rs"]
+mod request_projection;
 
 /// Adapts a normalized provider to the runtime's tool-loop contract.
 pub struct ProviderModel<P> {
@@ -18,6 +25,8 @@ pub struct ProviderModel<P> {
     provider: P,
     /// Model identifier sent with each request.
     model: String,
+    /// Thinking capability snapshotted for each request.
+    thinking_level: Option<String>,
     /// Trusted tool definitions exposed to the provider.
     tools: Vec<crate::provider::ToolDefinition>,
     /// Optional trusted validator for returned tool calls.
@@ -32,6 +41,8 @@ pub struct ProviderModel<P> {
     cache_namespace: Option<String>,
     /// Bounded branch context compiled before the provider call.
     compiled_context: Option<CompiledContext>,
+    /// Safe request projections awaiting consumption by `AgentRuntime`.
+    request_projections: Vec<scriberig_session::ModelRequestProjection>,
 }
 
 impl<P> ProviderModel<P> {
@@ -48,6 +59,7 @@ impl<P> ProviderModel<P> {
         Self {
             provider,
             model: model.into(),
+            thinking_level: None,
             tools: Vec::new(),
             catalog: None,
             capabilities: CapabilityContext::default(),
@@ -55,6 +67,7 @@ impl<P> ProviderModel<P> {
             invocation_sequence: 0,
             cache_namespace: None,
             compiled_context: None,
+            request_projections: Vec::new(),
         }
     }
 
@@ -69,6 +82,20 @@ impl<P> ProviderModel<P> {
     #[must_use]
     pub fn with_tools(mut self, tools: Vec<crate::provider::ToolDefinition>) -> Self {
         self.tools = tools;
+        self
+    }
+
+    /// Selects a provider-neutral thinking capability for future invocations.
+    ///
+    /// # Parameters
+    /// - `self`: Model adapter being configured.
+    /// - `thinking_level`: Model-advertised capability identity.
+    ///
+    /// # Returns
+    /// The configured model adapter.
+    #[must_use]
+    pub fn with_thinking_level(mut self, thinking_level: Option<String>) -> Self {
+        self.thinking_level = thinking_level;
         self
     }
 
@@ -184,6 +211,8 @@ impl<P: ProviderAdapter> crate::ModelProvider for ProviderModel<P> {
         on_text: &mut dyn FnMut(&str),
     ) -> Result<ModelDecision, String> {
         let request = self.model_request(messages);
+        self.request_projections
+            .push(request_projection::capture(&request));
         self.invocation_sequence += 1;
         let response = if let Some((cache, policy)) = self.cache.clone() {
             let fingerprint =
@@ -210,13 +239,21 @@ impl<P: ProviderAdapter> crate::ModelProvider for ProviderModel<P> {
         let Some(call) = response.tool_calls.into_iter().next() else {
             return Ok(ModelDecision::Final(response.text.unwrap_or_default()));
         };
-        if let Some(catalog) = &self.catalog {
-            catalog
-                .validate_for_context(&call, &self.capabilities)
-                .map_err(|error| error.to_string())?;
-        }
+        let descriptor = if let Some(catalog) = &self.catalog {
+            Some(
+                catalog
+                    .validate_for_context(&call, &self.capabilities)
+                    .map_err(|error| error.to_string())?,
+            )
+        } else {
+            None
+        };
         if call.name != "inspect" {
-            return named_tool_decision(call);
+            return decision::named_tool_decision(
+                &self.tools,
+                call,
+                descriptor.and_then(|value| value.invocation_label.clone()),
+            );
         }
         let entity = call
             .arguments
@@ -246,6 +283,14 @@ impl<P: ProviderAdapter> crate::ModelProvider for ProviderModel<P> {
             detail,
         }))
     }
+
+    /// Returns captured safe requests and clears the pending queue.
+    ///
+    /// # Returns
+    /// Requests in the order submitted to the adapter.
+    fn take_request_projections(&mut self) -> Vec<scriberig_session::ModelRequestProjection> {
+        std::mem::take(&mut self.request_projections)
+    }
 }
 
 impl<P: ProviderAdapter> ProviderModel<P> {
@@ -269,6 +314,7 @@ impl<P: ProviderAdapter> ProviderModel<P> {
         request_messages.extend(messages.iter().map(message));
         ModelRequest {
             model: self.model.clone(),
+            thinking_level: self.thinking_level.clone(),
             messages: request_messages,
             tools: self.tools.clone(),
             tool_choice: ToolChoice::Auto,
@@ -290,38 +336,6 @@ impl<P: ProviderAdapter> ProviderModel<P> {
 ///
 /// # Errors
 /// Returns an error when a child call omits required fields.
-fn named_tool_decision(call: ToolCall) -> Result<ModelDecision, String> {
-    if call.name != "delegate" {
-        return Ok(ModelDecision::NamedTool {
-            name: call.name,
-            arguments: call.arguments,
-        });
-    }
-    let purpose = required_string(&call, "purpose")?;
-    let prompt = required_string(&call, "prompt")?;
-    let capabilities = call
-        .arguments
-        .get("capabilities")
-        .and_then(serde_json::Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(serde_json::Value::as_str)
-        .map(str::to_owned)
-        .collect();
-    let expected_result = call
-        .arguments
-        .get("expected_result")
-        .and_then(serde_json::Value::as_str)
-        .unwrap_or("compact result")
-        .to_owned();
-    Ok(ModelDecision::Child(crate::ChildRequest {
-        purpose,
-        prompt,
-        capabilities,
-        expected_result,
-    }))
-}
-
 /// Reads a required string argument from a provider tool call.
 ///
 /// # Parameters
@@ -333,14 +347,6 @@ fn named_tool_decision(call: ToolCall) -> Result<ModelDecision, String> {
 ///
 /// # Errors
 /// Returns an error when the argument is missing or not a string.
-fn required_string(call: &ToolCall, name: &str) -> Result<String, String> {
-    call.arguments
-        .get(name)
-        .and_then(serde_json::Value::as_str)
-        .map(str::to_owned)
-        .ok_or_else(|| format!("delegate tool requires a {name}"))
-}
-
 /// Converts one runtime message into normalized provider context.
 ///
 /// # Parameters

@@ -24,9 +24,27 @@ pub(super) fn operation_failed(
         state.stale = true;
     }
     state.operation_error = Some((category.to_owned(), message.to_owned()));
+    if request_id == 0
+        && let Some(composer) = state.session_composer.as_mut()
+        && let Some(pending) = composer.pending_prompt.take()
+    {
+        if composer.text.is_empty() {
+            composer.text = pending;
+        } else {
+            composer.text = format!("{pending}\n{}", composer.text);
+        }
+        composer.error = Some(message.to_owned());
+    }
     mark_failed(&mut state.history, request_id, category, message, false);
     mark_failed(&mut state.find, request_id, category, message, false);
     mark_failed(&mut state.session, request_id, category, message, false);
+    mark_failed(
+        &mut state.model_library,
+        request_id,
+        category,
+        message,
+        false,
+    );
     mark_failed(&mut state.diff, request_id, category, message, false);
     mark_failed(&mut state.projection, request_id, category, message, false);
     let review_is_stale = state.review_proposal.is_some();

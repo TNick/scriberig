@@ -3,11 +3,11 @@
 #![allow(clippy::wildcard_imports)]
 
 use super::*;
-use scriberig_app::SessionBackend;
+use scriberig_app::{AgentConsoleBackend, SessionBackend};
 
 /// Adapts an application query service to TUI operations.
 pub struct ApplicationAdapter<S> {
-    service: S,
+    pub(super) service: S,
     capabilities: Vec<RuntimeCapability>,
 }
 
@@ -35,7 +35,7 @@ impl<S> ApplicationAdapter<S> {
     }
 }
 
-impl<S: QueryService + SessionBackend> TuiService for ApplicationAdapter<S> {
+impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for ApplicationAdapter<S> {
     /// Delegates inspection through the public query service.
     ///
     /// # Parameters
@@ -99,6 +99,91 @@ impl<S: QueryService + SessionBackend> TuiService for ApplicationAdapter<S> {
     ) -> Result<scriberig_session::Session, ApplicationError> {
         self.service
             .read_session(context, &scriberig_app::SessionRequest { session })
+    }
+
+    /// Reads safe expanded detail through the application-owned session service.
+    ///
+    /// # Parameters
+    /// - `context`: Caller authorization context.
+    /// - `session`: Session containing the result.
+    /// - `branch`: Branch containing the result.
+    /// - `result`: Stable tool-result identity.
+    ///
+    /// # Returns
+    /// Bounded allowlisted result detail.
+    ///
+    /// # Errors
+    /// Returns the application authorization or lookup error.
+    fn tool_result_detail(
+        &self,
+        context: &ApplicationContext,
+        session: EntityId,
+        branch: EntityId,
+        result: EntityId,
+    ) -> Result<scriberig_protocol::ToolResultDetailResponse, ApplicationError> {
+        self.service
+            .tool_result_detail(context, session, branch, result)
+            .map(|detail| scriberig_protocol::ToolResultDetailResponse {
+                result: detail.result.to_string(),
+                detail: detail.detail,
+                truncated: detail.truncated,
+            })
+    }
+
+    /// Projects the application's safe model library into public protocol DTOs.
+    ///
+    /// # Parameters
+    /// - `context`: Caller authorization context.
+    ///
+    /// # Returns
+    /// Credential-safe model descriptors and profiles.
+    ///
+    /// # Errors
+    /// Returns the application model-library error.
+    fn model_library(
+        &self,
+        context: &ApplicationContext,
+    ) -> Result<scriberig_protocol::ModelLibraryResponse, ApplicationError> {
+        let library = self.service.agent_model_library(context)?;
+        Ok(model_library_response(library))
+    }
+
+    /// Updates future model selection through the shared application service.
+    ///
+    /// # Parameters
+    /// - `context`: Caller authorization context.
+    /// - `request`: Session and revision-checked profile selection.
+    ///
+    /// # Returns
+    /// The authoritative updated execution selection.
+    ///
+    /// # Errors
+    /// Returns the shared application validation or persistence error.
+    fn set_session_model(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_app::SessionModelSelectionRequest,
+    ) -> Result<scriberig_session::SessionExecutionSelection, ApplicationError> {
+        self.service.set_session_model(context, request)
+    }
+
+    /// Updates future thinking selection through the shared application service.
+    ///
+    /// # Parameters
+    /// - `context`: Caller authorization context.
+    /// - `request`: Session and revision-checked thinking selection.
+    ///
+    /// # Returns
+    /// The authoritative updated execution selection.
+    ///
+    /// # Errors
+    /// Returns the shared application validation or persistence error.
+    fn set_session_thinking_level(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_app::SessionThinkingSelectionRequest,
+    ) -> Result<scriberig_session::SessionExecutionSelection, ApplicationError> {
+        self.service.set_session_thinking_level(context, request)
     }
 
     /// Submits an agent command through the public application boundary.
@@ -167,6 +252,65 @@ impl<S: QueryService + SessionBackend> TuiService for ApplicationAdapter<S> {
     }
 }
 
+/// Converts the application model library into credential-safe wire descriptors.
+///
+/// # Parameters
+/// - `library`: Validated application model library.
+///
+/// # Returns
+/// Protocol descriptors containing references but no resolved credentials.
+fn model_library_response(
+    library: scriberig_app::ModelLibrary,
+) -> scriberig_protocol::ModelLibraryResponse {
+    scriberig_protocol::ModelLibraryResponse {
+        models: library
+            .models
+            .into_iter()
+            .map(|model| scriberig_protocol::PublicModelDescriptor {
+                id: model.id.as_str().to_owned(),
+                display_name: model.display_name,
+                provider_profile: model.provider_profile,
+                provider_model_id: model.provider_model_id,
+                capabilities: scriberig_protocol::PublicModelCapabilities {
+                    streaming: model.capabilities.streaming,
+                    tool_calls: model.capabilities.tool_calls,
+                    structured_output: model.capabilities.structured_output,
+                },
+                thinking_levels: model
+                    .thinking_levels
+                    .into_iter()
+                    .map(|level| scriberig_protocol::PublicThinkingLevelDescriptor {
+                        id: level.id.as_str().to_owned(),
+                        label: level.label,
+                        description: level.description,
+                        order: level.order,
+                    })
+                    .collect(),
+                default_thinking_level: model
+                    .default_thinking_level
+                    .map(|level| level.as_str().to_owned()),
+            })
+            .collect(),
+        profiles: library
+            .profiles
+            .into_iter()
+            .map(|profile| scriberig_protocol::PublicModelProfile {
+                id: profile.id,
+                display_name: profile.display_name,
+                model: profile.model.as_str().to_owned(),
+                connection: profile.connection,
+                credential: profile
+                    .credential
+                    .map(|credential| scriberig_protocol::ModelCredentialRef { id: credential.id }),
+                default_thinking_level: profile
+                    .default_thinking_level
+                    .map(|level| level.as_str().to_owned()),
+                enabled: profile.enabled,
+            })
+            .collect(),
+    }
+}
+
 impl<S: QueryService> TuiService for S {
     /// Delegates inspection through a public query service.
     ///
@@ -196,3 +340,5 @@ impl<S: QueryService> TuiService for S {
         )
     }
 }
+
+impl<S: QueryService> TuiModelRequestService for S {}

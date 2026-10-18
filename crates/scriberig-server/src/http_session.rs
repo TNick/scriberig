@@ -77,5 +77,6 @@ fn empty_session(session: &str) -> scriberig_protocol::SessionReadResponse {
             id: session.to_owned(),
         },
         branches: Vec::new(),
+        execution: scriberig_protocol::SessionExecutionSelection::default(),
     }
 }

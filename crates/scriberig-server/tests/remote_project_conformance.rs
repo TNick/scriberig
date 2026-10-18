@@ -69,6 +69,7 @@ fn state(store: Arc<SqliteStore>, sessions: Arc<SqliteSessionStore>) -> HttpStat
     let fixture = ensure_fixture(&store).expect("development fixture");
     HttpState {
         service: application(Arc::clone(&store), sessions),
+        principal: scriberig_app::Principal::new("test-user"),
         fixture,
         allowed_origin: None,
         project_store: Some(store),

@@ -3,7 +3,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use scriberig_core::{EntityId, ProjectId, SnapshotId};
 use scriberig_store_sqlite::ProjectFileRecord;
@@ -110,7 +110,7 @@ pub(super) fn validate_project(root: &Path, relative: &str, text: &str) -> Candi
             command.arg("check");
         }
         let output = command
-            .current_dir(&temporary)
+            .current_dir(temporary)
             .args(["--offline", "--manifest-path"])
             .arg(manifest)
             .env("CARGO_NET_OFFLINE", "true")
@@ -175,6 +175,9 @@ fn copy_tree(
 /// # Parameters
 /// - `files`: Exact project source manifest for the candidate base.
 /// - `effects`: Ordered candidate source effects.
+/// - `candidate_id`: Stable identity used to isolate the validation workspace.
+/// - `profile`: Validation commands and bounds selected for this project.
+/// - `cancelled`: Shared cancellation flag for the owning operation.
 /// - `super`: Parent candidate module visibility.
 ///
 /// # Returns

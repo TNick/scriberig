@@ -30,6 +30,121 @@ fn normalized_final_response_drives_runtime_decision() {
     assert_eq!(decision, ModelDecision::Final("final".to_owned()));
 }
 
+/// Verifies a configured thinking id is copied into each normalized request.
+#[test]
+fn provider_model_snapshots_the_selected_thinking_level() {
+    let provider = FakeProvider::from_responses([Ok(ModelResponse {
+        text: Some("final".to_owned()),
+        tool_calls: Vec::new(),
+        finish_reason: FinishReason::Stop,
+        usage: None,
+        metadata: ProviderMetadata::default(),
+    })]);
+    let mut model = ProviderModel::new(provider.clone(), "model")
+        .with_thinking_level(Some("deep-dive".to_owned()));
+
+    model
+        .decide(&[AgentMessage::User("prompt".to_owned())])
+        .expect("model decision");
+
+    assert_eq!(
+        provider.requests()[0].thinking_level.as_deref(),
+        Some("deep-dive")
+    );
+    assert_eq!(provider.requests()[0].model, "model");
+}
+
+/// Captures bounded provider-neutral requests and clears them on consumption.
+#[test]
+fn provider_model_captures_a_bounded_safe_request_projection() {
+    let provider = FakeProvider::from_responses([Ok(ModelResponse {
+        text: Some("final".to_owned()),
+        tool_calls: Vec::new(),
+        finish_reason: FinishReason::Stop,
+        usage: None,
+        metadata: ProviderMetadata::default(),
+    })]);
+    let mut model =
+        ProviderModel::new(provider, "model-a").with_thinking_level(Some("careful".to_owned()));
+
+    model
+        .decide(&[AgentMessage::User("x".repeat(20_000))])
+        .expect("provider decision");
+    let captured = model.take_request_projections();
+
+    assert_eq!(captured.len(), 1);
+    assert_eq!(captured[0].model, "model-a");
+    assert_eq!(captured[0].thinking_level.as_deref(), Some("careful"));
+    assert_eq!(captured[0].messages[0].content.chars().count(), 15_000);
+    assert!(captured[0].truncated);
+    assert_eq!(model.take_request_projections(), Vec::new());
+}
+
+/// Keeps execution arguments intact while deriving redacted display arguments.
+#[test]
+fn named_tool_arguments_follow_sensitive_schema_annotations() {
+    let provider = FakeProvider::from_responses([Ok(ModelResponse {
+        text: None,
+        tool_calls: vec![ToolCall {
+            id: "call-search".to_owned(),
+            name: "search".to_owned(),
+            arguments: serde_json::json!({
+                "query": "architecture",
+                "token": "FAKE_SECRET_MARKER_8391"
+            }),
+        }],
+        finish_reason: FinishReason::ToolCall,
+        usage: None,
+        metadata: ProviderMetadata::default(),
+    })]);
+    let tool = ToolDefinition {
+        name: "search".to_owned(),
+        description: "Search semantic content".to_owned(),
+        parameters: serde_json::json!({
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "token": {"type": "string", "writeOnly": true}
+            }
+        }),
+    };
+    let catalog = ToolCatalog::new(vec![ToolDescriptor {
+        definition: tool,
+        result_shape: "bounded search result".to_owned(),
+        invocation_label: Some("Search semantic content".to_owned()),
+        state_changing: false,
+        execution_mode: ToolExecutionMode::Atomic,
+        required_capability: None,
+    }]);
+    let mut model = ProviderModel::new(provider, "model").with_catalog(catalog);
+
+    let decision = model
+        .decide(&[AgentMessage::User("search".to_owned())])
+        .expect("named tool decision");
+
+    let ModelDecision::NamedTool {
+        arguments,
+        presentation_arguments,
+        presentation_label,
+        ..
+    } = decision
+    else {
+        panic!("expected a named tool decision");
+    };
+    assert_eq!(arguments["token"], "FAKE_SECRET_MARKER_8391");
+    assert_eq!(presentation_arguments["token"], "[REDACTED]");
+    assert_eq!(presentation_arguments["query"], "architecture");
+    assert_eq!(
+        presentation_label.as_deref(),
+        Some("Search semantic content")
+    );
+    assert!(
+        !presentation_arguments
+            .to_string()
+            .contains("FAKE_SECRET_MARKER_8391")
+    );
+}
+
 /// Verifies a trusted delegate call becomes a compact child decision.
 #[test]
 fn normalized_delegate_response_drives_child_decision() {
@@ -56,6 +171,7 @@ fn normalized_delegate_response_drives_child_decision() {
             parameters: serde_json::json!({"type": "object"}),
         },
         result_shape: "compact child result".to_owned(),
+        invocation_label: None,
         state_changing: false,
         execution_mode: ToolExecutionMode::ChildBranch,
         required_capability: None,
@@ -129,6 +245,7 @@ fn child_result_is_compact_in_parent_provider_context() {
                     "snapshot:snp-base".to_owned(),
                     "entity:ent-python-adapter".to_owned(),
                 ],
+                branch: None,
             }),
         ])
         .expect("parent model decision");

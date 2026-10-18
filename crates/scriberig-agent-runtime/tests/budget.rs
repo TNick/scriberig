@@ -105,6 +105,7 @@ impl ChildExecutor for NoopChildExecutor {
         Ok(ChildResult {
             summary: "unused".to_owned(),
             handles: Vec::new(),
+            branch: None,
         })
     }
 }

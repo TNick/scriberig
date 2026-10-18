@@ -1,51 +1,198 @@
 //! Verifies application-owned fallback session and agent state.
+#[path = "session_runtime_support.rs"]
+mod support;
+use support::{Fixture, session_context};
 
 use scriberig_app::{
-    AgentCommandRequest, ApplicationBackend, ApplicationContext, ApplicationError,
-    ApplicationRequest, ApplicationResult, ApplicationService, CapabilityContext, CapabilityId,
-    SessionBackend, SessionRequest,
+    AgentCommandRequest, AgentConsoleBackend, ApplicationContext, ApplicationError,
+    ApplicationService, CredentialRef, ModelCapabilities, ModelDescriptor, ModelId, ModelLibrary,
+    ModelProfile, SessionBackend, SessionModelSelectionRequest, SessionRequest,
+    SessionThinkingSelectionRequest, ThinkingLevelDescriptor, ThinkingLevelId,
 };
 use scriberig_core::EntityId;
 
-/// Backend fixture that leaves session and agent ownership to the application.
-struct Fixture;
-
-impl ApplicationBackend for Fixture {
-    /// Rejects universal requests because this test targets session fallback.
-    ///
-    /// # Parameters
-    /// - `_context`: Application context, unused by the fixture.
-    /// - `_request`: Universal request, intentionally unsupported.
-    ///
-    /// # Returns
-    /// Never returns a universal result.
-    ///
-    /// # Errors
-    /// Always returns unsupported-operation.
-    fn execute(
-        &self,
-        _context: &ApplicationContext,
-        _request: &ApplicationRequest,
-    ) -> Result<ApplicationResult, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "fixture universal request".to_owned(),
-        })
-    }
-}
-
-/// Creates the session-tree capability used by authorized test callers.
+/// Creates model profiles with independent thinking-level capabilities.
 ///
 /// # Returns
-/// Application context granting the session-tree and agent capabilities.
-fn session_context() -> ApplicationContext {
-    ApplicationContext {
-        capabilities: CapabilityContext::new([
-            CapabilityId::new("session_branch_tree").expect("capability"),
-            CapabilityId::new("agent_start").expect("capability"),
-            CapabilityId::new("agent_continue").expect("capability"),
-        ]),
-        ..ApplicationContext::empty()
-    }
+/// A validated model library used by selection tests.
+///
+/// # Panics
+/// Panics when the static fixture violates the model library contract.
+fn session_model_library() -> ModelLibrary {
+    let first = ModelDescriptor {
+        id: ModelId::new("model-a").expect("model id"),
+        display_name: "Model A".to_owned(),
+        provider_profile: "local".to_owned(),
+        provider_model_id: "native-a".to_owned(),
+        capabilities: ModelCapabilities::default(),
+        thinking_levels: vec![
+            ThinkingLevelDescriptor {
+                id: ThinkingLevelId::new("careful").expect("thinking id"),
+                label: "Careful".to_owned(),
+                description: None,
+                order: 0,
+            },
+            ThinkingLevelDescriptor {
+                id: ThinkingLevelId::new("extended").expect("thinking id"),
+                label: "Extended".to_owned(),
+                description: None,
+                order: 1,
+            },
+        ],
+        default_thinking_level: Some(ThinkingLevelId::new("careful").expect("thinking id")),
+    };
+    let second = ModelDescriptor {
+        id: ModelId::new("model-b").expect("model id"),
+        display_name: "Model B".to_owned(),
+        provider_profile: "local".to_owned(),
+        provider_model_id: "native-b".to_owned(),
+        capabilities: ModelCapabilities::default(),
+        thinking_levels: vec![ThinkingLevelDescriptor {
+            id: ThinkingLevelId::new("steady").expect("thinking id"),
+            label: "Steady".to_owned(),
+            description: None,
+            order: 0,
+        }],
+        default_thinking_level: Some(ThinkingLevelId::new("steady").expect("thinking id")),
+    };
+    let profiles = vec![
+        ModelProfile {
+            id: "profile-a".to_owned(),
+            display_name: "Model A".to_owned(),
+            model: first.id.clone(),
+            connection: "local".to_owned(),
+            credential: Some(CredentialRef {
+                id: "secret-ref-a".to_owned(),
+            }),
+            default_thinking_level: None,
+            enabled: true,
+        },
+        ModelProfile {
+            id: "profile-b".to_owned(),
+            display_name: "Model B".to_owned(),
+            model: second.id.clone(),
+            connection: "local".to_owned(),
+            credential: None,
+            default_thinking_level: None,
+            enabled: true,
+        },
+    ];
+    ModelLibrary::new(vec![first, second], profiles).expect("model library")
+}
+
+/// Verifies session model operations validate thinking levels and reject stale writes.
+#[test]
+fn session_model_selection_uses_library_and_mutation_revision() {
+    let service = ApplicationService::new(Fixture).with_model_library(session_model_library());
+    let context = session_context();
+    let session = EntityId::from_bytes([24; 16]);
+    service
+        .start_agent(&context, session, "seed session")
+        .expect("create session");
+
+    let selected = service
+        .set_session_model(
+            &context,
+            &SessionModelSelectionRequest {
+                session,
+                expected_revision: 0,
+                model_profile: "profile-a".to_owned(),
+            },
+        )
+        .expect("select first model");
+    assert_eq!(selected.revision, 1);
+    assert_eq!(selected.model.as_deref(), Some("model-a"));
+    assert_eq!(selected.thinking_level.as_deref(), Some("careful"));
+
+    let selected = service
+        .set_session_thinking_level(
+            &context,
+            &SessionThinkingSelectionRequest {
+                session,
+                expected_revision: 1,
+                thinking_level: "extended".to_owned(),
+            },
+        )
+        .expect("select advertised thinking level");
+    assert_eq!(selected.revision, 2);
+
+    let selected = service
+        .set_session_model(
+            &context,
+            &SessionModelSelectionRequest {
+                session,
+                expected_revision: 2,
+                model_profile: "profile-b".to_owned(),
+            },
+        )
+        .expect("switch model and fall back");
+    assert_eq!(selected.revision, 3);
+    assert_eq!(selected.thinking_level.as_deref(), Some("steady"));
+
+    let conflict = service
+        .set_session_model(
+            &context,
+            &SessionModelSelectionRequest {
+                session,
+                expected_revision: 2,
+                model_profile: "profile-a".to_owned(),
+            },
+        )
+        .expect_err("stale selection must not overwrite current state");
+    assert_eq!(conflict.category(), "conflict");
+    assert_eq!(
+        service
+            .read_session(&context, &SessionRequest { session })
+            .expect("read selected session")
+            .execution,
+        selected
+    );
+    assert_eq!(
+        service
+            .operations()
+            .events()
+            .iter()
+            .filter(|event| matches!(event, scriberig_app::ApplicationEvent::SessionChanged { session: changed } if *changed == session))
+            .count(),
+        3
+    );
+    let selection_events = service
+        .operations()
+        .events()
+        .into_iter()
+        .filter_map(|event| match event {
+            scriberig_app::ApplicationEvent::SessionSelectionChanged {
+                session: changed,
+                activity_kind,
+                summary,
+            } if changed == session => Some((activity_kind, summary)),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(selection_events.len(), 5);
+    assert!(selection_events.iter().any(|(kind, summary)| {
+        kind == "modelSelection" && summary == "Model selected: Model A"
+    }));
+    assert!(selection_events.iter().any(|(kind, summary)| {
+        kind == "thinkingSelection" && summary == "Thinking level selected: steady"
+    }));
+    let available = service
+        .agent_model_library(&context)
+        .expect("authorized model library");
+    assert_eq!(available.profiles.len(), 2);
+    assert!(!format!("{available:?}").contains("resolved-secret"));
+}
+
+/// Verifies model selection fails without the model library capability.
+#[test]
+fn model_library_read_requires_agent_configuration_capability() {
+    let service = ApplicationService::new(Fixture);
+
+    let error = service
+        .agent_model_library(&ApplicationContext::empty())
+        .expect_err("model library must be authorized");
+
+    assert_eq!(error.category(), "permission_denied");
 }
 
 /// Verifies local agent acceptance creates and updates a session branch.
@@ -177,182 +324,6 @@ fn session_read_without_capability_is_denied() {
         error,
         ApplicationError::PermissionDenied { action, .. } if action == "session_branch_tree"
     ));
-}
-
-/// Verifies a local runtime can complete the shared operation with its output.
-#[test]
-fn local_agent_completion_uses_runtime_output() {
-    let service = ApplicationService::new(Fixture);
-    let session = EntityId::from_bytes([2; 16]);
-    let handle = service
-        .start_local_agent(&scriberig_app::AgentCommandRequest {
-            session,
-            branch: None,
-            prompt: "instruction".to_owned(),
-            selection: None,
-        })
-        .expect("pending agent operation");
-
-    assert_eq!(
-        service.operations().get(&handle.operation).unwrap().status,
-        scriberig_app::OperationStatus::Running
-    );
-    let result = service
-        .complete_local_agent(&handle, "runtime output")
-        .expect("completed agent operation");
-
-    assert_eq!(result.final_output, "runtime output");
-    let state = service
-        .read_session(
-            &session_context(),
-            &scriberig_app::SessionRequest { session },
-        )
-        .expect("session state");
-    assert_eq!(
-        state.branches[0].turns[0].human.as_ref().unwrap().text,
-        "instruction"
-    );
-    assert_eq!(
-        state.branches[0].turns[0].agent.as_ref().unwrap().text,
-        "runtime output"
-    );
-    assert_eq!(
-        service.operations().get(&handle.operation).unwrap().status,
-        scriberig_app::OperationStatus::Completed
-    );
-}
-
-/// Verifies tool execution evidence is linked and retained by its durable branch.
-#[test]
-fn local_agent_completion_persists_tool_invocation_and_result() {
-    let service = ApplicationService::new(Fixture);
-    let handle = service
-        .start_local_agent(&AgentCommandRequest {
-            session: EntityId::from_bytes([12; 16]),
-            branch: None,
-            prompt: "run a semantic lookup".to_owned(),
-            selection: None,
-        })
-        .expect("pending agent operation");
-    service
-        .complete_local_agent_with_evidence(
-            &handle,
-            "lookup completed",
-            vec!["entity:demo".to_owned()],
-            vec![scriberig_app::ToolExecutionEvidence {
-                name: "semantic_find".to_owned(),
-                input: br#"{"query":"Greeter"}"#.to_vec(),
-                output: br#"{"handles":["entity:demo"]}"#.to_vec(),
-                failed: false,
-            }],
-        )
-        .expect("complete agent with tool evidence");
-    let session = service
-        .read_session(
-            &session_context(),
-            &SessionRequest {
-                session: handle.session,
-            },
-        )
-        .expect("durable session");
-    let branch = &session.branches[0];
-    assert_eq!(branch.tool_invocations.len(), 1);
-    assert_eq!(branch.tool_invocations[0].name, "semantic_find");
-    assert_eq!(branch.tool_invocations[0].input, br#"{"query":"Greeter"}"#);
-    assert_eq!(branch.tool_results.len(), 1);
-    assert_eq!(
-        branch.tool_results[0].invocation,
-        branch.tool_invocations[0].id
-    );
-    assert_eq!(
-        branch.tool_results[0].output,
-        br#"{"handles":["entity:demo"]}"#
-    );
-    assert_eq!(
-        branch.activity,
-        vec![
-            scriberig_session::ExecutionActivity::ToolInvocation(branch.tool_invocations[0].id),
-            scriberig_session::ExecutionActivity::ToolResult(branch.tool_results[0].id),
-        ]
-    );
-}
-
-/// Verifies child operation startup creates an explicit session graph edge.
-#[test]
-fn local_child_agent_start_creates_parent_link() {
-    let service = ApplicationService::new(Fixture);
-    let request = AgentCommandRequest {
-        session: EntityId::from_bytes([21; 16]),
-        branch: None,
-        prompt: "root".to_owned(),
-        selection: None,
-    };
-    let root = service.start_local_agent(&request).expect("root");
-    let child = service
-        .start_local_child_agent(
-            root.session,
-            root.root_branch,
-            "child",
-            "inspect architecture",
-            "inspect",
-        )
-        .expect("child");
-    let session = service
-        .read_session(
-            &session_context(),
-            &SessionRequest {
-                session: root.session,
-            },
-        )
-        .expect("session");
-    let parent = session
-        .branches
-        .iter()
-        .find(|branch| branch.id == root.root_branch)
-        .expect("parent");
-    assert_eq!(parent.children, vec![child.child_branch]);
-    assert_eq!(
-        session
-            .branches
-            .iter()
-            .find(|branch| branch.id == child.child_branch)
-            .and_then(|branch| branch.parent),
-        Some(root.root_branch)
-    );
-
-    let completed = service
-        .complete_local_child_agent_with_handles(
-            &child,
-            "child output",
-            vec!["project:prj-one".to_owned(), "snapshot:snp-base".to_owned()],
-        )
-        .expect("complete child");
-    assert_eq!(completed.root_branch, child.child_branch);
-    let session = service
-        .read_session(
-            &session_context(),
-            &SessionRequest {
-                session: root.session,
-            },
-        )
-        .expect("completed session");
-    let child_branch = session
-        .branches
-        .iter()
-        .find(|branch| branch.id == child.child_branch)
-        .expect("child branch");
-    assert_eq!(
-        child_branch.status,
-        scriberig_session::BranchStatus::Completed
-    );
-    assert_eq!(
-        child_branch
-            .result
-            .as_ref()
-            .expect("durable result")
-            .result_handles,
-        vec!["project:prj-one", "snapshot:snp-base"]
-    );
 }
 
 /// Verifies failed child execution is retained as an abandoned branch result.

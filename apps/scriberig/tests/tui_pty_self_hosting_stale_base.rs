@@ -1,5 +1,7 @@
 //! Verifies a reviewed PHP candidate cannot apply after its base advances.
 
+#[path = "tui_pty_support/onboarding_wait.rs"]
+mod onboarding_wait;
 #[allow(dead_code)]
 mod tui_pty_support;
 
@@ -7,6 +9,7 @@ use std::fs;
 use std::sync::Arc;
 use std::time::Duration;
 
+use onboarding_wait::wait_for_onboarding;
 use scriberig_project::{CandidateValidation, ProjectService};
 use scriberig_session::SessionStore;
 use scriberig_session_sqlite::SqliteSessionStore;
@@ -21,6 +24,7 @@ fn tui_rejects_php_candidate_after_canonical_base_advances() {
     attempt_stale_apply(&mut scenario.tui);
     assert_stale_effects(&scenario, advanced, &readme, &changed_readme);
 
+    drop(scenario.store);
     let fixture = scenario.tui.quit_retain_fixture();
     fs::remove_dir_all(fixture).expect("remove stale candidate fixture");
 }
@@ -55,20 +59,20 @@ fn start_stale_scenario() -> StaleScenario {
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"start-agent\r");
-    assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Write a message..."), "{}", tui.diagnostic());
     let session = visible_session(&tui.screen());
     tui.send(b"Onboard the current project.\r");
-    assert!(
-        tui.read_until_for("The current project is onboarded", Duration::from_secs(120)),
-        "{}",
-        tui.diagnostic()
-    );
+    wait_for_onboarding(&tui, session);
     let checkout = tui.fixture_path().join("scriberig");
+    tui.send(b"\x1b");
+    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
     tui.send(b"\x1b[B");
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"continue-agent\r");
-    assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Write a message..."), "{}", tui.diagnostic());
+    tui.send(b"i");
+    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     tui.send(b"Add support for ingesting PHP source files.\r");
     assert!(
         tui.read_until_for("agent continuation [Completed]", Duration::from_secs(300)),
@@ -148,6 +152,8 @@ fn advance_canonical_project(
 /// # Parameters
 /// - `tui`: Active native TUI with the agent candidate in its session.
 fn attempt_stale_apply(tui: &mut TuiPty) {
+    tui.send(b"\x1b");
+    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"review-candidate\r");
@@ -244,7 +250,7 @@ fn candidate_from_session(database: &std::path::Path, session: scriberig_core::E
 /// The session identity rendered by the composer.
 fn visible_session(screen: &str) -> scriberig_core::EntityId {
     screen
-        .split("Session:")
+        .split("Agent composer · ")
         .nth(1)
         .and_then(|text| text.split_whitespace().next())
         .expect("session visible in composer")

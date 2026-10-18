@@ -191,6 +191,54 @@ web = "implemented"
 agent = "implemented"
 
 [[capabilities]]
+id = "session_model_selection"
+description = "Select an advertised model and thinking level for future session invocations."
+semantic_owner = "scriberig-app"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "implemented"
+protocol = "implemented"
+server = "implemented"
+client = "implemented"
+cli = "planned"
+tui = "implemented"
+web = "implemented"
+agent = "implemented"
+
+[[capabilities]]
+id = "agent_presentation_preferences"
+description = "Read and update shared defaults for safe agent activity presentation."
+semantic_owner = "scriberig-app"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "implemented"
+protocol = "implemented"
+server = "implemented"
+client = "implemented"
+cli = "planned"
+tui = "implemented"
+web = "implemented"
+agent = "implemented"
+
+[[capabilities]]
+id = "model_request_inspection"
+description = "Read bounded provider-neutral model request details without credentials."
+semantic_owner = "scriberig-agent-runtime"
+
+[capabilities.surfaces]
+library = "implemented"
+app = "implemented"
+protocol = "implemented"
+server = "implemented"
+client = "implemented"
+cli = "planned"
+tui = "implemented"
+web = "implemented"
+agent = "implemented"
+
+[[capabilities]]
 id = "project_workspace"
 description = "Resolve and activate a project-specific semantic workspace."
 semantic_owner = "scriberig-project"

@@ -74,7 +74,9 @@ fn candidate_tools_use_exact_shared_project_operations() {
         imported.snapshot,
         &root,
     );
+    drop(tool);
     drop(service);
+    drop(project);
     drop(store);
     fs::remove_file(database).expect("remove candidate database");
     fs::remove_dir_all(root).expect("remove candidate fixture");

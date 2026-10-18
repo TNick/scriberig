@@ -16,6 +16,15 @@ pub struct ToolInvocation {
     pub id: EntityId,
     pub name: String,
     pub input: Vec<u8>,
+    /// Model invocation whose response requested this tool, when known.
+    #[serde(default)]
+    pub parent_model_invocation: Option<EntityId>,
+    /// Optional schema-redacted structured arguments for safe presentation.
+    #[serde(default)]
+    pub presentation_input: Option<Vec<u8>>,
+    /// Optional trusted compact command label for presentation.
+    #[serde(default)]
+    pub presentation_label: Option<String>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 /// Session-domain structured value.
@@ -24,6 +33,9 @@ pub struct ToolResult {
     pub invocation: EntityId,
     pub output: Vec<u8>,
     pub failed: bool,
+    /// Optional bounded, allowlisted result preview for presentation.
+    #[serde(default)]
+    pub presentation_preview: Option<Vec<u8>>,
 }
 #[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 /// Session-domain structured value.

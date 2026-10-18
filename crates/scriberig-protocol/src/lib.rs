@@ -4,7 +4,9 @@ pub mod agent;
 pub mod capability;
 pub mod error;
 pub mod event;
+pub mod model;
 pub mod operation;
+pub mod presentation;
 pub mod refs;
 pub mod request;
 pub mod response;
@@ -20,11 +22,25 @@ pub use agent::{
 pub use capability::{CapabilitiesResponse, CapabilityInfo, RuntimeFeature};
 pub use error::{ProtocolError, ProtocolErrorCode};
 pub use event::{Event, EventKind};
+pub use model::{
+    CredentialRef as ModelCredentialRef, ModelCapabilities as PublicModelCapabilities,
+    ModelDescriptor as PublicModelDescriptor, ModelLibraryResponse,
+    ModelProfile as PublicModelProfile, ThinkingLevelDescriptor as PublicThinkingLevelDescriptor,
+};
 pub use operation::{Operation, OperationProgress, OperationStatus};
+pub use presentation::{
+    AgentPresentationPreferences as PublicAgentPresentationPreferences,
+    AgentPresentationPreferencesReadRequest, AgentPresentationPreferencesResponse,
+    AgentPresentationPreferencesSetRequest, PromptVisibility as PublicPromptVisibility,
+    ReasoningVisibility as PublicReasoningVisibility,
+    ToolInvocationDetail as PublicToolInvocationDetail,
+    ToolOutputVisibility as PublicToolOutputVisibility,
+};
 pub use refs::{EntityReference, OperationReference, RevisionReference, SnapshotReference};
 pub use request::{
     CancelOperationRequest, CommandRequest, FindRequest, InspectEntityRequest, ListRequest,
-    OperationStatusRequest, ProjectRequest, QueryRequest, RuntimeCapabilitiesRequest,
+    ModelLibraryRequest, OperationStatusRequest, ProjectRequest, QueryRequest,
+    RuntimeCapabilitiesRequest, SessionModelSelectionRequest, SessionThinkingSelectionRequest,
     SnapshotSelector, SubscribeRequest,
 };
 pub use response::{
@@ -32,8 +48,11 @@ pub use response::{
     QueryResponse,
 };
 pub use session::{
-    SessionBranch, SessionBranchResult, SessionBranchStatus, SessionReadRequest,
-    SessionReadResponse, SessionTurn,
+    ModelRequestDetailRequest, ModelRequestDetailResponse, ModelRequestMessageDetail,
+    ModelRequestToolDetail, SessionActivityItem, SessionActivityKind, SessionActivityState,
+    SessionBranch, SessionBranchResult, SessionBranchStatus, SessionExecutionSelection,
+    SessionReadRequest, SessionReadResponse, SessionTurn, ToolResultDetailRequest,
+    ToolResultDetailResponse,
 };
 pub use transport::{ProtocolTransport, Request, RequestEnvelope, Response, ResponseEnvelope};
 pub use trust::{
@@ -98,6 +117,93 @@ mod tests {
             },
             prompt: "continue".to_owned(),
             selection: None,
+        });
+        round_trip(&SessionReadResponse {
+            session: SessionReference {
+                id: "session-1".to_owned(),
+            },
+            branches: Vec::new(),
+            execution: SessionExecutionSelection {
+                revision: 7,
+                model_profile: Some("profile-1".to_owned()),
+                model: Some("model-1".to_owned()),
+                thinking_level: Some("careful".to_owned()),
+            },
+        });
+        model_contracts_round_trip();
+    }
+
+    /// Verifies model, prompt, and presentation contracts round trip.
+    fn model_contracts_round_trip() {
+        round_trip(&ModelRequestDetailRequest {
+            session: SessionReference {
+                id: "session-1".to_owned(),
+            },
+            branch: BranchReference {
+                id: "branch-1".to_owned(),
+            },
+            invocation: "invocation-1".to_owned(),
+        });
+        round_trip(&ModelRequestDetailResponse {
+            invocation: "invocation-1".to_owned(),
+            model: "model-1".to_owned(),
+            thinking_level: Some("careful".to_owned()),
+            messages: vec![ModelRequestMessageDetail {
+                role: "user".to_owned(),
+                content: "safe prompt".to_owned(),
+            }],
+            tools: vec![ModelRequestToolDetail {
+                name: "inspect".to_owned(),
+                description: "Inspect an entity".to_owned(),
+                parameters: Some("{}".to_owned()),
+            }],
+            truncated: false,
+        });
+        round_trip(&ModelLibraryRequest::default());
+        round_trip(&SessionModelSelectionRequest {
+            session: SessionReference {
+                id: "session-1".to_owned(),
+            },
+            expected_revision: 7,
+            model_profile: "profile-1".to_owned(),
+        });
+        round_trip(&SessionThinkingSelectionRequest {
+            session: SessionReference {
+                id: "session-1".to_owned(),
+            },
+            expected_revision: 8,
+            thinking_level: "extended".to_owned(),
+        });
+        round_trip(&ModelLibraryResponse {
+            models: vec![PublicModelDescriptor {
+                id: "model-1".to_owned(),
+                display_name: "Safe Model Name".to_owned(),
+                provider_profile: "provider-1".to_owned(),
+                provider_model_id: "provider-model-1".to_owned(),
+                capabilities: PublicModelCapabilities {
+                    streaming: true,
+                    tool_calls: true,
+                    structured_output: false,
+                },
+                thinking_levels: vec![PublicThinkingLevelDescriptor {
+                    id: "deep-dive".to_owned(),
+                    label: "Deep dive".to_owned(),
+                    description: None,
+                    order: 0,
+                }],
+                default_thinking_level: Some("deep-dive".to_owned()),
+            }],
+            profiles: vec![PublicModelProfile {
+                id: "profile-1".to_owned(),
+                display_name: "Primary".to_owned(),
+                model: "model-1".to_owned(),
+                connection: "connection-1".to_owned(),
+                credential: Some(ModelCredentialRef {
+                    id: "secret-ref-1".to_owned(),
+                }),
+                default_thinking_level: Some("deep-dive".to_owned()),
+                enabled: true,
+            }],
         });
     }
 

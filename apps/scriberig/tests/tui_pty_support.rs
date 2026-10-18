@@ -28,6 +28,11 @@ use tui_pty_fixture::{basic_fixture, copy_directory, read_output, temporary_fixt
 
 #[path = "tui_pty_support/self_hosting.rs"]
 mod self_hosting;
+#[path = "tui_pty_support/startup_options.rs"]
+mod startup_options;
+use startup_options::ProjectStartupOptions;
+#[path = "tui_pty_support/startup.rs"]
+mod startup;
 
 /// Owns one real terminal session used by native TUI workflow tests.
 pub struct TuiPty {
@@ -52,18 +57,6 @@ impl TuiPty {
     #[must_use]
     pub fn start() -> Self {
         Self::start_for_fixture(basic_fixture())
-    }
-
-    /// Starts the native TUI with an empty database and no selected project.
-    ///
-    /// # Returns
-    /// A running TUI session with a fresh database and no project arguments.
-    ///
-    /// # Panics
-    /// Panics when the pseudo-terminal or child process cannot be created.
-    #[must_use]
-    pub fn start_empty() -> Self {
-        Self::start_with_project(temporary_fixture(), false)
     }
 
     /// Starts a fresh-database TUI in a Git-backed checkout with deterministic agent provider.
@@ -186,8 +179,11 @@ impl TuiPty {
     ) -> Self {
         Self::start_configured_scenario(
             fixture,
-            project_path,
-            import_project,
+            ProjectStartupOptions {
+                path: project_path,
+                import: import_project,
+                git_tracked: false,
+            },
             working_directory,
             deterministic_agent,
             None,
@@ -199,8 +195,7 @@ impl TuiPty {
     ///
     /// # Parameters
     /// - `fixture`: Directory used for the fresh database.
-    /// - `project_path`: Optional project path passed to CLI.
-    /// - `import_project`: Whether startup imports the project directly.
+    /// - `project`: Optional project behavior selected for startup.
     /// - `working_directory`: Optional process working directory.
     /// - `deterministic_agent`: Whether a deterministic provider is selected.
     /// - `scenario`: Optional deterministic scenario identifier.
@@ -214,15 +209,14 @@ impl TuiPty {
     /// Panics when the PTY or child process cannot be created.
     fn start_configured_scenario(
         fixture: PathBuf,
-        project_path: Option<PathBuf>,
-        import_project: bool,
+        project: ProjectStartupOptions,
         working_directory: Option<PathBuf>,
         deterministic_agent: bool,
         scenario: Option<&str>,
         executable: Option<PathBuf>,
     ) -> Self {
         let database = fixture.join("scriberig.sqlite");
-        let product_project = project_path.clone().unwrap_or_else(|| fixture.clone());
+        let product_project = project.path.clone().unwrap_or_else(|| fixture.clone());
         let pty_system = native_pty_system();
         let pair = pty_system
             .openpty(PtySize {
@@ -235,6 +229,12 @@ impl TuiPty {
         let mut command = CommandBuilder::new(
             executable.unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_srig"))),
         );
+        if let Some(temp) = std::env::var_os("TEMP") {
+            command.env("TEMP", temp);
+        }
+        if let Some(tmp) = std::env::var_os("TMP") {
+            command.env("TMP", tmp);
+        }
         if let Some(path) = working_directory {
             command.cwd(path);
         }
@@ -259,10 +259,13 @@ impl TuiPty {
             );
         }
         command.args(["tui", "--db", database.to_str().expect("database path")]);
-        if let Some(project_path) = project_path {
+        if let Some(project_path) = project.path {
             command.args(["--project", project_path.to_str().expect("project path")]);
-            if import_project {
+            if project.import {
                 command.arg("--import");
+            }
+            if project.git_tracked {
+                command.arg("--git-tracked");
             }
         }
         let child = pair.slave.spawn_command(command).expect("spawn tui");

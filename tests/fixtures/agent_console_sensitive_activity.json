@@ -1,0 +1,91 @@
+{
+  "protocolActivity": [
+    {
+      "id": "ent_53535353535353535353535353535353",
+      "session": "ent_51515151515151515151515151515151",
+      "sequence": 0,
+      "branch": "ent_52525252525252525252525252525252",
+      "kind": "ModelInvocation",
+      "state": "Running",
+      "summary": "Model request: model-a",
+      "durable_ref": "ent_53535353535353535353535353535353",
+      "model": "model-a",
+      "thinking_level": "careful"
+    },
+    {
+      "id": "ent_54545454545454545454545454545454",
+      "session": "ent_51515151515151515151515151515151",
+      "sequence": 1,
+      "branch": "ent_52525252525252525252525252525252",
+      "parent": "ent_53535353535353535353535353535353",
+      "kind": "ToolInvocation",
+      "state": "Completed",
+      "summary": "Find documents",
+      "durable_ref": "ent_54545454545454545454545454545454",
+      "tool_name": "search",
+      "tool_arguments": {
+        "query": "find documents",
+        "token": "[REDACTED]"
+      }
+    },
+    {
+      "id": "ent_55555555555555555555555555555555",
+      "session": "ent_51515151515151515151515151515151",
+      "sequence": 2,
+      "branch": "ent_52525252525252525252525252525252",
+      "parent": "ent_54545454545454545454545454545454",
+      "kind": "ToolResult",
+      "state": "Completed",
+      "summary": "Found one result",
+      "durable_ref": "ent_55555555555555555555555555555555",
+      "tool_result_preview": {
+        "summary": "Found one result"
+      }
+    }
+  ],
+  "activityPage": {
+    "branchId": "ent_52525252525252525252525252525252",
+    "sessionId": "ent_51515151515151515151515151515151",
+    "items": [
+      {
+        "id": "ent_53535353535353535353535353535353",
+        "ordinal": 0,
+        "kind": "model",
+        "activityKind": "ModelInvocation",
+        "state": "Running",
+        "summary": "Model request: model-a",
+        "handles": ["ent_53535353535353535353535353535353"],
+        "model": "model-a",
+        "thinkingLevel": "careful"
+      },
+      {
+        "id": "ent_54545454545454545454545454545454",
+        "ordinal": 1,
+        "kind": "tool",
+        "activityKind": "ToolInvocation",
+        "state": "Completed",
+        "summary": "Find documents",
+        "handles": ["ent_54545454545454545454545454545454"],
+        "parentId": "ent_53535353535353535353535353535353",
+        "toolName": "search",
+        "toolArguments": {
+          "query": "find documents",
+          "token": "[REDACTED]"
+        }
+      },
+      {
+        "id": "ent_55555555555555555555555555555555",
+        "ordinal": 2,
+        "kind": "tool",
+        "activityKind": "ToolResult",
+        "state": "Completed",
+        "summary": "Found one result",
+        "handles": ["ent_55555555555555555555555555555555"],
+        "parentId": "ent_54545454545454545454545454545454",
+        "toolResultPreview": {
+          "summary": "Found one result"
+        }
+      }
+    ]
+  }
+}

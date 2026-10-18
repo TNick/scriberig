@@ -33,12 +33,11 @@ pub(super) fn reduce_input(state: &mut TuiState, action: Action) -> Vec<Effect> 
                     palette.set_query(format!("{}{}", palette.query, text));
                 }
             } else if let Some(Overlay::Composer(composer)) = state.overlay.as_mut() {
-                composer.error = None;
-                if text.is_empty() {
-                    composer.text.pop();
-                } else {
-                    composer.text.push_str(&text);
-                }
+                edit_composer(&mut composer.text, &mut composer.error, &text);
+            } else if state.session_composer_focused
+                && let Some(composer) = state.session_composer.as_mut()
+            {
+                edit_composer(&mut composer.text, &mut composer.error, &text);
             }
             vec![Effect::None]
         }
@@ -49,11 +48,30 @@ pub(super) fn reduce_input(state: &mut TuiState, action: Action) -> Vec<Effect> 
                 palette.set_query(format!("{}{}", palette.query, text));
             } else if let Some(Overlay::Composer(composer)) = state.overlay.as_mut() {
                 composer.text.push_str(&text);
+            } else if state.session_composer_focused
+                && let Some(composer) = state.session_composer.as_mut()
+            {
+                composer.text.push_str(&text);
             }
             vec![Effect::None]
         }
         Action::InputSubmitted => submit_input(state),
         _ => vec![Effect::None],
+    }
+}
+
+/// Applies typed text or backspace to either composer implementation.
+///
+/// # Parameters
+/// - `text`: Current multiline draft.
+/// - `error`: Composer validation message to clear after editing.
+/// - `input`: Inserted text, or an empty string for backspace.
+fn edit_composer(text: &mut String, error: &mut Option<String>, input: &str) {
+    *error = None;
+    if input.is_empty() {
+        text.pop();
+    } else {
+        text.push_str(input);
     }
 }
 
@@ -75,12 +93,50 @@ fn submit_input(state: &mut TuiState) -> Vec<Effect> {
             state.overlay = Some(Overlay::Composer(composer));
             return vec![Effect::None];
         }
+        if let Some(effects) = console_command(state, &composer.text) {
+            return effects;
+        }
         state.session_branch_focus = composer.branch;
         state.agent_output_observations.clear();
         return vec![Effect::SubmitAgent {
             session: composer.session,
             branch: composer.branch,
             prompt: composer.text,
+        }];
+    }
+    if state.overlay.is_none() && state.session_composer_focused {
+        let command = state
+            .session_composer
+            .as_ref()
+            .map(|composer| composer.text.clone());
+        if let Some(command) = command
+            && let Some(effects) = console_command(state, &command)
+        {
+            if let Some(composer) = state.session_composer.as_mut() {
+                composer.text.clear();
+                composer.pending_prompt = None;
+                composer.error = None;
+            }
+            return effects;
+        }
+        let (session, branch, prompt) = {
+            let Some(composer) = state.session_composer.as_mut() else {
+                return vec![Effect::None];
+            };
+            if composer.pending_prompt.is_some() || composer.text.trim().is_empty() {
+                return vec![Effect::None];
+            }
+            let prompt = std::mem::take(&mut composer.text);
+            composer.pending_prompt = Some(prompt.clone());
+            composer.error = None;
+            (composer.session, composer.branch, prompt)
+        };
+        state.session_branch_focus = branch;
+        state.agent_output_observations.clear();
+        return vec![Effect::SubmitAgent {
+            session,
+            branch,
+            prompt,
         }];
     }
     if let Some(Overlay::Input(input)) = state.overlay.as_ref()
@@ -172,4 +228,40 @@ fn submit_input(state: &mut TuiState) -> Vec<Effect> {
         }
     }
     vec![Effect::None]
+}
+
+/// Routes supported console commands to shared picker and preference actions.
+///
+/// # Parameters
+/// - `state`: Current TUI state used by the shared action reducers.
+/// - `text`: Submitted composer text.
+///
+/// # Returns
+/// Effects for a recognized command, or `None` for an agent prompt.
+fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Effect>> {
+    let command = text.trim();
+    match command {
+        "/model" => {
+            super::super::state_model_picker::activate_model_picker_action(state, "model-picker")
+        }
+        "/thinking" => {
+            super::super::state_model_picker::activate_model_picker_action(state, "thinking-picker")
+        }
+        "/view reasoning" => super::super::state_presentation::activate_presentation_action(
+            state,
+            "toggle-reasoning",
+        ),
+        "/view prompt" => {
+            super::super::state_presentation::activate_presentation_action(state, "toggle-prompt")
+        }
+        "/view tool-call" => super::super::state_presentation::activate_presentation_action(
+            state,
+            "toggle-tool-invocation",
+        ),
+        "/view tool-output" => super::super::state_presentation::activate_presentation_action(
+            state,
+            "toggle-tool-output",
+        ),
+        _ => None,
+    }
 }

@@ -8,6 +8,8 @@ use crate::{
 
 #[path = "keymap_operation.rs"]
 mod keymap_operation;
+#[path = "keymap_session_composer.rs"]
+mod keymap_session_composer;
 
 /// Interaction context used when resolving a key chord.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -264,6 +266,9 @@ pub fn bindings() -> &'static [Binding] {
 pub fn action_for(state: &TuiState, key: &Key) -> Option<Action> {
     if is_quit_chord(key) {
         return Some(Action::QuitRequested);
+    }
+    if let Some(action) = keymap_session_composer::action_for(state, key) {
+        return Some(action);
     }
     if state.is_input_active() {
         return match key.code {

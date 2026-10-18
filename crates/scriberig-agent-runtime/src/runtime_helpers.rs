@@ -10,7 +10,12 @@ use crate::{
     AgentError, ChildExecutionScope, ChildExecutor, ChildRequest, ChildResult, ModelProvider,
 };
 
+#[path = "runtime_helpers/activity_projection.rs"]
+mod activity_projection;
+#[path = "runtime_helpers/named_tool.rs"]
+mod named_tool;
 use super::AgentRuntime;
+use activity_projection::project_runtime_activity;
 
 impl<P, T> AgentRuntime<P, T>
 where
@@ -40,9 +45,9 @@ where
     ) -> Result<scriberig_agent_core::ToolResult, AgentError> {
         self.reserve_tool_call(operation, state)?;
         self.emit(BranchPhase::ExecutingTools);
-        self.emit_event(RuntimeEvent::tool_started(&self.branch_id, "inspect"));
+        self.emit_event(&RuntimeEvent::tool_started(&self.branch_id, "inspect"));
         let result = self.tool.invoke(context, input).map_err(|error| {
-            self.emit_event(RuntimeEvent::tool_completed(
+            self.emit_event(&RuntimeEvent::tool_completed(
                 &self.branch_id,
                 "inspect",
                 false,
@@ -50,7 +55,7 @@ where
             self.finish_operation(operation, OperationStatus::Failed);
             AgentError::Tool(error)
         })?;
-        self.emit_event(RuntimeEvent::tool_completed(
+        self.emit_event(&RuntimeEvent::tool_completed(
             &self.branch_id,
             "inspect",
             true,
@@ -86,15 +91,15 @@ where
     ) -> Result<scriberig_agent_core::ToolResult, AgentError> {
         self.reserve_tool_call(operation, state)?;
         self.emit(BranchPhase::ExecutingTools);
-        self.emit_event(RuntimeEvent::tool_started(&self.branch_id, name));
+        self.emit_event(&RuntimeEvent::tool_started(&self.branch_id, name));
         let result = self
             .tool
             .invoke_named_cancellable(context, name, arguments, cancelled)
             .map_err(|error| {
-                self.emit_event(RuntimeEvent::tool_completed(&self.branch_id, name, false));
+                self.emit_event(&RuntimeEvent::tool_completed(&self.branch_id, name, false));
                 if cancelled.load(std::sync::atomic::Ordering::Acquire) {
                     self.emit(BranchPhase::Cancelled);
-                    self.emit_event(RuntimeEvent::branch_execution_cancelled(&self.branch_id));
+                    self.emit_event(&RuntimeEvent::branch_execution_cancelled(&self.branch_id));
                     self.finish_operation(operation, OperationStatus::Cancelled);
                     AgentError::Cancelled
                 } else {
@@ -102,7 +107,7 @@ where
                     AgentError::Tool(error)
                 }
             })?;
-        self.emit_event(RuntimeEvent::tool_completed(&self.branch_id, name, true));
+        self.emit_event(&RuntimeEvent::tool_completed(&self.branch_id, name, true));
         Ok(result)
     }
 
@@ -141,8 +146,8 @@ where
         }
         state.child_branches += 1;
         self.emit(BranchPhase::ExecutingTools);
-        self.emit_event(RuntimeEvent::tool_started(&self.branch_id, "delegate"));
-        self.emit_event(RuntimeEvent::child_branch_started(&self.branch_id));
+        self.emit_event(&RuntimeEvent::tool_started(&self.branch_id, "delegate"));
+        self.emit_event(&RuntimeEvent::child_branch_started(&self.branch_id));
         let Some(executor) = children.as_deref_mut() else {
             self.finish_operation(operation, OperationStatus::Failed);
             return Err(AgentError::Provider(
@@ -152,21 +157,24 @@ where
         let result = executor
             .execute_child(context, scope, request, cancelled)
             .map_err(|error| {
-                self.emit_event(RuntimeEvent::tool_completed(
+                self.emit_event(&RuntimeEvent::tool_completed(
                     &self.branch_id,
                     "delegate",
                     false,
                 ));
-                self.emit_event(RuntimeEvent::child_branch_completed(&self.branch_id, false));
+                self.emit_event(&RuntimeEvent::child_branch_completed(
+                    &self.branch_id,
+                    false,
+                ));
                 self.finish_operation(operation, OperationStatus::Failed);
                 AgentError::Provider(format!("child branch: {error}"))
             })?;
-        self.emit_event(RuntimeEvent::tool_completed(
+        self.emit_event(&RuntimeEvent::tool_completed(
             &self.branch_id,
             "delegate",
             true,
         ));
-        self.emit_event(RuntimeEvent::child_branch_completed(&self.branch_id, true));
+        self.emit_event(&RuntimeEvent::child_branch_completed(&self.branch_id, true));
         Ok(result)
     }
 
@@ -239,7 +247,7 @@ where
     ) -> Result<(), AgentError> {
         self.finish_operation(operation, OperationStatus::Failed);
         self.emit(BranchPhase::BudgetExceeded);
-        self.emit_event(RuntimeEvent::branch_execution_failed(
+        self.emit_event(&RuntimeEvent::branch_execution_failed(
             &self.branch_id,
             format!("{kind} budget"),
         ));
@@ -256,6 +264,10 @@ where
     /// # Errors
     /// Returns a provider error when lifecycle registration fails.
     pub(super) fn start_operation(&mut self) -> Result<Option<OperationId>, AgentError> {
+        if let Some(id) = self.observed_operation.clone() {
+            self.active_operation = Some(id.clone());
+            return Ok(Some(id));
+        }
         let Some(registry) = &self.registry else {
             return Ok(None);
         };
@@ -268,6 +280,7 @@ where
         registry
             .transition(&id, OperationStatus::Running)
             .map_err(|error| AgentError::Provider(error.to_string()))?;
+        self.active_operation = Some(id.clone());
         Ok(Some(id))
     }
 
@@ -282,7 +295,9 @@ where
         operation: Option<&OperationId>,
         status: OperationStatus,
     ) {
-        if let (Some(registry), Some(operation)) = (&self.registry, operation) {
+        if self.observed_operation.is_none()
+            && let (Some(registry), Some(operation)) = (&self.registry, operation)
+        {
             let _ = registry.transition(operation, status);
         }
     }
@@ -293,9 +308,7 @@ where
     /// - `super`: Runtime owner.
     /// - `phase`: Runtime phase.
     pub(super) fn emit(&self, phase: BranchPhase) {
-        if let Some(log) = &self.event_log {
-            log.push(RuntimeEvent::phase_changed(&self.branch_id, phase));
-        }
+        self.emit_event(&RuntimeEvent::phase_changed(&self.branch_id, phase));
     }
 
     /// Emits one normalized event when a log is attached.
@@ -303,9 +316,20 @@ where
     /// # Parameters
     /// - `super`: Runtime owner.
     /// - `event`: Safe runtime event.
-    pub(super) fn emit_event(&self, event: RuntimeEvent) {
+    pub(super) fn emit_event(&self, event: &RuntimeEvent) {
         if let Some(log) = &self.event_log {
-            log.push(event);
+            log.push(event.clone());
+        }
+        if let (Some(registry), Some(operation)) = (&self.registry, &self.active_operation)
+            && let Some((activity_kind, state, summary)) = project_runtime_activity(event)
+        {
+            let _ = registry.publish_agent_activity(
+                operation,
+                event.branch(),
+                activity_kind,
+                state,
+                summary,
+            );
         }
     }
 
@@ -332,7 +356,7 @@ where
         if active_before >= self.limits.max_active_branches {
             active_count.fetch_sub(1, std::sync::atomic::Ordering::AcqRel);
             self.emit(BranchPhase::BudgetExceeded);
-            self.emit_event(RuntimeEvent::branch_execution_failed(
+            self.emit_event(&RuntimeEvent::branch_execution_failed(
                 &self.branch_id,
                 "active branch budget",
             ));

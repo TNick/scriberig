@@ -20,11 +20,14 @@ fn tui_bootstrap_import_failure_does_not_activate_partial_project() {
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"start-agent\r");
-    assert!(tui.read_until("Session:"), "{}", tui.diagnostic());
-    assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
+    assert!(
+        tui.read_until("Agent composer · ent_"),
+        "{}",
+        tui.diagnostic()
+    );
     let session = tui
         .screen()
-        .split("Session:")
+        .split("Agent composer · ")
         .nth(1)
         .and_then(|value| value.split_whitespace().next())
         .expect("visible session")
@@ -36,6 +39,9 @@ fn tui_bootstrap_import_failure_does_not_activate_partial_project() {
         .expect("baseline scanner");
 
     tui.send(b"Onboard the current project.\r");
+    assert!(tui.read_until("manifest_changed"), "{}", tui.diagnostic());
+    tui.send(b"\x1b");
+    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"operations");
@@ -118,11 +124,14 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
     tui.send(b":");
     assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
     tui.send(b"start-agent\r");
-    assert!(tui.read_until("Session:"), "{}", tui.diagnostic());
-    assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
+    assert!(
+        tui.read_until("Agent composer · ent_"),
+        "{}",
+        tui.diagnostic()
+    );
     let session = tui
         .screen()
-        .split("Session:")
+        .split("Agent composer · ")
         .nth(1)
         .and_then(|value| value.split_whitespace().next())
         .expect("session visible in composer")
@@ -136,38 +145,12 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
         .expect("read diagnostic session");
     assert!(onboarded, "{}; saved session: {saved:?}", tui.diagnostic());
     assert!(tui.read_until("project: scriberig"), "{}", tui.diagnostic());
-    tui.send(b"\x1b[B");
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"continue-agent");
     assert!(
-        tui.read_until("Search: continue-agent"),
+        tui.read_until_not("Model: default · running"),
         "{}",
         tui.diagnostic()
     );
-    tui.send(b"\r");
-    assert!(tui.read_until("Enter submit"), "{}", tui.diagnostic());
-    assert!(
-        tui.screen().contains(&session.to_string()),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b"Discover Scriberig architecture semantically.");
-    assert!(
-        tui.read_until("Discover Scriberig architecture semantically."),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b"\r");
-    let discovered = tui.read_until_for(
-        "agent continuation [Completed]",
-        std::time::Duration::from_secs(120),
-    );
-    let saved = SqliteSessionStore::open(tui.fixture_path().join("scriberig.sqlite"))
-        .expect("open discovery diagnostic session store")
-        .load(session)
-        .expect("read discovery diagnostic session");
-    assert!(discovered, "{}; saved session: {saved:?}", tui.diagnostic());
+    assert_architecture_discovery(&mut tui, session);
 
     let fixture = tui.fixture_path().to_path_buf();
     let database = fixture.join("scriberig.sqlite");
@@ -204,6 +187,50 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
     );
     assert_durable_discovery(&database, session, project.id, workspace.snapshot);
     assert!(reopened.shutdown());
+}
+
+/// Continues the bootstrapped session with a semantic architecture request.
+///
+/// # Parameters
+/// - `tui`: Active terminal process receiving the continuation.
+/// - `session`: Durable session identity expected in the composer.
+fn assert_architecture_discovery(tui: &mut TuiPty, session: EntityId) {
+    tui.send(b"\x1b");
+    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
+    tui.send(b"\x1b[B");
+    tui.send(b":");
+    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
+    tui.send(b"continue-agent");
+    assert!(
+        tui.read_until("Search: continue-agent"),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send(b"\r");
+    assert!(tui.read_until("Write a message..."), "{}", tui.diagnostic());
+    tui.send(b"i");
+    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
+    assert!(
+        tui.screen().contains(&session.to_string()),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send(b"Discover Scriberig architecture semantically.");
+    assert!(
+        tui.read_until("Discover Scriberig architecture semantically."),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send(b"\r");
+    let discovered = tui.read_until_for(
+        "agent continuation [Completed]",
+        std::time::Duration::from_secs(120),
+    );
+    let saved = SqliteSessionStore::open(tui.fixture_path().join("scriberig.sqlite"))
+        .expect("open discovery diagnostic session store")
+        .load(session)
+        .expect("read discovery diagnostic session");
+    assert!(discovered, "{}; saved session: {saved:?}", tui.diagnostic());
 }
 
 /// Verifies durable onboarding identity, workspace references, and human input.

@@ -14,6 +14,9 @@ pub enum RuntimeEvent {
     ModelInvocationStarted { branch: String, step: usize },
     /// A bounded provider-neutral text fragment became available.
     ModelTextDelta { branch: String, text: String },
+    /// Provider content explicitly intended for user display, never private
+    /// reasoning or analysis.
+    ReasoningSummary { branch: String, summary: String },
     /// An atomic or child tool was accepted for execution.
     ToolStarted { branch: String, tool: String },
     /// A tool execution returned or failed.
@@ -280,6 +283,7 @@ impl RuntimeEvent {
             | Self::PhaseChanged { branch, .. }
             | Self::ModelInvocationStarted { branch, .. }
             | Self::ModelTextDelta { branch, .. }
+            | Self::ReasoningSummary { branch, .. }
             | Self::ToolStarted { branch, .. }
             | Self::ToolCompleted { branch, .. }
             | Self::ChildBranchStarted { branch }
