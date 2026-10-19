@@ -14,11 +14,11 @@ pub(crate) struct DeltaRedactor<'a> {
 impl<'a> DeltaRedactor<'a> {
     /// Creates a per-request streaming redactor.
     ///
-    /// # Parameters
     /// - `secret`: Exact current request credential, if present.
     ///
-    /// # Returns
     /// A redactor with an empty zeroizing suffix buffer.
+    /// # Returns
+    /// The operation result.
     pub(crate) fn new(secret: Option<&'a str>) -> Self {
         Self {
             secret,
@@ -28,11 +28,11 @@ impl<'a> DeltaRedactor<'a> {
 
     /// Emits text whose credential matches can no longer cross a future delta.
     ///
-    /// # Parameters
     /// - `text`: New provider output fragment.
     ///
-    /// # Returns
     /// A safe output prefix; a short suffix remains buffered.
+    /// # Returns
+    /// The operation result.
     pub(crate) fn push(&mut self, text: &str) -> String {
         let Some(secret) = self.secret else {
             return text.to_owned();
@@ -56,8 +56,9 @@ impl<'a> DeltaRedactor<'a> {
 
     /// Releases the unmatched trailing text after successful stream completion.
     ///
-    /// # Returns
     /// The final suffix, which cannot contain a complete credential.
+    /// # Returns
+    /// The operation result.
     pub(crate) fn finish(&mut self) -> String {
         std::mem::take(&mut *self.pending)
     }
@@ -65,7 +66,6 @@ impl<'a> DeltaRedactor<'a> {
 
 /// Redacts exact credential reflections before normalized output leaves transport.
 ///
-/// # Parameters
 /// - `response`: Model output and metadata to sanitize.
 /// - `secret`: Current request credential, if any.
 pub(crate) fn redact_response(response: &mut ModelResponse, secret: Option<&str>) {
@@ -91,7 +91,6 @@ pub(crate) fn redact_response(response: &mut ModelResponse, secret: Option<&str>
 
 /// Scrubs credential reflections from structured tool arguments and their keys.
 ///
-/// # Parameters
 /// - `value`: Structured argument value.
 /// - `secret`: Exact request credential.
 fn redact_json(value: &mut serde_json::Value, secret: &str) {

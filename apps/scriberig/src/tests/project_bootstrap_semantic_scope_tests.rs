@@ -4,7 +4,6 @@ use super::*;
 
 /// Discovers architecture files by semantic source path and exact snapshot.
 ///
-/// # Parameters
 /// - `tools`: Shared project semantic application tool adapter.
 /// - `context`: Trusted exact-snapshot context for the imported project.
 /// - `project`: Stable imported project identity.
@@ -86,7 +85,6 @@ pub(super) fn assert_semantic_architecture(
 
 /// Proves semantic references remain tied to their immutable discovery snapshot.
 ///
-/// # Parameters
 /// - `tools`: Shared project semantic application tool adapter.
 /// - `base_context`: Trusted scope compiled for the original snapshot.
 /// - `store`: Durable source and snapshot store used by project service.

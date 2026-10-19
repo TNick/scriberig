@@ -21,8 +21,9 @@ pub enum ProjectStatus {
 impl ProjectStatus {
     /// Converts the status into its durable representation.
     ///
-    /// # Returns
     /// The stable database status value.
+    /// # Returns
+    /// The operation result.
     fn as_str(&self) -> &'static str {
         match self {
             Self::Registered => "registered",
@@ -34,11 +35,11 @@ impl ProjectStatus {
 
     /// Parses a durable project status.
     ///
-    /// # Parameters
     /// - `value`: Stored status value.
     ///
-    /// # Returns
     /// The recognized status, defaulting to registered for unknown values.
+    /// # Returns
+    /// The operation result.
     fn parse(value: &str) -> Self {
         match value {
             "scan_ready" => Self::ScanReady,
@@ -67,11 +68,13 @@ pub struct ProjectRecord {
 impl SqliteStore {
     /// Lists every project in deterministic name/path order.
     ///
-    /// # Returns
     /// Project records stored in this database.
     ///
-    /// # Errors
     /// Returns a SQLite query error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn list_projects(&self) -> rusqlite::Result<Vec<ProjectRecord>> {
         let connection = self
             .connection
@@ -86,15 +89,16 @@ impl SqliteStore {
 
     /// Registers a project or returns the existing project at the path.
     ///
-    /// # Parameters
     /// - `name`: Human-readable project name.
     /// - `path`: Canonical filesystem path.
     ///
-    /// # Returns
     /// The existing or newly-created project record.
     ///
-    /// # Errors
     /// Returns a SQLite error when the catalog cannot be updated.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn register_project(
         &self,
         name: impl Into<String>,
@@ -130,14 +134,15 @@ impl SqliteStore {
 
     /// Finds a project by stable identity.
     ///
-    /// # Parameters
     /// - `id`: Project identity to find.
     ///
-    /// # Returns
     /// The matching project, when present.
     ///
-    /// # Errors
     /// Returns a SQLite query error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn project(&self, id: ProjectId) -> rusqlite::Result<Option<ProjectRecord>> {
         let connection = self
             .connection
@@ -154,15 +159,16 @@ impl SqliteStore {
 
     /// Updates a project path while preserving its stable identity.
     ///
-    /// # Parameters
     /// - `id`: Project identity to update.
     /// - `path`: New canonical filesystem path.
     ///
-    /// # Returns
     /// Unit after the path is updated.
     ///
-    /// # Errors
     /// Returns a SQLite update or uniqueness error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn relink_project(&self, id: ProjectId, path: impl AsRef<Path>) -> rusqlite::Result<()> {
         let path = normalize_path(path.as_ref());
         let connection = self
@@ -178,16 +184,17 @@ impl SqliteStore {
 
     /// Sets the lifecycle state and current snapshot for a project.
     ///
-    /// # Parameters
     /// - `id`: Project identity to update.
     /// - `status`: New lifecycle state.
     /// - `snapshot`: Current promoted snapshot, when available.
     ///
-    /// # Returns
     /// Unit after the update is stored.
     ///
-    /// # Errors
     /// Returns a SQLite update error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn set_project_status(
         &self,
         id: ProjectId,
@@ -211,14 +218,15 @@ impl SqliteStore {
 
     /// Finds a project by normalized path.
     ///
-    /// # Parameters
     /// - `path`: Normalized path to find.
     ///
-    /// # Returns
     /// The matching project, when present.
     ///
-    /// # Errors
     /// Returns a SQLite query error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn project_by_path(&self, path: &Path) -> rusqlite::Result<Option<ProjectRecord>> {
         let connection = self
             .connection
@@ -236,25 +244,26 @@ impl SqliteStore {
 
 /// Normalizes a path without requiring it to exist yet.
 ///
-/// # Parameters
 /// - `path`: Path to normalize.
 ///
-/// # Returns
 /// The canonical path when available, otherwise the supplied path.
+/// # Returns
+/// The operation result.
 fn normalize_path(path: &Path) -> PathBuf {
     std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
 }
 
 /// Decodes one SQLite project row.
 ///
-/// # Parameters
 /// - `row`: SQLite row containing project columns.
 ///
-/// # Returns
 /// A decoded project record.
 ///
-/// # Errors
 /// Returns a conversion error for malformed stored identifiers.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn project_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<ProjectRecord> {
     let id: Vec<u8> = row.get(0)?;
     let path: String = row.get(2)?;

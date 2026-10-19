@@ -13,11 +13,11 @@ use std::{
 
 /// Creates a unique temporary directory owned by one test session.
 ///
-/// # Returns
 /// The newly created fixture directory.
 ///
-/// # Parameters
 /// - `super`: Parent PTY support module visibility marker.
+/// # Returns
+/// The operation result.
 pub(super) fn temporary_fixture() -> PathBuf {
     static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
     let sequence = NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed);
@@ -32,11 +32,11 @@ pub(super) fn temporary_fixture() -> PathBuf {
 
 /// Creates the generic fixture used by legacy PTY tests.
 ///
-/// # Returns
 /// The prepared fixture directory.
 ///
-/// # Parameters
 /// - `super`: Parent PTY support module visibility marker.
+/// # Returns
+/// The operation result.
 pub(super) fn basic_fixture() -> PathBuf {
     let fixture = temporary_fixture();
     fs::write(fixture.join("README.md"), "# PTY fixture\n").expect("fixture");
@@ -51,15 +51,15 @@ pub(super) fn basic_fixture() -> PathBuf {
 
 /// Creates and commits a small project for the real bootstrap workflow test.
 ///
-/// # Parameters
 /// - `fixture`: Temporary owner directory for the Git checkout.
 /// - `super`: Parent PTY support module visibility marker.
 ///
-/// # Returns
 /// The committed checkout directory used as the TUI process working directory.
 ///
 /// # Panics
 /// Panics when fixture files or Git operations cannot be created.
+/// # Returns
+/// The operation result.
 pub(super) fn bootstrap_project(fixture: &Path) -> PathBuf {
     let checkout = fixture.join("scriberig");
     fs::create_dir_all(checkout.join("src")).expect("create bootstrap source");
@@ -107,7 +107,6 @@ pub(super) fn bootstrap_project(fixture: &Path) -> PathBuf {
 
 /// Recursively copies a golden project into a temporary test directory.
 ///
-/// # Parameters
 /// - `source`: Source fixture directory.
 /// - `destination`: Temporary destination directory.
 /// - `super`: Parent PTY support module visibility marker.
@@ -127,12 +126,10 @@ pub(super) fn copy_directory(source: &PathBuf, destination: &PathBuf) {
 
 /// Copies a source checkout while excluding generated and local agent data.
 ///
-/// # Parameters
 /// - `source`: Repository checkout to copy.
 /// - `destination`: Temporary isolated checkout destination.
 /// - `super`: Parent PTY support module visibility marker.
 ///
-/// # Returns
 /// Unit after all source files and directories have been copied.
 ///
 /// # Panics
@@ -145,7 +142,6 @@ pub(super) fn copy_repository_checkout(source: &Path, destination: &Path) {
 
 /// Copies Git-visible repository entries while excluding generated state.
 ///
-/// # Parameters
 /// - `source`: Directory whose repository entries are copied.
 /// - `destination`: Isolated directory receiving the copied entries.
 ///
@@ -205,7 +201,6 @@ fn copy_repository_entries(source: &Path, destination: &Path) {
 
 /// Copies tracked Serena project configuration while excluding local Serena state.
 ///
-/// # Parameters
 /// - `source`: Repository checkout with Git metadata.
 /// - `destination`: Isolated checkout receiving the tracked configuration.
 ///

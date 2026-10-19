@@ -32,8 +32,9 @@ pub struct Collection<T> {
 impl<T> Clone for Collection<T> {
     /// Clones the collection handle while sharing its persistent root.
     ///
-    /// # Returns
     /// A new handle to the same persistent collection structure.
+    /// # Returns
+    /// The operation result.
     fn clone(&self) -> Self {
         Self {
             root: self.root.clone(),
@@ -52,8 +53,9 @@ impl<'a, T> Iterator for Iter<'a, T> {
 
     /// Returns the next collection value.
     ///
-    /// # Returns
     /// The next value, or `None` when the collection is exhausted.
+    /// # Returns
+    /// The operation result.
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(node) = self.stack.pop() {
             match node {
@@ -149,9 +151,10 @@ fn remove_at<T>(node: &Arc<Node<T>>, index: usize) -> Arc<Node<T>> {
 impl<T> Collection<T> {
     /// Creates an empty collection.
     ///
-    /// # Returns
     /// An empty persistent collection.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn create() -> Self {
         Self {
             root: Arc::new(Node::Empty),
@@ -173,12 +176,12 @@ impl<T> Collection<T> {
 
     /// Returns a value by position.
     ///
-    /// # Parameters
     /// - `index`: Zero-based position to read.
     ///
-    /// # Returns
     /// The value at `index`, when present.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn get(&self, index: usize) -> Option<&T> {
         let mut node = self.root.as_ref();
         let mut position = index;
@@ -201,9 +204,10 @@ impl<T> Collection<T> {
 
     /// Iterates values in their canonical order.
     ///
-    /// # Returns
     /// An iterator over values in canonical order.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn iter(&self) -> Iter<'_, T> {
         Iter {
             stack: vec![self.root.as_ref()],
@@ -212,13 +216,13 @@ impl<T> Collection<T> {
 
     /// Inserts a value while sharing unchanged subtrees.
     ///
-    /// # Parameters
     /// - `index`: Position at which to insert, clamped to the collection length.
     /// - `value`: Value to insert.
     ///
-    /// # Returns
     /// A successor collection with the inserted value.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn insert(&self, index: usize, value: T) -> Self {
         let position = index.min(self.len);
         Self {
@@ -229,12 +233,12 @@ impl<T> Collection<T> {
 
     /// Removes a value while sharing unchanged subtrees.
     ///
-    /// # Parameters
     /// - `index`: Position to remove.
     ///
-    /// # Returns
     /// A successor collection, or an unchanged clone when `index` is absent.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn remove(&self, index: usize) -> Self {
         if index >= self.len {
             return self.clone();
@@ -247,14 +251,14 @@ impl<T> Collection<T> {
 
     /// Moves one value to a position in the resulting sequence.
     ///
-    /// # Parameters
     /// - `from`: Current zero-based position.
     /// - `to`: Desired zero-based position after removal.
     ///
-    /// # Returns
     /// A successor collection with the value moved, or an unchanged clone when
     /// `from` is absent.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn move_item(&self, from: usize, to: usize) -> Self
     where
         T: Clone,
@@ -268,12 +272,12 @@ impl<T> Collection<T> {
 
     /// Replaces the sequence with a new ordered sequence.
     ///
-    /// # Parameters
     /// - `values`: Values in their desired order.
     ///
-    /// # Returns
     /// A collection containing exactly `values`.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn replace(&self, values: impl IntoIterator<Item = T>) -> Self {
         from_values(values.into_iter().collect())
     }
@@ -285,7 +289,6 @@ where
 {
     /// Encodes an ordered collection without exposing its persistent layout.
     ///
-    /// # Parameters
     /// - `self`: Ordered collection to encode.
     /// - `writer`: Canonical byte output.
     fn encode_canonical(&self, writer: &mut CanonicalWriter) {
@@ -303,8 +306,9 @@ impl<'a, T> IntoIterator for &'a Collection<T> {
 
     /// Returns an iterator over the collection values.
     ///
-    /// # Returns
     /// An iterator over values in canonical order.
+    /// # Returns
+    /// The operation result.
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }

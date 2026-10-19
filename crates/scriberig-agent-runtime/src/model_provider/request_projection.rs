@@ -6,11 +6,11 @@ const MAX_CAPTURED_CONTENT_CHARS: usize = 15_000;
 
 /// Projects provider-neutral request fields without transport metadata.
 ///
-/// # Parameters
 /// - `request`: Normalized request immediately before adapter execution.
 ///
-/// # Returns
 /// A bounded request projection containing messages and trusted tool schemas.
+/// # Returns
+/// The operation result.
 pub(super) fn capture(request: &ModelRequest) -> scriberig_session::ModelRequestProjection {
     let mut budget = MAX_CAPTURED_CONTENT_CHARS;
     let mut truncated = false;
@@ -68,12 +68,12 @@ pub(super) fn capture(request: &ModelRequest) -> scriberig_session::ModelRequest
 
 /// Copies at most the remaining character budget from one string.
 ///
-/// # Parameters
 /// - `value`: Content to copy.
 /// - `budget`: Mutable remaining character allowance.
 ///
-/// # Returns
 /// The bounded prefix and updated remaining budget.
+/// # Returns
+/// The operation result.
 fn take_bounded(value: &str, budget: &mut usize) -> String {
     let bounded = value.chars().take(*budget).collect::<String>();
     *budget -= bounded.chars().count();
@@ -111,5 +111,16 @@ mod tests {
         assert!(!encoded.contains("FAKE_PROVIDER_SECRET_MARKER_8391"));
         assert!(!encoded.contains("authorization"));
         assert!(encoded.contains("safe prompt"));
+    }
+
+    /// Marks captured prompt detail when its provider-neutral budget truncates.
+    #[test]
+    fn captured_model_request_detail_is_bounded_and_marks_truncation() {
+        let request = ModelRequest::new("model-a", vec![ModelMessage::user("x".repeat(20_000))]);
+
+        let projection = capture(&request);
+
+        assert!(projection.truncated);
+        assert_eq!(projection.messages[0].content.chars().count(), 15_000);
     }
 }

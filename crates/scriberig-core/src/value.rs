@@ -33,7 +33,6 @@ pub enum KnowledgeValue {
 impl CanonicalEncode for KnowledgeValue {
     /// Encodes a property value with explicit variant and length markers.
     ///
-    /// # Parameters
     /// - `self`: Property value to encode.
     /// - `writer`: Canonical byte output.
     fn encode_canonical(&self, writer: &mut CanonicalWriter) {

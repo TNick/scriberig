@@ -21,16 +21,16 @@ pub struct AnalysisProfile {
 impl AnalysisProfile {
     /// Creates an exact analysis profile.
     ///
-    /// # Parameters
     /// - `toolchain`: Compiler or toolchain version.
     /// - `target`: Compilation target triple.
     /// - `features`: Enabled features.
     /// - `workspace`: Dependency/workspace identity.
     /// - `configuration`: Analyzer configuration identity.
     ///
-    /// # Returns
     /// A normalized profile with sorted feature names.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(
         toolchain: impl Into<String>,
         target: impl Into<String>,
@@ -51,9 +51,10 @@ impl AnalysisProfile {
 
     /// Returns the shared derivation profile identity.
     ///
-    /// # Returns
     /// A versioned profile containing producer and configuration identities.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn derivation_profile(&self) -> DerivationProfile {
         DerivationProfile::new("rust.compiler-analysis", "v1")
             .with_producer(format!("rustc:{}", self.toolchain))
@@ -62,9 +63,10 @@ impl AnalysisProfile {
 
     /// Returns a deterministic configuration identity for this environment.
     ///
-    /// # Returns
     /// A stable configuration string.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn configuration_id(&self) -> String {
         format!(
             "{}|{}|{}|{}",
@@ -77,13 +79,13 @@ impl AnalysisProfile {
 
     /// Builds exact derivation dependencies for one source revision.
     ///
-    /// # Parameters
     /// - `entity`: Canonical source entity.
     /// - `revision`: Canonical Rust syntax revision.
     ///
-    /// # Returns
     /// Source and environment dependencies sufficient for invalidation.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn dependencies(&self, entity: EntityId, revision: RevisionId) -> DependencySet {
         DependencySet::new(vec![
             Dependency::ExactRevision { entity, revision },

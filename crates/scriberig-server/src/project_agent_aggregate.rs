@@ -10,17 +10,14 @@ use crate::server::ApplicationService;
 
 /// Submits provider source effects through the public shared project service.
 ///
-/// # Parameters
 /// - `state`: Shared HTTP application state.
 /// - `project`: Trusted selected project.
 /// - `entity`: Selected semantic entity retained in the result.
 /// - `snapshot`: Trusted exact base snapshot.
 /// - `effects`: Provider source effect array.
 ///
-/// # Returns
 /// Tool result containing the ordinary durable candidate identity.
 ///
-/// # Errors
 /// Returns a tool error when proposal or candidate creation fails.
 pub(super) fn propose<S: ApplicationService>(
     state: &HttpState<S>,

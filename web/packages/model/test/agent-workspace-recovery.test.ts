@@ -80,6 +80,7 @@ describe("agent workspace recovery", () => {
           ],
         },
       ],
+      plans: [],
     };
     const loaded = storeAgentSession(createAgentWorkspaceState(), session);
     const live = reduceAgentEvent(loaded, {

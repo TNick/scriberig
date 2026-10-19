@@ -88,11 +88,13 @@ pub struct ConfigResolver {
 impl ConfigResolver {
     /// Creates a resolver using the current process environment and directory.
     ///
-    /// # Returns
     /// A resolver using conventional platform configuration locations.
     ///
-    /// # Errors
     /// Returns an error when the current directory cannot be read.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn from_process() -> Result<Self, std::io::Error> {
         Ok(Self {
             system_dir: system_config_dir(),
@@ -106,15 +108,15 @@ impl ConfigResolver {
 
     /// Creates a resolver with deterministic paths and environment values.
     ///
-    /// # Parameters
     /// - `system_dir`: Optional system configuration directory.
     /// - `user_dir`: Optional user configuration directory.
     /// - `current_dir`: Starting directory for project-file discovery.
     /// - `environment`: Environment variables visible to resolution.
     ///
-    /// # Returns
     /// A resolver with the supplied inputs.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_inputs(
         system_dir: Option<PathBuf>,
         user_dir: Option<PathBuf>,
@@ -131,14 +133,15 @@ impl ConfigResolver {
 
     /// Resolves known properties with independent per-property precedence.
     ///
-    /// # Parameters
     /// - `command_line`: Explicit CLI values keyed by property name.
     ///
-    /// # Returns
     /// Effective properties and their winning sources.
     ///
-    /// # Errors
     /// Returns an error for malformed files, unknown properties, or bad types.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn resolve(
         &self,
         command_line: &BTreeMap<String, Value>,
@@ -221,15 +224,16 @@ pub struct ConfigError {
 impl std::fmt::Display for ConfigError {
     /// Formats the configuration error.
     ///
-    /// # Parameters
     /// - `self`: Error to format.
     /// - `formatter`: Output formatter.
     ///
-    /// # Returns
     /// Formatting success or the formatter error.
     ///
-    /// # Errors
     /// Returns the formatter error when writing fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.write_str(&self.message)
     }
@@ -239,8 +243,9 @@ impl std::error::Error for ConfigError {}
 
 /// Returns the supported configuration property names.
 ///
-/// # Returns
 /// Supported property names in stable order.
+/// # Returns
+/// The operation result.
 pub(super) fn properties() -> &'static [&'static str] {
     &[
         "api_key_env",
@@ -256,8 +261,9 @@ pub(super) fn properties() -> &'static [&'static str] {
 
 /// Builds the initial effective values from Scriberig's command defaults.
 ///
-/// # Returns
 /// Default values with `Default` provenance.
+/// # Returns
+/// The operation result.
 fn defaults() -> BTreeMap<String, ConfigEntry> {
     [
         ("credential", Value::Null),
@@ -286,17 +292,18 @@ fn defaults() -> BTreeMap<String, ConfigEntry> {
 
 /// Inserts one value after validating its property type.
 ///
-/// # Parameters
 /// - `entries`: Resolved property map to update.
 /// - `name`: Property name.
 /// - `value`: Candidate property value.
 /// - `source`: Origin of the candidate value.
 ///
-/// # Returns
 /// Unit when the value is valid.
 ///
-/// # Errors
 /// Returns an error when the property or value type is unsupported.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn set_entry(
     entries: &mut BTreeMap<String, ConfigEntry>,
     name: String,
@@ -336,11 +343,11 @@ fn set_entry(
 
 /// Converts a property name into its environment-variable name.
 ///
-/// # Parameters
 /// - `property`: Configuration property name.
 ///
-/// # Returns
 /// The uppercase `SRIG_` environment-variable name.
+/// # Returns
+/// The operation result.
 fn environment_name(property: &str) -> String {
     format!("SRIG_{}", property.to_ascii_uppercase())
 }
@@ -348,15 +355,16 @@ fn environment_name(property: &str) -> String {
 /// Parses an environment string using the property's expected scalar type.
 /// Parses an environment value using the property's expected scalar type.
 ///
-/// # Parameters
 /// - `property`: Configuration property name.
 /// - `value`: Raw environment text.
 ///
-/// # Returns
 /// Parsed JSON-compatible scalar value.
 ///
-/// # Errors
 /// Returns an error when a typed value cannot be parsed.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn parse_environment_value(property: &str, value: &str) -> Result<Value, ConfigError> {
     match property {
         "credential" => serde_json::from_str(value).map_err(|_| ConfigError {

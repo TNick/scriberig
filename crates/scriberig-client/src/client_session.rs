@@ -6,21 +6,108 @@ use scriberig_protocol::{
     AgentPresentationPreferencesReadRequest, AgentPresentationPreferencesResponse,
     AgentPresentationPreferencesSetRequest, BranchReference, ModelRequestDetailRequest,
     ModelRequestDetailResponse, ProtocolTransport, PublicAgentPresentationPreferences, Request,
-    Response, SessionReadRequest, SessionReadResponse, SessionReference, ToolResultDetailRequest,
-    ToolResultDetailResponse,
+    Response, SessionPlan, SessionPlanAssignmentRequest, SessionPlanCreateRequest,
+    SessionPlanLifecycleRequest, SessionPlanReplanRequest, SessionReadRequest, SessionReadResponse,
+    SessionReference, ToolResultDetailRequest, ToolResultDetailResponse,
 };
 
 impl<T: ProtocolTransport> Client<T> {
+    /// Creates a durable plan from a structured, provider-neutral proposal.
+    ///
+    /// - `request`: Exact anchor and validated plan proposal input.
+    ///
+    /// The authoritative created plan.
+    ///
+    /// Returns a structured server or transport error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn create_plan(
+        &self,
+        request: SessionPlanCreateRequest,
+    ) -> Result<SessionPlan, ClientError> {
+        match self.send(Request::PlanCreate(request))?.response {
+            Response::Plan(plan) => Ok(plan),
+            Response::Error(error) => Err(ClientError::Protocol(error)),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Applies one optimistic plan lifecycle transition.
+    ///
+    /// - `request`: Plan, observed revision, and requested action.
+    ///
+    /// The authoritative updated plan.
+    ///
+    /// Returns a structured server or transport error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn plan_lifecycle(
+        &self,
+        request: SessionPlanLifecycleRequest,
+    ) -> Result<SessionPlan, ClientError> {
+        match self.send(Request::PlanLifecycle(request))?.response {
+            Response::Plan(plan) => Ok(plan),
+            Response::Error(error) => Err(ClientError::Protocol(error)),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Updates one plan-node model assignment using an observed revision.
+    ///
+    /// - `request`: Stable plan/node handles and safe assignment.
+    ///
+    /// The authoritative updated plan.
+    ///
+    /// Returns a structured server or transport error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn set_plan_assignment(
+        &self,
+        request: SessionPlanAssignmentRequest,
+    ) -> Result<SessionPlan, ClientError> {
+        match self.send(Request::PlanAssignment(request))?.response {
+            Response::Plan(plan) => Ok(plan),
+            Response::Error(error) => Err(ClientError::Protocol(error)),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Applies a complete optimistic plan revision.
+    ///
+    /// - `request`: New nodes, dependencies, replacements, and reason.
+    ///
+    /// The latest authoritative plan projection.
+    ///
+    /// Returns a structured server or transport error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn replan(&self, request: SessionPlanReplanRequest) -> Result<SessionPlan, ClientError> {
+        match self.send(Request::PlanReplan(request))?.response {
+            Response::Plan(plan) => Ok(plan),
+            Response::Error(error) => Err(ClientError::Protocol(error)),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
     /// Reads shared presentation preferences for the authenticated principal.
     ///
-    /// # Parameters
     /// - `self`: Client using the protocol transport.
     ///
-    /// # Returns
     /// Revisioned shared presentation defaults.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn agent_presentation_preferences(
         &self,
     ) -> Result<AgentPresentationPreferencesResponse, ClientError> {
@@ -38,16 +125,17 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Replaces shared preferences at the caller's observed revision.
     ///
-    /// # Parameters
     /// - `self`: Client using the protocol transport.
     /// - `expected_revision`: Revision from the last preference read.
     /// - `preferences`: Complete set of shared defaults.
     ///
-    /// # Returns
     /// Updated revisioned shared presentation defaults.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn set_agent_presentation_preferences(
         &self,
         expected_revision: u64,
@@ -70,16 +158,17 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Reads one branch and its nested descendants on demand.
     ///
-    /// # Parameters
     /// - `self`: Client using the protocol transport.
     /// - `session`: Stable session identity.
     /// - `branch`: Stable branch identity whose activity is requested.
     ///
-    /// # Returns
     /// The selected branch subtree without unrelated branch histories.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn read_session_branch(
         &self,
         session: impl Into<String>,
@@ -100,17 +189,18 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Loads the captured safe model request for one invocation.
     ///
-    /// # Parameters
     /// - `self`: Client using the protocol transport.
     /// - `session`: Stable session identity.
     /// - `branch`: Stable branch identity.
     /// - `invocation`: Model invocation activity identity.
     ///
-    /// # Returns
     /// Bounded provider-neutral request detail retained by the session.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn model_request_detail(
         &self,
         session: impl Into<String>,
@@ -133,17 +223,18 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Loads bounded safe detail for one durable tool result.
     ///
-    /// # Parameters
     /// - `self`: Client using the protocol transport.
     /// - `session`: Stable session identity.
     /// - `branch`: Stable branch identity.
     /// - `result`: Tool result activity identity.
     ///
-    /// # Returns
     /// Whitelisted safe result fields and a truncation indicator.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn tool_result_detail(
         &self,
         session: impl Into<String>,

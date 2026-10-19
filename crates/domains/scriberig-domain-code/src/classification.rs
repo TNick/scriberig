@@ -9,12 +9,12 @@ pub enum InformationClass {
 }
 /// Returns the class for a field or artifact kind.
 ///
-/// # Parameters
 /// - `name`: Stable field name.
 ///
-/// # Returns
 /// Classification when recognized.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn classify(name: &str) -> Option<InformationClass> {
     if matches!(
         name,

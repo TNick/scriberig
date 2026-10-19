@@ -10,15 +10,16 @@ use scriberig_session::{SelectionError, SelectionStoreError};
 impl<B: ApplicationBackend> ApplicationService<B> {
     /// Resolves an enabled profile and its model descriptor.
     ///
-    /// # Parameters
     /// - `self`: Application service owning the model library.
     /// - `profile_id`: Stable model-profile identity.
     ///
-    /// # Returns
     /// The profile and its validated model descriptor.
     ///
-    /// # Errors
     /// Returns not-found or invalid-request for unavailable configuration.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn resolve_profile(
         &self,
         profile_id: &str,
@@ -46,16 +47,17 @@ impl<B: ApplicationBackend> ApplicationService<B> {
 
     /// Loads session state and identifies the subsystem that owns persistence.
     ///
-    /// # Parameters
     /// - `self`: Application service providing session storage.
     /// - `context`: Authorized request context for backend reads.
     /// - `session`: Stable session identity.
     ///
-    /// # Returns
     /// The session and whether an application backend owns its persistence.
     ///
-    /// # Errors
     /// Returns an application error for failed or unauthorized reads.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn selection_session(
         &self,
         context: &ApplicationContext,
@@ -78,18 +80,19 @@ impl<B: ApplicationBackend> ApplicationService<B> {
 
     /// Persists a selection update through its owning session boundary.
     ///
-    /// # Parameters
     /// - `self`: Application service providing session storage.
     /// - `context`: Authorized request context for backend writes.
     /// - `session`: Complete session with the updated execution selection.
     /// - `backend_owned`: Whether the backend supplied the current session.
     /// - `expected_revision`: Selection revision observed by the caller.
     ///
-    /// # Returns
     /// Unit after selection persistence succeeds.
     ///
-    /// # Errors
     /// Returns persistence errors or unsupported-operation for read-only state.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn persist_selection(
         &self,
         context: &ApplicationContext,
@@ -138,16 +141,17 @@ impl<B: ApplicationBackend> ApplicationService<B> {
 
 /// Rejects a stale session selection mutation before configuration is read.
 ///
-/// # Parameters
 /// - `expected`: Revision observed by the caller.
 /// - `actual`: Current selection revision.
 /// - `session`: Session being changed.
 ///
-/// # Returns
 /// Unit when the observed revision is current.
 ///
-/// # Errors
 /// Returns a structured conflict when revisions differ.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn ensure_revision(
     expected: u64,
     actual: u64,
@@ -164,12 +168,12 @@ pub(super) fn ensure_revision(
 
 /// Converts a selection-domain failure into a stable application error.
 ///
-/// # Parameters
 /// - `error`: Selection mutation failure.
 /// - `session`: Session whose selection was targeted.
 ///
-/// # Returns
 /// Structured conflict or invalid-request error.
+/// # Returns
+/// The operation result.
 pub(super) fn selection_error(error: SelectionError, session: EntityId) -> ApplicationError {
     match error {
         SelectionError::RevisionConflict { expected, actual } => ApplicationError::Conflict {
@@ -192,11 +196,11 @@ pub(super) fn selection_error(error: SelectionError, session: EntityId) -> Appli
 
 /// Creates a safe invalid model-selection request error.
 ///
-/// # Parameters
 /// - `message`: Configuration diagnostic without provider credentials.
 ///
-/// # Returns
 /// The application error for invalid selection input.
+/// # Returns
+/// The operation result.
 pub(super) fn invalid_selection(message: impl Into<String>) -> ApplicationError {
     ApplicationError::InvalidRequest {
         operation: "session model selection".to_owned(),

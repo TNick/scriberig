@@ -5,13 +5,13 @@ use super::{OperationId, OperationKind, OperationProgress, OperationRecord, Oper
 impl OperationRecord {
     /// Creates a queued operation record.
     ///
-    /// # Parameters
     /// - `reference`: Stable operation identity.
     /// - `kind`: Universal operation family.
     ///
-    /// # Returns
     /// A queued operation record without mutable result data.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn queued(reference: OperationId, kind: OperationKind) -> Self {
         Self {
             reference,
@@ -28,15 +28,16 @@ impl OperationRecord {
 
     /// Transitions the operation to a new lifecycle state.
     ///
-    /// # Parameters
     /// - `self`: Operation record to update.
     /// - `status`: Next lifecycle status.
     ///
-    /// # Returns
     /// The updated operation record.
     ///
-    /// # Errors
     /// Returns an application error when a terminal operation is changed.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn transition(mut self, status: OperationStatus) -> Result<Self, crate::ApplicationError> {
         if self.status.is_terminal() {
             return Err(crate::ApplicationError::OperationFailed {

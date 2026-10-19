@@ -48,13 +48,13 @@ pub enum SemanticChange {
 
 /// Reports whether a record explicitly depends on a changed value.
 ///
-/// # Parameters
 /// - `record`: Historical derived result to inspect.
 /// - `change`: Exact semantic change.
 ///
-/// # Returns
 /// `true` only when a declared dependency matches the old changed identity.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn is_affected(record: &DerivedResultRecord, change: &SemanticChange) -> bool {
     record
         .key()
@@ -88,16 +88,17 @@ pub fn is_affected(record: &DerivedResultRecord, change: &SemanticChange) -> boo
 ///
 /// A visited-handle set prevents malformed cyclic metadata from looping.
 ///
-/// # Parameters
 /// - `records`: Retained records that may depend on one another.
 /// - `change`: Exact semantic change at the graph boundary.
 ///
-/// # Returns
 /// A deterministic list of affected immutable result handles.
 ///
-/// # Errors
 /// This traversal is infallible and returns an empty list when nothing matches.
 #[must_use]
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn affected_transitively(
     records: &[DerivedResultRecord],
     change: &SemanticChange,

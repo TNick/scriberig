@@ -46,13 +46,13 @@ pub struct PropertySchema {
 
 /// Reports whether a value matches a declared shape.
 ///
-/// # Parameters
 /// - `value`: Value to inspect.
 /// - `shape`: Declared shape.
 ///
-/// # Returns
 /// `true` when the value matches.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn matches_shape(value: &KnowledgeValue, shape: &ValueShape) -> bool {
     matches!(
         (value, shape),

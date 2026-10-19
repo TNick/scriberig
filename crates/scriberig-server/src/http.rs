@@ -50,20 +50,35 @@ pub struct HttpState<S> {
     pub project_store: Option<Arc<SqliteStore>>,
     /// Canonical filesystem roots permitted for project scans and relinks.
     pub allowed_project_roots: Vec<PathBuf>,
+    /// Optional trusted runner that advances durable plan lifecycle requests.
+    pub plan_lifecycle_handler: Option<Arc<PlanLifecycleHandler<S>>>,
 }
+
+/// Runs one durable plan lifecycle transition with the configured model runtime.
+///
+/// The handler receives the same application service used by protocol dispatch,
+/// so persistence, authorization, and worker execution share one boundary.
+pub type PlanLifecycleHandler<S> = dyn Fn(
+        &S,
+        &ApplicationContext,
+        &scriberig_app::PlanLifecycleRequest,
+        scriberig_app::PlanLifecycleAction,
+    ) -> Result<scriberig_session::Plan, scriberig_app::ApplicationError>
+    + Send
+    + Sync;
 
 /// Handles one local HTTP connection.
 ///
-/// # Parameters
 /// - `stream`: Connected client socket.
 /// - `state`: Application and fixture state.
 ///
-/// # Returns
 /// I/O result after one response is written.
 ///
-/// # Errors
 /// Returns an I/O error when the request or response cannot be read or written.
-pub fn handle_connection<S: ApplicationService>(
+///
+/// # Errors
+/// Returns an I/O error when reading the request or writing the response fails.
+pub fn handle_connection<S: ApplicationService + 'static>(
     mut stream: TcpStream,
     state: &HttpState<S>,
 ) -> std::io::Result<()> {
@@ -163,7 +178,7 @@ pub fn handle_connection<S: ApplicationService>(
 }
 
 /// Dispatches an authoritative protocol envelope through shared application semantics.
-fn protocol<S: ApplicationService>(
+fn protocol<S: ApplicationService + 'static>(
     state: &HttpState<S>,
     body: &str,
 ) -> Result<Value, (u16, Value)> {
@@ -187,7 +202,19 @@ fn protocol<S: ApplicationService>(
             )
         });
     }
-    let response = Dispatcher::new(&state.service).dispatch(request);
+    let lifecycle_handler = state.plan_lifecycle_handler.as_ref().map(|handler| {
+        let handler = Arc::clone(handler);
+        Arc::new(
+            move |service: &&S,
+                  context: &ApplicationContext,
+                  request: &scriberig_app::PlanLifecycleRequest,
+                  action: scriberig_app::PlanLifecycleAction| {
+                handler(*service, context, request, action)
+            },
+        ) as Arc<PlanLifecycleHandler<&S>>
+    });
+    let response = Dispatcher::new(&state.service)
+        .dispatch_with_plan_lifecycle(request, lifecycle_handler.as_deref());
     serde_json::to_value(response).map_err(|error| {
         (
             500,
@@ -230,7 +257,7 @@ fn inspect<S: ApplicationService>(state: &HttpState<S>, body: &str) -> Result<Va
             json!({"code": "invalid_request", "message": "invalid entity id"}),
         )
     })?;
-    let snapshot = snapshot_resolution(&value, state.fixture.snapshot)?;
+    let snapshot = http_helpers::snapshot_resolution(&value, state.fixture.snapshot)?;
     let result = state
         .service
         .inspect(
@@ -355,45 +382,6 @@ fn command<S: ApplicationService>(state: &HttpState<S>, body: &str) -> Result<Va
             json!({"code": "internal", "message": error.to_string()}),
         )
     })
-}
-
-/// Resolves the browser snapshot selector without silently changing exact IDs.
-///
-/// # Parameters
-/// - `value`: Browser request containing a snapshot selector.
-/// - `current`: Current development snapshot used for the `current` selector.
-///
-/// # Returns
-/// The application snapshot resolution.
-///
-/// # Errors
-/// Returns a transport status and structured error body for invalid selectors.
-fn snapshot_resolution(
-    value: &Value,
-    current: SnapshotId,
-) -> Result<SnapshotResolution, (u16, Value)> {
-    match value
-        .get("snapshot")
-        .and_then(|item| item.get("kind"))
-        .and_then(Value::as_str)
-    {
-        Some("exact") => {
-            let id = value["snapshot"]["snapshotId"].as_str().unwrap_or_default();
-            SnapshotId::from_str(id)
-                .map(SnapshotResolution::At)
-                .map_err(|_| {
-                    (
-                        400,
-                        json!({"code": "invalid_request", "message": "invalid snapshot id"}),
-                    )
-                })
-        }
-        Some("current") | None => Ok(SnapshotResolution::At(current)),
-        Some(_) => Err((
-            400,
-            json!({"code": "invalid_request", "message": "unsupported snapshot selector"}),
-        )),
-    }
 }
 
 #[cfg(test)]

@@ -73,6 +73,78 @@ fn storage_diff_is_snapshot_bound() {
     assert_eq!(result.diff.as_ref().map(|diff| diff.left), Some(snapshot));
 }
 
+/// Verifies explicit candidate merge combines disjoint changes without promotion.
+#[test]
+fn storage_merge_combines_disjoint_candidates_without_promoting_root() {
+    let store = MemoryStore::new();
+    let base = store.empty_snapshot();
+    let left_entity = EntityId::from_bytes([1; 16]);
+    let right_entity = EntityId::from_bytes([2; 16]);
+    let left = store
+        .apply_changes(
+            base,
+            &[SnapshotChange::Set(left_entity, RevisionId::new([3; 32]))],
+        )
+        .expect("left candidate");
+    let right = store
+        .apply_changes(
+            base,
+            &[SnapshotChange::Set(right_entity, RevisionId::new([4; 32]))],
+        )
+        .expect("right candidate");
+    let provider = StoreOperationProvider::new(store);
+    let merged = provider
+        .merge(
+            &ApplicationContext::empty(),
+            &scriberig_app::MergeRequest { base, left, right },
+        )
+        .expect("merge");
+    assert_eq!(merged.conflicts, Vec::new());
+    assert_eq!(merged.resolved_deltas.len(), 2);
+    assert!(merged.result.is_some());
+    assert!(
+        provider
+            .store()
+            .read_root(&RootName::new("main").expect("root"))
+            .is_none()
+    );
+}
+
+/// Verifies a same-target candidate conflict remains structured and unresolved.
+#[test]
+fn storage_merge_returns_same_target_conflict_without_promotion() {
+    let store = MemoryStore::new();
+    let base = store.empty_snapshot();
+    let entity = EntityId::from_bytes([1; 16]);
+    let left = store
+        .apply_changes(
+            base,
+            &[SnapshotChange::Set(entity, RevisionId::new([3; 32]))],
+        )
+        .expect("left candidate");
+    let right = store
+        .apply_changes(
+            base,
+            &[SnapshotChange::Set(entity, RevisionId::new([4; 32]))],
+        )
+        .expect("right candidate");
+    let provider = StoreOperationProvider::new(store);
+    let merged = provider
+        .merge(
+            &ApplicationContext::empty(),
+            &scriberig_app::MergeRequest { base, left, right },
+        )
+        .expect("merge");
+    assert_eq!(merged.conflicts.len(), 1);
+    assert!(merged.result.is_none());
+    assert!(
+        provider
+            .store()
+            .read_root(&RootName::new("main").expect("root"))
+            .is_none()
+    );
+}
+
 /// Verifies operation providers can share a storage backend through `Arc`.
 #[test]
 fn storage_operation_provider_accepts_shared_store() {

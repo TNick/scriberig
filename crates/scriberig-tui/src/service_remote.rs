@@ -2,11 +2,21 @@
 
 #![allow(clippy::wildcard_imports)]
 
-use super::service_remote_mapping::{map_remote_operation, remote_error, session_from_response};
+#[macro_use]
+#[path = "service_remote_plan_contract_methods.rs"]
+mod plan_contract_methods;
+#[macro_use]
+#[path = "service_remote_session_methods.rs"]
+mod session_methods;
+use super::service_remote_mapping::{
+    map_remote_operation, protocol_agent_selection, remote_error, session_from_response,
+};
 use super::service_remote_models;
 use super::*;
 use std::collections::BTreeSet;
 
+#[path = "service_remote_plan_operations.rs"]
+mod plan_operations;
 #[path = "service_remote_events.rs"]
 mod remote_events;
 
@@ -23,12 +33,12 @@ pub struct RemoteAdapter<T> {
 impl<T> RemoteAdapter<T> {
     /// Creates a remote TUI adapter over a public protocol client.
     ///
-    /// # Parameters
     /// - `client`: Protocol client used for remote TUI requests.
     ///
-    /// # Returns
     /// A remote adapter backed by the client.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(client: scriberig_client::Client<T>) -> Self {
         Self {
             client,
@@ -39,18 +49,121 @@ impl<T> RemoteAdapter<T> {
 }
 
 impl<T: scriberig_protocol::ProtocolTransport> TuiService for RemoteAdapter<T> {
+    /// Continues a remote conversation from an exact durable anchor.
+    ///
+    /// - `self`: Remote service adapter.
+    /// - `_context`: Local context; remote authorization is transport-owned.
+    /// - `session`: Owning session identity.
+    /// - `anchor`: Exact replyable location.
+    /// - `prompt`: User-authored follow-up.
+    ///
+    /// Authoritative operation, session, and continuation branch handles.
+    ///
+    /// Returns sanitized protocol or identity errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn continue_agent_at_handle(
+        &self,
+        _context: &ApplicationContext,
+        session: EntityId,
+        anchor: scriberig_session::ContinuationAnchor,
+        prompt: &str,
+    ) -> Result<super::AgentHandle, ApplicationError> {
+        let anchor = super::service_remote_mapping::protocol_anchor(anchor);
+        let accepted = self
+            .client
+            .continue_agent_at(session.to_string(), anchor, prompt, None)
+            .map_err(remote_error)?;
+        let operation =
+            scriberig_core::OperationId::from_str(&accepted.operation.operation.reference.id)
+                .map_err(|error| ApplicationError::Internal {
+                    message: format!(
+                        "remote response contained invalid operation identity: {error}"
+                    ),
+                })?;
+        let branch = accepted
+            .branch
+            .as_ref()
+            .map(|value| EntityId::from_str(&value.id))
+            .transpose()
+            .map_err(|error| ApplicationError::Internal {
+                message: format!("remote response contained invalid branch identity: {error}"),
+            })?;
+        Ok(super::AgentHandle {
+            operation,
+            session,
+            branch,
+            workspace: None,
+        })
+    }
+
+    /// Starts a new remote session through the shared agent protocol.
+    ///
+    /// - `self`: Remote service adapter.
+    /// - `_context`: Local request context; remote authorization is transport-owned.
+    /// - `prompt`: User-authored first instruction.
+    /// - `selection`: Exact semantic scope for the initial model context.
+    ///
+    /// Authoritative operation, session, and root branch handles.
+    ///
+    /// Returns a sanitized protocol or identity error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn start_new_session_handle(
+        &self,
+        _context: &ApplicationContext,
+        prompt: &str,
+        selection: Option<scriberig_app::AgentSelection>,
+    ) -> Result<super::AgentHandle, ApplicationError> {
+        let accepted = self
+            .client
+            .start_new_session_agent(prompt, selection.as_ref().map(protocol_agent_selection))
+            .map_err(remote_error)?;
+        let operation =
+            scriberig_core::OperationId::from_str(&accepted.operation.operation.reference.id)
+                .map_err(|error| ApplicationError::Internal {
+                    message: format!(
+                        "remote response contained invalid operation identity: {error}"
+                    ),
+                })?;
+        let session = EntityId::from_str(&accepted.session.id).map_err(|error| {
+            ApplicationError::Internal {
+                message: format!("remote response contained invalid session identity: {error}"),
+            }
+        })?;
+        let branch = accepted
+            .branch
+            .as_ref()
+            .map(|value| EntityId::from_str(&value.id))
+            .transpose()
+            .map_err(|error| ApplicationError::Internal {
+                message: format!("remote response contained invalid branch identity: {error}"),
+            })?;
+        Ok(super::AgentHandle {
+            operation,
+            session,
+            branch,
+            workspace: None,
+        })
+    }
+
     /// Inspects an entity through the public protocol client.
     ///
-    /// # Parameters
     /// - `_context`: Application context for the request.
     /// - `entity`: Entity to inspect.
     /// - `snapshot`: Optional exact snapshot.
     ///
-    /// # Returns
     /// The decoded inspection result.
     ///
-    /// # Errors
     /// Returns a protocol or response-decoding error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect_entity(
         &self,
         _context: &ApplicationContext,
@@ -93,18 +206,19 @@ impl<T: scriberig_protocol::ProtocolTransport> TuiService for RemoteAdapter<T> {
 
     /// Lists snapshot entities through the public remote query boundary.
     ///
-    /// # Parameters
     /// - `context`: Authorization context for the remote request.
     /// - `entity`: Entity owning the semantic collection.
     /// - `snapshot`: Exact snapshot context.
     /// - `continuation`: Opaque continuation returned by the previous page.
     /// - `_context`: Authorization context for the remote request.
     ///
-    /// # Returns
     /// Snapshot-bound Explorer rows and the next continuation, when present.
     ///
-    /// # Errors
     /// Returns a structured remote protocol or application error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn list_explorer(
         &self,
         _context: &ApplicationContext,
@@ -117,17 +231,18 @@ impl<T: scriberig_protocol::ProtocolTransport> TuiService for RemoteAdapter<T> {
 
     /// Executes exact-text discovery through the public remote boundary.
     ///
-    /// # Parameters
     /// - `context`: Authorization context for the remote request.
     /// - `snapshot`: Exact discovery scope.
     /// - `query`: User-authored search text.
     /// - `_context`: Authorization context for the remote request.
     ///
-    /// # Returns
     /// A bounded TUI discovery model.
     ///
-    /// # Errors
     /// Returns a structured remote protocol or application error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn find_entities(
         &self,
         _context: &ApplicationContext,
@@ -139,14 +254,15 @@ impl<T: scriberig_protocol::ProtocolTransport> TuiService for RemoteAdapter<T> {
 
     /// Converts remote capability descriptors into application metadata.
     ///
-    /// # Parameters
     /// - `_context`: Application context for capability access.
     ///
-    /// # Returns
     /// Decoded runtime capabilities.
     ///
-    /// # Errors
     /// Returns a protocol capability-discovery error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn runtime_capabilities(
         &self,
         _context: &ApplicationContext,
@@ -156,15 +272,16 @@ impl<T: scriberig_protocol::ProtocolTransport> TuiService for RemoteAdapter<T> {
 
     /// Reads a remote operation lifecycle record through the public client.
     ///
-    /// # Parameters
     /// - `_context`: Application context for the lookup.
     /// - `operation`: Operation identity to resolve.
     ///
-    /// # Returns
     /// The remote operation record.
     ///
-    /// # Errors
     /// Returns a remote protocol or decoding error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn operation_status(
         &self,
         _context: &ApplicationContext,
@@ -179,15 +296,16 @@ impl<T: scriberig_protocol::ProtocolTransport> TuiService for RemoteAdapter<T> {
 
     /// Requests remote cancellation and returns the reported lifecycle state.
     ///
-    /// # Parameters
     /// - `_context`: Application context for cancellation.
     /// - `operation`: Operation identity to cancel.
     ///
-    /// # Returns
     /// The cancelled remote operation record.
     ///
-    /// # Errors
     /// Returns a remote protocol or decoding error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn cancel_operation(
         &self,
         _context: &ApplicationContext,
@@ -202,14 +320,15 @@ impl<T: scriberig_protocol::ProtocolTransport> TuiService for RemoteAdapter<T> {
 
     /// Polls public remote events for the runtime event/action path.
     ///
-    /// # Parameters
     /// - `_context`: Application context for event access.
     ///
-    /// # Returns
     /// Decoded remote application events.
     ///
-    /// # Errors
     /// Returns a remote protocol error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn application_events(
         &self,
         _context: &ApplicationContext,
@@ -219,15 +338,16 @@ impl<T: scriberig_protocol::ProtocolTransport> TuiService for RemoteAdapter<T> {
 
     /// Reads and reconstructs the compact remote session view.
     ///
-    /// # Parameters
     /// - `_context`: Authorized application context.
     /// - `session`: Stable session identity.
     ///
-    /// # Returns
     /// A provider-neutral session value usable by the existing TUI view model.
     ///
-    /// # Errors
     /// Returns a sanitized remote or identity-decoding error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read_session(
         &self,
         _context: &ApplicationContext,
@@ -243,152 +363,8 @@ impl<T: scriberig_protocol::ProtocolTransport> TuiService for RemoteAdapter<T> {
         session_from_response(response)
     }
 
-    /// Reads bounded safe result detail through the protocol client.
-    /// - `_context`: Authorized application context.
-    /// - `session`: Session containing the result.
-    /// - `branch`: Branch containing the result.
-    /// - `result`: Stable tool-result identity.
-    ///
-    /// # Returns
-    /// Bounded allowlisted result detail.
-    ///
-    /// # Errors
-    /// Returns a sanitized remote protocol error.
-    fn tool_result_detail(
-        &self,
-        _context: &ApplicationContext,
-        session: EntityId,
-        branch: EntityId,
-        result: EntityId,
-    ) -> Result<scriberig_protocol::ToolResultDetailResponse, ApplicationError> {
-        service_remote_models::tool_result_detail(self, session, branch, result)
-    }
-
-    /// Reads credential-safe model descriptors from the public client.
-    ///
-    /// # Parameters
-    /// - `_context`: Authorized application context.
-    ///
-    /// # Returns
-    /// Safe model and profile descriptors.
-    ///
-    /// # Errors
-    /// Returns a sanitized remote protocol error.
-    fn model_library(
-        &self,
-        _context: &ApplicationContext,
-    ) -> Result<scriberig_protocol::ModelLibraryResponse, ApplicationError> {
-        service_remote_models::model_library(self)
-    }
-
-    /// Updates future model selection through the revision-checked protocol.
-    ///
-    /// # Parameters
-    /// - `_context`: Authorized application context.
-    /// - `request`: Session and observed selection revision.
-    ///
-    /// # Returns
-    /// The authoritative updated execution selection.
-    ///
-    /// # Errors
-    /// Returns a sanitized remote protocol error.
-    fn set_session_model(
-        &self,
-        _context: &ApplicationContext,
-        request: &scriberig_app::SessionModelSelectionRequest,
-    ) -> Result<scriberig_session::SessionExecutionSelection, ApplicationError> {
-        service_remote_models::set_session_model(self, request)
-    }
-
-    /// Updates future thinking selection through the revision-checked protocol.
-    ///
-    /// # Parameters
-    /// - `_context`: Authorized application context.
-    /// - `request`: Session and observed selection revision.
-    ///
-    /// # Returns
-    /// The authoritative updated execution selection.
-    ///
-    /// # Errors
-    /// Returns a sanitized remote protocol error.
-    fn set_session_thinking_level(
-        &self,
-        _context: &ApplicationContext,
-        request: &scriberig_app::SessionThinkingSelectionRequest,
-    ) -> Result<scriberig_session::SessionExecutionSelection, ApplicationError> {
-        service_remote_models::set_session_thinking_level(self, request)
-    }
-
-    /// Reads one remote branch subtree on demand.
-    ///
-    /// # Parameters
-    /// - `_context`: Authorized application context.
-    /// - `session`: Stable session identity.
-    /// - `branch`: Branch whose activity is requested.
-    ///
-    /// # Returns
-    /// The selected provider-neutral branch subtree.
-    ///
-    /// # Errors
-    /// Returns a sanitized remote protocol failure.
-    fn read_session_branch(
-        &self,
-        _context: &ApplicationContext,
-        session: EntityId,
-        branch: EntityId,
-    ) -> Result<scriberig_session::Session, ApplicationError> {
-        let response = self
-            .client
-            .read_session_branch(session.to_string(), branch.to_string())
-            .map_err(remote_error)?;
-        session_from_response(response)
-    }
-
-    /// Submits a remote agent command through the shared operation protocol.
-    ///
-    /// # Parameters
-    /// - `_context`: Authorized application context.
-    /// - `session`: Stable session identity receiving the prompt.
-    /// - `branch`: Optional target branch identity.
-    /// - `prompt`: User-authored agent instruction.
-    ///
-    /// # Returns
-    /// The accepted shared operation identity.
-    ///
-    /// # Errors
-    /// Returns the sanitized remote protocol failure.
-    fn submit_agent_command(
-        &self,
-        _context: &ApplicationContext,
-        session: EntityId,
-        branch: Option<EntityId>,
-        prompt: &str,
-    ) -> Result<scriberig_core::OperationId, ApplicationError> {
-        super::service_remote_agent::submit_agent_command(self, session, branch, prompt)
-    }
-
-    /// Submits remote agent work while retaining the server-provided branch handle.
-    ///
-    /// # Parameters
-    /// - `_context`: Application context for the operation.
-    /// - `session`: Stable session identity.
-    /// - `branch`: Optional continuation branch.
-    /// - `prompt`: User-authored instruction.
-    ///
-    /// # Returns
-    /// Stable operation, session, and branch handles.
-    ///
-    /// # Errors
-    /// Returns a sanitized remote protocol or identity error.
-    fn submit_agent_handle(
-        &self,
-        _context: &ApplicationContext,
-        session: EntityId,
-        branch: Option<EntityId>,
-        prompt: &str,
-    ) -> Result<super::AgentHandle, ApplicationError> {
-        super::service_remote_agent::submit_agent_handle(self, session, branch, prompt)
-    }
+    remote_plan_contract_methods!();
+    remote_session_methods!();
 }
 
 #[cfg(test)]

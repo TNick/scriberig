@@ -4,21 +4,24 @@ use std::collections::BTreeMap;
 use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Mutex};
 
+#[path = "service_backend.rs"]
+mod service_backend;
+pub use service_backend::ApplicationBackend;
+#[path = "service_query.rs"]
+mod service_query;
 use crate::{
-    ApplicationContext, ApplicationError, ApplicationRequest, ApplicationResult, InspectRequest,
-    InspectResult, MigrationDetail, QueryService,
+    ApplicationContext, ApplicationError, ApplicationRequest, ApplicationResult, MigrationDetail,
+    SessionBackend,
 };
 use scriberig_core::EntityId;
 use scriberig_session::Session;
-
-use crate::SessionBackend;
-
-use self::service_query_helpers::{inspect_result, query_request};
 
 #[path = "service_agent_console.rs"]
 mod service_agent_console;
 #[path = "service_configuration.rs"]
 mod service_configuration;
+#[path = "service_plans.rs"]
+mod service_plans;
 #[path = "service_query_helpers.rs"]
 mod service_query_helpers;
 #[path = "service_sessions.rs"]
@@ -27,135 +30,6 @@ mod service_sessions;
 mod session_failures;
 #[path = "session_persistence.rs"]
 mod session_persistence;
-
-/// Provides semantic execution for the universal application request model.
-pub trait ApplicationBackend {
-    /// Reads canonical detail for one migration proposal.
-    ///
-    /// # Parameters
-    /// - `_context`: Authorized application context.
-    /// - `_id`: Stable migration handle.
-    ///
-    /// # Returns
-    /// Snapshot-bound migration detail.
-    ///
-    /// # Errors
-    /// Returns unsupported-operation when proposal reads are not configured.
-    fn migration_detail(
-        &self,
-        _context: &ApplicationContext,
-        _id: &str,
-    ) -> Result<MigrationDetail, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "migration detail".to_owned(),
-        })
-    }
-
-    /// Executes one transport-independent application request.
-    ///
-    /// # Parameters
-    /// - `self`: Backend owning semantic subsystem providers.
-    /// - `context`: Caller, capability, and request context.
-    /// - `request`: Universal application request to execute.
-    ///
-    /// # Returns
-    /// Structured application result owned by the canonical subsystem.
-    ///
-    /// # Errors
-    /// Returns a structured application failure without transport details.
-    fn execute(
-        &self,
-        context: &ApplicationContext,
-        request: &ApplicationRequest,
-    ) -> Result<ApplicationResult, ApplicationError>;
-
-    /// Resolves the current accepted snapshot for the request.
-    ///
-    /// # Parameters
-    /// - `self`: Backend owning snapshot/root state.
-    /// - `_context`: Caller context.
-    ///
-    /// # Returns
-    /// The exact current snapshot.
-    ///
-    /// # Errors
-    /// Returns an unsupported-operation error when no current root exists.
-    fn current_snapshot(
-        &self,
-        _context: &ApplicationContext,
-    ) -> Result<scriberig_core::SnapshotId, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "current snapshot resolution".to_owned(),
-        })
-    }
-
-    /// Reads a session through the owning application subsystem.
-    ///
-    /// # Parameters
-    /// - `_context`: Application context for the request.
-    /// - `_request`: Session request to resolve.
-    ///
-    /// # Returns
-    /// The requested session.
-    ///
-    /// # Errors
-    /// Returns an unsupported-operation error by default.
-    fn read_session(
-        &self,
-        _context: &ApplicationContext,
-        _request: &crate::SessionRequest,
-    ) -> Result<scriberig_session::Session, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "session read".to_owned(),
-        })
-    }
-
-    /// Atomically persists a session execution selection through its owner.
-    ///
-    /// # Parameters
-    /// - `_context`: Authorized application context.
-    /// - `_session`: Session snapshot with the updated selection.
-    /// - `_expected_revision`: Selection revision observed by the caller; the
-    ///   owner must compare it atomically with the persisted revision.
-    ///
-    /// # Returns
-    /// Unit after the update is persisted.
-    ///
-    /// # Errors
-    /// Returns conflict for a stale revision, or unsupported-operation when
-    /// the backend cannot atomically mutate session state.
-    fn update_session_execution_selection(
-        &self,
-        _context: &ApplicationContext,
-        _session: &scriberig_session::Session,
-        _expected_revision: u64,
-    ) -> Result<(), ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "session execution selection update".to_owned(),
-        })
-    }
-
-    /// Starts an agent command through the owning application subsystem.
-    ///
-    /// # Parameters
-    /// - `_context`: Application context for the request.
-    /// - `_request`: Agent command request to submit.
-    ///
-    /// # Returns
-    /// The accepted operation identity.
-    ///
-    /// # Errors
-    /// Returns an unsupported-operation error by default.
-    fn submit_agent_command(
-        &self,
-        _context: &ApplicationContext,
-        _request: &crate::AgentCommandRequest,
-    ) -> Result<scriberig_core::OperationId, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "agent command submission".to_owned(),
-        })
-    }
-}
 
 /// Facade that delegates every application operation to one injected backend.
 pub struct ApplicationService<B> {
@@ -171,12 +45,12 @@ pub struct ApplicationService<B> {
 impl<B> ApplicationService<B> {
     /// Creates an application service around canonical subsystem providers.
     ///
-    /// # Parameters
     /// - `backend`: Backend implementing universal operation execution.
     ///
-    /// # Returns
     /// A transport-independent application service.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(backend: B) -> Self {
         Self {
             backend,
@@ -193,10 +67,8 @@ impl<B> ApplicationService<B> {
 
     /// Returns the injected backend by shared reference.
     ///
-    /// # Parameters
     /// - `self`: Application service to inspect.
     ///
-    /// # Returns
     /// The backend used for semantic execution.
     #[must_use]
     pub const fn backend(&self) -> &B {
@@ -213,17 +85,18 @@ impl<B> ApplicationService<B> {
 impl<B: ApplicationBackend> ApplicationService<B> {
     /// Starts an agent operation at a session root through the shared boundary.
     ///
-    /// # Parameters
     /// - `self`: Application service owning the session subsystem.
     /// - `context`: Authorized application context.
     /// - `session`: Stable target session identity.
     /// - `prompt`: User-authored agent instruction.
     ///
-    /// # Returns
     /// Stable operation identity for lifecycle observation.
     ///
-    /// # Errors
     /// Returns the shared application failure from agent submission.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn start_agent(
         &self,
         context: &ApplicationContext,
@@ -235,6 +108,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
             &crate::AgentCommandRequest {
                 session,
                 branch: None,
+                anchor: None,
                 prompt: prompt.into(),
                 selection: None,
             },
@@ -243,18 +117,19 @@ impl<B: ApplicationBackend> ApplicationService<B> {
 
     /// Continues an agent operation on an existing session branch.
     ///
-    /// # Parameters
     /// - `self`: Application service owning the session subsystem.
     /// - `context`: Authorized application context.
     /// - `session`: Stable target session identity.
     /// - `branch`: Stable branch receiving the follow-up.
     /// - `prompt`: User-authored follow-up instruction.
     ///
-    /// # Returns
     /// Stable operation identity for lifecycle observation.
     ///
-    /// # Errors
     /// Returns the shared application failure from agent submission.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn continue_agent(
         &self,
         context: &ApplicationContext,
@@ -266,25 +141,208 @@ impl<B: ApplicationBackend> ApplicationService<B> {
             context,
             &crate::AgentCommandRequest {
                 session,
-                branch: Some(branch),
+                branch: None,
+                anchor: Some(scriberig_session::ContinuationAnchor::BranchHead { branch }),
                 prompt: prompt.into(),
                 selection: None,
             },
         )
     }
 
+    /// Starts a new session and returns application allocated handles.
+    ///
+    /// - `self`: Application service owning session creation.
+    /// - `context`: Authorized application context.
+    /// - `prompt`: Initial user instruction.
+    ///
+    /// Operation, session, and root branch identities accepted by the service.
+    ///
+    /// Returns authorization, session persistence, or operation errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn start_new_session_agent(
+        &self,
+        context: &ApplicationContext,
+        prompt: impl Into<String>,
+    ) -> Result<crate::NewSessionAgentStart, ApplicationError>
+    where
+        B: ApplicationBackend,
+    {
+        self.start_new_session_agent_with_selection(
+            context,
+            crate::NewSessionAgentRequest {
+                prompt: prompt.into(),
+                selection: None,
+            },
+        )
+    }
+
+    /// Starts a new session with an optional exact semantic selection.
+    ///
+    /// - `self`: Application service owning session creation.
+    /// - `context`: Authorized application context.
+    /// - `request`: Initial instruction and optional semantic scope.
+    ///
+    /// Operation, session, and root branch identities accepted by the service.
+    ///
+    /// Returns authorization, semantic selection, persistence, or operation errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn start_new_session_agent_with_selection(
+        &self,
+        context: &ApplicationContext,
+        request: crate::NewSessionAgentRequest,
+    ) -> Result<crate::NewSessionAgentStart, ApplicationError>
+    where
+        B: ApplicationBackend,
+    {
+        let session = self.next_entity(0xA0);
+        let operation = self.submit_agent_command(
+            context,
+            &crate::AgentCommandRequest {
+                session,
+                branch: None,
+                anchor: None,
+                prompt: request.prompt,
+                selection: request.selection,
+            },
+        )?;
+        let state = <Self as crate::SessionBackend>::read_session(
+            self,
+            context,
+            &crate::SessionRequest { session },
+        )?;
+        let root_branch = state
+            .branches
+            .iter()
+            .find(|branch| branch.parent.is_none())
+            .map(|branch| branch.id)
+            .ok_or_else(|| ApplicationError::Internal {
+                message: "new session has no root branch".to_owned(),
+            })?;
+        Ok(crate::NewSessionAgentStart {
+            operation,
+            session,
+            root_branch,
+        })
+    }
+
+    /// Continues an agent operation from an exact historical session anchor.
+    ///
+    /// - `self`: Application service owning session continuation.
+    /// - `context`: Authorized application context.
+    /// - `session`: Stable session identity.
+    /// - `anchor`: Exact validated continuation location.
+    /// - `prompt`: User-authored follow-up instruction.
+    ///
+    /// Stable shared operation identity.
+    ///
+    /// Returns authorization, anchor validation, or backend operation errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn continue_agent_at(
+        &self,
+        context: &ApplicationContext,
+        session: EntityId,
+        anchor: scriberig_session::ContinuationAnchor,
+        prompt: impl Into<String>,
+    ) -> Result<crate::AgentContinuationAccepted, ApplicationError>
+    where
+        B: ApplicationBackend,
+    {
+        self.continue_agent_at_request(
+            context,
+            crate::AgentContinueAtRequest {
+                session,
+                anchor,
+                prompt: prompt.into(),
+                selection: None,
+            },
+        )
+    }
+
+    /// Continues at an exact anchor with optional semantic scope.
+    ///
+    /// - `self`: Application service owning session continuation.
+    /// - `context`: Authorized application context.
+    /// - `request`: Session, exact anchor, prompt, and semantic selection.
+    ///
+    /// Stable operation, session, and child branch identities.
+    ///
+    /// Returns authorization, anchor validation, or backend operation errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn continue_agent_at_request(
+        &self,
+        context: &ApplicationContext,
+        request: crate::AgentContinueAtRequest,
+    ) -> Result<crate::AgentContinuationAccepted, ApplicationError>
+    where
+        B: ApplicationBackend,
+    {
+        let session = request.session;
+        let anchor = request.anchor;
+        let prompt = request.prompt;
+        let operation = self.submit_agent_command(
+            context,
+            &crate::AgentCommandRequest {
+                session,
+                branch: None,
+                anchor: Some(anchor),
+                prompt: prompt.clone(),
+                selection: request.selection,
+            },
+        )?;
+        let state = <Self as crate::SessionBackend>::read_session(
+            self,
+            context,
+            &crate::SessionRequest { session },
+        )?;
+        let branch = state
+            .branches
+            .iter()
+            .find(|branch| {
+                branch
+                    .continuation
+                    .is_some_and(|origin| origin.anchor == anchor)
+                    && branch.turns.iter().any(|turn| {
+                        turn.human
+                            .as_ref()
+                            .is_some_and(|input| input.text == prompt)
+                    })
+            })
+            .map(|branch| branch.id)
+            .ok_or_else(|| ApplicationError::Internal {
+                message: "accepted continuation has no durable branch".to_owned(),
+            })?;
+        Ok(crate::AgentContinuationAccepted {
+            operation,
+            session,
+            branch,
+        })
+    }
+
     /// Reads one migration proposal through the shared application boundary.
     ///
-    /// # Parameters
     /// - `self`: Application service.
     /// - `context`: Authorized application context.
     /// - `id`: Stable migration handle.
     ///
-    /// # Returns
     /// Snapshot-bound migration detail.
     ///
-    /// # Errors
     /// Returns the backend's structured application error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn migration_detail(
         &self,
         context: &ApplicationContext,
@@ -295,16 +353,17 @@ impl<B: ApplicationBackend> ApplicationService<B> {
 
     /// Executes one universal application request.
     ///
-    /// # Parameters
     /// - `self`: Application service.
     /// - `context`: Caller and capability context.
     /// - `request`: Universal request to execute.
     ///
-    /// # Returns
     /// The structured result returned by the owning subsystem.
     ///
-    /// # Errors
     /// Returns a structured application failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn execute(
         &self,
         context: &ApplicationContext,
@@ -313,41 +372,3 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         self.backend.execute(context, request)
     }
 }
-
-impl<B: ApplicationBackend> QueryService for ApplicationService<B> {
-    /// Executes an application inspection request through the universal path.
-    ///
-    /// # Parameters
-    /// - `self`: Application service.
-    /// - `context`: Caller and capability context.
-    /// - `request`: Snapshot-aware application inspection request.
-    ///
-    /// # Returns
-    /// Application inspection metadata in the CLI/server-facing shape.
-    ///
-    /// # Errors
-    /// Returns a structured application failure when the operation fails or
-    /// returns a non-inspection result.
-    fn inspect(
-        &self,
-        context: &ApplicationContext,
-        request: &InspectRequest,
-    ) -> Result<InspectResult, ApplicationError> {
-        let current = match request.snapshot {
-            crate::SnapshotResolution::Current => Some(self.backend.current_snapshot(context)?),
-            _ => None,
-        };
-        let application_request = ApplicationRequest::Inspect(query_request(request, current)?);
-        let result = self.execute(context, &application_request)?;
-        let ApplicationResult::Inspect(inspection) = result else {
-            return Err(ApplicationError::Internal {
-                message: "inspect backend returned a different result kind".to_owned(),
-            });
-        };
-        inspect_result(inspection, request.detail)
-    }
-}
-
-#[cfg(test)]
-#[path = "tests.rs"]
-mod tests;

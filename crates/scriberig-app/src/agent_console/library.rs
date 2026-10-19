@@ -23,16 +23,17 @@ pub struct ModelLibrary {
 impl ModelLibrary {
     /// Creates a validated model library with unique model and profile ids.
     ///
-    /// # Parameters
     /// - `models`: Descriptors available to configured profiles.
     /// - `profiles`: Curated entries shown to clients.
     ///
-    /// # Returns
     /// A library ordered as supplied by its configuration.
     ///
-    /// # Errors
     /// Returns an error for duplicate ids, invalid descriptors, or profiles
     /// that reference missing models or unsupported thinking defaults.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(
         models: Vec<ModelDescriptor>,
         profiles: Vec<ModelProfile>,
@@ -59,24 +60,24 @@ impl ModelLibrary {
 
     /// Finds a model descriptor by stable identity.
     ///
-    /// # Parameters
     /// - `id`: Provider-neutral model identity.
     ///
-    /// # Returns
     /// The matching descriptor when it belongs to this library.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn model(&self, id: &ModelId) -> Option<&ModelDescriptor> {
         self.models.iter().find(|model| &model.id == id)
     }
 
     /// Finds a curated profile by stable identity.
     ///
-    /// # Parameters
     /// - `id`: Curated profile identity.
     ///
-    /// # Returns
     /// The matching profile when it belongs to this library.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn profile(&self, id: &str) -> Option<&ModelProfile> {
         self.profiles.iter().find(|profile| profile.id == id)
     }

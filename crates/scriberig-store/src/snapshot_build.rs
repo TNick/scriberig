@@ -8,14 +8,14 @@ use super::{Node, nibble};
 
 /// Builds one canonical radix subtree from entity-sorted entries.
 ///
-/// # Parameters
 /// - `entries`: Entity/revision pairs in ascending entity order.
 /// - `depth`: Current radix depth.
 /// - `crate`: Internal visibility marker.
 /// - `RevisionId`: Revision component of each entry.
 ///
-/// # Returns
 /// A persistent radix subtree containing all entries.
+/// # Returns
+/// The operation result.
 pub(crate) fn build(entries: &[(EntityId, RevisionId)], depth: usize) -> Arc<Node> {
     if entries.is_empty() {
         return Arc::new(Node::Empty);

@@ -10,8 +10,9 @@ use crate::action::Direction;
 /// - `state`: TUI state to update.
 /// - `direction`: Cursor movement direction.
 ///
-/// # Returns
 /// Effects produced by the movement.
+/// # Returns
+/// The operation result.
 pub(super) fn reduce_cursor(state: &mut TuiState, direction: Direction) -> Vec<Effect> {
     if let Some(Overlay::Palette(palette)) = state.overlay.as_mut() {
         let last = palette.filtered().len().saturating_sub(1);
@@ -25,17 +26,27 @@ pub(super) fn reduce_cursor(state: &mut TuiState, direction: Direction) -> Vec<E
             Direction::Previous => state.cursor.saturating_sub(1),
             Direction::Next => state.cursor.saturating_add(1).min(last),
         };
+        if state.primary_view == crate::selection::PrimaryView::Conversation {
+            state.conversation_cursor = state
+                .conversation
+                .as_ref()
+                .and_then(|model| model.rows.get(state.cursor))
+                .map(|row| row.source);
+            if state.conversation_browsing {
+                state.follow_coordinator = false;
+            }
+        }
     }
     vec![Effect::None]
 }
 
 /// Returns the last selectable row in the focused presentation.
 ///
-/// # Parameters
 /// - `state`: Current TUI presentation state.
 ///
-/// # Returns
 /// The zero-based upper cursor bound for the active pane.
+/// # Returns
+/// The operation result.
 fn cursor_limit(state: &TuiState) -> usize {
     match state.focus {
         Focus::Explorer => state
@@ -46,6 +57,16 @@ fn cursor_limit(state: &TuiState) -> usize {
             .saturating_add(state.explorer.rows.len())
             .saturating_sub(1),
         Focus::Primary => match state.primary_view {
+            crate::selection::PrimaryView::Conversation => state
+                .conversation
+                .as_ref()
+                .map_or(0, |model| model.rows.len().saturating_sub(1)),
+            crate::selection::PrimaryView::Explorer => state
+                .explorer
+                .rows
+                .len()
+                .saturating_add(usize::from(state.explorer.root.is_some()))
+                .saturating_sub(1),
             crate::selection::PrimaryView::History => match &state.history {
                 LoadState::Ready(model) => model.rows.len().saturating_sub(1),
                 _ => 0,
@@ -78,8 +99,9 @@ fn cursor_limit(state: &TuiState) -> usize {
 /// - `state`: TUI state to update.
 /// - `reverse`: Whether to move backward.
 ///
-/// # Returns
 /// No-op effect after updating focus.
+/// # Returns
+/// The operation result.
 pub(super) fn reduce_focus(state: &mut TuiState, reverse: bool) -> Vec<Effect> {
     if state.overlay.is_none() {
         state.focus = state.focus.next(reverse);

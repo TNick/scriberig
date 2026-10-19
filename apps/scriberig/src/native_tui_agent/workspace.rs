@@ -5,15 +5,16 @@ use scriberig_app::ApplicationError;
 
 /// Extracts the exact workspace returned by the project workspace tool.
 ///
-/// # Parameters
 /// - `result`: Completed runtime transcript.
 /// - `super`: Parent module containing the native runner.
 ///
-/// # Returns
 /// The returned project workspace when the agent activated one.
 ///
-/// # Errors
 /// Returns an internal error when a workspace tool result omits valid references.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn workspace_from_result(
     result: &scriberig_agent_runtime::AgentResult,
 ) -> Result<Option<scriberig_tui::AgentWorkspace>, ApplicationError> {

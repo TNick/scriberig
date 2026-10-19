@@ -45,13 +45,11 @@ pub fn promote<S: RootStore + SnapshotStore>(
 
 /// Validates a target snapshot before performing optimistic promotion.
 ///
-/// # Parameters
 /// - `store`: Backend implementing roots and snapshot reads.
 /// - `root`: Named root to advance.
 /// - `expected`: Snapshot currently expected at the root.
 /// - `result`: Snapshot to promote.
 ///
-/// # Returns
 /// Promotion status with invalid targets rejected before root mutation.
 pub fn promote_checked<S: RootStore + SnapshotStore>(
     store: &S,
@@ -74,11 +72,11 @@ mod tests {
     impl RootStore for Roots {
         /// Reads the fixture root.
         ///
-        /// # Parameters
         /// - `_name`: Root name.
         ///
-        /// # Returns
         /// The fixture root.
+        /// # Returns
+        /// The operation result.
         fn read_root(&self, _name: &RootName) -> Option<SnapshotId> {
             self.0
         }
@@ -87,26 +85,28 @@ mod tests {
         /// - `_name`: Argument named `_name`.
         /// - `_snapshot`: Argument named `_snapshot`.
         ///
-        /// # Returns
-        /// The value produced by the declaration.
         ///
-        /// # Errors
         /// Returns an error when the operation cannot complete.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn set_root(&self, _name: RootName, _snapshot: SnapshotId) -> Result<(), RootError> {
             Ok(())
         }
         /// Performs fixture compare-and-set.
         ///
-        /// # Parameters
         /// - `_name`: Root name.
         /// - `expected`: Expected value.
         /// - `_new`: New value.
         ///
-        /// # Returns
         /// Success or a conflict.
         ///
-        /// # Errors
         /// Returns a fixture conflict when values differ.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn compare_and_set_root(
             &self,
             _name: RootName,
@@ -130,11 +130,12 @@ mod tests {
         /// - `snapshot`: Argument named `snapshot`.
         /// - `_entity`: Argument named `_entity`.
         ///
-        /// # Returns
-        /// The value produced by the declaration.
         ///
-        /// # Errors
         /// Returns an error when the operation cannot complete.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn resolve(
             &self,
             snapshot: SnapshotId,
@@ -149,11 +150,12 @@ mod tests {
         /// - `_base`: Argument named `_base`.
         /// - `_changes`: Argument named `_changes`.
         ///
-        /// # Returns
-        /// The value produced by the declaration.
         ///
-        /// # Errors
         /// Returns an error when the operation cannot complete.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn apply_changes(
             &self,
             _base: SnapshotId,
@@ -165,11 +167,12 @@ mod tests {
         /// Implements `iter`.
         /// - `snapshot`: Argument named `snapshot`.
         ///
-        /// # Returns
-        /// The value produced by the declaration.
         ///
-        /// # Errors
         /// Returns an error when the operation cannot complete.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn iter(
             &self,
             snapshot: SnapshotId,
@@ -186,11 +189,12 @@ mod tests {
         /// - `_from`: Argument named `_from`.
         /// - `_to`: Argument named `_to`.
         ///
-        /// # Returns
-        /// The value produced by the declaration.
         ///
-        /// # Errors
         /// Returns an error when the operation cannot complete.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn diff_snapshots(
             &self,
             _from: SnapshotId,
@@ -202,11 +206,12 @@ mod tests {
         /// Implements `parents`.
         /// - `snapshot`: Argument named `snapshot`.
         ///
-        /// # Returns
-        /// The value produced by the declaration.
         ///
-        /// # Errors
         /// Returns an error when the operation cannot complete.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn parents(&self, snapshot: SnapshotId) -> Result<Vec<SnapshotId>, SnapshotError> {
             self.iter(snapshot).map(|_| Vec::new())
         }

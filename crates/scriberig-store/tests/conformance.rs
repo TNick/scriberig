@@ -4,7 +4,6 @@ use scriberig_store::{FullConformanceStore, run_full_conformance};
 
 /// Runs the complete persistence contract against one backend.
 ///
-/// # Parameters
 /// - `store`: Backend instance under test.
 ///
 /// # Panics

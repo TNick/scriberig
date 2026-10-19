@@ -29,7 +29,7 @@ impl ProjectionModel {
     /// - `rendered`: Argument named `rendered`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     pub fn from_rendered(rendered: &sr_projection::RenderedProjection) -> Self {
         Self {
             projection: rendered.projection.map(|value| value.0.to_string()),

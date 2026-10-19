@@ -14,15 +14,16 @@ pub struct Cardinality {
 impl Cardinality {
     /// Creates validated cardinality bounds.
     ///
-    /// # Parameters
     /// - `min`: Minimum count.
     /// - `max`: Optional maximum count.
     ///
-    /// # Returns
     /// Validated cardinality bounds.
     ///
-    /// # Errors
     /// Returns an error when maximum is below minimum.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(min: u64, max: Option<u64>) -> Result<Self, &'static str> {
         if max.is_some_and(|value| value < min) {
             Err("maximum must not be below minimum")
@@ -32,12 +33,12 @@ impl Cardinality {
     }
     /// Returns whether a count satisfies these bounds.
     ///
-    /// # Parameters
     /// - `count`: Count to check.
     ///
-    /// # Returns
     /// `true` when the count is within bounds.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn accepts(&self, count: usize) -> bool {
         count as u64 >= self.min && self.max.is_none_or(|max| count as u64 <= max)
     }

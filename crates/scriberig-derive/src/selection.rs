@@ -54,12 +54,10 @@ pub enum SelectionReason {
 
 /// Selects the first eligible immutable candidate without mutating it.
 ///
-/// # Parameters
 /// - `candidates`: Existing records in caller-defined ranking order.
 /// - `policy`: Profile, failure, and freshness constraints.
 /// - `freshness`: Freshness policy applied to observations.
 ///
-/// # Returns
 /// The selected exact record or a structured no-match explanation.
 #[must_use]
 pub fn select<'a>(

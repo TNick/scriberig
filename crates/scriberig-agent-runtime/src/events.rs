@@ -48,16 +48,16 @@ pub struct RuntimeEventLog {
 impl RuntimeEventLog {
     /// Creates an empty runtime event log.
     ///
-    /// # Returns
     /// A shareable event log.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Appends one bounded event.
     ///
-    /// # Parameters
     /// - `event`: Safe runtime event.
     pub fn push(&self, event: RuntimeEvent) {
         if let Ok(mut events) = self.events.lock() {
@@ -67,9 +67,10 @@ impl RuntimeEventLog {
 
     /// Returns a snapshot of all events observed so far.
     ///
-    /// # Returns
     /// Events in emission order.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn snapshot(&self) -> Vec<RuntimeEvent> {
         self.events
             .lock()
@@ -80,13 +81,13 @@ impl RuntimeEventLog {
 impl RuntimeEvent {
     /// Creates a safe phase transition event.
     ///
-    /// # Parameters
     /// - `branch`: Stable branch correlation identity.
     /// - `phase`: New runtime phase.
     ///
-    /// # Returns
     /// A bounded runtime event.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn phase_changed(branch: impl Into<String>, phase: BranchPhase) -> Self {
         Self::PhaseChanged {
             branch: branch.into(),
@@ -96,12 +97,12 @@ impl RuntimeEvent {
 
     /// Creates a branch-start event.
     ///
-    /// # Parameters
     /// - `branch`: Stable branch correlation identity.
     ///
-    /// # Returns
     /// A bounded runtime event.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn branch_execution_started(branch: impl Into<String>) -> Self {
         Self::BranchExecutionStarted {
             branch: branch.into(),
@@ -110,13 +111,13 @@ impl RuntimeEvent {
 
     /// Creates a model invocation event.
     ///
-    /// # Parameters
     /// - `branch`: Stable branch correlation identity.
     /// - `step`: One-based model step number.
     ///
-    /// # Returns
     /// A bounded runtime event.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn model_invocation_started(branch: impl Into<String>, step: usize) -> Self {
         Self::ModelInvocationStarted {
             branch: branch.into(),
@@ -126,13 +127,13 @@ impl RuntimeEvent {
 
     /// Creates a bounded model-text delta event.
     ///
-    /// # Parameters
     /// - `branch`: Stable branch correlation identity.
     /// - `text`: Incremental provider-neutral assistant text.
     ///
-    /// # Returns
     /// A bounded runtime event.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn model_text_delta(branch: impl Into<String>, text: impl Into<String>) -> Self {
         let mut text = text.into();
         text.truncate(4096);
@@ -144,13 +145,13 @@ impl RuntimeEvent {
 
     /// Creates a bounded tool-start event.
     ///
-    /// # Parameters
     /// - `branch`: Stable branch correlation identity.
     /// - `tool`: Trusted tool identifier.
     ///
-    /// # Returns
     /// A bounded runtime event.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn tool_started(branch: impl Into<String>, tool: impl Into<String>) -> Self {
         Self::ToolStarted {
             branch: branch.into(),
@@ -160,14 +161,14 @@ impl RuntimeEvent {
 
     /// Creates a bounded tool-completion event.
     ///
-    /// # Parameters
     /// - `branch`: Stable branch correlation identity.
     /// - `tool`: Trusted tool identifier.
     /// - `success`: Whether execution succeeded.
     ///
-    /// # Returns
     /// A bounded runtime event.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn tool_completed(
         branch: impl Into<String>,
         tool: impl Into<String>,
@@ -182,12 +183,12 @@ impl RuntimeEvent {
 
     /// Creates a child-start event.
     ///
-    /// # Parameters
     /// - `branch`: Stable parent branch correlation identity.
     ///
-    /// # Returns
     /// A bounded runtime event.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn child_branch_started(branch: impl Into<String>) -> Self {
         Self::ChildBranchStarted {
             branch: branch.into(),
@@ -196,13 +197,13 @@ impl RuntimeEvent {
 
     /// Creates a child-completion event.
     ///
-    /// # Parameters
     /// - `branch`: Stable parent branch correlation identity.
     /// - `success`: Whether the child completed successfully.
     ///
-    /// # Returns
     /// A bounded runtime event.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn child_branch_completed(branch: impl Into<String>, success: bool) -> Self {
         Self::ChildBranchCompleted {
             branch: branch.into(),
@@ -212,13 +213,13 @@ impl RuntimeEvent {
 
     /// Creates a bounded result-produced event.
     ///
-    /// # Parameters
     /// - `branch`: Stable branch correlation identity.
     /// - `summary`: Externally meaningful result summary.
     ///
-    /// # Returns
     /// A bounded runtime event.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn branch_result_produced(branch: impl Into<String>, summary: impl Into<String>) -> Self {
         let mut summary = summary.into();
         summary.truncate(256);
@@ -230,12 +231,12 @@ impl RuntimeEvent {
 
     /// Creates a successful branch-completion event.
     ///
-    /// # Parameters
     /// - `branch`: Stable branch correlation identity.
     ///
-    /// # Returns
     /// A bounded runtime event.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn branch_execution_completed(branch: impl Into<String>) -> Self {
         Self::BranchExecutionCompleted {
             branch: branch.into(),
@@ -244,13 +245,13 @@ impl RuntimeEvent {
 
     /// Creates a bounded branch-failure event.
     ///
-    /// # Parameters
     /// - `branch`: Stable branch correlation identity.
     /// - `category`: Safe failure category.
     ///
-    /// # Returns
     /// A bounded runtime event.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn branch_execution_failed(branch: impl Into<String>, category: impl Into<String>) -> Self {
         Self::BranchExecutionFailed {
             branch: branch.into(),
@@ -260,12 +261,12 @@ impl RuntimeEvent {
 
     /// Creates a branch-cancellation event.
     ///
-    /// # Parameters
     /// - `branch`: Stable branch correlation identity.
     ///
-    /// # Returns
     /// A bounded runtime event.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn branch_execution_cancelled(branch: impl Into<String>) -> Self {
         Self::BranchExecutionCancelled {
             branch: branch.into(),
@@ -274,9 +275,10 @@ impl RuntimeEvent {
 
     /// Returns the stable branch correlation identity.
     ///
-    /// # Returns
     /// The branch identity carried by this event.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn branch(&self) -> &str {
         match self {
             Self::BranchExecutionStarted { branch }

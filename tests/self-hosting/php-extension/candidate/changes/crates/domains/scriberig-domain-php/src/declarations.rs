@@ -20,13 +20,13 @@ pub struct PhpDeclaration {
 
 /// Extracts supported named declarations without dropping syntax nodes.
 ///
-/// # Parameters
 /// - `root`: Complete Tree-sitter PHP syntax root.
 /// - `source`: Exact source bytes for declaration names.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// Declarations ordered by source range.
+/// # Returns
+/// The operation result.
 pub(crate) fn extract(root: Node<'_>, source: &str) -> Vec<PhpDeclaration> {
     let mut declarations = Vec::new();
     visit(root, source, "", &mut declarations);
@@ -44,7 +44,6 @@ pub(crate) fn extract(root: Node<'_>, source: &str) -> Vec<PhpDeclaration> {
 
 /// Visits grammar nodes and extracts declarations with a `name` field.
 ///
-/// # Parameters
 /// - `node`: Current parser node.
 /// - `source`: Exact source bytes for declaration names.
 /// - `scope`: Parent declaration key.
@@ -78,11 +77,11 @@ fn visit(node: Node<'_>, source: &str, scope: &str, declarations: &mut Vec<PhpDe
 
 /// Maps supported grammar node kinds to shared PHP code-domain kinds.
 ///
-/// # Parameters
 /// - `kind`: Tree-sitter grammar node kind.
 ///
-/// # Returns
 /// The public semantic kind, or none for non-declarations.
+/// # Returns
+/// The operation result.
 fn declaration_kind(kind: &str) -> Option<&'static str> {
     match kind {
         "namespace_definition" => Some("php.namespace"),

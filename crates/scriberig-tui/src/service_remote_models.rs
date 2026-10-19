@@ -5,13 +5,10 @@ use scriberig_protocol::ProtocolTransport;
 
 /// Reads runtime capability descriptors from the remote client.
 ///
-/// # Parameters
 /// - `adapter`: Remote service adapter holding the protocol client.
 ///
-/// # Returns
 /// Decoded runtime capabilities.
 ///
-/// # Errors
 /// Returns a protocol capability-discovery error.
 pub(super) fn runtime_capabilities<T: ProtocolTransport>(
     adapter: &RemoteAdapter<T>,
@@ -38,13 +35,10 @@ pub(super) fn runtime_capabilities<T: ProtocolTransport>(
 
 /// Reads the safe model library through a remote protocol client.
 ///
-/// # Parameters
 /// - `adapter`: Remote service adapter holding the protocol client.
 ///
-/// # Returns
 /// Safe model descriptors and profiles.
 ///
-/// # Errors
 /// Returns a sanitized remote protocol error.
 pub(super) fn model_library<T: ProtocolTransport>(
     adapter: &RemoteAdapter<T>,
@@ -57,16 +51,13 @@ pub(super) fn model_library<T: ProtocolTransport>(
 
 /// Reads bounded safe detail for a durable tool result.
 ///
-/// # Parameters
 /// - adapter: Remote service adapter holding the protocol client.
 /// - session: Session containing the result.
 /// - branch: Branch containing the result.
 /// - result: Stable tool-result identity.
 ///
-/// # Returns
 /// Whitelisted safe result detail.
 ///
-/// # Errors
 /// Returns a sanitized remote protocol error.
 pub(super) fn tool_result_detail<T: ProtocolTransport>(
     adapter: &RemoteAdapter<T>,
@@ -82,16 +73,13 @@ pub(super) fn tool_result_detail<T: ProtocolTransport>(
 
 /// Reads the captured safe request projection through the remote client.
 ///
-/// # Parameters
 /// - `adapter`: Remote adapter holding the protocol client.
 /// - `session`: Session containing the invocation.
 /// - `branch`: Branch containing the invocation.
 /// - `invocation`: Stable model-invocation identity.
 ///
-/// # Returns
 /// Captured provider-neutral request detail.
 ///
-/// # Errors
 /// Returns a sanitized remote protocol error.
 pub(super) fn model_request_detail<T: ProtocolTransport>(
     adapter: &RemoteAdapter<T>,
@@ -111,14 +99,11 @@ pub(super) fn model_request_detail<T: ProtocolTransport>(
 
 /// Applies a revision-checked model-profile selection remotely.
 ///
-/// # Parameters
 /// - `adapter`: Remote service adapter holding the protocol client.
 /// - `request`: Session and observed selection revision.
 ///
-/// # Returns
 /// The authoritative updated execution selection.
 ///
-/// # Errors
 /// Returns a sanitized remote protocol error.
 pub(super) fn set_session_model<T: ProtocolTransport>(
     adapter: &RemoteAdapter<T>,
@@ -137,14 +122,11 @@ pub(super) fn set_session_model<T: ProtocolTransport>(
 
 /// Applies a revision-checked thinking selection remotely.
 ///
-/// # Parameters
 /// - `adapter`: Remote service adapter holding the protocol client.
 /// - `request`: Session and observed selection revision.
 ///
-/// # Returns
 /// The authoritative updated execution selection.
 ///
-/// # Errors
 /// Returns a sanitized remote protocol error.
 pub(super) fn set_session_thinking_level<T: ProtocolTransport>(
     adapter: &RemoteAdapter<T>,
@@ -163,11 +145,11 @@ pub(super) fn set_session_thinking_level<T: ProtocolTransport>(
 
 /// Converts a protocol selection into the session-domain value.
 ///
-/// # Parameters
 /// - `selection`: Protocol selection returned by the server.
 ///
-/// # Returns
 /// Equivalent provider-neutral session selection.
+/// # Returns
+/// The operation result.
 fn to_session_selection(
     selection: scriberig_protocol::SessionExecutionSelection,
 ) -> scriberig_session::SessionExecutionSelection {

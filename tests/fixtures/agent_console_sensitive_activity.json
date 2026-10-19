@@ -23,6 +23,7 @@
       "summary": "Find documents",
       "durable_ref": "ent_54545454545454545454545454545454",
       "tool_name": "search",
+      "tool_category": "SemanticRead",
       "tool_arguments": {
         "query": "find documents",
         "token": "[REDACTED]"

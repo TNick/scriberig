@@ -29,13 +29,14 @@ pub struct DispatchError {
 
 /// Dispatches an inspect command through an injected application service.
 ///
-/// # Parameters
 /// - `service`: Application query service supplied by composition.
 /// - `context`: Caller and capability context.
 /// - `command`: Parsed product command.
 ///
-/// # Returns
 /// Optional output for commands handled by this dispatcher.
+///
+/// # Returns
+/// Output text when the command is handled.
 ///
 /// # Errors
 /// Returns a structured dispatch failure for unsupported or denied commands.
@@ -69,12 +70,13 @@ pub fn dispatch<S: scriberig_app::QueryService>(
 
 /// Parse command-line input for the `srig` executable.
 ///
-/// # Returns
 /// The selected product mode and its arguments.
 ///
 /// # Panics
 /// Panics only if the generated Clap parser cannot deserialize its own matches.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn parse() -> Command {
     let parser = Cli::command();
     let matches = parser.get_matches();
@@ -99,11 +101,11 @@ pub fn parse() -> Command {
 
 /// Collects options supplied directly to a run-like command.
 ///
-/// # Parameters
 /// - `matches`: Parsed Clap matches for the selected command.
 ///
-/// # Returns
 /// Explicit option identifiers used for configuration precedence.
+/// # Returns
+/// The operation result.
 fn explicit_run_options(matches: &clap::ArgMatches) -> BTreeSet<String> {
     [
         "db",

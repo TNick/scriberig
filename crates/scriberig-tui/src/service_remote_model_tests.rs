@@ -96,12 +96,12 @@ struct FixtureTransport {
 impl ProtocolTransport for FixtureTransport {
     /// Captures the request and returns the configured response.
     ///
-    /// # Parameters
     /// - `self`: Deterministic protocol fixture.
     /// - `request`: Correlated request sent by the client.
     ///
-    /// # Returns
     /// The fixed response with the request's correlation identity.
+    /// # Returns
+    /// The operation result.
     fn send(&self, request: RequestEnvelope) -> ResponseEnvelope {
         if let Ok(mut observed) = self.request.lock() {
             *observed = Some(request.request);

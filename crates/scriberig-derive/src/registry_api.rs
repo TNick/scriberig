@@ -25,7 +25,6 @@ pub struct DerivationRegistry {
 impl DerivationRegistry {
     /// Creates an empty registry.
     ///
-    /// # Returns
     /// An empty registry.
     #[must_use]
     pub const fn new() -> Self {
@@ -39,15 +38,16 @@ impl DerivationRegistry {
     /// Identical duplicates are idempotent. Conflicting metadata preserves the
     /// original registration and returns a structured error.
     ///
-    /// # Parameters
     /// - `self`: Registry to update.
     /// - `registration`: Metadata to register.
     ///
-    /// # Returns
     /// Success when inserted or already present identically.
     ///
-    /// # Errors
     /// Returns `ConflictingDuplicate` for conflicting metadata.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn register(
         &mut self,
         registration: DerivationRegistration,
@@ -67,26 +67,26 @@ impl DerivationRegistry {
 
     /// Finds metadata by exact profile identity.
     ///
-    /// # Parameters
     /// - `self`: Registry to search.
     /// - `profile`: Exact derivation profile.
     ///
-    /// # Returns
     /// Matching registration metadata when present.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn lookup(&self, profile: &DerivationProfile) -> Option<&DerivationRegistration> {
         self.registrations.get(profile)
     }
 
     /// Lists registrations matching one universal applicability descriptor.
     ///
-    /// # Parameters
     /// - `self`: Registry to search.
     /// - `applicability`: Entity type or scope kind descriptor.
     ///
-    /// # Returns
     /// Matching registrations in exact profile order.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn applicable_to(&self, applicability: &Applicability) -> Vec<&DerivationRegistration> {
         self.registrations
             .values()
@@ -96,24 +96,24 @@ impl DerivationRegistry {
 
     /// Returns the number of registered profiles.
     ///
-    /// # Parameters
     /// - `self`: Registry to inspect.
     ///
-    /// # Returns
     /// Number of exact profiles.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn len(&self) -> usize {
         self.registrations.len()
     }
 
     /// Reports whether the registry has no profiles.
     ///
-    /// # Parameters
     /// - `self`: Registry to inspect.
     ///
-    /// # Returns
     /// `true` when empty.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn is_empty(&self) -> bool {
         self.registrations.is_empty()
     }

@@ -17,6 +17,11 @@ fn operation_dispatch_covers_all_mutating_and_projection_operations() {
             from: snapshot,
             to: snapshot,
         }),
+        ApplicationRequest::Merge(MergeRequest {
+            base: snapshot,
+            left: snapshot,
+            right: snapshot,
+        }),
         ApplicationRequest::History(HistoryRequest {
             snapshot: SnapshotSelector::NamedRoot(RootName::new("main").expect("root")),
         }),
@@ -43,6 +48,7 @@ fn operation_dispatch_covers_all_mutating_and_projection_operations() {
         assert!(matches!(
             scriberig_app::ApplicationBackend::execute(&backend, &context, &request),
             Ok(ApplicationResult::Diff(_)
+                | ApplicationResult::Merge(_)
                 | ApplicationResult::History(_)
                 | ApplicationResult::Render(_)
                 | ApplicationResult::Branch(_)

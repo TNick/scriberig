@@ -14,10 +14,8 @@ pub struct GuardedDerivedRepository<R> {
 impl<R> GuardedDerivedRepository<R> {
     /// Creates a guarded view over a reusable derived repository.
     ///
-    /// # Parameters
     /// - `inner`: Shared policy-free derived repository.
     ///
-    /// # Returns
     /// A repository adapter that checks dependencies on reads.
     #[must_use]
     pub const fn new(inner: R) -> Self {
@@ -26,7 +24,6 @@ impl<R> GuardedDerivedRepository<R> {
 
     /// Borrows the shared repository without applying application policy.
     ///
-    /// # Returns
     /// The underlying immutable cache repository.
     #[must_use]
     pub const fn inner(&self) -> &R {
@@ -37,16 +34,17 @@ impl<R> GuardedDerivedRepository<R> {
 impl<R: DerivedRepository> GuardedDerivedRepository<R> {
     /// Returns a cached artifact only when every dependency is readable.
     ///
-    /// # Parameters
     /// - `context`: Principal capabilities for the cache request.
     /// - `handle`: Exact immutable artifact handle.
     ///
-    /// # Returns
     /// The cached artifact when retained and authorized; otherwise `None`.
     ///
-    /// # Errors
     /// This lookup is infallible; inaccessible artifacts are represented by
     /// `None`.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn get(
         &self,
         context: &ApplicationContext,
@@ -78,13 +76,13 @@ impl<R: DerivedRepository> GuardedDerivedRepository<R> {
 
     /// Checks one declared dependency without inspecting its payload.
     ///
-    /// # Parameters
     /// - `context`: Principal capabilities for the cache request.
     /// - `dependency`: Declared dependency to authorize.
     /// - `visiting`: Handles currently being checked for cycle detection.
     ///
-    /// # Returns
     /// `true` when the dependency and all nested dependencies are readable.
+    /// # Returns
+    /// The operation result.
     fn dependency_visible(
         &self,
         context: &ApplicationContext,
@@ -116,13 +114,13 @@ impl<R: DerivedRepository> GuardedDerivedRepository<R> {
 
 /// Checks query or inspect authority for one dependency scope.
 ///
-/// # Parameters
 /// - `context`: Principal capabilities for the cache request.
 /// - `scope`: Dependency scope to authorize.
 /// - `snapshot`: Exact snapshot constraint, when available.
 ///
-/// # Returns
 /// `true` when query or inspect authority covers the dependency.
+/// # Returns
+/// The operation result.
 fn can_read(
     context: &ApplicationContext,
     scope: &CapabilityScope,

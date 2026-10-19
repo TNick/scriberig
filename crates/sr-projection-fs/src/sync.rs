@@ -116,13 +116,13 @@ pub enum ImportCompletion {
 impl ImportCompletion {
     /// Creates a retryable parse failure for an import request.
     ///
-    /// # Parameters
     /// - `request`: Exact three-way import inputs.
     /// - `message`: Human-readable parse failure.
     ///
-    /// # Returns
     /// A structured failed-import completion.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn failed(request: ImportRequest, message: impl Into<String>) -> Self {
         let diagnostic = ProjectionDiagnostic {
             kind: DiagnosticKind::ParseFailure,
@@ -154,7 +154,6 @@ pub struct MemorySyncStore {
 impl MemorySyncStore {
     /// Creates or replaces a projection synchronization record.
     ///
-    /// # Parameters
     /// - `state`: State record to store.
     pub fn put(&mut self, state: SyncState) {
         if let Some(existing) = self
@@ -170,23 +169,23 @@ impl MemorySyncStore {
 
     /// Finds state by physical location.
     ///
-    /// # Parameters
     /// - `location`: Location to find.
     ///
-    /// # Returns
     /// Matching state when present.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn find(&self, location: &ProjectionLocation) -> Option<&SyncState> {
         self.states.iter().find(|state| &state.location == location)
     }
 
     /// Finds mutable state by physical location.
     ///
-    /// # Parameters
     /// - `location`: Location to find.
     ///
-    /// # Returns
     /// Mutable matching state when present.
+    /// # Returns
+    /// The operation result.
     pub fn find_mut(&mut self, location: &ProjectionLocation) -> Option<&mut SyncState> {
         self.states
             .iter_mut()
@@ -195,12 +194,12 @@ impl MemorySyncStore {
 
     /// Finds state by projection identity.
     ///
-    /// # Parameters
     /// - `projection`: Projection to find.
     ///
-    /// # Returns
     /// Matching state when present.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn find_projection(&self, projection: ProjectionRef) -> Option<&SyncState> {
         self.states
             .iter()
@@ -209,11 +208,11 @@ impl MemorySyncStore {
 
     /// Finds mutable state by projection identity.
     ///
-    /// # Parameters
     /// - `projection`: Projection to find.
     ///
-    /// # Returns
     /// Mutable matching state when present.
+    /// # Returns
+    /// The operation result.
     pub fn find_projection_mut(&mut self, projection: ProjectionRef) -> Option<&mut SyncState> {
         self.states
             .iter_mut()
@@ -222,12 +221,12 @@ impl MemorySyncStore {
 
     /// Moves a synchronization record after a rename observation.
     ///
-    /// # Parameters
     /// - `from`: Previous physical location.
     /// - `to`: New physical location.
     ///
-    /// # Returns
     /// `true` when a record was moved.
+    /// # Returns
+    /// The operation result.
     pub fn rename(&mut self, from: &ProjectionLocation, to: ProjectionLocation) -> bool {
         let Some(state) = self.states.iter_mut().find(|state| &state.location == from) else {
             return false;

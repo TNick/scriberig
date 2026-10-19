@@ -4,13 +4,13 @@ use crate::{action::Action, effect::Effect, inspector::LoadState, state::TuiStat
 
 /// Advances the active selection and requests inspection at the committed snapshot.
 ///
-/// # Parameters
 /// - `super`: Parent reducer module providing state and effect context.
 /// - `state`: Presentation state receiving the authoritative snapshot.
 /// - `action`: Successful commit result returned by the application operation.
 ///
-/// # Returns
 /// An inspection effect when an active semantic selection exists.
+/// # Returns
+/// The operation result.
 pub(super) fn commit_succeeded(state: &mut TuiState, action: Action) -> Vec<Effect> {
     let Action::CommitSucceeded {
         request_id,

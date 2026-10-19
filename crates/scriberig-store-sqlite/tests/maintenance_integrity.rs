@@ -11,11 +11,11 @@ use scriberig_store_sqlite::SqliteStore;
 
 /// Returns an isolated temporary SQLite database path.
 ///
-/// # Parameters
 /// - `label`: Test-specific filename label.
 ///
-/// # Returns
 /// A path in the platform temporary directory.
+/// # Returns
+/// The operation result.
 fn temporary_database_path(label: &str) -> PathBuf {
     let path = std::env::temp_dir().join(format!("scriberig-{label}-{}.db", std::process::id()));
     let _ = fs::remove_file(&path);

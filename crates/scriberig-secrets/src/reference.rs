@@ -28,14 +28,15 @@ pub enum SecretRef {
 impl SecretRef {
     /// Parses an indirect command-line reference.
     ///
-    /// # Parameters
     /// - `text`: `keyring:NAME`, `environment:NAME`, or `file:ABSOLUTE_PATH`.
     ///
-    /// # Returns
     /// A validated typed reference.
     ///
-    /// # Errors
     /// Returns `Invalid` for unsupported schemes or invalid identifiers.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn parse(text: &str) -> Result<Self, SecretError> {
         let (kind, value) = text.split_once(':').ok_or(SecretError::Invalid)?;
         let reference = match kind {
@@ -56,11 +57,13 @@ impl SecretRef {
 
     /// Validates a reference after configuration deserialization.
     ///
-    /// # Returns
     /// Unit for a supported safe reference.
     ///
-    /// # Errors
     /// Returns `Invalid` for unsafe identifiers or relative file paths.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn validate(&self) -> Result<(), SecretError> {
         let valid = match self {
             Self::Keyring { name } => {

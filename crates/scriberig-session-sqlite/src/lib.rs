@@ -5,7 +5,9 @@ use std::sync::Mutex;
 
 use rusqlite::{Connection, TransactionBehavior, params};
 use scriberig_core::EntityId;
-use scriberig_session::{SelectionStoreError, Session, SessionExecutionSelection, SessionStore};
+use scriberig_session::{
+    PlanStoreError, SelectionStoreError, Session, SessionExecutionSelection, SessionStore,
+};
 
 /// SQLite-backed repository for immutable session graph snapshots.
 pub struct SqliteSessionStore {
@@ -16,39 +18,43 @@ pub struct SqliteSessionStore {
 impl SqliteSessionStore {
     /// Opens or creates a session repository at `path`.
     ///
-    /// # Parameters
     /// - `path`: SQLite database path.
     ///
-    /// # Returns
     /// An initialized session repository.
     ///
-    /// # Errors
     /// Returns a SQLite initialization error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn open(path: impl AsRef<Path>) -> rusqlite::Result<Self> {
         Self::from_connection(Connection::open(path)?)
     }
 
     /// Creates an isolated in-memory session repository.
     ///
-    /// # Returns
     /// An initialized repository.
     ///
-    /// # Errors
     /// Returns a SQLite initialization error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn open_in_memory() -> rusqlite::Result<Self> {
         Self::from_connection(Connection::open_in_memory()?)
     }
 
     /// Initializes the repository schema on one connection.
     ///
-    /// # Parameters
     /// - `connection`: SQLite connection to initialize.
     ///
-    /// # Returns
     /// An initialized session repository.
     ///
-    /// # Errors
     /// Returns a SQLite schema error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn from_connection(connection: Connection) -> rusqlite::Result<Self> {
         connection.execute_batch(
             "CREATE TABLE IF NOT EXISTS session_records (
@@ -63,16 +69,47 @@ impl SqliteSessionStore {
 }
 
 impl SessionStore for SqliteSessionStore {
+    /// Loads all stored sessions in deterministic identity order.
+    ///
+    /// - `self`: SQLite session repository.
+    ///
+    /// Complete stored session graphs ordered by identity.
+    ///
+    /// Returns a bounded SQLite or serialization diagnostic.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when stored sessions cannot be read or decoded.
+    fn list(&self) -> Result<Vec<Session>, String> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| "session repository lock poisoned".to_owned())?;
+        let mut statement = connection
+            .prepare("SELECT payload FROM session_records ORDER BY session_id")
+            .map_err(|error| error.to_string())?;
+        let payloads = statement
+            .query_map([], |row| row.get::<_, Vec<u8>>(0))
+            .map_err(|error| error.to_string())?;
+        payloads
+            .map(|payload| {
+                let payload = payload.map_err(|error| error.to_string())?;
+                serde_json::from_slice(&payload).map_err(|error| error.to_string())
+            })
+            .collect()
+    }
+
     /// Loads and decodes one stored session graph.
     ///
-    /// # Parameters
     /// - `session`: Session identity to load.
     ///
-    /// # Returns
     /// The decoded graph when present.
     ///
-    /// # Errors
     /// Returns a bounded SQLite or serialization diagnostic.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn load(&self, session: EntityId) -> Result<Option<Session>, String> {
         let connection = self
             .connection
@@ -94,14 +131,15 @@ impl SessionStore for SqliteSessionStore {
 
     /// Encodes and atomically replaces one stored session graph.
     ///
-    /// # Parameters
     /// - `session`: Complete graph to persist.
     ///
-    /// # Errors
     /// Returns a bounded serialization or SQLite diagnostic.
     ///
-    /// # Returns
     /// Unit after the graph is durably replaced.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn save(&self, session: &Session) -> Result<(), String> {
         let payload = serde_json::to_vec(session).map_err(|error| error.to_string())?;
         let connection = self
@@ -120,15 +158,16 @@ impl SessionStore for SqliteSessionStore {
 
     /// Atomically changes only session execution selection at the observed revision.
     ///
-    /// # Parameters
     /// - `session`: Session snapshot with the proposed selection.
     /// - `expected_revision`: Revision observed before this mutation.
     ///
-    /// # Returns
     /// Unit after the selection and preserved session graph are committed.
     ///
-    /// # Errors
     /// Returns a revision conflict or bounded persistence failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn compare_and_swap_execution_selection(
         &self,
         session: &Session,
@@ -175,6 +214,7 @@ impl SessionStore for SqliteSessionStore {
             branches: Vec::new(),
             goals: Vec::new(),
             tasks: Vec::new(),
+            plans: Vec::new(),
             execution: SessionExecutionSelection::default(),
         });
         stored.execution = session.execution.clone();
@@ -191,28 +231,118 @@ impl SessionStore for SqliteSessionStore {
             .commit()
             .map_err(|error| SelectionStoreError::Persistence(error.to_string()))
     }
+
+    /// Atomically replaces one plan without overwriting concurrent branch updates.
+    /// New branch records in the proposal are merged in the same transaction.
+    ///
+    /// - `session`: Snapshot containing the proposed plan.
+    /// - `plan_id`: Stable plan identity being replaced.
+    /// - `expected_revision`: Plan revision observed by the caller.
+    ///
+    /// Returns a plan revision conflict or bounded persistence failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn compare_and_swap_plan(
+        &self,
+        session: &Session,
+        plan_id: EntityId,
+        expected_revision: u64,
+    ) -> Result<(), PlanStoreError> {
+        let mut connection = self
+            .connection
+            .lock()
+            .map_err(|_| PlanStoreError::Persistence("session lock poisoned".to_owned()))?;
+        let transaction = connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(|error| PlanStoreError::Persistence(error.to_string()))?;
+        let payload = transaction
+            .query_row(
+                "SELECT payload FROM session_records WHERE session_id=?1",
+                params![session.id.as_bytes().as_slice()],
+                |row| row.get::<_, Vec<u8>>(0),
+            )
+            .optional()
+            .map_err(|error| PlanStoreError::Persistence(error.to_string()))?
+            .ok_or_else(|| PlanStoreError::Persistence("session is not stored".to_owned()))?;
+        let mut stored = serde_json::from_slice::<Session>(&payload)
+            .map_err(|error| PlanStoreError::Persistence(error.to_string()))?;
+        let stored_plan = stored
+            .plans
+            .iter_mut()
+            .find(|plan| plan.id == plan_id)
+            .ok_or_else(|| PlanStoreError::Persistence("plan is not stored".to_owned()))?;
+        if stored_plan.revision != expected_revision {
+            return Err(PlanStoreError::RevisionConflict {
+                expected: expected_revision,
+                actual: stored_plan.revision,
+            });
+        }
+        let proposed = session
+            .plans
+            .iter()
+            .find(|plan| plan.id == plan_id)
+            .ok_or_else(|| PlanStoreError::Persistence("proposed plan is absent".to_owned()))?;
+        if proposed.revision != expected_revision.saturating_add(1) {
+            return Err(PlanStoreError::Persistence(
+                "proposed plan has an unexpected revision".to_owned(),
+            ));
+        }
+        *stored_plan = proposed.clone();
+        for branch in &session.branches {
+            if stored.branches.iter().any(|known| known.id == branch.id) {
+                continue;
+            }
+            stored.branches.push(branch.clone());
+            if let Some(parent_id) = branch.parent
+                && let Some(parent) = stored
+                    .branches
+                    .iter_mut()
+                    .find(|known| known.id == parent_id)
+                && !parent.children.contains(&branch.id)
+            {
+                parent.children.push(branch.id);
+            }
+        }
+        let payload = serde_json::to_vec(&stored)
+            .map_err(|error| PlanStoreError::Persistence(error.to_string()))?;
+        transaction
+            .execute(
+                "UPDATE session_records SET payload=?2 WHERE session_id=?1",
+                params![session.id.as_bytes().as_slice(), payload],
+            )
+            .map_err(|error| PlanStoreError::Persistence(error.to_string()))?;
+        transaction
+            .commit()
+            .map_err(|error| PlanStoreError::Persistence(error.to_string()))
+    }
 }
 
 /// Imports the optional rusqlite row helper without exposing it publicly.
 trait OptionalRow {
     /// Converts a missing row into `None`.
     ///
-    /// # Returns
     /// The row payload when present.
     ///
-    /// # Errors
     /// Returns the original SQLite query error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn optional(self) -> rusqlite::Result<Option<Vec<u8>>>;
 }
 
 impl OptionalRow for rusqlite::Result<Vec<u8>> {
     /// Converts query-row not-found into an optional payload.
     ///
-    /// # Returns
     /// The payload when the query returned a row.
     ///
-    /// # Errors
     /// Returns a non-not-found SQLite query error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn optional(self) -> rusqlite::Result<Option<Vec<u8>>> {
         match self {
             Ok(value) => Ok(Some(value)),

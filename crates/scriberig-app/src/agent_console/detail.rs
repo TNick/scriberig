@@ -2,11 +2,11 @@
 
 /// Extracts safe presentation fields from a structured tool result.
 ///
-/// # Parameters
 /// - `bytes`: Structured result bytes from the trusted tool boundary.
 ///
-/// # Returns
 /// The allowlisted detail object and whether any field was truncated.
+/// # Returns
+/// The operation result.
 pub fn safe_tool_result_detail(bytes: &[u8]) -> (serde_json::Value, bool) {
     const MAX_TEXT_CHARS: usize = 4_096;
     let Some(object) = serde_json::from_slice::<serde_json::Value>(bytes)

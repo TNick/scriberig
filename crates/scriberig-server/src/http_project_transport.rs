@@ -21,25 +21,25 @@ pub struct InProcessProjectTransport<S> {
 impl<S> InProcessProjectTransport<S> {
     /// Creates a project transport over one server state.
     ///
-    /// # Parameters
     /// - `state`: Public server state receiving project requests.
     ///
-    /// # Returns
     /// An in-process protocol transport.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(state: Arc<HttpState<S>>) -> Self {
         Self { state }
     }
 }
 
-impl<S: ApplicationService> ProtocolTransport for InProcessProjectTransport<S> {
+impl<S: ApplicationService + 'static> ProtocolTransport for InProcessProjectTransport<S> {
     /// Dispatches one typed project request through the HTTP protocol adapter.
     ///
-    /// # Parameters
     /// - `request`: Protocol envelope to dispatch.
     ///
-    /// # Returns
     /// The decoded public protocol response envelope.
+    /// # Returns
+    /// The operation result.
     fn send(
         &self,
         request: scriberig_protocol::RequestEnvelope,
@@ -72,8 +72,9 @@ impl<S: ApplicationService> ProtocolTransport for InProcessProjectTransport<S> {
 
     /// Reports no transport error because dispatch is in process.
     ///
-    /// # Returns
     /// Always `None`; dispatch errors are protocol responses.
+    /// # Returns
+    /// The operation result.
     fn take_error(&self) -> Option<String> {
         None
     }
@@ -81,12 +82,12 @@ impl<S: ApplicationService> ProtocolTransport for InProcessProjectTransport<S> {
 
 /// Builds a protocol error response for in-process transport failures.
 ///
-/// # Parameters
 /// - `correlation_id`: Request correlation identity.
 /// - `message`: Safe failure description.
 ///
-/// # Returns
 /// A protocol-shaped internal error response.
+/// # Returns
+/// The operation result.
 fn protocol_error(correlation_id: String, message: String) -> scriberig_protocol::ResponseEnvelope {
     scriberig_protocol::ResponseEnvelope {
         version: scriberig_protocol::ProtocolVersion::default(),

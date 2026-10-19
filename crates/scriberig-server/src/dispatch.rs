@@ -3,14 +3,12 @@
 mod agent_console;
 mod helpers;
 mod inspect;
+mod plan;
 mod query;
 #[path = "dispatch/session.rs"]
 mod session;
 
-use scriberig_app::{
-    ApplicationContext, Capability, CapabilityAction, CapabilityConstraints, CapabilityContext,
-    CapabilityId, CapabilityScope, OperationKind,
-};
+use helpers::{command_context, session_selection_context};
 use scriberig_protocol::{
     CapabilitiesResponse, CapabilityInfo, OperationStatusResponse, ProtocolError,
     ProtocolErrorCode, ProtocolVersion, Request, RequestEnvelope, Response, ResponseEnvelope,
@@ -28,12 +26,12 @@ pub struct Dispatcher<S> {
 impl<S> Dispatcher<S> {
     /// Creates a dispatcher around an application service.
     ///
-    /// # Parameters
     /// - `service`: Application implementation receiving semantic requests.
     ///
-    /// # Returns
     /// A protocol dispatcher.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(service: S) -> Self {
         Self {
             service,
@@ -43,13 +41,13 @@ impl<S> Dispatcher<S> {
 
     /// Creates a dispatcher bound to a trusted caller identity.
     ///
-    /// # Parameters
     /// - `service`: Application implementation receiving semantic requests.
     /// - `principal`: Identity established by the trusted transport boundary.
     ///
-    /// # Returns
     /// A protocol dispatcher carrying that caller identity.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn for_principal(service: S, principal: scriberig_app::Principal) -> Self {
         Self {
             service,
@@ -61,16 +59,33 @@ impl<S> Dispatcher<S> {
 impl<S: ApplicationService> Dispatcher<S> {
     /// Dispatches one correlated protocol envelope.
     ///
-    /// # Parameters
     /// - `request`: Correlated protocol request.
     ///
-    /// # Returns
     /// Correlated typed response or structured error.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn dispatch(&self, request: RequestEnvelope) -> ResponseEnvelope {
+        self.dispatch_with_plan_lifecycle(request, None)
+    }
+
+    /// Dispatches a request and optionally runs plan lifecycle transitions.
+    ///
+    /// - `request`: Correlated protocol envelope.
+    /// - `plan_lifecycle_handler`: Trusted plan worker runtime, when configured.
+    ///
+    /// Correlated typed response or structured error.
+    #[must_use]
+    /// # Returns
+    /// The operation result.
+    pub fn dispatch_with_plan_lifecycle(
+        &self,
+        request: RequestEnvelope,
+        plan_lifecycle_handler: Option<&crate::http::PlanLifecycleHandler<S>>,
+    ) -> ResponseEnvelope {
         let correlation_id = request.correlation_id.clone();
         let response = if request.version.major == ProtocolVersion::default().major {
-            self.dispatch_request(request.request, &correlation_id)
+            self.dispatch_request(request.request, &correlation_id, plan_lifecycle_handler)
         } else {
             Response::Error(ProtocolError {
                 code: ProtocolErrorCode::UnsupportedVersion,
@@ -88,14 +103,20 @@ impl<S: ApplicationService> Dispatcher<S> {
 
     /// Dispatches a version-validated typed request.
     ///
-    /// # Parameters
     /// - `request`: Version-validated typed request.
     /// - `correlation_id`: Request correlation identity.
+    /// - `plan_lifecycle_handler`: Optional trusted plan runtime.
     ///
-    /// # Returns
     /// Typed protocol response.
     #[allow(clippy::too_many_lines)]
-    fn dispatch_request(&self, request: Request, correlation_id: &str) -> Response {
+    /// # Returns
+    /// The operation result.
+    fn dispatch_request(
+        &self,
+        request: Request,
+        correlation_id: &str,
+        plan_lifecycle_handler: Option<&crate::http::PlanLifecycleHandler<S>>,
+    ) -> Response {
         match request {
             Request::Inspect(request) => inspect::inspect(&self.service, request, correlation_id),
             Request::Capabilities(_) => self.capabilities(),
@@ -150,6 +171,13 @@ impl<S: ApplicationService> Dispatcher<S> {
                 None,
                 correlation_id,
             ),
+            Request::AgentNewSession(request) => self
+                .service
+                .agent_new_session(&command_context("agent_start"), &request)
+                .map_or_else(
+                    |error| Response::Error(helpers::map_error(&error, correlation_id)),
+                    Response::AgentAccepted,
+                ),
             Request::AgentContinue(request) => self.agent_command(
                 "agent_continue",
                 &serde_json::json!({
@@ -161,6 +189,27 @@ impl<S: ApplicationService> Dispatcher<S> {
                 Some((&request.session, &request.branch)),
                 correlation_id,
             ),
+            Request::AgentContinueAt(request) => self
+                .service
+                .agent_continue_at(&command_context("agent_continue"), &request)
+                .map_or_else(
+                    |error| Response::Error(helpers::map_error(&error, correlation_id)),
+                    Response::AgentAccepted,
+                ),
+            Request::PlanCreate(request) => {
+                self.plan_request(&Request::PlanCreate(request), correlation_id, None)
+            }
+            Request::PlanLifecycle(request) => self.plan_request(
+                &Request::PlanLifecycle(request),
+                correlation_id,
+                plan_lifecycle_handler,
+            ),
+            Request::PlanAssignment(request) => {
+                self.plan_request(&Request::PlanAssignment(request), correlation_id, None)
+            }
+            Request::PlanReplan(request) => {
+                self.plan_request(&Request::PlanReplan(request), correlation_id, None)
+            }
             Request::SessionRead(request) => self.session_read(&request, correlation_id),
             Request::ModelRequestDetail(request) => self
                 .service
@@ -219,13 +268,13 @@ impl<S: ApplicationService> Dispatcher<S> {
 
     /// Builds the least-capability context for principal-scoped display settings.
     ///
-    /// # Returns
     /// Context restricted to the model-library capability and bound to the
     /// trusted transport principal, when one was configured.
     /// Builds the capability response from the injected application service.
     ///
-    /// # Returns
     /// The public runtime capability response.
+    /// # Returns
+    /// The operation result.
     fn capabilities(&self) -> Response {
         let capabilities = self
             .service
@@ -250,14 +299,14 @@ impl<S: ApplicationService> Dispatcher<S> {
 
     /// Dispatches one typed agent request through the shared command boundary.
     ///
-    /// # Parameters
     /// - `kind`: Stable agent operation identifier.
     /// - `payload`: Provider-neutral request payload.
     /// - `references`: Session and optional branch references for the response.
     /// - `correlation_id`: Request correlation identity.
     ///
-    /// # Returns
     /// Typed accepted agent response or protocol error.
+    /// # Returns
+    /// The operation result.
     fn agent_command(
         &self,
         kind: &str,
@@ -312,49 +361,5 @@ impl<S: ApplicationService> Dispatcher<S> {
                     })
                 },
             )
-    }
-}
-
-/// Builds the trusted server context for an exposed command family.
-///
-/// # Parameters
-/// - `kind`: Stable command or capability identifier.
-///
-/// # Returns
-/// A context granting only the requested public command capability.
-fn command_context(kind: &str) -> ApplicationContext {
-    let mut capabilities = vec![CapabilityId::new(kind).expect("protocol command capability")];
-    if matches!(kind, "agent_start" | "agent_continue") {
-        capabilities.push(CapabilityId::new("session_branch_tree").expect("session capability"));
-    }
-    ApplicationContext {
-        capabilities: CapabilityContext::new(capabilities),
-        ..ApplicationContext::empty()
-    }
-}
-
-/// Grants the trusted session-selection action for one exact session.
-///
-/// # Parameters
-/// - `session`: Stable session identity from the protocol request.
-///
-/// # Returns
-/// Application context authorizing session model configuration.
-fn session_selection_context(session: &str) -> ApplicationContext {
-    ApplicationContext {
-        capabilities: CapabilityContext {
-            granted: vec![
-                CapabilityId::new("session_branch_tree").expect("session read capability"),
-            ],
-            grants: vec![Capability {
-                scope: CapabilityScope::Session(session.to_owned()),
-                actions: [CapabilityAction::ModifyBranch].into_iter().collect(),
-                constraints: CapabilityConstraints {
-                    operation: Some(OperationKind::Agent),
-                    ..CapabilityConstraints::unrestricted()
-                },
-            }],
-        },
-        ..ApplicationContext::empty()
     }
 }

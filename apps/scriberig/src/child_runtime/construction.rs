@@ -14,15 +14,15 @@ where
 {
     /// Creates a child executor without a session-selected thinking level.
     ///
-    /// # Parameters
     /// - `service`: Application boundary owning session and operation state.
     /// - `provider`: Cloneable provider adapter for child requests.
     /// - `model`: Provider-native model identifier.
     /// - `cache`: Shared response cache for the execution tree.
     /// - `project_store`: Durable project store used by child tools.
     ///
-    /// # Returns
     /// A child executor using the supplied runtime model and dependencies.
+    /// # Returns
+    /// The operation result.
     pub(crate) fn new(
         service: &'a ApplicationService<B>,
         provider: P,

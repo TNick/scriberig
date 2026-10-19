@@ -18,14 +18,15 @@ use super::{
 impl ProjectService {
     /// Applies a validated candidate after aggregate exact-base preflight.
     ///
-    /// # Parameters
     /// - `candidate`: Durable candidate returned by shared project operations.
     ///
-    /// # Returns
     /// The successor snapshot and durable per-path materialization receipts.
     ///
-    /// # Errors
     /// Returns stale, validation, ownership, path, conflict, I/O, or import errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn apply_candidate(
         &self,
         candidate: &ProjectCandidate,
@@ -38,15 +39,16 @@ impl ProjectService {
     /// This internal boundary keeps live effects on the shared filesystem
     /// contract and permits deterministic recovery testing without global flags.
     ///
-    /// # Parameters
     /// - `candidate`: Durable candidate returned by shared project operations.
     /// - `filesystem`: Filesystem capability used only for candidate effects.
     ///
-    /// # Returns
     /// The successor snapshot and durable per-path materialization receipts.
     ///
-    /// # Errors
     /// Returns stale, validation, ownership, path, conflict, I/O, or import errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn apply_candidate_with_filesystem(
         &self,
         candidate: &ProjectCandidate,
@@ -120,12 +122,12 @@ impl ProjectService {
 
     /// Compares immutable candidate identity and source meaning, excluding validation output.
     ///
-    /// # Parameters
     /// - `durable`: Candidate loaded from shared storage.
     /// - `requested`: Candidate supplied to the apply operation.
     ///
-    /// # Returns
     /// Whether project/base/effect identity and exact source bytes match.
+    /// # Returns
+    /// The operation result.
     fn same_candidate_content(durable: &ProjectCandidate, requested: &ProjectCandidate) -> bool {
         durable.id == requested.id
             && durable.project == requested.project
@@ -139,17 +141,18 @@ impl ProjectService {
 
     /// Records aggregate filesystem effect status.
     ///
-    /// # Parameters
     /// - `candidate`: Candidate whose status is changing.
     /// - `successor`: Promoted snapshot when canonical import completed.
     /// - `state`: Aggregate materialization state.
     /// - `diagnostic`: Safe failure or recovery detail.
     ///
-    /// # Returns
     /// Unit after the aggregate receipt is persisted.
     ///
-    /// # Errors
     /// Returns a storage error when receipt persistence fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn record_effect(
         &self,
         candidate: &ProjectCandidate,
@@ -172,18 +175,19 @@ impl ProjectService {
 
     /// Records the durable state of one source effect.
     ///
-    /// # Parameters
     /// - `candidate`: Candidate owning the effect.
     /// - `effect`: Path effect whose state is recorded.
     /// - `state`: Per-path receipt state.
     /// - `observed`: Bytes observed after the effect, when present.
     /// - `diagnostic`: Safe failure detail.
     ///
-    /// # Returns
     /// Unit after the path receipt is durable.
     ///
-    /// # Errors
     /// Returns a storage error when the receipt cannot be persisted.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn record_effect_path(
         &self,
         candidate: &ProjectCandidate,
@@ -206,15 +210,16 @@ impl ProjectService {
 
     /// Resolves the authorized project root from durable ownership data.
     ///
-    /// # Parameters
     /// - `project`: Project identity.
     /// - `super`: Parent candidate module visibility.
     ///
-    /// # Returns
     /// Registered project root path.
     ///
-    /// # Errors
     /// Returns an error when the project is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn project_path(&self, project: ProjectId) -> Result<PathBuf, ProjectError> {
         self.store
             .project(project)
@@ -226,14 +231,15 @@ impl ProjectService {
 
 /// Requires durable validation success before any filesystem effect.
 ///
-/// # Parameters
 /// - `candidate`: Candidate whose validation state is checked.
 ///
-/// # Returns
 /// Unit when the candidate has passed validation.
 ///
-/// # Errors
 /// Returns a validation-pending or validation-failed error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn require_validation(candidate: &ProjectCandidate) -> Result<(), ProjectError> {
     match &candidate.validation {
         CandidateValidation::Passed
@@ -259,12 +265,12 @@ fn require_validation(candidate: &ProjectCandidate) -> Result<(), ProjectError> 
 
 /// Creates a project candidate error with a bounded message.
 ///
-/// # Parameters
 /// - `code`: Stable error category.
 /// - `message`: Safe error detail.
 ///
-/// # Returns
 /// Structured project error.
+/// # Returns
+/// The operation result.
 fn candidate_error(code: &'static str, message: &str) -> ProjectError {
     ProjectError {
         code,
@@ -275,11 +281,11 @@ fn candidate_error(code: &'static str, message: &str) -> ProjectError {
 
 /// Computes the BLAKE3 digest for exact bytes.
 ///
-/// # Parameters
 /// - `bytes`: Exact source bytes.
 ///
-/// # Returns
 /// Fixed size digest.
+/// # Returns
+/// The operation result.
 fn digest(bytes: &[u8]) -> [u8; 32] {
     *blake3::hash(bytes).as_bytes()
 }

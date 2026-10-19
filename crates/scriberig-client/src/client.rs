@@ -4,11 +4,11 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use scriberig_protocol::{
     AgentContinueRequest, AgentStartRequest, BranchReference, CancelOperationRequest,
-    CapabilitiesResponse, CommandRequest, EntityReference, Event, InspectEntityRequest,
-    InspectEntityResponse, OperationReference, OperationStatusRequest, OperationStatusResponse,
-    ProtocolTransport, ProtocolVersion, QueryRequest, Request, RequestEnvelope, Response,
-    RuntimeCapabilitiesRequest, SessionReadRequest, SessionReadResponse, SessionReference,
-    SnapshotSelector, SubscribeRequest,
+    CapabilitiesResponse, CommandRequest, DomainOperationCommand, EntityReference, Event,
+    InspectEntityRequest, InspectEntityResponse, OperationReference, OperationStatusRequest,
+    OperationStatusResponse, ProtocolTransport, ProtocolVersion, QueryRequest, Request,
+    RequestEnvelope, Response, RuntimeCapabilitiesRequest, SessionReadRequest, SessionReadResponse,
+    SessionReference, SnapshotSelector, SubscribeRequest,
 };
 
 #[path = "client_agent.rs"]
@@ -30,12 +30,12 @@ pub struct Client<T> {
 impl<T: ProtocolTransport> Client<T> {
     /// Creates a client over a protocol transport.
     ///
-    /// # Parameters
     /// - `transport`: Transport implementation used for requests.
     ///
-    /// # Returns
     /// A semantic protocol client.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(transport: T) -> Self {
         Self {
             transport,
@@ -45,16 +45,17 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Inspects one entity at an explicit snapshot selector.
     ///
-    /// # Parameters
     /// - `entity`: Transport-safe entity identifier.
     /// - `snapshot`: Snapshot resolution rule.
     /// - `deep`: Whether detailed summary fields are requested.
     ///
-    /// # Returns
     /// Snapshot-bound inspection response.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn inspect(
         &self,
         entity: impl Into<String>,
@@ -79,11 +80,13 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Retrieves runtime capability metadata.
     ///
-    /// # Returns
     /// Current capability response.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn capabilities(&self) -> Result<CapabilitiesResponse, ClientError> {
         match self
             .send(Request::Capabilities(RuntimeCapabilitiesRequest::default()))?
@@ -97,14 +100,15 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Retrieves one long-running operation status.
     ///
-    /// # Parameters
     /// - `operation`: Transport-safe operation identifier.
     ///
-    /// # Returns
     /// Current operation status response.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn operation_status(
         &self,
         operation: impl Into<String>,
@@ -125,14 +129,15 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Reads one compact durable session tree.
     ///
-    /// # Parameters
     /// - `session`: Stable session identity.
     ///
-    /// # Returns
     /// Provider-neutral session and branch activity summaries.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn read_session(
         &self,
         session: impl Into<String>,
@@ -152,14 +157,15 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Requests cancellation of one tracked operation.
     ///
-    /// # Parameters
     /// - `operation`: Transport-safe operation identifier.
     ///
-    /// # Returns
     /// The operation's cancelled lifecycle state.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn cancel_operation(
         &self,
         operation: impl Into<String>,
@@ -180,29 +186,31 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Reads currently available events matching a subscription.
     ///
-    /// # Parameters
     /// - `event_kinds`: Optional event names; empty selects all events.
     ///
-    /// # Returns
     /// Stable event envelopes available at the time of the request.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn subscribe(&self, event_kinds: Vec<String>) -> Result<Vec<Event>, ClientError> {
         self.subscribe_after(event_kinds, None)
     }
 
     /// Reads events published after an optional protocol cursor.
     ///
-    /// # Parameters
     /// - `event_kinds`: Optional event names; empty selects all events.
     /// - `after`: Last cursor already processed by the caller.
     ///
-    /// # Returns
     /// Stable event envelopes newer than the requested cursor.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn subscribe_after(
         &self,
         event_kinds: Vec<String>,
@@ -220,14 +228,15 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Evaluates one structured query through the remote application boundary.
     ///
-    /// # Parameters
     /// - `specification`: Snapshot-bound structural query.
     ///
-    /// # Returns
     /// A typed query page retaining its exact scope.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn query(&self, specification: QuerySpec) -> Result<QueryResult, ClientError> {
         match self
             .send(Request::Query(QueryRequest {
@@ -247,14 +256,15 @@ impl<T: ProtocolTransport> Client<T> {
     /// Reads one bounded collection page through the remote application
     /// boundary.
     ///
-    /// # Parameters
     /// - `specification`: Snapshot-bound universal list request.
     ///
-    /// # Returns
     /// The typed collection page.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn list(
         &self,
         specification: scriberig_query::ListRequest,
@@ -277,14 +287,15 @@ impl<T: ProtocolTransport> Client<T> {
     /// Executes bounded semantic discovery through the remote application
     /// boundary.
     ///
-    /// # Parameters
     /// - `specification`: Snapshot-scoped universal find request.
     ///
-    /// # Returns
     /// The typed discovery result.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn find(
         &self,
         specification: scriberig_query::FindRequest,
@@ -306,15 +317,16 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Sends a presentation-neutral application command payload.
     ///
-    /// # Parameters
     /// - `kind`: Stable command family identifier.
     /// - `payload`: Typed command payload encoded as JSON.
     ///
-    /// # Returns
     /// The tracked operation accepted by the application boundary.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn command(
         &self,
         kind: impl Into<String>,
@@ -333,16 +345,39 @@ impl<T: ProtocolTransport> Client<T> {
         }
     }
 
+    /// Executes a registered semantic operation through the shared command API.
+    ///
+    /// - `request`: Exact semantic target, operation, and scalar arguments.
+    ///
+    /// The tracked operation accepted by the application boundary.
+    ///
+    /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn domain_operation(
+        &self,
+        request: DomainOperationCommand,
+    ) -> Result<OperationStatusResponse, ClientError> {
+        self.command(
+            "domain_operation",
+            serde_json::to_value(request)
+                .map_err(|error| ClientError::Encoding(error.to_string()))?,
+        )
+    }
+
     /// Sends one request with protocol and correlation metadata.
     ///
-    /// # Parameters
     /// - `request`: Typed protocol request.
     ///
-    /// # Returns
     /// Correlated transport response.
     ///
-    /// # Errors
     /// Returns a transport or protocol error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn send(&self, request: Request) -> Result<scriberig_protocol::ResponseEnvelope, ClientError> {
         let correlation = self.next_correlation.fetch_add(1, Ordering::Relaxed);
         let response = self.transport.send(RequestEnvelope {

@@ -14,6 +14,7 @@ fn local_agent_completion_uses_runtime_output() {
         .start_local_agent(&scriberig_app::AgentCommandRequest {
             session,
             branch: None,
+            anchor: None,
             prompt: "instruction".to_owned(),
             selection: None,
         })
@@ -66,6 +67,7 @@ fn local_agent_completion_persists_tool_invocation_and_result() {
         .start_local_agent(&AgentCommandRequest {
             session: EntityId::from_bytes([12; 16]),
             branch: None,
+            anchor: None,
             prompt: "run a semantic lookup".to_owned(),
             selection: None,
         })
@@ -81,6 +83,7 @@ fn local_agent_completion_persists_tool_invocation_and_result() {
                 input: br#"{"query":"Greeter","token":"FAKE_SECRET_MARKER_8391"}"#.to_vec(),
                 presentation_input: Some(br#"{"query":"Greeter","token":"[REDACTED]"}"#.to_vec()),
                 presentation_label: Some("Find Greeter".to_owned()),
+                category: Some(scriberig_session::ToolActivityKind::SemanticRead),
                 output: br#"{"handles":["entity:demo"]}"#.to_vec(),
                 failed: false,
                 child_branch: None,
@@ -109,9 +112,65 @@ fn local_agent_completion_persists_tool_invocation_and_result() {
     assert_tool_evidence_is_persisted(&session);
 }
 
+/// Persists semantic mutation evidence with its candidate handle.
+#[test]
+fn semantic_operation_activity_retains_candidate_reference() {
+    let service = ApplicationService::new(Fixture);
+    let handle = service
+        .start_local_agent(&AgentCommandRequest {
+            session: EntityId::from_bytes([17; 16]),
+            branch: None,
+            anchor: None,
+            prompt: "rename the selected semantic entity".to_owned(),
+            selection: None,
+        })
+        .expect("pending semantic operation");
+    service
+        .complete_local_agent_with_evidence(
+            &handle,
+            "semantic candidate created",
+            vec!["candidate:rename-1".to_owned()],
+            vec![scriberig_app::ToolExecutionEvidence {
+                ordinal: 1,
+                name: "domain_operation".to_owned(),
+                input: br#"{"capability":"operation.rename"}"#.to_vec(),
+                presentation_input: Some(br#"{"capability":"operation.rename"}"#.to_vec()),
+                presentation_label: Some("Rename semantic entity".to_owned()),
+                category: Some(scriberig_session::ToolActivityKind::SemanticMutation),
+                output: br#"{"candidate":"candidate:rename-1"}"#.to_vec(),
+                failed: false,
+                child_branch: None,
+            }],
+            Vec::new(),
+        )
+        .expect("persist semantic operation evidence");
+    let session = service
+        .read_session(
+            &session_context(),
+            &SessionRequest {
+                session: handle.session,
+            },
+        )
+        .expect("durable semantic session");
+    let branch = session
+        .branches
+        .iter()
+        .find(|branch| branch.id == handle.root_branch)
+        .expect("semantic operation branch");
+
+    assert_eq!(branch.tool_invocations[0].name, "domain_operation");
+    assert_eq!(
+        branch.tool_invocations[0].category,
+        Some(scriberig_session::ToolActivityKind::SemanticMutation)
+    );
+    assert_eq!(
+        branch.tool_results[0].output,
+        br#"{"candidate":"candidate:rename-1"}"#
+    );
+}
+
 /// Checks persisted model, tool, and result evidence for one completed branch.
 ///
-/// # Parameters
 /// - `session`: Durable session returned after local agent completion.
 ///
 /// # Panics
@@ -139,6 +198,10 @@ fn assert_tool_evidence_is_persisted(session: &scriberig_session::Session) {
     ));
     assert_eq!(branch.tool_invocations.len(), 1);
     assert_eq!(branch.tool_invocations[0].name, "semantic_find");
+    assert_eq!(
+        branch.tool_invocations[0].category,
+        Some(scriberig_session::ToolActivityKind::SemanticRead)
+    );
     assert_eq!(
         branch.tool_invocations[0].presentation_label.as_deref(),
         Some("Find Greeter")
@@ -184,6 +247,7 @@ fn local_child_agent_start_creates_parent_link() {
     let request = AgentCommandRequest {
         session: EntityId::from_bytes([21; 16]),
         branch: None,
+        anchor: None,
         prompt: "root".to_owned(),
         selection: None,
     };
@@ -264,104 +328,5 @@ fn local_child_agent_start_creates_parent_link() {
     );
 }
 
-/// Exercises output, tool evidence, and nested branch causality in one fixture.
-#[test]
-fn shared_activity_fixture_covers_output_tool_and_nested_child() {
-    let service = ApplicationService::new(Fixture);
-    let root = service
-        .start_local_agent(&AgentCommandRequest {
-            session: EntityId::from_bytes([42; 16]),
-            branch: None,
-            prompt: "inspect and delegate".to_owned(),
-            selection: None,
-        })
-        .expect("root operation");
-    let child = service
-        .start_local_child_agent(
-            root.session,
-            root.root_branch,
-            "child",
-            "inspect subtopic",
-            "inspect subtopic",
-        )
-        .expect("child operation");
-    service
-        .complete_local_child_agent(&child, "child result")
-        .expect("child result");
-    service
-        .complete_local_agent_with_evidence(
-            &root,
-            "root result",
-            Vec::new(),
-            vec![scriberig_app::ToolExecutionEvidence {
-                ordinal: 1,
-                name: "delegate".to_owned(),
-                input: br#"{"query":"topic"}"#.to_vec(),
-                presentation_input: Some(br#"{"query":"topic"}"#.to_vec()),
-                presentation_label: None,
-                output: br#"{"summary":"found"}"#.to_vec(),
-                failed: false,
-                child_branch: Some(child.child_branch),
-            }],
-            Vec::new(),
-        )
-        .expect("root result");
-
-    let session = service
-        .read_session(
-            &session_context(),
-            &SessionRequest {
-                session: root.session,
-            },
-        )
-        .expect("durable session");
-    assert_shared_activity_causality(&session, root.root_branch, child.child_branch);
-}
-
-/// Checks the durable parent and child activity relationships.
-///
-/// # Parameters
-/// - `session`: Persisted activity graph to inspect.
-/// - `root_branch`: Expected parent branch identity.
-/// - `child_branch`: Expected nested branch identity.
-fn assert_shared_activity_causality(
-    session: &scriberig_session::Session,
-    root_branch: EntityId,
-    child_branch: EntityId,
-) {
-    let parent = session
-        .branches
-        .iter()
-        .find(|branch| branch.id == root_branch)
-        .expect("parent branch");
-    let child = session
-        .branches
-        .iter()
-        .find(|branch| branch.id == child_branch)
-        .expect("child branch");
-
-    assert_eq!(parent.children, vec![child_branch]);
-    assert!(parent.activity.iter().any(|item| matches!(
-        item,
-        scriberig_session::ExecutionActivity::ToolResult(id)
-            if parent.tool_results.iter().any(|result| result.id == *id)
-    )));
-    assert!(
-        parent
-            .activity
-            .contains(&scriberig_session::ExecutionActivity::ChildBranchSpawned {
-                branch: child_branch,
-                parent_tool_invocation: parent.tool_invocations[0].id,
-            })
-    );
-    assert!(parent.activity.iter().any(|item| matches!(
-        item,
-        scriberig_session::ExecutionActivity::AgentOutput(id)
-            if parent.turns.iter().any(|turn| turn.id == *id && turn.agent.is_some())
-    )));
-    assert!(child.activity.iter().any(|item| matches!(
-        item,
-        scriberig_session::ExecutionActivity::AgentOutput(id)
-            if child.turns.iter().any(|turn| turn.id == *id && turn.agent.is_some())
-    )));
-}
+#[path = "session_runtime_activity_parts/part1.rs"]
+mod part1;

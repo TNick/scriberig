@@ -12,8 +12,9 @@ use scriberig_graph::{DerivedArtifact, DerivedStatus};
 
 /// Builds a deterministic test derivation key.
 ///
-/// # Returns
 /// A stable exact test key.
+/// # Returns
+/// The operation result.
 fn key() -> DerivationKey {
     DerivationKey::new(
         DerivationProfile::new("test:summary", "v1"),
@@ -26,15 +27,16 @@ fn key() -> DerivationKey {
 
 /// Builds a successful test result record.
 ///
-/// # Parameters
 /// - `key`: Exact derivation key.
 /// - `handle`: Single-byte value used to build a stable handle.
 ///
-/// # Returns
 /// A successful test result.
 ///
-/// # Errors
 /// This helper does not fail.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn record(key: DerivationKey, handle: u8) -> DerivedResultRecord {
     DerivedResultRecord::new(
         key,

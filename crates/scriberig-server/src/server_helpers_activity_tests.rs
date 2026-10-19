@@ -38,6 +38,7 @@ fn activity_projection_redacts_tool_payload_bytes() {
         parent_model_invocation: Some(model_id),
         presentation_input: Some(br#"{"query":"find documents","token":"[REDACTED]"}"#.to_vec()),
         presentation_label: Some("Find documents".to_owned()),
+        category: Some(scriberig_session::ToolActivityKind::SemanticRead),
     });
     branch.tool_results.push(ToolResult {
         id: result_id,
@@ -136,6 +137,7 @@ fn activity_projection_uses_safe_bounded_tool_result_summary() {
         parent_model_invocation: None,
         presentation_input: None,
         presentation_label: None,
+        category: Some(scriberig_session::ToolActivityKind::SemanticRead),
     });
     branch.tool_results.push(ToolResult {
         id: result_id,

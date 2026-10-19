@@ -12,48 +12,18 @@ use scriberig_store_sqlite::SqliteStore;
 fn tui_bootstrap_import_failure_does_not_activate_partial_project() {
     let _lock = super::tui_pty_support::test_lock();
     let mut tui = super::tui_pty_support::TuiPty::start_bootstrap_import_failure();
-    assert!(
-        tui.read_until("project: unselected"),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"start-agent\r");
-    assert!(
-        tui.read_until("Agent composer · ent_"),
-        "{}",
-        tui.diagnostic()
-    );
-    let session = tui
-        .screen()
-        .split("Agent composer · ")
-        .nth(1)
-        .and_then(|value| value.split_whitespace().next())
-        .expect("visible session")
-        .parse::<EntityId>()
-        .expect("session identity");
+    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
+    tui.send(b"Onboard the current project.\r");
+    let session = tui.stored_session_id();
     let checkout = tui.fixture_path().join("scriberig");
     let manifest = std::fs::read(checkout.join("Cargo.toml")).expect("baseline manifest");
     let source = std::fs::read(checkout.join("crates/scriberig-project/src/scan.rs"))
         .expect("baseline scanner");
 
-    tui.send(b"Onboard the current project.\r");
-    assert!(tui.read_until("manifest_changed"), "{}", tui.diagnostic());
-    tui.send(b"\x1b");
-    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"operations");
-    assert!(tui.read_until("View operations"), "{}", tui.diagnostic());
-    tui.send(b"\r");
-    assert!(
-        tui.read_until_for("Failed", std::time::Duration::from_secs(60)),
-        "{}",
-        tui.diagnostic()
-    );
+    let database = tui.fixture_path().join("scriberig.sqlite");
+    wait_for_import_failure(&database, session);
 
-    assert!(tui.screen().contains("project: unselected"));
+    assert!(tui.screen().contains("no active project"));
     assert_eq!(
         std::fs::read(checkout.join("Cargo.toml")).expect("manifest after failure"),
         manifest
@@ -116,40 +86,16 @@ fn tui_bootstrap_import_failure_does_not_activate_partial_project() {
 fn tui_bootstraps_project_and_reopens_exact_workspace() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_bootstrap();
-    assert!(
-        tui.read_until("project: unselected"),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"start-agent\r");
-    assert!(
-        tui.read_until("Agent composer · ent_"),
-        "{}",
-        tui.diagnostic()
-    );
-    let session = tui
-        .screen()
-        .split("Agent composer · ")
-        .nth(1)
-        .and_then(|value| value.split_whitespace().next())
-        .expect("session visible in composer")
-        .parse::<EntityId>()
-        .expect("session identity");
+    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
     tui.send(b"Onboard the current project.\r");
+    let session = tui.stored_session_id();
     let onboarded = tui.read_until("The current project is onboarded");
     let saved = SqliteSessionStore::open(tui.fixture_path().join("scriberig.sqlite"))
         .expect("open diagnostic session store")
         .load(session)
         .expect("read diagnostic session");
     assert!(onboarded, "{}; saved session: {saved:?}", tui.diagnostic());
-    assert!(tui.read_until("project: scriberig"), "{}", tui.diagnostic());
-    assert!(
-        tui.read_until_not("Model: default · running"),
-        "{}",
-        tui.diagnostic()
-    );
+    wait_for_onboarding_completion(&tui, session);
     assert_architecture_discovery(&mut tui, session);
 
     let fixture = tui.fixture_path().to_path_buf();
@@ -181,7 +127,7 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
 
     let mut reopened = TuiPty::restart_bootstrap(fixture.clone());
     assert!(
-        reopened.read_until("scriberig @ snp_"),
+        reopened.read_until("scriberig ·"),
         "{}",
         reopened.diagnostic()
     );
@@ -191,30 +137,9 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
 
 /// Continues the bootstrapped session with a semantic architecture request.
 ///
-/// # Parameters
 /// - `tui`: Active terminal process receiving the continuation.
 /// - `session`: Durable session identity expected in the composer.
 fn assert_architecture_discovery(tui: &mut TuiPty, session: EntityId) {
-    tui.send(b"\x1b");
-    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
-    tui.send(b"\x1b[B");
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"continue-agent");
-    assert!(
-        tui.read_until("Search: continue-agent"),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b"\r");
-    assert!(tui.read_until("Write a message..."), "{}", tui.diagnostic());
-    tui.send(b"i");
-    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
-    assert!(
-        tui.screen().contains(&session.to_string()),
-        "{}",
-        tui.diagnostic()
-    );
     tui.send(b"Discover Scriberig architecture semantically.");
     assert!(
         tui.read_until("Discover Scriberig architecture semantically."),
@@ -233,9 +158,67 @@ fn assert_architecture_discovery(tui: &mut TuiPty, session: EntityId) {
     assert!(discovered, "{}; saved session: {saved:?}", tui.diagnostic());
 }
 
+/// Waits until the durable onboarding branch has completed.
+///
+/// - `tui`: Active native TUI process owning the session database.
+/// - `session`: Exact onboarding session identity.
+fn wait_for_onboarding_completion(tui: &TuiPty, session: EntityId) {
+    let store = SqliteSessionStore::open(tui.fixture_path().join("scriberig.sqlite"))
+        .expect("open onboarding session store");
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+    loop {
+        let saved = store
+            .load(session)
+            .expect("read onboarding session")
+            .expect("onboarding session exists");
+        if saved.branches.iter().any(|branch| {
+            branch.status == BranchStatus::Completed
+                && branch.turns.iter().any(|turn| {
+                    turn.agent.as_ref().is_some_and(|message| {
+                        message.text.contains("current project is onboarded")
+                    })
+                })
+        }) {
+            return;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "onboarding branch did not complete"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+}
+
+/// Waits until the invalid reviewed manifest is durably rejected.
+///
+/// - `database`: Product database containing the durable session.
+/// - `session`: Exact session identity for the bootstrap attempt.
+fn wait_for_import_failure(database: &std::path::Path, session: EntityId) {
+    let store = SqliteSessionStore::open(database).expect("open failed onboarding store");
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(120);
+    loop {
+        let saved = store
+            .load(session)
+            .expect("read failed onboarding session")
+            .expect("failed onboarding session exists");
+        if saved.branches.iter().any(|branch| {
+            branch
+                .result
+                .as_ref()
+                .is_some_and(|result| result.result_kind.as_deref() == Some("agent-failure"))
+        }) {
+            return;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "invalid onboarding import did not fail"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+}
+
 /// Verifies durable onboarding identity, workspace references, and human input.
 ///
-/// # Parameters
 /// - `database`: Temporary SQLite database used by the product process.
 /// - `session`: Session identity created by the TUI agent composer.
 fn assert_durable_session(database: &std::path::Path, session: EntityId) {
@@ -295,7 +278,6 @@ fn assert_durable_session(database: &std::path::Path, session: EntityId) {
 
 /// Verifies semantic child discovery is durable and exact-snapshot scoped.
 ///
-/// # Parameters
 /// - `database`: Temporary SQLite database used by the product process.
 /// - `session`: Session receiving parent and child discovery branches.
 /// - `project`: Onboarded project identity.

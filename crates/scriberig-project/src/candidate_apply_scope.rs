@@ -8,18 +8,19 @@ use scriberig_store_sqlite::ProjectFileRecord;
 
 /// Selects the working-tree path set for candidate preflight and refresh.
 ///
-/// # Parameters
 /// - `root`: Authorized project checkout.
 /// - `base_files`: Exact project manifest at candidate base.
 /// - `effects`: Candidate-owned paths, including new source files.
 /// - `super`: Parent candidate module.
 ///
-/// # Returns
 /// Git working paths plus base/effect paths for repositories; `None` for
 /// non-Git projects, whose full source trees remain the scan boundary.
 ///
-/// # Errors
 /// Returns a structured Git discovery error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn candidate_scan_paths(
     root: &Path,
     base_files: &[ProjectFileRecord],

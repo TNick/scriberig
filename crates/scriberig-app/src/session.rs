@@ -1,5 +1,6 @@
 //! Defines public application boundaries for session reads and agent commands.
 
+use crate::{ApplicationContext, ApplicationError};
 use scriberig_core::{EntityId, OperationId, SnapshotId};
 use scriberig_session::{Session, SessionExecutionSelection};
 
@@ -50,6 +51,8 @@ pub struct ToolExecutionEvidence {
     pub presentation_input: Option<Vec<u8>>,
     /// Optional trusted compact invocation label safe for client presentation.
     pub presentation_label: Option<String>,
+    /// Trusted semantic category persisted with the invocation when known.
+    pub category: Option<scriberig_session::ToolActivityKind>,
     /// Structured bounded tool result encoded as JSON.
     pub output: Vec<u8>,
     /// Whether the tool returned a structured failure.
@@ -72,10 +75,165 @@ pub struct AgentCommandRequest {
     pub session: EntityId,
     /// Optional branch receiving the new turn.
     pub branch: Option<EntityId>,
+    /// Exact continuation location for historical replies.
+    pub anchor: Option<scriberig_session::ContinuationAnchor>,
     /// User-authored command text.
     pub prompt: String,
     /// Exact semantic scope supplied to the agent runtime.
     pub selection: Option<AgentSelection>,
+}
+
+/// Requests a new session start with optional exact semantic scope.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NewSessionAgentRequest {
+    /// User-authored first instruction.
+    pub prompt: String,
+    /// Optional exact semantic selection.
+    pub selection: Option<AgentSelection>,
+}
+
+/// Requests an exact-anchor continuation with optional semantic scope.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentContinueAtRequest {
+    /// Existing session identity.
+    pub session: EntityId,
+    /// Exact durable continuation location.
+    pub anchor: scriberig_session::ContinuationAnchor,
+    /// User-authored follow-up instruction.
+    pub prompt: String,
+    /// Optional exact semantic selection.
+    pub selection: Option<AgentSelection>,
+}
+
+/// Returns the authoritative handles allocated for a new agent session.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NewSessionAgentStart {
+    /// Shared operation identity.
+    pub operation: OperationId,
+    /// Newly created session identity.
+    pub session: EntityId,
+    /// Root branch receiving the first user input.
+    pub root_branch: EntityId,
+}
+
+/// Returns handles accepted for an exact historical continuation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentContinuationAccepted {
+    /// Shared operation identity.
+    pub operation: OperationId,
+    /// Existing session identity.
+    pub session: EntityId,
+    /// New branch created at the exact continuation anchor.
+    pub branch: EntityId,
+}
+
+/// Describes one proposed node before application identities are allocated.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlanNodeDraft {
+    /// Stable request-local key used by dependency declarations.
+    pub key: String,
+    /// Optional parent draft index; absent nodes attach to the anchor branch.
+    pub parent_index: Option<usize>,
+    /// Human-readable work title.
+    pub title: String,
+    /// Focused work instruction.
+    pub purpose: String,
+    /// Expected provider-neutral result contract.
+    pub expected_result: Option<scriberig_session::ExpectedResult>,
+    /// Semantic handles selected for this work.
+    pub semantic_scope: Vec<String>,
+    /// Optional safe model-library assignment.
+    pub assignment: Option<scriberig_session::ModelAssignment>,
+}
+
+/// Requests durable plan creation at an exact session anchor.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlanCreateRequest {
+    /// Owning session identity.
+    pub session: EntityId,
+    /// Exact conversation location where the plan is created.
+    pub anchor: scriberig_session::ContinuationAnchor,
+    /// Durable plan goal.
+    pub goal: String,
+    /// Structured untrusted proposal nodes.
+    pub nodes: Vec<PlanNodeDraft>,
+    /// Dependency index pairs `(prerequisite, dependent)`.
+    pub dependencies: Vec<(usize, usize)>,
+}
+
+/// Requests one optimistic plan lifecycle mutation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlanLifecycleRequest {
+    /// Owning session identity.
+    pub session: EntityId,
+    /// Stable plan identity.
+    pub plan: EntityId,
+    /// Plan revision observed by the caller.
+    pub expected_revision: u64,
+}
+
+/// Selects a durable lifecycle transition for a plan.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PlanLifecycleAction {
+    /// Enables auto-advancing coordination.
+    Start,
+    /// Pauses dispatch while preserving plan state.
+    Pause,
+    /// Resumes dispatch for a paused plan.
+    Resume,
+    /// Stops auto-advancement.
+    Stop,
+    /// Completes only after explicit durable node results are present.
+    Complete,
+}
+
+/// Requests a safe model assignment change for one plan node.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlanAssignmentRequest {
+    /// Owning session identity.
+    pub session: EntityId,
+    /// Stable plan identity.
+    pub plan: EntityId,
+    /// Stable plan-node identity.
+    pub node: EntityId,
+    /// Plan revision observed by the caller.
+    pub expected_revision: u64,
+    /// New library-validated assignment, or `None` to inherit defaults.
+    pub assignment: Option<scriberig_session::ModelAssignment>,
+}
+
+/// Identifies an existing or newly proposed node in a replan request.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PlanNodeReference {
+    /// Existing durable node identity.
+    Existing(EntityId),
+    /// Request-local key for a proposed node.
+    Proposed(String),
+}
+
+/// Requests one optimistic durable plan revision.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlanReplanRequest {
+    /// Owning session identity.
+    pub session: EntityId,
+    /// Stable plan identity.
+    pub plan: EntityId,
+    /// Plan revision observed by the caller.
+    pub expected_revision: u64,
+    /// New structured nodes to append.
+    pub additions: Vec<PlanNodeDraft>,
+    /// Explicit dependency references `(prerequisite, dependent)`.
+    pub dependencies: Vec<(PlanNodeReference, PlanNodeReference)>,
+    /// Existing dependency edges to remove explicitly.
+    pub removed_dependencies: Vec<(EntityId, EntityId)>,
+    /// Existing node and proposed replacement key pairs.
+    pub superseded: Vec<(EntityId, String)>,
+    /// Safe assignment changes for existing unstarted nodes.
+    pub assignment_changes: Vec<(EntityId, Option<scriberig_session::ModelAssignment>)>,
+    /// Completed terminal node identities that the proposal preserves.
+    pub preserved_terminal_nodes: Vec<EntityId>,
+    /// Safe explanation or trigger recorded in revision history.
+    pub reason: String,
 }
 
 /// Identifies the exact semantic scope supplied to an agent.
@@ -102,6 +260,8 @@ pub struct LocalAgentHandle {
     pub root_branch: EntityId,
     /// Human instruction recorded on the root turn.
     pub prompt: String,
+    /// Exact semantic scope selected when this operation was accepted.
+    pub selection: Option<AgentSelection>,
 }
 
 /// Identifies a locally accepted nested agent operation.
@@ -121,224 +281,12 @@ pub struct LocalChildAgentHandle {
     pub prompt: String,
 }
 
-/// Owns session and agent operations at the application boundary.
-pub trait SessionBackend {
-    /// Reads one public session snapshot.
-    ///
-    /// # Parameters
-    /// - `context`: Authorized caller context.
-    /// - `request`: Stable session request.
-    ///
-    /// # Returns
-    /// The session state supplied by the owning subsystem.
-    ///
-    /// # Errors
-    /// Returns a structured application failure.
-    fn read_session(
-        &self,
-        context: &crate::ApplicationContext,
-        request: &SessionRequest,
-    ) -> Result<Session, crate::ApplicationError>;
-
-    /// Starts one agent command without making its output canonical.
-    ///
-    /// # Parameters
-    /// - `context`: Authorized caller context.
-    /// - `request`: Session, branch, and prompt input.
-    ///
-    /// # Returns
-    /// Stable operation identity for lifecycle observation.
-    ///
-    /// # Errors
-    /// Returns a structured application failure.
-    fn submit_agent_command(
-        &self,
-        context: &crate::ApplicationContext,
-        request: &AgentCommandRequest,
-    ) -> Result<OperationId, crate::ApplicationError>;
-}
-
-/// Identifies one requested model-profile mutation for a session.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SessionModelSelectionRequest {
-    /// Stable session identity to update.
-    pub session: EntityId,
-    /// Selection revision observed by the client.
-    pub expected_revision: u64,
-    /// Enabled model-profile identity to select.
-    pub model_profile: String,
-}
-
-/// Identifies one requested thinking-level mutation for a session.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SessionThinkingSelectionRequest {
-    /// Stable session identity to update.
-    pub session: EntityId,
-    /// Selection revision observed by the client.
-    pub expected_revision: u64,
-    /// Advertised thinking-level identity to select.
-    pub thinking_level: String,
-}
-
-/// Holds bounded safe detail for one durable tool result.
-///
-/// # Public members
-/// - result: Stable tool-result identity.
-/// - detail: Allowlisted result fields safe for client presentation.
-/// - truncated: Whether the detail budget omitted safe values.
-///
-/// # Private members
-/// None.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ToolResultDetail {
-    /// Stable tool-result identity.
-    pub result: EntityId,
-    /// Whitelisted provider-neutral result fields.
-    pub detail: serde_json::Value,
-    /// Whether safe fields were truncated to satisfy the response bound.
-    pub truncated: bool,
-}
-
-/// Owns model-library reads and session-scoped execution selection.
-pub trait AgentConsoleBackend {
-    /// Lists safe model descriptors and curated profiles.
-    ///
-    /// # Parameters
-    /// - `context`: Authorized application request context.
-    ///
-    /// # Returns
-    /// The configured safe model library.
-    ///
-    /// # Errors
-    /// Returns a permission or configuration failure.
-    fn agent_model_library(
-        &self,
-        context: &crate::ApplicationContext,
-    ) -> Result<crate::ModelLibrary, crate::ApplicationError>;
-
-    /// Reads the caller's shared presentation defaults.
-    ///
-    /// # Parameters
-    /// - `_context`: Authorized caller context.
-    ///
-    /// # Returns
-    /// Revisioned shared defaults independent from session history.
-    ///
-    /// # Errors
-    /// Returns unsupported-operation when unavailable.
-    fn agent_presentation_preferences(
-        &self,
-        _context: &crate::ApplicationContext,
-    ) -> Result<crate::AgentPresentationPreferenceSnapshot, crate::ApplicationError> {
-        Err(crate::ApplicationError::UnsupportedOperation {
-            operation: "agent presentation preferences".to_owned(),
-        })
-    }
-
-    /// Updates shared presentation defaults using optimistic revision checks.
-    ///
-    /// # Parameters
-    /// - `_context`: Authorized caller context.
-    /// - `_expected_revision`: Preference revision observed by the caller.
-    /// - `_preferences`: Complete independent presentation choices.
-    ///
-    /// # Returns
-    /// The updated authoritative preferences.
-    ///
-    /// # Errors
-    /// Returns unsupported-operation when unavailable.
-    fn set_agent_presentation_preferences(
-        &self,
-        _context: &crate::ApplicationContext,
-        _expected_revision: u64,
-        _preferences: crate::AgentPresentationPreferences,
-    ) -> Result<crate::AgentPresentationPreferenceSnapshot, crate::ApplicationError> {
-        Err(crate::ApplicationError::UnsupportedOperation {
-            operation: "agent presentation preferences".to_owned(),
-        })
-    }
-
-    /// Selects a model profile for future session invocations.
-    ///
-    /// # Parameters
-    /// - `context`: Authorized application request context.
-    /// - `request`: Session, observed mutation revision, and profile.
-    ///
-    /// # Returns
-    /// The updated shared session selection.
-    ///
-    /// # Errors
-    /// Returns a permission, validation, conflict, or persistence failure.
-    fn set_session_model(
-        &self,
-        context: &crate::ApplicationContext,
-        request: &SessionModelSelectionRequest,
-    ) -> Result<SessionExecutionSelection, crate::ApplicationError>;
-
-    /// Selects an advertised thinking level for future invocations.
-    ///
-    /// # Parameters
-    /// - `context`: Authorized application request context.
-    /// - `request`: Session, observed revision, and thinking level.
-    ///
-    /// # Returns
-    /// The updated shared session selection.
-    ///
-    /// # Errors
-    /// Returns a permission, validation, conflict, or persistence failure.
-    fn set_session_thinking_level(
-        &self,
-        context: &crate::ApplicationContext,
-        request: &SessionThinkingSelectionRequest,
-    ) -> Result<SessionExecutionSelection, crate::ApplicationError>;
-
-    /// Reads allowlisted detail for one durable tool result.
-    ///
-    /// # Parameters
-    /// - `_context`: Authorized application request context.
-    /// - `_session`: Session containing the result.
-    /// - `_branch`: Branch containing the result.
-    /// - `_result`: Stable tool-result identity.
-    ///
-    /// # Returns
-    /// Bounded safe result detail.
-    ///
-    /// # Errors
-    /// Returns a permission, lookup, or persistence failure.
-    fn tool_result_detail(
-        &self,
-        _context: &crate::ApplicationContext,
-        _session: EntityId,
-        _branch: EntityId,
-        _result: EntityId,
-    ) -> Result<ToolResultDetail, crate::ApplicationError> {
-        Err(crate::ApplicationError::UnsupportedOperation {
-            operation: "tool result detail".to_owned(),
-        })
-    }
-
-    /// Reads the bounded provider-neutral request captured for an invocation.
-    ///
-    /// # Parameters
-    /// - `_context`: Authorized request context.
-    /// - `_session`: Session containing the invocation.
-    /// - `_branch`: Branch containing the invocation.
-    /// - `_invocation`: Stable model-invocation identity.
-    ///
-    /// # Returns
-    /// The captured safe request projection.
-    ///
-    /// # Errors
-    /// Returns unsupported-operation when unavailable.
-    fn model_request_detail(
-        &self,
-        _context: &crate::ApplicationContext,
-        _session: EntityId,
-        _branch: EntityId,
-        _invocation: EntityId,
-    ) -> Result<scriberig_session::ModelRequestProjection, crate::ApplicationError> {
-        Err(crate::ApplicationError::UnsupportedOperation {
-            operation: "model request detail".to_owned(),
-        })
-    }
-}
+#[path = "session/backend.rs"]
+mod backend;
+pub use backend::SessionBackend;
+#[path = "session/agent_console.rs"]
+mod agent_console;
+pub use agent_console::{
+    AgentConsoleBackend, SessionModelSelectionRequest, SessionThinkingSelectionRequest,
+    ToolResultDetail,
+};

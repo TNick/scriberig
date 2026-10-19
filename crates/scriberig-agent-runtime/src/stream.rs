@@ -48,45 +48,48 @@ struct PendingToolCall {
 impl StreamAssembler {
     /// Creates an empty response assembler.
     ///
-    /// # Returns
     /// A new assembler with no response fragments.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Returns the accumulated assistant-text length.
     ///
-    /// # Returns
     /// The number of UTF-8 bytes accumulated so far.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn text_len(&self) -> usize {
         self.text.len()
     }
 
     /// Returns text appended after a previous byte offset.
     ///
-    /// # Parameters
     /// - `offset`: Previous value returned by [`Self::text_len`].
     ///
-    /// # Returns
     /// The newly appended text, or no text when the offset is unchanged.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn text_since(&self, offset: usize) -> Option<&str> {
         self.text.get(offset..).filter(|text| !text.is_empty())
     }
 
     /// Adds one normalized fragment without parsing incomplete JSON.
     ///
-    /// # Parameters
     /// - `self`: Stream assembler receiving the fragment.
     /// - `chunk`: Normalized provider fragment.
     ///
-    /// # Returns
     /// Unit after the fragment is accepted.
     ///
-    /// # Errors
     /// Returns an error when a completed stream is given more data.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn push(&mut self, chunk: StreamChunk) -> Result<(), ProviderError> {
         if self.done {
             return Err(ProviderError::MalformedResponse(
@@ -126,15 +129,16 @@ impl StreamAssembler {
 
     /// Parses one OpenAI-compatible SSE data line.
     ///
-    /// # Parameters
     /// - `self`: Stream assembler receiving the line.
     /// - `line`: One complete `data:` line or terminal marker.
     ///
-    /// # Returns
     /// `true` when the line was a terminal `[DONE]` marker.
     ///
-    /// # Errors
     /// Returns a structured malformed-response error for invalid JSON.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn push_sse_line(&mut self, line: &str) -> Result<bool, ProviderError> {
         let data = line.strip_prefix("data:").map_or(line.trim(), str::trim);
         if data == "[DONE]" {
@@ -153,11 +157,13 @@ impl StreamAssembler {
 
     /// Finishes and normalizes the assembled response.
     ///
-    /// # Returns
     /// A complete normalized response.
     ///
-    /// # Errors
     /// Returns an incomplete-stream or malformed-tool-arguments error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn finish(self) -> Result<ModelResponse, ProviderError> {
         if !self.done {
             return Err(ProviderError::MalformedResponse(
@@ -238,8 +244,9 @@ struct WireUsage {
 impl WireChunk {
     /// Converts one wire chunk into a normalized stream fragment.
     ///
-    /// # Returns
     /// A provider-neutral stream fragment.
+    /// # Returns
+    /// The operation result.
     fn into_chunk(self) -> StreamChunk {
         let choice = self.choices.into_iter().next();
         let mut chunk = StreamChunk {
@@ -274,11 +281,11 @@ impl WireChunk {
 
 /// Maps a compatible stream finish reason to the normalized enum.
 ///
-/// # Parameters
 /// - `reason`: Provider finish-reason spelling.
 ///
-/// # Returns
 /// The normalized finish reason.
+/// # Returns
+/// The operation result.
 fn map_finish_reason(reason: &str) -> FinishReason {
     match reason {
         "tool_calls" => FinishReason::ToolCall,
@@ -291,6 +298,23 @@ fn map_finish_reason(reason: &str) -> FinishReason {
 #[cfg(test)]
 mod tests {
     use super::StreamAssembler;
+
+    /// Verifies private provider reasoning is excluded from normalized output.
+    #[test]
+    fn reasoning_content_is_not_exposed_as_assistant_text() {
+        let mut assembler = StreamAssembler::new();
+        assembler
+            .push_sse_line(
+                r#"data: {"choices":[{"delta":{"reasoning_content":"PRIVATE_CHAIN_OF_THOUGHT","content":"visible answer"},"finish_reason":"stop"}]}"#,
+            )
+            .expect("stream chunk");
+        assembler.push_sse_line("data: [DONE]").expect("done");
+
+        let response = assembler.finish().expect("normalized response");
+
+        assert_eq!(response.text.as_deref(), Some("visible answer"));
+        assert!(!format!("{response:?}").contains("PRIVATE_CHAIN_OF_THOUGHT"));
+    }
 
     /// Verifies fragmented tool JSON is parsed only after completion.
     #[test]

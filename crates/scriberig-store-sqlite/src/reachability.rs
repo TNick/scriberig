@@ -10,16 +10,17 @@ use crate::snapshot_integrity;
 
 /// Marks persistent canonical objects reachable from protected snapshots.
 ///
-/// # Parameters
 /// - `connection`: SQLite connection containing canonical storage.
 /// - `protected`: Stable protected-root set captured by the caller.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// Reachable snapshots, revisions, and persistent map nodes.
 ///
-/// # Errors
 /// Returns an error when canonical storage cannot be traversed.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn mark(
     connection: &Connection,
     protected: &ProtectedRoots,
@@ -77,14 +78,15 @@ pub(crate) fn mark(
 
 /// Converts a persisted revision identifier to its typed form.
 ///
-/// # Parameters
 /// - `bytes`: Candidate revision identifier bytes.
 ///
-/// # Returns
 /// A typed revision identity when the input is 32 bytes.
 ///
-/// # Errors
 /// Returns unit when the input length is invalid.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn revision_id(bytes: Vec<u8>) -> Result<RevisionId, ()> {
     if bytes.len() != 32 {
         return Err(());
@@ -96,15 +98,16 @@ fn revision_id(bytes: Vec<u8>) -> Result<RevisionId, ()> {
 
 /// Loads all persistent node identities from canonical storage.
 ///
-/// # Parameters
 /// - `connection`: SQLite connection containing canonical storage.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// Every stored persistent node identity.
 ///
-/// # Errors
 /// Returns an error when node identities cannot be read.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn all_nodes(connection: &Connection) -> rusqlite::Result<BTreeSet<SnapshotNodeId>> {
     let mut result = BTreeSet::new();
     let mut rows = connection.prepare("SELECT id FROM snapshot_nodes")?;

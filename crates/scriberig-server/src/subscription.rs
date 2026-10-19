@@ -12,7 +12,7 @@ impl SubscriptionSpec {
     #[must_use]
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     pub fn all() -> Self {
         Self::default()
     }
@@ -22,7 +22,7 @@ impl SubscriptionSpec {
     /// - `event_kinds`: Argument named `event_kinds`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     pub fn filtered(event_kinds: impl IntoIterator<Item = String>) -> Self {
         Self {
             event_kinds: event_kinds.into_iter().collect(),
@@ -34,7 +34,7 @@ impl SubscriptionSpec {
     /// - `event_kind`: Argument named `event_kind`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     pub fn accepts(&self, event_kind: &str) -> bool {
         self.event_kinds.is_empty()
             || self

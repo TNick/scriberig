@@ -19,12 +19,12 @@ const RESTRICTED: EntityId = EntityId::from_bytes([3; 16]);
 
 /// Creates one unconstrained capability grant for a test principal.
 ///
-/// # Parameters
 /// - `scope`: Scope covered by the grant.
 /// - `action`: Action granted within that scope.
 ///
-/// # Returns
 /// A test capability.
+/// # Returns
+/// The operation result.
 fn grant(scope: CapabilityScope, action: CapabilityAction) -> Capability {
     Capability {
         scope,
@@ -35,11 +35,11 @@ fn grant(scope: CapabilityScope, action: CapabilityAction) -> Capability {
 
 /// Creates an application context with exactly the supplied scoped grants.
 ///
-/// # Parameters
 /// - `grants`: Scoped grants supplied to the test context.
 ///
-/// # Returns
 /// An application context containing those grants.
+/// # Returns
+/// The operation result.
 fn context(grants: impl IntoIterator<Item = Capability>) -> ApplicationContext {
     ApplicationContext {
         capabilities: CapabilityContext::with_grants(grants),
@@ -53,14 +53,15 @@ struct TraversalFixture;
 impl TraverseService for TraversalFixture {
     /// Returns a relation page for the guarded adapter test.
     ///
-    /// # Parameters
     /// - `request`: Relation request supplied by the guarded adapter.
     ///
-    /// # Returns
     /// A deterministic page containing one allowed and one hidden target.
     ///
-    /// # Errors
     /// This fixture returns no provider error for follow requests.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn follow(&self, request: &FollowRequest) -> Result<FollowResult, QueryError> {
         Ok(FollowResult {
             subject: request.subject,
@@ -77,14 +78,15 @@ impl TraverseService for TraversalFixture {
 
     /// The fixture does not need collection listing for this test.
     ///
-    /// # Parameters
     /// - `_request`: Collection request, intentionally unsupported.
     ///
-    /// # Returns
     /// Never returns a successful listing.
     ///
-    /// # Errors
     /// Always returns a structured unsupported-capability error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn list(
         &self,
         _request: &scriberig_query::ListRequest,
@@ -102,14 +104,15 @@ struct FindFixture;
 impl FindService for FindFixture {
     /// Returns one allowed and one restricted discovery hit.
     ///
-    /// # Parameters
     /// - `request`: Discovery request supplied by the guarded adapter.
     ///
-    /// # Returns
     /// A deterministic page containing one allowed and one hidden hit.
     ///
-    /// # Errors
     /// This fixture does not fail discovery.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn find(&self, request: &FindRequest) -> Result<FindResult, QueryError> {
         Ok(FindResult {
             scope: request.scope.clone(),
@@ -129,14 +132,15 @@ struct InspectFixture;
 impl InspectService for InspectFixture {
     /// Panics if authorization fails to stop a restricted view before dispatch.
     ///
-    /// # Parameters
     /// - `_request`: View request that should be denied first.
     ///
-    /// # Returns
     /// Never returns a successful inspection.
     ///
-    /// # Errors
     /// Always panics because the provider must not be reached.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(&self, _request: &InspectRequest) -> Result<Inspection, QueryError> {
         panic!("restricted view reached provider")
     }
@@ -144,11 +148,11 @@ impl InspectService for InspectFixture {
 
 /// Builds a compact navigation entry for one target entity.
 ///
-/// # Parameters
 /// - `entity`: Entity represented by the entry.
 ///
-/// # Returns
 /// A snapshot-bound compact navigation entry.
+/// # Returns
+/// The operation result.
 fn entry(entity: EntityId) -> NavigationEntry {
     NavigationEntry {
         target: TargetRef::Snapshot(scriberig_query::EntityInSnapshot {
@@ -164,11 +168,11 @@ fn entry(entity: EntityId) -> NavigationEntry {
 
 /// Builds a discovery hit for one target entity.
 ///
-/// # Parameters
 /// - `entity`: Entity represented by the hit.
 ///
-/// # Returns
 /// A snapshot-bound discovery hit.
+/// # Returns
+/// The operation result.
 fn hit(entity: EntityId) -> FindHit {
     FindHit {
         target: TargetRef::Snapshot(scriberig_query::EntityInSnapshot {
@@ -186,8 +190,9 @@ fn hit(entity: EntityId) -> FindHit {
 
 /// Constructs a relation request rooted at the authorized entity.
 ///
-/// # Returns
 /// A deterministic outgoing relation request.
+/// # Returns
+/// The operation result.
 fn follow_request() -> FollowRequest {
     FollowRequest {
         subject: scriberig_query::EntityInSnapshot {

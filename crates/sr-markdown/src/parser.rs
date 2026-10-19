@@ -12,15 +12,16 @@ use crate::{
 
 /// Parses UTF-8 Markdown into a candidate tree.
 ///
-/// # Errors
 /// Returns a structured diagnostic when the input cannot be represented by the
 /// supported semantic model.
 ///
-/// # Parameters
 /// - `source`: UTF-8 Markdown source text.
 ///
-/// # Returns
 /// A candidate document that retains source length for diagnostics.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn parse(source: &str) -> Result<CandidateDocument, MarkdownDiagnostic> {
     let document = parse_document(source)?;
     Ok(CandidateDocument::with_source_spans(
@@ -32,11 +33,11 @@ pub fn parse(source: &str) -> Result<CandidateDocument, MarkdownDiagnostic> {
 
 /// Collects parser-owned byte coordinates for supported block constructs.
 ///
-/// # Parameters
 /// - `source`: External Markdown source.
 ///
-/// # Returns
 /// Source spans suitable for diagnostics and projection coordinates.
+/// # Returns
+/// The operation result.
 fn source_spans(source: &str) -> Vec<SourceSpan> {
     Parser::new_ext(source, Options::all())
         .into_offset_iter()
@@ -66,14 +67,15 @@ fn source_spans(source: &str) -> Vec<SourceSpan> {
 
 /// Parses UTF-8 Markdown into a semantic document.
 ///
-/// # Parameters
 /// - `source`: UTF-8 Markdown source text.
 ///
-/// # Returns
 /// A normalized semantic Markdown document.
 ///
-/// # Errors
 /// Returns a diagnostic when parser state cannot be represented.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn parse_document(source: &str) -> Result<MarkdownDocument, MarkdownDiagnostic> {
     let parser = Parser::new_ext(source, Options::all());
     let mut blocks = Vec::new();
@@ -269,11 +271,11 @@ pub fn parse_document(source: &str) -> Result<MarkdownDocument, MarkdownDiagnost
 
 /// Converts a parser heading stream into nested semantic sections.
 ///
-/// # Parameters
 /// - `blocks`: Flat parser blocks in source order.
 ///
-/// # Returns
 /// A document with heading hierarchy represented by sections.
+/// # Returns
+/// The operation result.
 fn group_sections(blocks: Vec<MarkdownBlock>) -> MarkdownDocument {
     let mut roots = Vec::new();
     let mut stack: Vec<Section> = Vec::new();
@@ -301,7 +303,6 @@ fn group_sections(blocks: Vec<MarkdownBlock>) -> MarkdownDocument {
 
 /// Moves a completed section into its parent or the document root.
 ///
-/// # Parameters
 /// - `roots`: Document blocks receiving completed root sections.
 /// - `stack`: Active section stack.
 fn finish_section(roots: &mut Vec<MarkdownBlock>, stack: &mut Vec<Section>) {
@@ -316,7 +317,6 @@ fn finish_section(roots: &mut Vec<MarkdownBlock>, stack: &mut Vec<Section>) {
 
 /// Adds a non-empty paragraph to a block sequence.
 ///
-/// # Parameters
 /// - `blocks`: Destination block sequence.
 /// - `text`: Candidate paragraph text.
 fn push_text_block(blocks: &mut Vec<MarkdownBlock>, text: &str) {
@@ -343,11 +343,11 @@ fn append_list_text(lists: &mut [(bool, Vec<ListItem>)], value: &str, text: &mut
 
 /// Converts pulldown heading levels to a stable numeric depth.
 ///
-/// # Parameters
 /// - `level`: Parser heading level.
 ///
-/// # Returns
 /// Numeric heading depth from one through six.
+/// # Returns
+/// The operation result.
 fn heading_level(level: HeadingLevel) -> u8 {
     match level {
         HeadingLevel::H1 => 1,

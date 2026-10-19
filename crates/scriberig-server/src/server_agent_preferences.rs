@@ -4,14 +4,11 @@ use scriberig_app::{AgentConsoleBackend, ApplicationBackend, ApplicationContext}
 
 /// Reads shared preferences for the authenticated principal.
 ///
-/// # Parameters
 /// - `service`: Application service owning the preference store.
 /// - `context`: Trusted capability and principal context.
 ///
-/// # Returns
 /// Revisioned protocol preferences.
 ///
-/// # Errors
 /// Returns authorization, principal, or store errors.
 pub(super) fn read<B: ApplicationBackend>(
     service: &scriberig_app::ApplicationService<B>,
@@ -27,15 +24,12 @@ pub(super) fn read<B: ApplicationBackend>(
 
 /// Replaces shared preferences after checking the observed revision.
 ///
-/// # Parameters
 /// - `service`: Application service owning the preference store.
 /// - `context`: Trusted capability and principal context.
 /// - `request`: Expected revision and complete preference values.
 ///
-/// # Returns
 /// The updated revisioned protocol preferences.
 ///
-/// # Errors
 /// Returns authorization, validation, conflict, or store errors.
 pub(super) fn set<B: ApplicationBackend>(
     service: &scriberig_app::ApplicationService<B>,
@@ -57,11 +51,11 @@ pub(super) fn set<B: ApplicationBackend>(
 
 /// Converts app-owned display choices to protocol values.
 ///
-/// # Parameters
 /// - `preferences`: Shared app-owned user defaults.
 ///
-/// # Returns
 /// Provider-neutral protocol values.
+/// # Returns
+/// The operation result.
 fn preferences_response(
     preferences: &scriberig_app::AgentPresentationPreferences,
 ) -> scriberig_protocol::PublicAgentPresentationPreferences {
@@ -90,11 +84,11 @@ fn preferences_response(
 
 /// Converts protocol values into the app-owned preference representation.
 ///
-/// # Parameters
 /// - `preferences`: Complete protocol display choices.
 ///
-/// # Returns
 /// App-owned values stored independently from session history.
+/// # Returns
+/// The operation result.
 fn preferences_from_request(
     preferences: &scriberig_protocol::PublicAgentPresentationPreferences,
 ) -> scriberig_app::AgentPresentationPreferences {

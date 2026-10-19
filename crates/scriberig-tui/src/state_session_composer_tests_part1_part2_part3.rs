@@ -1,0 +1,189 @@
+//! Covers additional focused cases for the parent test module.
+
+use super::*;
+
+/// Verifies plan replan command emits shared revision operation.
+#[test]
+fn plan_replan_command_emits_shared_revision_operation() {
+    let session_id = scriberig_core::EntityId::from_bytes([154; 16]);
+    let branch_id = scriberig_core::EntityId::from_bytes([155; 16]);
+    let plan_id = scriberig_core::EntityId::from_bytes([156; 16]);
+    let mut plan = scriberig_session::Plan::new(
+        plan_id,
+        session_id,
+        scriberig_session::ContinuationAnchor::BranchHead { branch: branch_id },
+        "Build parser",
+    )
+    .expect("plan");
+    plan.transition(scriberig_session::PlanStatus::Planned)
+        .expect("planned");
+    let mut state = TuiState {
+        session_snapshot: Some(scriberig_session::Session {
+            id: session_id,
+            branches: vec![scriberig_session::Branch::new(branch_id, "Root").expect("root")],
+            goals: Vec::new(),
+            tasks: Vec::new(),
+            plans: vec![plan],
+            execution: scriberig_session::SessionExecutionSelection::default(),
+        }),
+        ..TuiState::default()
+    };
+    state.conversation_composer.draft = "/plan replan clarify parser tests".to_owned();
+
+    let effects = reduce(&mut state, Action::InputSubmitted);
+
+    assert!(matches!(effects.as_slice(), [Effect::Replan(request)]
+        if request.session == session_id
+            && request.plan == plan_id
+            && request.expected_revision == 1
+            && request.reason == "clarify parser tests"
+            && request.additions.len() == 1));
+}
+
+/// Inserts an accepted durable plan into the conversation tree by its identity.
+#[test]
+fn accepted_plan_result_rebuilds_structural_conversation_rows() {
+    let session_id = scriberig_core::EntityId::from_bytes([141; 16]);
+    let branch_id = scriberig_core::EntityId::from_bytes([142; 16]);
+    let plan_id = scriberig_core::EntityId::from_bytes([143; 16]);
+    let node_id = scriberig_core::EntityId::from_bytes([144; 16]);
+    let session = scriberig_session::Session {
+        id: session_id,
+        branches: vec![scriberig_session::Branch::new(branch_id, "Root").expect("root")],
+        goals: Vec::new(),
+        tasks: Vec::new(),
+        plans: Vec::new(),
+        execution: scriberig_session::SessionExecutionSelection::default(),
+    };
+    let mut plan = scriberig_session::Plan::new(
+        plan_id,
+        session_id,
+        scriberig_session::ContinuationAnchor::BranchHead { branch: branch_id },
+        "Build parser",
+    )
+    .expect("plan");
+    plan.transition(scriberig_session::PlanStatus::Planned)
+        .expect("planned");
+    plan.add_node(scriberig_session::PlanNode {
+        id: node_id,
+        parent: Some(scriberig_session::PlanNodeParent::Branch(branch_id)),
+        title: "Implement parser".to_owned(),
+        purpose: "Implement the parser".to_owned(),
+        expected_result: None,
+        semantic_scope: Vec::new(),
+        status: scriberig_session::PlanNodeStatus::Planned,
+        branch: None,
+        result: None,
+        superseded_by: None,
+        assignment: None,
+        claim: None,
+        claim_generation: 0,
+    })
+    .expect("node");
+    let mut state = TuiState {
+        session_snapshot: Some(session),
+        ..TuiState::default()
+    };
+
+    reduce(&mut state, Action::PlanUpdated(plan));
+
+    let conversation = state.conversation.expect("conversation projection");
+    assert!(
+        conversation
+            .index_of(crate::view::conversation::ConversationSource::Plan(plan_id))
+            .is_some()
+    );
+    assert!(
+        conversation
+            .index_of(crate::view::conversation::ConversationSource::PlanNode(
+                node_id
+            ))
+            .is_some()
+    );
+    assert_eq!(state.session_snapshot.unwrap().plans[0].id, plan_id);
+}
+
+/// Assigns the selected plan node through the credential-safe profile picker.
+#[test]
+fn assign_command_targets_only_the_selected_plan_node() {
+    let session_id = scriberig_core::EntityId::from_bytes([151; 16]);
+    let branch_id = scriberig_core::EntityId::from_bytes([152; 16]);
+    let plan_id = scriberig_core::EntityId::from_bytes([153; 16]);
+    let node_id = scriberig_core::EntityId::from_bytes([154; 16]);
+    let mut plan = scriberig_session::Plan::new(
+        plan_id,
+        session_id,
+        scriberig_session::ContinuationAnchor::BranchHead { branch: branch_id },
+        "Build parser",
+    )
+    .expect("plan");
+    plan.transition(scriberig_session::PlanStatus::Planned)
+        .expect("planned");
+    plan.add_node(scriberig_session::PlanNode {
+        id: node_id,
+        parent: Some(scriberig_session::PlanNodeParent::Branch(branch_id)),
+        title: "Implement parser".to_owned(),
+        purpose: "Implement the parser".to_owned(),
+        expected_result: None,
+        semantic_scope: Vec::new(),
+        status: scriberig_session::PlanNodeStatus::Planned,
+        branch: None,
+        result: None,
+        superseded_by: None,
+        assignment: None,
+        claim: None,
+        claim_generation: 0,
+    })
+    .expect("node");
+    let session = scriberig_session::Session {
+        id: session_id,
+        branches: vec![scriberig_session::Branch::new(branch_id, "Root").expect("root")],
+        goals: Vec::new(),
+        tasks: Vec::new(),
+        plans: vec![plan],
+        execution: scriberig_session::SessionExecutionSelection::default(),
+    };
+    let conversation = crate::view::conversation::ConversationModel::from_session(&session);
+    let mut state = TuiState {
+        session_snapshot: Some(session),
+        conversation: Some(conversation),
+        conversation_cursor: Some(crate::view::conversation::ConversationSource::PlanNode(
+            node_id,
+        )),
+        model_library: crate::inspector::LoadState::Ready(
+            scriberig_protocol::ModelLibraryResponse {
+                models: Vec::new(),
+                profiles: vec![scriberig_protocol::PublicModelProfile {
+                    id: "profile-cpu".to_owned(),
+                    display_name: "CPU profile".to_owned(),
+                    model: "model-small".to_owned(),
+                    connection: "connection-local".to_owned(),
+                    credential: None,
+                    default_thinking_level: Some("balanced".to_owned()),
+                    enabled: true,
+                }],
+            },
+        ),
+        ..TuiState::default()
+    };
+    state.conversation_composer.draft = "/assign".to_owned();
+    reduce(&mut state, Action::InputSubmitted);
+    assert!(matches!(
+        state.overlay,
+        Some(crate::overlay::Overlay::Palette(_))
+    ));
+
+    let effects = reduce(&mut state, Action::Activated);
+
+    assert!(matches!(
+        effects.as_slice(),
+        [Effect::SetPlanNodeAssignment(request)]
+            if request.plan == plan_id
+                && request.node == node_id
+                && request.assignment.as_ref().is_some_and(|value| {
+                    value.profile == "profile-cpu"
+                        && value.model == "model-small"
+                        && value.thinking_level.as_deref() == Some("balanced")
+                })
+    ));
+}

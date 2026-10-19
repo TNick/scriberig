@@ -4,15 +4,12 @@ use super::{ApplicationError, remote_error};
 
 /// Finds remote entities in an exact snapshot.
 ///
-/// # Parameters
 /// - `client`: Remote protocol client.
 /// - `snapshot`: Exact discovery scope.
 /// - `query`: Search text.
 ///
-/// # Returns
 /// A bounded TUI discovery model.
 ///
-/// # Errors
 /// Returns a sanitized remote application error.
 pub(crate) fn find_entities<T: scriberig_protocol::ProtocolTransport>(
     client: &scriberig_client::Client<T>,

@@ -5,7 +5,6 @@ use super::*;
 impl TuiPty {
     /// Releases a deterministic cancellation scenario after the UI confirms cancellation.
     ///
-    /// # Parameters
     /// - `self`: Active TUI process and owning fixture directory.
     ///
     /// # Panics
@@ -18,15 +17,15 @@ impl TuiPty {
 
     /// Requests normal shutdown and bounds cleanup if the process does not exit.
     ///
-    /// # Parameters
     /// - `self`: Owned TUI session to shut down and clean up.
     ///
-    /// # Returns
     /// `true` when the child exits successfully.
     ///
     /// # Panics
     /// Panics when the child cannot be polled, stopped, or the fixture removed.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn shutdown(mut self) -> bool {
         self.send(&[3]);
         self.finish()
@@ -37,15 +36,15 @@ impl TuiPty {
     /// The product assertions are made before teardown; this helper preserves
     /// the failure screen while allowing the terminal child to be collected.
     ///
-    /// # Parameters
     /// - `self`: Running PTY session.
     ///
-    /// # Returns
     /// Whether the child reported a successful exit.
     ///
     /// # Panics
     /// Panics when the child cannot be polled, stopped, or the fixture removed.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn shutdown_allow_failure(mut self) -> bool {
         self.send(&[3]);
         let deadline = Instant::now() + Duration::from_secs(3);
@@ -81,26 +80,27 @@ impl TuiPty {
 
     /// Waits for a TUI that was asked to quit through another key binding.
     ///
-    /// # Parameters
     /// - `self`: Owned TUI session to wait for and clean up.
     ///
-    /// # Returns
     /// `true` when the child exits successfully.
     ///
     /// # Panics
     /// Panics when the child cannot be polled, stopped, or the fixture removed.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn wait_for_exit(mut self) -> bool {
         self.finish()
     }
 
     /// Waits for the child and removes the temporary fixture.
     ///
-    /// # Returns
     /// `true` when the child exits successfully.
     ///
     /// # Panics
     /// Panics when the child cannot be polled, stopped, or the fixture removed.
+    /// # Returns
+    /// The operation result.
     fn finish(&mut self) -> bool {
         let deadline = Instant::now() + Duration::from_secs(3);
         let status = loop {

@@ -2800,6 +2800,8 @@ dependencies = [
  "scriberig-client",
  "scriberig-core",
  "scriberig-project",
+ "scriberig-protocol",
+ "scriberig-query",
  "scriberig-secrets",
  "scriberig-server",
  "scriberig-session",
@@ -2835,6 +2837,8 @@ dependencies = [
  "scriberig-core",
  "scriberig-secrets",
  "scriberig-session",
+ "scriberig-store",
+ "scriberig-store-memory",
  "serde",
  "serde_json",
  "zeroize",
@@ -3185,6 +3189,7 @@ dependencies = [
  "scriberig-graph",
  "scriberig-migration",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

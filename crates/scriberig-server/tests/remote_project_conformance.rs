@@ -30,11 +30,11 @@ type TestApplication = AppService<
 
 /// Creates the deterministic Rust project used by remote conformance.
 ///
-/// # Parameters
 /// - `label`: Unique fixture label.
 ///
-/// # Returns
 /// Temporary project root and its durable store.
+/// # Returns
+/// The operation result.
 fn fixture(label: &str) -> (PathBuf, Arc<SqliteStore>) {
     let root = std::env::temp_dir().join(format!(
         "scriberig-remote-conformance-{label}-{}",
@@ -59,12 +59,12 @@ fn fixture(label: &str) -> (PathBuf, Arc<SqliteStore>) {
 
 /// Builds the same application composition used by the live server.
 ///
-/// # Parameters
 /// - `store`: Durable project store shared by the composition.
 /// - `sessions`: Durable session store shared by the composition.
 ///
-/// # Returns
 /// HTTP state using the production application composition.
+/// # Returns
+/// The operation result.
 fn state(store: Arc<SqliteStore>, sessions: Arc<SqliteSessionStore>) -> HttpState<TestApplication> {
     let fixture = ensure_fixture(&store).expect("development fixture");
     HttpState {
@@ -74,17 +74,18 @@ fn state(store: Arc<SqliteStore>, sessions: Arc<SqliteSessionStore>) -> HttpStat
         allowed_origin: None,
         project_store: Some(store),
         allowed_project_roots: Vec::new(),
+        plan_lifecycle_handler: None,
     }
 }
 
 /// Builds shared application operations over project and session stores.
 ///
-/// # Parameters
 /// - `store`: Durable project and application store.
 /// - `sessions`: Durable provider-neutral session store.
 ///
-/// # Returns
 /// The application composition used by embedded and remote clients.
+/// # Returns
+/// The operation result.
 fn application(store: Arc<SqliteStore>, sessions: Arc<SqliteSessionStore>) -> TestApplication {
     let read = StoreInspectionBackend::new(Arc::clone(&store));
     let operations = StoreOperationProvider::new(store);
@@ -168,7 +169,6 @@ fn golden_conformance_remote_public_project_path() {
 
 /// Verifies public workspace, history, and candidate references describe one transition.
 ///
-/// # Parameters
 /// - `client`: Public project client.
 /// - `project`: Stable project identity.
 /// - `base`: Exact candidate base snapshot.

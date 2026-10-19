@@ -24,9 +24,10 @@ pub struct ProjectId {
 impl ProjectId {
     /// Generates a fresh project identity.
     ///
-    /// # Returns
     /// A new project identity.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn fresh() -> Self {
         Self::from_bytes(uuid::Uuid::new_v4().into_bytes())
     }
@@ -47,15 +48,16 @@ impl ProjectId {
 impl Display for ProjectId {
     /// Formats the project identity with its stable prefix.
     ///
-    /// # Parameters
     /// - `self`: Project identity to format.
     /// - `formatter`: Formatting destination.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when the destination rejects output.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         write_hex("prj_", &self.bytes, formatter)
     }
@@ -66,14 +68,15 @@ impl FromStr for ProjectId {
 
     /// Parses a prefixed hexadecimal project identity.
     ///
-    /// # Parameters
     /// - `text`: Text to parse.
     ///
-    /// # Returns
     /// The parsed project identity.
     ///
-    /// # Errors
     /// Returns an identifier format error for malformed text.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn from_str(text: &str) -> Result<Self, Self::Err> {
         Ok(Self::from_bytes(parse_hex("prj_", text)?))
     }

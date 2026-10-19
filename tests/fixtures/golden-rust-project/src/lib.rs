@@ -7,12 +7,12 @@ pub mod math {
     impl Calculator {
         /// Adds two integers.
         ///
-        /// # Parameters
         /// - `left`: First integer.
         /// - `right`: Second integer.
         ///
-        /// # Returns
         /// The integer sum.
+/// # Returns
+/// The operation result.
         pub fn add(&self, left: i32, right: i32) -> i32 {
             left + right
         }

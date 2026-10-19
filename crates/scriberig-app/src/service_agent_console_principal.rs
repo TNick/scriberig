@@ -4,14 +4,15 @@ use crate::{ApplicationContext, ApplicationError};
 
 /// Resolves the stable caller identity required for shared preferences.
 ///
-/// # Parameters
 /// - `context`: Authorized application context.
 ///
-/// # Returns
 /// The stable principal identifier.
 ///
-/// # Errors
 /// Returns invalid-request when the caller has no principal identity.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn presentation_principal(
     context: &ApplicationContext,
 ) -> Result<&str, ApplicationError> {

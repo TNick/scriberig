@@ -14,14 +14,15 @@ use crate::{SqliteStore, integrity_nodes, reachability, snapshot_integrity};
 impl MaintenanceStore for SqliteStore {
     /// Verifies SQLite canonical state.
     ///
-    /// # Parameters
     /// - `protected`: Stable protected snapshots.
     ///
-    /// # Returns
     /// Integrity and reachability findings.
     ///
-    /// # Errors
     /// Returns a backend maintenance error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn integrity_check(
         &self,
         protected: &ProtectedRoots,
@@ -32,14 +33,15 @@ impl MaintenanceStore for SqliteStore {
 
     /// Reports SQLite garbage-collection candidates without deleting them.
     ///
-    /// # Parameters
     /// - `protected`: Stable protected snapshots.
     ///
-    /// # Returns
     /// A dry-run maintenance report.
     ///
-    /// # Errors
     /// Returns a backend maintenance error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn gc_dry_run(
         &self,
         protected: &ProtectedRoots,
@@ -50,14 +52,15 @@ impl MaintenanceStore for SqliteStore {
 
     /// Sweeps SQLite garbage-collection candidates.
     ///
-    /// # Parameters
     /// - `protected`: Stable protected snapshots.
     ///
-    /// # Returns
     /// The pre-sweep maintenance report.
     ///
-    /// # Errors
     /// Returns a backend maintenance error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn gc_sweep(&self, protected: &ProtectedRoots) -> Result<IntegrityReport, StoreOperationError> {
         Self::gc_sweep(self, protected)
             .map_err(|error| StoreOperationError::backend(error.to_string()))
@@ -65,11 +68,13 @@ impl MaintenanceStore for SqliteStore {
 
     /// Rebuilds SQLite derived indexes.
     ///
-    /// # Returns
     /// A consistent index status.
     ///
-    /// # Errors
     /// Returns a backend maintenance error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn rebuild_indexes(&self) -> Result<IndexStatus, StoreOperationError> {
         self.rebuild_derived_indexes()
             .map_err(|error| StoreOperationError::backend(error.to_string()))?;
@@ -80,14 +85,15 @@ impl MaintenanceStore for SqliteStore {
 impl SqliteStore {
     /// Verifies canonical SQLite state and reports valid unreachable objects.
     ///
-    /// # Parameters
     /// - `protected`: Stable snapshots that maintenance must retain.
     ///
-    /// # Returns
     /// Structured corruption and reachability findings.
     ///
-    /// # Errors
     /// Returns a backend error when authoritative rows cannot be inspected.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn integrity_check(&self, protected: &ProtectedRoots) -> rusqlite::Result<IntegrityReport> {
         let connection = self
             .connection
@@ -99,16 +105,17 @@ impl SqliteStore {
 
 /// Verifies canonical SQLite state through one already-open connection.
 ///
-/// # Parameters
 /// - `crate`: Internal module visibility context.
 /// - `connection`: SQLite connection containing canonical storage.
 /// - `protected`: Stable snapshots that maintenance must retain.
 ///
-/// # Returns
 /// Structured corruption and reachability findings.
 ///
-/// # Errors
 /// Returns a backend error when authoritative rows cannot be inspected.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn integrity_check_connection(
     connection: &rusqlite::Connection,
     protected: &ProtectedRoots,
@@ -167,15 +174,16 @@ pub(crate) fn integrity_check_connection(
 
 /// Validates all persisted revision identities.
 ///
-/// # Parameters
 /// - `connection`: SQLite connection containing revisions.
 /// - `report`: Integrity report receiving findings.
 ///
-/// # Returns
 /// Valid revision identities.
 ///
-/// # Errors
 /// Returns a SQLite query error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn validate_revisions(
     connection: &rusqlite::Connection,
     report: &mut IntegrityReport,
@@ -209,16 +217,17 @@ fn validate_revisions(
 
 /// Validates every snapshot-map root and its flat derived index.
 ///
-/// # Parameters
 /// - `connection`: SQLite connection containing snapshots.
 /// - `valid_revisions`: Revision identities proven canonical.
 /// - `report`: Integrity report receiving findings.
 ///
-/// # Returns
 /// Valid snapshot identities.
 ///
-/// # Errors
 /// Returns a SQLite query error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn validate_snapshots(
     connection: &rusqlite::Connection,
     valid_revisions: &BTreeSet<RevisionId>,
@@ -301,14 +310,15 @@ fn validate_snapshots(
 
 /// Reads the authoritative snapshot identifiers.
 ///
-/// # Parameters
 /// - `connection`: SQLite connection containing snapshots.
 ///
-/// # Returns
 /// Snapshot identities stored in the database.
 ///
-/// # Errors
 /// Returns a SQLite query error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn all_snapshots(connection: &rusqlite::Connection) -> rusqlite::Result<BTreeSet<SnapshotId>> {
     let mut result = BTreeSet::new();
     let mut rows = connection.prepare("SELECT id FROM snapshots")?;
@@ -323,16 +333,17 @@ fn all_snapshots(connection: &rusqlite::Connection) -> rusqlite::Result<BTreeSet
 
 /// Loads an old-format snapshot while preserving compatibility with schema 1.
 ///
-/// # Parameters
 /// - `crate`: Internal module visibility context.
 /// - `connection`: SQLite connection containing legacy entries.
 /// - `snapshot`: Snapshot whose entries are loaded.
 ///
-/// # Returns
 /// The legacy entity-to-revision mapping.
 ///
-/// # Errors
 /// Returns a SQLite query or identifier-shape error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn load_legacy_entries(
     connection: &rusqlite::Connection,
     snapshot: SnapshotId,
@@ -360,42 +371,6 @@ pub(crate) fn load_legacy_entries(
     Ok(result)
 }
 
-/// Loads the rebuildable flat snapshot-entry index.
-///
-/// # Parameters
-/// - `connection`: SQLite connection containing index rows.
-/// - `snapshot`: Snapshot whose index is loaded.
-///
-/// # Returns
-/// The indexed entity-to-revision mapping.
-///
-/// # Errors
-/// Returns a SQLite query or identifier-shape error.
-fn load_index_entries(
-    connection: &rusqlite::Connection,
-    snapshot: SnapshotId,
-) -> rusqlite::Result<BTreeMap<scriberig_core::EntityId, RevisionId>> {
-    load_legacy_entries(connection, snapshot)
-}
-
-/// Converts a 32-byte digest into a snapshot or revision identity.
-///
-/// # Parameters
-/// - `bytes`: Candidate digest bytes.
-///
-/// # Returns
-/// A snapshot identity when the input has the required length.
-fn digest_id(bytes: Vec<u8>) -> Option<SnapshotId> {
-    (bytes.len() == 32).then(|| SnapshotId::new(bytes.try_into().expect("length checked")))
-}
-
-/// Converts a 32-byte digest into a revision identity.
-///
-/// # Parameters
-/// - `bytes`: Candidate digest bytes.
-///
-/// # Returns
-/// A revision identity when the input has the required length.
-fn digest_revision(bytes: Vec<u8>) -> Option<RevisionId> {
-    (bytes.len() == 32).then(|| RevisionId::new(bytes.try_into().expect("length checked")))
-}
+#[path = "integrity_index_helpers.rs"]
+mod integrity_index_helpers;
+use integrity_index_helpers::{digest_id, digest_revision, load_index_entries};

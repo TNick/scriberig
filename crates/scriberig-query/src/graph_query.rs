@@ -16,16 +16,17 @@ use graph_query_pagination::page_bounds;
 impl<V: KnowledgeView> FindService for GraphReadService<V> {
     /// Executes bounded discovery over explicitly supplied graph entities.
     ///
-    /// # Parameters
     /// - `self`: Graph-backed read service.
     /// - `request`: Discovery request with an explicit entity scope.
     ///
-    /// # Returns
     /// A bounded page of matching semantic handles.
     ///
-    /// # Errors
     /// Returns an unsupported-capability error for whole-snapshot scopes or
     /// semantic strategies requiring an index.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn find(&self, request: &FindRequest) -> Result<FindResult, QueryError> {
         if request.query.trim().is_empty() {
             return Err(QueryError::InvalidQuery {
@@ -86,16 +87,17 @@ impl<V: KnowledgeView> FindService for GraphReadService<V> {
 impl<V: KnowledgeView> StructuredQueryService for GraphReadService<V> {
     /// Evaluates basic structural predicates over explicitly supplied entities.
     ///
-    /// # Parameters
     /// - `self`: Graph-backed read service.
     /// - `specification`: Query request with an explicit entity scope.
     ///
-    /// # Returns
     /// A bounded page of matching semantic rows.
     ///
-    /// # Errors
     /// Returns an unsupported-capability error for whole-snapshot scopes or
     /// predicates requiring relation indexes.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn query(&self, specification: &QuerySpec) -> Result<QueryResult, QueryError> {
         let entities = scope_entities(
             self.view(),
@@ -151,12 +153,12 @@ impl<V: KnowledgeView> StructuredQueryService for GraphReadService<V> {
 
 /// Compares optional property values for deterministic query ordering.
 ///
-/// # Parameters
 /// - `left`: First optional property value.
 /// - `right`: Second optional property value.
 ///
-/// # Returns
 /// A stable ordering with missing values before present values.
+/// # Returns
+/// The operation result.
 fn compare_property_values(
     left: Option<&scriberig_core::KnowledgeValue>,
     right: Option<&scriberig_core::KnowledgeValue>,
@@ -171,12 +173,12 @@ fn compare_property_values(
 
 /// Compares property values by semantic variant and value rather than display text.
 ///
-/// # Parameters
 /// - `left`: First canonical property value.
 /// - `right`: Second canonical property value.
 ///
-/// # Returns
 /// A deterministic total ordering for supported property values.
+/// # Returns
+/// The operation result.
 fn compare_values(
     left: &scriberig_core::KnowledgeValue,
     right: &scriberig_core::KnowledgeValue,
@@ -241,10 +243,8 @@ fn compare_values(
 
 /// Assigns canonical ordering ranks to property value variants.
 ///
-/// # Parameters
 /// - `value`: Property value to classify.
 ///
-/// # Returns
 /// The stable variant rank used before comparing values.
 const fn value_variant(value: &scriberig_core::KnowledgeValue) -> u8 {
     match value {
@@ -262,13 +262,10 @@ const fn value_variant(value: &scriberig_core::KnowledgeValue) -> u8 {
 
 /// Resolves scopes that can be evaluated without a graph-wide index.
 ///
-/// # Parameters
 /// - `scope`: Exact query scope.
 ///
-/// # Returns
 /// Explicit entity identities to evaluate.
 ///
-/// # Errors
 /// Returns unsupported capability for a complete-snapshot scope.
 fn scope_entities<V: KnowledgeView>(
     view: &V,
@@ -296,14 +293,11 @@ fn scope_entities<V: KnowledgeView>(
 
 /// Evaluates the graph predicates supported by the direct view.
 ///
-/// # Parameters
 /// - `record`: Exact graph record under evaluation.
 /// - `expression`: Structural predicate.
 ///
-/// # Returns
 /// `true` when the record matches.
 ///
-/// # Errors
 /// Returns unsupported capability for predicates requiring indexes or values
 /// not exposed by the graph record contract.
 fn matches_query<V: KnowledgeView>(
@@ -357,12 +351,12 @@ fn matches_query<V: KnowledgeView>(
 
 /// Compares a canonical scalar property with a query scalar.
 ///
-/// # Parameters
 /// - `candidate`: Canonical property value.
 /// - `expected`: Query scalar value.
 ///
-/// # Returns
 /// `true` when both values have equal supported scalar meaning.
+/// # Returns
+/// The operation result.
 fn query_value_matches(
     candidate: &scriberig_core::KnowledgeValue,
     expected: &crate::QueryValue,

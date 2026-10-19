@@ -13,7 +13,6 @@ mod start_agent;
 
 /// Persists ordered model requests and tool invocation/result pairs.
 ///
-/// # Parameters
 /// - `service`: Application identity allocator.
 /// - `branch`: Session branch that owns the execution evidence.
 /// - `tool_evidence`: Ordered tool inputs and bounded outputs from the runtime.
@@ -47,6 +46,7 @@ fn persist_execution_evidence<B>(
                     parent_model_invocation,
                     presentation_input: evidence.presentation_input,
                     presentation_label: evidence.presentation_label,
+                    category: evidence.category,
                 });
                 if let Some(child_branch) = evidence.child_branch {
                     if let Some(activity) = branch
@@ -81,7 +81,6 @@ fn persist_execution_evidence<B>(
 
 /// Persists one request under its stable model-invocation activity identity.
 ///
-/// # Parameters
 /// - `service`: Application identity allocator.
 /// - `branch`: Branch that owns the invocation.
 /// - `request`: Bounded provider-neutral request projection.

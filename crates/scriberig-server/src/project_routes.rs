@@ -22,12 +22,10 @@ use crate::server::ApplicationService;
 
 /// Dispatches a typed project protocol request onto the shared project service.
 ///
-/// # Parameters
 /// - `state`: HTTP application state.
 /// - `request`: Typed project operation and payload.
 /// - `correlation_id`: Protocol correlation identity.
 ///
-/// # Returns
 /// A correlated typed project response.
 pub(super) fn protocol<S: ApplicationService>(
     state: &HttpState<S>,
@@ -76,14 +74,11 @@ pub(super) fn protocol<S: ApplicationService>(
 
 /// Dispatches the browser transport's direct project operation shape.
 ///
-/// # Parameters
 /// - `state`: HTTP application state.
 /// - `body`: JSON project request containing `operation` and `payload`.
 ///
-/// # Returns
 /// The unwrapped project result expected by the browser client.
 ///
-/// # Errors
 /// Returns a structured HTTP error for malformed or failed project operations.
 pub(super) fn direct<S: ApplicationService>(
     state: &HttpState<S>,
@@ -127,14 +122,11 @@ pub(super) fn list<S: ApplicationService>(state: &HttpState<S>) -> Result<Value,
 
 /// Registers and persists a deterministic project scan.
 ///
-/// # Parameters
 /// - `state`: HTTP application state.
 /// - `body`: JSON object containing `path` and optional `name`.
 ///
-/// # Returns
 /// The project and persisted file manifest.
 ///
-/// # Errors
 /// Returns an HTTP error tuple for malformed input, storage, or filesystem
 /// failures.
 pub(super) fn scan<S: ApplicationService>(
@@ -192,14 +184,11 @@ pub(super) fn relink<S: ApplicationService>(
 
 /// Imports the persisted scan into an immutable project snapshot.
 ///
-/// # Parameters
 /// - `state`: HTTP application state.
 /// - `body`: JSON object containing the project identity.
 ///
-/// # Returns
 /// The imported file/entity counts and promoted snapshot.
 ///
-/// # Errors
 /// Returns an HTTP error tuple for malformed input, validation, or promotion
 /// failures.
 pub(super) fn import<S: ApplicationService>(

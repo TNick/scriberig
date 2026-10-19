@@ -25,7 +25,9 @@ fn context_bar_shows_active_project() {
     let context: String = (layout.context.x..layout.context.right())
         .map(|x| buffer.cell((x, layout.context.y)).expect("cell").symbol())
         .collect();
-    assert!(context.contains("project: prj_test"));
+    assert!(context.contains("prj_test"));
+    assert!(!context.contains("focus:"));
+    assert!(!context.contains("service:"));
 }
 
 /// Verifies the status line shows contextual shortcuts instead of shell state.
@@ -136,6 +138,7 @@ fn explorer_scrolls_to_keep_selected_row_visible() {
     let last = scriberig_core::EntityId::from_bytes([9; 16]);
     let mut state = TuiState {
         focus: Focus::Explorer,
+        primary_view: crate::selection::PrimaryView::Explorer,
         explorer: crate::explorer::ExplorerModel::from_selection(
             crate::selection::EntitySelection {
                 entity: root,
@@ -175,6 +178,7 @@ fn explorer_renders_context_instead_of_only_stable_ids() {
     let entity = scriberig_core::EntityId::from_bytes([3; 16]);
     let mut state = TuiState {
         focus: Focus::Explorer,
+        primary_view: crate::selection::PrimaryView::Explorer,
         explorer: crate::explorer::ExplorerModel::from_selection(
             crate::selection::EntitySelection {
                 entity,

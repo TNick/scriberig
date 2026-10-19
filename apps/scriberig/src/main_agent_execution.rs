@@ -13,7 +13,6 @@ use crate::child_runtime::{LocalChildExecutor, inspect_catalog};
 
 /// Runs one provider-neutral model through the shared runtime loop.
 ///
-/// # Parameters
 /// - `provider`: Model provider adapter.
 /// - `model`: Provider-native model identifier.
 /// - `service`: Shared application operation boundary.
@@ -24,10 +23,8 @@ use crate::child_runtime::{LocalChildExecutor, inspect_catalog};
 /// - `cancellation`: Shared cancellation flag.
 /// - `output_callback`: Optional streamed text observer.
 ///
-/// # Returns
 /// Completed runtime output and tool observations.
 ///
-/// # Errors
 /// Returns the runtime's structured failure.
 #[allow(clippy::too_many_arguments)]
 pub(super) fn execute_model<P: ProviderAdapter + Clone, B: ApplicationBackend>(

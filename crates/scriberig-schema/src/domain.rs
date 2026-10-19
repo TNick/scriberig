@@ -10,14 +10,15 @@ pub struct DomainId(String);
 impl DomainId {
     /// Validates and constructs a domain identifier.
     ///
-    /// # Parameters
     /// - `value`: Stable nonempty domain identifier.
     ///
-    /// # Returns
     /// The domain identifier.
     ///
-    /// # Errors
     /// Returns an error when the identifier is empty or whitespace-only.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(value: impl Into<String>) -> Result<Self, &'static str> {
         let value = value.into();
         if value.trim().is_empty() {
@@ -28,12 +29,12 @@ impl DomainId {
 
     /// Borrows the stable domain identifier.
     ///
-    /// # Parameters
     /// - `self`: Domain identifier to inspect.
     ///
-    /// # Returns
     /// The identifier text.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn as_str(&self) -> &str {
         &self.0
     }

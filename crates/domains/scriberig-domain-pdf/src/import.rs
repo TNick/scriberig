@@ -11,14 +11,15 @@ pub struct PdfSourceArtifact {
 
 /// Imports bytes as an exact PDF source artifact.
 ///
-/// # Parameters
 /// - `bytes`: Exact PDF bytes to preserve.
 ///
-/// # Returns
 /// The immutable source artifact.
 ///
-/// # Errors
 /// Returns an error for empty or non-PDF input.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn import_source(bytes: impl Into<Vec<u8>>) -> Result<PdfSourceArtifact, PdfError> {
     let bytes = bytes.into();
     if bytes.is_empty() {

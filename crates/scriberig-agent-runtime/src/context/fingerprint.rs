@@ -24,15 +24,15 @@ pub struct RequestFingerprintInput {
 impl RequestFingerprintInput {
     /// Creates a fingerprint input with default capability metadata.
     ///
-    /// # Parameters
     /// - `profile`: Provider profile identity.
     /// - `model`: Provider model identity.
     /// - `compiled_context`: Canonical context.
     /// - `tools`: Canonical tool catalog identity.
     ///
-    /// # Returns
     /// Fingerprint inputs with secret-free identity material.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(
         profile: impl Into<String>,
         model: impl Into<String>,
@@ -52,13 +52,13 @@ impl RequestFingerprintInput {
 
     /// Replaces the model identity for a fingerprint comparison.
     ///
-    /// # Parameters
     /// - `self`: Fingerprint input.
     /// - `model`: New model identity.
     ///
-    /// # Returns
     /// Inputs using the new model identity.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_model(mut self, model: impl Into<String>) -> Self {
         self.model = model.into();
         self
@@ -66,13 +66,13 @@ impl RequestFingerprintInput {
 
     /// Adds a secret only to prove it is excluded from identity material.
     ///
-    /// # Parameters
     /// - `self`: Fingerprint input.
     /// - `credential`: Secret value never hashed or serialized.
     ///
-    /// # Returns
     /// Inputs retaining the secret outside canonical material.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_credential(mut self, credential: impl Into<String>) -> Self {
         self.credential = Some(credential.into());
         self
@@ -80,9 +80,10 @@ impl RequestFingerprintInput {
 
     /// Computes the canonical content fingerprint.
     ///
-    /// # Returns
     /// Lowercase BLAKE3 digest over secret-free request identity material.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn fingerprint(&self) -> String {
         let material = format!(
             "{}\n{}\n{}\n{:?}\n{}\n{}",

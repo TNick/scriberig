@@ -59,14 +59,14 @@ where
 {
     /// Creates a runtime with a bounded tool-loop step count.
     ///
-    /// # Parameters
     /// - `provider`: Model decision provider.
     /// - `tool`: Application-backed agent tool.
     /// - `step_limit`: Maximum number of decisions before failure.
     ///
-    /// # Returns
     /// A configured agent runtime.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(provider: P, tool: T, step_limit: usize) -> Self {
         Self {
             provider,
@@ -87,17 +87,18 @@ where
 
     /// Executes one prompt until a final model response or failure.
     ///
-    /// # Parameters
     /// - `self`: Runtime to execute.
     /// - `context`: Trusted application request context.
     /// - `prompt`: User instruction.
     /// - `cancelled`: Shared cancellation flag.
     ///
-    /// # Returns
     /// Final model output and tool observations.
     ///
-    /// # Errors
     /// Returns provider, tool, step-limit, or cancellation failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn run(
         &mut self,
         context: &ApplicationContext,
@@ -109,15 +110,16 @@ where
 
     /// Executes one prompt with a trusted nested-branch executor.
     ///
-    /// # Parameters
     /// - `self`: Runtime to execute.
     /// - `context`: Trusted application request context.
     /// - `prompt`: User instruction.
     /// - `cancelled`: Shared cancellation flag.
     /// - `children`: Executor responsible for recursive child invocation.
     ///
-    /// # Returns
     /// Final model output and compact child/tool observations.
+    ///
+    /// # Returns
+    /// Final model output and bounded observations.
     ///
     /// # Errors
     /// Returns provider, child, tool, step-limit, or cancellation failures.
@@ -136,7 +138,6 @@ where
 
     /// Executes one prompt with a durable parent branch scope.
     ///
-    /// # Parameters
     /// - `self`: Runtime to execute.
     /// - `scope`: Session and parent branch owning delegated children.
     /// - `context`: Trusted application request context.
@@ -144,8 +145,10 @@ where
     /// - `cancelled`: Shared cancellation flag.
     /// - `children`: Executor responsible for recursive child invocation.
     ///
-    /// # Returns
     /// Final model output and compact child/tool observations.
+    ///
+    /// # Returns
+    /// Final model output and bounded observations.
     ///
     /// # Errors
     /// Returns provider, child, tool, step-limit, or cancellation failures.
@@ -171,19 +174,20 @@ where
 
     /// Runs the bounded loop with an optional nested-branch boundary.
     ///
-    /// # Parameters
     /// - `context`: Trusted application context.
     /// - `prompt`: Initial user prompt.
     /// - `cancelled`: Cancellation flag.
     /// - `scope`: Optional durable parent branch identity.
     /// - `children`: Optional child executor.
     ///
-    /// # Returns
     /// Completed agent output and bounded observations.
     ///
-    /// # Errors
     /// Returns the first provider, tool, child, cancellation, or budget error.
     #[allow(clippy::too_many_lines)]
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn run_inner(
         &mut self,
         context: &ApplicationContext,
@@ -328,6 +332,7 @@ where
                     arguments,
                     presentation_arguments,
                     presentation_label,
+                    category,
                 } => {
                     let (result, evidence) = self.run_named_tool_with_evidence(
                         context,
@@ -335,6 +340,7 @@ where
                         &arguments,
                         &presentation_arguments,
                         presentation_label.as_deref(),
+                        category,
                         cancelled,
                         operation.as_ref(),
                         &mut state,

@@ -9,14 +9,15 @@ use super::resolver::{ConfigError, properties};
 
 /// Reads one supported YAML or JSON object from disk.
 ///
-/// # Parameters
 /// - `path`: Discovered configuration path.
 ///
-/// # Returns
 /// Validated property values from the file.
 ///
-/// # Errors
 /// Returns an error when the file cannot be read or parsed.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn read_config_file(path: &Path) -> Result<Vec<(String, Value)>, ConfigError> {
     let text = std::fs::read_to_string(path).map_err(|error| ConfigError {
         message: format!("could not read {}: {error}", path.display()),
@@ -52,11 +53,11 @@ pub(super) fn read_config_file(path: &Path) -> Result<Vec<(String, Value)>, Conf
 
 /// Finds the first supported config filename in a directory.
 ///
-/// # Parameters
 /// - `directory`: Configuration directory to inspect.
 ///
-/// # Returns
 /// The selected existing config path, when present.
+/// # Returns
+/// The operation result.
 pub(super) fn find_config_file(directory: &Path) -> Option<PathBuf> {
     ["config.yaml", "config.yml", "config.json"]
         .into_iter()
@@ -66,11 +67,11 @@ pub(super) fn find_config_file(directory: &Path) -> Option<PathBuf> {
 
 /// Finds the nearest ancestor with a supported project configuration file.
 ///
-/// # Parameters
 /// - `current_dir`: Directory where project discovery starts.
 ///
-/// # Returns
 /// The directory containing the nearest project configuration.
+/// # Returns
+/// The operation result.
 pub(super) fn project_config_dir(current_dir: &Path) -> Option<PathBuf> {
     current_dir
         .ancestors()
@@ -80,8 +81,9 @@ pub(super) fn project_config_dir(current_dir: &Path) -> Option<PathBuf> {
 
 /// Returns the conventional platform system configuration directory.
 ///
-/// # Returns
 /// The platform system config directory, when one is available.
+/// # Returns
+/// The operation result.
 pub(super) fn system_config_dir() -> Option<PathBuf> {
     #[cfg(windows)]
     {
@@ -95,8 +97,9 @@ pub(super) fn system_config_dir() -> Option<PathBuf> {
 
 /// Returns the conventional platform user configuration directory.
 ///
-/// # Returns
 /// The platform user config directory, when one is available.
+/// # Returns
+/// The operation result.
 pub(super) fn user_config_dir() -> Option<PathBuf> {
     #[cfg(windows)]
     {

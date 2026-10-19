@@ -19,10 +19,8 @@ pub struct UniversalReadBackend<R> {
 impl<R> UniversalReadBackend<R> {
     /// Creates a read backend without an implicit current snapshot.
     ///
-    /// # Parameters
     /// - `provider`: Provider implementing the universal read contracts.
     ///
-    /// # Returns
     /// A backend that requires exact snapshots for requests using `Current`.
     #[must_use]
     pub const fn new(provider: R) -> Self {
@@ -35,11 +33,9 @@ impl<R> UniversalReadBackend<R> {
 
     /// Configures the snapshot used when a request selects `Current`.
     ///
-    /// # Parameters
     /// - `self`: Backend being configured.
     /// - `snapshot`: Exact snapshot representing the current root.
     ///
-    /// # Returns
     /// The configured backend.
     #[must_use]
     pub const fn with_current_snapshot(mut self, snapshot: SnapshotId) -> Self {
@@ -49,13 +45,13 @@ impl<R> UniversalReadBackend<R> {
 
     /// Installs the registry used to enrich inspection capabilities.
     ///
-    /// # Parameters
     /// - `self`: Backend being configured.
     /// - `capabilities`: Injected generic/domain capability registry.
     ///
-    /// # Returns
     /// The configured read backend.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_capability_registry(mut self, capabilities: CapabilityRegistry) -> Self {
         self.capabilities = Some(capabilities);
         self
@@ -63,10 +59,8 @@ impl<R> UniversalReadBackend<R> {
 
     /// Returns the underlying universal read provider.
     ///
-    /// # Parameters
     /// - `self`: Backend to inspect.
     ///
-    /// # Returns
     /// The provider used for read execution.
     #[must_use]
     pub const fn provider(&self) -> &R {
@@ -80,20 +74,21 @@ where
 {
     /// Dispatches a universal read request to its typed provider contract.
     ///
-    /// # Parameters
     /// - `self`: Read backend.
-    /// - `_context`: Caller context, already authorized by the caller.
+    /// - `context`: Caller context, already authorized by the caller.
     /// - `request`: Universal request to execute.
     ///
-    /// # Returns
     /// The typed universal read result.
     ///
-    /// # Errors
     /// Returns a structured application error for provider or unsupported
     /// operation failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute(
         &self,
-        _context: &ApplicationContext,
+        context: &ApplicationContext,
         request: &ApplicationRequest,
     ) -> Result<ApplicationResult, ApplicationError> {
         match request {
@@ -124,6 +119,21 @@ where
                 .query(value)
                 .map(ApplicationResult::Query)
                 .map_err(map_query_error),
+            ApplicationRequest::DomainOperation(value) => {
+                let registry = self.capabilities.as_ref().ok_or_else(|| {
+                    ApplicationError::UnsupportedOperation {
+                        operation: "domain operation registry".to_owned(),
+                    }
+                })?;
+                CapabilityRegistry::authorize(context, value)?;
+                let inspection = self
+                    .provider
+                    .inspect(&crate::capability_registry::subject_inspection(value))
+                    .map_err(map_query_error)?;
+                registry
+                    .execute_for_entity_type(context, value, inspection.entity_type.as_ref())
+                    .map(ApplicationResult::DomainOperation)
+            }
             _ => Err(ApplicationError::UnsupportedOperation {
                 operation: "universal write or projection operation".to_owned(),
             }),
@@ -132,15 +142,16 @@ where
 
     /// Resolves the configured current snapshot.
     ///
-    /// # Parameters
     /// - `self`: Read backend.
     /// - `_context`: Caller context.
     ///
-    /// # Returns
     /// The configured exact snapshot.
     ///
-    /// # Errors
     /// Returns an unsupported-operation error when no current snapshot exists.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn current_snapshot(
         &self,
         _context: &ApplicationContext,
@@ -154,11 +165,11 @@ where
 
 /// Maps query-provider failures to stable application categories.
 ///
-/// # Parameters
 /// - `error`: Query-provider failure to translate.
 ///
-/// # Returns
 /// Application-level failure with a stable category.
+/// # Returns
+/// The operation result.
 fn map_query_error(error: QueryError) -> ApplicationError {
     match error {
         QueryError::NotFound { target, .. } => ApplicationError::NotFound {
@@ -207,11 +218,11 @@ fn map_query_error(error: QueryError) -> ApplicationError {
 
 /// Extracts a stable subject string from a query target.
 ///
-/// # Parameters
 /// - `target`: Query target whose entity identity is needed.
 ///
-/// # Returns
 /// Stable textual entity identity.
+/// # Returns
+/// The operation result.
 fn target_subject(target: scriberig_query::TargetRef) -> String {
     match target {
         scriberig_query::TargetRef::Snapshot(value) => value.entity.to_string(),

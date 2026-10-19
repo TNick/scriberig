@@ -18,22 +18,24 @@ where
 {
     /// Executes a named tool and pairs its result with safe presentation data.
     ///
-    /// # Parameters
     /// - `context`: Trusted application context.
     /// - `name`: Registered tool identifier.
     /// - `arguments`: Exact arguments passed to the application tool.
     /// - `presentation_arguments`: Schema-redacted arguments for durable display.
     /// - `presentation_label`: Optional trusted compact display label.
+    /// - `category`: Trusted semantic category from the registered descriptor.
     /// - `cancelled`: Shared cancellation flag.
     /// - `operation`: Optional lifecycle operation.
     /// - `state`: Mutable branch counters.
     ///
-    /// # Returns
     /// The tool result and its durable invocation evidence.
     ///
-    /// # Errors
     /// Returns a tool, cancellation, or budget failure.
     #[allow(clippy::too_many_arguments)]
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(in crate::runtime) fn run_named_tool_with_evidence(
         &self,
         context: &ApplicationContext,
@@ -41,6 +43,7 @@ where
         arguments: &serde_json::Value,
         presentation_arguments: &serde_json::Value,
         presentation_label: Option<&str>,
+        category: scriberig_session::ToolActivityKind,
         cancelled: &AtomicBool,
         operation: Option<&OperationId>,
         state: &mut BranchRuntimeState,
@@ -57,6 +60,7 @@ where
             arguments,
             presentation_arguments,
             presentation_label,
+            Some(category),
             &result,
         );
         Ok((result, evidence))

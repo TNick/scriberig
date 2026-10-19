@@ -9,6 +9,8 @@ pub enum ClientError {
     Transport(String),
     /// Server returned a structured protocol error.
     Protocol(ProtocolError),
+    /// A typed request could not be encoded for transport.
+    Encoding(String),
     /// Server returned a response variant unrelated to the request.
     UnexpectedResponse,
 }
@@ -16,19 +18,21 @@ pub enum ClientError {
 impl std::fmt::Display for ClientError {
     /// Formats a client error.
     ///
-    /// # Parameters
     /// - `self`: Error to format.
     /// - `formatter`: Formatting destination.
     ///
-    /// # Returns
     /// Formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when the destination rejects output.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Transport(message) => write!(formatter, "transport unavailable: {message}"),
             Self::Protocol(error) => write!(formatter, "{:?}: {}", error.code, error.message),
+            Self::Encoding(message) => write!(formatter, "request encoding failed: {message}"),
             Self::UnexpectedResponse => formatter.write_str("unexpected protocol response"),
         }
     }

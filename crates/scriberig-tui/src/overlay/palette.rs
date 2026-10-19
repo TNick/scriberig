@@ -37,7 +37,7 @@ impl Default for PaletteState {
     /// Creates the initial local palette.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     fn default() -> Self {
         Self {
             query: String::new(),
@@ -89,7 +89,7 @@ impl PaletteState {
     /// - `capabilities`: Argument named `capabilities`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     pub fn with_capabilities(capabilities: &[scriberig_app::RuntimeCapability]) -> Self {
         let mut palette = Self::default();
         if !capabilities.is_empty() {
@@ -126,25 +126,25 @@ impl PaletteState {
 
 /// Creates a local palette item.
 ///
-/// # Parameters
 /// - `id`: Stable action identifier.
 /// - `label`: Human-readable action label.
 ///
-/// # Returns
 /// A palette item.
+/// # Returns
+/// The operation result.
 fn item(id: &str, label: &str) -> PaletteItem {
     item_with_source(id, label, ActionSource::Local)
 }
 
 /// Creates a palette item with an explicit action source.
 ///
-/// # Parameters
 /// - `id`: Stable action identifier.
 /// - `label`: Human-readable action label.
 /// - `source`: Action source classification.
 ///
-/// # Returns
 /// A palette item.
+/// # Returns
+/// The operation result.
 fn item_with_source(id: &str, label: &str, source: ActionSource) -> PaletteItem {
     PaletteItem {
         id: id.to_owned(),
@@ -159,7 +159,7 @@ fn item_with_source(id: &str, label: &str, source: ActionSource) -> PaletteItem 
 /// - `query`: Argument named `query`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub fn filter(items: &[PaletteItem], query: &str) -> Vec<PaletteItem> {
     let query = query.to_lowercase();
     items
@@ -176,7 +176,7 @@ impl PaletteState {
     #[must_use]
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     pub fn filtered(&self) -> Vec<PaletteItem> {
         let mut items = self.local_actions.clone();
         items.extend(self.semantic_actions.clone());

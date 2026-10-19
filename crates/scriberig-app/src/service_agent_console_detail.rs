@@ -9,17 +9,14 @@ use scriberig_core::EntityId;
 
 /// Loads a durable result and projects only its allowlisted safe fields.
 ///
-/// # Parameters
 /// - `service`: Application service that owns session reads.
 /// - `context`: Authorized caller context.
 /// - `session`: Session containing the result.
 /// - `branch`: Branch containing the result.
 /// - `result`: Stable tool-result identity.
 ///
-/// # Returns
 /// Bounded safe result detail with its stable identity.
 ///
-/// # Errors
 /// Returns authorization, lookup, or persistence errors.
 pub(super) fn tool_result_detail<B: ApplicationBackend>(
     service: &ApplicationService<B>,

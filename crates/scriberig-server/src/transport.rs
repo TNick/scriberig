@@ -13,12 +13,12 @@ pub struct InProcessTransport<S> {
 impl<S> InProcessTransport<S> {
     /// Creates an in-process transport around an application service.
     ///
-    /// # Parameters
     /// - `service`: Application implementation receiving semantic requests.
     ///
-    /// # Returns
     /// An in-process protocol transport.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(service: S) -> Self {
         Self {
             dispatcher: Dispatcher::new(service),
@@ -27,13 +27,13 @@ impl<S> InProcessTransport<S> {
 
     /// Creates an in-process transport bound to a trusted caller identity.
     ///
-    /// # Parameters
     /// - `service`: Application implementation receiving semantic requests.
     /// - `principal`: Caller identity established by the embedding runtime.
     ///
-    /// # Returns
     /// An in-process protocol transport with principal-scoped operations.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn for_principal(service: S, principal: scriberig_app::Principal) -> Self {
         Self {
             dispatcher: Dispatcher::for_principal(service, principal),
@@ -44,11 +44,11 @@ impl<S> InProcessTransport<S> {
 impl<S: ApplicationService> ProtocolTransport for InProcessTransport<S> {
     /// Sends one request directly to the server dispatcher.
     ///
-    /// # Parameters
     /// - `request`: Correlated protocol request.
     ///
-    /// # Returns
     /// Correlated protocol response.
+    /// # Returns
+    /// The operation result.
     fn send(&self, request: RequestEnvelope) -> ResponseEnvelope {
         self.dispatcher.dispatch(request)
     }

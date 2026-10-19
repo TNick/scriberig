@@ -13,8 +13,9 @@ use std::collections::BTreeMap;
 
 /// Creates deterministic provenance for query fixtures.
 ///
-/// # Returns
 /// Provenance containing workspace and validation references.
+/// # Returns
+/// The operation result.
 fn provenance() -> Provenance {
     Provenance {
         source: SourceKind::User,
@@ -29,11 +30,11 @@ fn provenance() -> Provenance {
 
 /// Creates a repeated-byte snapshot identity fixture.
 ///
-/// # Parameters
 /// - `byte`: Byte repeated across the snapshot identity.
 ///
-/// # Returns
 /// A deterministic snapshot identity.
+/// # Returns
+/// The operation result.
 fn snapshot(byte: u8) -> SnapshotId {
     SnapshotId::new([byte; 32])
 }

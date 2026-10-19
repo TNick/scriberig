@@ -8,7 +8,9 @@ use scriberig_agent_runtime::cache::{CachePolicy, ModelCache};
 use scriberig_agent_runtime::context::RequestFingerprintInput;
 use scriberig_agent_runtime::orchestration::RuntimeLimits;
 use scriberig_agent_runtime::provider::{ToolCall, ToolDefinition};
-use scriberig_agent_runtime::tools::{ToolCatalog, ToolDescriptor, ToolExecutionMode};
+use scriberig_agent_runtime::tools::{
+    ToolCatalog, ToolCategory, ToolDescriptor, ToolExecutionMode,
+};
 use scriberig_agent_runtime::{
     AgentMessage, AgentRuntime, ChildExecutionScope, ChildExecutor, ChildRequest, ChildResult,
     UnconfiguredTool,
@@ -25,23 +27,25 @@ struct AtomicTool;
 impl Tool for AtomicTool {
     /// Returns the stable fixture tool name.
     ///
-    /// # Returns
     /// The `inspect` tool identifier.
+    /// # Returns
+    /// The operation result.
     fn name(&self) -> &'static str {
         "inspect"
     }
 
     /// Returns the requested entity without creating a child branch.
     ///
-    /// # Parameters
     /// - `_context`: Trusted application context.
     /// - `input`: Entity request selected by the provider.
     ///
-    /// # Returns
     /// One exact semantic result handle.
     ///
-    /// # Errors
     /// This fixture never fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke(
         &self,
         _context: &ApplicationContext,
@@ -67,17 +71,18 @@ struct ChildFixture {
 impl ChildExecutor for ChildFixture {
     /// Runs the child script under the inherited branch scope.
     ///
-    /// # Parameters
     /// - `context`: Trusted context inherited from the parent.
     /// - `scope`: Parent branch identity and depth.
     /// - `request`: Validated child request.
     /// - `cancelled`: Shared execution-tree cancellation flag.
     ///
-    /// # Returns
     /// A compact result that intentionally excludes child provider history.
     ///
-    /// # Errors
     /// Returns a safe child runtime failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute_child(
         &mut self,
         context: &ApplicationContext,
@@ -278,6 +283,7 @@ fn scripted_tool_denial_is_surface_independent() {
             description: "Delegate focused work".to_owned(),
             parameters: serde_json::json!({"type": "object"}),
         },
+        category: ToolCategory::BranchProducing,
         result_shape: "compact child result".to_owned(),
         invocation_label: None,
         state_changing: false,

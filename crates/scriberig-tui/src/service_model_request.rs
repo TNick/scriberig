@@ -6,14 +6,15 @@ use super::{ApplicationContext, ApplicationError, EntityId};
 pub trait TuiModelRequestService {
     /// Reads shared display defaults for the trusted application principal.
     ///
-    /// # Parameters
     /// - `_context`: Authorized application context.
     ///
-    /// # Returns
     /// Revisioned shared preferences.
     ///
-    /// # Errors
     /// Returns unsupported-operation when unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn agent_presentation_preferences(
         &self,
         _context: &ApplicationContext,
@@ -25,17 +26,18 @@ pub trait TuiModelRequestService {
 
     /// Reads the safe request captured for one model invocation.
     ///
-    /// # Parameters
     /// - `_context`: Authorized request context.
     /// - `_session`: Session containing the invocation.
     /// - `_branch`: Branch containing the invocation.
     /// - `_invocation`: Stable model-invocation identity.
     ///
-    /// # Returns
     /// Captured provider-neutral request detail.
     ///
-    /// # Errors
     /// Returns unsupported-operation when unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn model_request_detail(
         &self,
         _context: &ApplicationContext,

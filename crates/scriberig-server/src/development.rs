@@ -17,14 +17,15 @@ pub struct DevelopmentFixture {
 
 /// Creates or reuses the deterministic browser development fixture.
 ///
-/// # Parameters
 /// - `store`: SQLite store receiving the fixture when it is absent.
 ///
-/// # Returns
 /// Fixture identities used by the HTTP bootstrap response.
 ///
-/// # Errors
 /// Returns a storage error when the fixture cannot be created or inspected.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn ensure_fixture(store: &SqliteStore) -> Result<DevelopmentFixture, String> {
     let root = RootName::new("main").map_err(|error| error.to_string())?;
     if let Some(snapshot) = store.read_root(&root) {

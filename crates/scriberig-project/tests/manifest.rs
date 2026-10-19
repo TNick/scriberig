@@ -9,8 +9,9 @@ use scriberig_store_sqlite::SqliteStore;
 
 /// Creates a unique temporary project directory.
 ///
-/// # Returns
 /// The created temporary directory.
+/// # Returns
+/// The operation result.
 fn temporary_project() -> PathBuf {
     let root = std::env::temp_dir().join(format!(
         "scriberig-manifest-{}",

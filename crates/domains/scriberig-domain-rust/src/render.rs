@@ -6,12 +6,15 @@ use crate::{
 };
 
 /// Renders supported Rust syntax from semantic structures.
-/// # Parameters
 /// - `file`: Structured Rust syntax.
-/// # Returns
+///
 /// Deterministic Rust source text.
-/// # Errors
+///
 /// Returns an error when an item cannot be rendered.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn render(file: &RustFile) -> Result<String, RustSyntaxError> {
     let mut output = String::new();
     for item in &file.items {

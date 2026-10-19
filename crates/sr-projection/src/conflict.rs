@@ -118,25 +118,27 @@ pub struct ResolvedConflict<Migration> {
 pub trait ProjectionConflictStore {
     /// Stores an immutable external observation.
     ///
-    /// # Parameters
     /// - `observation`: Exact captured evidence.
     ///
-    /// # Returns
     /// Unit after the evidence is recorded.
     ///
-    /// # Errors
     /// Returns a backend-defined error when persistence fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn record_observation(&mut self, observation: CapturedObservation) -> Result<(), String>;
 
     /// Stores an immutable unresolved or resolved conflict record.
     ///
-    /// # Parameters
     /// - `conflict`: Structured conflict to append.
     ///
-    /// # Returns
     /// Unit after the conflict is recorded.
     ///
-    /// # Errors
     /// Returns a backend-defined error when persistence fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn record_conflict(&mut self, conflict: ProjectionConflict) -> Result<(), String>;
 }

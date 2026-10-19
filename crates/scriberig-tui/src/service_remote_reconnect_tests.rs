@@ -13,12 +13,12 @@ struct QueuedTransport {
 impl ProtocolTransport for QueuedTransport {
     /// Returns the next queued protocol response.
     ///
-    /// # Parameters
     /// - `self`: Queued test transport.
     /// - `_request`: Protocol request received from the client.
     ///
-    /// # Returns
     /// The next deterministic response envelope.
+    /// # Returns
+    /// The operation result.
     fn send(&self, _request: RequestEnvelope) -> ResponseEnvelope {
         self.responses
             .lock()

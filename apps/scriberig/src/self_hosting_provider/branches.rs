@@ -2,7 +2,7 @@
 
 /// Read-only source references inspected by the architecture branch.
 const ARCHITECTURE_QUERIES: &[&str] = &[
-    "scriberig-domain-python",
+    "crates/domains/scriberig-domain-python/src/lib.rs",
     "design/level-2/028",
     "crates/scriberig-project/src/scan.rs",
     "crates/scriberig-project/src/support.rs",
@@ -37,17 +37,18 @@ use serde_json::json;
 
 /// Advances the parent through capability discovery and two bounded child branches.
 ///
-/// # Parameters
 /// - `request`: Normalized parent branch request.
 /// - `scope`: Exact project and snapshot references.
 /// - `validation_failure`: Whether the scenario should exercise validation failure.
 /// - `super`: Parent scenario module.
 ///
-/// # Returns
 /// A trusted capability, semantic, child, or candidate inspection request.
 ///
-/// # Errors
 /// Returns an error when a completed child omits its durable result reference.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn root_branch(
     request: &ModelRequest,
     scope: &SemanticScope,
@@ -133,15 +134,16 @@ pub(super) fn root_branch(
 
 /// Delegates exact-base PHP implementation with candidate validation and dependency acquisition.
 ///
-/// # Parameters
 /// - `architecture`: Completed discovery child result and stable semantic references.
 /// - `super`: Parent scenario module.
 ///
-/// # Returns
 /// A bounded implementation child request.
 ///
-/// # Errors
 /// Returns malformed-response when the architecture result omits its compact summary.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn implementation_child(architecture: &str) -> Result<ModelResponse, ProviderError> {
     let summary = child_summary(architecture)?;
     let references = parse_handles(architecture)?
@@ -172,15 +174,16 @@ fn implementation_child(architecture: &str) -> Result<ModelResponse, ProviderErr
 
 /// Extracts the compact summary from one nested child result message.
 ///
-/// # Parameters
 /// - `message`: Provider-normalized child result.
 /// - `super`: Parent branch coordinator.
 ///
-/// # Returns
 /// Child summary without its serialized stable handles.
 ///
-/// # Errors
 /// Returns malformed-response when the child result omits its summary.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn child_summary(message: &str) -> Result<&str, ProviderError> {
     message
         .split_once("child_summary=")
@@ -190,17 +193,18 @@ fn child_summary(message: &str) -> Result<&str, ProviderError> {
 
 /// Runs read-only architecture discovery and returns a compact result.
 ///
-/// # Parameters
 /// - `request`: Normalized architecture child request.
 /// - `scope`: Exact project and snapshot references.
 /// - `super`: Parent scenario module.
 /// - `scope`: Exact project and snapshot inherited by the child.
 ///
-/// # Returns
 /// A semantic search/render operation or the compact architecture result.
 ///
-/// # Errors
 /// Returns an error when a source result lacks a semantic source handle.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn architecture_branch(
     request: &ModelRequest,
     scope: &SemanticScope,
@@ -215,18 +219,19 @@ pub(super) fn architecture_branch(
 
 /// Re-inspects implementation targets, proposes, validates, and inspects one candidate.
 ///
-/// # Parameters
 /// - `request`: Normalized implementation child request.
 /// - `scope`: Exact project and snapshot references.
 /// - `validation`: Validation mode for candidate materialization.
 /// - `super`: Parent scenario module.
 /// - `scope`: Exact project and snapshot inherited by the child.
 ///
-/// # Returns
 /// A regular project candidate tool call or a compact validated result.
 ///
-/// # Errors
 /// Returns malformed-response when candidate handles are missing.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn implementation_branch(
     request: &ModelRequest,
     scope: &SemanticScope,
@@ -278,14 +283,16 @@ pub(super) fn implementation_branch(
                 json!({"candidate":candidate}),
             ));
         }
-        let completed_profiles = PHP_CANDIDATE_PROFILES
+        let latest_profile_index = candidate_tools
             .iter()
-            .filter(|profile| {
-                candidate_tools
-                    .iter()
-                    .any(|message| message.contains(&format!("validation_profile:{profile}")))
-            })
-            .count();
+            .rev()
+            .find(|message| is_successful_candidate_validation(message, &candidate))
+            .and_then(|message| {
+                PHP_CANDIDATE_PROFILES.iter().position(|profile| {
+                    message.contains(&format!("validation_id:{candidate}:{profile}"))
+                })
+            });
+        let completed_profiles = latest_profile_index.map_or(0, |index| index + 1);
         if let Some(profile) = PHP_CANDIDATE_PROFILES.get(completed_profiles) {
             return Ok(tool_call(
                 "project_validate_candidate",
@@ -312,9 +319,23 @@ pub(super) fn implementation_branch(
     ))
 }
 
+/// Checks for a successful validation result for the exact candidate.
+///
+/// - `message`: Serialized runtime tool result.
+/// - `candidate`: Exact durable candidate identity.
+///
+/// # Returns
+/// `true` when the output contains a passed validation ID for this candidate.
+fn is_successful_candidate_validation(message: &str, candidate: &str) -> bool {
+    message.contains("object_type=Some(\"candidate_validation\")")
+        && message.contains(&format!(
+            "summary=Some(\"candidate {candidate} validation passed\""
+        ))
+        && message.contains(&format!("validation_id:{candidate}:"))
+}
+
 /// Requests each semantic source target and renders its exact project projection.
 ///
-/// # Parameters
 /// - `request`: Current child model request.
 /// - `scope`: Exact project and snapshot references.
 /// - `queries`: Ordered semantic source path anchors.
@@ -322,40 +343,55 @@ pub(super) fn implementation_branch(
 /// - `scope`: Exact project and snapshot.
 /// - `queries`: Ordered source path anchors.
 ///
-/// # Returns
 /// Next semantic find/render response, or none after all targets are rendered.
 ///
-/// # Errors
 /// Returns malformed-response when a find result lacks a source reference.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn semantic_step(
     request: &ModelRequest,
     scope: &SemanticScope,
     queries: &[&str],
 ) -> Result<Option<ModelResponse>, ProviderError> {
     let tools = tool_messages(request);
-    let rendered = tools
+    let searched = tools
         .iter()
-        .filter(|message| message.contains("source_digest:"))
+        .filter(|message| message.contains("summary=Some(\"semantic find"))
         .count();
-    if rendered >= queries.len() {
+    let last_is_find = tools
+        .last()
+        .is_some_and(|message| message.contains("summary=Some(\"semantic find"));
+    if searched >= queries.len() && !last_is_find {
         return Ok(None);
     }
-    if tools
-        .last()
-        .is_some_and(|message| message.contains("summary=Some(\"semantic find"))
-    {
-        let entity = semantic_entity(tools.last().expect("last tool exists"))?;
-        return Ok(Some(tool_call(
-            "semantic_render",
-            json!({"project":scope.project,"snapshot":scope.snapshot,"entity":entity}),
-        )));
+    if last_is_find {
+        let result = tools.last().expect("last tool exists");
+        match semantic_entity(result) {
+            Ok(entity) => {
+                return Ok(Some(tool_call(
+                    "semantic_render",
+                    json!({"project":scope.project,"snapshot":scope.snapshot,"entity":entity}),
+                )));
+            }
+            Err(_) if result.contains("matched 0 entities") => {
+                if searched >= queries.len() {
+                    return Ok(None);
+                }
+            }
+            Err(error) => return Err(error),
+        }
+    }
+    if searched >= queries.len() {
+        return Ok(None);
     }
     Ok(Some(tool_call(
         "semantic_find",
         json!({
             "project":scope.project,
             "snapshot":scope.snapshot,
-            "query":queries[rendered],
+            "query":queries[searched],
             "limit":50
         }),
     )))

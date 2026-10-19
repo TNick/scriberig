@@ -26,7 +26,7 @@ impl NavigationState {
     /// Moves back one location and reports whether navigation occurred.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     pub fn go_back(&mut self) -> bool {
         let Some(location) = self.back.pop() else {
             return false;
@@ -40,7 +40,7 @@ impl NavigationState {
     /// Moves forward one location and reports whether navigation occurred.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     pub fn go_forward(&mut self) -> bool {
         let Some(location) = self.forward.pop() else {
             return false;
@@ -59,11 +59,11 @@ mod tests {
 
     /// Creates a navigation location for a named semantic reference.
     ///
-    /// # Parameters
     /// - `name`: Semantic reference name.
     ///
-    /// # Returns
     /// A navigation location.
+    /// # Returns
+    /// The operation result.
     fn location(name: &str) -> NavigationLocation {
         NavigationLocation {
             selection: Some(SemanticReference(name.to_owned())),

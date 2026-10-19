@@ -82,13 +82,13 @@ pub struct ReuseExplanation {
 
 /// Compares exact derivation keys and explains whether reuse is justified.
 ///
-/// # Parameters
 /// - `stored`: Key attached to the historical record.
 /// - `requested`: Key required by the current request.
 ///
-/// # Returns
 /// Structured exact-match or first deterministic mismatch explanation.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn explain_key_comparison(
     stored: &DerivationKey,
     requested: &DerivationKey,
@@ -177,12 +177,12 @@ pub fn explain_key_comparison(
 
 /// Reports whether two dependencies describe the same dependency category.
 ///
-/// # Parameters
 /// - `left`: Stored dependency.
 /// - `right`: Requested dependency.
 ///
-/// # Returns
 /// `true` when one dependency can replace the other by exact identity.
+/// # Returns
+/// The operation result.
 fn same_dependency_kind(left: &Dependency, right: &Dependency) -> bool {
     matches!((left, right),
         (Dependency::ExactRevision { entity: a, .. }, Dependency::ExactRevision { entity: b, .. }) if a == b

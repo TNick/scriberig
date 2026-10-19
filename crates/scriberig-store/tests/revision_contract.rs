@@ -9,14 +9,15 @@ struct EmptyStore;
 impl RevisionStore for EmptyStore {
     /// Rejects writes because this fixture is read-only.
     ///
-    /// # Parameters
     /// - `_revision`: Revision that would be written.
     ///
-    /// # Returns
     /// Never returns successfully.
     ///
-    /// # Errors
     /// Always returns an invalid-operation error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn put(&self, _revision: Revision) -> Result<RevisionId, StoreError> {
         Err(StoreError::InvalidOperation {
             operation: "empty fixture".to_owned(),
@@ -25,28 +26,30 @@ impl RevisionStore for EmptyStore {
 
     /// Always reports that the revision is absent.
     ///
-    /// # Parameters
     /// - `_id`: Revision identity to look up.
     ///
-    /// # Returns
     /// `None` because this fixture contains no revisions.
     ///
-    /// # Errors
     /// This fixture does not return backend errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn get(&self, _id: RevisionId) -> Result<Option<Revision>, StoreError> {
         Ok(None)
     }
 
     /// Always reports that the revision is absent.
     ///
-    /// # Parameters
     /// - `_id`: Revision identity to check.
     ///
-    /// # Returns
     /// `false` because this fixture contains no revisions.
     ///
-    /// # Errors
     /// This fixture does not return backend errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn contains(&self, _id: RevisionId) -> Result<bool, StoreError> {
         Ok(false)
     }

@@ -8,15 +8,16 @@ use scriberig_app::ApplicationError;
 
 /// Converts one protocol operation into the shared application lifecycle model.
 ///
-/// # Parameters
 /// - `operation`: Remote operation record.
 ///
-/// # Returns
 /// The shared lifecycle record, including any structured agent result.
 ///
-/// # Errors
 /// Returns an error when a remote identity is malformed.
 /// - `crate`: Internal visibility marker.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn map_remote_operation(
     operation: scriberig_protocol::Operation,
 ) -> Result<scriberig_app::OperationRecord, ApplicationError> {
@@ -46,6 +47,10 @@ pub(crate) fn map_remote_operation(
             scriberig_app::OperationKind::Branch
         }
         scriberig_protocol::operation::OperationKind::Agent => scriberig_app::OperationKind::Agent,
+        scriberig_protocol::operation::OperationKind::Plan => scriberig_app::OperationKind::Plan,
+        scriberig_protocol::operation::OperationKind::DomainOperation => {
+            scriberig_app::OperationKind::DomainOperation
+        }
         scriberig_protocol::operation::OperationKind::Apply => scriberig_app::OperationKind::Apply,
         scriberig_protocol::operation::OperationKind::Commit => {
             scriberig_app::OperationKind::Commit
@@ -86,14 +91,15 @@ pub(crate) fn map_remote_operation(
 
 /// Converts one protocol agent result into the application result model.
 ///
-/// # Parameters
 /// - `result`: Remote terminal agent result.
 ///
-/// # Returns
 /// Parsed provider-neutral agent result.
 ///
-/// # Errors
 /// Returns an error when any semantic handle is malformed.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn map_agent_result(
     result: scriberig_protocol::AgentResult,
 ) -> Result<scriberig_app::AgentResult, ApplicationError> {
@@ -128,4 +134,30 @@ fn map_agent_result(
             })
             .collect::<Result<Vec<_>, ApplicationError>>()?,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::map_remote_operation;
+
+    /// Preserves semantic domain operation identity across remote mapping.
+    #[test]
+    fn maps_remote_domain_operation_kind() {
+        let mapped = map_remote_operation(scriberig_protocol::Operation {
+            reference: scriberig_protocol::OperationReference {
+                id: "operation-domain-test".to_owned(),
+            },
+            kind: scriberig_protocol::operation::OperationKind::DomainOperation,
+            status: scriberig_protocol::OperationStatus::Completed,
+            progress: None,
+            result_snapshot: None,
+            result_handles: vec!["candidate:semantic-1".to_owned()],
+            agent_result: None,
+            error: None,
+        })
+        .expect("map remote operation");
+
+        assert_eq!(mapped.kind, scriberig_app::OperationKind::DomainOperation);
+        assert_eq!(mapped.result_handles, vec!["candidate:semantic-1"]);
+    }
 }

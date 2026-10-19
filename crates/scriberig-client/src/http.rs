@@ -30,12 +30,13 @@ pub struct HttpTransport {
 impl HttpTransport {
     /// Starts a reconnecting SSE subscription for public protocol events.
     ///
-    /// # Parameters
     /// - after: Optional last event cursor to resume after.
     /// - callback: Handler invoked for decoded protocol events.
     ///
-    /// # Returns
     /// A cancellable event stream handle.
+    ///
+    /// # Returns
+    /// The running event stream handle.
     ///
     /// # Errors
     /// Returns an error when the stream worker cannot be created.
@@ -59,13 +60,15 @@ impl HttpTransport {
 
     /// Parses an `http://host:port` endpoint.
     ///
-    /// # Errors
     /// Returns an error for unsupported schemes, missing hosts, or invalid
     /// ports.
     /// - `endpoint`: Endpoint URL to parse.
     ///
-    /// # Returns
     /// A configured HTTP transport.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn from_endpoint(endpoint: &str) -> io::Result<Self> {
         let remainder = endpoint.strip_prefix("http://").ok_or_else(|| {
             io::Error::new(
@@ -116,8 +119,9 @@ impl HttpTransport {
     /// - `host`: Hostname or address to contact.
     /// - `port`: TCP port to contact.
     ///
-    /// # Returns
     /// A configured HTTP transport.
+    /// # Returns
+    /// The operation result.
     pub fn new(host: impl Into<String>, port: u16) -> Self {
         Self {
             host: host.into(),
@@ -131,11 +135,13 @@ impl HttpTransport {
     /// Sends one JSON protocol envelope over a fresh HTTP connection.
     /// - `request`: Protocol request to send.
     ///
-    /// # Returns
     /// The decoded protocol response.
     ///
-    /// # Errors
     /// Returns a transport or serialization error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn request(&self, request: &RequestEnvelope) -> io::Result<ResponseEnvelope> {
         let body = serde_json::to_vec(request).map_err(io::Error::other)?;
         let address = (self.host.as_str(), self.port)
@@ -169,8 +175,9 @@ impl ProtocolTransport for HttpTransport {
     /// Sends a protocol request and converts transport failures to safe errors.
     /// - `request`: Protocol request to send.
     ///
-    /// # Returns
     /// The decoded protocol response.
+    /// # Returns
+    /// The operation result.
     fn send(&self, request: RequestEnvelope) -> ResponseEnvelope {
         match self.request(&request) {
             Ok(response) => response,
@@ -182,8 +189,9 @@ impl ProtocolTransport for HttpTransport {
 
     /// Returns the most recent network failure after a send.
     ///
-    /// # Returns
     /// The most recent transport failure, if any.
+    /// # Returns
+    /// The operation result.
     fn take_error(&self) -> Option<String> {
         self.error.lock().ok()?.take()
     }
@@ -192,12 +200,12 @@ impl ProtocolTransport for HttpTransport {
 impl HttpTransport {
     /// Records a transport error and builds a protocol-shaped fallback.
     ///
-    /// # Parameters
     /// - `error`: Transport failure to record.
     /// - `request`: Request envelope that failed.
     ///
-    /// # Returns
     /// A protocol-shaped error response.
+    /// # Returns
+    /// The operation result.
     fn record_error(&self, error: &io::Error, request: RequestEnvelope) -> ResponseEnvelope {
         if let Ok(mut slot) = self.error.lock() {
             *slot = Some(error.to_string());

@@ -10,8 +10,9 @@ use std::collections::BTreeMap;
 
 /// Creates deterministic provenance for replay fixtures.
 ///
-/// # Returns
 /// Empty deterministic provenance.
+/// # Returns
+/// The operation result.
 fn provenance() -> Provenance {
     Provenance {
         source: SourceKind::User,
@@ -26,14 +27,14 @@ fn provenance() -> Provenance {
 
 /// Creates one operation-bearing migration fixture.
 ///
-/// # Parameters
 /// - `base`: Original migration base.
 /// - `result`: Original migration result.
 /// - `delta`: Entity transition carried by the migration.
 /// - `operation`: Recorded semantic operation.
 ///
-/// # Returns
 /// A validated migration fixture.
+/// # Returns
+/// The operation result.
 fn migration(
     base: SnapshotId,
     result: SnapshotId,
@@ -156,12 +157,12 @@ fn rebase_domain_strategy_resolves_unknown_operation() {
     impl DomainReplayStrategy for Strategy {
         /// Resolves the custom operation into no entity delta.
         ///
-        /// # Parameters
         /// - `operation`: Recorded operation.
         /// - `_context`: Original and target replay context.
         ///
-        /// # Returns
         /// Applied for the custom domain operation, otherwise not applicable.
+        /// # Returns
+        /// The operation result.
         fn replay(
             &self,
             operation: &Operation,

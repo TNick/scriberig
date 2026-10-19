@@ -10,7 +10,7 @@ use super::{Hunk, MarkdownBlock, MarkdownConflict, MarkdownConflictKind};
 /// - `external`: Argument named `external`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub(super) fn make_conflict(
     path: &[usize],
     base: &[MarkdownBlock],

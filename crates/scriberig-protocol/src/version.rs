@@ -15,8 +15,9 @@ pub struct ProtocolVersion {
 impl Default for ProtocolVersion {
     /// Returns the initial protocol major version.
     ///
-    /// # Returns
     /// The initial major version one and minor version zero.
+    /// # Returns
+    /// The operation result.
     fn default() -> Self {
         Self { major: 1, minor: 0 }
     }

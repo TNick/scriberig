@@ -13,14 +13,11 @@ use crate::server::ApplicationService;
 
 /// Returns project history through the shared application history operation.
 ///
-/// # Parameters
 /// - `state`: HTTP application state.
 /// - `body`: Project identity request body.
 ///
-/// # Returns
 /// Ordered immutable snapshots and candidate-linked transition details.
 ///
-/// # Errors
 /// Returns a structured request, project, or history error.
 pub(super) fn history<S: ApplicationService>(
     state: &HttpState<S>,

@@ -4,12 +4,12 @@ use super::super::{Action, Effect, TuiState, reduce};
 
 /// Refreshes the active session branch when it matches the event.
 ///
-/// # Parameters
 /// - `state`: TUI presentation state.
 /// - `session`: Session identity reported by the application.
 ///
-/// # Returns
 /// Effects for a matching refresh, or no effect for an unrelated session.
+/// # Returns
+/// The operation result.
 pub(super) fn refresh_active_session(
     state: &mut TuiState,
     session: scriberig_core::EntityId,

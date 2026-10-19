@@ -3,17 +3,18 @@
 /// Computes bounded page offsets from a provider-owned continuation token.
 /// - `super`: Parent-module imports used by this helper.
 ///
-/// # Parameters
 /// - `continuation`: Optional provider continuation token.
 /// - `limit`: Maximum number of items to return.
 /// - `operation`: Operation name encoded by the token.
 /// - `snapshot`: Snapshot encoded by the token.
 ///
-/// # Returns
 /// Start and exclusive end offsets.
 ///
-/// # Errors
 /// Returns an invalid-continuation error when the token is malformed.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn page_bounds(
     continuation: Option<&crate::ContinuationToken>,
     limit: usize,

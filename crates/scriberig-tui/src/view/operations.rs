@@ -26,7 +26,7 @@ impl OperationModel {
     /// - `record`: Argument named `record`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     pub fn from_record(record: &OperationRecord) -> Self {
         Self {
             id: record.reference.clone(),
@@ -47,13 +47,13 @@ impl OperationModel {
 
     /// Applies a lifecycle event while preserving details from an earlier observation.
     ///
-    /// # Parameters
     /// - `event`: Shared lifecycle event for one operation.
     /// - `previous`: Earlier operation details, when already observed.
     ///
-    /// # Returns
     /// An updated terminal model for operation lifecycle events.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn from_event(
         event: &scriberig_app::ApplicationEvent,
         previous: Option<&Self>,

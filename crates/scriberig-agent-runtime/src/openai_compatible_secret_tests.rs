@@ -14,14 +14,15 @@ struct FixtureCredentialProvider;
 impl CredentialProvider for FixtureCredentialProvider {
     /// Resolves the fixture credential for a configured provider endpoint.
     ///
-    /// # Parameters
     /// - `endpoint`: Configured provider destination.
     ///
-    /// # Returns
     /// The fake protected credential.
     ///
-    /// # Errors
     /// Returns endpoint normalization or secret validation failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn credential(&self, endpoint: &str) -> Result<Option<SecretValue>, SecretError> {
         scriberig_secrets::normalize_endpoint(endpoint)?;
         SecretValue::new("FAKE_PROVIDER_SECRET_73B2".to_owned()).map(Some)

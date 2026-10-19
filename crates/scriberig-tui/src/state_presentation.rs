@@ -9,12 +9,12 @@ use crate::{
 
 /// Applies shared defaults beneath presentation fields already overridden locally.
 ///
-/// # Parameters
 /// - `state`: Current terminal presentation state.
 /// - `response`: Revisioned shared user defaults.
 ///
-/// # Returns
 /// A no-op effect after updating presentation state.
+/// # Returns
+/// The operation result.
 pub(crate) fn apply_shared_preferences(
     state: &mut TuiState,
     response: scriberig_protocol::AgentPresentationPreferencesResponse,
@@ -32,10 +32,10 @@ pub(crate) fn apply_shared_preferences(
     if !state.has_presentation_override(PresentationControl::ToolInvocation) {
         state.tool_invocation_visibility = match preferences.tool_invocation {
             scriberig_protocol::PublicToolInvocationDetail::Simple => {
-                crate::state::ToolInvocationVisibility::Simple
+                crate::state::ToolInvocationVisibility::CompactTruncated
             }
             scriberig_protocol::PublicToolInvocationDetail::Detailed => {
-                crate::state::ToolInvocationVisibility::Detailed
+                crate::state::ToolInvocationVisibility::StructuredParameters
             }
         };
     }
@@ -65,12 +65,12 @@ pub(crate) fn apply_shared_preferences(
 
 /// Toggles a supported presentation-only terminal control.
 ///
-/// # Parameters
 /// - `state`: TUI presentation state to update.
 /// - `item_id`: Stable palette action identity.
 ///
-/// # Returns
 /// Effects for recognized controls, including safe detail reads when needed.
+/// # Returns
+/// The operation result.
 pub(crate) fn activate_presentation_action(
     state: &mut TuiState,
     item_id: &str,
@@ -111,19 +111,31 @@ pub(crate) fn activate_presentation_action(
         if item_id == "toggle-tool-invocation" {
             state.set_presentation_override(PresentationControl::ToolInvocation);
             state.tool_invocation_visibility = match state.tool_invocation_visibility {
-                crate::state::ToolInvocationVisibility::Simple => {
-                    crate::state::ToolInvocationVisibility::Detailed
+                crate::state::ToolInvocationVisibility::Hidden => {
+                    crate::state::ToolInvocationVisibility::CompactTruncated
                 }
-                crate::state::ToolInvocationVisibility::Detailed => {
-                    crate::state::ToolInvocationVisibility::Simple
+                crate::state::ToolInvocationVisibility::CompactTruncated => {
+                    crate::state::ToolInvocationVisibility::Full
+                }
+                crate::state::ToolInvocationVisibility::Full => {
+                    crate::state::ToolInvocationVisibility::StructuredParameters
+                }
+                crate::state::ToolInvocationVisibility::StructuredParameters => {
+                    crate::state::ToolInvocationVisibility::Hidden
                 }
             };
             state.shell_message = match state.tool_invocation_visibility {
-                crate::state::ToolInvocationVisibility::Simple => {
-                    "Simple tool-call display enabled for this TUI session.".to_owned()
+                crate::state::ToolInvocationVisibility::Hidden => {
+                    "Tool-call arguments hidden for this TUI session.".to_owned()
                 }
-                crate::state::ToolInvocationVisibility::Detailed => {
-                    "Detailed safe tool-call display enabled for this TUI session.".to_owned()
+                crate::state::ToolInvocationVisibility::CompactTruncated => {
+                    "Compact tool-call display enabled for this TUI session.".to_owned()
+                }
+                crate::state::ToolInvocationVisibility::Full => {
+                    "Full bounded safe tool-call display enabled for this TUI session.".to_owned()
+                }
+                crate::state::ToolInvocationVisibility::StructuredParameters => {
+                    "Structured safe tool-call parameters enabled for this TUI session.".to_owned()
                 }
             };
             return Some(vec![Effect::None]);
@@ -156,11 +168,11 @@ pub(crate) fn activate_presentation_action(
 
 /// Requests captured model requests for visible invocations without cached detail.
 ///
-/// # Parameters
 /// - `state`: TUI state holding the loaded session activity.
 ///
-/// # Returns
 /// One safe detail-read effect per uncached invocation, or a no-op.
+/// # Returns
+/// The operation result.
 fn read_missing_model_requests(state: &mut TuiState) -> Vec<Effect> {
     let LoadState::Ready(model) = &state.session else {
         return vec![Effect::None];
@@ -194,11 +206,11 @@ fn read_missing_model_requests(state: &mut TuiState) -> Vec<Effect> {
 
 /// Resolves each model-invocation row to its nearest enclosing branch.
 ///
-/// # Parameters
 /// - `model`: Loaded TUI session projection.
 ///
-/// # Returns
 /// Stable invocation and branch identity pairs.
+/// # Returns
+/// The operation result.
 fn invocation_branches(
     model: &SessionModel,
 ) -> Vec<(scriberig_core::EntityId, scriberig_core::EntityId)> {
@@ -218,11 +230,11 @@ fn invocation_branches(
 
 /// Requests detail for visible results that are not cached yet.
 ///
-/// # Parameters
 /// - `state`: TUI state holding the loaded session activity.
 ///
-/// # Returns
 /// One detail-read effect per uncached tool result, or a no-op.
+/// # Returns
+/// The operation result.
 fn read_missing_tool_details(state: &TuiState) -> Vec<Effect> {
     let LoadState::Ready(model) = &state.session else {
         return vec![Effect::None];
@@ -252,11 +264,11 @@ fn read_missing_tool_details(state: &TuiState) -> Vec<Effect> {
 
 /// Resolves each tool-result row to its nearest preceding branch row.
 ///
-/// # Parameters
 /// - `model`: Loaded TUI session projection.
 ///
-/// # Returns
 /// Stable result and branch identity pairs.
+/// # Returns
+/// The operation result.
 fn result_branches(
     model: &SessionModel,
 ) -> Vec<(scriberig_core::EntityId, scriberig_core::EntityId)> {
@@ -276,13 +288,56 @@ fn result_branches(
 
 /// Routes any presentation or model-selection palette action.
 ///
-/// # Parameters
 /// - `state`: TUI state to update.
 /// - `item_id`: Stable palette action identity.
 ///
-/// # Returns
 /// Effects when the action belongs to an agent-console control.
+/// # Returns
+/// The operation result.
 pub(crate) fn activate_palette_control(state: &mut TuiState, item_id: &str) -> Option<Vec<Effect>> {
+    if let Some(index) = item_id
+        .strip_prefix("assign-plan-profile:")
+        .and_then(|value| value.parse::<usize>().ok())
+    {
+        let target = state.plan_assignment_target.take()?;
+        let LoadState::Ready(library) = &state.model_library else {
+            state.conversation_composer.error =
+                Some("Reload model profiles before assigning this plan node.".to_owned());
+            state.overlay = None;
+            return Some(vec![Effect::None]);
+        };
+        let Some(profile) = library
+            .profiles
+            .iter()
+            .filter(|profile| profile.enabled)
+            .nth(index)
+        else {
+            state.conversation_composer.error =
+                Some("The selected model profile is no longer available.".to_owned());
+            state.overlay = None;
+            return Some(vec![Effect::None]);
+        };
+        let Some(session) = state.session_snapshot.as_ref().map(|session| session.id) else {
+            state.conversation_composer.error =
+                Some("Load the plan session before assigning a node.".to_owned());
+            state.overlay = None;
+            return Some(vec![Effect::None]);
+        };
+        state.overlay = None;
+        return Some(vec![Effect::SetPlanNodeAssignment(
+            scriberig_app::PlanAssignmentRequest {
+                session,
+                plan: target.plan,
+                node: target.node,
+                expected_revision: target.expected_revision,
+                assignment: Some(scriberig_session::ModelAssignment {
+                    profile: profile.id.clone(),
+                    model: profile.model.clone(),
+                    thinking_level: profile.default_thinking_level.clone(),
+                }),
+            },
+        )]);
+    }
     super::state_model_picker::activate_model_picker_action(state, item_id)
         .or_else(|| activate_presentation_action(state, item_id))
 }

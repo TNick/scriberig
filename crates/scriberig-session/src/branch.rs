@@ -21,6 +21,9 @@ pub enum BranchStatus {
 pub struct Branch {
     pub id: EntityId,
     pub parent: Option<EntityId>,
+    /// Exact location and reason from which this branch was continued.
+    #[serde(default)]
+    pub continuation: Option<crate::ContinuationProvenance>,
     pub children: Vec<EntityId>,
     pub title: String,
     pub purpose: Option<String>,
@@ -38,11 +41,9 @@ pub struct Branch {
 }
 impl Branch {
     /// Creates an active branch.
-    /// # Errors
     /// Returns `EmptyTitle` for a blank title.
     /// Executes `new` for structured session state.
     ///
-    /// # Parameters
     /// - `self`: Session value or formatter.
     /// - `id`: Stable entity identifier when applicable.
     /// - `title`: Branch title when applicable.
@@ -54,11 +55,13 @@ impl Branch {
     /// - `decisions`: Decision entries when applicable.
     /// - `f`: Formatting destination when applicable.
     ///
-    /// # Returns
     /// The structured result.
     ///
-    /// # Errors
     /// Returns a validation or formatting error when inputs are invalid.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(id: EntityId, title: impl Into<String>) -> Result<Self, SessionError> {
         let title = title.into();
         if title.trim().is_empty() {
@@ -67,6 +70,7 @@ impl Branch {
         Ok(Self {
             id,
             parent: None,
+            continuation: None,
             children: Vec::new(),
             title,
             purpose: None,
@@ -86,17 +90,18 @@ impl Branch {
 
     /// Creates an active child branch with explicit parent and purpose.
     ///
-    /// # Parameters
     /// - `id`: Stable child branch identifier.
     /// - `parent`: Parent branch identifier.
     /// - `title`: Human-readable child title.
     /// - `purpose`: Focused work assigned to the child.
     ///
-    /// # Returns
     /// A child branch whose parent relationship is already initialized.
     ///
-    /// # Errors
     /// Returns `EmptyTitle` for a blank title.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new_child(
         id: EntityId,
         parent: EntityId,
@@ -109,11 +114,9 @@ impl Branch {
         Ok(branch)
     }
     /// Applies a lifecycle transition.
-    /// # Errors
     /// Returns `InvalidTransition` when a terminal branch changes.
     /// Executes `transition` for structured session state.
     ///
-    /// # Parameters
     /// - `self`: Session value or formatter.
     /// - `id`: Stable entity identifier when applicable.
     /// - `title`: Branch title when applicable.
@@ -125,11 +128,13 @@ impl Branch {
     /// - `decisions`: Decision entries when applicable.
     /// - `f`: Formatting destination when applicable.
     ///
-    /// # Returns
     /// The structured result.
     ///
-    /// # Errors
     /// Returns a validation or formatting error when inputs are invalid.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn transition(&mut self, next: BranchStatus) -> Result<(), SessionError> {
         let valid = matches!(
             (self.status, next),
@@ -150,7 +155,6 @@ impl Branch {
     /// Appends an explicitly ordered turn.
     /// Executes `push_turn` for structured session state.
     ///
-    /// # Parameters
     /// - `self`: Session value or formatter.
     /// - `id`: Stable entity identifier when applicable.
     /// - `title`: Branch title when applicable.
@@ -162,10 +166,8 @@ impl Branch {
     /// - `decisions`: Decision entries when applicable.
     /// - `f`: Formatting destination when applicable.
     ///
-    /// # Returns
     /// The structured result.
     ///
-    /// # Errors
     /// Returns a validation or formatting error when inputs are invalid.
     pub fn push_turn(&mut self, mut turn: Turn) {
         turn.ordinal = self.turns.len() as u64;
@@ -174,7 +176,6 @@ impl Branch {
     /// Adds a cross-domain semantic handle.
     /// Executes `touch` for structured session state.
     ///
-    /// # Parameters
     /// - `self`: Session value or formatter.
     /// - `id`: Stable entity identifier when applicable.
     /// - `title`: Branch title when applicable.
@@ -186,10 +187,8 @@ impl Branch {
     /// - `decisions`: Decision entries when applicable.
     /// - `f`: Formatting destination when applicable.
     ///
-    /// # Returns
     /// The structured result.
     ///
-    /// # Errors
     /// Returns a validation or formatting error when inputs are invalid.
     pub fn touch(&mut self, entity: EntityId) {
         if !self.touched.contains(&entity) {

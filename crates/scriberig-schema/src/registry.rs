@@ -39,15 +39,16 @@ impl DomainRegistry {
 
     /// Registers one installed domain descriptor.
     ///
-    /// # Parameters
     /// - `self`: Registry to update.
     /// - `descriptor`: Domain metadata to register.
     ///
-    /// # Returns
     /// Unit after successful registration.
     ///
-    /// # Errors
     /// Returns a duplicate or unknown-entity error when registration is invalid.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn register(&mut self, descriptor: DomainDescriptor) -> Result<(), RegistryError> {
         if self.domains.contains_key(&descriptor.id) {
             return Err(RegistryError::DuplicateDomain { id: descriptor.id });
@@ -66,37 +67,37 @@ impl DomainRegistry {
 
     /// Finds a domain by stable identifier.
     ///
-    /// # Parameters
     /// - `self`: Registry to query.
     /// - `id`: Domain identifier to find.
     ///
-    /// # Returns
     /// The registered descriptor, when present.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn domain(&self, id: &DomainId) -> Option<&DomainDescriptor> {
         self.domains.get(id)
     }
 
     /// Lists installed domains in deterministic identifier order.
     ///
-    /// # Parameters
     /// - `self`: Registry to query.
     ///
-    /// # Returns
     /// Registered domain descriptors.
+    /// # Returns
+    /// The operation result.
     pub fn domains(&self) -> impl Iterator<Item = &DomainDescriptor> {
         self.domains.values()
     }
 
     /// Collects capabilities available for one entity type.
     ///
-    /// # Parameters
     /// - `self`: Registry to query.
     /// - `entity_type`: Entity type whose capabilities are requested.
     ///
-    /// # Returns
     /// Capabilities from installed and available providers in deterministic order.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn capabilities_for(&self, entity_type: &ObjectType) -> Vec<&CapabilityDescriptor> {
         let mut capabilities = self
             .domains
@@ -188,13 +189,13 @@ mod tests {
 
     /// Builds a test domain descriptor with one capability.
     ///
-    /// # Parameters
     /// - `domain`: Stable domain identifier.
     /// - `entity_type`: Entity type advertised by the domain.
     /// - `available`: Provider availability flag.
     ///
-    /// # Returns
     /// A deterministic domain descriptor.
+    /// # Returns
+    /// The operation result.
     fn descriptor(domain: &str, entity_type: &str, available: bool) -> DomainDescriptor {
         DomainDescriptor {
             id: DomainId::new(domain).expect("valid domain"),

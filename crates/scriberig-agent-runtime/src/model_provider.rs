@@ -48,13 +48,13 @@ pub struct ProviderModel<P> {
 impl<P> ProviderModel<P> {
     /// Creates a model adapter with no exposed tools.
     ///
-    /// # Parameters
     /// - `provider`: Normalized provider adapter.
     /// - `model`: Provider model identifier.
     ///
-    /// # Returns
     /// A model provider suitable for `AgentRuntime`.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(provider: P, model: impl Into<String>) -> Self {
         Self {
             provider,
@@ -73,13 +73,13 @@ impl<P> ProviderModel<P> {
 
     /// Adds the trusted tool catalog exposed to future requests.
     ///
-    /// # Parameters
     /// - `self`: Model adapter being configured.
     /// - `tools`: Provider-neutral trusted tool definitions.
     ///
-    /// # Returns
     /// The configured model adapter.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_tools(mut self, tools: Vec<crate::provider::ToolDefinition>) -> Self {
         self.tools = tools;
         self
@@ -87,13 +87,13 @@ impl<P> ProviderModel<P> {
 
     /// Selects a provider-neutral thinking capability for future invocations.
     ///
-    /// # Parameters
     /// - `self`: Model adapter being configured.
     /// - `thinking_level`: Model-advertised capability identity.
     ///
-    /// # Returns
     /// The configured model adapter.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_thinking_level(mut self, thinking_level: Option<String>) -> Self {
         self.thinking_level = thinking_level;
         self
@@ -101,13 +101,13 @@ impl<P> ProviderModel<P> {
 
     /// Attaches the trusted catalog used to validate returned tool calls.
     ///
-    /// # Parameters
     /// - `self`: Model adapter being configured.
     /// - `catalog`: Trusted branch-visible tool catalog.
     ///
-    /// # Returns
     /// The configured model adapter.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_catalog(mut self, catalog: ToolCatalog) -> Self {
         self.tools = catalog.definitions();
         self.catalog = Some(catalog);
@@ -116,13 +116,13 @@ impl<P> ProviderModel<P> {
 
     /// Restricts provider-visible tools to the branch capability context.
     ///
-    /// # Parameters
     /// - `self`: Model adapter being configured.
     /// - `capabilities`: Authority available to this branch.
     ///
-    /// # Returns
     /// The configured model adapter.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_capabilities(mut self, capabilities: CapabilityContext) -> Self {
         self.capabilities = capabilities;
         if let Some(catalog) = &self.catalog {
@@ -137,14 +137,14 @@ impl<P> ProviderModel<P> {
 
     /// Installs a complete-response cache for exact request reuse.
     ///
-    /// # Parameters
     /// - `self`: Model adapter being configured.
     /// - `cache`: Shared normalized response cache.
     /// - `policy`: Cache policy for provider invocations.
     ///
-    /// # Returns
     /// The configured model adapter.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_cache(mut self, cache: ModelCache, policy: CachePolicy) -> Self {
         self.cache = Some((cache, policy));
         self
@@ -152,13 +152,13 @@ impl<P> ProviderModel<P> {
 
     /// Adds an isolated branch namespace to cache identity.
     ///
-    /// # Parameters
     /// - `self`: Model adapter being configured.
     /// - `namespace`: Stable branch identity.
     ///
-    /// # Returns
     /// The adapter with branch-scoped cache keys.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_cache_namespace(mut self, namespace: impl Into<String>) -> Self {
         self.cache_namespace = Some(namespace.into());
         self
@@ -166,13 +166,13 @@ impl<P> ProviderModel<P> {
 
     /// Adds bounded compiled branch context to every normalized request.
     ///
-    /// # Parameters
     /// - `self`: Model adapter being configured.
     /// - `context`: Exact context selected for this branch.
     ///
-    /// # Returns
     /// The adapter with provider-visible, cache-bound context.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_compiled_context(mut self, context: CompiledContext) -> Self {
         self.compiled_context = Some(context);
         self
@@ -182,29 +182,31 @@ impl<P> ProviderModel<P> {
 impl<P: ProviderAdapter> crate::ModelProvider for ProviderModel<P> {
     /// Converts runtime messages to a normalized request and response.
     ///
-    /// # Parameters
     /// - `messages`: Provider-neutral runtime conversation.
     ///
-    /// # Returns
     /// A final response or validated inspect-tool decision.
     ///
-    /// # Errors
     /// Returns provider failures or malformed tool arguments.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn decide(&mut self, messages: &[AgentMessage]) -> Result<ModelDecision, String> {
         self.decide_with_output(messages, &mut |_| {})
     }
 
     /// Converts runtime messages while forwarding provider text fragments.
     ///
-    /// # Parameters
     /// - `messages`: Provider-neutral runtime conversation.
     /// - `on_text`: Callback receiving streamed assistant text.
     ///
-    /// # Returns
     /// A final response or validated inspect-tool decision.
     ///
-    /// # Errors
     /// Returns provider failures or malformed tool arguments.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn decide_with_output(
         &mut self,
         messages: &[AgentMessage],
@@ -253,6 +255,10 @@ impl<P: ProviderAdapter> crate::ModelProvider for ProviderModel<P> {
                 &self.tools,
                 call,
                 descriptor.and_then(|value| value.invocation_label.clone()),
+                descriptor.map_or(
+                    scriberig_session::ToolActivityKind::OpaqueFallback,
+                    |value| value.category,
+                ),
             );
         }
         let entity = call
@@ -286,8 +292,9 @@ impl<P: ProviderAdapter> crate::ModelProvider for ProviderModel<P> {
 
     /// Returns captured safe requests and clears the pending queue.
     ///
-    /// # Returns
     /// Requests in the order submitted to the adapter.
+    /// # Returns
+    /// The operation result.
     fn take_request_projections(&mut self) -> Vec<scriberig_session::ModelRequestProjection> {
         std::mem::take(&mut self.request_projections)
     }
@@ -296,11 +303,11 @@ impl<P: ProviderAdapter> crate::ModelProvider for ProviderModel<P> {
 impl<P: ProviderAdapter> ProviderModel<P> {
     /// Builds the bounded normalized request for one runtime turn.
     ///
-    /// # Parameters
     /// - `messages`: Provider-neutral conversation messages.
     ///
-    /// # Returns
     /// The model request with optional compiled context and configured tools.
+    /// # Returns
+    /// The operation result.
     fn model_request(&self, messages: &[AgentMessage]) -> ModelRequest {
         let mut request_messages =
             self.compiled_context
@@ -328,40 +335,39 @@ impl<P: ProviderAdapter> ProviderModel<P> {
 
 /// Converts one non-inspection provider tool call into a runtime decision.
 ///
-/// # Parameters
 /// - `call`: Validated provider tool call.
 ///
-/// # Returns
 /// A delegated child request or named application tool request.
 ///
-/// # Errors
 /// Returns an error when a child call omits required fields.
 /// Reads a required string argument from a provider tool call.
 ///
-/// # Parameters
 /// - `call`: Provider tool call containing structured arguments.
 /// - `name`: Required argument name.
 ///
-/// # Returns
 /// The copied argument string.
 ///
-/// # Errors
 /// Returns an error when the argument is missing or not a string.
 /// Converts one runtime message into normalized provider context.
 ///
-/// # Parameters
 /// - `message`: Runtime message to convert.
 ///
-/// # Returns
 /// A normalized provider context message.
+/// # Returns
+/// The operation result.
 fn message(message: &AgentMessage) -> ModelMessage {
     match message {
         AgentMessage::User(content) => ModelMessage::user(content),
         AgentMessage::Tool(result) => ModelMessage {
             role: MessageRole::Tool,
             content: format!(
-                "entity={} revision={:?} snapshot={:?} summary={:?} handles={:?}",
-                result.entity, result.revision, result.snapshot, result.summary, result.handles
+                "entity={} revision={:?} snapshot={:?} object_type={:?} summary={:?} handles={:?}",
+                result.entity,
+                result.revision,
+                result.snapshot,
+                result.object_type,
+                result.summary,
+                result.handles
             ),
             tool_call_id: None,
         },
@@ -378,11 +384,11 @@ fn message(message: &AgentMessage) -> ModelMessage {
 
 /// Converts a classified provider failure into the runtime error boundary.
 ///
-/// # Parameters
 /// - `error`: Classified provider failure.
 ///
-/// # Returns
 /// Safe runtime error text.
+/// # Returns
+/// The operation result.
 fn provider_error(error: &ProviderError) -> String {
     error.to_string()
 }

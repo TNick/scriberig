@@ -5,11 +5,11 @@ use scriberig_agent_runtime::provider::{ProviderAdapter, ProviderConfig, Provide
 
 /// Runs a bounded live API request and renders a safe diagnostic report.
 ///
-/// # Parameters
 /// - `args`: Output format selected by the caller.
 ///
-/// # Returns
 /// Whether configuration, credential authorization, and the API check passed.
+/// # Returns
+/// The operation result.
 pub fn run(args: &scriberig_cli::DoctorArgs) -> bool {
     let result = crate::agent_config::resolve_provider_config();
     let (provider, credential_configured) = match result {
@@ -50,13 +50,13 @@ pub fn run(args: &scriberig_cli::DoctorArgs) -> bool {
 
 /// Checks one configured provider and reports the safe outcome.
 ///
-/// # Parameters
 /// - `format`: Human-readable or JSON output selection.
 /// - `config`: Effective provider configuration without secret contents.
 /// - `credential_configured`: Whether a secret reference was selected.
 ///
-/// # Returns
 /// Whether the configured API request succeeded.
+/// # Returns
+/// The operation result.
 fn run_provider_check(
     format: scriberig_cli::RunFormat,
     config: ProviderConfig,
@@ -109,15 +109,16 @@ fn run_provider_check(
 
 /// Sends a one-token completion without displaying the generated text.
 ///
-/// # Parameters
 /// - `provider`: Configured adapter using the normal credential policy.
 /// - `model`: Effective provider model identifier.
 ///
-/// # Returns
 /// Unit after the provider returns a valid normalized response.
 ///
-/// # Errors
 /// Returns a classified credential, transport, HTTP, or response error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn test_provider(
     provider: &dyn ProviderAdapter,
     model: &str,
@@ -127,12 +128,12 @@ fn test_provider(
 
 /// Classifies whether the selected reference was rejected or could not be used.
 ///
-/// # Parameters
 /// - `configured`: Whether configuration selected a credential reference.
 /// - `error`: Safe provider failure category.
 ///
-/// # Returns
 /// A secret-free credential status label.
+/// # Returns
+/// The operation result.
 fn credential_failure_status(configured: bool, error: &ProviderError) -> &'static str {
     if configured {
         match error {
@@ -147,7 +148,6 @@ fn credential_failure_status(configured: bool, error: &ProviderError) -> &'stati
 
 /// Creates a stable report object containing no credential material.
 ///
-/// # Parameters
 /// - `status`: Overall diagnostic outcome.
 /// - `provider`: Safe provider profile identifier.
 /// - `model`: Effective model identifier.
@@ -156,8 +156,9 @@ fn credential_failure_status(configured: bool, error: &ProviderError) -> &'stati
 /// - `api`: API connectivity status label.
 /// - `message`: Optional safe diagnostic detail.
 ///
-/// # Returns
 /// A machine-readable secret-free diagnostic report.
+/// # Returns
+/// The operation result.
 fn report(
     status: &str,
     provider: Option<&str>,
@@ -180,7 +181,6 @@ fn report(
 
 /// Prints the diagnostic report in the requested representation.
 ///
-/// # Parameters
 /// - `format`: Human-readable or JSON output selection.
 /// - `value`: Secret-free report object.
 fn print_report(format: scriberig_cli::RunFormat, value: &serde_json::Value) {

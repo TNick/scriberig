@@ -17,6 +17,8 @@ mod apply;
 mod apply_scope;
 #[path = "candidate_base.rs"]
 mod base;
+#[path = "candidate_merge.rs"]
+mod merge;
 #[path = "candidate_persistence.rs"]
 mod persistence;
 #[path = "candidate_validation.rs"]
@@ -132,17 +134,18 @@ pub struct CandidateApplyReport {
 impl ProjectService {
     /// Creates a source candidate without changing canonical state or disk.
     ///
-    /// # Parameters
     /// - `project`: Project receiving the candidate.
     /// - `entity`: Selected semantic entity.
     /// - `text`: Complete edited source projection.
     ///
-    /// # Returns
     /// An immutable candidate tied to the current project snapshot.
     ///
-    /// # Errors
     /// Returns a structured error when the project, entity, or source is
     /// unavailable, or when the edited Rust cannot be reconciled.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn propose_candidate(
         &self,
         project: ProjectId,
@@ -213,14 +216,15 @@ impl ProjectService {
 
     /// Loads a candidate from durable project storage.
     ///
-    /// # Parameters
     /// - `id`: Candidate identity.
     ///
-    /// # Returns
     /// The durable candidate when it exists.
     ///
-    /// # Errors
     /// Returns a storage or corruption error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn candidate(&self, id: &str) -> Result<Option<ProjectCandidate>, ProjectError> {
         let record = self
             .store
@@ -237,14 +241,15 @@ impl ProjectService {
 
     /// Converts durable candidate storage data into a public candidate.
     ///
-    /// # Parameters
     /// - `record`: Durable candidate data.
     ///
-    /// # Returns
     /// The reconstructed candidate.
     ///
-    /// # Errors
     /// Returns a corruption error for invalid stored state.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn candidate_from_record(
         record: ProjectCandidateRecord,
     ) -> Result<ProjectCandidate, ProjectError> {

@@ -24,28 +24,15 @@ use tui_pty_support::{TuiPty, test_lock};
 fn tui_cancels_php_validation_without_project_or_live_source_mutation() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_self_hosting();
-    assert!(
-        tui.read_until("project: unselected"),
-        "{}",
-        tui.diagnostic()
-    );
+    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
     let checkout = tui.fixture_path().join("scriberig");
     let manifest = fs::read(checkout.join("Cargo.toml")).expect("baseline manifest");
     let scanner =
         fs::read(checkout.join("crates/scriberig-project/src/scan.rs")).expect("baseline scanner");
 
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"start-agent\r");
-    assert!(
-        tui.read_until("Agent composer · ent_"),
-        "{}",
-        tui.diagnostic()
-    );
-    let session = visible_session(&tui.screen());
     tui.send(b"Onboard the current project.\r");
-    wait_for_onboarding(&tui, session);
-    assert!(tui.read_until("project: scriberig"), "{}", tui.diagnostic());
+    let session = visible_session(&tui);
+    wait_for_onboarding(&mut tui, session);
 
     let database = tui.fixture_path().join("scriberig.sqlite");
     let project = SqliteStore::open(&database)
@@ -63,15 +50,6 @@ fn tui_cancels_php_validation_without_project_or_live_source_mutation() {
     .expect("active project workspace")
     .snapshot;
     let preexisting = validation_workspaces();
-    tui.send(b"\x1b");
-    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
-    tui.send(b"\x1b[B");
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"continue-agent\r");
-    assert!(tui.read_until("Write a message..."), "{}", tui.diagnostic());
-    tui.send(b"i");
-    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     tui.send(b"Add support for ingesting PHP source files.\r");
 
     let validation_root = wait_for_candidate_validation(&preexisting);
@@ -123,8 +101,9 @@ fn tui_cancels_php_validation_without_project_or_live_source_mutation() {
 
 /// Captures candidate validation workspaces already present before the scenario.
 ///
-/// # Returns
 /// Exact temporary workspace paths to exclude from this run's observation.
+/// # Returns
+/// The operation result.
 fn validation_workspaces() -> HashSet<PathBuf> {
     fs::read_dir(std::env::temp_dir())
         .expect("read temporary directory")
@@ -140,11 +119,11 @@ fn validation_workspaces() -> HashSet<PathBuf> {
 
 /// Waits until the candidate's isolated PHP sources have reached Cargo validation.
 ///
-/// # Parameters
 /// - `preexisting`: Workspaces excluded from the active scenario.
 ///
-/// # Returns
 /// The newly materialized candidate validation workspace.
+/// # Returns
+/// The operation result.
 fn wait_for_candidate_validation(preexisting: &HashSet<PathBuf>) -> PathBuf {
     let deadline = Instant::now() + Duration::from_secs(600);
     loop {
@@ -159,7 +138,7 @@ fn wait_for_candidate_validation(preexisting: &HashSet<PathBuf>) -> PathBuf {
                     .and_then(|name| name.to_str())
                     .and_then(|name| name.strip_prefix("scriberig-project-validation-"));
                 if identifier.is_some_and(|id| {
-                    std::env::temp_dir()
+                    candidate_target_root()
                         .join(format!("scriberig-candidate-target-{id}"))
                         .exists()
                 }) {
@@ -175,13 +154,35 @@ fn wait_for_candidate_validation(preexisting: &HashSet<PathBuf>) -> PathBuf {
     }
 }
 
-/// Checks whether a temporary directory contains the expected PHP candidate.
+/// Resolves the configured root for isolated candidate Cargo artifacts.
 ///
-/// # Parameters
-/// - `root`: Candidate workspace path to inspect.
+/// The application places candidate targets beside the product target when
+/// `CARGO_TARGET_DIR` is configured, and otherwise uses the system temp dir.
 ///
 /// # Returns
+/// The candidate artifact root.
+fn candidate_target_root() -> PathBuf {
+    tui_pty_support::workspace_target_directory()
+}
+
+/// Matches the validation observer's artifact root to the spawned TUI target.
+#[test]
+fn candidate_target_observer_uses_the_spawned_tui_target_directory() {
+    assert_eq!(
+        candidate_target_root(),
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .join("target")
+    );
+}
+
+/// Checks whether a temporary directory contains the expected PHP candidate.
+///
+/// - `root`: Candidate workspace path to inspect.
+///
 /// `true` when the candidate workspace contains Cargo and PHP domain manifests.
+/// # Returns
+/// The operation result.
 fn is_candidate_validation_workspace(root: &Path) -> bool {
     root.join("Cargo.toml").is_file()
         && root
@@ -191,16 +192,10 @@ fn is_candidate_validation_workspace(root: &Path) -> bool {
 
 /// Cancels the active agent from the native TUI operations view.
 ///
-/// # Parameters
 /// - `tui`: Active product process.
 fn cancel_active_agent(tui: &mut TuiPty) {
-    tui.send(b"\x1b");
-    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"operations");
-    assert!(tui.read_until("> View operations"), "{}", tui.diagnostic());
-    tui.send(b"\r");
+    tui.send(b"/operations\r");
+    assert!(tui.read_until("Operations"), "{}", tui.diagnostic());
     assert!(
         tui.read_until_for("Running", Duration::from_secs(10)),
         "{}",
@@ -216,12 +211,12 @@ fn cancel_active_agent(tui: &mut TuiPty) {
 
 /// Waits until the session store persists a terminal cancellation result.
 ///
-/// # Parameters
 /// - `database`: Durable product database.
 /// - `session`: Agent session identity.
 ///
-/// # Returns
 /// The durable session after the cancelled operation completes.
+/// # Returns
+/// The operation result.
 fn wait_for_cancellation(database: &Path, session: EntityId) -> scriberig_session::Session {
     let store = SqliteSessionStore::open(database).expect("session store");
     let deadline = Instant::now() + Duration::from_secs(30);
@@ -248,17 +243,11 @@ fn wait_for_cancellation(database: &Path, session: EntityId) -> scriberig_sessio
 
 /// Parses the durable session identity displayed in the TUI composer.
 ///
-/// # Parameters
-/// - `screen`: Current terminal screen content.
+/// - `tui`: Active native TUI process.
 ///
-/// # Returns
 /// Stable session entity identity.
-fn visible_session(screen: &str) -> EntityId {
-    screen
-        .split("Agent composer · ")
-        .nth(1)
-        .and_then(|text| text.split_whitespace().next())
-        .expect("session displayed")
-        .parse()
-        .expect("session identity")
+/// # Returns
+/// The operation result.
+fn visible_session(tui: &TuiPty) -> EntityId {
+    tui.stored_session_id()
 }

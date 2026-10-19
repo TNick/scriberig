@@ -2,8 +2,8 @@
 
 use std::sync::{Arc, Mutex};
 
-use super::super::{ApplicationAdapter, RemoteAdapter};
 use crate::service::TuiService;
+use crate::service::{ApplicationAdapter, RemoteAdapter};
 use scriberig_app::{
     AgentCommandRequest, ApplicationContext, ApplicationError, InspectRequest, InspectResult,
     QueryService, SessionBackend, SessionRequest,
@@ -30,15 +30,16 @@ struct LocalSessionFixture {
 impl QueryService for LocalSessionFixture {
     /// Returns the deterministic inspection represented by both adapters.
     ///
-    /// # Parameters
     /// - `_context`: Application request context.
     /// - `request`: Inspection request to resolve.
     ///
-    /// # Returns
     /// The inspection preserves the requested semantic handles.
     ///
-    /// # Errors
     /// This fixture does not return an application error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         _context: &ApplicationContext,
@@ -63,17 +64,72 @@ impl QueryService for LocalSessionFixture {
 }
 
 impl SessionBackend for LocalSessionFixture {
+    /// Returns the fixture's application allocated new-session handles.
+    ///
+    /// - `self`: Local session fixture.
+    /// - `_context`: Application request context.
+    /// - `_request`: First user instruction.
+    ///
+    /// Stable operation, session, and root-branch handles.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn start_new_session_agent(
+        &self,
+        _context: &ApplicationContext,
+        _request: scriberig_app::NewSessionAgentRequest,
+    ) -> Result<scriberig_app::NewSessionAgentStart, ApplicationError> {
+        Ok(scriberig_app::NewSessionAgentStart {
+            operation: scriberig_core::OperationId::new("local_new_session").expect("operation"),
+            session: self.session.id,
+            root_branch: self.session.branches[0].id,
+        })
+    }
+
+    /// Returns a fixture continuation branch for exact-anchor adapter checks.
+    ///
+    /// - `self`: Local session fixture.
+    /// - `_context`: Application request context.
+    /// - `request`: Exact continuation request.
+    ///
+    /// Stable operation, session, and branch handles.
+    ///
+    /// Returns invalid-request for an anchor outside the fixture session.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn continue_agent_at(
+        &self,
+        _context: &ApplicationContext,
+        request: scriberig_app::AgentContinueAtRequest,
+    ) -> Result<scriberig_app::AgentContinuationAccepted, ApplicationError> {
+        if self.session.resolve_anchor(request.anchor).is_err() {
+            return Err(ApplicationError::InvalidRequest {
+                operation: "continue_at".to_owned(),
+                message: "unknown fixture anchor".to_owned(),
+            });
+        }
+        Ok(scriberig_app::AgentContinuationAccepted {
+            operation: scriberig_core::OperationId::new("local_continue_at").expect("operation"),
+            session: request.session,
+            branch: EntityId::from_bytes([33; 16]),
+        })
+    }
+
     /// Returns the deterministic session snapshot.
     ///
-    /// # Parameters
     /// - `_context`: Application request context.
     /// - `request`: Session identity requested by the adapter.
     ///
-    /// # Returns
     /// The fixture session when the identity matches.
     ///
-    /// # Errors
     /// Returns not-found for another session identity.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read_session(
         &self,
         _context: &ApplicationContext,
@@ -90,15 +146,16 @@ impl SessionBackend for LocalSessionFixture {
 
     /// Returns one deterministic operation for adapter handle tests.
     ///
-    /// # Parameters
     /// - `_context`: Application request context.
     /// - `_request`: Accepted agent request.
     ///
-    /// # Returns
     /// A stable fixture operation identity.
     ///
-    /// # Errors
     /// This fixture never rejects submission.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn submit_agent_command(
         &self,
         _context: &ApplicationContext,
@@ -118,12 +175,12 @@ struct FixtureTransport {
 impl ProtocolTransport for FixtureTransport {
     /// Returns the deterministic response envelope.
     ///
-    /// # Parameters
     /// - `self`: Fixture transport.
     /// - `_request`: Protocol request received by the fixture.
     ///
-    /// # Returns
     /// The configured protocol response.
+    /// # Returns
+    /// The operation result.
     fn send(&self, _request: RequestEnvelope) -> ResponseEnvelope {
         self.response.clone()
     }
@@ -131,8 +188,9 @@ impl ProtocolTransport for FixtureTransport {
 
 /// Builds the semantic session represented by the protocol fixture.
 ///
-/// # Returns
 /// A deterministic session with one active branch and one completed turn.
+/// # Returns
+/// The operation result.
 fn session_fixture() -> Session {
     let session = EntityId::from_bytes([5; 16]);
     let branch = EntityId::from_bytes([6; 16]);
@@ -155,6 +213,7 @@ fn session_fixture() -> Session {
         branches: vec![root],
         goals: Vec::new(),
         tasks: Vec::new(),
+        plans: Vec::new(),
         execution: scriberig_session::SessionExecutionSelection::default(),
     }
 }
@@ -205,181 +264,36 @@ fn local_and_remote_inspection_share_semantics() {
     assert_eq!(local.label, remote.label);
 }
 
-/// Verifies local and remote adapters reconstruct the same session semantics.
+/// Keeps TUI start and exact continuation adapters on shared handles.
 #[test]
-fn local_and_remote_session_adapters_share_semantics() {
-    let expected = session_fixture();
-    let local = ApplicationAdapter::new(
-        LocalSessionFixture {
-            session: expected.clone(),
-        },
-        Vec::new(),
-    )
-    .read_session(&ApplicationContext::empty(), expected.id)
-    .expect("local session");
-    let transport = FixtureTransport {
-        response: ResponseEnvelope {
-            version: ProtocolVersion::default(),
-            correlation_id: "session-equivalence".to_owned(),
-            response: Response::Session(SessionReadResponse {
-                session: SessionReference {
-                    id: expected.id.to_string(),
-                },
-                branches: vec![SessionBranch {
-                    id: expected.branches[0].id.to_string(),
-                    parent: None,
-                    children: Vec::new(),
-                    title: "main".to_owned(),
-                    status: SessionBranchStatus::Active,
-                    turns: vec![SessionTurn {
-                        id: expected.branches[0].turns[0].id.to_string(),
-                        ordinal: expected.branches[0].turns[0].ordinal,
-                        has_human_input: true,
-                        has_agent_output: true,
-                        agent_output: Some("fixture output".to_owned()),
-                        tool_invocation: None,
-                        tool_result: None,
-                    }],
-                    activity: Vec::new(),
-                    result: None,
-                }],
-                execution: scriberig_protocol::SessionExecutionSelection::default(),
-            }),
-        },
+fn local_tui_adapter_uses_shared_start_and_exact_continuation() {
+    let session = session_fixture();
+    let session_id = session.id;
+    let branch = session.branches[0].id;
+    let anchor = scriberig_session::ContinuationAnchor::AssistantOutput {
+        branch,
+        turn: session.branches[0].turns[0].id,
     };
-    let remote = RemoteAdapter::new(Client::new(transport))
-        .read_session(&ApplicationContext::empty(), expected.id)
-        .expect("remote session");
+    let adapter = ApplicationAdapter::new(LocalSessionFixture { session }, Vec::new());
 
-    assert_eq!(local.id, remote.id);
-    assert_eq!(local.branches.len(), remote.branches.len());
-    assert_eq!(local.branches[0].id, remote.branches[0].id);
-    assert_eq!(
-        local.branches[0].turns[0].ordinal,
-        remote.branches[0].turns[0].ordinal
-    );
-    assert_eq!(
-        local.branches[0].turns[0].agent,
-        remote.branches[0].turns[0].agent
-    );
-    assert_eq!(
-        local.branches[0].turns[0].human.is_some(),
-        remote.branches[0].turns[0].human.is_some()
-    );
+    let started = adapter
+        .start_new_session_handle(&ApplicationContext::empty(), "first", None)
+        .expect("shared start");
+    let continued = adapter
+        .continue_agent_at_handle(
+            &ApplicationContext::empty(),
+            session_id,
+            anchor,
+            "follow-up",
+        )
+        .expect("shared exact continuation");
+
+    assert_eq!(started.session, session_id);
+    assert_eq!(started.branch, Some(branch));
+    assert_eq!(started.operation.to_string(), "op_local_new_session");
+    assert_eq!(continued.session, session_id);
+    assert_eq!(continued.operation.to_string(), "op_local_continue_at");
 }
 
-/// Verifies remote nested branch references become the shared session graph.
-#[test]
-fn remote_nested_branch_tree_preserves_parent_and_child_handles() {
-    let session = EntityId::from_bytes([20; 16]);
-    let root = EntityId::from_bytes([21; 16]);
-    let child = EntityId::from_bytes([22; 16]);
-    let transport = FixtureTransport {
-        response: ResponseEnvelope {
-            version: ProtocolVersion::default(),
-            correlation_id: "nested-session".to_owned(),
-            response: Response::Session(SessionReadResponse {
-                session: SessionReference {
-                    id: session.to_string(),
-                },
-                branches: vec![
-                    SessionBranch {
-                        id: root.to_string(),
-                        parent: None,
-                        children: vec![child.to_string()],
-                        title: "root".to_owned(),
-                        status: SessionBranchStatus::Active,
-                        turns: Vec::new(),
-                        activity: Vec::new(),
-                        result: None,
-                    },
-                    SessionBranch {
-                        id: child.to_string(),
-                        parent: Some(root.to_string()),
-                        children: Vec::new(),
-                        title: "focused".to_owned(),
-                        status: SessionBranchStatus::Completed,
-                        turns: Vec::new(),
-                        activity: Vec::new(),
-                        result: None,
-                    },
-                ],
-                execution: scriberig_protocol::SessionExecutionSelection::default(),
-            }),
-        },
-    };
-    let session = RemoteAdapter::new(Client::new(transport))
-        .read_session(&ApplicationContext::empty(), session)
-        .expect("nested session");
-
-    assert_eq!(session.branches.len(), 2);
-    assert_eq!(session.branches[0].children, vec![child]);
-    assert_eq!(session.branches[1].parent, Some(root));
-    assert_eq!(
-        session.branches[1].status,
-        scriberig_session::BranchStatus::Completed
-    );
-}
-
-/// Records subscription cursors while returning one durable operation event.
-#[derive(Clone)]
-struct CursorTransport {
-    /// Requests received by the transport.
-    requests: Arc<Mutex<Vec<RequestEnvelope>>>,
-}
-
-impl ProtocolTransport for CursorTransport {
-    /// Records the request and returns one stable completion event.
-    ///
-    /// # Parameters
-    /// - `self`: Cursor-aware fixture transport.
-    /// - `request`: Protocol subscription request.
-    ///
-    /// # Returns
-    /// One operation-completed event at sequence five.
-    fn send(&self, request: RequestEnvelope) -> ResponseEnvelope {
-        self.requests.lock().expect("request log").push(request);
-        ResponseEnvelope {
-            version: ProtocolVersion::default(),
-            correlation_id: "cursor".to_owned(),
-            response: Response::Events(vec![Event {
-                sequence: 5,
-                kind: EventKind::OperationCompleted,
-                entity: None,
-                revision: None,
-                snapshot: None,
-                operation: Some(OperationReference {
-                    id: "op-1".to_owned(),
-                }),
-                activity_kind: None,
-                activity_state: None,
-                metadata: Vec::new(),
-            }]),
-        }
-    }
-}
-
-/// Verifies remote reconnect polling resumes from the last durable cursor.
-#[test]
-fn remote_event_polling_resumes_from_last_cursor() {
-    let requests = Arc::new(Mutex::new(Vec::new()));
-    let adapter = RemoteAdapter::new(Client::new(CursorTransport {
-        requests: Arc::clone(&requests),
-    }));
-    adapter
-        .application_events(&ApplicationContext::empty())
-        .expect("first event poll");
-    adapter
-        .application_events(&ApplicationContext::empty())
-        .expect("resumed event poll");
-
-    let requests = requests.lock().expect("request log");
-    let after = requests
-        .iter()
-        .map(|request| match &request.request {
-            Request::Subscribe(value) => value.after,
-            other => panic!("unexpected request: {other:?}"),
-        })
-        .collect::<Vec<_>>();
-    assert_eq!(after, vec![None, Some(5)]);
-}
+#[path = "service_adapter_conformance_tests_part1.rs"]
+mod part1;

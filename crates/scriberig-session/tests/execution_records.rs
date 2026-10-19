@@ -62,6 +62,7 @@ fn nested_branch_views_are_compact_and_ordered() {
         status: BranchStatus::Completed,
         summary: Some("finished".to_owned()),
         result_kind: Some("agent".to_owned()),
+        candidate_context: None,
         references: vec![result_id],
         result_handles: Vec::new(),
         touched: Vec::new(),
@@ -74,6 +75,7 @@ fn nested_branch_views_are_compact_and_ordered() {
         branches: vec![parent, child],
         goals: Vec::new(),
         tasks: Vec::new(),
+        plans: Vec::new(),
         execution: SessionExecutionSelection::default(),
     };
     let summaries = SessionViews::child_summaries(&session, parent_id);

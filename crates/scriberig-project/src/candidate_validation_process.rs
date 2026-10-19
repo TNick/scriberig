@@ -14,19 +14,34 @@ pub(super) enum ProcessFailure {
     Failed(String),
 }
 
+/// Retains the diagnostic tail within a character limit.
+///
+/// - `value`: Complete process output.
+/// - `maximum`: Maximum number of Unicode scalar values to retain.
+///
+/// The most recent bounded portion of the output.
+/// # Returns
+/// The output suffix bounded by `maximum` Unicode scalar values.
+pub(super) fn bounded_tail(value: &str, maximum: usize) -> String {
+    let mut tail = value.chars().rev().take(maximum).collect::<Vec<_>>();
+    tail.reverse();
+    tail.into_iter().collect()
+}
+
 /// Runs a validation command with a deadline and bounded captured output.
 ///
-/// # Parameters
 /// - `command`: Configured validation process.
 /// - `timeout`: Maximum process duration.
 /// - `cancelled`: Shared cancellation flag for the owning operation.
 /// - `super`: Parent candidate validation module.
 ///
-/// # Returns
 /// Process output with each stream limited to 64 KiB.
 ///
-/// # Errors
 /// Returns a structured message for startup, timeout, or output-reader failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn run_bounded(
     mut command: Command,
     timeout: Duration,
@@ -64,16 +79,17 @@ pub(super) fn run_bounded(
 
 /// Waits for a child process and terminates it when its deadline expires.
 ///
-/// # Parameters
 /// - `child`: Running validation process.
 /// - `timeout`: Maximum process duration.
 /// - `cancelled`: Shared cancellation flag for the owning operation.
 ///
-/// # Returns
 /// The completed process status.
 ///
-/// # Errors
 /// Returns a timeout or process polling failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn wait_bounded(
     child: &mut Child,
     timeout: Duration,
@@ -106,14 +122,15 @@ fn wait_bounded(
 
 /// Drains a process stream while retaining only a bounded prefix.
 ///
-/// # Parameters
 /// - `reader`: Child process output stream.
 ///
-/// # Returns
 /// At most 64 KiB of output.
 ///
-/// # Errors
 /// Returns a stream read failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn read_bounded(mut reader: impl Read) -> Result<Vec<u8>, String> {
     let mut retained = Vec::new();
     let mut buffer = [0_u8; 8192];
@@ -126,5 +143,17 @@ fn read_bounded(mut reader: impl Read) -> Result<Vec<u8>, String> {
         }
         let remaining = 65_536_usize.saturating_sub(retained.len());
         retained.extend_from_slice(&buffer[..count.min(remaining)]);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::bounded_tail;
+
+    /// Verifies bounded validation diagnostics retain their final error details.
+    #[test]
+    fn bounded_validation_diagnostics_retain_the_tail() {
+        assert_eq!(bounded_tail("0123456789", 4), "6789");
+        assert_eq!(bounded_tail("ééabc", 3), "abc");
     }
 }

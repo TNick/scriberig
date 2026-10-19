@@ -20,13 +20,16 @@ scriberig-agent-runtime = { path = "../../crates/scriberig-agent-runtime" }
 scriberig-app = { path = "../../crates/scriberig-app" }
 scriberig-cli = { path = "../../crates/scriberig-cli" }
 scriberig-project = { path = "../../crates/scriberig-project" }
+scriberig-protocol = { path = "../../crates/scriberig-protocol" }
 scriberig-server = { path = "../../crates/scriberig-server" }
 scriberig-store-sqlite = { path = "../../crates/scriberig-store-sqlite" }
 scriberig-store = { path = "../../crates/scriberig-store" }
 scriberig-session-sqlite = { path = "../../crates/scriberig-session-sqlite" }
+scriberig-session = { path = "../../crates/scriberig-session" }
 scriberig-tui = { path = "../../crates/scriberig-tui" }
 scriberig-client = { path = "../../crates/scriberig-client" }
 scriberig-core = { path = "../../crates/scriberig-core" }
+scriberig-query = { path = "../../crates/scriberig-query" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ctrlc = "3.4"
@@ -35,7 +38,6 @@ ctrlc = "3.4"
 tempfile = "3"
 portable-pty = "0.9"
 vt100 = "0.15.2"
-scriberig-session = { path = "../../crates/scriberig-session" }
 
 [lints]
 workspace = true

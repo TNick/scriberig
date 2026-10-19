@@ -1,6 +1,8 @@
 //! Stores presentation-only state for the initial terminal shell.
+#[path = "state_behavior.rs"]
+mod behavior;
 
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 
 use crate::{
     action::Action,
@@ -53,11 +55,15 @@ pub enum ToolOutputVisibility {
 /// Controls whether tool calls use compact or structured presentation.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum ToolInvocationVisibility {
-    /// Show the compact command-like tool label.
+    /// Omit invocation arguments while retaining the activity label.
+    Hidden,
+    /// Show trusted labels and bounded arguments on one compact line.
     #[default]
-    Simple,
-    /// Show bounded schema-redacted arguments below the tool label.
-    Detailed,
+    CompactTruncated,
+    /// Show the complete safe bounded argument projection.
+    Full,
+    /// Show one schema-redacted argument per line.
+    StructuredParameters,
 }
 
 /// Controls client-local visibility of captured model requests.
@@ -96,6 +102,8 @@ pub enum ReasoningVisibility {
 /// One bounded live activity retained for presentation-only rerendering.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TransientAgentActivity {
+    /// Stable operation/category key used to update or clear this observation.
+    pub key: u64,
     /// Runtime branch associated with the activity.
     pub branch: String,
     /// Provider-neutral activity category.
@@ -121,12 +129,50 @@ pub struct SessionComposerState {
     pub error: Option<String>,
 }
 
+/// Stable conversation submission target independent of visible row position.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ConversationTarget {
+    /// The first message creates a session through the shared application API.
+    NewSession,
+    /// A message continues from an exact durable reply anchor.
+    Existing {
+        /// Existing session receiving the continuation.
+        session: scriberig_core::EntityId,
+        /// Exact validated location receiving the next user message.
+        reply_anchor: scriberig_session::ContinuationAnchor,
+    },
+}
+
+/// Persistent composer state owned by the conversation home.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConversationComposerState {
+    /// Stable semantic target, separate from navigation and coordinator cursors.
+    pub target: ConversationTarget,
+    /// Multiline user-authored draft.
+    pub draft: String,
+    /// Whether an accepted submission is awaiting session refresh.
+    pub pending: bool,
+    /// Safe submission failure shown beside the composer.
+    pub error: Option<String>,
+}
+
+/// Retains one stable selected node while its model assignment picker is open.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PlanAssignmentTarget {
+    /// Durable plan identity.
+    pub plan: scriberig_core::EntityId,
+    /// Durable plan-node identity.
+    pub node: scriberig_core::EntityId,
+    /// Plan revision observed before opening the picker.
+    pub expected_revision: u64,
+}
+
 impl Focus {
     /// Moves focus through the shell's stable pane order.
     /// - `reverse`: Argument named `reverse`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     fn next(self, reverse: bool) -> Self {
         let panes = [Self::Explorer, Self::Primary, Self::Inspector];
         let index = panes.iter().position(|pane| *pane == self).unwrap_or(1);
@@ -135,6 +181,7 @@ impl Focus {
 }
 
 /// Runtime and presentation state for the initial TUI shell.
+#[allow(clippy::struct_excessive_bools)] // Independent UI toggles are persisted presentation preferences.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TuiState {
     /// Whether the event loop should terminate.
@@ -159,6 +206,8 @@ pub struct TuiState {
     pub cursor: usize,
     /// Stable semantic selection independent of the visible cursor.
     pub selection: Option<EntitySelection>,
+    /// Exact project scope available to the first agent conversation.
+    pub agent_selection: Option<scriberig_app::AgentSelection>,
     /// Semantic explorer model.
     pub explorer: ExplorerModel,
     /// Current inspector request state.
@@ -189,10 +238,28 @@ pub struct TuiState {
     pub operations: Vec<crate::view::operations::OperationModel>,
     /// Session tree request/result state.
     pub session: LoadState<crate::view::session::SessionModel>,
+    /// Conversation projection rebuilt from the latest durable session snapshot.
+    pub conversation: Option<crate::view::conversation::ConversationModel>,
+    /// Latest shared session snapshot used to rebuild local projections.
+    pub session_snapshot: Option<scriberig_session::Session>,
+    /// Conversation composer targeting an exact semantic location.
+    pub conversation_composer: ConversationComposerState,
+    /// Stable conversation cursor independent of rendered row index.
+    pub conversation_cursor: Option<crate::view::conversation::ConversationSource>,
+    /// Whether the user is browsing rows instead of editing the draft.
+    pub conversation_browsing: bool,
+    /// Durable node currently followed by the coordinator cursor.
+    pub coordinator_cursor: Option<(scriberig_core::EntityId, scriberig_core::EntityId)>,
+    /// Whether the conversation should follow the plan coordinator.
+    pub follow_coordinator: bool,
+    /// Client-local branch expansion identities.
+    pub expanded_branches: BTreeSet<scriberig_core::EntityId>,
     /// Credential-safe model library available to the interactive picker.
     pub model_library: LoadState<scriberig_protocol::ModelLibraryResponse>,
     /// Whether a pending model-library read was opened from thinking controls.
     pub thinking_picker_pending: Option<()>,
+    /// Selected plan node awaiting an assignment choice.
+    pub plan_assignment_target: Option<PlanAssignmentTarget>,
     /// Branch to reveal after the matching agent submission finishes.
     pub session_branch_focus: Option<scriberig_core::EntityId>,
     /// Operation identities with an authoritative refresh already requested.
@@ -229,138 +296,7 @@ pub struct TuiState {
     >,
 }
 
-impl Default for TuiState {
-    /// Creates an empty, deterministic shell state.
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    fn default() -> Self {
-        Self {
-            should_quit: false,
-            terminal_size: (80, 24),
-            focus: Focus::Primary,
-            shell_message: "No semantic service is attached in this runtime.".to_owned(),
-            project: None,
-            connection: ConnectionState::Connecting,
-            stale: false,
-            navigation: NavigationState::default(),
-            overlay: None,
-            cursor: 0,
-            selection: None,
-            explorer: ExplorerModel::default(),
-            inspector: LoadState::NotRequested,
-            capabilities: Vec::new(),
-            next_request_id: 1,
-            primary_view: crate::selection::PrimaryView::Overview,
-            history: LoadState::NotRequested,
-            find: LoadState::NotRequested,
-            diff: LoadState::NotRequested,
-            projection: LoadState::NotRequested,
-            review: LoadState::NotRequested,
-            operation_error: None,
-            review_proposal: None,
-            transient_agent_activities: Vec::new(),
-            operations: Vec::new(),
-            session: LoadState::NotRequested,
-            model_library: LoadState::NotRequested,
-            thinking_picker_pending: None,
-            session_branch_focus: None,
-            pending_operation_refresh: Vec::new(),
-            agent_output_observations: Vec::new(),
-            agent_handles: Vec::new(),
-            session_composer: None,
-            session_composer_focused: false,
-            tool_output_visibility: ToolOutputVisibility::default(),
-            tool_invocation_visibility: ToolInvocationVisibility::default(),
-            prompt_visibility: PromptVisibility::default(),
-            reasoning_visibility: ReasoningVisibility::default(),
-            presentation_preferences_revision: None,
-            presentation_overrides: HashSet::new(),
-            model_request_details: std::collections::BTreeMap::new(),
-            tool_result_details: std::collections::BTreeMap::new(),
-        }
-    }
-}
-
-impl TuiState {
-    /// Reports whether this TUI session overrides one shared preference.
-    ///
-    /// # Parameters
-    /// - `control`: Presentation control to inspect.
-    ///
-    /// # Returns
-    /// Whether the control has a local override.
-    pub(crate) fn has_presentation_override(&self, control: PresentationControl) -> bool {
-        self.presentation_overrides.contains(&control)
-    }
-
-    /// Records a local override for one presentation control.
-    ///
-    /// # Parameters
-    /// - `control`: Presentation control that was changed locally.
-    pub(crate) fn set_presentation_override(&mut self, control: PresentationControl) {
-        self.presentation_overrides.insert(control);
-    }
-
-    /// Applies one local terminal event to presentation state.
-    /// - `event`: Argument named `event`.
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    pub fn apply_event(&mut self, event: &TuiEvent) -> Vec<Effect> {
-        match event {
-            TuiEvent::Key(key) => {
-                if let Some(action) = crate::keymap::action_for(self, key) {
-                    return reduce(self, action);
-                }
-            }
-            TuiEvent::Resize { width, height } => {
-                return reduce(
-                    self,
-                    Action::TerminalResized {
-                        width: *width,
-                        height: *height,
-                    },
-                );
-            }
-            TuiEvent::Shutdown => return reduce(self, Action::QuitRequested),
-            TuiEvent::Paste(text) => {
-                return reduce(self, Action::Paste(text.clone()));
-            }
-            TuiEvent::Application(event) => return reduce_application_event(self, event),
-            TuiEvent::Tick => {}
-        }
-        Vec::new()
-    }
-
-    /// Reports whether a text input currently owns keyboard focus.
-    #[must_use]
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    pub fn is_input_active(&self) -> bool {
-        matches!(self.overlay, Some(Overlay::Input(_) | Overlay::Composer(_)))
-            || (self.session_composer.is_some() && self.session_composer_focused)
-    }
-
-    /// Returns the current input text, when an input overlay is active.
-    #[must_use]
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    pub fn input_text(&self) -> Option<&str> {
-        match self.overlay.as_ref() {
-            Some(Overlay::Input(input)) => Some(&input.text),
-            Some(Overlay::Composer(composer)) => Some(&composer.text),
-            None => self
-                .session_composer
-                .as_ref()
-                .map(|composer| composer.text.as_str()),
-            _ => None,
-        }
-    }
-}
-
+pub(crate) use behavior::conversation_projection;
 #[path = "state_actions.rs"]
 mod state_actions;
 #[path = "state_cursor_reducer.rs"]

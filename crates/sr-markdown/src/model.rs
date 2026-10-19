@@ -10,12 +10,12 @@ pub struct MarkdownDocument {
 impl MarkdownDocument {
     /// Creates a document from ordered blocks.
     ///
-    /// # Parameters
     /// - `blocks`: Top-level blocks in source order.
     ///
-    /// # Returns
     /// A semantic Markdown document.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(blocks: Vec<MarkdownBlock>) -> Self {
         Self { blocks }
     }
@@ -95,24 +95,24 @@ pub struct ListItem {
 impl ListItem {
     /// Creates a list item from its blocks.
     ///
-    /// # Parameters
     /// - `blocks`: Item blocks in source order.
     ///
-    /// # Returns
     /// A list item.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(blocks: Vec<MarkdownBlock>) -> Self {
         Self { blocks }
     }
 
     /// Creates a simple text list item.
     ///
-    /// # Parameters
     /// - `text`: Text for the first paragraph.
     ///
-    /// # Returns
     /// A list item containing one paragraph.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn text(text: impl Into<String>) -> Self {
         Self::new(vec![MarkdownBlock::Paragraph(text.into())])
     }

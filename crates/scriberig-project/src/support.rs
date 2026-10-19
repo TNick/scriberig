@@ -24,18 +24,19 @@ use adapters::{
 pub(crate) use support_identity::{project_root, source_entity};
 /// Imports one file and appends its revisions and snapshot changes.
 ///
-/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: Persisted scan file to import.
 /// - `revisions`: Destination immutable revisions.
 /// - `changes`: Destination snapshot changes.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// Entity ownership records created for the file.
 ///
-/// # Errors
 /// Returns validation or canonical revision errors.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn import_file(
     project: ProjectId,
     file: &ProjectFileRecord,
@@ -77,7 +78,6 @@ pub(crate) fn import_file(
 
 /// Extracts semantic Markdown block entities.
 ///
-/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: Markdown source file.
 /// - `source`: Source artifact entity.
@@ -85,11 +85,13 @@ pub(crate) fn import_file(
 /// - `changes`: Destination snapshot changes.
 /// - `ownership`: Destination entity ownership records.
 ///
-/// # Returns
 /// Unit after Markdown children are added.
 ///
-/// # Errors
 /// Returns invalid source encoding or revision errors.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn import_markdown(
     project: ProjectId,
     file: &ProjectFileRecord,
@@ -121,7 +123,6 @@ fn import_markdown(
 }
 /// Extracts semantic Rust item entities.
 ///
-/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: Rust source file.
 /// - `source`: Source artifact entity.
@@ -129,11 +130,13 @@ fn import_markdown(
 /// - `changes`: Destination snapshot changes.
 /// - `ownership`: Destination entity ownership records.
 ///
-/// # Returns
 /// Unit after Rust children are added.
 ///
-/// # Errors
 /// Returns invalid source encoding, parse, or revision errors.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn import_rust(
     project: ProjectId,
     file: &ProjectFileRecord,
@@ -180,7 +183,6 @@ fn import_rust(
 }
 /// Extracts semantic PDF page entities.
 ///
-/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: PDF source file.
 /// - `source`: Source artifact entity.
@@ -188,11 +190,13 @@ fn import_rust(
 /// - `changes`: Destination snapshot changes.
 /// - `ownership`: Destination entity ownership records.
 ///
-/// # Returns
 /// Unit after PDF children are added.
 ///
-/// # Errors
 /// Returns PDF validation or revision errors.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn import_pdf(
     project: ProjectId,
     file: &ProjectFileRecord,
@@ -234,7 +238,6 @@ fn import_pdf(
 
 /// Adds one deterministic child revision and ownership record.
 ///
-/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: Source file.
 /// - `source`: Parent source entity.
@@ -246,12 +249,14 @@ fn import_pdf(
 /// - `ownership`: Destination ownership records.
 /// - `super`: Parent support module visibility marker.
 ///
-/// # Returns
 /// Unit after the child is appended.
 ///
-/// # Errors
 /// Returns a canonical revision error.
 #[allow(clippy::too_many_arguments)]
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn add_child(
     project: ProjectId,
     file: &ProjectFileRecord,
@@ -273,15 +278,16 @@ pub(super) fn add_child(
 
 /// Creates a typed immutable revision from a canonical payload.
 ///
-/// # Parameters
 /// - `kind`: Canonical object type.
 /// - `payload`: Canonical payload bytes.
 ///
-/// # Returns
 /// The content-addressed revision.
 ///
-/// # Errors
 /// Returns an invalid object type or revision error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn revision(kind: &str, payload: Vec<u8>) -> Result<Revision, ProjectError> {
     Revision::new(
         EncodingVersion::V1,
@@ -293,15 +299,15 @@ fn revision(kind: &str, payload: Vec<u8>) -> Result<Revision, ProjectError> {
 
 /// Creates a project entity ownership record.
 ///
-/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: Source file owning the entity.
 /// - `entity`: Entity identity.
 /// - `kind`: Entity kind.
 /// - `name`: Optional human-readable name.
 ///
-/// # Returns
 /// An ownership record.
+/// # Returns
+/// The operation result.
 fn entity_record(
     project: ProjectId,
     file: &ProjectFileRecord,
@@ -320,7 +326,6 @@ fn entity_record(
 
 /// Adds one named Rust symbol to the current project snapshot.
 ///
-/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: Source file record.
 /// - `source`: Source entity identity.
@@ -331,12 +336,14 @@ fn entity_record(
 /// - `changes`: Output snapshot changes.
 /// - `ownership`: Output ownership records.
 ///
-/// # Returns
 /// Unit after appending the symbol.
 ///
-/// # Errors
 /// Returns an error when the revision cannot be created.
 #[allow(clippy::too_many_arguments)]
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn add_named_child(
     project: ProjectId,
     file: &ProjectFileRecord,
@@ -364,13 +371,13 @@ fn add_named_child(
 
 /// Derives a stable named-symbol identity from source and semantic key.
 ///
-/// # Parameters
 /// - `source`: Source entity identity.
 /// - `kind`: Semantic kind label.
 /// - `key`: Stable semantic key.
 ///
-/// # Returns
 /// Stable named-symbol entity identity.
+/// # Returns
+/// The operation result.
 fn named_entity(source: EntityId, kind: &str, key: &str) -> EntityId {
     let mut hasher = blake3::Hasher::new();
     hasher.update(source.as_bytes());
@@ -383,13 +390,13 @@ fn named_entity(source: EntityId, kind: &str, key: &str) -> EntityId {
 
 /// Derives a stable child entity under one source artifact.
 ///
-/// # Parameters
 /// - `source`: Parent source entity.
 /// - `kind`: Child entity kind.
 /// - `index`: Child ordinal.
 ///
-/// # Returns
 /// Stable child entity identity.
+/// # Returns
+/// The operation result.
 fn child_entity(source: EntityId, kind: &str, index: usize) -> EntityId {
     let mut hasher = blake3::Hasher::new();
     hasher.update(source.as_bytes());

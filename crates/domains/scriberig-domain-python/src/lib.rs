@@ -52,9 +52,10 @@ pub struct PythonNodeRecord {
 impl PythonDocument {
     /// Returns the adapter identifier for this parsed document.
     ///
-    /// # Returns
     /// The Python adapter identifier.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn adapter(&self) -> &str {
         &self.adapter
     }
@@ -99,15 +100,16 @@ pub struct PythonError {
 impl Display for PythonError {
     /// Formats the first Python parser diagnostic.
     ///
-    /// # Parameters
     /// - `self`: Parser failure to format.
     /// - `formatter`: Formatting destination.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when the destination rejects output.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         formatter.write_str("Python syntax error")?;
         if let Some(message) = self.diagnostics.first() {
@@ -121,15 +123,16 @@ impl std::error::Error for PythonError {}
 
 /// Parses Python source into a complete syntax tree.
 ///
-/// # Parameters
 /// - `path`: Source path used for adapter context.
 /// - `source`: UTF-8 Python source text.
 ///
-/// # Returns
 /// A complete serializable syntax tree and its individual nodes.
 ///
-/// # Errors
 /// Returns all syntax-error diagnostics when the source is incomplete or invalid.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn parse(path: &Path, source: &str) -> Result<PythonDocument, PythonError> {
     let mut parser = Parser::new();
     let language = tree_sitter_python::LANGUAGE.into();
@@ -158,11 +161,11 @@ pub fn parse(path: &Path, source: &str) -> Result<PythonDocument, PythonError> {
 
 /// Selects the public adapter identifier for a Python source path.
 ///
-/// # Parameters
 /// - `path`: Python source path.
 ///
-/// # Returns
 /// The Python adapter identifier.
+/// # Returns
+/// The operation result.
 fn adapter_for(path: &Path) -> &'static str {
     let _ = path;
     "python"
@@ -170,13 +173,13 @@ fn adapter_for(path: &Path) -> &'static str {
 
 /// Builds the serializable tree representation for one parser node.
 ///
-/// # Parameters
 /// - `node`: Tree-sitter node to serialize.
 /// - `source`: Original source text.
 /// - `field`: Optional parent grammar field name.
 ///
-/// # Returns
 /// A serializable node with recursively ordered children.
+/// # Returns
+/// The operation result.
 fn build_node(node: Node<'_>, source: &str, field: Option<String>) -> PythonNode {
     let mut cursor = node.walk();
     let mut children = Vec::new();
@@ -213,12 +216,10 @@ fn build_node(node: Node<'_>, source: &str, field: Option<String>) -> PythonNode
 
 /// Collects every syntax node in depth-first order.
 ///
-/// # Parameters
 /// - `node`: Current serialized node.
 /// - `path`: Stable path to the node.
 /// - `nodes`: Destination flat node list.
 ///
-/// # Returns
 /// Unit after the subtree is flattened.
 fn flatten_node(node: &PythonNode, path: &str, nodes: &mut Vec<PythonNodeRecord>) {
     nodes.push(PythonNodeRecord {
@@ -242,12 +243,10 @@ fn flatten_node(node: &PythonNode, path: &str, nodes: &mut Vec<PythonNodeRecord>
 
 /// Collects parser error nodes with source coordinates.
 ///
-/// # Parameters
 /// - `node`: Current parser node.
 /// - `source`: Original source text.
 /// - `diagnostics`: Destination diagnostic messages.
 ///
-/// # Returns
 /// Unit after the subtree has been inspected.
 fn collect_errors(node: Node<'_>, source: &str, diagnostics: &mut Vec<String>) {
     if node.is_error() || node.is_missing() {

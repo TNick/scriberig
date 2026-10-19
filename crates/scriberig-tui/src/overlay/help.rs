@@ -15,7 +15,7 @@ pub struct HelpRow {
 #[must_use]
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub fn rows() -> Vec<HelpRow> {
     bindings()
         .iter()

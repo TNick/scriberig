@@ -4,12 +4,12 @@ use crate::{action::Action, state::TuiState};
 
 /// Builds a cancellation action when the caller can cancel operations.
 ///
-/// # Parameters
 /// - `state`: Current TUI state with capabilities and operation observations.
 /// - `super`: Parent keyboard binding module.
 ///
-/// # Returns
 /// A cancellation action for the root agent operation or another active operation.
+/// # Returns
+/// The operation result.
 pub(super) fn cancel_active_operation(state: &TuiState) -> Option<Action> {
     if !state
         .capabilities

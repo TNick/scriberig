@@ -12,19 +12,19 @@ use crate::{CandidateValidation, CandidateValidationProfile, ProjectError};
 
 #[path = "candidate_validation_process.rs"]
 mod validation_process;
-use validation_process::{ProcessFailure, run_bounded};
+use validation_process::{ProcessFailure, bounded_tail, run_bounded};
 
 /// Builds a stable candidate identity from exact request inputs.
 ///
-/// # Parameters
 /// - `project`: Project identity.
 /// - `snapshot`: Exact base snapshot.
 /// - `entity`: Selected semantic entity.
 /// - `text`: Complete candidate source.
 /// - `super`: Parent module visibility.
 ///
-/// # Returns
 /// Stable candidate identifier.
+/// # Returns
+/// The operation result.
 pub(super) fn candidate_id(
     project: ProjectId,
     snapshot: SnapshotId,
@@ -41,16 +41,17 @@ pub(super) fn candidate_id(
 
 /// Restricts a relative project path to its authorized root.
 ///
-/// # Parameters
 /// - `root`: Authorized project root.
 /// - `relative`: Project-relative path.
 /// - `super`: Parent module visibility.
 ///
-/// # Returns
 /// Safe joined path.
 ///
-/// # Errors
 /// Returns an error when the path is absolute or escapes the root.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn safe_join(root: &Path, relative: &str) -> Result<PathBuf, ProjectError> {
     let relative = Path::new(relative);
     if relative.is_absolute()
@@ -71,14 +72,14 @@ pub(super) fn safe_join(root: &Path, relative: &str) -> Result<PathBuf, ProjectE
 
 /// Validates a candidate in an isolated copy of the project.
 ///
-/// # Parameters
 /// - `root`: Project root to copy.
 /// - `relative`: Candidate-relative file path.
 /// - `text`: Candidate source text.
 /// - `super`: Parent module visibility.
 ///
-/// # Returns
 /// Semantic and Cargo validation state.
+/// # Returns
+/// The operation result.
 pub(super) fn validate_project(root: &Path, relative: &str, text: &str) -> CandidateValidation {
     let Ok(temporary_dir) = tempfile::tempdir() else {
         return CandidateValidation::Failed {
@@ -137,16 +138,17 @@ pub(super) fn validate_project(root: &Path, relative: &str, text: &str) -> Candi
 
 /// Copies a project tree without following directory symlinks.
 ///
-/// # Parameters
 /// - `source`: Project root to copy.
 /// - `destination`: Isolated destination tree.
 /// - `sensitive`: Secret-file exclusions read before copying the project.
 ///
-/// # Returns
 /// Unit after the copy completes.
 ///
-/// # Errors
 /// Returns an error when a filesystem operation fails.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn copy_tree(
     source: &Path,
     destination: &Path,
@@ -172,7 +174,6 @@ fn copy_tree(
 
 /// Validates a source-effect set in an isolated tree reconstructed from base bytes.
 ///
-/// # Parameters
 /// - `files`: Exact project source manifest for the candidate base.
 /// - `effects`: Ordered candidate source effects.
 /// - `candidate_id`: Stable identity used to isolate the validation workspace.
@@ -180,11 +181,13 @@ fn copy_tree(
 /// - `cancelled`: Shared cancellation flag for the owning operation.
 /// - `super`: Parent candidate module visibility.
 ///
-/// # Returns
 /// Candidate validation state with bounded process diagnostics.
 ///
-/// # Errors
 /// Returns cancellation when validation was stopped by its owning operation.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn validate_effects(
     candidate_id: &str,
     files: &[ProjectFileRecord],
@@ -268,17 +271,18 @@ pub(super) fn validate_effects(
 
 /// Runs one registered Cargo profile against an isolated candidate root.
 ///
-/// # Parameters
 /// - `root`: Materialized candidate workspace root.
 /// - `target`: Candidate-specific Cargo artifact directory.
 /// - `profile`: Application-selected Cargo policy.
 /// - `cancelled`: Shared operation cancellation flag.
 ///
-/// # Returns
 /// Empty diagnostics on success or bounded failure details.
 ///
-/// # Errors
 /// Returns when execution is cancelled or process setup fails.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn run_candidate_cargo(
     root: &Path,
     target: &Path,
@@ -316,6 +320,8 @@ fn run_candidate_cargo(
             },
         )
         .env("CARGO_TARGET_DIR", target);
+    #[cfg(windows)]
+    command.env("CARGO_PROFILE_TEST_DEBUG", "0");
     if profile.allows_dependency_acquisition() {
         command
             .env("CARGO_NET_RETRY", "1")
@@ -331,24 +337,36 @@ fn run_candidate_cargo(
     } else {
         stderr.into_owned()
     };
-    Ok(vec![diagnostics.chars().take(16_384).collect()])
+    Ok(vec![bounded_tail(&diagnostics, 16_384)])
 }
 
 /// Resolves the isolated Cargo target cache for one exact candidate.
 ///
-/// # Parameters
 /// - `candidate_id`: Stable candidate identity.
 ///
-/// # Returns
 /// Candidate-specific build artifact directory.
+///
+/// Uses `CARGO_TARGET_DIR` when configured and otherwise uses the process temp
+/// directory.
+/// # Returns
+/// The operation result.
 fn candidate_target(candidate_id: &str) -> PathBuf {
     let workspace_id = blake3::hash(candidate_id.as_bytes()).to_hex().to_string();
-    std::env::temp_dir().join(format!("scriberig-candidate-target-{workspace_id}"))
+    let root = std::env::var_os("CARGO_TARGET_DIR")
+        .map(PathBuf::from)
+        .map_or_else(std::env::temp_dir, |path| {
+            if path.is_absolute() {
+                path
+            } else {
+                std::env::current_dir()
+                    .map_or_else(|_| std::env::temp_dir(), |directory| directory.join(path))
+            }
+        });
+    root.join(format!("scriberig-candidate-target-{workspace_id}"))
 }
 
 /// Removes cached build artifacts after a candidate reaches a terminal Apply outcome.
 ///
-/// # Parameters
 /// - `candidate_id`: Stable candidate identity whose target cache can be released.
 /// - `super`: Parent candidate module visibility marker.
 pub(super) fn cleanup_candidate_target(candidate_id: &str) {
@@ -357,16 +375,17 @@ pub(super) fn cleanup_candidate_target(candidate_id: &str) {
 
 /// Writes exact candidate bytes beneath an isolated workspace root.
 ///
-/// # Parameters
 /// - `root`: Isolated candidate workspace.
 /// - `relative`: Project-relative path.
 /// - `bytes`: Exact source bytes.
 ///
-/// # Returns
 /// Unit after the candidate path is materialized.
 ///
-/// # Errors
 /// Returns an error for an unsafe path or failed filesystem operation.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn write_candidate_file(root: &Path, relative: &str, bytes: &[u8]) -> Result<(), String> {
     let path = safe_join(root, relative).map_err(|error| error.message)?;
     let parent = path

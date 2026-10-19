@@ -19,15 +19,16 @@ struct Fixture;
 impl ApplicationBackend for Fixture {
     /// Rejects universal operations because this fixture only tests HTTP mapping.
     ///
-    /// # Parameters
     /// - `_context`: Application authorization context.
     /// - `_request`: Universal request, unused by this fixture.
     ///
-    /// # Returns
     /// Never returns a result.
     ///
-    /// # Errors
     /// Always returns unsupported-operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute(
         &self,
         _context: &ApplicationContext,
@@ -42,15 +43,16 @@ impl ApplicationBackend for Fixture {
 impl ApplicationService for Fixture {
     /// Rejects inspection because this test only exercises migration detail.
     ///
-    /// # Parameters
     /// - `_context`: Request authorization context.
     /// - `_request`: Inspection request, intentionally unsupported here.
     ///
-    /// # Returns
     /// Never returns an inspection result in this fixture.
     ///
-    /// # Errors
     /// Always returns unsupported-operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         _context: &ApplicationContext,
@@ -63,22 +65,28 @@ impl ApplicationService for Fixture {
 
     /// Returns no capabilities for the focused adapter test.
     ///
-    /// # Returns
     /// An empty capability list.
+    /// # Returns
+    /// The operation result.
     fn capabilities(&self) -> Vec<RuntimeCapability> {
-        Vec::new()
+        vec![RuntimeCapability::new(
+            scriberig_app::CapabilityId::new("agent_plan").expect("plan capability"),
+            "durable plan lifecycle",
+            true,
+        )]
     }
 
     /// Rejects operation status because it is outside this adapter test.
     ///
-    /// # Parameters
     /// - `_operation_id`: Operation identifier, intentionally unsupported here.
     ///
-    /// # Returns
     /// Never returns an operation status in this fixture.
     ///
-    /// # Errors
     /// Always returns unsupported-operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn operation_status(
         &self,
         _operation_id: &str,
@@ -90,15 +98,16 @@ impl ApplicationService for Fixture {
 
     /// Returns one canonical migration detail.
     ///
-    /// # Parameters
     /// - `_context`: Request authorization context.
     /// - `migration_id`: Migration identifier to echo in the detail.
     ///
-    /// # Returns
     /// One deterministic migration detail.
     ///
-    /// # Errors
     /// This fixture does not return an error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn migration_detail(
         &self,
         _context: &ApplicationContext,
@@ -126,6 +135,7 @@ fn migration_route_maps_canonical_detail() {
         allowed_origin: None,
         project_store: None,
         allowed_project_roots: Vec::new(),
+        plan_lifecycle_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -151,6 +161,7 @@ fn typed_operation_route_preserves_correlation() {
         allowed_origin: None,
         project_store: None,
         allowed_project_roots: Vec::new(),
+        plan_lifecycle_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -163,6 +174,52 @@ fn typed_operation_route_preserves_correlation() {
     assert!(response["response"]["Capabilities"].is_object());
 }
 
+/// Verifies the HTTP plan lifecycle route invokes its trusted runtime hook.
+#[test]
+fn typed_plan_lifecycle_route_invokes_runtime_handler() {
+    let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let observed = std::sync::Arc::clone(&calls);
+    let state = HttpState {
+        service: Fixture,
+        principal: scriberig_app::Principal::new("test-user"),
+        allowed_origin: None,
+        project_store: None,
+        allowed_project_roots: Vec::new(),
+        plan_lifecycle_handler: Some(std::sync::Arc::new(
+            move |_service, _context, request, action| {
+                assert_eq!(request.expected_revision, 7);
+                assert_eq!(action, scriberig_app::PlanLifecycleAction::Start);
+                observed.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                Err(scriberig_app::ApplicationError::UnsupportedOperation {
+                    operation: "test worker runtime".to_owned(),
+                })
+            },
+        )),
+        fixture: DevelopmentFixture {
+            root_entity: EntityId::from_bytes([1; 16]),
+            child_entities: Vec::new(),
+            snapshot: SnapshotId::new([1; 32]),
+        },
+    };
+    let request = scriberig_protocol::SessionPlanLifecycleRequest {
+        session: scriberig_protocol::SessionReference {
+            id: EntityId::from_bytes([2; 16]).to_string(),
+        },
+        plan: EntityId::from_bytes([3; 16]).to_string(),
+        expected_revision: 7,
+        action: scriberig_protocol::SessionPlanAction::Start,
+    };
+    let body = serde_json::to_string(&request).expect("encode lifecycle request");
+    let response = dispatch(&state, "plan_lifecycle", &body, "plan-start".to_owned())
+        .expect("typed protocol response");
+    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+    assert_eq!(response["correlation_id"], "plan-start");
+    assert_eq!(
+        response["response"]["Error"]["code"],
+        "UnsupportedOperation"
+    );
+}
+
 /// Verifies HTTP preference operations carry the trusted local principal.
 #[test]
 fn typed_preference_operations_use_the_http_principal() {
@@ -172,6 +229,7 @@ fn typed_preference_operations_use_the_http_principal() {
         allowed_origin: None,
         project_store: None,
         allowed_project_roots: Vec::new(),
+        plan_lifecycle_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -212,6 +270,7 @@ fn typed_operation_route_rejects_unknown_operation() {
         allowed_origin: None,
         project_store: None,
         allowed_project_roots: Vec::new(),
+        plan_lifecycle_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -233,6 +292,7 @@ fn direct_project_route_preserves_project_errors() {
         allowed_origin: None,
         project_store: None,
         allowed_project_roots: Vec::new(),
+        plan_lifecycle_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),

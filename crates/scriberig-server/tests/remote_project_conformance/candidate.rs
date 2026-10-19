@@ -15,7 +15,6 @@ use super::TestApplication;
 
 /// Verifies aggregate proposal, detail, and validation through the remote client.
 ///
-/// # Parameters
 /// - `client`: Public project client.
 /// - `root`: Live project root that must remain unchanged before Apply.
 /// - `project`: Exact project identity.
@@ -23,8 +22,9 @@ use super::TestApplication;
 /// - `source`: Base source bytes as UTF-8.
 /// - `super`: Parent conformance test module.
 ///
-/// # Returns
 /// Candidate identity and successor snapshot after aggregate Apply.
+/// # Returns
+/// The operation result.
 pub(super) fn exercise_remote_aggregate_candidate(
     client: &Client<InProcessProjectTransport<TestApplication>>,
     root: &std::path::Path,
@@ -132,13 +132,13 @@ pub(super) fn exercise_remote_aggregate_candidate(
 
 /// Builds a durable child result linked to canonical project transition handles.
 ///
-/// # Parameters
 /// - `candidate`: Canonical candidate identity returned by the project API.
 /// - `successor`: Applied snapshot identity returned by the project API.
 /// - `super`: Parent conformance test module.
 ///
-/// # Returns
 /// A session graph containing a completed implementation branch.
+/// # Returns
+/// The operation result.
 pub(super) fn candidate_branch_result(candidate: &str, successor: &str) -> Session {
     let session_id = EntityId::new();
     let root_id = EntityId::new();
@@ -148,6 +148,7 @@ pub(super) fn candidate_branch_result(candidate: &str, successor: &str) -> Sessi
         branches: vec![Branch::new(root_id, "root").expect("root branch")],
         goals: Vec::new(),
         tasks: Vec::new(),
+        plans: Vec::new(),
         execution: SessionExecutionSelection::default(),
     };
     session
@@ -165,6 +166,7 @@ pub(super) fn candidate_branch_result(candidate: &str, successor: &str) -> Sessi
         status: BranchStatus::Completed,
         summary: Some("validated project candidate applied".to_owned()),
         result_kind: Some("project-candidate".to_owned()),
+        candidate_context: None,
         references: Vec::new(),
         result_handles: vec![
             format!("candidate:{candidate}"),
@@ -181,7 +183,6 @@ pub(super) fn candidate_branch_result(candidate: &str, successor: &str) -> Sessi
 
 /// Verifies public session reads preserve project candidate result handles.
 ///
-/// # Parameters
 /// - `client`: Public application client.
 /// - `sessions`: Durable session store shared with the application.
 /// - `candidate`: Candidate identity returned by the project client.

@@ -89,7 +89,7 @@ const CONTROL: Modifiers = Modifiers {
 #[allow(clippy::too_many_lines)]
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub fn bindings() -> &'static [Binding] {
     &[
         Binding {
@@ -262,13 +262,48 @@ pub fn bindings() -> &'static [Binding] {
 /// - `key`: Argument named `key`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub fn action_for(state: &TuiState, key: &Key) -> Option<Action> {
     if is_quit_chord(key) {
         return Some(Action::QuitRequested);
     }
     if let Some(action) = keymap_session_composer::action_for(state, key) {
         return Some(action);
+    }
+    if state.primary_view == crate::selection::PrimaryView::Conversation && state.overlay.is_none()
+    {
+        if state.conversation_browsing {
+            return match key.code {
+                KeyCode::Esc => Some(Action::ConversationBrowsing(false)),
+                KeyCode::Up => Some(Action::CursorMoved(Direction::Previous)),
+                KeyCode::Down => Some(Action::CursorMoved(Direction::Next)),
+                KeyCode::Enter => Some(Action::ConversationPinCursor),
+                KeyCode::Right | KeyCode::Left => Some(Action::ConversationToggleExpansion),
+                _ => None,
+            };
+        }
+        return match key.code {
+            KeyCode::Esc => Some(Action::ConversationBrowsing(true)),
+            KeyCode::Enter => Some(Action::InputSubmitted),
+            KeyCode::Backspace => Some(Action::InputChanged(String::new())),
+            KeyCode::Char('j')
+                if key.modifiers.control && !key.modifiers.alt && !key.modifiers.shift =>
+            {
+                Some(Action::InputChanged("\n".to_owned()))
+            }
+            KeyCode::Char(character) if !key.modifiers.control && !key.modifiers.alt => {
+                Some(Action::InputChanged(character.to_string()))
+            }
+            _ => None,
+        };
+    }
+    if state.primary_view != crate::selection::PrimaryView::Conversation
+        && state.overlay.is_none()
+        && key.code == KeyCode::Esc
+    {
+        return Some(Action::ViewSelected(
+            crate::selection::PrimaryView::Conversation,
+        ));
     }
     if state.is_input_active() {
         return match key.code {
@@ -325,75 +360,13 @@ pub fn action_for(state: &TuiState, key: &Key) -> Option<Action> {
         .map(|binding| action(binding.action))
 }
 
-/// Recognizes Ctrl+C across terminal event encodings.
-///
-/// Some Windows terminal paths deliver the control byte directly, while
-/// others deliver `c` or `C` with the control modifier attached.
-///
-/// # Parameters
-/// - `key`: Backend-independent key event.
-///
-/// # Returns
-/// Whether the key represents the global quit chord.
-fn is_quit_chord(key: &Key) -> bool {
-    matches!(key.code, KeyCode::Char('\u{3}'))
-        || (key.modifiers.control && matches!(key.code, KeyCode::Char('c' | 'C')))
-}
-
-/// Returns modifiers normalized for punctuation command bindings.
-///
-/// Punctuation such as `:` and `?` commonly requires Shift on a physical
-/// keyboard, but Shift produces the character rather than changing the
-/// command chord.
-///
-/// # Parameters
-/// - `key`: Key being matched against the command map.
-///
-/// # Returns
-/// Modifiers normalized for command matching.
-fn command_modifiers(key: &Key) -> Modifiers {
-    if key.modifiers.shift
-        && !key.modifiers.control
-        && !key.modifiers.alt
-        && matches!(key.code, KeyCode::Char(':') | KeyCode::Help)
-    {
-        return Modifiers {
-            shift: false,
-            ..key.modifiers
-        };
-    }
-    key.modifiers
-}
-
-/// Converts an action identifier into the reducer's typed action.
-/// - `id`: Argument named `id`.
-///
-/// # Returns
-/// The value produced by the declaration.
-fn action(id: ActionId) -> Action {
-    match id {
-        ActionId::Quit => Action::QuitRequested,
-        ActionId::CloseOverlay => Action::OverlayClosed,
-        ActionId::FocusNext => Action::FocusNext,
-        ActionId::FocusPrevious => Action::FocusPrevious,
-        ActionId::Activate => Action::Activated,
-        ActionId::Back => Action::Back,
-        ActionId::Forward => Action::Forward,
-        ActionId::Refresh => Action::RefreshRequested,
-        ActionId::Help => Action::HelpOpened,
-        ActionId::Palette => Action::PaletteOpened,
-        ActionId::Find => Action::FindOpened,
-        ActionId::InputSubmit => Action::InputSubmitted,
-        ActionId::CursorPrevious | ActionId::CursorLeft => Action::CursorMoved(Direction::Previous),
-        ActionId::CursorNext | ActionId::CursorRight => Action::CursorMoved(Direction::Next),
-        ActionId::CancelOperation => Action::OperationCancelRequested(
-            scriberig_core::OperationId::new("keymap").expect("static operation id is valid"),
-        ),
-    }
-}
-
 #[path = "keymap_metadata.rs"]
 mod keymap_metadata;
+
+#[path = "keymap/helpers.rs"]
+mod helpers;
+use helpers::{action, command_modifiers, is_quit_chord};
+
 pub use keymap_metadata::{hints, key_label, metadata};
 
 #[cfg(test)]

@@ -23,13 +23,14 @@ pub use value::SecretValue;
 pub trait CredentialProvider: Send + Sync {
     /// Authorizes and resolves one outbound credential.
     ///
-    /// # Parameters
     /// - `endpoint`: Exact configured provider base URL.
     ///
-    /// # Returns
     /// A protected credential, or no authentication when explicitly disabled.
     ///
-    /// # Errors
     /// Returns a safe authorization or source failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn credential(&self, endpoint: &str) -> Result<Option<SecretValue>, SecretError>;
 }

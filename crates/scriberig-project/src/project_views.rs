@@ -46,14 +46,15 @@ pub struct ProjectSourceProjection {
 impl ProjectService {
     /// Lists named semantic symbols in the current project snapshot.
     ///
-    /// # Parameters
     /// - `project`: Project whose symbols are requested.
     ///
-    /// # Returns
     /// Snapshot-bound named symbols and source entities.
     ///
-    /// # Errors
     /// Returns a structured error when the project or symbol store is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn symbols(&self, project: ProjectId) -> Result<Vec<ProjectSymbol>, ProjectError> {
         let workspace = self.workspace(project)?;
         self.symbols_at(project, workspace.snapshot)
@@ -61,16 +62,17 @@ impl ProjectService {
 
     /// Lists project symbols only when the requested snapshot remains current.
     ///
-    /// # Parameters
     /// - `project`: Project whose symbols are requested.
     /// - `snapshot`: Exact immutable snapshot scope.
     ///
-    /// # Returns
     /// Snapshot-bound symbols and source entities.
     ///
-    /// # Errors
     /// Returns a structured error when the snapshot is stale or the project
     /// symbol store is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn symbols_at(
         &self,
         project: ProjectId,
@@ -101,17 +103,18 @@ impl ProjectService {
     /// This uses a filtered ownership query so interactive discovery does not
     /// deserialize every entity in a large project for each search.
     ///
-    /// # Parameters
     /// - `project`: Project whose symbols are requested.
     /// - `snapshot`: Exact immutable snapshot scope.
     /// - `query`: Case-insensitive path, kind, or name substring.
     /// - `limit`: Maximum number of symbols returned.
     ///
-    /// # Returns
     /// Snapshot-bound matching symbols and source entities.
     ///
-    /// # Errors
     /// Returns a structured error when the snapshot or symbol store is stale.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn find_symbols_at(
         &self,
         project: ProjectId,
@@ -140,15 +143,16 @@ impl ProjectService {
 
     /// Renders an exact source projection for one semantic entity.
     ///
-    /// # Parameters
     /// - `project`: Project owning the entity.
     /// - `entity`: Semantic entity to render.
     ///
-    /// # Returns
     /// Snapshot-bound source projection.
     ///
-    /// # Errors
     /// Returns a structured error when the entity or source file is missing.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn projection(
         &self,
         project: ProjectId,
@@ -160,16 +164,17 @@ impl ProjectService {
 
     /// Renders source only when the requested snapshot remains current.
     ///
-    /// # Parameters
     /// - `project`: Project owning the entity.
     /// - `snapshot`: Exact immutable snapshot scope.
     /// - `entity`: Semantic entity to render.
     ///
-    /// # Returns
     /// Source projection bound to the requested snapshot.
     ///
-    /// # Errors
     /// Returns a structured error when the snapshot is stale or source is absent.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn projection_at(
         &self,
         project: ProjectId,
@@ -237,15 +242,16 @@ impl ProjectService {
 
 /// Requires a project operation to retain its exact workspace snapshot.
 ///
-/// # Parameters
 /// - `current`: Authoritative current project snapshot.
 /// - `requested`: Snapshot attached to the caller's semantic references.
 ///
-/// # Returns
 /// Unit when both snapshots match.
 ///
-/// # Errors
 /// Returns a stale-snapshot error instead of silently retargeting.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn ensure_snapshot(current: SnapshotId, requested: SnapshotId) -> Result<(), ProjectError> {
     if current == requested {
         return Ok(());

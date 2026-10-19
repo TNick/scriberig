@@ -13,23 +13,25 @@ struct ControlTool;
 impl Tool for ControlTool {
     /// Returns the fixture tool identifier.
     ///
-    /// # Returns
     /// The stable control-tool identifier.
+    /// # Returns
+    /// The operation result.
     fn name(&self) -> &'static str {
         "control"
     }
 
     /// Rejects ordinary entity inspection for this control-only fixture.
     ///
-    /// # Parameters
     /// - `_context`: Runtime application context.
     /// - `_input`: Entity inspection input.
     ///
-    /// # Returns
     /// Never returns a successful inspection.
     ///
-    /// # Errors
     /// Always returns unsupported-operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke(
         &self,
         _context: &ApplicationContext,
@@ -43,16 +45,17 @@ impl Tool for ControlTool {
 
     /// Executes the named control fixture.
     ///
-    /// # Parameters
     /// - `_context`: Runtime application context.
     /// - `name`: Named control tool.
     /// - `_arguments`: Control arguments.
     ///
-    /// # Returns
     /// A bounded control result.
     ///
-    /// # Errors
     /// This fixture rejects no named tool.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke_named(
         &self,
         _context: &ApplicationContext,
@@ -79,14 +82,15 @@ fn runtime_executes_named_control_tools() {
     impl ModelProvider for Provider {
         /// Returns a control decision followed by a final response.
         ///
-        /// # Parameters
         /// - `messages`: Current runtime messages.
         ///
-        /// # Returns
         /// A named control call or final response.
         ///
-        /// # Errors
         /// This fixture never fails.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn decide(&mut self, messages: &[AgentMessage]) -> Result<ModelDecision, String> {
             if messages.len() == 1 {
                 return Ok(ModelDecision::NamedTool {
@@ -94,6 +98,7 @@ fn runtime_executes_named_control_tools() {
                     arguments: serde_json::json!({"operation": "op-1"}),
                     presentation_arguments: serde_json::json!({"operation": "op-1"}),
                     presentation_label: None,
+                    category: scriberig_session::ToolActivityKind::SemanticRead,
                 });
             }
             assert!(matches!(messages[1], AgentMessage::Tool(_)));

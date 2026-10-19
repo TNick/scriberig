@@ -47,15 +47,16 @@ pub struct EcmaError {
 impl std::fmt::Display for EcmaError {
     /// Formats the first parser diagnostic for human-facing callers.
     ///
-    /// # Parameters
     /// - `self`: Parser failure to format.
     /// - `formatter`: Formatting destination.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when the destination rejects output.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.fatal {
             formatter.write_str("fatal ECMAScript syntax error")?;
@@ -73,15 +74,16 @@ impl std::error::Error for EcmaError {}
 
 /// Parses JavaScript, JSX, TypeScript, or TSX based on the file path.
 ///
-/// # Parameters
 /// - `path`: Source path used to select the ECMAScript language mode.
 /// - `source`: UTF-8 source text.
 ///
-/// # Returns
 /// A complete serializable syntax tree and its individual nodes.
 ///
-/// # Errors
 /// Returns all parser diagnostics when the source is incomplete or invalid.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn parse(path: &Path, source: &str) -> Result<EcmaDocument, EcmaError> {
     let source_type = SourceType::from_path(path).map_err(|error| EcmaError {
         fatal: true,
@@ -120,12 +122,10 @@ pub fn parse(path: &Path, source: &str) -> Result<EcmaDocument, EcmaError> {
 
 /// Collects every `ESTree` object with a type field.
 ///
-/// # Parameters
 /// - `value`: Current JSON value.
 /// - `path`: JSON pointer of the current value.
 /// - `nodes`: Destination node list.
 ///
-/// # Returns
 /// Unit after deterministic depth-first traversal.
 fn collect_nodes(value: &Value, path: &str, nodes: &mut Vec<EcmaNode>) {
     match value {

@@ -9,11 +9,13 @@ use crate::SqliteStore;
 impl StoreObservability for SqliteStore {
     /// Returns authoritative row counts from SQLite.
     ///
-    /// # Returns
     /// Available SQLite storage statistics.
     ///
-    /// # Errors
     /// Returns a backend error when statistics cannot be read.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn stats(&self) -> Result<StoreStats, StoreOperationError> {
         let connection = self
             .connection
@@ -38,14 +40,15 @@ impl StoreObservability for SqliteStore {
 
     /// Returns counts annotated with SQLite reachability.
     ///
-    /// # Parameters
     /// - `protected`: Snapshot roots used for reachability counts.
     ///
-    /// # Returns
     /// Authoritative counts and marked-object counts.
     ///
-    /// # Errors
     /// Returns a backend error when integrity inspection cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn stats_for(&self, protected: &ProtectedRoots) -> Result<StoreStats, StoreOperationError> {
         let mut stats = self.stats()?;
         let report = self
@@ -61,11 +64,13 @@ impl StoreObservability for SqliteStore {
 
     /// Lists SQLite roots in deterministic name order.
     ///
-    /// # Returns
     /// Root status records ordered by root name.
     ///
-    /// # Errors
     /// Returns a backend error when roots cannot be read.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn root_statuses(&self) -> Result<Vec<RootStatus>, StoreOperationError> {
         let connection = self
             .connection
@@ -106,11 +111,13 @@ impl StoreObservability for SqliteStore {
 
     /// Rebuilds SQLite derived indexes.
     ///
-    /// # Returns
     /// A consistent index status after rebuilding.
     ///
-    /// # Errors
     /// Returns a backend error when rebuilding fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn rebuild_indexes(&self) -> Result<IndexStatus, StoreOperationError> {
         self.rebuild_derived_indexes()
             .map_err(|error| StoreOperationError::backend(error.to_string()))?;

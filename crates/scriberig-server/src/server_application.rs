@@ -1,4 +1,7 @@
 //! Adapts the shared application façade to the protocol server boundary.
+#[macro_use]
+#[path = "server_application_selection.rs"]
+mod selection_methods;
 
 #[macro_use]
 #[path = "server_application_presentation.rs"]
@@ -27,16 +30,17 @@ where
 {
     /// Reads migration detail through the shared application façade.
     ///
-    /// # Parameters
     /// - `self`: Shared application service.
     /// - `context`: Trusted request context.
     /// - `migration_id`: Stable migration handle.
     ///
-    /// # Returns
     /// Snapshot-bound migration detail.
     ///
-    /// # Errors
     /// Returns the shared application failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn migration_detail(
         &self,
         context: &ApplicationContext,
@@ -47,16 +51,17 @@ where
 
     /// Executes inspection through the shared application façade.
     ///
-    /// # Parameters
     /// - `self`: Shared application service.
     /// - `context`: Trusted request context.
     /// - `request`: Snapshot-aware inspection request.
     ///
-    /// # Returns
     /// Application inspection result.
     ///
-    /// # Errors
     /// Returns the shared application failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         context: &ApplicationContext,
@@ -67,15 +72,16 @@ where
 
     /// Reads a compact session tree through the shared session boundary.
     ///
-    /// # Parameters
     /// - `context`: Trusted request context.
     /// - `session`: Serialized stable session identity.
     ///
-    /// # Returns
     /// Provider-neutral session activity response.
     ///
-    /// # Errors
     /// Returns a schema or application error when the session cannot be read.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read_session(
         &self,
         context: &ApplicationContext,
@@ -99,17 +105,18 @@ where
 
     /// Reads a previously captured model request from an authorized session.
     ///
-    /// # Parameters
     /// - `context`: Trusted request context.
     /// - `session`: Serialized session identity.
     /// - `branch`: Serialized branch identity.
     /// - `invocation`: Serialized model invocation identity.
     ///
-    /// # Returns
     /// Bounded safe request detail captured before provider serialization.
     ///
-    /// # Errors
     /// Returns invalid-request or not-found errors for unavailable records.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn model_request_detail(
         &self,
         context: &ApplicationContext,
@@ -122,17 +129,18 @@ where
 
     /// Reads bounded safe tool-result detail from an authorized session.
     ///
-    /// # Parameters
     /// - `context`: Trusted request context.
     /// - `session`: Serialized session identity.
     /// - `branch`: Serialized branch identity.
     /// - `result`: Serialized tool result identity.
     ///
-    /// # Returns
     /// Safe result detail captured by the trusted tool boundary.
     ///
-    /// # Errors
     /// Returns invalid-request or not-found for unavailable records.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn tool_result_detail(
         &self,
         context: &ApplicationContext,
@@ -144,69 +152,16 @@ where
     }
 
     agent_presentation_impl_methods!();
+    shared_session_operation_methods!();
+    shared_plan_operation_methods!();
 
-    /// Selects a model profile for future session invocations.
-    ///
-    /// # Parameters
-    /// - `context`: Trusted capability context.
-    /// - `session`: Stable session identity.
-    /// - `expected_revision`: Selection revision observed by the caller.
-    /// - `model_profile`: Curated profile identity.
-    ///
-    /// # Returns
-    /// Updated session execution selection.
-    ///
-    /// # Errors
-    /// Returns authorization, validation, conflict, or persistence failures.
-    fn set_session_model(
-        &self,
-        context: &ApplicationContext,
-        session: &str,
-        expected_revision: u64,
-        model_profile: &str,
-    ) -> Result<scriberig_protocol::SessionExecutionSelection, ApplicationError> {
-        server_agent_console::set_session_model(
-            self,
-            context,
-            session,
-            expected_revision,
-            model_profile,
-        )
-    }
-
-    /// Selects a thinking level for future session invocations.
-    ///
-    /// # Parameters
-    /// - `context`: Trusted capability context.
-    /// - `session`: Stable session identity.
-    /// - `expected_revision`: Selection revision observed by the caller.
-    /// - `thinking_level`: Advertised thinking capability identity.
-    ///
-    /// # Returns
-    /// Updated session execution selection.
-    ///
-    /// # Errors
-    /// Returns authorization, validation, conflict, or persistence failures.
-    fn set_session_thinking_level(
-        &self,
-        context: &ApplicationContext,
-        session: &str,
-        expected_revision: u64,
-        thinking_level: &str,
-    ) -> Result<scriberig_protocol::SessionExecutionSelection, ApplicationError> {
-        server_agent_console::set_session_thinking_level(
-            self,
-            context,
-            session,
-            expected_revision,
-            thinking_level,
-        )
-    }
+    server_execution_selection_methods!();
 
     /// Advertises the generic inspect capability supplied by this façade.
     ///
-    /// # Returns
     /// One available inspect capability.
+    /// # Returns
+    /// The operation result.
     fn capabilities(&self) -> Vec<RuntimeCapability> {
         capabilities()
     }
@@ -215,11 +170,12 @@ where
     /// - `context`: Argument named `context`.
     /// - `request`: Argument named `request`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn query(
         &self,
         context: &ApplicationContext,
@@ -238,15 +194,16 @@ where
 
     /// Executes a bounded collection listing through the shared application.
     ///
-    /// # Parameters
     /// - `context`: Trusted request context.
     /// - `request`: Snapshot-bound list request.
     ///
-    /// # Returns
     /// The application-owned list result.
     ///
-    /// # Errors
     /// Returns the shared application failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn list(
         &self,
         context: &ApplicationContext,
@@ -265,15 +222,16 @@ where
 
     /// Executes semantic discovery through the shared application.
     ///
-    /// # Parameters
     /// - `context`: Trusted request context.
     /// - `request`: Snapshot-scoped discovery request.
     ///
-    /// # Returns
     /// The application-owned discovery result.
     ///
-    /// # Errors
     /// Returns the shared application failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn find(
         &self,
         context: &ApplicationContext,
@@ -292,13 +250,14 @@ where
 
     /// Reads operation state from the shared application lifecycle registry.
     ///
-    /// # Parameters
     /// - `self`: Shared application service.
     /// - `operation_id`: Requested operation identity.
     ///
-    /// # Returns
-    /// # Errors
     /// Returns a structured error when the operation is unknown.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn operation_status(&self, operation_id: &str) -> Result<Operation, ApplicationError> {
         let id = operation_id
             .parse::<OperationId>()
@@ -311,11 +270,12 @@ where
     /// Cancels operation state through the shared application lifecycle registry.
     /// - `operation_id`: Argument named `operation_id`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn cancel_operation(&self, operation_id: &str) -> Result<Operation, ApplicationError> {
         let id = operation_id
             .parse::<OperationId>()
@@ -328,11 +288,12 @@ where
     /// Exposes buffered lifecycle events as stable protocol envelopes.
     /// - `event_kinds`: Argument named `event_kinds`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn events(&self, event_kinds: &[String]) -> Result<Vec<Event>, ApplicationError> {
         Ok(self
             .operations()
@@ -349,15 +310,16 @@ where
 
     /// Returns retained application events after a reconnect cursor.
     ///
-    /// # Parameters
     /// - `event_kinds`: Event kind filters.
     /// - `after`: Last cursor already processed by the caller.
     ///
-    /// # Returns
     /// Events newer than `after`.
     ///
-    /// # Errors
     /// Returns `cursor_too_old` when replay history has expired.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn events_after(
         &self,
         event_kinds: &[String],
@@ -368,16 +330,17 @@ where
 
     /// Decodes and executes one command through the shared application boundary.
     ///
-    /// # Parameters
     /// - `context`: Trusted request context.
     /// - `kind`: Stable command family.
     /// - `payload`: Typed command payload.
     ///
-    /// # Returns
     /// The accepted or completed shared operation.
     ///
-    /// # Errors
     /// Returns a structured application failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn command(
         &self,
         context: &ApplicationContext,

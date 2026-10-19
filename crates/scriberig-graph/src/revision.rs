@@ -23,15 +23,17 @@ pub struct RevisionRecord {
 impl ValidationSubject for RevisionRecord {
     /// Returns the declared entity type.
     ///
-    /// # Returns
     /// The entity type identity.
+    /// # Returns
+    /// The operation result.
     fn entity_type(&self) -> &ObjectType {
         &self.entity_type
     }
     /// Returns canonical properties.
     ///
-    /// # Returns
     /// The deterministic property map.
+    /// # Returns
+    /// The operation result.
     fn properties(&self) -> &BTreeMap<String, KnowledgeValue> {
         &self.properties
     }

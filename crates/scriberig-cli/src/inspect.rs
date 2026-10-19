@@ -7,13 +7,14 @@ use crate::trust::{TrustCommandError, inspect_at_with_format};
 
 /// Executes one parsed CLI inspect request.
 ///
-/// # Parameters
 /// - `service`: Application query service supplied by composition.
 /// - `context`: Caller and capability context.
 /// - `args`: Parsed inspect command arguments.
 ///
-/// # Returns
 /// Human-readable or structured inspection output.
+///
+/// # Returns
+/// The inspection output in the requested representation.
 ///
 /// # Errors
 /// Returns the structured trust command failure from the application boundary.
@@ -40,13 +41,14 @@ pub fn run<S: QueryService>(
 /// Product renderers should call this boundary when they need to compare or
 /// further process inspection semantics without parsing terminal output.
 ///
-/// # Parameters
 /// - `service`: Application query service supplied by composition.
 /// - `context`: Caller and capability context.
 /// - `args`: Parsed inspect command arguments.
 ///
-/// # Returns
 /// Snapshot-bound semantic inspection result.
+///
+/// # Returns
+/// The selected snapshot's semantic inspection values.
 ///
 /// # Errors
 /// Returns the structured trust command failure from the application boundary.

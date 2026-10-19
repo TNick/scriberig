@@ -10,12 +10,10 @@ use crate::server::ApplicationService;
 
 /// Inspects one semantic entity and maps the result to a protocol response.
 ///
-/// # Parameters
 /// - `service`: Application service receiving the inspection.
 /// - `request`: Typed protocol inspection request.
 /// - `correlation_id`: Request correlation identity.
 ///
-/// # Returns
 /// Typed inspection response or structured protocol error.
 pub(super) fn inspect<S: ApplicationService>(
     service: &S,

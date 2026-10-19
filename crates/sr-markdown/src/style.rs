@@ -20,8 +20,9 @@ pub struct MarkdownStyle {
 impl Default for MarkdownStyle {
     /// Creates the canonical Markdown formatting style.
     ///
-    /// # Returns
     /// The default deterministic style.
+    /// # Returns
+    /// The operation result.
     fn default() -> Self {
         Self {
             list_marker: '-',
@@ -37,11 +38,13 @@ impl Default for MarkdownStyle {
 impl MarkdownStyle {
     /// Validates style choices and returns a normalized immutable style.
     ///
-    /// # Returns
     /// The validated style.
     ///
-    /// # Errors
     /// Returns an error when a marker, fence, or spacing value is unsupported.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn validate(self) -> Result<Self, String> {
         if !matches!(self.list_marker, '-' | '*' | '+') {
             return Err("unordered list marker must be '-', '*' or '+'".to_owned());

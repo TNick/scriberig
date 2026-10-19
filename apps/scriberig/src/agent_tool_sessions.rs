@@ -9,16 +9,17 @@ use crate::agent_tool_helpers::{argument_id, map_error};
 impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
     /// Reads a compact durable session tree.
     ///
-    /// # Parameters
     /// - `super`: Shared local agent tool.
     /// - `context`: Trusted application authorization context.
     /// - `arguments`: Provider arguments containing a session identifier.
     ///
-    /// # Returns
     /// Branch handles and a bounded session summary.
     ///
-    /// # Errors
     /// Returns invalid arguments, authorization, or session lookup failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn session_tree(
         &self,
         context: &ApplicationContext,
@@ -42,16 +43,17 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Reads one branch activity view using the shared session boundary.
     ///
-    /// # Parameters
     /// - `super`: Shared local agent tool.
     /// - `context`: Trusted application authorization context.
     /// - `arguments`: Provider arguments containing session and branch IDs.
     ///
-    /// # Returns
     /// The selected branch handle and bounded turn count.
     ///
-    /// # Errors
     /// Returns invalid arguments, authorization, or session lookup failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn session_activity(
         &self,
         context: &ApplicationContext,

@@ -94,11 +94,11 @@ fn unordered_collection_order_does_not_change_bytes() {
 
 /// Encodes a value through the production canonical value implementation.
 ///
-/// # Parameters
 /// - `value`: Value to encode.
 ///
-/// # Returns
 /// The canonical bytes for `value`.
+/// # Returns
+/// The operation result.
 fn encode(value: &KnowledgeValue) -> Vec<u8> {
     let mut writer = CanonicalWriter::new();
     value.encode_canonical(&mut writer);

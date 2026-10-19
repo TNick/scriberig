@@ -7,16 +7,13 @@ use std::str::FromStr;
 
 /// Submits a remote agent command and resolves its operation identity.
 ///
-/// # Parameters
 /// - `adapter`: Remote service adapter holding the protocol client.
 /// - `session`: Session receiving the submitted command.
 /// - `branch`: Optional branch receiving the command.
 /// - `prompt`: User-authored instruction.
 ///
-/// # Returns
 /// Stable operation identity accepted by the server.
 ///
-/// # Errors
 /// Returns a remote protocol or identity error.
 pub(super) fn submit_agent_command<T: ProtocolTransport>(
     adapter: &RemoteAdapter<T>,
@@ -41,16 +38,13 @@ pub(super) fn submit_agent_command<T: ProtocolTransport>(
 
 /// Submits remote agent work and retains its accepted branch handle.
 ///
-/// # Parameters
 /// - `adapter`: Remote service adapter holding the protocol client.
 /// - `session`: Session receiving the submitted command.
 /// - `branch`: Optional continuation branch.
 /// - `prompt`: User-authored instruction.
 ///
-/// # Returns
 /// Stable operation, session, and branch handles.
 ///
-/// # Errors
 /// Returns a sanitized remote protocol or identity error.
 pub(super) fn submit_agent_handle<T: ProtocolTransport>(
     adapter: &RemoteAdapter<T>,

@@ -61,13 +61,13 @@ pub struct SyntaxMatchReport {
 
 /// Matches top-level Rust declarations without using source coordinates.
 ///
-/// # Parameters
 /// - `base`: Canonical Rust items.
 /// - `candidate`: Newly parsed Rust source.
 ///
-/// # Returns
 /// Deterministic identity matches and explicit ambiguity.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn match_items(base: &[CanonicalRustItem], candidate: &RustFile) -> SyntaxMatchReport {
     let mut used = vec![false; base.len()];
     let mut matches = Vec::new();
@@ -128,16 +128,18 @@ pub fn match_items(base: &[CanonicalRustItem], candidate: &RustFile) -> SyntaxMa
 trait ItemRef {
     /// Returns the wrapped item.
     ///
-    /// # Returns
     /// The canonical syntax item reference.
+    /// # Returns
+    /// The operation result.
     fn item_ref(&self) -> &RustItem;
 }
 
 impl ItemRef for CanonicalRustItem {
     /// Returns the wrapped item.
     ///
-    /// # Returns
     /// The canonical syntax item reference.
+    /// # Returns
+    /// The operation result.
     fn item_ref(&self) -> &RustItem {
         &self.item
     }
@@ -145,12 +147,12 @@ impl ItemRef for CanonicalRustItem {
 
 /// Reports whether two declarations have stable matching context.
 ///
-/// # Parameters
 /// - `left`: Existing syntax item.
 /// - `right`: Candidate syntax item.
 ///
-/// # Returns
 /// `true` when declaration kind and identity context match.
+/// # Returns
+/// The operation result.
 fn same_declaration(left: &RustItem, right: &RustItem) -> bool {
     match (left, right) {
         (RustItem::Function(left), RustItem::Function(right)) => left.name == right.name,
@@ -167,11 +169,11 @@ fn same_declaration(left: &RustItem, right: &RustItem) -> bool {
 
 /// Extracts a stable declaration prefix without source coordinates.
 ///
-/// # Parameters
 /// - `tokens`: Canonical declaration token text.
 ///
-/// # Returns
 /// Declaration tokens before the body.
+/// # Returns
+/// The operation result.
 fn declaration_head(tokens: &str) -> &str {
     tokens.split('{').next().unwrap_or(tokens).trim()
 }

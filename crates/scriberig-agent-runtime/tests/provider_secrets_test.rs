@@ -10,10 +10,12 @@ use scriberig_secrets::{CredentialProvider, SecretError, SecretValue};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{
-    Arc,
+    Arc, Mutex, MutexGuard, OnceLock,
     atomic::{AtomicUsize, Ordering},
 };
 use std::time::{Duration, Instant};
+
+static HTTP_FIXTURE_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
 /// Supplies a different protected fake credential for each outbound request.
 struct RotatingCredential {
@@ -24,14 +26,15 @@ struct RotatingCredential {
 impl CredentialProvider for RotatingCredential {
     /// Resolves the next protected fake credential.
     ///
-    /// # Parameters
     /// - `endpoint`: Actual destination supplied by the adapter.
     ///
-    /// # Returns
     /// A rotating fake credential.
     ///
-    /// # Errors
     /// Returns invalid-secret errors for malformed fixture values.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn credential(&self, endpoint: &str) -> Result<Option<SecretValue>, SecretError> {
         scriberig_secrets::normalize_endpoint(endpoint)?;
         let index = self.calls.fetch_add(1, Ordering::Relaxed);
@@ -46,11 +49,11 @@ impl CredentialProvider for RotatingCredential {
 
 /// Reads one bounded fixture request through its complete HTTP body.
 ///
-/// # Parameters
 /// - `stream`: Local fixture connection.
 ///
-/// # Returns
 /// Captured request header and body containing only fake credential material.
+/// # Returns
+/// The operation result.
 fn read_request(stream: &TcpStream) -> String {
     stream
         .set_nonblocking(false)
@@ -86,14 +89,60 @@ fn read_request(stream: &TcpStream) -> String {
     headers
 }
 
+/// Identifies a nonblocking socket with no queued connection.
+///
+/// Windows reports `WSAEWOULDBLOCK` using a platform-specific error kind.
+///
+/// - `error`: Error returned by the nonblocking socket operation.
+///
+/// Whether the accept operation should be retried.
+/// # Returns
+/// `true` when the socket operation should be retried.
+fn is_would_block(error: &std::io::Error) -> bool {
+    let windows_would_block = {
+        #[cfg(windows)]
+        {
+            error.raw_os_error() == Some(10035)
+        }
+        #[cfg(not(windows))]
+        {
+            false
+        }
+    };
+    error.kind() == std::io::ErrorKind::WouldBlock || windows_would_block
+}
+
+/// Serializes tests that open local HTTP fixtures on Windows.
+///
+/// Windows endpoint inspection may transiently prevent concurrent fixtures
+/// from receiving a loopback connection.
+///
+/// The fixture lock guard.
+/// # Returns
+/// A guard held for one local HTTP fixture test.
+fn lock_http_fixture() -> MutexGuard<'static, ()> {
+    HTTP_FIXTURE_LOCK
+        .get_or_init(|| Mutex::new(()))
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
+/// Treats the Windows no-queued-connection error as retryable.
+#[cfg(windows)]
+#[test]
+fn windows_would_block_socket_error_is_retryable() {
+    let error = std::io::Error::from_raw_os_error(10035);
+    assert!(is_would_block(&error));
+}
+
 /// Runs a bounded local HTTP fixture with one response per request.
 ///
-/// # Parameters
 /// - `listener`: Local listener bound before the provider starts.
 /// - `responses`: Complete HTTP fixture responses.
 ///
-/// # Returns
 /// A worker returning captured requests.
+/// # Returns
+/// The operation result.
 fn serve(listener: TcpListener, responses: Vec<String>) -> std::thread::JoinHandle<Vec<String>> {
     listener
         .set_nonblocking(true)
@@ -105,10 +154,7 @@ fn serve(listener: TcpListener, responses: Vec<String>) -> std::thread::JoinHand
             let mut stream = loop {
                 match listener.accept() {
                     Ok((stream, _)) => break stream,
-                    Err(error)
-                        if error.kind() == std::io::ErrorKind::WouldBlock
-                            && Instant::now() < deadline =>
-                    {
+                    Err(error) if is_would_block(&error) && Instant::now() < deadline => {
                         std::thread::sleep(Duration::from_millis(5));
                     }
                     Err(error) => panic!("fixture accept: {error}"),
@@ -125,12 +171,12 @@ fn serve(listener: TcpListener, responses: Vec<String>) -> std::thread::JoinHand
 
 /// Produces a complete successful fixture response with a bounded request ID.
 ///
-/// # Parameters
 /// - `body`: JSON or SSE response body.
 /// - `request_id`: Fake request identifier.
 ///
-/// # Returns
 /// A complete HTTP response.
+/// # Returns
+/// The operation result.
 fn response(body: &str, request_id: &str) -> String {
     format!(
         "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\nx-request-id: {request_id}\r\n\r\n{body}",
@@ -141,6 +187,7 @@ fn response(body: &str, request_id: &str) -> String {
 /// Verifies rotation and isolation on both real HTTP paths, including split reflections.
 #[test]
 fn credentials_are_headers_only_and_reflections_are_scrubbed() {
+    let _fixture_lock = lock_http_fixture();
     let listener = TcpListener::bind("127.0.0.1:0").expect("local listener");
     let endpoint = format!("http://{}/v1", listener.local_addr().expect("address"));
     let normal =
@@ -224,6 +271,7 @@ fn credentials_are_headers_only_and_reflections_are_scrubbed() {
 /// Redirects never forward a credential or trigger a second destination connection.
 #[test]
 fn both_http_paths_refuse_redirects() {
+    let _fixture_lock = lock_http_fixture();
     let target = TcpListener::bind("127.0.0.1:0").expect("redirect target");
     target.set_nonblocking(true).expect("nonblocking target");
     let listener = TcpListener::bind("127.0.0.1:0").expect("source listener");
@@ -251,11 +299,9 @@ fn both_http_paths_refuse_redirects() {
             .is_err()
     );
     worker.join().expect("source fixture");
-    assert_eq!(
-        target
+    assert!(is_would_block(
+        &target
             .accept()
             .expect_err("redirect destination never contacted")
-            .kind(),
-        std::io::ErrorKind::WouldBlock
-    );
+    ));
 }

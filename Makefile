@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help init build install tui onboard test-tui product-golden docs format lint test check dev dev-stop
+.PHONY: help init build install tui onboard clean-temp test-tui product-golden docs format lint test check dev dev-stop
 
 ONBOARD_DB ?= playground/dev-app-runtime/scriberig.sqlite
 
@@ -17,6 +17,7 @@ help:
 	@echo   make install    Build and install the srig executable.
 	@echo   make tui        Onboard and open the current project in the TUI.
 	@echo   make onboard    Import Git-tracked files from the current project.
+	@echo   make clean-temp Remove stale Scriberig test workspaces from system temp.
 	@echo   make test-tui   Run deterministic and PTY TUI test suites.
 	@echo   make product-golden Run browser, PTY, and conformance golden tests.
 	@echo   make docs       Build Rust and TypeScript API documentation.
@@ -51,6 +52,10 @@ tui:
 onboard:
 	$(PYTHON) tools/onboard.py --root . --db "$(ONBOARD_DB)"
 
+# Remove Scriberig temp workspaces unchanged for at least one hour.
+clean-temp:
+	$(PYTHON) tools/cleanup_temp.py
+
 # Run deterministic renderer/state tests and native PTY workflow tests.
 test-tui:
 	cargo test -p scriberig-tui --lib
@@ -77,12 +82,12 @@ lint:
 	pnpm --dir web format:check
 
 # Run the Rust and web test suites.
-test:
+test: clean-temp
 	cargo test --workspace
 	pnpm --dir web test
 
 # Run the complete non-mutating quality gate.
-check:
+check: clean-temp
 	$(PYTHON) tools/lint_repo.py
 	cargo fmt --all -- --check
 	cargo check --workspace --all-targets

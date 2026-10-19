@@ -10,14 +10,15 @@ use super::{
 
 /// Validates a project-relative path without consulting the filesystem.
 ///
-/// # Parameters
 /// - `path`: Client-provided project-relative path.
 ///
-/// # Returns
 /// Unit for a normalized relative path.
 ///
-/// # Errors
 /// Returns a structured error for empty, absolute, traversal, or non-normal paths.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn validate_relative_path(path: &str) -> Result<(), ProjectError> {
     let parsed = std::path::Path::new(path);
     if path.is_empty()
@@ -38,12 +39,12 @@ fn validate_relative_path(path: &str) -> Result<(), ProjectError> {
 
 /// Builds a concise candidate request error.
 ///
-/// # Parameters
 /// - `code`: Stable error category.
 /// - `message`: Safe diagnostic detail.
 ///
-/// # Returns
 /// Structured project error.
+/// # Returns
+/// The operation result.
 fn candidate_error(code: &'static str, message: &str) -> ProjectError {
     ProjectError {
         code,
@@ -54,16 +55,17 @@ fn candidate_error(code: &'static str, message: &str) -> ProjectError {
 
 /// Resolves one client change against its exact project file manifest.
 ///
-/// # Parameters
 /// - `change`: Requested source effect.
 /// - `files`: Source files owned by the candidate base.
 /// - `previous_path`: Prior sorted path used to reject duplicates.
 ///
-/// # Returns
 /// Effect enriched with exact base source bytes where required.
 ///
-/// # Errors
 /// Returns a structured ownership, path, duplicate, or size error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn resolve_effect(
     change: ProjectSourceChange,
     files: &[scriberig_store_sqlite::ProjectFileRecord],
@@ -114,17 +116,18 @@ fn resolve_effect(
 impl ProjectService {
     /// Creates one durable exact-base candidate containing ordered path effects.
     ///
-    /// # Parameters
     /// - `project`: Project receiving the candidate.
     /// - `base_snapshot`: Exact active snapshot required by the request.
     /// - `changes`: Ordered create, update, or delete requests.
     ///
-    /// # Returns
     /// One candidate whose effects are persisted together without changing disk.
     ///
-    /// # Errors
     /// Returns an error for stale bases, conflicting or invalid paths, ambiguous
     /// effects, and source ownership mismatches.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn propose_project_change(
         &self,
         project: ProjectId,

@@ -9,16 +9,17 @@ use scriberig_store::{
 };
 
 impl SnapshotStore for SqliteStore {
-    /// # Parameters
     /// - `snapshot`: Operation input.
     /// - `entity`: Operation input.
     ///
-    /// # Returns
     /// The requested storage result.
     ///
-    /// # Errors
     /// Returns a backend error when SQLite rejects the operation.
     /// Resolves an entity in a stored snapshot.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn resolve(
         &self,
         snapshot: SnapshotId,
@@ -58,16 +59,17 @@ impl SnapshotStore for SqliteStore {
             Err(SnapshotError::UnknownSnapshot(snapshot))
         }
     }
-    /// # Parameters
     /// - `base`: Operation input.
     /// - `changes`: Operation input.
     ///
-    /// # Returns
     /// The requested storage result.
     ///
-    /// # Errors
     /// Returns a backend error when SQLite rejects the operation.
     /// Applies changes and persists the resulting immutable snapshot.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn apply_changes(
         &self,
         base: SnapshotId,
@@ -77,28 +79,30 @@ impl SnapshotStore for SqliteStore {
         self.store_snapshot_with_parent(&next, base)?;
         Ok(next.id())
     }
-    /// # Parameters
     /// - `snapshot`: Operation input.
     ///
-    /// # Returns
     /// The requested storage result.
     ///
-    /// # Errors
     /// Returns a backend error when SQLite rejects the operation.
     /// Iterates a stored snapshot in deterministic order.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn iter(&self, snapshot: SnapshotId) -> Result<Vec<(EntityId, RevisionId)>, SnapshotError> {
         Ok(self.snapshot(snapshot)?.iter().collect())
     }
-    /// # Parameters
     /// - `from`: Operation input.
     /// - `to`: Operation input.
     ///
-    /// # Returns
     /// The requested storage result.
     ///
-    /// # Errors
     /// Returns a backend error when SQLite rejects the operation.
     /// Computes exact mapping changes between stored snapshots.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn diff_snapshots(
         &self,
         from: SnapshotId,
@@ -109,15 +113,16 @@ impl SnapshotStore for SqliteStore {
 
     /// Computes semantic revision transitions from one read of each snapshot.
     ///
-    /// # Parameters
     /// - `from`: Starting snapshot identity.
     /// - `to`: Ending snapshot identity.
     ///
-    /// # Returns
     /// Deterministically ordered additions, removals, and revision changes.
     ///
-    /// # Errors
     /// Returns an error when either snapshot is unavailable or unreadable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn diff_snapshot_revisions(
         &self,
         from: SnapshotId,
@@ -128,14 +133,15 @@ impl SnapshotStore for SqliteStore {
 
     /// Returns direct immutable predecessors retained for one snapshot.
     ///
-    /// # Parameters
     /// - `snapshot`: Snapshot whose direct parents are requested.
     ///
-    /// # Returns
     /// Direct parents in deterministic order.
     ///
-    /// # Errors
     /// Returns an error when the snapshot or parent records cannot be read.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn parents(&self, snapshot: SnapshotId) -> Result<Vec<SnapshotId>, SnapshotError> {
         if snapshot == scriberig_store::Snapshot::empty().id() {
             return Ok(Vec::new());
@@ -176,14 +182,15 @@ impl SnapshotStore for SqliteStore {
 
     /// Reads the durable accepted change associated with an exact result snapshot.
     ///
-    /// # Parameters
     /// - `snapshot`: Exact immutable result snapshot.
     ///
-    /// # Returns
     /// The accepted project source-change identity when one produced this snapshot.
     ///
-    /// # Errors
     /// Returns a backend error when the receipt cannot be read.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn change_provenance(
         &self,
         snapshot: SnapshotId,
@@ -206,15 +213,16 @@ impl SnapshotStore for SqliteStore {
 
 /// Verifies that a snapshot's persistent map root is present when referenced.
 ///
-/// # Parameters
 /// - `connection`: SQLite connection containing snapshot roots and nodes.
 /// - `snapshot`: Exact snapshot identity to check.
 ///
-/// # Returns
 /// Unit when the snapshot uses a valid root reference or legacy flat index.
 ///
-/// # Errors
 /// Returns a backend error for malformed or missing root nodes.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn validate_snapshot_root(
     connection: &rusqlite::Connection,
     snapshot: SnapshotId,
@@ -253,16 +261,17 @@ fn validate_snapshot_root(
 
 /// Persists a snapshot and its content-addressed binary map nodes.
 ///
-/// # Parameters
 /// - `transaction`: Transaction receiving the snapshot.
 /// - `snapshot`: Snapshot to persist.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// Unit after all immutable rows are prepared.
 ///
-/// # Errors
 /// Returns a SQLite insertion error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn store_in_transaction(
     transaction: &Transaction<'_>,
     snapshot: &scriberig_store::Snapshot,
@@ -293,17 +302,18 @@ pub(crate) fn store_in_transaction(
 
 /// Stores one direct immutable snapshot-parent relation.
 ///
-/// # Parameters
 /// - `transaction`: Transaction receiving the relation.
 /// - `snapshot`: Child snapshot identity.
 /// - `parent`: Direct parent snapshot identity.
 ///
-/// # Returns
 /// Unit after the relation is stored.
 ///
-/// # Errors
 /// Returns a SQLite insertion error.
 /// - `crate`: Argument named `crate`.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn store_parent_in_transaction(
     transaction: &Transaction<'_>,
     snapshot: SnapshotId,
@@ -318,17 +328,18 @@ pub(crate) fn store_parent_in_transaction(
 
 /// Stores a balanced persistent node tree and returns its content identity.
 ///
-/// # Parameters
 /// - `transaction`: Transaction receiving the node.
 /// - `entries`: Sorted entity-to-revision mappings.
 /// - `RevisionId`: Revision identity component of each mapping.
 /// - `RevisionId`: Revision component of each entry.
 ///
-/// # Returns
 /// The content identity of the stored node.
 ///
-/// # Errors
 /// Returns the SQLite insertion error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn store_node(
     transaction: &Transaction<'_>,
     entries: &[(EntityId, RevisionId)],

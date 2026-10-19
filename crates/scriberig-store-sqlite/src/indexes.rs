@@ -8,16 +8,18 @@ use crate::{SqliteStore, integrity, snapshot_integrity};
 impl SqliteStore {
     /// Rebuilds the flat snapshot-entry index from persistent map nodes.
     ///
-    /// # Returns
     /// Unit after the derived index transaction commits.
     ///
-    /// # Errors
     /// Returns an error when canonical nodes cannot be inspected or the index
     /// transaction cannot commit.
     ///
     /// # Panics
     /// Panics only if a checked SQLite identifier length changes before the
     /// identifier conversion.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn rebuild_derived_indexes(&self) -> rusqlite::Result<()> {
         let connection = self
             .connection

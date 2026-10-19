@@ -14,42 +14,42 @@ pub struct ContinuationToken(String);
 impl ContinuationToken {
     /// Creates an opaque continuation token.
     ///
-    /// # Parameters
     /// - `value`: Backend-independent opaque token value.
     ///
-    /// # Returns
     /// A continuation token whose internals are not exposed as public fields.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
 
     /// Creates a continuation bound to one operation and snapshot.
     ///
-    /// # Parameters
     /// - `operation`: Stable operation family producing the page.
     /// - `snapshot`: Exact snapshot used by the operation.
     /// - `offset`: Zero-based offset for the next page.
     ///
-    /// # Returns
     /// An opaque continuation token that providers can validate on reuse.
     #[must_use]
     /// - `crate`: Argument named `crate`.
+    /// # Returns
+    /// The operation result.
     pub fn for_page(operation: &str, snapshot: SnapshotId, offset: usize) -> Self {
         Self(format!("v1|{operation}|{snapshot}|{offset}"))
     }
 
     /// Decodes a continuation for its expected operation and snapshot.
     ///
-    /// # Parameters
     /// - `self`: Continuation token to validate.
     /// - `operation`: Operation family receiving the token.
     /// - `snapshot`: Exact snapshot expected by the operation.
     ///
-    /// # Returns
     /// The next-page offset when the token belongs to this context.
     #[must_use]
     /// - `crate`: Argument named `crate`.
+    /// # Returns
+    /// The operation result.
     pub fn offset_for(&self, operation: &str, snapshot: SnapshotId) -> Option<usize> {
         let snapshot = snapshot.to_string();
         let mut parts = self.0.split('|');
@@ -79,8 +79,9 @@ pub struct PageRequest {
 impl Default for PageRequest {
     /// Creates a request using the conservative default limit.
     ///
-    /// # Returns
     /// A page request with no continuation token.
+    /// # Returns
+    /// The operation result.
     fn default() -> Self {
         Self {
             limit: DEFAULT_PAGE_LIMIT,
@@ -92,15 +93,16 @@ impl Default for PageRequest {
 impl PageRequest {
     /// Validates and constructs a bounded page request.
     ///
-    /// # Parameters
     /// - `limit`: Requested item count.
     /// - `continuation`: Optional opaque continuation token.
     ///
-    /// # Returns
     /// A valid page request.
     ///
-    /// # Errors
     /// Returns `PageRequestError::InvalidLimit` for zero or oversized limits.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(
         limit: usize,
         continuation: Option<ContinuationToken>,

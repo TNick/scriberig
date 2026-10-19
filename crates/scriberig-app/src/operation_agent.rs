@@ -4,12 +4,12 @@ use super::{ApplicationError, ApplicationEvent, OperationId, OperationRegistry};
 
 /// Bounds one transient activity metadata value by Unicode scalar values.
 ///
-/// # Parameters
 /// - `value`: Metadata value received from the trusted runtime boundary.
 /// - `maximum`: Maximum number of Unicode scalar values to retain.
 ///
-/// # Returns
 /// The original value when within the limit, otherwise a bounded prefix.
+/// # Returns
+/// The operation result.
 fn bounded_value(value: &str, maximum: usize) -> String {
     value.chars().take(maximum).collect()
 }
@@ -17,18 +17,19 @@ fn bounded_value(value: &str, maximum: usize) -> String {
 impl OperationRegistry {
     /// Publishes bounded, transient agent status activity.
     ///
-    /// # Parameters
     /// - `id`: Active agent operation producing the activity.
     /// - `branch`: Stable branch identity associated with the activity.
     /// - `activity_kind`: Provider-neutral activity category.
     /// - `state`: Lifecycle state for the activity.
     /// - `summary`: Safe concise status text.
     ///
-    /// # Returns
     /// Success after publication to the monotonic operation event stream.
     ///
-    /// # Errors
     /// Returns a structured failure when the operation is unknown or terminal.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn publish_agent_activity(
         &self,
         id: &OperationId,
@@ -59,15 +60,16 @@ impl OperationRegistry {
 
     /// Publishes a bounded transient agent output fragment.
     ///
-    /// # Parameters
     /// - `id`: Active agent operation producing the fragment.
     /// - `text`: Incremental provider-neutral assistant text.
     ///
-    /// # Returns
     /// Success after the event has been published.
     ///
-    /// # Errors
     /// Returns a structured failure when the operation is unknown or terminal.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn publish_agent_output_delta(
         &self,
         id: &OperationId,
@@ -92,15 +94,16 @@ impl OperationRegistry {
 
     /// Publishes bounded agent output correlated to its active operation.
     ///
-    /// # Parameters
     /// - `id`: Active agent operation producing output.
     /// - `output`: Bounded output text for transient presentation.
     ///
-    /// # Returns
     /// Success after the event has been published.
     ///
-    /// # Errors
     /// Returns a structured failure when the operation is unknown or terminal.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn publish_agent_output(
         &self,
         id: &OperationId,

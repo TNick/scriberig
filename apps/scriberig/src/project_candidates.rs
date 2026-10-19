@@ -18,16 +18,17 @@ mod tests;
 impl<B: scriberig_app::ApplicationBackend> LocalAgentTool<'_, B> {
     /// Creates one exact-base project-wide source candidate.
     ///
-    /// # Parameters
     /// - `context`: Trusted exact snapshot authorization context.
     /// - `arguments`: Project, base snapshot, and relative source effects.
     /// - `super`: Parent module containing the agent tool adapter.
     ///
-    /// # Returns
     /// Stable candidate identity and effect count.
     ///
-    /// # Errors
     /// Returns a scope, input, or shared project operation failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn project_propose(
         &self,
         context: &ApplicationContext,
@@ -89,15 +90,16 @@ impl<B: scriberig_app::ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Loads candidate identity, base, validation state, and changed paths.
     ///
-    /// # Parameters
     /// - `arguments`: Candidate identity and optional registered profile identifier.
     /// - `super`: Parent module containing the agent tool adapter.
     ///
-    /// # Returns
     /// Bounded candidate inspection result.
     ///
-    /// # Errors
     /// Returns invalid input, storage failure, or missing candidate.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn project_candidate(
         &self,
         arguments: &serde_json::Value,
@@ -140,16 +142,17 @@ impl<B: scriberig_app::ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Runs the shared isolated validator for one exact candidate.
     ///
-    /// # Parameters
     /// - `arguments`: Stable candidate identity.
     /// - `cancelled`: Shared branch cancellation flag.
     /// - `super`: Parent module containing the agent tool adapter.
     ///
-    /// # Returns
     /// Durable validation state and bounded diagnostics.
     ///
-    /// # Errors
     /// Returns invalid input, stale-base, cancellation, or workspace failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn project_validate_candidate(
         &self,
         arguments: &serde_json::Value,
@@ -186,6 +189,8 @@ impl<B: scriberig_app::ApplicationBackend> LocalAgentTool<'_, B> {
             summary,
             vec![
                 format!("candidate:{}", candidate.id),
+                format!("entity:{}", candidate.entity),
+                format!("path:{}", candidate.path),
                 format!("validation:{}", validation_name(&candidate.validation)),
                 format!("validation_id:{}:{}", candidate.id, profile.identifier()),
                 format!("validation_profile:{}", profile.identifier()),
@@ -198,16 +203,17 @@ impl<B: scriberig_app::ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Acquires dependencies fixed by a candidate lockfile in isolation.
     ///
-    /// # Parameters
     /// - `arguments`: Stable candidate identity.
     /// - `cancelled`: Shared branch cancellation flag.
     /// - `super`: Parent module containing the agent tool adapter.
     ///
-    /// # Returns
     /// Durable dependency acquisition evidence bound to the candidate.
     ///
-    /// # Errors
     /// Returns invalid input, stale-base, cancellation, or acquisition failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn project_resolve_dependencies(
         &self,
         arguments: &serde_json::Value,
@@ -238,14 +244,15 @@ impl<B: scriberig_app::ApplicationBackend> LocalAgentTool<'_, B> {
 
 /// Parses one project identity from provider arguments.
 ///
-/// # Parameters
 /// - `arguments`: Provider argument object.
 ///
-/// # Returns
 /// Project identity.
 ///
-/// # Errors
 /// Returns a structured invalid-argument failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn parse_project(arguments: &serde_json::Value) -> Result<ProjectId, ToolError> {
     arguments
         .get("project")
@@ -257,14 +264,15 @@ fn parse_project(arguments: &serde_json::Value) -> Result<ProjectId, ToolError> 
 
 /// Parses the immutable candidate base snapshot.
 ///
-/// # Parameters
 /// - `arguments`: Provider argument object.
 ///
-/// # Returns
 /// Snapshot identity.
 ///
-/// # Errors
 /// Returns a structured invalid-argument failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn parse_snapshot(arguments: &serde_json::Value) -> Result<SnapshotId, ToolError> {
     arguments
         .get("base_snapshot")
@@ -276,14 +284,15 @@ fn parse_snapshot(arguments: &serde_json::Value) -> Result<SnapshotId, ToolError
 
 /// Parses one project-relative source effect.
 ///
-/// # Parameters
 /// - `value`: One structured effect object.
 ///
-/// # Returns
 /// Shared project change request.
 ///
-/// # Errors
 /// Returns invalid path, kind, or content input.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn parse_effect(value: &serde_json::Value) -> Result<ProjectSourceChange, ToolError> {
     let path = value
         .get("path")
@@ -322,14 +331,15 @@ fn parse_effect(value: &serde_json::Value) -> Result<ProjectSourceChange, ToolEr
 
 /// Parses a durable candidate identity.
 ///
-/// # Parameters
 /// - `arguments`: Provider argument object.
 ///
-/// # Returns
 /// Candidate identifier text.
 ///
-/// # Errors
 /// Returns a structured invalid-argument failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn candidate_id(arguments: &serde_json::Value) -> Result<&str, ToolError> {
     arguments
         .get("candidate")
@@ -340,15 +350,16 @@ fn candidate_id(arguments: &serde_json::Value) -> Result<&str, ToolError> {
 
 /// Requires a candidate operation to use the selected exact snapshot.
 ///
-/// # Parameters
 /// - `context`: Trusted operation context.
 /// - `snapshot`: Snapshot requested by the provider.
 ///
-/// # Returns
 /// Unit when the snapshot matches the user-selected project scope.
 ///
-/// # Errors
 /// Returns a capability denial for an out-of-scope snapshot.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn require_snapshot(context: &ApplicationContext, snapshot: SnapshotId) -> Result<(), ToolError> {
     if context.snapshot == Some(snapshot) {
         return Ok(());
@@ -361,11 +372,11 @@ fn require_snapshot(context: &ApplicationContext, snapshot: SnapshotId) -> Resul
 
 /// Names a project effect kind for compact provider-facing evidence.
 ///
-/// # Parameters
 /// - `kind`: Shared project effect kind.
 ///
-/// # Returns
 /// Stable lowercase effect label.
+/// # Returns
+/// The operation result.
 fn effect_kind(kind: ProjectSourceEffectKind) -> &'static str {
     match kind {
         ProjectSourceEffectKind::Create => "create",
@@ -376,11 +387,11 @@ fn effect_kind(kind: ProjectSourceEffectKind) -> &'static str {
 
 /// Names the durable candidate validation state.
 ///
-/// # Parameters
 /// - `validation`: Candidate validation record.
 ///
-/// # Returns
 /// Stable concise state label.
+/// # Returns
+/// The operation result.
 fn validation_name(validation: &CandidateValidation) -> &'static str {
     match validation {
         CandidateValidation::Pending => "pending",

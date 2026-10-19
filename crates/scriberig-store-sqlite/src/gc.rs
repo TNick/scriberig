@@ -8,28 +8,30 @@ use crate::{SqliteStore, integrity::integrity_check_connection};
 impl SqliteStore {
     /// Computes immutable objects that are not protected by a stable root set.
     ///
-    /// # Parameters
     /// - `protected`: Explicit snapshot roots captured for this maintenance run.
     ///
-    /// # Returns
     /// Integrity findings and valid unreachable candidates.
     ///
-    /// # Errors
     /// Returns an error when canonical storage cannot be inspected.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn gc_dry_run(&self, protected: &ProtectedRoots) -> rusqlite::Result<IntegrityReport> {
         self.integrity_check(protected)
     }
 
     /// Deletes valid immutable objects proven unreachable from protected roots.
     ///
-    /// # Parameters
     /// - `protected`: Explicit snapshot roots captured for this maintenance run.
     ///
-    /// # Returns
     /// The pre-sweep integrity report and candidate set.
     ///
-    /// # Errors
     /// Returns an error when inspection or the sweep transaction fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn gc_sweep(&self, protected: &ProtectedRoots) -> rusqlite::Result<IntegrityReport> {
         let connection = self
             .connection

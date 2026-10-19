@@ -16,10 +16,8 @@ pub struct GraphReadService<V> {
 impl<V> GraphReadService<V> {
     /// Creates a read service around a storage-independent graph view.
     ///
-    /// # Parameters
     /// - `view`: Snapshot-bound graph provider.
     ///
-    /// # Returns
     /// A universal read service.
     #[must_use]
     pub const fn new(view: V) -> Self {
@@ -28,10 +26,8 @@ impl<V> GraphReadService<V> {
 
     /// Returns the wrapped graph view.
     ///
-    /// # Parameters
     /// - `self`: Read service to inspect.
     ///
-    /// # Returns
     /// The graph provider.
     #[must_use]
     pub const fn view(&self) -> &V {
@@ -42,15 +38,16 @@ impl<V> GraphReadService<V> {
 impl<V: KnowledgeView> InspectService for GraphReadService<V> {
     /// Inspects one entity at an exact snapshot.
     ///
-    /// # Parameters
     /// - `self`: Graph-backed read service.
     /// - `request`: Exact snapshot or revision inspection request.
     ///
-    /// # Returns
     /// Compact or structural inspection metadata.
     ///
-    /// # Errors
     /// Returns a structured query error when the target cannot be resolved.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(&self, request: &InspectRequest) -> Result<Inspection, QueryError> {
         let (snapshot, revision, record) = match request.target {
             TargetRef::Snapshot(target) => {
@@ -140,15 +137,16 @@ impl<V: KnowledgeView> InspectService for GraphReadService<V> {
 impl<V: KnowledgeView> TraverseService for GraphReadService<V> {
     /// Lists one named collection from an exact snapshot.
     ///
-    /// # Parameters
     /// - `self`: Graph-backed read service.
     /// - `request`: Exact collection listing request.
     ///
-    /// # Returns
     /// One bounded page of semantic navigation entries.
     ///
-    /// # Errors
     /// Returns a structured query error for unavailable collections or views.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn list(&self, request: &ListRequest) -> Result<ListResult, QueryError> {
         let record = self.read_record(request.subject.snapshot, request.subject.entity)?;
         let collection = record
@@ -193,16 +191,17 @@ impl<V: KnowledgeView> TraverseService for GraphReadService<V> {
 
     /// Follows one outgoing or indexed incoming relation.
     ///
-    /// # Parameters
     /// - `self`: Graph-backed read service.
     /// - `request`: Exact relation traversal request.
     ///
-    /// # Returns
     /// One bounded page of semantic navigation entries.
     ///
-    /// # Errors
     /// Returns a structured query error when the relation or reverse index is
     /// unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn follow(&self, request: &FollowRequest) -> Result<FollowResult, QueryError> {
         let targets = match request.direction {
             FollowDirection::Outgoing => {
@@ -266,16 +265,16 @@ impl<V: KnowledgeView> TraverseService for GraphReadService<V> {
 impl<V: KnowledgeView> GraphReadService<V> {
     /// Builds a compact navigation entry from one exact revision.
     ///
-    /// # Parameters
     /// - `self`: Graph-backed read service.
     /// - `entity`: Entity identity for the navigation target.
     /// - `snapshot`: Exact snapshot containing the target.
     ///
-    /// # Returns
     /// A navigation entry with reusable identity and available metadata.
     ///
     /// This method intentionally does not require a full target revision;
     /// listing remains useful when only generic type metadata is available.
+    /// # Returns
+    /// The operation result.
     fn navigation(&self, entity: EntityId, snapshot: SnapshotId) -> NavigationEntry {
         let record = self.view.read_revision(snapshot, entity).ok().flatten();
         let entity_type = record
@@ -308,17 +307,18 @@ impl<V: KnowledgeView> GraphReadService<V> {
 
     /// Reads one exact graph record and maps backend failures to query errors.
     ///
-    /// # Parameters
     /// - `self`: Graph-backed read service.
     /// - `snapshot`: Exact snapshot to read.
     /// - `entity`: Entity identity to resolve.
     /// - `crate`: Internal visibility marker.
     ///
-    /// # Returns
     /// The exact graph record.
     ///
-    /// # Errors
     /// Returns a structured query error when the snapshot or entity is absent.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(crate) fn read_record(
         &self,
         snapshot: SnapshotId,
@@ -339,14 +339,14 @@ impl<V: KnowledgeView> GraphReadService<V> {
 
 /// Reads a text property when its canonical value is a string.
 ///
-/// # Parameters
 /// - `entity`: Entity identity for the navigation target.
 /// - `snapshot`: Exact snapshot containing the target.
 ///
-/// # Returns
 /// A compact navigation entry.
 /// - `record`: Argument named `record`.
 /// - `key`: Argument named `key`.
+/// # Returns
+/// The operation result.
 fn property_text(record: &scriberig_graph::RevisionRecord, key: &str) -> Option<String> {
     match record.properties.get(key) {
         Some(scriberig_core::KnowledgeValue::String(value)) => Some(value.clone()),
@@ -356,17 +356,18 @@ fn property_text(record: &scriberig_graph::RevisionRecord, key: &str) -> Option<
 
 /// Computes bounded page offsets from a provider-owned continuation token.
 ///
-/// # Parameters
 /// - `continuation`: Optional provider continuation token.
 /// - `limit`: Maximum number of items to return.
 ///
-/// # Returns
 /// Start and exclusive end offsets.
 ///
-/// # Errors
 /// Returns an invalid-continuation error when the token is malformed.
 /// - `operation`: Argument named `operation`.
 /// - `snapshot`: Argument named `snapshot`.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn page_bounds(
     continuation: Option<&ContinuationToken>,
     limit: usize,

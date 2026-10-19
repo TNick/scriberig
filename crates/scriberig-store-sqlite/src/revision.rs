@@ -7,27 +7,28 @@ use scriberig_store::{Revision, RevisionStore, StoreError};
 
 /// Converts a SQLite error to a revision backend error.
 ///
-/// # Parameters
 /// - `error`: SQLite error.
 ///
-/// # Returns
 /// A typed revision backend error.
+/// # Returns
+/// The operation result.
 fn sql_store(error: rusqlite::Error) -> StoreError {
     StoreError::Backend(error.to_string())
 }
 
 /// Inserts one immutable revision into an existing transaction.
 ///
-/// # Parameters
 /// - `transaction`: Transaction receiving the revision.
 /// - `revision`: Immutable revision to retain.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// Unit after the idempotent insert is prepared.
 ///
-/// # Errors
 /// Returns the SQLite insertion error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn insert_in_transaction(
     transaction: &Transaction<'_>,
     revision: &Revision,
@@ -46,15 +47,16 @@ pub(crate) fn insert_in_transaction(
 }
 
 impl RevisionStore for SqliteStore {
-    /// # Parameters
     /// - `revision`: Operation input.
     ///
-    /// # Returns
     /// The requested storage result.
     ///
-    /// # Errors
     /// Returns a backend error when SQLite rejects the operation.
     /// Inserts an immutable revision idempotently.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn put(&self, revision: Revision) -> Result<RevisionId, StoreError> {
         let id = revision.id();
         let connection = self.connection()?;
@@ -76,15 +78,16 @@ impl RevisionStore for SqliteStore {
             None => Err(StoreError::Backend("revision was not retained".to_owned())),
         }
     }
-    /// # Parameters
     /// - `id`: Operation input.
     ///
-    /// # Returns
     /// The requested storage result.
     ///
-    /// # Errors
     /// Returns a backend error when SQLite rejects the operation.
     /// Reads an immutable revision by identity.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn get(&self, id: RevisionId) -> Result<Option<Revision>, StoreError> {
         let connection = self.connection()?;
         let row = connection
@@ -108,15 +111,16 @@ impl RevisionStore for SqliteStore {
         })
         .transpose()
     }
-    /// # Parameters
     /// - `id`: Operation input.
     ///
-    /// # Returns
     /// The requested storage result.
     ///
-    /// # Errors
     /// Returns a backend error when SQLite rejects the operation.
     /// Checks whether an immutable revision is retained.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn contains(&self, id: RevisionId) -> Result<bool, StoreError> {
         let connection = self.connection()?;
         Ok(connection

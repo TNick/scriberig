@@ -9,12 +9,12 @@ use crate::{inspector::LoadState, state::TuiState};
 
 /// Renders session activity with visible rails and finite depth colors.
 ///
-/// # Parameters
 /// - `state`: Cached session and presentation state.
 /// - `available_width`: Width available for the session rows.
 ///
-/// # Returns
 /// Session activity text with hierarchy preserved independently of color.
+/// # Returns
+/// The operation result.
 pub(super) fn session_text(state: &TuiState, available_width: usize) -> Text<'static> {
     let LoadState::Ready(model) = &state.session else {
         return Text::from(super::render_primary::primary_text(state));
@@ -105,11 +105,11 @@ pub(super) fn session_text(state: &TuiState, available_width: usize) -> Text<'st
 
 /// Selects a stable terminal color for one nesting depth.
 ///
-/// # Parameters
 /// - `depth`: Zero-based ancestor depth.
 ///
-/// # Returns
 /// A color from the finite hierarchy palette.
+/// # Returns
+/// The operation result.
 fn depth_color(depth: usize) -> Color {
     const PALETTE: [Color; 6] = [
         Color::Cyan,

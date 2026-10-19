@@ -6,16 +6,17 @@ use scriberig_core::{EntityId, OperationId};
 
 /// Checks a named control capability in the trusted request context.
 ///
-/// # Parameters
 /// - `super`: Module namespace containing control request helpers.
 /// - `context`: Trusted application authorization context.
 /// - `name`: Capability identifier required by the tool.
 ///
-/// # Returns
 /// Unit when the capability is granted.
 ///
-/// # Errors
 /// Returns a capability denial or invalid capability failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn require_capability(
     context: &ApplicationContext,
     name: &str,
@@ -42,16 +43,17 @@ pub(super) fn require_capability(
 
 /// Parses one entity identifier argument.
 ///
-/// # Parameters
 /// - `super`: Module namespace containing control request helpers.
 /// - `arguments`: Provider argument object.
 /// - `name`: Entity argument key.
 ///
-/// # Returns
 /// Parsed entity identity.
 ///
-/// # Errors
 /// Returns a structured invalid-request failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn argument_id(
     arguments: &serde_json::Value,
     name: &str,
@@ -69,15 +71,16 @@ pub(super) fn argument_id(
 
 /// Parses one operation identifier argument.
 ///
-/// # Parameters
 /// - `super`: Module namespace containing control request helpers.
 /// - `arguments`: Provider argument object.
 ///
-/// # Returns
 /// Parsed operation identity.
 ///
-/// # Errors
 /// Returns a structured invalid-request failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn argument_operation(arguments: &serde_json::Value) -> Result<OperationId, ToolError> {
     arguments
         .get("operation")
@@ -92,12 +95,12 @@ pub(super) fn argument_operation(arguments: &serde_json::Value) -> Result<Operat
 
 /// Builds a structured invalid-argument failure.
 ///
-/// # Parameters
 /// - `super`: Module namespace containing control request helpers.
 /// - `name`: Missing argument name.
 ///
-/// # Returns
 /// A structured invalid-request error.
+/// # Returns
+/// The operation result.
 pub(super) fn invalid_argument(name: &str) -> ToolError {
     ToolError::Application {
         category: "invalid_request".to_owned(),
@@ -107,12 +110,12 @@ pub(super) fn invalid_argument(name: &str) -> ToolError {
 
 /// Builds a structured invalid-value failure.
 ///
-/// # Parameters
 /// - `name`: Invalid argument name.
 /// - `message`: Safe parser detail.
 ///
-/// # Returns
 /// A structured invalid-request error.
+/// # Returns
+/// The operation result.
 fn invalid_value(name: &str, message: &str) -> ToolError {
     ToolError::Application {
         category: "invalid_request".to_owned(),
@@ -122,12 +125,12 @@ fn invalid_value(name: &str, message: &str) -> ToolError {
 
 /// Maps an application failure into the agent tool boundary.
 ///
-/// # Parameters
 /// - `super`: Module namespace containing control request helpers.
 /// - `error`: Application failure to classify.
 ///
-/// # Returns
 /// Provider-neutral tool failure.
+/// # Returns
+/// The operation result.
 pub(super) fn map_error(error: &scriberig_app::ApplicationError) -> ToolError {
     ToolError::Application {
         category: error.category().to_owned(),

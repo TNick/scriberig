@@ -19,22 +19,22 @@ pub const EDITED_SOURCE: &str = "# Architecture\n\n## Storage\n\nObjects are imm
 
 /// Parses a Markdown fixture into its semantic document.
 ///
-/// # Parameters
 /// - `source`: Markdown fixture source.
 ///
-/// # Returns
 /// Parsed semantic document.
+/// # Returns
+/// The operation result.
 pub fn document(source: &str) -> MarkdownDocument {
     parse(source).expect("Markdown fixture").document
 }
 
 /// Creates a unique temporary directory for one integration case.
 ///
-/// # Parameters
 /// - `label`: Test case label.
 ///
-/// # Returns
 /// Created temporary directory path.
+/// # Returns
+/// The operation result.
 pub fn temporary_directory(label: &str) -> PathBuf {
     let path = std::env::temp_dir().join(format!("scriberig-{label}-{}", std::process::id()));
     let _ = fs::remove_dir_all(&path);
@@ -44,11 +44,11 @@ pub fn temporary_directory(label: &str) -> PathBuf {
 
 /// Computes a deterministic canonical revision for one semantic value.
 ///
-/// # Parameters
 /// - `value`: Semantic value to identify.
 ///
-/// # Returns
 /// Content-derived revision identity.
+/// # Returns
+/// The operation result.
 pub fn revision(value: &impl std::fmt::Debug) -> RevisionId {
     let payload = format!("{value:?}");
     revision_id(
@@ -61,11 +61,11 @@ pub fn revision(value: &impl std::fmt::Debug) -> RevisionId {
 
 /// Flattens a document into canonical nodes with stable fixture identities.
 ///
-/// # Parameters
 /// - `document`: Semantic document to flatten.
 ///
-/// # Returns
 /// Canonical nodes in structural order.
+/// # Returns
+/// The operation result.
 pub fn canonical_nodes(document: &MarkdownDocument) -> Vec<CanonicalNode> {
     let mut nodes = Vec::new();
     let mut next = 1u8;
@@ -77,7 +77,6 @@ pub fn canonical_nodes(document: &MarkdownDocument) -> Vec<CanonicalNode> {
 
 /// Adds one block and its nested children to a canonical fixture.
 ///
-/// # Parameters
 /// - `block`: Semantic block to add.
 /// - `parent`: Optional canonical parent identity.
 /// - `position`: Position within the parent collection.
@@ -107,12 +106,12 @@ pub fn flatten_node(
 
 /// Persists fixture revisions and returns the corresponding immutable snapshot.
 ///
-/// # Parameters
 /// - `store`: In-memory storage backend.
 /// - `nodes`: Canonical nodes to persist.
 ///
-/// # Returns
 /// Immutable snapshot containing the nodes.
+/// # Returns
+/// The operation result.
 pub fn persist_snapshot(store: &MemoryStore, nodes: &[CanonicalNode]) -> SnapshotId {
     let mut changes = Vec::new();
     for node in nodes {
@@ -136,13 +135,13 @@ pub fn persist_snapshot(store: &MemoryStore, nodes: &[CanonicalNode]) -> Snapsho
 
 /// Applies storage-level operations from a Markdown migration proposal.
 ///
-/// # Parameters
 /// - `store`: In-memory storage backend.
 /// - `base`: Base snapshot for the migration.
 /// - `operations`: Shared semantic operations to apply.
 ///
-/// # Returns
 /// Resulting immutable snapshot.
+/// # Returns
+/// The operation result.
 pub fn apply_operations(
     store: &MemoryStore,
     base: SnapshotId,
@@ -166,11 +165,11 @@ pub fn apply_operations(
 
 /// Creates a generic Markdown render request for an exact snapshot.
 ///
-/// # Parameters
 /// - `snapshot`: Exact semantic snapshot used for rendering.
 ///
-/// # Returns
 /// Generic render request.
+/// # Returns
+/// The operation result.
 pub fn render_request(snapshot: SnapshotId) -> RenderRequest {
     RenderRequest {
         specification: ProjectionSpecRef(EntityId::from_bytes([90; 16])),
@@ -188,14 +187,14 @@ pub fn render_request(snapshot: SnapshotId) -> RenderRequest {
 
 /// Creates and records one filesystem synchronization state.
 ///
-/// # Parameters
 /// - `path`: Physical projection path.
 /// - `snapshot`: Synchronization-base snapshot.
 /// - `bytes`: Last successfully rendered bytes.
 /// - `ownership`: Projection ownership policy.
 ///
-/// # Returns
 /// Synchronization state record.
+/// # Returns
+/// The operation result.
 pub fn sync_state(
     path: &Path,
     snapshot: SnapshotId,

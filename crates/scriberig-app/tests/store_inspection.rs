@@ -13,8 +13,9 @@ use scriberig_store_memory::MemoryStore;
 
 /// Creates an application context with project-wide inspection authority.
 ///
-/// # Returns
 /// A context sufficient for one trusted local inspection.
+/// # Returns
+/// The operation result.
 fn context() -> ApplicationContext {
     ApplicationContext {
         capabilities: CapabilityContext::with_grants([Capability {

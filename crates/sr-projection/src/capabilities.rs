@@ -39,14 +39,14 @@ pub enum CapabilityError {
 impl ProjectionCapabilities {
     /// Creates a capability declaration after validating its implications.
     ///
-    /// # Parameters
     /// - `features`: Operations and guarantees supported by the adapter.
     ///
-    /// # Returns
-    /// A valid capability declaration.
     ///
-    /// # Errors
     /// Returns an error when editing or round-trip guarantees lack prerequisites.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(
         features: impl IntoIterator<Item = ProjectionFeature>,
     ) -> Result<Self, CapabilityError> {
@@ -67,25 +67,24 @@ impl ProjectionCapabilities {
 
     /// Reports whether a projection feature is supported.
     ///
-    /// # Parameters
     /// - `self`: Capability declaration to inspect.
     /// - `feature`: Feature to look up.
     ///
-    /// # Returns
     /// `true` when the feature is present.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn supports(&self, feature: ProjectionFeature) -> bool {
         self.features.contains(&feature)
     }
 
-    /// Creates a render-only capability declaration.
     ///
-    /// # Parameters
     /// - `self`: No existing value is required.
     ///
-    /// # Returns
     /// Capabilities for read-only rendering.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn read_only() -> Self {
         Self {
             features: BTreeSet::from([ProjectionFeature::Renderable]),
@@ -94,12 +93,12 @@ impl ProjectionCapabilities {
 
     /// Creates capabilities for an editable, renderable projection.
     ///
-    /// # Parameters
     /// - `self`: No existing value is required.
     ///
-    /// # Returns
     /// Capabilities with parsing and editing enabled.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn editable() -> Self {
         Self {
             features: BTreeSet::from([

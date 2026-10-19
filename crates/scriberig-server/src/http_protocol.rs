@@ -8,19 +8,16 @@ use crate::server::ApplicationService;
 
 /// Dispatches one operation-segment request through the public protocol.
 ///
-/// # Parameters
 /// - state: Shared application service and fixture state.
 /// - operation: Stable operation identifier from the URL.
 /// - body: JSON request payload.
 /// - `correlation_id`: Request correlation identity.
 ///
-/// # Returns
 /// A serialized typed protocol response envelope.
 ///
-/// # Errors
 /// Returns a transport status and structured body for malformed or unknown
 /// operations.
-pub(super) fn dispatch<S: ApplicationService>(
+pub(super) fn dispatch<S: ApplicationService + 'static>(
     state: &HttpState<S>,
     operation: &str,
     body: &str,
@@ -40,13 +37,26 @@ pub(super) fn dispatch<S: ApplicationService>(
             )
         });
     }
-    let response = Dispatcher::for_principal(&state.service, state.principal.clone()).dispatch(
-        scriberig_protocol::RequestEnvelope {
-            version: scriberig_protocol::ProtocolVersion::default(),
-            correlation_id,
-            request,
-        },
-    );
+    let lifecycle_handler = state.plan_lifecycle_handler.as_ref().map(|handler| {
+        let handler = std::sync::Arc::clone(handler);
+        std::sync::Arc::new(
+            move |service: &&S,
+                  context: &scriberig_app::ApplicationContext,
+                  request: &scriberig_app::PlanLifecycleRequest,
+                  action: scriberig_app::PlanLifecycleAction| {
+                handler(*service, context, request, action)
+            },
+        ) as std::sync::Arc<crate::http::PlanLifecycleHandler<&S>>
+    });
+    let response = Dispatcher::for_principal(&state.service, state.principal.clone())
+        .dispatch_with_plan_lifecycle(
+            scriberig_protocol::RequestEnvelope {
+                version: scriberig_protocol::ProtocolVersion::default(),
+                correlation_id,
+                request,
+            },
+            lifecycle_handler.as_deref(),
+        );
     serde_json::to_value(response).map_err(|error| {
         (
             500,
@@ -57,15 +67,16 @@ pub(super) fn dispatch<S: ApplicationService>(
 
 /// Decodes one stable operation identifier into a protocol request variant.
 ///
-/// # Parameters
 /// - `operation`: Stable operation identifier from the URL.
 /// - `body`: JSON request payload.
 ///
-/// # Returns
 /// The corresponding typed protocol request.
 ///
-/// # Errors
 /// Returns a transport status and structured body when decoding fails.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn decode_request(
     operation: &str,
     body: &str,
@@ -101,11 +112,29 @@ fn decode_request(
         "agent_start" => {
             scriberig_protocol::Request::AgentStart(serde_json::from_str(body).map_err(invalid)?)
         }
+        "agent_new_session" => scriberig_protocol::Request::AgentNewSession(
+            serde_json::from_str(body).map_err(invalid)?,
+        ),
         "agent_continue" => {
             scriberig_protocol::Request::AgentContinue(serde_json::from_str(body).map_err(invalid)?)
         }
+        "agent_continue_at" => scriberig_protocol::Request::AgentContinueAt(
+            serde_json::from_str(body).map_err(invalid)?,
+        ),
         "session" | "session_read" => {
             scriberig_protocol::Request::SessionRead(serde_json::from_str(body).map_err(invalid)?)
+        }
+        "plan_create" => {
+            scriberig_protocol::Request::PlanCreate(serde_json::from_str(body).map_err(invalid)?)
+        }
+        "plan_lifecycle" => {
+            scriberig_protocol::Request::PlanLifecycle(serde_json::from_str(body).map_err(invalid)?)
+        }
+        "plan_assignment" => scriberig_protocol::Request::PlanAssignment(
+            serde_json::from_str(body).map_err(invalid)?,
+        ),
+        "plan_replan" => {
+            scriberig_protocol::Request::PlanReplan(serde_json::from_str(body).map_err(invalid)?)
         }
         "model_request_detail" => scriberig_protocol::Request::ModelRequestDetail(
             serde_json::from_str(body).map_err(invalid)?,

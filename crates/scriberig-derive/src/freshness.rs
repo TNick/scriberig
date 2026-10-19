@@ -43,14 +43,14 @@ pub enum FreshnessState {
 
 /// Evaluates a policy against observation metadata at an explicit time.
 ///
-/// # Parameters
 /// - `policy`: Freshness policy selected for the request.
 /// - `observation`: Optional exact source observation.
 /// - `now`: Deterministic caller-supplied timestamp.
 ///
-/// # Returns
 /// Structured freshness state. No record or canonical snapshot is modified.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn evaluate_freshness(
     policy: &FreshnessPolicy,
     observation: Option<&FreshnessObservation>,

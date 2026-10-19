@@ -77,15 +77,15 @@ pub struct MarkdownSynchronizationResult {
 
 /// Merges an external Markdown candidate with current canonical state.
 ///
-/// # Parameters
 /// - `base`: Last synchronized semantic document, when retrievable.
 /// - `current`: Current canonical semantic document.
 /// - `external`: Parsed external semantic candidate.
 ///
-/// # Returns
 /// A formatting-only result, merged result, convergence, structured conflict,
 /// or explicit missing-base outcome.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn three_way_merge(
     base: Option<&MarkdownDocument>,
     current: &MarkdownDocument,
@@ -119,7 +119,6 @@ pub fn three_way_merge(
 
 /// Merges and prepares a Markdown projection for atomic rerender/write.
 ///
-/// # Parameters
 /// - `base_snapshot`: Last synchronized snapshot, when retrievable.
 /// - `base`: Last synchronized semantic document, when retrievable.
 /// - `current_snapshot`: Current canonical snapshot.
@@ -128,12 +127,14 @@ pub fn three_way_merge(
 /// - `style`: Exact deterministic Markdown style.
 /// - `result_snapshot`: Snapshot to record after a successful merge promotion.
 ///
-/// # Returns
 /// Merge outcome, optional rendered bytes, and a deferred synchronization base.
 ///
-/// # Errors
 /// This preparation function does not perform I/O and does not return errors.
 #[must_use]
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn synchronize(
     base_snapshot: Option<SnapshotId>,
     base: Option<&MarkdownDocument>,
@@ -205,11 +206,12 @@ struct Hunk {
 /// - `external`: Argument named `external`.
 /// - `path`: Argument named `path`.
 ///
-/// # Returns
-/// The value produced by the declaration.
 ///
-/// # Errors
 /// Returns an error when the operation cannot complete.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn merge_sequence(
     base: &[MarkdownBlock],
     current: &[MarkdownBlock],
@@ -290,11 +292,12 @@ fn merge_sequence(
 /// - `external`: Argument named `external`.
 /// - `path`: Argument named `path`.
 ///
-/// # Returns
-/// The value produced by the declaration.
 ///
-/// # Errors
 /// Returns an error when the operation cannot complete.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn merge_section_replacement(
     base: &[MarkdownBlock],
     current: &Hunk,
@@ -337,7 +340,7 @@ fn merge_section_replacement(
 /// - `side`: Argument named `side`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 fn diff_hunks(base: &[MarkdownBlock], side: &[MarkdownBlock]) -> Vec<Hunk> {
     let mut anchors = Vec::new();
     let mut base_index = 0;

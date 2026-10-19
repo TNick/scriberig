@@ -135,3 +135,11 @@ All write surfaces must converge on the shared migration/change model. Do not ad
 - Do not create duplicate core abstractions because a provisional design used a different crate prefix.
 - Add or update tests at the lowest layer that owns a behavior.
 - Keep generated files clearly marked and out of hand-edited source paths when possible.
+
+## Temporary agent work
+
+When an agent needs a temporary directory, create it under
+`playground/agentic-work/`. Name the directory with the prefix
+`YYYMMDD-HHMMSS ` followed by a representative name of no more than 40
+characters. Use the directory only for temporary agent work and remove it when
+that work is complete.

@@ -37,14 +37,15 @@ struct CancellingProvider(Arc<AtomicBool>);
 impl ModelProvider for CancellingProvider {
     /// Cancels the branch during provider work and returns a tool request.
     ///
-    /// # Parameters
     /// - `_messages`: Current conversation.
     ///
-    /// # Returns
     /// A tool request that must be discarded after cancellation.
     ///
-    /// # Errors
     /// This fixture never returns an error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn decide(&mut self, _messages: &[AgentMessage]) -> Result<ModelDecision, String> {
         self.0.store(true, Ordering::Release);
         Ok(ModelDecision::Tool(ToolInput {
@@ -61,23 +62,25 @@ struct CountingTool(Arc<AtomicUsize>);
 impl Tool for CountingTool {
     /// Returns the fixture tool identifier.
     ///
-    /// # Returns
     /// The stable name `counting`.
+    /// # Returns
+    /// The operation result.
     fn name(&self) -> &'static str {
         "counting"
     }
 
     /// Counts one invocation and returns its input unchanged.
     ///
-    /// # Parameters
     /// - `_context`: Runtime request context.
     /// - `input`: Tool request to accept.
     ///
-    /// # Returns
     /// A bounded successful tool result.
     ///
-    /// # Errors
     /// This fixture never returns an error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke(
         &self,
         _context: &ApplicationContext,

@@ -14,5 +14,8 @@ scriberig-migration = { path = "../scriberig-migration" }
 serde = { version = "1.0", features = ["derive"] }
 schemars = "0.8"
 
+[dev-dependencies]
+serde_json = "1.0"
+
 [lints]
 workspace = true

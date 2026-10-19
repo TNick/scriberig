@@ -15,17 +15,18 @@ pub struct Revision {
 impl Revision {
     /// Validates an externally supplied revision identity against its fields.
     ///
-    /// # Parameters
     /// - `id`: Claimed immutable revision identity.
     /// - `version`: Canonical encoding version.
     /// - `object_type`: Semantic object type.
     /// - `payload`: Canonical payload bytes.
     ///
-    /// # Returns
     /// A revision record when the claimed identity matches.
     ///
-    /// # Errors
     /// Returns an identity or encoding error when validation fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn from_parts(
         id: RevisionId,
         version: EncodingVersion,
@@ -51,19 +52,19 @@ impl Revision {
 
     /// Computes an immutable revision identity from canonical fields.
     ///
-    /// # Parameters
     /// - `version`: Canonical encoding version.
     /// - `object_type`: Semantic object type.
     /// - `payload`: Canonical payload bytes.
     ///
-    /// # Returns
     /// An immutable revision with a computed content identity.
     ///
-    /// # Errors
     /// Returns an encoding error when the version is unsupported.
     ///
-    /// # Errors
     /// Returns an encoding error when `version` is unsupported.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(
         version: EncodingVersion,
         object_type: TypeId,
@@ -86,17 +87,19 @@ impl Revision {
     }
     /// Returns the semantic object type.
     ///
-    /// # Returns
     /// The immutable semantic object type.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn object_type(&self) -> &TypeId {
         &self.object_type
     }
     /// Returns the canonical payload bytes.
     ///
-    /// # Returns
     /// The canonical payload slice.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn payload(&self) -> &[u8] {
         &self.payload
     }

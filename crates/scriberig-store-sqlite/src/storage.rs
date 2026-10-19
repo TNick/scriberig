@@ -11,31 +11,33 @@ use crate::{SqliteStore, recovery, snapshot_integrity};
 impl SqliteStore {
     /// Returns a locked SQLite connection for backend operations.
     ///
-    /// # Parameters
     /// - `self`: Store whose connection is requested.
     /// - `crate`: Internal visibility marker.
     ///
-    /// # Returns
     /// The locked SQLite connection.
     ///
-    /// # Errors
     /// Returns a lock-poisoning error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(crate) fn connection(&self) -> Result<std::sync::MutexGuard<'_, Connection>, StoreError> {
         self.connection.lock().map_err(|_| StoreError::LockPoisoned)
     }
 
     /// Loads and validates one immutable snapshot.
     ///
-    /// # Parameters
     /// - `self`: Store containing the snapshot.
     /// - `id`: Snapshot identity to load.
     /// - `crate`: Internal visibility marker.
     ///
-    /// # Returns
     /// The validated immutable snapshot.
     ///
-    /// # Errors
     /// Returns an unknown-snapshot or backend integrity error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(crate) fn snapshot(&self, id: SnapshotId) -> Result<Snapshot, SnapshotError> {
         let connection = self
             .connection
@@ -115,16 +117,17 @@ impl SqliteStore {
 
     /// Stores a snapshot and its direct predecessor in one transaction.
     ///
-    /// # Parameters
     /// - `snapshot`: Immutable snapshot to persist.
     /// - `parent`: Direct predecessor of the snapshot.
     ///
-    /// # Returns
     /// Unit after the transaction commits.
     ///
-    /// # Errors
     /// Returns an error when SQLite rejects the transaction.
     /// - `crate`: Argument named `crate`.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(crate) fn store_snapshot_with_parent(
         &self,
         snapshot: &Snapshot,
@@ -144,11 +147,11 @@ impl SqliteStore {
 
 /// Converts a SQLite error to a snapshot backend error.
 ///
-/// # Parameters
 /// - `error`: SQLite error.
 ///
-/// # Returns
 /// A typed snapshot backend error.
+/// # Returns
+/// The operation result.
 fn sql_snapshot(error: rusqlite::Error) -> SnapshotError {
     SnapshotError::Backend(error.to_string())
 }

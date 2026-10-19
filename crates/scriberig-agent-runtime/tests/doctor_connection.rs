@@ -74,12 +74,12 @@ fn connection_check_rejects_provider_refusals() {
 
 /// Creates a minimal normalized fixture response.
 ///
-/// # Parameters
 /// - `finish_reason`: Terminal response behavior under test.
 /// - `text`: Optional final text returned by the provider.
 ///
-/// # Returns
 /// A provider response with no generated content or external metadata.
+/// # Returns
+/// The operation result.
 fn response(finish_reason: FinishReason, text: Option<&str>) -> ModelResponse {
     ModelResponse {
         text: text.map(str::to_owned),

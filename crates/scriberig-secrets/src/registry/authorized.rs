@@ -24,14 +24,15 @@ pub struct AuthorizedCredential {
 impl CredentialProvider for AuthorizedCredential {
     /// Rechecks destination and project authority before reading the source.
     ///
-    /// # Parameters
     /// - `endpoint`: Actual configured provider base URL.
     ///
-    /// # Returns
     /// A protected credential for this request only.
     ///
-    /// # Errors
     /// Returns a safe failure before retrieval if authority is absent.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn credential(&self, endpoint: &str) -> Result<Option<SecretValue>, SecretError> {
         let mut policy = self.locations.load()?.policy;
         if let Some(binding) = &self.invocation_binding {
@@ -47,18 +48,19 @@ impl CredentialProvider for AuthorizedCredential {
 
 /// Checks an in-memory policy before a test or embedded source read.
 ///
-/// # Parameters
 /// - `policy`: Explicit allowed destinations and projects.
 /// - `reference`: Requested reference.
 /// - `endpoint`: Requested destination.
 /// - `context`: Trusted consumer context.
 /// - `resolver`: Secret source called only after authorization.
 ///
-/// # Returns
 /// A protected authorized credential.
 ///
-/// # Errors
 /// Returns a safe policy or source error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn resolve_authorized(
     policy: &SecretPolicy,
     reference: &SecretRef,

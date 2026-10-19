@@ -33,10 +33,8 @@ impl EncodingVersion {
 
     /// Constructs an encoding version from its stable integer value.
     ///
-    /// # Parameters
     /// - `value`: Version number.
     ///
-    /// # Returns
     /// The version wrapper.
     #[must_use]
     pub const fn new(value: u16) -> Self {
@@ -45,8 +43,9 @@ impl EncodingVersion {
 
     /// Validates and constructs a version supported by this implementation.
     ///
-    /// # Parameters
     /// - `value`: Version number to validate.
+    ///
+    /// The supported encoding version.
     ///
     /// # Returns
     /// The supported encoding version.
@@ -63,10 +62,8 @@ impl EncodingVersion {
 
     /// Returns the stable integer value of this version.
     ///
-    /// # Parameters
     /// - `self`: Version to inspect.
     ///
-    /// # Returns
     /// The version number.
     #[must_use]
     pub const fn value(self) -> u16 {
@@ -78,15 +75,16 @@ impl EncodingVersion {
 impl Display for EncodingVersion {
     /// Formats the version as its decimal number.
     ///
-    /// # Parameters
     /// - `self`: Version to format.
     /// - `formatter`: Destination formatter.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error if writing to the formatter fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         write!(formatter, "{}", self.value)
     }
@@ -120,7 +118,6 @@ pub struct CanonicalWriter {
 impl CanonicalWriter {
     /// Creates an empty canonical writer.
     ///
-    /// # Returns
     /// An empty writer.
     #[must_use]
     pub const fn new() -> Self {
@@ -129,12 +126,12 @@ impl CanonicalWriter {
 
     /// Creates a writer with reserved output capacity.
     ///
-    /// # Parameters
     /// - `capacity`: Initial byte capacity.
     ///
-    /// # Returns
     /// An empty writer with reserved capacity.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             bytes: Vec::with_capacity(capacity),
@@ -143,7 +140,6 @@ impl CanonicalWriter {
 
     /// Writes a caller-defined fixed domain tag.
     ///
-    /// # Parameters
     /// - `tag`: Stable bytes identifying the value domain.
     pub fn write_tag(&mut self, tag: &[u8]) {
         self.bytes.extend_from_slice(tag);
@@ -151,7 +147,6 @@ impl CanonicalWriter {
 
     /// Writes a 16-bit unsigned integer in big-endian order.
     ///
-    /// # Parameters
     /// - `value`: Integer to encode.
     pub fn write_u16(&mut self, value: u16) {
         self.bytes.extend_from_slice(&value.to_be_bytes());
@@ -159,7 +154,6 @@ impl CanonicalWriter {
 
     /// Writes an 8-bit unsigned integer.
     ///
-    /// # Parameters
     /// - `value`: Integer to encode.
     pub fn write_u8(&mut self, value: u8) {
         self.bytes.push(value);
@@ -167,7 +161,6 @@ impl CanonicalWriter {
 
     /// Writes a 32-bit unsigned integer in big-endian order.
     ///
-    /// # Parameters
     /// - `value`: Integer to encode.
     pub fn write_u32(&mut self, value: u32) {
         self.bytes.extend_from_slice(&value.to_be_bytes());
@@ -175,7 +168,6 @@ impl CanonicalWriter {
 
     /// Writes a 64-bit unsigned integer in big-endian order.
     ///
-    /// # Parameters
     /// - `value`: Integer to encode.
     pub fn write_u64(&mut self, value: u64) {
         self.bytes.extend_from_slice(&value.to_be_bytes());
@@ -183,7 +175,6 @@ impl CanonicalWriter {
 
     /// Writes a byte string preceded by its 64-bit length.
     ///
-    /// # Parameters
     /// - `value`: Bytes to encode.
     pub fn write_bytes(&mut self, value: &[u8]) {
         self.write_u64(value.len() as u64);
@@ -192,7 +183,6 @@ impl CanonicalWriter {
 
     /// Writes a UTF-8 string preceded by its byte length.
     ///
-    /// # Parameters
     /// - `value`: String to encode.
     pub fn write_str(&mut self, value: &str) {
         self.write_bytes(value.as_bytes());
@@ -200,7 +190,6 @@ impl CanonicalWriter {
 
     /// Writes a boolean using zero for false and one for true.
     ///
-    /// # Parameters
     /// - `value`: Boolean to encode.
     pub fn write_bool(&mut self, value: bool) {
         self.bytes.push(u8::from(value));
@@ -211,7 +200,6 @@ impl CanonicalWriter {
     /// Call `encode` only for `Some`; the caller encodes its contents with this
     /// writer after this method returns.
     ///
-    /// # Parameters
     /// - `is_some`: Whether the optional value is present.
     pub fn write_option(&mut self, is_some: bool) {
         self.bytes.push(u8::from(is_some));
@@ -219,7 +207,6 @@ impl CanonicalWriter {
 
     /// Writes an ordered sequence's element count.
     ///
-    /// # Parameters
     /// - `length`: Number of sequence elements.
     pub fn write_sequence_len(&mut self, length: usize) {
         self.write_u64(length as u64);
@@ -227,7 +214,6 @@ impl CanonicalWriter {
 
     /// Writes an unordered collection after sorting each item's canonical bytes.
     ///
-    /// # Parameters
     /// - `values`: Values whose semantic order is irrelevant.
     pub fn write_unordered<T: CanonicalEncode>(&mut self, values: impl IntoIterator<Item = T>) {
         let mut encoded = values
@@ -247,18 +233,20 @@ impl CanonicalWriter {
 
     /// Borrows the bytes written so far.
     ///
-    /// # Returns
     /// The current canonical byte sequence.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn as_bytes(&self) -> &[u8] {
         &self.bytes
     }
 
     /// Consumes the writer and returns the encoded bytes.
     ///
-    /// # Returns
     /// The canonical byte sequence.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn into_bytes(self) -> Vec<u8> {
         self.bytes
     }
@@ -268,7 +256,6 @@ impl CanonicalWriter {
 pub trait CanonicalEncode {
     /// Appends this value's canonical representation to a writer.
     ///
-    /// # Parameters
     /// - `self`: Value to encode.
     /// - `writer`: Output writer.
     fn encode_canonical(&self, writer: &mut CanonicalWriter);
@@ -278,7 +265,6 @@ pub trait CanonicalEncode {
 impl CanonicalEncode for crate::ids::EntityId {
     /// Encodes an entity identifier using its fixed-width bytes.
     ///
-    /// # Parameters
     /// - `self`: Entity identifier to encode.
     /// - `writer`: Canonical byte output.
     fn encode_canonical(&self, writer: &mut CanonicalWriter) {
@@ -291,7 +277,6 @@ impl CanonicalEncode for crate::ids::EntityId {
 impl CanonicalEncode for crate::ids::RevisionId {
     /// Encodes a revision identifier using its fixed-width bytes.
     ///
-    /// # Parameters
     /// - `self`: Revision identifier to encode.
     /// - `writer`: Canonical byte output.
     fn encode_canonical(&self, writer: &mut CanonicalWriter) {
@@ -305,19 +290,19 @@ impl CanonicalEncode for crate::ids::RevisionId {
 /// The domain tag, encoding version, object type, and payload all participate
 /// in the digest so changes to any identity input produce a different value.
 ///
-/// # Parameters
 /// - `version`: Canonical encoding version.
 /// - `object_type`: Semantic object type.
 /// - `payload`: Already canonicalized payload bytes.
 ///
-/// # Returns
 /// The BLAKE3-derived revision identifier.
 ///
-/// # Errors
 /// Returns `UnsupportedVersion` when the encoding version is not implemented.
 ///
-/// # Errors
 /// Returns an error when the encoding version is unsupported.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn revision_id(
     version: EncodingVersion,
     object_type: &crate::TypeId,
@@ -334,19 +319,19 @@ pub fn revision_id(
 /// object type, and a length-prefixed canonical payload. Callers that accept
 /// externally supplied versions should validate them with `try_new` first.
 ///
-/// # Parameters
 /// - `version`: Canonical encoding version.
 /// - `object_type`: Semantic object type.
 /// - `payload`: Already canonicalized payload bytes.
 ///
-/// # Returns
 /// The deterministic canonical envelope bytes.
 ///
-/// # Errors
 /// Returns `UnsupportedVersion` when the encoding version is not implemented.
 ///
-/// # Errors
 /// Returns an error when the encoding version is unsupported.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn revision_envelope(
     version: EncodingVersion,
     object_type: &crate::TypeId,

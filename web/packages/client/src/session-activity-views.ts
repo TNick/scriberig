@@ -57,6 +57,7 @@ export function branchActivity(
         ...(item.model === undefined ? {} : { model: item.model }),
         ...(item.thinkingLevel === undefined ? {} : { thinkingLevel: item.thinkingLevel }),
         ...(item.toolName === undefined ? {} : { toolName: item.toolName }),
+        ...(item.toolCategory === undefined ? {} : { toolCategory: item.toolCategory }),
         ...(item.toolArguments === undefined ? {} : { toolArguments: item.toolArguments }),
         ...(item.toolResultPreview === undefined
           ? {}
@@ -108,5 +109,19 @@ function activityKind(
     case "ThinkingLevelChanged":
     case "Error":
       return "model";
+    case "PlanCreated":
+    case "PlanRevised":
+    case "PlanNodeReady":
+    case "PlanNodeStarted":
+    case "PlanNodeCompleted":
+    case "PlanNodeFailed":
+    case "CoordinatorChanged":
+    case "DependencyStateChanged":
+      return "child";
+    case "AssignmentChanged":
+      return "model";
+    case "SemanticOperation":
+    case "ExternalProcess":
+      return "tool";
   }
 }

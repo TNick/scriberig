@@ -11,9 +11,10 @@ pub struct MemoryRootStore {
 
 impl Default for MemoryRootStore {
     ///
-    /// # Returns
     /// The requested root result.
     /// Creates an empty root store.
+    /// # Returns
+    /// The operation result.
     fn default() -> Self {
         Self::new()
     }
@@ -21,10 +22,11 @@ impl Default for MemoryRootStore {
 
 impl MemoryRootStore {
     ///
-    /// # Returns
     /// The requested root result.
     /// Creates an empty named-root store.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new() -> Self {
         Self {
             roots: RwLock::new(BTreeMap::new()),
@@ -33,12 +35,12 @@ impl MemoryRootStore {
 }
 
 impl RootStore for MemoryRootStore {
-    /// # Parameters
     /// - `name`: Operation input.
     ///
-    /// # Returns
     /// The requested root result.
     /// Reads a named root.
+    /// # Returns
+    /// The operation result.
     fn read_root(&self, name: &RootName) -> Option<SnapshotId> {
         self.roots.read().ok()?.get(name).copied()
     }
@@ -47,11 +49,12 @@ impl RootStore for MemoryRootStore {
     /// - `name`: Argument named `name`.
     /// - `snapshot`: Argument named `snapshot`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set_root(&self, name: RootName, snapshot: SnapshotId) -> Result<(), RootError> {
         self.roots
             .write()
@@ -59,17 +62,18 @@ impl RootStore for MemoryRootStore {
             .insert(name, snapshot);
         Ok(())
     }
-    /// # Parameters
     /// - `name`: Operation input.
     /// - `expected`: Operation input.
     /// - `new`: Operation input.
     ///
-    /// # Returns
     /// The requested root result.
     ///
-    /// # Errors
     /// Returns a root backend error.
     /// Promotes a root using an atomic compare-and-set.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn compare_and_set_root(
         &self,
         name: RootName,
@@ -91,17 +95,18 @@ impl RootStore for MemoryRootStore {
         roots.insert(name, new);
         Ok(())
     }
-    /// # Parameters
     /// - `name`: Operation input.
     /// - `expected`: Operation input.
     /// - `new`: Operation input.
     ///
-    /// # Returns
     /// The requested root result.
     ///
-    /// # Errors
     /// Returns a root backend error.
     /// Performs an atomic compare-and-swap with an explicit stale outcome.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn compare_and_swap(
         &self,
         name: RootName,

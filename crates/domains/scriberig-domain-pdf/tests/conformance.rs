@@ -12,15 +12,17 @@ struct PdfFixture;
 impl ConformanceFixture for PdfFixture {
     /// Returns the fixture domain name.
     ///
-    /// # Returns
     /// Domain name.
+    /// # Returns
+    /// The operation result.
     fn domain(&self) -> &'static str {
         "pdf"
     }
     /// Returns the canonical PDF identity.
     ///
-    /// # Returns
     /// Canonical inspection.
+    /// # Returns
+    /// The operation result.
     fn canonical_inspection(&self) -> Inspection {
         Inspection {
             entity: EntityId::from_bytes([7; 16]),
@@ -29,22 +31,25 @@ impl ConformanceFixture for PdfFixture {
     }
     /// Returns the PDF inspection.
     ///
-    /// # Returns
     /// Domain inspection.
+    /// # Returns
+    /// The operation result.
     fn domain_inspection(&self) -> Inspection {
         self.canonical_inspection()
     }
     /// Returns the unchanged PDF identity.
     ///
-    /// # Returns
     /// Unchanged inspection.
+    /// # Returns
+    /// The operation result.
     fn unchanged_inspection(&self) -> Inspection {
         self.canonical_inspection()
     }
     /// Declares PDF derived extraction support.
     ///
-    /// # Returns
     /// Derived capability flags.
+    /// # Returns
+    /// The operation result.
     fn capabilities(&self) -> CapabilitySet {
         CapabilitySet {
             editable_projection: false,
@@ -53,8 +58,9 @@ impl ConformanceFixture for PdfFixture {
     }
     /// Returns extraction provenance evidence.
     ///
-    /// # Returns
     /// Extraction provenance evidence.
+    /// # Returns
+    /// The operation result.
     fn derived(&self) -> Option<DerivedEvidence> {
         let inspection = self.canonical_inspection();
         let input = EntityRevisionRef {

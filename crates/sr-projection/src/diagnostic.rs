@@ -88,12 +88,12 @@ pub struct ProjectionDiagnostic {
 impl ProjectionDiagnostic {
     /// Creates a structured diagnostic for an unsupported adapter operation.
     ///
-    /// # Parameters
     /// - `stage`: Lifecycle stage where the unsupported operation was requested.
     ///
-    /// # Returns
     /// An explicit non-retryable unsupported-operation diagnostic.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn unsupported(stage: DiagnosticStage) -> Self {
         Self {
             kind: DiagnosticKind::UnsupportedOperation,

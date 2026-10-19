@@ -78,12 +78,13 @@ pub struct Modifiers {
 
 /// Reads one translated event when one is available before the timeout.
 ///
-/// # Errors
 /// Returns the terminal backend error when polling or reading fails.
 /// - `timeout`: Argument named `timeout`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn read_event(timeout: Duration) -> io::Result<TuiEvent> {
     if !event::poll(timeout)? {
         return Ok(TuiEvent::Tick);
@@ -94,15 +95,15 @@ pub fn read_event(timeout: Duration) -> io::Result<TuiEvent> {
 
 /// Translates one Crossterm event at the terminal boundary.
 ///
-/// # Parameters
 /// - `result`: Terminal event or source read failure.
 ///
-/// # Errors
 /// Returns the source event error unchanged.
 /// - `crate`: Argument named `crate`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn translate_event(result: io::Result<Event>) -> io::Result<TuiEvent> {
     let event = result?;
     Ok(match event {
@@ -118,7 +119,7 @@ pub(crate) fn translate_event(result: io::Result<Event>) -> io::Result<TuiEvent>
 /// - `key`: Argument named `key`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 fn translate_key(key: KeyEvent) -> Key {
     let mut modifiers = Modifiers {
         control: key.modifiers.contains(KeyModifiers::CONTROL),

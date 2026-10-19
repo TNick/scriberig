@@ -8,14 +8,11 @@ use scriberig_protocol::{
 
 /// Reads the configured credential-safe model library.
 ///
-/// # Parameters
 /// - `self`: Shared application service.
 /// - `context`: Trusted capability context.
 ///
-/// # Returns
 /// Protocol-safe model descriptors and profiles.
 ///
-/// # Errors
 /// Returns authorization or application configuration failures.
 pub(super) fn model_library<B: ApplicationBackend>(
     service: &scriberig_app::ApplicationService<B>,
@@ -73,17 +70,14 @@ pub(super) fn model_library<B: ApplicationBackend>(
 
 /// Selects a model profile for future invocations.
 ///
-/// # Parameters
 /// - `self`: Shared application service.
 /// - `context`: Trusted capability context.
 /// - `session`: Serialized stable session identity.
 /// - `expected_revision`: Selection revision observed by the client.
 /// - `model_profile`: Curated profile identity.
 ///
-/// # Returns
 /// Updated provider-neutral session selection.
 ///
-/// # Errors
 /// Returns authorization, validation, conflict, or persistence failures.
 pub(super) fn set_session_model<B: ApplicationBackend>(
     service: &scriberig_app::ApplicationService<B>,
@@ -107,17 +101,14 @@ pub(super) fn set_session_model<B: ApplicationBackend>(
 
 /// Selects a thinking level for future invocations.
 ///
-/// # Parameters
 /// - `self`: Shared application service.
 /// - `context`: Trusted capability context.
 /// - `session`: Serialized stable session identity.
 /// - `expected_revision`: Selection revision observed by the client.
 /// - `thinking_level`: Advertised thinking capability identity.
 ///
-/// # Returns
 /// Updated provider-neutral session selection.
 ///
-/// # Errors
 /// Returns authorization, validation, conflict, or persistence failures.
 pub(super) fn set_session_thinking_level<B: ApplicationBackend>(
     service: &scriberig_app::ApplicationService<B>,
@@ -141,17 +132,14 @@ pub(super) fn set_session_thinking_level<B: ApplicationBackend>(
 
 /// Reads the captured safe request for one durable invocation.
 ///
-/// # Parameters
 /// - `service`: Application service owning session state.
 /// - `context`: Trusted session-read context.
 /// - `session`: Serialized session identity.
 /// - `branch`: Serialized branch identity.
 /// - `invocation`: Serialized model invocation identity.
 ///
-/// # Returns
 /// Bounded request data captured before provider serialization.
 ///
-/// # Errors
 /// Returns invalid-request or not-found when any selected record is absent.
 pub(super) fn model_request_detail<B: ApplicationBackend>(
     service: &scriberig_app::ApplicationService<B>,
@@ -175,17 +163,14 @@ pub(super) fn model_request_detail<B: ApplicationBackend>(
 
 /// Reads expanded bounded detail for one durable tool result.
 ///
-/// # Parameters
 /// - `service`: Application service owning session state.
 /// - `context`: Trusted session-read context.
 /// - `session`: Serialized session identity.
 /// - `branch`: Serialized branch identity.
 /// - `result`: Serialized tool result identity.
 ///
-/// # Returns
 /// Whitelisted safe result detail bounded to 32,768 characters.
 ///
-/// # Errors
 /// Returns invalid-request or not-found when a selected record is absent.
 pub(super) fn tool_result_detail<B: ApplicationBackend>(
     service: &scriberig_app::ApplicationService<B>,
@@ -209,14 +194,15 @@ pub(super) fn tool_result_detail<B: ApplicationBackend>(
 
 /// Parses a stable entity id from a protocol session reference.
 ///
-/// # Parameters
 /// - `value`: Serialized session identity.
 ///
-/// # Returns
 /// The typed stable session identity.
 ///
-/// # Errors
 /// Returns invalid-request when the identity is malformed.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn parse_session(value: &str) -> Result<scriberig_core::EntityId, scriberig_app::ApplicationError> {
     value
         .parse()
@@ -228,15 +214,16 @@ fn parse_session(value: &str) -> Result<scriberig_core::EntityId, scriberig_app:
 
 /// Parses a branch or invocation entity id from a public reference.
 ///
-/// # Parameters
 /// - `value`: Serialized entity identity.
 /// - `operation`: Operation name used in the validation error.
 ///
-/// # Returns
 /// The typed stable entity identity.
 ///
-/// # Errors
 /// Returns invalid-request when the identity is malformed.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn parse_entity(
     value: &str,
     operation: &str,
@@ -251,12 +238,12 @@ fn parse_entity(
 
 /// Converts a durable request projection into its bounded public DTO.
 ///
-/// # Parameters
 /// - `invocation`: Stable model invocation identity.
 /// - `request`: Captured safe request projection.
 ///
-/// # Returns
 /// Protocol detail with provider-neutral fields only.
+/// # Returns
+/// The operation result.
 fn project_model_request(
     invocation: String,
     request: &scriberig_session::ModelRequestProjection,
@@ -288,11 +275,11 @@ fn project_model_request(
 
 /// Converts the shared selection into its public protocol projection.
 ///
-/// # Parameters
 /// - `selection`: Shared session execution selection.
 ///
-/// # Returns
 /// Protocol-safe selection values.
+/// # Returns
+/// The operation result.
 pub(super) fn selection_response(
     selection: scriberig_session::SessionExecutionSelection,
 ) -> SessionExecutionSelection {

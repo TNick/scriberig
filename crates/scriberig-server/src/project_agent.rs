@@ -6,7 +6,9 @@ use scriberig_agent_core::{Tool, ToolError, ToolInput, ToolResult};
 use scriberig_agent_runtime::AgentRuntime;
 use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::provider::{FakeProvider, ToolCall, ToolDefinition};
-use scriberig_agent_runtime::tools::{ToolCatalog, ToolDescriptor, ToolExecutionMode};
+use scriberig_agent_runtime::tools::{
+    ToolCatalog, ToolCategory, ToolDescriptor, ToolExecutionMode,
+};
 use scriberig_app::ApplicationContext;
 use scriberig_core::{EntityId, SnapshotId};
 use serde::Deserialize;
@@ -60,23 +62,25 @@ struct ProjectAgentTool<'a, S> {
 impl<S: ApplicationService> Tool for ProjectAgentTool<'_, S> {
     /// Returns the stable provider tool identifier.
     ///
-    /// # Returns
     /// The stable project tool name.
+    /// # Returns
+    /// The operation result.
     fn name(&self) -> &'static str {
         "scriberig.project"
     }
 
     /// Inspects the selected entity at the requested exact snapshot.
     ///
-    /// # Parameters
     /// - `_context`: Agent execution context.
     /// - `input`: Structured semantic inspection input.
     ///
-    /// # Returns
     /// The selected entity's bounded semantic result.
     ///
-    /// # Errors
     /// Returns a tool error when scope or project state is invalid.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke(
         &self,
         _context: &ApplicationContext,
@@ -119,16 +123,17 @@ impl<S: ApplicationService> Tool for ProjectAgentTool<'_, S> {
 
     /// Creates the normal reviewed candidate through the project operation.
     ///
-    /// # Parameters
     /// - `_context`: Agent execution context.
     /// - `name`: Provider tool name.
     /// - `arguments`: Structured proposal arguments.
     ///
-    /// # Returns
     /// The normal migration-candidate tool result.
     ///
-    /// # Errors
     /// Returns a tool error when proposal arguments or project validation fail.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke_named(
         &self,
         _context: &ApplicationContext,
@@ -265,13 +270,13 @@ pub(super) fn agent<S: ApplicationService>(
 
 /// Builds the deterministic provider model used by the product golden path.
 ///
-/// # Parameters
 /// - `entity`: Selected semantic entity.
 /// - `snapshot`: Selected exact snapshot.
 /// - `accepted`: Deterministic accepted source text.
 ///
-/// # Returns
 /// A provider model with inspect and proposal tool calls.
+/// # Returns
+/// The operation result.
 fn golden_model(
     entity: EntityId,
     snapshot: SnapshotId,
@@ -302,12 +307,14 @@ fn golden_model(
             "Inspect selected semantic entity.",
             false,
             "semantic inspection",
+            ToolCategory::SemanticRead,
         ),
         tool_descriptor(
             "project_propose",
             "Create a reviewed source candidate.",
             true,
             "migration candidate",
+            ToolCategory::SemanticMutation,
         ),
     ]);
     ProviderModel::new(provider, "scriberig-golden").with_catalog(catalog)
@@ -315,19 +322,21 @@ fn golden_model(
 
 /// Creates one deterministic project-agent tool descriptor.
 ///
-/// # Parameters
 /// - `name`: Stable tool name.
 /// - `description`: Human-readable tool description.
 /// - `state_changing`: Whether the tool creates a candidate.
 /// - `result_shape`: Public result classification.
+/// - `category`: Trusted semantic operation category.
 ///
-/// # Returns
 /// A provider tool descriptor.
+/// # Returns
+/// The operation result.
 fn tool_descriptor(
     name: &str,
     description: &str,
     state_changing: bool,
     result_shape: &str,
+    category: ToolCategory,
 ) -> ToolDescriptor {
     ToolDescriptor {
         definition: ToolDefinition {
@@ -335,6 +344,7 @@ fn tool_descriptor(
             description: description.to_owned(),
             parameters: json!({"type": "object"}),
         },
+        category,
         result_shape: result_shape.to_owned(),
         invocation_label: None,
         state_changing,
@@ -345,14 +355,11 @@ fn tool_descriptor(
 
 /// Reads the currently captured Rust source for a project.
 ///
-/// # Parameters
 /// - `state`: HTTP state owning project storage.
 /// - `project`: Project whose source is requested.
 ///
-/// # Returns
 /// The captured Rust source text.
 ///
-/// # Errors
 /// Returns an HTTP error tuple when storage or source lookup fails.
 fn source_for<S: ApplicationService>(
     state: &HttpState<S>,
@@ -373,22 +380,22 @@ fn source_for<S: ApplicationService>(
 
 /// Creates a provider-facing invalid-input error.
 ///
-/// # Parameters
 /// - `value`: Missing input name.
 ///
-/// # Returns
 /// A normalized tool error.
+/// # Returns
+/// The operation result.
 fn invalid_scope(value: &str) -> ToolError {
     tool_error(&format!("missing {value}"))
 }
 
 /// Creates a provider-facing application error.
 ///
-/// # Parameters
 /// - `message`: Safe application diagnostic.
 ///
-/// # Returns
 /// A normalized tool error.
+/// # Returns
+/// The operation result.
 fn tool_error(message: &str) -> ToolError {
     ToolError::Application {
         category: "project_agent".to_owned(),

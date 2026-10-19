@@ -6,13 +6,13 @@ use crate::trust::InspectDepth;
 
 /// Renders an inspection result as a stable JSON object.
 ///
-/// # Parameters
 /// - `result`: Shared application inspection result.
 /// - `depth`: Compact or deep trust view.
 ///
-/// # Returns
 /// A valid JSON object containing the requested fields.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn render_inspection_json(result: &InspectResult, depth: InspectDepth) -> String {
     let mut fields = vec![format!(
         "\"entity\":{}",
@@ -57,12 +57,12 @@ pub fn render_inspection_json(result: &InspectResult, depth: InspectDepth) -> St
 
 /// Renders a capability denial as a structured JSON object.
 ///
-/// # Parameters
 /// - `denial`: Shared application denial details.
 ///
-/// # Returns
 /// Valid JSON containing every denial field without restricted content.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn render_denial_json(denial: &CapabilityDenial) -> String {
     let alternatives = denial
         .alternatives
@@ -82,11 +82,11 @@ pub fn render_denial_json(denial: &CapabilityDenial) -> String {
 
 /// Returns the stable display label for a source kind.
 ///
-/// # Parameters
 /// - `source`: Source kind to label.
 ///
-/// # Returns
 /// Stable machine-readable source label.
+/// # Returns
+/// The operation result.
 fn source_label(source: &SourceKind) -> &'static str {
     match source {
         SourceKind::Authored => "authored",
@@ -99,11 +99,11 @@ fn source_label(source: &SourceKind) -> &'static str {
 
 /// Returns the stable display label for a validation state.
 ///
-/// # Parameters
 /// - `validation`: Validation state to label.
 ///
-/// # Returns
 /// Stable machine-readable validation label.
+/// # Returns
+/// The operation result.
 fn validation_label(validation: &ValidationState) -> &'static str {
     match validation {
         ValidationState::Current => "current",
@@ -115,11 +115,11 @@ fn validation_label(validation: &ValidationState) -> &'static str {
 
 /// Escapes a string for inclusion in a JSON string literal.
 ///
-/// # Parameters
 /// - `value`: String content to escape.
 ///
-/// # Returns
 /// A quoted JSON string literal.
+/// # Returns
+/// The operation result.
 fn json_string(value: &str) -> String {
     let mut escaped = String::with_capacity(value.len() + 2);
     escaped.push('"');

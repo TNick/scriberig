@@ -39,10 +39,24 @@ pub enum Action {
     PaletteOpened,
     /// Open the find input overlay.
     FindOpened,
+    /// Open the exact snapshot chooser for semantic comparison.
+    DiffChooserOpened,
+    /// Open a source projection for the exact selected snapshot.
+    ProjectionOpened,
     /// Update the active text input.
     InputChanged(String),
     /// Submit the active text input.
     InputSubmitted,
+    /// Applies an accepted conversation submission with authoritative handles.
+    ConversationAgentAccepted(crate::service::AgentHandle),
+    /// Enters or leaves conversation-tree browse mode.
+    ConversationBrowsing(bool),
+    /// Pins the current navigable conversation source as the reply target.
+    ConversationPinCursor,
+    /// Resumes local follow of the shared plan coordinator cursor.
+    ConversationFollowCoordinator,
+    /// Expands or collapses the currently selected branch in the local tree.
+    ConversationToggleExpansion,
     /// Record a terminal resize.
     TerminalResized {
         /// New terminal width in columns.
@@ -187,7 +201,13 @@ pub enum Action {
         request_id: u64,
         /// Projected session tree.
         model: crate::view::session::SessionModel,
+        /// Tree-aware conversation projection over the same durable snapshot.
+        conversation: crate::view::conversation::ConversationModel,
+        /// Shared session snapshot retained for presentation-only rebuilding.
+        session_snapshot: Option<scriberig_session::Session>,
     },
+    /// Applies an authoritative plan result and rebuilds the conversation tree.
+    PlanUpdated(scriberig_session::Plan),
     /// Applies a successful model-library read.
     ModelLibraryLoaded {
         /// Request generation.

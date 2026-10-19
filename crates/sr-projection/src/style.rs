@@ -24,24 +24,24 @@ pub struct StyleValue(Vec<u8>);
 impl StyleValue {
     /// Creates an exact style value from its canonical bytes.
     ///
-    /// # Parameters
     /// - `bytes`: Canonical adapter-defined style representation.
     ///
-    /// # Returns
     /// The exact style value.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(bytes: Vec<u8>) -> Self {
         Self(bytes)
     }
 
     /// Borrows the exact style representation.
     ///
-    /// # Parameters
     /// - `self`: Value to inspect.
     ///
-    /// # Returns
     /// The canonical style bytes.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
     }

@@ -11,16 +11,17 @@ use crate::agent_tool_helpers::invalid_argument;
 impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
     /// Finds project-owned semantic entities in an exact snapshot.
     ///
-    /// # Parameters
     /// - `context`: Trusted capability and snapshot scope.
     /// - `arguments`: Project, snapshot, query text, and bounded page limit.
     /// - `super`: Parent module containing the tool adapter implementation.
     ///
-    /// # Returns
     /// A bounded list of stable semantic entity and source-path references.
     ///
-    /// # Errors
     /// Returns invalid input, authorization, or stale-snapshot failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn semantic_find(
         &self,
         context: &ApplicationContext,
@@ -90,16 +91,17 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Renders one project source through its exact semantic reference.
     ///
-    /// # Parameters
     /// - `context`: Trusted capability and snapshot scope.
     /// - `arguments`: Project, snapshot, and source entity identities.
     /// - `super`: Parent module containing the tool adapter implementation.
     ///
-    /// # Returns
     /// Source projection and stable digest/path handles, capped for model context.
     ///
-    /// # Errors
     /// Returns invalid input, authorization, stale-snapshot, or ownership failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn semantic_render(
         &self,
         context: &ApplicationContext,
@@ -157,14 +159,15 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
 /// Parses a project identity from named-tool arguments.
 ///
-/// # Parameters
 /// - `arguments`: Provider-supplied argument object.
 ///
-/// # Returns
 /// The requested project identity.
 ///
-/// # Errors
 /// Returns a structured invalid-argument error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn project_id(arguments: &serde_json::Value) -> Result<ProjectId, ToolError> {
     arguments
         .get("project")
@@ -176,14 +179,15 @@ fn project_id(arguments: &serde_json::Value) -> Result<ProjectId, ToolError> {
 
 /// Parses the exact snapshot required by a semantic source operation.
 ///
-/// # Parameters
 /// - `arguments`: Provider-supplied argument object.
 ///
-/// # Returns
 /// The requested immutable snapshot identity.
 ///
-/// # Errors
 /// Returns a structured invalid-argument error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn snapshot_id(arguments: &serde_json::Value) -> Result<SnapshotId, ToolError> {
     arguments
         .get("snapshot")
@@ -195,15 +199,16 @@ fn snapshot_id(arguments: &serde_json::Value) -> Result<SnapshotId, ToolError> {
 
 /// Requires semantic tool arguments to retain the trusted exact snapshot.
 ///
-/// # Parameters
 /// - `context`: Trusted application context.
 /// - `snapshot`: Snapshot requested by the tool arguments.
 ///
-/// # Returns
 /// Unit when the argument matches the authoritative context.
 ///
-/// # Errors
 /// Returns a capability denial for missing or mismatched semantic scope.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn require_context_snapshot(
     context: &ApplicationContext,
     snapshot: SnapshotId,

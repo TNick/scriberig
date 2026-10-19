@@ -4,11 +4,11 @@ use crate::mapping::{MarkdownBlock, MarkdownDocument};
 
 /// Renders a semantic Markdown document using the default stable style.
 ///
-/// # Parameters
 /// - `document`: Semantic document to render.
 ///
-/// # Returns
 /// Deterministic Markdown text.
+/// # Returns
+/// The operation result.
 pub fn render(document: &MarkdownDocument) -> String {
     document
         .blocks
@@ -20,11 +20,11 @@ pub fn render(document: &MarkdownDocument) -> String {
 
 /// Renders one semantic block.
 ///
-/// # Parameters
 /// - `block`: Semantic block to render.
 ///
-/// # Returns
 /// Deterministic Markdown for the block.
+/// # Returns
+/// The operation result.
 fn render_block(block: &MarkdownBlock) -> String {
     match block {
         MarkdownBlock::Heading { level, text } => format!("{} {text}", "#".repeat(*level as usize)),

@@ -22,17 +22,18 @@ pub(super) struct TransportResponse {
 pub(super) trait CompletionTransport: Send + Sync {
     /// Sends a JSON completion request through the transport boundary.
     ///
-    /// # Parameters
     /// - `endpoint`: Complete chat-completions URL.
     /// - `payload`: Serialized provider-neutral request.
     /// - `credential`: Optional bearer credential.
     /// - `timeout`: Maximum request duration.
     ///
-    /// # Returns
     /// A normalized HTTP response envelope.
     ///
-    /// # Errors
     /// Returns a classified transport failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn send(
         &self,
         endpoint: &str,
@@ -51,12 +52,12 @@ pub(super) struct ReqwestCompletionTransport {
 impl ReqwestCompletionTransport {
     /// Creates a reqwest-backed completion transport.
     ///
-    /// # Parameters
     /// - `super`: Parent module visibility boundary.
     /// - `client`: Configured reqwest client.
     ///
-    /// # Returns
     /// A production completion transport.
+    /// # Returns
+    /// The operation result.
     pub(super) fn new(client: reqwest::blocking::Client) -> Self {
         Self { client }
     }
@@ -65,17 +66,18 @@ impl ReqwestCompletionTransport {
 impl CompletionTransport for ReqwestCompletionTransport {
     /// Sends one completion request and buffers its response body.
     ///
-    /// # Parameters
     /// - `endpoint`: Complete chat-completions URL.
     /// - `payload`: Serialized provider-neutral request.
     /// - `credential`: Optional bearer credential.
     /// - `timeout`: Maximum request duration.
     ///
-    /// # Returns
     /// The HTTP response envelope.
     ///
-    /// # Errors
     /// Returns a classified reqwest failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn send(
         &self,
         endpoint: &str,
@@ -114,15 +116,16 @@ impl CompletionTransport for ReqwestCompletionTransport {
 impl OpenAiCompatibleProvider {
     /// Sends one streaming request and assembles its complete SSE response.
     ///
-    /// # Parameters
     /// - `self`: Configured provider adapter.
     /// - `request`: Provider-neutral request to execute.
     ///
-    /// # Returns
     /// A normalized response assembled from all stream fragments.
     ///
-    /// # Errors
     /// Returns a classified transport, HTTP, configuration, or stream failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn complete_streaming(
         &self,
         request: &ModelRequest,
@@ -132,16 +135,17 @@ impl OpenAiCompatibleProvider {
 
     /// Sends one streaming request and forwards each assistant text fragment.
     ///
-    /// # Parameters
     /// - `self`: Configured provider adapter.
     /// - `request`: Provider-neutral request to execute.
     /// - `on_text`: Callback receiving bounded provider text fragments.
     ///
-    /// # Returns
     /// A normalized response assembled from all stream fragments.
     ///
-    /// # Errors
     /// Returns a classified transport, HTTP, configuration, or stream failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn complete_streaming_with(
         &self,
         request: &ModelRequest,
@@ -210,12 +214,12 @@ impl OpenAiCompatibleProvider {
 
 /// Classifies a safe transport failure.
 ///
-/// # Parameters
 /// - `super`: Parent provider module namespace.
 /// - `error`: Transport error returned by the HTTP client.
 ///
-/// # Returns
 /// A provider-neutral transport category.
+/// # Returns
+/// The operation result.
 pub(super) fn classify_transport(error: &reqwest::Error) -> ProviderError {
     if error.is_timeout() {
         ProviderError::Timeout("provider request timed out".to_owned())
@@ -228,13 +232,13 @@ pub(super) fn classify_transport(error: &reqwest::Error) -> ProviderError {
 
 /// Classifies an HTTP status without retaining a sensitive response body.
 ///
-/// # Parameters
 /// - `super`: Parent provider module namespace.
 /// - `status`: HTTP status returned by the provider.
 /// - `request_id`: Safe provider request identifier.
 ///
-/// # Returns
 /// A provider-neutral HTTP failure category.
+/// # Returns
+/// The operation result.
 pub(super) fn classify_status(
     status: reqwest::StatusCode,
     request_id: Option<String>,

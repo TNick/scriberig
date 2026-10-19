@@ -4,14 +4,15 @@ macro_rules! agent_presentation_methods {
     () => {
         /// Reads shared principal-scoped agent presentation defaults.
         ///
-        /// # Parameters
         /// - `_context`: Authorized caller context.
         ///
-        /// # Returns
         /// Revisioned shared defaults independent from session history.
         ///
-        /// # Errors
         /// Returns unsupported-operation when unavailable.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn agent_presentation_preferences(
             &self,
             _context: &ApplicationContext,
@@ -23,15 +24,16 @@ macro_rules! agent_presentation_methods {
 
         /// Updates shared presentation defaults with an expected revision.
         ///
-        /// # Parameters
         /// - `_context`: Authorized caller context.
         /// - `_request`: Expected revision and complete preference values.
         ///
-        /// # Returns
         /// The updated shared defaults.
         ///
-        /// # Errors
         /// Returns unsupported-operation when unavailable.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn set_agent_presentation_preferences(
             &self,
             _context: &ApplicationContext,

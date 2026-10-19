@@ -69,14 +69,14 @@ pub struct ValidationEvidence {
 /// Evidence is reusable only when validator configuration, candidate snapshot,
 /// and complete dependency identities all match exactly.
 ///
-/// # Parameters
 /// - `evidence`: Prior validation evidence.
 /// - `candidate`: Candidate snapshot being considered.
 /// - `dependencies`: Exact dependencies observed for the candidate.
 ///
-/// # Returns
 /// `true` only when reuse is proven safe.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn evidence_applicable(
     evidence: &ValidationEvidence,
     candidate: Option<SnapshotId>,
@@ -93,14 +93,15 @@ pub trait Validator {
     type Error;
     /// Validates one explicit candidate without promoting it.
     ///
-    /// # Parameters
     /// - `candidate`: Explicit snapshot and dependency context.
     ///
-    /// # Returns
     /// Structured validation evidence.
     ///
-    /// # Errors
     /// Returns the validator-specific execution error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn validate(&self, candidate: ValidationCandidate) -> Result<ValidationEvidence, Self::Error>;
 }
 

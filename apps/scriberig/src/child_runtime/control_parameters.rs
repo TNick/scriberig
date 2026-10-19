@@ -2,12 +2,13 @@
 
 /// Defines precise JSON inputs for project bootstrap tools.
 ///
-/// # Parameters
 /// - `name`: Registered control operation.
 /// - `super`: Parent module containing the child runtime catalog.
 ///
-/// # Returns
 /// The provider-visible JSON Schema for the operation's bounded arguments.
+/// # Returns
+/// The operation result.
+#[allow(clippy::too_many_lines)] // The accepted parameter schema is intentionally explicit.
 pub(super) fn control_parameters(name: &str) -> serde_json::Value {
     match name {
         "project_scan" => serde_json::json!({
@@ -60,6 +61,21 @@ pub(super) fn control_parameters(name: &str) -> serde_json::Value {
             },
             "required": ["project", "snapshot", "entity"]
         }),
+        "domain_operation" => serde_json::json!({
+            "type": "object",
+            "properties": {
+                "capability": {"type": "string"},
+                "entity": {"type": "string"},
+                "snapshot": {"type": "string"},
+                "revision": {"type": "string"},
+                "branch": {"type": "string"},
+                "arguments": {"type": "object", "additionalProperties": {
+                    "type": ["string", "integer", "boolean"],
+                    "x-sensitive": true
+                }}
+            },
+            "required": ["capability", "entity", "snapshot"]
+        }),
         "project_propose" => serde_json::json!({
             "type": "object",
             "properties": {
@@ -86,6 +102,14 @@ pub(super) fn control_parameters(name: &str) -> serde_json::Value {
             "type": "object",
             "properties": {"candidate": {"type": "string"}},
             "required": ["candidate"]
+        }),
+        "project_merge_candidates" => serde_json::json!({
+            "type": "object",
+            "properties": {
+                "left_candidate": {"type": "string"},
+                "right_candidate": {"type": "string"}
+            },
+            "required": ["left_candidate", "right_candidate"]
         }),
         "project_validate_candidate" => serde_json::json!({
             "type": "object",

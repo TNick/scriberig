@@ -14,8 +14,9 @@ struct Provider {
 impl CapabilityProvider for Provider {
     /// Returns the provider's one capability descriptor.
     ///
-    /// # Returns
     /// One available capability for the test entity type.
+    /// # Returns
+    /// The operation result.
     fn capabilities(&self) -> Vec<CapabilityDescriptor> {
         vec![CapabilityDescriptor {
             id: CapabilityId::new(self.id).expect("capability"),

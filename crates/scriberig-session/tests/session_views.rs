@@ -19,6 +19,7 @@ fn views_do_not_require_turn_bodies() {
         branches: vec![branch.clone()],
         goals: Vec::new(),
         tasks: Vec::new(),
+        plans: Vec::new(),
         execution: SessionExecutionSelection::default(),
     };
     assert_eq!(SessionViews::branches(&session)[0].turn_count, 1);

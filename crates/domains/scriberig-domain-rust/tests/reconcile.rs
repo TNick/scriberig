@@ -9,12 +9,12 @@ use sr_change::Operation;
 
 /// Creates canonical items with deterministic test identities.
 ///
-/// # Parameters
 /// - `source`: Rust source to parse.
 /// - `ids`: Entity identity bytes in item order.
 ///
-/// # Returns
 /// Parsed canonical items.
+/// # Returns
+/// The operation result.
 fn canonical(source: &str, ids: &[u8]) -> Vec<CanonicalRustItem> {
     let file = parse(source).expect("canonical Rust source");
     file.items
@@ -30,11 +30,11 @@ fn canonical(source: &str, ids: &[u8]) -> Vec<CanonicalRustItem> {
 
 /// Returns a migration proposal from a reconciliation result.
 ///
-/// # Parameters
 /// - `result`: Rust reconciliation result.
 ///
-/// # Returns
 /// The proposal, or panics when a test unexpectedly receives another state.
+/// # Returns
+/// The operation result.
 fn proposal(result: RustReconciliation) -> Box<RustMigrationProposal> {
     let RustReconciliation::MigrationProposal(value) = result else {
         panic!("expected migration proposal");

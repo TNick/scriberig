@@ -16,15 +16,12 @@ use crate::server::ApplicationService;
 /// The connection remains open for a bounded lease, polling the authoritative
 /// event history and emitting heartbeats. Clients reconnect with the last id.
 ///
-/// # Parameters
 /// - `stream`: Connected HTTP client socket.
 /// - `state`: Application service and fixture state.
 /// - `path`: Request path, including optional query parameters.
 ///
-/// # Returns
 /// I/O result after the replay and live lease are written.
 ///
-/// # Errors
 /// Returns an I/O error when the response cannot be written.
 pub(super) fn handle<S: ApplicationService>(
     stream: &mut TcpStream,
@@ -75,16 +72,17 @@ pub(super) fn handle<S: ApplicationService>(
 
 /// Writes the explicit response for an expired event cursor.
 ///
-/// # Parameters
 /// - `stream`: Connected HTTP client socket.
 /// - `error`: Cursor validation error.
 /// - `origin`: Optional allowed CORS origin.
 ///
-/// # Returns
 /// I/O result after the error response is written.
 ///
-/// # Errors
 /// Returns the socket error when the response cannot be written.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn write_cursor_error(
     stream: &mut TcpStream,
     error: &scriberig_app::ApplicationError,
@@ -108,11 +106,9 @@ fn write_cursor_error(
 
 /// Reads one URL query value without interpreting unrelated parameters.
 ///
-/// # Parameters
 /// - `path`: Request path and query string.
 /// - `name`: Query parameter name.
 ///
-/// # Returns
 /// The first matching raw value.
 fn query_value<'a>(path: &'a str, name: &str) -> Option<&'a str> {
     path.split_once('?')?

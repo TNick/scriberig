@@ -223,6 +223,7 @@ pub(super) fn submit_agent_command<B: ApplicationBackend>(
         &scriberig_app::AgentCommandRequest {
             session,
             branch,
+            anchor: None,
             prompt: prompt.to_owned(),
             selection: None,
         },

@@ -10,6 +10,10 @@ use super::agent_tool_helpers::{
     argument_id, argument_operation, invalid_argument, map_error, require_capability,
 };
 
+#[path = "agent_tool/domain_operation.rs"]
+mod domain_operation;
+#[path = "agent_tool/project_candidate_merge.rs"]
+mod project_candidate_merge;
 #[path = "agent_tool_sessions.rs"]
 mod session_operations;
 
@@ -40,13 +44,13 @@ pub(super) struct LocalAgentTool<'a, B> {
 impl<'a, B> LocalAgentTool<'a, B> {
     /// Creates a local agent tool set over one application service.
     ///
-    /// # Parameters
     /// - `super`: Module namespace containing the tool constructor.
     /// - `service`: Application service owning the shared boundaries.
     ///
-    /// # Returns
     /// A tool set for the local agent branch.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub(super) fn new(service: &'a ApplicationService<B>) -> Self {
         Self {
             service,
@@ -58,12 +62,12 @@ impl<'a, B> LocalAgentTool<'a, B> {
 
     /// Enables project recovery operations over one shared durable store.
     ///
-    /// # Parameters
     /// - `store`: Durable store containing project registrations and files.
     /// - `super`: Module namespace containing the tool constructor.
     ///
-    /// # Returns
     /// This tool set with project recovery enabled.
+    /// # Returns
+    /// The operation result.
     pub(super) fn with_project_store(mut self, store: std::sync::Arc<SqliteStore>) -> Self {
         self.project = Some(ProjectService::new(std::sync::Arc::clone(&store)));
         self.project_store = Some(store);
@@ -74,23 +78,25 @@ impl<'a, B> LocalAgentTool<'a, B> {
 impl<B: ApplicationBackend> Tool for LocalAgentTool<'_, B> {
     /// Returns the primary tool identifier.
     ///
-    /// # Returns
     /// The stable composite agent-tool identifier.
+    /// # Returns
+    /// The operation result.
     fn name(&self) -> &'static str {
         "scriberig.agent"
     }
 
     /// Delegates semantic inspection to the shared inspect adapter.
     ///
-    /// # Parameters
     /// - `context`: Trusted application context.
     /// - `input`: Entity inspection input.
     ///
-    /// # Returns
     /// Compact inspection result.
     ///
-    /// # Errors
     /// Returns the shared inspection failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke(
         &self,
         context: &ApplicationContext,
@@ -101,17 +107,18 @@ impl<B: ApplicationBackend> Tool for LocalAgentTool<'_, B> {
 
     /// Executes one application control tool through shared APIs.
     ///
-    /// # Parameters
     /// - `context`: Trusted application context.
     /// - `name`: Registered control-tool identifier.
     /// - `arguments`: Provider arguments.
     /// - `cancelled`: Shared cancellation flag for the active branch.
     ///
-    /// # Returns
     /// Bounded control result with stable handles.
     ///
-    /// # Errors
     /// Returns authorization, parsing, or application failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke_named(
         &self,
         context: &ApplicationContext,
@@ -128,17 +135,18 @@ impl<B: ApplicationBackend> Tool for LocalAgentTool<'_, B> {
 
     /// Executes one application control tool with cancellation support.
     ///
-    /// # Parameters
     /// - `context`: Trusted application context.
     /// - `name`: Registered control-tool identifier.
     /// - `arguments`: Provider arguments.
     /// - `cancelled`: Shared cancellation flag for the active branch.
     ///
-    /// # Returns
     /// Bounded control result with stable handles.
     ///
-    /// # Errors
     /// Returns authorization, parsing, or application failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke_named_cancellable(
         &self,
         context: &ApplicationContext,
@@ -165,9 +173,11 @@ impl<B: ApplicationBackend> Tool for LocalAgentTool<'_, B> {
             "project_workspace" => self.project_workspace(arguments),
             "semantic_find" => self.semantic_find(context, arguments),
             "semantic_render" => self.semantic_render(context, arguments),
+            "domain_operation" => self.domain_operation(context, arguments),
             "project_rescan" => self.project_rescan(arguments),
             "project_repair_file" => self.project_repair_file(arguments),
             "project_propose" => self.project_propose(context, arguments),
+            "project_merge_candidates" => self.project_merge_candidates(arguments),
             "project_candidate" => self.project_candidate(arguments),
             "project_validate_candidate" => self.project_validate_candidate(arguments, cancelled),
             "project_resolve_dependencies" => {
@@ -186,15 +196,16 @@ impl<B: ApplicationBackend> Tool for LocalAgentTool<'_, B> {
 impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
     /// Builds a bounded control result from safe text and handles.
     ///
-    /// # Parameters
     /// - `summary`: Safe bounded result description.
     /// - `handles`: Stable handles for follow-up requests.
     ///
-    /// # Returns
     /// A provider-neutral control result.
     ///
-    /// # Errors
     /// This constructor does not fail.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn result(summary: impl Into<String>, handles: Vec<String>) -> ToolResult {
         ToolResult {
             entity: EntityId::from_bytes([0; 16]),
@@ -208,11 +219,13 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Returns the static provider-neutral runtime capability vocabulary.
     ///
-    /// # Returns
     /// A bounded capability result.
     ///
-    /// # Errors
     /// This lookup does not fail.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn capabilities() -> ToolResult {
         let names = [
             "runtime_capabilities",
@@ -244,14 +257,15 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Reads one operation lifecycle record.
     ///
-    /// # Parameters
     /// - `arguments`: Provider arguments containing an operation identifier.
     ///
-    /// # Returns
     /// The current operation status and stable operation handle.
     ///
-    /// # Errors
     /// Returns an invalid identifier or application lookup failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn operation_status(&self, arguments: &serde_json::Value) -> Result<ToolResult, ToolError> {
         let id = argument_operation(arguments)?;
         let record = self
@@ -267,14 +281,15 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Cancels one shared operation lifecycle record.
     ///
-    /// # Parameters
     /// - `arguments`: Provider arguments containing an operation identifier.
     ///
-    /// # Returns
     /// The cancelled operation status and stable operation handle.
     ///
-    /// # Errors
     /// Returns an invalid identifier or application lifecycle failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn operation_cancel(&self, arguments: &serde_json::Value) -> Result<ToolResult, ToolError> {
         let id = argument_operation(arguments)?;
         let record = self
@@ -290,14 +305,15 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Reads retained application events with an optional agent filter.
     ///
-    /// # Parameters
     /// - `name`: Event subscription tool identifier selecting the filter.
     ///
-    /// # Returns
     /// Bounded event cursors represented as stable handles.
     ///
-    /// # Errors
     /// This buffered read does not fail.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn events(&self, name: &str) -> ToolResult {
         let events = self.service.operations().events_with_sequences();
         let events = events.into_iter().filter(|(_, event)| match name {
@@ -332,16 +348,17 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Accepts a new agent command through the shared session boundary.
     ///
-    /// # Parameters
     /// - `context`: Trusted application authorization context.
     /// - `arguments`: Provider arguments containing session and prompt.
     /// - `branch`: Optional existing branch for continuation.
     ///
-    /// # Returns
     /// Accepted operation and session handles.
     ///
-    /// # Errors
     /// Returns invalid arguments, authorization, or application failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn agent_command(
         &self,
         context: &ApplicationContext,
@@ -361,6 +378,7 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
                 &scriberig_app::AgentCommandRequest {
                     session,
                     branch,
+                    anchor: None,
                     prompt: prompt.to_owned(),
                     selection: None,
                 },

@@ -7,16 +7,17 @@ use crate::ScanFile;
 
 /// Scans supported and unknown files below one project root.
 ///
-/// # Parameters
 /// - `root`: Project root to scan.
 /// - `tracked`: Optional set of Git-indexed paths to retain.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// Deterministically ordered scan files.
 ///
-/// # Errors
 /// Returns a filesystem traversal or read error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn scan_directory(
     root: &Path,
     tracked: Option<&BTreeSet<String>>,
@@ -31,18 +32,19 @@ pub(crate) fn scan_directory(
 
 /// Visits a directory recursively without following symlinks or generated trees.
 ///
-/// # Parameters
 /// - `root`: Project root used for relative paths.
 /// - `directory`: Directory currently being visited.
 /// - `tracked`: Optional set of paths selected by Git.
 /// - `files`: Scan results being collected.
 /// - `sensitive`: Credential paths excluded before reading any source bytes.
 ///
-/// # Returns
 /// Unit after the directory has been visited.
 ///
-/// # Errors
 /// Returns a filesystem traversal or read error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn visit_directory(
     root: &Path,
     directory: &Path,
@@ -84,11 +86,11 @@ fn visit_directory(
 
 /// Returns whether a project-relative path is excluded by default.
 ///
-/// # Parameters
 /// - `path`: Relative path to classify.
 ///
-/// # Returns
 /// Whether the path belongs to a generated or hidden tree.
+/// # Returns
+/// The operation result.
 fn is_excluded(path: &Path) -> bool {
     path.components().any(|component| {
         matches!(
@@ -110,13 +112,13 @@ fn is_excluded(path: &Path) -> bool {
 
 /// Selects a supported source adapter by file extension.
 ///
-/// # Parameters
 /// - `path`: File path to classify.
 /// - `bytes`: File bytes used to distinguish unknown text from binary data.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// The selected adapter name.
+/// # Returns
+/// The operation result.
 pub(crate) fn adapter_for(path: &Path, bytes: &[u8]) -> &'static str {
     let name = path.file_name().and_then(|value| value.to_str());
     if matches!(

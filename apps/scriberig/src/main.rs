@@ -31,22 +31,47 @@ use main_agent_execution::execute_model;
 
 /// Start the integrated `srig` executable and report runtime failures.
 ///
-/// # Returns
 /// Unit after the selected command completes.
 ///
-/// # Errors
 /// Returns an error when the API server cannot start or serve a request.
 #[allow(clippy::too_many_lines)]
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let command = scriberig_cli::parse();
     match command {
         scriberig_cli::Command::Serve(args) => {
-            scriberig_server::serve_with_origin(
+            let store = Arc::new(SqliteStore::open(&args.db)?);
+            let runner = Arc::new(native_tui_agent::NativeTuiAgentRunner::from_environment(
+                Arc::clone(&store),
+            )?);
+            let plan_lifecycle_handler: Arc<scriberig_server::PlanLifecycleHandler> =
+                Arc::new(move |service, context, request, action| {
+                    let mut runtime_context = context.clone();
+                    runtime_context.principal =
+                        Some(scriberig_app::Principal::new("local-http-agent"));
+                    runtime_context.capabilities.grants.push(Capability {
+                        scope: CapabilityScope::Project,
+                        actions: agent_actions(),
+                        constraints: CapabilityConstraints::unrestricted(),
+                    });
+                    scriberig_tui::AgentCommandRunner::plan_lifecycle(
+                        runner.as_ref(),
+                        service,
+                        &runtime_context,
+                        request,
+                        action,
+                    )
+                });
+            scriberig_server::serve_with_origin_and_plan_lifecycle(
                 &args.host,
                 args.port,
                 &args.db,
                 args.allow_origin.as_deref(),
                 &args.project_roots,
+                Some(plan_lifecycle_handler),
             )?;
         }
         scriberig_cli::Command::Tui(args) => tui_command::run(&args)?,
@@ -128,14 +153,15 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 /// Executes a headless prompt through the shared application agent boundary.
 ///
-/// # Parameters
 /// - `args`: Parsed prompt, database, and output settings.
 ///
-/// # Returns
 /// Unit after the terminal operation result is rendered.
 ///
-/// # Errors
 /// Returns an error when the local store, session operation, or output fails.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn run_shared_agent(
     args: &scriberig_cli::RunArgs,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -167,6 +193,7 @@ fn run_shared_agent(
     let request = scriberig_app::AgentCommandRequest {
         session,
         branch: None,
+        anchor: None,
         prompt: args.prompt.clone(),
         selection: None,
     };
@@ -217,14 +244,11 @@ fn run_shared_agent(
 /// Executes one local model loop using either the deterministic provider or a
 /// configured OpenAI-compatible provider.
 ///
-/// # Parameters
 /// - `args`: Provider and prompt configuration.
 /// - `context`: Authorized application context for the runtime.
 ///
-/// # Returns
 /// The completed provider-neutral runtime result.
 ///
-/// # Errors
 /// Returns a provider, tool, budget, or cancellation failure.
 fn run_composed_model<B: scriberig_app::ApplicationBackend>(
     args: &scriberig_cli::RunArgs,
@@ -280,11 +304,13 @@ fn run_composed_model<B: scriberig_app::ApplicationBackend>(
 
 /// Allocates a fresh session identity for one local command invocation.
 ///
-/// # Returns
 /// A session identity derived from the current process time.
 ///
-/// # Errors
 /// Returns an error when the system clock is before the Unix epoch.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn fresh_session_id() -> Result<scriberig_core::EntityId, std::time::SystemTimeError> {
     let nanos = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)?
@@ -296,11 +322,11 @@ fn fresh_session_id() -> Result<scriberig_core::EntityId, std::time::SystemTimeE
 
 /// Builds the least-authority context for local read-only product surfaces.
 ///
-/// # Parameters
 /// - `principal`: Stable identity assigned to the local surface.
 ///
-/// # Returns
 /// An application context granting inspection only.
+/// # Returns
+/// The operation result.
 fn local_read_context(principal: &str) -> ApplicationContext {
     ApplicationContext {
         capabilities: CapabilityContext::with_grants([Capability {
@@ -322,13 +348,15 @@ fn local_read_context(principal: &str) -> ApplicationContext {
 
 /// Builds the least-authority action set for the integrated agent runtime.
 ///
-/// # Returns
 /// Scoped actions for inspection, branch execution, and bounded observation.
+/// # Returns
+/// The operation result.
 fn agent_actions() -> BTreeSet<CapabilityAction> {
     [
         CapabilityAction::Inspect,
         CapabilityAction::Query,
         CapabilityAction::Custom("agent.delegate".to_owned()),
+        CapabilityAction::Custom("domain_operation".to_owned()),
         CapabilityAction::Custom("runtime_capabilities".to_owned()),
         CapabilityAction::Custom("operation_status".to_owned()),
         CapabilityAction::Custom("operation_cancel".to_owned()),
@@ -346,6 +374,7 @@ fn agent_actions() -> BTreeSet<CapabilityAction> {
         CapabilityAction::Custom("project_rescan".to_owned()),
         CapabilityAction::Custom("project_repair_file".to_owned()),
         CapabilityAction::Custom("project_propose".to_owned()),
+        CapabilityAction::Custom("project_merge_candidates".to_owned()),
         CapabilityAction::Custom("project_candidate".to_owned()),
         CapabilityAction::Custom("project_validate_candidate".to_owned()),
         CapabilityAction::Custom("project_resolve_dependencies".to_owned()),

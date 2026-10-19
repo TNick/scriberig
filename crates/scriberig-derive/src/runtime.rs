@@ -28,14 +28,15 @@ impl InMemoryDerivedRepository {
 impl DerivedRepository for InMemoryDerivedRepository {
     /// Inserts a record without replacing an immutable handle.
     ///
-    /// # Parameters
     /// - `record`: Immutable result to retain.
     ///
-    /// # Returns
     /// Success when inserted or already present identically.
     ///
-    /// # Errors
     /// Returns a conflict when the handle already names different data.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn insert(&mut self, record: DerivedResultRecord) -> Result<(), RepositoryError> {
         if let Some(existing) = self.records.get(&record.handle()) {
             if existing != &record {
@@ -51,28 +52,30 @@ impl DerivedRepository for InMemoryDerivedRepository {
 
     /// Retrieves one retained record by immutable handle.
     ///
-    /// # Parameters
     /// - `handle`: Immutable result identity.
     ///
-    /// # Returns
     /// The retained record, when present.
     ///
-    /// # Errors
     /// This lookup is infallible and returns `None` when absent.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn get(&self, handle: DerivedResultHandle) -> Option<&DerivedResultRecord> {
         self.records.get(&handle)
     }
 
     /// Retrieves every record with an exact derivation key.
     ///
-    /// # Parameters
     /// - `key`: Exact profile and dependency identity.
     ///
-    /// # Returns
     /// All retained records matching the key.
     ///
-    /// # Errors
     /// This lookup is infallible and returns an empty list when unmatched.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn by_key(&self, key: &DerivationKey) -> Vec<&DerivedResultRecord> {
         self.records
             .values()
@@ -82,14 +85,15 @@ impl DerivedRepository for InMemoryDerivedRepository {
 
     /// Retrieves records that declare one exact dependency.
     ///
-    /// # Parameters
     /// - `dependency`: Dependency to reverse-index.
     ///
-    /// # Returns
     /// Handles of records declaring the dependency.
     ///
-    /// # Errors
     /// This lookup is infallible and returns an empty list when unmatched.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn by_dependency(&self, dependency: &Dependency) -> Vec<DerivedResultHandle> {
         self.records
             .values()
@@ -100,11 +104,11 @@ impl DerivedRepository for InMemoryDerivedRepository {
 
     /// Retrieves the normalized dependency set for one record.
     ///
-    /// # Parameters
     /// - `handle`: Immutable result identity.
     ///
-    /// # Returns
     /// The dependency set when the record is retained.
+    /// # Returns
+    /// The operation result.
     fn dependencies(&self, handle: DerivedResultHandle) -> Option<&DependencySet> {
         self.records
             .get(&handle)
@@ -113,15 +117,16 @@ impl DerivedRepository for InMemoryDerivedRepository {
 
     /// Retrieves records attached to one exact entity revision.
     ///
-    /// # Parameters
     /// - `entity`: Exact entity identity.
     /// - `revision`: Exact revision identity.
     ///
-    /// # Returns
     /// Handles of records depending on the exact revision.
     ///
-    /// # Errors
     /// This lookup is infallible and returns an empty list when unmatched.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn by_entity_revision(
         &self,
         entity: EntityId,
@@ -132,11 +137,11 @@ impl DerivedRepository for InMemoryDerivedRepository {
 
     /// Removes a disposable record while preserving pinned and historical data.
     ///
-    /// # Parameters
     /// - `handle`: Immutable result identity.
     ///
-    /// # Returns
     /// `true` when a disposable record was removed.
+    /// # Returns
+    /// The operation result.
     fn remove_disposable(&mut self, handle: DerivedResultHandle) -> bool {
         let removable = self
             .records
@@ -210,14 +215,15 @@ impl<R> DerivedRuntime<R> {
 impl<R: DerivedRepository> DerivedRuntime<R> {
     /// Reuses an eligible record or computes and stores one exact result.
     ///
-    /// # Parameters
     /// - `key`: Exact derivation request.
     /// - `policy`: Selection and freshness requirements.
     /// - `freshness`: Freshness policy for stored observations.
     /// - `compute`: Producer invoked only when no stored record qualifies.
     ///
-    /// # Returns
     /// The reused or newly stored immutable result.
+    ///
+    /// # Returns
+    /// The selected or computed immutable result.
     ///
     /// # Errors
     /// Returns an error if the producer returns a different key or storage
@@ -238,14 +244,15 @@ impl<R: DerivedRepository> DerivedRuntime<R> {
 
     /// Resolves a request and returns the derived lifecycle events it produces.
     ///
-    /// # Parameters
     /// - `key`: Exact derivation request.
     /// - `policy`: Selection and freshness requirements.
     /// - `freshness`: Freshness policy for stored observations.
     /// - `compute`: Producer invoked only when no stored record qualifies.
     ///
-    /// # Returns
     /// The resolution and derived-only lifecycle events in emission order.
+    ///
+    /// # Returns
+    /// The resolution and lifecycle events produced by this operation.
     ///
     /// # Errors
     /// Returns an error if the producer returns a different key or storage

@@ -36,15 +36,16 @@ pub struct PhpError {
 impl Display for PhpError {
     /// Formats a PHP parser failure.
     ///
-    /// # Parameters
     /// - `self`: Parser error to format.
     /// - `formatter`: Formatting destination.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns an error when the formatter rejects output.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         formatter.write_str("PHP syntax error")?;
         if let Some(diagnostic) = self.diagnostics.first() {
@@ -58,15 +59,16 @@ impl std::error::Error for PhpError {}
 
 /// Parses PHP source inertly into deterministic syntax and declaration data.
 ///
-/// # Parameters
 /// - `path`: Project-relative source path used for adapter context.
 /// - `source`: Exact UTF-8 source text.
 ///
-/// # Returns
 /// A versioned PHP document with the complete syntax tree.
 ///
-/// # Errors
 /// Returns parser initialization, missing-tree, error-node, or missing-node diagnostics.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn parse(path: &Path, source: &str) -> Result<PhpDocument, PhpError> {
     let mut parser = tree_sitter::Parser::new();
     parser
@@ -97,11 +99,11 @@ pub fn parse(path: &Path, source: &str) -> Result<PhpDocument, PhpError> {
 
 /// Returns the stable adapter identifier for a PHP source path.
 ///
-/// # Parameters
 /// - `path`: Project-relative PHP path.
 ///
-/// # Returns
 /// The versioned PHP adapter identifier.
+/// # Returns
+/// The operation result.
 fn adapter_for(path: &Path) -> &'static str {
     let _ = path;
     "php"

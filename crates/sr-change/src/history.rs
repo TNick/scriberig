@@ -58,11 +58,11 @@ impl HistoryGraph {
 
     /// Adds one migration reference without relying on insertion order.
     ///
-    /// # Parameters
     /// - `migration`: Immutable migration reference.
     ///
-    /// # Returns
     /// `true` when inserted, or `false` when the same ID already exists.
+    /// # Returns
+    /// The operation result.
     pub fn insert(&mut self, migration: MigrationReference) -> bool {
         if self.migrations.contains_key(&migration.id) {
             return false;
@@ -73,33 +73,34 @@ impl HistoryGraph {
 
     /// Returns one migration by stable identity.
     ///
-    /// # Parameters
     /// - `id`: Stable migration identity.
     ///
-    /// # Returns
     /// The matching migration, when retained.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn migration(&self, id: &str) -> Option<&MigrationReference> {
         self.migrations.get(id)
     }
 
     /// Returns all migration references in stable migration-ID order.
     ///
-    /// # Returns
     /// Borrowed migration references suitable for summary lists.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn migrations(&self) -> Vec<&MigrationReference> {
         self.migrations.values().collect()
     }
 
     /// Finds migrations that introduced an exact revision.
     ///
-    /// # Parameters
     /// - `revision`: Revision identity to locate.
     ///
-    /// # Returns
     /// Matching migration references in deterministic ID order.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn introducing_revision(&self, revision: RevisionId) -> Vec<&MigrationReference> {
         self.migrations
             .values()
@@ -114,12 +115,12 @@ impl HistoryGraph {
 
     /// Finds migrations touching an entity.
     ///
-    /// # Parameters
     /// - `entity`: Entity identity to locate.
     ///
-    /// # Returns
     /// Matching migration references in deterministic ID order.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn touching_entity(&self, entity: EntityId) -> Vec<&MigrationReference> {
         self.migrations
             .values()
@@ -129,12 +130,12 @@ impl HistoryGraph {
 
     /// Finds migrations associated with one workspace or branch.
     ///
-    /// # Parameters
     /// - `workspace`: Exact workspace provenance value.
     ///
-    /// # Returns
     /// Matching migration references in deterministic ID order.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn in_workspace(&self, workspace: &str) -> Vec<&MigrationReference> {
         self.migrations
             .values()
@@ -144,12 +145,12 @@ impl HistoryGraph {
 
     /// Returns descendant snapshot identities from explicit topology.
     ///
-    /// # Parameters
     /// - `ancestor`: Snapshot from which descendants are requested.
     ///
-    /// # Returns
     /// Reachable result snapshots sorted by canonical identity.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn descendants(&self, ancestor: SnapshotId) -> Vec<SnapshotId> {
         self.migrations
             .values()
@@ -164,12 +165,12 @@ impl HistoryGraph {
 
     /// Returns all snapshots reachable as ancestors of a snapshot.
     ///
-    /// # Parameters
     /// - `snapshot`: Snapshot whose ancestors are requested.
     ///
-    /// # Returns
     /// A deterministic set of ancestor snapshots.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn ancestors(&self, snapshot: SnapshotId) -> BTreeSet<SnapshotId> {
         let mut result = BTreeSet::new();
         let mut queue = VecDeque::from([snapshot]);
@@ -196,26 +197,26 @@ impl HistoryGraph {
 
     /// Reports whether one snapshot is an ancestor of another.
     ///
-    /// # Parameters
     /// - `candidate`: Potential ancestor.
     /// - `descendant`: Snapshot being examined.
     ///
-    /// # Returns
     /// `true` when the candidate is equal to or precedes the descendant.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn is_ancestor(&self, candidate: SnapshotId, descendant: SnapshotId) -> bool {
         candidate == descendant || self.ancestors(descendant).contains(&candidate)
     }
 
     /// Returns common ancestors in deterministic snapshot order.
     ///
-    /// # Parameters
     /// - `left`: First snapshot.
     /// - `right`: Second snapshot.
     ///
-    /// # Returns
     /// Common ancestors sorted by canonical snapshot identity.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn common_ancestors(&self, left: SnapshotId, right: SnapshotId) -> Vec<SnapshotId> {
         let left_ancestors = self.ancestors(left);
         let right_ancestors = self.ancestors(right);
@@ -227,12 +228,12 @@ impl HistoryGraph {
 
     /// Returns every lineage record for an entity in deterministic migration order.
     ///
-    /// # Parameters
     /// - `entity`: Entity whose lineage is requested.
     ///
-    /// # Returns
     /// Lineage records in migration identity order.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn lineage(&self, entity: EntityId) -> Vec<LineageRecord> {
         self.migrations
             .values()
@@ -259,24 +260,24 @@ mod tests {
 
     /// Creates a deterministic snapshot fixture.
     ///
-    /// # Parameters
     /// - `value`: Repeated fixture byte.
     ///
-    /// # Returns
     /// A deterministic snapshot identifier.
+    /// # Returns
+    /// The operation result.
     fn snapshot(value: u8) -> SnapshotId {
         SnapshotId::new([value; 32])
     }
     /// Creates a deterministic migration fixture.
     ///
-    /// # Parameters
     /// - `id`: Migration identity.
     /// - `base`: Base snapshot fixture byte.
     /// - `result`: Result snapshot fixture byte.
     /// - `parents`: Parent migration identifiers.
     ///
-    /// # Returns
     /// A migration reference fixture.
+    /// # Returns
+    /// The operation result.
     fn migration(id: &str, base: u8, result: u8, parents: Vec<&str>) -> MigrationReference {
         MigrationReference {
             id: id.to_owned(),

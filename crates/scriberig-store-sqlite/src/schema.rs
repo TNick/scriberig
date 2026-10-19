@@ -25,15 +25,16 @@ pub struct UnsupportedSchemaVersion {
 impl Display for UnsupportedSchemaVersion {
     /// Formats the schema version failure.
     ///
-    /// # Parameters
     /// - `self`: Schema version error.
     /// - `formatter`: Formatting destination.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when the destination rejects output.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             formatter,
@@ -57,15 +58,16 @@ pub struct UnsupportedMetadata {
 impl Display for UnsupportedMetadata {
     /// Formats the metadata validation failure.
     ///
-    /// # Parameters
     /// - `self`: Metadata validation error.
     /// - `formatter`: Formatting destination.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when the destination rejects output.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             formatter,
@@ -79,14 +81,15 @@ impl Error for UnsupportedMetadata {}
 
 /// Initializes the schema and verifies its backend version.
 ///
-/// # Parameters
 /// - `connection`: SQLite connection to initialize.
 ///
-/// # Returns
 /// The detected backend schema version.
 ///
-/// # Errors
 /// Returns an SQLite error or an explicit unsupported-version error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn initialize(connection: &mut Connection) -> rusqlite::Result<u32> {
     let transaction = connection.transaction()?;
     initialize_schema(&transaction)?;
@@ -133,15 +136,16 @@ pub fn initialize(connection: &mut Connection) -> rusqlite::Result<u32> {
 
 /// Creates the version-one backend tables and metadata within a transaction.
 ///
-/// # Parameters
 /// - `transaction`: Transaction receiving schema creation.
 ///
-/// # Returns
 /// Unit after schema creation.
 ///
-/// # Errors
 /// Returns the SQLite schema error.
 #[allow(clippy::too_many_lines)]
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
     transaction.execute_batch(
         "CREATE TABLE IF NOT EXISTS metadata (
@@ -276,15 +280,16 @@ fn initialize_schema(transaction: &Transaction<'_>) -> rusqlite::Result<()> {
 
 /// Reads a numeric metadata value.
 ///
-/// # Parameters
 /// - `transaction`: Transaction containing metadata.
 /// - `key`: Metadata key to read.
 ///
-/// # Returns
 /// The parsed metadata version.
 ///
-/// # Errors
 /// Returns a SQLite query or parse error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn metadata_u32(transaction: &Transaction<'_>, key: &str) -> rusqlite::Result<u32> {
     transaction.query_row("SELECT value FROM metadata WHERE key=?", [key], |row| {
         let value: String = row.get(0)?;
@@ -296,16 +301,17 @@ fn metadata_u32(transaction: &Transaction<'_>, key: &str) -> rusqlite::Result<u3
 
 /// Validates a required textual metadata value.
 ///
-/// # Parameters
 /// - `transaction`: Transaction containing metadata.
 /// - `key`: Metadata key to validate.
 /// - `expected`: Required value.
 ///
-/// # Returns
 /// Unit when the value matches.
 ///
-/// # Errors
 /// Returns a SQLite query or metadata compatibility error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn validate_metadata(
     transaction: &Transaction<'_>,
     key: &str,

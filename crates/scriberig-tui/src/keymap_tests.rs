@@ -25,9 +25,9 @@ fn printable_input_is_not_a_browse_command() {
     );
 }
 
-/// Verifies the shifted colon key opens the command palette.
+/// Verifies ordinary conversation typing keeps shifted colon as input.
 #[test]
-fn shifted_colon_opens_palette() {
+fn shifted_colon_is_conversation_input() {
     let state = TuiState::default();
     assert_eq!(
         action_for(
@@ -40,7 +40,7 @@ fn shifted_colon_opens_palette() {
                 },
             }
         ),
-        Some(Action::PaletteOpened)
+        Some(Action::InputChanged(":".into()))
     );
 }
 
@@ -95,7 +95,10 @@ fn help_metadata_covers_all_bound_actions() {
 fn every_core_workflow_binding_is_keyboard_reachable() {
     for binding in bindings() {
         let state = match binding.context {
-            Context::Browse => TuiState::default(),
+            Context::Browse => TuiState {
+                primary_view: crate::selection::PrimaryView::Session,
+                ..TuiState::default()
+            },
             Context::Input => TuiState {
                 overlay: Some(Overlay::Input(crate::overlay::input::InputState::default())),
                 ..TuiState::default()

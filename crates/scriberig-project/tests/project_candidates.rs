@@ -9,13 +9,16 @@ use scriberig_project::{
 };
 use scriberig_store_sqlite::SqliteStore;
 
+#[path = "project_candidates/merge.rs"]
+mod candidate_merge_tests;
+
 /// Creates a temporary imported project and returns its public identities.
 ///
-/// # Parameters
 /// - `label`: Unique fixture label.
 ///
-/// # Returns
 /// Fixture root, store, project, snapshot, and named `add` entity.
+/// # Returns
+/// The operation result.
 fn setup(
     label: &str,
 ) -> (

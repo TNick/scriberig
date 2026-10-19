@@ -4,11 +4,11 @@ use crate::orchestration::{BranchPhase, RuntimeEvent};
 
 /// Converts one normalized runtime event into public activity fields.
 ///
-/// # Parameters
 /// - `event`: Safe normalized branch event.
 ///
-/// # Returns
 /// Public kind, state, and summary for displayable lifecycle activity.
+/// # Returns
+/// The operation result.
 pub(super) fn project_runtime_activity(
     event: &RuntimeEvent,
 ) -> Option<(

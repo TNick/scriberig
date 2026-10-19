@@ -93,14 +93,15 @@ pub struct AgentPresentationPreferenceSnapshot {
 pub trait AgentPresentationPreferenceStore: Send + Sync {
     /// Reads one user's shared presentation defaults.
     ///
-    /// # Parameters
     /// - `principal`: Stable user identity.
     ///
-    /// # Returns
     /// The current preference snapshot, using defaults when absent.
     ///
-    /// # Errors
     /// Returns an application storage error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read(
         &self,
         principal: &str,
@@ -108,16 +109,17 @@ pub trait AgentPresentationPreferenceStore: Send + Sync {
 
     /// Replaces shared defaults only when the caller's revision is current.
     ///
-    /// # Parameters
     /// - `principal`: Stable user identity.
     /// - `expected_revision`: Snapshot revision observed by the caller.
     /// - `preferences`: Complete independent display choices.
     ///
-    /// # Returns
     /// The updated authoritative snapshot.
     ///
-    /// # Errors
     /// Returns a conflict for stale revisions or a storage error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn compare_and_swap(
         &self,
         principal: &str,
@@ -135,15 +137,16 @@ pub struct InMemoryAgentPresentationPreferenceStore {
 impl AgentPresentationPreferenceStore for InMemoryAgentPresentationPreferenceStore {
     /// Reads one user's shared presentation defaults.
     ///
-    /// # Parameters
     /// - `self`: Shared in-memory store.
     /// - `principal`: Stable user identity.
     ///
-    /// # Returns
     /// The stored snapshot or built-in defaults.
     ///
-    /// # Errors
     /// Returns an error when the store lock is poisoned.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read(
         &self,
         principal: &str,
@@ -159,17 +162,18 @@ impl AgentPresentationPreferenceStore for InMemoryAgentPresentationPreferenceSto
 
     /// Replaces shared defaults when the observed revision is current.
     ///
-    /// # Parameters
     /// - `self`: Shared in-memory store.
     /// - `principal`: Stable user identity.
     /// - `expected_revision`: Snapshot revision observed by the caller.
     /// - `preferences`: Complete independent display choices.
     ///
-    /// # Returns
     /// The updated authoritative snapshot.
     ///
-    /// # Errors
     /// Returns a conflict for stale revisions or a poisoned-lock error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn compare_and_swap(
         &self,
         principal: &str,

@@ -21,11 +21,11 @@ fn round_trip_preserves_supported_blocks() {
 
 /// Reports whether a block tree contains a quote block.
 ///
-/// # Parameters
 /// - `blocks`: Blocks to inspect recursively.
 ///
-/// # Returns
 /// `true` when a quote block is present.
+/// # Returns
+/// The operation result.
 fn contains_quote(blocks: &[MarkdownBlock]) -> bool {
     blocks.iter().any(|block| match block {
         MarkdownBlock::QuoteBlock(_) => true,

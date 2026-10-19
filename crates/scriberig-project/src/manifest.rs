@@ -54,14 +54,14 @@ pub struct ProjectManifestPage {
 
 /// Computes the stable identity of one persisted manifest.
 ///
-/// # Parameters
 /// - `super`: Parent project module.
 /// - `project`: Project whose manifest is hashed.
 /// - `files`: Deterministically ordered persisted source records.
 ///
-/// # Returns
 /// Lowercase hexadecimal BLAKE3 digest over project, paths, source digests,
 /// adapter identifiers, and classifications.
+/// # Returns
+/// The operation result.
 pub(super) fn digest(
     project: ProjectId,
     files: &[scriberig_store_sqlite::ProjectFileRecord],
@@ -83,15 +83,16 @@ pub(super) fn digest(
 impl ProjectService {
     /// Summarizes one persisted project manifest without returning file bodies.
     ///
-    /// # Parameters
     /// - `self`: Shared project scan service.
     /// - `project`: Project whose current manifest is requested.
     ///
-    /// # Returns
     /// Stable project metadata, manifest identity, and classification counts.
     ///
-    /// # Errors
     /// Returns a structured error when the project or manifest cannot be read.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn manifest_summary(
         &self,
         project: ProjectId,
@@ -115,18 +116,19 @@ impl ProjectService {
 
     /// Reads a bounded page from the exact current persisted manifest.
     ///
-    /// # Parameters
     /// - `self`: Shared project scan service.
     /// - `project`: Project owning the manifest.
     /// - `manifest_id`: Digest returned by `manifest_summary`.
     /// - `offset`: Zero-based entry offset.
     /// - `limit`: Requested page size, capped at one hundred entries.
     ///
-    /// # Returns
     /// A bounded listing and the next offset when entries remain.
     ///
-    /// # Errors
     /// Returns an error for a missing project, stale digest, or invalid page size.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn manifest_page(
         &self,
         project: ProjectId,
@@ -172,8 +174,9 @@ impl ProjectService {
 
 /// Creates a structured failure for an invalid manifest page size.
 ///
-/// # Returns
 /// An invalid manifest page error.
+/// # Returns
+/// The operation result.
 fn invalid_page() -> ProjectError {
     ProjectError {
         code: "invalid_manifest_page",
@@ -184,8 +187,9 @@ fn invalid_page() -> ProjectError {
 
 /// Creates a structured failure when a caller's manifest reference is stale.
 ///
-/// # Returns
 /// A stale manifest error.
+/// # Returns
+/// The operation result.
 fn stale_manifest() -> ProjectError {
     ProjectError {
         code: "manifest_changed",

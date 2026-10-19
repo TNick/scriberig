@@ -18,15 +18,16 @@ struct Fixture;
 impl QueryService for Fixture {
     /// Returns one deterministic inspection.
     ///
-    /// # Parameters
     /// - `_context`: Application context for the inspection.
     /// - `request`: Inspection request to resolve.
     ///
-    /// # Returns
     /// The deterministic inspection result.
     ///
-    /// # Errors
     /// This fixture does not return an application error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         _context: &ApplicationContext,
@@ -54,17 +55,18 @@ fn child_executor_is_an_explicit_runtime_boundary() {
     impl ChildExecutor for Fixture {
         /// Verifies the scope and returns one compact child result.
         ///
-        /// # Parameters
         /// - `_context`: Test application context.
         /// - `scope`: Parent branch scope.
         /// - `request`: Child request.
         /// - `_cancelled`: Test cancellation flag.
         ///
-        /// # Returns
         /// Compact fixture child result.
         ///
-        /// # Errors
         /// This fixture never returns an error.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn execute_child(
             &mut self,
             _context: &scriberig_app::ApplicationContext,
@@ -88,14 +90,15 @@ fn child_executor_is_an_explicit_runtime_boundary() {
     impl ModelProvider for Provider {
         /// Returns a child decision followed by a final response.
         ///
-        /// # Parameters
         /// - `messages`: Parent conversation messages.
         ///
-        /// # Returns
         /// The next scripted decision.
         ///
-        /// # Errors
         /// This fixture never returns an error.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn decide(&mut self, messages: &[AgentMessage]) -> Result<ModelDecision, String> {
             if messages.len() == 1 {
                 return Ok(ModelDecision::Child(ChildRequest {
@@ -140,14 +143,15 @@ struct Provider {
 impl ModelProvider for Provider {
     /// Produces a deterministic inspect call then final text.
     ///
-    /// # Parameters
     /// - `messages`: Conversation messages and prior tool observations.
     ///
-    /// # Returns
     /// The next inspect request or final response.
     ///
-    /// # Errors
     /// Returns no provider error for this deterministic fixture.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn decide(&mut self, messages: &[AgentMessage]) -> Result<ModelDecision, String> {
         if self.calls == 0 {
             self.calls += 1;
@@ -275,14 +279,15 @@ struct RepeatedToolProvider;
 impl ModelProvider for RepeatedToolProvider {
     /// Returns the same deterministic tool request on every step.
     ///
-    /// # Parameters
     /// - `_messages`: Current runtime messages.
     ///
-    /// # Returns
     /// A deterministic tool decision.
     ///
-    /// # Errors
     /// This fixture never returns an error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn decide(&mut self, _messages: &[AgentMessage]) -> Result<ModelDecision, String> {
         Ok(ModelDecision::Tool(ToolInput {
             entity: EntityId::from_bytes([4; 16]),
@@ -301,14 +306,15 @@ struct SlowProvider;
 impl ModelProvider for SlowProvider {
     /// Returns a final response after a measurable delay.
     ///
-    /// # Parameters
     /// - `_messages`: Current runtime messages.
     ///
-    /// # Returns
     /// A delayed final decision.
     ///
-    /// # Errors
     /// This fixture never returns an error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn decide(&mut self, _messages: &[AgentMessage]) -> Result<ModelDecision, String> {
         std::thread::sleep(std::time::Duration::from_millis(1));
         Ok(ModelDecision::Final("slow".to_owned()))
@@ -318,23 +324,25 @@ impl ModelProvider for SlowProvider {
 impl Tool for NoopTool {
     /// Returns the stable fixture tool identifier.
     ///
-    /// # Returns
     /// The fixture tool name.
+    /// # Returns
+    /// The operation result.
     fn name(&self) -> &'static str {
         "noop"
     }
 
     /// Returns one bounded fixture result.
     ///
-    /// # Parameters
     /// - `_context`: Runtime application context.
     /// - `input`: Tool input to echo.
     ///
-    /// # Returns
     /// A bounded fixture result.
     ///
-    /// # Errors
     /// This fixture never returns an error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke(
         &self,
         _context: &ApplicationContext,

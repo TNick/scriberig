@@ -20,27 +20,29 @@ pub trait KnowledgeView {
     type Error;
     /// Lists entity identities visible in one exact snapshot.
     ///
-    /// # Parameters
     /// - `self`: Graph view.
     /// - `snapshot`: Exact snapshot context.
     ///
-    /// # Returns
     /// Deterministically ordered entity identities.
     ///
-    /// # Errors
     /// Returns the backend error when enumeration is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn entities(&self, snapshot: SnapshotId) -> Result<Vec<EntityId>, Self::Error>;
     /// Resolves an entity to its active exact revision.
     ///
-    /// # Parameters
     /// - `snapshot`: Snapshot context.
     /// - `entity`: Entity identity.
     ///
-    /// # Returns
     /// The active revision, when present.
     ///
-    /// # Errors
     /// Returns the backend error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn resolve(
         &self,
         snapshot: SnapshotId,
@@ -48,15 +50,16 @@ pub trait KnowledgeView {
     ) -> Result<Option<RevisionId>, Self::Error>;
     /// Reads semantic state at an exact snapshot and entity.
     ///
-    /// # Parameters
     /// - `snapshot`: Snapshot context.
     /// - `entity`: Entity identity.
     ///
-    /// # Returns
     /// The semantic record, when present.
     ///
-    /// # Errors
     /// Returns the backend error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read_revision(
         &self,
         snapshot: SnapshotId,
@@ -64,15 +67,16 @@ pub trait KnowledgeView {
     ) -> Result<Option<RevisionRecord>, Self::Error>;
     /// Reads an immutable revision without requiring a current snapshot.
     ///
-    /// # Parameters
     /// - `entity`: Entity identity associated with the revision.
     /// - `revision`: Exact immutable revision identity.
     ///
-    /// # Returns
     /// The revision record when it is retained and belongs to the entity.
     ///
-    /// # Errors
     /// Returns the backend error when the revision cannot be read.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read_exact_revision(
         &self,
         entity: EntityId,
@@ -80,15 +84,16 @@ pub trait KnowledgeView {
     ) -> Result<Option<RevisionRecord>, Self::Error>;
     /// Returns the declared type for an entity in a snapshot.
     ///
-    /// # Parameters
     /// - `snapshot`: Snapshot context.
     /// - `entity`: Entity identity.
     ///
-    /// # Returns
     /// The declared type, when present.
     ///
-    /// # Errors
     /// Returns the backend error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn entity_type(
         &self,
         snapshot: SnapshotId,
@@ -96,15 +101,16 @@ pub trait KnowledgeView {
     ) -> Result<Option<ObjectType>, Self::Error>;
     /// Looks up reverse relations through a view/index abstraction.
     ///
-    /// # Parameters
     /// - `snapshot`: Snapshot context.
     /// - `target`: Target entity identity.
     ///
-    /// # Returns
     /// Reverse relation records.
     ///
-    /// # Errors
     /// Returns the backend error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn reverse_relations(
         &self,
         snapshot: SnapshotId,

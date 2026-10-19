@@ -9,7 +9,6 @@ use windows_permissions::{LocalBox, SecurityDescriptor, Sid};
 
 /// Configures a no-follow open with permission-inspection access.
 ///
-/// # Parameters
 /// - `options`: Open options for a protected file.
 pub(super) fn configure(options: &mut OpenOptions) {
     options.custom_flags(0x0020_0000).access_mode(0x8002_0000);
@@ -17,7 +16,6 @@ pub(super) fn configure(options: &mut OpenOptions) {
 
 /// Requests permission to protect a newly created registry file.
 ///
-/// # Parameters
 /// - `options`: New private file configuration.
 pub(super) fn configure_creation(options: &mut OpenOptions) {
     options.custom_flags(0x0020_0000).access_mode(0xc006_0000);
@@ -25,11 +23,13 @@ pub(super) fn configure_creation(options: &mut OpenOptions) {
 
 /// Returns the current process user's SID using a fixed OS utility.
 ///
-/// # Returns
 /// The current logon SID as a validated SDDL identifier.
 ///
-/// # Errors
 /// Returns `Unavailable` when identity cannot be determined.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn current_sid() -> Result<String, SecretError> {
     static SID: std::sync::OnceLock<Result<String, SecretError>> = std::sync::OnceLock::new();
     SID.get_or_init(|| {
@@ -59,14 +59,15 @@ fn current_sid() -> Result<String, SecretError> {
 
 /// Validates that an opened handle grants access only to owner/admin identities.
 ///
-/// # Parameters
 /// - `file`: Open protected file or directory handle.
 ///
-/// # Returns
 /// Unit for restrictive owner, SYSTEM, and Administrators ACLs.
 ///
-/// # Errors
 /// Returns `Denied` for broad, missing, or unrecognized ACLs.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn validate(file: &File) -> Result<(), SecretError> {
     let descriptor = windows_permissions::wrappers::GetSecurityInfo(
         file,
@@ -99,14 +100,15 @@ pub(super) fn validate(file: &File) -> Result<(), SecretError> {
 
 /// Installs a protected owner/SYSTEM/Administrators DACL on a new file.
 ///
-/// # Parameters
 /// - `file`: New file opened with `WRITE_DAC` permission.
 ///
-/// # Returns
 /// Unit after installing the protected ACL.
 ///
-/// # Errors
 /// Returns `Denied` if permissions cannot be restricted.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn protect_file(file: &mut File) -> Result<(), SecretError> {
     let sid = current_sid()?;
     let descriptor: LocalBox<SecurityDescriptor> =
@@ -127,14 +129,15 @@ pub(super) fn protect_file(file: &mut File) -> Result<(), SecretError> {
 
 /// Protects and validates a registry directory using its actual handle.
 ///
-/// # Parameters
 /// - `path`: New or existing application-owned directory.
 ///
-/// # Returns
 /// Unit after ACL protection and validation.
 ///
-/// # Errors
 /// Returns `Denied` on unsafe owners or permissions.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn protect_directory(path: &Path) -> Result<(), SecretError> {
     let mut file = OpenOptions::new()
         .access_mode(0x0006_0080)
@@ -147,14 +150,15 @@ pub(super) fn protect_directory(path: &Path) -> Result<(), SecretError> {
 
 /// Requires system policy ownership and mutation grants to be administrative.
 ///
-/// # Parameters
 /// - `file`: Open system policy file.
 ///
-/// # Returns
 /// Unit for a system/Administrators-owned policy with no ordinary-user writes.
 ///
-/// # Errors
 /// Returns `Denied` for unsafe ACLs or owners.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn validate_system(file: &File) -> Result<(), SecretError> {
     let descriptor = windows_permissions::wrappers::GetSecurityInfo(
         file,

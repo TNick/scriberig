@@ -12,11 +12,12 @@ pub struct RustComment {
 }
 
 /// Recovers line and documentation comments from source.
-/// # Parameters
 /// - `source`: Rust source text.
-/// # Returns
+///
 /// Comments in source order.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn recover_comments(source: &str) -> Vec<RustComment> {
     source
         .lines()

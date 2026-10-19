@@ -11,11 +11,11 @@ use crate::mapping::{MarkdownBlock, MarkdownDocument};
 
 /// Converts parser heading levels to stable numeric levels.
 ///
-/// # Parameters
 /// - `level`: Parser heading level.
 ///
-/// # Returns
 /// Numeric heading depth from one through six.
+/// # Returns
+/// The operation result.
 fn heading_level(level: HeadingLevel) -> u8 {
     match level {
         HeadingLevel::H1 => 1,
@@ -30,12 +30,12 @@ use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, T
 
 /// Parses supported Markdown syntax into semantic blocks.
 ///
-/// # Parameters
 /// - `source`: Markdown source text.
 ///
-/// # Returns
 /// A semantic Markdown document preserving block order.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn parse(source: &str) -> MarkdownDocument {
     let parser = Parser::new_ext(source, Options::all());
     let mut blocks = Vec::new();

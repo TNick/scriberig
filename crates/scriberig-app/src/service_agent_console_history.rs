@@ -6,7 +6,6 @@ const MAX_SELECTION_HISTORY: usize = 100;
 
 /// Appends bounded durable provenance for one execution-selection change.
 ///
-/// # Parameters
 /// - `selection`: Updated authoritative session selection.
 /// - `kind`: Model or thinking selection category.
 /// - `summary`: Safe concise description of the change.

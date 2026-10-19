@@ -8,7 +8,9 @@ use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::provider::{
     FakeProvider, FinishReason, ModelResponse, ProviderMetadata, ToolCall, ToolDefinition,
 };
-use scriberig_agent_runtime::tools::{ToolCatalog, ToolDescriptor, ToolExecutionMode};
+use scriberig_agent_runtime::tools::{
+    ToolCatalog, ToolCategory, ToolDescriptor, ToolExecutionMode,
+};
 use scriberig_project::{ProjectSourceChange, ProjectSourceChangeKind};
 use serde_json::{Value, json};
 
@@ -25,23 +27,25 @@ pub struct ProjectAgentTool<'a> {
 impl Tool for ProjectAgentTool<'_> {
     /// Returns the project-agent tool name.
     ///
-    /// # Returns
     /// Stable provider-facing tool name.
+    /// # Returns
+    /// The operation result.
     fn name(&self) -> &'static str {
         "scriberig.project"
     }
 
     /// Verifies and records the provider's semantic scope.
     ///
-    /// # Parameters
     /// - `_context`: Trusted application context.
     /// - `input`: Provider semantic scope.
     ///
-    /// # Returns
     /// Bounded semantic inspection result.
     ///
-    /// # Errors
     /// Returns a scope mismatch error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke(
         &self,
         _context: &ApplicationContext,
@@ -65,16 +69,17 @@ impl Tool for ProjectAgentTool<'_> {
 
     /// Creates a candidate through the shared project workflow.
     ///
-    /// # Parameters
     /// - `_context`: Trusted application context.
     /// - `name`: Provider control tool name.
     /// - `arguments`: Structured proposal arguments.
     ///
-    /// # Returns
     /// Shared migration-candidate handle.
     ///
-    /// # Errors
     /// Returns a structured proposal error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke_named(
         &self,
         _context: &ApplicationContext,
@@ -149,14 +154,15 @@ impl Tool for ProjectAgentTool<'_> {
 
 /// Decodes one bounded provider source effect into the shared request type.
 ///
-/// # Parameters
 /// - `value`: Provider's structured effect object.
 ///
-/// # Returns
 /// Shared project source change request.
 ///
-/// # Errors
 /// Returns a provider tool error for missing or invalid effect fields.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn parse_project_change(value: &Value) -> Result<ProjectSourceChange, ToolError> {
     let path = value
         .get("path")
@@ -189,11 +195,11 @@ fn parse_project_change(value: &Value) -> Result<ProjectSourceChange, ToolError>
 
 /// Creates a structured provider argument error.
 ///
-/// # Parameters
 /// - `message`: Safe argument error detail.
 ///
-/// # Returns
 /// Provider tool application error.
+/// # Returns
+/// The operation result.
 fn project_argument_error(message: &str) -> ToolError {
     ToolError::Application {
         category: "project_agent_arguments".to_owned(),
@@ -203,12 +209,12 @@ fn project_argument_error(message: &str) -> ToolError {
 
 /// Builds the deterministic provider script for the golden prompt.
 ///
-/// # Parameters
 /// - `entity`: Selected semantic entity.
 /// - `snapshot`: Exact candidate base snapshot.
 ///
-/// # Returns
 /// Scripted provider model.
+/// # Returns
+/// The operation result.
 pub fn golden_provider(entity: EntityId, snapshot: SnapshotId) -> ProviderModel<FakeProvider> {
     let responses = [
         Ok(response(
@@ -234,8 +240,18 @@ pub fn golden_provider(entity: EntityId, snapshot: SnapshotId) -> ProviderModel<
         Ok(response(None, Some("Candidate ready for review."))),
     ];
     let catalog = ToolCatalog::new(vec![
-        descriptor("inspect", "Inspect selected semantic entity.", false),
-        descriptor("project_propose", "Create migration candidate.", true),
+        descriptor(
+            "inspect",
+            "Inspect selected semantic entity.",
+            false,
+            ToolCategory::SemanticRead,
+        ),
+        descriptor(
+            "project_propose",
+            "Create an exact-base project source candidate using the fallback projection path.",
+            true,
+            ToolCategory::OpaqueFallback,
+        ),
     ]);
     ProviderModel::new(FakeProvider::from_responses(responses), "scriberig-golden")
         .with_catalog(catalog)
@@ -243,12 +259,12 @@ pub fn golden_provider(entity: EntityId, snapshot: SnapshotId) -> ProviderModel<
 
 /// Creates one provider response for the deterministic script.
 ///
-/// # Parameters
 /// - `tool_call`: Optional provider tool call.
 /// - `text`: Optional final provider text.
 ///
-/// # Returns
 /// Normalized provider response.
+/// # Returns
+/// The operation result.
 fn response(tool_call: Option<ToolCall>, text: Option<&str>) -> ModelResponse {
     ModelResponse {
         text: text.map(str::to_owned),
@@ -265,20 +281,27 @@ fn response(tool_call: Option<ToolCall>, text: Option<&str>) -> ModelResponse {
 
 /// Creates a catalog entry for one deterministic provider tool.
 ///
-/// # Parameters
 /// - `name`: Tool name.
 /// - `description`: Tool description.
 /// - `state_changing`: Whether the tool changes candidate state.
+/// - `category`: Trusted semantic operation category.
 ///
-/// # Returns
 /// Provider tool descriptor.
-fn descriptor(name: &str, description: &str, state_changing: bool) -> ToolDescriptor {
+/// # Returns
+/// The operation result.
+fn descriptor(
+    name: &str,
+    description: &str,
+    state_changing: bool,
+    category: ToolCategory,
+) -> ToolDescriptor {
     ToolDescriptor {
         definition: ToolDefinition {
             name: name.to_owned(),
             description: description.to_owned(),
             parameters: json!({"type": "object"}),
         },
+        category,
         result_shape: "semantic result".to_owned(),
         invocation_label: None,
         state_changing,

@@ -18,13 +18,13 @@ pub struct SyncCoordinator<F> {
 impl<F: FileSystem> SyncCoordinator<F> {
     /// Creates a coordinator with existing synchronization records.
     ///
-    /// # Parameters
     /// - `filesystem`: Filesystem implementation.
     /// - `states`: Initial synchronization state records.
     ///
-    /// # Returns
     /// A coordinator ready to observe and resynchronize projections.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(filesystem: F, states: MemorySyncStore) -> Self {
         Self {
             filesystem,
@@ -35,38 +35,41 @@ impl<F: FileSystem> SyncCoordinator<F> {
 
     /// Borrows current synchronization records.
     ///
-    /// # Returns
     /// The current synchronization state store.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn states(&self) -> &MemorySyncStore {
         &self.states
     }
 
     /// Borrows mutable synchronization records.
     ///
-    /// # Returns
     /// The mutable synchronization state store.
+    /// # Returns
+    /// The operation result.
     pub fn states_mut(&mut self) -> &mut MemorySyncStore {
         &mut self.states
     }
 
     /// Borrows retained failed-import evidence.
     ///
-    /// # Returns
     /// The retained recovery store.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn recoveries(&self) -> &MemoryRecoveryStore {
         &self.recoveries
     }
 
     /// Reconstructs the retained import request for a failed projection.
     ///
-    /// # Parameters
     /// - `projection`: Projection whose failed import should be retried.
     ///
-    /// # Returns
     /// The exact retained import request when both state and recovery evidence exist.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn retry_request(&self, projection: ProjectionRef) -> Option<ImportRequest> {
         let state = self.states.find_projection(projection)?;
         let recovery = self.recoveries.find(projection)?;
@@ -87,14 +90,15 @@ impl<F: FileSystem> SyncCoordinator<F> {
 
     /// Inspects a watcher hint and schedules domain import when required.
     ///
-    /// # Parameters
     /// - `event`: Watcher-neutral observation hint.
     ///
-    /// # Returns
     /// The resulting state and optional exact import request.
     ///
-    /// # Errors
     /// Returns an IO error when current file contents cannot be inspected.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn observe(&mut self, event: &Observation) -> Result<Option<ObservationResult>, IoError> {
         let location = match event {
             Observation::Created(location)
@@ -168,15 +172,16 @@ impl<F: FileSystem> SyncCoordinator<F> {
 
     /// Applies a domain import result without performing semantic mutation.
     ///
-    /// # Parameters
     /// - `projection`: Projection whose import completed.
     /// - `completion`: Domain result and exact bytes to synchronize.
     ///
-    /// # Returns
     /// Unit after applying the completion.
     ///
-    /// # Errors
     /// Returns an IO or ownership error when rerendering cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn complete_import(
         &mut self,
         projection: ProjectionRef,
@@ -243,16 +248,17 @@ impl<F: FileSystem> SyncCoordinator<F> {
 
     /// Atomically writes canonical bytes and establishes a synchronization base.
     ///
-    /// # Parameters
     /// - `projection`: Projection whose output is being written.
     /// - `bytes`: Exact canonical bytes to write.
     /// - `base`: Semantic state represented by the written bytes.
     ///
-    /// # Returns
     /// Unit after the exact bytes have been written and verified.
     ///
-    /// # Errors
     /// Returns an IO or ownership error when writing or verification fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn write_rendered(
         &mut self,
         projection: ProjectionRef,
@@ -301,15 +307,12 @@ impl<F: FileSystem> SyncCoordinator<F> {
 
 /// Inspects one observation through the compatibility status-only API.
 ///
-/// # Parameters
 /// - `fs`: Filesystem implementation.
 /// - `store`: Synchronization state store.
 /// - `event`: Watcher-neutral observation hint.
 ///
-/// # Returns
 /// The resulting projection status when the location is known.
 ///
-/// # Errors
 /// Returns a filesystem read error.
 pub fn inspect_observation<F: FileSystem>(
     fs: &F,

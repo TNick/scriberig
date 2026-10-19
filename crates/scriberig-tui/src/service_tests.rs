@@ -14,15 +14,16 @@ struct Fixture;
 impl QueryService for Fixture {
     /// Returns a deterministic public inspection result.
     ///
-    /// # Parameters
     /// - `_context`: Application context for the inspection.
     /// - `request`: Inspection request to resolve.
     ///
-    /// # Returns
     /// The deterministic inspection result.
     ///
-    /// # Errors
     /// This fixture does not return an application error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         _context: &ApplicationContext,
@@ -47,15 +48,16 @@ impl QueryService for Fixture {
 impl SessionBackend for Fixture {
     /// Rejects session reads in the query-only test fixture.
     ///
-    /// # Parameters
     /// - `_context`: Application context.
     /// - `_request`: Session read request.
     ///
-    /// # Returns
     /// Never returns a session.
     ///
-    /// # Errors
     /// Always returns an unsupported-operation error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read_session(
         &self,
         _context: &ApplicationContext,
@@ -66,17 +68,127 @@ impl SessionBackend for Fixture {
         })
     }
 
+    /// Returns a deterministic plan for shared adapter routing.
+    ///
+    /// - `_context`: Application request context.
+    /// - `request`: Structured plan proposal.
+    ///
+    /// A valid plan carrying the requested goal and anchor.
+    ///
+    /// Returns an error when the fixture proposal cannot form a plan.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn create_plan(
+        &self,
+        _context: &ApplicationContext,
+        request: &scriberig_app::PlanCreateRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        let mut plan = scriberig_session::Plan::new(
+            EntityId::from_bytes([91; 16]),
+            request.session,
+            request.anchor,
+            request.goal.clone(),
+        )
+        .map_err(|error| ApplicationError::InvalidRequest {
+            operation: "fixture plan".to_owned(),
+            message: format!("{error:?}"),
+        })?;
+        plan.transition(scriberig_session::PlanStatus::Planned)
+            .map_err(|error| ApplicationError::InvalidRequest {
+                operation: "fixture plan".to_owned(),
+                message: format!("{error:?}"),
+            })?;
+        Ok(plan)
+    }
+
+    /// Returns the fixture plan after receiving a shared node assignment.
+    ///
+    /// - `_context`: Application request context.
+    /// - `request`: Selected plan-node assignment.
+    ///
+    /// The authoritative fixture plan.
+    ///
+    /// Returns an error if the fixture plan cannot be constructed.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn set_plan_node_assignment(
+        &self,
+        _context: &ApplicationContext,
+        request: &scriberig_app::PlanAssignmentRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        let mut plan = scriberig_session::Plan::new(
+            request.plan,
+            request.session,
+            scriberig_session::ContinuationAnchor::BranchHead {
+                branch: EntityId::from_bytes([92; 16]),
+            },
+            "fixture assignment".to_owned(),
+        )
+        .map_err(|error| ApplicationError::InvalidRequest {
+            operation: "fixture assignment".to_owned(),
+            message: format!("{error:?}"),
+        })?;
+        plan.transition(scriberig_session::PlanStatus::Planned)
+            .map_err(|error| ApplicationError::InvalidRequest {
+                operation: "fixture assignment".to_owned(),
+                message: format!("{error:?}"),
+            })?;
+        Ok(plan)
+    }
+
+    /// Applies a fixture replan through the shared adapter contract.
+    ///
+    /// - `_context`: Application request context.
+    /// - `request`: Complete structured revision proposal.
+    ///
+    /// The authoritative fixture plan.
+    ///
+    /// Returns an error if the fixture plan cannot be constructed.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn replan(
+        &self,
+        _context: &ApplicationContext,
+        request: &scriberig_app::PlanReplanRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        let mut plan = scriberig_session::Plan::new(
+            request.plan,
+            request.session,
+            scriberig_session::ContinuationAnchor::BranchHead {
+                branch: EntityId::from_bytes([96; 16]),
+            },
+            "fixture replan".to_owned(),
+        )
+        .map_err(|error| ApplicationError::InvalidRequest {
+            operation: "fixture replan".to_owned(),
+            message: format!("{error:?}"),
+        })?;
+        plan.transition(scriberig_session::PlanStatus::Planned)
+            .map_err(|error| ApplicationError::InvalidRequest {
+                operation: "fixture replan".to_owned(),
+                message: format!("{error:?}"),
+            })?;
+        Ok(plan)
+    }
+
     /// Rejects agent commands in the query-only test fixture.
     ///
-    /// # Parameters
     /// - `_context`: Application context.
     /// - `_request`: Agent command request.
     ///
-    /// # Returns
     /// Never returns an operation identity.
     ///
-    /// # Errors
     /// Always returns an unsupported-operation error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn submit_agent_command(
         &self,
         _context: &ApplicationContext,
@@ -91,14 +203,15 @@ impl SessionBackend for Fixture {
 impl scriberig_app::AgentConsoleBackend for Fixture {
     /// Rejects model-library reads in this query-only fixture.
     ///
-    /// # Parameters
     /// - `_context`: Application request context.
     ///
-    /// # Returns
     /// Never returns a model library.
     ///
-    /// # Errors
     /// Always returns an unsupported-operation error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn agent_model_library(
         &self,
         _context: &ApplicationContext,
@@ -110,15 +223,16 @@ impl scriberig_app::AgentConsoleBackend for Fixture {
 
     /// Rejects model selection in this query-only fixture.
     ///
-    /// # Parameters
     /// - `_context`: Application request context.
     /// - `_request`: Requested session model selection.
     ///
-    /// # Returns
     /// Never returns an updated selection.
     ///
-    /// # Errors
     /// Always returns an unsupported-operation error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set_session_model(
         &self,
         _context: &ApplicationContext,
@@ -131,15 +245,16 @@ impl scriberig_app::AgentConsoleBackend for Fixture {
 
     /// Rejects thinking selection in this query-only fixture.
     ///
-    /// # Parameters
     /// - `_context`: Application request context.
     /// - `_request`: Requested session thinking selection.
     ///
-    /// # Returns
     /// Never returns an updated selection.
     ///
-    /// # Errors
     /// Always returns an unsupported-operation error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set_session_thinking_level(
         &self,
         _context: &ApplicationContext,
@@ -188,5 +303,77 @@ fn translates_control_effects_without_silent_noops() {
             }
         ),
         Action::OperationFailed { category, .. } if category == "unsupported_operation"
+    ));
+}
+
+/// Verifies node assignment effects use the shared application backend.
+#[test]
+fn delegates_plan_node_assignment_to_shared_session_backend() {
+    let service = ApplicationAdapter::new(Fixture, Vec::new());
+    let session = EntityId::from_bytes([93; 16]);
+    let plan = EntityId::from_bytes([94; 16]);
+    let node = EntityId::from_bytes([95; 16]);
+    let action = execute_effect(
+        &service,
+        &ApplicationContext::empty(),
+        Effect::SetPlanNodeAssignment(scriberig_app::PlanAssignmentRequest {
+            session,
+            plan,
+            node,
+            expected_revision: 2,
+            assignment: None,
+        }),
+    );
+    assert!(matches!(action, Action::PlanUpdated(value) if value.id == plan));
+}
+
+/// Verifies replan effects use the shared application backend.
+#[test]
+fn delegates_structured_plan_revision_to_shared_session_backend() {
+    let service = ApplicationAdapter::new(Fixture, Vec::new());
+    let session = EntityId::from_bytes([97; 16]);
+    let plan = EntityId::from_bytes([98; 16]);
+    let action = execute_effect(
+        &service,
+        &ApplicationContext::empty(),
+        Effect::Replan(scriberig_app::PlanReplanRequest {
+            session,
+            plan,
+            expected_revision: 1,
+            additions: Vec::new(),
+            dependencies: Vec::new(),
+            removed_dependencies: Vec::new(),
+            superseded: Vec::new(),
+            assignment_changes: Vec::new(),
+            preserved_terminal_nodes: Vec::new(),
+            reason: "revise scope".to_owned(),
+        }),
+    );
+    assert!(matches!(action, Action::PlanUpdated(value) if value.id == plan));
+}
+
+/// Routes plan creation effects through the application service adapter.
+#[test]
+fn executes_plan_creation_through_shared_service() {
+    let service = ApplicationAdapter::new(Fixture, Vec::new());
+    let request = scriberig_app::PlanCreateRequest {
+        session: EntityId::from_bytes([92; 16]),
+        anchor: scriberig_session::ContinuationAnchor::BranchHead {
+            branch: EntityId::from_bytes([93; 16]),
+        },
+        goal: "Improve parser".to_owned(),
+        nodes: Vec::new(),
+        dependencies: Vec::new(),
+    };
+
+    let action = execute_effect(
+        &service,
+        &ApplicationContext::empty(),
+        Effect::CreatePlan(request),
+    );
+
+    assert!(matches!(
+        action,
+        Action::PlanUpdated(plan) if plan.goal == "Improve parser"
     ));
 }

@@ -15,35 +15,17 @@ use tui_pty_support::TuiPty;
 #[test]
 fn tui_cancellation_persists_abandoned_branch_without_project_or_source_mutation() {
     let mut tui = TuiPty::start_self_hosting_cancellation();
-    assert!(
-        tui.read_until("project: unselected"),
-        "{}",
-        tui.diagnostic()
-    );
+    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
     let checkout = tui.fixture_path().join("scriberig");
     let manifest = fs::read(checkout.join("Cargo.toml")).expect("baseline manifest");
     let scanner =
         fs::read(checkout.join("crates/scriberig-project/src/scan.rs")).expect("baseline scanner");
 
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"start-agent\r");
-    assert!(
-        tui.read_until("Agent composer · ent_"),
-        "{}",
-        tui.diagnostic()
-    );
-    let session = visible_session(&tui.screen());
     tui.send(b"Onboard the current project.\r");
+    let session = visible_session(&tui);
     wait_for_provider_gate(&tui);
 
-    tui.send(b"\x1b");
-    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"operations");
-    assert!(tui.read_until("> View operations"), "{}", tui.diagnostic());
-    tui.send(b"\r");
+    tui.send(b"/operations\r");
     assert!(
         tui.read_until_for("Running", Duration::from_secs(10)),
         "{}",
@@ -112,7 +94,6 @@ fn tui_cancellation_persists_abandoned_branch_without_project_or_source_mutation
 
 /// Confirms the cancelled agent left the copied checkout unchanged.
 ///
-/// # Parameters
 /// - `checkout`: Copied Scriberig repository.
 /// - `manifest`: Original manifest bytes.
 /// - `scanner`: Original scanner source bytes.
@@ -134,7 +115,6 @@ fn assert_source_unchanged(checkout: &std::path::Path, manifest: &[u8], scanner:
 
 /// Waits until the deterministic provider is blocked before opening Operations.
 ///
-/// # Parameters
 /// - `tui`: Active native TUI process owning the provider gate.
 ///
 /// # Panics
@@ -155,17 +135,11 @@ fn wait_for_provider_gate(tui: &TuiPty) {
 
 /// Reads the durable session identity displayed by the agent composer.
 ///
-/// # Parameters
-/// - `screen`: Current native TUI screen.
+/// - `tui`: Active native TUI process.
 ///
-/// # Returns
 /// The session identity rendered by the composer.
-fn visible_session(screen: &str) -> scriberig_core::EntityId {
-    screen
-        .split("Agent composer · ")
-        .nth(1)
-        .and_then(|text| text.split_whitespace().next())
-        .expect("session visible in composer")
-        .parse()
-        .expect("session identity")
+/// # Returns
+/// The operation result.
+fn visible_session(tui: &TuiPty) -> scriberig_core::EntityId {
+    tui.stored_session_id()
 }

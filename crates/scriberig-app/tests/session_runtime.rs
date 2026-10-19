@@ -9,18 +9,20 @@ mod access_tests;
 use scriberig_app::{
     AgentCommandRequest, AgentConsoleBackend, ApplicationContext, ApplicationError,
     ApplicationService, CredentialRef, ModelCapabilities, ModelDescriptor, ModelId, ModelLibrary,
-    ModelProfile, SessionBackend, SessionModelSelectionRequest, SessionRequest,
-    SessionThinkingSelectionRequest, ThinkingLevelDescriptor, ThinkingLevelId,
+    ModelProfile, PlanAssignmentRequest, PlanCreateRequest, PlanLifecycleRequest, PlanNodeDraft,
+    SessionBackend, SessionModelSelectionRequest, SessionRequest, SessionThinkingSelectionRequest,
+    ThinkingLevelDescriptor, ThinkingLevelId,
 };
 use scriberig_core::EntityId;
 
 /// Creates model profiles with independent thinking-level capabilities.
 ///
-/// # Returns
 /// A validated model library used by selection tests.
 ///
 /// # Panics
 /// Panics when the static fixture violates the model library contract.
+/// # Returns
+/// The operation result.
 fn session_model_library() -> ModelLibrary {
     let first = ModelDescriptor {
         id: ModelId::new("model-a").expect("model id"),
@@ -170,7 +172,6 @@ fn session_model_selection_uses_library_and_mutation_revision() {
 
 /// Verifies typed live selection events include model and fallback activity.
 ///
-/// # Parameters
 /// - `service`: Application service publishing the selection events.
 /// - `session`: Session identity whose events are inspected.
 fn assert_selection_events(service: &ApplicationService<Fixture>, session: EntityId) {
@@ -201,7 +202,6 @@ fn assert_selection_events(service: &ApplicationService<Fixture>, session: Entit
 
 /// Verifies durable selection history reloads with the fallback provenance.
 ///
-/// # Parameters
 /// - `service`: Application service owning the session state.
 /// - `context`: Authorized context for the session read.
 /// - `session`: Session identity whose history is reloaded.
@@ -294,99 +294,5 @@ fn fallback_agent_acceptance_retains_session_activity() {
     );
 }
 
-/// Verifies authorized bootstrap execution can create a durable operation without project scope.
-#[test]
-fn bootstrap_agent_execution_starts_without_semantic_project_scope() {
-    let service = ApplicationService::new(Fixture);
-    let session = EntityId::from_bytes([9; 16]);
-    let context = session_context();
-    let handle = service
-        .begin_agent_execution(
-            &context,
-            &AgentCommandRequest {
-                session,
-                branch: None,
-                prompt: "Onboard the current project.".to_owned(),
-                selection: None,
-            },
-        )
-        .expect("bootstrap operation accepted without project scope");
-    assert_eq!(handle.session, session);
-    assert_eq!(
-        service.operations().get(&handle.operation).unwrap().status,
-        scriberig_app::OperationStatus::Running
-    );
-    let session = service
-        .read_session(&session_context(), &SessionRequest { session })
-        .expect("durable session");
-    assert_eq!(session.branches.len(), 1);
-    assert_eq!(
-        session.branches[0].turns[0].human.as_ref().unwrap().text,
-        "Onboard the current project."
-    );
-}
-
-/// Verifies an agent command cannot bypass the application capability boundary.
-#[test]
-fn agent_submission_without_capability_is_denied() {
-    let service = ApplicationService::new(Fixture);
-    let error = service
-        .start_agent(
-            &ApplicationContext::empty(),
-            EntityId::from_bytes([4; 16]),
-            "denied",
-        )
-        .expect_err("agent capability must be required");
-
-    assert!(matches!(
-        error,
-        ApplicationError::PermissionDenied { action, .. } if action == "agent_start"
-    ));
-}
-
-/// Verifies failed child execution is retained as an abandoned branch result.
-#[test]
-fn failed_local_child_agent_is_retained() {
-    let service = ApplicationService::new(Fixture);
-    let root = service
-        .start_local_agent(&AgentCommandRequest {
-            session: EntityId::from_bytes([31; 16]),
-            branch: None,
-            prompt: "root".to_owned(),
-            selection: None,
-        })
-        .expect("root");
-    let child = service
-        .start_local_child_agent(
-            root.session,
-            root.root_branch,
-            "child",
-            "inspect",
-            "child work",
-        )
-        .expect("child");
-
-    service
-        .fail_local_child_agent(&child, "provider failed")
-        .expect("failure retained");
-
-    let state = service
-        .read_session(
-            &session_context(),
-            &SessionRequest {
-                session: root.session,
-            },
-        )
-        .expect("session");
-    let failed = state
-        .branches
-        .iter()
-        .find(|branch| branch.id == child.child_branch)
-        .expect("failed child");
-    assert_eq!(failed.status, scriberig_session::BranchStatus::Abandoned);
-    assert_eq!(failed.outcome.as_deref(), Some("provider failed"));
-    assert_eq!(
-        service.operations().get(&child.operation).unwrap().status,
-        scriberig_app::OperationStatus::Failed
-    );
-}
+#[path = "session_runtime_parts/part1.rs"]
+mod part1;

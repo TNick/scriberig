@@ -1,7 +1,9 @@
 //! Verifies trusted tool catalog validation before dispatch.
 
 use scriberig_agent_runtime::provider::{ToolCall, ToolDefinition};
-use scriberig_agent_runtime::tools::{ToolCatalog, ToolDescriptor, ToolExecutionMode};
+use scriberig_agent_runtime::tools::{
+    ToolCatalog, ToolCategory, ToolDescriptor, ToolExecutionMode,
+};
 use scriberig_app::{
     Capability, CapabilityAction, CapabilityConstraints, CapabilityContext, CapabilityScope,
 };
@@ -61,6 +63,7 @@ fn required_capability_is_enforced_before_dispatch() {
             description: "Delegate focused work".to_owned(),
             parameters: serde_json::json!({"type": "object"}),
         },
+        category: ToolCategory::BranchProducing,
         result_shape: "compact child result".to_owned(),
         invocation_label: None,
         state_changing: false,
@@ -107,11 +110,11 @@ fn invocation_labels_are_bounded_and_control_free() {
 
 /// Creates the minimal trusted inspect descriptor used by these tests.
 ///
-/// # Parameters
 /// - `name`: Stable descriptor name.
 ///
-/// # Returns
 /// A deterministic descriptor fixture.
+/// # Returns
+/// The operation result.
 fn descriptor(name: &str) -> ToolDescriptor {
     ToolDescriptor {
         definition: ToolDefinition {
@@ -119,10 +122,38 @@ fn descriptor(name: &str) -> ToolDescriptor {
             description: "Inspect semantic state".to_owned(),
             parameters: serde_json::json!({"type": "object"}),
         },
+        category: ToolCategory::SemanticRead,
         result_shape: "compact semantic result".to_owned(),
         invocation_label: None,
         state_changing: false,
         execution_mode: ToolExecutionMode::Atomic,
         required_capability: Some("inspect.entity".to_owned()),
     }
+}
+
+/// Prefers semantic operations and keeps opaque fallback explicitly authorized.
+#[test]
+fn semantic_tools_precede_explicit_opaque_fallbacks() {
+    let mut semantic = descriptor("code.replace_expression");
+    semantic.category = ToolCategory::SemanticMutation;
+    semantic.required_capability = None;
+    let mut fallback = descriptor("file.replace_raw");
+    fallback.category = ToolCategory::OpaqueFallback;
+    fallback.required_capability = Some("file.raw_write".to_owned());
+    let catalog = ToolCatalog::new(vec![fallback, semantic]);
+    let semantic_context = CapabilityContext::default();
+    let opaque_context = CapabilityContext::with_grants([Capability {
+        scope: CapabilityScope::Project,
+        actions: BTreeSet::from([CapabilityAction::Custom("file.raw_write".to_owned())]),
+        constraints: CapabilityConstraints::unrestricted(),
+    }]);
+
+    let authorized = catalog.descriptors_for(&opaque_context);
+    assert_eq!(authorized[0].definition.name, "code.replace_expression");
+    assert_eq!(authorized[1].definition.name, "file.replace_raw");
+    assert_eq!(catalog.descriptors_for(&semantic_context).len(), 1);
+    assert_eq!(
+        catalog.descriptors_for(&semantic_context)[0].category,
+        ToolCategory::SemanticMutation
+    );
 }

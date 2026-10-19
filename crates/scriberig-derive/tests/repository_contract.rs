@@ -17,8 +17,9 @@ struct MemoryRepository {
 impl MemoryRepository {
     /// Creates an empty test repository.
     ///
-    /// # Returns
     /// An empty in-memory repository.
+    /// # Returns
+    /// The operation result.
     fn new() -> Self {
         Self {
             records: BTreeMap::new(),
@@ -29,14 +30,15 @@ impl MemoryRepository {
 impl DerivedRepository for MemoryRepository {
     /// Inserts an immutable record or verifies an identical duplicate.
     ///
-    /// # Parameters
     /// - `record`: Immutable record to retain.
     ///
-    /// # Returns
     /// Success when inserted or already present identically.
     ///
-    /// # Errors
     /// Returns a conflict when a handle names different data.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn insert(&mut self, record: DerivedResultRecord) -> Result<(), RepositoryError> {
         let handle = record.handle();
         if let Some(existing) = self.records.get(&handle) {
@@ -50,28 +52,30 @@ impl DerivedRepository for MemoryRepository {
 
     /// Retrieves one exact result record.
     ///
-    /// # Parameters
     /// - `handle`: Exact result handle.
     ///
-    /// # Returns
     /// The retained record, when present.
     ///
-    /// # Errors
     /// This lookup is infallible.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn get(&self, handle: DerivedResultHandle) -> Option<&DerivedResultRecord> {
         self.records.get(&handle)
     }
 
     /// Retrieves every result for one exact derivation key.
     ///
-    /// # Parameters
     /// - `key`: Exact derivation key.
     ///
-    /// # Returns
     /// All retained records for the key.
     ///
-    /// # Errors
     /// This lookup is infallible.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn by_key(&self, key: &DerivationKey) -> Vec<&DerivedResultRecord> {
         self.records
             .values()
@@ -81,14 +85,15 @@ impl DerivedRepository for MemoryRepository {
 
     /// Retrieves handles that depend on one exact dependency.
     ///
-    /// # Parameters
     /// - `dependency`: Exact dependency to find.
     ///
-    /// # Returns
     /// Matching immutable handles.
     ///
-    /// # Errors
     /// This lookup is infallible.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn by_dependency(&self, dependency: &Dependency) -> Vec<DerivedResultHandle> {
         self.records
             .values()
@@ -99,11 +104,11 @@ impl DerivedRepository for MemoryRepository {
 
     /// Retrieves the exact dependency set for one result.
     ///
-    /// # Parameters
     /// - `handle`: Exact result handle.
     ///
-    /// # Returns
     /// The normalized dependency set, when retained.
+    /// # Returns
+    /// The operation result.
     fn dependencies(&self, handle: DerivedResultHandle) -> Option<&DependencySet> {
         self.records
             .get(&handle)
@@ -112,15 +117,16 @@ impl DerivedRepository for MemoryRepository {
 
     /// Retrieves results associated with one exact entity revision.
     ///
-    /// # Parameters
     /// - `entity`: Exact entity identity.
     /// - `revision`: Exact revision identity.
     ///
-    /// # Returns
     /// Matching immutable handles.
     ///
-    /// # Errors
     /// This lookup is infallible.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn by_entity_revision(
         &self,
         entity: EntityId,
@@ -131,11 +137,11 @@ impl DerivedRepository for MemoryRepository {
 
     /// Removes a disposable result when it is retained.
     ///
-    /// # Parameters
     /// - `handle`: Exact result handle.
     ///
-    /// # Returns
     /// Whether a disposable record was removed.
+    /// # Returns
+    /// The operation result.
     fn remove_disposable(&mut self, handle: DerivedResultHandle) -> bool {
         self.records
             .get(&handle)
@@ -146,16 +152,17 @@ impl DerivedRepository for MemoryRepository {
 
 /// Creates one exact result fixture.
 ///
-/// # Parameters
 /// - `handle`: Distinct test handle byte.
 /// - `entity`: Exact subject entity.
 /// - `revision`: Exact subject revision.
 ///
-/// # Returns
 /// An immutable successful result record.
 ///
-/// # Errors
 /// Construction is infallible for fixed test values.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn fixture(handle: u8, entity: EntityId, revision: RevisionId) -> DerivedResultRecord {
     let key = DerivationKey::new(
         DerivationProfile::new("test", "1"),

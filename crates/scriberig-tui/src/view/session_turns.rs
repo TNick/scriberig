@@ -7,7 +7,6 @@ use std::collections::BTreeMap;
 
 /// Appends turn and tool rows for one branch.
 ///
-/// # Parameters
 /// - `source`: Branch whose turns are projected.
 /// - `depth`: Parent branch row depth.
 /// - `transient`: Whether the owning branch is still active.
@@ -59,7 +58,6 @@ pub(super) fn append(
 
 /// Appends a turn's tool references and safe argument detail.
 ///
-/// # Parameters
 /// - `invocation`: Stable tool invocation referenced by the turn.
 /// - `result`: Stable tool result referenced by the turn.
 /// - `depth`: Parent branch row depth.
@@ -100,11 +98,11 @@ fn append_turn_tools(
 
 /// Parses and bounds schema-redacted invocation arguments for detailed views.
 ///
-/// # Parameters
 /// - `input`: Safe structured arguments captured with the invocation.
 ///
-/// # Returns
 /// A sanitized pretty-printed projection capped at 4096 characters.
+/// # Returns
+/// The operation result.
 fn safe_invocation_detail(input: Option<&[u8]>) -> Option<String> {
     let value = serde_json::from_slice::<serde_json::Value>(input?).ok()?;
     let text = serde_json::to_string_pretty(&value).ok()?;

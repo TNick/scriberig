@@ -13,15 +13,16 @@ pub(super) struct BootstrapImportFailureProvider;
 impl ProviderAdapter for BootstrapImportFailureProvider {
     /// Runs normal onboarding tools with one invalid reviewed-manifest reference.
     ///
-    /// # Parameters
     /// - `self`: Deterministic failure scenario.
     /// - `request`: Normalized model request from the agent runtime.
     ///
-    /// # Returns
     /// Normal bootstrap response until shared import validation rejects the reference.
     ///
-    /// # Errors
     /// Returns the bootstrap provider's structured failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
         let mut response = BootstrapProvider.complete(request)?;
         if let Some(import) = response

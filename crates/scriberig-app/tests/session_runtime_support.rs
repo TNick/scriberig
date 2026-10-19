@@ -11,15 +11,16 @@ pub struct Fixture;
 impl ApplicationBackend for Fixture {
     /// Rejects universal requests because these tests target session fallback.
     ///
-    /// # Parameters
     /// - `_context`: Application context, unused by the fixture.
     /// - `_request`: Universal request, intentionally unsupported.
     ///
-    /// # Returns
     /// Never returns a universal result.
     ///
-    /// # Errors
     /// Always returns unsupported-operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute(
         &self,
         _context: &ApplicationContext,
@@ -33,18 +34,20 @@ impl ApplicationBackend for Fixture {
 
 /// Creates the session-tree capability used by authorized test callers.
 ///
-/// # Returns
 /// Application context granting the session and agent capabilities.
 ///
 /// # Panics
 /// Panics when a static fixture capability id is invalid.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn session_context() -> ApplicationContext {
     ApplicationContext {
         capabilities: CapabilityContext::new([
             CapabilityId::new("session_branch_tree").expect("capability"),
             CapabilityId::new("agent_start").expect("capability"),
             CapabilityId::new("agent_continue").expect("capability"),
+            CapabilityId::new("agent_plan").expect("capability"),
             CapabilityId::new("agent_model_library").expect("capability"),
             CapabilityId::new("session_model_selection").expect("capability"),
         ]),

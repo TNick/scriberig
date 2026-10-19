@@ -15,11 +15,7 @@ fn tui_pty_starts_without_a_project() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_empty();
 
-    assert!(
-        tui.read_until("project: unselected"),
-        "{}",
-        tui.diagnostic()
-    );
+    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
     assert!(!tui.screen().contains("Entity:"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }
@@ -30,11 +26,10 @@ fn tui_pty_shows_project_context() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
+    assert!(tui.read_until("scriberig ·"), "{}", tui.diagnostic());
     let screen = tui.screen();
-    assert!(screen.contains("Explorer"));
-    assert!(screen.contains("Primary"));
-    assert!(screen.contains("Inspector"));
+    assert!(screen.contains("Conversation [ACTIVE]"));
+    assert!(screen.contains("Message"));
     assert!(tui.shutdown());
 }
 
@@ -44,8 +39,8 @@ fn tui_pty_shows_readable_explorer_rows() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
-    tui.send(b"\t\t\r");
+    assert!(tui.read_until("scriberig ·"), "{}", tui.diagnostic());
+    tui.send(b"/explorer\r");
     assert!(tui.read_until("README.md"), "{}", tui.diagnostic());
     assert!(tui.screen().contains("README.md"), "{}", tui.diagnostic());
     assert!(
@@ -62,8 +57,8 @@ fn tui_golden_01_shows_named_rust_symbols() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_golden();
 
-    assert!(tui.read_until("Entity:"), "{}", tui.diagnostic());
-    tui.send(b"\t\t\r");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"/explorer\r");
     assert!(tui.read_until("Calculator"), "{}", tui.diagnostic());
     assert!(tui.screen().contains("add"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
@@ -74,29 +69,8 @@ fn tui_golden_01_shows_named_rust_symbols() {
 fn tui_golden_02_shows_rust_source_projection() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_golden();
-    assert!(tui.read_until("Entity:"), "{}", tui.diagnostic());
-    tui.send(b":");
-    assert!(tui.read_until("Open help"), "{}", tui.diagnostic());
-    for (partial, character) in [
-        ("p", b'p'),
-        ("pr", b'r'),
-        ("pro", b'o'),
-        ("proj", b'j'),
-        ("proje", b'e'),
-        ("projec", b'c'),
-        ("project", b't'),
-        ("projecti", b'i'),
-        ("projectio", b'o'),
-        ("projection", b'n'),
-    ] {
-        tui.send(&[character]);
-        assert!(
-            tui.read_until(&format!("Search: {partial}")),
-            "{}",
-            tui.diagnostic()
-        );
-    }
-    tui.send(b"\r");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"/projection\r");
     assert!(tui.read_until("src/lib.rs"), "{}", tui.diagnostic());
     assert!(
         tui.screen().contains("left + right"),
@@ -111,14 +85,12 @@ fn tui_golden_02_shows_rust_source_projection() {
 fn tui_golden_03_edits_reviews_applies_and_restarts() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_golden();
-    assert!(tui.read_until("Entity:"), "{}", tui.diagnostic());
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"projection\r");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"/projection\r");
     assert!(tui.read_until("left + right"), "{}", tui.diagnostic());
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"edit\r");
+    tui.send(b"\x1b");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"/edit\r");
     assert!(tui.read_until("Edit source"), "{}", tui.diagnostic());
     tui.send(b"left.saturating_add(right)\r");
     assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
@@ -137,17 +109,11 @@ fn tui_golden_03_edits_reviews_applies_and_restarts() {
     let fixture = tui.quit_retain_fixture();
     let mut restarted = TuiPty::restart(fixture.clone());
     assert!(
-        restarted.read_until("Entity:"),
+        restarted.read_until("Conversation"),
         "{}",
         restarted.diagnostic()
     );
-    restarted.send(b":");
-    assert!(
-        restarted.read_until("Search:"),
-        "{}",
-        restarted.diagnostic()
-    );
-    restarted.send(b"projection\r");
+    restarted.send(b"/projection\r");
     assert!(
         restarted.read_until("left.saturating_add(right)"),
         "{}",
@@ -161,12 +127,12 @@ fn tui_golden_03_edits_reviews_applies_and_restarts() {
 fn tui_golden_04_external_edit_is_not_overwritten() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_golden();
-    assert!(tui.read_until("Entity:"), "{}", tui.diagnostic());
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"projection\r");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"/projection\r");
     assert!(tui.read_until("left + right"), "{}", tui.diagnostic());
-    tui.send(b":edit\r");
+    tui.send(b"\x1b");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"/edit\r");
     assert!(tui.read_until("Edit source"), "{}", tui.diagnostic());
     tui.send(b"left.saturating_add(right)\r");
     assert!(tui.read_until("validation: Passed"), "{}", tui.diagnostic());
@@ -188,9 +154,13 @@ fn tui_pty_opens_help_overlay() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
-    tui.send(b"?");
-    assert!(tui.read_until("Overlay [Esc close]"));
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"/help\r");
+    assert!(
+        tui.read_until("Overlay [Esc close]"),
+        "{}",
+        tui.diagnostic()
+    );
     let screen = tui.screen();
     assert!(screen.contains("Overlay"));
     for label in [
@@ -203,28 +173,27 @@ fn tui_pty_opens_help_overlay() {
         "Down",
         "Left",
         "Backspace",
-        ":",
         "/",
         "?",
         "r",
-        "q",
+        "Ctrl-C",
     ] {
         assert!(screen.contains(label), "missing help key {label}: {screen}");
     }
     assert!(tui.shutdown());
 }
 
-/// Verifies the command palette opens and closes through terminal input.
+/// Verifies a local slash command opens and closes its auxiliary view.
 #[test]
 fn tui_pty_opens_and_closes_command_palette() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
-    tui.send(b":");
-    assert!(tui.read_until("Search:"));
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"/help\r");
+    assert!(tui.read_until("Overlay [Esc close]"));
     tui.send(b"\x1b");
-    assert!(tui.read_until_not("Search:"));
+    assert!(tui.read_until_not("Overlay [Esc close]"));
     assert!(tui.shutdown());
 }
 
@@ -234,90 +203,69 @@ fn tui_pty_resizes_without_losing_project_context() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: "));
+    assert!(tui.read_until("scriberig ·"));
     tui.resize(PtySize {
         rows: 30,
         cols: 100,
         pixel_width: 0,
         pixel_height: 0,
     });
-    assert!(tui.read_until_next("project: "));
-    assert!(tui.screen().contains("Primary"));
+    assert!(tui.read_until_next("scriberig ·"));
+    assert!(tui.screen().contains("Conversation"));
     assert!(tui.shutdown());
 }
 
-/// Verifies the browse focus cycle and reverse focus binding in a live TUI.
+/// Verifies browse mode can return to the ordinary message composer.
 #[test]
-fn tui_pty_cycles_focus_between_panes() {
+fn tui_pty_browse_returns_to_composer() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("Primary [ACTIVE]"), "{}", tui.diagnostic());
-    tui.send(b"\t");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"\x1b");
     assert!(
-        tui.read_until_next("Inspector [ACTIVE]"),
+        tui.read_until_next("Enter pin reply target"),
         "{}",
         tui.diagnostic()
     );
-    tui.send(b"\t");
-    assert!(
-        tui.read_until_next("Explorer [ACTIVE]"),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b"\x1b[Z");
-    assert!(
-        tui.read_until_next("Inspector [ACTIVE]"),
-        "{}",
-        tui.diagnostic()
-    );
+    tui.send(b"\x1b");
+    assert!(tui.read_until_next("Enter send"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }
 
-/// Verifies browse commands leave the live semantic shell usable.
+/// Verifies ordinary text immediately enters the persistent composer.
 #[test]
-fn tui_pty_accepts_browse_commands() {
+fn tui_pty_types_immediately() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("Entity:"), "{}", tui.diagnostic());
-    tui.send(b"r\r\x1b[A\x1b[B\x1b[D\x1b[C\x08x");
-    assert!(tui.read_until_next("Entity:"), "{}", tui.diagnostic());
-    assert!(tui.screen().contains("project: "));
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"hello");
+    assert!(tui.read_until_next("> hello"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }
 
-/// Verifies palette cursor movement through both horizontal and vertical keys.
+/// Verifies slash command completion from the persistent composer.
 #[test]
 fn tui_pty_moves_palette_selection() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
-    tui.send(b":");
-    assert!(tui.read_until("Search:"));
-    tui.send(b"\x1b[B\x1b[C\x1b[A\x1b[D");
-    assert!(tui.read_until_next("Search:"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"/pl");
+    assert!(tui.read_until_next("/plan"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }
 
-/// Verifies every always-available local palette command is discoverable.
+/// Verifies slash command discovery is visible in the composer.
 #[test]
 fn tui_pty_lists_local_palette_commands() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    let screen = tui.screen();
-    for command in ["Open help", "Refresh", "Go back", "Quit", "View overview"] {
-        assert!(screen.contains(command), "missing {command}: {screen}");
-    }
-    tui.send(b"operations");
-    assert!(tui.read_until("View operations"), "{}", tui.diagnostic());
-    tui.send(b"\x1b");
-    assert!(tui.read_until_not("Search:"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"/pl");
+    assert!(tui.read_until("/plan"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }
 
@@ -327,69 +275,51 @@ fn tui_pty_submits_find_query() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
-    tui.send(b"/");
-    assert!(tui.read_until("Find:"), "{}", tui.diagnostic());
-    tui.send(b"readmx");
-    tui.send(&[127]);
-    tui.send(b"e");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"/find readme\r");
     assert!(tui.read_until("Find: readme"), "{}", tui.diagnostic());
-    tui.send(b"\r");
-    assert!(tui.screen().contains("Find: readme"));
     assert!(tui.shutdown());
 }
 
-/// Verifies palette selection, activation, and view routing in the live TUI.
+/// Verifies local slash commands route to auxiliary views.
 #[test]
 fn tui_pty_activates_palette_commands() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
-    tui.send(b":");
-    assert!(tui.read_until("Search:"));
-    tui.send(b"operations");
-    tui.send(b"\r");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"/operations\r");
     assert!(
         tui.read_until("No observed operations"),
         "{}",
         tui.diagnostic()
     );
 
-    tui.send(b":");
-    assert!(tui.read_until("Search:"));
-    tui.send(b"overview");
-    tui.send(b"\r");
-    assert!(tui.read_until("Entity:"), "{}", tui.diagnostic());
+    tui.send(b"\x1b");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"/help\r");
+    assert!(
+        tui.read_until("Overlay [Esc close]"),
+        "{}",
+        tui.diagnostic()
+    );
 
     assert!(tui.shutdown());
 }
 
-/// Verifies history loading and the agent composer command from the palette.
+/// Verifies history and new conversation commands in the composer.
 #[test]
 fn tui_pty_opens_history_and_agent_composer() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("project: "), "{}", tui.diagnostic());
-    tui.send(b":");
-    assert!(tui.read_until("Search:"));
-    tui.send(b"history");
-    assert!(tui.read_until("Search: history"));
-    tui.send(b"\r");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"/history\r");
     assert!(tui.read_until("History @"), "{}", tui.diagnostic());
 
-    tui.send(b":");
-    assert!(tui.read_until("Search:"));
-    tui.type_palette_query("start-agent")
-        .expect("palette query");
-    tui.send(b"\r");
-    assert!(
-        tui.read_until("Agent composer · ent_"),
-        "{}",
-        tui.diagnostic()
-    );
     tui.send(b"\x1b");
-    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"/new\r");
+    assert!(tui.read_until("New conversation"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }

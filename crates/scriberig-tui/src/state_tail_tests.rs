@@ -1,6 +1,6 @@
 //! Covers the remaining TUI reducer interaction tests.
 
-use super::super::state_actions::activate_current;
+use super::super::super::state_actions::activate_current;
 use super::*;
 
 /// Verifies an authoritative progress record reaches the operation view.
@@ -101,6 +101,8 @@ fn authoritative_session_refresh_preserves_transient_output() {
         Action::SessionSucceeded {
             request_id: 1,
             model: crate::view::session::SessionModel::default(),
+            conversation: crate::view::conversation::ConversationModel::default(),
+            session_snapshot: None,
         },
     );
     assert_eq!(state.agent_output_observations, vec!["working".to_owned()]);

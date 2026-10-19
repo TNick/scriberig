@@ -9,11 +9,11 @@ use scriberig_store_sqlite::SqliteStore;
 
 /// Creates one imported temporary Rust project.
 ///
-/// # Parameters
 /// - `label`: Unique fixture label.
 ///
-/// # Returns
 /// Project root, shared store, project identity, and immutable base snapshot.
+/// # Returns
+/// The operation result.
 fn setup(
     label: &str,
 ) -> (

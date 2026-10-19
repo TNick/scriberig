@@ -10,11 +10,11 @@ use scriberig_store_sqlite::SqliteStore;
 
 /// Creates a unique temporary directory for one onboarding test.
 ///
-/// # Parameters
 /// - `label`: Test label.
 ///
-/// # Returns
 /// Created temporary directory path.
+/// # Returns
+/// The operation result.
 fn temporary_directory(label: &str) -> PathBuf {
     let path =
         std::env::temp_dir().join(format!("scriberig-project-{label}-{}", std::process::id()));
@@ -25,11 +25,9 @@ fn temporary_directory(label: &str) -> PathBuf {
 
 /// Runs one Git command in a temporary repository.
 ///
-/// # Parameters
 /// - `root`: Repository working tree.
 /// - `arguments`: Git arguments.
 ///
-/// # Returns
 /// Unit after Git succeeds.
 fn git(root: &PathBuf, arguments: &[&str]) {
     let status = Command::new("git")

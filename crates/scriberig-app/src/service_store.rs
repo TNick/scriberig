@@ -17,15 +17,15 @@ pub struct StoreInspectionBackend<S> {
 impl<S> StoreInspectionBackend<S> {
     /// Creates an inspection backend using the conventional `main` root.
     ///
-    /// # Parameters
     /// - `store`: Revision, snapshot, and root backend.
     ///
-    /// # Returns
     /// A storage-backed inspection provider.
     ///
     /// # Panics
     /// Panics only if the fixed root name is invalid.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(store: S) -> Self {
         Self {
             store,
@@ -35,10 +35,8 @@ impl<S> StoreInspectionBackend<S> {
 
     /// Returns the underlying storage backend.
     ///
-    /// # Parameters
     /// - `self`: Storage-backed provider.
     ///
-    /// # Returns
     /// The backend used for reads.
     #[must_use]
     pub const fn store(&self) -> &S {
@@ -52,17 +50,18 @@ where
 {
     /// Executes an exact snapshot or revision inspection.
     ///
-    /// # Parameters
     /// - `self`: Storage-backed inspection provider.
     /// - `_context`: Trusted application context.
     /// - `request`: Universal application request.
     ///
-    /// # Returns
     /// Compact inspection metadata from canonical storage.
     ///
-    /// # Errors
     /// Returns a structured not-found or backend failure.
     #[allow(clippy::too_many_lines)]
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute(
         &self,
         _context: &ApplicationContext,
@@ -189,15 +188,16 @@ where
 
     /// Resolves the conventional current `main` root.
     ///
-    /// # Parameters
     /// - `self`: Storage-backed inspection provider.
     /// - `_context`: Trusted application context.
     ///
-    /// # Returns
     /// The exact snapshot promoted on `main`.
     ///
-    /// # Errors
     /// Returns not-found when `main` has not been promoted.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn current_snapshot(
         &self,
         _context: &ApplicationContext,
@@ -212,14 +212,11 @@ where
 
 /// Finds entities by exact text over stable identity and type metadata.
 ///
-/// # Parameters
 /// - `store`: Revision and snapshot storage backend.
 /// - `request`: Snapshot-scoped exact-text discovery request.
 ///
-/// # Returns
 /// A bounded public find result.
 ///
-/// # Errors
 /// Returns a structured application error for unsupported scopes or pages.
 fn find_snapshot_entities<S>(
     store: &S,
@@ -276,11 +273,11 @@ where
 
 /// Maps a revision backend failure to a safe application error.
 ///
-/// # Parameters
 /// - `error`: Revision backend failure.
 ///
-/// # Returns
 /// Safe application error preserving no backend internals.
+/// # Returns
+/// The operation result.
 fn storage_revision_error(error: &scriberig_store::StoreError) -> ApplicationError {
     ApplicationError::Internal {
         message: format!("revision backend failure: {error:?}"),
@@ -289,11 +286,11 @@ fn storage_revision_error(error: &scriberig_store::StoreError) -> ApplicationErr
 
 /// Maps a snapshot backend failure to a safe application error.
 ///
-/// # Parameters
 /// - `error`: Snapshot backend failure.
 ///
-/// # Returns
 /// Safe application error preserving no backend internals.
+/// # Returns
+/// The operation result.
 fn storage_snapshot_error(error: &scriberig_store::SnapshotError) -> ApplicationError {
     ApplicationError::Internal {
         message: format!("snapshot backend failure: {error:?}"),

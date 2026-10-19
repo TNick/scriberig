@@ -20,8 +20,12 @@ pub struct SemanticReference(pub String);
 /// The primary view shown for a navigation location.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimaryView {
+    /// Default recursive agent conversation surface.
+    Conversation,
     /// The default object overview.
     Overview,
+    /// Snapshot-bound semantic exploration.
+    Explorer,
     /// Immutable semantic history.
     History,
     /// Bounded semantic discovery results.
@@ -64,11 +68,11 @@ impl Default for NavigationLocation {
     /// Creates a location with no semantic selection.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     fn default() -> Self {
         Self {
             selection: None,
-            primary_view: PrimaryView::Overview,
+            primary_view: PrimaryView::Conversation,
             context: ViewContext::default(),
             entity: None,
         }

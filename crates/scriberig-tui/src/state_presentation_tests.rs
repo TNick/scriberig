@@ -31,7 +31,7 @@ fn shared_preferences_resolve_beneath_local_tui_overrides() {
     );
     assert_eq!(
         state.tool_invocation_visibility,
-        crate::state::ToolInvocationVisibility::Detailed
+        crate::state::ToolInvocationVisibility::StructuredParameters
     );
     assert_eq!(
         state.prompt_visibility,
@@ -154,7 +154,89 @@ fn tool_invocation_detail_toggle_is_presentation_only() {
     assert_eq!(effects, vec![Effect::None]);
     assert_eq!(
         state.tool_invocation_visibility,
-        crate::state::ToolInvocationVisibility::Detailed
+        crate::state::ToolInvocationVisibility::Full
+    );
+}
+
+/// Verifies tool rendering mode cannot alter compiled context or request identity.
+#[test]
+fn tool_verbosity_changes_leave_context_fingerprint_unchanged() {
+    let context = scriberig_agent_runtime::context::BranchExecutionContext::new(
+        "session",
+        "branch",
+        "implement work",
+        "continue local task",
+    );
+    let compiled = scriberig_agent_runtime::context::ContextCompiler::new(
+        scriberig_agent_runtime::context::ContextPolicy::default(),
+    )
+    .compile(&context);
+    let canonical = compiled.canonical.clone();
+    let fingerprint = scriberig_agent_runtime::context::RequestFingerprintInput::new(
+        "profile",
+        "model",
+        compiled.canonical,
+        "tools",
+    )
+    .fingerprint();
+    let mut state = TuiState::default();
+
+    for _ in 0..4 {
+        let effects = crate::state::activate_palette_control(&mut state, "toggle-tool-invocation")
+            .expect("tool-call presentation control");
+        assert_eq!(effects, vec![Effect::None]);
+        let repeated = scriberig_agent_runtime::context::ContextCompiler::new(
+            scriberig_agent_runtime::context::ContextPolicy::default(),
+        )
+        .compile(&context);
+        let repeated_fingerprint = scriberig_agent_runtime::context::RequestFingerprintInput::new(
+            "profile",
+            "model",
+            repeated.canonical.clone(),
+            "tools",
+        )
+        .fingerprint();
+        assert_eq!(repeated.canonical, canonical);
+        assert_eq!(repeated_fingerprint, fingerprint);
+    }
+}
+
+/// Reports a missing session when a queued assignment picker is activated.
+#[test]
+fn plan_assignment_picker_reports_lost_session_context() {
+    let mut state = TuiState {
+        plan_assignment_target: Some(crate::state::PlanAssignmentTarget {
+            plan: scriberig_core::EntityId::from_bytes([181; 16]),
+            node: scriberig_core::EntityId::from_bytes([182; 16]),
+            expected_revision: 1,
+        }),
+        model_library: crate::inspector::LoadState::Ready(
+            scriberig_protocol::ModelLibraryResponse {
+                models: Vec::new(),
+                profiles: vec![scriberig_protocol::PublicModelProfile {
+                    id: "profile-a".to_owned(),
+                    display_name: "Profile A".to_owned(),
+                    model: "model-a".to_owned(),
+                    connection: "connection-a".to_owned(),
+                    credential: None,
+                    default_thinking_level: None,
+                    enabled: true,
+                }],
+            },
+        ),
+        ..TuiState::default()
+    };
+
+    let effects = crate::state::activate_palette_control(&mut state, "assign-plan-profile:0")
+        .expect("assignment action");
+
+    assert_eq!(effects, vec![Effect::None]);
+    assert!(
+        state
+            .conversation_composer
+            .error
+            .as_deref()
+            .is_some_and(|message| message.contains("Load the plan session"))
     );
 }
 

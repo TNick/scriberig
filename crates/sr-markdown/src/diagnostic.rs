@@ -14,13 +14,13 @@ pub struct MarkdownDiagnostic {
 impl MarkdownDiagnostic {
     /// Creates a diagnostic with no source offset.
     ///
-    /// # Parameters
     /// - `code`: Stable diagnostic code.
     /// - `message`: Human-readable explanation.
     ///
-    /// # Returns
     /// A diagnostic without a source location.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(code: impl Into<String>, message: impl Into<String>) -> Self {
         Self {
             code: code.into(),

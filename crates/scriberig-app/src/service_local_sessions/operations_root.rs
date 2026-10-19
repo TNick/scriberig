@@ -7,16 +7,17 @@ use scriberig_session::{BranchResult, Turn};
 impl<B> ApplicationService<B> {
     /// Commits final runtime output into a pending local agent operation.
     ///
-    /// # Parameters
     /// - `self`: Application service owning local session state.
     /// - `handle`: Pending operation and branch handle.
     /// - `final_output`: Complete externally meaningful agent output.
     ///
-    /// # Returns
     /// The structured application agent result stored on the operation.
     ///
-    /// # Errors
     /// Returns an application error when the branch or operation is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn complete_local_agent(
         &self,
         handle: &crate::LocalAgentHandle,
@@ -27,17 +28,18 @@ impl<B> ApplicationService<B> {
 
     /// Commits final output and stable result handles into a local agent branch.
     ///
-    /// # Parameters
     /// - `self`: Application service owning local session state.
     /// - `handle`: Pending operation and branch handle.
     /// - `final_output`: Complete externally meaningful agent output.
     /// - `result_handles`: Stable project, snapshot, manifest, or candidate handles.
     ///
-    /// # Returns
     /// The structured application agent result stored on the operation.
     ///
-    /// # Errors
     /// Returns an application error when the branch or operation is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn complete_local_agent_with_handles(
         &self,
         handle: &crate::LocalAgentHandle,
@@ -55,7 +57,6 @@ impl<B> ApplicationService<B> {
 
     /// Completes a root branch and persists its executed tool evidence.
     ///
-    /// # Parameters
     /// - `self`: Application service owning local session state.
     /// - `handle`: Pending operation and branch handle.
     /// - `final_output`: Complete externally meaningful agent output.
@@ -63,11 +64,13 @@ impl<B> ApplicationService<B> {
     /// - `tool_evidence`: Exact tool arguments and bounded structured results.
     /// - `model_requests`: Safe normalized requests captured by the runtime.
     ///
-    /// # Returns
     /// The structured application agent result stored on the operation.
     ///
-    /// # Errors
     /// Returns an application error when the branch or operation is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn complete_local_agent_with_evidence(
         &self,
         handle: &crate::LocalAgentHandle,
@@ -129,6 +132,7 @@ impl<B> ApplicationService<B> {
             status: scriberig_session::BranchStatus::Completed,
             summary: Some(final_output.clone()),
             result_kind: Some("agent".to_owned()),
+            candidate_context: None,
             references: Vec::new(),
             result_handles: result_handles.clone(),
             touched: Vec::new(),
@@ -178,16 +182,17 @@ impl<B> ApplicationService<B> {
 
     /// Accepts an agent request in the provider-neutral local session store.
     ///
-    /// # Parameters
     /// - `crate`: Root agent request containing the user prompt.
     /// - `self`: Application service owning session state.
     /// - `request`: Session, branch, and prompt supplied by the caller.
     ///
-    /// # Returns
     /// A lifecycle operation identifier accepted for execution.
     ///
-    /// # Errors
     /// Returns an application error when session state cannot be updated.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(crate) fn accept_local_agent(
         &self,
         request: &crate::AgentCommandRequest,

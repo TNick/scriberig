@@ -12,11 +12,13 @@ use scriberig_protocol::{
 impl<T: ProtocolTransport> Client<T> {
     /// Retrieves safe model profiles and model-specific thinking capabilities.
     ///
-    /// # Returns
     /// The configured provider-neutral model library.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn model_library(&self) -> Result<ModelLibraryResponse, ClientError> {
         match self
             .send(Request::ModelLibrary(ModelLibraryRequest::default()))?
@@ -30,16 +32,17 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Selects a model profile for future invocations in one session.
     ///
-    /// # Parameters
     /// - `session`: Stable session identity.
     /// - `expected_revision`: Selection revision observed by the caller.
     /// - `model_profile`: Curated profile identity to select.
     ///
-    /// # Returns
     /// Updated session execution selection.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn set_session_model(
         &self,
         session: impl Into<String>,
@@ -64,16 +67,17 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Selects a thinking capability for future invocations in one session.
     ///
-    /// # Parameters
     /// - `session`: Stable session identity.
     /// - `expected_revision`: Selection revision observed by the caller.
     /// - `thinking_level`: Advertised thinking-level identity.
     ///
-    /// # Returns
     /// Updated session execution selection.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn set_session_thinking_level(
         &self,
         session: impl Into<String>,
@@ -98,16 +102,17 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Submits a session agent command through the shared operation boundary.
     ///
-    /// # Parameters
     /// - `session`: Stable target session identity.
     /// - `branch`: Optional branch receiving the command.
     /// - `prompt`: User-authored agent instruction.
     ///
-    /// # Returns
     /// The accepted shared operation status.
     ///
-    /// # Errors
     /// Returns a structured server or transport error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn submit_agent_command(
         &self,
         session: impl Into<String>,
@@ -124,15 +129,16 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Starts an agent operation for a session root.
     ///
-    /// # Parameters
     /// - `session`: Stable target session identity.
     /// - `prompt`: User-authored agent instruction.
     ///
-    /// # Returns
     /// The accepted shared operation status.
     ///
-    /// # Errors
     /// Returns a structured server or transport error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn start_agent(
         &self,
         session: impl Into<String>,
@@ -144,15 +150,16 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Starts an agent operation and returns every accepted stable handle.
     ///
-    /// # Parameters
     /// - `session`: Stable target session identity.
     /// - `prompt`: User-authored agent instruction.
     ///
-    /// # Returns
     /// The typed accepted agent response with operation/session/branch handles.
     ///
-    /// # Errors
     /// Returns a structured server or transport error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn start_agent_with_handles(
         &self,
         session: impl Into<String>,
@@ -172,18 +179,89 @@ impl<T: ProtocolTransport> Client<T> {
         }
     }
 
+    /// Starts a new session and returns all application-allocated handles.
+    ///
+    /// - `prompt`: User-authored first instruction.
+    /// - `selection`: Optional exact semantic scope.
+    ///
+    /// Accepted operation, session, and root-branch references.
+    ///
+    /// Returns a structured server or transport error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn start_new_session_agent(
+        &self,
+        prompt: impl Into<String>,
+        selection: Option<scriberig_protocol::AgentSelection>,
+    ) -> Result<scriberig_protocol::AgentAcceptedResponse, ClientError> {
+        match self
+            .send(Request::AgentNewSession(
+                scriberig_protocol::AgentNewSessionRequest {
+                    prompt: prompt.into(),
+                    selection,
+                },
+            ))?
+            .response
+        {
+            Response::AgentAccepted(response) => Ok(response),
+            Response::Error(error) => Err(ClientError::Protocol(error)),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Continues from one exact historical conversation location.
+    ///
+    /// - `session`: Stable session identity.
+    /// - `anchor`: Exact shared continuation anchor.
+    /// - `prompt`: User-authored follow-up instruction.
+    /// - `selection`: Optional exact semantic scope.
+    ///
+    /// Accepted operation, session, and continuation branch references.
+    ///
+    /// Returns a structured server or transport error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn continue_agent_at(
+        &self,
+        session: impl Into<String>,
+        anchor: scriberig_protocol::SessionContinuationAnchor,
+        prompt: impl Into<String>,
+        selection: Option<scriberig_protocol::AgentSelection>,
+    ) -> Result<scriberig_protocol::AgentAcceptedResponse, ClientError> {
+        match self
+            .send(Request::AgentContinueAt(
+                scriberig_protocol::AgentContinueAtRequest {
+                    session: SessionReference { id: session.into() },
+                    anchor,
+                    prompt: prompt.into(),
+                    selection,
+                },
+            ))?
+            .response
+        {
+            Response::AgentAccepted(response) => Ok(response),
+            Response::Error(error) => Err(ClientError::Protocol(error)),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
     /// Continues an agent operation on an existing branch.
     ///
-    /// # Parameters
     /// - `session`: Stable target session identity.
     /// - `branch`: Stable target branch identity.
     /// - `prompt`: User-authored follow-up instruction.
     ///
-    /// # Returns
     /// The accepted shared operation status.
     ///
-    /// # Errors
     /// Returns a structured server or transport error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn continue_agent(
         &self,
         session: impl Into<String>,
@@ -196,16 +274,17 @@ impl<T: ProtocolTransport> Client<T> {
 
     /// Continues an agent operation and returns every accepted stable handle.
     ///
-    /// # Parameters
     /// - `session`: Stable target session identity.
     /// - `branch`: Stable target branch identity.
     /// - `prompt`: User-authored follow-up instruction.
     ///
-    /// # Returns
     /// The typed accepted agent response with operation/session/branch handles.
     ///
-    /// # Errors
     /// Returns a structured server or transport error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn continue_agent_with_handles(
         &self,
         session: impl Into<String>,

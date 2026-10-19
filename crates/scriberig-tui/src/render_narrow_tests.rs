@@ -19,5 +19,5 @@ fn narrow_frame_contains_primary_text() {
         .iter()
         .map(ratatui::buffer::Cell::symbol)
         .collect();
-    assert!(rendered.contains("Shell ready"));
+    assert!(rendered.contains("No conversation yet"));
 }

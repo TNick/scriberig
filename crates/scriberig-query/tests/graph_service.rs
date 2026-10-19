@@ -25,15 +25,16 @@ impl KnowledgeView for Fixture {
 
     /// Lists the one fixture entity.
     ///
-    /// # Parameters
     /// - `&self`: Fixture graph view.
     /// - `snapshot`: Snapshot context.
     ///
-    /// # Returns
     /// The fixture entity for its snapshot.
     ///
-    /// # Errors
     /// This fixture does not produce backend errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn entities(&self, snapshot: SnapshotId) -> Result<Vec<EntityId>, Self::Error> {
         Ok((snapshot == self.snapshot)
             .then_some(vec![self.entity])
@@ -42,16 +43,17 @@ impl KnowledgeView for Fixture {
 
     /// Resolves the fixture entity at its exact snapshot.
     ///
-    /// # Parameters
     /// - `&self`: Fixture graph view.
     /// - `snapshot`: Snapshot to resolve.
     /// - `entity`: Entity to resolve.
     ///
-    /// # Returns
     /// The fixture revision when the target matches.
     ///
-    /// # Errors
     /// This fixture does not produce backend errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn resolve(
         &self,
         snapshot: SnapshotId,
@@ -65,16 +67,17 @@ impl KnowledgeView for Fixture {
 
     /// Reads the fixture revision at its exact snapshot.
     ///
-    /// # Parameters
     /// - `&self`: Fixture graph view.
     /// - `snapshot`: Snapshot to read.
     /// - `entity`: Entity to read.
     ///
-    /// # Returns
     /// The fixture record when the target matches.
     ///
-    /// # Errors
     /// This fixture does not produce backend errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read_revision(
         &self,
         snapshot: SnapshotId,
@@ -85,15 +88,16 @@ impl KnowledgeView for Fixture {
 
     /// Reads the fixture revision by its immutable identity.
     ///
-    /// # Parameters
     /// - `entity`: Entity identity requested by the test.
     /// - `revision`: Revision identity requested by the test.
     ///
-    /// # Returns
     /// The fixture record when both identities match.
     ///
-    /// # Errors
     /// This fixture does not produce backend errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read_exact_revision(
         &self,
         entity: EntityId,
@@ -107,16 +111,17 @@ impl KnowledgeView for Fixture {
 
     /// Returns the fixture entity type.
     ///
-    /// # Parameters
     /// - `&self`: Fixture graph view.
     /// - `_snapshot`: Snapshot context.
     /// - `_entity`: Entity identity.
     ///
-    /// # Returns
     /// The fixture entity type.
     ///
-    /// # Errors
     /// This fixture does not produce backend errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn entity_type(
         &self,
         _snapshot: SnapshotId,
@@ -127,16 +132,17 @@ impl KnowledgeView for Fixture {
 
     /// Returns no reverse relations for this fixture.
     ///
-    /// # Parameters
     /// - `&self`: Fixture graph view.
     /// - `_snapshot`: Snapshot context.
     /// - `_target`: Target entity.
     ///
-    /// # Returns
     /// An empty reverse-relation list.
     ///
-    /// # Errors
     /// This fixture does not produce backend errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn reverse_relations(
         &self,
         _snapshot: SnapshotId,
@@ -148,8 +154,9 @@ impl KnowledgeView for Fixture {
 
 /// Builds a fixture containing one relation and one unordered collection.
 ///
-/// # Returns
 /// A deterministic graph view fixture.
+/// # Returns
+/// The operation result.
 fn fixture() -> Fixture {
     let snapshot = SnapshotId::new([3; 32]);
     let entity = EntityId::from_bytes([1; 16]);

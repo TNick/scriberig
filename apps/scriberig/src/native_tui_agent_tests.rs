@@ -4,257 +4,322 @@ use std::sync::Arc;
 
 use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::provider::{
-    FakeProvider, FinishReason, ModelResponse, ProviderMetadata,
+    FakeProvider, FinishReason, ModelResponse, ProviderMetadata, ToolCall,
 };
 use scriberig_agent_runtime::{AgentMessage, ModelProvider};
 use scriberig_app::{
     AgentCommandRequest, ApplicationBackendComposition, ApplicationContext, ApplicationService,
     CapabilityContext, CapabilityId, ModelCapabilities, ModelDescriptor, ModelId, ModelLibrary,
-    ModelProfile, SessionExecutionSelection, StoreInspectionBackend, StoreOperationProvider,
+    ModelProfile, PlanCreateRequest, PlanLifecycleAction, PlanLifecycleRequest, PlanNodeDraft,
+    SessionBackend, SessionExecutionSelection, StoreInspectionBackend, StoreOperationProvider,
     ThinkingLevelDescriptor, ThinkingLevelId,
 };
 use scriberig_core::{EntityId, ProjectId, SnapshotId};
+use scriberig_session::{
+    AgentOutput, Branch, ContinuationAnchor, ContinuationOrigin, ContinuationProvenance,
+    HumanInput, ModelAssignment, Session, SessionStore, Turn,
+};
 use scriberig_store_sqlite::SqliteStore;
+use scriberig_tui::{
+    action::Action,
+    effect::Effect,
+    service::{ApplicationOperationAdapter, execute_effect},
+    state::{TuiState, reduce},
+};
 
-use super::{model_selection::resolve_selected_runtime_model, previous_workspace_selection};
+use super::{
+    NativeProvider, NativeTuiAgentRunner, model_selection::resolve_selected_runtime_model,
+    previous_workspace_selection,
+};
 
-/// Resolves the selected safe descriptor into provider request settings.
+/// Runs the first typed message through the composed TUI and fake provider.
 #[test]
-fn session_model_and_thinking_selection_resolve_for_native_runtime() {
-    let level = ThinkingLevelId::new("deliberate").expect("thinking id");
-    let model = ModelDescriptor {
-        id: ModelId::new("scriberig-model").expect("model id"),
-        display_name: "Scriberig model".to_owned(),
-        provider_profile: "local".to_owned(),
-        provider_model_id: "provider-model-2".to_owned(),
-        capabilities: ModelCapabilities::default(),
-        thinking_levels: vec![ThinkingLevelDescriptor {
-            id: level.clone(),
-            label: "Deliberate".to_owned(),
-            description: None,
-            order: 1,
-        }],
-        default_thinking_level: Some(level.clone()),
-    };
-    let profile = ModelProfile {
-        id: "local-profile".to_owned(),
-        display_name: "Local profile".to_owned(),
-        model: model.id.clone(),
-        connection: "local".to_owned(),
-        credential: None,
-        default_thinking_level: None,
-        enabled: true,
-    };
-    let library = ModelLibrary::new(vec![model], vec![profile]).expect("model library");
-    let selection = SessionExecutionSelection {
-        revision: 2,
-        model_profile: Some("local-profile".to_owned()),
-        model: Some("scriberig-model".to_owned()),
-        thinking_level: Some("deliberate".to_owned()),
-        history: Vec::new(),
-    };
-
-    let resolved = resolve_selected_runtime_model(&library, &selection, "runtime-default")
-        .expect("resolve selected settings");
-
-    assert_eq!(resolved.0, "provider-model-2");
-    assert_eq!(resolved.1.as_deref(), Some("deliberate"));
-}
-
-/// Uses the runtime configured model when the session has no profile selection.
-#[test]
-fn native_runtime_model_resolution_uses_fallback_without_selection() {
-    let resolved = resolve_selected_runtime_model(
-        &ModelLibrary::default(),
-        &SessionExecutionSelection::default(),
-        "runtime-default",
-    )
-    .expect("resolve runtime fallback");
-
-    assert_eq!(resolved, ("runtime-default".to_owned(), None));
-}
-
-/// Keeps an active invocation's resolved settings after session selection changes.
-#[test]
-fn running_invocation_keeps_its_model_and_thinking_snapshot() {
-    let library = running_invocation_test_library();
-    let active_selection = SessionExecutionSelection {
-        revision: 1,
-        model_profile: Some("profile-a".to_owned()),
-        model: Some("model-a".to_owned()),
-        thinking_level: Some("medium".to_owned()),
-        history: Vec::new(),
-    };
-    let active_invocation =
-        resolve_selected_runtime_model(&library, &active_selection, "runtime-default")
-            .expect("resolve active invocation");
-    let provider = FakeProvider::from_responses([
-        Ok(ModelResponse {
-            text: Some("active response".to_owned()),
-            tool_calls: Vec::new(),
-            finish_reason: FinishReason::Stop,
-            usage: None,
-            metadata: ProviderMetadata::default(),
-        }),
-        Ok(ModelResponse {
-            text: Some("next response".to_owned()),
-            tool_calls: Vec::new(),
-            finish_reason: FinishReason::Stop,
-            usage: None,
-            metadata: ProviderMetadata::default(),
-        }),
-    ]);
-    let mut active_model = ProviderModel::new(provider.clone(), active_invocation.0.clone())
-        .with_thinking_level(active_invocation.1.clone());
-    let next_selection = SessionExecutionSelection {
-        revision: 2,
-        model_profile: Some("profile-b".to_owned()),
-        model: Some("model-b".to_owned()),
-        thinking_level: Some("high".to_owned()),
-        history: Vec::new(),
-    };
-    let next_invocation =
-        resolve_selected_runtime_model(&library, &next_selection, "runtime-default")
-            .expect("resolve next invocation");
-    active_model
-        .decide(&[AgentMessage::User("active prompt".to_owned())])
-        .expect("active invocation response");
-    let mut next_model = ProviderModel::new(provider.clone(), next_invocation.0.clone())
-        .with_thinking_level(next_invocation.1.clone());
-    next_model
-        .decide(&[AgentMessage::User("next prompt".to_owned())])
-        .expect("next invocation response");
-
-    assert_eq!(
-        active_invocation,
-        ("wire-a".to_owned(), Some("medium".to_owned()))
-    );
-    assert_eq!(
-        next_invocation,
-        ("wire-b".to_owned(), Some("high".to_owned()))
-    );
-    assert_eq!(provider.requests()[0].model, "wire-a");
-    assert_eq!(
-        provider.requests()[0].thinking_level.as_deref(),
-        Some("medium")
-    );
-    assert_eq!(provider.requests()[1].model, "wire-b");
-    assert_eq!(
-        provider.requests()[1].thinking_level.as_deref(),
-        Some("high")
-    );
-}
-
-/// Builds two models with distinct advertised thinking levels for snapshot tests.
-///
-/// # Returns
-/// A valid local model library with two enabled profiles.
-fn running_invocation_test_library() -> ModelLibrary {
-    let model_a = ModelDescriptor {
-        id: ModelId::new("model-a").expect("model id"),
-        display_name: "Model A".to_owned(),
-        provider_profile: "local".to_owned(),
-        provider_model_id: "wire-a".to_owned(),
-        capabilities: ModelCapabilities::default(),
-        thinking_levels: vec![ThinkingLevelDescriptor {
-            id: ThinkingLevelId::new("medium").expect("thinking id"),
-            label: "Medium".to_owned(),
-            description: None,
-            order: 0,
-        }],
-        default_thinking_level: None,
-    };
-    let model_b = ModelDescriptor {
-        id: ModelId::new("model-b").expect("model id"),
-        display_name: "Model B".to_owned(),
-        provider_profile: "local".to_owned(),
-        provider_model_id: "wire-b".to_owned(),
-        capabilities: ModelCapabilities::default(),
-        thinking_levels: vec![ThinkingLevelDescriptor {
-            id: ThinkingLevelId::new("high").expect("thinking id"),
-            label: "High".to_owned(),
-            description: None,
-            order: 0,
-        }],
-        default_thinking_level: None,
-    };
-    ModelLibrary::new(
-        vec![model_a, model_b],
-        vec![
-            ModelProfile {
-                id: "profile-a".to_owned(),
-                display_name: "Profile A".to_owned(),
-                model: ModelId::new("model-a").expect("model id"),
-                connection: "local".to_owned(),
-                credential: None,
-                default_thinking_level: None,
-                enabled: true,
-            },
-            ModelProfile {
-                id: "profile-b".to_owned(),
-                display_name: "Profile B".to_owned(),
-                model: ModelId::new("model-b").expect("model id"),
-                connection: "local".to_owned(),
-                credential: None,
-                default_thinking_level: None,
-                enabled: true,
-            },
-        ],
-    )
-    .expect("model library")
-}
-
-/// Recovers the exact project scope stored by a completed onboarding branch.
-#[test]
-fn continuation_uses_durable_project_snapshot_and_root_handles() {
-    let root = std::env::temp_dir().join(format!("scriberig-continuation-{0}", EntityId::new()));
+#[allow(clippy::too_many_lines)] // Covers the complete shared first-message flow.
+fn first_conversation_message_runs_and_persists_fake_provider_answer() {
+    let root = std::env::temp_dir().join(format!("scriberig-first-message-{0}", EntityId::new()));
     std::fs::create_dir_all(&root).expect("fixture root");
-    let database = root.join("state.sqlite");
-    let store = Arc::new(SqliteStore::open(&database).expect("database"));
+    let project_path = root.join("project.sqlite");
+    let session_path = root.join("session.sqlite");
+    let project_store = Arc::new(SqliteStore::open(&project_path).expect("project store"));
     let backend = ApplicationBackendComposition::new(
-        StoreInspectionBackend::new(Arc::clone(&store)),
-        StoreOperationProvider::new(Arc::clone(&store)),
+        StoreInspectionBackend::new(Arc::clone(&project_store)),
+        StoreOperationProvider::new(Arc::clone(&project_store)),
     );
-    let service = ApplicationService::new(backend);
-    let session = EntityId::new();
-    let project = ProjectId::fresh();
-    let snapshot = SnapshotId::new([42; 32]);
-    let root_entity = EntityId::new();
-    let handle = service
-        .start_local_agent(&AgentCommandRequest {
-            session,
-            branch: None,
-            prompt: "onboard".to_owned(),
-            selection: None,
-        })
-        .expect("start onboarding branch");
-    service
-        .complete_local_agent_with_handles(
-            &handle,
-            "ready",
-            vec![
-                format!("project:{project}"),
-                format!("snapshot:{snapshot}"),
-                format!("root:{root_entity}"),
-            ],
-        )
-        .expect("complete onboarding branch");
+    let session_store = Arc::new(
+        scriberig_session_sqlite::SqliteSessionStore::open(&session_path).expect("session store"),
+    );
+    let session_repository: Arc<dyn scriberig_session::SessionStore> = session_store.clone();
+    let service = ApplicationService::new(backend).with_session_store(session_repository);
+    let provider =
+        scriberig_agent_runtime::provider::FakeProvider::from_responses([Ok(ModelResponse {
+            text: Some("Welcome to the project.".to_owned()),
+            tool_calls: Vec::new(),
+            finish_reason: FinishReason::Stop,
+            usage: None,
+            metadata: ProviderMetadata::default(),
+        })]);
+    let runner = NativeTuiAgentRunner {
+        providers: std::collections::BTreeMap::from([(
+            "local".to_owned(),
+            NativeProvider::Fake(provider.clone()),
+        )]),
+        model: "fake-model".to_owned(),
+        model_library: ModelLibrary::default(),
+        project_store: Arc::clone(&project_store),
+        active_coordinators: std::sync::Mutex::default(),
+    };
+    let adapter = ApplicationOperationAdapter::new(service).with_agent_runner(runner);
     let context = ApplicationContext {
         capabilities: CapabilityContext::new([
-            CapabilityId::new("session_branch_tree").expect("session capability")
+            CapabilityId::new("agent_start").expect("agent grant"),
+            CapabilityId::new("agent_continue").expect("continuation grant"),
+            CapabilityId::new("agent_plan").expect("session mutation grant"),
+            CapabilityId::new("inspect.entity").expect("inspect grant"),
+            CapabilityId::new("session_branch_tree").expect("session grant"),
         ]),
         ..ApplicationContext::empty()
     };
+    let mut state = TuiState::default();
+    state.conversation_composer.draft = "Onboard the current project.".to_owned();
+    let effects = reduce(&mut state, Action::InputSubmitted);
+    let prompt = match effects.as_slice() {
+        [Effect::StartNewConversation { prompt, .. }] => prompt.clone(),
+        _ => panic!("first message should use shared session start"),
+    };
 
-    let selection = previous_workspace_selection(&service, &context, session)
-        .expect("read prior workspace")
-        .expect("workspace selection");
-    assert_eq!(selection.project, Some(project));
-    assert_eq!(selection.snapshot, snapshot);
-    assert_eq!(selection.root, root_entity);
-    assert_eq!(selection.entity, root_entity);
+    let accepted = execute_effect(
+        &adapter,
+        &context,
+        Effect::StartNewConversation {
+            prompt,
+            selection: None,
+        },
+    );
+    assert!(
+        matches!(accepted, Action::ConversationAgentAccepted(_)),
+        "new conversation effect failed: {accepted:?}"
+    );
+    let refresh_effects = reduce(&mut state, accepted);
+    let (request_id, session) = match refresh_effects.as_slice() {
+        [
+            Effect::ReadSession {
+                request_id,
+                session,
+                branch: None,
+            },
+        ] => (*request_id, *session),
+        _ => panic!("accepted first message should request durable refresh: {refresh_effects:?}"),
+    };
+    let refreshed = execute_effect(
+        &adapter,
+        &context,
+        Effect::ReadSession {
+            request_id,
+            session,
+            branch: None,
+        },
+    );
+    reduce(&mut state, refreshed);
 
-    drop(service);
-    drop(store);
+    let durable = session_store
+        .load(session)
+        .expect("load persisted session")
+        .expect("new session exists");
+    let root_branch = durable.branches.first().expect("root branch");
+    assert_eq!(root_branch.turns.len(), 1);
+    assert_eq!(
+        root_branch.turns[0].human.as_ref().unwrap().text,
+        "Onboard the current project."
+    );
+    assert_eq!(
+        root_branch.turns[0].agent.as_ref().unwrap().text,
+        "Welcome to the project."
+    );
+    assert!(state.conversation.is_some());
+    assert_eq!(provider.requests().len(), 1);
+    drop(adapter);
+    drop(session_store);
+    drop(project_store);
     std::fs::remove_dir_all(root).expect("remove fixture");
 }
+
+/// Persists autonomous sibling decomposition through the product runtime.
+#[test]
+#[allow(clippy::too_many_lines)] // The scenario proves recursive branch results end to end.
+fn autonomous_decomposition_persists_children_and_compact_parent_results() {
+    let root = std::env::temp_dir().join(format!(
+        "scriberig-autonomous-decomposition-{}",
+        EntityId::new()
+    ));
+    std::fs::create_dir_all(&root).expect("fixture root");
+    let project_store = Arc::new(SqliteStore::open(root.join("project.sqlite")).expect("project"));
+    let backend = ApplicationBackendComposition::new(
+        StoreInspectionBackend::new(Arc::clone(&project_store)),
+        StoreOperationProvider::new(Arc::clone(&project_store)),
+    );
+    let session_store = Arc::new(
+        scriberig_session_sqlite::SqliteSessionStore::open(root.join("session.sqlite"))
+            .expect("session store"),
+    );
+    let session_repository: Arc<dyn scriberig_session::SessionStore> = session_store.clone();
+    let service = ApplicationService::new(backend).with_session_store(session_repository);
+    let provider = FakeProvider::from_responses([
+        Ok(delegation_response("architecture", "architecture")),
+        Ok(final_response("ARCHITECTURE_RESULT")),
+        Ok(delegation_response("implementation", "implementation")),
+        Ok(final_response("IMPLEMENTATION_RESULT")),
+        Ok(final_response("decomposition complete")),
+    ]);
+    let runner = NativeTuiAgentRunner {
+        providers: std::collections::BTreeMap::from([(
+            "local".to_owned(),
+            NativeProvider::Fake(provider.clone()),
+        )]),
+        model: "fake-model".to_owned(),
+        model_library: ModelLibrary::default(),
+        project_store: Arc::clone(&project_store),
+        active_coordinators: std::sync::Mutex::default(),
+    };
+    let adapter = ApplicationOperationAdapter::new(service).with_agent_runner(runner);
+    let context = ApplicationContext {
+        capabilities: CapabilityContext::new([
+            CapabilityId::new("agent_start").expect("agent grant"),
+            CapabilityId::new("agent_continue").expect("continuation grant"),
+            CapabilityId::new("agent_plan").expect("plan grant"),
+            CapabilityId::new("agent.delegate").expect("delegation grant"),
+            CapabilityId::new("inspect.entity").expect("inspection grant"),
+            CapabilityId::new("session_branch_tree").expect("session grant"),
+        ]),
+        ..ApplicationContext::empty()
+    };
+    let mut state = TuiState::default();
+    state.conversation_composer.draft = "Split the work into two investigations.".to_owned();
+    let effects = reduce(&mut state, Action::InputSubmitted);
+    let [
+        Effect::StartNewConversation {
+            prompt,
+            selection: None,
+        },
+    ] = effects.as_slice()
+    else {
+        panic!("first message should create a shared session");
+    };
+    let accepted = execute_effect(
+        &adapter,
+        &context,
+        Effect::StartNewConversation {
+            prompt: prompt.clone(),
+            selection: None,
+        },
+    );
+    let refresh_effects = reduce(&mut state, accepted);
+    let [
+        Effect::ReadSession {
+            request_id,
+            session,
+            branch: None,
+        },
+    ] = refresh_effects.as_slice()
+    else {
+        panic!("accepted work should refresh the durable session");
+    };
+    let refreshed = execute_effect(
+        &adapter,
+        &context,
+        Effect::ReadSession {
+            request_id: *request_id,
+            session: *session,
+            branch: None,
+        },
+    );
+    reduce(&mut state, refreshed);
+    let durable = session_store
+        .load(*session)
+        .expect("load session")
+        .expect("session exists");
+    assert_eq!(durable.branches.len(), 3);
+    assert_eq!(durable.branches[0].children.len(), 2);
+    assert!(durable.branches[1..].iter().all(|branch| {
+        branch.status == scriberig_session::BranchStatus::Completed
+            && branch.result.is_some()
+            && branch.turns.iter().any(|turn| turn.human.is_some())
+    }));
+    assert_eq!(
+        durable.branches[0]
+            .tool_invocations
+            .iter()
+            .filter(|tool| tool.name == "delegate")
+            .count(),
+        2
+    );
+    let requests = provider.requests();
+    assert_eq!(requests.len(), 5);
+    assert!(
+        requests[1]
+            .messages
+            .iter()
+            .any(|message| { message.content.contains("architecture") })
+    );
+    assert!(
+        requests[2]
+            .messages
+            .iter()
+            .any(|message| { message.content.contains("ARCHITECTURE_RESULT") })
+    );
+    assert!(
+        requests[2]
+            .messages
+            .iter()
+            .all(|message| { !message.content.contains("architecture private prompt") })
+    );
+
+    drop(adapter);
+    drop(session_store);
+    drop(project_store);
+    std::fs::remove_dir_all(root).expect("remove fixture");
+}
+
+/// Creates a deterministic provider response that delegates one child branch.
+/// # Parameters
+/// - `id`: Input for this operation.
+/// - `purpose`: Input for this operation.
+/// # Returns
+/// The operation result.
+fn delegation_response(id: &str, purpose: &str) -> ModelResponse {
+    ModelResponse {
+        text: None,
+        tool_calls: vec![ToolCall {
+            id: format!("delegate-{id}"),
+            name: "delegate".to_owned(),
+            arguments: serde_json::json!({
+                "purpose": purpose,
+                "prompt": format!("{purpose} private prompt"),
+                "capabilities": ["inspect.entity"],
+                "expected_result": format!("compact {purpose} result")
+            }),
+        }],
+        finish_reason: FinishReason::ToolCall,
+        usage: None,
+        metadata: ProviderMetadata::default(),
+    }
+}
+
+/// Creates a deterministic final provider response.
+/// # Parameters
+/// - `text`: Input for this operation.
+/// # Returns
+/// The operation result.
+fn final_response(text: &str) -> ModelResponse {
+    ModelResponse {
+        text: Some(text.to_owned()),
+        tool_calls: Vec::new(),
+        finish_reason: FinishReason::Stop,
+        usage: None,
+        metadata: ProviderMetadata::default(),
+    }
+}
+
+#[path = "native_tui_agent_tests_part1.rs"]
+mod part1;
+#[path = "native_tui_agent_plan_tests.rs"]
+mod plan;

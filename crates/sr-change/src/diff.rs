@@ -21,14 +21,14 @@ pub struct SemanticDiff {
 impl SemanticDiff {
     /// Creates a deterministic snapshot diff from entity deltas.
     ///
-    /// # Parameters
     /// - `left`: Snapshot on the left side.
     /// - `right`: Snapshot on the right side.
     /// - `deltas`: Changed entities.
     ///
-    /// # Returns
     /// A diff with stable entity ordering.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(left: SnapshotId, right: SnapshotId, mut deltas: Vec<EntityDelta>) -> Self {
         deltas.sort_by_key(|delta| delta.entity);
         Self {
@@ -40,9 +40,10 @@ impl SemanticDiff {
 
     /// Produces compact counts without rendering domain-specific data.
     ///
-    /// # Returns
     /// Counts of introduced, removed, modified, and total changed entities.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn summary(&self) -> DiffSummary {
         let mut summary = DiffSummary::default();
         for delta in &self.deltas {
@@ -84,11 +85,11 @@ pub trait DiffEnricher {
 
     /// Enriches a diff without changing its authoritative deltas.
     ///
-    /// # Parameters
     /// - `diff`: Universal diff with exact entity and revision references.
     ///
-    /// # Returns
     /// Domain-specific interpretation of the diff.
+    /// # Returns
+    /// The operation result.
     fn enrich(&self, diff: &SemanticDiff) -> Self::Output;
 }
 
@@ -97,13 +98,14 @@ pub trait DiffEnricher {
 /// Equal snapshot IDs use an immediate empty result. Other snapshots are
 /// compared as state, with no ancestry or domain adapter requirement.
 ///
-/// # Parameters
 /// - `store`: Backend implementing snapshot enumeration.
 /// - `left`: Snapshot on the left side.
 /// - `right`: Snapshot on the right side.
 ///
-/// # Returns
 /// A deterministic semantic diff containing only changed entities.
+///
+/// # Returns
+/// The exact changes between the two snapshots.
 ///
 /// # Errors
 /// Returns a snapshot error when either exact snapshot cannot be read.

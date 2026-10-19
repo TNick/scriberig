@@ -141,6 +141,35 @@ pub enum Effect {
         /// User-authored command text.
         prompt: String,
     },
+    /// Starts a new session through shared application semantics.
+    StartNewConversation {
+        /// First user-authored instruction.
+        prompt: String,
+        /// Exact semantic project selection for the initial model context.
+        selection: Option<scriberig_app::AgentSelection>,
+    },
+    /// Continues at one exact durable conversation anchor.
+    ContinueConversation {
+        /// Owning session identity.
+        session: scriberig_core::EntityId,
+        /// Stable semantic continuation target.
+        anchor: scriberig_session::ContinuationAnchor,
+        /// User-authored follow-up instruction.
+        prompt: String,
+    },
+    /// Creates a durable plan through the shared application plan operation.
+    CreatePlan(scriberig_app::PlanCreateRequest),
+    /// Applies a complete structured revision to a durable plan.
+    Replan(scriberig_app::PlanReplanRequest),
+    /// Changes a durable plan's lifecycle through shared application semantics.
+    PlanLifecycle {
+        /// Plan identity and expected durable revision.
+        request: scriberig_app::PlanLifecycleRequest,
+        /// Requested lifecycle transition.
+        action: scriberig_app::PlanLifecycleAction,
+    },
+    /// Changes one plan node's credential-safe model-library assignment.
+    SetPlanNodeAssignment(scriberig_app::PlanAssignmentRequest),
     /// Run the deterministic semantic project agent for the selected entity.
     ProjectAgent {
         /// Monotonic request identifier.

@@ -12,6 +12,20 @@ pub(in crate::native_tui_agent) struct ProviderCatalog {
     /// Adapter-only fields keyed by provider model and public level id.
     pub(in crate::native_tui_agent) thinking_parameters:
         Vec<(String, String, BTreeMap<String, serde_json::Value>)>,
+    /// Credential-free connections declared by the trusted runtime catalog.
+    pub(in crate::native_tui_agent) connections: Vec<ProviderConnection>,
+}
+
+/// Describes one provider adapter using environment variable references only.
+pub(in crate::native_tui_agent) struct ProviderConnection {
+    /// Safe connection identity referenced by model-library profiles.
+    pub(in crate::native_tui_agent) id: String,
+    /// Adapter family supported by the native runtime.
+    pub(in crate::native_tui_agent) provider: String,
+    /// Environment variable containing the endpoint URL.
+    pub(in crate::native_tui_agent) base_url_env: String,
+    /// Optional environment variable containing a credential.
+    pub(in crate::native_tui_agent) api_key_env: Option<String>,
 }
 
 /// Raw JSON object containing provider model entries.
@@ -19,6 +33,9 @@ pub(in crate::native_tui_agent) struct ProviderCatalog {
 struct CatalogInput {
     /// Models advertised by this runtime configuration.
     models: Vec<ModelInput>,
+    /// Named provider connections available to those models.
+    #[serde(default)]
+    connections: Vec<ConnectionInput>,
 }
 
 /// Raw model descriptor parsed from trusted runtime configuration.
@@ -26,9 +43,24 @@ struct CatalogInput {
 struct ModelInput {
     /// Provider-native identifier sent to the adapter.
     provider_model_id: String,
+    /// Adapter connection selected by the safe model profile.
+    connection: Option<String>,
     /// Thinking levels advertised by this model.
     #[serde(default)]
     thinking_levels: Vec<ThinkingLevelInput>,
+}
+
+/// Raw credential-free provider connection configuration.
+#[derive(serde::Deserialize)]
+struct ConnectionInput {
+    /// Stable profile identity used by model assignments.
+    id: String,
+    /// Adapter family, currently OpenAI-compatible.
+    provider: String,
+    /// Environment variable holding the endpoint URL.
+    base_url_env: String,
+    /// Optional environment variable holding the API credential.
+    api_key_env: Option<String>,
 }
 
 /// Raw model-specific thinking capability and private wire mapping.
@@ -48,14 +80,15 @@ struct ThinkingLevelInput {
 /// and optional model-specific `thinking_levels`. A thinking level may include
 /// `provider_parameters`; those fields remain inside the provider adapter.
 ///
-/// # Parameters
 /// - `fallback_model`: Configured runtime model when no catalog is supplied.
 ///
-/// # Returns
 /// Safe descriptors plus adapter-only thinking translations.
 ///
-/// # Errors
 /// Returns a generic configuration error for malformed or inconsistent data.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(in crate::native_tui_agent) fn from_environment(
     fallback_model: &str,
 ) -> Result<ProviderCatalog, ProviderError> {
@@ -65,15 +98,16 @@ pub(in crate::native_tui_agent) fn from_environment(
 
 /// Parses catalog JSON or creates the single configured runtime model.
 ///
-/// # Parameters
 /// - `json`: Optional model catalog JSON from trusted runtime configuration.
 /// - `fallback_model`: Configured runtime model when JSON is absent.
 ///
-/// # Returns
 /// Safe descriptors plus adapter-only thinking translations.
 ///
-/// # Errors
 /// Returns a generic configuration error for malformed or inconsistent data.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn from_json(json: Option<&str>, fallback_model: &str) -> Result<ProviderCatalog, ProviderError> {
     let library = scriberig_app::model_library_from_json(json, fallback_model)
         .map_err(|_| ProviderError::Configuration("invalid model catalog".to_owned()))?;
@@ -83,12 +117,44 @@ fn from_json(json: Option<&str>, fallback_model: &str) -> Result<ProviderCatalog
         None => CatalogInput {
             models: vec![ModelInput {
                 provider_model_id: fallback_model.to_owned(),
+                connection: None,
                 thinking_levels: Vec::new(),
             }],
+            connections: Vec::new(),
         },
     };
     let mut thinking_parameters = Vec::new();
+    let connections = input
+        .connections
+        .into_iter()
+        .map(|connection| {
+            if connection.id.is_empty()
+                || connection.provider.is_empty()
+                || connection.base_url_env.is_empty()
+                || connection
+                    .api_key_env
+                    .as_ref()
+                    .is_some_and(String::is_empty)
+            {
+                return Err(ProviderError::Configuration(
+                    "invalid provider connection".to_owned(),
+                ));
+            }
+            Ok(ProviderConnection {
+                id: connection.id,
+                provider: connection.provider,
+                base_url_env: connection.base_url_env,
+                api_key_env: connection.api_key_env,
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     for model_input in input.models {
+        let connection = model_input.connection.as_deref().unwrap_or("local");
+        if connection != "local" && !connections.iter().any(|item| item.id == connection) {
+            return Err(ProviderError::Configuration(
+                "model references an unknown provider connection".to_owned(),
+            ));
+        }
         for level in model_input.thinking_levels {
             let id = ThinkingLevelId::new(level.id)
                 .map_err(|_| ProviderError::Configuration("invalid model catalog".to_owned()))?;
@@ -104,6 +170,7 @@ fn from_json(json: Option<&str>, fallback_model: &str) -> Result<ProviderCatalog
     Ok(ProviderCatalog {
         library,
         thinking_parameters,
+        connections,
     })
 }
 
@@ -135,6 +202,41 @@ mod tests {
         let result = from_json(
             Some(
                 r#"{"models":[{"id":"one","display_name":"One","provider_model_id":"wire-one","default_thinking_level":"missing"}]}"#,
+            ),
+            "fallback",
+        );
+
+        assert!(result.is_err());
+    }
+
+    /// Keeps endpoint and credential values indirect in named connection catalogs.
+    #[test]
+    fn catalog_keeps_provider_credentials_as_environment_references() {
+        let catalog = from_json(
+            Some(
+                r#"{"models":[{"id":"remote","display_name":"Remote","provider_model_id":"wire-remote","provider_profile":"openai_compatible","connection":"remote-a"}],"connections":[{"id":"remote-a","provider":"openai_compatible","base_url_env":"REMOTE_BASE_URL","api_key_env":"REMOTE_API_KEY"}]}"#,
+            ),
+            "fallback",
+        )
+        .expect("catalog");
+
+        assert_eq!(catalog.connections.len(), 1);
+        assert_eq!(catalog.connections[0].id, "remote-a");
+        assert_eq!(
+            catalog.connections[0].api_key_env.as_deref(),
+            Some("REMOTE_API_KEY")
+        );
+        assert_eq!(catalog.library.profiles[0].connection, "remote-a");
+        let serialized = serde_json::to_string(&catalog.library).expect("safe library");
+        assert!(!serialized.contains("REMOTE_API_KEY"));
+    }
+
+    /// Rejects models whose provider connection is not configured.
+    #[test]
+    fn catalog_rejects_unknown_provider_connection() {
+        let result = from_json(
+            Some(
+                r#"{"models":[{"id":"remote","display_name":"Remote","provider_model_id":"wire-remote","connection":"missing"}]}"#,
             ),
             "fallback",
         );

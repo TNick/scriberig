@@ -105,14 +105,15 @@ pub struct ProjectRelinkArgs {
 
 /// Runs one project command against its selected SQLite database.
 ///
-/// # Parameters
 /// - `args`: Parsed project command.
 ///
-/// # Returns
 /// A rendered command response.
 ///
-/// # Errors
 /// Returns a database, filesystem, or project lookup error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn run(args: &ProjectArgs) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     match &args.command {
         ProjectCommand::List(args) => run_list(args)?,
@@ -126,14 +127,15 @@ pub fn run(args: &ProjectArgs) -> Result<(), Box<dyn std::error::Error + Send + 
 
 /// Runs the project list command.
 ///
-/// # Parameters
 /// - `args`: List command options.
 ///
-/// # Returns
 /// Unit after output is rendered.
 ///
-/// # Errors
 /// Returns a database or serialization error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn run_list(args: &ProjectDatabaseArgs) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let store = SqliteStore::open(&args.db)?;
     let projects = store.list_projects()?;
@@ -160,14 +162,15 @@ fn run_list(args: &ProjectDatabaseArgs) -> Result<(), Box<dyn std::error::Error 
 
 /// Runs a persisted project scan.
 ///
-/// # Parameters
 /// - `args`: Scan command options.
 ///
-/// # Returns
 /// Unit after output is rendered.
 ///
-/// # Errors
 /// Returns a filesystem, database, or serialization error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn run_scan(args: &ProjectScanArgs) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let report = service(&args.db)?.scan_with_options(
         args.name.clone(),
@@ -194,14 +197,15 @@ fn run_scan(args: &ProjectScanArgs) -> Result<(), Box<dyn std::error::Error + Se
 
 /// Runs the semantic project import.
 ///
-/// # Parameters
 /// - `args`: Import command options.
 ///
-/// # Returns
 /// Unit after output is rendered.
 ///
-/// # Errors
 /// Returns a project validation, database, or serialization error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn run_import(args: &ProjectImportArgs) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let report = match service(&args.db)?.import(args.project) {
         Ok(report) => report,
@@ -254,14 +258,15 @@ fn run_import(args: &ProjectImportArgs) -> Result<(), Box<dyn std::error::Error 
 
 /// Reads one project's catalog status.
 ///
-/// # Parameters
 /// - `args`: Status command options.
 ///
-/// # Returns
 /// Unit after output is rendered.
 ///
-/// # Errors
 /// Returns a database or project lookup error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn run_status(args: &ProjectSelectorArgs) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let store = SqliteStore::open(&args.db)?;
     let project = store
@@ -280,14 +285,15 @@ fn run_status(args: &ProjectSelectorArgs) -> Result<(), Box<dyn std::error::Erro
 
 /// Relinks a project while preserving its stable identity.
 ///
-/// # Parameters
 /// - `args`: Relink command options.
 ///
-/// # Returns
 /// Unit after output is rendered.
 ///
-/// # Errors
 /// Returns a database or project lookup error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn run_relink(args: &ProjectRelinkArgs) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let store = SqliteStore::open(&args.db)?;
     store.relink_project(args.project, &args.path)?;
@@ -311,14 +317,15 @@ fn run_relink(args: &ProjectRelinkArgs) -> Result<(), Box<dyn std::error::Error 
 
 /// Opens the shared project onboarding service.
 ///
-/// # Parameters
 /// - `path`: SQLite database path.
 ///
-/// # Returns
 /// A shared project service.
 ///
-/// # Errors
 /// Returns a database initialization error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn service(
     path: &std::path::Path,
 ) -> Result<ProjectService, Box<dyn std::error::Error + Send + Sync>> {
@@ -327,11 +334,11 @@ fn service(
 
 /// Converts project records to stable public JSON.
 ///
-/// # Parameters
 /// - `projects`: Project records to serialize.
 ///
-/// # Returns
 /// Public JSON values.
+/// # Returns
+/// The operation result.
 fn project_json(projects: &[ProjectRecord]) -> Vec<serde_json::Value> {
     projects
         .iter()
@@ -349,11 +356,11 @@ fn project_json(projects: &[ProjectRecord]) -> Vec<serde_json::Value> {
 
 /// Converts a scan file to stable public JSON.
 ///
-/// # Parameters
 /// - `file`: Scan file to serialize.
 ///
-/// # Returns
 /// Public JSON file metadata.
+/// # Returns
+/// The operation result.
 fn file_json(file: &ScanFile) -> serde_json::Value {
     serde_json::json!({
         "path": file.relative_path,
@@ -366,11 +373,11 @@ fn file_json(file: &ScanFile) -> serde_json::Value {
 
 /// Converts a project status to its stable public spelling.
 ///
-/// # Parameters
 /// - `status`: Project status to serialize.
 ///
-/// # Returns
 /// Stable public status text.
+/// # Returns
+/// The operation result.
 fn status_name(status: &ProjectStatus) -> &'static str {
     match status {
         ProjectStatus::Registered => "registered",
@@ -382,7 +389,6 @@ fn status_name(status: &ProjectStatus) -> &'static str {
 
 /// Prints one project in a human-readable form.
 ///
-/// # Parameters
 /// - `project`: Project record to print.
 fn print_project(project: &ProjectRecord) {
     println!("id: {}", project.id);

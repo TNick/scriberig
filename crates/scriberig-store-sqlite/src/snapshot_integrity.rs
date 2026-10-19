@@ -8,7 +8,6 @@ use scriberig_store::SnapshotNodeId;
 
 /// Computes a content identity for one persistent SQLite map node.
 ///
-/// # Parameters
 /// - `kind`: Node kind discriminator.
 /// - `entity`: Optional leaf entity bytes.
 /// - `revision`: Optional leaf revision bytes.
@@ -16,8 +15,9 @@ use scriberig_store::SnapshotNodeId;
 /// - `right`: Optional right child identity.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// The content-derived node identity bytes.
+/// # Returns
+/// The operation result.
 pub(crate) fn node_id(
     kind: u8,
     entity: Option<&[u8]>,
@@ -55,17 +55,18 @@ pub(crate) struct NodeWalk {
 
 /// Loads and validates a persistent node tree into canonical entries.
 ///
-/// # Parameters
 /// - `connection`: SQLite connection containing the node records.
 /// - `id`: Root node identity.
 /// - `entries`: Destination mapping for loaded entries.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// Unit after the node tree is loaded.
 ///
-/// # Errors
 /// Returns a SQLite or structural-integrity error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn load_node(
     connection: &Connection,
     id: &[u8],
@@ -88,16 +89,17 @@ pub(crate) fn load_node(
 
 /// Inspects and validates a persistent snapshot-map node graph.
 ///
-/// # Parameters
 /// - `connection`: SQLite connection containing node records.
 /// - `root`: Root node identity.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// All validated nodes and leaf mappings below the root.
 ///
-/// # Errors
 /// Returns a missing-node, structural-integrity, or SQLite error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn inspect_nodes(
     connection: &Connection,
     root: &[u8],
@@ -110,18 +112,19 @@ pub(crate) fn inspect_nodes(
 
 /// Recursively validates one node and its children.
 ///
-/// # Parameters
 /// - `connection`: SQLite connection containing node records.
 /// - `id`: Node identity to inspect.
 /// - `visiting`: Active recursion path used for cycle detection.
 /// - `walk`: Accumulator for validated nodes and entries.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// Number of entries below the node.
 ///
-/// # Errors
 /// Returns a missing-node, structural-integrity, or SQLite error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn inspect_node(
     connection: &Connection,
     id: &[u8],

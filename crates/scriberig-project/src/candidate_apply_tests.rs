@@ -16,43 +16,46 @@ struct FailSecondWrite {
 impl FileSystem for FailSecondWrite {
     /// Reads exact bytes from the local fixture.
     ///
-    /// # Parameters
     /// - `path`: Fixture file to read.
     ///
-    /// # Returns
     /// The exact file bytes.
     ///
-    /// # Errors
     /// Returns the local filesystem read error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read(&self, path: &Path) -> Result<Vec<u8>, IoError> {
         LocalFileSystem.read(path)
     }
 
     /// Reads local fixture metadata.
     ///
-    /// # Parameters
     /// - `path`: Fixture path to inspect.
     ///
-    /// # Returns
     /// Metadata when the path exists.
     ///
-    /// # Errors
     /// Returns the local filesystem metadata error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn metadata(&self, path: &Path) -> Result<Option<FileMetadata>, IoError> {
         LocalFileSystem.metadata(path)
     }
 
     /// Fails the second candidate write and delegates the first.
     ///
-    /// # Parameters
     /// - `path`: Fixture file to replace.
     /// - `bytes`: Exact replacement bytes.
     ///
-    /// # Returns
     /// Unit after a successful write.
     ///
-    /// # Errors
     /// Returns an injected failure on the second write or a local write error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn write_atomic(&self, path: &Path, bytes: &[u8]) -> Result<(), IoError> {
         if self.writes.fetch_add(1, Ordering::SeqCst) == 1 {
             return Err(IoError::Write(std::io::Error::other(
@@ -64,28 +67,30 @@ impl FileSystem for FailSecondWrite {
 
     /// Creates directories in the local fixture.
     ///
-    /// # Parameters
     /// - `path`: Fixture directory to create.
     ///
-    /// # Returns
     /// Unit after directory creation.
     ///
-    /// # Errors
     /// Returns the local filesystem directory error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn create_dir_all(&self, path: &Path) -> Result<(), IoError> {
         LocalFileSystem.create_dir_all(path)
     }
 
     /// Removes files from the local fixture.
     ///
-    /// # Parameters
     /// - `path`: Fixture file to remove.
     ///
-    /// # Returns
     /// Unit after removal.
     ///
-    /// # Errors
     /// Returns the local filesystem removal error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn remove_file(&self, path: &Path) -> Result<(), IoError> {
         LocalFileSystem.remove_file(path)
     }

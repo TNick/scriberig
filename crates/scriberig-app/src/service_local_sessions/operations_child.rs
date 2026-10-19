@@ -9,7 +9,6 @@ use scriberig_session::{BranchResult, Turn};
 impl<B> ApplicationService<B> {
     /// Creates a child branch and leaves its shared operation running.
     ///
-    /// # Parameters
     /// - `self`: Application service owning local session state.
     /// - `session_id`: Session containing the parent branch.
     /// - `parent_branch`: Existing parent branch identifier.
@@ -17,11 +16,13 @@ impl<B> ApplicationService<B> {
     /// - `purpose`: Focused child purpose.
     /// - `prompt`: Child model instruction.
     ///
-    /// # Returns
     /// A handle used to complete the child operation.
     ///
-    /// # Errors
     /// Returns an application error when the session graph is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn start_local_child_agent(
         &self,
         session_id: EntityId,
@@ -98,16 +99,17 @@ impl<B> ApplicationService<B> {
 
     /// Completes a child operation and records its durable branch result.
     ///
-    /// # Parameters
     /// - `self`: Application service owning local session state.
     /// - `handle`: Pending child operation handle.
     /// - `final_output`: Complete externally meaningful child output.
     ///
-    /// # Returns
     /// The structured application agent result for the child.
     ///
-    /// # Errors
     /// Returns an application error when the child branch is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn complete_local_child_agent(
         &self,
         handle: &crate::LocalChildAgentHandle,
@@ -118,17 +120,18 @@ impl<B> ApplicationService<B> {
 
     /// Completes a child branch with compact semantic result references.
     ///
-    /// # Parameters
     /// - `self`: Application service owning local session state.
     /// - `handle`: Pending child operation handle.
     /// - `final_output`: Complete externally meaningful child output.
     /// - `result_handles`: Stable semantic references returned by the child.
     ///
-    /// # Returns
     /// The structured application agent result for the child.
     ///
-    /// # Errors
     /// Returns an application error when the child branch is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn complete_local_child_agent_with_handles(
         &self,
         handle: &crate::LocalChildAgentHandle,
@@ -146,7 +149,6 @@ impl<B> ApplicationService<B> {
 
     /// Completes a child branch and persists its executed tool evidence.
     ///
-    /// # Parameters
     /// - `self`: Application service owning local session state.
     /// - `handle`: Pending child operation handle.
     /// - `final_output`: Complete externally meaningful child output.
@@ -154,11 +156,13 @@ impl<B> ApplicationService<B> {
     /// - `tool_evidence`: Exact tool arguments and bounded structured results.
     /// - `model_requests`: Safe normalized requests captured by the runtime.
     ///
-    /// # Returns
     /// The structured application agent result for the child.
     ///
-    /// # Errors
     /// Returns an application error when the child branch is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn complete_local_child_agent_with_evidence(
         &self,
         handle: &crate::LocalChildAgentHandle,
@@ -223,6 +227,7 @@ impl<B> ApplicationService<B> {
             status: scriberig_session::BranchStatus::Completed,
             summary: Some(final_output.clone()),
             result_kind: Some("agent-child".to_owned()),
+            candidate_context: None,
             references: vec![branch_result],
             result_handles: result_handles.clone(),
             touched: Vec::new(),

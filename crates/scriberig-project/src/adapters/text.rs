@@ -11,7 +11,6 @@ use super::add_child;
 
 /// Extracts a generic UTF-8 text document and its ordered lines.
 ///
-/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: UTF-8 text file.
 /// - `source`: Source artifact entity.
@@ -20,11 +19,13 @@ use super::add_child;
 /// - `ownership`: Destination entity ownership records.
 /// - `super`: Parent support module visibility marker.
 ///
-/// # Returns
 /// Unit after the text document and line entities are added.
 ///
-/// # Errors
 /// Returns invalid UTF-8, serialization, or revision errors.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn import_text(
     project: ProjectId,
     file: &ProjectFileRecord,

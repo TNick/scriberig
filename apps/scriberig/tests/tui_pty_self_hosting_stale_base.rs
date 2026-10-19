@@ -9,7 +9,7 @@ use std::fs;
 use std::sync::Arc;
 use std::time::Duration;
 
-use onboarding_wait::wait_for_onboarding;
+use onboarding_wait::{wait_for_branch_completion, wait_for_onboarding};
 use scriberig_project::{CandidateValidation, ProjectService};
 use scriberig_session::SessionStore;
 use scriberig_session_sqlite::SqliteSessionStore;
@@ -47,37 +47,22 @@ struct StaleScenario {
 
 /// Onboards the fixture and creates a validated PHP candidate through the agent.
 ///
-/// # Returns
 /// Durable candidate scope and the active real TUI process.
+/// # Returns
+/// The operation result.
 fn start_stale_scenario() -> StaleScenario {
     let mut tui = TuiPty::start_self_hosting();
-    assert!(
-        tui.read_until("project: unselected"),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"start-agent\r");
-    assert!(tui.read_until("Write a message..."), "{}", tui.diagnostic());
-    let session = visible_session(&tui.screen());
+    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
     tui.send(b"Onboard the current project.\r");
-    wait_for_onboarding(&tui, session);
+    let session = visible_session(&tui);
+    wait_for_onboarding(&mut tui, session);
     let checkout = tui.fixture_path().join("scriberig");
-    tui.send(b"\x1b");
-    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
-    tui.send(b"\x1b[B");
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"continue-agent\r");
-    assert!(tui.read_until("Write a message..."), "{}", tui.diagnostic());
-    tui.send(b"i");
-    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     tui.send(b"Add support for ingesting PHP source files.\r");
-    assert!(
-        tui.read_until_for("agent continuation [Completed]", Duration::from_secs(300)),
-        "{}",
-        tui.diagnostic()
+    wait_for_branch_completion(
+        &tui,
+        session,
+        "agent continuation",
+        Duration::from_secs(600),
     );
 
     let database = tui.fixture_path().join("scriberig.sqlite");
@@ -118,11 +103,11 @@ fn start_stale_scenario() -> StaleScenario {
 
 /// Advances the current snapshot through a refreshed external README change.
 ///
-/// # Parameters
 /// - `scenario`: Exact project and base identities under stale-candidate test.
 ///
-/// # Returns
 /// The advanced snapshot, changed README path, and exact new README bytes.
+/// # Returns
+/// The operation result.
 fn advance_canonical_project(
     scenario: &StaleScenario,
 ) -> (scriberig_core::SnapshotId, std::path::PathBuf, Vec<u8>) {
@@ -149,14 +134,9 @@ fn advance_canonical_project(
 
 /// Attempts shared TUI Apply for the candidate after the project base advances.
 ///
-/// # Parameters
 /// - `tui`: Active native TUI with the agent candidate in its session.
 fn attempt_stale_apply(tui: &mut TuiPty) {
-    tui.send(b"\x1b");
-    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"review-candidate\r");
+    tui.send(b"/changes\r");
     assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
     assert!(
         tui.screen().contains("validation: Passed"),
@@ -175,7 +155,6 @@ fn attempt_stale_apply(tui: &mut TuiPty) {
 
 /// Verifies the stale Apply receipt and protects the newer project state.
 ///
-/// # Parameters
 /// - `scenario`: Candidate and project identities from the real PTY scenario.
 /// - `advanced`: New authoritative snapshot that superseded the candidate base.
 /// - `readme`: Externally changed README path.
@@ -221,12 +200,12 @@ fn assert_stale_effects(
 
 /// Loads the candidate identity returned by the durable agent session.
 ///
-/// # Parameters
 /// - `database`: Durable product database path.
 /// - `session`: Session that proposed the candidate.
 ///
-/// # Returns
 /// The exact project candidate identity retained by the session result.
+/// # Returns
+/// The operation result.
 fn candidate_from_session(database: &std::path::Path, session: scriberig_core::EntityId) -> String {
     SqliteSessionStore::open(database)
         .expect("session store")
@@ -243,17 +222,11 @@ fn candidate_from_session(database: &std::path::Path, session: scriberig_core::E
 
 /// Reads the durable session identity shown in the agent composer.
 ///
-/// # Parameters
-/// - `screen`: Current native TUI screen.
+/// - `tui`: Active native TUI process.
 ///
-/// # Returns
 /// The session identity rendered by the composer.
-fn visible_session(screen: &str) -> scriberig_core::EntityId {
-    screen
-        .split("Agent composer · ")
-        .nth(1)
-        .and_then(|text| text.split_whitespace().next())
-        .expect("session visible in composer")
-        .parse()
-        .expect("session identity")
+/// # Returns
+/// The operation result.
+fn visible_session(tui: &TuiPty) -> scriberig_core::EntityId {
+    tui.stored_session_id()
 }

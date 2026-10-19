@@ -9,12 +9,12 @@ use crate::{ImportDiagnostic, ProjectError};
 
 /// Converts a storage failure into a project error.
 ///
-/// # Parameters
 /// - `error`: Storage failure.
 /// - `super`: Parent module visibility marker.
 ///
-/// # Returns
 /// A structured project error.
+/// # Returns
+/// The operation result.
 pub(super) fn storage_error(error: impl Display) -> ProjectError {
     ProjectError {
         code: "storage_error",
@@ -25,12 +25,12 @@ pub(super) fn storage_error(error: impl Display) -> ProjectError {
 
 /// Converts a debug-only store failure into a project error.
 ///
-/// # Parameters
 /// - `error`: Store failure with no `Display` implementation.
 /// - `super`: Parent module containing project error conversion.
 ///
-/// # Returns
 /// A structured storage error.
+/// # Returns
+/// The operation result.
 pub(super) fn storage_debug_error(error: impl std::fmt::Debug) -> ProjectError {
     ProjectError {
         code: "storage_error",
@@ -41,12 +41,12 @@ pub(super) fn storage_debug_error(error: impl std::fmt::Debug) -> ProjectError {
 
 /// Converts a filesystem failure into a project error.
 ///
-/// # Parameters
 /// - `error`: Filesystem failure.
 /// - `super`: Parent module visibility marker.
 ///
-/// # Returns
 /// A structured project error.
+/// # Returns
+/// The operation result.
 pub(super) fn filesystem_error(error: &std::io::Error) -> ProjectError {
     ProjectError {
         code: "filesystem_error",
@@ -57,12 +57,12 @@ pub(super) fn filesystem_error(error: &std::io::Error) -> ProjectError {
 
 /// Converts a Git selection failure into a stable project error.
 ///
-/// # Parameters
 /// - `error`: Git command or repository failure.
 /// - `super`: Parent module visibility marker.
 ///
-/// # Returns
 /// A structured Git repository requirement error.
+/// # Returns
+/// The operation result.
 pub(super) fn git_error(error: &std::io::Error) -> ProjectError {
     ProjectError {
         code: "git_repository_required",
@@ -73,12 +73,12 @@ pub(super) fn git_error(error: &std::io::Error) -> ProjectError {
 
 /// Creates a missing-project error.
 ///
-/// # Parameters
 /// - `project`: Missing project identity.
 /// - `super`: Parent module visibility marker.
 ///
-/// # Returns
 /// A structured project error.
+/// # Returns
+/// The operation result.
 pub(super) fn missing_project(project: ProjectId) -> ProjectError {
     ProjectError {
         code: "project_not_found",
@@ -89,12 +89,12 @@ pub(super) fn missing_project(project: ProjectId) -> ProjectError {
 
 /// Creates a snapshot promotion error.
 ///
-/// # Parameters
 /// - `message`: Promotion failure detail.
 /// - `super`: Parent module visibility marker.
 ///
-/// # Returns
 /// A structured project error.
+/// # Returns
+/// The operation result.
 pub(super) fn promotion_error(message: String) -> ProjectError {
     ProjectError {
         code: "promotion_failed",
@@ -105,7 +105,6 @@ pub(super) fn promotion_error(message: String) -> ProjectError {
 
 /// Creates an adapter error from parser or extractor diagnostics.
 ///
-/// # Parameters
 /// - `file`: Source file that failed validation.
 /// - `stage`: Import stage that reported the diagnostics.
 /// - `code`: Stable diagnostic code.
@@ -113,8 +112,9 @@ pub(super) fn promotion_error(message: String) -> ProjectError {
 /// - `retryable`: Whether source repair may make retry succeed.
 /// - `crate`: Crate visibility marker.
 ///
-/// # Returns
 /// A structured project error with all diagnostics preserved.
+/// # Returns
+/// The operation result.
 pub(crate) fn adapter_diagnostics_error(
     file: &ProjectFileRecord,
     stage: &str,
@@ -142,12 +142,12 @@ pub(crate) fn adapter_diagnostics_error(
 
 /// Creates an invalid-input error.
 ///
-/// # Parameters
 /// - `message`: Invalid-input detail.
 /// - `crate`: Crate visibility marker.
 ///
-/// # Returns
 /// A structured project error.
+/// # Returns
+/// The operation result.
 pub(crate) fn invalid_input(message: String) -> ProjectError {
     ProjectError {
         code: "invalid_input",

@@ -72,14 +72,15 @@ pub struct FindResult {
 pub trait FindService {
     /// Executes one exact-scope discovery request.
     ///
-    /// # Parameters
     /// - `self`: Discovery provider.
     /// - `request`: Exact-scope find request.
     ///
-    /// # Returns
     /// A bounded page of semantic hits.
     ///
-    /// # Errors
     /// Returns `UnsupportedCapability` when the requested strategy is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn find(&self, request: &FindRequest) -> Result<FindResult, QueryError>;
 }

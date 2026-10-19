@@ -3,12 +3,13 @@ use crate::types::{ENTITY_TYPES, RELATIONS};
 use scriberig_schema::{DomainDescriptor, DomainId, SchemaVersion};
 /// Returns the deterministic shared code schema.
 ///
-/// # Returns
 /// Domain descriptor.
 ///
 /// # Panics
 /// Panics only if a static identifier is invalid.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn code_schema() -> DomainDescriptor {
     DomainDescriptor {
         id: DomainId::new("code").expect("static domain"),

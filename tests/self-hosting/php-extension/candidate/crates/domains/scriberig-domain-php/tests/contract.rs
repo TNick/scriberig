@@ -89,12 +89,12 @@ fn rejects_malformed_php_and_serializes_deterministically() {
 
 /// Resolves checked-in fixtures from the standalone fixture or applied workspace layout.
 ///
-/// # Parameters
 /// - `fixture_relative`: Path from the standalone candidate crate location.
 /// - `workspace_relative`: Path from the production package location.
 ///
-/// # Returns
 /// The first existing fixture directory.
+/// # Returns
+/// The operation result.
 fn fixture_directory(fixture_relative: &str, workspace_relative: &str) -> std::path::PathBuf {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
     let fixture = manifest.join(fixture_relative);

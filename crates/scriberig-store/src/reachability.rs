@@ -11,10 +11,8 @@ pub struct SnapshotNodeId([u8; 32]);
 impl SnapshotNodeId {
     /// Creates a node identity from its content digest.
     ///
-    /// # Parameters
     /// - `bytes`: Content digest of the persistent node.
     ///
-    /// # Returns
     /// The persistent node identity.
     #[must_use]
     pub const fn new(bytes: [u8; 32]) -> Self {
@@ -23,7 +21,6 @@ impl SnapshotNodeId {
 
     /// Returns the node identity bytes.
     ///
-    /// # Returns
     /// The content digest bytes.
     #[must_use]
     pub const fn as_bytes(self) -> [u8; 32] {

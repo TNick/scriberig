@@ -10,11 +10,11 @@ use crate::retention::RetentionPolicy;
 
 /// Builds a generic custom-domain registration for tests.
 ///
-/// # Parameters
 /// - `version`: Exact fake profile version.
 ///
-/// # Returns
 /// Test registration metadata.
+/// # Returns
+/// The operation result.
 fn registration(version: &str) -> DerivationRegistration {
     DerivationRegistration::new(
         DerivationProfile::new("test-domain/summary", version),

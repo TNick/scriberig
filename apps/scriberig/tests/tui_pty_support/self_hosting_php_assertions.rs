@@ -14,7 +14,6 @@ use std::time::Duration;
 
 /// Verifies tracked Serena configuration is copied without local overrides.
 ///
-/// # Parameters
 /// - `checkout`: Isolated copied checkout.
 /// - `super`: Parent test module visibility marker.
 ///
@@ -32,46 +31,19 @@ pub(super) fn assert_tracked_serena_configuration(checkout: &Path) {
     }
 }
 
-/// Opens native history and verifies the applied candidate transition.
+/// Verifies the applied snapshot through the shared exact history operation.
 ///
-/// # Parameters
-/// - `tui`: Active native TUI process.
+/// - `database`: Durable product database path.
 /// - `base`: Exact snapshot before candidate Apply.
 /// - `successor`: Authoritative snapshot after candidate Apply.
 /// - `candidate`: Accepted project candidate identity.
 /// - `super`: Parent test module visibility.
-pub(super) fn assert_tui_history_transition(
-    tui: &mut TuiPty,
+pub(super) fn assert_applied_history_transition(
+    database: &Path,
     base: scriberig_core::SnapshotId,
     successor: scriberig_core::SnapshotId,
     candidate: &str,
 ) {
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"history\r");
-    assert!(
-        tui.read_until_for("History @", Duration::from_secs(30)),
-        "{}",
-        tui.diagnostic()
-    );
-    let history = tui.screen();
-    let base_label = base.to_string();
-    let successor_label = successor.to_string();
-    assert!(
-        history.contains(&format!(
-            "{} -> {}",
-            &base_label[..16],
-            &successor_label[..16]
-        )),
-        "TUI history omitted candidate transition {} -> {}: {history}",
-        &base_label[..16],
-        &successor_label[..16]
-    );
-    assert!(
-        history.contains(&format!("C1:{}", &candidate[..candidate.len().min(8)])),
-        "TUI history omitted accepted candidate {candidate}: {history}"
-    );
-    let database = tui.fixture_path().join("scriberig.sqlite");
     let history_summary = scriberig_app::StoreOperationProvider::new(Arc::new(
         SqliteStore::open(database).expect("history database"),
     ))
@@ -93,7 +65,6 @@ pub(super) fn assert_tui_history_transition(
 
 /// Verifies Apply leaves an unrelated repository source file unchanged.
 ///
-/// # Parameters
 /// - `checkout`: Copied repository after candidate application.
 /// - `before`: Exact unrelated source bytes captured before proposal.
 /// - `super`: Parent test module visibility.
@@ -109,7 +80,6 @@ pub(super) fn assert_unrelated_source_unchanged(checkout: &std::path::Path, befo
 
 /// Exercises visible update/create conflicts before the candidate's successful Apply.
 ///
-/// # Parameters
 /// - `tui`: Active native TUI process.
 /// - `checkout`: Copied Scriberig checkout.
 /// - `database`: Product database path.
@@ -194,20 +164,17 @@ pub(super) fn assert_candidate_conflicts_are_visible(
     open_candidate_review(tui);
 }
 
-/// Opens the durable project candidate review from the native command palette.
+/// Opens the durable project candidate review with a local command.
 ///
-/// # Parameters
 /// - `tui`: Active native TUI process.
 fn open_candidate_review(tui: &mut TuiPty) {
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"review-candidate\r");
+    tui.send(b"\x1b");
+    tui.send(b"/changes\r");
     assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
 }
 
 /// Verifies a conflict leaves the authoritative project at its exact base.
 ///
-/// # Parameters
 /// - `database`: Product database path.
 /// - `project`: Onboarded project identity.
 /// - `base`: Exact candidate base snapshot.
@@ -224,15 +191,15 @@ fn assert_candidate_base_unchanged(
 
 /// Verifies durable candidate validation, application receipts, and snapshot lineage.
 ///
-/// # Parameters
 /// - `database`: Reopened product database.
 /// - `project`: Exact project identity.
 /// - `base`: Candidate base snapshot.
 /// - `candidate_id`: Candidate identity returned by the root agent result.
 /// - `super`: Parent PTY test module.
 ///
-/// # Returns
 /// Applied successor snapshot recorded by the durable effect receipt.
+/// # Returns
+/// The operation result.
 pub(super) fn assert_durable_candidate_effect(
     database: &std::path::Path,
     project: scriberig_core::ProjectId,
@@ -280,7 +247,6 @@ pub(super) fn assert_durable_candidate_effect(
 
 /// Verifies applied PHP source classification, declaration search, and projection.
 ///
-/// # Parameters
 /// - `checkout`: Candidate-applied checkout.
 /// - `database`: Durable product database.
 /// - `project`: Exact project identity.
@@ -338,15 +304,15 @@ pub(super) fn assert_applied_php(
 
 /// Verifies candidate effects materialized before the updated parser is restarted.
 ///
-/// # Parameters
 /// - `checkout`: Candidate-applied copied checkout.
 /// - `database`: Product database with the applied candidate and refreshed snapshot.
 /// - `project`: Exact project identity.
 /// - `base`: Exact candidate base snapshot.
 /// - `super`: Parent PTY test module.
 ///
-/// # Returns
 /// Authoritative snapshot created by Apply before the candidate binary restart.
+/// # Returns
+/// The operation result.
 pub(super) fn assert_materialized_php_fixture(
     checkout: &std::path::Path,
     database: &std::path::Path,

@@ -10,15 +10,16 @@ use crate::agent_tool_helpers::invalid_argument;
 impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
     /// Imports a scanned project and returns structured recovery diagnostics.
     ///
-    /// # Parameters
     /// - `arguments`: Provider arguments containing a project identity.
     /// - `super`: Parent agent tool module visibility marker.
     ///
-    /// # Returns
     /// Import summary or diagnostic handles for source repair.
     ///
-    /// # Errors
     /// Returns invalid arguments or a structured import failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn project_import(
         &self,
         arguments: &serde_json::Value,
@@ -42,15 +43,16 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Rescans a project after an authorized source repair.
     ///
-    /// # Parameters
     /// - `arguments`: Provider arguments containing project path and Git policy.
     /// - `super`: Parent agent tool module visibility marker.
     ///
-    /// # Returns
     /// Scan summary and the stable project handle.
     ///
-    /// # Errors
     /// Returns invalid arguments or a filesystem and Git selection failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn project_rescan(
         &self,
         arguments: &serde_json::Value,
@@ -83,15 +85,16 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Repairs one project-relative file before an explicit rescan and retry.
     ///
-    /// # Parameters
     /// - `arguments`: Provider arguments containing project, relative path, and content.
     /// - `super`: Parent agent tool module visibility marker.
     ///
-    /// # Returns
     /// A stable repaired-file handle.
     ///
-    /// # Errors
     /// Returns invalid arguments, path traversal, missing project, or filesystem failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn project_repair_file(
         &self,
         arguments: &serde_json::Value,
@@ -146,14 +149,15 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Resolves the project service required by recovery operations.
     ///
-    /// # Parameters
     /// - `super`: Parent agent tool module.
     ///
-    /// # Returns
     /// The configured project service.
     ///
-    /// # Errors
     /// Returns a stable unavailable error when this runtime has no project store.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn project_service(&self) -> Result<&ProjectService, ToolError> {
         self.project.as_ref().ok_or_else(|| ToolError::Application {
             category: "project_recovery_unavailable".to_owned(),
@@ -163,15 +167,16 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Parses a project identity from provider arguments.
     ///
-    /// # Parameters
     /// - `super`: Parent agent tool module.
     /// - `arguments`: Provider argument object.
     ///
-    /// # Returns
     /// Parsed project identity.
     ///
-    /// # Errors
     /// Returns a structured invalid-request failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn project_id(
         arguments: &serde_json::Value,
     ) -> Result<scriberig_core::ProjectId, ToolError> {
@@ -186,15 +191,16 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Parses the exact manifest digest argument.
     ///
-    /// # Parameters
     /// - `super`: Parent agent tool module.
     /// - `arguments`: Provider argument object.
     ///
-    /// # Returns
     /// Lowercase hexadecimal manifest identity.
     ///
-    /// # Errors
     /// Returns invalid-request when the digest is missing or malformed.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn manifest_id(arguments: &serde_json::Value) -> Result<String, ToolError> {
         let value = arguments
             .get("manifest_id")
@@ -210,12 +216,12 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Converts a project failure into a bounded provider-facing result.
     ///
-    /// # Parameters
     /// - `super`: Parent agent tool module.
     /// - `error`: Structured project failure.
     ///
-    /// # Returns
     /// Provider-neutral diagnostic failure.
+    /// # Returns
+    /// The operation result.
     pub(super) fn project_error(error: &scriberig_project::ProjectError) -> ToolError {
         let diagnostics = error
             .diagnostics

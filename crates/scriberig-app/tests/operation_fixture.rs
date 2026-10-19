@@ -2,7 +2,7 @@
 
 use scriberig_app::{
     ApplicationContext, ApplicationError, ApplyRequest, BranchRequest, CommitRequest, DiffRequest,
-    HistoryRequest, OperationProvider, OperationSummary, RenderRequest,
+    HistoryRequest, MergeRequest, OperationProvider, OperationSummary, RenderRequest,
 };
 use scriberig_core::{RootName, SnapshotId};
 use std::cell::Cell;
@@ -16,9 +16,10 @@ pub struct OperationFixture {
 impl OperationFixture {
     /// Creates an empty operation recorder.
     ///
-    /// # Returns
     /// An operation recorder with no calls.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new() -> Self {
         Self {
             calls: Cell::new(0),
@@ -27,11 +28,11 @@ impl OperationFixture {
 
     /// Returns the next deterministic operation summary.
     ///
-    /// # Parameters
     /// - `handle`: Stable result handle.
     ///
-    /// # Returns
     /// The recorded operation summary.
+    /// # Returns
+    /// The operation result.
     fn result(&self, handle: &str) -> OperationSummary {
         self.calls.set(self.calls.get() + 1);
         OperationSummary {
@@ -51,31 +52,60 @@ impl OperationFixture {
 }
 
 impl OperationProvider for OperationFixture {
+    /// Returns an empty structured merge result for dispatch tests.
+    ///
+    /// - `_context`: Application context.
+    /// - `request`: Exact merge input snapshots.
+    ///
+    /// A conflict-free merge result retaining the supplied identities.
+    ///
+    /// This fixture never fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn merge(
+        &self,
+        _context: &ApplicationContext,
+        request: &MergeRequest,
+    ) -> Result<sr_change::MergeResult, ApplicationError> {
+        Ok(sr_change::MergeResult {
+            base: request.base,
+            left: request.left,
+            right: request.right,
+            resolved_deltas: Vec::new(),
+            conflicts: Vec::new(),
+            result: None,
+        })
+    }
+
     /// Resolves every fixture root to one exact snapshot.
     ///
-    /// # Parameters
     /// - `_root`: Fixture root name.
     ///
-    /// # Returns
     /// The deterministic snapshot.
     ///
-    /// # Errors
     /// This fixture never fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn resolve_root(&self, _root: &RootName) -> Result<SnapshotId, ApplicationError> {
         Ok(SnapshotId::new([1; 32]))
     }
 
     /// Records a diff request.
     ///
-    /// # Parameters
     /// - `_context`: Application context.
     /// - `_request`: Diff request.
     ///
-    /// # Returns
     /// A deterministic operation summary.
     ///
-    /// # Errors
     /// This fixture never fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn diff(
         &self,
         _context: &ApplicationContext,
@@ -86,15 +116,16 @@ impl OperationProvider for OperationFixture {
 
     /// Records a history request.
     ///
-    /// # Parameters
     /// - `_context`: Application context.
     /// - `_request`: History request.
     ///
-    /// # Returns
     /// A deterministic operation summary.
     ///
-    /// # Errors
     /// This fixture never fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn history(
         &self,
         _context: &ApplicationContext,
@@ -105,15 +136,16 @@ impl OperationProvider for OperationFixture {
 
     /// Records a render request.
     ///
-    /// # Parameters
     /// - `_context`: Application context.
     /// - `_request`: Render request.
     ///
-    /// # Returns
     /// A deterministic operation summary.
     ///
-    /// # Errors
     /// This fixture never fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn render(
         &self,
         _context: &ApplicationContext,
@@ -124,15 +156,16 @@ impl OperationProvider for OperationFixture {
 
     /// Records a branch request.
     ///
-    /// # Parameters
     /// - `_context`: Application context.
     /// - `_request`: Branch request.
     ///
-    /// # Returns
     /// A deterministic operation summary.
     ///
-    /// # Errors
     /// This fixture never fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn branch(
         &self,
         _context: &ApplicationContext,
@@ -143,15 +176,16 @@ impl OperationProvider for OperationFixture {
 
     /// Records an apply request.
     ///
-    /// # Parameters
     /// - `_context`: Application context.
     /// - `_request`: Apply request.
     ///
-    /// # Returns
     /// A deterministic operation summary.
     ///
-    /// # Errors
     /// This fixture never fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn apply(
         &self,
         _context: &ApplicationContext,
@@ -162,15 +196,16 @@ impl OperationProvider for OperationFixture {
 
     /// Records a commit request.
     ///
-    /// # Parameters
     /// - `_context`: Application context.
     /// - `_request`: Commit request.
     ///
-    /// # Returns
     /// A deterministic operation summary.
     ///
-    /// # Errors
     /// This fixture never fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn commit(
         &self,
         _context: &ApplicationContext,

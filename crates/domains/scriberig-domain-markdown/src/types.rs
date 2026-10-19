@@ -4,15 +4,15 @@ use scriberig_core::ObjectType;
 
 /// Returns a validated Markdown entity type.
 ///
-/// # Parameters
 /// - `name`: Stable suffix in the Markdown entity namespace.
 ///
-/// # Returns
 /// The corresponding universal object type.
 ///
 /// # Panics
 /// Panics only if a static caller supplies an invalid type suffix.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn entity_type(name: &str) -> ObjectType {
     ObjectType::new(format!("markdown.{name}")).expect("static Markdown type")
 }

@@ -7,6 +7,7 @@ import {
 } from "./transport";
 import type {
   BranchId,
+  EntityId,
   OperationId,
   ProtocolEvent,
   ProtocolError,
@@ -115,6 +116,32 @@ export function normalizeProtocolEvent(value: unknown): ProtocolEvent | undefine
           })
         : undefined;
     }
+    case "PlanActivity": {
+      const activityKind = sharedActivityKind(
+        typeof event.activity_kind === "string" ? event.activity_kind : undefined,
+      );
+      const state = activityState(
+        typeof event.activity_state === "string" ? event.activity_state : undefined,
+      );
+      const sessionId = metadataValue(event, "session");
+      const nodeId = metadataValue(event, "node");
+      const summary = metadataValue(event, "summary");
+      return typeof entityId === "string" &&
+        sessionId !== undefined &&
+        activityKind !== undefined &&
+        state !== undefined &&
+        summary !== undefined
+        ? withSequence({
+            kind: "planActivity",
+            sessionId: sessionId as never,
+            planId: entityId as EntityId,
+            ...(nodeId === undefined ? {} : { nodeId }),
+            activityKind,
+            state,
+            summary,
+          })
+        : undefined;
+    }
     case "MigrationCreated": {
       const migrationId = metadataValue(event, "migration");
       return migrationId === undefined
@@ -214,6 +241,17 @@ function sharedActivityKind(value: string | undefined): SessionActivityItem["kin
     "Validation",
     "ModelSelectionChanged",
     "ThinkingLevelChanged",
+    "PlanCreated",
+    "PlanRevised",
+    "PlanNodeReady",
+    "PlanNodeStarted",
+    "PlanNodeCompleted",
+    "PlanNodeFailed",
+    "AssignmentChanged",
+    "CoordinatorChanged",
+    "DependencyStateChanged",
+    "SemanticOperation",
+    "ExternalProcess",
     "Error",
   ];
   return kinds.find((kind) => kind === value);

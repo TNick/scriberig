@@ -11,10 +11,8 @@ pub struct SchemaVersion(pub u32);
 impl SchemaVersion {
     /// Creates a schema version from a stable integer.
     ///
-    /// # Parameters
     /// - `value`: Explicit schema version.
     ///
-    /// # Returns
     /// A schema version value.
     #[must_use]
     pub const fn new(value: u32) -> Self {
@@ -23,7 +21,6 @@ impl SchemaVersion {
 
     /// Returns the numeric schema version.
     ///
-    /// # Returns
     /// The stable version number.
     #[must_use]
     pub const fn value(self) -> u32 {
@@ -34,11 +31,11 @@ impl SchemaVersion {
 impl From<u32> for SchemaVersion {
     /// Converts a numeric version into explicit schema metadata.
     ///
-    /// # Parameters
     /// - `value`: Numeric schema version.
     ///
-    /// # Returns
     /// The corresponding schema version.
+    /// # Returns
+    /// The operation result.
     fn from(value: u32) -> Self {
         Self::new(value)
     }
@@ -47,15 +44,16 @@ impl From<u32> for SchemaVersion {
 impl Display for SchemaVersion {
     /// Formats the numeric schema version.
     ///
-    /// # Parameters
     /// - `self`: Version to format.
     /// - `formatter`: Formatting destination.
     ///
-    /// # Returns
     /// Formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when the destination rejects output.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         self.0.fmt(formatter)
     }
@@ -99,12 +97,10 @@ pub struct SchemaMigrationMetadata {
 impl SchemaMigrationMetadata {
     /// Creates metadata for an explicit schema transition.
     ///
-    /// # Parameters
     /// - `from`: Source schema version.
     /// - `to`: Result schema version.
     /// - `implementation`: Migration implementation metadata.
     ///
-    /// # Returns
     /// Schema migration metadata with unbound snapshots.
     #[must_use]
     pub const fn new(
@@ -123,12 +119,10 @@ impl SchemaMigrationMetadata {
 
     /// Binds exact snapshots to the schema transition.
     ///
-    /// # Parameters
     /// - `self`: Metadata to update.
     /// - `input`: Input snapshot.
     /// - `result`: Result snapshot.
     ///
-    /// # Returns
     /// Metadata with exact snapshot references.
     #[must_use]
     pub const fn with_snapshots(mut self, input: SnapshotId, result: SnapshotId) -> Self {
@@ -141,13 +135,13 @@ impl SchemaMigrationMetadata {
 impl AdapterMetadata {
     /// Creates adapter metadata without a profile.
     ///
-    /// # Parameters
     /// - `id`: Stable adapter identifier.
     /// - `version`: Adapter implementation version.
     ///
-    /// # Returns
     /// Adapter metadata with no profile binding.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(id: impl Into<String>, version: impl Into<String>) -> Self {
         Self {
             id: id.into(),
@@ -158,13 +152,13 @@ impl AdapterMetadata {
 
     /// Binds a semantics-affecting profile to the adapter metadata.
     ///
-    /// # Parameters
     /// - `self`: Metadata to update.
     /// - `profile`: Stable profile identifier.
     ///
-    /// # Returns
     /// Metadata with the profile attached.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_profile(mut self, profile: impl Into<String>) -> Self {
         self.profile = Some(profile.into());
         self

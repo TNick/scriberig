@@ -4,15 +4,15 @@ use super::*;
 
 /// Marks the matching request as failed and preserves a visible error diagnostic.
 ///
-/// # Parameters
 /// - `state`: TUI models receiving the failure.
 /// - `request_id`: Request generation associated with the failure.
 /// - `category`: Stable application error category.
 /// - `message`: Sanitized diagnostic for the user.
 /// - `super`: Parent reducer module visibility marker.
 ///
-/// # Returns
 /// A no-op effect after updating matching request state.
+/// # Returns
+/// The operation result.
 pub(super) fn operation_failed(
     state: &mut TuiState,
     request_id: u64,
@@ -24,6 +24,10 @@ pub(super) fn operation_failed(
         state.stale = true;
     }
     state.operation_error = Some((category.to_owned(), message.to_owned()));
+    if request_id == 0 && state.conversation_composer.pending {
+        state.conversation_composer.pending = false;
+        state.conversation_composer.error = Some(message.to_owned());
+    }
     if request_id == 0
         && let Some(composer) = state.session_composer.as_mut()
         && let Some(pending) = composer.pending_prompt.take()
@@ -60,7 +64,6 @@ pub(super) fn operation_failed(
 
 /// Marks a loading view failed only when its request generation matches.
 ///
-/// # Parameters
 /// - `view`: Presentation state to update.
 /// - `request_id`: Request generation that failed.
 /// - `category`: Stable application error category.

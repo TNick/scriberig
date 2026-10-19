@@ -85,6 +85,16 @@ pub struct AgentStartRequest {
     pub selection: Option<AgentSelection>,
 }
 
+/// Starts a new agent session with application-allocated identities.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct AgentNewSessionRequest {
+    /// User-authored first instruction.
+    pub prompt: String,
+    /// Exact semantic scope for the requested work.
+    #[serde(default)]
+    pub selection: Option<AgentSelection>,
+}
+
 /// Continues an agent operation on an existing session branch.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct AgentContinueRequest {
@@ -92,6 +102,20 @@ pub struct AgentContinueRequest {
     pub session: SessionReference,
     /// Existing branch receiving the follow-up.
     pub branch: BranchReference,
+    /// User-authored follow-up instruction.
+    pub prompt: String,
+    /// Exact semantic scope for the requested work.
+    #[serde(default)]
+    pub selection: Option<AgentSelection>,
+}
+
+/// Continues from an exact historical location in one session.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct AgentContinueAtRequest {
+    /// Session containing the anchor.
+    pub session: SessionReference,
+    /// Exact durable conversation location.
+    pub anchor: crate::SessionContinuationAnchor,
     /// User-authored follow-up instruction.
     pub prompt: String,
     /// Exact semantic scope for the requested work.

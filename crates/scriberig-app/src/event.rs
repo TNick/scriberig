@@ -20,6 +20,21 @@ pub enum ApplicationEvent {
         /// Safe concise model or thinking selection summary.
         summary: String,
     },
+    /// A durable plan transition is available for safe client projection.
+    PlanActivity {
+        /// Owning durable session identity.
+        session: EntityId,
+        /// Stable plan identity.
+        plan: EntityId,
+        /// Stable node identity when the activity concerns one node.
+        node: Option<EntityId>,
+        /// Typed provider-neutral activity category.
+        activity_kind: scriberig_session::SessionActivityKind,
+        /// Settled state represented by the durable plan projection.
+        state: scriberig_session::SessionActivityState,
+        /// Safe concise user-facing summary.
+        summary: String,
+    },
     /// The accepted snapshot root changed.
     SnapshotChanged {
         /// New accepted snapshot identity.

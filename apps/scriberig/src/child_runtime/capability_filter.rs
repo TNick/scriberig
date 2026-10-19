@@ -4,12 +4,12 @@ use scriberig_app::{Capability, CapabilityAction, CapabilityContext};
 
 /// Restricts child grants to the explicitly delegated capability names.
 ///
-/// # Parameters
 /// - `parent`: Capabilities available to the parent branch.
 /// - `requested`: Capability identifiers delegated by the parent model.
 ///
-/// # Returns
 /// A child capability context that is no broader than the parent request.
+/// # Returns
+/// The operation result.
 pub(super) fn delegated_capabilities(
     parent: &CapabilityContext,
     requested: &[String],

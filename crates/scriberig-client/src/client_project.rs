@@ -7,15 +7,16 @@ use crate::{Client, error::ClientError};
 impl<T: ProtocolTransport> Client<T> {
     /// Executes one typed project onboarding operation.
     ///
-    /// # Parameters
     /// - `operation`: Stable project operation such as `scan` or `import`.
     /// - `payload`: Operation-specific JSON payload.
     ///
-    /// # Returns
     /// The presentation-neutral project operation result.
     ///
-    /// # Errors
     /// Returns a structured server error or response mismatch.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn project(
         &self,
         operation: impl Into<String>,

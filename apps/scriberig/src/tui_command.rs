@@ -3,27 +3,46 @@
 use std::sync::Arc;
 
 use scriberig_app::{
-    ApplicationBackendComposition, ApplicationContext, ApplicationService, BootstrapEnvironment,
-    StoreInspectionBackend, StoreOperationProvider,
+    AgentSelection, ApplicationBackendComposition, ApplicationContext, ApplicationService,
+    BootstrapEnvironment, StoreInspectionBackend, StoreOperationProvider,
 };
 use scriberig_core::{EntityId, ProjectId, SnapshotId};
 use scriberig_store_sqlite::SqliteStore;
 
-/// Identifies the project context selected for TUI startup.
-type ProjectStartup = (ProjectId, Option<EntityId>, Option<SnapshotId>);
+/// Identifies the project and exact semantic scope selected for TUI startup.
+///
+/// Private members
+/// - `project`: Durable project identity.
+/// - `entity`: Initial selected entity, when available.
+/// - `snapshot`: Exact imported snapshot, when available.
+/// - `root`: Semantic root of the imported project workspace.
+///
+/// Public members: None.
+#[derive(Clone, Copy)]
+struct ProjectStartup {
+    /// Durable project identity.
+    project: ProjectId,
+    /// Initial selected entity, when available.
+    entity: Option<EntityId>,
+    /// Exact imported snapshot, when available.
+    snapshot: Option<SnapshotId>,
+    /// Semantic root of the imported project workspace.
+    root: Option<EntityId>,
+}
 
 /// Starts TUI mode using either a remote endpoint or local project database.
 ///
-/// # Parameters
 /// - `args`: Parsed TUI startup settings.
 /// - `super`: Parent application module providing local context.
 ///
-/// # Returns
 /// Unit after the terminal session ends.
 ///
-/// # Errors
 /// Returns a database, transport, or terminal error.
 #[allow(clippy::too_many_lines)]
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn run(
     args: &scriberig_cli::TuiArgs,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -63,6 +82,7 @@ pub(super) fn run(
                 let project = report.project;
                 if args.import_project {
                     let imported = service.import(project.id)?;
+                    let workspace = service.workspace(project.id)?;
                     let entities = store.project_entities(project.id)?;
                     let entity = entities
                         .iter()
@@ -74,17 +94,24 @@ pub(super) fn run(
                         })
                         .or_else(|| entities.iter().find(|record| record.kind == "source"))
                         .map(|record| record.entity);
-                    return Ok((project.id, entity, Some(imported.snapshot)));
+                    return Ok(ProjectStartup {
+                        project: project.id,
+                        entity,
+                        snapshot: Some(imported.snapshot),
+                        root: Some(workspace.root_entity),
+                    });
                 }
                 let workspace = project
                     .current_snapshot
                     .map(|_| service.workspace(project.id))
                     .transpose()?;
-                Ok((
-                    project.id,
-                    workspace.as_ref().map(|value| value.root_entity),
-                    workspace.map(|value| value.snapshot),
-                ))
+                let root = workspace.as_ref().map(|value| value.root_entity);
+                Ok(ProjectStartup {
+                    project: project.id,
+                    entity: root,
+                    snapshot: workspace.map(|value| value.snapshot),
+                    root,
+                })
             },
         )
         .transpose()?;
@@ -102,41 +129,40 @@ pub(super) fn run(
         .with_model_library(agent_runner.model_library());
     let labels = project
         .as_ref()
-        .map(|(project_id, _, _)| project_labels(&store, *project_id))
+        .map(|value| project_labels(&store, value.project))
         .transpose()?;
-    let projection =
-        project
-            .as_ref()
-            .zip(labels.as_ref())
-            .and_then(|((project_id, _, snapshot), _)| {
-                snapshot.map(|snapshot| {
-                    let files = store
-                        .project_files(*project_id)
-                        .unwrap_or_default()
-                        .into_iter()
-                        .collect::<Vec<_>>();
-                    let by_path = files
-                        .iter()
-                        .map(|file| (file.relative_path.as_str(), file))
-                        .collect::<std::collections::HashMap<_, _>>();
-                    let sources = store
-                        .project_entities(*project_id)
-                        .unwrap_or_default()
-                        .into_iter()
-                        .filter_map(|entity| {
-                            by_path.get(entity.relative_path.as_str()).map(|file| {
-                                (entity.entity, (entity.relative_path, file.bytes.clone()))
-                            })
-                        })
-                        .collect();
-                    scriberig_tui::ProjectProjection {
-                        project: *project_id,
-                        workflow: scriberig_project::ProjectService::new(Arc::clone(&store)),
-                        snapshot,
-                        sources,
-                    }
-                })
-            });
+    let projection = project
+        .as_ref()
+        .zip(labels.as_ref())
+        .and_then(|(value, _)| {
+            value.snapshot.map(|snapshot| {
+                let files = store
+                    .project_files(value.project)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .collect::<Vec<_>>();
+                let by_path = files
+                    .iter()
+                    .map(|file| (file.relative_path.as_str(), file))
+                    .collect::<std::collections::HashMap<_, _>>();
+                let sources = store
+                    .project_entities(value.project)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter_map(|entity| {
+                        by_path
+                            .get(entity.relative_path.as_str())
+                            .map(|file| (entity.entity, (entity.relative_path, file.bytes.clone())))
+                    })
+                    .collect();
+                scriberig_tui::ProjectProjection {
+                    project: value.project,
+                    workflow: scriberig_project::ProjectService::new(Arc::clone(&store)),
+                    snapshot,
+                    sources,
+                }
+            })
+        });
     let service = scriberig_tui::ApplicationOperationAdapter::new(service)
         .with_agent_runner(agent_runner)
         .with_explorer_labels(labels.unwrap_or_default())
@@ -169,16 +195,25 @@ pub(super) fn run(
             project: project.as_ref().map(|value| {
                 format!(
                     "{} @ {}",
-                    args.project
-                        .as_ref()
-                        .map_or_else(|| value.0.to_string(), |path| path.display().to_string()),
+                    args.project.as_ref().map_or_else(
+                        || value.project.to_string(),
+                        |path| path.display().to_string()
+                    ),
                     value
-                        .2
+                        .snapshot
                         .map_or_else(|| "unimported".to_owned(), |snapshot| snapshot.to_string())
                 )
             }),
-            initial_entity: project.as_ref().and_then(|value| value.1),
-            snapshot: project.as_ref().and_then(|value| value.2),
+            initial_entity: project.as_ref().and_then(|value| value.entity),
+            snapshot: project.as_ref().and_then(|value| value.snapshot),
+            agent_selection: project.as_ref().and_then(|value| {
+                Some(AgentSelection {
+                    project: Some(value.project),
+                    root: value.root?,
+                    entity: value.entity.unwrap_or(value.root?),
+                    snapshot: value.snapshot?,
+                })
+            }),
         },
     )?;
     Ok(())
@@ -186,15 +221,16 @@ pub(super) fn run(
 
 /// Builds readable explorer labels from the imported project ownership manifest.
 ///
-/// # Parameters
 /// - `store`: SQLite store containing project ownership records.
 /// - `project`: Project whose entities are being displayed.
 ///
-/// # Returns
 /// A stable entity-to-label map for local TUI navigation.
 ///
-/// # Errors
 /// Returns a SQLite error when the ownership manifest cannot be read.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn project_labels(
     store: &Arc<SqliteStore>,
     project: ProjectId,

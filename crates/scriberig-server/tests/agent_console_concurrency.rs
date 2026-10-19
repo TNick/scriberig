@@ -14,15 +14,16 @@ struct Fixture;
 impl ApplicationBackend for Fixture {
     /// Rejects universal operations unused by this protocol integration test.
     ///
-    /// # Parameters
     /// - `_context`: Trusted request context.
     /// - `_request`: Universal operation request.
     ///
-    /// # Returns
     /// Never returns a successful universal operation.
     ///
-    /// # Errors
     /// Always returns an unsupported-operation error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute(
         &self,
         _context: &ApplicationContext,
@@ -36,12 +37,12 @@ impl ApplicationBackend for Fixture {
 
 /// Creates a correlated request envelope for one simulated client.
 ///
-/// # Parameters
 /// - `correlation_id`: Client request identity.
 /// - `request`: Typed public protocol request.
 ///
-/// # Returns
 /// A request using the current protocol version.
+/// # Returns
+/// The operation result.
 fn envelope(correlation_id: &str, request: Request) -> RequestEnvelope {
     RequestEnvelope {
         version: ProtocolVersion::default(),
@@ -146,8 +147,9 @@ fn stale_model_and_thinking_writes_conflict_between_clients() {
 
 /// Builds a model library with two model-specific thinking-level sets.
 ///
-/// # Returns
 /// Credential-safe descriptors used by the two-client concurrency test.
+/// # Returns
+/// The operation result.
 fn model_library() -> ModelLibrary {
     let model_a = ModelId::new("model-a").expect("model id");
     let model_b = ModelId::new("model-b").expect("model id");
@@ -216,7 +218,6 @@ fn model_library() -> ModelLibrary {
 
 /// Applies the second client's update and verifies stale writes are rejected.
 ///
-/// # Parameters
 /// - `tui_client`: First protocol dispatcher.
 /// - `web_client`: Second protocol dispatcher.
 /// - `session`: Shared session identity.

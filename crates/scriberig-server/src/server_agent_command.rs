@@ -10,16 +10,13 @@ use scriberig_protocol::Operation;
 
 /// Decodes and executes one command through the shared application boundary.
 ///
-/// # Parameters
 /// - `service`: Shared application service.
 /// - `context`: Trusted request context.
 /// - `kind`: Stable command family.
 /// - `payload`: Typed command payload in JSON form.
 ///
-/// # Returns
 /// The accepted or completed shared operation.
 ///
-/// # Errors
 /// Returns a structured application failure.
 pub(super) fn execute<B: ApplicationBackend>(
     service: &ApplicationService<B>,
@@ -66,16 +63,13 @@ pub(super) fn execute<B: ApplicationBackend>(
 
 /// Parses and submits a protocol agent command through the shared session API.
 ///
-/// # Parameters
 /// - `service`: Shared application service.
 /// - `context`: Trusted request context.
 /// - `kind`: Agent command family.
 /// - `payload`: Agent command payload in JSON form.
 ///
-/// # Returns
 /// The accepted agent operation.
 ///
-/// # Errors
 /// Returns a structured validation, authorization, or operation error.
 fn submit_agent_command<B: ApplicationBackend>(
     service: &ApplicationService<B>,
@@ -170,6 +164,7 @@ fn submit_agent_command<B: ApplicationBackend>(
         &scriberig_app::AgentCommandRequest {
             session,
             branch,
+            anchor: None,
             prompt: prompt.to_owned(),
             selection,
         },

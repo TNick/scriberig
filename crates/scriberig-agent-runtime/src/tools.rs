@@ -15,11 +15,16 @@ pub enum ToolExecutionMode {
     ChildBranch,
 }
 
+/// Shared durable semantic category for one trusted tool.
+pub type ToolCategory = scriberig_session::ToolActivityKind;
+
 /// Complete trusted descriptor exposed to provider request compilation.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ToolDescriptor {
     /// Provider-neutral function definition.
     pub definition: ToolDefinition,
+    /// Trusted provider-neutral semantic category used for exposure ordering.
+    pub category: ToolCategory,
     /// Bounded result-shape description.
     pub result_shape: String,
     /// Optional trusted command-like label for compact invocation display.
@@ -41,12 +46,12 @@ pub struct ToolCatalog {
 impl ToolCatalog {
     /// Creates a deterministic catalog sorted by stable tool identifier.
     ///
-    /// # Parameters
     /// - `descriptors`: Trusted application descriptors.
     ///
-    /// # Returns
     /// A catalog with deterministic provider exposure order.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(mut descriptors: Vec<ToolDescriptor>) -> Self {
         for descriptor in &mut descriptors {
             descriptor.invocation_label = descriptor
@@ -55,15 +60,20 @@ impl ToolCatalog {
                 .map(bounded_invocation_label)
                 .filter(|label| !label.is_empty());
         }
-        descriptors.sort_by(|left, right| left.definition.name.cmp(&right.definition.name));
+        descriptors.sort_by(|left, right| {
+            left.category
+                .cmp(&right.category)
+                .then_with(|| left.definition.name.cmp(&right.definition.name))
+        });
         Self { descriptors }
     }
 
     /// Returns provider definitions in deterministic order.
     ///
-    /// # Returns
     /// The definitions suitable for a normalized model request.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn definitions(&self) -> Vec<ToolDefinition> {
         self.descriptors
             .iter()
@@ -73,12 +83,12 @@ impl ToolCatalog {
 
     /// Returns descriptors authorized by one branch capability context.
     ///
-    /// # Parameters
     /// - `context`: Capabilities granted to the current branch.
     ///
-    /// # Returns
     /// Authorized descriptors in stable catalog order.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn descriptors_for(&self, context: &CapabilityContext) -> Vec<ToolDescriptor> {
         self.descriptors
             .iter()
@@ -86,7 +96,9 @@ impl ToolCatalog {
                 descriptor
                     .required_capability
                     .as_deref()
-                    .is_none_or(|required| capability_granted(context, required))
+                    .is_some_and(|required| capability_granted(context, required))
+                    || (descriptor.category != ToolCategory::OpaqueFallback
+                        && descriptor.required_capability.is_none())
             })
             .cloned()
             .collect()
@@ -94,14 +106,15 @@ impl ToolCatalog {
 
     /// Validates a provider-selected call against trusted descriptors.
     ///
-    /// # Parameters
     /// - `call`: Normalized provider tool call.
     ///
-    /// # Returns
     /// The trusted descriptor for the call.
     ///
-    /// # Errors
     /// Returns a safe validation error for unknown tools or invalid arguments.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn validate(&self, call: &ToolCall) -> Result<&ToolDescriptor, ToolValidationError> {
         let descriptor = self
             .descriptors
@@ -157,12 +170,13 @@ impl ToolCatalog {
 
     /// Validates a provider call and its required branch capability.
     ///
-    /// # Parameters
     /// - `call`: Normalized provider tool call.
     /// - `context`: Capabilities granted to the current branch.
     ///
-    /// # Returns
     /// The trusted descriptor when validation and authorization succeed.
+    ///
+    /// # Returns
+    /// The descriptor authorized for this branch.
     ///
     /// # Errors
     /// Returns a validation or capability-denial error.
@@ -183,11 +197,11 @@ impl ToolCatalog {
 
 /// Sanitizes and bounds one trusted invocation label for client presentation.
 ///
-/// # Parameters
 /// - `label`: Descriptor-provided human-readable label.
 ///
-/// # Returns
 /// At most 128 non-control Unicode scalar values.
+/// # Returns
+/// The operation result.
 fn bounded_invocation_label(label: &str) -> String {
     label
         .chars()
@@ -198,12 +212,12 @@ fn bounded_invocation_label(label: &str) -> String {
 
 /// Checks both named grants and scoped application grants.
 ///
-/// # Parameters
 /// - `context`: Capability context to inspect.
 /// - `required`: Stable required capability name.
 ///
-/// # Returns
 /// `true` when the capability is granted.
+/// # Returns
+/// The operation result.
 fn capability_granted(context: &CapabilityContext, required: &str) -> bool {
     if context
         .granted
@@ -243,15 +257,16 @@ pub enum ToolValidationError {
 impl fmt::Display for ToolValidationError {
     /// Formats a safe tool validation error.
     ///
-    /// # Parameters
     /// - `self`: Validation failure.
     /// - `formatter`: Destination formatter.
     ///
-    /// # Returns
     /// Formatting success or the formatter error.
     ///
-    /// # Errors
     /// Returns the formatter error when output cannot be written.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UnknownTool(tool) => write!(formatter, "unknown trusted tool: {tool}"),

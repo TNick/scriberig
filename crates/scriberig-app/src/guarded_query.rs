@@ -22,10 +22,8 @@ pub struct GuardedQueryService<S> {
 impl<S> GuardedQueryService<S> {
     /// Creates a guarded application read service.
     ///
-    /// # Parameters
     /// - `inner`: Reusable provider that supplies semantic read operations.
     ///
-    /// # Returns
     /// A provider whose exposed results are checked against request grants.
     #[must_use]
     pub const fn new(inner: S) -> Self {
@@ -34,7 +32,6 @@ impl<S> GuardedQueryService<S> {
 
     /// Borrows the wrapped reusable provider for intentional low-level use.
     ///
-    /// # Returns
     /// The policy-free provider.
     #[must_use]
     pub const fn inner(&self) -> &S {
@@ -43,12 +40,12 @@ impl<S> GuardedQueryService<S> {
 
     /// Returns a structured denial without including hidden content.
     ///
-    /// # Parameters
     /// - `action`: Action that the caller requested.
     /// - `scope`: Scope that the caller requested.
     ///
-    /// # Returns
     /// A safe application permission error.
+    /// # Returns
+    /// The operation result.
     fn denied(action: &CapabilityAction, scope: &CapabilityScope) -> ApplicationError {
         ApplicationError::PermissionDenied {
             action: format!("{action:?}"),
@@ -58,18 +55,19 @@ impl<S> GuardedQueryService<S> {
 
     /// Checks one operation-level capability.
     ///
-    /// # Parameters
     /// - `context`: Caller grants to evaluate.
     /// - `action`: Action required by the operation.
     /// - `scope`: Semantic scope exposed by the operation.
     /// - `snapshot`: Exact snapshot constraint, when available.
     /// - `operation`: Universal operation kind.
     ///
-    /// # Returns
     /// `Ok(())` when one grant covers the request.
     ///
-    /// # Errors
     /// Returns a structured permission denial when no grant covers it.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn authorize(
         context: &ApplicationContext,
         action: &CapabilityAction,
@@ -91,16 +89,17 @@ impl<S> GuardedQueryService<S> {
 impl<S: QueryService> QueryService for GuardedQueryService<S> {
     /// Authorizes and delegates one application inspection.
     ///
-    /// # Parameters
     /// - `self`: Guarded provider.
     /// - `context`: Caller grants and exact request context.
     /// - `request`: Entity inspection request.
     ///
-    /// # Returns
     /// The provider's inspection result after authorization.
     ///
-    /// # Errors
     /// Returns a structured permission denial or provider error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         context: &ApplicationContext,
@@ -122,59 +121,23 @@ impl<S: QueryService> QueryService for GuardedQueryService<S> {
     }
 }
 
-impl<S: crate::SessionBackend> crate::SessionBackend for GuardedQueryService<S> {
-    /// Delegates a session read through the wrapped application boundary.
-    ///
-    /// # Parameters
-    /// - `context`: Caller authorization and snapshot context.
-    /// - `request`: Stable session identity to read.
-    ///
-    /// # Returns
-    /// The requested session snapshot.
-    ///
-    /// # Errors
-    /// Returns the wrapped session backend error.
-    fn read_session(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::SessionRequest,
-    ) -> Result<scriberig_session::Session, ApplicationError> {
-        self.inner.read_session(context, request)
-    }
-
-    /// Delegates an agent command through the wrapped application boundary.
-    ///
-    /// # Parameters
-    /// - `context`: Caller authorization and snapshot context.
-    /// - `request`: Session command to submit.
-    ///
-    /// # Returns
-    /// The accepted operation identity.
-    ///
-    /// # Errors
-    /// Returns the wrapped session backend error.
-    fn submit_agent_command(
-        &self,
-        context: &ApplicationContext,
-        request: &crate::AgentCommandRequest,
-    ) -> Result<scriberig_core::OperationId, ApplicationError> {
-        self.inner.submit_agent_command(context, request)
-    }
-}
+#[path = "guarded_query_session.rs"]
+mod session;
 
 impl<S: InspectService> GuardedQueryService<S> {
     /// Authorizes and delegates a reusable exact-target inspection.
     ///
-    /// # Parameters
     /// - `self`: Guarded provider.
     /// - `context`: Caller grants and exact request context.
     /// - `request`: Query-crate inspection request.
     ///
-    /// # Returns
     /// The inspection result when its entity is authorized.
     ///
-    /// # Errors
     /// Returns a structured permission denial or provider error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn inspect_target(
         &self,
         context: &ApplicationContext,
@@ -211,16 +174,17 @@ impl<S: InspectService> GuardedQueryService<S> {
 impl<S: TraverseService> GuardedQueryService<S> {
     /// Authorizes collection access and filters restricted entries.
     ///
-    /// # Parameters
     /// - `self`: Guarded provider.
     /// - `context`: Caller grants and exact request context.
     /// - `request`: Collection listing request.
     ///
-    /// # Returns
     /// A page containing only authorized navigation entries.
     ///
-    /// # Errors
     /// Returns a structured denial or provider error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn list(
         &self,
         context: &ApplicationContext,
@@ -244,16 +208,17 @@ impl<S: TraverseService> GuardedQueryService<S> {
 
     /// Authorizes relation access and filters restricted entries.
     ///
-    /// # Parameters
     /// - `self`: Guarded provider.
     /// - `context`: Caller grants and exact request context.
     /// - `request`: Relation traversal request.
     ///
-    /// # Returns
     /// A page containing only authorized navigation entries.
     ///
-    /// # Errors
     /// Returns a structured denial or provider error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn follow(
         &self,
         context: &ApplicationContext,
@@ -282,16 +247,17 @@ impl<S: TraverseService> GuardedQueryService<S> {
 impl<S: FindService> GuardedQueryService<S> {
     /// Authorizes discovery and filters restricted hits and previews.
     ///
-    /// # Parameters
     /// - `self`: Guarded provider.
     /// - `context`: Caller grants and exact request context.
     /// - `request`: Exact-scope discovery request.
     ///
-    /// # Returns
     /// A page containing only authorized semantic hits.
     ///
-    /// # Errors
     /// Returns a structured denial or provider error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn find(
         &self,
         context: &ApplicationContext,
@@ -315,16 +281,17 @@ impl<S: FindService> GuardedQueryService<S> {
 impl<S: StructuredQueryService> GuardedQueryService<S> {
     /// Authorizes exact structural queries and filters restricted rows.
     ///
-    /// # Parameters
     /// - `self`: Guarded provider.
     /// - `context`: Caller grants and exact request context.
     /// - `request`: Exact-scope structural query.
     ///
-    /// # Returns
     /// A page containing only authorized semantic rows.
     ///
-    /// # Errors
     /// Returns a structured denial or provider error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn query(
         &self,
         context: &ApplicationContext,
@@ -347,17 +314,18 @@ impl<S: StructuredQueryService> GuardedQueryService<S> {
 
 /// Authorizes every entity named by a query scope before evaluation.
 ///
-/// # Parameters
 /// - `context`: Caller grants to evaluate.
 /// - `scope`: Exact query scope to authorize.
 /// - `action`: Action required by the query.
 /// - `operation`: Universal operation kind.
 ///
-/// # Returns
 /// `Ok(())` when the complete scope is authorized.
 ///
-/// # Errors
 /// Returns a denial or schema error before the provider is evaluated.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn authorize_query_scope(
     context: &ApplicationContext,
     scope: &scriberig_query::QueryScope,

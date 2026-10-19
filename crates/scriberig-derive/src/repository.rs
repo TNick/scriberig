@@ -24,83 +24,87 @@ pub enum RepositoryError {
 pub trait DerivedRepository {
     /// Inserts an immutable result without replacing historical records.
     ///
-    /// # Parameters
     /// - `self`: Repository to update.
     /// - `record`: Immutable derivation outcome.
     ///
-    /// # Returns
     /// Success when inserted or already present identically.
     ///
-    /// # Errors
     /// Returns a conflict if the handle already names different record data.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn insert(&mut self, record: DerivedResultRecord) -> Result<(), RepositoryError>;
 
     /// Retrieves an exact immutable record by its stable handle.
     ///
-    /// # Parameters
     /// - `self`: Repository to inspect.
     /// - `handle`: Exact result identity.
     ///
-    /// # Returns
     /// The historical record when retained.
     ///
-    /// # Errors
     /// This lookup is infallible and returns `None` when absent.
     ///
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn get(&self, handle: DerivedResultHandle) -> Option<&DerivedResultRecord>;
 
     /// Finds every retained record for one exact derivation key.
     ///
-    /// # Parameters
     /// - `self`: Repository to inspect.
     /// - `key`: Exact profile and dependency identity.
     ///
-    /// # Returns
     /// Matching immutable records.
     ///
-    /// # Errors
     /// This lookup is infallible and returns an empty list when no key matches.
     ///
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn by_key(&self, key: &DerivationKey) -> Vec<&DerivedResultRecord>;
 
     /// Finds result handles that declare one exact dependency.
     ///
-    /// # Parameters
     /// - `self`: Repository to inspect.
     /// - `dependency`: Exact dependency to reverse-index.
     ///
-    /// # Returns
     /// Stable handles of results depending on the requested value.
     ///
-    /// # Errors
     /// This lookup is infallible and returns an empty list when unmatched.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn by_dependency(&self, dependency: &Dependency) -> Vec<DerivedResultHandle>;
 
     /// Returns the normalized dependencies recorded for one result.
     ///
-    /// # Parameters
     /// - `self`: Repository to inspect.
     /// - `handle`: Exact result identity.
     ///
-    /// # Returns
     /// The immutable dependency set when the result is retained.
     ///
-    /// # Errors
     /// This lookup is infallible and returns `None` when absent.
+    /// # Returns
+    /// The operation result.
     fn dependencies(&self, handle: DerivedResultHandle) -> Option<&DependencySet>;
 
     /// Finds results associated with an exact entity revision for discovery.
     ///
-    /// # Parameters
     /// - `self`: Repository to inspect.
     /// - `entity`: Exact entity identity.
     /// - `revision`: Exact revision identity.
     ///
-    /// # Returns
     /// Stable handles associated with the exact entity revision.
     ///
-    /// # Errors
     /// This lookup is infallible and returns an empty list when unmatched.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn by_entity_revision(
         &self,
         entity: EntityId,
@@ -109,11 +113,11 @@ pub trait DerivedRepository {
 
     /// Removes one record only when its retention category is disposable.
     ///
-    /// # Parameters
     /// - `self`: Repository to update.
     /// - `handle`: Exact result identity.
     ///
-    /// # Returns
     /// Whether a disposable record was removed.
+    /// # Returns
+    /// The operation result.
     fn remove_disposable(&mut self, handle: DerivedResultHandle) -> bool;
 }

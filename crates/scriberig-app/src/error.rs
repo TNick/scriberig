@@ -143,12 +143,12 @@ pub struct ConflictDetails {
 impl ApplicationError {
     /// Returns the stable category name used by adapters.
     ///
-    /// # Parameters
     /// - `self`: Error to classify.
     ///
-    /// # Returns
     /// A stable category label.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn category(&self) -> &str {
         match self {
             Self::InvalidRequest { .. } => "invalid_request",
@@ -177,15 +177,16 @@ impl ApplicationError {
 impl Display for ApplicationError {
     /// Formats an application error for a human-facing adapter.
     ///
-    /// # Parameters
     /// - `self`: Error to format.
     /// - `formatter`: Destination formatter.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when the destination rejects the write.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidRequest { operation, message } => {

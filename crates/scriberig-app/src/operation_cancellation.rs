@@ -8,15 +8,16 @@ use crate::{ApplicationError, OperationId, OperationRecord, OperationRegistry, O
 impl OperationRegistry {
     /// Cancels one active operation and signals its cooperative executor.
     ///
-    /// # Parameters
     /// - `self`: Registry owning operation state.
     /// - `id`: Operation identity to cancel.
     ///
-    /// # Returns
     /// The cancelled operation record.
     ///
-    /// # Errors
     /// Returns a structured failure when cancellation is invalid.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn cancel(&self, id: &OperationId) -> Result<OperationRecord, ApplicationError> {
         let flag = self.cancellation_flag(id)?;
         flag.store(true, Ordering::Release);
@@ -25,15 +26,16 @@ impl OperationRegistry {
 
     /// Returns the cooperative cancellation flag for one operation.
     ///
-    /// # Parameters
     /// - `self`: Registry owning operation state.
     /// - `id`: Operation identity whose execution is being observed.
     ///
-    /// # Returns
     /// Shared flag set by an application cancellation request.
     ///
-    /// # Errors
     /// Returns `NotFound` when the operation is unknown.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn cancellation_flag(&self, id: &OperationId) -> Result<Arc<AtomicBool>, ApplicationError> {
         let state = self.lock()?;
         state

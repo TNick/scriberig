@@ -55,12 +55,12 @@ pub struct RenderCacheKey {
 impl RenderCacheKey {
     /// Builds a cache identity from every render request input.
     ///
-    /// # Parameters
     /// - `request`: Exact render request.
     ///
-    /// # Returns
     /// A stable cache identity containing all output-affecting inputs.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn from_request(request: &RenderRequest) -> Self {
         Self {
             specification: request.specification,
@@ -88,13 +88,13 @@ pub struct RenderedFragment {
 impl RenderedFragment {
     /// Creates a reusable fragment from exact local input and output bytes.
     ///
-    /// # Parameters
     /// - `input`: Exact local immutable input bytes.
     /// - `bytes`: Exact fragment output bytes.
     ///
-    /// # Returns
     /// A fragment with deterministic input and output metadata.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(input: &[u8], bytes: &[u8]) -> Self {
         Self {
             input_key: blake3::hash(input).as_bytes().to_vec(),
@@ -143,14 +143,14 @@ pub struct OutputHash {
 impl RenderedProjection {
     /// Creates a rendered output and computes its BLAKE3 digest.
     ///
-    /// # Parameters
     /// - `bytes`: Exact rendered representation.
     /// - `request`: Exact request inputs used to produce the bytes.
     /// - `projection`: Optional projection instance.
     ///
-    /// # Returns
     /// A rendered output with its deterministic digest and input metadata.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn from_bytes(
         bytes: Vec<u8>,
         request: &RenderRequest,
@@ -175,13 +175,13 @@ impl RenderedProjection {
 
     /// Attaches reusable intermediate fragments to this rendered output.
     ///
-    /// # Parameters
     /// - `self`: Rendered output receiving the fragments.
     /// - `fragments`: Adapter-owned reusable fragments.
     ///
-    /// # Returns
     /// This output with the supplied fragments attached.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_fragments(mut self, fragments: Vec<RenderedFragment>) -> Self {
         self.fragments = fragments;
         self

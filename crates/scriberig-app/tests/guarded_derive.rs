@@ -22,8 +22,9 @@ struct MemoryRepository {
 impl MemoryRepository {
     /// Creates an empty derived repository.
     ///
-    /// # Returns
     /// An empty in-memory repository.
+    /// # Returns
+    /// The operation result.
     fn new() -> Self {
         Self {
             records: BTreeMap::new(),
@@ -34,14 +35,15 @@ impl MemoryRepository {
 impl DerivedRepository for MemoryRepository {
     /// Inserts an immutable test record.
     ///
-    /// # Parameters
     /// - `record`: Record to retain.
     ///
-    /// # Returns
     /// Success when the handle is new or identical.
     ///
-    /// # Errors
     /// Returns a conflict when the handle has different contents.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn insert(&mut self, record: DerivedResultRecord) -> Result<(), RepositoryError> {
         let handle = record.handle();
         if let Some(existing) = self.records.get(&handle) {
@@ -55,28 +57,30 @@ impl DerivedRepository for MemoryRepository {
 
     /// Retrieves one immutable test record.
     ///
-    /// # Parameters
     /// - `handle`: Record handle to find.
     ///
-    /// # Returns
     /// The retained record, when present.
     ///
-    /// # Errors
     /// This lookup is infallible.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn get(&self, handle: DerivedResultHandle) -> Option<&DerivedResultRecord> {
         self.records.get(&handle)
     }
 
     /// Retrieves records matching one exact key.
     ///
-    /// # Parameters
     /// - `key`: Key to match.
     ///
-    /// # Returns
     /// Matching records.
     ///
-    /// # Errors
     /// This lookup is infallible.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn by_key(&self, key: &DerivationKey) -> Vec<&DerivedResultRecord> {
         self.records
             .values()
@@ -86,14 +90,15 @@ impl DerivedRepository for MemoryRepository {
 
     /// Retrieves handles declaring one dependency.
     ///
-    /// # Parameters
     /// - `dependency`: Dependency to match.
     ///
-    /// # Returns
     /// Matching artifact handles.
     ///
-    /// # Errors
     /// This lookup is infallible.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn by_dependency(&self, dependency: &Dependency) -> Vec<DerivedResultHandle> {
         self.records
             .values()
@@ -104,11 +109,11 @@ impl DerivedRepository for MemoryRepository {
 
     /// Retrieves the exact dependency set for one handle.
     ///
-    /// # Parameters
     /// - `handle`: Artifact handle to inspect.
     ///
-    /// # Returns
     /// The dependency set, when retained.
+    /// # Returns
+    /// The operation result.
     fn dependencies(&self, handle: DerivedResultHandle) -> Option<&DependencySet> {
         self.records
             .get(&handle)
@@ -117,15 +122,16 @@ impl DerivedRepository for MemoryRepository {
 
     /// Retrieves records for one exact entity revision.
     ///
-    /// # Parameters
     /// - `entity`: Entity dependency to match.
     /// - `revision`: Revision dependency to match.
     ///
-    /// # Returns
     /// Matching artifact handles.
     ///
-    /// # Errors
     /// This lookup is infallible.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn by_entity_revision(
         &self,
         entity: EntityId,
@@ -136,11 +142,11 @@ impl DerivedRepository for MemoryRepository {
 
     /// Removes one disposable test record.
     ///
-    /// # Parameters
     /// - `handle`: Artifact handle to remove.
     ///
-    /// # Returns
     /// Whether a record was removed.
+    /// # Returns
+    /// The operation result.
     fn remove_disposable(&mut self, handle: DerivedResultHandle) -> bool {
         self.records.remove(&handle).is_some()
     }
@@ -148,11 +154,11 @@ impl DerivedRepository for MemoryRepository {
 
 /// Builds one capability with no additional constraints.
 ///
-/// # Parameters
 /// - `scope`: Scope covered by the grant.
 ///
-/// # Returns
 /// A query capability for the supplied scope.
+/// # Returns
+/// The operation result.
 fn read_capability(scope: CapabilityScope) -> Capability {
     Capability {
         scope,
@@ -163,11 +169,11 @@ fn read_capability(scope: CapabilityScope) -> Capability {
 
 /// Builds an application context from complete scoped grants.
 ///
-/// # Parameters
 /// - `grants`: Grants to evaluate.
 ///
-/// # Returns
 /// A context containing the grants.
+/// # Returns
+/// The operation result.
 fn context(grants: impl IntoIterator<Item = Capability>) -> ApplicationContext {
     ApplicationContext {
         capabilities: CapabilityContext::with_grants(grants),
@@ -177,15 +183,16 @@ fn context(grants: impl IntoIterator<Item = Capability>) -> ApplicationContext {
 
 /// Builds a successful immutable artifact with exact dependencies.
 ///
-/// # Parameters
 /// - `handle`: Artifact identity byte.
 /// - `dependencies`: Exact semantic dependencies.
 ///
-/// # Returns
 /// An immutable successful artifact record.
 ///
-/// # Errors
 /// Construction is infallible for fixed test values.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn record(handle: u8, dependencies: Vec<Dependency>) -> DerivedResultRecord {
     DerivedResultRecord::new(
         DerivationKey::new(

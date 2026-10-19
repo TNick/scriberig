@@ -59,7 +59,7 @@ impl ExplorerModel {
     /// - `selection`: Argument named `selection`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     pub fn from_selection(selection: EntitySelection) -> Self {
         let label = selection.entity.to_string();
         Self {
@@ -76,7 +76,6 @@ impl ExplorerModel {
 
     /// Adds bounded, composition-supplied rows to the current semantic root.
     ///
-    /// # Parameters
     /// - `self`: Explorer model receiving the rows.
     /// - `entities`: Stable entities visible in the same snapshot.
     /// - `snapshot`: Exact snapshot context for every row.

@@ -10,15 +10,17 @@ struct CodeFixture;
 impl ConformanceFixture for CodeFixture {
     /// Returns the fixture domain name.
     ///
-    /// # Returns
     /// Domain name.
+    /// # Returns
+    /// The operation result.
     fn domain(&self) -> &'static str {
         "code"
     }
     /// Returns the canonical code identity.
     ///
-    /// # Returns
     /// Canonical inspection.
+    /// # Returns
+    /// The operation result.
     fn canonical_inspection(&self) -> Inspection {
         Inspection {
             entity: EntityId::from_bytes([1; 16]),
@@ -27,15 +29,17 @@ impl ConformanceFixture for CodeFixture {
     }
     /// Returns the code-domain inspection.
     ///
-    /// # Returns
     /// Domain inspection.
+    /// # Returns
+    /// The operation result.
     fn domain_inspection(&self) -> Inspection {
         self.canonical_inspection()
     }
     /// Returns the unchanged code identity.
     ///
-    /// # Returns
     /// Unchanged inspection.
+    /// # Returns
+    /// The operation result.
     fn unchanged_inspection(&self) -> Inspection {
         self.canonical_inspection()
     }

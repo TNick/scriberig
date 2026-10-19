@@ -4,11 +4,11 @@ use super::parse_entity;
 
 /// Converts one protocol event into the shared application event model.
 ///
-/// # Parameters
 /// - `event`: Typed remote event envelope.
 ///
-/// # Returns
 /// The equivalent application event when required fields are valid.
+/// # Returns
+/// The operation result.
 pub(crate) fn map_remote_event(
     event: &scriberig_protocol::Event,
 ) -> Option<scriberig_app::ApplicationEvent> {
@@ -21,6 +21,19 @@ pub(crate) fn map_remote_event(
         return Some(scriberig_app::ApplicationEvent::SessionSelectionChanged {
             session,
             activity_kind: *event.activity_kind.as_ref()?,
+            summary: metadata_value(event, "summary")?,
+        });
+    }
+    if event.kind == scriberig_protocol::EventKind::PlanActivity {
+        let plan = parse_entity(&event.entity.as_ref()?.id).ok()?;
+        let session = parse_entity(&metadata_value(event, "session")?).ok()?;
+        let node = metadata_value(event, "node").and_then(|value| parse_entity(&value).ok());
+        return Some(scriberig_app::ApplicationEvent::PlanActivity {
+            session,
+            plan,
+            node,
+            activity_kind: *event.activity_kind.as_ref()?,
+            state: *event.activity_state.as_ref()?,
             summary: metadata_value(event, "summary")?,
         });
     }
@@ -78,12 +91,12 @@ pub(crate) fn map_remote_event(
 
 /// Reads one string value from safe event metadata.
 ///
-/// # Parameters
 /// - `event`: Protocol event containing the metadata.
 /// - `key`: Stable metadata key.
 ///
-/// # Returns
 /// The metadata value when present.
+/// # Returns
+/// The operation result.
 fn metadata_value(event: &scriberig_protocol::Event, key: &str) -> Option<String> {
     event
         .metadata

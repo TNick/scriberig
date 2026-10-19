@@ -4,7 +4,6 @@ use crate::{CapabilitySet, ConformanceFixture};
 
 /// Runs all applicable domain conformance assertions for one fixture.
 ///
-/// # Parameters
 /// - `fixture`: Domain-owned fixture implementing the generic contract.
 ///
 /// # Panics

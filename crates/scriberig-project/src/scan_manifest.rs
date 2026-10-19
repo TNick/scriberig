@@ -13,17 +13,18 @@ impl ProjectService {
     /// This preserves an exact source-selection policy during candidate refresh
     /// while still including candidate-created paths.
     ///
-    /// # Parameters
     /// - `name`: Optional display name for a new project.
     /// - `path`: Filesystem project root.
     /// - `paths`: Relative file manifest selected for this scan.
     /// - `crate`: Internal project scan module.
     ///
-    /// # Returns
     /// The registered project and selected deterministic scan files.
     ///
-    /// # Errors
     /// Returns a structured filesystem or storage failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(crate) fn scan_with_paths(
         &self,
         name: Option<String>,
@@ -47,17 +48,18 @@ impl ProjectService {
 
     /// Scans and durably stores a registered project's selected files.
     ///
-    /// # Parameters
     /// - `project`: Registered project identity and path.
     /// - `paths`: Optional exact relative-path filter.
     /// - `git_tracked`: Whether the selection came from the Git index.
     /// - `super`: Parent project service module.
     ///
-    /// # Returns
     /// Persisted project scan report.
     ///
-    /// # Errors
     /// Returns a structured filesystem or storage failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn persist_scan(
         &self,
         project: &ProjectRecord,

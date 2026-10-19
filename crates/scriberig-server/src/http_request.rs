@@ -14,13 +14,13 @@ pub(super) fn header_value<'a>(head: &'a str, wanted: &str) -> Option<&'a str> {
 
 /// Allows only the configured exact origin, never a wildcard.
 ///
-/// # Parameters
 /// - `super`: Internal server-module visibility.
 /// - `head`: HTTP request headers.
 /// - `configured`: Optional configured exact origin.
 ///
-/// # Returns
 /// The allowed origin when the request matches configuration.
+/// # Returns
+/// The operation result.
 pub(super) fn allowed_origin(head: &str, configured: Option<&str>) -> Option<String> {
     let origin = header_value(head, "origin")?;
     configured
@@ -31,12 +31,12 @@ pub(super) fn allowed_origin(head: &str, configured: Option<&str>) -> Option<Str
 
 /// Returns a bounded request correlation identifier from headers or local state.
 ///
-/// # Parameters
 /// - `super`: Internal server-module visibility.
 /// - `head`: HTTP request headers.
 ///
-/// # Returns
 /// A bounded request correlation identifier.
+/// # Returns
+/// The operation result.
 pub(super) fn request_id(head: &str) -> String {
     let supplied = head.lines().skip(1).find_map(|line| {
         let (name, value) = line.split_once(':')?;

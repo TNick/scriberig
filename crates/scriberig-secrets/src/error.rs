@@ -26,7 +26,6 @@ pub enum SecretError {
 impl SecretError {
     /// Returns a stable process exit status for this failure.
     ///
-    /// # Returns
     /// A distinct local secret-command exit status.
     #[must_use]
     pub const fn exit_code(self) -> i32 {
@@ -46,14 +45,15 @@ impl SecretError {
 impl fmt::Display for SecretError {
     /// Writes a fixed safe diagnostic.
     ///
-    /// # Parameters
     /// - `formatter`: Destination formatter.
     ///
-    /// # Returns
     /// Formatting success.
     ///
-    /// # Errors
     /// Returns formatter failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(match self {
             Self::Missing => "secret is missing",

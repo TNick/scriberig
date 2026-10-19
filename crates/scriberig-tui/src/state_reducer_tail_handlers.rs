@@ -4,17 +4,22 @@ use super::*;
 
 /// Applies a current session read and reveals its pending branch target.
 ///
-/// # Parameters
 /// - `state`: TUI state receiving the session projection.
 /// - `request_id`: Request token returned with the projection.
 /// - `model`: Loaded session projection.
 ///
-/// # Returns
 /// A no-op effect after applying or rejecting the response.
+/// # Parameters
+/// - `conversation`: Input for this operation.
+/// - `session_snapshot`: Input for this operation.
+/// # Returns
+/// The operation result.
 pub(super) fn session_succeeded(
     state: &mut TuiState,
     request_id: u64,
     model: crate::view::session::SessionModel,
+    conversation: crate::view::conversation::ConversationModel,
+    session_snapshot: Option<scriberig_session::Session>,
 ) -> Vec<Effect> {
     if matches!(state.session, LoadState::Loading { request_id: current } if current == request_id)
     {
@@ -26,19 +31,186 @@ pub(super) fn session_succeeded(
             state.cursor = index;
         }
         state.session = LoadState::Ready(model);
+        state.session_snapshot = session_snapshot;
+        state.conversation = Some(state.session_snapshot.as_ref().map_or_else(
+            || conversation,
+            |session| crate::state::conversation_projection(state, session),
+        ));
+        if state.follow_coordinator {
+            state.coordinator_cursor = state
+                .conversation
+                .as_ref()
+                .and_then(|model| model.coordinator_cursor);
+        }
+        if let Some(source) = state.conversation_cursor
+            && let Some(index) = state
+                .conversation
+                .as_ref()
+                .and_then(|model| model.index_of(source))
+        {
+            state.cursor = index;
+        } else if let Some(row) = state
+            .conversation
+            .as_ref()
+            .and_then(|model| model.rows.first())
+        {
+            state.conversation_cursor = Some(row.source);
+            state.cursor = 0;
+        }
+        if state.primary_view == crate::selection::PrimaryView::Changes {
+            return super::state_actions::review_latest_candidate(state);
+        }
+    }
+    vec![Effect::None]
+}
+
+/// Applies a shared plan response to the cached durable session projection.
+///
+/// - `state`: TUI state receiving the authoritative plan.
+/// - `plan`: Persisted plan returned by the shared application service.
+///
+/// A no-op effect after rebuilding the conversation projection.
+/// # Returns
+/// The operation result.
+pub(super) fn plan_updated(state: &mut TuiState, mut plan: scriberig_session::Plan) -> Vec<Effect> {
+    let Some(mut session) = state.session_snapshot.clone() else {
+        state.conversation_composer.error = Some("Load a session before editing plans.".to_owned());
+        return vec![Effect::None];
+    };
+    plan.session = Some(session.id);
+    if let Some(existing) = session.plans.iter_mut().find(|item| item.id == plan.id) {
+        *existing = plan.clone();
+    } else {
+        session.plans.push(plan);
+    }
+    state.conversation = Some(crate::state::conversation_projection(state, &session));
+    state.coordinator_cursor = state
+        .conversation
+        .as_ref()
+        .and_then(|model| model.coordinator_cursor);
+    state.session_snapshot = Some(session);
+    vec![Effect::None]
+}
+
+/// Applies accepted conversation work using only returned durable handles.
+///
+/// - `state`: TUI presentation receiving the accepted operation.
+/// - `handle`: Application allocated operation, session, and branch.
+///
+/// A durable session refresh effect.
+/// # Returns
+/// The operation result.
+pub(super) fn conversation_agent_accepted(
+    state: &mut TuiState,
+    handle: &crate::service::AgentHandle,
+) -> Vec<Effect> {
+    let Some(branch) = handle.branch else {
+        state.conversation_composer.pending = false;
+        state.conversation_composer.error = Some("accepted work has no branch handle".to_owned());
+        return vec![Effect::None];
+    };
+    state.conversation_composer.target = crate::state::ConversationTarget::Existing {
+        session: handle.session,
+        reply_anchor: scriberig_session::ContinuationAnchor::BranchHead { branch },
+    };
+    state.conversation_composer.pending = false;
+    state.conversation_composer.draft.clear();
+    state.conversation_composer.error = None;
+    state.conversation_browsing = false;
+    state.conversation_cursor = Some(crate::view::conversation::ConversationSource::Branch(
+        branch,
+    ));
+    state.agent_handles.push(handle.clone());
+    state.session_branch_focus = Some(branch);
+    let request_id = state.next_request_id;
+    state.next_request_id = state.next_request_id.saturating_add(1);
+    state.session = LoadState::Loading { request_id };
+    vec![Effect::ReadSession {
+        request_id,
+        session: handle.session,
+        branch: None,
+    }]
+}
+
+/// Pins the selected replyable source without changing coordinator ownership.
+///
+/// - `state`: TUI state with a semantic navigation cursor.
+///
+/// A no-op effect after updating local reply presentation state.
+/// # Returns
+/// The operation result.
+pub(super) fn conversation_pin_cursor(state: &mut TuiState) -> Vec<Effect> {
+    let selected = state
+        .conversation
+        .as_ref()
+        .and_then(|model| model.rows.get(state.cursor));
+    let Some((session, anchor)) = selected.and_then(|row| {
+        let session =
+            state
+                .conversation
+                .as_ref()?
+                .rows
+                .iter()
+                .find_map(|item| match item.source {
+                    crate::view::conversation::ConversationSource::Session(session) => {
+                        Some(session)
+                    }
+                    _ => None,
+                })?;
+        Some((session, row.reply_anchor?))
+    }) else {
+        state.shell_message = "This conversation row cannot receive a reply.".to_owned();
+        return vec![Effect::None];
+    };
+    state.conversation_composer.target = crate::state::ConversationTarget::Existing {
+        session,
+        reply_anchor: anchor,
+    };
+    state.follow_coordinator = false;
+    state.conversation_browsing = false;
+    state.shell_message = "Reply target pinned to the selected conversation node.".to_owned();
+    vec![Effect::None]
+}
+
+/// Toggles local child-history expansion for the selected stable branch.
+///
+/// - `state`: TUI state with a selected conversation branch.
+///
+/// A no-op effect after rebuilding the presentation projection.
+/// # Returns
+/// The operation result.
+pub(super) fn conversation_toggle_expansion(state: &mut TuiState) -> Vec<Effect> {
+    let Some(crate::view::conversation::ConversationSource::Branch(branch)) =
+        state.conversation_cursor
+    else {
+        return vec![Effect::None];
+    };
+    if !state.expanded_branches.remove(&branch) {
+        state.expanded_branches.insert(branch);
+    }
+    if let Some(session) = &state.session_snapshot {
+        state.conversation = Some(crate::state::conversation_projection(state, session));
+    }
+    if let Some(source) = state.conversation_cursor
+        && let Some(index) = state
+            .conversation
+            .as_ref()
+            .and_then(|model| model.index_of(source))
+    {
+        state.cursor = index;
     }
     vec![Effect::None]
 }
 
 /// Applies a loaded model library to the pending model or thinking picker.
 ///
-/// # Parameters
 /// - `state`: TUI state receiving the model library.
 /// - `request_id`: Request token returned with the library.
 /// - `library`: Credential-safe model descriptors.
 ///
-/// # Returns
 /// A no-op effect after applying or rejecting the response.
+/// # Returns
+/// The operation result.
 pub(super) fn model_library_loaded(
     state: &mut TuiState,
     request_id: u64,
@@ -51,6 +223,8 @@ pub(super) fn model_library_loaded(
         if state.thinking_picker_pending.is_some() {
             state.thinking_picker_pending = None;
             let _ = super::show_thinking_picker(state);
+        } else if state.plan_assignment_target.is_some() {
+            super::state_model_picker::show_plan_assignment_picker(state, &library);
         } else {
             super::show_model_picker(state, library);
         }
@@ -60,12 +234,12 @@ pub(super) fn model_library_loaded(
 
 /// Applies an updated model and thinking selection to the session header.
 ///
-/// # Parameters
 /// - `state`: TUI state containing the active session.
 /// - `selection`: Authoritative session execution selection.
 ///
-/// # Returns
 /// A no-op effect after updating the local projection.
+/// # Returns
+/// The operation result.
 pub(super) fn session_selection_updated(
     state: &mut TuiState,
     selection: scriberig_session::SessionExecutionSelection,
@@ -104,12 +278,12 @@ pub(super) fn session_selection_updated(
 
 /// Retains one sanitized live output observation for the session view.
 ///
-/// # Parameters
 /// - `state`: TUI state retaining bounded transient output.
 /// - `output`: Provider-neutral output observation.
 ///
-/// # Returns
 /// A no-op effect after updating the transient observation list.
+/// # Returns
+/// The operation result.
 pub(super) fn agent_output_observed(state: &mut TuiState, output: &str) -> Vec<Effect> {
     state
         .agent_output_observations
@@ -123,13 +297,13 @@ pub(super) fn agent_output_observed(state: &mut TuiState, output: &str) -> Vec<E
 
 /// Starts an authoritative read for one selected session.
 ///
-/// # Parameters
 /// - `state`: TUI state receiving the session read.
 /// - `session`: Stable session identity.
 /// - `branch`: Optional branch scope for the read.
 ///
-/// # Returns
 /// A session-read effect for an existing branch, or no effect for a new session.
+/// # Returns
+/// The operation result.
 pub(super) fn session_requested(
     state: &mut TuiState,
     session: scriberig_core::EntityId,
@@ -148,13 +322,13 @@ pub(super) fn session_requested(
 
 /// Opens the modal composer for one session branch.
 ///
-/// # Parameters
 /// - `state`: TUI state receiving the composer overlay.
 /// - `session`: Stable session identity.
 /// - `branch`: Optional branch receiving the submission.
 ///
-/// # Returns
 /// A no-op effect after opening the composer.
+/// # Returns
+/// The operation result.
 pub(super) fn composer_opened(
     state: &mut TuiState,
     session: scriberig_core::EntityId,
@@ -171,13 +345,13 @@ pub(super) fn composer_opened(
 
 /// Opens and focuses the persistent session composer while refreshing rows.
 ///
-/// # Parameters
 /// - `state`: TUI state receiving the persistent composer.
 /// - `session`: Stable session identity.
 /// - `branch`: Optional branch receiving the submission.
 ///
-/// # Returns
 /// A session-read effect.
+/// # Returns
+/// The operation result.
 pub(super) fn session_composer_opened(
     state: &mut TuiState,
     session: scriberig_core::EntityId,
@@ -210,165 +384,10 @@ pub(super) fn session_composer_opened(
     effects
 }
 
-/// Applies refreshed runtime capabilities to the shell state.
-///
-/// # Parameters
-/// - `state`: TUI presentation receiving runtime capabilities.
-/// - `capabilities`: Public capability descriptors from the application.
-///
-/// # Returns
-/// A no-op effect after updating connection state.
-pub(super) fn capabilities_loaded(
-    state: &mut TuiState,
-    capabilities: Vec<scriberig_app::RuntimeCapability>,
-) -> Vec<Effect> {
-    state.capabilities = capabilities;
-    state.connection = ConnectionState::Connected;
-    state.stale = false;
-    state.shell_message = "Semantic service attached.".to_owned();
-    vec![Effect::ReadPresentationPreferences]
-}
+#[path = "state_reducer_tail_handlers/capabilities.rs"]
+mod capabilities;
+pub(super) use capabilities::{capabilities_loaded, operations_loaded};
 
-/// Updates the local presentation cache from an authoritative operation snapshot.
-///
-/// # Parameters
-/// - `state`: TUI presentation receiving operation records.
-/// - `records`: Current records supplied by the shared application service.
-///
-/// # Returns
-/// A no-op effect after refreshing operation models.
-pub(super) fn operations_loaded(
-    state: &mut TuiState,
-    records: Vec<scriberig_app::OperationRecord>,
-) -> Vec<Effect> {
-    for record in records {
-        let model = crate::view::operations::OperationModel::from_record(&record);
-        if let Some(existing) = state
-            .operations
-            .iter_mut()
-            .find(|existing| existing.id == model.id)
-        {
-            *existing = model;
-        } else {
-            state.operations.push(model);
-        }
-    }
-    vec![Effect::None]
-}
-
-/// Refreshes the selected session after an agent operation reaches a terminal state.
-///
-/// # Parameters
-/// - `state`: TUI state containing the operation and its accepted agent handle.
-/// - `operation_id`: Exact operation whose terminal state was observed.
-/// - `was_terminal`: Whether this operation had already reached a terminal state.
-///
-/// # Returns
-/// A session read effect when the operation just completed for an agent handle.
-pub(super) fn refresh_terminal_agent_session(
-    state: &mut TuiState,
-    operation_id: &scriberig_core::OperationId,
-    was_terminal: bool,
-) -> Vec<Effect> {
-    let Some(operation_is_terminal) = state
-        .operations
-        .iter()
-        .find(|operation| &operation.id == operation_id)
-        .map(|operation| operation.status.is_terminal())
-    else {
-        return vec![Effect::None];
-    };
-    if was_terminal
-        || !operation_is_terminal
-        || state.primary_view != crate::selection::PrimaryView::Session
-        || !matches!(state.session, LoadState::Ready(_))
-    {
-        return vec![Effect::None];
-    }
-    let Some(handle) = state
-        .agent_handles
-        .iter()
-        .rev()
-        .find(|handle| &handle.operation == operation_id)
-    else {
-        return vec![Effect::None];
-    };
-    let request_id = state.next_request_id;
-    state.next_request_id += 1;
-    state.session = LoadState::Loading { request_id };
-    vec![Effect::ReadSession {
-        request_id,
-        session: handle.session,
-        branch: handle.branch,
-    }]
-}
-
-/// Records an accepted agent operation and activates its returned workspace.
-///
-/// # Parameters
-/// - `state`: TUI state receiving the operation and workspace selection.
-/// - `handle`: Accepted agent operation with optional workspace references.
-///
-/// # Returns
-/// Effects required to refresh operation, session, and workspace views.
-pub(super) fn agent_submitted(
-    state: &mut TuiState,
-    handle: crate::service::AgentHandle,
-) -> Vec<Effect> {
-    let operation = handle.operation.clone();
-    state
-        .agent_handles
-        .retain(|value| value.operation != operation);
-    state.agent_handles.push(handle);
-    let handle = state.agent_handles.last().cloned();
-    let Some(handle) = handle else {
-        return vec![Effect::OperationStatus { operation }];
-    };
-    if let Some(composer) = state.session_composer.as_mut() {
-        composer.pending_prompt = None;
-        composer.session = handle.session;
-        composer.branch = handle.branch;
-        composer.error = None;
-    } else {
-        state.session_composer = Some(crate::state::SessionComposerState {
-            session: handle.session,
-            branch: handle.branch,
-            text: String::new(),
-            pending_prompt: None,
-            error: None,
-        });
-        state.session_composer_focused = true;
-    }
-    let workspace_effect = handle.workspace.as_ref().map(|workspace| {
-        state.project = Some(workspace.name.clone());
-        let selection = crate::selection::EntitySelection {
-            entity: workspace.root,
-            revision: None,
-            snapshot: Some(workspace.snapshot),
-        };
-        state.selection = Some(selection);
-        state.explorer = crate::explorer::ExplorerModel::from_selection(selection);
-        let request_id = state.next_request_id;
-        state.next_request_id += 1;
-        state.inspector = LoadState::Loading { request_id };
-        Effect::InspectEntity {
-            request_id,
-            entity: workspace.root,
-            snapshot: Some(workspace.snapshot),
-        }
-    });
-    state.primary_view = crate::selection::PrimaryView::Session;
-    let request_id = state.next_request_id;
-    state.next_request_id += 1;
-    state.session = LoadState::Loading { request_id };
-    let mut effects = vec![
-        Effect::OperationStatus { operation },
-        Effect::ReadSession {
-            request_id,
-            session: handle.session,
-            branch: handle.branch,
-        },
-    ];
-    effects.extend(workspace_effect);
-    effects
-}
+#[path = "state_reducer_tail_handlers/terminal.rs"]
+mod terminal;
+pub(super) use terminal::{agent_submitted, refresh_terminal_agent_session};

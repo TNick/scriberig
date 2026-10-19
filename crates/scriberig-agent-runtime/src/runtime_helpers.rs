@@ -24,18 +24,19 @@ where
 {
     /// Executes one atomic tool after reserving its runtime budget.
     ///
-    /// # Parameters
     /// - `context`: Trusted application context.
     /// - `super`: Runtime owner.
     /// - `input`: Validated atomic tool input.
     /// - `operation`: Optional lifecycle operation.
     /// - `state`: Mutable branch counters.
     ///
-    /// # Returns
     /// The bounded application tool result.
     ///
-    /// # Errors
     /// Returns a tool or budget failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn run_atomic_tool(
         &self,
         context: &ApplicationContext,
@@ -65,7 +66,6 @@ where
 
     /// Executes one named application control tool.
     ///
-    /// # Parameters
     /// - `self`: Runtime owning the tool boundary.
     /// - `super`: Runtime helper module containing the dispatch implementation.
     /// - `context`: Trusted application request context.
@@ -75,11 +75,13 @@ where
     /// - `operation`: Optional lifecycle operation.
     /// - `state`: Mutable branch counters.
     ///
-    /// # Returns
     /// The bounded application control result.
     ///
-    /// # Errors
     /// Returns a tool or budget failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn run_named_tool(
         &self,
         context: &ApplicationContext,
@@ -113,7 +115,6 @@ where
 
     /// Executes one delegated child after reserving its branch budgets.
     ///
-    /// # Parameters
     /// - `context`: Trusted application context.
     /// - `super`: Runtime owner.
     /// - `scope`: Durable parent branch scope.
@@ -124,12 +125,14 @@ where
     /// - `state`: Mutable branch counters.
     /// - `children`: Optional recursive executor.
     ///
-    /// # Returns
     /// The compact child result.
     ///
-    /// # Errors
     /// Returns a child, provider, or budget failure.
     #[allow(clippy::too_many_arguments)]
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn run_child_tool(
         &mut self,
         context: &ApplicationContext,
@@ -180,16 +183,17 @@ where
 
     /// Reserves one model step or emits a terminal budget failure.
     ///
-    /// # Parameters
     /// - `operation`: Optional lifecycle operation.
     /// - `super`: Runtime owner.
     /// - `state`: Mutable branch counters.
     ///
-    /// # Returns
     /// Unit after reserving one model step.
     ///
-    /// # Errors
     /// Returns a step-budget failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn reserve_model_step(
         &self,
         operation: Option<&OperationId>,
@@ -204,16 +208,17 @@ where
 
     /// Reserves one atomic or child tool call.
     ///
-    /// # Parameters
     /// - `operation`: Optional lifecycle operation.
     /// - `super`: Runtime owner.
     /// - `state`: Mutable branch counters.
     ///
-    /// # Returns
     /// Unit after reserving one tool call.
     ///
-    /// # Errors
     /// Returns a tool-budget failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn reserve_tool_call(
         &self,
         operation: Option<&OperationId>,
@@ -228,17 +233,18 @@ where
 
     /// Records a budget terminal phase and operation failure.
     ///
-    /// # Parameters
     /// - `super`: Runtime owner.
     /// - `operation`: Optional lifecycle operation.
     /// - `kind`: Stable budget category.
     /// - `limit`: Configured maximum.
     ///
-    /// # Returns
     /// Always returns the structured budget error.
     ///
-    /// # Errors
     /// Always returns `AgentError::BudgetExceeded`.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn fail_budget(
         &self,
         operation: Option<&OperationId>,
@@ -256,13 +262,15 @@ where
 
     /// Starts one tracked agent operation when a registry is configured.
     ///
-    /// # Parameters
     /// - `super`: Runtime owner.
-    /// # Returns
+    ///
     /// An operation identity when tracking is enabled.
     ///
-    /// # Errors
     /// Returns a provider error when lifecycle registration fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn start_operation(&mut self) -> Result<Option<OperationId>, AgentError> {
         if let Some(id) = self.observed_operation.clone() {
             self.active_operation = Some(id.clone());
@@ -286,7 +294,6 @@ where
 
     /// Publishes a terminal state for one tracked operation.
     ///
-    /// # Parameters
     /// - `super`: Runtime owner.
     /// - `operation`: Optional operation identity.
     /// - `status`: Terminal status.
@@ -304,7 +311,6 @@ where
 
     /// Emits one safe phase event when a log is attached.
     ///
-    /// # Parameters
     /// - `super`: Runtime owner.
     /// - `phase`: Runtime phase.
     pub(super) fn emit(&self, phase: BranchPhase) {
@@ -313,7 +319,6 @@ where
 
     /// Emits one normalized event when a log is attached.
     ///
-    /// # Parameters
     /// - `super`: Runtime owner.
     /// - `event`: Safe runtime event.
     pub(super) fn emit_event(&self, event: &RuntimeEvent) {
@@ -335,15 +340,16 @@ where
 
     /// Acquires one shared execution-tree branch slot.
     ///
-    /// # Parameters
     /// - `super`: Runtime owner.
     /// - `scope`: Optional shared execution-tree scope.
     ///
-    /// # Returns
     /// A guard that releases the slot when dropped.
     ///
-    /// # Errors
     /// Returns an active-branch budget failure when no slot is available.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn acquire_active_branch(
         &self,
         scope: Option<&ChildExecutionScope>,

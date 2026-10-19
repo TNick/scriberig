@@ -6,10 +6,8 @@ use crate::trust::{InspectDepth, OutputFormat, render_inspection_with_format};
 
 /// Renders a protocol value as stable pretty JSON.
 ///
-/// # Parameters
 /// - `value`: Serializable public response value.
 ///
-/// # Returns
 /// Pretty-printed JSON text.
 ///
 /// # Panics
@@ -21,14 +19,14 @@ pub fn render_json<T: serde::Serialize>(value: &T) -> String {
 
 /// Renders an inspection result for a selected terminal representation.
 ///
-/// # Parameters
 /// - `result`: Shared application inspection result.
 /// - `depth`: Requested trust detail.
 /// - `format`: Human or structured output format.
 ///
-/// # Returns
 /// Terminal-ready inspection text.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn render_inspection_output(
     result: &InspectResult,
     depth: InspectDepth,
@@ -39,14 +37,14 @@ pub fn render_inspection_output(
 
 /// Renders one terminal agent result from the shared application result.
 ///
-/// # Parameters
 /// - `result`: Durable terminal agent result.
 /// - `operation`: Stable operation identity.
 /// - `format`: Human or structured output representation.
 ///
-/// # Returns
 /// Text intended for standard output.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn render_agent_result(
     result: &scriberig_app::AgentResult,
     operation: &str,
@@ -88,13 +86,13 @@ pub fn render_agent_result(
 
 /// Renders non-result diagnostics for the agent command's error stream.
 ///
-/// # Parameters
 /// - `result`: Durable terminal agent result.
 /// - `operation`: Stable operation identity.
 ///
-/// # Returns
 /// Human-readable progress and identity diagnostics.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn render_agent_diagnostics(result: &scriberig_app::AgentResult, operation: &str) -> String {
     format!(
         "operation: {operation}\nsession: {}\nroot branch: {}",
@@ -112,11 +110,13 @@ mod tests {
 
     /// Creates a minimal stable agent result for output tests.
     ///
-    /// # Returns
     /// A deterministic terminal result.
     ///
-    /// # Errors
     /// This test helper never fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn result() -> AgentResult {
         AgentResult {
             session: EntityId::from_bytes([1; 16]),

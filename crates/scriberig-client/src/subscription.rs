@@ -24,12 +24,12 @@ pub struct EventSubscription<'a, T> {
 impl<'a, T: scriberig_protocol::ProtocolTransport> EventSubscription<'a, T> {
     /// Creates a subscription selecting all event kinds.
     ///
-    /// # Parameters
     /// - `client`: Client used to poll event observations.
     ///
-    /// # Returns
     /// An all-events subscription.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn all(client: &'a Client<T>) -> Self {
         Self {
             client,
@@ -40,13 +40,13 @@ impl<'a, T: scriberig_protocol::ProtocolTransport> EventSubscription<'a, T> {
 
     /// Creates a subscription selecting named event kinds.
     ///
-    /// # Parameters
     /// - `client`: Client used to poll event observations.
     /// - `event_kinds`: Event kind names accepted by the server.
     ///
-    /// # Returns
     /// A filtered event subscription.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn filtered(client: &'a Client<T>, event_kinds: Vec<String>) -> Self {
         Self {
             client,
@@ -57,11 +57,13 @@ impl<'a, T: scriberig_protocol::ProtocolTransport> EventSubscription<'a, T> {
 
     /// Polls the server for currently available events.
     ///
-    /// # Returns
     /// Stable event envelopes available at poll time.
     ///
-    /// # Errors
     /// Returns the structured client or protocol failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn poll(&mut self) -> Result<Vec<Event>, ClientError> {
         let events = self
             .client
@@ -76,9 +78,10 @@ impl<'a, T: scriberig_protocol::ProtocolTransport> EventSubscription<'a, T> {
 impl<T: scriberig_protocol::ProtocolTransport> Client<T> {
     /// Creates an all-events subscription.
     ///
-    /// # Returns
     /// A subscription polling all available event kinds.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn event_subscription(&self) -> EventSubscription<'_, T> {
         EventSubscription::all(self)
     }

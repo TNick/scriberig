@@ -35,12 +35,12 @@ pub struct ModelMessage {
 impl ModelMessage {
     /// Creates a user-authored message.
     ///
-    /// # Parameters
     /// - `content`: Text supplied by the user.
     ///
-    /// # Returns
     /// A provider-neutral user message.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn user(content: impl Into<String>) -> Self {
         Self {
             role: MessageRole::User,
@@ -51,12 +51,12 @@ impl ModelMessage {
 
     /// Creates a system-level message.
     ///
-    /// # Parameters
     /// - `content`: Runtime instruction supplied to the model.
     ///
-    /// # Returns
     /// A provider-neutral system message.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn system(content: impl Into<String>) -> Self {
         Self {
             role: MessageRole::System,
@@ -114,13 +114,13 @@ pub struct ModelRequest {
 impl ModelRequest {
     /// Creates a request with default generation policy.
     ///
-    /// # Parameters
     /// - `model`: Provider model identifier.
     /// - `messages`: Ordered semantic context.
     ///
-    /// # Returns
     /// A request with no tools or structured-output requirement.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(model: impl Into<String>, messages: Vec<ModelMessage>) -> Self {
         Self {
             model: model.into(),
@@ -223,15 +223,16 @@ pub enum ProviderError {
 impl fmt::Display for ProviderError {
     /// Formats a safe provider failure without credentials or request bodies.
     ///
-    /// # Parameters
     /// - `self`: Provider failure to format.
     /// - `formatter`: Destination formatter.
     ///
-    /// # Returns
     /// Formatting success or the formatter error.
     ///
-    /// # Errors
     /// Returns the formatter error when output cannot be written.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         let (category, message) = match self {
             Self::Configuration(message) => ("configuration", message),
@@ -255,14 +256,15 @@ impl std::error::Error for ProviderError {}
 pub trait ProviderAdapter: Send + Sync {
     /// Checks model output and API access through the normal credential path.
     ///
-    /// # Parameters
     /// - `model`: Configured model identifier used for the check.
     ///
-    /// # Returns
     /// Unit when the provider completes the request with the required marker.
     ///
-    /// # Errors
     /// Returns the classified credential, transport, HTTP, or response failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn check_connection(&self, model: &str) -> Result<(), ProviderError> {
         let mut request = ModelRequest::new(
             model,
@@ -293,27 +295,29 @@ pub trait ProviderAdapter: Send + Sync {
 
     /// Completes one normalized model request.
     ///
-    /// # Parameters
     /// - `request`: Provider-neutral request to execute.
     ///
-    /// # Returns
     /// A normalized response independent of provider wire types.
     ///
-    /// # Errors
     /// Returns a classified provider failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError>;
 
     /// Completes a request while forwarding provider-neutral text fragments.
     ///
-    /// # Parameters
     /// - `request`: Provider-neutral request to execute.
     /// - `on_text`: Callback receiving bounded assistant-text fragments.
     ///
-    /// # Returns
     /// A normalized terminal response.
     ///
-    /// # Errors
     /// Returns a classified provider failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn complete_streaming(
         &self,
         request: &ModelRequest,
@@ -337,10 +341,8 @@ pub struct FakeProvider {
 impl FakeProvider {
     /// Creates a fake with a finite scripted response queue.
     ///
-    /// # Parameters
     /// - `responses`: Responses returned in invocation order.
     ///
-    /// # Returns
     /// A fake provider that performs no network access.
     #[must_use]
     pub fn from_responses<I>(responses: I) -> Self
@@ -355,9 +357,10 @@ impl FakeProvider {
 
     /// Returns a copy of all requests received by the fake.
     ///
-    /// # Returns
     /// Requests in invocation order, or an empty list after lock recovery.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn requests(&self) -> Vec<ModelRequest> {
         self.requests
             .lock()
@@ -369,14 +372,15 @@ impl FakeProvider {
 impl ProviderAdapter for FakeProvider {
     /// Records a request and returns the next scripted response.
     ///
-    /// # Parameters
     /// - `request`: Provider-neutral request to record.
     ///
-    /// # Returns
     /// The next scripted response.
     ///
-    /// # Errors
     /// Returns the scripted provider failure or an exhausted-queue error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
         if let Ok(mut requests) = self.requests.lock() {
             requests.push(request.clone());

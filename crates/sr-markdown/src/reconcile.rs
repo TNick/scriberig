@@ -47,15 +47,15 @@ pub enum MarkdownReconciliation {
 
 /// Reconciles one candidate against a single canonical base.
 ///
-/// # Parameters
 /// - `base_snapshot`: Exact synchronization-base snapshot.
 /// - `base`: Canonical projected nodes.
 /// - `candidate`: Parsed external candidate.
 /// - `projection`: Stable projection identity/path metadata.
 ///
-/// # Returns
 /// A no-op, structured ambiguity, or unapplied migration proposal.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn reconcile(
     base_snapshot: SnapshotId,
     base: &[CanonicalNode],
@@ -115,13 +115,13 @@ pub fn reconcile(
 
 /// Builds semantic operations while preserving matched identities.
 ///
-/// # Parameters
 /// - `base`: Canonical projected nodes.
 /// - `document`: Candidate semantic document.
 /// - `report`: Matching evidence.
 ///
-/// # Returns
 /// Semantic operations that preserve matched identities.
+/// # Returns
+/// The operation result.
 fn build_operations(
     base: &[CanonicalNode],
     document: &crate::MarkdownDocument,
@@ -205,7 +205,7 @@ fn build_operations(
 /// - `matches`: Argument named `matches`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 fn matched_parent(path: &[usize], matches: &[NodeMatch]) -> Option<EntityId> {
     if path.len() <= 1 {
         return None;
@@ -223,11 +223,11 @@ fn matched_parent(path: &[usize], matches: &[NodeMatch]) -> Option<EntityId> {
 
 /// Produces a deterministic revision for a projected block.
 ///
-/// # Parameters
 /// - `block`: Semantic block to identify.
 ///
-/// # Returns
 /// Revision identity for the block's canonical payload.
+/// # Returns
+/// The operation result.
 fn block_revision(block: &MarkdownBlock) -> scriberig_core::RevisionId {
     let payload = format!("{block:?}");
     revision_id(
@@ -240,11 +240,11 @@ fn block_revision(block: &MarkdownBlock) -> scriberig_core::RevisionId {
 
 /// Derives a stable new entity identity from a candidate path.
 ///
-/// # Parameters
 /// - `path`: Semantic candidate path used to distinguish duplicate inserts.
 ///
-/// # Returns
 /// A deterministic 128-bit entity identity.
+/// # Returns
+/// The operation result.
 fn rand_bytes(path: &[usize]) -> [u8; 16] {
     let digest = blake3::hash(format!("markdown.candidate:{path:?}").as_bytes());
     let mut bytes = [0; 16];
@@ -254,11 +254,11 @@ fn rand_bytes(path: &[usize]) -> [u8; 16] {
 
 /// Flattens blocks for operation lookup.
 ///
-/// # Parameters
 /// - `document`: Candidate document.
 ///
-/// # Returns
 /// Top-level blocks paired with structural paths.
+/// # Returns
+/// The operation result.
 fn flatten_blocks(document: &crate::MarkdownDocument) -> FlattenedBlocks {
     let mut output = Vec::new();
     for (index, block) in document.blocks.iter().enumerate() {
@@ -269,7 +269,6 @@ fn flatten_blocks(document: &crate::MarkdownDocument) -> FlattenedBlocks {
 
 /// Adds one block and its nested sections to the operation lookup table.
 ///
-/// # Parameters
 /// - `block`: Semantic block to add.
 /// - `path`: Structural path of the block.
 /// - `output`: Destination flattened blocks.

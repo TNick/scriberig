@@ -26,15 +26,16 @@ struct Fixture;
 impl ApplicationBackend for Fixture {
     /// Rejects the universal operation used by this session-only scenario.
     ///
-    /// # Parameters
     /// - `_context`: Trusted application context.
     /// - `_request`: Unrelated universal request.
     ///
-    /// # Returns
     /// Never returns a successful universal operation.
     ///
-    /// # Errors
     /// Always returns an unsupported-operation error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute(
         &self,
         _context: &ApplicationContext,
@@ -87,6 +88,7 @@ fn protocol_activity_matches_the_safe_cross_surface_fixture() {
         parent_model_invocation: Some(model_id),
         presentation_input: Some(br#"{"query":"find documents","token":"[REDACTED]"}"#.to_vec()),
         presentation_label: Some("Find documents".to_owned()),
+        category: Some(scriberig_session::ToolActivityKind::SemanticRead),
     });
     branch.tool_results.push(ToolResult {
         id: result_id,
@@ -111,6 +113,7 @@ fn protocol_activity_matches_the_safe_cross_surface_fixture() {
             branches: vec![branch],
             goals: Vec::new(),
             tasks: Vec::new(),
+            plans: Vec::new(),
             execution: scriberig_session::SessionExecutionSelection::default(),
         })
         .expect("store session fixture");

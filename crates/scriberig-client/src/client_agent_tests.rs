@@ -17,12 +17,12 @@ struct FixtureTransport {
 impl ProtocolTransport for FixtureTransport {
     /// Records the request and returns the configured response.
     ///
-    /// # Parameters
     /// - `self`: In-process client fixture.
     /// - `request`: Correlated semantic request.
     ///
-    /// # Returns
     /// The fixed response with matching correlation identity.
+    /// # Returns
+    /// The operation result.
     fn send(&self, request: RequestEnvelope) -> ResponseEnvelope {
         if let Ok(mut observed) = self.request.lock() {
             *observed = Some(request.request);
@@ -32,6 +32,26 @@ impl ProtocolTransport for FixtureTransport {
             correlation_id: request.correlation_id,
             response: self.response.clone(),
         }
+    }
+}
+
+/// Builds a minimal typed plan response for plan-client method tests.
+/// # Returns
+/// The operation result.
+fn empty_plan() -> scriberig_protocol::SessionPlan {
+    scriberig_protocol::SessionPlan {
+        id: "plan-1".to_owned(),
+        revision: 1,
+        goal: "goal".to_owned(),
+        status: scriberig_protocol::SessionPlanStatus::Planned,
+        anchor: None,
+        root_branch: "branch-1".to_owned(),
+        nodes: Vec::new(),
+        dependencies: Vec::new(),
+        coordinator: None,
+        coordinator_cursor: None,
+        coordinator_claim: None,
+        history: Vec::new(),
     }
 }
 
@@ -67,4 +87,144 @@ fn selection_methods_preserve_mutation_revisions() {
             }
         ))
     );
+}
+
+/// Sends semantic domain requests through the shared typed command envelope.
+#[test]
+fn domain_operation_uses_exact_protocol_command_payload() {
+    let observed = Arc::new(Mutex::new(None));
+    let client = Client::new(FixtureTransport {
+        response: Response::Error(scriberig_protocol::ProtocolError {
+            code: scriberig_protocol::ProtocolErrorCode::UnsupportedOperation,
+            message: "fixture".to_owned(),
+            details: None,
+            correlation_id: None,
+        }),
+        request: Arc::clone(&observed),
+    });
+    let _ = client.domain_operation(scriberig_protocol::DomainOperationCommand {
+        capability: "code.add_function".to_owned(),
+        entity: scriberig_protocol::EntityReference {
+            id: "entity-exact".to_owned(),
+        },
+        snapshot: scriberig_protocol::SnapshotReference {
+            id: "snapshot-exact".to_owned(),
+        },
+        revision: None,
+        branch: None,
+        arguments: [("name".to_owned(), serde_json::json!("greet"))]
+            .into_iter()
+            .collect(),
+    });
+    let request = observed.lock().expect("observed request");
+    let Some(Request::Command(request)) = request.as_ref() else {
+        panic!("domain request did not use command protocol");
+    };
+    assert_eq!(request.kind, "domain_operation");
+    assert_eq!(request.payload["entity"]["id"], "entity-exact");
+    assert_eq!(request.payload["snapshot"]["id"], "snapshot-exact");
+}
+
+/// Sends application allocated new-session requests without local identities.
+#[test]
+fn new_session_request_uses_explicit_protocol_variant() {
+    let observed = Arc::new(Mutex::new(None));
+    let client = Client::new(FixtureTransport {
+        response: Response::Error(scriberig_protocol::ProtocolError {
+            code: scriberig_protocol::ProtocolErrorCode::UnsupportedOperation,
+            message: "fixture".to_owned(),
+            details: None,
+            correlation_id: None,
+        }),
+        request: Arc::clone(&observed),
+    });
+    let _ = client.start_new_session_agent("start", None);
+    assert!(matches!(
+        observed.lock().expect("request").as_ref(),
+        Some(Request::AgentNewSession(request)) if request.prompt == "start"
+    ));
+}
+
+/// Sends exact anchor identity in a dedicated remote continuation request.
+#[test]
+fn exact_continuation_request_keeps_historical_anchor() {
+    let observed = Arc::new(Mutex::new(None));
+    let client = Client::new(FixtureTransport {
+        response: Response::Error(scriberig_protocol::ProtocolError {
+            code: scriberig_protocol::ProtocolErrorCode::UnsupportedOperation,
+            message: "fixture".to_owned(),
+            details: None,
+            correlation_id: None,
+        }),
+        request: Arc::clone(&observed),
+    });
+    let anchor = scriberig_protocol::SessionContinuationAnchor::HumanInput {
+        branch: "branch-a".to_owned(),
+        turn: "turn-a".to_owned(),
+    };
+    let _ = client.continue_agent_at("session-a", anchor.clone(), "follow up", None);
+    assert!(matches!(
+        observed.lock().expect("request").as_ref(),
+        Some(Request::AgentContinueAt(request))
+            if request.anchor == anchor && request.prompt == "follow up"
+    ));
+}
+
+/// Uses typed plan creation, lifecycle, and assignment protocol operations.
+#[test]
+fn plan_client_methods_send_shared_application_requests() {
+    let observed = Arc::new(Mutex::new(None));
+    let client = Client::new(FixtureTransport {
+        response: Response::Plan(empty_plan()),
+        request: Arc::clone(&observed),
+    });
+    let create = scriberig_protocol::SessionPlanCreateRequest {
+        session: SessionReference {
+            id: "session-1".to_owned(),
+        },
+        anchor: scriberig_protocol::SessionContinuationAnchor::BranchHead {
+            branch: "branch-1".to_owned(),
+        },
+        goal: "goal".to_owned(),
+        nodes: Vec::new(),
+        dependencies: Vec::new(),
+    };
+    assert!(client.create_plan(create).is_ok());
+    assert!(matches!(
+        observed.lock().expect("request").as_ref(),
+        Some(Request::PlanCreate(_))
+    ));
+    assert!(
+        client
+            .plan_lifecycle(scriberig_protocol::SessionPlanLifecycleRequest {
+                session: SessionReference {
+                    id: "session-1".to_owned(),
+                },
+                plan: "plan-1".to_owned(),
+                expected_revision: 1,
+                action: scriberig_protocol::SessionPlanAction::Start,
+            })
+            .is_ok()
+    );
+    assert!(matches!(
+        observed.lock().expect("request").as_ref(),
+        Some(Request::PlanLifecycle(_))
+    ));
+    assert!(
+        client
+            .set_plan_assignment(scriberig_protocol::SessionPlanAssignmentRequest {
+                session: SessionReference {
+                    id: "session-1".to_owned(),
+                },
+                plan: "plan-1".to_owned(),
+                node: "node-1".to_owned(),
+                expected_revision: 1,
+                assignment: None,
+            })
+            .is_ok()
+    );
+    assert!(matches!(
+        observed.lock().expect("request").as_ref(),
+        Some(Request::PlanAssignment(_))
+    ));
 }

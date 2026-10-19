@@ -16,7 +16,7 @@ use sr_projection::{
 /// - `current`: Argument named `current`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 fn context(current: SnapshotId) -> ReconciliationContext {
     ReconciliationContext {
         base: SemanticStateRef(SnapshotId::new([1; 32])),

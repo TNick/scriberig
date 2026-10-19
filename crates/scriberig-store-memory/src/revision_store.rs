@@ -6,12 +6,12 @@ use super::{
 
 impl Default for MemoryRevisionStore {
     ///
-    /// # Returns
     /// The requested operation result.
     /// Creates an empty store through the default constructor.
     ///
-    /// # Returns
     /// An empty thread-safe store.
+    /// # Returns
+    /// The operation result.
     fn default() -> Self {
         Self::new()
     }
@@ -19,13 +19,13 @@ impl Default for MemoryRevisionStore {
 
 impl MemoryRevisionStore {
     ///
-    /// # Returns
     /// The requested operation result.
     /// Creates an empty in-memory revision store.
     ///
-    /// # Returns
     /// An empty thread-safe store.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new() -> Self {
         Self {
             revisions: RwLock::new(BTreeMap::new()),
@@ -34,24 +34,22 @@ impl MemoryRevisionStore {
 }
 
 impl RevisionStore for MemoryRevisionStore {
-    /// # Parameters
     /// - `revision`: Relevant operation input.
     ///
-    /// # Returns
     /// The requested operation result.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot be completed.
     /// Inserts an immutable revision idempotently.
     ///
-    /// # Parameters
     /// - `revision`: Immutable revision to retain.
     ///
-    /// # Returns
     /// The revision identity.
     ///
-    /// # Errors
     /// Returns storage or integrity errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn put(&self, revision: Revision) -> Result<RevisionId, StoreError> {
         let id = revision.id();
         let mut records = self
@@ -67,24 +65,22 @@ impl RevisionStore for MemoryRevisionStore {
         records.insert(id, revision);
         Ok(id)
     }
-    /// # Parameters
     /// - `id`: Relevant operation input.
     ///
-    /// # Returns
     /// The requested operation result.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot be completed.
     /// Reads an immutable revision by identity.
     ///
-    /// # Parameters
     /// - `id`: Revision identity.
     ///
-    /// # Returns
     /// The retained revision, when present.
     ///
-    /// # Errors
     /// Returns a storage synchronization error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn get(&self, id: RevisionId) -> Result<Option<Revision>, StoreError> {
         Ok(self
             .revisions
@@ -93,24 +89,22 @@ impl RevisionStore for MemoryRevisionStore {
             .get(&id)
             .cloned())
     }
-    /// # Parameters
     /// - `id`: Relevant operation input.
     ///
-    /// # Returns
     /// The requested operation result.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot be completed.
     /// Checks whether an immutable revision is retained.
     ///
-    /// # Parameters
     /// - `id`: Revision identity.
     ///
-    /// # Returns
     /// Whether the revision is present.
     ///
-    /// # Errors
     /// Returns a storage synchronization error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn contains(&self, id: RevisionId) -> Result<bool, StoreError> {
         Ok(self
             .revisions

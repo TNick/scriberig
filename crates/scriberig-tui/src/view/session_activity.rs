@@ -9,15 +9,15 @@ use scriberig_session::{Branch, ExecutionActivity};
 
 /// Appends the branch's durable execution sequence when one is available.
 ///
-/// # Parameters
 /// - `branch`: Branch containing ordered execution activity.
 /// - `depth`: Branch nesting depth in the session tree.
 /// - `transient`: Whether the branch is still active.
 /// - `rows`: Output rows receiving projected activity.
 /// - `tool_invocation_details`: Safe details indexed by invocation identity.
 ///
-/// # Returns
 /// Whether the branch had durable activity to project.
+/// # Returns
+/// The operation result.
 pub(super) fn append(
     branch: &Branch,
     depth: usize,
@@ -123,7 +123,6 @@ pub(super) fn append(
 
 /// Appends one tool invocation and caches bounded schema-redacted arguments.
 ///
-/// # Parameters
 /// - `branch`: Branch containing the invocation.
 /// - `id`: Stable invocation identity.
 /// - `row_depth`: Activity depth for the rendered row.
@@ -160,13 +159,26 @@ fn append_tool_invocation(
                 .collect(),
         );
     }
+    let label = invocation
+        .presentation_label
+        .clone()
+        .unwrap_or_else(|| format!("Tool: {}", crate::inspector::sanitize(&invocation.name)));
+    let label = match invocation.category {
+        Some(scriberig_session::ToolActivityKind::SemanticMutation) => {
+            format!("Semantic operation: {label}")
+        }
+        Some(scriberig_session::ToolActivityKind::ValidationProcess) => {
+            format!("Run validation: {label}")
+        }
+        Some(scriberig_session::ToolActivityKind::OpaqueFallback) => {
+            format!("Fallback tool: {label}")
+        }
+        _ => label,
+    };
     append_row(
         id,
         row_depth,
-        invocation
-            .presentation_label
-            .clone()
-            .unwrap_or_else(|| format!("Tool: {}", crate::inspector::sanitize(&invocation.name))),
+        label,
         SessionRowKind::ToolInvocation,
         transient,
         rows,
@@ -175,7 +187,6 @@ fn append_tool_invocation(
 
 /// Appends a human-input row without exposing prompt text by default.
 ///
-/// # Parameters
 /// - `branch`: Branch containing the input turn.
 /// - `id`: Stable input turn identity.
 /// - `depth`: Branch nesting depth.
@@ -205,7 +216,6 @@ fn append_human(
 
 /// Appends an assistant output row from the legacy turn representation.
 ///
-/// # Parameters
 /// - `branch`: Branch containing the output turn.
 /// - `id`: Stable output turn identity.
 /// - `depth`: Branch nesting depth.
@@ -239,11 +249,11 @@ fn append_agent_output(
 
 /// Formats the safe model identity and lifecycle summary.
 ///
-/// # Parameters
 /// - `invocation`: Durable model invocation to display.
 ///
-/// # Returns
 /// A concise model and thinking-level label.
+/// # Returns
+/// The operation result.
 fn format_model_invocation(invocation: &scriberig_session::ModelInvocation) -> String {
     let mut label = invocation.model.as_deref().map_or_else(
         || "Model request".to_owned(),
@@ -260,11 +270,11 @@ fn format_model_invocation(invocation: &scriberig_session::ModelInvocation) -> S
 
 /// Formats only the safe summary from an allowlisted result preview.
 ///
-/// # Parameters
 /// - `result`: Durable tool result with optional bounded presentation preview.
 ///
-/// # Returns
 /// A safe, bounded result label without raw output fields.
+/// # Returns
+/// The operation result.
 fn format_tool_result(result: &scriberig_session::ToolResult) -> String {
     let summary = result
         .presentation_preview
@@ -291,7 +301,6 @@ fn format_tool_result(result: &scriberig_session::ToolResult) -> String {
 
 /// Adds one stable semantic activity row.
 ///
-/// # Parameters
 /// - `reference`: Stable activity identity.
 /// - `depth`: Derived terminal nesting depth.
 /// - `label`: Safe display text.

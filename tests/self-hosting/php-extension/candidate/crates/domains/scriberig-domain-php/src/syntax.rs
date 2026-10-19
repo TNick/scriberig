@@ -67,14 +67,14 @@ pub struct PhpNodeRecord {
 
 /// Builds the serializable tree while preserving every grammar child.
 ///
-/// # Parameters
 /// - `node`: Tree-sitter syntax node.
 /// - `source`: Exact source text.
 /// - `field`: Parent field relation.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// A recursively ordered serializable node.
+/// # Returns
+/// The operation result.
 pub(crate) fn build_node(node: Node<'_>, source: &str, field: Option<String>) -> PhpNode {
     let mut cursor = node.walk();
     let mut children = Vec::new();
@@ -110,7 +110,6 @@ pub(crate) fn build_node(node: Node<'_>, source: &str, field: Option<String>) ->
 
 /// Flattens a syntax tree in deterministic pre-order.
 ///
-/// # Parameters
 /// - `node`: Current tree node.
 /// - `path`: Structural path to the node.
 /// - `records`: Destination record collection.
@@ -138,7 +137,6 @@ pub(crate) fn flatten_node(node: &PhpNode, path: &str, records: &mut Vec<PhpNode
 
 /// Collects parser errors and missing nodes with exact start positions.
 ///
-/// # Parameters
 /// - `node`: Current parser node.
 /// - `diagnostics`: Destination ordered messages.
 /// - `crate`: Internal visibility marker.

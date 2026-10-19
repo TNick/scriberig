@@ -23,15 +23,16 @@ pub enum IdParseError {
 impl fmt::Display for IdParseError {
     /// Formats the parse error for diagnostics.
     ///
-    /// # Parameters
     /// - `self`: Error to format.
     /// - `formatter`: Destination formatter.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error if writing to the formatter fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidFormat => formatter.write_str("invalid identifier format"),
@@ -45,16 +46,17 @@ impl std::error::Error for IdParseError {}
 
 /// Writes a type prefix and fixed-width lowercase hexadecimal bytes.
 ///
-/// # Parameters
 /// - `prefix`: Type-specific textual prefix.
 /// - `bytes`: Bytes to format.
 /// - `formatter`: Destination formatter.
 ///
-/// # Returns
 /// A formatting result.
 ///
-/// # Errors
 /// Returns a formatting error if writing to the formatter fails.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn write_hex(prefix: &str, bytes: &[u8], formatter: &mut Formatter<'_>) -> fmt::Result {
     formatter.write_str(prefix)?;
     for byte in bytes {
@@ -65,14 +67,11 @@ pub fn write_hex(prefix: &str, bytes: &[u8], formatter: &mut Formatter<'_>) -> f
 
 /// Parses exactly the expected number of prefixed hexadecimal bytes.
 ///
-/// # Parameters
 /// - `prefix`: Required type-specific prefix.
 /// - `text`: Text to parse.
 ///
-/// # Returns
 /// A fixed-width byte array.
 ///
-/// # Errors
 /// Returns `InvalidFormat` when the prefix, digit count, or alphabet is invalid.
 // Parse prefixed hexadecimal bytes without panicking.
 pub(super) fn parse_hex<const N: usize>(prefix: &str, text: &str) -> Result<[u8; N], IdParseError> {

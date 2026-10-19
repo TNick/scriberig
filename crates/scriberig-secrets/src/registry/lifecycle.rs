@@ -6,17 +6,18 @@ use crate::{Binding, SecretError, SecretRef, SecretStore, SecretValue, normalize
 impl RegistryGuard {
     /// Creates or explicitly replaces a managed OS credential.
     ///
-    /// # Parameters
     /// - `store`: Native or deterministic test store.
     /// - `name`: Managed alias.
     /// - `value`: Protected input value.
     /// - `replace`: Whether an existing item may be replaced.
     ///
-    /// # Returns
     /// Unit after the store and metadata agree.
     ///
-    /// # Errors
     /// Returns safe conflicts, backend errors, or partial-operation errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn set(
         &mut self,
         store: &dyn SecretStore,
@@ -46,15 +47,16 @@ impl RegistryGuard {
 
     /// Removes authorization before deleting a managed credential.
     ///
-    /// # Parameters
     /// - `store`: Native or deterministic test store.
     /// - `name`: Managed alias.
     ///
-    /// # Returns
     /// Unit after idempotent deletion.
     ///
-    /// # Errors
     /// Returns a safe metadata or partial backend failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn delete(&mut self, store: &dyn SecretStore, name: &str) -> Result<(), SecretError> {
         let reference = SecretRef::Keyring {
             name: name.to_owned(),
@@ -74,14 +76,15 @@ impl RegistryGuard {
 
     /// Adds an exact destination/project grant without reading a credential.
     ///
-    /// # Parameters
     /// - `binding`: Explicitly requested local administrative grant.
     ///
-    /// # Returns
     /// Unit after idempotently saving the grant.
     ///
-    /// # Errors
     /// Returns safe validation or persistence failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn bind(&mut self, mut binding: Binding) -> Result<(), SecretError> {
         binding.credential.validate()?;
         if let SecretRef::Keyring { name } = &binding.credential {
@@ -108,14 +111,15 @@ impl RegistryGuard {
 
     /// Removes an exact destination/project grant.
     ///
-    /// # Parameters
     /// - `binding`: Exact binding to remove.
     ///
-    /// # Returns
     /// Unit after idempotently saving the removal.
     ///
-    /// # Errors
     /// Returns safe normalization or persistence failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn unbind(&mut self, mut binding: Binding) -> Result<(), SecretError> {
         binding.base_url = normalize_endpoint(&binding.base_url)?;
         binding.project_root = binding

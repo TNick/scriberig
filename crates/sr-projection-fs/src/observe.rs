@@ -20,11 +20,12 @@ pub trait ObservationSource {
 
     /// Returns the next observation, or `None` when the source is exhausted.
     ///
-    /// # Errors
     /// Returns the source-specific delivery error.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn next(&mut self) -> Result<Option<Observation>, Self::Error>;
 }
 
@@ -37,12 +38,12 @@ pub struct VecObservationSource {
 impl VecObservationSource {
     /// Creates a source from a finite sequence of observations.
     ///
-    /// # Parameters
     /// - `observations`: Observations to deliver in order.
     ///
-    /// # Returns
     /// A deterministic observation source.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(observations: impl IntoIterator<Item = Observation>) -> Self {
         Self {
             observations: observations.into_iter().collect(),
@@ -55,11 +56,13 @@ impl ObservationSource for VecObservationSource {
 
     /// Delivers the next queued observation.
     ///
-    /// # Returns
     /// The next observation, or `None` after the queue is empty.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn next(&mut self) -> Result<Option<Observation>, Self::Error> {
         Ok(self.observations.pop_front())
     }

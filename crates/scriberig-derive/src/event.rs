@@ -121,10 +121,8 @@ pub enum DerivationEvent {
 
 /// Returns the lifecycle kind without converting it into a transport event.
 ///
-/// # Parameters
 /// - `event`: Event to classify.
 ///
-/// # Returns
 /// Stable derived lifecycle category.
 ///
 /// This classification does not represent a canonical snapshot event.
@@ -177,8 +175,9 @@ mod tests {
 
     /// Builds a stable test key using a universal exact entity revision.
     ///
-    /// # Returns
     /// An exact test derivation key.
+    /// # Returns
+    /// The operation result.
     fn key() -> DerivationKey {
         let profile = DerivationProfile::new("test-summary", "v1");
         let dependencies = DependencySet::new(vec![Dependency::ExactRevision {

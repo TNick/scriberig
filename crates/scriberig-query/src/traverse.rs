@@ -77,28 +77,30 @@ pub struct FollowResult {
 pub trait TraverseService {
     /// Lists one snapshot-bound collection.
     ///
-    /// # Parameters
     /// - `self`: Read service implementation.
     /// - `request`: Exact collection listing request.
     ///
-    /// # Returns
     /// One bounded collection page.
     ///
-    /// # Errors
     /// Returns a structured query error when listing is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn list(&self, request: &ListRequest) -> Result<ListResult, QueryError>;
 
     /// Follows one typed relation in a fixed snapshot.
     ///
-    /// # Parameters
     /// - `self`: Read service implementation.
     /// - `request`: Exact relation traversal request.
     ///
-    /// # Returns
     /// One bounded relation page.
     ///
-    /// # Errors
     /// Returns a structured query error when traversal or reverse indexing is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn follow(&self, request: &FollowRequest) -> Result<FollowResult, QueryError>;
 }
 

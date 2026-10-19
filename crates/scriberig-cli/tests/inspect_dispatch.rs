@@ -16,16 +16,17 @@ struct Fixture;
 impl QueryService for Fixture {
     /// Returns the requested entity under the requested snapshot.
     ///
-    /// # Parameters
     /// - `self`: Fixture service.
     /// - `_context`: Application request context.
     /// - `request`: Snapshot-aware inspection request.
     ///
-    /// # Returns
     /// Deterministic inspection result.
     ///
-    /// # Errors
     /// Never returns an error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         _context: &ApplicationContext,

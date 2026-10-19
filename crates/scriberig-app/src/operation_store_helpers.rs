@@ -7,17 +7,18 @@ use super::*;
 impl<S> StoreOperationProvider<S> {
     /// Derives migration references from durable snapshot ancestry.
     ///
-    /// # Parameters
     /// - `self`: Storage-backed operation provider.
     /// - `snapshot`: Exact snapshot whose ancestry should be projected.
     /// - `super`: Parent-module visibility marker.
     ///
-    /// # Returns
     /// A deterministic history graph containing each reachable snapshot edge.
     ///
-    /// # Errors
     /// Returns a snapshot-unavailable error when ancestry or diff data cannot
     /// be read.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn history_for_snapshot(
         &self,
         snapshot: scriberig_core::SnapshotId,
@@ -79,16 +80,17 @@ impl<S> StoreOperationProvider<S> {
 
     /// Resolves a registered migration into storage changes.
     ///
-    /// # Parameters
     /// - `self`: Provider owning canonical migrations.
     /// - `id`: Stable migration handle.
     /// - `super`: Parent-module visibility marker.
     ///
-    /// # Returns
     /// Exact storage changes in canonical entity order.
     ///
-    /// # Errors
     /// Returns not-found when the migration handle is unknown.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn changes_for(&self, id: &str) -> Result<Vec<SnapshotChange>, ApplicationError> {
         let migrations = self
             .migrations
@@ -109,5 +111,43 @@ impl<S> StoreOperationProvider<S> {
                 None => SnapshotChange::Remove(delta.entity),
             })
             .collect())
+    }
+}
+
+/// Creates a stable unsupported-operation error.
+///
+/// - `operation`: Operation name that lacks a configured provider.
+///
+/// Structured unsupported-operation failure.
+/// # Returns
+/// The operation result.
+pub(super) fn unsupported(operation: &str) -> ApplicationError {
+    ApplicationError::UnsupportedOperation {
+        operation: operation.to_owned(),
+    }
+}
+
+/// Maps optimistic root failures without leaking backend details.
+///
+/// - `error`: Root-store failure to translate.
+///
+/// Structured application conflict or internal failure.
+/// # Returns
+/// The operation result.
+pub(super) fn map_root_error(error: &RootError) -> ApplicationError {
+    match error {
+        RootError::Conflict {
+            expected, actual, ..
+        } => ApplicationError::Conflict {
+            subject: "main".to_owned(),
+            details: Box::new(crate::ConflictDetails {
+                left: expected.map(|value| value.to_string()),
+                right: actual.map(|value| value.to_string()),
+                ..crate::ConflictDetails::default()
+            }),
+        },
+        RootError::Backend(_) => ApplicationError::Internal {
+            message: "root promotion failed".to_owned(),
+        },
     }
 }

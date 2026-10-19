@@ -61,12 +61,12 @@ pub struct BranchRuntimeState {
 impl BranchRuntimeState {
     /// Creates a new branch in the `Created` phase.
     ///
-    /// # Parameters
     /// - `branch`: Stable branch identity.
     ///
-    /// # Returns
     /// A zero-counter branch runtime state.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(branch: impl Into<String>) -> Self {
         Self {
             branch: branch.into(),
@@ -80,16 +80,17 @@ impl BranchRuntimeState {
 
     /// Performs one explicitly validated runtime phase transition.
     ///
-    /// # Parameters
     /// - `self`: Branch state being updated.
     /// - `next`: Desired next runtime phase.
     ///
-    /// # Returns
     /// Unit after the transition is applied.
     ///
-    /// # Errors
     /// Returns an error when the transition is not allowed.
     #[allow(clippy::unnested_or_patterns)]
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn transition(&mut self, next: BranchPhase) -> Result<(), String> {
         if self.phase.is_terminal() {
             return Err(format!("terminal branch phase is {:?}", self.phase));
@@ -142,8 +143,9 @@ pub struct RuntimeLimits {
 impl Default for RuntimeLimits {
     /// Creates conservative bounded runtime limits.
     ///
-    /// # Returns
     /// Default per-branch execution limits.
+    /// # Returns
+    /// The operation result.
     fn default() -> Self {
         Self {
             max_model_steps: 32,
@@ -160,15 +162,16 @@ impl Default for RuntimeLimits {
 impl RuntimeLimits {
     /// Checks counters before starting more branch work.
     ///
-    /// # Parameters
     /// - `self`: Limits to enforce.
     /// - `state`: Current branch counters.
     ///
-    /// # Returns
     /// Unit when all budgets remain available.
     ///
-    /// # Errors
     /// Returns a bounded budget diagnostic when a limit is exhausted.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn check(&self, state: &BranchRuntimeState) -> Result<(), String> {
         if state.model_steps >= self.max_model_steps {
             return Err("model step budget exceeded".to_owned());
@@ -202,18 +205,20 @@ struct CancellationState {
 impl CancellationTree {
     /// Creates a clear root cancellation token.
     ///
-    /// # Returns
     /// A non-cancelled root token.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Creates a child token linked to this parent.
     ///
-    /// # Returns
     /// A child token cancelled by this parent.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn child(&self) -> Self {
         let child = Arc::new(CancellationState::default());
         if let Ok(mut children) = self.state.children.lock() {
@@ -234,9 +239,10 @@ impl CancellationTree {
 
     /// Reports whether cancellation has reached this token.
     ///
-    /// # Returns
     /// `true` when cancellation has been requested.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn is_cancelled(&self) -> bool {
         self.state.cancelled.load(Ordering::Acquire)
     }

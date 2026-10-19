@@ -11,16 +11,17 @@ impl ProjectService {
     /// Cargo fetch is restricted to the candidate's existing lockfile, cannot
     /// update candidate source, and never executes dependency build scripts.
     ///
-    /// # Parameters
     /// - `id`: Stable candidate identity.
     /// - `cancelled`: Shared operation cancellation flag.
     ///
-    /// # Returns
     /// Candidate with durable dependency-resolution evidence.
     ///
-    /// # Errors
     /// Returns an error when the candidate is missing, stale, cancelled, or
     /// dependency acquisition fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn resolve_candidate_dependencies_cancellable(
         &self,
         id: &str,
@@ -35,14 +36,15 @@ impl ProjectService {
 
     /// Validates a durable candidate reconstructed from exact base source bytes.
     ///
-    /// # Parameters
     /// - `id`: Stable candidate identity.
     ///
-    /// # Returns
     /// Candidate updated with validation evidence.
     ///
-    /// # Errors
     /// Returns an error when the candidate is missing, stale, or cannot be loaded.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn validate_candidate(&self, id: &str) -> Result<ProjectCandidate, ProjectError> {
         self.validate_candidate_cancellable(id, &AtomicBool::new(false))
     }
@@ -52,15 +54,16 @@ impl ProjectService {
     /// Cancellation terminates the validator and leaves candidate validation pending,
     /// so a cancelled operation cannot authorize Apply.
     ///
-    /// # Parameters
     /// - `id`: Stable candidate identity.
     /// - `cancelled`: Shared operation cancellation flag.
     ///
-    /// # Returns
     /// Candidate updated with exact-state validation evidence.
     ///
-    /// # Errors
     /// Returns an error when the candidate is missing, stale, cancelled, or unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn validate_candidate_cancellable(
         &self,
         id: &str,
@@ -75,16 +78,17 @@ impl ProjectService {
 
     /// Validates a durable candidate using one registered isolated-workspace profile.
     ///
-    /// # Parameters
     /// - `id`: Stable candidate identity.
     /// - `profile`: Registered validation policy selected by the application caller.
     /// - `cancelled`: Shared operation cancellation flag.
     ///
-    /// # Returns
     /// Candidate with profile-bound validation status persisted.
     ///
-    /// # Errors
     /// Returns an error when the candidate is missing, stale, cancelled, or unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn validate_candidate_profile_cancellable(
         &self,
         id: &str,
@@ -129,8 +133,9 @@ impl ProjectService {
 
 /// Creates the stable cancellation error used by candidate validators.
 ///
-/// # Returns
 /// Structured cancellation outcome that leaves validation evidence unchanged.
+/// # Returns
+/// The operation result.
 fn cancelled_error() -> ProjectError {
     ProjectError {
         code: "operation_cancelled",

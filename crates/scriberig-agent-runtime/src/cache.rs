@@ -38,23 +38,25 @@ pub struct ModelCache {
 impl ModelCache {
     /// Creates an empty model-result cache.
     ///
-    /// # Returns
     /// An empty cache ready for model responses.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Executes one policy-controlled cache lookup/provider call.
     ///
-    /// # Parameters
     /// - `policy`: Cache behavior for the invocation.
     /// - `fingerprint`: Exact request identity.
     /// - `invocation`: Current model invocation identity.
     /// - `provider`: Closure producing a complete normalized response.
     ///
-    /// # Returns
     /// A response and its original/reuse provenance.
+    ///
+    /// # Returns
+    /// The normalized provider response and cache provenance.
     ///
     /// # Errors
     /// Returns the provider or cache lock failure.

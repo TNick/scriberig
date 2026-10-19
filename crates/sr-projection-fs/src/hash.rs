@@ -8,26 +8,27 @@ pub struct FileDigest(pub [u8; 32]);
 
 /// Hashes exact in-memory bytes.
 ///
-/// # Parameters
 /// - `bytes`: Exact bytes to hash.
 ///
-/// # Returns
 /// The BLAKE3 file digest.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn digest_bytes(bytes: &[u8]) -> FileDigest {
     FileDigest(*blake3::hash(bytes).as_bytes())
 }
 
 /// Reads and hashes exact file bytes.
 ///
-/// # Parameters
 /// - `path`: File to read.
 ///
-/// # Returns
 /// The exact-byte digest.
 ///
-/// # Errors
 /// Returns the filesystem read error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn digest_file(path: impl AsRef<Path>) -> std::io::Result<FileDigest> {
     Ok(digest_bytes(&std::fs::read(path)?))
 }

@@ -31,7 +31,6 @@ struct StreamConfig {
 impl HttpEventStream {
     /// Starts a reconnecting SSE worker.
     ///
-    /// # Parameters
     /// - host: Remote protocol host.
     /// - port: Remote protocol port.
     /// - path: Base protocol path.
@@ -39,10 +38,8 @@ impl HttpEventStream {
     /// - after: Last consumed event cursor.
     /// - callback: Handler for decoded protocol events.
     ///
-    /// # Returns
     /// A handle that stops the worker on close or drop.
     ///
-    /// # Errors
     /// Returns an error when the worker cannot be created.
     pub(crate) fn start<F>(
         host: String,
@@ -84,7 +81,6 @@ impl HttpEventStream {
 
     /// Stops the worker and waits for its network task to exit.
     ///
-    /// # Parameters
     /// - `self`: Event stream handle to close.
     pub fn close(mut self) {
         self.stop.store(true, Ordering::Release);
@@ -95,9 +91,10 @@ impl HttpEventStream {
 
     /// Returns and clears the latest transport failure.
     ///
-    /// # Returns
     /// The most recent connection or decoding error, when one occurred.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn take_error(&self) -> Option<String> {
         self.error.lock().ok()?.take()
     }
@@ -233,11 +230,11 @@ where
 
 /// Takes a completed SSE data payload while ignoring heartbeat frames.
 ///
-/// # Parameters
 /// - `data`: Mutable accumulated SSE data payload.
 ///
-/// # Returns
 /// The completed payload, or `None` for an empty heartbeat frame.
+/// # Returns
+/// The operation result.
 fn take_event_payload(data: &mut String) -> Option<String> {
     if data.is_empty() {
         return None;

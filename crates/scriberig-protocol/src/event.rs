@@ -17,6 +17,8 @@ pub enum EventKind {
     BranchChanged,
     /// Session state changed and should be refreshed.
     SessionChanged,
+    /// Durable plan lifecycle or node activity changed.
+    PlanActivity,
     /// Safe session model or thinking selection activity was emitted.
     SessionSelectionChanged,
     /// Migration was created.

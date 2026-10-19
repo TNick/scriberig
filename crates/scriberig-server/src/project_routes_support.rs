@@ -7,12 +7,12 @@ use serde_json::{Value, json};
 
 /// Serializes a resolved project workspace.
 ///
-/// # Parameters
 /// - `workspace`: Workspace to serialize.
 /// - `super`: Parent route module visibility marker.
 ///
-/// # Returns
 /// Public workspace JSON.
+/// # Returns
+/// The operation result.
 pub(super) fn workspace_json(workspace: &scriberig_project::ProjectWorkspace) -> Value {
     json!({
         "project": project_json(&workspace.project),
@@ -23,12 +23,12 @@ pub(super) fn workspace_json(workspace: &scriberig_project::ProjectWorkspace) ->
 
 /// Serializes one project record.
 ///
-/// # Parameters
 /// - `project`: Project record to serialize.
 /// - `super`: Parent route module visibility marker.
 ///
-/// # Returns
 /// Public project JSON.
+/// # Returns
+/// The operation result.
 pub(super) fn project_json(project: &ProjectRecord) -> Value {
     json!({
         "id": project.id.to_string(),
@@ -46,23 +46,23 @@ pub(super) fn project_json(project: &ProjectRecord) -> Value {
 
 /// Creates a standard unavailable-service response.
 ///
-/// # Parameters
 /// - `super`: Parent route module visibility marker.
 ///
-/// # Returns
 /// HTTP status and structured error body.
+/// # Returns
+/// The operation result.
 pub(super) fn unavailable() -> (u16, Value) {
     (503, json!({"code": "project_catalog_unavailable"}))
 }
 
 /// Creates a standard invalid-request response.
 ///
-/// # Parameters
 /// - `error`: JSON decoding error.
 /// - `super`: Parent route module visibility marker.
 ///
-/// # Returns
 /// HTTP status and structured error body.
+/// # Returns
+/// The operation result.
 pub(super) fn invalid_request(error: &serde_json::Error) -> (u16, Value) {
     (
         400,
@@ -72,23 +72,23 @@ pub(super) fn invalid_request(error: &serde_json::Error) -> (u16, Value) {
 
 /// Creates a standard invalid-project response.
 ///
-/// # Parameters
 /// - `super`: Parent route module visibility marker.
 ///
-/// # Returns
 /// HTTP status and structured error body.
+/// # Returns
+/// The operation result.
 pub(super) fn invalid_project() -> (u16, Value) {
     (404, json!({"code": "project_not_found"}))
 }
 
 /// Converts a project-service failure into an HTTP response.
 ///
-/// # Parameters
 /// - `error`: Project-service failure.
 /// - `super`: Parent route module visibility marker.
 ///
-/// # Returns
 /// HTTP status and structured error body.
+/// # Returns
+/// The operation result.
 pub(super) fn project_error(error: &scriberig_project::ProjectError) -> (u16, Value) {
     let status = if error.code == "project_not_found" {
         404
@@ -114,12 +114,12 @@ pub(super) fn project_error(error: &scriberig_project::ProjectError) -> (u16, Va
 
 /// Converts a storage failure into an HTTP error.
 ///
-/// # Parameters
 /// - `error`: Storage failure.
 /// - `super`: Parent route module visibility marker.
 ///
-/// # Returns
 /// HTTP status and structured error body.
+/// # Returns
+/// The operation result.
 pub(super) fn storage_error(error: impl std::fmt::Display) -> (u16, Value) {
     (
         500,
@@ -129,16 +129,17 @@ pub(super) fn storage_error(error: impl std::fmt::Display) -> (u16, Value) {
 
 /// Resolves a requested project path under configured roots.
 ///
-/// # Parameters
 /// - `roots`: Authorized filesystem roots.
 /// - `requested`: User-supplied project path.
 /// - `super`: Parent route module visibility marker.
 ///
-/// # Returns
 /// A canonical path contained by an allowed root.
 ///
-/// # Errors
 /// Returns a forbidden response when the path is missing or outside policy.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn authorized_path(roots: &[PathBuf], requested: &str) -> Result<PathBuf, (u16, Value)> {
     let path = std::fs::canonicalize(Path::new(requested)).map_err(|error| {
         (

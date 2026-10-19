@@ -68,13 +68,28 @@ pub struct SessionModel {
 impl SessionModel {
     /// Builds a tree model from the provider-neutral session value.
     ///
-    /// # Parameters
     /// - `session`: Session value to project.
     ///
-    /// # Returns
     /// A flattened terminal session model.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn from_session(session: &Session) -> Self {
+        Self::from_session_with_expanded(session, &BTreeSet::new())
+    }
+
+    /// Builds a tree model with selected completed branches expanded.
+    ///
+    /// Expansion is a presentation input only and does not mutate the session.
+    ///
+    /// - `session`: Authoritative session value to project.
+    /// - `expanded`: Stable branch identities whose retained history is visible.
+    ///
+    /// A flattened session model with the selected completed children expanded.
+    #[must_use]
+    /// # Returns
+    /// The operation result.
+    pub fn from_session_with_expanded(session: &Session, expanded: &BTreeSet<EntityId>) -> Self {
         let model_selection = execution_label(&session.execution);
         let mut rows = vec![SessionRow {
             reference: session.id,
@@ -87,13 +102,12 @@ impl SessionModel {
         }];
         let mut visited = BTreeSet::new();
         let mut tool_invocation_details = std::collections::BTreeMap::new();
-        let mut roots = session
+        let roots = session
             .branches
             .iter()
             .filter(|branch| branch.parent.is_none())
             .map(|branch| branch.id)
             .collect::<Vec<_>>();
-        roots.sort_unstable();
         for branch in roots {
             append_branch(
                 session,
@@ -102,6 +116,7 @@ impl SessionModel {
                 &mut visited,
                 &mut rows,
                 &mut tool_invocation_details,
+                expanded,
             );
         }
         for branch in SessionViews::branches(session) {
@@ -113,6 +128,7 @@ impl SessionModel {
                     &mut visited,
                     &mut rows,
                     &mut tool_invocation_details,
+                    expanded,
                 );
             }
         }
@@ -125,19 +141,18 @@ impl SessionModel {
 
     /// Returns the stable semantic reference at a cursor position.
     ///
-    /// # Parameters
     /// - `cursor`: Row index to resolve.
     ///
-    /// # Returns
     /// The row reference, when the cursor is in range.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn reference_at(&self, cursor: usize) -> Option<EntityId> {
         self.rows.get(cursor).map(|row| row.reference)
     }
 
     /// Replaces the shared selection and refreshes the visible session header.
     ///
-    /// # Parameters
     /// - `execution`: Authoritative future-invocation selection.
     pub fn set_execution(&mut self, execution: scriberig_session::SessionExecutionSelection) {
         if let Some(row) = self
@@ -153,11 +168,11 @@ impl SessionModel {
 
 /// Formats the model and thinking portion of the session header.
 ///
-/// # Parameters
 /// - `execution`: Shared future-invocation selection.
 ///
-/// # Returns
 /// A compact label suffix for the session header.
+/// # Returns
+/// The operation result.
 fn execution_label(execution: &scriberig_session::SessionExecutionSelection) -> String {
     match (
         execution.model.as_deref(),
@@ -169,15 +184,16 @@ fn execution_label(execution: &scriberig_session::SessionExecutionSelection) -> 
     }
 }
 
-/// Appends one branch and its nested activity in deterministic order.
+/// Appends one branch and its nested activity in stored creation order.
 ///
-/// # Parameters
 /// - `session`: Session graph to traverse.
 /// - `branch_id`: Branch identity to append.
 /// - `depth`: Current tree depth.
 /// - `visited`: Branches already traversed.
 /// - `rows`: Output rows being built.
 /// - `tool_invocation_details`: Safe details indexed by invocation identity.
+/// # Parameters
+/// - `expanded`: Input for this operation.
 fn append_branch(
     session: &Session,
     branch_id: EntityId,
@@ -185,6 +201,7 @@ fn append_branch(
     visited: &mut BTreeSet<EntityId>,
     rows: &mut Vec<SessionRow>,
     tool_invocation_details: &mut std::collections::BTreeMap<EntityId, String>,
+    expanded: &BTreeSet<EntityId>,
 ) {
     if !visited.insert(branch_id) {
         return;
@@ -206,7 +223,9 @@ fn append_branch(
         snapshot: None,
         transient,
     });
-    let compact = source.parent.is_some() && source.status == BranchStatus::Completed;
+    let compact = source.parent.is_some()
+        && source.status == BranchStatus::Completed
+        && !expanded.contains(&source.id);
     if !compact
         && !session_activity::append(source, depth, transient, rows, tool_invocation_details)
     {
@@ -220,12 +239,12 @@ fn append_branch(
         visited,
         rows,
         tool_invocation_details,
+        expanded,
     );
 }
 
 /// Appends durable result, reference, and candidate rows for one branch.
 ///
-/// # Parameters
 /// - `source`: Branch whose durable result is projected.
 /// - `depth`: Branch row depth.
 /// - `rows`: Output rows being built.
@@ -234,7 +253,11 @@ fn append_result(source: &scriberig_session::Branch, depth: usize, rows: &mut Ve
         rows.push(SessionRow {
             reference: result.id,
             depth: depth + 1,
-            label: "Durable branch result".to_owned(),
+            label: source
+                .result
+                .as_ref()
+                .and_then(|result| result.summary.as_deref())
+                .map_or_else(|| "Durable branch result".to_owned(), str::to_owned),
             kind: SessionRowKind::Result,
             candidate: None,
             snapshot: None,
@@ -269,15 +292,16 @@ fn append_result(source: &scriberig_session::Branch, depth: usize, rows: &mut Ve
     }
 }
 
-/// Recursively appends child branches in stable identity order.
+/// Recursively appends child branches in their stored creation order.
 ///
-/// # Parameters
 /// - `session`: Session graph containing child branches.
 /// - `source`: Parent branch whose children are traversed.
 /// - `depth`: Parent branch row depth.
 /// - `visited`: Branches already traversed.
 /// - `rows`: Output rows being built.
 /// - `tool_invocation_details`: Safe details indexed by invocation identity.
+/// # Parameters
+/// - `expanded`: Input for this operation.
 fn append_children(
     session: &Session,
     source: &scriberig_session::Branch,
@@ -285,6 +309,7 @@ fn append_children(
     visited: &mut BTreeSet<EntityId>,
     rows: &mut Vec<SessionRow>,
     tool_invocation_details: &mut std::collections::BTreeMap<EntityId, String>,
+    expanded: &BTreeSet<EntityId>,
 ) {
     let branch_id = source.id;
     let mut children = source.children.clone();
@@ -296,7 +321,6 @@ fn append_children(
             .map(|branch| branch.id)
             .collect();
     }
-    children.sort_unstable();
     for child in children {
         append_branch(
             session,
@@ -305,6 +329,7 @@ fn append_children(
             visited,
             rows,
             tool_invocation_details,
+            expanded,
         );
     }
 }

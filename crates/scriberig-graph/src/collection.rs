@@ -15,12 +15,12 @@ pub enum CollectionValue {
 impl CollectionValue {
     /// Creates an unordered collection from any member sequence.
     ///
-    /// # Parameters
     /// - `members`: Entity identities whose membership is retained.
     ///
-    /// # Returns
     /// An unordered collection with deterministic set semantics.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn unordered(members: impl IntoIterator<Item = EntityId>) -> Self {
         Self::Unordered(members.into_iter().collect())
     }

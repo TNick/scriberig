@@ -51,35 +51,27 @@ pub(crate) struct OnboardingEvidence {
 
 /// Starts the real TUI and onboards its copied checkout through agent tools.
 ///
-/// # Parameters
 /// - `implementation`: Select the delayed nested branch phase.
 ///
-/// # Returns
 /// Durable onboarding state and exact source bytes for post-cancellation checks.
+/// # Returns
+/// The operation result.
 pub(crate) fn onboard_project(implementation: bool) -> OnboardingEvidence {
     let mut tui = if implementation {
         TuiPty::start_self_hosting_implementation_cancellation()
     } else {
         TuiPty::start_self_hosting_discovery_cancellation()
     };
-    assert!(
-        tui.read_until("project: unselected"),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"start-agent\r");
-    assert!(
-        tui.read_until("Agent composer · ent_"),
-        "{}",
-        tui.diagnostic()
-    );
-    let session = visible_session(&tui.screen());
+    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
     let database = tui.fixture_path().join("scriberig.sqlite");
     tui.send(b"Onboard the current project.\r");
+    let session = visible_session(&tui);
     wait_for_onboarding(&database, session);
-    assert!(tui.read_until("project: scriberig"), "{}", tui.diagnostic());
+    assert!(
+        tui.read_until_next("Enter send"),
+        "TUI did not return to its conversation composer: {}",
+        tui.diagnostic()
+    );
     let checkout = tui.fixture_path().join("scriberig");
     let manifest = fs::read(checkout.join("Cargo.toml")).expect("workspace manifest");
     let scanner =
@@ -111,7 +103,6 @@ pub(crate) fn onboard_project(implementation: bool) -> OnboardingEvidence {
 
 /// Waits until onboarding is durable and the project has been imported.
 ///
-/// # Parameters
 /// - `database`: Product database owned by the PTY fixture.
 /// - `session`: Exact session identity to inspect.
 pub(crate) fn wait_for_onboarding(database: &std::path::Path, session: EntityId) {
@@ -138,13 +129,18 @@ pub(crate) fn wait_for_onboarding(database: &std::path::Path, session: EntityId)
             thread::sleep(Duration::from_millis(50));
             continue;
         };
-        if saved.branches.iter().any(|branch| {
+        let root_completed = saved
+            .branches
+            .iter()
+            .any(|branch| branch.title == "agent root" && branch.status == BranchStatus::Completed);
+        let import_completed = saved.branches.iter().any(|branch| {
             branch.status == BranchStatus::Completed
                 && branch
                     .tool_invocations
                     .iter()
                     .any(|call| call.name == "project_import")
-        }) {
+        });
+        if root_completed && import_completed {
             return;
         }
         let branches = saved
@@ -162,22 +158,10 @@ pub(crate) fn wait_for_onboarding(database: &std::path::Path, session: EntityId)
 
 /// Submits the PHP request and waits for architecture discovery to enter its delay.
 ///
-/// # Parameters
 /// - `tui`: Onboarded native TUI process.
 /// - `session`: Durable agent session identity.
 /// - `database`: Durable product database.
 pub(crate) fn submit_discovery(tui: &mut TuiPty, session: EntityId, database: &std::path::Path) {
-    tui.send(b"\x1b");
-    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
-    tui.send(b"\x1b[B");
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.type_palette_query("continue-agent")
-        .expect("palette query");
-    tui.send(b"\r");
-    assert!(tui.read_until("Write a message..."), "{}", tui.diagnostic());
-    tui.send(b"i");
-    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     tui.send(b"Add support for ingesting PHP source files.\r");
     wait_for_branch(database, session, "determine minimal extension points");
     assert_provider_gate_waiting(tui);
@@ -185,7 +169,6 @@ pub(crate) fn submit_discovery(tui: &mut TuiPty, session: EntityId, database: &s
 
 /// Submits PHP work and waits until its implementation child enters the delayed phase.
 ///
-/// # Parameters
 /// - `tui`: Onboarded native TUI process.
 /// - `session`: Durable agent session identity.
 /// - `database`: Durable product database.
@@ -194,17 +177,6 @@ pub(crate) fn submit_implementation(
     session: EntityId,
     database: &std::path::Path,
 ) {
-    tui.send(b"\x1b");
-    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
-    tui.send(b"\x1b[B");
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.type_palette_query("continue-agent")
-        .expect("palette query");
-    tui.send(b"\r");
-    assert!(tui.read_until("Write a message..."), "{}", tui.diagnostic());
-    tui.send(b"i");
-    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     tui.send(b"Add support for ingesting PHP source files.\r");
     wait_for_branch(database, session, "implement PHP ingestion");
     assert_provider_gate_waiting(tui);
@@ -212,12 +184,16 @@ pub(crate) fn submit_implementation(
 
 /// Verifies the deterministic provider reached the explicit cancellation barrier.
 ///
-/// # Parameters
 /// - `tui`: Active native TUI process owning the test gate path.
 pub(crate) fn assert_provider_gate_waiting(tui: &TuiPty) {
     let release = tui.fixture_path().join("agent-provider.release");
+    let waiting = tui.fixture_path().join("agent-provider.waiting");
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while !waiting.is_file() && Instant::now() < deadline {
+        thread::sleep(Duration::from_millis(25));
+    }
     assert!(
-        tui.fixture_path().join("agent-provider.waiting").is_file(),
+        waiting.is_file(),
         "provider did not reach its cancellation barrier"
     );
     assert!(!release.exists(), "provider release marker already exists");
@@ -225,16 +201,10 @@ pub(crate) fn assert_provider_gate_waiting(tui: &TuiPty) {
 
 /// Cancels the active agent from the shared operations view.
 ///
-/// # Parameters
 /// - `tui`: Active TUI process.
 pub(crate) fn cancel_active_agent(tui: &mut TuiPty) {
-    tui.send(b"\x1b");
-    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"operations");
-    assert!(tui.read_until("> View operations"), "{}", tui.diagnostic());
-    tui.send(b"\r");
+    tui.send(b"/operations\r");
+    assert!(tui.read_until("Operations"), "{}", tui.diagnostic());
     assert!(
         tui.read_until_for("Running", Duration::from_secs(10)),
         "{}",
@@ -251,7 +221,6 @@ pub(crate) fn cancel_active_agent(tui: &mut TuiPty) {
 
 /// Waits for one delayed child branch to start before requesting cancellation.
 ///
-/// # Parameters
 /// - `database`: Durable product database.
 /// - `session`: Agent session identity.
 /// - `purpose`: Unique substring of the child purpose.
@@ -268,13 +237,27 @@ pub(crate) fn wait_for_branch(database: &std::path::Path, session: EntityId, pur
                 .purpose
                 .as_deref()
                 .is_some_and(|branch_purpose| branch_purpose.contains(purpose))
-                && branch.tool_invocations.is_empty()
         }) {
             return;
         }
+        let branches = saved
+            .branches
+            .iter()
+            .map(|branch| {
+                (
+                    branch.title.as_str(),
+                    branch.purpose.as_deref(),
+                    branch.status,
+                    branch
+                        .result
+                        .as_ref()
+                        .and_then(|result| result.summary.as_deref()),
+                )
+            })
+            .collect::<Vec<_>>();
         assert!(
             Instant::now() < deadline,
-            "child branch {purpose:?} did not start"
+            "child branch {purpose:?} did not start: {branches:?}"
         );
         thread::sleep(Duration::from_millis(50));
     }
@@ -282,7 +265,6 @@ pub(crate) fn wait_for_branch(database: &std::path::Path, session: EntityId, pur
 
 /// Verifies cancellation leaves canonical project state and copied source bytes unchanged.
 ///
-/// # Parameters
 /// - `evidence`: Onboarded project identities and exact source bytes.
 pub(crate) fn assert_project_and_checkout_unchanged(evidence: &OnboardingEvidence) {
     assert_eq!(
@@ -317,12 +299,12 @@ pub(crate) fn assert_project_and_checkout_unchanged(evidence: &OnboardingEvidenc
 
 /// Waits for the session store to persist an agent cancellation result.
 ///
-/// # Parameters
 /// - `database`: Durable product database.
 /// - `session`: Agent session identity.
 ///
-/// # Returns
 /// Session with a durable cancelled branch result.
+/// # Returns
+/// The operation result.
 pub(crate) fn wait_for_cancellation(
     database: &std::path::Path,
     session: EntityId,
@@ -366,17 +348,11 @@ pub(crate) fn wait_for_cancellation(
 
 /// Parses the durable session identity displayed by the agent composer.
 ///
-/// # Parameters
-/// - `screen`: Current native TUI screen text.
+/// - `tui`: Active native TUI process.
 ///
-/// # Returns
 /// Durable agent session identity.
-pub(crate) fn visible_session(screen: &str) -> EntityId {
-    screen
-        .split("Agent composer · ")
-        .nth(1)
-        .and_then(|text| text.split_whitespace().next())
-        .expect("session displayed")
-        .parse()
-        .expect("session identity")
+/// # Returns
+/// The operation result.
+pub(crate) fn visible_session(tui: &TuiPty) -> EntityId {
+    tui.stored_session_id()
 }

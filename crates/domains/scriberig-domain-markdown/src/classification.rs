@@ -13,12 +13,12 @@ pub enum InformationClass {
 
 /// Returns the class assigned to one named Markdown information group.
 ///
-/// # Parameters
 /// - `name`: Stable information group name.
 ///
-/// # Returns
 /// The canonical ownership class for the group, or `None` when unknown.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn classify(name: &str) -> Option<InformationClass> {
     match name {
         "structure" | "text" | "links" | "images" | "inline" => Some(InformationClass::Canonical),

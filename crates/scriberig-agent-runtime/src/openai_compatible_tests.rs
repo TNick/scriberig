@@ -46,17 +46,18 @@ struct MockCompletionTransport {
 impl CompletionTransport for MockCompletionTransport {
     /// Records one request and returns the configured response.
     ///
-    /// # Parameters
     /// - `endpoint`: Complete provider endpoint.
     /// - `payload`: Provider request payload.
     /// - `credential`: Optional bearer credential.
     /// - `timeout`: Configured request deadline.
     ///
-    /// # Returns
     /// The configured mock response.
     ///
-    /// # Errors
     /// Returns a transport error when request recording is poisoned.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn send(
         &self,
         endpoint: &str,
@@ -92,17 +93,18 @@ struct BlockingCompletionTransport {
 impl CompletionTransport for BlockingCompletionTransport {
     /// Waits for release, then returns a deterministic transport failure.
     ///
-    /// # Parameters
     /// - `_endpoint`: Complete provider endpoint.
     /// - `_payload`: Provider request payload.
     /// - `_credential`: Optional bearer credential.
     /// - `_timeout`: Configured request deadline.
     ///
-    /// # Returns
     /// Never returns successfully.
     ///
-    /// # Errors
     /// Returns a deterministic transport failure after release.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn send(
         &self,
         _endpoint: &str,

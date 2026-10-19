@@ -10,13 +10,13 @@ use crate::{
 ///
 /// The baseline extractor intentionally retains derived output alongside the exact source.
 ///
-/// # Parameters
 /// - `document`: Imported PDF document to enrich.
 /// - `producer`: Extractor identity.
 /// - `profile`: Extractor profile/version.
 ///
-/// # Returns
 /// A document with ordered pages and derived text regions.
+/// # Returns
+/// The operation result.
 pub fn extract(
     document: &PdfDocument,
     producer: impl Into<String>,

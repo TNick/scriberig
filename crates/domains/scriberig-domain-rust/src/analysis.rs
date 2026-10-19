@@ -74,12 +74,12 @@ pub struct RustAnalysis {
 impl RustAnalysis {
     /// Returns references targeting one canonical symbol.
     ///
-    /// # Parameters
     /// - `target`: Canonical symbol entity.
     ///
-    /// # Returns
     /// Matching references in deterministic source order.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn references_to(&self, target: EntityId) -> Vec<&SymbolReference> {
         self.references
             .iter()
@@ -89,12 +89,12 @@ impl RustAnalysis {
 
     /// Returns canonical callers of one symbol.
     ///
-    /// # Parameters
     /// - `callee`: Canonical callee entity.
     ///
-    /// # Returns
     /// Caller entities in analysis order.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn callers_of(&self, callee: EntityId) -> Vec<EntityId> {
         self.calls
             .iter()
@@ -105,12 +105,12 @@ impl RustAnalysis {
 
     /// Returns diagnostics affecting one canonical entity.
     ///
-    /// # Parameters
     /// - `entity`: Entity whose diagnostics are requested.
     ///
-    /// # Returns
     /// Matching derived diagnostics.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn diagnostics_for(&self, entity: EntityId) -> Vec<&RustDiagnostic> {
         self.diagnostics
             .iter()
@@ -121,17 +121,18 @@ impl RustAnalysis {
 
 /// Runs deterministic static analysis over canonical Rust source.
 ///
-/// # Parameters
 /// - `source`: Canonical Rust source text.
 /// - `source_entity`: Canonical source entity identity.
 /// - `source_revision`: Exact canonical syntax revision.
 /// - `profile`: Compiler/profile inputs affecting semantics.
 ///
-/// # Returns
 /// Immutable derived facts with exact dependency and provenance metadata.
 ///
-/// # Errors
 /// Returns a structured parse failure. Canonical source is never changed.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn analyze(
     source: &str,
     source_entity: EntityId,
@@ -192,11 +193,11 @@ pub fn analyze(
 
 /// Extracts a function name from a top-level item.
 ///
-/// # Parameters
 /// - `item`: Syntax item to inspect.
 ///
-/// # Returns
 /// Function name when the item is a function.
+/// # Returns
+/// The operation result.
 fn function_name(item: &Item) -> Option<String> {
     match item {
         Item::Fn(function) => Some(function.sig.ident.to_string()),
@@ -205,23 +206,23 @@ fn function_name(item: &Item) -> Option<String> {
 }
 /// Renders a syntax type into a deterministic display representation.
 ///
-/// # Parameters
 /// - `ty`: Syntax type to render.
 ///
-/// # Returns
 /// Canonical token text for the type.
+/// # Returns
+/// The operation result.
 fn type_text(ty: &Type) -> String {
     ty.to_token_stream().to_string()
 }
 /// Derives an immutable result identity from all relevant analysis inputs.
 ///
-/// # Parameters
 /// - `source`: Canonical source entity.
 /// - `revision`: Exact source revision.
 /// - `profile`: Analysis environment.
 ///
-/// # Returns
 /// Content-derived result revision identity.
+/// # Returns
+/// The operation result.
 fn analysis_id(source: EntityId, revision: RevisionId, profile: &AnalysisProfile) -> RevisionId {
     let mut hasher = blake3::Hasher::new();
     hasher.update(b"scriberig.rust.analysis.v1");
@@ -248,7 +249,6 @@ struct CallVisitor<'a> {
 impl<'ast> Visit<'ast> for CallVisitor<'_> {
     /// Resolves a call expression when its path names a known function.
     ///
-    /// # Parameters
     /// - `call`: Call expression being visited.
     fn visit_expr_call(&mut self, call: &'ast ExprCall) {
         if let Expr::Path(path) = &*call.func {
@@ -272,15 +272,15 @@ impl<'ast> Visit<'ast> for CallVisitor<'_> {
 
 /// Builds a failed derived result with an explicit diagnostic.
 ///
-/// # Parameters
 /// - `error`: Structured analysis failure.
 /// - `source_entity`: Canonical source entity.
 /// - `source_revision`: Exact source revision.
 /// - `profile`: Analysis environment.
 ///
-/// # Returns
 /// Failed analysis facts that preserve canonical identity and provenance.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn failed_analysis(
     error: RustAnalysisError,
     source_entity: EntityId,

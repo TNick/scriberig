@@ -5,21 +5,53 @@ use super::service_session_authorization::authorize_agent_command;
 use crate::{ApplicationContext, ApplicationError};
 
 impl<B> ApplicationService<B> {
+    /// Starts a new local session and leaves its operation active for a runtime.
+    ///
+    /// - `self`: Application service owning local session and operation state.
+    /// - `context`: Caller capabilities and initial semantic scope.
+    /// - `request`: First user input and optional semantic selection.
+    ///
+    /// The pending operation, newly allocated session, and root branch handles.
+    ///
+    /// Returns authorization, session persistence, or operation errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn begin_new_session_agent(
+        &self,
+        context: &ApplicationContext,
+        request: crate::NewSessionAgentRequest,
+    ) -> Result<crate::LocalAgentHandle, ApplicationError> {
+        let session = self.next_entity(0xA0);
+        self.begin_agent_execution(
+            context,
+            &crate::AgentCommandRequest {
+                session,
+                branch: None,
+                anchor: None,
+                prompt: request.prompt,
+                selection: request.selection,
+            },
+        )
+    }
+
     /// Begins a local agent operation after checking its public capability.
     ///
     /// The returned operation remains running so a composed provider runtime can
     /// execute it and store the result through `complete_local_agent`.
     ///
-    /// # Parameters
     /// - `self`: Application service owning session and operation state.
     /// - `context`: Caller capabilities and exact request context.
     /// - `request`: Session, branch, and user instruction.
     ///
-    /// # Returns
     /// The pending operation, session, and branch handles.
     ///
-    /// # Errors
     /// Returns an authorization or session-state failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn begin_agent_execution(
         &self,
         context: &ApplicationContext,

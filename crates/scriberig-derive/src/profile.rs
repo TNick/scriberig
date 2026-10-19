@@ -46,13 +46,13 @@ pub struct DerivationProfile {
 impl DerivationProfile {
     /// Creates a profile with a stable kind and exact version.
     ///
-    /// # Parameters
     /// - `kind`: Extensible derivation kind identifier.
     /// - `version`: Exact semantic version or revision label.
     ///
-    /// # Returns
     /// The exact profile with lazy scheduling and no optional identities.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(kind: impl Into<String>, version: impl Into<String>) -> Self {
         Self {
             kind: kind.into(),
@@ -65,13 +65,13 @@ impl DerivationProfile {
 
     /// Adds an exact producer or implementation identity.
     ///
-    /// # Parameters
     /// - `self`: Profile being configured.
     /// - `producer`: Stable implementation identity.
     ///
-    /// # Returns
     /// The profile with its producer identity set.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_producer(mut self, producer: impl Into<String>) -> Self {
         self.producer = Some(producer.into());
         self
@@ -79,13 +79,13 @@ impl DerivationProfile {
 
     /// Adds an exact semantic configuration identity.
     ///
-    /// # Parameters
     /// - `self`: Profile being configured.
     /// - `configuration`: Stable configuration identity.
     ///
-    /// # Returns
     /// The profile with its configuration identity set.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_configuration(mut self, configuration: impl Into<String>) -> Self {
         self.configuration = Some(configuration.into());
         self
@@ -93,11 +93,9 @@ impl DerivationProfile {
 
     /// Sets the profile's eager or lazy scheduling hint.
     ///
-    /// # Parameters
     /// - `self`: Profile being configured.
     /// - `schedule`: Scheduling preference.
     ///
-    /// # Returns
     /// The profile with the requested scheduling hint.
     #[must_use]
     pub const fn with_schedule(mut self, schedule: DerivationSchedule) -> Self {
@@ -107,58 +105,56 @@ impl DerivationProfile {
 
     /// Returns the extensible derivation kind identifier.
     ///
-    /// # Parameters
     /// - `self`: Profile to inspect.
     ///
-    /// # Returns
     /// The derivation kind.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn kind(&self) -> &str {
         &self.kind
     }
 
     /// Returns the exact derivation version.
     ///
-    /// # Parameters
     /// - `self`: Profile to inspect.
     ///
-    /// # Returns
     /// The derivation version.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn version(&self) -> &str {
         &self.version
     }
 
     /// Returns the optional producer identity.
     ///
-    /// # Parameters
     /// - `self`: Profile to inspect.
     ///
-    /// # Returns
     /// The producer identity, when specified.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn producer(&self) -> Option<&str> {
         self.producer.as_deref()
     }
 
     /// Returns the optional semantic configuration identity.
     ///
-    /// # Parameters
     /// - `self`: Profile to inspect.
     ///
-    /// # Returns
     /// The configuration identity, when specified.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn configuration(&self) -> Option<&str> {
         self.configuration.as_deref()
     }
 
     /// Returns the profile's scheduling hint.
     ///
-    /// # Parameters
     /// - `self`: Profile to inspect.
     ///
-    /// # Returns
     /// The eager/lazy scheduling preference.
     #[must_use]
     pub const fn schedule(&self) -> DerivationSchedule {
@@ -170,15 +166,16 @@ impl DerivationProfile {
 impl Display for DerivationProfile {
     /// Formats the profile kind and exact version.
     ///
-    /// # Parameters
     /// - `self`: Profile to format.
     /// - `formatter`: Destination formatter.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns an error if writing to the formatter fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         write!(formatter, "{}@{}", self.kind, self.version)
     }

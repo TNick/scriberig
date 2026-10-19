@@ -26,10 +26,8 @@ pub enum QueryScope {
 impl QueryScope {
     /// Returns the exact snapshot bound to this scope.
     ///
-    /// # Parameters
     /// - `self`: Scope to inspect.
     ///
-    /// # Returns
     /// The exact snapshot used by every query in the scope.
     #[must_use]
     pub const fn snapshot(&self) -> SnapshotId {

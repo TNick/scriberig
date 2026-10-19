@@ -9,8 +9,9 @@ use super::{DiagnosticKind, DiagnosticStage, ProjectionDiagnostic};
 /// - `code`: Stable diagnostic code.
 /// - `message`: Human-readable message.
 ///
-/// # Returns
 /// Structured projection diagnostic.
+/// # Returns
+/// The operation result.
 pub(super) fn diagnostic(
     stage: DiagnosticStage,
     kind: DiagnosticKind,

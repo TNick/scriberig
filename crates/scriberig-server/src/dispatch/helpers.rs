@@ -1,6 +1,10 @@
 //! Shared protocol conversion helpers for the server dispatcher.
 
 use scriberig_app::ApplicationError;
+use scriberig_app::{
+    ApplicationContext, Capability, CapabilityAction, CapabilityConstraints, CapabilityContext,
+    CapabilityId, CapabilityScope, OperationKind,
+};
 use scriberig_protocol::{
     EntityReference, InspectEntityResponse, ProtocolError, ProtocolErrorCode, RevisionReference,
     SessionReadResponse, SnapshotReference,
@@ -10,12 +14,12 @@ use crate::server::server_helpers::error_details;
 
 /// Restricts a session response to one branch and its descendants.
 ///
-/// # Parameters
 /// - `response`: Durable session payload before filtering.
 /// - `branch`: Branch identifier to retain in the projection.
 ///
-/// # Returns
 /// The original session response reduced to the selected branch subtree.
+/// # Returns
+/// The operation result.
 pub fn select_branch_subtree(response: SessionReadResponse, branch: &str) -> SessionReadResponse {
     let mut selected = std::collections::BTreeSet::from([branch.to_owned()]);
     let mut changed = true;
@@ -47,11 +51,11 @@ pub fn select_branch_subtree(response: SessionReadResponse, branch: &str) -> Ses
 
 /// Converts an application inspection result to protocol references.
 ///
-/// # Parameters
 /// - `result`: Application inspection result.
 ///
-/// # Returns
 /// Protocol inspection response with stable references.
+/// # Returns
+/// The operation result.
 pub fn map_inspect(result: scriberig_app::InspectResult) -> InspectEntityResponse {
     InspectEntityResponse {
         entity: EntityReference {
@@ -77,12 +81,12 @@ pub fn map_inspect(result: scriberig_app::InspectResult) -> InspectEntityRespons
 
 /// Converts an application error without exposing restricted payloads.
 ///
-/// # Parameters
 /// - `error`: Application error to classify.
 /// - `correlation_id`: Request correlation identity.
 ///
-/// # Returns
 /// Structured protocol error.
+/// # Returns
+/// The operation result.
 pub fn map_error(error: &ApplicationError, correlation_id: &str) -> ProtocolError {
     let code = match error.category() {
         "not_found" => ProtocolErrorCode::NotFound,
@@ -108,5 +112,49 @@ pub fn map_error(error: &ApplicationError, correlation_id: &str) -> ProtocolErro
         message: error.to_string(),
         details: Some(error_details(error)),
         correlation_id: Some(correlation_id.to_owned()),
+    }
+}
+
+/// Builds the trusted server context for an exposed command family.
+///
+/// - `kind`: Stable command or capability identifier.
+///
+/// A context granting only the requested public command capability.
+/// # Returns
+/// The operation result.
+pub(super) fn command_context(kind: &str) -> ApplicationContext {
+    let mut capabilities = vec![CapabilityId::new(kind).expect("protocol command capability")];
+    if matches!(kind, "agent_start" | "agent_continue" | "agent_plan") {
+        capabilities.push(CapabilityId::new("session_branch_tree").expect("session capability"));
+    }
+    ApplicationContext {
+        capabilities: CapabilityContext::new(capabilities),
+        ..ApplicationContext::empty()
+    }
+}
+
+/// Grants the trusted session-selection action for one exact session.
+///
+/// - `session`: Stable session identity from the protocol request.
+///
+/// Application context authorizing session model configuration.
+/// # Returns
+/// The operation result.
+pub(super) fn session_selection_context(session: &str) -> ApplicationContext {
+    ApplicationContext {
+        capabilities: CapabilityContext {
+            granted: vec![
+                CapabilityId::new("session_branch_tree").expect("session read capability"),
+            ],
+            grants: vec![Capability {
+                scope: CapabilityScope::Session(session.to_owned()),
+                actions: [CapabilityAction::ModifyBranch].into_iter().collect(),
+                constraints: CapabilityConstraints {
+                    operation: Some(OperationKind::Agent),
+                    ..CapabilityConstraints::unrestricted()
+                },
+            }],
+        },
+        ..ApplicationContext::empty()
     }
 }

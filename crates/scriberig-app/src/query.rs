@@ -59,16 +59,17 @@ pub struct InspectResult {
 pub trait QueryService {
     /// Inspects one entity under the supplied request context.
     ///
-    /// # Parameters
     /// - `self`: Application query service.
     /// - `context`: Caller, capability, and snapshot context.
     /// - `request`: Snapshot-aware inspection request.
     ///
-    /// # Returns
     /// Snapshot-bound inspection metadata.
     ///
-    /// # Errors
     /// Returns a structured application error when inspection is unavailable or denied.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         context: &ApplicationContext,
@@ -79,16 +80,17 @@ pub trait QueryService {
 impl<S: QueryService + ?Sized> QueryService for &S {
     /// Delegates inspection through a borrowed query service.
     ///
-    /// # Parameters
     /// - `self`: Borrowed application query service.
     /// - `context`: Caller, capability, and snapshot context.
     /// - `request`: Snapshot-aware inspection request.
     ///
-    /// # Returns
     /// Snapshot-bound inspection metadata.
     ///
-    /// # Errors
     /// Returns the delegated application error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         context: &ApplicationContext,

@@ -325,11 +325,11 @@ fn failed_atomic_promotion_preserves_previous_root() {
 
 /// Returns a unique temporary database path for one durable test.
 ///
-/// # Parameters
 /// - `label`: Test-specific path label.
 ///
-/// # Returns
 /// A unique temporary database path.
+/// # Returns
+/// The operation result.
 fn temporary_database_path(label: &str) -> PathBuf {
     std::env::temp_dir().join(format!(
         "scriberig-sqlite-{label}-{}-{}.db",
@@ -340,8 +340,9 @@ fn temporary_database_path(label: &str) -> PathBuf {
 
 /// Produces a process-local suffix without relying on wall-clock ordering.
 ///
-/// # Returns
 /// A high-resolution process-local suffix.
+/// # Returns
+/// The operation result.
 fn unique_test_suffix() -> u128 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

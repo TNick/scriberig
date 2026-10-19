@@ -35,12 +35,12 @@ pub struct StoreOperationError {
 impl StoreOperationError {
     /// Creates a backend failure with diagnostic detail.
     ///
-    /// # Parameters
     /// - `message`: Human-readable backend diagnostic.
     ///
-    /// # Returns
     /// A categorized backend operation error.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn backend(message: impl Into<String>) -> Self {
         Self {
             category: StoreErrorCategory::Backend,
@@ -52,14 +52,15 @@ impl StoreOperationError {
 impl std::fmt::Display for StoreOperationError {
     /// Formats the diagnostic detail for a human reader.
     ///
-    /// # Parameters
     /// - `formatter`: Output formatter.
     ///
-    /// # Returns
     /// Formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when the formatter rejects the output.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(formatter, "{}: {}", self.category, self.message)
     }
@@ -70,14 +71,15 @@ impl std::error::Error for StoreOperationError {}
 impl std::fmt::Display for StoreErrorCategory {
     /// Formats a stable category name.
     ///
-    /// # Parameters
     /// - `formatter`: Output formatter.
     ///
-    /// # Returns
     /// Formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when the formatter rejects the output.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
             Self::NotFound => "not_found",
@@ -95,7 +97,6 @@ impl std::fmt::Display for StoreErrorCategory {
 impl crate::StoreError {
     /// Returns the backend-neutral category for this revision error.
     ///
-    /// # Returns
     /// A stable machine-readable error category.
     #[must_use]
     pub const fn category(&self) -> StoreErrorCategory {
@@ -118,7 +119,6 @@ impl crate::StoreError {
 impl crate::RootError {
     /// Returns the backend-neutral category for this root error.
     ///
-    /// # Returns
     /// A stable machine-readable error category.
     #[must_use]
     pub const fn category(&self) -> StoreErrorCategory {
@@ -132,7 +132,6 @@ impl crate::RootError {
 impl crate::SnapshotError {
     /// Returns the backend-neutral category for this snapshot error.
     ///
-    /// # Returns
     /// A stable machine-readable error category.
     #[must_use]
     pub const fn category(&self) -> StoreErrorCategory {
@@ -182,7 +181,6 @@ pub struct GcReport {
 impl GcReport {
     /// Returns the number of objects considered by the report.
     ///
-    /// # Returns
     /// Candidate object count.
     #[must_use]
     pub const fn candidates(&self) -> u64 {
@@ -201,43 +199,50 @@ pub struct IndexStatus {
 pub trait StoreObservability {
     /// Returns backend statistics without changing canonical state.
     ///
-    /// # Returns
     /// A snapshot of available storage measurements.
     ///
-    /// # Errors
     /// Returns a backend error when statistics cannot be read.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn stats(&self) -> Result<StoreStats, StoreOperationError>;
 
     /// Returns statistics annotated with reachability from protected roots.
     ///
-    /// # Parameters
     /// - `protected`: Stable roots used for reachability counts.
     /// - `_protected`: Ignored by the default implementation.
     ///
-    /// # Returns
     /// Available storage measurements and reachability counts.
     ///
-    /// # Errors
     /// Returns a backend error when statistics cannot be read.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn stats_for(&self, _protected: &ProtectedRoots) -> Result<StoreStats, StoreOperationError> {
         self.stats()
     }
 
     /// Lists named roots without exposing backend handles.
     ///
-    /// # Returns
     /// Root status records in deterministic name order.
     ///
-    /// # Errors
     /// Returns a backend error when roots cannot be read.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn root_statuses(&self) -> Result<Vec<RootStatus>, StoreOperationError>;
 
     /// Rebuilds derived indexes without changing canonical objects.
     ///
-    /// # Returns
     /// The resulting index status.
     ///
-    /// # Errors
     /// Returns a backend error when rebuild fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn rebuild_indexes(&self) -> Result<IndexStatus, StoreOperationError>;
 }

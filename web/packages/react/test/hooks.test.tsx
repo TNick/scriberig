@@ -68,6 +68,7 @@ describe("headless hook dependencies", () => {
       getSession: async () => ({
         session: { id: sessionId },
         branches: [],
+        plans: [],
         execution: { revision },
       }),
       setSessionModel: async (_session: unknown, expected: number, profile: string) => {
@@ -84,6 +85,7 @@ describe("headless hook dependencies", () => {
     model.setAgentSession({
       session: { id: sessionId },
       branches: [],
+      plans: [],
       execution: { revision: 4 },
     });
     const controller = createAgentExecutionSelectionController(client, model, sessionId);

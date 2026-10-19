@@ -9,12 +9,10 @@ use serde_json::Value;
 
 /// Executes a typed query specification.
 ///
-/// # Parameters
 /// - `service`: Application service handling semantic queries.
 /// - `value`: Serialized query specification.
 /// - `correlation_id`: Request correlation identity.
 ///
-/// # Returns
 /// Query result or a structured protocol error.
 pub(super) fn query<S: ApplicationService>(
     service: &S,
@@ -38,12 +36,10 @@ pub(super) fn query<S: ApplicationService>(
 
 /// Executes a typed list specification.
 ///
-/// # Parameters
 /// - `service`: Application service handling semantic lists.
 /// - `value`: Serialized list specification.
 /// - `correlation_id`: Request correlation identity.
 ///
-/// # Returns
 /// List result or a structured protocol error.
 pub(super) fn list<S: ApplicationService>(
     service: &S,
@@ -67,12 +63,10 @@ pub(super) fn list<S: ApplicationService>(
 
 /// Executes a typed find specification.
 ///
-/// # Parameters
 /// - `service`: Application service handling semantic discovery.
 /// - `value`: Serialized find specification.
 /// - `correlation_id`: Request correlation identity.
 ///
-/// # Returns
 /// Find result or a structured protocol error.
 pub(super) fn find<S: ApplicationService>(
     service: &S,
@@ -96,14 +90,12 @@ pub(super) fn find<S: ApplicationService>(
 
 /// Deserializes and executes one typed semantic specification.
 ///
-/// # Parameters
 /// - `service`: Application service receiving the typed operation.
 /// - `value`: Serialized semantic specification.
 /// - `correlation_id`: Request correlation identity.
 /// - `invalid_message`: Safe message for malformed input.
 /// - `operation`: Typed application operation to invoke.
 ///
-/// # Returns
 /// Operation response or a structured schema/application error.
 fn execute<S, T>(
     service: &S,

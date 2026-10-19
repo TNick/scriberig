@@ -20,14 +20,15 @@ pub struct ModelId(String);
 impl ModelId {
     /// Creates a model identifier from a non-empty stable value.
     ///
-    /// # Parameters
     /// - `value`: Stable model identity.
     ///
-    /// # Returns
     /// The validated model identifier.
     ///
-    /// # Errors
     /// Returns an error when the identifier is empty or whitespace-only.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(value: impl Into<String>) -> Result<Self, &'static str> {
         let value = value.into();
         if value.trim().is_empty() {
@@ -38,9 +39,10 @@ impl ModelId {
 
     /// Returns the stable model identifier text.
     ///
-    /// # Returns
     /// The identifier value.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -62,14 +64,15 @@ pub struct ThinkingLevelId(String);
 impl ThinkingLevelId {
     /// Creates a non-empty model-specific thinking identifier.
     ///
-    /// # Parameters
     /// - `value`: Stable thinking capability identity.
     ///
-    /// # Returns
     /// The validated thinking identifier.
     ///
-    /// # Errors
     /// Returns an error when the identifier is empty or whitespace-only.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(value: impl Into<String>) -> Result<Self, &'static str> {
         let value = value.into();
         if value.trim().is_empty() {
@@ -80,9 +83,10 @@ impl ThinkingLevelId {
 
     /// Returns the stable thinking identifier text.
     ///
-    /// # Returns
     /// The identifier value.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -134,12 +138,14 @@ pub struct ModelDescriptor {
 impl ModelDescriptor {
     /// Validates model identity and thinking capability consistency.
     ///
-    /// # Errors
     /// Returns an error for duplicate or unordered thinking levels, or when
     /// the declared default is not advertised by this model.
     ///
-    /// # Returns
     /// Unit when the descriptor is internally consistent.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn validate(&self) -> Result<(), &'static str> {
         let mut ids = BTreeSet::new();
         let mut previous_order = None;
@@ -192,15 +198,16 @@ pub struct ModelProfile {
 impl ModelProfile {
     /// Validates profile model and thinking defaults against its descriptor.
     ///
-    /// # Parameters
     /// - `model`: Descriptor selected by this profile.
     ///
-    /// # Errors
     /// Returns an error when the profile references another model or declares
     /// a thinking default that the descriptor does not advertise.
     ///
-    /// # Returns
     /// Unit when the profile matches the descriptor.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn validate_for_model(&self, model: &ModelDescriptor) -> Result<(), &'static str> {
         model.validate()?;
         if self.model != model.id {
@@ -227,12 +234,12 @@ mod tests {
 
     /// Creates a descriptor with the supplied model-specific levels.
     ///
-    /// # Parameters
     /// - `id`: Stable model identity.
     /// - `levels`: Ordered model-specific thinking identifiers.
     ///
-    /// # Returns
     /// A descriptor whose first thinking level is the default.
+    /// # Returns
+    /// The operation result.
     fn model(id: &str, levels: &[&str]) -> ModelDescriptor {
         let thinking_levels = levels
             .iter()

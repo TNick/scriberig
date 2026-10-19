@@ -2,6 +2,10 @@
 
 #![allow(clippy::wildcard_imports)]
 
+#[macro_use]
+#[path = "service_application_handle_method.rs"]
+mod handle_method;
+
 use super::*;
 use scriberig_app::{AgentConsoleBackend, SessionBackend};
 
@@ -14,13 +18,13 @@ pub struct ApplicationAdapter<S> {
 impl<S> ApplicationAdapter<S> {
     /// Creates a TUI adapter around a public application service.
     ///
-    /// # Parameters
     /// - `service`: Public query service.
     /// - `capabilities`: Runtime capabilities exposed by the service.
     ///
-    /// # Returns
     /// A configured TUI adapter.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(service: S, capabilities: Vec<RuntimeCapability>) -> Self {
         Self {
             service,
@@ -36,18 +40,91 @@ impl<S> ApplicationAdapter<S> {
 }
 
 impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for ApplicationAdapter<S> {
+    /// Continues an exact anchor through the shared session backend.
+    ///
+    /// - `context`: Caller authorization context.
+    /// - `session`: Owning session identity.
+    /// - `anchor`: Exact replyable continuation location.
+    /// - `prompt`: User-authored follow-up.
+    ///
+    /// Authoritative operation, session, and branch handles.
+    ///
+    /// Returns the shared application validation or persistence error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn continue_agent_at_handle(
+        &self,
+        context: &ApplicationContext,
+        session: EntityId,
+        anchor: scriberig_session::ContinuationAnchor,
+        prompt: &str,
+    ) -> Result<super::AgentHandle, ApplicationError> {
+        let accepted = self.service.continue_agent_at(
+            context,
+            scriberig_app::AgentContinueAtRequest {
+                session,
+                anchor,
+                prompt: prompt.to_owned(),
+                selection: None,
+            },
+        )?;
+        Ok(super::AgentHandle {
+            operation: accepted.operation,
+            session: accepted.session,
+            branch: Some(accepted.branch),
+            workspace: None,
+        })
+    }
+
+    /// Starts a session through the shared application operation.
+    ///
+    /// - `context`: Caller authorization context.
+    /// - `prompt`: User-authored first instruction.
+    /// - `selection`: Exact semantic scope for the initial model context.
+    ///
+    /// Authoritative operation, session, and root branch handles.
+    ///
+    /// Returns the shared application validation or persistence error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn start_new_session_handle(
+        &self,
+        context: &ApplicationContext,
+        prompt: &str,
+        selection: Option<scriberig_app::AgentSelection>,
+    ) -> Result<super::AgentHandle, ApplicationError> {
+        let accepted = self.service.start_new_session_agent(
+            context,
+            scriberig_app::NewSessionAgentRequest {
+                prompt: prompt.to_owned(),
+                selection,
+            },
+        )?;
+        Ok(super::AgentHandle {
+            operation: accepted.operation,
+            session: accepted.session,
+            branch: Some(accepted.root_branch),
+            workspace: None,
+        })
+    }
+
     /// Delegates inspection through the public query service.
     ///
-    /// # Parameters
     /// - `context`: Application context for the request.
     /// - `entity`: Entity to inspect.
     /// - `snapshot`: Optional exact snapshot.
     ///
-    /// # Returns
     /// The inspection result.
     ///
-    /// # Errors
     /// Returns the query service error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect_entity(
         &self,
         context: &ApplicationContext,
@@ -66,14 +143,15 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
 
     /// Returns the capabilities supplied by the composition root.
     ///
-    /// # Parameters
     /// - `_context`: Application context for capability access.
     ///
-    /// # Returns
     /// The configured runtime capabilities.
     ///
-    /// # Errors
     /// This adapter does not return a capability error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn runtime_capabilities(
         &self,
         _context: &ApplicationContext,
@@ -83,15 +161,16 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
 
     /// Reads a session through the public application boundary.
     ///
-    /// # Parameters
     /// - `context`: Caller authorization context.
     /// - `session`: Stable session identity.
     ///
-    /// # Returns
     /// The requested session snapshot.
     ///
-    /// # Errors
     /// Returns the application session error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read_session(
         &self,
         context: &ApplicationContext,
@@ -101,19 +180,102 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
             .read_session(context, &scriberig_app::SessionRequest { session })
     }
 
+    /// Creates a structured plan using the shared application plan service.
+    ///
+    /// - `context`: Caller authorization context.
+    /// - `request`: Structured plan proposal at an exact conversation anchor.
+    ///
+    /// The persisted plan with application allocated identities.
+    ///
+    /// Returns application validation or persistence errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn create_plan(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_app::PlanCreateRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        scriberig_app::SessionBackend::create_plan(&self.service, context, request)
+    }
+
+    /// Applies a durable plan revision through the application service.
+    ///
+    /// - `context`: Caller authorization context.
+    /// - `request`: Complete revision proposal.
+    ///
+    /// The authoritative updated plan.
+    ///
+    /// Returns application validation, conflict, or persistence errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn replan(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_app::PlanReplanRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        scriberig_app::SessionBackend::replan(&self.service, context, request)
+    }
+
+    /// Applies one durable plan lifecycle change through the shared service.
+    ///
+    /// - `context`: Caller authorization context.
+    /// - `request`: Plan identity and observed revision.
+    /// - `action`: Requested plan transition.
+    ///
+    /// The authoritative updated plan.
+    ///
+    /// Returns application validation, conflict, or persistence errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn plan_lifecycle(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_app::PlanLifecycleRequest,
+        action: scriberig_app::PlanLifecycleAction,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        scriberig_app::SessionBackend::plan_lifecycle(&self.service, context, request, action)
+    }
+
+    /// Changes one plan node's model-library assignment through the app service.
+    ///
+    /// - `context`: Caller authorization context.
+    /// - `request`: Plan, node, expected revision, and assignment.
+    ///
+    /// The authoritative updated plan.
+    ///
+    /// Returns application validation, conflict, or persistence errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn set_plan_node_assignment(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_app::PlanAssignmentRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        scriberig_app::SessionBackend::set_plan_node_assignment(&self.service, context, request)
+    }
+
     /// Reads safe expanded detail through the application-owned session service.
     ///
-    /// # Parameters
     /// - `context`: Caller authorization context.
     /// - `session`: Session containing the result.
     /// - `branch`: Branch containing the result.
     /// - `result`: Stable tool-result identity.
     ///
-    /// # Returns
     /// Bounded allowlisted result detail.
     ///
-    /// # Errors
     /// Returns the application authorization or lookup error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn tool_result_detail(
         &self,
         context: &ApplicationContext,
@@ -132,14 +294,15 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
 
     /// Projects the application's safe model library into public protocol DTOs.
     ///
-    /// # Parameters
     /// - `context`: Caller authorization context.
     ///
-    /// # Returns
     /// Credential-safe model descriptors and profiles.
     ///
-    /// # Errors
     /// Returns the application model-library error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn model_library(
         &self,
         context: &ApplicationContext,
@@ -150,15 +313,16 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
 
     /// Updates future model selection through the shared application service.
     ///
-    /// # Parameters
     /// - `context`: Caller authorization context.
     /// - `request`: Session and revision-checked profile selection.
     ///
-    /// # Returns
     /// The authoritative updated execution selection.
     ///
-    /// # Errors
     /// Returns the shared application validation or persistence error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set_session_model(
         &self,
         context: &ApplicationContext,
@@ -169,15 +333,16 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
 
     /// Updates future thinking selection through the shared application service.
     ///
-    /// # Parameters
     /// - `context`: Caller authorization context.
     /// - `request`: Session and revision-checked thinking selection.
     ///
-    /// # Returns
     /// The authoritative updated execution selection.
     ///
-    /// # Errors
     /// Returns the shared application validation or persistence error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set_session_thinking_level(
         &self,
         context: &ApplicationContext,
@@ -188,17 +353,18 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
 
     /// Submits an agent command through the public application boundary.
     ///
-    /// # Parameters
     /// - `context`: Caller authorization context.
     /// - `session`: Target session identity.
     /// - `branch`: Optional target branch.
     /// - `prompt`: User-authored command text.
     ///
-    /// # Returns
     /// The accepted operation identity.
     ///
-    /// # Errors
     /// Returns the application session error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn submit_agent_command(
         &self,
         context: &ApplicationContext,
@@ -211,134 +377,16 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
             &scriberig_app::AgentCommandRequest {
                 session,
                 branch,
+                anchor: None,
                 prompt: prompt.to_owned(),
                 selection: None,
             },
         )
     }
 
-    /// Submits local agent work and resolves the accepted root branch handle.
-    ///
-    /// # Parameters
-    /// - `context`: Application context for the operation.
-    /// - `session`: Stable session identity.
-    /// - `branch`: Optional continuation branch.
-    /// - `prompt`: User-authored instruction.
-    ///
-    /// # Returns
-    /// Stable operation, session, and branch handles.
-    ///
-    /// # Errors
-    /// Returns the application submission or session-read error.
-    fn submit_agent_handle(
-        &self,
-        context: &ApplicationContext,
-        session: EntityId,
-        branch: Option<EntityId>,
-        prompt: &str,
-    ) -> Result<super::AgentHandle, ApplicationError> {
-        let operation = self.submit_agent_command(context, session, branch, prompt)?;
-        let branch = branch.or_else(|| {
-            self.read_session(context, session)
-                .ok()
-                .and_then(|value| value.branches.last().map(|value| value.id))
-        });
-        Ok(super::AgentHandle {
-            operation,
-            session,
-            branch,
-            workspace: None,
-        })
-    }
+    application_handle_method!();
 }
 
-/// Converts the application model library into credential-safe wire descriptors.
-///
-/// # Parameters
-/// - `library`: Validated application model library.
-///
-/// # Returns
-/// Protocol descriptors containing references but no resolved credentials.
-fn model_library_response(
-    library: scriberig_app::ModelLibrary,
-) -> scriberig_protocol::ModelLibraryResponse {
-    scriberig_protocol::ModelLibraryResponse {
-        models: library
-            .models
-            .into_iter()
-            .map(|model| scriberig_protocol::PublicModelDescriptor {
-                id: model.id.as_str().to_owned(),
-                display_name: model.display_name,
-                provider_profile: model.provider_profile,
-                provider_model_id: model.provider_model_id,
-                capabilities: scriberig_protocol::PublicModelCapabilities {
-                    streaming: model.capabilities.streaming,
-                    tool_calls: model.capabilities.tool_calls,
-                    structured_output: model.capabilities.structured_output,
-                },
-                thinking_levels: model
-                    .thinking_levels
-                    .into_iter()
-                    .map(|level| scriberig_protocol::PublicThinkingLevelDescriptor {
-                        id: level.id.as_str().to_owned(),
-                        label: level.label,
-                        description: level.description,
-                        order: level.order,
-                    })
-                    .collect(),
-                default_thinking_level: model
-                    .default_thinking_level
-                    .map(|level| level.as_str().to_owned()),
-            })
-            .collect(),
-        profiles: library
-            .profiles
-            .into_iter()
-            .map(|profile| scriberig_protocol::PublicModelProfile {
-                id: profile.id,
-                display_name: profile.display_name,
-                model: profile.model.as_str().to_owned(),
-                connection: profile.connection,
-                credential: profile
-                    .credential
-                    .map(|credential| scriberig_protocol::ModelCredentialRef { id: credential.id }),
-                default_thinking_level: profile
-                    .default_thinking_level
-                    .map(|level| level.as_str().to_owned()),
-                enabled: profile.enabled,
-            })
-            .collect(),
-    }
-}
-
-impl<S: QueryService> TuiService for S {
-    /// Delegates inspection through a public query service.
-    ///
-    /// # Parameters
-    /// - `context`: Application context for the request.
-    /// - `entity`: Entity to inspect.
-    /// - `snapshot`: Optional exact snapshot.
-    ///
-    /// # Returns
-    /// The inspection result.
-    ///
-    /// # Errors
-    /// Returns the query service error.
-    fn inspect_entity(
-        &self,
-        context: &ApplicationContext,
-        entity: EntityId,
-        snapshot: Option<SnapshotId>,
-    ) -> Result<InspectResult, ApplicationError> {
-        self.inspect(
-            context,
-            &InspectRequest {
-                entity,
-                snapshot: snapshot.map_or(SnapshotResolution::Current, SnapshotResolution::At),
-                detail: scriberig_app::DetailLevel::Detailed,
-            },
-        )
-    }
-}
-
-impl<S: QueryService> TuiModelRequestService for S {}
+#[path = "service_application_query.rs"]
+mod query;
+use query::model_library_response;

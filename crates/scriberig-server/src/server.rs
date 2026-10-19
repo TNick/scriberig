@@ -1,6 +1,9 @@
 //! Defines the application service boundary accepted by the server adapter.
 
 #[macro_use]
+#[path = "server_query_contract.rs"]
+mod server_query_contract;
+#[macro_use]
 #[path = "server_presentation_contract.rs"]
 mod server_presentation_contract;
 #[path = "server_agent_command.rs"]
@@ -9,6 +12,12 @@ mod server_agent_command;
 mod server_agent_console;
 #[path = "server_agent_preferences.rs"]
 mod server_agent_preferences;
+#[macro_use]
+#[path = "server_session_operations.rs"]
+mod server_session_operations;
+#[macro_use]
+#[path = "server_plan_operations.rs"]
+mod server_plan_operations;
 
 use scriberig_app::{
     ApplicationContext, ApplicationError, ApplicationEvent, ApplicationRequest, ApplyRequest,
@@ -22,15 +31,16 @@ use scriberig_query::{FindRequest, FindResult, ListRequest, ListResult, QueryRes
 pub trait ApplicationService {
     /// Reads canonical detail for one migration proposal.
     ///
-    /// # Parameters
     /// - `_context`: Trusted request context.
     /// - `_migration_id`: Stable migration handle.
     ///
-    /// # Returns
     /// Snapshot-bound migration detail.
     ///
-    /// # Errors
     /// Returns unsupported-operation when proposal reads are unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn migration_detail(
         &self,
         _context: &ApplicationContext,
@@ -43,15 +53,16 @@ pub trait ApplicationService {
 
     /// Executes one application inspection.
     ///
-    /// # Parameters
     /// - `context`: Trusted request context.
     /// - `request`: Snapshot-aware inspection request.
     ///
-    /// # Returns
     /// Application inspection result.
     ///
-    /// # Errors
     /// Returns a structured application error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         context: &ApplicationContext,
@@ -60,21 +71,23 @@ pub trait ApplicationService {
 
     /// Returns currently available runtime capabilities.
     ///
-    /// # Returns
     /// Runtime capability descriptors.
+    /// # Returns
+    /// The operation result.
     fn capabilities(&self) -> Vec<RuntimeCapability>;
 
     /// Reads one compact durable session tree.
     ///
-    /// # Parameters
     /// - `_context`: Trusted request context.
     /// - `_session`: Stable session identity.
     ///
-    /// # Returns
     /// Provider-neutral session and branch activity summaries.
     ///
-    /// # Errors
     /// Returns a structured application error when the session is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read_session(
         &self,
         _context: &ApplicationContext,
@@ -85,19 +98,86 @@ pub trait ApplicationService {
         })
     }
 
+    /// Starts a session through the shared application service.
+    ///
+    /// - `_context`: Trusted operation context.
+    /// - `_request`: Provider-neutral start request.
+    ///
+    /// Authoritative session, root branch, and operation handles.
+    ///
+    /// Returns an application authorization or persistence failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn agent_new_session(
+        &self,
+        _context: &ApplicationContext,
+        _request: &scriberig_protocol::AgentNewSessionRequest,
+    ) -> Result<scriberig_protocol::AgentAcceptedResponse, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "agent new session".to_owned(),
+        })
+    }
+
+    /// Continues at one exact shared session anchor.
+    ///
+    /// - `_context`: Trusted operation context.
+    /// - `_request`: Provider-neutral exact continuation request.
+    ///
+    /// Authoritative session, child branch, and operation handles.
+    ///
+    /// Returns an application authorization, anchor, or persistence failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn agent_continue_at(
+        &self,
+        _context: &ApplicationContext,
+        _request: &scriberig_protocol::AgentContinueAtRequest,
+    ) -> Result<scriberig_protocol::AgentAcceptedResponse, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "agent continue at anchor".to_owned(),
+        })
+    }
+
+    /// Applies one typed plan request through shared application operations.
+    ///
+    /// - `_context`: Trusted caller capability context.
+    /// - `_request`: Typed plan creation or mutation request.
+    ///
+    /// The authoritative plan projection after the operation.
+    ///
+    /// Returns authorization, validation, conflict, or persistence failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn plan_operation(
+        &self,
+        _context: &ApplicationContext,
+        _request: &scriberig_protocol::Request,
+    ) -> Result<scriberig_protocol::SessionPlan, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "plan operation".to_owned(),
+        })
+    }
+
     /// Reads one captured safe request by session, branch, and invocation.
     ///
-    /// # Parameters
     /// - `_context`: Trusted request context.
     /// - `_session`: Stable session identity.
     /// - `_branch`: Stable branch identity.
     /// - `_invocation`: Durable model invocation identity.
     ///
-    /// # Returns
     /// Safe normalized request detail for the selected invocation.
     ///
-    /// # Errors
     /// Returns unsupported-operation when detail reads are unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn model_request_detail(
         &self,
         _context: &ApplicationContext,
@@ -112,17 +192,18 @@ pub trait ApplicationService {
 
     /// Reads expanded bounded detail for one durable tool result.
     ///
-    /// # Parameters
     /// - `_context`: Trusted request context.
     /// - `_session`: Stable session identity.
     /// - `_branch`: Stable branch identity.
     /// - `_result`: Durable tool result identity.
     ///
-    /// # Returns
     /// Whitelisted safe result detail.
     ///
-    /// # Errors
     /// Returns unsupported-operation when detail reads are unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn tool_result_detail(
         &self,
         _context: &ApplicationContext,
@@ -137,14 +218,15 @@ pub trait ApplicationService {
 
     /// Reads safe model descriptors and curated profiles.
     ///
-    /// # Parameters
     /// - `_context`: Trusted caller context.
     ///
-    /// # Returns
     /// Credential-safe public model library.
     ///
-    /// # Errors
     /// Returns unsupported-operation when model configuration is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn model_library(
         &self,
         _context: &ApplicationContext,
@@ -158,17 +240,18 @@ pub trait ApplicationService {
 
     /// Changes the model profile used by future session invocations.
     ///
-    /// # Parameters
     /// - `_context`: Trusted caller context.
     /// - `_session`: Stable session identity.
     /// - `_expected_revision`: Selection revision observed by the caller.
     /// - `_model_profile`: Curated profile identity to select.
     ///
-    /// # Returns
     /// Updated session execution selection.
     ///
-    /// # Errors
     /// Returns unsupported-operation when selection mutation is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set_session_model(
         &self,
         _context: &ApplicationContext,
@@ -183,17 +266,18 @@ pub trait ApplicationService {
 
     /// Changes the thinking level used by future session invocations.
     ///
-    /// # Parameters
     /// - `_context`: Trusted caller context.
     /// - `_session`: Stable session identity.
     /// - `_expected_revision`: Selection revision observed by the caller.
     /// - `_thinking_level`: Advertised thinking id to select.
     ///
-    /// # Returns
     /// Updated session execution selection.
     ///
-    /// # Errors
     /// Returns unsupported-operation when selection mutation is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set_session_thinking_level(
         &self,
         _context: &ApplicationContext,
@@ -208,26 +292,28 @@ pub trait ApplicationService {
 
     /// Returns one operation status in protocol-independent form.
     ///
-    /// # Parameters
     /// - `operation_id`: Stable operation identity.
     ///
-    /// # Returns
     /// Operation status ready for protocol mapping.
     ///
-    /// # Errors
     /// Returns a structured application error when status is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn operation_status(&self, operation_id: &str) -> Result<Operation, ApplicationError>;
 
     /// Cancels one tracked operation when the application supports cancellation.
     ///
-    /// # Parameters
     /// - `operation_id`: Stable operation identity.
     ///
-    /// # Returns
     /// The cancelled operation status.
     ///
-    /// # Errors
     /// Returns unsupported-operation when cancellation is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn cancel_operation(&self, operation_id: &str) -> Result<Operation, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: format!("operation cancellation {operation_id}"),
@@ -236,15 +322,16 @@ pub trait ApplicationService {
 
     /// Returns currently buffered public events matching the requested kinds.
     ///
-    /// # Parameters
     /// - `event_kinds`: Event kind filters; empty selects all available events.
     ///
-    /// # Returns
     /// Stable event envelopes.
     ///
-    /// # Errors
     /// Returns unsupported-operation when event delivery is unavailable.
     /// - `_event_kinds`: Argument named `_event_kinds`.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn events(&self, _event_kinds: &[String]) -> Result<Vec<Event>, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "event subscription".to_owned(),
@@ -253,15 +340,16 @@ pub trait ApplicationService {
 
     /// Returns public events after a reconnect cursor.
     ///
-    /// # Parameters
     /// - `event_kinds`: Event kind filters.
     /// - `after`: Last cursor already processed by the caller.
     ///
-    /// # Returns
     /// Retained events newer than `after`.
     ///
-    /// # Errors
     /// Returns an error when the replay cursor is no longer retained.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn events_after(
         &self,
         event_kinds: &[String],
@@ -274,87 +362,7 @@ pub trait ApplicationService {
             .collect())
     }
 
-    /// Executes one structured query through the application boundary.
-    ///
-    /// # Errors
-    /// Returns an application error when query execution is unavailable.
-    /// - `_context`: Argument named `_context`.
-    /// - `_request`: Argument named `_request`.
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    fn query(
-        &self,
-        _context: &ApplicationContext,
-        _request: &QuerySpec,
-    ) -> Result<QueryResult, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "query".to_owned(),
-        })
-    }
-
-    /// Executes one bounded semantic collection listing.
-    ///
-    /// # Parameters
-    /// - `_context`: Trusted request context.
-    /// - `_request`: Snapshot-bound collection request.
-    ///
-    /// # Returns
-    /// A bounded collection page.
-    ///
-    /// # Errors
-    /// Returns unsupported-operation when listing is unavailable.
-    fn list(
-        &self,
-        _context: &ApplicationContext,
-        _request: &ListRequest,
-    ) -> Result<ListResult, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "list".to_owned(),
-        })
-    }
-
-    /// Executes bounded semantic discovery within an exact scope.
-    ///
-    /// # Parameters
-    /// - `_context`: Trusted request context.
-    /// - `_request`: Snapshot-scoped discovery request.
-    ///
-    /// # Returns
-    /// A bounded discovery result.
-    ///
-    /// # Errors
-    /// Returns unsupported-operation when discovery is unavailable.
-    fn find(
-        &self,
-        _context: &ApplicationContext,
-        _request: &FindRequest,
-    ) -> Result<FindResult, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "find".to_owned(),
-        })
-    }
-
-    /// Executes one declared application command and returns its lifecycle state.
-    ///
-    /// # Errors
-    /// Returns an application error when command execution is unavailable.
-    /// - `_context`: Argument named `_context`.
-    /// - `_kind`: Argument named `_kind`.
-    /// - `_payload`: Argument named `_payload`.
-    ///
-    /// # Returns
-    /// The value produced by the declaration.
-    fn command(
-        &self,
-        _context: &ApplicationContext,
-        _kind: &str,
-        _payload: &serde_json::Value,
-    ) -> Result<Operation, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "command".to_owned(),
-        })
-    }
+    server_query_contract!();
 }
 
 #[path = "server_application.rs"]
@@ -366,10 +374,7 @@ mod server_borrowed;
 /// - `kind`: Argument named `kind`.
 /// - `payload`: Argument named `payload`.
 ///
-/// # Returns
-/// The value produced by the declaration.
 ///
-/// # Errors
 /// Returns an error when the operation cannot complete.
 #[path = "server_commands.rs"]
 mod server_commands;

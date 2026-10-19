@@ -4,13 +4,13 @@ use scriberig_agent_runtime::provider::{FinishReason, ModelResponse, ProviderMet
 
 /// Creates a normalized provider response.
 ///
-/// # Parameters
 /// - `tool_call`: Optional tool call emitted by the fake provider.
 /// - `text`: Optional final provider text.
 /// - `super`: Parent module visibility.
 ///
-/// # Returns
 /// A provider response with the corresponding finish reason.
+/// # Returns
+/// The operation result.
 pub(super) fn response(tool_call: Option<ToolCall>, text: Option<&str>) -> ModelResponse {
     ModelResponse {
         text: text.map(str::to_owned),

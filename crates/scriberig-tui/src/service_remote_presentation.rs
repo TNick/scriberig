@@ -2,11 +2,11 @@
 
 /// Converts application preferences into the protocol response shape.
 ///
-/// # Parameters
 /// - `snapshot`: Shared application preference revision and values.
 ///
-/// # Returns
 /// Protocol preferences with the same revision.
+/// # Returns
+/// The operation result.
 pub(crate) fn presentation_response(
     snapshot: &scriberig_app::AgentPresentationPreferenceSnapshot,
 ) -> scriberig_protocol::AgentPresentationPreferencesResponse {

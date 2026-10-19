@@ -8,14 +8,15 @@ use scriberig_app::AgentConsoleBackend;
 impl<S: AgentConsoleBackend> TuiModelRequestService for ApplicationAdapter<S> {
     /// Reads shared presentation defaults through the application service.
     ///
-    /// # Parameters
     /// - `context`: Caller authorization context.
     ///
-    /// # Returns
     /// Revisioned provider-neutral preferences.
     ///
-    /// # Errors
     /// Returns the application authorization or storage error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn agent_presentation_preferences(
         &self,
         context: &ApplicationContext,
@@ -28,17 +29,18 @@ impl<S: AgentConsoleBackend> TuiModelRequestService for ApplicationAdapter<S> {
 
     /// Projects a captured provider-neutral model request into protocol detail.
     ///
-    /// # Parameters
     /// - `context`: Caller authorization context.
     /// - `session`: Session containing the invocation.
     /// - `branch`: Branch containing the invocation.
     /// - `invocation`: Stable model-invocation identity.
     ///
-    /// # Returns
     /// Bounded captured request detail.
     ///
-    /// # Errors
     /// Returns the application authorization or lookup error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn model_request_detail(
         &self,
         context: &ApplicationContext,
@@ -55,12 +57,12 @@ impl<S: AgentConsoleBackend> TuiModelRequestService for ApplicationAdapter<S> {
 
 /// Converts a shared request projection into a safe protocol response.
 ///
-/// # Parameters
 /// - `invocation`: Stable model-invocation identity.
 /// - `detail`: Captured provider-neutral request projection.
 ///
-/// # Returns
 /// Bounded protocol model-request detail.
+/// # Returns
+/// The operation result.
 pub(super) fn model_request_response(
     invocation: EntityId,
     detail: scriberig_session::ModelRequestProjection,

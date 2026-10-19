@@ -29,8 +29,9 @@ pub struct Registry {
 impl Default for Registry {
     /// Creates an empty deny-by-default registry.
     ///
-    /// # Returns
     /// An empty version-one registry.
+    /// # Returns
+    /// The operation result.
     fn default() -> Self {
         Self {
             version: 1,

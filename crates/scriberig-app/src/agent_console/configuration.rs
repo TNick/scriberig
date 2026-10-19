@@ -21,6 +21,10 @@ struct ModelInput {
     display_name: String,
     /// Provider-native model identifier.
     provider_model_id: String,
+    /// Stable provider-family identity, when it differs from the default.
+    provider_profile: Option<String>,
+    /// Credential-free connection identity used by this model profile.
+    connection: Option<String>,
     /// Thinking levels supported by this model.
     #[serde(default)]
     thinking_levels: Vec<ThinkingLevelInput>,
@@ -49,15 +53,16 @@ struct ThinkingLevelInput {
 /// levels. Every configured model gets one enabled profile on the local
 /// connection.
 ///
-/// # Parameters
 /// - `json`: Optional catalog object with a `models` array.
 /// - `fallback_model`: Runtime model exposed when no catalog is configured.
 ///
-/// # Returns
 /// Safe, validated model descriptors and selectable profiles.
 ///
-/// # Errors
 /// Returns an error for malformed or internally inconsistent catalog data.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn model_library_from_json(
     json: Option<&str>,
     fallback_model: &str,
@@ -70,6 +75,8 @@ pub fn model_library_from_json(
                 id: fallback_model.to_owned(),
                 display_name: fallback_model.to_owned(),
                 provider_model_id: fallback_model.to_owned(),
+                provider_profile: None,
+                connection: None,
                 thinking_levels: Vec::new(),
                 default_thinking_level: None,
             }],
@@ -98,11 +105,14 @@ pub fn model_library_from_json(
             .default_thinking_level
             .map(ThinkingLevelId::new)
             .transpose()?;
+        let connection = model_input.connection.unwrap_or_else(|| "local".to_owned());
         let profile_id = format!("{}-profile", model_id.as_str());
         models.push(ModelDescriptor {
             id: model_id.clone(),
             display_name: model_input.display_name.clone(),
-            provider_profile: "local".to_owned(),
+            provider_profile: model_input
+                .provider_profile
+                .unwrap_or_else(|| "local".to_owned()),
             provider_model_id: model_input.provider_model_id,
             capabilities: ModelCapabilities {
                 streaming: true,
@@ -116,7 +126,7 @@ pub fn model_library_from_json(
             id: profile_id,
             display_name: model_input.display_name,
             model: model_id,
-            connection: "local".to_owned(),
+            connection,
             credential: None,
             default_thinking_level: default_level,
             enabled: true,
@@ -147,6 +157,23 @@ mod tests {
         assert_eq!(library.models[1].thinking_levels[0].id.as_str(), "deep");
         assert!(!serialized.contains("provider_parameters"));
         assert!(!serialized.contains("fake-secret-marker"));
+    }
+
+    /// Preserves the configured provider family and safe connection identity.
+    #[test]
+    fn configured_catalog_preserves_provider_connection_assignment() {
+        let library = model_library_from_json(
+            Some(
+                r#"{"models":[{"id":"alternate","display_name":"Alternate","provider_model_id":"wire-alternate","provider_profile":"openai_compatible","connection":"alternate-connection"}]}"#,
+            ),
+            "fallback",
+        )
+        .expect("valid provider connection catalog");
+
+        assert_eq!(library.models[0].provider_profile, "openai_compatible");
+        assert_eq!(library.profiles[0].connection, "alternate-connection");
+        let serialized = serde_json::to_string(&library).expect("serialize library");
+        assert!(!serialized.contains("api_key"));
     }
 
     /// Exposes the configured fallback when catalog JSON is absent.

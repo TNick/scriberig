@@ -4,12 +4,12 @@ use crate::{action::Action, event::Key, event::KeyCode, state::TuiState};
 
 /// Resolves session-composer focus, blur, and newline shortcuts.
 ///
-/// # Parameters
 /// - `state`: Current TUI presentation and focus state.
 /// - `key`: Backend-independent terminal key event.
 ///
-/// # Returns
 /// The composer action when the key belongs to this interaction.
+/// # Returns
+/// The operation result.
 pub(super) fn action_for(state: &TuiState, key: &Key) -> Option<Action> {
     if state.session_composer_focused && state.overlay.is_none() && key.code == KeyCode::Esc {
         return Some(Action::SessionComposerFocused(false));

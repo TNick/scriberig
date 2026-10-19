@@ -11,14 +11,14 @@ pub struct RustFile {
     pub comments: Vec<RustComment>,
 }
 
-/// Parsed Rust declaration.
 #[derive(Clone, Debug, Eq, PartialEq)]
+/// Represents a parsed top-level item in a Rust source module.
 pub enum RustItem {
-    /// Function declaration.
+    /// Function declaration with parsed signature and body syntax.
     Function(RustFunction),
-    /// Struct declaration.
+    /// Structure declaration with parsed semantic members.
     Struct(RustDeclaration),
-    /// Enum declaration.
+    /// Enumeration declaration with parsed variants.
     Enum(RustDeclaration),
     /// Implementation block.
     Impl(RustDeclaration),

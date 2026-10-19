@@ -16,9 +16,10 @@ mod session_changed;
 /// - `super`: Parent-module imports used by this helper.
 /// - `state`: TUI state containing the selected item.
 ///
-/// # Returns
 /// Effects produced by the activation.
 #[allow(clippy::too_many_lines)]
+/// # Returns
+/// The operation result.
 pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
     if state.overlay.is_none() {
         if state.focus == crate::state::Focus::Explorer {
@@ -177,33 +178,7 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
         return vec![Effect::None];
     };
     if item.id == "review-candidate" {
-        let candidate = match &state.session {
-            LoadState::Ready(model) => model
-                .rows
-                .iter()
-                .rev()
-                .find_map(|row| Some((row.candidate.clone()?, row.snapshot?))),
-            _ => None,
-        };
-        let Some((candidate, base_snapshot)) = candidate else {
-            state.overlay = None;
-            "No durable project candidate is available in the selected session."
-                .clone_into(&mut state.shell_message);
-            return vec![Effect::None];
-        };
-        state.overlay = None;
-        let request_id = state.next_request_id;
-        state.next_request_id += 1;
-        state.primary_view = crate::selection::PrimaryView::Changes;
-        state.review = LoadState::Loading { request_id };
-        return vec![Effect::Apply {
-            request_id,
-            request: scriberig_app::ApplyRequest {
-                base_snapshot,
-                branch: None,
-                change: candidate,
-            },
-        }];
+        return refresh_candidate_review(state);
     }
     if let Some(effects) = activate_palette_control(state, &item.id) {
         return effects;
@@ -225,59 +200,10 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
             state.overlay = None;
             return reduce(state, Action::HistoryRequested { snapshot });
         }
-        "diff" => {
-            if state
-                .selection
-                .and_then(|selection| selection.snapshot)
-                .is_none()
-            {
-                "Select an exact snapshot before starting a diff."
-                    .clone_into(&mut state.shell_message);
-                state.overlay = None;
-                return vec![Effect::None];
-            }
-            state.overlay = Some(Overlay::Input(crate::overlay::input::InputState {
-                purpose: crate::overlay::input::InputPurpose::DiffSnapshot,
-                ..Default::default()
-            }));
-            return vec![Effect::None];
-        }
-        "projection" => {
-            state.overlay = None;
-            let Some(selection) = state.selection else {
-                "Select an entity before opening projection.".clone_into(&mut state.shell_message);
-                return vec![Effect::None];
-            };
-            let Some(snapshot) = selection.snapshot else {
-                "Projection requires an exact snapshot.".clone_into(&mut state.shell_message);
-                return vec![Effect::None];
-            };
-            return reduce(
-                state,
-                Action::ProjectionRequested {
-                    request: scriberig_app::RenderRequest {
-                        snapshot: scriberig_app::SnapshotSelector::Exact(snapshot),
-                        view: format!("project-source:{}", selection.entity),
-                    },
-                },
-            );
-        }
+        "diff" => return reduce(state, Action::DiffChooserOpened),
+        "projection" => return reduce(state, Action::ProjectionOpened),
         "edit" => {
-            if state.selection.is_none()
-                || !matches!(
-                    state.primary_view,
-                    crate::selection::PrimaryView::Projection
-                )
-            {
-                "Open a source projection before editing it.".clone_into(&mut state.shell_message);
-                state.overlay = None;
-                return vec![Effect::None];
-            }
-            state.overlay = Some(Overlay::Input(crate::overlay::input::InputState {
-                purpose: crate::overlay::input::InputPurpose::ProjectionEdit,
-                ..Default::default()
-            }));
-            return vec![Effect::None];
+            return begin_projection_edit(state);
         }
         "project-agent" => {
             let Some(selection) = state.selection else {
@@ -350,4 +276,90 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
     };
     state.overlay = None;
     reduce(state, action)
+}
+
+/// Refreshes the selected session before opening its newest candidate review.
+///
+/// - `state`: TUI state containing the selected session handle.
+///
+/// Session refresh effect, or a local candidate review result.
+/// # Returns
+/// The effect that refreshes the session or opens the latest candidate review.
+pub(super) fn refresh_candidate_review(state: &mut TuiState) -> Vec<Effect> {
+    state.primary_view = crate::selection::PrimaryView::Changes;
+    state.focus = crate::state::Focus::Primary;
+    let Some(session) = state.agent_handles.last().map(|handle| handle.session) else {
+        return review_latest_candidate(state);
+    };
+    let request_id = state.next_request_id;
+    state.next_request_id = state.next_request_id.saturating_add(1);
+    state.session = LoadState::Loading { request_id };
+    vec![Effect::ReadSession {
+        request_id,
+        session,
+        branch: None,
+    }]
+}
+
+/// Opens the newest candidate review recorded in the selected session.
+///
+/// - `state`: TUI state containing the selected session and current overlay.
+///
+/// Apply preview effect, or a local message when no candidate is available.
+/// # Returns
+/// The effect that opens the latest candidate preview, or no effect.
+pub(super) fn review_latest_candidate(state: &mut TuiState) -> Vec<Effect> {
+    let candidate = match &state.session {
+        LoadState::Ready(model) => model
+            .rows
+            .iter()
+            .rev()
+            .find_map(|row| Some((row.candidate.clone()?, row.snapshot?))),
+        _ => None,
+    };
+    let Some((candidate, base_snapshot)) = candidate else {
+        state.overlay = None;
+        state.primary_view = crate::selection::PrimaryView::Changes;
+        "No durable project candidate is available in the selected session."
+            .clone_into(&mut state.shell_message);
+        return vec![Effect::None];
+    };
+    state.overlay = None;
+    let request_id = state.next_request_id;
+    state.next_request_id += 1;
+    state.primary_view = crate::selection::PrimaryView::Changes;
+    state.review = LoadState::Loading { request_id };
+    vec![Effect::Apply {
+        request_id,
+        request: scriberig_app::ApplyRequest {
+            base_snapshot,
+            branch: None,
+            change: candidate,
+        },
+    }]
+}
+
+/// Opens the semantic source edit input for the selected projection.
+///
+/// `state`: TUI state containing the selected entity and active view.
+///
+/// A no-op effect after opening the editor or reporting its prerequisite.
+/// # Returns
+/// The reducer effect produced by the state change.
+pub(super) fn begin_projection_edit(state: &mut TuiState) -> Vec<Effect> {
+    if state
+        .selection
+        .is_none_or(|selection| selection.snapshot.is_none())
+    {
+        "Select a source at an exact snapshot before editing it."
+            .clone_into(&mut state.shell_message);
+        state.overlay = None;
+        return vec![Effect::None];
+    }
+    state.primary_view = crate::selection::PrimaryView::Projection;
+    state.overlay = Some(Overlay::Input(crate::overlay::input::InputState {
+        purpose: crate::overlay::input::InputPurpose::ProjectionEdit,
+        ..Default::default()
+    }));
+    vec![Effect::None]
 }

@@ -54,57 +54,55 @@ pub enum PromotionError {
 }
 
 impl SqliteStore {
-    /// # Parameters
     /// - `path`: Operation input.
     /// - `rusqlite`: Operation input.
     ///
-    /// # Returns
     /// The requested storage result.
     ///
-    /// # Errors
     /// Returns a backend error when SQLite rejects the operation.
     /// Opens or creates a database at a filesystem path.
     ///
-    /// # Parameters
     /// - `path`: SQLite database path.
     ///
-    /// # Returns
     /// An initialized durable store.
     ///
-    /// # Errors
     /// Returns a SQLite initialization error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn open(path: impl AsRef<Path>) -> rusqlite::Result<Self> {
         Self::from_connection(connection::configure(Connection::open(path)?)?)
     }
-    /// # Parameters
     /// - `rusqlite`: Operation input.
     ///
-    /// # Returns
     /// The requested storage result.
     ///
-    /// # Errors
     /// Returns a backend error when SQLite rejects the operation.
     /// Opens an isolated in-memory database.
     ///
-    /// # Returns
     /// An initialized test store.
     ///
-    /// # Errors
     /// Returns a SQLite initialization error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn open_in_memory() -> rusqlite::Result<Self> {
         Self::from_connection(connection::configure(Connection::open_in_memory()?)?)
     }
     /// Internal SQLite storage operation.
-    /// # Parameters
     /// - `crate`: Internal visibility marker.
     /// - `connection`: Operation input.
     /// - `rusqlite`: Operation input.
     ///
-    /// # Returns
     /// The requested storage result.
     ///
-    /// # Errors
     /// Returns a backend error when SQLite rejects the operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn from_connection(connection: Connection) -> rusqlite::Result<Self> {
         let mut connection = connection;
         schema::initialize(&mut connection)?;
@@ -115,11 +113,13 @@ impl SqliteStore {
 
     /// Returns the detected backend storage schema version.
     ///
-    /// # Returns
     /// The schema version recorded in the database.
     ///
-    /// # Errors
     /// Returns a SQLite query error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn schema_version(&self) -> rusqlite::Result<u32> {
         let connection = self
             .connection
@@ -139,17 +139,18 @@ impl SqliteStore {
 
     /// Applies changes and promotes a named root in one SQLite transaction.
     ///
-    /// # Parameters
     /// - `name`: Named root to promote.
     /// - `expected`: Root value required for promotion.
     /// - `base`: Existing snapshot to change.
     /// - `changes`: Mapping changes for the successor snapshot.
     ///
-    /// # Returns
     /// The promoted immutable snapshot identity.
     ///
-    /// # Errors
     /// Returns a snapshot, stale-root, or transaction error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn apply_changes_and_promote(
         &self,
         name: scriberig_core::RootName,
@@ -162,18 +163,19 @@ impl SqliteStore {
 
     /// Inserts revisions, creates a snapshot, and promotes its named root atomically.
     ///
-    /// # Parameters
     /// - `name`: Named root to promote.
     /// - `expected`: Root value required for promotion.
     /// - `base`: Existing snapshot to change.
     /// - `revisions`: New immutable revisions to insert idempotently.
     /// - `changes`: Mapping changes for the successor snapshot.
     ///
-    /// # Returns
     /// The promoted immutable snapshot identity.
     ///
-    /// # Errors
     /// Returns a snapshot, missing-revision, stale-root, or transaction error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn apply_revisions_and_promote(
         &self,
         name: scriberig_core::RootName,
@@ -235,7 +237,6 @@ impl SqliteStore {
 
     /// Promotes a project snapshot and its catalog metadata atomically.
     ///
-    /// # Parameters
     /// - `project`: Project whose snapshot and ownership are being replaced.
     /// - `name`: Named root receiving the promoted snapshot.
     /// - `expected`: Root value required for compare-and-swap promotion.
@@ -244,12 +245,14 @@ impl SqliteStore {
     /// - `changes`: Snapshot map changes to apply.
     /// - `entities`: Ownership rows matching the resulting project snapshot.
     ///
-    /// # Returns
     /// The promoted immutable snapshot identity.
     ///
-    /// # Errors
     /// Returns a snapshot, stale-root, missing-revision, or transaction error.
     #[allow(clippy::too_many_arguments)]
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn apply_project_import(
         &self,
         project: ProjectId,
@@ -341,16 +344,17 @@ impl SqliteStore {
 
     /// Stores a snapshot and its persistent map root in an open transaction.
     ///
-    /// # Parameters
     /// - `transaction`: Transaction receiving the immutable records.
     /// - `snapshot`: Snapshot to persist.
     /// - `crate`: Internal visibility marker.
     ///
-    /// # Returns
     /// Unit after the records are prepared.
     ///
-    /// # Errors
     /// Returns the SQLite insertion error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(crate) fn store_snapshot_in_transaction(
         transaction: &rusqlite::Transaction<'_>,
         snapshot: &Snapshot,
@@ -361,14 +365,15 @@ impl SqliteStore {
 
 /// Initializes a development database path and its schema.
 ///
-/// # Parameters
 /// - `path`: SQLite database path.
 ///
-/// # Returns
 /// Unit after initialization.
 ///
-/// # Errors
 /// Returns a database initialization error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn initialize_development_database(
     path: impl AsRef<Path>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

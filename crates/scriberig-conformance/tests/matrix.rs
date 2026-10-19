@@ -9,14 +9,15 @@ const STATUSES: [&str; 4] = ["not_applicable", "planned", "implemented", "verifi
 
 /// Parses and validates one capability matrix document.
 ///
-/// # Parameters
 /// - `source`: TOML capability matrix.
 ///
-/// # Returns
 /// Success when all entries use the prescribed vocabulary.
 ///
-/// # Errors
 /// Returns a readable validation error for malformed entries.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn validate_matrix(source: &str) -> Result<(), String> {
     let document: toml::Value = source.parse().map_err(|error| format!("parse: {error}"))?;
     let entries = document

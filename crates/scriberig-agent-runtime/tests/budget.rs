@@ -45,23 +45,25 @@ struct NoopTool;
 impl Tool for NoopTool {
     /// Returns the fixture tool identifier.
     ///
-    /// # Returns
     /// The fixture tool name.
+    /// # Returns
+    /// The operation result.
     fn name(&self) -> &'static str {
         "noop"
     }
 
     /// Returns one bounded fixture result.
     ///
-    /// # Parameters
     /// - `_context`: Runtime application context.
     /// - `input`: Tool input to echo.
     ///
-    /// # Returns
     /// A bounded fixture result.
     ///
-    /// # Errors
     /// This fixture never returns an error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke(
         &self,
         _context: &ApplicationContext,
@@ -84,17 +86,18 @@ struct NoopChildExecutor;
 impl ChildExecutor for NoopChildExecutor {
     /// Returns a bounded fixture child result.
     ///
-    /// # Parameters
     /// - `_context`: Runtime application context.
     /// - `_scope`: Optional durable parent scope.
     /// - `_request`: Validated child request.
     /// - `_cancelled`: Shared cancellation flag.
     ///
-    /// # Returns
     /// A bounded fixture child result.
     ///
-    /// # Errors
     /// This fixture never returns an error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute_child(
         &mut self,
         _context: &ApplicationContext,

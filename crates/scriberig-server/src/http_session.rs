@@ -8,14 +8,11 @@ use crate::server::ApplicationService;
 
 /// Reads one durable session through the browser transport route.
 ///
-/// # Parameters
 /// - `state`: HTTP application state.
 /// - `body`: JSON object containing a session identity.
 ///
-/// # Returns
 /// The direct session response expected by the browser client.
 ///
-/// # Errors
 /// Returns a structured HTTP error for malformed or unavailable sessions.
 pub(super) fn read<S: ApplicationService>(
     state: &HttpState<S>,
@@ -66,17 +63,18 @@ pub(super) fn read<S: ApplicationService>(
 
 /// Creates the empty session shape used before a browser session is persisted.
 ///
-/// # Parameters
 /// - `session`: Browser-owned session identity.
 ///
-/// # Returns
 /// An empty durable-session response with the requested identity.
+/// # Returns
+/// The operation result.
 fn empty_session(session: &str) -> scriberig_protocol::SessionReadResponse {
     scriberig_protocol::SessionReadResponse {
         session: scriberig_protocol::SessionReference {
             id: session.to_owned(),
         },
         branches: Vec::new(),
+        plans: Vec::new(),
         execution: scriberig_protocol::SessionExecutionSelection::default(),
     }
 }

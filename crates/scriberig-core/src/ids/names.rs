@@ -35,14 +35,15 @@ macro_rules! name_type {
         impl $name {
             /// Validates and constructs a name.
             ///
-            /// # Parameters
             /// - `value`: Name text.
             ///
-            /// # Returns
             /// The validated name.
             ///
-            /// # Errors
             /// Returns `EmptyName` when the text is empty or whitespace-only.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
             pub fn new(value: impl Into<String>) -> Result<Self, IdParseError> {
                 let value = value.into();
                 if value.trim().is_empty() {
@@ -53,12 +54,12 @@ macro_rules! name_type {
 
             /// Borrows the validated name text.
             ///
-            /// # Parameters
             /// - `self`: Name to inspect.
             ///
-            /// # Returns
             /// The stored name text.
             #[must_use]
+/// # Returns
+/// The operation result.
             pub fn as_str(&self) -> &str {
                 &self.value
             }
@@ -68,15 +69,16 @@ macro_rules! name_type {
         impl Display for $name {
             /// Formats the name with its type-specific prefix.
             ///
-            /// # Parameters
             /// - `self`: Name to format.
             /// - `formatter`: Destination formatter.
             ///
-            /// # Returns
             /// A formatting result.
             ///
-            /// # Errors
             /// Returns a formatting error if writing to the formatter fails.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
             fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
                 write!(formatter, concat!($prefix, "{}"), self.value)
             }
@@ -88,14 +90,15 @@ macro_rules! name_type {
 
             /// Parses a prefixed name and validates its contents.
             ///
-            /// # Parameters
             /// - `text`: Text to parse.
             ///
-            /// # Returns
             /// The parsed name.
             ///
-            /// # Errors
             /// Returns an error for a wrong prefix or empty name.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
             fn from_str(text: &str) -> Result<Self, Self::Err> {
                 let value = text
                     .strip_prefix($prefix)

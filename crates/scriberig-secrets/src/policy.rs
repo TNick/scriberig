@@ -53,16 +53,17 @@ pub struct SecretPolicy {
 impl SecretPolicy {
     /// Checks destination authority without accessing a secret source.
     ///
-    /// # Parameters
     /// - `reference`: Requested secret source.
     /// - `endpoint`: Exact provider base URL.
     /// - `context`: Trusted project and consumer context.
     ///
-    /// # Returns
     /// Unit when an exact binding grants the use.
     ///
-    /// # Errors
     /// Returns `Denied` or `Invalid` before any secret or network access.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn authorize(
         &self,
         reference: &SecretRef,
@@ -91,14 +92,15 @@ impl SecretPolicy {
 
 /// Normalizes an exact provider URL and rejects insecure credential targets.
 ///
-/// # Parameters
 /// - `endpoint`: Provider base URL before adding transport paths.
 ///
-/// # Returns
 /// A normalized URL without a trailing slash.
 ///
-/// # Errors
 /// Returns `Invalid` for credentials, queries, fragments, or insecure transport.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn normalize_endpoint(endpoint: &str) -> Result<String, SecretError> {
     validate_public_endpoint(endpoint)?;
     let url = Url::parse(endpoint).map_err(|_| SecretError::Invalid)?;
@@ -121,14 +123,15 @@ pub fn normalize_endpoint(endpoint: &str) -> Result<String, SecretError> {
 
 /// Validates an endpoint descriptor before it can appear in configuration output.
 ///
-/// # Parameters
 /// - `endpoint`: Nonsecret provider endpoint configuration.
 ///
-/// # Returns
 /// Unit for HTTP(S) URLs without embedded credentials, queries, or fragments.
 ///
-/// # Errors
 /// Returns a safe `Invalid` category without retaining the raw URL.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn validate_public_endpoint(endpoint: &str) -> Result<(), SecretError> {
     let url = Url::parse(endpoint).map_err(|_| SecretError::Invalid)?;
     if url.host().is_none()

@@ -14,13 +14,13 @@ pub struct RelationValue {
 impl RelationValue {
     /// Creates a typed relation without applying schema cardinality rules.
     ///
-    /// # Parameters
     /// - `relation_type`: Relation type identity.
     /// - `targets`: Semantic target identities.
     ///
-    /// # Returns
     /// The owned relation value.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(relation_type: ObjectType, targets: Vec<EntityId>) -> Self {
         Self {
             relation_type,

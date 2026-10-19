@@ -21,11 +21,11 @@ pub struct ProjectProjection {
 
 /// Parses the deterministic terminal edit request into a source replacement.
 ///
-/// # Parameters
 /// - `change`: Encoded TUI candidate request.
 ///
-/// # Returns
 /// Selected entity and replacement expression when the request is valid.
+/// # Returns
+/// The operation result.
 pub fn parse_edit(change: &str) -> Option<(EntityId, &str)> {
     let mut fields = change.splitn(3, '|');
     (fields.next() == Some("project-edit")).then_some(())?;
@@ -34,15 +34,16 @@ pub fn parse_edit(change: &str) -> Option<(EntityId, &str)> {
 
 /// Renders a selected local project source through the public result model.
 ///
-/// # Parameters
 /// - `projection`: Snapshot-bound source projection data.
 /// - `view`: View suffix containing the selected entity identity.
 ///
-/// # Returns
 /// A rendered application result.
 ///
-/// # Errors
 /// Returns a structured invalid-request or not-found error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn render(
     projection: &ProjectProjection,
     view: &str,

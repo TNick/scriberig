@@ -13,11 +13,13 @@ pub struct SensitivePaths {
 impl SensitivePaths {
     /// Reads exclusion metadata without retrieving credential values.
     ///
-    /// # Returns
     /// Known secret paths from user and system authorization metadata.
     ///
-    /// # Errors
     /// Returns a safe failure instead of importing when policy cannot be read.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn from_process() -> Result<Self, SecretError> {
         let locations = RegistryLocations::from_process()?;
         let registry = locations.load()?;
@@ -44,12 +46,12 @@ impl SensitivePaths {
 
     /// Checks known names and registered absolute paths without reading contents.
     ///
-    /// # Parameters
     /// - `path`: File or directory being considered for import or projection.
     ///
-    /// # Returns
     /// Whether the path must be excluded from semantic knowledge.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn contains(&self, path: &Path) -> bool {
         if sensitive_name(path) {
             return true;
@@ -63,12 +65,12 @@ impl SensitivePaths {
 
 /// Recognizes conservative credential filenames while allowing explicit templates.
 ///
-/// # Parameters
 /// - `path`: Candidate path whose components are examined.
 ///
-/// # Returns
 /// Whether a component identifies a common credential file or directory.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn sensitive_name(path: &Path) -> bool {
     path.components().any(|component| {
         let name = component.as_os_str().to_string_lossy().to_ascii_lowercase();

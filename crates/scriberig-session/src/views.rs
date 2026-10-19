@@ -59,7 +59,6 @@ impl SessionViews {
     #[must_use]
     /// Executes `branches` for structured session state.
     ///
-    /// # Parameters
     /// - `self`: Session value or formatter.
     /// - `id`: Stable entity identifier when applicable.
     /// - `title`: Branch title when applicable.
@@ -71,11 +70,11 @@ impl SessionViews {
     /// - `decisions`: Decision entries when applicable.
     /// - `f`: Formatting destination when applicable.
     ///
-    /// # Returns
     /// The structured result.
     ///
-    /// # Errors
     /// Returns a validation or formatting error when inputs are invalid.
+    /// # Returns
+    /// The operation result.
     pub fn branches(session: &Session) -> Vec<BranchDescriptor> {
         let mut r = session
             .branches
@@ -88,7 +87,6 @@ impl SessionViews {
     #[must_use]
     /// Executes `turns` for structured session state.
     ///
-    /// # Parameters
     /// - `self`: Session value or formatter.
     /// - `id`: Stable entity identifier when applicable.
     /// - `title`: Branch title when applicable.
@@ -100,11 +98,11 @@ impl SessionViews {
     /// - `decisions`: Decision entries when applicable.
     /// - `f`: Formatting destination when applicable.
     ///
-    /// # Returns
     /// The structured result.
     ///
-    /// # Errors
     /// Returns a validation or formatting error when inputs are invalid.
+    /// # Returns
+    /// The operation result.
     pub fn turns(branch: &Branch) -> Vec<TurnView> {
         let mut r = branch.turns.iter().map(Self::turn).collect::<Vec<_>>();
         r.sort_by_key(|t| t.ordinal);
@@ -113,13 +111,13 @@ impl SessionViews {
 
     /// Returns compact child results from the parent session graph.
     ///
-    /// # Parameters
     /// - `session`: Session graph containing the branches.
     /// - `parent`: Parent branch whose children are summarized.
     ///
-    /// # Returns
     /// Compact summaries sorted by branch identity.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn child_summaries(session: &Session, parent: EntityId) -> Vec<ChildBranchSummary> {
         let mut summaries = session
             .branches
@@ -144,7 +142,6 @@ impl SessionViews {
     #[must_use]
     /// Executes `decisions` for structured session state.
     ///
-    /// # Parameters
     /// - `self`: Session value or formatter.
     /// - `id`: Stable entity identifier when applicable.
     /// - `title`: Branch title when applicable.
@@ -156,11 +153,11 @@ impl SessionViews {
     /// - `decisions`: Decision entries when applicable.
     /// - `f`: Formatting destination when applicable.
     ///
-    /// # Returns
     /// The structured result.
     ///
-    /// # Errors
     /// Returns a validation or formatting error when inputs are invalid.
+    /// # Returns
+    /// The operation result.
     pub fn decisions(decisions: &[Decision]) -> Vec<DecisionEntry> {
         let mut r = decisions
             .iter()

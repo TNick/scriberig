@@ -7,6 +7,51 @@ use super::{ApplicationError, EntityId};
 #[path = "service_remote_activity.rs"]
 mod remote_activity;
 
+#[path = "service_remote_plan_mapping.rs"]
+mod plan_mapping;
+pub(crate) use plan_mapping::protocol_anchor;
+
+/// Converts exact application semantic scope to its protocol representation.
+///
+/// - `selection`: Validated local project, root, entity, and snapshot handles.
+///
+/// Provider-neutral protocol selection with stable string references.
+/// # Returns
+/// The equivalent protocol selection.
+pub(crate) fn protocol_agent_selection(
+    selection: &scriberig_app::AgentSelection,
+) -> scriberig_protocol::AgentSelection {
+    scriberig_protocol::AgentSelection {
+        project_id: selection.project.map(|project| project.to_string()),
+        root: Some(scriberig_protocol::EntityReference {
+            id: selection.root.to_string(),
+        }),
+        entity: scriberig_protocol::EntityReference {
+            id: selection.entity.to_string(),
+        },
+        snapshot: scriberig_protocol::SnapshotReference {
+            id: selection.snapshot.to_string(),
+        },
+    }
+}
+
+/// Restores one complete plan projection returned by the remote service.
+///
+/// - `value`: Safe protocol plan projection.
+///
+/// Session-domain plan with validated stable identities.
+///
+/// Returns an invalid-request error for malformed remote identities.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
+pub(crate) fn session_plan_from_response(
+    value: scriberig_protocol::SessionPlan,
+) -> Result<scriberig_session::Plan, ApplicationError> {
+    plan_mapping::from_response(value)
+}
+
 #[path = "service_remote_operation_mapping.rs"]
 mod operation_mapping;
 pub(crate) use operation_mapping::map_remote_operation;
@@ -22,16 +67,13 @@ pub(crate) use event_mapping::map_remote_event;
 
 /// Lists remote snapshot entities for the TUI explorer.
 ///
-/// # Parameters
 /// - `client`: Remote protocol client.
 /// - `entity`: Collection owner to exclude from the result.
 /// - `snapshot`: Exact snapshot context.
 /// - `continuation`: Optional page continuation.
 ///
-/// # Returns
 /// A bounded Explorer page.
 ///
-/// # Errors
 /// Returns a sanitized remote application error.
 pub(crate) fn list_explorer<T: scriberig_protocol::ProtocolTransport>(
     client: &scriberig_client::Client<T>,
@@ -80,27 +122,25 @@ pub(crate) fn list_explorer<T: scriberig_protocol::ProtocolTransport>(
 
 /// Finds remote entities in an exact snapshot.
 ///
-/// # Parameters
 /// - `client`: Remote protocol client.
 /// - `snapshot`: Exact discovery scope.
 /// - `query`: Search text.
 ///
-/// # Returns
 /// A bounded TUI discovery model.
 ///
-/// # Errors
 /// Returns a sanitized remote application error.
 /// Converts a compact protocol session response to the shared session model.
 ///
-/// # Parameters
 /// - `response`: Protocol session tree response.
 ///
-/// # Returns
 /// Session value accepted by the existing TUI projection.
 ///
-/// # Errors
 /// Returns an internal error when a remote reference is malformed.
 /// - `crate`: Internal visibility marker.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn session_from_response(
     response: scriberig_protocol::SessionReadResponse,
 ) -> Result<scriberig_session::Session, ApplicationError> {
@@ -171,6 +211,7 @@ pub(crate) fn session_from_response(
                         status: scriberig_session::BranchStatus::Completed,
                         summary: None,
                         result_kind: None,
+                        candidate_context: None,
                         references: result
                             .references
                             .iter()
@@ -188,22 +229,60 @@ pub(crate) fn session_from_response(
             Ok(branch)
         })
         .collect::<Result<Vec<_>, ApplicationError>>()?;
+    let plans = response
+        .plans
+        .into_iter()
+        .map(plan_mapping::from_response)
+        .collect::<Result<Vec<_>, ApplicationError>>()?;
     Ok(scriberig_session::Session {
         id,
         branches,
         goals: Vec::new(),
         tasks: Vec::new(),
+        plans,
         execution: execution_from_response(response.execution),
     })
 }
 
+/// Parses the structural parent identity carried by the current remote DTO.
+///
+/// - `value`: Tagged `branch:`/`node:` parent or legacy branch identity.
+///
+/// The typed structural parent, or `None` when the field is empty.
+///
+/// Returns an internal error when the tagged identity is malformed.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
+fn parse_plan_parent(
+    value: &str,
+) -> Result<Option<scriberig_session::PlanNodeParent>, ApplicationError> {
+    if let Some(branch) = value.strip_prefix("branch:") {
+        return parse_entity(branch)
+            .map(scriberig_session::PlanNodeParent::Branch)
+            .map(Some);
+    }
+    if let Some(node) = value.strip_prefix("node:") {
+        return parse_entity(node)
+            .map(scriberig_session::PlanNodeParent::Node)
+            .map(Some);
+    }
+    if value.is_empty() {
+        return Ok(None);
+    }
+    parse_entity(value)
+        .map(scriberig_session::PlanNodeParent::Branch)
+        .map(Some)
+}
+
 /// Converts the public execution selection and history into the session owner.
 ///
-/// # Parameters
 /// - `selection`: Protocol selection carried by the session response.
 ///
-/// # Returns
 /// Equivalent session-domain execution selection.
+/// # Returns
+/// The operation result.
 fn execution_from_response(
     selection: scriberig_protocol::SessionExecutionSelection,
 ) -> scriberig_session::SessionExecutionSelection {
@@ -228,15 +307,16 @@ fn execution_from_response(
 
 /// Parses one remote entity identity and sanitizes malformed responses.
 ///
-/// # Parameters
 /// - `value`: Remote entity identity text.
 ///
-/// # Returns
 /// Parsed entity identity.
 ///
-/// # Errors
 /// Returns an internal error for malformed remote identity text.
 /// - `crate`: Internal visibility marker.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn parse_entity(value: &str) -> Result<EntityId, ApplicationError> {
     EntityId::from_str(value).map_err(|error| ApplicationError::Internal {
         message: format!("remote response contained invalid entity identity: {error}"),
@@ -245,15 +325,16 @@ pub(crate) fn parse_entity(value: &str) -> Result<EntityId, ApplicationError> {
 
 /// Parses one remote snapshot identity and sanitizes malformed responses.
 ///
-/// # Parameters
 /// - `value`: Remote snapshot identity text.
 ///
-/// # Returns
 /// Parsed snapshot identity.
 ///
-/// # Errors
 /// Returns an internal error for malformed remote identity text.
 /// - `super`: Internal visibility marker.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn parse_snapshot(value: &str) -> Result<scriberig_core::SnapshotId, ApplicationError> {
     scriberig_core::SnapshotId::from_str(value).map_err(|error| ApplicationError::Internal {
         message: format!("remote response contained invalid snapshot identity: {error}"),
@@ -262,12 +343,12 @@ pub(super) fn parse_snapshot(value: &str) -> Result<scriberig_core::SnapshotId, 
 
 /// Converts client/protocol failures into safe application-boundary errors.
 ///
-/// # Parameters
 /// - `error`: Client or protocol failure.
 ///
-/// # Returns
 /// A sanitized application error.
 /// - `crate`: Internal visibility marker.
+/// # Returns
+/// The operation result.
 pub(crate) fn remote_error(error: scriberig_client::ClientError) -> ApplicationError {
     match error {
         scriberig_client::ClientError::Transport(message) => {
@@ -275,6 +356,10 @@ pub(crate) fn remote_error(error: scriberig_client::ClientError) -> ApplicationE
                 message: crate::inspector::sanitize(&message),
             }
         }
+        scriberig_client::ClientError::Encoding(message) => ApplicationError::ProtocolFailure {
+            category: "request_encoding".to_owned(),
+            message: crate::inspector::sanitize(&message),
+        },
         scriberig_client::ClientError::Protocol(error) => ApplicationError::ProtocolFailure {
             category: protocol_category(&error.code).to_owned(),
             message: crate::inspector::sanitize(&error.message),
@@ -288,12 +373,12 @@ pub(crate) fn remote_error(error: scriberig_client::ClientError) -> ApplicationE
 
 /// Converts a protocol error code to the stable presentation category.
 ///
-/// # Parameters
 /// - `code`: Protocol error code to classify.
 ///
-/// # Returns
 /// Stable snake-case category text.
 /// - `crate`: Internal visibility marker.
+/// # Returns
+/// The operation result.
 pub(crate) fn protocol_category(code: &scriberig_protocol::ProtocolErrorCode) -> &'static str {
     match code {
         scriberig_protocol::ProtocolErrorCode::InvalidRequest => "invalid_request",

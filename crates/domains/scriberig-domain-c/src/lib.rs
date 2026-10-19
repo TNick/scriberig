@@ -88,15 +88,16 @@ pub struct CError {
 impl Display for CError {
     /// Formats the first C-family parser diagnostic.
     ///
-    /// # Parameters
     /// - `self`: Parser failure to format.
     /// - `formatter`: Formatting destination.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when the destination rejects output.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         formatter.write_str("C-family syntax error")?;
         if let Some(message) = self.diagnostics.first() {
@@ -110,15 +111,16 @@ impl std::error::Error for CError {}
 
 /// Parses C or C++ source based on its file extension.
 ///
-/// # Parameters
 /// - `path`: Source path used to select the grammar.
 /// - `source`: UTF-8 C or C++ source text.
 ///
-/// # Returns
 /// A complete serializable syntax tree and its individual nodes.
 ///
-/// # Errors
 /// Returns all syntax-error diagnostics when the source is incomplete or invalid.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn parse(path: &Path, source: &str) -> Result<CDocument, CError> {
     let adapter = adapter_for(path).ok_or_else(|| CError {
         diagnostics: vec![format!("unsupported C-family path: {}", path.display())],
@@ -152,11 +154,11 @@ pub fn parse(path: &Path, source: &str) -> Result<CDocument, CError> {
 
 /// Selects the C-family adapter identifier for a source path.
 ///
-/// # Parameters
 /// - `path`: Source path to classify.
 ///
-/// # Returns
 /// The C or C++ adapter identifier, or none for an unsupported extension.
+/// # Returns
+/// The operation result.
 fn adapter_for(path: &Path) -> Option<&'static str> {
     match path.extension().and_then(|value| value.to_str()) {
         Some("c" | "h") => Some("c"),
@@ -167,13 +169,13 @@ fn adapter_for(path: &Path) -> Option<&'static str> {
 
 /// Builds the serializable tree representation for one parser node.
 ///
-/// # Parameters
 /// - `node`: Tree-sitter node to serialize.
 /// - `source`: Original source text.
 /// - `field`: Optional parent grammar field name.
 ///
-/// # Returns
 /// A serializable node with recursively ordered children.
+/// # Returns
+/// The operation result.
 fn build_node(node: Node<'_>, source: &str, field: Option<String>) -> CNode {
     let mut cursor = node.walk();
     let mut children = Vec::new();
@@ -210,12 +212,10 @@ fn build_node(node: Node<'_>, source: &str, field: Option<String>) -> CNode {
 
 /// Collects every syntax node in depth-first order.
 ///
-/// # Parameters
 /// - `node`: Current serialized node.
 /// - `path`: Stable path to the node.
 /// - `nodes`: Destination flat node list.
 ///
-/// # Returns
 /// Unit after the subtree is flattened.
 fn flatten_node(node: &CNode, path: &str, nodes: &mut Vec<CNodeRecord>) {
     nodes.push(CNodeRecord {
@@ -239,12 +239,10 @@ fn flatten_node(node: &CNode, path: &str, nodes: &mut Vec<CNodeRecord>) {
 
 /// Collects parser error nodes with source coordinates.
 ///
-/// # Parameters
 /// - `node`: Current parser node.
 /// - `source`: Original source text.
 /// - `diagnostics`: Destination diagnostic messages.
 ///
-/// # Returns
 /// Unit after the subtree has been inspected.
 fn collect_errors(node: Node<'_>, source: &str, diagnostics: &mut Vec<String>) {
     if node.is_error() || node.is_missing() {

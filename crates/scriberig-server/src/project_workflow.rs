@@ -156,14 +156,11 @@ pub(super) fn propose_change<S: ApplicationService>(
 
 /// Loads a durable candidate and all of its path-level source effects.
 ///
-/// # Parameters
 /// - `state`: Shared application state.
 /// - `body`: JSON candidate identity.
 ///
-/// # Returns
 /// Candidate detail including ordered source effects.
 ///
-/// # Errors
 /// Returns a structured request, storage, or not-found error.
 pub(super) fn candidate<S: ApplicationService>(
     state: &HttpState<S>,
@@ -194,14 +191,11 @@ pub(super) fn candidate<S: ApplicationService>(
 
 /// Validates one durable candidate in its isolated exact-base workspace.
 ///
-/// # Parameters
 /// - `state`: Shared application state.
 /// - `body`: JSON candidate identity.
 ///
-/// # Returns
 /// Candidate detail with durable validation state.
 ///
-/// # Errors
 /// Returns a structured request, storage, stale-base, or not-found error.
 pub(super) fn validate_candidate<S: ApplicationService>(
     state: &HttpState<S>,
@@ -218,11 +212,11 @@ pub(super) fn validate_candidate<S: ApplicationService>(
 
 /// Serializes a candidate using the shared effect representation.
 ///
-/// # Parameters
 /// - `candidate`: Durable project candidate.
 ///
-/// # Returns
 /// Protocol-neutral JSON with exact base bytes and proposed bytes per path.
+/// # Returns
+/// The operation result.
 fn candidate_json(candidate: &scriberig_project::ProjectCandidate) -> Value {
     let (validation, diagnostics) = match &candidate.validation {
         CandidateValidation::Pending => ("pending", Vec::new()),

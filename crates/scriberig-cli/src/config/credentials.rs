@@ -6,13 +6,10 @@ use serde_json::Value;
 
 /// Rejects multiple spellings of the credential property in one source layer.
 ///
-/// # Parameters
 /// - `names`: Property names supplied by one layer.
 ///
-/// # Returns
 /// Unit when the layer has at most one credential spelling.
 ///
-/// # Errors
 /// Returns a safe conflict diagnostic without property values.
 pub(super) fn validate_aliases<'a>(
     names: impl IntoIterator<Item = &'a str>,
@@ -32,15 +29,16 @@ pub(super) fn validate_aliases<'a>(
 
 /// Normalizes a legacy environment property into one atomic reference.
 ///
-/// # Parameters
 /// - `name`: Original property name.
 /// - `value`: Nonsecret reference value from that source.
 ///
-/// # Returns
 /// The canonical property name and value.
 ///
-/// # Errors
 /// Returns a safe validation failure without echoing raw input.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn normalize(name: String, value: Value) -> Result<(String, Value), ConfigError> {
     if name != "api_key_env" {
         return Ok((name, value));
@@ -57,14 +55,15 @@ pub(super) fn normalize(name: String, value: Value) -> Result<(String, Value), C
 
 /// Validates a nullable credential reference without resolving its value.
 ///
-/// # Parameters
 /// - `value`: Atomic reference object or null.
 ///
-/// # Returns
 /// Unit for supported references.
 ///
-/// # Errors
 /// Returns a safe validation failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn validate(value: &Value) -> Result<(), ConfigError> {
     if value.is_null() {
         return Ok(());
@@ -75,8 +74,9 @@ pub(super) fn validate(value: &Value) -> Result<(), ConfigError> {
 
 /// Builds a diagnostic that cannot echo a mistaken inline secret.
 ///
-/// # Returns
 /// A safe configuration error.
+/// # Returns
+/// The operation result.
 fn invalid() -> ConfigError {
     ConfigError { message: "invalid credential reference; use keyring, environment, or an absolute protected file reference".to_owned() }
 }

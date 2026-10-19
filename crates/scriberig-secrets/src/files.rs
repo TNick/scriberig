@@ -15,14 +15,15 @@ mod platform;
 
 /// Rejects symbolic links and Windows reparse points in every existing component.
 ///
-/// # Parameters
 /// - `path`: Absolute protected path to inspect.
 ///
-/// # Returns
 /// Unit for an existing path without link components.
 ///
-/// # Errors
 /// Returns a safe denial for missing, relative, or redirected paths.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn reject_links(path: &Path) -> Result<(), SecretError> {
     if !path.is_absolute() {
         return Err(SecretError::Invalid);
@@ -53,14 +54,15 @@ pub fn reject_links(path: &Path) -> Result<(), SecretError> {
 
 /// Opens a regular protected file and validates its actual handle permissions.
 ///
-/// # Parameters
 /// - `path`: Absolute existing file path.
 ///
-/// # Returns
 /// A verified open file handle.
 ///
-/// # Errors
 /// Returns a safe missing, permission, or path validation failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn open_private(path: &Path) -> Result<File, SecretError> {
     match std::fs::symlink_metadata(path) {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
@@ -96,14 +98,15 @@ pub fn open_private(path: &Path) -> Result<File, SecretError> {
 
 /// Reads a bounded mounted credential into a zeroizing value.
 ///
-/// # Parameters
 /// - `path`: Absolute protected file path.
 ///
-/// # Returns
 /// A protected UTF-8 credential with one terminal line ending removed.
 ///
-/// # Errors
 /// Returns a safe failure for unsafe files, invalid text, or invalid values.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn read_secret_file(path: &Path) -> Result<SecretValue, SecretError> {
     let file = open_private(path)?;
     read_secret(file)
@@ -111,14 +114,15 @@ pub fn read_secret_file(path: &Path) -> Result<SecretValue, SecretError> {
 
 /// Reads secret input without permitting an unbounded allocation.
 ///
-/// # Parameters
 /// - `reader`: Stdin or a protected file reader.
 ///
-/// # Returns
 /// A protected credential after removing one terminal line ending.
 ///
-/// # Errors
 /// Returns `Invalid` for oversized, empty, multiline, or invalid UTF-8 input.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn read_secret(reader: impl Read) -> Result<SecretValue, SecretError> {
     let mut bytes = Zeroizing::new(Vec::new());
     reader
@@ -137,14 +141,15 @@ pub fn read_secret(reader: impl Read) -> Result<SecretValue, SecretError> {
 
 /// Creates and protects an application-owned registry directory.
 ///
-/// # Parameters
 /// - `path`: Absolute registry directory path.
 ///
-/// # Returns
 /// Unit once the directory has restrictive permissions.
 ///
-/// # Errors
 /// Returns a safe permission or filesystem failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn create_private_dir(path: &Path) -> Result<(), SecretError> {
     if !path.exists() {
         let parent = path.parent().ok_or(SecretError::Invalid)?;
@@ -158,14 +163,15 @@ pub fn create_private_dir(path: &Path) -> Result<(), SecretError> {
 
 /// Protects a newly created registry file before writing its contents.
 ///
-/// # Parameters
 /// - `file`: Application-created file handle.
 ///
-/// # Returns
 /// Unit after restrictive permissions are installed and checked.
 ///
-/// # Errors
 /// Returns a safe permission failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn protect_new_file(file: &mut File) -> Result<(), SecretError> {
     platform::protect_file(file)?;
     platform::validate(file)
@@ -173,14 +179,15 @@ pub fn protect_new_file(file: &mut File) -> Result<(), SecretError> {
 
 /// Creates a new protected file without overwriting an existing path.
 ///
-/// # Parameters
 /// - `path`: Absolute new file path inside a protected directory.
 ///
-/// # Returns
 /// A readable and writable private file handle.
 ///
-/// # Errors
 /// Returns a safe failure on collisions, unsafe parents, or permission errors.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn create_private_file(path: &Path) -> Result<File, SecretError> {
     reject_links(path.parent().ok_or(SecretError::Invalid)?)?;
     let mut options = OpenOptions::new();
@@ -193,14 +200,15 @@ pub fn create_private_file(path: &Path) -> Result<File, SecretError> {
 
 /// Opens an administrator-owned policy that ordinary users cannot modify.
 ///
-/// # Parameters
 /// - `path`: Absolute fixed system policy path.
 ///
-/// # Returns
 /// A regular no-follow file with validated administrator write authority.
 ///
-/// # Errors
 /// Returns `Denied` for unsafe owners, links, or permission grants.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn open_system_policy(path: &Path) -> Result<File, SecretError> {
     reject_links(path)?;
     let mut options = OpenOptions::new();

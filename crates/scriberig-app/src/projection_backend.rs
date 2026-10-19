@@ -15,11 +15,9 @@ pub struct ProjectionOperationProvider<P, F> {
 impl<P, F> ProjectionOperationProvider<P, F> {
     /// Creates a projection operation provider.
     ///
-    /// # Parameters
     /// - `adapter`: Canonical projection adapter that owns rendering.
     /// - `request_factory`: Converts the universal request to typed projection inputs.
     ///
-    /// # Returns
     /// A provider that delegates render without duplicating projection logic.
     #[must_use]
     pub const fn new(adapter: P, request_factory: F) -> Self {
@@ -37,16 +35,17 @@ where
 {
     /// Reports that diff ownership is not configured by this provider.
     ///
-    /// # Parameters
     /// - `self`: Projection provider.
     /// - `_context`: Application context.
     /// - `_request`: Diff request.
     ///
-    /// # Returns
     /// Never returns a diff summary.
     ///
-    /// # Errors
     /// Returns unsupported-operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn diff(
         &self,
         _context: &ApplicationContext,
@@ -57,16 +56,17 @@ where
 
     /// Reports that history ownership is not configured by this provider.
     ///
-    /// # Parameters
     /// - `self`: Projection provider.
     /// - `_context`: Application context.
     /// - `_request`: History request.
     ///
-    /// # Returns
     /// Never returns a history summary.
     ///
-    /// # Errors
     /// Returns unsupported-operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn history(
         &self,
         _context: &ApplicationContext,
@@ -77,16 +77,17 @@ where
 
     /// Delegates rendering to the canonical projection adapter.
     ///
-    /// # Parameters
     /// - `self`: Projection provider.
     /// - `_context`: Application context.
     /// - `request`: Universal render request.
     ///
-    /// # Returns
     /// Render result summary with output hash and exact snapshot.
     ///
-    /// # Errors
     /// Returns a structured projection or factory failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn render(
         &self,
         _context: &ApplicationContext,
@@ -120,16 +121,17 @@ where
 
     /// Reports that branch ownership is not configured by this provider.
     ///
-    /// # Parameters
     /// - `self`: Projection provider.
     /// - `_context`: Application context.
     /// - `_request`: Branch request.
     ///
-    /// # Returns
     /// Never returns a branch summary.
     ///
-    /// # Errors
     /// Returns unsupported-operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn branch(
         &self,
         _context: &ApplicationContext,
@@ -140,16 +142,17 @@ where
 
     /// Reports that change ownership is not configured by this provider.
     ///
-    /// # Parameters
     /// - `self`: Projection provider.
     /// - `_context`: Application context.
     /// - `_request`: Apply request.
     ///
-    /// # Returns
     /// Never returns a candidate summary.
     ///
-    /// # Errors
     /// Returns unsupported-operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn apply(
         &self,
         _context: &ApplicationContext,
@@ -160,16 +163,17 @@ where
 
     /// Reports that promotion ownership is not configured by this provider.
     ///
-    /// # Parameters
     /// - `self`: Projection provider.
     /// - `_context`: Application context.
     /// - `_request`: Commit request.
     ///
-    /// # Returns
     /// Never returns a promotion summary.
     ///
-    /// # Errors
     /// Returns unsupported-operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn commit(
         &self,
         _context: &ApplicationContext,
@@ -181,11 +185,11 @@ where
 
 /// Creates a stable unsupported-operation error.
 ///
-/// # Parameters
 /// - `operation`: Operation name without a configured provider.
 ///
-/// # Returns
 /// Structured unsupported-operation failure.
+/// # Returns
+/// The operation result.
 fn unsupported(operation: &str) -> ApplicationError {
     ApplicationError::UnsupportedOperation {
         operation: operation.to_owned(),

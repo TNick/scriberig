@@ -31,7 +31,6 @@ const ALLOWED: &[&str] = &[
 
 /// Clears ambient credentials and retains documented toolchain environment.
 ///
-/// # Parameters
 /// - `command`: Command to prepare before adding explicit safe variables.
 pub fn prepare_command(command: &mut Command) {
     command.env_clear();
@@ -44,11 +43,11 @@ pub fn prepare_command(command: &mut Command) {
 
 /// Detects reserved toolchain names when validating environment references.
 ///
-/// # Parameters
 /// - `name`: Candidate credential environment name.
 ///
-/// # Returns
 /// Whether the name is reserved for process setup.
+/// # Returns
+/// The operation result.
 pub(crate) fn is_toolchain_variable(name: &str) -> bool {
     ALLOWED
         .iter()

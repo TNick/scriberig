@@ -8,7 +8,6 @@ mod validation;
 
 /// Verifies durable child results expose bounded architecture and candidate evidence.
 ///
-/// # Parameters
 /// - `session`: Persisted session produced by the real self-hosting workflow.
 /// - `project`: Expected semantic project identity.
 /// - `snapshot`: Exact base snapshot expected in both child results.
@@ -84,7 +83,6 @@ pub(super) fn assert_nested_branch_results(
 
 /// Verifies every PHP implementation tool call uses the bounded semantic and candidate API.
 ///
-/// # Parameters
 /// - `continuation`: Root continuation branch.
 /// - `children`: Bounded architecture and implementation branches.
 /// - `super`: Parent PTY support module.
@@ -116,7 +114,6 @@ fn assert_no_shortcut_tools(continuation: &Branch, children: &[&Branch]) {
 
 /// Verifies the architecture child retained its semantic discovery result.
 ///
-/// # Parameters
 /// - `children`: Child branches of the PHP continuation.
 /// - `project`: Exact project expected in child references.
 /// - `snapshot`: Exact immutable base expected in child references.
@@ -169,7 +166,6 @@ fn assert_architecture_result(children: &[&Branch], project: ProjectId, snapshot
 
 /// Verifies the implementation child retained exact candidate validation references.
 ///
-/// # Parameters
 /// - `children`: Child branches of the PHP continuation.
 /// - `project`: Exact project expected in child references.
 /// - `snapshot`: Exact immutable base expected in child references.
@@ -243,7 +239,6 @@ fn assert_implementation_result(children: &[&Branch], project: ProjectId, snapsh
 
 /// Verifies required provider-facing calls have durable structured results.
 ///
-/// # Parameters
 /// - `branch`: Durable branch to inspect.
 /// - `required`: Required tool names.
 ///
@@ -273,7 +268,6 @@ fn assert_tool_trace(branch: &Branch, required: &[&str]) {
 
 /// Verifies a candidate proposal is bound to its exact project snapshot.
 ///
-/// # Parameters
 /// - `branch`: Durable implementation branch.
 /// - `name`: Proposal tool name.
 /// - `project`: Expected semantic project identity.
@@ -295,7 +289,6 @@ fn assert_tool_input_scope(branch: &Branch, name: &str, project: ProjectId, snap
 
 /// Verifies all semantic read calls are bound to one exact project snapshot.
 ///
-/// # Parameters
 /// - `branch`: Durable branch to inspect.
 /// - `project`: Expected semantic project identity.
 /// - `snapshot`: Expected immutable snapshot.
@@ -318,7 +311,6 @@ fn assert_scoped_reads(branch: &Branch, project: ProjectId, snapshot: SnapshotId
 
 /// Verifies a child result retains the exact semantic project and snapshot scope.
 ///
-/// # Parameters
 /// - `result`: Durable branch result to inspect.
 /// - `project`: Expected project identity.
 /// - `snapshot`: Expected immutable scope.

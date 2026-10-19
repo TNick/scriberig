@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use onboarding_wait::wait_for_onboarding;
+use onboarding_wait::{wait_for_branch_completion, wait_for_onboarding};
 use scriberig_core::{EntityId, ProjectId, SnapshotId};
 use scriberig_project::{CandidateValidation, ProjectService};
 use scriberig_session::SessionStore;
@@ -160,34 +160,21 @@ struct FailureScenario {
 
 /// Starts the failure scenario and onboards its copied checkout through the TUI.
 ///
-/// # Parameters
 /// - `repair`: Selects the invalid-first-proposal repair provider scenario.
 ///
-/// # Returns
 /// Durable session, exact base project scope, and original live source bytes.
+/// # Returns
+/// The operation result.
 fn onboard_failure_scenario(repair: bool) -> FailureScenario {
     let mut tui = if repair {
         TuiPty::start_self_hosting_validation_repair()
     } else {
         TuiPty::start_self_hosting_validation_failure()
     };
-    assert!(
-        tui.read_until("project: unselected"),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"start-agent\r");
-    assert!(
-        tui.read_until("Agent composer · ent_"),
-        "{}",
-        tui.diagnostic()
-    );
-    let session = visible_session(&tui.screen());
+    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
     tui.send(b"Onboard the current project.\r");
-    wait_for_onboarding(&tui, session);
-    assert!(tui.read_until("project: scriberig"), "{}", tui.diagnostic());
+    let session = visible_session(&tui);
+    wait_for_onboarding(&mut tui, session);
     let checkout = tui.fixture_path().join("scriberig");
     let manifest = fs::read(checkout.join("Cargo.toml")).expect("base manifest");
     let scanner =
@@ -219,35 +206,22 @@ fn onboard_failure_scenario(repair: bool) -> FailureScenario {
 
 /// Continues the onboarded session with the exact PHP extension request.
 ///
-/// # Parameters
 /// - `tui`: Active TUI displaying the onboarded project.
 /// - `timeout`: Maximum wait for the agent continuation.
 fn submit_php_continuation(tui: &mut TuiPty, timeout: Duration) {
-    tui.send(b"\x1b");
-    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
-    tui.send(b"\x1b[B");
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"continue-agent\r");
-    assert!(tui.read_until("Write a message..."), "{}", tui.diagnostic());
-    tui.send(b"i");
-    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     tui.send(b"Add support for ingesting PHP source files.\r");
-    assert!(
-        tui.read_until_for("agent continuation [Completed]", timeout),
-        "{}",
-        tui.diagnostic()
-    );
+    let session = visible_session(tui);
+    wait_for_branch_completion(tui, session, "agent continuation", timeout);
 }
 
 /// Reads and verifies the durable candidate created by the failed validation run.
 ///
-/// # Parameters
 /// - `database`: Product database containing project and candidate state.
 /// - `session`: Exact durable session that proposed the candidate.
 ///
-/// # Returns
 /// The failed candidate identity.
+/// # Returns
+/// The operation result.
 fn assert_failed_candidate(database: &std::path::Path, session: EntityId) -> String {
     let saved = SqliteSessionStore::open(database)
         .expect("session store")
@@ -276,7 +250,6 @@ fn assert_failed_candidate(database: &std::path::Path, session: EntityId) -> Str
 
 /// Verifies failed validation left the canonical project and checkout at base.
 ///
-/// # Parameters
 /// - `scenario`: Captured project identities and exact original source bytes.
 /// - `candidate`: Failed candidate identity retained for external review.
 fn assert_project_unchanged(scenario: &FailureScenario, candidate: &str) {
@@ -312,20 +285,9 @@ fn assert_project_unchanged(scenario: &FailureScenario, candidate: &str) {
 
 /// Opens the shared review surface and verifies failed validation is visible.
 ///
-/// # Parameters
 /// - `tui`: Active TUI with the failed candidate in its durable session result.
 fn review_failed_candidate(tui: &mut TuiPty) {
-    tui.send(b"\x1b");
-    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"review-candidate");
-    assert!(
-        tui.read_until("Search: review-candidate"),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b"\r");
+    tui.send(b"/changes\r");
     assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
     assert!(
         tui.screen().contains("validation: Failed"),
@@ -336,17 +298,11 @@ fn review_failed_candidate(tui: &mut TuiPty) {
 
 /// Reads the durable session identity shown by the agent composer.
 ///
-/// # Parameters
-/// - `screen`: Current native TUI screen.
+/// - `tui`: Active native TUI process.
 ///
-/// # Returns
 /// The session identity rendered by the composer.
-fn visible_session(screen: &str) -> EntityId {
-    screen
-        .split("Agent composer · ")
-        .nth(1)
-        .and_then(|text| text.split_whitespace().next())
-        .expect("session visible in composer")
-        .parse()
-        .expect("session identity")
+/// # Returns
+/// The operation result.
+fn visible_session(tui: &TuiPty) -> EntityId {
+    tui.stored_session_id()
 }

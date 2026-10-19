@@ -37,15 +37,16 @@ pub struct DataError {
 impl std::fmt::Display for DataError {
     /// Formats the first structured-data diagnostic.
     ///
-    /// # Parameters
     /// - `self`: Structured-data error.
     /// - `formatter`: Formatting destination.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when the destination rejects output.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.write_str(
             self.diagnostics
@@ -59,15 +60,16 @@ impl std::error::Error for DataError {}
 
 /// Parses JSON, JSONC, YAML, or TOML according to the file extension.
 ///
-/// # Parameters
 /// - `path`: Source path used to select the parser.
 /// - `source`: UTF-8 source text.
 ///
-/// # Returns
 /// A normalized value tree and deterministic node list.
 ///
-/// # Errors
 /// Returns a structured diagnostic for unsupported paths or invalid input.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn parse(path: &Path, source: &str) -> Result<DataDocument, DataError> {
     let extension = path.extension().and_then(|value| value.to_str());
     let (format, value) = match extension {
@@ -109,15 +111,16 @@ pub fn parse(path: &Path, source: &str) -> Result<DataDocument, DataError> {
 
 /// Parses one or more YAML documents into one normalized value.
 ///
-/// # Parameters
 /// - `source`: YAML stream.
 ///
-/// # Returns
 /// One value for a single-document stream or an ordered array for a stream
 /// containing multiple documents.
 ///
-/// # Errors
 /// Returns parser or normalization diagnostics.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn parse_yaml(source: &str) -> Result<Value, String> {
     let values = serde_yaml::Deserializer::from_str(source)
         .map(serde_yaml::Value::deserialize)
@@ -133,11 +136,11 @@ fn parse_yaml(source: &str) -> Result<Value, String> {
 
 /// Removes JSONC comments while preserving strings and newlines.
 ///
-/// # Parameters
 /// - `source`: JSONC source text.
 ///
-/// # Returns
 /// JSON text with line and block comments replaced by whitespace.
+/// # Returns
+/// The operation result.
 fn strip_json_comments(source: &str) -> String {
     let mut output = String::with_capacity(source.len());
     let mut chars = source.chars().peekable();
@@ -187,7 +190,6 @@ fn strip_json_comments(source: &str) -> String {
 
 /// Collects every value node in deterministic depth-first order.
 ///
-/// # Parameters
 /// - `value`: Current value.
 /// - `path`: JSON Pointer of the current value.
 /// - `nodes`: Destination node list.
@@ -214,11 +216,11 @@ fn collect_nodes(value: &Value, path: &str, nodes: &mut Vec<DataNode>) {
 
 /// Returns the stable kind label for one JSON value.
 ///
-/// # Parameters
 /// - `value`: Value to classify.
 ///
-/// # Returns
 /// Stable value kind label.
+/// # Returns
+/// The operation result.
 fn value_kind(value: &Value) -> &'static str {
     match value {
         Value::Null => "null",
@@ -232,11 +234,11 @@ fn value_kind(value: &Value) -> &'static str {
 
 /// Escapes a key for JSON Pointer syntax.
 ///
-/// # Parameters
 /// - `key`: Object key.
 ///
-/// # Returns
 /// Escaped pointer segment.
+/// # Returns
+/// The operation result.
 fn escape_pointer(key: &str) -> String {
     key.replace('~', "~0").replace('/', "~1")
 }

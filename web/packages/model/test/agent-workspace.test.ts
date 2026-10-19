@@ -78,6 +78,7 @@ describe("agent workspace", () => {
       session: { id: "session-1" as never },
       execution: { revision: 1 },
       branches: [],
+      plans: [],
     });
     expect(state.presentation).toEqual(presentation);
     expect(state.modelLibrary).toBe(library);
@@ -250,6 +251,7 @@ describe("agent workspace", () => {
           result: { id: "result-1", references: ["ent-1"] },
         },
       ],
+      plans: [],
     });
     expect(state.branches["branch-1"]?.status).toBe("completed");
     expect(state.branches["branch-1"]?.result?.resultId).toBe("result-1");
@@ -314,6 +316,7 @@ describe("agent workspace", () => {
           ],
         },
       ],
+      plans: [],
     });
     expect(state.activity["branch-1"]?.items).toMatchObject([
       { id: "invoke-1", kind: "tool", toolName: "search" },

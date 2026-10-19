@@ -23,14 +23,15 @@ pub struct TypeId {
 impl TypeId {
     /// Validates and constructs a semantic type identifier.
     ///
-    /// # Parameters
     /// - `value`: Nonempty UTF-8 type name.
     ///
-    /// # Returns
     /// The validated type identifier.
     ///
-    /// # Errors
     /// Returns `EmptyName` when the identifier is empty or whitespace-only.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(value: impl Into<String>) -> Result<Self, IdParseError> {
         let value = value.into();
         if value.trim().is_empty() {
@@ -41,9 +42,10 @@ impl TypeId {
 
     /// Borrows the validated identifier text.
     ///
-    /// # Returns
     /// The exact UTF-8 text supplied at construction.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn as_str(&self) -> &str {
         &self.value
     }
@@ -52,15 +54,16 @@ impl TypeId {
 impl Display for TypeId {
     /// Formats the identifier without adding a registry-specific prefix.
     ///
-    /// # Parameters
     /// - `self`: Identifier to format.
     /// - `formatter`: Destination formatter.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error if writing to the formatter fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         formatter.write_str(&self.value)
     }
@@ -71,14 +74,15 @@ impl FromStr for TypeId {
 
     /// Parses a nonempty semantic type identifier.
     ///
-    /// # Parameters
     /// - `text`: Identifier text.
     ///
-    /// # Returns
     /// The validated type identifier.
     ///
-    /// # Errors
     /// Returns `EmptyName` when the text is empty or whitespace-only.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn from_str(text: &str) -> Result<Self, Self::Err> {
         Self::new(text)
     }

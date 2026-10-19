@@ -45,10 +45,8 @@ pub enum TrustCommandError {
 impl TrustCommandError {
     /// Returns the process exit status for the failure.
     ///
-    /// # Parameters
     /// - `self`: Trust command failure.
     ///
-    /// # Returns
     /// Distinct authorization status or the generic application failure status.
     #[must_use]
     pub const fn exit_code(&self) -> i32 {
@@ -61,14 +59,15 @@ impl TrustCommandError {
 
 /// Executes an entity inspection through the shared application query boundary.
 ///
-/// # Parameters
 /// - `service`: Application query service selected by the product composition root.
 /// - `context`: Caller and capability context for the request.
 /// - `entity`: Entity identifier to inspect.
 /// - `depth`: Compact or deep trust view.
 ///
-/// # Returns
 /// Rendered trust inspection output.
+///
+/// # Returns
+/// Rendered inspection output.
 ///
 /// # Errors
 /// Returns the structured application error returned by the query service.
@@ -91,15 +90,16 @@ pub fn inspect<S: QueryService>(
 
 /// Executes inspection with an explicit snapshot resolution.
 ///
-/// # Parameters
 /// - `service`: Application query service selected by the product composition root.
 /// - `context`: Caller and capability context for the request.
 /// - `entity`: Entity identifier to inspect.
 /// - `snapshot`: Snapshot resolution required by the caller.
 /// - `depth`: Compact or deep trust view.
 ///
-/// # Returns
 /// Rendered trust inspection output.
+///
+/// # Returns
+/// Rendered inspection output for the requested snapshot.
 ///
 /// # Errors
 /// Returns a structured application failure or a distinct authorization denial.
@@ -122,7 +122,6 @@ pub fn inspect_at<S: QueryService>(
 
 /// Executes inspection with an explicit output representation.
 ///
-/// # Parameters
 /// - `service`: Application query service selected by the product composition root.
 /// - `context`: Caller and capability context for the request.
 /// - `entity`: Entity identifier to inspect.
@@ -130,8 +129,10 @@ pub fn inspect_at<S: QueryService>(
 /// - `depth`: Compact or deep trust view.
 /// - `format`: Human or JSON output representation.
 ///
-/// # Returns
 /// Rendered trust inspection output.
+///
+/// # Returns
+/// The trust inspection in the requested format.
 ///
 /// # Errors
 /// Returns a structured application failure or a distinct authorization denial.
@@ -170,14 +171,14 @@ pub fn inspect_at_with_format<S: QueryService>(
 
 /// Renders an inspection result in the selected representation.
 ///
-/// # Parameters
 /// - `result`: Shared application inspection result.
 /// - `depth`: Compact or deep trust view.
 /// - `format`: Human or JSON output representation.
 ///
-/// # Returns
 /// Structured or terminal-formatted inspection output.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn render_inspection_with_format(
     result: &InspectResult,
     depth: InspectDepth,
@@ -191,13 +192,13 @@ pub fn render_inspection_with_format(
 
 /// Renders an inspection result without exposing object content or secrets.
 ///
-/// # Parameters
 /// - `result`: Shared application inspection result.
 /// - `depth`: Compact or deep trust view.
 ///
-/// # Returns
 /// Human-readable inspection output.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn render_inspection(result: &InspectResult, depth: InspectDepth) -> String {
     let mut output = String::new();
     let _ = writeln!(output, "entity: {}", result.entity);
@@ -252,12 +253,12 @@ pub fn render_inspection(result: &InspectResult, depth: InspectDepth) -> String 
 
 /// Renders a structured capability denial without restricted object content.
 ///
-/// # Parameters
 /// - `denial`: Shared application denial details.
 ///
-/// # Returns
 /// Human-readable denial output.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn render_denial(denial: &CapabilityDenial) -> String {
     let mut output = String::new();
     let _ = writeln!(output, "denied action: {}", denial.action);
@@ -272,11 +273,11 @@ pub fn render_denial(denial: &CapabilityDenial) -> String {
 
 /// Returns the stable display label for a source kind.
 ///
-/// # Parameters
 /// - `source`: Source kind to label.
 ///
-/// # Returns
 /// Stable machine-readable source label.
+/// # Returns
+/// The operation result.
 fn source_label(source: &SourceKind) -> &'static str {
     match source {
         SourceKind::Authored => "authored",
@@ -289,11 +290,11 @@ fn source_label(source: &SourceKind) -> &'static str {
 
 /// Returns the stable display label for a validation state.
 ///
-/// # Parameters
 /// - `validation`: Validation state to label.
 ///
-/// # Returns
 /// Stable machine-readable validation label.
+/// # Returns
+/// The operation result.
 fn validation_label(validation: &ValidationState) -> &'static str {
     match validation {
         ValidationState::Current => "current",

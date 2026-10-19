@@ -1,5 +1,6 @@
 //! Defines the transport-independent universal application request model.
 
+use crate::DomainOperationRequest;
 use scriberig_core::{RootName, SnapshotId};
 use scriberig_query::{FindRequest, FollowRequest, InspectRequest, ListRequest, QuerySpec};
 
@@ -19,6 +20,17 @@ pub struct DiffRequest {
     pub from: SnapshotId,
     /// Later exact snapshot.
     pub to: SnapshotId,
+}
+
+/// Identifies exact candidates for an explicit three-way semantic merge.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct MergeRequest {
+    /// Exact common candidate base.
+    pub base: SnapshotId,
+    /// Exact candidate produced by the first dependency.
+    pub left: SnapshotId,
+    /// Exact candidate produced by the second dependency.
+    pub right: SnapshotId,
 }
 
 /// Identifies a history request for a semantic target.
@@ -83,6 +95,8 @@ pub enum ApplicationRequest {
     Query(QuerySpec),
     /// Compute a semantic diff.
     Diff(DiffRequest),
+    /// Merge exact candidate snapshots without promoting a root.
+    Merge(MergeRequest),
     /// Read semantic history.
     History(HistoryRequest),
     /// Render through a registered view.
@@ -93,4 +107,6 @@ pub enum ApplicationRequest {
     Apply(ApplyRequest),
     /// Commit a validated change.
     Commit(CommitRequest),
+    /// Execute a registered exact-target semantic domain operation.
+    DomainOperation(DomainOperationRequest),
 }

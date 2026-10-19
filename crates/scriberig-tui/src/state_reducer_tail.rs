@@ -9,8 +9,10 @@ use super::*;
 /// - `state`: TUI state to update.
 /// - `action`: Terminal action to reduce.
 ///
-/// # Returns
 /// Effects when the action belongs to this reducer partition.
+/// # Returns
+/// The operation result.
+#[allow(clippy::too_many_lines)] // The action routing table is kept exhaustive in one match.
 pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Effect>> {
     match action {
         Action::CapabilitiesLoaded(capabilities) => Some(capabilities_loaded(state, capabilities)),
@@ -31,9 +33,19 @@ pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Ef
             );
             Some(vec![Effect::None])
         }
-        Action::SessionSucceeded { request_id, model } => {
-            Some(session_succeeded(state, request_id, model))
-        }
+        Action::SessionSucceeded {
+            request_id,
+            model,
+            conversation,
+            session_snapshot,
+        } => Some(session_succeeded(
+            state,
+            request_id,
+            model,
+            conversation,
+            session_snapshot,
+        )),
+        Action::PlanUpdated(plan) => Some(plan_updated(state, plan)),
         Action::ModelLibraryLoaded {
             request_id,
             library,
@@ -55,6 +67,26 @@ pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Ef
             Some(session_selection_updated(state, selection))
         }
         Action::AgentSubmitted(handle) => Some(agent_submitted(state, handle)),
+        Action::ConversationAgentAccepted(handle) => {
+            Some(conversation_agent_accepted(state, &handle))
+        }
+        Action::ConversationBrowsing(browsing) => {
+            state.conversation_browsing = browsing;
+            Some(vec![Effect::None])
+        }
+        Action::ConversationPinCursor => Some(conversation_pin_cursor(state)),
+        Action::ConversationFollowCoordinator => {
+            state.follow_coordinator = true;
+            if let Some(cursor) = state
+                .conversation
+                .as_ref()
+                .and_then(|model| model.coordinator_cursor)
+            {
+                state.coordinator_cursor = Some(cursor);
+            }
+            Some(vec![Effect::None])
+        }
+        Action::ConversationToggleExpansion => Some(conversation_toggle_expansion(state)),
         Action::SessionRequested { session, branch } => {
             Some(session_requested(state, session, branch))
         }

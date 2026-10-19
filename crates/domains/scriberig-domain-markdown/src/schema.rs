@@ -21,12 +21,13 @@ pub struct OrderedRelation {
 
 /// Returns the Markdown domain descriptor and ordered relation metadata.
 ///
-/// # Returns
 /// A deterministic shared domain descriptor plus relation details.
 ///
 /// # Panics
 /// Panics only if the static Markdown domain identifier is invalid.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn markdown_schema() -> (DomainDescriptor, Vec<OrderedRelation>) {
     let entity_types = ENTITY_TYPES.iter().map(|name| entity_type(name)).collect();
     let relations = vec![
@@ -86,13 +87,13 @@ pub fn markdown_schema() -> (DomainDescriptor, Vec<OrderedRelation>) {
 
 /// Creates one ordered relation descriptor.
 ///
-/// # Parameters
 /// - `id`: Stable relation identifier.
 /// - `parent`: Parent entity type.
 /// - `child`: Child entity type.
 ///
-/// # Returns
 /// An ordered relation descriptor.
+/// # Returns
+/// The operation result.
 fn relation(id: &str, parent: &str, child: &str) -> OrderedRelation {
     OrderedRelation {
         id: id.to_owned(),

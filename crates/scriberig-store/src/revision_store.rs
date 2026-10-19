@@ -40,50 +40,54 @@ pub enum StoreError {
 pub trait RevisionStore {
     /// Inserts an immutable revision idempotently.
     ///
-    /// # Parameters
     /// - `revision`: Immutable revision to retain.
     ///
-    /// # Returns
     /// The revision identity.
     ///
-    /// # Errors
     /// Returns storage or integrity errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn put(&self, revision: Revision) -> Result<RevisionId, StoreError>;
     /// Reads an immutable revision by identity.
     ///
-    /// # Parameters
     /// - `id`: Revision identity.
     ///
-    /// # Returns
     /// The retained revision, when present.
     ///
-    /// # Errors
     /// Returns a storage synchronization error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn get(&self, id: RevisionId) -> Result<Option<Revision>, StoreError>;
 
     /// Reads an immutable revision and reports absence as a typed error.
     ///
-    /// # Parameters
     /// - `id`: Revision identity.
     ///
-    /// # Returns
     /// The retained revision.
     ///
-    /// # Errors
     /// Returns `NotFound` when the revision is absent or propagates a backend
     /// error from `get`.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn get_required(&self, id: RevisionId) -> Result<Revision, StoreError> {
         self.get(id)?.ok_or(StoreError::NotFound { id })
     }
     /// Checks whether an immutable revision is retained.
     ///
-    /// # Parameters
     /// - `id`: Revision identity.
     ///
-    /// # Returns
     /// Whether the revision is present.
     ///
-    /// # Errors
     /// Returns a storage synchronization error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn contains(&self, id: RevisionId) -> Result<bool, StoreError>;
 }

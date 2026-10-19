@@ -6,8 +6,9 @@ use scriberig_domain_rust::{AnalysisProfile, DiagnosticSeverity, analyze, failed
 
 /// Creates a deterministic compiler profile fixture.
 ///
-/// # Returns
 /// A profile with deterministic toolchain and configuration inputs.
+/// # Returns
+/// The operation result.
 fn profile() -> AnalysisProfile {
     AnalysisProfile::new(
         "1.84.0",

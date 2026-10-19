@@ -174,44 +174,179 @@ fn persistent_session_composer_keeps_paste_as_text() {
     );
 }
 
-/// Routes console slash commands to shared model and view reducers.
+/// Lets the conversation home capture a true pre-session first message.
 #[test]
-fn composer_slash_commands_open_shared_controls() {
+fn conversation_home_types_and_submits_without_allocating_local_identity() {
     let mut state = TuiState::default();
-    reduce(
-        &mut state,
-        Action::SessionComposerOpened {
-            session: scriberig_core::EntityId::from_bytes([35; 16]),
-            branch: None,
+    let character = crate::keymap::action_for(
+        &state,
+        &crate::event::Key {
+            code: crate::event::KeyCode::Char('h'),
+            modifiers: crate::event::Modifiers::default(),
         },
-    );
-    reduce(&mut state, Action::InputChanged("/model".to_owned()));
+    )
+    .expect("ordinary key edits composer");
+    reduce(&mut state, character);
+    reduce(&mut state, Action::InputChanged("ello".to_owned()));
 
+    let effects = reduce(&mut state, Action::InputSubmitted);
+
+    assert_eq!(state.conversation_composer.draft, "");
+    assert_eq!(
+        state.conversation_composer.target,
+        crate::state::ConversationTarget::NewSession
+    );
+    assert!(matches!(
+        effects.as_slice(),
+        [Effect::StartNewConversation {
+            prompt,
+            selection: None
+        }] if prompt == "hello"
+    ));
+}
+
+/// Carries the exact configured semantic entity into a first agent session.
+#[test]
+fn first_conversation_inherits_exact_semantic_selection() {
+    let project = scriberig_core::ProjectId::from_bytes([1; 16]);
+    let root = scriberig_core::EntityId::from_bytes([2; 16]);
+    let entity = scriberig_core::EntityId::from_bytes([3; 16]);
+    let snapshot = scriberig_core::SnapshotId::new([4; 32]);
+    let mut state = TuiState {
+        agent_selection: Some(scriberig_app::AgentSelection {
+            project: Some(project),
+            root,
+            entity,
+            snapshot,
+        }),
+        ..TuiState::default()
+    };
+    state.conversation_composer.draft = "inspect source".to_owned();
+
+    let effects = reduce(&mut state, Action::InputSubmitted);
+
+    assert!(matches!(
+        effects.as_slice(),
+        [Effect::StartNewConversation {
+            selection: Some(selected),
+            ..
+        }] if selected.project == Some(project)
+            && selected.root == root
+            && selected.entity == entity
+            && selected.snapshot == snapshot
+    ));
+}
+
+/// Keeps unknown commands local and honors the explicit literal slash escape.
+#[test]
+fn conversation_slash_routing_never_sends_unknown_commands_to_the_agent() {
+    let mut state = TuiState::default();
+    state.conversation_composer.draft = "/not-a-command".to_owned();
+    let unknown = reduce(&mut state, Action::InputSubmitted);
+
+    assert!(matches!(unknown.as_slice(), [Effect::None]));
+    assert!(
+        state
+            .conversation_composer
+            .error
+            .as_deref()
+            .is_some_and(|message| message.contains("Unknown command"))
+    );
+    assert_eq!(state.conversation_composer.draft, "/not-a-command");
+
+    state.conversation_composer.error = None;
+    state.conversation_composer.draft = "//literal".to_owned();
+    let literal = reduce(&mut state, Action::InputSubmitted);
+
+    assert!(matches!(
+        literal.as_slice(),
+        [Effect::StartNewConversation {
+            prompt,
+            selection: None
+        }] if prompt == "/literal"
+    ));
+
+    state.conversation_composer.pending = false;
+    state.conversation_composer.draft = "/model".to_owned();
     assert!(matches!(
         reduce(&mut state, Action::InputSubmitted).as_slice(),
         [Effect::ReadModelLibrary { .. }]
     ));
-    assert_eq!(state.session_composer.as_ref().unwrap().text, "");
-
-    state.model_library = crate::inspector::LoadState::NotRequested;
-    reduce(&mut state, Action::InputChanged("/thinking".to_owned()));
+    let session = scriberig_core::EntityId::from_bytes([125; 16]);
+    let branch = scriberig_core::EntityId::from_bytes([126; 16]);
+    state.conversation_composer.target = crate::state::ConversationTarget::Existing {
+        session,
+        reply_anchor: scriberig_session::ContinuationAnchor::BranchHead { branch },
+    };
+    state.conversation_composer.draft = [
+        "/plan improve parser",
+        "- inspect: map existing parser behavior",
+        "- design: choose a compatible grammar",
+        "- implement: update parser and verify fixtures",
+        "depends: 1 -> 3",
+    ]
+    .join("\n");
     assert!(matches!(
         reduce(&mut state, Action::InputSubmitted).as_slice(),
-        [Effect::None]
+        [Effect::CreatePlan(request)]
+            if request.goal == "improve parser"
+                && request.session == session
+                && request.anchor == scriberig_session::ContinuationAnchor::BranchHead { branch }
+                && request.nodes.len() == 3
+                && request.nodes[0].title == "inspect"
+                && request.nodes[2].title == "implement"
+                && request.dependencies == vec![(0, 2)]
     ));
-    assert!(state.shell_message.contains("Load a session"));
-
-    reduce(
-        &mut state,
-        Action::InputChanged("/view reasoning".to_owned()),
-    );
-    assert_eq!(
-        reduce(&mut state, Action::InputSubmitted),
-        vec![Effect::None]
-    );
-    assert_eq!(
-        state.reasoning_visibility,
-        crate::state::ReasoningVisibility::Shown
-    );
-    assert_eq!(state.session_composer.as_ref().unwrap().text, "");
 }
+
+/// Routes a local auxiliary command while a provider turn is still running.
+#[test]
+fn conversation_auxiliary_command_is_available_while_agent_is_pending() {
+    let mut state = TuiState::default();
+    state.conversation_composer.pending = true;
+    state.conversation_composer.draft = "/operations".to_owned();
+
+    let effects = reduce(&mut state, Action::InputSubmitted);
+
+    assert_eq!(
+        state.primary_view,
+        crate::selection::PrimaryView::Operations
+    );
+    assert!(matches!(effects.as_slice(), [Effect::ListOperations]));
+    assert!(state.conversation_composer.pending);
+}
+
+/// Rebinds the next reply to authoritative session and branch handles.
+#[test]
+fn accepted_conversation_start_installs_shared_branch_head_anchor() {
+    let mut state = TuiState::default();
+    let session = scriberig_core::EntityId::from_bytes([71; 16]);
+    let branch = scriberig_core::EntityId::from_bytes([72; 16]);
+    let operation = scriberig_core::OperationId::new("conversation-accepted").expect("operation");
+
+    let effects = reduce(
+        &mut state,
+        Action::ConversationAgentAccepted(crate::service::AgentHandle {
+            operation: operation.clone(),
+            session,
+            branch: Some(branch),
+            workspace: None,
+        }),
+    );
+
+    assert_eq!(
+        state.conversation_composer.target,
+        crate::state::ConversationTarget::Existing {
+            session,
+            reply_anchor: scriberig_session::ContinuationAnchor::BranchHead { branch },
+        }
+    );
+    assert!(matches!(
+        effects.as_slice(),
+        [Effect::ReadSession { session: value, .. }] if *value == session
+    ));
+    assert_eq!(state.agent_handles[0].operation, operation);
+}
+
+#[path = "state_session_composer_tests_part1.rs"]
+mod part1;

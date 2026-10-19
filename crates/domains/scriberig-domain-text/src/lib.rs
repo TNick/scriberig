@@ -22,12 +22,12 @@ pub struct TextLine {
 
 /// Parses UTF-8 text into a deterministic line document.
 ///
-/// # Parameters
 /// - `source`: UTF-8 source text.
 ///
-/// # Returns
 /// A document retaining the complete source and every line.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn parse(source: &str) -> TextDocument {
     let lines = source
         .split('\n')

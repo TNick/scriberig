@@ -12,15 +12,17 @@ struct MarkdownFixture;
 impl ConformanceFixture for MarkdownFixture {
     /// Returns the fixture domain name.
     ///
-    /// # Returns
     /// Domain name.
+    /// # Returns
+    /// The operation result.
     fn domain(&self) -> &'static str {
         "markdown"
     }
     /// Returns the canonical Markdown identity.
     ///
-    /// # Returns
     /// Canonical inspection.
+    /// # Returns
+    /// The operation result.
     fn canonical_inspection(&self) -> Inspection {
         Inspection {
             entity: EntityId::from_bytes([3; 16]),
@@ -29,22 +31,25 @@ impl ConformanceFixture for MarkdownFixture {
     }
     /// Returns the Markdown inspection.
     ///
-    /// # Returns
     /// Domain inspection.
+    /// # Returns
+    /// The operation result.
     fn domain_inspection(&self) -> Inspection {
         self.canonical_inspection()
     }
     /// Returns the unchanged Markdown identity.
     ///
-    /// # Returns
     /// Unchanged inspection.
+    /// # Returns
+    /// The operation result.
     fn unchanged_inspection(&self) -> Inspection {
         self.canonical_inspection()
     }
     /// Declares Markdown projection support.
     ///
-    /// # Returns
     /// Projection capability flags.
+    /// # Returns
+    /// The operation result.
     fn capabilities(&self) -> CapabilitySet {
         CapabilitySet {
             editable_projection: true,
@@ -53,8 +58,9 @@ impl ConformanceFixture for MarkdownFixture {
     }
     /// Returns formatting-only projection evidence.
     ///
-    /// # Returns
     /// Formatting-only evidence.
+    /// # Returns
+    /// The operation result.
     fn projection(&self) -> Option<ProjectionEvidence> {
         Some(ProjectionEvidence {
             semantic_change: false,

@@ -37,7 +37,10 @@ pub use agent_console::preferences::{
     AgentPresentationPreferences, InMemoryAgentPresentationPreferenceStore, PromptVisibility,
     ReasoningVisibility, ToolInvocationDetail, ToolOutputVisibility,
 };
-pub use agent_console::resolution::{ExecutionSelectionSources, resolve_execution_selection};
+pub use agent_console::resolution::{
+    ExecutionSelectionSources, ResolvedPlanExecution, resolve_execution_selection,
+    resolve_plan_node_execution, resolve_plan_node_execution_with_sources,
+};
 pub use capability::{
     AuthorizationDenial, BranchContext, Capability, CapabilityAction, CapabilityConstraints,
     CapabilityDescriptor, CapabilityId, CapabilityKind, CapabilityScope, DomainOperationRequest,
@@ -73,7 +76,7 @@ pub use query::{DetailLevel, InspectRequest, InspectResult, QueryService, Snapsh
 pub use read_backend::UniversalReadBackend;
 pub use request::{
     ApplicationRequest, ApplyRequest, BranchRequest, CommitRequest, DiffRequest, HistoryRequest,
-    RenderRequest, SnapshotSelector,
+    MergeRequest, RenderRequest, SnapshotSelector,
 };
 pub use result::{
     ApplicationResult, MigrationDelta, MigrationDetail, OperationStarted, OperationSummary,
@@ -82,9 +85,12 @@ pub use scriberig_session::SessionExecutionSelection;
 pub use service::{ApplicationBackend, ApplicationService};
 pub use service_store::StoreInspectionBackend;
 pub use session::{
-    AgentCommandRequest, AgentConsoleBackend, AgentResult, AgentSelection, CandidateChange,
-    LocalAgentHandle, LocalChildAgentHandle, SessionBackend, SessionModelSelectionRequest,
-    SessionRequest, SessionThinkingSelectionRequest, ToolExecutionEvidence,
+    AgentCommandRequest, AgentConsoleBackend, AgentContinuationAccepted, AgentContinueAtRequest,
+    AgentResult, AgentSelection, CandidateChange, LocalAgentHandle, LocalChildAgentHandle,
+    NewSessionAgentRequest, NewSessionAgentStart, PlanAssignmentRequest, PlanCreateRequest,
+    PlanLifecycleAction, PlanLifecycleRequest, PlanNodeDraft, PlanNodeReference, PlanReplanRequest,
+    SessionBackend, SessionModelSelectionRequest, SessionRequest, SessionThinkingSelectionRequest,
+    ToolExecutionEvidence,
 };
 pub use trust::{
     ApprovalSummary, CapabilityDenial, ConflictSummary, ExternalEffectSummary, PolicyDecision,
@@ -110,12 +116,12 @@ mod tests {
 
     /// Creates a one-action capability for a scope test.
     ///
-    /// # Parameters
     /// - `scope`: Scope granted by the test capability.
     /// - `action`: Action granted by the test capability.
     ///
-    /// # Returns
     /// A capability containing the requested single action.
+    /// # Returns
+    /// The operation result.
     fn capability(scope: CapabilityScope, action: CapabilityAction) -> Capability {
         Capability {
             scope,
@@ -195,10 +201,12 @@ mod tests {
             OperationKind::Render,
             OperationKind::Branch,
             OperationKind::Agent,
+            OperationKind::Plan,
             OperationKind::Apply,
             OperationKind::Commit,
+            OperationKind::DomainOperation,
         ];
-        assert_eq!(kinds.len(), 12);
+        assert_eq!(kinds.len(), 14);
     }
 
     /// Verifies snapshot selectors preserve exact and named-root semantics.

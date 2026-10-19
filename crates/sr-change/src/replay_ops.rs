@@ -6,17 +6,18 @@ use scriberig_core::EntityId;
 
 /// Replays one universal operation against exact semantic preconditions.
 ///
-/// # Parameters
 /// - `operation`: Recorded operation.
 /// - `migration`: Original migration carrying expected revisions.
 /// - `state`: Current rebased state.
 ///
-/// # Returns
 /// An entity delta, no entity delta, or a structured conflict.
 ///
-/// # Errors
 /// Returns a conflict when an operation precondition fails.
 #[allow(clippy::too_many_lines)]
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn replay_generic(
     operation: &Operation,
     migration: &Migration,
@@ -165,15 +166,16 @@ pub fn replay_generic(
 
 /// Applies one entity delta after checking its expected revision.
 ///
-/// # Parameters
 /// - `state`: Mutable rebased state.
 /// - `delta`: Expected entity transition.
 ///
-/// # Returns
 /// Nothing when the delta was applied.
 ///
-/// # Errors
 /// Returns a conflict when the current revision differs.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn apply_delta(
     state: &mut ReplayState,
     delta: &EntityDelta,
@@ -194,7 +196,6 @@ pub fn apply_delta(
 
 /// Applies relation and collection state for a generic operation.
 ///
-/// # Parameters
 /// - `state`: Mutable rebased state.
 /// - `operation`: Operation whose semantic state should be recorded.
 pub fn apply_operation_state(state: &mut ReplayState, operation: &Operation) {
@@ -247,13 +248,13 @@ pub fn apply_operation_state(state: &mut ReplayState, operation: &Operation) {
 
 /// Builds a conflict with a stable semantic entity and detail.
 ///
-/// # Parameters
 /// - `entity`: Entity associated with the conflict.
 /// - `kind`: Structured conflict category.
 /// - `detail`: Safe explanation of the failed precondition.
 ///
-/// # Returns
 /// A structured semantic conflict.
+/// # Returns
+/// The operation result.
 fn entity_conflict(entity: EntityId, kind: ConflictKind, detail: &str) -> crate::MergeConflict {
     crate::MergeConflict {
         entity,
@@ -268,12 +269,12 @@ fn entity_conflict(entity: EntityId, kind: ConflictKind, detail: &str) -> crate:
 
 /// Builds a domain conflict associated with an operation target.
 ///
-/// # Parameters
 /// - `operation`: Operation that requires domain interpretation.
 /// - `detail`: Safe strategy or precondition detail.
 ///
-/// # Returns
 /// A structured domain conflict.
+/// # Returns
+/// The operation result.
 pub fn domain_conflict(operation: &Operation, detail: &str) -> crate::MergeConflict {
     let entity = match operation {
         Operation::CreateEntity { entity, .. }

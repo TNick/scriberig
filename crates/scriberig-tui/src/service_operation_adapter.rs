@@ -3,6 +3,9 @@
 #![allow(clippy::wildcard_imports)]
 
 use super::*;
+#[macro_use]
+#[path = "service_operation_contract_methods.rs"]
+mod operation_contract_methods;
 
 /// Optional local project labels keyed by stable entity identity.
 pub type ExplorerLabels = std::collections::HashMap<EntityId, String>;
@@ -26,12 +29,12 @@ pub struct ApplicationOperationAdapter<B> {
 impl<B: ApplicationBackend> ApplicationOperationAdapter<B> {
     /// Creates an operation adapter around an application service.
     ///
-    /// # Parameters
     /// - `service`: Application service used by the adapter.
     ///
-    /// # Returns
     /// An adapter with no project-specific explorer labels.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(service: ApplicationService<B>) -> Self {
         Self {
             service,
@@ -48,11 +51,9 @@ impl<B: ApplicationBackend> ApplicationOperationAdapter<B> {
 
     /// Supplies the runtime that executes agent commands for this TUI client.
     ///
-    /// # Parameters
     /// - `self`: Adapter receiving the runtime.
     /// - `runner`: Product-composed provider and orchestration adapter.
     ///
-    /// # Returns
     /// The configured application operation adapter.
     #[must_use]
     pub fn with_agent_runner<R>(mut self, runner: R) -> Self
@@ -65,13 +66,13 @@ impl<B: ApplicationBackend> ApplicationOperationAdapter<B> {
 
     /// Supplies project-relative labels for local explorer navigation.
     ///
-    /// # Parameters
     /// - `self`: Adapter receiving the project labels.
     /// - `labels`: Human-readable labels keyed by stable entity identity.
     ///
-    /// # Returns
     /// The adapter configured with the supplied labels.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_explorer_labels(mut self, labels: ExplorerLabels) -> Self {
         self.explorer_labels = labels;
         self
@@ -79,13 +80,13 @@ impl<B: ApplicationBackend> ApplicationOperationAdapter<B> {
 
     /// Supplies the active project's exact source projection data.
     ///
-    /// # Parameters
     /// - `self`: Adapter receiving project projection data.
     /// - `projection`: Snapshot-bound source projection.
     ///
-    /// # Returns
     /// The configured adapter.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_project_projection(mut self, projection: ProjectProjection) -> Self {
         self.project_workflow = Some(projection.workflow.clone());
         self.project_projection = Some(projection);
@@ -94,13 +95,13 @@ impl<B: ApplicationBackend> ApplicationOperationAdapter<B> {
 
     /// Supplies durable project operations for candidates created after onboarding.
     ///
-    /// # Parameters
     /// - `self`: Adapter receiving the shared project workflow.
     /// - `workflow`: Project service using the product's durable store.
     ///
-    /// # Returns
     /// The configured application operation adapter.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_project_workflow(mut self, workflow: scriberig_project::ProjectService) -> Self {
         self.project_workflow = Some(workflow);
         self
@@ -108,20 +109,110 @@ impl<B: ApplicationBackend> ApplicationOperationAdapter<B> {
 }
 
 impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
+    /// Applies a plan transition through the configured product runtime.
+    ///
+    /// - `self`: Embedded adapter with its injected runtime.
+    /// - `context`: Trusted caller capabilities and scope.
+    /// - `request`: Plan identity and observed revision.
+    /// - `action`: Requested transition.
+    ///
+    /// The authoritative plan after the optional coordinator run.
+    ///
+    /// Returns a lifecycle or worker execution failure.
+    /// # Returns
+    /// The authoritative plan.
+    /// # Errors
+    /// Returns an error when the transition or execution fails.
+    fn plan_lifecycle(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_app::PlanLifecycleRequest,
+        action: scriberig_app::PlanLifecycleAction,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        self.agent_runner
+            .plan_lifecycle(&self.service, context, request, action)
+    }
+
+    /// Starts a new conversation and runs its already accepted operation.
+    ///
+    /// - `context`: Trusted application context.
+    /// - `prompt`: User-authored first instruction.
+    /// - `selection`: Exact semantic scope for the initial model context.
+    ///
+    /// Stable handles after the composed runtime finishes the first turn.
+    ///
+    /// Returns a session acceptance or runtime execution failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn start_new_session_handle(
+        &self,
+        context: &ApplicationContext,
+        prompt: &str,
+        selection: Option<scriberig_app::AgentSelection>,
+    ) -> Result<super::AgentHandle, ApplicationError> {
+        let accepted = self.service.begin_new_session_agent(
+            context,
+            scriberig_app::NewSessionAgentRequest {
+                prompt: prompt.to_owned(),
+                selection: selection.clone(),
+            },
+        )?;
+        self.agent_runner
+            .execute_accepted(&self.service, context, &accepted)
+    }
+
+    /// Continues an exact anchor and runs its accepted continuation operation.
+    ///
+    /// - `context`: Trusted application context.
+    /// - `session`: Existing durable session.
+    /// - `anchor`: Exact replyable continuation location.
+    /// - `prompt`: User-authored continuation instruction.
+    ///
+    /// Stable operation, session, and child branch handles.
+    ///
+    /// Returns an anchor validation or runtime execution failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn continue_agent_at_handle(
+        &self,
+        context: &ApplicationContext,
+        session: EntityId,
+        anchor: scriberig_session::ContinuationAnchor,
+        prompt: &str,
+    ) -> Result<super::AgentHandle, ApplicationError> {
+        let accepted = self.service.begin_agent_execution(
+            context,
+            &scriberig_app::AgentCommandRequest {
+                session,
+                branch: None,
+                anchor: Some(anchor),
+                prompt: prompt.to_owned(),
+                selection: None,
+            },
+        )?;
+        self.agent_runner
+            .execute_accepted(&self.service, context, &accepted)
+    }
+
     /// Submits local agent work through the runtime composed by the product.
     ///
-    /// # Parameters
     /// - `self`: Adapter with the injected shared runtime boundary.
     /// - `context`: Application context for the operation.
     /// - `session`: Stable session identity.
     /// - `branch`: Optional continuation branch.
     /// - `prompt`: User-authored instruction.
     ///
-    /// # Returns
     /// Stable operation, session, and branch handles.
     ///
-    /// # Errors
     /// Returns an application submission or session-read error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn submit_agent_handle(
         &self,
         context: &ApplicationContext,
@@ -135,15 +226,16 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
 
     /// Reports the semantic operations exposed by the embedded application.
     ///
-    /// # Parameters
     /// - `self`: Embedded application adapter.
     /// - `_context`: Authorization context used by the surrounding runtime.
     ///
-    /// # Returns
     /// Capability descriptors used to keep the command palette honest.
     ///
-    /// # Errors
     /// This adapter has no separate capability-discovery failure path.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn runtime_capabilities(
         &self,
         _context: &ApplicationContext,
@@ -153,17 +245,18 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
 
     /// Runs the deterministic provider through the selected semantic scope.
     ///
-    /// # Parameters
     /// - `context`: Trusted application context.
     /// - `entity`: Selected semantic entity.
     /// - `snapshot`: Exact candidate base snapshot.
     /// - `prompt`: User instruction.
     ///
-    /// # Returns
     /// The normal candidate review operation result.
     ///
-    /// # Errors
     /// Returns a structured agent, validation, or storage error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn project_agent(
         &self,
         context: &ApplicationContext,
@@ -176,16 +269,17 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
 
     /// Delegates inspection through the public application facade.
     ///
-    /// # Parameters
     /// - `context`: Application context for the request.
     /// - `entity`: Entity to inspect.
     /// - `snapshot`: Optional exact snapshot.
     ///
-    /// # Returns
     /// The inspection result.
     ///
-    /// # Errors
     /// Returns the application inspection error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect_entity(
         &self,
         context: &ApplicationContext,
@@ -197,17 +291,18 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
 
     /// Lists the shared snapshot entity collection for Explorer navigation.
     ///
-    /// # Parameters
     /// - `context`: Application context.
     /// - `entity`: Entity owning the collection.
     /// - `snapshot`: Exact snapshot context.
     /// - `continuation`: Optional continuation token.
     ///
-    /// # Returns
     /// A bounded Explorer page.
     ///
-    /// # Errors
     /// Returns the application listing error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn list_explorer(
         &self,
         context: &ApplicationContext,
@@ -220,16 +315,17 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
 
     /// Executes exact-text discovery through the shared application boundary.
     ///
-    /// # Parameters
     /// - `context`: Application context.
     /// - `snapshot`: Exact discovery scope.
     /// - `query`: Search text.
     ///
-    /// # Returns
     /// A bounded find model.
     ///
-    /// # Errors
     /// Returns the application discovery error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn find_entities(
         &self,
         context: &ApplicationContext,
@@ -241,15 +337,15 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
 
     /// Delegates shared operations through the public application facade.
     ///
-    /// # Parameters
     /// - `context`: Application context for the request.
     /// - `request`: Public operation request.
     ///
+    ///
+    /// Returns the application operation error.
     /// # Returns
     /// The operation result.
-    ///
     /// # Errors
-    /// Returns the application operation error.
+    /// Returns an error when the operation fails.
     fn execute_operation(
         &self,
         context: &ApplicationContext,
@@ -264,15 +360,16 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
 
     /// Reads an operation record from the shared application registry.
     ///
-    /// # Parameters
     /// - `_context`: Application context for the lookup.
     /// - `operation`: Operation identity to resolve.
     ///
-    /// # Returns
     /// The current operation record.
     ///
-    /// # Errors
     /// Returns a lookup error when the operation is unknown.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn operation_status(
         &self,
         _context: &ApplicationContext,
@@ -283,15 +380,16 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
 
     /// Cancels an operation through the shared application registry.
     ///
-    /// # Parameters
     /// - `_context`: Application context for the cancellation.
     /// - `operation`: Operation identity to cancel.
     ///
-    /// # Returns
     /// The cancelled operation record.
     ///
-    /// # Errors
     /// Returns a cancellation error when the operation is unknown.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn cancel_operation(
         &self,
         _context: &ApplicationContext,
@@ -300,79 +398,5 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         service_operation_helpers::cancel_operation(self, operation)
     }
 
-    /// Lists current shared application operation records.
-    ///
-    /// # Parameters
-    /// - `_context`: Application context for operation visibility.
-    ///
-    /// # Returns
-    /// Current application operation records.
-    ///
-    /// # Errors
-    /// This local adapter has no separate listing failure path.
-    fn operation_records(
-        &self,
-        _context: &ApplicationContext,
-    ) -> Result<Vec<scriberig_app::OperationRecord>, ApplicationError> {
-        Ok(self.service.operations().list())
-    }
-
-    /// Returns lifecycle events retained by the shared application registry.
-    ///
-    /// # Parameters
-    /// - `_context`: Application context for event access.
-    ///
-    /// # Returns
-    /// Retained application events.
-    ///
-    /// # Errors
-    /// This adapter does not return an event access error.
-    fn application_events(
-        &self,
-        _context: &ApplicationContext,
-    ) -> Result<Vec<scriberig_app::ApplicationEvent>, ApplicationError> {
-        Ok(service_operation_helpers::application_events(self))
-    }
-
-    /// Reads a session through the shared application boundary.
-    ///
-    /// # Parameters
-    /// - `context`: Application context for the request.
-    /// - `session`: Session identity to read.
-    ///
-    /// # Returns
-    /// The requested session.
-    ///
-    /// # Errors
-    /// Returns the application session error.
-    fn read_session(
-        &self,
-        context: &ApplicationContext,
-        session: EntityId,
-    ) -> Result<scriberig_session::Session, ApplicationError> {
-        service_operation_helpers::read_session(self, context, session)
-    }
-
-    /// Submits an agent command through the shared application boundary.
-    ///
-    /// # Parameters
-    /// - `context`: Application context for the request.
-    /// - `session`: Session identity receiving the prompt.
-    /// - `branch`: Optional branch identity.
-    /// - `prompt`: Agent prompt to submit.
-    ///
-    /// # Returns
-    /// The accepted operation identity.
-    ///
-    /// # Errors
-    /// Returns the application agent error.
-    fn submit_agent_command(
-        &self,
-        context: &ApplicationContext,
-        session: EntityId,
-        branch: Option<EntityId>,
-        prompt: &str,
-    ) -> Result<scriberig_core::OperationId, ApplicationError> {
-        service_operation_helpers::submit_agent_command(self, context, session, branch, prompt)
-    }
+    tui_operation_contract_methods!();
 }

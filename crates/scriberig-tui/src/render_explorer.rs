@@ -4,12 +4,12 @@ use crate::state::{Focus, TuiState};
 
 /// Formats the bounded semantic explorer model.
 ///
-/// # Parameters
 /// - `state`: Cached presentation state.
 /// - `super`: Parent module visibility marker.
 ///
-/// # Returns
 /// Text representing the explorer pane.
+/// # Returns
+/// The operation result.
 pub(super) fn explorer_text(state: &TuiState) -> String {
     let Some(root) = state.explorer.root.as_ref() else {
         return "Explorer\n  No semantic root entered".to_owned();
@@ -41,12 +41,12 @@ pub(super) fn explorer_text(state: &TuiState) -> String {
 
 /// Formats one explorer row with its readable label and semantic kind.
 ///
-/// # Parameters
 /// - `row`: Explorer row to format.
 /// - `prefix`: Selection marker and indentation prefix.
 ///
-/// # Returns
 /// A compact human-readable explorer line.
+/// # Returns
+/// The operation result.
 fn display_row(row: &crate::explorer::ExplorerRow, prefix: &str) -> String {
     let kind = row
         .kind
@@ -58,13 +58,13 @@ fn display_row(row: &crate::explorer::ExplorerRow, prefix: &str) -> String {
 
 /// Computes the explorer text offset needed to keep the cursor in view.
 ///
-/// # Parameters
 /// - `state`: Current TUI presentation state.
 /// - `height`: Outer explorer pane height.
 /// - `super`: Parent module visibility marker.
 ///
-/// # Returns
 /// The number of text rows to skip from the top of the explorer.
+/// # Returns
+/// The operation result.
 pub(super) fn explorer_scroll(state: &TuiState, height: u16) -> u16 {
     let visible = height.saturating_sub(2).max(1);
     let cursor_line = state.cursor.saturating_add(1);

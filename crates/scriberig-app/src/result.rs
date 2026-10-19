@@ -78,6 +78,8 @@ pub enum ApplicationResult {
     Query(QueryResult),
     /// Result of semantic diff computation.
     Diff(OperationSummary),
+    /// Result of explicit semantic candidate integration.
+    Merge(sr_change::MergeResult),
     /// Result of history lookup.
     History(OperationSummary),
     /// Result of projection rendering.
@@ -88,6 +90,8 @@ pub enum ApplicationResult {
     Apply(OperationSummary),
     /// Result of committing a change.
     Commit(OperationSummary),
+    /// Candidate change handle returned by a registered semantic operation.
+    DomainOperation(crate::CapabilityExecution),
     /// Reference to a long-running operation.
     OperationStarted(OperationStarted),
 }

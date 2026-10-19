@@ -1,11 +1,13 @@
 //! Defines the transport-neutral in-process protocol envelope boundary.
 
 use crate::{
-    AgentContinueRequest, AgentPresentationPreferencesReadRequest,
-    AgentPresentationPreferencesSetRequest, AgentStartRequest, CancelOperationRequest,
-    CommandRequest, Event, FindRequest, ListRequest, ModelLibraryRequest,
-    ModelRequestDetailRequest, ProjectRequest, QueryRequest, SessionModelSelectionRequest,
-    SessionReadRequest, SessionThinkingSelectionRequest, SubscribeRequest, ToolResultDetailRequest,
+    AgentContinueAtRequest, AgentContinueRequest, AgentNewSessionRequest,
+    AgentPresentationPreferencesReadRequest, AgentPresentationPreferencesSetRequest,
+    AgentStartRequest, CancelOperationRequest, CommandRequest, Event, FindRequest, ListRequest,
+    ModelLibraryRequest, ModelRequestDetailRequest, ProjectRequest, QueryRequest,
+    SessionModelSelectionRequest, SessionPlanAssignmentRequest, SessionPlanCreateRequest,
+    SessionPlanLifecycleRequest, SessionPlanReplanRequest, SessionReadRequest,
+    SessionThinkingSelectionRequest, SubscribeRequest, ToolResultDetailRequest,
 };
 use crate::{
     CapabilitiesResponse, InspectEntityRequest, InspectEntityResponse, OperationStatusRequest,
@@ -38,10 +40,22 @@ pub enum Request {
     Command(CommandRequest),
     /// Start one provider-neutral agent operation.
     AgentStart(AgentStartRequest),
+    /// Start a session with application-allocated identities.
+    AgentNewSession(AgentNewSessionRequest),
     /// Continue one provider-neutral agent operation.
     AgentContinue(AgentContinueRequest),
+    /// Continue from an exact durable conversation anchor.
+    AgentContinueAt(AgentContinueAtRequest),
     /// Read one compact durable session tree.
     SessionRead(SessionReadRequest),
+    /// Create a durable structured plan.
+    PlanCreate(SessionPlanCreateRequest),
+    /// Apply one plan lifecycle transition.
+    PlanLifecycle(SessionPlanLifecycleRequest),
+    /// Change one safe node assignment.
+    PlanAssignment(SessionPlanAssignmentRequest),
+    /// Apply one complete durable replan revision.
+    PlanReplan(SessionPlanReplanRequest),
     /// Read a bounded safe model request projection.
     ModelRequestDetail(ModelRequestDetailRequest),
     /// Read bounded safe detail for one tool result.
@@ -85,6 +99,8 @@ pub enum Response {
     AgentAccepted(crate::AgentAcceptedResponse),
     /// Compact durable session tree.
     Session(crate::SessionReadResponse),
+    /// Current durable plan projection.
+    Plan(crate::SessionPlan),
     /// Safe normalized request captured for one model invocation.
     ModelRequestDetail(crate::ModelRequestDetailResponse),
     /// Bounded safe detail for one tool result.
@@ -127,11 +143,11 @@ pub struct ResponseEnvelope {
 pub trait ProtocolTransport {
     /// Sends one correlated protocol request.
     ///
-    /// # Parameters
     /// - `request`: Request envelope to send.
     ///
-    /// # Returns
     /// Correlated typed response envelope.
+    /// # Returns
+    /// The operation result.
     fn send(&self, request: RequestEnvelope) -> ResponseEnvelope;
 
     /// Returns and clears a transport failure from the most recent send.
@@ -139,8 +155,9 @@ pub trait ProtocolTransport {
     /// In-process transports never report one. Network transports may use this
     /// optional side channel because the protocol response itself is semantic.
     ///
-    /// # Returns
     /// The most recent transport failure, if any.
+    /// # Returns
+    /// The operation result.
     fn take_error(&self) -> Option<String> {
         None
     }

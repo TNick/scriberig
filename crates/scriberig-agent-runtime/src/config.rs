@@ -68,15 +68,15 @@ pub struct ProviderConfig {
 impl ProviderConfig {
     /// Creates a configuration with conservative request timeouts.
     ///
-    /// # Parameters
     /// - `profile_id`: Safe profile display identifier.
     /// - `base_url`: Provider endpoint base URL.
     /// - `model`: Provider model identifier.
     /// - `credential_source`: Indirect credential source.
     ///
-    /// # Returns
     /// A provider configuration with streaming disabled.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(
         profile_id: impl Into<String>,
         base_url: impl Into<String>,
@@ -97,12 +97,14 @@ impl ProviderConfig {
 
     /// Resolves the configured credential at request time.
     ///
-    /// # Returns
     /// A secret wrapper when the configured source contains a value.
     ///
-    /// # Errors
     /// Returns a configuration error when the environment source is missing
     /// or empty.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn resolve_credential(&self) -> Result<Option<ResolvedCredential>, ProviderError> {
         let value = match &self.credential_source {
             CredentialSource::Environment(name) => resolve_environment(name, &self.base_url),
@@ -117,14 +119,15 @@ impl ProviderConfig {
 impl fmt::Debug for CredentialSource {
     /// Prints source kind without credential-provider internals.
     ///
-    /// # Parameters
     /// - `formatter`: Output formatter.
     ///
-    /// # Returns
     /// Formatting success.
     ///
-    /// # Errors
     /// Returns formatter failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(match self {
             Self::None => "None",
@@ -136,15 +139,16 @@ impl fmt::Debug for CredentialSource {
 
 /// Resolves a legacy environment reference through live policy enforcement.
 ///
-/// # Parameters
 /// - `name`: Environment variable reference.
 /// - `endpoint`: Actual provider destination.
 ///
-/// # Returns
 /// An authorized protected credential.
 ///
-/// # Errors
 /// Returns safe policy or source failures.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn resolve_environment(
     name: &str,
     endpoint: &str,
@@ -173,9 +177,10 @@ pub struct ResolvedCredential(scriberig_secrets::SecretValue);
 impl ResolvedCredential {
     /// Returns the secret for constructing an outbound authorization header.
     ///
-    /// # Returns
     /// The resolved credential value.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn as_str(&self) -> &str {
         self.0.expose()
     }
@@ -184,15 +189,16 @@ impl ResolvedCredential {
 impl fmt::Debug for ResolvedCredential {
     /// Redacts the credential in diagnostics.
     ///
-    /// # Parameters
     /// - `self`: Credential to redact.
     /// - `formatter`: Destination formatter.
     ///
-    /// # Returns
     /// Formatting success or the formatter error.
     ///
-    /// # Errors
     /// Returns the formatter error when output cannot be written.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("ResolvedCredential(REDACTED)")
     }

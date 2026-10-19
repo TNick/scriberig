@@ -65,15 +65,15 @@ pub struct PromotionRequest {
 
 /// Evaluates capability, freshness, evidence, policy, and approval in order.
 ///
-/// # Parameters
 /// - `request`: Explicit promotion request.
 /// - `current_root`: Current canonical root snapshot.
 /// - `capability`: Capability presented by the principal.
 /// - `policy`: Attributable policy evaluation.
 ///
-/// # Returns
 /// The structured decision for the candidate.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn evaluate_promotion(
     request: &PromotionRequest,
     current_root: SnapshotId,

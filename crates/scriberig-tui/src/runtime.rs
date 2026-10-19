@@ -25,8 +25,10 @@ const APPLICATION_EVENT_BATCH_SIZE: usize = 128;
 
 /// Runs the interactive shell until a local quit event is received.
 ///
-/// # Errors
 /// Returns an I/O error when terminal setup, drawing, or event reading fails.
+///
+/// # Errors
+/// Returns an I/O error when terminal setup, event handling, or rendering fails.
 pub fn run<S: TuiService + Sync>(
     service: &S,
     context: &ApplicationContext,
@@ -46,6 +48,7 @@ pub fn run<S: TuiService + Sync>(
     let mut terminal = Terminal::new(backend)?;
     let mut state = TuiState {
         project: config.project.clone(),
+        agent_selection: config.agent_selection.clone(),
         ..TuiState::default()
     };
     std::thread::scope(|scope| {
@@ -80,6 +83,7 @@ pub fn run<S: TuiService + Sync>(
                     snapshot: config.snapshot,
                 },
             );
+            state.primary_view = crate::selection::PrimaryView::Conversation;
             queue_effects(&work_sender, &mut pending_effects, effects);
         }
         let mut pending_events = VecDeque::new();
@@ -132,7 +136,7 @@ pub fn run<S: TuiService + Sync>(
 /// Describes one unit of work executed outside the terminal thread.
 enum Work {
     /// Execute one reducer-produced semantic effect.
-    Effect(Effect),
+    Effect(Box<Effect>),
     /// Poll the application event boundary.
     PollApplicationEvents,
 }
@@ -157,9 +161,18 @@ fn worker_loop<'scope, S: TuiService + Sync>(
     sender: SyncSender<RuntimeMessage>,
 ) {
     while let Ok(work) = receiver.recv() {
-        if let Work::Effect(effect @ Effect::SubmitAgent { .. }) = work {
+        if let Work::Effect(effect) = &work
+            && matches!(
+                effect.as_ref(),
+                Effect::SubmitAgent { .. }
+                    | Effect::StartNewConversation { .. }
+                    | Effect::ContinueConversation { .. }
+                    | Effect::PlanLifecycle { .. }
+            )
+        {
             let sender = sender.clone();
             let context = context.clone();
+            let effect = (**effect).clone();
             scope.spawn(move || {
                 let action = execute_effect(service, &context, effect);
                 let _ = sender.send(RuntimeMessage::Action(Box::new(action)));
@@ -168,7 +181,7 @@ fn worker_loop<'scope, S: TuiService + Sync>(
         }
         let message = match work {
             Work::Effect(effect) => {
-                RuntimeMessage::Action(Box::new(execute_effect(service, &context, effect)))
+                RuntimeMessage::Action(Box::new(execute_effect(service, &context, *effect)))
             }
             Work::PollApplicationEvents => match service.application_events(&context) {
                 Ok(events) => RuntimeMessage::ApplicationEvents(events),
@@ -186,12 +199,12 @@ fn worker_loop<'scope, S: TuiService + Sync>(
 
 /// Queues one unit of work without allowing the UI thread to block.
 ///
-/// # Parameters
 /// - `sender`: Bounded worker queue.
 /// - `work`: Work item to enqueue.
 ///
-/// # Returns
 /// Whether the work item was accepted.
+/// # Returns
+/// The operation result.
 fn try_queue(sender: &SyncSender<Work>, work: Work) -> bool {
     match sender.try_send(work) {
         Ok(()) => true,
@@ -201,7 +214,6 @@ fn try_queue(sender: &SyncSender<Work>, work: Work) -> bool {
 
 /// Retains reducer effects and queues as many as the bounded worker accepts.
 ///
-/// # Parameters
 /// - `sender`: Bounded worker queue.
 /// - `pending`: Effects retained until worker capacity returns.
 /// - `effects`: Reducer effects to enqueue.
@@ -212,15 +224,14 @@ fn queue_effects(sender: &SyncSender<Work>, pending: &mut VecDeque<Effect>, effe
 
 /// Queues retained effects until the bounded worker queue is full.
 ///
-/// # Parameters
 /// - `sender`: Bounded worker queue.
 /// - `pending`: Effects retained until worker capacity returns.
 fn flush_effects(sender: &SyncSender<Work>, pending: &mut VecDeque<Effect>) {
     while let Some(effect) = pending.pop_front() {
-        match sender.try_send(Work::Effect(effect)) {
+        match sender.try_send(Work::Effect(Box::new(effect))) {
             Ok(()) => {}
             Err(TrySendError::Full(Work::Effect(effect))) => {
-                pending.push_front(effect);
+                pending.push_front(*effect);
                 break;
             }
             Err(TrySendError::Disconnected(_)) => break,
@@ -233,7 +244,6 @@ fn flush_effects(sender: &SyncSender<Work>, pending: &mut VecDeque<Effect>) {
 
 /// Applies completed worker messages to the state and schedules follow-up work.
 ///
-/// # Parameters
 /// - `receiver`: Completed worker message queue.
 /// - `state`: Mutable TUI state.
 /// - `poll_in_flight`: Whether an event poll is active.
@@ -286,7 +296,6 @@ fn drain_messages(
 
 /// Applies one bounded batch of retained application lifecycle events.
 ///
-/// # Parameters
 /// - `state`: TUI state receiving event reductions.
 /// - `pending_events`: Events waiting for reducer processing.
 /// - `sender`: Bounded worker queue for resulting semantic effects.
@@ -311,15 +320,12 @@ fn dispatch_pending_events(
 
 /// Executes initial semantic work without taking ownership of a terminal.
 ///
-/// # Parameters
 /// - `service`: Application service used for semantic work.
 /// - `context`: Caller capability and snapshot context.
 /// - `config`: Initial-selection configuration.
 ///
-/// # Returns
 /// Success after the requested headless work has been dispatched.
 ///
-/// # Errors
 /// Returns an I/O error if the headless execution boundary fails.
 fn run_headless<S: TuiService>(service: &S, context: &ApplicationContext, config: &TuiConfig) {
     let mut state = TuiState::default();
@@ -348,11 +354,12 @@ fn run_headless<S: TuiService>(service: &S, context: &ApplicationContext, config
 /// - `stdin_is_terminal`: Argument named `stdin_is_terminal`.
 /// - `stdout_is_terminal`: Argument named `stdout_is_terminal`.
 ///
-/// # Returns
-/// The value produced by the declaration.
 ///
-/// # Errors
 /// Returns an error when the operation cannot complete.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn validate_interactive_terminal(
     interactive: bool,
     stdin_is_terminal: bool,

@@ -1,28 +1,66 @@
 //! Composes injected domain capability providers deterministically.
 
-use crate::{ApplicationError, CapabilityDescriptor, CapabilityId, DomainOperationRequest};
-use scriberig_query::{Inspection, ReadCapability};
+use crate::{
+    ApplicationContext, ApplicationError, CapabilityAction, CapabilityDescriptor, CapabilityId,
+    CapabilityScope, DomainOperationRequest, OperationKind,
+};
+use scriberig_core::ObjectType;
+use scriberig_query::{
+    DetailLevel, EntityAtRevision, EntityInSnapshot, InspectRequest, Inspection, ReadCapability,
+    TargetRef,
+};
+
+/// Builds inspection of the exact semantic subject before domain dispatch.
+///
+/// - `request`: Domain operation whose selected revision or snapshot is exact.
+///
+/// A compact inspection request bound to the operation subject.
+/// # Returns
+/// The operation result.
+pub(crate) fn subject_inspection(request: &DomainOperationRequest) -> InspectRequest {
+    let target = request.subject.revision.map_or_else(
+        || {
+            TargetRef::Snapshot(EntityInSnapshot {
+                entity: request.subject.entity,
+                snapshot: request.subject.snapshot,
+            })
+        },
+        |revision| {
+            TargetRef::Revision(EntityAtRevision {
+                entity: request.subject.entity,
+                revision,
+            })
+        },
+    );
+    InspectRequest {
+        target,
+        detail: DetailLevel::Compact,
+        view: None,
+    }
+}
 
 /// Supplies capability descriptors and optional domain operation execution.
 pub trait CapabilityProvider {
     /// Returns descriptors advertised by this provider.
     ///
-    /// # Returns
     /// Capability descriptors for the provider's installed domain behavior.
+    /// # Returns
+    /// The operation result.
     fn capabilities(&self) -> Vec<CapabilityDescriptor>;
 
     /// Executes one advertised domain operation.
     ///
-    /// # Parameters
     /// - `self`: Provider owning the capability implementation.
     /// - `request`: Exact semantic subject and change context.
     ///
-    /// # Returns
     /// A canonical change handle produced by the provider.
     ///
-    /// # Errors
     /// Returns a structured application failure when the capability is absent
     /// or unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute(
         &self,
         request: &DomainOperationRequest,
@@ -66,7 +104,6 @@ pub struct CapabilityRegistry {
 impl CapabilityRegistry {
     /// Creates an empty capability registry.
     ///
-    /// # Returns
     /// An empty injected registry.
     #[must_use]
     pub const fn new() -> Self {
@@ -77,12 +114,13 @@ impl CapabilityRegistry {
 
     /// Registers one capability provider after checking duplicate claims.
     ///
-    /// # Parameters
     /// - `self`: Registry being extended.
     /// - `provider`: Domain or generic capability provider.
     ///
-    /// # Returns
     /// Unit when every descriptor is uniquely applicable.
+    ///
+    /// # Returns
+    /// Unit after all provider claims are registered.
     ///
     /// # Errors
     /// Returns the first deterministic duplicate descriptor.
@@ -110,12 +148,12 @@ impl CapabilityRegistry {
 
     /// Returns all available and unavailable descriptors in stable order.
     ///
-    /// # Parameters
     /// - `self`: Registry to inspect.
     ///
-    /// # Returns
     /// Deterministically ordered capability descriptors.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn capabilities(&self) -> Vec<CapabilityDescriptor> {
         let mut capabilities = self
             .providers
@@ -132,7 +170,6 @@ impl CapabilityRegistry {
 
     /// Merges applicable registered capabilities into one inspection.
     ///
-    /// # Parameters
     /// - `self`: Registry containing generic and domain providers.
     /// - `inspection`: Inspection to enrich in place.
     ///
@@ -174,27 +211,37 @@ impl CapabilityRegistry {
         }
     }
 
-    /// Executes a matching capability through its owning provider.
+    /// Executes a capability after checking its selected entity type.
     ///
-    /// # Parameters
     /// - `self`: Registry containing providers.
-    /// - `request`: Domain operation request.
+    /// - `context`: Trusted caller capabilities and snapshot.
+    /// - `request`: Exact semantic operation request.
+    /// - `entity_type`: Type resolved from the exact selected snapshot.
     ///
-    /// # Returns
     /// The provider's canonical change handoff.
     ///
+    /// Returns authorization, applicability, or provider failures.
+    /// # Returns
+    /// The operation result.
     /// # Errors
-    /// Returns unsupported capability or provider execution failure.
-    pub fn execute(
+    /// Returns an error when the operation fails.
+    pub(crate) fn execute_for_entity_type(
         &self,
+        context: &ApplicationContext,
         request: &DomainOperationRequest,
+        entity_type: Option<&ObjectType>,
     ) -> Result<CapabilityExecution, ApplicationError> {
+        Self::authorize(context, request)?;
         for provider in &self.providers {
-            if provider
-                .capabilities()
-                .iter()
-                .any(|descriptor| descriptor.id == request.capability && descriptor.available)
-            {
+            if provider.capabilities().iter().any(|descriptor| {
+                descriptor.id == request.capability
+                    && descriptor.kind == crate::CapabilityKind::DomainOperation
+                    && descriptor.available
+                    && (descriptor.entity_types.is_empty()
+                        || entity_type.is_some_and(|entity_type| {
+                            descriptor.entity_types.contains(entity_type)
+                        }))
+            }) {
                 return provider.execute(request);
             }
         }
@@ -202,5 +249,66 @@ impl CapabilityRegistry {
             operation: "domain operation".to_owned(),
             capability: request.capability.to_string(),
         })
+    }
+
+    /// Checks exact snapshot binding and scoped semantic-operation authority.
+    ///
+    /// - `context`: Trusted caller capabilities and snapshot.
+    /// - `request`: Exact semantic operation request.
+    ///
+    /// Unit when the request is authorized.
+    ///
+    /// Returns a stale-snapshot, invalid-request, or permission error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub(crate) fn authorize(
+        context: &ApplicationContext,
+        request: &DomainOperationRequest,
+    ) -> Result<(), ApplicationError> {
+        if request.subject.snapshot != request.context.base_snapshot {
+            return Err(ApplicationError::InvalidRequest {
+                operation: "domain operation".to_owned(),
+                message: "subject and candidate base snapshots must match".to_owned(),
+            });
+        }
+        if context
+            .snapshot
+            .is_some_and(|snapshot| snapshot != request.context.base_snapshot)
+        {
+            return Err(ApplicationError::StaleBaseSnapshot {
+                requested: request.context.base_snapshot,
+                current: context.snapshot.unwrap_or(request.context.base_snapshot),
+            });
+        }
+        let action = CapabilityAction::Custom(request.capability.to_string());
+        let generic_action = CapabilityAction::Custom("domain_operation".to_owned());
+        let scope = CapabilityScope::Entity(request.subject.entity);
+        let named_grant = context.capabilities.allows(&request.capability)
+            || context
+                .capabilities
+                .granted
+                .iter()
+                .any(|capability| capability.as_str() == "domain_operation");
+        let exact_grant = context.capabilities.permits(
+            &action,
+            &scope,
+            Some(request.context.base_snapshot),
+            Some(OperationKind::DomainOperation),
+        );
+        let generic_grant = context.capabilities.permits(
+            &generic_action,
+            &scope,
+            Some(request.context.base_snapshot),
+            Some(OperationKind::DomainOperation),
+        );
+        if !named_grant && !exact_grant && !generic_grant {
+            return Err(ApplicationError::PermissionDenied {
+                action: format!("{action:?}"),
+                scope: format!("{scope:?}"),
+            });
+        }
+        Ok(())
     }
 }

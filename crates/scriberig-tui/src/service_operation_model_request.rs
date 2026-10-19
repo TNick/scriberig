@@ -8,14 +8,15 @@ use super::{
 impl<B: ApplicationBackend> TuiModelRequestService for ApplicationOperationAdapter<B> {
     /// Reads shared presentation defaults through the application service.
     ///
-    /// # Parameters
     /// - `context`: Caller authorization context.
     ///
-    /// # Returns
     /// Revisioned provider-neutral preferences.
     ///
-    /// # Errors
     /// Returns the application authorization or storage error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn agent_presentation_preferences(
         &self,
         context: &ApplicationContext,
@@ -31,17 +32,18 @@ impl<B: ApplicationBackend> TuiModelRequestService for ApplicationOperationAdapt
 
     /// Reads captured safe request detail through the shared application port.
     ///
-    /// # Parameters
     /// - `context`: Authorized application context.
     /// - `session`: Session containing the invocation.
     /// - `branch`: Branch containing the invocation.
     /// - `invocation`: Stable model-invocation identity.
     ///
-    /// # Returns
     /// Bounded provider-neutral request detail.
     ///
-    /// # Errors
     /// Returns the application authorization or lookup error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn model_request_detail(
         &self,
         context: &ApplicationContext,

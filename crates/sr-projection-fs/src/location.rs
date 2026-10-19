@@ -9,12 +9,12 @@ pub struct ProjectionLocation(PathBuf);
 impl ProjectionLocation {
     /// Creates a location without filesystem canonicalization.
     ///
-    /// # Parameters
     /// - `path`: Relative or absolute path to preserve.
     ///
-    /// # Returns
     /// A normalized lexical location.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(path: impl Into<PathBuf>) -> Self {
         let path = path.into();
         let mut normalized = PathBuf::new();
@@ -34,9 +34,10 @@ impl ProjectionLocation {
 
     /// Borrows the represented path.
     ///
-    /// # Returns
     /// The lexical path.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn path(&self) -> &Path {
         &self.0
     }

@@ -40,6 +40,17 @@ export interface SessionActivityItem {
     | "Validation"
     | "ModelSelectionChanged"
     | "ThinkingLevelChanged"
+    | "PlanCreated"
+    | "PlanRevised"
+    | "PlanNodeReady"
+    | "PlanNodeStarted"
+    | "PlanNodeCompleted"
+    | "PlanNodeFailed"
+    | "AssignmentChanged"
+    | "CoordinatorChanged"
+    | "DependencyStateChanged"
+    | "SemanticOperation"
+    | "ExternalProcess"
     | "Error";
   state: "Completed" | "Running" | "Failed" | "Cancelled";
   summary: string;
@@ -47,6 +58,13 @@ export interface SessionActivityItem {
   model?: string;
   thinkingLevel?: string;
   toolName?: string;
+  toolCategory?:
+    | "SemanticRead"
+    | "SemanticMutation"
+    | "ProjectionOperation"
+    | "ValidationProcess"
+    | "OpaqueFallback"
+    | "BranchProducing";
   toolArguments?: Readonly<Record<string, unknown>>;
   toolResultPreview?: Readonly<Record<string, unknown>>;
 }
@@ -82,10 +100,46 @@ export interface SessionExecutionChange {
   model?: string;
   thinkingLevel?: string;
 }
+/** Durable lifecycle state for a planned work item. */
+export type SessionPlanNodeStatus =
+  "Planned" | "Ready" | "Running" | "Completed" | "Failed" | "Abandoned";
+/** Safe model-library configuration assigned to one plan node. */
+export interface SessionModelAssignment {
+  profile: string;
+  model: string;
+  thinkingLevel?: string;
+}
+/** Durable planned work node located in a session tree. */
+export interface SessionPlanNode {
+  id: string;
+  parent: string;
+  title: string;
+  purpose: string;
+  status: SessionPlanNodeStatus;
+  branch?: BranchId;
+  result?: string;
+  assignment?: SessionModelAssignment;
+}
+/** Result-based dependency edge between plan nodes. */
+export interface SessionPlanDependency {
+  prerequisite: string;
+  dependent: string;
+  fulfilledBy?: string;
+}
+/** Plan projection with structural nodes and a distinct dependency DAG. */
+export interface SessionPlan {
+  id: string;
+  rootBranch: BranchId;
+  nodes: readonly SessionPlanNode[];
+  dependencies: readonly SessionPlanDependency[];
+  coordinator?: BranchId;
+  coordinatorCursor?: string;
+}
 /** Compact durable session tree returned by the public protocol. */
 export interface SessionReadResponse {
   session: { id: SessionId };
   branches: readonly SessionBranch[];
+  plans: readonly SessionPlan[];
   execution: SessionExecutionSelection;
 }
 /** One normalized message retained for a durable model invocation. */

@@ -26,8 +26,9 @@ const REVISION: RevisionId = RevisionId::new([4; 32]);
 
 /// Builds a project-scoped promotion capability bound to one base snapshot.
 ///
-/// # Returns
 /// A capability suitable for deterministic promotion tests.
+/// # Returns
+/// The operation result.
 fn promotion_capability() -> Capability {
     Capability {
         scope: CapabilityScope::Branch(RootName::new("main").expect("root")),
@@ -41,13 +42,13 @@ fn promotion_capability() -> Capability {
 
 /// Builds exact validation evidence for one candidate and dependency.
 ///
-/// # Parameters
 /// - `candidate`: Candidate snapshot validated by the evidence.
 /// - `revision`: Exact dependency revision inspected by the validator.
 /// - `status`: Validator outcome.
 ///
-/// # Returns
 /// Immutable validation evidence.
+/// # Returns
+/// The operation result.
 fn evidence(
     candidate: SnapshotId,
     revision: RevisionId,
@@ -269,15 +270,16 @@ struct DenyingFixture;
 impl scriberig_app::QueryService for DenyingFixture {
     /// Returns a structured permission denial.
     ///
-    /// # Parameters
     /// - `_context`: Request context, unused by the denial fixture.
     /// - `_request`: Inspection request, unused by the denial fixture.
     ///
-    /// # Returns
     /// Never returns a successful result.
     ///
-    /// # Errors
     /// Always returns permission denied.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         _context: &ApplicationContext,
@@ -293,15 +295,16 @@ impl scriberig_app::QueryService for DenyingFixture {
 impl ApplicationService for DenyingFixture {
     /// Returns the same structured permission denial through the server boundary.
     ///
-    /// # Parameters
     /// - `context`: Request context.
     /// - `request`: Inspection request.
     ///
-    /// # Returns
     /// Never returns a successful result.
     ///
-    /// # Errors
     /// Always returns permission denied.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         context: &ApplicationContext,
@@ -312,22 +315,24 @@ impl ApplicationService for DenyingFixture {
 
     /// Reports no available capabilities for the denial fixture.
     ///
-    /// # Returns
     /// An empty capability list.
+    /// # Returns
+    /// The operation result.
     fn capabilities(&self) -> Vec<scriberig_app::RuntimeCapability> {
         Vec::new()
     }
 
     /// Reports an unavailable operation status.
     ///
-    /// # Parameters
     /// - `_operation_id`: Requested operation identity.
     ///
-    /// # Returns
     /// Never returns an operation.
     ///
-    /// # Errors
     /// Returns an unsupported operation error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn operation_status(
         &self,
         _operation_id: &str,

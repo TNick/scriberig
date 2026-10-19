@@ -19,63 +19,9 @@ mod operation_state;
 mod session_event;
 use operation_state::{OperationRegistryState, operation_event};
 
-/// Classifies the semantic work performed by an operation.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum OperationKind {
-    /// Inspects one semantic target.
-    Inspect,
-    /// Lists a typed collection.
-    List,
-    /// Follows a typed relation.
-    Follow,
-    /// Discovers semantic entities.
-    Find,
-    /// Evaluates a structural query.
-    Query,
-    /// Computes a semantic diff.
-    Diff,
-    /// Reads change history.
-    History,
-    /// Renders a semantic target through a registered view.
-    Render,
-    /// Creates or updates a branch context.
-    Branch,
-    /// Executes a model-driven agent operation.
-    Agent,
-    /// Applies a proposed change.
-    Apply,
-    /// Commits a validated change.
-    Commit,
-}
-
-/// Describes the lifecycle state of an operation.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum OperationStatus {
-    /// Operation is waiting to start.
-    Queued,
-    /// Operation is currently running.
-    Running,
-    /// Operation completed successfully.
-    Completed,
-    /// Operation failed with a structured application error.
-    Failed,
-    /// Operation was cancelled before completion.
-    Cancelled,
-}
-
-impl OperationStatus {
-    /// Reports whether the operation will not produce further progress.
-    ///
-    /// # Parameters
-    /// - `self`: Status to classify.
-    ///
-    /// # Returns
-    /// `true` for completed, failed, and cancelled states.
-    #[must_use]
-    pub const fn is_terminal(self) -> bool {
-        matches!(self, Self::Completed | Self::Failed | Self::Cancelled)
-    }
-}
+#[path = "operation/kinds.rs"]
+mod kinds;
+pub use kinds::{OperationKind, OperationStatus};
 
 /// Carries concise progress information without embedding mutable result data.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -123,24 +69,26 @@ pub struct OperationRegistry {
 impl OperationRegistry {
     /// Creates an empty operation registry.
     ///
-    /// # Returns
     /// A new empty operation registry.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Registers a queued operation.
     ///
-    /// # Parameters
     /// - `id`: Stable operation identity.
     /// - `kind`: Semantic operation family.
     ///
-    /// # Returns
     /// The inserted queued operation.
     ///
-    /// # Errors
     /// Returns an error when the identity is already registered.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn start(
         &self,
         id: OperationId,
@@ -164,14 +112,15 @@ impl OperationRegistry {
 
     /// Returns the current record for one operation.
     ///
-    /// # Parameters
     /// - `id`: Operation identity to resolve.
     ///
-    /// # Returns
     /// A snapshot of the current operation record.
     ///
-    /// # Errors
     /// Returns `NotFound` when the operation is unknown.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn get(&self, id: &OperationId) -> Result<OperationRecord, ApplicationError> {
         let state = self.lock()?;
         state
@@ -185,9 +134,10 @@ impl OperationRegistry {
 
     /// Lists the current in-process operation records in stable identity order.
     ///
-    /// # Returns
     /// A snapshot of all tracked operations.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn list(&self) -> Vec<OperationRecord> {
         self.state
             .lock()
@@ -197,15 +147,16 @@ impl OperationRegistry {
 
     /// Transitions an operation to a new lifecycle state.
     ///
-    /// # Parameters
     /// - `id`: Operation identity to update.
     /// - `status`: New lifecycle status.
     ///
-    /// # Returns
     /// The updated operation record.
     ///
-    /// # Errors
     /// Returns a structured failure for unknown or terminal operations.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn transition(
         &self,
         id: &OperationId,
@@ -221,15 +172,16 @@ impl OperationRegistry {
 
     /// Marks an operation failed and retains its structured error.
     ///
-    /// # Parameters
     /// - `id`: Operation identity to update.
     /// - `error`: Structured failure explaining the terminal state.
     ///
-    /// # Returns
     /// The failed operation record.
     ///
-    /// # Errors
     /// Returns a structured failure when the operation is unknown or terminal.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn fail(
         &self,
         id: &OperationId,
@@ -246,15 +198,16 @@ impl OperationRegistry {
 
     /// Records bounded progress for an active operation.
     ///
-    /// # Parameters
     /// - `id`: Operation identity to update.
     /// - `progress`: New progress observation.
     ///
-    /// # Returns
     /// The updated operation record.
     ///
-    /// # Errors
     /// Returns a structured failure for unknown or terminal operations.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn progress(
         &self,
         id: &OperationId,
@@ -279,15 +232,16 @@ impl OperationRegistry {
 
     /// Marks an operation completed with stable result handles.
     ///
-    /// # Parameters
     /// - `id`: Operation identity to complete.
     /// - `result_handles`: Stable references produced by the operation.
     ///
-    /// # Returns
     /// The completed operation record.
     ///
-    /// # Errors
     /// Returns a structured failure when completion is invalid.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn complete(
         &self,
         id: &OperationId,
@@ -306,16 +260,17 @@ impl OperationRegistry {
 
     /// Completes an agent operation with its structured durable result.
     ///
-    /// # Parameters
     /// - `id`: Operation identity to complete.
     /// - `result_handles`: Stable semantic handles produced by the operation.
     /// - `result`: Provider-neutral terminal agent result.
     ///
-    /// # Returns
     /// The completed operation record.
     ///
-    /// # Errors
     /// Returns a structured failure when completion is invalid.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn complete_agent(
         &self,
         id: &OperationId,
@@ -336,9 +291,10 @@ impl OperationRegistry {
 
     /// Subscribes to future lifecycle events.
     ///
-    /// # Returns
     /// A receiver for future lifecycle events.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn subscribe(&self) -> Receiver<ApplicationEvent> {
         let (sender, receiver) = mpsc::channel();
         if let Ok(mut state) = self.state.lock() {
@@ -349,9 +305,10 @@ impl OperationRegistry {
 
     /// Returns lifecycle events published so far.
     ///
-    /// # Returns
     /// A snapshot of all retained lifecycle events.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn events(&self) -> Vec<ApplicationEvent> {
         self.state
             .lock()
@@ -367,9 +324,10 @@ impl OperationRegistry {
 
     /// Returns retained lifecycle events with their stable cursors.
     ///
-    /// # Returns
     /// Events paired with the monotonic cursor allocated at publication time.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn events_with_sequences(&self) -> Vec<(u64, ApplicationEvent)> {
         self.state
             .lock()
@@ -379,15 +337,16 @@ impl OperationRegistry {
 
     /// Acquires the registry state or reports a lock failure.
     ///
-    /// # Parameters
     /// - `self`: Registry whose state is locked.
     /// - `super`: Parent module visibility boundary.
     ///
-    /// # Returns
     /// The locked registry state.
     ///
-    /// # Errors
     /// Returns an internal error when the mutex is poisoned.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(in crate::operation) fn lock(
         &self,
     ) -> Result<std::sync::MutexGuard<'_, OperationRegistryState>, ApplicationError> {

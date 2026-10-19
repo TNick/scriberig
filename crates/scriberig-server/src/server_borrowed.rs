@@ -10,15 +10,16 @@ use scriberig_query::{FindRequest, FindResult, ListRequest, ListResult, QueryRes
 impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// Delegates migration detail to the borrowed application service.
     ///
-    /// # Parameters
     /// - `context`: Trusted request context.
     /// - `migration_id`: Stable migration handle.
     ///
-    /// # Returns
     /// Snapshot-bound migration detail.
     ///
-    /// # Errors
     /// Returns the delegated service error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn migration_detail(
         &self,
         context: &ApplicationContext,
@@ -31,11 +32,12 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// - `context`: Argument named `context`.
     /// - `request`: Argument named `request`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         context: &ApplicationContext,
@@ -47,7 +49,7 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// Delegates capability discovery to the borrowed application service.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     fn capabilities(&self) -> Vec<RuntimeCapability> {
         (**self).capabilities()
     }
@@ -56,11 +58,13 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// - `context`: Trusted request context.
     /// - `session`: Stable session identity.
     ///
-    /// # Returns
     /// Compact session tree response.
     ///
-    /// # Errors
     /// Returns the service's structured failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read_session(
         &self,
         context: &ApplicationContext,
@@ -71,17 +75,18 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
 
     /// Delegates model request detail reads to the borrowed service.
     ///
-    /// # Parameters
     /// - `context`: Trusted request context.
     /// - `session`: Stable session identity.
     /// - `branch`: Stable branch identity.
     /// - `invocation`: Stable model invocation identity.
     ///
-    /// # Returns
     /// Safe normalized request detail.
     ///
-    /// # Errors
     /// Returns the service's structured failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn model_request_detail(
         &self,
         context: &ApplicationContext,
@@ -94,17 +99,18 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
 
     /// Delegates tool result detail reads to the borrowed service.
     ///
-    /// # Parameters
     /// - `context`: Trusted request context.
     /// - `session`: Stable session identity.
     /// - `branch`: Stable branch identity.
     /// - `result`: Stable tool result identity.
     ///
-    /// # Returns
     /// Bounded safe result detail.
     ///
-    /// # Errors
     /// Returns the service's structured failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn tool_result_detail(
         &self,
         context: &ApplicationContext,
@@ -117,14 +123,15 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
 
     /// Delegates model-library reads to the borrowed service.
     ///
-    /// # Parameters
     /// - `context`: Trusted caller context.
     ///
-    /// # Returns
     /// The service's safe model library.
     ///
-    /// # Errors
     /// Returns the service's structured failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn model_library(
         &self,
         context: &ApplicationContext,
@@ -134,14 +141,15 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
 
     /// Delegates shared presentation reads to the borrowed service.
     ///
-    /// # Parameters
     /// - `context`: Trusted caller identity and capabilities.
     ///
-    /// # Returns
     /// Revisioned shared presentation defaults.
     ///
-    /// # Errors
     /// Returns the service's structured failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn agent_presentation_preferences(
         &self,
         context: &ApplicationContext,
@@ -151,15 +159,16 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
 
     /// Delegates shared presentation updates to the borrowed service.
     ///
-    /// # Parameters
     /// - `context`: Trusted caller identity and capabilities.
     /// - `request`: Revision-checked complete preference values.
     ///
-    /// # Returns
     /// Updated revisioned preferences.
     ///
-    /// # Errors
     /// Returns the service's structured failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set_agent_presentation_preferences(
         &self,
         context: &ApplicationContext,
@@ -170,17 +179,18 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
 
     /// Delegates model selection to the borrowed service.
     ///
-    /// # Parameters
     /// - `context`: Trusted caller context.
     /// - `session`: Stable session identity.
     /// - `expected_revision`: Selection revision observed by the caller.
     /// - `model_profile`: Curated model profile id.
     ///
-    /// # Returns
     /// The updated session execution selection.
     ///
-    /// # Errors
     /// Returns the service's structured failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set_session_model(
         &self,
         context: &ApplicationContext,
@@ -193,17 +203,18 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
 
     /// Delegates thinking-level selection to the borrowed service.
     ///
-    /// # Parameters
     /// - `context`: Trusted caller context.
     /// - `session`: Stable session identity.
     /// - `expected_revision`: Selection revision observed by the caller.
     /// - `thinking_level`: Advertised thinking capability id.
     ///
-    /// # Returns
     /// The updated session execution selection.
     ///
-    /// # Errors
     /// Returns the service's structured failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set_session_thinking_level(
         &self,
         context: &ApplicationContext,
@@ -217,11 +228,12 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// Delegates operation status to the borrowed application service.
     /// - `operation_id`: Argument named `operation_id`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn operation_status(&self, operation_id: &str) -> Result<Operation, ApplicationError> {
         (**self).operation_status(operation_id)
     }
@@ -229,11 +241,12 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// Delegates operation cancellation to the borrowed application service.
     /// - `operation_id`: Argument named `operation_id`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn cancel_operation(&self, operation_id: &str) -> Result<Operation, ApplicationError> {
         (**self).cancel_operation(operation_id)
     }
@@ -241,11 +254,12 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// Delegates event observation to the borrowed application service.
     /// - `event_kinds`: Argument named `event_kinds`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn events(&self, event_kinds: &[String]) -> Result<Vec<Event>, ApplicationError> {
         (**self).events(event_kinds)
     }
@@ -254,11 +268,13 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// - `event_kinds`: Event kind filters.
     /// - `after`: Last cursor already processed by the caller.
     ///
-    /// # Returns
     /// Events newer than `after`.
     ///
-    /// # Errors
     /// Returns an error when replay is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn events_after(
         &self,
         event_kinds: &[String],
@@ -269,15 +285,16 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
 
     /// Delegates semantic discovery to the borrowed application service.
     ///
-    /// # Parameters
     /// - `context`: Trusted request context.
     /// - `request`: Snapshot-scoped discovery request.
     ///
-    /// # Returns
     /// The service's bounded discovery result.
     ///
-    /// # Errors
     /// Returns the service's structured failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn find(
         &self,
         context: &ApplicationContext,
@@ -288,15 +305,16 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
 
     /// Delegates bounded collection listing to the borrowed service.
     ///
-    /// # Parameters
     /// - `context`: Trusted request context.
     /// - `request`: Snapshot-bound collection request.
     ///
-    /// # Returns
     /// The service's bounded collection page.
     ///
-    /// # Errors
     /// Returns the service's structured failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn list(
         &self,
         context: &ApplicationContext,
@@ -309,11 +327,12 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// - `context`: Argument named `context`.
     /// - `request`: Argument named `request`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn query(
         &self,
         context: &ApplicationContext,
@@ -327,11 +346,12 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// - `kind`: Argument named `kind`.
     /// - `payload`: Argument named `payload`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn command(
         &self,
         context: &ApplicationContext,

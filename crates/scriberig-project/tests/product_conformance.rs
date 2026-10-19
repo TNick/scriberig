@@ -9,11 +9,11 @@ use scriberig_store_sqlite::SqliteStore;
 
 /// Creates a temporary imported project and returns its public identities.
 ///
-/// # Parameters
 /// - `label`: Unique fixture label.
 ///
-/// # Returns
 /// Fixture root, store, project, snapshot, and named `add` entity.
+/// # Returns
+/// The operation result.
 fn setup(
     label: &str,
 ) -> (

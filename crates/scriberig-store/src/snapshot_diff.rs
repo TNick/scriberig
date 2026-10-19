@@ -6,24 +6,24 @@ use std::collections::BTreeMap;
 impl Snapshot {
     /// Computes explicit semantic differences in ascending entity order.
     ///
-    /// # Parameters
     /// - `other`: Snapshot to compare with this snapshot.
     ///
-    /// # Returns
     /// Semantic changes between the snapshots.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn diff(&self, other: &Self) -> Vec<SnapshotDiff> {
         self.diff_semantic(other)
     }
 
     /// Computes storage-level changes suitable for applying to another snapshot.
     ///
-    /// # Parameters
     /// - `other`: Snapshot to compare with this snapshot.
     ///
-    /// # Returns
     /// Storage changes that transform this snapshot into the other snapshot.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn diff_changes(&self, other: &Self) -> Vec<SnapshotChange> {
         self.diff_semantic(other)
             .into_iter()
@@ -41,12 +41,12 @@ impl Snapshot {
 
     /// Computes explicit semantic differences in ascending entity order.
     ///
-    /// # Parameters
     /// - `other`: Snapshot to compare with this snapshot.
     ///
-    /// # Returns
     /// Semantic changes between the snapshots.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn diff_semantic(&self, other: &Self) -> Vec<SnapshotDiff> {
         let left: BTreeMap<_, _> = self.iter().collect();
         let right: BTreeMap<_, _> = other.iter().collect();

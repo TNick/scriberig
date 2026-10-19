@@ -173,6 +173,37 @@ describe("session client projections", () => {
               result: { id: "result-1", references: ["migration-1"] },
             },
           ],
+          plans: [
+            {
+              id: "plan-1",
+              root_branch: "root",
+              nodes: [
+                {
+                  id: "plan-parser",
+                  parent: "root",
+                  title: "Implement parser",
+                  purpose: "Add semantic parser operations",
+                  status: "Completed",
+                  branch: "parser-branch",
+                  result: "parser-result",
+                  assignment: {
+                    profile: "profile-a",
+                    model: "model-a",
+                    thinking_level: "careful",
+                  },
+                },
+              ],
+              dependencies: [
+                {
+                  prerequisite: "plan-parser",
+                  dependent: "plan-tests",
+                  fulfilled_by: "parser-result",
+                },
+              ],
+              coordinator: "root",
+              coordinator_cursor: "plan-tests",
+            },
+          ],
         }) as T,
       subscribe: () => () => undefined,
     };
@@ -195,6 +226,27 @@ describe("session client projections", () => {
       ],
     });
     expect(session.branches[0]?.turns[0]?.hasHumanInput).toBe(true);
+    expect(session.plans[0]).toMatchObject({
+      id: "plan-1",
+      coordinator: "root",
+      dependencies: [
+        {
+          prerequisite: "plan-parser",
+          dependent: "plan-tests",
+          fulfilledBy: "parser-result",
+        },
+      ],
+      nodes: [
+        {
+          id: "plan-parser",
+          assignment: {
+            profile: "profile-a",
+            model: "model-a",
+            thinkingLevel: "careful",
+          },
+        },
+      ],
+    });
     expect(await client.getBranch("session-1" as never, "child" as never)).toMatchObject({
       branchId: "child",
       status: "completed",

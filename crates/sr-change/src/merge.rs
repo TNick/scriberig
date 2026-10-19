@@ -43,10 +43,11 @@ pub enum DomainMergeOutcome {
 /// Optional domain extension for safe same-entity merge.
 pub trait DomainMergeStrategy {
     /// Resolves one exact conflicted entity without mutating snapshots.
-    /// # Parameters
     /// - `context`: Exact base, left, and right revisions.
-    /// # Returns
+    ///
     /// A resolution, explicit conflict detail, or not-applicable result.
+    /// # Returns
+    /// The operation result.
     fn resolve(&self, context: EntityMergeContext) -> DomainMergeOutcome;
 }
 
@@ -75,16 +76,18 @@ pub enum MergeError {
 }
 
 /// Merges three immutable snapshots using universal entity rules.
-/// # Parameters
 /// - `input`: IDs describing the merge request.
 /// - `base`: Explicit base snapshot.
 /// - `left`: Left branch snapshot.
 /// - `right`: Right branch snapshot.
 /// - `strategy`: Optional domain strategy.
-/// # Returns
+///
 /// Resolved deltas and minimal unresolved conflicts.
-/// # Errors
 /// Returns an identity error when inputs do not match the request IDs.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn merge_snapshots(
     input: MergeInput,
     base: &Snapshot,
@@ -191,13 +194,14 @@ pub enum MergeStoreError {
 
 /// Performs a three-way merge and retains its conflict-free result snapshot.
 ///
-/// # Parameters
 /// - `store`: Backend-neutral snapshot store receiving the result.
 /// - `input`: Exact base, left, and right snapshot identities.
 /// - `strategy`: Optional domain strategy for ambiguous entities.
 ///
-/// # Returns
 /// Merge deltas and the retained result identity when no conflicts remain.
+///
+/// # Returns
+/// The merge result and retained snapshot identity when conflict free.
 ///
 /// # Errors
 /// Returns a merge-input or snapshot-store error.
@@ -240,7 +244,6 @@ fn snapshot_from_store<S: SnapshotStore>(
 
 /// Adds a delta when the transition is semantically non-empty.
 ///
-/// # Parameters
 /// - `deltas`: Output delta collection.
 /// - `entity`: Changed entity.
 /// - `before`: Base revision.

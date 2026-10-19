@@ -14,16 +14,17 @@ struct Fixture;
 impl ApplicationBackend for Fixture {
     /// Executes the fixture inspection request.
     ///
-    /// # Parameters
     /// - `self`: Fixture backend.
     /// - `_context`: Unused test context.
     /// - `request`: Request expected to be an inspection.
     ///
-    /// # Returns
     /// One deterministic inspection result.
     ///
-    /// # Errors
     /// Returns an internal error for another request kind.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute(
         &self,
         _context: &ApplicationContext,
@@ -58,15 +59,16 @@ impl ApplicationBackend for Fixture {
 
     /// Resolves the fixture's exact current snapshot.
     ///
-    /// # Parameters
     /// - `self`: Fixture backend.
     /// - `_context`: Unused test context.
     ///
-    /// # Returns
     /// The deterministic current snapshot.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn current_snapshot(
         &self,
         _context: &ApplicationContext,

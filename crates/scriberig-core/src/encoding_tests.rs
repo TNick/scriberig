@@ -61,7 +61,6 @@ fn independent_values_encode_to_the_same_bytes() {
     impl CanonicalEncode for Sample {
         /// Encodes the sample's scalar value.
         ///
-        /// # Parameters
         /// - `self`: Sample to encode.
         /// - `writer`: Canonical byte output.
         fn encode_canonical(&self, writer: &mut CanonicalWriter) {

@@ -7,13 +7,13 @@ use scriberig_protocol::{Response, SessionReadRequest};
 impl<S: ApplicationService> Dispatcher<S> {
     /// Reads one durable session through the application boundary.
     ///
-    /// # Parameters
     /// - `self`: Protocol dispatcher.
     /// - `request`: Typed session read request.
     /// - `correlation_id`: Request correlation identity.
     ///
-    /// # Returns
     /// Typed session response or protocol error.
+    /// # Returns
+    /// The operation result.
     pub(super) fn session_read(
         &self,
         request: &SessionReadRequest,

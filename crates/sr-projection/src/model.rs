@@ -92,14 +92,15 @@ pub struct SemanticStateRef(pub SnapshotId);
 impl ProjectionKind {
     /// Creates a projection kind from its stable adapter-defined identifier.
     ///
-    /// # Parameters
     /// - `identifier`: Nonempty identifier for a projection format.
     ///
-    /// # Returns
     /// The kind when its identifier is nonempty.
     ///
-    /// # Errors
     /// Returns an error when the identifier is empty or whitespace-only.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(identifier: impl Into<String>) -> Result<Self, &'static str> {
         let identifier = identifier.into();
         if identifier.trim().is_empty() {
@@ -110,12 +111,12 @@ impl ProjectionKind {
 
     /// Returns the stable projection kind identifier.
     ///
-    /// # Parameters
     /// - `self`: Kind to inspect.
     ///
-    /// # Returns
     /// The adapter-defined identifier.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -124,14 +125,15 @@ impl ProjectionKind {
 impl ExternalLocation {
     /// Creates an opaque external location reference.
     ///
-    /// # Parameters
     /// - `location`: Stable adapter-defined location text.
     ///
-    /// # Returns
     /// The location when it is nonempty.
     ///
-    /// # Errors
     /// Returns an error when the location is empty or whitespace-only.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(location: impl Into<String>) -> Result<Self, &'static str> {
         let location = location.into();
         if location.trim().is_empty() {
@@ -142,9 +144,10 @@ impl ExternalLocation {
 
     /// Returns the opaque location text.
     ///
-    /// # Returns
     /// The adapter-defined location reference.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -154,12 +157,12 @@ impl ExternalLocation {
 impl RendererVersion {
     /// Creates a renderer version label.
     ///
-    /// # Parameters
     /// - `version`: Stable renderer version label.
     ///
-    /// # Returns
     /// The renderer version.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(version: impl Into<String>) -> Self {
         Self(version.into())
     }

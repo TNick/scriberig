@@ -17,13 +17,13 @@ pub struct BinaryDocument {
 
 /// Creates binary metadata without decoding or modifying source bytes.
 ///
-/// # Parameters
 /// - `path`: Source path used for media-type inference.
 /// - `source`: Exact source bytes.
 ///
-/// # Returns
 /// Binary metadata retaining path, type, and byte length.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn parse(path: &Path, source: &[u8]) -> BinaryDocument {
     BinaryDocument {
         path: path.to_string_lossy().replace('\\', "/"),
@@ -34,11 +34,11 @@ pub fn parse(path: &Path, source: &[u8]) -> BinaryDocument {
 
 /// Infers a stable media type for a binary path.
 ///
-/// # Parameters
 /// - `path`: Source path.
 ///
-/// # Returns
 /// Media type suitable for indexing and agent context.
+/// # Returns
+/// The operation result.
 fn media_type(path: &Path) -> String {
     let extension = path
         .extension()

@@ -6,13 +6,13 @@ use super::*;
 
 /// Builds a panel border with a visible focus state.
 ///
-/// # Parameters
 /// - `title`: Panel title displayed in the border.
 /// - `focused`: Whether this panel currently owns keyboard focus.
 /// - `super`: Parent-module visibility marker.
 ///
-/// # Returns
 /// A styled panel block.
+/// # Returns
+/// The operation result.
 pub(super) fn panel_block(title: &str, focused: bool) -> Block<'_> {
     let color = if focused {
         Color::Cyan
@@ -32,12 +32,12 @@ pub(super) fn panel_block(title: &str, focused: bool) -> Block<'_> {
 
 /// Formats inspector loading, error, and ready states with exact identifiers.
 ///
-/// # Parameters
 /// - `state`: Cached presentation state.
 /// - `super`: Parent-module visibility marker.
 ///
-/// # Returns
 /// Text representing inspector state.
+/// # Returns
+/// The operation result.
 pub(super) fn inspector_text(state: &TuiState) -> String {
     match &state.inspector {
         crate::inspector::LoadState::NotRequested => {
@@ -72,7 +72,6 @@ pub(super) fn inspector_text(state: &TuiState) -> String {
 
 /// Renders the runtime status line.
 ///
-/// # Parameters
 /// - `frame`: Terminal frame to draw.
 /// - `area`: Status-line rectangle.
 /// - `state`: Cached presentation state.

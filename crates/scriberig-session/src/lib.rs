@@ -6,6 +6,7 @@ pub mod branch;
 pub mod description;
 pub mod error;
 pub mod execution;
+pub mod planning;
 pub mod schema;
 pub mod turn;
 pub mod types;
@@ -25,43 +26,70 @@ pub mod repository {
         Persistence(String),
     }
 
+    /// Reports compare-and-swap plan update failures.
+    #[derive(Clone, Debug, Eq, PartialEq)]
+    pub enum PlanStoreError {
+        /// The stored plan has moved past the caller's observed revision.
+        RevisionConflict { expected: u64, actual: u64 },
+        /// The repository could not perform an atomic update.
+        Persistence(String),
+    }
+
     /// Persists provider-neutral session graphs without depending on a model runtime.
     pub trait SessionStore: Send + Sync {
+        /// Lists durable session graphs in deterministic identity order.
+        ///
+        /// The list is a snapshot of records visible to the backend when the
+        /// method is called. Callers should retain exact session identities
+        /// and load an individual graph before editing it.
+        ///
+        /// Complete stored session graphs in deterministic order.
+        ///
+        /// Returns a bounded backend diagnostic when records cannot be read.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the repository cannot read its records.
+        fn list(&self) -> Result<Vec<Session>, String>;
+
         /// Loads one exact session graph when it exists.
         ///
-        /// # Parameters
         /// - `session`: Stable session identity.
         ///
-        /// # Returns
         /// The stored session, or `None` when no record exists.
         ///
-        /// # Errors
         /// Returns a backend diagnostic that is safe for the application layer.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn load(&self, session: EntityId) -> Result<Option<Session>, String>;
 
         /// Stores one complete session graph atomically.
         ///
-        /// # Parameters
         /// - `session`: Session graph to persist.
         ///
-        /// # Errors
         /// Returns a backend diagnostic when persistence fails.
         ///
-        /// # Returns
         /// Unit after the session is persisted.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn save(&self, session: &Session) -> Result<(), String>;
 
         /// Atomically updates only execution selection at an observed revision.
         ///
-        /// # Parameters
         /// - `_session`: Session carrying the proposed new selection.
         /// - `_expected_revision`: Selection revision observed by the caller.
         ///
-        /// # Returns
         /// Unit after the selection is committed.
         ///
-        /// # Errors
         /// Returns a revision conflict or a repository diagnostic.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn compare_and_swap_execution_selection(
             &self,
             _session: &Session,
@@ -69,6 +97,33 @@ pub mod repository {
         ) -> Result<(), SelectionStoreError> {
             Err(SelectionStoreError::Persistence(
                 "atomic session selection updates are unsupported".to_owned(),
+            ))
+        }
+
+        /// Atomically replaces one plan at its observed revision.
+        ///
+        /// The repository must preserve unrelated session and branch updates.
+        /// New branch records in the proposal are merged and linked to their
+        /// existing parents in the same transaction. Existing branch records
+        /// are never overwritten by this operation.
+        ///
+        /// - `_session`: Snapshot containing the proposed plan.
+        /// - `_plan`: Stable plan identity being replaced.
+        /// - `_expected_revision`: Plan revision observed by the caller.
+        ///
+        /// Returns a revision conflict or a repository diagnostic.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
+        fn compare_and_swap_plan(
+            &self,
+            _session: &Session,
+            _plan: EntityId,
+            _expected_revision: u64,
+        ) -> Result<(), PlanStoreError> {
+            Err(PlanStoreError::Persistence(
+                "atomic plan updates are unsupported".to_owned(),
             ))
         }
     }
@@ -81,8 +136,19 @@ pub use execution::{
     AgentActivityKind, AgentActivityState, CacheDisposition, ExecutionActivity, ModelInvocation,
     ModelOutput, ModelRequestMessage, ModelRequestProjection, ModelRequestTool, SelectionError,
     SessionActivityKind, SessionActivityState, SessionExecutionChange, SessionExecutionSelection,
+    ToolActivityKind,
 };
-pub use repository::{SelectionStoreError, SessionStore};
-pub use turn::{AgentOutput, HumanInput, ToolInvocation, ToolResult, Turn};
-pub use types::{BranchResult, Decision, Goal, Observation, Question, Session, Summary, Task};
+pub use planning::{
+    CoordinatorClaim, ExpectedResult, ModelAssignment, Plan, PlanDependency, PlanError, PlanNode,
+    PlanNodeParent, PlanNodeStatus, PlanRevision, PlanStatus, WorkerClaim,
+};
+pub use repository::{PlanStoreError, SelectionStoreError, SessionStore};
+pub use turn::{
+    AgentOutput, ContinuationAnchor, ContinuationOrigin, ContinuationProvenance, HumanInput,
+    ResolvedContinuationAnchor, ToolInvocation, ToolResult, Turn,
+};
+pub use types::{
+    BranchCandidateContext, BranchResult, Decision, Goal, Observation, Question, Session, Summary,
+    Task,
+};
 pub use views::{BranchDescriptor, ChildBranchSummary, DecisionEntry, SessionViews, TurnView};

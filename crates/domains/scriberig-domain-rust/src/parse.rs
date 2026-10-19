@@ -12,12 +12,15 @@ use quote::ToTokens;
 use syn::{Item, Stmt};
 
 /// Parses Rust source while keeping parser AST types private.
-/// # Parameters
 /// - `source`: Rust source text.
-/// # Returns
+///
 /// Structured Rust syntax and source comments.
-/// # Errors
+///
 /// Returns a typed parse error for invalid Rust source.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn parse(source: &str) -> Result<RustFile, RustSyntaxError> {
     let file =
         syn::parse_file(source).map_err(|error| RustSyntaxError::Parse(error.to_string()))?;
@@ -29,10 +32,11 @@ pub fn parse(source: &str) -> Result<RustFile, RustSyntaxError> {
 }
 
 /// Converts one private parser item to adapter syntax.
-/// # Parameters
 /// - `item`: Parser item.
-/// # Returns
+///
 /// Parser-independent syntax.
+/// # Returns
+/// The operation result.
 fn map_item(item: Item) -> RustItem {
     match item {
         Item::Fn(function) => RustItem::Function(RustFunction {
@@ -76,10 +80,11 @@ fn map_item(item: Item) -> RustItem {
     }
 }
 /// Converts one private parser statement to adapter syntax.
-/// # Parameters
 /// - `statement`: Parser statement.
-/// # Returns
+///
 /// Parser-independent statement syntax.
+/// # Returns
+/// The operation result.
 fn map_statement(statement: &Stmt) -> RustStatement {
     RustStatement {
         tokens: statement.to_token_stream().to_string(),

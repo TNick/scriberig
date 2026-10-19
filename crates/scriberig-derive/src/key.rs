@@ -16,13 +16,13 @@ pub struct DerivationKey {
 impl DerivationKey {
     /// Creates a key from an exact profile and normalized dependencies.
     ///
-    /// # Parameters
     /// - `profile`: Exact derivation definition.
     /// - `dependencies`: Exact declared input set.
     ///
-    /// # Returns
     /// A deterministic key. It includes no implicit snapshot dependency.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(profile: DerivationProfile, dependencies: DependencySet) -> Self {
         Self {
             profile,

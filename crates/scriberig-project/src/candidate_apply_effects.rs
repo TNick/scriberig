@@ -34,16 +34,13 @@ pub(super) struct EffectPlan<'a> {
 
 /// Preflights every aggregate path before materializing any effect.
 ///
-/// # Parameters
 /// - `service`: Project service used to persist path receipts.
 /// - `candidate`: Durable aggregate candidate.
 /// - `base_files`: Exact immutable source files at the candidate base.
 /// - `root`: Authorized live project root.
 ///
-/// # Returns
 /// Ordered per-path materialization plans.
 ///
-/// # Errors
 /// Returns the first stale, ownership, path, or external filesystem conflict.
 pub(super) fn preflight_effects<'a>(
     service: &ProjectService,
@@ -96,17 +93,18 @@ pub(super) fn preflight_effects<'a>(
 
 /// Rejects unrelated working-tree divergence before whole-project refresh.
 ///
-/// # Parameters
 /// - `base_files`: Exact canonical source manifest at the candidate base.
 /// - `effects`: Candidate paths allowed to differ from the base.
 /// - `root`: Authorized project checkout.
 /// - `super`: Parent apply module visibility.
 ///
-/// # Returns
 /// Unit when every unaffected scanned source matches the exact base.
 ///
-/// # Errors
 /// Returns a path-specific conflict for unreviewed additions, edits, or deletions.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn preflight_project_tree(
     base_files: &[scriberig_store_sqlite::ProjectFileRecord],
     effects: &[ProjectSourceEffect],
@@ -147,17 +145,18 @@ pub(super) fn preflight_project_tree(
 
 /// Checks one effect against immutable base ownership and current disk state.
 ///
-/// # Parameters
 /// - `effect`: Candidate source effect.
 /// - `base_files`: Exact base source manifest.
 /// - `root`: Authorized project root.
 /// - `allow_already_applied`: Whether a durable receipt permits recovery.
 ///
-/// # Returns
 /// Safe path, required action, and currently observed bytes.
 ///
-/// # Errors
 /// Returns an ownership, path, or external edit conflict.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn inspect_effect(
     effect: &ProjectSourceEffect,
     base_files: &[scriberig_store_sqlite::ProjectFileRecord],
@@ -215,7 +214,6 @@ fn inspect_effect(
 
 /// Executes a complete preflighted set and persists per-path progress.
 ///
-/// # Parameters
 /// - `service`: Project service storing durable progress.
 /// - `candidate`: Candidate being materialized.
 /// - `plans`: Full preflight result.
@@ -224,11 +222,13 @@ fn inspect_effect(
 /// - `filesystem`: Filesystem adapter used for safe reads and writes.
 /// - `super`: Parent module visibility.
 ///
-/// # Returns
 /// Unit after every effect is materialized or already satisfied.
 ///
-/// # Errors
 /// Returns a structured error and retains the completed path receipts.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn materialize_effects(
     service: &ProjectService,
     candidate: &ProjectCandidate,
@@ -311,15 +311,16 @@ pub(super) fn materialize_effects(
 
 /// Resolves one project-relative target while rejecting traversal and symlinks.
 ///
-/// # Parameters
 /// - `root`: Authorized project root.
 /// - `relative`: Project-relative target.
 ///
-/// # Returns
 /// Canonically contained target path, including a missing final path.
 ///
-/// # Errors
 /// Returns a structured path error for traversal, symlinks, or containment escape.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn safe_project_path(root: &Path, relative: &str) -> Result<PathBuf, ProjectError> {
     let parsed = Path::new(relative);
     if relative.is_empty()
@@ -365,14 +366,15 @@ fn safe_project_path(root: &Path, relative: &str) -> Result<PathBuf, ProjectErro
 
 /// Reads a target when present while preserving non-not-found IO errors.
 ///
-/// # Parameters
 /// - `path`: Safe project target path.
 ///
-/// # Returns
 /// Exact current bytes or `None` when the target is absent.
 ///
-/// # Errors
 /// Returns a filesystem read error for inaccessible targets.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn read_optional(path: &Path) -> Result<Option<Vec<u8>>, ProjectError> {
     match fs::read(path) {
         Ok(bytes) => Ok(Some(bytes)),
@@ -386,11 +388,11 @@ fn read_optional(path: &Path) -> Result<Option<Vec<u8>>, ProjectError> {
 
 /// Creates a path-specific external modification conflict.
 ///
-/// # Parameters
 /// - `path`: Conflicting project-relative path.
 ///
-/// # Returns
 /// Structured filesystem conflict.
+/// # Returns
+/// The operation result.
 fn filesystem_conflict(path: &str) -> ProjectError {
     candidate_error(
         "filesystem_conflict",

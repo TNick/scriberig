@@ -9,14 +9,15 @@ pub struct CapabilityId(String);
 impl CapabilityId {
     /// Validates and constructs a capability identifier.
     ///
-    /// # Parameters
     /// - `value`: Stable capability name using letters, digits, `.`, `_`, or `-`.
     ///
-    /// # Returns
     /// The validated capability identifier.
     ///
-    /// # Errors
     /// Returns an error when the value is empty or contains an unsupported character.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(value: impl Into<String>) -> Result<Self, &'static str> {
         let value = value.into();
         if value.is_empty()
@@ -31,12 +32,12 @@ impl CapabilityId {
 
     /// Borrows the stable capability identifier.
     ///
-    /// # Parameters
     /// - `self`: Capability identifier to inspect.
     ///
-    /// # Returns
     /// The identifier text.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -45,15 +46,16 @@ impl CapabilityId {
 impl Display for CapabilityId {
     /// Formats the capability identifier.
     ///
-    /// # Parameters
     /// - `self`: Capability identifier to format.
     /// - `formatter`: Destination formatter.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when the destination rejects the write.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         formatter.write_str(self.as_str())
     }
@@ -109,14 +111,14 @@ pub struct ProviderMetadata {
 impl ProviderMetadata {
     /// Creates provider metadata without a profile.
     ///
-    /// # Parameters
     /// - `id`: Stable provider or adapter identifier.
     /// - `version`: Provider version.
     /// - `available`: Whether the provider is usable.
     ///
-    /// # Returns
     /// Provider metadata with no profile binding.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(id: impl Into<String>, version: impl Into<String>, available: bool) -> Self {
         Self {
             id: id.into(),
@@ -128,13 +130,13 @@ impl ProviderMetadata {
 
     /// Binds a semantics-affecting provider profile.
     ///
-    /// # Parameters
     /// - `self`: Provider metadata to update.
     /// - `profile`: Stable profile identifier.
     ///
-    /// # Returns
     /// Metadata with the profile attached.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_profile(mut self, profile: impl Into<String>) -> Self {
         self.profile = Some(profile.into());
         self

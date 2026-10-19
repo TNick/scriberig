@@ -10,14 +10,15 @@ use std::io::IsTerminal;
 
 /// Executes one local administrative command using the native credential store.
 ///
-/// # Parameters
 /// - `args`: Parsed command with references and metadata only.
 ///
-/// # Returns
 /// Unit after the safe command result is printed.
 ///
-/// # Errors
 /// Returns a safe structured lifecycle or backend failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn run(args: &SecretsArgs) -> Result<(), SecretError> {
     let locations = RegistryLocations::from_process()?;
     let store = OsSecretStore;
@@ -84,14 +85,15 @@ pub fn run(args: &SecretsArgs) -> Result<(), SecretError> {
 
 /// Constructs an exact destination/project binding from explicit local intent.
 ///
-/// # Parameters
 /// - `args`: Explicit administrative reference and destination arguments.
 ///
-/// # Returns
 /// A normalized binding with canonical project scope.
 ///
-/// # Errors
 /// Returns a safe invalid-reference or project-path failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn binding(args: &BindingArgs) -> Result<Binding, SecretError> {
     let reference = if args.name.contains(':') {
         SecretRef::parse(&args.name)?
@@ -119,15 +121,16 @@ fn binding(args: &BindingArgs) -> Result<Binding, SecretError> {
 
 /// Prints metadata without ever receiving secret material.
 ///
-/// # Parameters
 /// - `value`: Secret-free metadata object.
 /// - `format`: Human-readable or JSON representation.
 ///
-/// # Returns
 /// Unit after writing the result.
 ///
-/// # Errors
 /// Returns a safe serialization error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn print_metadata(
     value: &serde_json::Value,
     format: scriberig_cli::RunFormat,

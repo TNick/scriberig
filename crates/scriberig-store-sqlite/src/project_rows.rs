@@ -6,15 +6,16 @@ use scriberig_core::{EntityId, ProjectId};
 
 /// Decodes one persisted project-file row.
 ///
-/// # Parameters
 /// - `row`: SQLite row containing a project-file record.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// A decoded project-file record.
 ///
-/// # Errors
 /// Returns an identifier conversion error for malformed stored data.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn file_from_row(row: &Row<'_>) -> rusqlite::Result<ProjectFileRecord> {
     let project: Vec<u8> = row.get(0)?;
     let entity: Vec<u8> = row.get(2)?;
@@ -41,15 +42,16 @@ pub(crate) fn file_from_row(row: &Row<'_>) -> rusqlite::Result<ProjectFileRecord
 
 /// Decodes one persisted project-entity row.
 ///
-/// # Parameters
 /// - `row`: SQLite row containing a project-entity record.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// A decoded project-entity record.
 ///
-/// # Errors
 /// Returns an identifier conversion error for malformed stored data.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn entity_from_row(row: &Row<'_>) -> rusqlite::Result<ProjectEntityRecord> {
     let project: Vec<u8> = row.get(0)?;
     let entity: Vec<u8> = row.get(2)?;

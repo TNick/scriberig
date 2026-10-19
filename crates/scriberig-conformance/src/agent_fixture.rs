@@ -36,12 +36,12 @@ pub struct ScriptedProvider {
 impl ScriptedProvider {
     /// Creates a provider from a deterministic decision script.
     ///
-    /// # Parameters
     /// - `steps`: Decisions returned in order.
     ///
-    /// # Returns
     /// A provider and a shared observation log.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(
         steps: impl IntoIterator<Item = ProviderStep>,
     ) -> (Self, Arc<Mutex<Vec<Vec<AgentMessage>>>>) {
@@ -59,14 +59,15 @@ impl ScriptedProvider {
 impl ModelProvider for ScriptedProvider {
     /// Records the semantic context and returns the next scripted decision.
     ///
-    /// # Parameters
     /// - `messages`: Provider-neutral branch context.
     ///
-    /// # Returns
     /// The next scripted model decision.
     ///
-    /// # Errors
     /// Returns the scripted error or an error when the script is exhausted.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn decide(&mut self, messages: &[AgentMessage]) -> Result<ModelDecision, String> {
         self.observed
             .lock()

@@ -2,12 +2,12 @@
 
 /// Keeps recent stable handles from tool and child results.
 ///
-/// # Parameters
 /// - `result`: Completed child runtime result.
 /// - `super`: Parent runtime module that owns result persistence.
 ///
-/// # Returns
 /// Deduplicated handles suitable for a durable branch result.
+/// # Returns
+/// The operation result.
 pub fn compact_result_handles(result: &scriberig_agent_runtime::AgentResult) -> Vec<String> {
     let mut primary = Vec::new();
     let mut details = Vec::new();
@@ -43,11 +43,11 @@ pub fn compact_result_handles(result: &scriberig_agent_runtime::AgentResult) -> 
 
 /// Prioritizes typed references that callers need to continue durable work.
 ///
-/// # Parameters
 /// - `handle`: Stable result handle emitted by a tool or child branch.
 ///
-/// # Returns
 /// `true` for core project, candidate, validation, or workspace identity handles.
+/// # Returns
+/// The operation result.
 fn is_primary_handle(handle: &str) -> bool {
     [
         "candidate:",

@@ -18,15 +18,16 @@ pub enum IoError {
 impl std::fmt::Display for IoError {
     /// Formats an IO error.
     ///
-    /// # Parameters
     /// - `self`: Error to format.
     /// - `f`: Formatter destination.
     ///
-    /// # Returns
     /// Formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when writing fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{self:?}")
     }
@@ -38,165 +39,169 @@ pub trait FileSystem {
     /// Reads exact bytes.
     /// Reads exact bytes.
     ///
-    /// # Parameters
     /// - `self`: Filesystem implementation.
     /// - `path`: File path.
     ///
-    /// # Returns
     /// Exact file bytes.
     ///
-    /// # Errors
     /// Returns an IO error when reading fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read(&self, path: &Path) -> Result<Vec<u8>, IoError>;
     /// Returns metadata when a path exists.
     /// Reads existence metadata.
     ///
-    /// # Parameters
     /// - `self`: Filesystem implementation.
     /// - `path`: File path.
     ///
-    /// # Returns
     /// Metadata when the path exists.
     ///
-    /// # Errors
     /// Returns an IO error for metadata failures.
     /// Reads local metadata.
     ///
-    /// # Parameters
     /// - `self`: Local filesystem.
     /// - `path`: File path.
     ///
-    /// # Returns
     /// Optional file metadata.
     ///
-    /// # Errors
     /// Returns an IO error when metadata lookup fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn metadata(&self, path: &Path) -> Result<Option<FileMetadata>, IoError>;
     /// Replaces a target with exact bytes using a sibling temporary file.
     /// Replaces a file with exact bytes.
     ///
-    /// # Parameters
     /// - `self`: Filesystem implementation.
     /// - `path`: Target path.
     /// - `bytes`: Exact replacement bytes.
     ///
-    /// # Returns
     /// Unit after replacement.
     ///
-    /// # Errors
     /// Returns an IO error when writing or replacing fails.
     /// Atomically replaces local bytes.
     ///
-    /// # Parameters
     /// - `self`: Local filesystem.
     /// - `path`: Target path.
     /// - `bytes`: Replacement bytes.
     ///
-    /// # Returns
     /// Unit after replacement.
     ///
-    /// # Errors
     /// Returns an IO error when replacement fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn write_atomic(&self, path: &Path, bytes: &[u8]) -> Result<(), IoError>;
     /// Creates missing parent directories for an authorized materialization.
     ///
-    /// # Parameters
     /// - `self`: Filesystem implementation.
     /// - `path`: Directory path to create.
     ///
-    /// # Returns
     /// Unit after the directory exists.
     ///
-    /// # Errors
     /// Returns an IO error when directory creation fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn create_dir_all(&self, path: &Path) -> Result<(), IoError>;
     /// Removes one authorized file after caller precondition checks.
     ///
-    /// # Parameters
     /// - `self`: Filesystem implementation.
     /// - `path`: File path to remove.
     ///
-    /// # Returns
     /// Unit after the file is removed.
     ///
-    /// # Errors
     /// Returns an IO error when removal fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn remove_file(&self, path: &Path) -> Result<(), IoError>;
 }
 
 impl<F: FileSystem + ?Sized> FileSystem for &F {
     /// Reads exact bytes through a borrowed filesystem implementation.
     ///
-    /// # Parameters
     /// - `self`: Borrowed filesystem implementation.
     /// - `path`: File path.
     ///
-    /// # Returns
     /// Exact file bytes.
     ///
-    /// # Errors
     /// Returns the delegated filesystem error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read(&self, path: &Path) -> Result<Vec<u8>, IoError> {
         (**self).read(path)
     }
 
     /// Reads metadata through a borrowed filesystem implementation.
     ///
-    /// # Parameters
     /// - `self`: Borrowed filesystem implementation.
     /// - `path`: File path.
     ///
-    /// # Returns
     /// Optional file metadata.
     ///
-    /// # Errors
     /// Returns the delegated filesystem error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn metadata(&self, path: &Path) -> Result<Option<FileMetadata>, IoError> {
         (**self).metadata(path)
     }
 
     /// Atomically writes bytes through a borrowed filesystem implementation.
     ///
-    /// # Parameters
     /// - `self`: Borrowed filesystem implementation.
     /// - `path`: Target path.
     /// - `bytes`: Exact replacement bytes.
     ///
-    /// # Returns
     /// Unit after replacement.
     ///
-    /// # Errors
     /// Returns the delegated filesystem error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn write_atomic(&self, path: &Path, bytes: &[u8]) -> Result<(), IoError> {
         (**self).write_atomic(path, bytes)
     }
 
     /// Creates missing directories through the borrowed filesystem.
     ///
-    /// # Parameters
     /// - `self`: Borrowed filesystem implementation.
     /// - `path`: Directory path to create.
     ///
-    /// # Returns
     /// Unit after directory creation.
     ///
-    /// # Errors
     /// Returns the delegated IO error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn create_dir_all(&self, path: &Path) -> Result<(), IoError> {
         (**self).create_dir_all(path)
     }
 
     /// Removes one file through the borrowed filesystem.
     ///
-    /// # Parameters
     /// - `self`: Borrowed filesystem implementation.
     /// - `path`: File path to remove.
     ///
-    /// # Returns
     /// Unit after removal.
     ///
-    /// # Errors
     /// Returns the delegated IO error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn remove_file(&self, path: &Path) -> Result<(), IoError> {
         (**self).remove_file(path)
     }
@@ -216,29 +221,31 @@ pub struct LocalFileSystem;
 impl FileSystem for LocalFileSystem {
     /// Reads exact local bytes.
     ///
-    /// # Parameters
     /// - `self`: Local filesystem.
     /// - `path`: File path.
     ///
-    /// # Returns
     /// Exact bytes.
     ///
-    /// # Errors
     /// Returns an IO error when reading fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read(&self, path: &Path) -> Result<Vec<u8>, IoError> {
         std::fs::read(path).map_err(IoError::Read)
     }
     /// Reads local metadata.
     ///
-    /// # Parameters
     /// - `self`: Local filesystem.
     /// - `path`: File path.
     ///
-    /// # Returns
     /// Optional file metadata.
     ///
-    /// # Errors
     /// Returns an IO error when metadata lookup fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn metadata(&self, path: &Path) -> Result<Option<FileMetadata>, IoError> {
         match std::fs::metadata(path) {
             Ok(m) => Ok(Some(FileMetadata {
@@ -251,16 +258,17 @@ impl FileSystem for LocalFileSystem {
     }
     /// Atomically replaces local bytes.
     ///
-    /// # Parameters
     /// - `self`: Local filesystem.
     /// - `path`: Target path.
     /// - `bytes`: Replacement bytes.
     ///
-    /// # Returns
     /// Unit after replacement.
     ///
-    /// # Errors
     /// Returns an IO error when replacement fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn write_atomic(&self, path: &Path, bytes: &[u8]) -> Result<(), IoError> {
         let parent = path.parent().unwrap_or_else(|| Path::new("."));
         let name = path
@@ -282,30 +290,32 @@ impl FileSystem for LocalFileSystem {
 
     /// Creates a local directory tree.
     ///
-    /// # Parameters
     /// - `self`: Local filesystem.
     /// - `path`: Directory path to create.
     ///
-    /// # Returns
     /// Unit after the directory exists.
     ///
-    /// # Errors
     /// Returns an IO error when creation fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn create_dir_all(&self, path: &Path) -> Result<(), IoError> {
         std::fs::create_dir_all(path).map_err(IoError::Directory)
     }
 
     /// Removes one local file.
     ///
-    /// # Parameters
     /// - `self`: Local filesystem.
     /// - `path`: File path to remove.
     ///
-    /// # Returns
     /// Unit after removal.
     ///
-    /// # Errors
     /// Returns an IO error when removal fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn remove_file(&self, path: &Path) -> Result<(), IoError> {
         std::fs::remove_file(path).map_err(IoError::Remove)
     }

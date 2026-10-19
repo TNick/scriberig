@@ -34,11 +34,12 @@ struct LifecycleState {
 impl TerminalGuard {
     /// Enters raw/alternate-screen mode and installs panic restoration.
     ///
-    /// # Errors
     /// Returns an I/O error when raw mode or alternate-screen setup fails.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn enter() -> io::Result<Self> {
         enable_raw_mode()?;
         let mut stdout = io::stdout();
@@ -62,11 +63,12 @@ impl TerminalGuard {
 
     /// Restores terminal state once and reinstalls the previous panic hook.
     ///
-    /// # Errors
     /// Returns an I/O error when terminal restoration fails.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn restore(&mut self) -> io::Result<()> {
         if self.restored {
             return Ok(());
@@ -81,11 +83,12 @@ impl TerminalGuard {
 
     /// Performs the backend commands needed to leave interactive mode.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn restore_terminal() -> io::Result<()> {
         let mut driver = CrosstermDriver {
             stdout: io::stdout(),
@@ -99,8 +102,9 @@ impl TerminalGuard {
 /// Keeping the plan separate makes teardown ordering testable without taking
 /// over the process terminal.
 ///
-/// # Returns
 /// Commands that undo every capability enabled by [`TerminalGuard::enter`].
+/// # Returns
+/// The operation result.
 fn restoration_commands() -> [TerminalCommand; 3] {
     [
         TerminalCommand::DisableBracketedPaste,
@@ -111,13 +115,10 @@ fn restoration_commands() -> [TerminalCommand; 3] {
 
 /// Executes terminal restoration through an injectable lifecycle driver.
 ///
-/// # Parameters
 /// - `driver`: Terminal command implementation.
 ///
-/// # Returns
 /// The first cleanup error, after all cleanup commands were attempted.
 ///
-/// # Errors
 /// Returns the first error reported by the driver.
 fn restore_with<D: TerminalDriver>(driver: &mut D) -> io::Result<()> {
     let mut first_error = driver.disable_raw_mode().err();
@@ -135,23 +136,26 @@ fn restore_with<D: TerminalDriver>(driver: &mut D) -> io::Result<()> {
 trait TerminalDriver {
     /// Disables raw mode.
     ///
-    /// # Returns
     /// Success when raw mode is disabled.
     ///
-    /// # Errors
     /// Returns the terminal driver's I/O error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn disable_raw_mode(&mut self) -> io::Result<()>;
 
     /// Executes one non-raw-mode restoration command.
     ///
-    /// # Parameters
     /// - `command`: Terminal restoration command to execute.
     ///
-    /// # Returns
     /// Success when the command is executed.
     ///
-    /// # Errors
     /// Returns the terminal driver's I/O error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute(&mut self, command: TerminalCommand) -> io::Result<()>;
 }
 
@@ -164,25 +168,28 @@ struct CrosstermDriver {
 impl TerminalDriver for CrosstermDriver {
     /// Disables crossterm raw mode.
     ///
-    /// # Returns
     /// Success when raw mode is disabled.
     ///
-    /// # Errors
     /// Returns the terminal driver's I/O error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn disable_raw_mode(&mut self) -> io::Result<()> {
         disable_raw_mode()
     }
 
     /// Executes one crossterm restoration command.
     ///
-    /// # Parameters
     /// - `command`: Terminal restoration command to execute.
     ///
-    /// # Returns
     /// Success when the command is executed.
     ///
-    /// # Errors
     /// Returns the terminal driver's I/O error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute(&mut self, command: TerminalCommand) -> io::Result<()> {
         match command {
             TerminalCommand::DisableBracketedPaste => {
@@ -216,12 +223,13 @@ impl Drop for TerminalGuard {
 
 /// Flushes terminal output after a lifecycle command in tests or adapters.
 ///
-/// # Errors
 /// Returns the writer's flush error.
 /// - `output`: Argument named `output`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn flush(output: &mut impl Write) -> io::Result<()> {
     output.flush()
 }
@@ -245,25 +253,28 @@ mod tests {
     impl TerminalDriver for FakeDriver {
         /// Records raw-mode restoration without touching a terminal.
         ///
-        /// # Returns
         /// Always succeeds for the fake driver.
         ///
-        /// # Errors
         /// This fake driver does not return an error.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn disable_raw_mode(&mut self) -> io::Result<()> {
             Ok(())
         }
 
         /// Records one restoration command and injects its configured failure.
         ///
-        /// # Parameters
         /// - `command`: Terminal restoration command to record.
         ///
-        /// # Returns
         /// Success unless the command is configured to fail.
         ///
-        /// # Errors
         /// Returns the configured injected error.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn execute(&mut self, command: TerminalCommand) -> io::Result<()> {
             self.commands.push(command);
             if self.failure == Some(command) {

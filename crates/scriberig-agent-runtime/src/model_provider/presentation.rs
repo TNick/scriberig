@@ -2,12 +2,12 @@
 
 /// Redacts schema-marked top-level properties before durable persistence.
 ///
-/// # Parameters
 /// - `arguments`: Original structured tool arguments.
 /// - `schema`: Trusted tool parameter schema, when known.
 ///
-/// # Returns
 /// Arguments with `writeOnly` or `x-sensitive` property values redacted.
+/// # Returns
+/// The operation result.
 pub(super) fn redact_sensitive_arguments(
     arguments: &serde_json::Value,
     schema: Option<&serde_json::Value>,
@@ -19,7 +19,6 @@ pub(super) fn redact_sensitive_arguments(
 
 /// Applies sensitivity metadata recursively to one structured value.
 ///
-/// # Parameters
 /// - `value`: Argument value to sanitize in place.
 /// - `schema`: Corresponding trusted JSON schema node.
 fn redact_value(value: &mut serde_json::Value, schema: Option<&serde_json::Value>) {

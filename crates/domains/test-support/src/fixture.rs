@@ -48,48 +48,55 @@ pub struct DerivedEvidence {
 pub trait ConformanceFixture {
     /// Returns the stable domain name used in assertion failures.
     ///
-    /// # Returns
     /// Stable domain name.
+    /// # Returns
+    /// The operation result.
     fn domain(&self) -> &'static str;
 
     /// Returns the canonical identity and revision exposed by inspection.
     ///
-    /// # Returns
     /// Canonical identity and revision.
+    /// # Returns
+    /// The operation result.
     fn canonical_inspection(&self) -> Inspection;
 
     /// Returns the identity and revision from the domain-specific inspection.
     ///
-    /// # Returns
     /// Domain-specific identity and revision.
+    /// # Returns
+    /// The operation result.
     fn domain_inspection(&self) -> Inspection;
 
     /// Returns the unchanged semantic case used to test revision reuse.
     ///
-    /// # Returns
     /// Unchanged identity and revision.
+    /// # Returns
+    /// The operation result.
     fn unchanged_inspection(&self) -> Inspection;
 
     /// Returns optional projection evidence.
     ///
-    /// # Returns
     /// Projection evidence when editable projections are supported.
+    /// # Returns
+    /// The operation result.
     fn projection(&self) -> Option<ProjectionEvidence> {
         None
     }
 
     /// Returns optional derived-data evidence.
     ///
-    /// # Returns
     /// Derived-data evidence when analysis is supported.
+    /// # Returns
+    /// The operation result.
     fn derived(&self) -> Option<DerivedEvidence> {
         None
     }
 
     /// Declares which optional cases this fixture supports.
     ///
-    /// # Returns
     /// Capability flags for this fixture.
+    /// # Returns
+    /// The operation result.
     fn capabilities(&self) -> CapabilitySet {
         CapabilitySet::default()
     }

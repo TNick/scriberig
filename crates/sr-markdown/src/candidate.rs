@@ -27,13 +27,13 @@ pub struct SourceSpan {
 impl CandidateDocument {
     /// Creates a candidate from a semantic document and source length.
     ///
-    /// # Parameters
     /// - `document`: Parsed semantic document.
     /// - `source_length`: Exact source byte length.
     ///
-    /// # Returns
     /// A candidate retaining semantic data and diagnostic metadata.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(document: MarkdownDocument, source_length: usize) -> Self {
         Self {
             node_paths: node_paths(&document),
@@ -45,14 +45,14 @@ impl CandidateDocument {
 
     /// Creates a candidate with parser source coordinates.
     ///
-    /// # Parameters
     /// - `document`: Parsed semantic document.
     /// - `source_length`: Exact source byte length.
     /// - `source_spans`: Supported block-coordinate spans.
     ///
-    /// # Returns
     /// A candidate retaining semantic and diagnostic metadata.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_source_spans(
         document: MarkdownDocument,
         source_length: usize,
@@ -71,7 +71,7 @@ impl CandidateDocument {
 /// - `document`: Argument named `document`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 fn node_paths(document: &MarkdownDocument) -> Vec<Vec<usize>> {
     let mut paths = Vec::new();
     for (index, block) in document.blocks.iter().enumerate() {

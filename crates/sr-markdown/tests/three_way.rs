@@ -8,11 +8,11 @@ use sr_markdown::{
 
 /// Parses a small Markdown semantic fixture.
 ///
-/// # Parameters
 /// - `source`: Markdown fixture text.
 ///
-/// # Returns
 /// Parsed semantic document.
+/// # Returns
+/// The operation result.
 fn document(source: &str) -> MarkdownDocument {
     parse(source).expect("Markdown fixture").document
 }

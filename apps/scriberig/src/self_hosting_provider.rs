@@ -55,21 +55,20 @@ pub(super) struct SemanticScope {
 impl ProviderAdapter for PhpSelfHostingProvider {
     /// Returns the next ordinary tool call for onboarding or PHP implementation.
     ///
-    /// # Parameters
     /// - `self`: Configured deterministic product-gate scenario.
     /// - `request`: Normalized model request from the shared runtime.
     ///
-    /// # Returns
     /// One normal provider tool call or a concise branch result.
     ///
-    /// # Errors
     /// Returns an error when exact project scope or expected tool results are absent.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
         let prompt = user_prompt(request);
         if prompt.to_lowercase().contains("onboard") {
-            if self.cancellation == Some(CancellationPhase::Onboarding)
-                && tool_messages(request).is_empty()
-            {
+            if self.cancellation == Some(CancellationPhase::Onboarding) {
                 await_test_release()?;
             }
             return BootstrapProvider.complete(request);
@@ -101,12 +100,12 @@ impl ProviderAdapter for PhpSelfHostingProvider {
 
 /// Checks whether any normalized request message contains a scenario task anchor.
 ///
-/// # Parameters
 /// - `request`: Normalized provider request.
 /// - `anchor`: Stable task marker to find.
 ///
-/// # Returns
 /// `true` when the marker occurs in any request message.
+/// # Returns
+/// The operation result.
 fn request_contains(request: &ModelRequest, anchor: &str) -> bool {
     request
         .messages
@@ -116,11 +115,13 @@ fn request_contains(request: &ModelRequest, anchor: &str) -> bool {
 
 /// Holds a cancellation scenario response until the PTY test releases its synchronization gate.
 ///
-/// # Returns
 /// Unit after the test writes its release marker, or immediately outside gated PTY tests.
 ///
-/// # Errors
 /// Returns a provider configuration error when the configured release marker is invalid.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn await_test_release() -> Result<(), ProviderError> {
     let Ok(path) = std::env::var("SCRIBE_AGENT_TEST_PROVIDER_GATE") else {
         return Ok(());
@@ -154,12 +155,12 @@ fn await_test_release() -> Result<(), ProviderError> {
 
 /// Extracts the user prompt from a normalized request.
 ///
-/// # Parameters
 /// - `request`: Current provider request.
 ///
 /// - `super`: Parent module visibility marker.
+///   First user message or an empty string.
 /// # Returns
-/// First user message or an empty string.
+/// The operation result.
 pub(super) fn user_prompt(request: &ModelRequest) -> &str {
     request
         .messages
@@ -171,12 +172,12 @@ pub(super) fn user_prompt(request: &ModelRequest) -> &str {
 
 /// Returns normalized tool result contents in conversation order.
 ///
-/// # Parameters
 /// - `request`: Current provider request.
 ///
 /// - `super`: Parent module visibility marker.
+///   Tool observation content slices.
 /// # Returns
-/// Tool observation content slices.
+/// The operation result.
 pub(super) fn tool_messages(request: &ModelRequest) -> Vec<&str> {
     request
         .messages
@@ -188,15 +189,16 @@ pub(super) fn tool_messages(request: &ModelRequest) -> Vec<&str> {
 
 /// Reads exact project/snapshot scope from compiled branch context.
 ///
-/// # Parameters
 /// - `request`: Current provider request.
 ///
 /// - `super`: Parent module visibility marker.
-/// # Returns
-/// Exact semantic project and snapshot references.
+///   Exact semantic project and snapshot references.
 ///
-/// # Errors
 /// Returns a configuration failure when compiled semantic scope is missing.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn project_scope(request: &ModelRequest) -> Result<SemanticScope, ProviderError> {
     let content = request
         .messages
@@ -223,15 +225,16 @@ pub(super) fn project_scope(request: &ModelRequest) -> Result<SemanticScope, Pro
 
 /// Finds the semantic source entity handle in a find result.
 ///
-/// # Parameters
 /// - `message`: Normalized find tool result.
 ///
 /// - `super`: Parent module visibility marker.
-/// # Returns
-/// Stable source entity identifier.
+///   Stable source entity identifier.
 ///
-/// # Errors
 /// Returns malformed-response when no source entity is present.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn semantic_entity(message: &str) -> Result<String, ProviderError> {
     parse_handles(message)?
         .iter()
@@ -243,13 +246,13 @@ pub(super) fn semantic_entity(message: &str) -> Result<String, ProviderError> {
 
 /// Finds one handle with a stable prefix in a normalized tool result.
 ///
-/// # Parameters
 /// - `message`: Provider tool message.
 /// - `prefix`: Stable handle prefix.
 ///
 /// - `super`: Parent module visibility marker.
+///   Handle suffix when present.
 /// # Returns
-/// Handle suffix when present.
+/// The operation result.
 pub(super) fn handle_with_prefix(message: &str, prefix: &str) -> Option<String> {
     parse_handles(message)
         .ok()?
@@ -259,13 +262,13 @@ pub(super) fn handle_with_prefix(message: &str, prefix: &str) -> Option<String> 
 
 /// Creates one provider-neutral named tool call.
 ///
-/// # Parameters
 /// - `name`: Registered trusted tool identifier.
 /// - `arguments`: Structured tool arguments.
 ///
 /// - `super`: Parent module visibility marker.
+///   Normal tool-call response.
 /// # Returns
-/// Normal tool-call response.
+/// The operation result.
 pub(super) fn tool_call(name: &str, arguments: Value) -> ModelResponse {
     ModelResponse {
         text: None,
@@ -282,15 +285,15 @@ pub(super) fn tool_call(name: &str, arguments: Value) -> ModelResponse {
 
 /// Creates a normal child-branch request through the model tool contract.
 ///
-/// # Parameters
 /// - `purpose`: Durable child purpose.
 /// - `prompt`: Explicit child instructions.
 /// - `capabilities`: Narrow child capabilities.
 /// - `expected_result`: Compact `BranchResult` contract.
 ///
 /// - `super`: Parent module visibility marker.
+///   Provider response requesting a nested branch.
 /// # Returns
-/// Provider response requesting a nested branch.
+/// The operation result.
 pub(super) fn delegate(
     purpose: &str,
     prompt: &str,
@@ -305,12 +308,12 @@ pub(super) fn delegate(
 
 /// Creates a concise terminal model response.
 ///
-/// # Parameters
 /// - `text`: Durable assistant result text.
 ///
 /// - `super`: Parent module visibility marker.
+///   Normal stop response.
 /// # Returns
-/// Normal stop response.
+/// The operation result.
 pub(super) fn final_response(text: &str) -> ModelResponse {
     ModelResponse {
         text: Some(text.to_owned()),
@@ -323,12 +326,12 @@ pub(super) fn final_response(text: &str) -> ModelResponse {
 
 /// Creates a normalized malformed-response error.
 ///
-/// # Parameters
 /// - `message`: Safe explanation of missing scripted evidence.
 ///
 /// - `super`: Parent module visibility marker.
+///   Provider malformed-response error.
 /// # Returns
-/// Provider malformed-response error.
+/// The operation result.
 pub(super) fn malformed(message: &str) -> ProviderError {
     ProviderError::MalformedResponse(message.to_owned())
 }

@@ -37,9 +37,10 @@ pub struct IntegrityReport {
 impl IntegrityReport {
     /// Reports whether any corruption was found.
     ///
-    /// # Returns
     /// `true` when at least one corruption issue exists.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn is_corrupt(&self) -> bool {
         !self.corrupt.is_empty()
     }

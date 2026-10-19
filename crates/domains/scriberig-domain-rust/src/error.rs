@@ -12,15 +12,16 @@ pub enum RustSyntaxError {
 impl std::fmt::Display for RustSyntaxError {
     /// Formats the parser error.
     ///
-    /// # Parameters
     /// - `self`: Error to format.
     /// - `formatter`: Formatting destination.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns an error when the destination rejects the write.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Parse(message) => write!(formatter, "parse error: {message}"),
@@ -42,15 +43,16 @@ pub struct RustAnalysisError {
 impl std::fmt::Display for RustAnalysisError {
     /// Formats the analysis failure.
     ///
-    /// # Parameters
     /// - `self`: Failure to format.
     /// - `formatter`: Output formatter.
     ///
-    /// # Returns
     /// Formatting result.
     ///
-    /// # Errors
     /// Returns an error when formatting fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(formatter, "{}: {}", self.code, self.message)
     }

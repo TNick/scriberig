@@ -31,6 +31,9 @@ mod service_operation_helpers;
 #[path = "service_operation_model_request.rs"]
 mod service_operation_model_request;
 #[macro_use]
+#[path = "service_plan_contract_methods.rs"]
+mod service_plan_contract_methods;
+#[macro_use]
 #[path = "service_contract_methods.rs"]
 mod service_contract_methods;
 #[path = "service_model_request.rs"]
@@ -71,16 +74,17 @@ pub use service_remote::RemoteAdapter;
 pub trait TuiService: TuiModelRequestService {
     /// Inspects one entity through the shared application contract.
     ///
-    /// # Parameters
     /// - `context`: Application context for the request.
     /// - `entity`: Entity to inspect.
     /// - `snapshot`: Optional exact snapshot.
     ///
-    /// # Returns
     /// The application inspection result.
     ///
-    /// # Errors
     /// Returns the structured application error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect_entity(
         &self,
         context: &ApplicationContext,
@@ -90,7 +94,6 @@ pub trait TuiService: TuiModelRequestService {
 
     /// Lists bounded snapshot entities for Explorer navigation.
     ///
-    /// # Parameters
     /// - `context`: Application context for the request.
     /// - `entity`: Entity owning the Explorer collection.
     /// - `snapshot`: Exact snapshot context.
@@ -99,11 +102,13 @@ pub trait TuiService: TuiModelRequestService {
     /// - `_snapshot`: Exact snapshot context.
     /// - `_continuation`: Optional continuation token.
     ///
-    /// # Returns
     /// Snapshot-bound Explorer rows.
     ///
-    /// # Errors
     /// Returns the structured application listing error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn list_explorer(
         &self,
         _context: &ApplicationContext,
@@ -117,14 +122,15 @@ pub trait TuiService: TuiModelRequestService {
     }
 
     /// Executes snapshot-scoped semantic discovery.
-    /// # Parameters
     /// - `_context`: Application context for the request.
     /// - `_snapshot`: Exact discovery scope.
     /// - `_query`: User-authored search text.
+    ///   A bounded find model.
+    ///   Returns the structured discovery error.
     /// # Returns
-    /// A bounded find model.
+    /// The operation result.
     /// # Errors
-    /// Returns the structured discovery error.
+    /// Returns an error when the operation fails.
     fn find_entities(
         &self,
         _context: &ApplicationContext,
@@ -137,12 +143,13 @@ pub trait TuiService: TuiModelRequestService {
     }
 
     /// Returns runtime capabilities exposed by the application composition.
-    /// # Parameters
     /// - `_context`: Application context for capability resolution.
+    ///   The capabilities available to the TUI.
+    ///   Returns the structured application error.
     /// # Returns
-    /// The capabilities available to the TUI.
+    /// The operation result.
     /// # Errors
-    /// Returns the structured application error.
+    /// Returns an error when the operation fails.
     fn runtime_capabilities(
         &self,
         _context: &ApplicationContext,
@@ -151,14 +158,15 @@ pub trait TuiService: TuiModelRequestService {
     }
 
     /// Executes one shared application operation when the adapter supports it.
-    /// # Parameters
     /// - `_context`: Application context for the operation.
     /// - `_request`: Public operation request.
+    ///   The operation result when supported.
+    ///   Returns a structured application error when the operation is unavailable
+    ///   or rejected by the owning application subsystem.
     /// # Returns
-    /// The operation result when supported.
+    /// The operation result.
     /// # Errors
-    /// Returns a structured application error when the operation is unavailable
-    /// or rejected by the owning application subsystem.
+    /// Returns an error when the operation fails.
     fn execute_operation(
         &self,
         _context: &ApplicationContext,
@@ -171,31 +179,26 @@ pub trait TuiService: TuiModelRequestService {
 
     /// Reads one authoritative operation lifecycle record.
     ///
-    /// # Parameters
     /// - `_context`: Application context for the lookup.
     /// - `_operation`: Operation identity to resolve.
     ///
-    /// # Returns
     /// The current operation record.
     ///
-    /// # Errors
     /// Returns an unsupported-operation error by default.
     /// - `_context`: Argument named `_context`.
     /// - `operation`: Argument named `operation`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
     /// - `_context`: Argument named `_context`.
     /// - `operation`: Argument named `operation`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn operation_status(
         &self,
         _context: &ApplicationContext,
@@ -208,31 +211,26 @@ pub trait TuiService: TuiModelRequestService {
 
     /// Requests application-owned cancellation of one operation.
     ///
-    /// # Parameters
     /// - `_context`: Application context for the cancellation.
     /// - `_operation`: Operation identity to cancel.
     ///
-    /// # Returns
     /// The cancelled operation record.
     ///
-    /// # Errors
     /// Returns an unsupported-operation error by default.
     /// - `_context`: Argument named `_context`.
     /// - `operation`: Argument named `operation`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
     /// - `_context`: Argument named `_context`.
     /// - `operation`: Argument named `operation`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn cancel_operation(
         &self,
         _context: &ApplicationContext,
@@ -245,14 +243,15 @@ pub trait TuiService: TuiModelRequestService {
 
     /// Returns a snapshot of the application's tracked operation records.
     ///
-    /// # Parameters
     /// - `_context`: Application context for operation visibility.
     ///
-    /// # Returns
     /// Current operation records available to this service.
     ///
-    /// # Errors
     /// Returns an operation access error when the service cannot list records.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn operation_records(
         &self,
         _context: &ApplicationContext,
@@ -262,28 +261,23 @@ pub trait TuiService: TuiModelRequestService {
 
     /// Returns application events observed since the previous runtime poll.
     ///
-    /// # Parameters
     /// - `_context`: Application context for event access.
     ///
-    /// # Returns
     /// Retained application events.
     ///
-    /// # Errors
     /// Returns an unsupported event-access error when unavailable.
     /// - `_context`: Argument named `_context`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
     /// - `_context`: Argument named `_context`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn application_events(
         &self,
         _context: &ApplicationContext,
@@ -293,15 +287,16 @@ pub trait TuiService: TuiModelRequestService {
 
     /// Reads one public session tree.
     ///
-    /// # Parameters
     /// - `_context`: Application context for the request.
     /// - `_session`: Session identity to read.
     ///
-    /// # Returns
     /// The requested session.
     ///
-    /// # Errors
     /// Returns an unsupported-operation error by default.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read_session(
         &self,
         _context: &ApplicationContext,
@@ -312,88 +307,7 @@ pub trait TuiService: TuiModelRequestService {
         })
     }
 
-    /// Reads bounded safe detail for one tool result.
-    /// # Parameters
-    /// - `_context`: Authorized request context.
-    /// - `_session`: Session containing the result.
-    /// - `_branch`: Branch containing the result.
-    /// - `_result`: Stable tool-result identity.
-    /// # Returns
-    /// Bounded allowlisted result detail.
-    /// # Errors
-    /// Returns unsupported-operation when unavailable.
-    fn tool_result_detail(
-        &self,
-        _context: &ApplicationContext,
-        _session: EntityId,
-        _branch: EntityId,
-        _result: EntityId,
-    ) -> Result<scriberig_protocol::ToolResultDetailResponse, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "tool result detail".to_owned(),
-        })
-    }
-
-    /// Reads the credential-safe model library for interactive selection.
-    ///
-    /// # Parameters
-    /// - `_context`: Application context for the request.
-    ///
-    /// # Returns
-    /// Safe model and profile descriptors.
-    ///
-    /// # Errors
-    /// Returns an unsupported-operation error by default.
-    fn model_library(
-        &self,
-        _context: &ApplicationContext,
-    ) -> Result<scriberig_protocol::ModelLibraryResponse, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "model library".to_owned(),
-        })
-    }
-
-    /// Updates a session's future model selection using its observed revision.
-    ///
-    /// # Parameters
-    /// - `_context`: Application context for the mutation.
-    /// - `_request`: Session, expected revision, and selected profile.
-    ///
-    /// # Returns
-    /// The authoritative updated execution selection.
-    ///
-    /// # Errors
-    /// Returns an unsupported-operation error by default.
-    fn set_session_model(
-        &self,
-        _context: &ApplicationContext,
-        _request: &scriberig_app::SessionModelSelectionRequest,
-    ) -> Result<scriberig_session::SessionExecutionSelection, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "session model selection".to_owned(),
-        })
-    }
-
-    /// Updates a session's future thinking selection using its revision.
-    ///
-    /// # Parameters
-    /// - `_context`: Application context for the mutation.
-    /// - `_request`: Session, expected revision, and thinking level.
-    ///
-    /// # Returns
-    /// The authoritative updated execution selection.
-    ///
-    /// # Errors
-    /// Returns an unsupported-operation error by default.
-    fn set_session_thinking_level(
-        &self,
-        _context: &ApplicationContext,
-        _request: &scriberig_app::SessionThinkingSelectionRequest,
-    ) -> Result<scriberig_session::SessionExecutionSelection, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "session thinking selection".to_owned(),
-        })
-    }
+    tui_plan_methods!();
 
     tui_agent_methods!();
 }

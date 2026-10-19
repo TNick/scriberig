@@ -18,16 +18,17 @@ pub struct EntityDelta {
 impl EntityDelta {
     /// Creates a non-no-op entity delta.
     ///
-    /// # Parameters
     /// - `entity`: Entity being changed.
     /// - `before`: Base revision, if present.
     /// - `after`: Result revision, if present.
     ///
-    /// # Returns
     /// The validated delta.
     ///
-    /// # Errors
     /// Returns `MigrationError::NoOpDelta` when both revisions are equal.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(
         entity: EntityId,
         before: Option<RevisionId>,
@@ -105,18 +106,19 @@ pub struct Migration {
 impl Migration {
     /// Constructs a validated canonical migration.
     ///
-    /// # Parameters
     /// - `base`: Exact starting snapshot.
     /// - `result`: Exact resulting snapshot.
     /// - `deltas`: Entity transitions.
     /// - `operations`: Semantic operations.
     /// - `provenance`: Source metadata.
     ///
-    /// # Returns
     /// A migration with entity deltas sorted by identity.
     ///
-    /// # Errors
     /// Returns a typed error for no-op snapshots, duplicate entities, or invalid deltas.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(
         base: SnapshotId,
         result: SnapshotId,
@@ -154,11 +156,11 @@ mod tests {
 
     /// Creates empty provenance for migration fixtures.
     ///
-    /// # Parameters
     /// - `source`: Universal source category.
     ///
-    /// # Returns
     /// Empty provenance using the requested source.
+    /// # Returns
+    /// The operation result.
     fn provenance(source: SourceKind) -> Provenance {
         Provenance {
             source,

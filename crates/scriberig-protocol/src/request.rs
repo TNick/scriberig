@@ -93,6 +93,23 @@ pub struct CommandRequest {
     pub payload: serde_json::Value,
 }
 
+/// Requests one registered domain operation on an exact semantic selection.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct DomainOperationCommand {
+    /// Registered capability name.
+    pub capability: String,
+    /// Selected semantic entity.
+    pub entity: EntityReference,
+    /// Exact snapshot containing the selection.
+    pub snapshot: SnapshotReference,
+    /// Optional exact selected revision.
+    pub revision: Option<String>,
+    /// Optional named root branch.
+    pub branch: Option<String>,
+    /// Typed scalar arguments encoded with the query value vocabulary.
+    pub arguments: std::collections::BTreeMap<String, serde_json::Value>,
+}
+
 /// Requests one project onboarding operation through the public protocol.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct ProjectRequest {

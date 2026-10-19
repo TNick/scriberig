@@ -5,20 +5,23 @@ use crate::{ChildRequest, ModelDecision};
 
 /// Converts a named tool call using its trusted schema for display redaction.
 ///
-/// # Parameters
 /// - `tools`: Trusted provider-visible tool definitions.
 /// - `call`: Validated provider tool call.
 /// - `presentation_label`: Optional trusted compact label for display.
+/// - `category`: Trusted semantic category of the registered tool.
 ///
-/// # Returns
 /// A runtime tool decision or a delegated child request.
 ///
-/// # Errors
 /// Returns an error when a child call omits required fields.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn named_tool_decision(
     tools: &[ToolDefinition],
     call: ToolCall,
     presentation_label: Option<String>,
+    category: scriberig_session::ToolActivityKind,
 ) -> Result<ModelDecision, String> {
     if call.name == "delegate" {
         return delegate_decision(&call);
@@ -34,19 +37,21 @@ pub(super) fn named_tool_decision(
         arguments: call.arguments,
         presentation_arguments,
         presentation_label,
+        category,
     })
 }
 
 /// Converts a delegation call into its compact child execution contract.
 ///
-/// # Parameters
 /// - `call`: Validated delegate tool call.
 ///
-/// # Returns
 /// A child request without retaining its provider tool envelope.
 ///
-/// # Errors
 /// Returns an error when required delegation fields are absent.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn delegate_decision(call: &ToolCall) -> Result<ModelDecision, String> {
     let purpose = required_string(call, "purpose")?;
     let prompt = required_string(call, "prompt")?;
@@ -75,15 +80,16 @@ fn delegate_decision(call: &ToolCall) -> Result<ModelDecision, String> {
 
 /// Reads one required string field from a provider tool call.
 ///
-/// # Parameters
 /// - `call`: Provider tool call containing structured arguments.
 /// - `name`: Required argument name.
 ///
-/// # Returns
 /// The copied argument string.
 ///
-/// # Errors
 /// Returns an error when the argument is absent or not a string.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn required_string(call: &ToolCall, name: &str) -> Result<String, String> {
     call.arguments
         .get(name)

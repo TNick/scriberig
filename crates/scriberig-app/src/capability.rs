@@ -112,16 +112,16 @@ pub struct Capability {
 impl Capability {
     /// Reports whether this capability covers an action and request context.
     ///
-    /// # Parameters
     /// - `self`: Capability being checked.
     /// - `action`: Requested action.
     /// - `scope`: Requested scope.
     /// - `snapshot`: Exact snapshot requested, when applicable.
     /// - `operation`: Universal operation requested, when applicable.
     ///
-    /// # Returns
     /// `true` only when action, scope, and constraints all match.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn covers(
         &self,
         action: &CapabilityAction,
@@ -157,13 +157,13 @@ impl Capability {
 
     /// Reports whether a delegated capability is no broader than this parent.
     ///
-    /// # Parameters
     /// - `self`: Parent capability.
     /// - `child`: Delegated capability to check.
     ///
-    /// # Returns
     /// `true` when the child grants only a subset of the parent's authority.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn can_delegate(&self, child: &Self) -> bool {
         child.actions.is_subset(&self.actions)
             && scope_covers(&self.scope, &child.scope)
@@ -190,12 +190,12 @@ pub struct AuthorizationDenial {
 
 /// Reports whether a parent scope contains a requested child scope.
 ///
-/// # Parameters
 /// - `parent`: Scope granted by the existing capability.
 /// - `child`: Scope requested by the operation or delegation.
 ///
-/// # Returns
 /// `true` when the parent scope contains the child scope.
+/// # Returns
+/// The operation result.
 fn scope_covers(parent: &CapabilityScope, child: &CapabilityScope) -> bool {
     match (parent, child) {
         (CapabilityScope::Project, CapabilityScope::ExternalDestination(_)) => false,
@@ -234,12 +234,12 @@ fn scope_covers(parent: &CapabilityScope, child: &CapabilityScope) -> bool {
 
 /// Reports whether child constraints are no broader than parent constraints.
 ///
-/// # Parameters
 /// - `parent`: Constraints granted by the existing capability.
 /// - `child`: Constraints requested by the delegated capability.
 ///
-/// # Returns
 /// `true` when every child constraint remains within the parent bounds.
+/// # Returns
+/// The operation result.
 fn constraints_cover(parent: &CapabilityConstraints, child: &CapabilityConstraints) -> bool {
     parent
         .snapshot

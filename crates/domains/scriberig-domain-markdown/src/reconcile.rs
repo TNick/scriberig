@@ -6,13 +6,13 @@ use crate::match_nodes::match_blocks;
 
 /// Reconciles a parsed candidate against a semantic base document.
 ///
-/// # Parameters
 /// - `base`: Previously accepted semantic document.
 /// - `candidate`: Newly parsed semantic candidate.
 ///
-/// # Returns
 /// Structural changes and explicit duplicate-content ambiguity.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn reconcile(base: &MarkdownDocument, candidate: &MarkdownDocument) -> Reconciliation {
     let (matches, ambiguous) = match_blocks(base, candidate);
     let mut changes = Vec::new();

@@ -23,7 +23,6 @@ pub(super) use text::import_text;
 
 /// Extracts a complete C or C++ syntax tree.
 ///
-/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: C or C++ source file.
 /// - `source`: Source artifact entity.
@@ -32,11 +31,13 @@ pub(super) use text::import_text;
 /// - `ownership`: Destination entity ownership records.
 /// - `super`: Parent support module visibility marker.
 ///
-/// # Returns
 /// Unit after syntax-tree entities are added.
 ///
-/// # Errors
 /// Returns UTF-8 or C-family parser diagnostics as a retryable project failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn import_c_family(
     project: ProjectId,
     file: &ProjectFileRecord,
@@ -93,7 +94,6 @@ pub(super) fn import_c_family(
 
 /// Extracts semantic HTML nodes while retaining the exact source artifact.
 ///
-/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: HTML source file.
 /// - `source`: Source artifact entity.
@@ -102,11 +102,13 @@ pub(super) fn import_c_family(
 /// - `ownership`: Destination entity ownership records.
 /// - `super`: Parent support module visibility marker.
 ///
-/// # Returns
 /// Unit after HTML children are added.
 ///
-/// # Errors
 /// Returns source parsing or revision errors.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn import_html(
     project: ProjectId,
     file: &ProjectFileRecord,
@@ -165,7 +167,6 @@ pub(super) fn import_html(
 
 /// Extracts a complete JavaScript or TypeScript syntax tree.
 ///
-/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: ECMAScript source file.
 /// - `source`: Source artifact entity.
@@ -174,11 +175,13 @@ pub(super) fn import_html(
 /// - `ownership`: Destination entity ownership records.
 /// - `super`: Parent support module visibility marker.
 ///
-/// # Returns
 /// Unit after syntax-tree entities are added.
 ///
-/// # Errors
 /// Returns UTF-8 or parser diagnostics as a retryable project failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn import_ecma(
     project: ProjectId,
     file: &ProjectFileRecord,
@@ -241,7 +244,6 @@ pub(super) fn import_ecma(
 
 /// Extracts a complete Python syntax tree.
 ///
-/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: Python source file.
 /// - `source`: Source artifact entity.
@@ -250,11 +252,13 @@ pub(super) fn import_ecma(
 /// - `ownership`: Destination entity ownership records.
 /// - `super`: Parent support module visibility marker.
 ///
-/// # Returns
 /// Unit after syntax-tree entities are added.
 ///
-/// # Errors
 /// Returns UTF-8 or Python parser diagnostics as a retryable project failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn import_python(
     project: ProjectId,
     file: &ProjectFileRecord,

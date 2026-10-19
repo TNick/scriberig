@@ -22,3 +22,7 @@ blake3 = "1.8"
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+scriberig-store = { path = "../scriberig-store" }
+scriberig-store-memory = { path = "../scriberig-store-memory" }

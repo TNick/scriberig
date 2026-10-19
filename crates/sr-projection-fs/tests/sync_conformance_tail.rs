@@ -147,7 +147,7 @@ impl ProjectionAdapter for TestAdapter {
     /// - `_kind`: Argument named `_kind`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     fn capabilities(&self, _kind: &ProjectionKind) -> ProjectionCapabilities {
         ProjectionCapabilities::editable()
     }
@@ -155,11 +155,12 @@ impl ProjectionAdapter for TestAdapter {
     /// Implements `render`.
     /// - `request`: Argument named `request`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn render(&self, request: &RenderRequest) -> ProjectionResult<RenderedProjection> {
         self.render_calls.set(self.render_calls.get() + 1);
         Ok(RenderedProjection::from_bytes(
@@ -173,11 +174,12 @@ impl ProjectionAdapter for TestAdapter {
     /// - `_kind`: Argument named `_kind`.
     /// - `bytes`: Argument named `bytes`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn parse(&self, _kind: &ProjectionKind, bytes: &[u8]) -> ProjectionResult<Self::Candidate> {
         self.parse_calls.set(self.parse_calls.get() + 1);
         if bytes == b"external" {
@@ -194,7 +196,7 @@ impl ProjectionAdapter for TestAdapter {
     /// - `_context`: Argument named `_context`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     fn reconcile(
         &self,
         _candidate: Self::Candidate,
@@ -212,11 +214,12 @@ impl ProjectionAdapter for TestAdapter {
     /// Implements `validate`.
     /// - `_candidate`: Argument named `_candidate`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn validate(&self, _candidate: &Self::Candidate) -> ProjectionResult<()> {
         self.validate_calls.set(self.validate_calls.get() + 1);
         Ok(())
@@ -226,12 +229,12 @@ impl ProjectionAdapter for TestAdapter {
 /// Creates a synchronization coordinator with one managed projection.
 /// - `crate`: Parent test-crate imports used by this helper.
 ///
-/// # Parameters
 /// - `path`: Projection file path.
 /// - `rendered`: Previously rendered bytes.
 ///
-/// # Returns
 /// A coordinator containing one managed editable projection.
+/// # Returns
+/// The operation result.
 pub(crate) fn coordinator(
     path: &std::path::Path,
     rendered: &[u8],

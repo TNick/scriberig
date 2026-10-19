@@ -5,14 +5,14 @@
 pub enum RustItemKind {
     /// Function declaration.
     Function,
-    /// Struct declaration.
+    /// Structure declaration.
     Struct,
-    /// Enum declaration.
+    /// Enumeration declaration.
     Enum,
     /// Implementation block.
     Impl,
     /// Macro invocation.
     Macro,
-    /// Other declaration.
+    /// Other supported declaration kind.
     Other,
 }

@@ -1,6 +1,15 @@
 /** @file Defines long-running operations and exhaustive public events. */
 import type { BranchId, EntityId, OperationId, SessionId, SnapshotId } from "./ids";
 import type { SessionActivityItem } from "./sessions";
+/** Typed semantic mutation sent through the stable command envelope. */
+export interface DomainOperationCommand {
+  capability: string;
+  entity: { id: EntityId };
+  snapshot: { id: SnapshotId };
+  revision?: string;
+  branch?: string;
+  arguments: Record<string, string | number | boolean>;
+}
 type AgentActivityKind = SessionActivityItem["kind"];
 type AgentActivityState = SessionActivityItem["state"];
 /** Operation lifecycle states. */
@@ -46,6 +55,15 @@ export type ProtocolEvent = { sequence?: number } & (
       kind: "agentActivity";
       operationId: OperationId;
       branchId: BranchId;
+      activityKind: AgentActivityKind;
+      state: AgentActivityState;
+      summary: string;
+    }
+  | {
+      kind: "planActivity";
+      sessionId: SessionId;
+      planId: EntityId;
+      nodeId?: string;
       activityKind: AgentActivityKind;
       state: AgentActivityState;
       summary: string;

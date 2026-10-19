@@ -43,7 +43,7 @@ impl ChangeReviewModel {
     /// - `summary`: Argument named `summary`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     pub fn from_summary(
         base_snapshot: SnapshotId,
         change: impl Into<String>,

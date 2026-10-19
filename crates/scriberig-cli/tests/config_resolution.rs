@@ -7,8 +7,9 @@ use scriberig_cli::config::{ConfigResolver, ConfigSource, render};
 
 /// Creates an isolated directory for one configuration test.
 ///
-/// # Returns
 /// A unique path under the platform temporary directory.
+/// # Returns
+/// The operation result.
 fn temporary_dir() -> PathBuf {
     let nonce = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -21,13 +22,13 @@ fn temporary_dir() -> PathBuf {
 
 /// Writes a config file with the requested name and contents.
 ///
-/// # Parameters
 /// - `directory`: Parent directory for the file.
 /// - `name`: Supported configuration filename.
 /// - `contents`: File contents to write.
 ///
-/// # Returns
 /// The path to the created file.
+/// # Returns
+/// The operation result.
 fn write_config(directory: &std::path::Path, name: &str, contents: &str) -> PathBuf {
     std::fs::create_dir_all(directory).expect("create config directory");
     let path = directory.join(name);

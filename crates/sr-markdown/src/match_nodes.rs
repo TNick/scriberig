@@ -77,13 +77,13 @@ pub struct MatchReport {
 
 /// Matches a candidate document against canonical nodes in deterministic phases.
 ///
-/// # Parameters
 /// - `base`: Canonical nodes in projected structural order.
 /// - `candidate`: Parsed candidate document.
 ///
-/// # Returns
 /// Match evidence, explicit ambiguity, and unmatched canonical identities.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn match_nodes(base: &[CanonicalNode], candidate: &MarkdownDocument) -> MatchReport {
     let candidates = flatten(candidate);
     let mut used = vec![false; base.len()];
@@ -119,7 +119,7 @@ pub fn match_nodes(base: &[CanonicalNode], candidate: &MarkdownDocument) -> Matc
 /// - `block`: Candidate block to match against canonical nodes.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 fn match_candidate(
     base: &[CanonicalNode],
     used: &mut [bool],
@@ -248,7 +248,7 @@ fn match_candidate(
 /// - `evidence`: Argument named `evidence`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 fn matched(
     path: &[usize],
     base: &[CanonicalNode],
@@ -270,7 +270,7 @@ fn matched(
 /// - `indexes`: Argument named `indexes`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 fn ambiguous(path: &[usize], base: &[CanonicalNode], indexes: &[usize]) -> NodeMatch {
     NodeMatch::Ambiguous {
         candidate_path: path.to_owned(),

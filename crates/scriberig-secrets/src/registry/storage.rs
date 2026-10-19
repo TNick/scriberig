@@ -20,11 +20,13 @@ pub struct RegistryLocations {
 impl RegistryLocations {
     /// Resolves conventional platform directories without project overrides.
     ///
-    /// # Returns
     /// Registry locations for the current user and platform.
     ///
-    /// # Errors
     /// Returns `Unavailable` when the user directory is unknown.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn from_process() -> Result<Self, SecretError> {
         #[cfg(windows)]
         let (user, system) = (
@@ -60,11 +62,13 @@ impl RegistryLocations {
 
     /// Reads metadata without creating directories or retrieving credentials.
     ///
-    /// # Returns
     /// The user registry, or an empty deny-by-default registry.
     ///
-    /// # Errors
     /// Returns a safe corruption or permission failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn load(&self) -> Result<Registry, SecretError> {
         let registry = read_optional::<Registry>(&self.user_dir.join("registry.json"), false)?
             .unwrap_or_default();
@@ -76,11 +80,13 @@ impl RegistryLocations {
 
     /// Loads administrator restrictions if explicitly installed.
     ///
-    /// # Returns
     /// An additional mandatory policy, or `None` when none is installed.
     ///
-    /// # Errors
     /// Returns a safe corruption or permission failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn system(&self) -> Result<Option<SecretPolicy>, SecretError> {
         self.system_policy
             .as_deref()
@@ -91,11 +97,13 @@ impl RegistryLocations {
 
     /// Serializes local registry mutations using an OS file lock.
     ///
-    /// # Returns
     /// A lock guard holding the current metadata.
     ///
-    /// # Errors
     /// Returns a safe directory, lock, or registry failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn lock(&self) -> Result<RegistryGuard, SecretError> {
         files::create_private_dir(&self.user_dir)?;
         let lock_path = self.user_dir.join("registry.lock");
@@ -133,11 +141,13 @@ pub struct RegistryGuard {
 impl RegistryGuard {
     /// Atomically persists the metadata while holding its exclusive lock.
     ///
-    /// # Returns
     /// Unit once metadata is durably replaced.
     ///
-    /// # Errors
     /// Returns a safe write or replacement failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn save(&self) -> Result<(), SecretError> {
         static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let id = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -169,14 +179,11 @@ impl RegistryGuard {
 
 /// Reads a bounded protected JSON document, distinguishing absence from failure.
 ///
-/// # Parameters
 /// - `path`: Absolute registry or policy file.
 /// - `system`: Whether administrator ownership and write restrictions apply.
 ///
-/// # Returns
 /// A parsed document, or no document when the path is absent.
 ///
-/// # Errors
 /// Returns a safe permission, size, or document validation failure.
 fn read_optional<T: DeserializeOwned>(path: &Path, system: bool) -> Result<Option<T>, SecretError> {
     match std::fs::symlink_metadata(path) {

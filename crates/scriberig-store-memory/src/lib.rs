@@ -30,9 +30,10 @@ pub struct MemoryStore {
 
 impl Default for MemoryStore {
     ///
-    /// # Returns
     /// The requested operation result.
     /// Creates an empty memory backend.
+    /// # Returns
+    /// The operation result.
     fn default() -> Self {
         Self::new()
     }
@@ -40,10 +41,11 @@ impl Default for MemoryStore {
 
 impl MemoryStore {
     ///
-    /// # Returns
     /// The requested operation result.
     /// Creates an empty memory backend with a deterministic empty snapshot.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new() -> Self {
         let empty = Snapshot::from_entries(BTreeMap::new());
         let id = empty.id();
@@ -58,16 +60,16 @@ impl MemoryStore {
     }
 
     ///
-    /// # Returns
     /// The requested operation result.
     /// Returns the deterministic empty snapshot identity.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn empty_snapshot(&self) -> SnapshotId {
         Snapshot::from_entries(BTreeMap::new()).id()
     }
 
     ///
-    /// # Returns
     /// The requested operation result.
     /// Returns the immutable revision backend.
     #[must_use]
@@ -75,14 +77,15 @@ impl MemoryStore {
         &self.revisions
     }
 
-    /// # Parameters
     /// - `id`: Relevant operation input.
     ///
-    /// # Returns
     /// The requested operation result.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot be completed.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn snapshot(&self, id: SnapshotId) -> Result<Snapshot, SnapshotError> {
         self.snapshots
             .read()
@@ -94,16 +97,17 @@ impl MemoryStore {
 }
 
 impl SnapshotStore for MemoryStore {
-    /// # Parameters
     /// - `snapshot`: Relevant operation input.
     /// - `entity`: Relevant operation input.
     ///
-    /// # Returns
     /// The requested operation result.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot be completed.
     /// Resolves an entity from a retained snapshot.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn resolve(
         &self,
         snapshot: SnapshotId,
@@ -112,16 +116,17 @@ impl SnapshotStore for MemoryStore {
         Ok(self.snapshot(snapshot)?.resolve(entity))
     }
 
-    /// # Parameters
     /// - `base`: Relevant operation input.
     /// - `changes`: Relevant operation input.
     ///
-    /// # Returns
     /// The requested operation result.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot be completed.
     /// Applies changes and retains the resulting immutable snapshot.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn apply_changes(
         &self,
         base: SnapshotId,
@@ -145,29 +150,31 @@ impl SnapshotStore for MemoryStore {
         Ok(id)
     }
 
-    /// # Parameters
     /// - `snapshot`: Relevant operation input.
     ///
-    /// # Returns
     /// The requested operation result.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot be completed.
     /// Iterates a retained snapshot in entity order.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn iter(&self, snapshot: SnapshotId) -> Result<Vec<(EntityId, RevisionId)>, SnapshotError> {
         Ok(self.snapshot(snapshot)?.iter().collect())
     }
 
-    /// # Parameters
     /// - `from`: Relevant operation input.
     /// - `to`: Relevant operation input.
     ///
-    /// # Returns
     /// The requested operation result.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot be completed.
     /// Computes deterministic changes between retained snapshots.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn diff_snapshots(
         &self,
         from: SnapshotId,
@@ -178,14 +185,15 @@ impl SnapshotStore for MemoryStore {
 
     /// Returns direct immutable predecessors retained for one snapshot.
     ///
-    /// # Parameters
     /// - `snapshot`: Snapshot whose direct parents are requested.
     ///
-    /// # Returns
     /// Direct parents in deterministic order.
     ///
-    /// # Errors
     /// Returns an error when the snapshot is unavailable or the store lock is poisoned.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn parents(&self, snapshot: SnapshotId) -> Result<Vec<SnapshotId>, SnapshotError> {
         let _ = self.snapshot(snapshot)?;
         Ok(self
@@ -199,12 +207,12 @@ impl SnapshotStore for MemoryStore {
 }
 
 impl RootStore for MemoryStore {
-    /// # Parameters
     /// - `name`: Relevant operation input.
     ///
-    /// # Returns
     /// The requested operation result.
     /// Reads a named root atomically.
+    /// # Returns
+    /// The operation result.
     fn read_root(&self, name: &RootName) -> Option<SnapshotId> {
         self.roots.read().ok()?.get(name).copied()
     }
@@ -213,11 +221,12 @@ impl RootStore for MemoryStore {
     /// - `name`: Argument named `name`.
     /// - `snapshot`: Argument named `snapshot`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set_root(&self, name: RootName, snapshot: SnapshotId) -> Result<(), RootError> {
         self.roots
             .write()
@@ -226,17 +235,18 @@ impl RootStore for MemoryStore {
         Ok(())
     }
 
-    /// # Parameters
     /// - `name`: Relevant operation input.
     /// - `expected`: Relevant operation input.
     /// - `new`: Relevant operation input.
     ///
-    /// # Returns
     /// The requested operation result.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot be completed.
     /// Promotes a named root using an atomic compare-and-set.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn compare_and_set_root(
         &self,
         name: RootName,
@@ -264,42 +274,45 @@ impl RootStore for MemoryStore {
 impl RevisionStore for MemoryStore {
     /// Inserts a revision into the shared memory revision collection.
     ///
-    /// # Parameters
     /// - `revision`: Immutable revision to retain.
     ///
-    /// # Returns
     /// The revision identity.
     ///
-    /// # Errors
     /// Returns a storage error when the revision lock is poisoned.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn put(&self, revision: Revision) -> Result<RevisionId, StoreError> {
         self.revisions.put(revision)
     }
 
     /// Reads a revision from the shared memory revision collection.
     ///
-    /// # Parameters
     /// - `id`: Revision identity.
     ///
-    /// # Returns
     /// The retained revision, when present.
     ///
-    /// # Errors
     /// Returns a storage error when the revision lock is poisoned.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn get(&self, id: RevisionId) -> Result<Option<Revision>, StoreError> {
         self.revisions.get(id)
     }
 
     /// Checks whether a revision is retained in memory.
     ///
-    /// # Parameters
     /// - `id`: Revision identity.
     ///
-    /// # Returns
     /// Whether the revision is present.
     ///
-    /// # Errors
     /// Returns a storage error when the revision lock is poisoned.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn contains(&self, id: RevisionId) -> Result<bool, StoreError> {
         self.revisions.contains(id)
     }

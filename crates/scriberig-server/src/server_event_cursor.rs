@@ -5,16 +5,17 @@ use scriberig_protocol::Event;
 
 /// Filters events and detects cursors older than retained replay history.
 ///
-/// # Parameters
 /// - `events`: Ordered retained protocol events.
 /// - `after`: Last sequence already consumed by the client.
 /// - `super`: Parent server module containing event translation.
 ///
-/// # Returns
 /// Events whose sequence is greater than `after`.
 ///
-/// # Errors
 /// Returns `cursor_too_old` when the requested replay point has expired.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn filter_events_after(
     events: Vec<Event>,
     after: u64,

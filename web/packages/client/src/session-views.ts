@@ -8,6 +8,9 @@ import type {
   SessionReadResponse,
   SessionActivityItem,
   SessionExecutionChange,
+  SessionPlan,
+  SessionPlanNode,
+  SessionPlanNodeStatus,
 } from "@scriberig/protocol";
 import { branchActivity, branchDescriptor } from "./session-activity-views.js";
 
@@ -23,7 +26,85 @@ export function normalizeSession(value: unknown): SessionReadResponse {
   return {
     session: { id: session.id as SessionId },
     branches: (Array.isArray(record.branches) ? record.branches : []).map(normalizeBranch),
+    plans: (Array.isArray(record.plans) ? record.plans : []).map(normalizePlan),
     execution: normalizeExecution(record.execution),
+  };
+}
+
+/** Normalizes a durable plan without exposing transcripts or credentials.
+ * @param value Unknown plan value from the transport.
+ * @returns A safe plan projection.
+ * @throws An error when plan normalization encounters an invalid value.
+ */
+function normalizePlan(value: unknown): SessionPlan {
+  const plan = isObject(value) ? value : {};
+  return {
+    id: typeof plan.id === "string" ? plan.id : "",
+    rootBranch: String(plan.rootBranch ?? plan.root_branch ?? "") as BranchId,
+    nodes: (Array.isArray(plan.nodes) ? plan.nodes : []).map(normalizePlanNode),
+    dependencies: (Array.isArray(plan.dependencies) ? plan.dependencies : []).flatMap((value) => {
+      if (!isObject(value)) return [];
+      const prerequisite = value.prerequisite;
+      const dependent = value.dependent;
+      if (typeof prerequisite !== "string" || typeof dependent !== "string") return [];
+      const fulfilledBy = value.fulfilledBy ?? value.fulfilled_by;
+      return [
+        {
+          prerequisite,
+          dependent,
+          ...(typeof fulfilledBy === "string" ? { fulfilledBy } : {}),
+        },
+      ];
+    }),
+    ...(typeof (plan.coordinator ?? plan.coordinator_branch) === "string"
+      ? { coordinator: String(plan.coordinator ?? plan.coordinator_branch) as BranchId }
+      : {}),
+    ...(typeof (plan.coordinatorCursor ?? plan.coordinator_cursor) === "string"
+      ? { coordinatorCursor: String(plan.coordinatorCursor ?? plan.coordinator_cursor) }
+      : {}),
+  };
+}
+
+/** Normalizes a planned work node and safe model assignment.
+ * @param value Unknown plan-node value.
+ * @returns A bounded node projection.
+ * @throws An error when node normalization encounters an invalid value.
+ */
+function normalizePlanNode(value: unknown): SessionPlanNode {
+  const node = isObject(value) ? value : {};
+  const status = node.status;
+  const validStatuses: readonly SessionPlanNodeStatus[] = [
+    "Planned",
+    "Ready",
+    "Running",
+    "Completed",
+    "Failed",
+    "Abandoned",
+  ];
+  const assignmentValue = node.assignment;
+  const assignment = isObject(assignmentValue) ? assignmentValue : undefined;
+  const thinkingLevel = assignment?.thinkingLevel ?? assignment?.thinking_level;
+  const branch = node.branch;
+  const result = node.result;
+  return {
+    id: typeof node.id === "string" ? node.id : "",
+    parent: String(node.parent ?? ""),
+    title: typeof node.title === "string" ? node.title : "",
+    purpose: typeof node.purpose === "string" ? node.purpose : "",
+    status: validStatuses.includes(status as SessionPlanNodeStatus)
+      ? (status as SessionPlanNodeStatus)
+      : "Planned",
+    ...(typeof branch === "string" ? { branch: branch as BranchId } : {}),
+    ...(typeof result === "string" ? { result } : {}),
+    ...(typeof assignment?.profile === "string" && typeof assignment.model === "string"
+      ? {
+          assignment: {
+            profile: assignment.profile,
+            model: assignment.model,
+            ...(typeof thinkingLevel === "string" ? { thinkingLevel } : {}),
+          },
+        }
+      : {}),
   };
 }
 
@@ -209,6 +290,7 @@ function normalizeActivity(value: unknown): SessionActivityItem | undefined {
   const model = item.model;
   const thinkingLevel = item.thinkingLevel ?? item.thinking_level;
   const toolName = item.toolName ?? item.tool_name;
+  const toolCategory = item.toolCategory ?? item.tool_category;
   const toolArguments = item.toolArguments ?? item.tool_arguments;
   const toolResultPreview = item.toolResultPreview ?? item.tool_result_preview;
   const durableRef = item.durableRef ?? item.durable_ref;
@@ -224,10 +306,26 @@ function normalizeActivity(value: unknown): SessionActivityItem | undefined {
     ...(typeof model === "string" ? { model } : {}),
     ...(typeof thinkingLevel === "string" ? { thinkingLevel } : {}),
     ...(typeof toolName === "string" ? { toolName } : {}),
+    ...(isToolCategory(toolCategory) ? { toolCategory } : {}),
     ...(isObject(toolArguments) ? { toolArguments } : {}),
     ...(isObject(toolResultPreview) ? { toolResultPreview } : {}),
     ...(typeof durableRef === "string" ? { durableRef } : {}),
   };
+}
+
+/** Checks a trusted runtime tool category from the session protocol.
+ * @param value Candidate category value.
+ * @returns Whether the value is a supported category.
+ */
+function isToolCategory(value: unknown): value is NonNullable<SessionActivityItem["toolCategory"]> {
+  return [
+    "SemanticRead",
+    "SemanticMutation",
+    "ProjectionOperation",
+    "ValidationProcess",
+    "OpaqueFallback",
+    "BranchProducing",
+  ].includes(String(value));
 }
 
 /** Checks whether a value is a structured JSON object.

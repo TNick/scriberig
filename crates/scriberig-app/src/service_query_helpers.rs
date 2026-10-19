@@ -6,16 +6,17 @@ use crate::{ApplicationError, DetailLevel, InspectRequest, InspectResult};
 
 /// Converts a query inspection into the application result shape.
 ///
-/// # Parameters
 /// - `super`: Application helper module.
 /// - `inspection`: Query-layer inspection result.
 /// - `_detail`: Detail requested by the caller.
 ///
-/// # Returns
 /// Snapshot-aware application inspection metadata.
 ///
-/// # Errors
 /// Returns a revision mismatch when the query target is inconsistent.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn inspect_result(
     inspection: Inspection,
     _detail: DetailLevel,
@@ -58,16 +59,17 @@ pub(super) fn inspect_result(
 
 /// Converts an application inspection request into an exact query target.
 ///
-/// # Parameters
 /// - `super`: Application helper module.
 /// - `request`: Application inspection request.
 /// - `current`: Resolved current snapshot for a current request.
 ///
-/// # Returns
 /// Query-layer inspection request with an exact target.
 ///
-/// # Errors
 /// Returns an internal error when current snapshot resolution is missing.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn query_request(
     request: &InspectRequest,
     current: Option<scriberig_core::SnapshotId>,

@@ -15,12 +15,12 @@ pub struct Principal {
 impl Principal {
     /// Creates a principal from a stable identity string.
     ///
-    /// # Parameters
     /// - `id`: Stable principal identity.
     ///
-    /// # Returns
     /// The principal descriptor.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(id: impl Into<String>) -> Self {
         Self { id: id.into() }
     }
@@ -38,12 +38,12 @@ pub struct CapabilityContext {
 impl CapabilityContext {
     /// Creates a capability context from granted identifiers.
     ///
-    /// # Parameters
     /// - `granted`: Capabilities granted to the caller.
     ///
-    /// # Returns
     /// The request capability context.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(granted: impl IntoIterator<Item = CapabilityId>) -> Self {
         Self {
             granted: granted.into_iter().collect(),
@@ -53,12 +53,12 @@ impl CapabilityContext {
 
     /// Creates a capability context from complete scoped grants.
     ///
-    /// # Parameters
     /// - `grants`: Explicit capabilities to evaluate for this request.
     ///
-    /// # Returns
     /// A context containing the supplied grants.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_grants(grants: impl IntoIterator<Item = Capability>) -> Self {
         Self {
             granted: Vec::new(),
@@ -68,29 +68,29 @@ impl CapabilityContext {
 
     /// Checks whether a named capability is granted.
     ///
-    /// # Parameters
     /// - `self`: Capability context to inspect.
     /// - `capability`: Capability to find.
     ///
-    /// # Returns
     /// `true` when the capability is present.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn allows(&self, capability: &CapabilityId) -> bool {
         self.granted.iter().any(|candidate| candidate == capability)
     }
 
     /// Reports whether any scoped grant covers one application read.
     ///
-    /// # Parameters
     /// - `self`: Capability context to inspect.
     /// - `action`: Action required by the read operation.
     /// - `scope`: Semantic scope exposed by the operation.
     /// - `snapshot`: Exact snapshot bound to the operation.
     /// - `operation`: Universal operation kind, when known.
     ///
-    /// # Returns
     /// `true` when a complete scoped grant covers the request.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn permits(
         &self,
         action: &CapabilityAction,
@@ -131,20 +131,19 @@ pub struct BootstrapEnvironment {
 impl ApplicationContext {
     /// Creates an empty context for an embedded operation.
     ///
-    /// # Returns
     /// A context with no snapshot, principal, or capabilities.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn empty() -> Self {
         Self::default()
     }
 
     /// Binds the context to an exact snapshot.
     ///
-    /// # Parameters
     /// - `self`: Context to update.
     /// - `snapshot`: Exact snapshot identity.
     ///
-    /// # Returns
     /// The updated context.
     #[must_use]
     pub const fn with_snapshot(mut self, snapshot: SnapshotId) -> Self {
@@ -154,13 +153,13 @@ impl ApplicationContext {
 
     /// Attaches trusted local bootstrap context to an application request.
     ///
-    /// # Parameters
     /// - `self`: Context to update.
     /// - `bootstrap`: Environment supplied by a trusted local composition root.
     ///
-    /// # Returns
     /// The updated context.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_bootstrap(mut self, bootstrap: BootstrapEnvironment) -> Self {
         self.bootstrap = Some(bootstrap);
         self
@@ -168,13 +167,13 @@ impl ApplicationContext {
 
     /// Binds shared preferences independently from the execution actor.
     ///
-    /// # Parameters
     /// - `self`: Context to update.
     /// - `principal`: Trusted stable user identity from the composition root.
     ///
-    /// # Returns
     /// The updated request context.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_user_preferences_principal(mut self, principal: impl Into<String>) -> Self {
         self.user_preferences_principal = Some(principal.into());
         self

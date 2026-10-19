@@ -13,13 +13,13 @@ pub struct BlockMatch {
 
 /// Matches equal semantic blocks and reports duplicate ambiguity.
 ///
-/// # Parameters
 /// - `base`: Existing semantic document.
 /// - `candidate`: Parsed candidate document.
 ///
-/// # Returns
 /// Matches and ambiguous candidate indexes.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn match_blocks(
     base: &MarkdownDocument,
     candidate: &MarkdownDocument,

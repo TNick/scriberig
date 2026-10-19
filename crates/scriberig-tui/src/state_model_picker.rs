@@ -10,7 +10,6 @@ use scriberig_core::EntityId;
 
 /// Opens a profile picker from the latest credential-safe model library.
 ///
-/// # Parameters
 /// - `state`: TUI state whose model picker should open.
 /// - `library`: Current safe model and profile descriptors.
 pub(crate) fn show_model_picker(
@@ -40,13 +39,52 @@ pub(crate) fn show_model_picker(
     }));
 }
 
+/// Opens a credential-safe model profile picker for one selected plan node.
+///
+/// - `state`: TUI state holding the exact plan assignment target.
+/// - `library`: Shared credential-safe model library.
+///
+/// Unit after showing enabled profile and model options.
+pub(crate) fn show_plan_assignment_picker(
+    state: &mut TuiState,
+    library: &scriberig_protocol::ModelLibraryResponse,
+) {
+    if state.plan_assignment_target.is_none() {
+        state.conversation_composer.error =
+            Some("Select a plan node before assigning a model.".to_owned());
+        return;
+    }
+    let local_actions = library
+        .profiles
+        .iter()
+        .filter(|profile| profile.enabled)
+        .enumerate()
+        .map(|(index, profile)| crate::overlay::palette::PaletteItem {
+            id: format!("assign-plan-profile:{index}"),
+            label: format!("{} · {}", profile.display_name, profile.model),
+            source: crate::overlay::palette::ActionSource::Local,
+        })
+        .collect::<Vec<_>>();
+    if local_actions.is_empty() {
+        state.conversation_composer.error =
+            Some("No enabled model profiles are available.".to_owned());
+        return;
+    }
+    state.overlay = Some(Overlay::Palette(PaletteState {
+        query: String::new(),
+        local_actions,
+        semantic_actions: Vec::new(),
+        selected: 0,
+    }));
+}
+
 /// Opens the thinking picker for the currently selected model.
 ///
-/// # Parameters
 /// - `state`: TUI state whose thinking picker should open.
 ///
-/// # Returns
 /// No effect when the picker opens, or a model-library read when needed.
+/// # Returns
+/// The operation result.
 pub(crate) fn show_thinking_picker(state: &mut TuiState) -> Vec<Effect> {
     let Some((session, revision, model_id)) = active_selection(state) else {
         "Load a session before selecting a thinking level.".clone_into(&mut state.shell_message);
@@ -97,12 +135,12 @@ pub(crate) fn show_thinking_picker(state: &mut TuiState) -> Vec<Effect> {
 
 /// Routes one palette row to shared model or thinking controls.
 ///
-/// # Parameters
 /// - `state`: TUI state to update.
 /// - `item_id`: Stable palette action identity.
 ///
-/// # Returns
 /// Effects when the action belongs to model controls.
+/// # Returns
+/// The operation result.
 pub(crate) fn activate_model_picker_action(
     state: &mut TuiState,
     item_id: &str,
@@ -133,12 +171,12 @@ pub(crate) fn activate_model_picker_action(
 
 /// Selects one enabled profile for future session invocations.
 ///
-/// # Parameters
 /// - `state`: TUI state containing the active session and model library.
 /// - `profile_id`: Stable enabled profile identity.
 ///
-/// # Returns
 /// The revision-checked shared model-selection effect.
+/// # Returns
+/// The operation result.
 pub(crate) fn select_model_profile(state: &mut TuiState, profile_id: &str) -> Vec<Effect> {
     let Some((session, revision)) = active_session(state) else {
         "Load a session before selecting a model.".clone_into(&mut state.shell_message);
@@ -164,12 +202,12 @@ pub(crate) fn select_model_profile(state: &mut TuiState, profile_id: &str) -> Ve
 
 /// Selects an advertised level for future invocations of the current model.
 ///
-/// # Parameters
 /// - `state`: TUI state containing the active session and model library.
 /// - `level_id`: Stable thinking-level identity advertised by that model.
 ///
-/// # Returns
 /// The revision-checked shared thinking-selection effect.
+/// # Returns
+/// The operation result.
 pub(crate) fn select_thinking_level(state: &mut TuiState, level_id: &str) -> Vec<Effect> {
     let Some((session, revision, model_id)) = active_selection(state) else {
         "Load a session before selecting a thinking level.".clone_into(&mut state.shell_message);
@@ -197,11 +235,11 @@ pub(crate) fn select_thinking_level(state: &mut TuiState, level_id: &str) -> Vec
 
 /// Returns the active session and its authoritative selection revision.
 ///
-/// # Parameters
 /// - `state`: TUI state to inspect.
 ///
-/// # Returns
 /// Session identity, mutation revision, and current model id when loaded.
+/// # Returns
+/// The operation result.
 fn active_selection(state: &TuiState) -> Option<(EntityId, u64, &str)> {
     let (session, revision) = active_session(state)?;
     let LoadState::Ready(model) = &state.session else {
@@ -212,11 +250,11 @@ fn active_selection(state: &TuiState) -> Option<(EntityId, u64, &str)> {
 
 /// Returns the active session and its authoritative selection revision.
 ///
-/// # Parameters
 /// - `state`: TUI state to inspect.
 ///
-/// # Returns
 /// Session identity and mutation revision when a session is loaded.
+/// # Returns
+/// The operation result.
 fn active_session(state: &TuiState) -> Option<(EntityId, u64)> {
     let LoadState::Ready(session) = &state.session else {
         return None;

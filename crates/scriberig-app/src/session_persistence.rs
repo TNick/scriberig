@@ -8,16 +8,17 @@ use crate::{ApplicationError, ApplicationService};
 impl<B> ApplicationService<B> {
     /// Loads one session from durable storage or the process-local fallback.
     ///
-    /// # Parameters
     /// - `super`: Application service.
     /// - `self`: Application service.
     /// - `session_id`: Session identity to load.
     ///
-    /// # Returns
     /// The stored session when it exists.
     ///
-    /// # Errors
     /// Returns a repository or lock failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn load_session_state(
         &self,
         session_id: EntityId,
@@ -37,16 +38,17 @@ impl<B> ApplicationService<B> {
 
     /// Persists one session and refreshes the process-local read cache.
     ///
-    /// # Parameters
     /// - `super`: Application service.
     /// - `self`: Application service.
     /// - `session`: Complete session graph to persist.
     ///
-    /// # Returns
     /// Unit after the graph is stored.
     ///
-    /// # Errors
     /// Returns a repository or lock failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn save_session_state(&self, session: Session) -> Result<(), ApplicationError> {
         if let Some(store) = &self.session_store {
             store

@@ -3,7 +3,7 @@
 use crate::{
     ApplicationBackend, ApplicationContext, ApplicationError, ApplicationRequest,
     ApplicationResult, ApplyRequest, BranchRequest, CommitRequest, DiffRequest, HistoryRequest,
-    MigrationDetail, OperationSummary, RenderRequest,
+    MergeRequest, MigrationDetail, OperationSummary, RenderRequest,
 };
 use scriberig_core::{RootName, SnapshotId};
 
@@ -11,16 +11,17 @@ use scriberig_core::{RootName, SnapshotId};
 pub trait OperationProvider {
     /// Reads canonical detail for one registered migration proposal.
     ///
-    /// # Parameters
     /// - `self`: Canonical operation provider.
     /// - `_id`: Stable migration handle.
     ///
-    /// # Returns
     /// Snapshot-bound migration detail.
     ///
-    /// # Errors
     /// Returns not-found for an unknown migration or unsupported-operation when
     /// proposal reads are not configured.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn migration_detail(&self, _id: &str) -> Result<MigrationDetail, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "migration detail".to_owned(),
@@ -28,15 +29,16 @@ pub trait OperationProvider {
     }
     /// Resolves a named root before a semantic operation starts.
     ///
-    /// # Parameters
     /// - `self`: Canonical operation provider.
     /// - `_root`: Named root requested by the caller.
     ///
-    /// # Returns
     /// One exact immutable snapshot.
     ///
-    /// # Errors
     /// Returns unsupported-operation when root resolution is not configured.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn resolve_root(&self, _root: &RootName) -> Result<SnapshotId, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "named root resolution".to_owned(),
@@ -45,34 +47,62 @@ pub trait OperationProvider {
 
     /// Computes a semantic diff between two exact snapshots.
     ///
-    /// # Parameters
     /// - `self`: Canonical operation provider.
     /// - `context`: Authorized application context.
     /// - `request`: Exact snapshots to compare.
     ///
-    /// # Returns
     /// Structured diff result summary.
     ///
-    /// # Errors
     /// Returns a structured operation failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn diff(
         &self,
         context: &ApplicationContext,
         request: &DiffRequest,
     ) -> Result<OperationSummary, ApplicationError>;
 
+    /// Merges exact candidate snapshots without promoting project state.
+    ///
+    /// - `self`: Canonical operation provider.
+    /// - `context`: Authorized application context.
+    /// - `request`: Exact common base and dependency candidates.
+    ///
+    /// Merge deltas, conflicts, and a candidate snapshot when conflict-free.
+    ///
+    /// Returns a structured operation failure.
+    /// # Parameters
+    /// - `_context`: Input for this operation.
+    /// - `_request`: Input for this operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn merge(
+        &self,
+        _context: &ApplicationContext,
+        _request: &MergeRequest,
+    ) -> Result<sr_change::MergeResult, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "candidate merge".to_owned(),
+        })
+    }
+
     /// Reads semantic history from one exact snapshot.
     ///
-    /// # Parameters
     /// - `self`: Canonical operation provider.
     /// - `context`: Authorized application context.
     /// - `request`: History request with a resolved snapshot.
     ///
-    /// # Returns
     /// Structured history result summary.
     ///
-    /// # Errors
     /// Returns a structured operation failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn history(
         &self,
         context: &ApplicationContext,
@@ -81,16 +111,17 @@ pub trait OperationProvider {
 
     /// Renders a semantic state through a registered projection.
     ///
-    /// # Parameters
     /// - `self`: Canonical operation provider.
     /// - `context`: Authorized application context.
     /// - `request`: Render request with a resolved snapshot.
     ///
-    /// # Returns
     /// Structured render result summary.
     ///
-    /// # Errors
     /// Returns a structured operation failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn render(
         &self,
         context: &ApplicationContext,
@@ -99,16 +130,17 @@ pub trait OperationProvider {
 
     /// Creates a branch from an exact base snapshot.
     ///
-    /// # Parameters
     /// - `self`: Canonical operation provider.
     /// - `context`: Authorized application context.
     /// - `request`: Branch request with a resolved base.
     ///
-    /// # Returns
     /// Structured branch result summary.
     ///
-    /// # Errors
     /// Returns a structured operation failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn branch(
         &self,
         context: &ApplicationContext,
@@ -117,16 +149,17 @@ pub trait OperationProvider {
 
     /// Applies a change without promoting a canonical root.
     ///
-    /// # Parameters
     /// - `self`: Canonical operation provider.
     /// - `context`: Authorized application context.
     /// - `request`: Change and exact base snapshot.
     ///
-    /// # Returns
     /// Structured candidate result summary.
     ///
-    /// # Errors
     /// Returns validation or conflict details from the owning subsystem.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn apply(
         &self,
         context: &ApplicationContext,
@@ -135,16 +168,17 @@ pub trait OperationProvider {
 
     /// Commits a validated change at an exact base snapshot.
     ///
-    /// # Parameters
     /// - `self`: Canonical operation provider.
     /// - `context`: Authorized application context.
     /// - `request`: Change and exact base snapshot.
     ///
-    /// # Returns
     /// Structured promoted-state result summary.
     ///
-    /// # Errors
     /// Returns conflict, validation, or promotion failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn commit(
         &self,
         context: &ApplicationContext,
@@ -163,11 +197,9 @@ pub struct ApplicationBackendComposition<R, O> {
 impl<R, O> ApplicationBackendComposition<R, O> {
     /// Creates one application backend from separate read and operation ports.
     ///
-    /// # Parameters
     /// - `read`: Backend owning read operations.
     /// - `operations`: Provider owning non-read operations.
     ///
-    /// # Returns
     /// A backend preserving the ownership of both providers.
     #[must_use]
     pub const fn new(read: R, operations: O) -> Self {
@@ -176,7 +208,6 @@ impl<R, O> ApplicationBackendComposition<R, O> {
 
     /// Returns the read backend.
     ///
-    /// # Returns
     /// The backend used for read requests.
     #[must_use]
     pub const fn read(&self) -> &R {
@@ -185,7 +216,6 @@ impl<R, O> ApplicationBackendComposition<R, O> {
 
     /// Returns the operation provider.
     ///
-    /// # Returns
     /// The provider used for change and projection requests.
     #[must_use]
     pub const fn operations(&self) -> &O {
@@ -200,21 +230,26 @@ where
 {
     /// Delegates each request to the provider owning its semantic operation.
     ///
-    /// # Parameters
     /// - `context`: Authorized application context.
     /// - `request`: Universal application request.
     ///
-    /// # Returns
     /// The structured result produced by the selected provider.
     ///
-    /// # Errors
     /// Returns the selected provider's structured application error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute(
         &self,
         context: &ApplicationContext,
         request: &ApplicationRequest,
     ) -> Result<ApplicationResult, ApplicationError> {
         match request {
+            ApplicationRequest::Merge(value) => self
+                .operations
+                .merge(context, value)
+                .map(ApplicationResult::Merge),
             ApplicationRequest::Diff(value) => self
                 .operations
                 .diff(context, value)
@@ -251,15 +286,16 @@ where
 
     /// Reads migration detail from the canonical operation provider.
     ///
-    /// # Parameters
     /// - `_context`: Authorized application context.
     /// - `id`: Stable migration handle.
     ///
-    /// # Returns
     /// Snapshot-bound migration detail.
     ///
-    /// # Errors
     /// Returns the operation provider's structured application error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn migration_detail(
         &self,
         _context: &ApplicationContext,
@@ -269,14 +305,15 @@ where
     }
     /// Delegates current-snapshot resolution to the read backend.
     ///
-    /// # Parameters
     /// - `context`: Authorized application context.
     ///
-    /// # Returns
     /// The exact current snapshot.
     ///
-    /// # Errors
     /// Returns the read backend's snapshot resolution error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn current_snapshot(
         &self,
         context: &ApplicationContext,

@@ -27,14 +27,14 @@ pub(super) struct WireRequest {
 impl WireRequest {
     /// Converts a request using both global and model-specific translations.
     ///
-    /// # Parameters
     /// - `request`: Provider-neutral request.
     /// - `stream`: Whether the provider should stream SSE fragments.
     /// - `thinking_parameters`: Adapter-wide translations by level id.
     /// - `model_thinking_parameters`: Translations by model and level id.
     ///
-    /// # Returns
     /// OpenAI-compatible request fields.
+    /// # Returns
+    /// The operation result.
     pub(super) fn from_request_for_models(
         request: &ModelRequest,
         stream: bool,
@@ -95,11 +95,11 @@ impl WireRequest {
 /// Omits the default false streaming flag from ordinary requests.
 #[allow(clippy::trivially_copy_pass_by_ref)]
 ///
-/// # Parameters
 /// - `value`: Streaming flag to inspect.
 ///
-/// # Returns
 /// `true` when the flag is false.
+/// # Returns
+/// The operation result.
 fn is_false(value: &bool) -> bool {
     !*value
 }
@@ -116,11 +116,11 @@ struct WireMessage {
 impl WireMessage {
     /// Converts a semantic message role to its wire spelling.
     ///
-    /// # Parameters
     /// - `message`: Provider-neutral message.
     ///
-    /// # Returns
     /// Wire-compatible message fields.
+    /// # Returns
+    /// The operation result.
     fn from_message(message: &crate::provider::ModelMessage) -> Self {
         let role = match message.role {
             MessageRole::System => "system",
@@ -137,14 +137,14 @@ impl WireMessage {
 }
 
 #[derive(Serialize)]
-/// Serializes one function tool declaration.
+/// Represents one tool descriptor in an OpenAI-compatible request.
 struct WireTool {
     r#type: &'static str,
     function: WireFunction,
 }
 
 #[derive(Serialize)]
-/// Serializes the function portion of a tool declaration.
+/// Represents a callable function descriptor in a model request.
 struct WireFunction {
     name: String,
     description: String,
@@ -152,13 +152,12 @@ struct WireFunction {
 }
 
 impl WireTool {
-    /// Converts a trusted tool definition to a function declaration.
     ///
-    /// # Parameters
     /// - `definition`: Trusted provider-neutral tool definition.
     ///
-    /// # Returns
     /// Wire-compatible function tool fields.
+    /// # Returns
+    /// The operation result.
     fn from_definition(definition: &crate::provider::ToolDefinition) -> Self {
         Self {
             r#type: "function",
@@ -173,11 +172,11 @@ impl WireTool {
 
 /// Removes Scriberig-only sensitivity annotations from provider schemas.
 ///
-/// # Parameters
 /// - `schema`: Trusted schema used for local presentation redaction.
 ///
-/// # Returns
 /// Provider-compatible schema without the private `x-sensitive` extension.
+/// # Returns
+/// The operation result.
 fn provider_schema(schema: &serde_json::Value) -> serde_json::Value {
     match schema {
         serde_json::Value::Object(object) => {

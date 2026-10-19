@@ -10,15 +10,16 @@ pub enum PdfError {
 impl std::fmt::Display for PdfError {
     /// Formats the PDF error.
     ///
-    /// # Parameters
     /// - `self`: Error to format.
     /// - `f`: Formatter destination.
     ///
-    /// # Returns
     /// Formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when the destination rejects output.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{self:?}")
     }

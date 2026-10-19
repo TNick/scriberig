@@ -25,10 +25,8 @@ struct Scenario {
 
 /// Creates canonical revisions and the S1/S2/S3 branch scenario.
 ///
-/// # Parameters
 /// - `store`: Backend receiving canonical content.
 ///
-/// # Returns
 /// Stable revision and snapshot identities for the scenario.
 fn create_scenario<S: RevisionStore + SnapshotStore + RootStore>(store: &S) -> Scenario {
     let kind = ObjectType::new("persistence.item").expect("type");

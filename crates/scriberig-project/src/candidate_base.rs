@@ -9,17 +9,18 @@ use crate::support::adapter_for;
 
 /// Loads project source artifacts from one exact immutable snapshot.
 ///
-/// # Parameters
 /// - `store`: Shared project object and ownership store.
 /// - `project`: Project whose sources are reconstructed.
 /// - `snapshot`: Exact source snapshot.
 /// - `super`: Parent candidate module visibility.
 ///
-/// # Returns
 /// Deterministically ordered source file records represented by the snapshot.
 ///
-/// # Errors
 /// Returns an error when source ownership or immutable revisions are inconsistent.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn project_files_at(
     store: &SqliteStore,
     project: ProjectId,
@@ -67,11 +68,11 @@ pub(super) fn project_files_at(
 
 /// Creates a safe corruption error for an unavailable source artifact.
 ///
-/// # Parameters
 /// - `path`: Project-relative source path.
 ///
-/// # Returns
 /// Structured project source error.
+/// # Returns
+/// The operation result.
 fn invalid_source(path: &str) -> ProjectError {
     ProjectError {
         code: "project_snapshot_corrupt",

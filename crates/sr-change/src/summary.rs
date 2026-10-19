@@ -67,9 +67,10 @@ pub struct MergeSummary {
 impl Migration {
     /// Produces a compact summary without rendering domain values.
     ///
-    /// # Returns
     /// Structural migration counts and exact snapshot handles.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn summary(&self) -> MigrationSummary {
         let counts = count_deltas(&self.deltas);
         MigrationSummary {
@@ -88,9 +89,10 @@ impl Migration {
 impl Branch {
     /// Produces a compact branch summary preserving authored metadata.
     ///
-    /// # Returns
     /// Structural branch information with optional descriptions unchanged.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn summary(&self) -> BranchSummary {
         BranchSummary {
             id: self.id.clone(),
@@ -109,9 +111,10 @@ impl Branch {
 impl MergeResult {
     /// Produces deterministic merge counts grouped by conflict kind.
     ///
-    /// # Returns
     /// Structural merge facts without conflict prose generation.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn summary(&self) -> MergeSummary {
         let mut counts = std::collections::BTreeMap::new();
         for conflict in &self.conflicts {
@@ -130,11 +133,11 @@ impl MergeResult {
 
 /// Counts entity transitions deterministically.
 ///
-/// # Parameters
 /// - `deltas`: Entity transitions to count.
 ///
-/// # Returns
 /// Compact introduced, removed, and modified counts.
+/// # Returns
+/// The operation result.
 fn count_deltas(deltas: &[EntityDelta]) -> DiffSummary {
     let mut summary = DiffSummary::default();
     for delta in deltas {

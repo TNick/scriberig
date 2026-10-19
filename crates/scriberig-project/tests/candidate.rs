@@ -9,8 +9,9 @@ use scriberig_store_sqlite::SqliteStore;
 
 /// Creates a temporary Rust project for candidate tests.
 ///
-/// # Returns
 /// The newly created temporary project directory.
+/// # Returns
+/// The operation result.
 fn temporary_directory() -> PathBuf {
     let path = std::env::temp_dir().join(format!(
         "scriberig-project-candidate-{}",
@@ -50,6 +51,13 @@ fn source_candidate_is_snapshot_bound_and_conflict_safe() {
     let candidate = service
         .propose_candidate(scan.project.id, entity, edited)
         .expect("candidate");
+    let sibling_candidate = service
+        .propose_candidate(
+            scan.project.id,
+            entity,
+            base.replace("left + right", "left + (right * 1)"),
+        )
+        .expect("sibling candidate");
     let reopened = Arc::new(SqliteStore::open(&database).expect("reopen database"));
     let reopened_candidate = ProjectService::new(Arc::clone(&reopened))
         .candidate(&candidate.id)
@@ -57,6 +65,7 @@ fn source_candidate_is_snapshot_bound_and_conflict_safe() {
         .expect("durable candidate");
     assert_eq!(reopened_candidate, candidate);
     assert_eq!(candidate.base_snapshot, imported.snapshot);
+    assert_eq!(sibling_candidate.base_snapshot, imported.snapshot);
     assert_eq!(
         fs::read_to_string(root.join("src/lib.rs")).expect("source"),
         base

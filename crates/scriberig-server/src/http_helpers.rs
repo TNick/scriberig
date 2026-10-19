@@ -6,7 +6,6 @@ use super::*;
 
 /// Builds the public semantic object description shape consumed by the web client.
 ///
-/// # Parameters
 /// - `entity`: Entity identifier to expose.
 /// - `snapshot`: Snapshot identity, when available.
 /// - `revision`: Revision identity, when available.
@@ -15,8 +14,9 @@ use super::*;
 /// - `child_count`: Known child count, when available.
 /// - `super`: Parent-module visibility marker.
 ///
-/// # Returns
 /// JSON-compatible semantic summary data.
+/// # Returns
+/// The operation result.
 pub(super) fn object_description(
     entity: &str,
     snapshot: Option<SnapshotId>,
@@ -37,18 +37,19 @@ pub(super) fn object_description(
 
 /// Writes a JSON response with a minimal HTTP/1.1 envelope.
 ///
-/// # Parameters
 /// - `stream`: Connected client socket.
 /// - `status`: HTTP status code.
 /// - `body`: JSON response body.
 /// - `origin`: Optional allowed CORS origin.
 /// - `super`: Parent-module visibility marker.
 ///
-/// # Returns
 /// Unit after the response is written.
 ///
-/// # Errors
 /// Returns an I/O error when the response cannot be written.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn write_json(
     stream: &mut TcpStream,
     status: u16,
@@ -71,4 +72,44 @@ pub(super) fn write_json(
         body.len()
     )?;
     stream.write_all(&body)
+}
+
+/// Resolves the browser snapshot selector without silently changing exact IDs.
+///
+/// - `value`: Browser request containing a snapshot selector.
+/// - `current`: Current development snapshot used for the `current` selector.
+///
+/// The application snapshot resolution.
+///
+/// Returns a transport status and structured error body for invalid selectors.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the selector is invalid.
+pub(super) fn snapshot_resolution(
+    value: &Value,
+    current: SnapshotId,
+) -> Result<SnapshotResolution, (u16, Value)> {
+    match value
+        .get("snapshot")
+        .and_then(|item| item.get("kind"))
+        .and_then(Value::as_str)
+    {
+        Some("exact") => {
+            let id = value["snapshot"]["snapshotId"].as_str().unwrap_or_default();
+            SnapshotId::from_str(id)
+                .map(SnapshotResolution::At)
+                .map_err(|_| {
+                    (
+                        400,
+                        json!({"code": "invalid_request", "message": "invalid snapshot id"}),
+                    )
+                })
+        }
+        Some("current") | None => Ok(SnapshotResolution::At(current)),
+        Some(_) => Err((
+            400,
+            json!({"code": "invalid_request", "message": "unsupported snapshot selector"}),
+        )),
+    }
 }

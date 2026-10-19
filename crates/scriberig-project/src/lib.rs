@@ -123,15 +123,16 @@ pub struct ProjectError {
 impl Display for ProjectError {
     /// Formats the onboarding failure.
     ///
-    /// # Parameters
     /// - `self`: Onboarding failure to format.
     /// - `formatter`: Formatting destination.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when the destination rejects output.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         write!(formatter, "{}: {}", self.code, self.message)
     }
@@ -142,27 +143,28 @@ impl std::error::Error for ProjectError {}
 impl ProjectService {
     /// Creates a project service over a shared SQLite store.
     ///
-    /// # Parameters
     /// - `store`: Shared durable project and object store.
     ///
-    /// # Returns
     /// A project onboarding service.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(store: Arc<SqliteStore>) -> Self {
         Self { store }
     }
 
     /// Registers and persists a deterministic filesystem scan.
     ///
-    /// # Parameters
     /// - `name`: Optional display name for a new project.
     /// - `path`: Filesystem project path.
     ///
-    /// # Returns
     /// The project record and persisted scan manifest.
     ///
-    /// # Errors
     /// Returns a structured filesystem or storage failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn scan(
         &self,
         name: Option<String>,
@@ -173,16 +175,17 @@ impl ProjectService {
 
     /// Registers and persists a scan using an explicit file-selection policy.
     ///
-    /// # Parameters
     /// - `name`: Optional display name for a new project.
     /// - `path`: Filesystem project path.
     /// - `options`: File-selection policy for the persisted manifest.
     ///
-    /// # Returns
     /// The registered project and selected deterministic scan files.
     ///
-    /// # Errors
     /// Returns a structured filesystem, Git, or storage failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn scan_with_options(
         &self,
         name: Option<String>,
@@ -211,14 +214,15 @@ impl ProjectService {
 
     /// Imports the persisted scan into an immutable project snapshot.
     ///
-    /// # Parameters
     /// - `project`: Stable project identity to import.
     ///
-    /// # Returns
     /// Import counts and the promoted snapshot.
     ///
-    /// # Errors
     /// Returns a structured validation, storage, or promotion failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn import(&self, project: ProjectId) -> Result<ImportReport, ProjectError> {
         let files = self.store.project_files(project).map_err(storage_error)?;
         self.import_file_records(project, &files)
@@ -226,16 +230,17 @@ impl ProjectService {
 
     /// Imports only when the latest persisted manifest matches its exact digest.
     ///
-    /// # Parameters
     /// - `project`: Project owning the persisted scan.
     /// - `manifest_id`: Digest returned by the scan manifest summary.
     ///
-    /// # Returns
     /// Import counts and the promoted immutable snapshot.
     ///
-    /// # Errors
     /// Returns a structured error when the project is missing, the manifest is
     /// stale, or importing the captured manifest fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn import_manifest(
         &self,
         project: ProjectId,
@@ -254,15 +259,16 @@ impl ProjectService {
 
     /// Imports the exact file records captured by one persisted manifest read.
     ///
-    /// # Parameters
     /// - `project`: Project being imported.
     /// - `files`: Immutable records captured from one persisted manifest read.
     ///
-    /// # Returns
     /// Import counts and the promoted immutable snapshot.
     ///
-    /// # Errors
     /// Returns a structured validation, storage, or promotion failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn import_file_records(
         &self,
         project: ProjectId,
@@ -322,14 +328,15 @@ impl ProjectService {
 
     /// Resolves an imported project's current snapshot and semantic root.
     ///
-    /// # Parameters
     /// - `project`: Project whose active workspace should be resolved.
     ///
-    /// # Returns
     /// The project record, current snapshot, and semantic root entity.
     ///
-    /// # Errors
     /// Returns a structured error when the project is missing or not imported.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn workspace(&self, project: ProjectId) -> Result<ProjectWorkspace, ProjectError> {
         let record = self
             .store

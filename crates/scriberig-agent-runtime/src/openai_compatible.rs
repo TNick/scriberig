@@ -44,14 +44,15 @@ pub struct OpenAiCompatibleProvider {
 impl OpenAiCompatibleProvider {
     /// Creates an adapter with the configured endpoint and timeouts.
     ///
-    /// # Parameters
     /// - `config`: Provider configuration without an embedded secret.
     ///
-    /// # Returns
     /// A configured OpenAI-compatible adapter.
     ///
-    /// # Errors
     /// Returns a configuration error when the HTTP client cannot be built.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(config: ProviderConfig) -> Result<Self, ProviderError> {
         scriberig_secrets::validate_public_endpoint(&config.base_url).map_err(|_| {
             ProviderError::Configuration("invalid provider endpoint descriptor".to_owned())
@@ -86,14 +87,14 @@ impl OpenAiCompatibleProvider {
 
     /// Configures this adapter's translation for one advertised thinking id.
     ///
-    /// # Parameters
     /// - `self`: OpenAI-compatible provider adapter.
     /// - `level`: Provider-neutral thinking capability id.
     /// - `parameters`: Provider-specific request fields for this adapter.
     ///
-    /// # Returns
     /// The adapter with the translation installed.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_thinking_parameters(
         mut self,
         level: impl Into<String>,
@@ -105,15 +106,15 @@ impl OpenAiCompatibleProvider {
 
     /// Configures a model-specific thinking-level translation.
     ///
-    /// # Parameters
     /// - `self`: OpenAI-compatible provider adapter.
     /// - `model`: Provider-native model identifier.
     /// - `level`: Model-advertised thinking capability id.
     /// - `parameters`: Provider-specific request fields for this model level.
     ///
-    /// # Returns
     /// The adapter with the model-specific translation installed.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_model_thinking_parameters(
         mut self,
         model: impl Into<String>,
@@ -127,16 +128,17 @@ impl OpenAiCompatibleProvider {
 
     /// Replaces the completion transport for deterministic adapter tests.
     ///
-    /// # Parameters
     /// - `config`: Provider configuration without an embedded secret.
     /// - `transport`: In-process completion transport fixture.
     ///
-    /// # Returns
     /// A configured provider using the supplied transport.
     ///
-    /// # Errors
     /// Returns a configuration error when the backing HTTP client cannot be built.
     #[cfg(test)]
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn with_transport(
         config: ProviderConfig,
         transport: Arc<dyn CompletionTransport>,
@@ -148,7 +150,6 @@ impl OpenAiCompatibleProvider {
 
     /// Returns the adapter's declared model capabilities.
     ///
-    /// # Returns
     /// A copy of the capability descriptor.
     #[must_use]
     pub const fn capabilities(&self) -> ProviderCapabilities {
@@ -157,8 +158,9 @@ impl OpenAiCompatibleProvider {
 
     /// Returns the configured endpoint with the chat-completions suffix.
     ///
-    /// # Returns
     /// The endpoint URL used for requests.
+    /// # Returns
+    /// The operation result.
     fn endpoint(&self) -> String {
         format!(
             "{}/chat/completions",
@@ -170,14 +172,15 @@ impl OpenAiCompatibleProvider {
 impl ProviderAdapter for OpenAiCompatibleProvider {
     /// Sends a normalized request and parses one normalized response.
     ///
-    /// # Parameters
     /// - `request`: Provider-neutral model request.
     ///
-    /// # Returns
     /// A provider-neutral model response.
     ///
-    /// # Errors
     /// Returns a classified transport, HTTP, configuration, or parse failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
         let credential = self.config.resolve_credential()?;
         let payload = WireRequest::from_request_for_models(
@@ -214,15 +217,16 @@ impl ProviderAdapter for OpenAiCompatibleProvider {
 
     /// Completes through SSE while forwarding assistant text fragments.
     ///
-    /// # Parameters
     /// - `request`: Provider-neutral request to execute.
     /// - `on_text`: Callback receiving provider-neutral text fragments.
     ///
-    /// # Returns
     /// The assembled normalized response.
     ///
-    /// # Errors
     /// Returns the classified provider failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn complete_streaming(
         &self,
         request: &ModelRequest,
@@ -235,15 +239,16 @@ impl ProviderAdapter for OpenAiCompatibleProvider {
 impl WireResponse {
     /// Normalizes a compatible response without exposing wire DTOs.
     ///
-    /// # Parameters
     /// - `self`: Wire response to normalize.
     /// - `request_id`: Safe provider request identifier.
     ///
-    /// # Returns
     /// Normalized provider response.
     ///
-    /// # Errors
     /// Returns malformed-response when choices or arguments are invalid.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn into_response(self, request_id: Option<String>) -> Result<ModelResponse, ProviderError> {
         let choice = self.choices.into_iter().next().ok_or_else(|| {
             ProviderError::MalformedResponse("response has no choices".to_owned())

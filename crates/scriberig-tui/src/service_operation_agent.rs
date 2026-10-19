@@ -7,17 +7,14 @@ use scriberig_agent_runtime::AgentRuntime;
 
 /// Runs one semantic project agent and stores its normal candidate review state.
 ///
-/// # Parameters
 /// - `adapter`: Application operation adapter holding project workflow state.
 /// - `context`: Trusted runtime context for semantic tools.
 /// - `entity`: Selected source entity.
 /// - `snapshot`: Exact candidate base snapshot.
 /// - `prompt`: User-authored change instruction.
 ///
-/// # Returns
 /// The normal application candidate review summary.
 ///
-/// # Errors
 /// Returns a structured agent, validation, or storage failure.
 pub(super) fn project_agent<B: ApplicationBackend>(
     adapter: &ApplicationOperationAdapter<B>,

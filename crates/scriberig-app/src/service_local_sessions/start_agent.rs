@@ -9,15 +9,17 @@ use scriberig_session::{Branch, BranchStatus, Session, SessionExecutionSelection
 impl<B> ApplicationService<B> {
     /// Creates a local session root and leaves its shared operation running.
     ///
-    /// # Parameters
     /// - `self`: Application service owning local session state.
     /// - `request`: Session, optional branch, and human instruction.
     ///
-    /// # Returns
     /// A handle used to complete the same operation after runtime execution.
     ///
-    /// # Errors
     /// Returns an application error when session or operation state is invalid.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    #[allow(clippy::too_many_lines)]
     pub fn start_local_agent(
         &self,
         request: &crate::AgentCommandRequest,
@@ -29,9 +31,25 @@ impl<B> ApplicationService<B> {
                 branches: Vec::new(),
                 goals: Vec::new(),
                 tasks: Vec::new(),
+                plans: Vec::new(),
                 execution: SessionExecutionSelection::default(),
             });
-        let branch_id = if let Some(parent) = request.branch {
+        let branch_id = if let Some(anchor) = request.anchor {
+            let continuation = self.next_entity(0xB1);
+            session
+                .add_continuation_branch(
+                    continuation,
+                    anchor,
+                    "agent continuation",
+                    "continue from exact historical point",
+                    scriberig_session::ContinuationOrigin::HumanContinuation,
+                )
+                .map_err(|error| ApplicationError::InvalidRequest {
+                    operation: "agent_continue_at".to_owned(),
+                    message: error.to_string(),
+                })?;
+            continuation
+        } else if let Some(parent) = request.branch {
             let existing = session
                 .branches
                 .iter()
@@ -45,11 +63,12 @@ impl<B> ApplicationService<B> {
             ) {
                 let continuation = self.next_entity(0xB1);
                 session
-                    .add_child_branch(
+                    .add_continuation_branch(
                         continuation,
-                        parent,
+                        scriberig_session::ContinuationAnchor::BranchHead { branch: parent },
                         "agent continuation",
                         "continue completed branch",
+                        scriberig_session::ContinuationOrigin::HumanContinuation,
                     )
                     .map_err(|error| ApplicationError::InvalidRequest {
                         operation: "agent_continue".to_owned(),
@@ -106,6 +125,7 @@ impl<B> ApplicationService<B> {
             session: request.session,
             root_branch: branch_id,
             prompt: request.prompt.clone(),
+            selection: request.selection.clone(),
         })
     }
 }

@@ -43,6 +43,7 @@ fn candidate_tools_use_exact_shared_project_operations() {
     let imported = project.import(scan.project.id).expect("import");
     let actions = [
         "project_propose",
+        "project_merge_candidates",
         "project_candidate",
         "project_validate_candidate",
         "project_resolve_dependencies",
@@ -61,6 +62,16 @@ fn candidate_tools_use_exact_shared_project_operations() {
         },
         ..ApplicationContext::empty().with_snapshot(imported.snapshot)
     };
+    let project_tools =
+        crate::child_runtime::inspect_catalog().descriptors_for(&context.capabilities);
+    assert!(project_tools.iter().any(|tool| {
+        tool.definition.name == "project_propose"
+            && tool.category == scriberig_agent_runtime::tools::ToolCategory::OpaqueFallback
+    }));
+    assert!(project_tools.iter().any(|tool| {
+        tool.definition.name == "project_merge_candidates"
+            && tool.category == scriberig_agent_runtime::tools::ToolCategory::SemanticMutation
+    }));
     let service = ApplicationService::new(ApplicationBackendComposition::new(
         StoreInspectionBackend::new(Arc::clone(&store)),
         StoreOperationProvider::new(Arc::clone(&store)),
@@ -84,7 +95,6 @@ fn candidate_tools_use_exact_shared_project_operations() {
 
 /// Verifies shared proposal, inspection, validation, and stale-base rejection.
 ///
-/// # Parameters
 /// - `tool`: Shared project-aware local agent tool adapter.
 /// - `context`: Exact-base capability context.
 /// - `project`: Imported project identity.
@@ -154,6 +164,7 @@ fn assert_candidate_tool_sequence<B: ApplicationBackend>(
     );
     assert_dependency_resolution(tool, context, project_service, candidate);
     assert_candidate_validation(tool, context, project_service, candidate);
+    assert_dependency_candidate_merge(tool, context, project_service, project, snapshot, candidate);
     assert_eq!(
         fs::read(root.join("notes.txt")).expect("live source"),
         source
@@ -179,9 +190,63 @@ fn assert_candidate_tool_sequence<B: ApplicationBackend>(
     );
 }
 
+/// Integrates dependency candidate handles through the semantic worker tool.
+///
+/// - `tool`: Shared project-aware local agent tool adapter.
+/// - `context`: Exact-base capability context.
+/// - `project_service`: Durable candidate owner.
+/// - `project`: Project identity shared by both dependencies.
+/// - `snapshot`: Exact common candidate base.
+/// - `left_candidate`: Candidate handle produced by one dependency.
+fn assert_dependency_candidate_merge<B: ApplicationBackend>(
+    tool: &LocalAgentTool<'_, B>,
+    context: &ApplicationContext,
+    project_service: &scriberig_project::ProjectService,
+    project: scriberig_core::ProjectId,
+    snapshot: SnapshotId,
+    left_candidate: &str,
+) {
+    let right = project_service
+        .propose_project_change(
+            project,
+            snapshot,
+            vec![ProjectSourceChange {
+                path: "Cargo.toml".to_owned(),
+                kind: ProjectSourceChangeKind::Update,
+                content: Some(
+                    b"[package]\nname = \"candidate_fixture\"\nversion = \"0.2.0\"\nedition = \"2024\"\n"
+                        .to_vec(),
+                ),
+            }],
+        )
+        .expect("second dependency candidate");
+    let merged = tool
+        .invoke_named(
+            context,
+            "project_merge_candidates",
+            &serde_json::json!({
+                "left_candidate": left_candidate,
+                "right_candidate": right.id
+            }),
+        )
+        .expect("integrate candidates through semantic tool");
+    let merged_id = merged.handles[0]
+        .strip_prefix("candidate:")
+        .expect("integrated candidate handle");
+    let durable = project_service
+        .candidate(merged_id)
+        .expect("read integrated candidate")
+        .expect("integrated candidate is durable");
+    assert_eq!(durable.base_snapshot, snapshot);
+    assert_eq!(durable.effects.len(), 2);
+    assert_eq!(
+        durable.validation,
+        scriberig_project::CandidateValidation::Pending
+    );
+}
+
 /// Acquires locked dependencies and proves acquisition alone cannot authorize Apply.
 ///
-/// # Parameters
 /// - `tool`: Shared project-aware local agent tool adapter.
 /// - `context`: Capability context granting the specific dependency operation.
 /// - `project_service`: Shared project candidate service.
@@ -230,7 +295,6 @@ fn assert_dependency_resolution<B: ApplicationBackend>(
 
 /// Validates a candidate with a registered profile and verifies durable profile identity.
 ///
-/// # Parameters
 /// - `tool`: Shared project-aware local agent tool adapter.
 /// - `context`: Exact-base capability context.
 /// - `project_service`: Shared project candidate service.
@@ -259,6 +323,18 @@ fn assert_candidate_validation<B: ApplicationBackend>(
             .handles
             .iter()
             .any(|value| value == "validation_profile:rust-workspace")
+    );
+    assert!(
+        validation
+            .handles
+            .iter()
+            .any(|value| value.starts_with("entity:"))
+    );
+    assert!(
+        validation
+            .handles
+            .iter()
+            .any(|value| value == "path:notes.txt")
     );
     assert!(
         validation

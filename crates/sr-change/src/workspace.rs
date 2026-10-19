@@ -43,7 +43,7 @@ impl Workspace {
     /// - `provenance`: Argument named `provenance`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     pub fn new(base: SnapshotId, target_root: Option<RootName>, provenance: Provenance) -> Self {
         Self {
             base,
@@ -56,7 +56,6 @@ impl Workspace {
 
     /// Advances a workspace head without changing its base.
     ///
-    /// # Parameters
     /// - `snapshot`: New descendant snapshot.
     pub fn advance(&mut self, snapshot: SnapshotId) {
         self.current = snapshot;
@@ -105,7 +104,7 @@ mod tests {
     /// Implements `workspace`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     fn workspace() -> Workspace {
         Workspace::new(
             SnapshotId::new([1; 32]),

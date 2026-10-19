@@ -5,9 +5,11 @@ use scriberig_app::{
     ApplicationResult, ApplicationService, CapabilityContext, CapabilityId,
 };
 use scriberig_protocol::{
-    AgentStartRequest, OperationReference, OperationStatusRequest, ProtocolVersion, Request,
-    RequestEnvelope, Response, RuntimeCapabilitiesRequest, SessionReadRequest, SessionReference,
-    SubscribeRequest,
+    AgentContinueAtRequest, AgentNewSessionRequest, AgentStartRequest, OperationReference,
+    OperationStatusRequest, ProtocolVersion, Request, RequestEnvelope, Response,
+    RuntimeCapabilitiesRequest, SessionContinuationAnchor, SessionPlanAction,
+    SessionPlanAssignmentRequest, SessionPlanCreateRequest, SessionPlanLifecycleRequest,
+    SessionPlanNodeDraft, SessionReadRequest, SessionReference, SubscribeRequest,
 };
 use scriberig_server::Dispatcher;
 
@@ -17,15 +19,16 @@ struct Fixture;
 impl ApplicationBackend for Fixture {
     /// Rejects universal operations because this test targets agent fallback.
     ///
-    /// # Parameters
     /// - `_context`: Application context, unused by the fixture.
     /// - `_request`: Universal request, intentionally unsupported.
     ///
-    /// # Returns
     /// Never returns a universal result.
     ///
-    /// # Errors
     /// Always returns unsupported-operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute(
         &self,
         _context: &ApplicationContext,
@@ -149,6 +152,54 @@ fn agent_start_returns_inspectable_branch() {
     }
 }
 
+/// Creates a session remotely and continues from an exact durable anchor.
+#[test]
+fn protocol_new_session_and_exact_continuation_use_shared_handles() {
+    let dispatcher = Dispatcher::new(ApplicationService::new(Fixture));
+    let started = dispatcher.dispatch(RequestEnvelope {
+        version: ProtocolVersion::default(),
+        correlation_id: "new-session".to_owned(),
+        request: Request::AgentNewSession(AgentNewSessionRequest {
+            prompt: "first prompt".to_owned(),
+            selection: None,
+        }),
+    });
+    let Response::AgentAccepted(started) = started.response else {
+        panic!("unexpected new-session response");
+    };
+    let root = started.branch.expect("authoritative root handle");
+    let continued = dispatcher.dispatch(RequestEnvelope {
+        version: ProtocolVersion::default(),
+        correlation_id: "exact-follow-up".to_owned(),
+        request: Request::AgentContinueAt(AgentContinueAtRequest {
+            session: started.session.clone(),
+            anchor: SessionContinuationAnchor::BranchHead {
+                branch: root.id.clone(),
+            },
+            prompt: "follow up".to_owned(),
+            selection: None,
+        }),
+    });
+    let Response::AgentAccepted(continued) = continued.response else {
+        panic!("unexpected continuation response: {:?}", continued.response);
+    };
+    assert_eq!(continued.session, started.session);
+    let branch = continued.branch.expect("continuation branch");
+    assert_ne!(branch.id, root.id);
+    let read = dispatcher.dispatch(RequestEnvelope {
+        version: ProtocolVersion::default(),
+        correlation_id: "read-after-reconnect".to_owned(),
+        request: Request::SessionRead(SessionReadRequest {
+            session: started.session,
+            branch: None,
+        }),
+    });
+    let Response::Session(session) = read.response else {
+        panic!("unexpected session response");
+    };
+    assert!(session.branches.iter().any(|item| item.id == branch.id));
+}
+
 /// Keeps the protocol request import in the test's public-surface coverage.
 #[test]
 fn capabilities_request_remains_constructible() {
@@ -241,150 +292,5 @@ fn model_selection_mutation_round_trips_through_server() {
     assert_eq!(session.execution, selection);
 }
 
-/// Verifies shared presentation preferences use trusted dispatcher identity.
-#[test]
-fn presentation_preferences_are_principal_scoped_and_revision_checked() {
-    let user_a = Dispatcher::for_principal(
-        ApplicationService::new(Fixture),
-        scriberig_app::Principal::new("user-a"),
-    );
-    let read_request = || {
-        Request::AgentPresentationPreferencesRead(
-            scriberig_protocol::AgentPresentationPreferencesReadRequest {},
-        )
-    };
-    let make_envelope = |request| RequestEnvelope {
-        version: ProtocolVersion::default(),
-        correlation_id: "preferences-test".to_owned(),
-        request,
-    };
-    let initial = user_a.dispatch(make_envelope(read_request()));
-    let Response::AgentPresentationPreferences(initial) = initial.response else {
-        panic!("unexpected preference response: {initial:?}");
-    };
-    assert_eq!(initial.revision, 0);
-
-    let changed = user_a.dispatch(make_envelope(Request::AgentPresentationPreferencesSet(
-        scriberig_protocol::AgentPresentationPreferencesSetRequest {
-            expected_revision: initial.revision,
-            preferences: scriberig_protocol::PublicAgentPresentationPreferences {
-                tool_output: scriberig_protocol::PublicToolOutputVisibility::Full,
-                ..scriberig_protocol::PublicAgentPresentationPreferences::default()
-            },
-        },
-    )));
-    let Response::AgentPresentationPreferences(changed) = changed.response else {
-        panic!("unexpected preference update response");
-    };
-    assert_eq!(changed.revision, 1);
-    assert_eq!(
-        changed.preferences.tool_output,
-        scriberig_protocol::PublicToolOutputVisibility::Full
-    );
-
-    let stale = user_a.dispatch(make_envelope(Request::AgentPresentationPreferencesSet(
-        scriberig_protocol::AgentPresentationPreferencesSetRequest {
-            expected_revision: initial.revision,
-            preferences: scriberig_protocol::PublicAgentPresentationPreferences::default(),
-        },
-    )));
-    assert!(matches!(
-        stale.response,
-        Response::Error(scriberig_protocol::ProtocolError {
-            code: scriberig_protocol::ProtocolErrorCode::Conflict,
-            ..
-        })
-    ));
-}
-
-/// Verifies Rust client preference methods use the principal-aware transport.
-#[test]
-fn rust_client_reads_and_updates_shared_presentation_preferences() {
-    let transport = scriberig_server::InProcessTransport::for_principal(
-        ApplicationService::new(Fixture),
-        scriberig_app::Principal::new("client-user"),
-    );
-    let client = scriberig_client::Client::new(transport);
-    let initial = client
-        .agent_presentation_preferences()
-        .expect("read preferences");
-    let updated = client
-        .set_agent_presentation_preferences(
-            initial.revision,
-            scriberig_protocol::PublicAgentPresentationPreferences {
-                prompt: scriberig_protocol::PublicPromptVisibility::Shown,
-                ..scriberig_protocol::PublicAgentPresentationPreferences::default()
-            },
-        )
-        .expect("update preferences");
-
-    assert_eq!(updated.revision, initial.revision + 1);
-    assert_eq!(
-        updated.preferences.prompt,
-        scriberig_protocol::PublicPromptVisibility::Shown
-    );
-}
-
-/// Verifies agent dispatch capabilities are advertised by the same server.
-#[test]
-fn agent_capabilities_are_discoverable_before_submission() {
-    let dispatcher = Dispatcher::new(ApplicationService::new(Fixture));
-    let response = dispatcher.dispatch(RequestEnvelope {
-        version: ProtocolVersion::default(),
-        correlation_id: "capability-discovery".to_owned(),
-        request: Request::Capabilities(RuntimeCapabilitiesRequest::default()),
-    });
-    let Response::Capabilities(value) = response.response else {
-        panic!("unexpected capability response");
-    };
-
-    for expected in ["agent_start", "agent_continue"] {
-        assert!(
-            value
-                .capabilities
-                .iter()
-                .any(|capability| capability.id == expected && capability.available)
-        );
-    }
-}
-
-/// Verifies embedded and transport-backed agent results remain deterministic.
-#[test]
-fn embedded_and_client_agent_results_are_conformant() {
-    let session = scriberig_core::EntityId::from_bytes([2; 16]);
-    let direct = ApplicationService::new(Fixture);
-    let context = ApplicationContext {
-        capabilities: CapabilityContext::new([
-            CapabilityId::new("agent_start").expect("capability"),
-            CapabilityId::new("agent_continue").expect("capability"),
-        ]),
-        ..ApplicationContext::empty()
-    };
-    let direct_operation = direct
-        .start_agent(&context, session, "same prompt")
-        .expect("direct operation");
-    let direct_result = direct
-        .operations()
-        .get(&direct_operation)
-        .expect("direct record")
-        .agent_result
-        .expect("direct result");
-
-    let transport = scriberig_server::InProcessTransport::new(ApplicationService::new(Fixture));
-    let remote = scriberig_client::Client::new(transport);
-    let response = remote
-        .start_agent(session.to_string(), "same prompt")
-        .expect("transport operation");
-    let remote_result = response.operation.agent_result.expect("remote result");
-
-    assert_eq!(remote_result.final_output, direct_result.final_output);
-    assert_eq!(remote_result.session.id, direct_result.session.to_string());
-    assert_eq!(
-        remote_result.root_branch.id,
-        direct_result.root_branch.to_string()
-    );
-    assert_eq!(
-        remote_result.branch_result,
-        direct_result.branch_result.to_string()
-    );
-}
+#[path = "agent_session_parts/part1.rs"]
+mod part1;

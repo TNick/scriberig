@@ -9,13 +9,16 @@ use scriberig_core::EntityId;
 pub mod cache;
 pub mod config;
 pub mod context;
+pub mod coordinator;
 mod credential_redaction;
 pub mod events;
 pub mod model_provider;
 pub mod openai_compatible;
 pub mod orchestration;
+pub mod plan_context;
 pub mod provider;
 pub mod runtime;
+pub mod scheduler;
 pub mod stream;
 pub mod tools;
 
@@ -78,17 +81,18 @@ pub struct ChildResult {
 pub trait ChildExecutor {
     /// Runs one child with an explicitly bounded cancellation token.
     ///
-    /// # Parameters
     /// - `context`: Parent trusted application context.
     /// - `scope`: Optional durable parent branch identity.
     /// - `request`: Validated child purpose and prompt.
     /// - `cancelled`: Shared cancellation flag for the execution tree.
     ///
-    /// # Returns
     /// A compact child result suitable for the parent model context.
     ///
-    /// # Errors
     /// Returns a safe child execution failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute_child(
         &mut self,
         context: &ApplicationContext,
@@ -113,6 +117,8 @@ pub enum ModelDecision {
         presentation_arguments: serde_json::Value,
         /// Optional trusted compact label for human presentation.
         presentation_label: Option<String>,
+        /// Trusted semantic category of the invoked application capability.
+        category: scriberig_session::ToolActivityKind,
     },
     /// Delegate focused work to a nested branch.
     Child(ChildRequest),
@@ -124,35 +130,38 @@ pub enum ModelDecision {
 pub trait ModelProvider {
     /// Produces the next decision from the current semantic conversation.
     ///
-    /// # Parameters
     /// - `messages`: Immutable conversation and tool observations.
     ///
-    /// # Returns
     /// The next tool request or final response.
     ///
-    /// # Errors
     /// Returns a provider-specific failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn decide(&mut self, messages: &[AgentMessage]) -> Result<ModelDecision, String>;
 
     /// Returns and clears captured safe request projections since the last call.
     ///
-    /// # Returns
     /// Provider-neutral requests prepared for completed invocations.
+    /// # Returns
+    /// The operation result.
     fn take_request_projections(&mut self) -> Vec<scriberig_session::ModelRequestProjection> {
         Vec::new()
     }
 
     /// Produces a decision while forwarding provider-neutral text fragments.
     ///
-    /// # Parameters
     /// - `messages`: Immutable conversation and tool observations.
     /// - `on_text`: Callback receiving bounded assistant-text fragments.
     ///
-    /// # Returns
     /// The next tool request or final response.
     ///
-    /// # Errors
     /// Returns the same provider failure as [`Self::decide`].
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn decide_with_output(
         &mut self,
         messages: &[AgentMessage],
@@ -172,14 +181,15 @@ pub struct EchoProvider;
 impl ModelProvider for EchoProvider {
     /// Returns the latest user prompt as a completed response.
     ///
-    /// # Parameters
     /// - `messages`: Conversation messages available to the provider.
     ///
-    /// # Returns
     /// A final response containing the latest user prompt.
     ///
-    /// # Errors
     /// Returns an error when no user prompt is available.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn decide(&mut self, messages: &[AgentMessage]) -> Result<ModelDecision, String> {
         let Some(AgentMessage::User(prompt)) = messages.first() else {
             return Err("agent prompt is missing".to_owned());
@@ -194,23 +204,25 @@ pub struct UnconfiguredTool;
 impl Tool for UnconfiguredTool {
     /// Identifies the guarded fallback tool.
     ///
-    /// # Returns
     /// The stable fallback tool name.
+    /// # Returns
+    /// The operation result.
     fn name(&self) -> &'static str {
         "unconfigured"
     }
 
     /// Rejects tool execution until a concrete application tool is composed.
     ///
-    /// # Parameters
     /// - `_context`: Trusted application context.
     /// - `_input`: Structured tool input to reject.
     ///
-    /// # Returns
     /// Never returns a successful tool result.
     ///
-    /// # Errors
     /// Always returns an unsupported-operation tool error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke(
         &self,
         _context: &ApplicationContext,
@@ -225,28 +237,30 @@ impl Tool for UnconfiguredTool {
 
 /// Executes a deterministic one-shot prompt through the shared runtime.
 ///
-/// # Parameters
 /// - `prompt`: Prompt accepted by the one-shot product mode.
 ///
-/// # Returns
 /// Provider output and runtime messages.
 ///
-/// # Errors
 /// Returns the structured runtime failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn run_local_one_shot(prompt: impl Into<String>) -> Result<AgentResult, AgentError> {
     run_local_agent(prompt)
 }
 
 /// Executes a deterministic local prompt through agent orchestration.
 ///
-/// # Parameters
 /// - `prompt`: Prompt accepted by the agent product mode.
 ///
-/// # Returns
 /// Provider output and lifecycle messages.
 ///
-/// # Errors
 /// Returns the structured runtime failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn run_local_agent(prompt: impl Into<String>) -> Result<AgentResult, AgentError> {
     AgentRuntime::new(EchoProvider, UnconfiguredTool, 1).run(
         &ApplicationContext::empty(),
@@ -257,14 +271,15 @@ pub fn run_local_agent(prompt: impl Into<String>) -> Result<AgentResult, AgentEr
 
 /// Executes the legacy local prompt entry point.
 ///
-/// # Parameters
 /// - `prompt`: Prompt accepted by the compatibility entry point.
 ///
-/// # Returns
 /// Agent-runtime output and lifecycle messages.
 ///
-/// # Errors
 /// Returns the structured runtime failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn run_local_prompt(prompt: impl Into<String>) -> Result<AgentResult, AgentError> {
     run_local_agent(prompt)
 }
@@ -295,15 +310,16 @@ pub enum AgentError {
 impl std::fmt::Display for AgentError {
     /// Formats a safe agent-runtime failure.
     ///
-    /// # Parameters
     /// - `self`: Agent error.
     /// - `formatter`: Destination formatter.
     ///
-    /// # Returns
     /// Formatting success or formatter failure.
     ///
-    /// # Errors
     /// Returns the formatter error when output cannot be written.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Provider(message) => write!(formatter, "agent provider: {message}"),

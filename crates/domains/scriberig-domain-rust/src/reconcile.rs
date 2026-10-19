@@ -39,15 +39,15 @@ pub enum RustReconciliation {
 
 /// Reconciles Rust syntax against one unchanged canonical base.
 ///
-/// # Parameters
 /// - `base_snapshot`: Exact synchronization-base snapshot.
 /// - `base`: Canonical Rust items.
 /// - `candidate`: Newly parsed Rust source.
 /// - `projection`: Stable source/projection identifier.
 ///
-/// # Returns
 /// A no-op, explicit ambiguity, or unapplied shared migration proposal.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn reconcile(
     base_snapshot: SnapshotId,
     base: &[CanonicalRustItem],
@@ -59,16 +59,16 @@ pub fn reconcile(
 
 /// Reconciles Rust syntax and source-authored comments against a complete base.
 ///
-/// # Parameters
 /// - `base_snapshot`: Exact synchronization-base snapshot.
 /// - `base`: Canonical Rust items.
 /// - `canonical_comments`: Comments retained by the canonical projection state.
 /// - `candidate`: Newly parsed Rust source.
 /// - `projection`: Stable source/projection identifier.
 ///
-/// # Returns
 /// A no-op, explicit ambiguity, or unapplied shared migration proposal.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn reconcile_with_comments(
     base_snapshot: SnapshotId,
     base: &[CanonicalRustItem],
@@ -161,7 +161,6 @@ pub fn reconcile_with_comments(
 
 /// Compares function statement sequences and records local changes.
 ///
-/// # Parameters
 /// - `function`: Function entity containing the statements.
 /// - `base`: Existing statement sequence.
 /// - `candidate`: Candidate statement sequence.
@@ -188,11 +187,11 @@ fn compare_statements(
 
 /// Produces a revision identity from canonical item tokens.
 ///
-/// # Parameters
 /// - `item`: Rust syntax item.
 ///
-/// # Returns
 /// Revision identity for the item payload.
+/// # Returns
+/// The operation result.
 fn item_revision(item: &RustItem) -> scriberig_core::RevisionId {
     revision_id(
         EncodingVersion::V1,
@@ -204,11 +203,11 @@ fn item_revision(item: &RustItem) -> scriberig_core::RevisionId {
 
 /// Produces a stable identity for one newly inserted candidate item.
 ///
-/// # Parameters
 /// - `index`: Candidate item index.
 ///
-/// # Returns
 /// A deterministic 128-bit entity identity.
+/// # Returns
+/// The operation result.
 fn new_entity_bytes(index: usize) -> [u8; 16] {
     let digest = blake3::hash(format!("rust.candidate.item:{index}").as_bytes());
     let mut bytes = [0; 16];

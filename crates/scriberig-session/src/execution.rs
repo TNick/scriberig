@@ -72,6 +72,28 @@ pub enum SessionActivityKind {
     ModelSelectionChanged,
     /// Future thinking-level selection changed.
     ThinkingLevelChanged,
+    /// A durable plan was created.
+    PlanCreated,
+    /// A new durable plan revision was accepted.
+    PlanRevised,
+    /// A plan node became ready for worker execution.
+    PlanNodeReady,
+    /// A plan node acquired an isolated worker branch.
+    PlanNodeStarted,
+    /// A plan node completed with an explicit result.
+    PlanNodeCompleted,
+    /// A plan node failed and continues to block dependents.
+    PlanNodeFailed,
+    /// A plan assignment changed for a future invocation.
+    AssignmentChanged,
+    /// Coordinator ownership or lifecycle changed.
+    CoordinatorChanged,
+    /// A dependency edge changed fulfillment state.
+    DependencyStateChanged,
+    /// A typed semantic domain operation was recorded.
+    SemanticOperation,
+    /// An explicitly authorized external process ran.
+    ExternalProcess,
     /// An operation or activity failed.
     Error,
 }
@@ -103,21 +125,51 @@ pub type AgentActivityKind = SessionActivityKind;
 /// Shared application-facing name for session activity lifecycle states.
 pub type AgentActivityState = SessionActivityState;
 
+/// Trusted semantic category of a model-visible application tool.
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    schemars::JsonSchema,
+    serde::Deserialize,
+    serde::Serialize,
+)]
+/// Identifies a semantic or generic tool activity in durable execution history.
+pub enum ToolActivityKind {
+    /// Reads entities, relations, or semantic projections.
+    SemanticRead,
+    /// Applies a typed domain mutation through shared change operations.
+    SemanticMutation,
+    /// Changes a derived projection without changing canonical meaning.
+    ProjectionOperation,
+    /// Runs validation or another explicitly authorized external process.
+    ValidationProcess,
+    /// Uses generic interoperability or bootstrap access to opaque content.
+    OpaqueFallback,
+    /// Creates an isolated child branch for separate work.
+    BranchProducing,
+}
+
 impl SessionExecutionSelection {
     /// Replaces the future-invocation selection using optimistic concurrency.
     ///
-    /// # Parameters
     /// - `self`: Current session selection.
     /// - `expected_revision`: Revision observed by the mutating client.
     /// - `model_profile`: Profile identity, when a model is selected.
     /// - `model`: Provider-neutral model identity, when selected.
     /// - `thinking_level`: Supported thinking level, when selected.
     ///
-    /// # Returns
     /// The updated selection with its next mutation revision.
     ///
-    /// # Errors
     /// Returns a conflict for stale revisions or inconsistent absent values.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn replace(
         &mut self,
         expected_revision: u64,

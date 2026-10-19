@@ -11,14 +11,15 @@ use keyring_core as native;
 pub trait SecretResolver: Send + Sync {
     /// Reads one explicitly authorized reference.
     ///
-    /// # Parameters
     /// - `reference`: Source already authorized by the caller.
     ///
-    /// # Returns
     /// A protected credential buffer.
     ///
-    /// # Errors
     /// Returns a classified safe backend failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn resolve(&self, reference: &SecretRef) -> Result<SecretValue, SecretError>;
 }
 
@@ -26,51 +27,55 @@ pub trait SecretResolver: Send + Sync {
 pub trait SecretStore: Send + Sync {
     /// Reads one managed item.
     ///
-    /// # Parameters
     /// - `name`: Validated credential alias.
     ///
-    /// # Returns
     /// The protected credential.
     ///
-    /// # Errors
     /// Returns safe missing, locked, or unavailable errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn get(&self, name: &str) -> Result<SecretValue, SecretError>;
 
     /// Writes or replaces one managed item.
     ///
-    /// # Parameters
     /// - `name`: Validated credential alias.
     /// - `value`: Protected credential to persist.
     ///
-    /// # Returns
     /// Unit once the backend write completes.
     ///
-    /// # Errors
     /// Returns a safe backend failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set(&self, name: &str, value: &SecretValue) -> Result<(), SecretError>;
 
     /// Deletes one managed item.
     ///
-    /// # Parameters
     /// - `name`: Validated credential alias.
     ///
-    /// # Returns
     /// Unit after deletion.
     ///
-    /// # Errors
     /// Returns a safe backend failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn delete(&self, name: &str) -> Result<(), SecretError>;
 
     /// Checks metadata availability without returning secret contents.
     ///
-    /// # Parameters
     /// - `name`: Validated credential alias.
     ///
-    /// # Returns
     /// Whether the item exists.
     ///
-    /// # Errors
     /// Returns a safe locked, denied, or unavailable failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn exists(&self, name: &str) -> Result<bool, SecretError>;
 }
 
@@ -80,14 +85,15 @@ pub struct OsSecretStore;
 
 /// Builds an application-namespaced native credential handle.
 ///
-/// # Parameters
 /// - `name`: Managed credential alias.
 ///
-/// # Returns
 /// A handle that has not retrieved any secret.
 ///
-/// # Errors
 /// Returns a safe reference or backend failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn entry(name: &str) -> Result<native::Entry, SecretError> {
     SecretRef::Keyring {
         name: name.to_owned(),
@@ -110,11 +116,11 @@ fn entry(name: &str) -> Result<native::Entry, SecretError> {
 
 /// Removes backend payloads from public error diagnostics.
 ///
-/// # Parameters
 /// - `error`: Native store error; its diagnostic text is never retained.
 ///
-/// # Returns
 /// A safe Scriberig error category.
+/// # Returns
+/// The operation result.
 fn classify(error: native::Error) -> SecretError {
     let category = match &error {
         native::Error::NoEntry => SecretError::Missing,
@@ -129,57 +135,61 @@ fn classify(error: native::Error) -> SecretError {
 impl SecretStore for OsSecretStore {
     /// Reads a protected value from the native store.
     ///
-    /// # Parameters
     /// - `name`: Managed alias.
     ///
-    /// # Returns
     /// A protected value.
     ///
-    /// # Errors
     /// Returns safe backend errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn get(&self, name: &str) -> Result<SecretValue, SecretError> {
         SecretValue::new(entry(name)?.get_password().map_err(classify)?)
     }
 
     /// Writes a protected value to the native store.
     ///
-    /// # Parameters
     /// - `name`: Managed alias.
     /// - `value`: Protected value to persist.
     ///
-    /// # Returns
     /// Unit after writing.
     ///
-    /// # Errors
     /// Returns safe backend errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set(&self, name: &str, value: &SecretValue) -> Result<(), SecretError> {
         entry(name)?.set_password(value.expose()).map_err(classify)
     }
 
     /// Removes a managed native item.
     ///
-    /// # Parameters
     /// - `name`: Managed alias.
     ///
-    /// # Returns
     /// Unit after deleting.
     ///
-    /// # Errors
     /// Returns safe backend errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn delete(&self, name: &str) -> Result<(), SecretError> {
         entry(name)?.delete_credential().map_err(classify)
     }
 
     /// Queries metadata without retrieving the secret.
     ///
-    /// # Parameters
     /// - `name`: Managed alias.
     ///
-    /// # Returns
     /// Whether the item exists.
     ///
-    /// # Errors
     /// Returns safe backend errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn exists(&self, name: &str) -> Result<bool, SecretError> {
         match entry(name)?.get_attributes() {
             Ok(_) => Ok(true),
@@ -196,14 +206,15 @@ pub struct SourceResolver;
 impl SecretResolver for SourceResolver {
     /// Reads one explicit source without fallback.
     ///
-    /// # Parameters
     /// - `reference`: Previously authorized credential reference.
     ///
-    /// # Returns
     /// A protected secret value.
     ///
-    /// # Errors
     /// Returns safe source validation or availability errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn resolve(&self, reference: &SecretRef) -> Result<SecretValue, SecretError> {
         reference.validate()?;
         match reference {

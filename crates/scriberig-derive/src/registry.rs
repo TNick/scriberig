@@ -41,24 +41,24 @@ pub struct ProducerIdentity(String);
 impl ProducerIdentity {
     /// Creates an identity from a stable opaque string.
     ///
-    /// # Parameters
     /// - `identity`: Stable implementation identifier.
     ///
-    /// # Returns
     /// The producer identity.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(identity: impl Into<String>) -> Self {
         Self(identity.into())
     }
 
     /// Returns the stable identity string.
     ///
-    /// # Parameters
     /// - `self`: Identity to inspect.
     ///
-    /// # Returns
     /// The underlying identifier.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -113,16 +113,16 @@ pub struct DerivationRegistration {
 impl DerivationRegistration {
     /// Creates a registration with generic freshness and retention defaults.
     ///
-    /// # Parameters
     /// - `profile`: Exact profile definition.
     /// - `applicability`: Universal subject/type descriptors.
     /// - `dependency_discovery`: Explicit dependency strategy.
     /// - `producer`: Implementation identity.
     ///
-    /// # Returns
     /// A registration defaulting to profile schedule, immutable freshness,
     /// and disposable retention.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(
         profile: DerivationProfile,
         applicability: Vec<Applicability>,
@@ -143,13 +143,13 @@ impl DerivationRegistration {
 
     /// Overrides the profile scheduling hint.
     ///
-    /// # Parameters
     /// - `self`: Registration being configured.
     /// - `schedule`: Eager/lazy preference.
     ///
-    /// # Returns
     /// The configured registration.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_schedule(mut self, schedule: DerivationSchedule) -> Self {
         self.schedule = Some(schedule);
         self
@@ -157,13 +157,13 @@ impl DerivationRegistration {
 
     /// Sets the registration freshness default.
     ///
-    /// # Parameters
     /// - `self`: Registration being configured.
     /// - `freshness`: Freshness policy.
     ///
-    /// # Returns
     /// The configured registration.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_freshness(mut self, freshness: FreshnessPolicy) -> Self {
         self.freshness = freshness;
         self
@@ -171,13 +171,13 @@ impl DerivationRegistration {
 
     /// Sets the registration retention default.
     ///
-    /// # Parameters
     /// - `self`: Registration being configured.
     /// - `retention`: Retention policy.
     ///
-    /// # Returns
     /// The configured registration.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_retention(mut self, retention: RetentionPolicy) -> Self {
         self.retention = retention;
         self
@@ -185,11 +185,9 @@ impl DerivationRegistration {
 
     /// Sets the optional relative cost estimate.
     ///
-    /// # Parameters
     /// - `self`: Registration being configured.
     /// - `cost`: Cost estimate.
     ///
-    /// # Returns
     /// The configured registration.
     #[must_use]
     pub const fn with_cost(mut self, cost: CostHint) -> Self {
@@ -199,10 +197,8 @@ impl DerivationRegistration {
 
     /// Returns the exact derivation profile.
     ///
-    /// # Parameters
     /// - `self`: Registration to inspect.
     ///
-    /// # Returns
     /// The exact profile.
     #[must_use]
     pub const fn profile(&self) -> &DerivationProfile {
@@ -211,22 +207,20 @@ impl DerivationRegistration {
 
     /// Returns universal applicability descriptors.
     ///
-    /// # Parameters
     /// - `self`: Registration to inspect.
     ///
-    /// # Returns
     /// Accepted type and scope descriptors.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn applicability(&self) -> &[Applicability] {
         &self.applicability
     }
 
     /// Returns dependency discovery metadata.
     ///
-    /// # Parameters
     /// - `self`: Registration to inspect.
     ///
-    /// # Returns
     /// The explicit dependency strategy.
     #[must_use]
     pub const fn dependency_discovery(&self) -> &DependencyDiscovery {
@@ -235,10 +229,8 @@ impl DerivationRegistration {
 
     /// Returns the effective scheduling hint.
     ///
-    /// # Parameters
     /// - `self`: Registration to inspect.
     ///
-    /// # Returns
     /// The override or profile scheduling hint.
     #[must_use]
     pub const fn schedule(&self) -> DerivationSchedule {
@@ -250,10 +242,8 @@ impl DerivationRegistration {
 
     /// Returns the freshness default.
     ///
-    /// # Parameters
     /// - `self`: Registration to inspect.
     ///
-    /// # Returns
     /// The freshness policy.
     #[must_use]
     pub const fn freshness(&self) -> &FreshnessPolicy {
@@ -262,10 +252,8 @@ impl DerivationRegistration {
 
     /// Returns the retention default.
     ///
-    /// # Parameters
     /// - `self`: Registration to inspect.
     ///
-    /// # Returns
     /// The retention policy.
     #[must_use]
     pub const fn retention(&self) -> RetentionPolicy {
@@ -274,10 +262,8 @@ impl DerivationRegistration {
 
     /// Returns the producer identity.
     ///
-    /// # Parameters
     /// - `self`: Registration to inspect.
     ///
-    /// # Returns
     /// The implementation identity.
     #[must_use]
     pub const fn producer(&self) -> &ProducerIdentity {
@@ -286,10 +272,8 @@ impl DerivationRegistration {
 
     /// Returns the optional cost estimate.
     ///
-    /// # Parameters
     /// - `self`: Registration to inspect.
     ///
-    /// # Returns
     /// The cost hint when present.
     #[must_use]
     pub const fn cost(&self) -> Option<CostHint> {
@@ -311,15 +295,16 @@ pub enum RegistrationError {
 impl Display for RegistrationError {
     /// Formats the registration failure.
     ///
-    /// # Parameters
     /// - `self`: Error to format.
     /// - `formatter`: Destination formatter.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns an error if writing to the formatter fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::ConflictingDuplicate { profile } => {

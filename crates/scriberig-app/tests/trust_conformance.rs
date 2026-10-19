@@ -9,8 +9,9 @@ use scriberig_core::{EntityId, EntityRevisionRef, Provenance, ProvenanceSource, 
 
 /// Creates a deterministic trust fixture for application-level assertions.
 ///
-/// # Returns
 /// The trust summary, provenance record, and project inspection capability.
+/// # Returns
+/// The operation result.
 fn fixture() -> (TrustSummary, Provenance, Capability) {
     let entity = EntityId::from_bytes([1; 16]);
     let revision = RevisionId::new([2; 32]);

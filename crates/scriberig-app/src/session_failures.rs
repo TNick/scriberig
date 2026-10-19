@@ -7,16 +7,17 @@ use crate::{ApplicationError, ApplicationService, LocalAgentHandle, LocalChildAg
 impl<B> ApplicationService<B> {
     /// Abandons a root branch while retaining its compact failure result.
     ///
-    /// # Parameters
     /// - `self`: Application service.
     /// - `handle`: Pending root operation handle.
     /// - `failure`: Bounded failure description.
     ///
-    /// # Returns
     /// Unit after branch and operation failure are recorded.
     ///
-    /// # Errors
     /// Returns an application error when the branch or operation is unknown.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn fail_local_agent(
         &self,
         handle: &LocalAgentHandle,
@@ -49,6 +50,7 @@ impl<B> ApplicationService<B> {
             } else {
                 "agent-failure".to_owned()
             }),
+            candidate_context: None,
             references: Vec::new(),
             result_handles: Vec::new(),
             touched: Vec::new(),
@@ -73,16 +75,17 @@ impl<B> ApplicationService<B> {
 
     /// Abandons a child branch while retaining its compact failure result.
     ///
-    /// # Parameters
     /// - `self`: Application service.
     /// - `handle`: Pending child operation handle.
     /// - `failure`: Bounded failure description.
     ///
-    /// # Returns
     /// Unit after branch and operation failure are recorded.
     ///
-    /// # Errors
     /// Returns an application error when the child or operation is unknown.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn fail_local_child_agent(
         &self,
         handle: &LocalChildAgentHandle,
@@ -109,6 +112,7 @@ impl<B> ApplicationService<B> {
             status: scriberig_session::BranchStatus::Abandoned,
             summary: Some(failure.clone()),
             result_kind: Some("agent-child-failure".to_owned()),
+            candidate_context: None,
             references: Vec::new(),
             result_handles: Vec::new(),
             touched: Vec::new(),

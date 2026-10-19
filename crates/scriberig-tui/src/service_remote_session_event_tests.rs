@@ -59,6 +59,46 @@ fn remote_session_selection_event_is_preserved() {
     ));
 }
 
+/// Preserves typed durable plan changes across the remote TUI adapter.
+#[test]
+fn remote_plan_activity_event_is_preserved() {
+    let session = EntityId::from_bytes([6; 16]);
+    let plan = EntityId::from_bytes([7; 16]);
+    let node = EntityId::from_bytes([8; 16]);
+    let event = Event {
+        sequence: 7,
+        kind: EventKind::PlanActivity,
+        entity: Some(EntityReference {
+            id: plan.to_string(),
+        }),
+        revision: None,
+        snapshot: None,
+        operation: None,
+        activity_kind: Some(scriberig_protocol::SessionActivityKind::PlanNodeReady),
+        activity_state: Some(scriberig_protocol::SessionActivityState::Running),
+        metadata: vec![
+            ("session".to_owned(), session.to_string()),
+            ("node".to_owned(), node.to_string()),
+            ("summary".to_owned(), "Node ready".to_owned()),
+        ],
+    };
+
+    assert!(matches!(
+        map_remote_event(&event),
+        Some(scriberig_app::ApplicationEvent::PlanActivity {
+            session: actual_session,
+            plan: actual_plan,
+            node: Some(actual_node),
+            activity_kind: scriberig_session::SessionActivityKind::PlanNodeReady,
+            state: scriberig_session::SessionActivityState::Running,
+            summary,
+        }) if actual_session == session
+            && actual_plan == plan
+            && actual_node == node
+            && summary == "Node ready"
+    ));
+}
+
 /// Preserves transient remote agent activity across the TUI adapter boundary.
 #[test]
 fn remote_agent_activity_event_is_preserved() {

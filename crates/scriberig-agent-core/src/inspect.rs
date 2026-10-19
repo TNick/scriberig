@@ -17,10 +17,8 @@ pub struct InspectTool<S> {
 impl<S> InspectTool<S> {
     /// Creates an inspect tool over one application query service.
     ///
-    /// # Parameters
     /// - `service`: Application service implementing the shared query boundary.
     ///
-    /// # Returns
     /// Provider-neutral inspect tool.
     #[must_use]
     pub const fn new(service: S) -> Self {
@@ -31,23 +29,25 @@ impl<S> InspectTool<S> {
 impl<S: QueryService> Tool for InspectTool<S> {
     /// Returns the stable inspect tool name.
     ///
-    /// # Returns
     /// Stable inspect tool identifier.
+    /// # Returns
+    /// The operation result.
     fn name(&self) -> &'static str {
         "inspect.entity"
     }
 
     /// Delegates inspection to the shared application operation.
     ///
-    /// # Parameters
     /// - `context`: Trusted application context.
     /// - `input`: Entity, optional snapshot, and detail selection.
     ///
-    /// # Returns
     /// Compact structured inspection result with stable handles.
     ///
-    /// # Errors
     /// Returns a capability or application failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke(
         &self,
         context: &ApplicationContext,
@@ -92,11 +92,11 @@ impl<S: QueryService> Tool for InspectTool<S> {
 
 /// Maps application errors without exposing backend implementation details.
 ///
-/// # Parameters
 /// - `error`: Structured application error.
 ///
-/// # Returns
 /// Provider-neutral tool error.
+/// # Returns
+/// The operation result.
 fn map_application_error(error: ApplicationError) -> ToolError {
     match error {
         ApplicationError::PermissionDenied { action, scope } => {

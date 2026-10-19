@@ -77,14 +77,14 @@ pub struct DerivedResultRecord {
 impl DerivedResultRecord {
     /// Wraps a universal graph artifact with derivation identity and policy.
     ///
-    /// # Parameters
     /// - `key`: Exact derivation request identity.
     /// - `handle`: Immutable result identity.
     /// - `artifact`: Universal derived artifact and its provenance.
     ///
-    /// # Returns
     /// A cache record retaining the artifact payload, provenance, and status.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn from_artifact(
         key: DerivationKey,
         handle: DerivedResultHandle,
@@ -102,14 +102,14 @@ impl DerivedResultRecord {
 
     /// Creates an immutable result record.
     ///
-    /// # Parameters
     /// - `key`: Exact derivation request identity.
     /// - `handle`: Immutable artifact identity.
     /// - `status`: Structured attempt outcome.
     ///
-    /// # Returns
     /// A record with disposable retention and weak input references.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(
         key: DerivationKey,
         handle: DerivedResultHandle,
@@ -152,13 +152,13 @@ impl DerivedResultRecord {
 
     /// Associates an exact historical source observation with this record.
     ///
-    /// # Parameters
     /// - `self`: Record being configured.
     /// - `observation`: Immutable observation and freshness deadline.
     ///
-    /// # Returns
     /// The record with observation metadata attached.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_freshness(mut self, observation: FreshnessObservation) -> Self {
         self.freshness = Some(observation);
         self
@@ -166,13 +166,13 @@ impl DerivedResultRecord {
 
     /// Attaches a machine-readable failure reason.
     ///
-    /// # Parameters
     /// - `self`: Record being configured.
     /// - `reason`: Structured failure category.
     ///
-    /// # Returns
     /// The record with failure metadata attached.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_failure(mut self, reason: FailureReason) -> Self {
         self.failure = Some(reason);
         self
@@ -180,12 +180,10 @@ impl DerivedResultRecord {
 
     /// Sets retention category and canonical input reference strength.
     ///
-    /// # Parameters
     /// - `self`: Record being configured.
     /// - `policy`: Retention category.
     /// - `strength`: Reference strength requested for exact inputs.
     ///
-    /// # Returns
     /// The record with the requested retention metadata.
     #[must_use]
     pub const fn with_retention(
@@ -199,13 +197,13 @@ impl DerivedResultRecord {
 
     /// Attaches the value produced by the derivation.
     ///
-    /// # Parameters
     /// - `self`: Record being configured.
     /// - `payload`: Derived semantic value.
     ///
-    /// # Returns
     /// The record with its derived payload attached.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_payload(mut self, payload: KnowledgeValue) -> Self {
         self.payload = Some(payload);
         self
@@ -213,13 +211,13 @@ impl DerivedResultRecord {
 
     /// Attaches an optional universal artifact payload.
     ///
-    /// # Parameters
     /// - `self`: Record being configured.
     /// - `payload`: Optional derived semantic value.
     ///
-    /// # Returns
     /// The record with the payload attached when present.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     fn with_payload_opt(mut self, payload: Option<KnowledgeValue>) -> Self {
         self.payload = payload;
         self
@@ -227,13 +225,13 @@ impl DerivedResultRecord {
 
     /// Attaches producer and exact-input provenance.
     ///
-    /// # Parameters
     /// - `self`: Record being configured.
     /// - `provenance`: Origin and input metadata.
     ///
-    /// # Returns
     /// The record with provenance attached.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_provenance(mut self, provenance: Provenance) -> Self {
         self.provenance = provenance;
         self
@@ -241,10 +239,8 @@ impl DerivedResultRecord {
 
     /// Returns the exact derivation key.
     ///
-    /// # Parameters
     /// - `self`: Record to inspect.
     ///
-    /// # Returns
     /// The immutable derivation key.
     #[must_use]
     pub const fn key(&self) -> &DerivationKey {
@@ -253,10 +249,8 @@ impl DerivedResultRecord {
 
     /// Returns the exact dependencies that contribute to this artifact.
     ///
-    /// # Parameters
     /// - `self`: Record to inspect.
     ///
-    /// # Returns
     /// The normalized immutable dependency set.
     #[must_use]
     pub const fn dependencies(&self) -> &DependencySet {
@@ -265,10 +259,8 @@ impl DerivedResultRecord {
 
     /// Returns the immutable artifact handle.
     ///
-    /// # Parameters
     /// - `self`: Record to inspect.
     ///
-    /// # Returns
     /// The exact result identity.
     #[must_use]
     pub const fn handle(&self) -> DerivedResultHandle {
@@ -277,10 +269,8 @@ impl DerivedResultRecord {
 
     /// Returns the structured attempt status.
     ///
-    /// # Parameters
     /// - `self`: Record to inspect.
     ///
-    /// # Returns
     /// Success, deterministic failure, transient failure, or cancellation.
     #[must_use]
     pub const fn status(&self) -> DerivedResultStatus {
@@ -289,10 +279,8 @@ impl DerivedResultRecord {
 
     /// Returns optional external freshness observation metadata.
     ///
-    /// # Parameters
     /// - `self`: Record to inspect.
     ///
-    /// # Returns
     /// Observation when present.
     #[must_use]
     pub const fn freshness(&self) -> Option<&FreshnessObservation> {
@@ -301,10 +289,8 @@ impl DerivedResultRecord {
 
     /// Returns an optional structured failure reason.
     ///
-    /// # Parameters
     /// - `self`: Record to inspect.
     ///
-    /// # Returns
     /// Failure category when present.
     #[must_use]
     pub const fn failure(&self) -> Option<&FailureReason> {
@@ -313,10 +299,8 @@ impl DerivedResultRecord {
 
     /// Returns independent retention category and reference strength.
     ///
-    /// # Parameters
     /// - `self`: Record to inspect.
     ///
-    /// # Returns
     /// Retention metadata.
     #[must_use]
     pub const fn retention(&self) -> (RetentionPolicy, RetentionStrength) {
@@ -325,10 +309,8 @@ impl DerivedResultRecord {
 
     /// Returns the optional derived value.
     ///
-    /// # Parameters
     /// - `self`: Record to inspect.
     ///
-    /// # Returns
     /// The retained payload when the derivation produced one.
     #[must_use]
     pub const fn payload(&self) -> Option<&KnowledgeValue> {
@@ -337,10 +319,8 @@ impl DerivedResultRecord {
 
     /// Returns producer and exact-input provenance.
     ///
-    /// # Parameters
     /// - `self`: Record to inspect.
     ///
-    /// # Returns
     /// The immutable provenance metadata.
     #[must_use]
     pub const fn provenance(&self) -> &Provenance {

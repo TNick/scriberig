@@ -22,15 +22,16 @@ struct Fixture {
 impl ApplicationService for Fixture {
     /// Executes fixture inspection semantics.
     ///
-    /// # Parameters
     /// - `_context`: Request context.
     /// - `request`: Inspection request.
     ///
-    /// # Returns
     /// Fixture inspection result.
     ///
-    /// # Errors
     /// Returns `NotFound` for unknown entities.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         _context: &ApplicationContext,
@@ -55,8 +56,9 @@ impl ApplicationService for Fixture {
 
     /// Returns fixture capability metadata.
     ///
-    /// # Returns
     /// One inspect capability.
+    /// # Returns
+    /// The operation result.
     fn capabilities(&self) -> Vec<RuntimeCapability> {
         vec![RuntimeCapability::new(
             CapabilityId::new("inspect_entity").expect("capability"),
@@ -67,14 +69,15 @@ impl ApplicationService for Fixture {
 
     /// Returns a completed fixture operation.
     ///
-    /// # Parameters
     /// - `operation_id`: Operation identity.
     ///
-    /// # Returns
     /// Completed operation status.
     ///
-    /// # Errors
     /// This fixture does not fail operation lookup.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn operation_status(
         &self,
         operation_id: &str,
@@ -98,8 +101,9 @@ impl ApplicationService for Fixture {
 
 /// Creates a deterministic fixture.
 ///
-/// # Returns
 /// Fixture application service.
+/// # Returns
+/// The operation result.
 fn fixture() -> Fixture {
     Fixture {
         entity: EntityId::from_bytes([1; 16]),

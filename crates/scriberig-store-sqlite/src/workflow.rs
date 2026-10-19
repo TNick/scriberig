@@ -82,14 +82,15 @@ pub struct ProjectEffectPathRecord {
 
 /// Converts an optional SQLite blob into an exact BLAKE3 digest.
 ///
-/// # Parameters
 /// - `bytes`: Stored digest bytes.
 ///
-/// # Returns
 /// A digest when the column is populated.
 ///
-/// # Errors
 /// Returns a query conversion error for an invalid digest length.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn digest_from_column(bytes: Option<Vec<u8>>) -> rusqlite::Result<Option<[u8; 32]>> {
     bytes
         .map(|value| value.try_into().map_err(|_| rusqlite::Error::InvalidQuery))
@@ -99,14 +100,15 @@ fn digest_from_column(bytes: Option<Vec<u8>>) -> rusqlite::Result<Option<[u8; 32
 impl SqliteStore {
     /// Persists the latest durable state for one candidate path effect.
     ///
-    /// # Parameters
     /// - `effect`: Per-path receipt to persist.
     ///
-    /// # Returns
     /// Unit after the receipt is durable.
     ///
-    /// # Errors
     /// Returns a SQLite transaction or digest conversion error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn put_project_effect_path(
         &self,
         effect: &ProjectEffectPathRecord,
@@ -139,14 +141,15 @@ impl SqliteStore {
 
     /// Loads path-level receipts for one aggregate candidate.
     ///
-    /// # Parameters
     /// - `candidate`: Stable candidate identity.
     ///
-    /// # Returns
     /// Deterministically ordered effect receipts.
     ///
-    /// # Errors
     /// Returns a SQLite query or digest conversion error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn project_effect_paths(
         &self,
         candidate: &str,
@@ -175,14 +178,15 @@ impl SqliteStore {
 
     /// Stores or replaces a durable project candidate.
     ///
-    /// # Parameters
     /// - `candidate`: Candidate data to persist.
     ///
-    /// # Returns
     /// Unit after the candidate is durable.
     ///
-    /// # Errors
     /// Returns a SQLite transaction error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn put_project_candidate(
         &self,
         candidate: &ProjectCandidateRecord,
@@ -240,14 +244,15 @@ impl SqliteStore {
 
     /// Loads one durable project candidate by identity.
     ///
-    /// # Parameters
     /// - `id`: Candidate identity.
     ///
-    /// # Returns
     /// The candidate when it exists.
     ///
-    /// # Errors
     /// Returns a SQLite query or identifier conversion error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn project_candidate(&self, id: &str) -> rusqlite::Result<Option<ProjectCandidateRecord>> {
         let connection = self
             .connection
@@ -309,14 +314,15 @@ impl SqliteStore {
 
     /// Records the current external materialization effect state.
     ///
-    /// # Parameters
     /// - `effect`: Effect receipt to persist.
     ///
-    /// # Returns
     /// Unit after the receipt is durable.
     ///
-    /// # Errors
     /// Returns a SQLite transaction error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn put_project_effect(&self, effect: &ProjectEffectRecord) -> rusqlite::Result<()> {
         let connection = self
             .connection
@@ -349,14 +355,15 @@ impl SqliteStore {
 
     /// Loads the effect receipt for one candidate.
     ///
-    /// # Parameters
     /// - `candidate`: Candidate identity.
     ///
-    /// # Returns
     /// The durable effect receipt when present.
     ///
-    /// # Errors
     /// Returns a SQLite query or identifier conversion error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn project_effect(&self, candidate: &str) -> rusqlite::Result<Option<ProjectEffectRecord>> {
         let connection = self
             .connection

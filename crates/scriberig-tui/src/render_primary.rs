@@ -2,20 +2,32 @@
 
 use super::render_helpers::inspector_text;
 use crate::state::{Focus, TuiState};
-use std::fmt::Write as _;
-
 /// Renders the selected primary view from cached presentation state.
 ///
-/// # Parameters
 /// - `state`: Cached presentation state.
 /// - `super`: Parent renderer module.
 ///
-/// # Returns
 /// Text representing the selected primary view.
 #[allow(clippy::too_many_lines)]
+/// # Returns
+/// The operation result.
 pub(crate) fn primary_text(state: &TuiState) -> String {
     match state.primary_view {
+        crate::selection::PrimaryView::Conversation => state.conversation.as_ref().map_or_else(
+            || "No conversation yet. Type a message to start a session.".to_owned(),
+            |model| {
+                model
+                    .rows
+                    .iter()
+                    .map(|row| format!("{}{}", "  ".repeat(row.depth), row.label))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            },
+        ),
         crate::selection::PrimaryView::Overview => inspector_text(state),
+        crate::selection::PrimaryView::Explorer => {
+            crate::render::render_explorer::explorer_text(state)
+        }
         crate::selection::PrimaryView::History => match &state.history {
             crate::inspector::LoadState::Ready(model) => format!(
                 "History @ {}\n{}",
@@ -256,29 +268,43 @@ pub(crate) fn primary_text(state: &TuiState) -> String {
 
 /// Resolves the current client-local activity presentation for one row.
 ///
-/// # Parameters
 /// - `state`: Cached TUI state with local visibility and loaded detail.
 /// - `row`: Session activity row to render.
 ///
-/// # Returns
 /// A safe row label or bounded detail presentation.
+/// # Returns
+/// The operation result.
 pub(super) fn session_row_label(
     state: &TuiState,
     row: &crate::view::session::SessionRow,
 ) -> String {
     if row.kind == crate::view::session::SessionRowKind::ToolInvocation
-        && state.tool_invocation_visibility == crate::state::ToolInvocationVisibility::Detailed
+        && state.tool_invocation_visibility
+            == crate::state::ToolInvocationVisibility::StructuredParameters
         && let crate::inspector::LoadState::Ready(model) = &state.session
         && let Some(detail) = model.tool_invocation_details.get(&row.reference)
     {
         return format!("{}\n  Arguments:\n{}", row.label, detail);
     }
     if row.kind == crate::view::session::SessionRowKind::ToolInvocation
-        && state.tool_invocation_visibility == crate::state::ToolInvocationVisibility::Simple
+        && state.tool_invocation_visibility
+            == crate::state::ToolInvocationVisibility::CompactTruncated
         && let crate::inspector::LoadState::Ready(model) = &state.session
         && let Some(detail) = model.tool_invocation_details.get(&row.reference)
     {
         return format!("{}{}", row.label, compact_tool_arguments(detail));
+    }
+    if row.kind == crate::view::session::SessionRowKind::ToolInvocation
+        && state.tool_invocation_visibility == crate::state::ToolInvocationVisibility::Full
+        && let crate::inspector::LoadState::Ready(model) = &state.session
+        && let Some(detail) = model.tool_invocation_details.get(&row.reference)
+    {
+        return format!("{}\n  Safe arguments (bounded):\n{}", row.label, detail);
+    }
+    if row.kind == crate::view::session::SessionRowKind::ToolInvocation
+        && state.tool_invocation_visibility == crate::state::ToolInvocationVisibility::Hidden
+    {
+        return "Tool invocation hidden".to_owned();
     }
     if row.kind == crate::view::session::SessionRowKind::ModelInvocation
         && state.prompt_visibility == crate::state::PromptVisibility::Shown
@@ -308,92 +334,6 @@ pub(super) fn session_row_label(
     }
 }
 
-/// Formats bounded redacted arguments as compact command options.
-///
-/// # Parameters
-/// - `detail`: Structured presentation JSON retained for one invocation.
-///
-/// # Returns
-/// A safe, bounded command suffix or an empty string for invalid detail.
-fn compact_tool_arguments(detail: &str) -> String {
-    let Ok(serde_json::Value::Object(arguments)) = serde_json::from_str(detail) else {
-        return String::new();
-    };
-    let mut suffix = String::new();
-    for (name, value) in arguments.iter().take(8) {
-        let value = value
-            .as_str()
-            .map_or_else(|| value.to_string(), str::to_owned);
-        let name = crate::inspector::sanitize(name)
-            .chars()
-            .take(64)
-            .collect::<String>();
-        let value = crate::inspector::sanitize(&value)
-            .chars()
-            .take(128)
-            .collect::<String>();
-        let _ = write!(suffix, " --{name} {value}");
-    }
-    suffix.chars().take(512).collect()
-}
-
-/// Formats grouped safe request sections for the opt-in prompt view.
-///
-/// # Parameters
-/// - `detail`: Bounded captured provider-neutral request.
-///
-/// # Returns
-/// Sanitized model, message, tool-schema, and truncation sections.
-fn format_model_request_detail(detail: &scriberig_protocol::ModelRequestDetailResponse) -> String {
-    let mut sections = format!(
-        "\nModel request\n  Model: {}\n  Thinking: {}",
-        crate::inspector::sanitize(&detail.model),
-        detail
-            .thinking_level
-            .as_deref()
-            .map_or_else(|| "unspecified".to_owned(), crate::inspector::sanitize)
-    );
-    for message in &detail.messages {
-        let _ = write!(
-            sections,
-            "\n  {}\n{}",
-            crate::inspector::sanitize(&message.role),
-            safe_multiline_text(&message.content)
-                .lines()
-                .map(|line| format!("    {line}"))
-                .collect::<Vec<_>>()
-                .join("\n")
-        );
-    }
-    if !detail.tools.is_empty() {
-        sections.push_str("\n  Tools");
-    }
-    for tool in &detail.tools {
-        let _ = write!(
-            sections,
-            "\n    {}: {}",
-            crate::inspector::sanitize(&tool.name),
-            crate::inspector::sanitize(&tool.description)
-        );
-        if let Some(parameters) = &tool.parameters {
-            let _ = write!(sections, "\n{}", safe_multiline_text(parameters));
-        }
-    }
-    if detail.truncated {
-        sections.push_str("\n  Request capture truncated");
-    }
-    sections
-}
-
-/// Removes unsafe terminal controls while preserving safe line structure.
-///
-/// # Parameters
-/// - `text`: Captured model-request text.
-///
-/// # Returns
-/// Sanitized request text with line breaks preserved.
-fn safe_multiline_text(text: &str) -> String {
-    text.chars()
-        .filter(|character| *character == '\n' || !character.is_control())
-        .collect()
-}
+#[path = "render_primary_details.rs"]
+mod details;
+use details::{compact_tool_arguments, format_model_request_detail};

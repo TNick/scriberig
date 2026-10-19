@@ -33,7 +33,6 @@ pub struct MemoryRecoveryStore {
 impl MemoryRecoveryStore {
     /// Stores or replaces the failed import record for a projection.
     ///
-    /// # Parameters
     /// - `record`: Failed import evidence to retain.
     pub fn put(&mut self, record: RecoveryRecord) {
         if let Some(existing) = self
@@ -49,12 +48,12 @@ impl MemoryRecoveryStore {
 
     /// Finds retained failure evidence for a projection.
     ///
-    /// # Parameters
     /// - `projection`: Projection whose failure should be returned.
     ///
-    /// # Returns
     /// The retained record when one exists.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn find(&self, projection: ProjectionRef) -> Option<&RecoveryRecord> {
         self.records
             .iter()
@@ -63,7 +62,6 @@ impl MemoryRecoveryStore {
 
     /// Removes retained failure evidence after a successful import.
     ///
-    /// # Parameters
     /// - `projection`: Projection whose failure should be removed.
     pub fn remove(&mut self, projection: ProjectionRef) {
         self.records

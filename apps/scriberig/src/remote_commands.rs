@@ -4,14 +4,15 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>
 
 /// Creates a semantic client for a public protocol endpoint.
 ///
-/// # Parameters
 /// - `endpoint`: HTTP endpoint selected by the CLI.
 ///
-/// # Returns
 /// A protocol client over the endpoint.
 ///
-/// # Errors
 /// Returns an endpoint parsing or transport setup error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn client(endpoint: &str) -> Result<scriberig_client::Client<scriberig_client::HttpTransport>> {
     Ok(scriberig_client::Client::new(
         scriberig_client::HttpTransport::from_endpoint(endpoint)?,
@@ -20,15 +21,16 @@ fn client(endpoint: &str) -> Result<scriberig_client::Client<scriberig_client::H
 
 /// Prints capabilities exposed by a remote application.
 ///
-/// # Parameters
 /// - `super`: Module namespace containing the command composition helpers.
 /// - `args`: Parsed remote capability options.
 ///
-/// # Returns
 /// Unit after printing the capability response.
 ///
-/// # Errors
 /// Returns a client or protocol failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn capabilities(args: &scriberig_cli::RemoteArgs) -> Result<()> {
     let response = client(&args.connect)?.capabilities()?;
     if args.json {
@@ -46,15 +48,16 @@ pub(super) fn capabilities(args: &scriberig_cli::RemoteArgs) -> Result<()> {
 
 /// Executes one remote operation lifecycle command.
 ///
-/// # Parameters
 /// - `super`: Module namespace containing the command composition helpers.
 /// - `args`: Parsed operation command.
 ///
-/// # Returns
 /// Unit after printing the protocol response.
 ///
-/// # Errors
 /// Returns a client or protocol failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn operation(args: scriberig_cli::OperationArgs) -> Result<()> {
     match args.command {
         scriberig_cli::OperationCommand::Status { operation, remote } => {
@@ -71,15 +74,16 @@ pub(super) fn operation(args: scriberig_cli::OperationArgs) -> Result<()> {
 
 /// Reads buffered lifecycle or streaming events.
 ///
-/// # Parameters
 /// - `super`: Module namespace containing the command composition helpers.
 /// - `args`: Parsed event filter and cursor.
 ///
-/// # Returns
 /// Unit after printing the event response.
 ///
-/// # Errors
 /// Returns a client or protocol failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn events(args: scriberig_cli::EventsArgs) -> Result<()> {
     let events = if let Some(after) = args.after {
         client(&args.remote.connect)?.subscribe_after(args.event_kinds, Some(after))?
@@ -92,15 +96,16 @@ pub(super) fn events(args: scriberig_cli::EventsArgs) -> Result<()> {
 
 /// Reads a durable session tree or branch activity view.
 ///
-/// # Parameters
 /// - `super`: Module namespace containing the command composition helpers.
 /// - `args`: Parsed session read command.
 ///
-/// # Returns
 /// Unit after printing the session response.
 ///
-/// # Errors
 /// Returns a client or protocol failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn session(args: scriberig_cli::SessionArgs) -> Result<()> {
     match args.command {
         scriberig_cli::SessionCommand::Tree { session, remote } => {
@@ -121,15 +126,16 @@ pub(super) fn session(args: scriberig_cli::SessionArgs) -> Result<()> {
 
 /// Continues one remote agent branch.
 ///
-/// # Parameters
 /// - `super`: Module namespace containing the command composition helpers.
 /// - `args`: Parsed session, branch, prompt, and endpoint.
 ///
-/// # Returns
 /// Unit after printing the accepted operation handle.
 ///
-/// # Errors
 /// Returns a client or protocol failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn agent_continue(args: scriberig_cli::AgentContinueArgs) -> Result<()> {
     let response = client(&args.remote.connect)?.continue_agent_with_handles(
         args.session,

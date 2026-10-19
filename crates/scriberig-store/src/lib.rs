@@ -38,42 +38,45 @@ use std::sync::Arc;
 impl<T: RevisionStore + ?Sized> RevisionStore for Arc<T> {
     /// Delegates immutable revision insertion to the shared backend.
     ///
-    /// # Parameters
     /// - `revision`: Immutable revision to store.
     ///
-    /// # Returns
     /// The canonical revision identifier.
     ///
-    /// # Errors
     /// Returns the backend storage error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn put(&self, revision: Revision) -> Result<scriberig_core::RevisionId, StoreError> {
         (**self).put(revision)
     }
 
     /// Delegates immutable revision lookup to the shared backend.
     ///
-    /// # Parameters
     /// - `id`: Revision identifier to look up.
     ///
-    /// # Returns
     /// The revision when present.
     ///
-    /// # Errors
     /// Returns the backend storage error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn get(&self, id: scriberig_core::RevisionId) -> Result<Option<Revision>, StoreError> {
         (**self).get(id)
     }
 
     /// Delegates immutable revision presence checks to the shared backend.
     ///
-    /// # Parameters
     /// - `id`: Revision identifier to test.
     ///
-    /// # Returns
     /// Whether the revision exists.
     ///
-    /// # Errors
     /// Returns the backend storage error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn contains(&self, id: scriberig_core::RevisionId) -> Result<bool, StoreError> {
         (**self).contains(id)
     }
@@ -83,15 +86,16 @@ impl<T: RevisionStore + ?Sized> RevisionStore for Arc<T> {
 impl<T: SnapshotStore + ?Sized> SnapshotStore for Arc<T> {
     /// Delegates entity resolution to the shared backend.
     ///
-    /// # Parameters
     /// - `snapshot`: Snapshot in which to resolve the entity.
     /// - `entity`: Entity identifier to resolve.
     ///
-    /// # Returns
     /// The revision visible for the entity, when present.
     ///
-    /// # Errors
     /// Returns the backend snapshot error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn resolve(
         &self,
         snapshot: scriberig_core::SnapshotId,
@@ -102,15 +106,16 @@ impl<T: SnapshotStore + ?Sized> SnapshotStore for Arc<T> {
 
     /// Delegates immutable snapshot application to the shared backend.
     ///
-    /// # Parameters
     /// - `base`: Snapshot receiving the changes.
     /// - `changes`: Immutable entity changes to apply.
     ///
-    /// # Returns
     /// The resulting snapshot identifier.
     ///
-    /// # Errors
     /// Returns the backend snapshot error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn apply_changes(
         &self,
         base: scriberig_core::SnapshotId,
@@ -121,14 +126,15 @@ impl<T: SnapshotStore + ?Sized> SnapshotStore for Arc<T> {
 
     /// Delegates deterministic snapshot iteration to the shared backend.
     ///
-    /// # Parameters
     /// - `snapshot`: Snapshot to enumerate.
     ///
-    /// # Returns
     /// Entity and revision pairs visible in the snapshot.
     ///
-    /// # Errors
     /// Returns the backend snapshot error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn iter(
         &self,
         snapshot: scriberig_core::SnapshotId,
@@ -138,15 +144,16 @@ impl<T: SnapshotStore + ?Sized> SnapshotStore for Arc<T> {
 
     /// Delegates snapshot diffing to the shared backend.
     ///
-    /// # Parameters
     /// - `from`: Earlier snapshot.
     /// - `to`: Later snapshot.
     ///
-    /// # Returns
     /// Changes needed to transform `from` into `to`.
     ///
-    /// # Errors
     /// Returns the backend snapshot error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn diff_snapshots(
         &self,
         from: scriberig_core::SnapshotId,
@@ -157,15 +164,16 @@ impl<T: SnapshotStore + ?Sized> SnapshotStore for Arc<T> {
 
     /// Delegates semantic revision comparison to the shared backend.
     ///
-    /// # Parameters
     /// - `from`: Starting immutable snapshot.
     /// - `to`: Target immutable snapshot.
     ///
-    /// # Returns
     /// Exact entity revision transitions in deterministic order.
     ///
-    /// # Errors
     /// Returns the backend snapshot error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn diff_snapshot_revisions(
         &self,
         from: scriberig_core::SnapshotId,
@@ -176,14 +184,15 @@ impl<T: SnapshotStore + ?Sized> SnapshotStore for Arc<T> {
 
     /// Delegates snapshot parent lookup to the shared backend.
     ///
-    /// # Parameters
     /// - `snapshot`: Snapshot whose parents are requested.
     ///
-    /// # Returns
     /// Direct parent snapshot identifiers.
     ///
-    /// # Errors
     /// Returns the backend snapshot error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn parents(
         &self,
         snapshot: scriberig_core::SnapshotId,
@@ -193,14 +202,15 @@ impl<T: SnapshotStore + ?Sized> SnapshotStore for Arc<T> {
 
     /// Delegates immutable snapshot change provenance lookup.
     ///
-    /// # Parameters
     /// - `snapshot`: Exact result snapshot to query.
     ///
-    /// # Returns
     /// The backend's retained source-change identity, when present.
     ///
-    /// # Errors
     /// Returns the backend snapshot error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn change_provenance(
         &self,
         snapshot: scriberig_core::SnapshotId,
@@ -213,27 +223,28 @@ impl<T: SnapshotStore + ?Sized> SnapshotStore for Arc<T> {
 impl<T: RootStore + ?Sized> RootStore for Arc<T> {
     /// Delegates named-root lookup to the shared backend.
     ///
-    /// # Parameters
     /// - `name`: Named root to read.
     ///
-    /// # Returns
     /// The root snapshot, when the name is bound.
+    /// # Returns
+    /// The operation result.
     fn read_root(&self, name: &scriberig_core::RootName) -> Option<scriberig_core::SnapshotId> {
         (**self).read_root(name)
     }
 
     /// Delegates compare-and-set root promotion to the shared backend.
     ///
-    /// # Parameters
     /// - `name`: Named root to update.
     /// - `expected`: Snapshot currently expected at the root.
     /// - `new`: Snapshot to promote when the expectation matches.
     ///
-    /// # Returns
     /// Success when the root was promoted.
     ///
-    /// # Errors
     /// Returns a root conflict or backend error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn compare_and_set_root(
         &self,
         name: scriberig_core::RootName,
@@ -245,15 +256,16 @@ impl<T: RootStore + ?Sized> RootStore for Arc<T> {
 
     /// Delegates unconditional root assignment to the shared backend.
     ///
-    /// # Parameters
     /// - `name`: Named root to update.
     /// - `snapshot`: Snapshot to bind to the root.
     ///
-    /// # Returns
     /// Success when the root was assigned.
     ///
-    /// # Errors
     /// Returns the backend root error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set_root(
         &self,
         name: scriberig_core::RootName,

@@ -7,22 +7,34 @@ use scriberig_app::ApplicationError;
 mod activity;
 #[path = "server_helpers_event.rs"]
 mod event;
+#[path = "server_helpers_session_plan.rs"]
+pub(super) mod session_plan;
+pub(crate) use session_plan::project as project_session_plan;
 
 pub(super) use event::event_from_application;
 
+#[cfg(test)]
+#[path = "server_helpers_session_tests.rs"]
+mod session_plan_tests;
+
 /// Converts a durable session into a compact provider-neutral response.
 ///
-/// # Parameters
 /// - `super`: Server protocol module namespace used by the response type.
 /// - `session`: Durable session value returned by the application boundary.
 ///
-/// # Returns
 /// Session tree containing ordered activity and compact result handles.
+/// # Returns
+/// The operation result.
 pub(super) fn session_response(
     session: scriberig_session::Session,
 ) -> scriberig_protocol::SessionReadResponse {
     let session_id = session.id;
     let execution = session.execution;
+    let plans = session
+        .plans
+        .into_iter()
+        .map(session_plan::project)
+        .collect();
     let mut branches = session
         .branches
         .into_iter()
@@ -78,6 +90,7 @@ pub(super) fn session_response(
             id: session_id.to_string(),
         },
         branches,
+        plans,
         execution: scriberig_protocol::SessionExecutionSelection {
             revision: execution.revision,
             model_profile: execution.model_profile,
@@ -103,8 +116,11 @@ pub(super) fn session_response(
 /// - `result`: Argument named `result`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub(super) fn result_handles(result: &scriberig_app::ApplicationResult) -> Vec<String> {
+    if let scriberig_app::ApplicationResult::DomainOperation(value) = result {
+        return vec![value.change.clone()];
+    }
     let summary = match result {
         scriberig_app::ApplicationResult::Diff(value)
         | scriberig_app::ApplicationResult::History(value)
@@ -120,12 +136,12 @@ pub(super) fn result_handles(result: &scriberig_app::ApplicationResult) -> Vec<S
 /// Tests whether a protocol event matches a case-insensitive kind filter.
 /// - `super`: Parent-module imports used by this helper.
 ///
-/// # Parameters
 /// - `event`: Event whose kind is being tested.
 /// - `event_kinds`: Requested event kind names; empty selects every event.
 ///
-/// # Returns
 /// `true` when the event is selected by the subscription.
+/// # Returns
+/// The operation result.
 pub(super) fn event_matches(event: &Event, event_kinds: &[String]) -> bool {
     event_kinds.is_empty()
         || event_kinds.iter().any(|kind| {
@@ -136,11 +152,11 @@ pub(super) fn event_matches(event: &Event, event_kinds: &[String]) -> bool {
 
 /// Preserves safe semantic handles in protocol error details.
 ///
-/// # Parameters
 /// - `error`: Application error being serialized.
 ///
-/// # Returns
 /// JSON-safe structured details without backend internals.
+/// # Returns
+/// The operation result.
 pub fn error_details(error: &ApplicationError) -> serde_json::Value {
     match error {
         ApplicationError::NotFound { subject } => serde_json::json!({"subject": subject}),
@@ -178,8 +194,8 @@ pub fn error_details(error: &ApplicationError) -> serde_json::Value {
 /// - `record`: Argument named `record`.
 ///
 /// # Returns
-/// The value produced by the declaration.
-pub(super) fn operation_from_record(record: scriberig_app::OperationRecord) -> Operation {
+/// The operation result.
+pub(crate) fn operation_from_record(record: scriberig_app::OperationRecord) -> Operation {
     Operation {
         reference: scriberig_protocol::OperationReference {
             id: record.reference.to_string(),
@@ -217,6 +233,12 @@ pub(super) fn operation_from_record(record: scriberig_app::OperationRecord) -> O
             }
             scriberig_app::OperationKind::Agent => {
                 scriberig_protocol::operation::OperationKind::Agent
+            }
+            scriberig_app::OperationKind::Plan => {
+                scriberig_protocol::operation::OperationKind::Plan
+            }
+            scriberig_app::OperationKind::DomainOperation => {
+                scriberig_protocol::operation::OperationKind::DomainOperation
             }
             scriberig_app::OperationKind::Commit => {
                 scriberig_protocol::operation::OperationKind::Commit
@@ -266,15 +288,16 @@ pub(super) fn operation_from_record(record: scriberig_app::OperationRecord) -> O
 
 /// Converts an application agent result into a provider-neutral protocol value.
 ///
-/// # Parameters
 /// - `result`: Durable application result.
 ///
-/// # Returns
 /// Safe protocol result without provider credentials or DTOs.
 ///
-/// # Errors
 /// This conversion is infallible because all identifiers have already been
 /// validated by the application layer.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn agent_result(result: scriberig_app::AgentResult) -> scriberig_protocol::AgentResult {
     scriberig_protocol::AgentResult {
         session: scriberig_protocol::SessionReference {

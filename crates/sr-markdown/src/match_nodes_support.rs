@@ -6,7 +6,6 @@ use crate::{CanonicalNode, MarkdownBlock, MarkdownDocument, NodeMatch};
 
 /// Checks whether an unchanged neighboring candidate anchors a base node.
 ///
-/// # Parameters
 /// - `base`: Canonical nodes from the base snapshot.
 /// - `results`: Matches established for preceding candidates.
 /// - `candidates`: Candidate paths and blocks.
@@ -14,7 +13,7 @@ use crate::{CanonicalNode, MarkdownBlock, MarkdownDocument, NodeMatch};
 /// - `node`: Base node being considered.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub(crate) fn nearby_anchor(
     base: &[CanonicalNode],
     results: &[NodeMatch],
@@ -52,12 +51,11 @@ pub(crate) fn nearby_anchor(
 
 /// Computes conservative word-overlap similarity for same-kind text blocks.
 ///
-/// # Parameters
 /// - `left`: First semantic block.
 /// - `right`: Second semantic block.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub(crate) fn text_similarity(left: &MarkdownBlock, right: &MarkdownBlock) -> (usize, usize) {
     let left = block_text(left);
     let right = block_text(right);
@@ -75,7 +73,7 @@ pub(crate) fn text_similarity(left: &MarkdownBlock, right: &MarkdownBlock) -> (u
 /// - `block`: Argument named `block`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 fn block_text(block: &MarkdownBlock) -> String {
     match block {
         MarkdownBlock::Heading { text, .. }
@@ -104,14 +102,13 @@ fn block_text(block: &MarkdownBlock) -> String {
 
 /// Detects a likely insertion before a later unchanged section heading.
 ///
-/// # Parameters
 /// - `base`: Canonical nodes from the base snapshot.
 /// - `candidates`: Candidate paths and blocks.
 /// - `path`: Candidate structural path.
 /// - `block`: Candidate semantic block.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub(crate) fn section_precedes_heading_anchor(
     base: &[CanonicalNode],
     candidates: &[(Vec<usize>, MarkdownBlock)],
@@ -152,14 +149,13 @@ pub(crate) fn section_precedes_heading_anchor(
 
 /// Checks whether a canonical node belongs to the candidate's known parent.
 ///
-/// # Parameters
 /// - `node_parent`: Base node's parent identity.
 /// - `mapped_parent`: Matched candidate parent identity.
 /// - `path`: Candidate structural path.
 /// - `root_context`: Whether matching requires a canonical root.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub(crate) fn parent_matches(
     node_parent: Option<EntityId>,
     mapped_parent: Option<EntityId>,
@@ -175,12 +171,11 @@ pub(crate) fn parent_matches(
 
 /// Resolves the known parent context for one candidate path.
 ///
-/// # Parameters
 /// - `path`: Candidate structural path.
 /// - `results`: Matches established for candidate ancestors.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub(crate) fn candidate_context(path: &[usize], results: &[NodeMatch]) -> (Option<EntityId>, bool) {
     if path.len() <= 1 {
         return (None, false);
@@ -205,11 +200,10 @@ pub(crate) fn candidate_context(path: &[usize], results: &[NodeMatch]) -> (Optio
 
 /// Flattens nested semantic blocks into stable structural paths.
 ///
-/// # Parameters
 /// - `document`: Semantic Markdown document to flatten.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub(crate) fn flatten(document: &MarkdownDocument) -> Vec<(Vec<usize>, MarkdownBlock)> {
     let mut output = Vec::new();
     for (index, block) in document.blocks.iter().enumerate() {
@@ -240,24 +234,22 @@ fn flatten_block(
 
 /// Reports whether two blocks have the same semantic kind.
 ///
-/// # Parameters
 /// - `left`: First semantic block.
 /// - `right`: Second semantic block.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub(crate) fn same_kind(left: &MarkdownBlock, right: &MarkdownBlock) -> bool {
     std::mem::discriminant(left) == std::mem::discriminant(right)
 }
 
 /// Reports whether two blocks share enough stable context for a changed edit.
 ///
-/// # Parameters
 /// - `left`: First semantic block.
 /// - `right`: Second semantic block.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub(crate) fn same_context(left: &MarkdownBlock, right: &MarkdownBlock) -> bool {
     match (left, right) {
         (MarkdownBlock::Section(left), MarkdownBlock::Section(right)) => left.level == right.level,

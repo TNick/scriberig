@@ -5,18 +5,21 @@ mod tui_pty_support;
 
 use tui_pty_support::{TuiPty, test_lock};
 
-/// TUI-GOLDEN-05 runs the deterministic agent through semantic scope and review.
+/// TUI-GOLDEN-05 runs the deterministic agent through exact semantic scope.
 #[test]
-fn tui_golden_05_agent_uses_selected_scope_and_reviews_candidate() {
+fn tui_golden_05_agent_uses_exact_semantic_scope_and_returns_compact_result() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_golden();
-    assert!(tui.read_until("Entity:"), "{}", tui.diagnostic());
-    tui.send(b":project-agent\r");
-    assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send(b"Inspect the existing source structure.\r");
+    assert!(
+        tui.read_until("I inspected the source structure"),
+        "{}",
+        tui.diagnostic()
+    );
     let screen = tui.screen();
-    assert!(screen.contains("scope: entity="), "{}", tui.diagnostic());
-    assert!(screen.contains("base: snp_"), "{}", tui.diagnostic());
-    assert!(screen.contains("left.saturating_add(right)"));
+    assert!(screen.contains("semantic_find"), "{}", tui.diagnostic());
+    assert!(screen.contains("semantic_render"), "{}", tui.diagnostic());
     assert!(tui.source().contains("left + right"));
     assert!(tui.shutdown());
 }

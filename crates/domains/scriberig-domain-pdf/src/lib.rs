@@ -25,12 +25,12 @@ pub struct PdfDocument {
 impl PdfDocument {
     /// Imports exact PDF bytes as a document.
     ///
-    /// # Parameters
     /// - `source`: Exact imported source artifact.
     ///
-    /// # Returns
     /// An empty document ready for derived extraction.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn from_source(source: PdfSourceArtifact) -> Self {
         Self {
             source,
@@ -40,13 +40,13 @@ impl PdfDocument {
     }
     /// Derives a stable child identifier without using parser-private offsets.
     ///
-    /// # Parameters
     /// - `crate`: Document providing the source digest.
     /// - `kind`: Child semantic kind.
     /// - `index`: Stable ordinal within that kind.
     ///
-    /// # Returns
     /// A deterministic semantic entity identifier.
+    /// # Returns
+    /// The operation result.
     pub(crate) fn child_id(&self, kind: &str, index: u32) -> EntityId {
         let mut h = blake3::Hasher::new();
         h.update(&self.source.digest);

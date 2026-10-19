@@ -9,17 +9,18 @@ use crate::snapshot_integrity;
 
 /// Validates all named roots against readable snapshots.
 ///
-/// # Parameters
 /// - `connection`: SQLite connection containing named roots.
 /// - `valid_snapshots`: Snapshot identities proven valid.
 /// - `report`: Integrity report receiving findings.
 /// - `crate`: Internal module path used for node access.
 ///
-/// # Returns
 /// Unit after all roots are checked.
 ///
-/// # Errors
 /// Returns a SQLite query error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn validate_roots(
     connection: &rusqlite::Connection,
     valid_snapshots: &BTreeSet<SnapshotId>,
@@ -43,16 +44,17 @@ pub(crate) fn validate_roots(
 
 /// Verifies every persistent map node and its child references.
 ///
-/// # Parameters
 /// - `connection`: SQLite connection containing persistent nodes.
 /// - `report`: Integrity report receiving findings.
 /// - `crate`: Internal module path used for node enumeration.
 ///
-/// # Returns
 /// Unit after all nodes are checked.
 ///
-/// # Errors
 /// Returns a SQLite query error when node inspection cannot complete.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn validate_orphan_nodes(
     connection: &rusqlite::Connection,
     report: &mut IntegrityReport,
@@ -86,11 +88,11 @@ pub(crate) fn validate_orphan_nodes(
 
 /// Converts a 32-byte digest into a snapshot identity.
 ///
-/// # Parameters
 /// - `bytes`: Candidate digest bytes.
 ///
-/// # Returns
 /// A snapshot identity when the input has the required length.
+/// # Returns
+/// The operation result.
 fn digest_id(bytes: Vec<u8>) -> Option<SnapshotId> {
     (bytes.len() == 32).then(|| SnapshotId::new(bytes.try_into().expect("length checked")))
 }

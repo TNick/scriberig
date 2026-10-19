@@ -8,13 +8,15 @@ use std::collections::BTreeMap;
 pub trait ValidationSubject {
     /// Returns the subject entity type.
     ///
-    /// # Returns
     /// The declared entity type.
+    /// # Returns
+    /// The operation result.
     fn entity_type(&self) -> &ObjectType;
     /// Returns semantic properties.
     ///
-    /// # Returns
     /// The subject's property map.
+    /// # Returns
+    /// The operation result.
     fn properties(&self) -> &BTreeMap<String, KnowledgeValue>;
 }
 
@@ -63,9 +65,10 @@ pub struct ValidationReport {
 impl ValidationReport {
     /// Returns whether any error issue exists.
     ///
-    /// # Returns
     /// `true` when at least one error issue is present.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn has_errors(&self) -> bool {
         self.issues
             .iter()
@@ -128,15 +131,17 @@ mod tests {
     impl ValidationSubject for Subject {
         /// Returns the fixture entity type.
         ///
-        /// # Returns
         /// The fixture entity type.
+        /// # Returns
+        /// The operation result.
         fn entity_type(&self) -> &ObjectType {
             &self.entity_type
         }
         /// Returns the fixture properties.
         ///
-        /// # Returns
         /// The fixture property map.
+        /// # Returns
+        /// The operation result.
         fn properties(&self) -> &BTreeMap<String, KnowledgeValue> {
             &self.properties
         }

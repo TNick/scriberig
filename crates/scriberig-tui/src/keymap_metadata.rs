@@ -6,9 +6,10 @@ use crate::state::TuiState;
 
 /// Returns metadata used by help and contextual key hints.
 ///
-/// # Returns
 /// Static action metadata.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn metadata() -> &'static [ActionMetadata] {
     &[
         ActionMetadata {
@@ -84,12 +85,12 @@ pub fn metadata() -> &'static [ActionMetadata] {
 
 /// Returns bindings relevant to the current state for contextual hints.
 ///
-/// # Parameters
 /// - `state`: Current terminal state.
 ///
-/// # Returns
 /// Keyboard hints for the active context.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn hints(state: &TuiState) -> Vec<(&'static str, &'static str)> {
     let context = if state.is_input_active() {
         Context::Input
@@ -120,9 +121,10 @@ pub fn hints(state: &TuiState) -> Vec<(&'static str, &'static str)> {
 /// Formats a key for help and hints.
 /// - `chord`: Key chord to format.
 ///
-/// # Returns
 /// Human-readable key label.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn key_label(chord: KeyChord) -> &'static str {
     match (chord.code, chord.modifiers) {
         (

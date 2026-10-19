@@ -18,14 +18,15 @@ pub struct NamedRustSymbol {
 
 /// Extracts named modules, types, functions, and methods from Rust source.
 ///
-/// # Parameters
 /// - `source`: Rust source text to parse.
 ///
-/// # Returns
 /// Named symbols in source order.
 ///
-/// # Errors
 /// Returns the parser diagnostic when the source is not valid Rust.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn named_symbols(source: &str) -> Result<Vec<NamedRustSymbol>, String> {
     let file = syn::parse_file(source).map_err(|error| error.to_string())?;
     let mut symbols = Vec::new();
@@ -35,7 +36,6 @@ pub fn named_symbols(source: &str) -> Result<Vec<NamedRustSymbol>, String> {
 
 /// Walks a list of Rust items and records named declarations.
 ///
-/// # Parameters
 /// - `source`: Source text used for ranges.
 /// - `items`: Rust items to walk.
 /// - `prefix`: Parent semantic key.
@@ -83,7 +83,6 @@ fn collect_items(source: &str, items: &[Item], prefix: &str, symbols: &mut Vec<N
 
 /// Appends a symbol with a deterministic name range.
 ///
-/// # Parameters
 /// - `source`: Source text used for ranges.
 /// - `kind`: Semantic kind label.
 /// - `name`: Human-readable declaration name.
@@ -108,12 +107,12 @@ fn push_symbol(
 
 /// Makes a repeated semantic key unique within one source file.
 ///
-/// # Parameters
 /// - `key`: Preferred semantic key.
 /// - `symbols`: Symbols already extracted from the source file.
 ///
-/// # Returns
 /// The preferred key or a deterministic occurrence-suffixed variant.
+/// # Returns
+/// The operation result.
 fn unique_key(key: &str, symbols: &[NamedRustSymbol]) -> String {
     if !symbols.iter().any(|symbol| symbol.key == key) {
         return key.to_owned();
@@ -130,12 +129,12 @@ fn unique_key(key: &str, symbols: &[NamedRustSymbol]) -> String {
 
 /// Joins one semantic path component.
 ///
-/// # Parameters
 /// - `prefix`: Existing semantic path.
 /// - `name`: New path component.
 ///
-/// # Returns
 /// The joined semantic path.
+/// # Returns
+/// The operation result.
 fn join_key(prefix: &str, name: &str) -> String {
     if prefix.is_empty() {
         name.to_owned()

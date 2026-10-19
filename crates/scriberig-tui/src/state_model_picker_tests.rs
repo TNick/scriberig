@@ -4,11 +4,11 @@ use super::*;
 
 /// Creates a picker state with one loaded session and selected model.
 ///
-/// # Parameters
 /// - `model`: Optional current model identity.
 ///
-/// # Returns
 /// Deterministic state for model-control reducer tests.
+/// # Returns
+/// The operation result.
 fn picker_state(model: Option<&str>) -> TuiState {
     let session_id = EntityId::from_bytes([41; 16]);
     TuiState {
@@ -38,8 +38,9 @@ fn picker_state(model: Option<&str>) -> TuiState {
 
 /// Creates two models with separate profiles and thinking levels.
 ///
-/// # Returns
 /// Deterministic protocol model descriptors for picker tests.
+/// # Returns
+/// The operation result.
 fn model_library() -> scriberig_protocol::ModelLibraryResponse {
     scriberig_protocol::ModelLibraryResponse {
         models: vec![

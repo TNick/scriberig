@@ -14,15 +14,16 @@ use scriberig_session::Session;
 pub trait TuiOperationService {
     /// Executes one public application operation without exposing storage.
     ///
-    /// # Parameters
     /// - `context`: Authorized application context.
     /// - `request`: Public universal application request.
     ///
-    /// # Returns
     /// Structured application result owned by the application layer.
     ///
-    /// # Errors
     /// Returns the structured application error from the owning subsystem.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute_operation(
         &self,
         context: &ApplicationContext,
@@ -127,6 +128,8 @@ pub fn execute_effect<S: TuiService>(
             .map(|value| Action::SessionSucceeded {
                 request_id,
                 model: crate::view::session::SessionModel::from_session(&value),
+                conversation: crate::view::conversation::ConversationModel::from_session(&value),
+                session_snapshot: Some(value),
             })
             .unwrap_or_else(|error| Action::OperationFailed {
                 request_id,
@@ -204,6 +207,58 @@ pub fn execute_effect<S: TuiService>(
                 category: error.category().to_owned(),
                 message: crate::inspector::sanitize(&error.to_string()),
             }),
+        Effect::StartNewConversation { prompt, selection } => service
+            .start_new_session_handle(context, &prompt, selection)
+            .map(Action::ConversationAgentAccepted)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
+        Effect::ContinueConversation {
+            session,
+            anchor,
+            prompt,
+        } => service
+            .continue_agent_at_handle(context, session, anchor, &prompt)
+            .map(Action::ConversationAgentAccepted)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
+        Effect::CreatePlan(request) => service
+            .create_plan(context, &request)
+            .map(Action::PlanUpdated)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
+        Effect::Replan(request) => service
+            .replan(context, &request)
+            .map(Action::PlanUpdated)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
+        Effect::PlanLifecycle { request, action } => service
+            .plan_lifecycle(context, &request, action)
+            .map(Action::PlanUpdated)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
+        Effect::SetPlanNodeAssignment(request) => service
+            .set_plan_node_assignment(context, &request)
+            .map(Action::PlanUpdated)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
         Effect::ProjectAgent {
             request_id,
             entity,
@@ -255,13 +310,13 @@ pub fn execute_effect<S: TuiService>(
 
 /// Selects one branch and all descendants from an authoritative session.
 ///
-/// # Parameters
 /// - `session`: Session graph to filter.
 /// - `branch`: Selected branch identity.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// A session containing the selected branch and descendants.
+/// # Returns
+/// The operation result.
 pub(crate) fn select_branch_subtree(mut session: Session, branch: EntityId) -> Session {
     let mut selected = BTreeSet::from([branch]);
     let mut changed = true;

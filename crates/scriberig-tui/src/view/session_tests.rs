@@ -22,9 +22,12 @@ fn builds_nested_session_rows() {
         branches: vec![branch],
         goals: Vec::new(),
         tasks: Vec::new(),
+        plans: Vec::new(),
         execution: scriberig_session::SessionExecutionSelection::default(),
     };
-    let model = SessionModel::from_session(&session);
+    let persisted = serde_json::to_vec(&session).expect("persist session snapshot");
+    let restored: Session = serde_json::from_slice(&persisted).expect("restore session snapshot");
+    let model = SessionModel::from_session(&restored);
     assert_eq!(model.rows[0].kind, SessionRowKind::Session);
     assert_eq!(model.rows[1].depth, 1);
     assert_eq!(model.rows[2].depth, 2);
@@ -54,10 +57,13 @@ fn shows_durable_agent_output_in_turn_row() {
         branches: vec![branch],
         goals: Vec::new(),
         tasks: Vec::new(),
+        plans: Vec::new(),
         execution: scriberig_session::SessionExecutionSelection::default(),
     };
 
-    let model = SessionModel::from_session(&session);
+    let persisted = serde_json::to_vec(&session).expect("persist session snapshot");
+    let restored: Session = serde_json::from_slice(&persisted).expect("restore session snapshot");
+    let model = SessionModel::from_session(&restored);
 
     assert!(model.rows.iter().any(|row| {
         row.kind == SessionRowKind::Turn
@@ -75,6 +81,7 @@ fn updated_execution_selection_refreshes_session_header() {
         branches: Vec::new(),
         goals: Vec::new(),
         tasks: Vec::new(),
+        plans: Vec::new(),
         execution: scriberig_session::SessionExecutionSelection::default(),
     };
     let mut model = SessionModel::from_session(&session);
@@ -138,6 +145,7 @@ fn renders_durable_model_and_tool_activity_without_raw_tool_output() {
             br#"{"filter":{"path":"src/lib.rs"},"token":"[REDACTED]"}"#.to_vec(),
         ),
         presentation_label: None,
+        category: Some(scriberig_session::ToolActivityKind::SemanticMutation),
     });
     branch.tool_results.push(ToolResult {
         id: result_id,
@@ -161,16 +169,34 @@ fn renders_durable_model_and_tool_activity_without_raw_tool_output() {
         branches: vec![branch],
         goals: Vec::new(),
         tasks: Vec::new(),
+        plans: Vec::new(),
         execution: scriberig_session::SessionExecutionSelection::default(),
     };
 
     let model = SessionModel::from_session(&session);
+    assert!(model.rows.iter().any(|row| {
+        row.kind == SessionRowKind::ToolInvocation && row.label.starts_with("Semantic operation:")
+    }));
     assert_durable_activity_is_safe(model, invocation_id, tool_id);
+
+    let mut process_session = session;
+    process_session.branches[0].tool_invocations[0].category =
+        Some(scriberig_session::ToolActivityKind::OpaqueFallback);
+    let fallback_model = SessionModel::from_session(&process_session);
+    assert!(fallback_model.rows.iter().any(|row| {
+        row.kind == SessionRowKind::ToolInvocation && row.label.starts_with("Fallback tool:")
+    }));
+
+    process_session.branches[0].tool_invocations[0].category =
+        Some(scriberig_session::ToolActivityKind::ValidationProcess);
+    let process_model = SessionModel::from_session(&process_session);
+    assert!(process_model.rows.iter().any(|row| {
+        row.kind == SessionRowKind::ToolInvocation && row.label.starts_with("Run validation:")
+    }));
 }
 
 /// Verifies projected activity details and terminal rendering stay sanitized.
 ///
-/// # Parameters
 /// - `model`: Projection built from durable execution activity.
 /// - `invocation_id`: Stable model invocation identity.
 /// - `tool_id`: Stable tool invocation identity.
@@ -226,7 +252,7 @@ fn assert_durable_activity_is_safe(
     let render_state = crate::state::TuiState {
         primary_view: crate::selection::PrimaryView::Session,
         session: crate::inspector::LoadState::Ready(model),
-        tool_invocation_visibility: crate::state::ToolInvocationVisibility::Detailed,
+        tool_invocation_visibility: crate::state::ToolInvocationVisibility::StructuredParameters,
         tool_output_visibility: crate::state::ToolOutputVisibility::Full,
         prompt_visibility: crate::state::PromptVisibility::Shown,
         model_request_details: [(
@@ -252,6 +278,22 @@ fn assert_durable_activity_is_safe(
     assert!(rendered.contains("Safe captured request"));
     assert!(!rendered.contains("SECRET_MARKER"));
     assert!(!rendered.contains("private_payload"));
+    for visibility in [
+        crate::state::ToolInvocationVisibility::Hidden,
+        crate::state::ToolInvocationVisibility::CompactTruncated,
+        crate::state::ToolInvocationVisibility::Full,
+        crate::state::ToolInvocationVisibility::StructuredParameters,
+    ] {
+        let mut mode_state = render_state.clone();
+        mode_state.tool_invocation_visibility = visibility;
+        let mode_render = crate::render::primary_text(&mode_state);
+        assert_eq!(mode_render, crate::render::primary_text(&mode_state));
+        assert!(!mode_render.contains("SECRET_MARKER"));
+        assert!(!mode_render.contains("private_payload"));
+        if visibility != crate::state::ToolInvocationVisibility::Hidden {
+            assert!(mode_render.contains("[REDACTED]"));
+        }
+    }
 }
 
 /// Shows current session model and thinking selection in the session header row.
@@ -262,6 +304,7 @@ fn shows_shared_model_and_thinking_selection() {
         branches: Vec::new(),
         goals: Vec::new(),
         tasks: Vec::new(),
+        plans: Vec::new(),
         execution: scriberig_session::SessionExecutionSelection {
             revision: 4,
             model_profile: Some("local-profile".to_owned()),
@@ -302,6 +345,7 @@ fn collapses_completed_child_activity() {
         status: BranchStatus::Completed,
         summary: Some("done".to_owned()),
         result_kind: Some("agent".to_owned()),
+        candidate_context: None,
         references: vec![result_id],
         result_handles: vec![
             "candidate:pc_123".to_owned(),
@@ -317,9 +361,12 @@ fn collapses_completed_child_activity() {
         branches: vec![parent, child],
         goals: Vec::new(),
         tasks: Vec::new(),
+        plans: Vec::new(),
         execution: scriberig_session::SessionExecutionSelection::default(),
     };
-    let model = SessionModel::from_session(&session);
+    let persisted = serde_json::to_vec(&session).expect("persist session snapshot");
+    let restored: Session = serde_json::from_slice(&persisted).expect("restore session snapshot");
+    let model = SessionModel::from_session(&restored);
     assert!(model.rows.iter().any(|row| row.reference == result_id));
     assert!(!model.rows.iter().any(|row| row.reference == turn_id));
     let review = model

@@ -78,12 +78,12 @@ pub struct ExternalEffectHistory {
 impl ExternalEffectHistory {
     /// Creates a history in the requested state.
     ///
-    /// # Parameters
     /// - `intent`: Immutable effect intent.
     ///
-    /// # Returns
     /// A history beginning in `Requested`.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(intent: ExternalEffectIntent) -> Self {
         Self {
             events: vec![ExternalEffectEvent {
@@ -102,7 +102,6 @@ impl ExternalEffectHistory {
 
     /// Records an externally confirmed receipt.
     ///
-    /// # Parameters
     /// - `receipt`: Non-secret connector evidence.
     pub fn confirm(&mut self, receipt: ExternalEffectReceipt) {
         self.push(ExternalEffectState::ConfirmedExternally, Some(receipt));
@@ -125,9 +124,10 @@ impl ExternalEffectHistory {
 
     /// Returns the latest known state.
     ///
-    /// # Returns
     /// The most recent state in the append-only history.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn state(&self) -> ExternalEffectState {
         self.events
             .last()
@@ -136,9 +136,10 @@ impl ExternalEffectHistory {
 
     /// Returns whether a confirmed operation must not be resent blindly.
     ///
-    /// # Returns
     /// `true` when retry or reconciliation is still required.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn should_retry(&self) -> bool {
         matches!(
             self.state(),
@@ -148,7 +149,6 @@ impl ExternalEffectHistory {
 
     /// Appends one transition while retaining all prior provenance.
     ///
-    /// # Parameters
     /// - `state`: New effect state.
     /// - `receipt`: Optional connector evidence.
     fn push(&mut self, state: ExternalEffectState, receipt: Option<ExternalEffectReceipt>) {
@@ -162,16 +162,17 @@ impl ExternalEffectHistory {
 
 /// Checks exact destination authority before connector invocation.
 ///
-/// # Parameters
 /// - `capabilities`: Capabilities presented by the principal.
 /// - `destination`: Exact destination identifier.
 /// - `snapshot`: Input snapshot bound to the request.
 ///
-/// # Returns
 /// Unit when an external invocation capability covers the destination.
 ///
-/// # Errors
 /// Returns a structured denial when no exact destination capability exists.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn authorize_external_effect(
     capabilities: &[Capability],
     destination: &str,
@@ -205,8 +206,9 @@ mod tests {
 
     /// Creates a deterministic effect intent fixture.
     ///
-    /// # Returns
     /// A secret-free external effect intent.
+    /// # Returns
+    /// The operation result.
     fn intent() -> ExternalEffectIntent {
         ExternalEffectIntent {
             principal: PrincipalId::new("test").expect("principal"),

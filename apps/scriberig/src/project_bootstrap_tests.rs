@@ -114,6 +114,7 @@ mod tests {
                 &AgentCommandRequest {
                     session,
                     branch: None,
+                    anchor: None,
                     prompt: "Onboard the current project.".to_owned(),
                     selection: None,
                 },
@@ -264,7 +265,6 @@ mod tests {
 
     /// Copies real architecture entry points into the semantic bootstrap fixture.
     ///
-    /// # Parameters
     /// - `root`: Project fixture that receives repository-relative source copies.
     /// - `super`: Parent test module containing the bootstrap scenario.
     ///

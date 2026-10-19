@@ -7,25 +7,25 @@ use crate::{
 
 /// Renders a semantic document with the default style.
 ///
-/// # Parameters
 /// - `document`: Semantic document to render.
 ///
-/// # Returns
 /// Deterministic Markdown text.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn render(document: &MarkdownDocument) -> String {
     render_document(document, &MarkdownStyle::default())
 }
 
 /// Renders a semantic document with an exact style.
 ///
-/// # Parameters
 /// - `document`: Semantic document to render.
 /// - `style`: Formatting choices to apply.
 ///
-/// # Returns
 /// Deterministic Markdown text.
 #[must_use]
+/// # Returns
+/// The operation result.
 pub fn render_document(document: &MarkdownDocument, style: &MarkdownStyle) -> String {
     let style = style
         .clone()
@@ -54,7 +54,6 @@ pub fn render_document(document: &MarkdownDocument, style: &MarkdownStyle) -> St
 
 /// Renders one block and its nested content.
 ///
-/// # Parameters
 /// - `block`: Block to render.
 /// - `style`: Formatting choices to apply.
 /// - `output`: Destination string.
@@ -113,7 +112,6 @@ fn render_block(block: &MarkdownBlock, style: &MarkdownStyle, output: &mut Strin
 
 /// Renders a section heading and its child blocks.
 ///
-/// # Parameters
 /// - `section`: Section to render.
 /// - `style`: Formatting choices to apply.
 /// - `output`: Destination string.
@@ -129,7 +127,6 @@ fn render_section(section: &Section, style: &MarkdownStyle, output: &mut String)
 
 /// Renders a list using explicit marker choices.
 ///
-/// # Parameters
 /// - `ordered`: Whether numeric markers are used.
 /// - `items`: List items in source order.
 /// - `style`: Formatting choices to apply.
@@ -166,7 +163,6 @@ fn render_list(ordered: bool, items: &[ListItem], style: &MarkdownStyle, output:
 
 /// Renders a table with stable spacing and a delimiter row.
 ///
-/// # Parameters
 /// - `headers`: Header cells.
 /// - `rows`: Body rows.
 /// - `style`: Formatting choices to apply.
@@ -196,7 +192,6 @@ fn render_table(
 
 /// Renders one table row.
 ///
-/// # Parameters
 /// - `cells`: Cells in source order.
 /// - `style`: Formatting choices to apply.
 /// - `output`: Destination string.

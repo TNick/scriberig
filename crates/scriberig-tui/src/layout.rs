@@ -32,12 +32,12 @@ pub struct ShellLayout {
     pub status: Rect,
 }
 
-/// Computes shell regions for a terminal rectangle.
+/// Computes one single-column product shell for a terminal rectangle.
 #[must_use]
 /// - `area`: Argument named `area`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub fn shell_layout(area: Rect) -> ShellLayout {
     let vertical = ratatui::layout::Layout::vertical([
         ratatui::layout::Constraint::Length(2),
@@ -52,32 +52,12 @@ pub fn shell_layout(area: Rect) -> ShellLayout {
         _ => LayoutClass::TooSmall,
     };
     let body = vertical[1];
-    let (explorer, primary, inspector) = match class {
-        LayoutClass::Wide => {
-            let columns = ratatui::layout::Layout::horizontal([
-                ratatui::layout::Constraint::Percentage(25),
-                ratatui::layout::Constraint::Percentage(50),
-                ratatui::layout::Constraint::Percentage(25),
-            ])
-            .split(body);
-            (Some(columns[0]), columns[1], Some(columns[2]))
-        }
-        LayoutClass::Medium => {
-            let columns = ratatui::layout::Layout::horizontal([
-                ratatui::layout::Constraint::Percentage(30),
-                ratatui::layout::Constraint::Percentage(70),
-            ])
-            .split(body);
-            (Some(columns[0]), columns[1], None)
-        }
-        LayoutClass::Narrow | LayoutClass::TooSmall => (None, body, None),
-    };
     ShellLayout {
         class,
         context: vertical[0],
-        explorer,
-        primary,
-        inspector,
+        explorer: None,
+        primary: body,
+        inspector: None,
         status: vertical[2],
     }
 }
@@ -91,18 +71,17 @@ mod tests {
     /// Verifies the three documented responsive width classes.
     #[test]
     fn selects_required_width_classes() {
-        assert_eq!(
-            shell_layout(Rect::new(0, 0, 140, 40)).class,
-            LayoutClass::Wide
-        );
-        assert_eq!(
-            shell_layout(Rect::new(0, 0, 100, 30)).class,
-            LayoutClass::Medium
-        );
-        assert_eq!(
-            shell_layout(Rect::new(0, 0, 72, 24)).class,
-            LayoutClass::Narrow
-        );
+        for (width, class) in [
+            (140, LayoutClass::Wide),
+            (100, LayoutClass::Medium),
+            (72, LayoutClass::Narrow),
+        ] {
+            let layout = shell_layout(Rect::new(0, 0, width, 30));
+            assert_eq!(layout.class, class);
+            assert!(layout.explorer.is_none());
+            assert!(layout.inspector.is_none());
+            assert_eq!(layout.primary.width, width);
+        }
     }
 
     /// Verifies very small dimensions remain bounded and safe.

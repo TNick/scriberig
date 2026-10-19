@@ -17,6 +17,74 @@ fn renders_all_required_sizes() {
     }
 }
 
+/// Shows the first-message conversation state without a fake session identity.
+#[test]
+fn default_frame_shows_conversation_home_and_persistent_composer() {
+    let backend = TestBackend::new(80, 24);
+    let mut terminal = Terminal::new(backend).expect("terminal");
+    terminal
+        .draw(|frame| render(frame, &TuiState::default()))
+        .expect("draw");
+    let rendered = terminal
+        .backend()
+        .buffer()
+        .content
+        .iter()
+        .map(ratatui::buffer::Cell::symbol)
+        .collect::<String>();
+
+    assert!(rendered.contains("Conversation"));
+    assert!(rendered.contains("New conversation"));
+    assert!(rendered.contains("Type a message to start a session."));
+    assert!(!rendered.contains("00000000-0000-0000-0000-000000000000"));
+}
+
+/// Shows a textual reply hint when the user pins an earlier activity.
+#[test]
+fn pinned_reply_target_has_a_textual_hint() {
+    let mut state = TuiState::default();
+    state.conversation_composer.target = crate::state::ConversationTarget::Existing {
+        session: scriberig_core::EntityId::from_bytes([8; 16]),
+        reply_anchor: scriberig_session::ContinuationAnchor::AssistantOutput {
+            branch: scriberig_core::EntityId::from_bytes([9; 16]),
+            turn: scriberig_core::EntityId::from_bytes([10; 16]),
+        },
+    };
+    let backend = TestBackend::new(80, 24);
+    let mut terminal = Terminal::new(backend).expect("terminal");
+    terminal.draw(|frame| render(frame, &state)).expect("draw");
+    let rendered = terminal
+        .backend()
+        .buffer()
+        .content
+        .iter()
+        .map(ratatui::buffer::Cell::symbol)
+        .collect::<String>();
+
+    assert!(rendered.contains("replying to earlier activity"));
+}
+
+/// Shows the current slash completion in the persistent composer.
+#[test]
+fn composer_renders_model_and_plan_command_suggestions() {
+    for (draft, suggestion) in [("/mo", "/model"), ("/pl", "/plan")] {
+        let mut state = TuiState::default();
+        state.conversation_composer.draft = draft.to_owned();
+        let backend = TestBackend::new(80, 24);
+        let mut terminal = Terminal::new(backend).expect("terminal");
+        terminal.draw(|frame| render(frame, &state)).expect("draw");
+        let rendered = terminal
+            .backend()
+            .buffer()
+            .content
+            .iter()
+            .map(ratatui::buffer::Cell::symbol)
+            .collect::<String>();
+
+        assert!(rendered.contains(suggestion), "{rendered}");
+    }
+}
+
 /// Verifies a refreshed long session selects its latest row inside the viewport.
 #[test]
 fn primary_session_scroll_keeps_latest_cursor_visible() {
@@ -30,6 +98,45 @@ fn primary_session_scroll_keeps_latest_cursor_visible() {
     assert_eq!(super::primary_scroll(&state, 40), (3, 0));
 }
 
+/// Scrolls the conversation to the selected branch's structural activity.
+#[test]
+fn conversation_scroll_keeps_selected_branch_subtree_visible() {
+    let branch = scriberig_core::EntityId::from_bytes([4; 16]);
+    let mut model = crate::view::conversation::ConversationModel::default();
+    model.rows.extend((0..60).map(|index| {
+        let depth = match index {
+            5 => 1,
+            6.. => 2,
+            _ => 0,
+        };
+        crate::view::conversation::ConversationRow {
+            source: if index == 5 {
+                crate::view::conversation::ConversationSource::Branch(branch)
+            } else {
+                crate::view::conversation::ConversationSource::Activity(
+                    scriberig_core::EntityId::from_bytes(
+                        [u8::try_from(index).expect("test row index fits in a byte"); 16],
+                    ),
+                )
+            },
+            reply_anchor: None,
+            depth,
+            label: format!("row {index}"),
+            kind: crate::view::conversation::ConversationRowKind::Activity,
+        }
+    }));
+    let state = TuiState {
+        conversation: Some(model),
+        conversation_cursor: Some(crate::view::conversation::ConversationSource::Branch(
+            branch,
+        )),
+        focus: Focus::Primary,
+        ..TuiState::default()
+    };
+
+    assert_eq!(super::primary_scroll(&state, 40), (22, 0));
+}
+
 /// Renders retained live activity according to the local reasoning control.
 #[test]
 fn reasoning_visibility_rerenders_cached_live_activity_without_execution() {
@@ -37,6 +144,7 @@ fn reasoning_visibility_rerenders_cached_live_activity_without_execution() {
         primary_view: crate::selection::PrimaryView::Session,
         session: crate::inspector::LoadState::Ready(crate::view::session::SessionModel::default()),
         transient_agent_activities: vec![crate::state::TransientAgentActivity {
+            key: 1,
             branch: "branch-1".to_owned(),
             activity_kind: scriberig_session::AgentActivityKind::ReasoningSummary,
             state: scriberig_session::AgentActivityState::Completed,
@@ -159,7 +267,6 @@ fn session_activity_uses_non_color_hierarchy_rails() {
 
 /// Verifies text and styling preserve visible non-color hierarchy rails.
 ///
-/// # Parameters
 /// - `state`: Cached session presentation to render.
 /// - `text`: Plain text projection of the session rows.
 fn assert_activity_rails(state: &TuiState, text: &str) {
@@ -193,7 +300,6 @@ fn assert_activity_rails(state: &TuiState, text: &str) {
 
 /// Verifies opt-in prompt, tool, and result details render from cached state.
 ///
-/// # Parameters
 /// - `state`: Cached session presentation to update with safe request and result details.
 /// - `entity`: Stable session activity identity used for the cached detail.
 /// - `text`: Initial rendering before request details are enabled.
@@ -236,7 +342,7 @@ fn assert_activity_detail_modes(
     );
     state.tool_output_visibility = crate::state::ToolOutputVisibility::Full;
     assert!(super::render_primary::primary_text(state).contains("safe expanded result"));
-    state.tool_invocation_visibility = crate::state::ToolInvocationVisibility::Detailed;
+    state.tool_invocation_visibility = crate::state::ToolInvocationVisibility::StructuredParameters;
     let detailed = super::render_primary::primary_text(state);
     assert!(detailed.contains("Arguments:"));
     assert!(detailed.contains("    \"path\": \"src/lib.rs\""));

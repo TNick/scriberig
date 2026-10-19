@@ -21,14 +21,15 @@ pub struct MemoryStore {
 impl SecretStore for MemoryStore {
     /// Reads a protected fake credential.
     ///
-    /// # Parameters
     /// - `name`: Fake alias.
     ///
-    /// # Returns
     /// A protected copy for this request.
     ///
-    /// # Errors
     /// Returns `Missing` for absent items.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn get(&self, name: &str) -> Result<SecretValue, SecretError> {
         self.reads.fetch_add(1, Ordering::Relaxed);
         let values = self.values.lock().expect("fake-store lock");
@@ -43,15 +44,16 @@ impl SecretStore for MemoryStore {
 
     /// Replaces a fake credential.
     ///
-    /// # Parameters
     /// - `name`: Fake alias.
     /// - `value`: Protected input.
     ///
-    /// # Returns
     /// Unit after the test-store write.
     ///
-    /// # Errors
     /// Returns invalid secret errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set(&self, name: &str, value: &SecretValue) -> Result<(), SecretError> {
         self.values.lock().expect("fake-store lock").insert(
             name.to_owned(),
@@ -62,14 +64,15 @@ impl SecretStore for MemoryStore {
 
     /// Deletes a fake credential or injects a backend failure.
     ///
-    /// # Parameters
     /// - `name`: Fake alias.
     ///
-    /// # Returns
     /// Unit after deletion.
     ///
-    /// # Errors
     /// Returns `Unavailable` when requested by the test.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn delete(&self, name: &str) -> Result<(), SecretError> {
         if self.fail_delete.load(Ordering::Relaxed) {
             return Err(SecretError::Unavailable);
@@ -80,14 +83,15 @@ impl SecretStore for MemoryStore {
 
     /// Checks fake metadata without reading the value.
     ///
-    /// # Parameters
     /// - `name`: Fake alias.
     ///
-    /// # Returns
     /// Whether the alias exists.
     ///
-    /// # Errors
     /// This fake implementation does not fail.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn exists(&self, name: &str) -> Result<bool, SecretError> {
         Ok(self
             .values
@@ -100,14 +104,15 @@ impl SecretStore for MemoryStore {
 impl SecretResolver for MemoryStore {
     /// Resolves only fake keyring references.
     ///
-    /// # Parameters
     /// - `reference`: Authorized fake reference.
     ///
-    /// # Returns
     /// A protected fake credential.
     ///
-    /// # Errors
     /// Returns `Unsupported` for other source types.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn resolve(&self, reference: &SecretRef) -> Result<SecretValue, SecretError> {
         match reference {
             SecretRef::Keyring { name } => self.get(name),

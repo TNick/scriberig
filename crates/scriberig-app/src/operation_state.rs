@@ -28,14 +28,15 @@ const EVENT_HISTORY_LIMIT: usize = 1024;
 impl OperationRegistryState {
     /// Returns a mutable operation record or a structured not-found error.
     ///
-    /// # Parameters
     /// - `id`: Operation identity to resolve.
     ///
-    /// # Returns
     /// A mutable operation record.
     ///
-    /// # Errors
     /// Returns `NotFound` when the operation is unknown.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn record_mut(
         &mut self,
         id: &OperationId,
@@ -49,7 +50,6 @@ impl OperationRegistryState {
 
     /// Publishes an event and removes disconnected subscribers.
     ///
-    /// # Parameters
     /// - `event`: Lifecycle event to publish.
     pub fn publish(&mut self, event: &ApplicationEvent) {
         self.next_event_sequence = self.next_event_sequence.saturating_add(1);
@@ -64,7 +64,6 @@ impl OperationRegistryState {
 
     /// Adds one lifecycle event subscriber.
     ///
-    /// # Parameters
     /// - `sender`: Channel receiving future lifecycle events.
     pub fn subscribe(&mut self, sender: Sender<ApplicationEvent>) {
         self.subscribers.push(sender);
@@ -73,11 +72,11 @@ impl OperationRegistryState {
 
 /// Converts a lifecycle transition to its transport-neutral event.
 ///
-/// # Parameters
 /// - `record`: Operation record describing the transition.
 ///
-/// # Returns
 /// The corresponding application event.
+/// # Returns
+/// The operation result.
 pub fn operation_event(record: &OperationRecord) -> ApplicationEvent {
     match record.status {
         OperationStatus::Completed => ApplicationEvent::OperationCompleted {

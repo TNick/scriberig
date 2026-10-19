@@ -5,13 +5,10 @@ use scriberig_app::ApplicationError;
 
 /// Resumes the event stream and reconstructs known session state after expiry.
 ///
-/// # Parameters
 /// - `adapter`: Remote service holding the cursor and known session identities.
 ///
-/// # Returns
 /// Decoded remote events plus authoritative session refresh notifications.
 ///
-/// # Errors
 /// Returns a sanitized remote protocol error.
 pub(super) fn application_events<T: scriberig_protocol::ProtocolTransport>(
     adapter: &RemoteAdapter<T>,

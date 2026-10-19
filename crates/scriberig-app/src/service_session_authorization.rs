@@ -4,21 +4,22 @@ use crate::{ApplicationContext, ApplicationError};
 
 /// Authorizes one public agent submission before state changes.
 ///
-/// # Parameters
 /// - `super`: Parent module namespace.
 /// - `context`: Caller capabilities and exact request context.
 /// - `request`: Session and branch targeted by the command.
 ///
-/// # Returns
 /// Unit when the caller has the operation-specific capability.
 ///
-/// # Errors
 /// Returns permission-denied when the caller has no matching grant.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn authorize_agent_command(
     context: &ApplicationContext,
     request: &crate::AgentCommandRequest,
 ) -> Result<(), ApplicationError> {
-    let capability = if request.branch.is_some() {
+    let capability = if request.branch.is_some() || request.anchor.is_some() {
         "agent_continue"
     } else {
         "agent_start"
@@ -53,16 +54,17 @@ pub(super) fn authorize_agent_command(
 
 /// Authorizes one public session-tree read before exposing branch state.
 ///
-/// # Parameters
 /// - `super`: Parent module namespace.
 /// - `context`: Caller capabilities and exact request context.
 /// - `request`: Session identity targeted by the read.
 ///
-/// # Returns
 /// Unit when the caller has the session-tree capability.
 ///
-/// # Errors
 /// Returns permission-denied when the caller has no matching grant.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn authorize_session_read(
     context: &ApplicationContext,
     request: &crate::SessionRequest,
@@ -95,16 +97,54 @@ pub(super) fn authorize_session_read(
     })
 }
 
+/// Authorizes one durable session mutation.
+///
+/// - `context`: Caller capabilities and request context.
+/// - `session`: Session identity targeted by the mutation.
+///
+/// Unit when the caller can author plans or modify the session branch tree.
+///
+/// Returns permission-denied when no applicable grant exists.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
+pub(super) fn authorize_session_mutation(
+    context: &ApplicationContext,
+    session: scriberig_core::EntityId,
+) -> Result<(), ApplicationError> {
+    let plan_capability =
+        crate::CapabilityId::new("agent_plan").map_err(|error| ApplicationError::Internal {
+            message: error.to_owned(),
+        })?;
+    let scope = crate::CapabilityScope::Session(session.to_string());
+    if context.capabilities.allows(&plan_capability)
+        || context.capabilities.permits(
+            &crate::CapabilityAction::ModifyBranch,
+            &scope,
+            context.snapshot,
+            Some(crate::OperationKind::Agent),
+        )
+    {
+        return Ok(());
+    }
+    Err(ApplicationError::PermissionDenied {
+        action: "agent_plan".to_owned(),
+        scope: format!("session: {session}"),
+    })
+}
+
 /// Authorizes access to safe model descriptors and curated profiles.
 ///
-/// # Parameters
 /// - `context`: Caller capabilities and exact request context.
 ///
-/// # Returns
 /// Unit when the caller can configure or start agent work.
 ///
-/// # Errors
 /// Returns permission-denied when the model-library capability is absent.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn authorize_model_library_read(
     context: &ApplicationContext,
 ) -> Result<(), ApplicationError> {
@@ -128,15 +168,16 @@ pub(crate) fn authorize_model_library_read(
 
 /// Authorizes a model-selection change scoped to one session.
 ///
-/// # Parameters
 /// - `context`: Caller capabilities and exact request context.
 /// - `session`: Session whose future invocation selection will change.
 ///
-/// # Returns
 /// Unit when the caller can configure the session or start agent work there.
 ///
-/// # Errors
 /// Returns permission-denied when no applicable session capability exists.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn authorize_session_model_selection(
     context: &ApplicationContext,
     session: scriberig_core::EntityId,

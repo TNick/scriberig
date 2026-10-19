@@ -76,18 +76,19 @@ enum Node {
 impl Node {
     /// Internal snapshot operation.
     ///
-    /// # Returns
     /// The requested snapshot result.
+    /// # Returns
+    /// The operation result.
     fn empty_branch() -> Vec<Option<Arc<Node>>> {
         vec![None; 16]
     }
 
     /// Internal snapshot operation.
-    /// # Parameters
     /// - `version`: Operation input.
     ///
-    /// # Returns
     /// The requested snapshot result.
+    /// # Returns
+    /// The operation result.
     fn hash(&self, version: EncodingVersion) -> [u8; 32] {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(&version.value().to_be_bytes());
@@ -113,12 +114,12 @@ impl Node {
 }
 
 /// Internal snapshot operation.
-/// # Parameters
 /// - `entity`: Operation input.
 /// - `depth`: Operation input.
 ///
-/// # Returns
 /// The requested snapshot result.
+/// # Returns
+/// The operation result.
 fn nibble(entity: EntityId, depth: usize) -> usize {
     let byte = entity.as_bytes()[depth / 2];
     usize::from(if depth % 2 == 0 {
@@ -129,14 +130,14 @@ fn nibble(entity: EntityId, depth: usize) -> usize {
 }
 
 /// Internal snapshot operation.
-/// # Parameters
 /// - `node`: Operation input.
 /// - `entity`: Operation input.
 /// - `revision`: Operation input.
 /// - `depth`: Operation input.
 ///
-/// # Returns
 /// The requested snapshot result.
+/// # Returns
+/// The operation result.
 fn insert(node: &Arc<Node>, entity: EntityId, revision: RevisionId, depth: usize) -> Arc<Node> {
     if depth == 32 {
         return Arc::new(Node::Leaf(entity, revision));
@@ -154,13 +155,13 @@ fn insert(node: &Arc<Node>, entity: EntityId, revision: RevisionId, depth: usize
 }
 
 /// Internal snapshot operation.
-/// # Parameters
 /// - `node`: Operation input.
 /// - `entity`: Operation input.
 /// - `depth`: Operation input.
 ///
-/// # Returns
 /// The requested snapshot result.
+/// # Returns
+/// The operation result.
 fn remove(node: &Arc<Node>, entity: EntityId, depth: usize) -> Arc<Node> {
     if depth == 32 {
         return Arc::new(Node::Empty);
@@ -189,13 +190,13 @@ fn remove(node: &Arc<Node>, entity: EntityId, depth: usize) -> Arc<Node> {
 mod tests;
 
 /// Internal snapshot operation.
-/// # Parameters
 /// - `node`: Operation input.
 /// - `entity`: Operation input.
 /// - `depth`: Operation input.
 ///
-/// # Returns
 /// The requested snapshot result.
+/// # Returns
+/// The operation result.
 fn resolve(node: &Arc<Node>, entity: EntityId, depth: usize) -> Option<RevisionId> {
     match node.as_ref() {
         Node::Leaf(found, revision) if *found == entity => Some(*revision),
@@ -207,7 +208,6 @@ fn resolve(node: &Arc<Node>, entity: EntityId, depth: usize) -> Option<RevisionI
 }
 
 /// Internal snapshot operation.
-/// # Parameters
 /// - `node`: Operation input.
 /// - `values`: Operation input.
 /// - `RevisionId`: Revision component of each collected pair.
@@ -234,33 +234,35 @@ pub struct Snapshot {
 
 impl Snapshot {
     ///
-    /// # Returns
     /// The requested snapshot result.
     /// Creates an empty version-one snapshot.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn empty() -> Self {
         Self::from_root(EncodingVersion::V1, Arc::new(Node::Empty), 0)
     }
-    /// # Parameters
     /// - `version`: Operation input.
     ///
-    /// # Returns
     /// The requested snapshot result.
     ///
-    /// # Errors
     /// Returns `InvalidEncoding` when the requested version is unsupported.
     /// Creates an empty snapshot at an encoding version.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn empty_with_version(version: EncodingVersion) -> Result<Self, SnapshotError> {
         EncodingVersion::try_new(version.value()).map_err(SnapshotError::InvalidEncoding)?;
         Ok(Self::from_root(version, Arc::new(Node::Empty), 0))
     }
-    /// # Parameters
     /// - `entries`: Operation input.
     ///
-    /// # Returns
     /// The requested snapshot result.
     /// Creates a canonical snapshot from entries.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn from_entries(entries: BTreeMap<EntityId, RevisionId>) -> Self {
         let entries = entries.into_iter().collect::<Vec<_>>();
         Self::from_sorted_entries(EncodingVersion::V1, &entries)
@@ -268,25 +270,25 @@ impl Snapshot {
 
     /// Creates a snapshot from sorted entries at an explicit encoding version.
     ///
-    /// # Parameters
     /// - `version`: Snapshot encoding version.
     /// - `entries`: Entity/revision pairs in ascending entity order.
     /// - `RevisionId`: Revision component of each entry.
     ///
-    /// # Returns
     /// A canonical immutable snapshot.
+    /// # Returns
+    /// The operation result.
     fn from_sorted_entries(version: EncodingVersion, entries: &[(EntityId, RevisionId)]) -> Self {
         let len = entries.len();
         Self::from_root(version, snapshot_build::build(entries, 0), len)
     }
     /// Internal snapshot operation.
-    /// # Parameters
     /// - `version`: Operation input.
     /// - `root`: Operation input.
     /// - `len`: Operation input.
     ///
-    /// # Returns
     /// The requested snapshot result.
+    /// # Returns
+    /// The operation result.
     fn from_root(version: EncodingVersion, root: Arc<Node>, len: usize) -> Self {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(b"scriberig.snapshot.root.v1");
@@ -301,7 +303,6 @@ impl Snapshot {
         }
     }
     ///
-    /// # Returns
     /// The requested snapshot result.
     /// Returns the content-derived snapshot identity.
     #[must_use]
@@ -309,7 +310,6 @@ impl Snapshot {
         self.id
     }
     ///
-    /// # Returns
     /// The requested snapshot result.
     /// Returns the number of mapped entities.
     #[must_use]
@@ -322,24 +322,24 @@ impl Snapshot {
     pub const fn is_empty(&self) -> bool {
         self.len == 0
     }
-    /// # Parameters
     /// - `entity`: Operation input.
     ///
-    /// # Returns
     /// The requested snapshot result.
     /// Resolves an entity only within this snapshot.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn resolve(&self, entity: EntityId) -> Option<RevisionId> {
         resolve(&self.root, entity, 0)
     }
-    /// # Parameters
     /// - `entity`: Operation input.
     /// - `revision`: Operation input.
     ///
-    /// # Returns
     /// The requested snapshot result.
     /// Returns a successor sharing unaffected radix branches.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_revision(&self, entity: EntityId, revision: RevisionId) -> Self {
         if self.resolve(entity) == Some(revision) {
             return self.clone();
@@ -347,13 +347,13 @@ impl Snapshot {
         let len = self.len + usize::from(self.resolve(entity).is_none());
         Self::from_root(self.version, insert(&self.root, entity, revision, 0), len)
     }
-    /// # Parameters
     /// - `entity`: Operation input.
     ///
-    /// # Returns
     /// The requested snapshot result.
     /// Returns a successor without one entity.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn without_entity(&self, entity: EntityId) -> Self {
         if self.resolve(entity).is_none() {
             return self.clone();
@@ -361,21 +361,22 @@ impl Snapshot {
         Self::from_root(self.version, remove(&self.root, entity, 0), self.len - 1)
     }
     ///
-    /// # Returns
     /// The requested snapshot result.
     /// Iterates mappings in ascending entity order.
+    /// # Returns
+    /// The operation result.
     pub fn iter(&self) -> impl Iterator<Item = (EntityId, RevisionId)> {
         let mut values = Vec::new();
         collect(&self.root, &mut values);
         values.into_iter()
     }
-    /// # Parameters
     /// - `changes`: Operation input.
     ///
-    /// # Returns
     /// The requested snapshot result.
     /// Applies storage changes and returns a persistent successor.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn apply(&self, changes: impl IntoIterator<Item = SnapshotChange>) -> Self {
         let mut entries = self.iter().collect::<BTreeMap<_, _>>();
         for change in changes {

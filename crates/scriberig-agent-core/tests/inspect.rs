@@ -15,16 +15,17 @@ struct Fixture;
 impl QueryService for Fixture {
     /// Returns a deterministic result for the adapter test.
     ///
-    /// # Parameters
     /// - `self`: Fixture service.
     /// - `_context`: Trusted request context.
     /// - `request`: Snapshot-aware inspect request.
     ///
-    /// # Returns
     /// Deterministic inspection result.
     ///
-    /// # Errors
     /// Never returns an error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         _context: &ApplicationContext,
@@ -50,8 +51,9 @@ impl QueryService for Fixture {
 
 /// Creates a context granting the inspect capability.
 ///
-/// # Returns
 /// Context with the inspect capability granted.
+/// # Returns
+/// The operation result.
 fn allowed_context() -> ApplicationContext {
     ApplicationContext {
         capabilities: CapabilityContext::new([

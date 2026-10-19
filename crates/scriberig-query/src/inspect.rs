@@ -17,14 +17,15 @@ pub struct InspectRequest {
 pub trait InspectService {
     /// Inspects one target without changing its snapshot or revision context.
     ///
-    /// # Parameters
     /// - `self`: Read service implementation.
     /// - `request`: Exact-target inspection request.
     ///
-    /// # Returns
     /// Compact or expanded inspection metadata.
     ///
-    /// # Errors
     /// Returns a structured query error when the target or view is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(&self, request: &InspectRequest) -> Result<Inspection, QueryError>;
 }

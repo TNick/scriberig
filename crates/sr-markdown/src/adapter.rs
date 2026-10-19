@@ -35,15 +35,16 @@ pub struct MarkdownAdapter {
 impl MarkdownAdapter {
     /// Creates an adapter for a canonical document and validates its style.
     ///
-    /// # Errors
     /// Returns the style validation message when the style is unsupported.
     ///
-    /// # Parameters
     /// - `document`: Canonical Markdown document.
     /// - `style`: Exact rendering style.
     ///
-    /// # Returns
     /// A configured Markdown adapter.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn new(document: MarkdownDocument, style: MarkdownStyle) -> Result<Self, String> {
         Ok(Self {
             document,
@@ -55,12 +56,12 @@ impl MarkdownAdapter {
 
     /// Creates an adapter using the deterministic default style.
     ///
-    /// # Parameters
     /// - `document`: Canonical Markdown document.
     ///
-    /// # Returns
     /// A configured adapter using [`MarkdownStyle::default`].
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_default_style(document: MarkdownDocument) -> Self {
         Self {
             document,
@@ -72,16 +73,17 @@ impl MarkdownAdapter {
 
     /// Creates an adapter with the canonical nodes for its projected scope.
     ///
-    /// # Parameters
     /// - `document`: Canonical Markdown document used for rendering.
     /// - `canonical_nodes`: Stable identities for the projected semantic nodes.
     /// - `style`: Exact rendering style.
     ///
-    /// # Returns
     /// A configured editable Markdown adapter.
     ///
-    /// # Errors
     /// Returns the style validation message when the style is unsupported.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn with_canonical_nodes(
         document: MarkdownDocument,
         canonical_nodes: Vec<CanonicalNode>,
@@ -97,17 +99,18 @@ impl MarkdownAdapter {
 
     /// Creates an editable adapter with an explicit three-way base document.
     ///
-    /// # Parameters
     /// - `document`: Current canonical Markdown document.
     /// - `canonical_nodes`: Stable identities from the synchronization base.
     /// - `synchronization_base`: Markdown document last synchronized to the file.
     /// - `style`: Exact rendering style.
     ///
-    /// # Returns
     /// A configured editable Markdown adapter.
     ///
-    /// # Errors
     /// Returns the style validation message when the style is unsupported.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn with_canonical_nodes_and_base(
         document: MarkdownDocument,
         canonical_nodes: Vec<CanonicalNode>,
@@ -130,11 +133,11 @@ impl ProjectionAdapter for MarkdownAdapter {
 
     /// Returns capabilities for one projection kind.
     ///
-    /// # Parameters
     /// - `kind`: Projection format to inspect.
     ///
-    /// # Returns
     /// Capabilities supported for the requested format.
+    /// # Returns
+    /// The operation result.
     fn capabilities(&self, kind: &ProjectionKind) -> ProjectionCapabilities {
         if kind.as_str() == MARKDOWN_KIND {
             ProjectionCapabilities::editable()
@@ -145,14 +148,15 @@ impl ProjectionAdapter for MarkdownAdapter {
 
     /// Renders the configured document using the generic request metadata.
     ///
-    /// # Parameters
     /// - `request`: Exact generic projection render inputs.
     ///
-    /// # Returns
     /// Rendered Markdown bytes and output metadata.
     ///
-    /// # Errors
     /// Returns a diagnostic for an unsupported projection kind.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn render(&self, request: &RenderRequest) -> ProjectionResult<RenderedProjection> {
         if request.kind.as_str() != MARKDOWN_KIND {
             return Err(Box::new(diagnostic(
@@ -168,15 +172,16 @@ impl ProjectionAdapter for MarkdownAdapter {
 
     /// Parses external Markdown bytes into a candidate document.
     ///
-    /// # Parameters
     /// - `kind`: Projection format being parsed.
     /// - `bytes`: Exact external representation bytes.
     ///
-    /// # Returns
     /// An adapter-owned Markdown candidate.
     ///
-    /// # Errors
     /// Returns a diagnostic for invalid UTF-8, unsupported format, or invalid Markdown.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn parse(&self, kind: &ProjectionKind, bytes: &[u8]) -> ProjectionResult<Self::Candidate> {
         if kind.as_str() != MARKDOWN_KIND {
             return Err(Box::new(diagnostic(
@@ -206,12 +211,12 @@ impl ProjectionAdapter for MarkdownAdapter {
 
     /// Compares a candidate with this adapter's canonical document.
     ///
-    /// # Parameters
     /// - `candidate`: Parsed external candidate.
     /// - `context`: Exact canonical and projection context supplied by the runtime.
     ///
-    /// # Returns
     /// A no-op outcome for equal semantics or a Markdown migration proposal.
+    /// # Returns
+    /// The operation result.
     fn reconcile(
         &self,
         candidate: Self::Candidate,
@@ -309,14 +314,15 @@ impl ProjectionAdapter for MarkdownAdapter {
 
     /// Validates candidate source metadata and semantic structure.
     ///
-    /// # Parameters
     /// - `candidate`: Candidate to validate.
     ///
-    /// # Returns
     /// Success when candidate metadata is consistent.
     ///
-    /// # Errors
     /// Returns a diagnostic when source metadata is inconsistent.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn validate(&self, candidate: &Self::Candidate) -> ProjectionResult<()> {
         if candidate.source_length == 0 && !candidate.document.blocks.is_empty() {
             return Err(Box::new(diagnostic(
@@ -349,21 +355,19 @@ impl ProjectionAdapter for MarkdownAdapter {
 
 /// Creates a generic projection diagnostic for an adapter-local failure.
 ///
-/// # Parameters
 /// - `stage`: Lifecycle stage that produced the diagnostic.
 /// - `kind`: Typed diagnostic category.
 /// - `code`: Stable diagnostic code.
 /// - `message`: Human-readable explanation.
 ///
-/// # Returns
 /// A parse-stage projection diagnostic.
 /// Creates a diagnostic for ambiguous Markdown identity matching.
 ///
-/// # Parameters
 /// - `ambiguities`: Candidate paths with multiple possible identities.
 ///
-/// # Returns
 /// A structured reconciliation diagnostic.
+/// # Returns
+/// The operation result.
 fn ambiguity_diagnostic(ambiguities: &[ReconciliationAmbiguity]) -> ProjectionDiagnostic {
     let detail = ambiguities
         .iter()

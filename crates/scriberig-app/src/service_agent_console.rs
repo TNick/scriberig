@@ -26,14 +26,15 @@ use scriberig_session::{Session, SessionExecutionSelection};
 impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B> {
     /// Lists the configured safe model library for an authorized caller.
     ///
-    /// # Parameters
     /// - `context`: Caller capabilities and request context.
     ///
-    /// # Returns
     /// The provider-neutral model descriptors and curated profiles.
     ///
-    /// # Errors
     /// Returns permission-denied when the caller cannot use agent models.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn agent_model_library(
         &self,
         context: &ApplicationContext,
@@ -44,14 +45,15 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
 
     /// Reads shared user presentation defaults without touching session state.
     ///
-    /// # Parameters
     /// - `context`: Caller capabilities and principal identity.
     ///
-    /// # Returns
     /// The current revisioned defaults for this user.
     ///
-    /// # Errors
     /// Returns permission, missing-principal, or store errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn agent_presentation_preferences(
         &self,
         context: &ApplicationContext,
@@ -63,16 +65,17 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
 
     /// Updates shared user defaults with optimistic revision protection.
     ///
-    /// # Parameters
     /// - `context`: Caller capabilities and principal identity.
     /// - `expected_revision`: Preference revision observed by the caller.
     /// - `preferences`: Complete independent presentation choices.
     ///
-    /// # Returns
     /// The authoritative updated defaults.
     ///
-    /// # Errors
     /// Returns permission, missing-principal, conflict, or store errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set_agent_presentation_preferences(
         &self,
         context: &ApplicationContext,
@@ -90,16 +93,17 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
     /// A still-supported thinking level is retained. Otherwise the profile
     /// default, model default, then first advertised level is selected.
     ///
-    /// # Parameters
     /// - `context`: Caller capabilities and request context.
     /// - `request`: Session, observed selection revision, and profile id.
     ///
-    /// # Returns
     /// The updated session selection.
     ///
-    /// # Errors
     /// Returns permission, model/profile validation, stale-revision, or
     /// persistence failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set_session_model(
         &self,
         context: &ApplicationContext,
@@ -169,16 +173,17 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
 
     /// Changes the thinking level used by future session invocations.
     ///
-    /// # Parameters
     /// - `context`: Caller capabilities and request context.
     /// - `request`: Session, observed selection revision, and thinking id.
     ///
-    /// # Returns
     /// The updated session selection.
     ///
-    /// # Errors
     /// Returns permission, active-model, advertised-level, stale-revision, or
     /// persistence failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set_session_thinking_level(
         &self,
         context: &ApplicationContext,
@@ -248,10 +253,14 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
     /// - `session`: Session containing the result.
     /// - `branch`: Branch containing the result.
     /// - `result`: Stable tool-result identity.
-    /// # Returns
+    ///
     /// Safe result detail with its stable result identity.
-    /// # Errors
+    ///
     /// Returns authorization, lookup, or session persistence errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn tool_result_detail(
         &self,
         context: &ApplicationContext,
@@ -264,17 +273,18 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
 
     /// Reads the bounded request projection captured for an invocation.
     ///
-    /// # Parameters
     /// - `context`: Authorized request context.
     /// - `session`: Session containing the invocation.
     /// - `branch`: Branch containing the invocation.
     /// - `invocation`: Stable model-invocation identity.
     ///
-    /// # Returns
     /// The captured safe request projection.
     ///
-    /// # Errors
     /// Returns authorization or lookup errors when detail is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn model_request_detail(
         &self,
         context: &ApplicationContext,
@@ -290,40 +300,38 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
 
 /// Resolves the stable caller identity required for shared preferences.
 ///
-/// # Parameters
 /// - `context`: Authorized application request context.
 ///
-/// # Returns
 /// The stable principal identifier.
 ///
-/// # Errors
 /// Returns invalid-request when the caller has no principal identity.
 /// Creates an empty session for selection before the first agent message.
 ///
-/// # Parameters
 /// - `id`: Stable identity supplied by the caller.
 ///
-/// # Returns
 /// A session without branches or semantic work.
+/// # Returns
+/// The operation result.
 fn empty_session(id: EntityId) -> Session {
     Session {
         id,
         branches: Vec::new(),
         goals: Vec::new(),
         tasks: Vec::new(),
+        plans: Vec::new(),
         execution: SessionExecutionSelection::default(),
     }
 }
 
 /// Chooses a supported thinking level while preserving a valid current choice.
 ///
-/// # Parameters
 /// - `profile`: Curated profile selected for the invocation.
 /// - `model`: Descriptor advertising supported levels.
 /// - `current`: Current selection, if any.
 ///
-/// # Returns
 /// The supported current level or deterministic profile/model fallback.
+/// # Returns
+/// The operation result.
 fn resolve_thinking(
     profile: &ModelProfile,
     model: &ModelDescriptor,

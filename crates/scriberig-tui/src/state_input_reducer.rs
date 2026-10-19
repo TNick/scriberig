@@ -4,15 +4,20 @@
 
 use super::*;
 
+#[path = "state_input_reducer/commands.rs"]
+mod commands;
+#[path = "state_input_reducer/plan.rs"]
+mod plan;
+
 /// Reduces an input-related action and returns its resulting effects.
 ///
-/// # Parameters
 /// - `state`: Mutable TUI state.
 /// - `action`: Input, paste, or submission action.
 /// - `super`: Parent-module visibility marker.
 ///
-/// # Returns
 /// Effects produced by the input action.
+/// # Returns
+/// The operation result.
 pub(super) fn reduce_input(state: &mut TuiState, action: Action) -> Vec<Effect> {
     match action {
         Action::InputChanged(text) => {
@@ -38,6 +43,14 @@ pub(super) fn reduce_input(state: &mut TuiState, action: Action) -> Vec<Effect> 
                 && let Some(composer) = state.session_composer.as_mut()
             {
                 edit_composer(&mut composer.text, &mut composer.error, &text);
+            } else if state.primary_view == crate::selection::PrimaryView::Conversation
+                && !state.conversation_browsing
+            {
+                edit_composer(
+                    &mut state.conversation_composer.draft,
+                    &mut state.conversation_composer.error,
+                    &text,
+                );
             }
             vec![Effect::None]
         }
@@ -52,6 +65,10 @@ pub(super) fn reduce_input(state: &mut TuiState, action: Action) -> Vec<Effect> 
                 && let Some(composer) = state.session_composer.as_mut()
             {
                 composer.text.push_str(&text);
+            } else if state.primary_view == crate::selection::PrimaryView::Conversation
+                && !state.conversation_browsing
+            {
+                state.conversation_composer.draft.push_str(&text);
             }
             vec![Effect::None]
         }
@@ -62,7 +79,6 @@ pub(super) fn reduce_input(state: &mut TuiState, action: Action) -> Vec<Effect> 
 
 /// Applies typed text or backspace to either composer implementation.
 ///
-/// # Parameters
 /// - `text`: Current multiline draft.
 /// - `error`: Composer validation message to clear after editing.
 /// - `input`: Inserted text, or an empty string for backspace.
@@ -77,14 +93,60 @@ fn edit_composer(text: &mut String, error: &mut Option<String>, input: &str) {
 
 /// Converts the current overlay text into a semantic effect.
 ///
-/// # Parameters
 /// - `state`: Mutable TUI state containing the active input overlay.
 ///
-/// # Returns
 /// Effects produced by submitting the active input.
 #[allow(clippy::too_many_lines)]
+/// # Returns
+/// The operation result.
 fn submit_input(state: &mut TuiState) -> Vec<Effect> {
     let text = state.input_text().unwrap_or_default().trim().to_owned();
+    if state.primary_view == crate::selection::PrimaryView::Conversation
+        && state.overlay.is_none()
+        && !state.conversation_browsing
+    {
+        let mut prompt = state.conversation_composer.draft.clone();
+        if prompt.trim().is_empty() {
+            return vec![Effect::None];
+        }
+        if prompt.starts_with("//") {
+            if state.conversation_composer.pending {
+                return vec![Effect::None];
+            }
+            prompt.remove(0);
+        } else {
+            state.conversation_composer.error = None;
+            if let Some(effects) = commands::console_command(state, &prompt) {
+                if state.conversation_composer.error.is_none() {
+                    state.conversation_composer.draft.clear();
+                }
+                return effects;
+            }
+            if state.conversation_composer.pending {
+                return vec![Effect::None];
+            }
+        }
+        state.conversation_composer.pending = true;
+        state.conversation_composer.error = None;
+        state.conversation_composer.draft.clear();
+        state.agent_output_observations.clear();
+        return match state.conversation_composer.target {
+            crate::state::ConversationTarget::NewSession => {
+                vec![Effect::StartNewConversation {
+                    prompt,
+                    selection: selected_agent_scope(state),
+                }]
+            }
+            crate::state::ConversationTarget::Existing {
+                session,
+                reply_anchor,
+            } => vec![Effect::ContinueConversation {
+                session,
+                anchor: reply_anchor,
+                prompt,
+            }],
+        };
+    }
     if matches!(state.overlay, Some(Overlay::Composer(_))) {
         let Some(Overlay::Composer(composer)) = state.overlay.take() else {
             return vec![Effect::None];
@@ -93,7 +155,7 @@ fn submit_input(state: &mut TuiState) -> Vec<Effect> {
             state.overlay = Some(Overlay::Composer(composer));
             return vec![Effect::None];
         }
-        if let Some(effects) = console_command(state, &composer.text) {
+        if let Some(effects) = commands::console_command(state, &composer.text) {
             return effects;
         }
         state.session_branch_focus = composer.branch;
@@ -110,7 +172,7 @@ fn submit_input(state: &mut TuiState) -> Vec<Effect> {
             .as_ref()
             .map(|composer| composer.text.clone());
         if let Some(command) = command
-            && let Some(effects) = console_command(state, &command)
+            && let Some(effects) = commands::console_command(state, &command)
         {
             if let Some(composer) = state.session_composer.as_mut() {
                 composer.text.clear();
@@ -230,38 +292,21 @@ fn submit_input(state: &mut TuiState) -> Vec<Effect> {
     vec![Effect::None]
 }
 
-/// Routes supported console commands to shared picker and preference actions.
+/// Resolves the exact semantic scope selected for a new conversation.
 ///
-/// # Parameters
-/// - `state`: Current TUI state used by the shared action reducers.
-/// - `text`: Submitted composer text.
+/// - `state`: Current TUI semantic scope and navigation selection.
 ///
+/// The project scope with the latest selected entity and exact snapshot.
 /// # Returns
-/// Effects for a recognized command, or `None` for an agent prompt.
-fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Effect>> {
-    let command = text.trim();
-    match command {
-        "/model" => {
-            super::super::state_model_picker::activate_model_picker_action(state, "model-picker")
-        }
-        "/thinking" => {
-            super::super::state_model_picker::activate_model_picker_action(state, "thinking-picker")
-        }
-        "/view reasoning" => super::super::state_presentation::activate_presentation_action(
-            state,
-            "toggle-reasoning",
-        ),
-        "/view prompt" => {
-            super::super::state_presentation::activate_presentation_action(state, "toggle-prompt")
-        }
-        "/view tool-call" => super::super::state_presentation::activate_presentation_action(
-            state,
-            "toggle-tool-invocation",
-        ),
-        "/view tool-output" => super::super::state_presentation::activate_presentation_action(
-            state,
-            "toggle-tool-output",
-        ),
-        _ => None,
-    }
+/// The agent selection when this TUI has an imported project scope.
+fn selected_agent_scope(state: &TuiState) -> Option<scriberig_app::AgentSelection> {
+    let scope = state.agent_selection.as_ref()?;
+    Some(state.selection.map_or_else(
+        || scope.clone(),
+        |selection| scriberig_app::AgentSelection {
+            entity: selection.entity,
+            snapshot: selection.snapshot.unwrap_or(scope.snapshot),
+            ..scope.clone()
+        },
+    ))
 }

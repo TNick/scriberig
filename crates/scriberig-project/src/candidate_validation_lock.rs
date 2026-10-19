@@ -15,15 +15,16 @@ pub(super) enum ValidationLockError {
 
 /// Acquires the process-wide candidate workspace lock while observing cancellation.
 ///
-/// # Parameters
 /// - `cancelled`: Owning operation's cancellation state.
 /// - `super`: Parent candidate validation module.
 ///
-/// # Returns
 /// A guard protecting deterministic candidate workspace reuse.
 ///
-/// # Errors
 /// Returns cancellation or a bounded lock timeout.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn acquire(
     cancelled: &AtomicBool,
 ) -> Result<std::sync::MutexGuard<'static, ()>, ValidationLockError> {

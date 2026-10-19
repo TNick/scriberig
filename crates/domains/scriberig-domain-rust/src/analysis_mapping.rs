@@ -16,13 +16,13 @@ pub struct AnalysisMapping {
 impl AnalysisMapping {
     /// Creates a deterministic mapping for named functions.
     ///
-    /// # Parameters
     /// - `source`: Canonical source entity.
     /// - `names`: Function names in source order.
     ///
-    /// # Returns
     /// A mapping whose IDs are derived from canonical source identity and name.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn for_functions(source: EntityId, names: impl IntoIterator<Item = String>) -> Self {
         let symbols = names
             .into_iter()

@@ -21,11 +21,12 @@ impl ApplicationBackend for Backend {
     /// - `_context`: Argument named `_context`.
     /// - `request`: Argument named `request`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute(
         &self,
         _context: &ApplicationContext,
@@ -89,15 +90,16 @@ impl ApplicationBackend for Backend {
 
     /// Returns a deterministic operation identity for agent command tests.
     ///
-    /// # Parameters
     /// - `_context`: Application context, unused by this fixture.
     /// - `_request`: Agent command, unused by this fixture.
     ///
-    /// # Returns
     /// A deterministic operation identifier.
     ///
-    /// # Errors
     /// Returns an internal error only if the fixed identifier is invalid.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn submit_agent_command(
         &self,
         _context: &ApplicationContext,
@@ -112,15 +114,16 @@ impl ApplicationBackend for Backend {
 impl SessionBackend for Backend {
     /// Rejects session reads because this test only exercises command dispatch.
     ///
-    /// # Parameters
     /// - `_context`: Application context, unused by this fixture.
     /// - `_request`: Session request, intentionally unsupported here.
     ///
-    /// # Returns
     /// Never returns a session in this fixture.
     ///
-    /// # Errors
     /// Always returns unsupported-operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn read_session(
         &self,
         _context: &ApplicationContext,
@@ -133,15 +136,16 @@ impl SessionBackend for Backend {
 
     /// Returns a deterministic operation identity for agent command tests.
     ///
-    /// # Parameters
     /// - `_context`: Application context, unused by this fixture.
     /// - `_request`: Agent command, unused by this fixture.
     ///
-    /// # Returns
     /// A deterministic operation identifier.
     ///
-    /// # Errors
     /// Returns an internal error only if the fixed identifier is invalid.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn submit_agent_command(
         &self,
         _context: &ApplicationContext,

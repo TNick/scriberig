@@ -6,14 +6,15 @@ use crate::{IndexStatus, IntegrityReport, ProtectedRoots, StoreOperationError};
 pub trait MaintenanceStore {
     /// Verifies canonical state without changing it.
     ///
-    /// # Parameters
     /// - `protected`: Stable snapshot roots for this verification.
     ///
-    /// # Returns
     /// Structured corruption and unreachable-object findings.
     ///
-    /// # Errors
     /// Returns a backend maintenance error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn integrity_check(
         &self,
         protected: &ProtectedRoots,
@@ -21,14 +22,15 @@ pub trait MaintenanceStore {
 
     /// Reports valid objects unreachable from protected roots.
     ///
-    /// # Parameters
     /// - `protected`: Stable snapshot roots for this maintenance run.
     ///
-    /// # Returns
     /// A dry-run integrity and reachability report.
     ///
-    /// # Errors
     /// Returns a backend maintenance error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn gc_dry_run(
         &self,
         protected: &ProtectedRoots,
@@ -36,22 +38,25 @@ pub trait MaintenanceStore {
 
     /// Sweeps valid objects unreachable from protected roots.
     ///
-    /// # Parameters
     /// - `protected`: Stable snapshot roots for this maintenance run.
     ///
-    /// # Returns
     /// The pre-sweep integrity and reachability report.
     ///
-    /// # Errors
     /// Returns a backend maintenance error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn gc_sweep(&self, protected: &ProtectedRoots) -> Result<IntegrityReport, StoreOperationError>;
 
     /// Rebuilds all backend-derived indexes from canonical data.
     ///
-    /// # Returns
     /// The resulting index status.
     ///
-    /// # Errors
     /// Returns a backend maintenance error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn rebuild_indexes(&self) -> Result<IndexStatus, StoreOperationError>;
 }

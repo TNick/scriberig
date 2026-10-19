@@ -8,13 +8,13 @@ use sr_markdown::{
 
 /// Creates a canonical paragraph node with a stable identity.
 ///
-/// # Parameters
 /// - `id`: Byte repeated to construct the entity identity.
 /// - `position`: Semantic position in the parent collection.
 /// - `text`: Paragraph content.
 ///
-/// # Returns
 /// A canonical paragraph node.
+/// # Returns
+/// The operation result.
 fn node(id: u8, position: usize, text: &str) -> CanonicalNode {
     CanonicalNode {
         id: EntityId::from_bytes([id; 16]),

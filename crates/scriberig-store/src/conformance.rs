@@ -40,11 +40,12 @@ pub struct ConformanceFixture {
 
 /// Loads the deterministic S1/S2/S3 history into a backend.
 ///
-/// # Parameters
 /// - `store`: Backend receiving the canonical fixture.
 ///
-/// # Returns
 /// The logical identities produced by the fixture.
+///
+/// # Returns
+/// Logical identities for the fixture revisions and snapshots.
 ///
 /// # Errors
 /// Returns a diagnostic when the backend rejects a fixture operation.
@@ -106,8 +107,10 @@ pub fn load_fixture<S: ConformanceStore>(store: &S) -> Result<ConformanceFixture
 
 /// Runs core immutable storage behavior against any backend.
 ///
-/// # Parameters
 /// - `store`: Backend instance under test.
+///
+/// # Returns
+/// `Ok(())` when the backend satisfies core storage behavior.
 ///
 /// # Errors
 /// Returns a diagnostic when a backend violates a shared semantic invariant.
@@ -180,8 +183,10 @@ pub fn run_core_conformance<S: ConformanceStore>(store: &S) -> Result<(), String
 
 /// Runs the complete backend-neutral persistence contract.
 ///
-/// # Parameters
 /// - `store`: Backend instance under test.
+///
+/// # Returns
+/// `Ok(())` when the backend satisfies the full persistence contract.
 ///
 /// # Errors
 /// Returns a diagnostic when a backend violates the shared contract.

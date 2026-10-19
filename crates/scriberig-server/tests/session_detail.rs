@@ -14,15 +14,16 @@ struct Fixture;
 impl ApplicationBackend for Fixture {
     /// Rejects universal operations because this test targets durable details.
     ///
-    /// # Parameters
     /// - `_context`: Application context, unused by the fixture.
     /// - `_request`: Universal request, intentionally unsupported.
     ///
-    /// # Returns
     /// Never returns a universal result.
     ///
-    /// # Errors
     /// Always returns unsupported-operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute(
         &self,
         _context: &ApplicationContext,
@@ -42,6 +43,7 @@ fn durable_detail_reads_do_not_reexecute_tools_or_models() {
         .start_local_agent(&scriberig_app::AgentCommandRequest {
             session: scriberig_core::EntityId::from_bytes([31; 16]),
             branch: None,
+            anchor: None,
             prompt: "inspect safely".to_owned(),
             selection: None,
         })
@@ -57,6 +59,7 @@ fn durable_detail_reads_do_not_reexecute_tools_or_models() {
                 input: br"{}".to_vec(),
                 presentation_input: None,
                 presentation_label: None,
+                category: Some(scriberig_session::ToolActivityKind::SemanticRead),
                 output: serde_json::to_vec(&serde_json::json!({
                     "summary": "s".repeat(6_000),
                     "private_payload": "FAKE_PRIVATE_RESULT_8391",
@@ -100,7 +103,6 @@ fn durable_detail_reads_do_not_reexecute_tools_or_models() {
 
 /// Verifies public detail reads return bounded cached data without execution.
 ///
-/// # Parameters
 /// - `service`: Application service holding completed session evidence.
 /// - `handle`: Accepted local-agent session identities.
 /// - `read_context`: Authorized session read context.

@@ -40,4 +40,28 @@ describe("agent activity event mapping", () => {
       summary: "Model selected: Model A",
     });
   });
+
+  it("normalizes durable plan activity with stable references", () => {
+    expect(
+      normalizeProtocolEvent({
+        kind: "PlanActivity",
+        entity: { id: "plan-1" },
+        activity_kind: "PlanNodeCompleted",
+        activity_state: "Completed",
+        metadata: [
+          ["session", "session-1"],
+          ["node", "node-1"],
+          ["summary", "Plan node completed"],
+        ],
+      }),
+    ).toEqual({
+      kind: "planActivity",
+      sessionId: "session-1",
+      planId: "plan-1",
+      nodeId: "node-1",
+      activityKind: "PlanNodeCompleted",
+      state: "Completed",
+      summary: "Plan node completed",
+    });
+  });
 });

@@ -30,7 +30,7 @@ impl DiffModel {
     /// - `diff`: Argument named `diff`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     pub fn from_diff(diff: &sr_change::SemanticDiff) -> Self {
         Self {
             left: diff.left,

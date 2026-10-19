@@ -25,28 +25,28 @@ pub struct EntityId {
 impl EntityId {
     /// Generates a fresh non-content-derived entity identifier.
     ///
-    /// # Returns
     /// A new randomly generated entity identifier.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn fresh() -> Self {
         Self::new()
     }
 
     /// Generates a fresh non-content-derived entity identifier.
     ///
-    /// # Returns
     /// A new randomly generated entity identifier.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new() -> Self {
         Self::from_bytes(uuid::Uuid::new_v4().into_bytes())
     }
 
     /// Constructs an entity identifier from its fixed-width bytes.
     ///
-    /// # Parameters
     /// - `bytes`: Fixed-width identifier bytes.
     ///
-    /// # Returns
     /// The new entity identifier.
     #[must_use]
     pub const fn from_bytes(bytes: [u8; 16]) -> Self {
@@ -55,10 +55,8 @@ impl EntityId {
 
     /// Borrows the identifier's fixed-width bytes.
     ///
-    /// # Parameters
     /// - `self`: Identifier to inspect.
     ///
-    /// # Returns
     /// The identifier bytes.
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; 16] {
@@ -69,8 +67,9 @@ impl EntityId {
 impl Default for EntityId {
     /// Generates a fresh entity identifier.
     ///
-    /// # Returns
     /// A new randomly generated entity identifier.
+    /// # Returns
+    /// The operation result.
     fn default() -> Self {
         Self::new()
     }
@@ -80,15 +79,16 @@ impl Default for EntityId {
 impl Display for EntityId {
     /// Formats the entity identifier with its type-specific prefix.
     ///
-    /// # Parameters
     /// - `self`: Identifier to format.
     /// - `formatter`: Destination formatter.
     ///
-    /// # Returns
     /// A formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error if writing to the formatter fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         write_hex("ent_", &self.bytes, formatter)
     }
@@ -100,14 +100,15 @@ impl FromStr for EntityId {
 
     /// Parses a prefixed hexadecimal entity identifier.
     ///
-    /// # Parameters
     /// - `text`: Text to parse.
     ///
-    /// # Returns
     /// The parsed identifier.
     ///
-    /// # Errors
     /// Returns `InvalidFormat` for a wrong prefix, length, or hexadecimal digit.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn from_str(text: &str) -> Result<Self, Self::Err> {
         Ok(Self::from_bytes(parse_hex("ent_", text)?))
     }

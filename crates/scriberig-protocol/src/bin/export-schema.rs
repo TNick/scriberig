@@ -11,11 +11,13 @@ use std::path::{Path, PathBuf};
 
 /// Writes all public protocol schemas to the requested output directory.
 ///
-/// # Returns
 /// An empty result after every schema file is written.
 ///
-/// # Errors
 /// Returns an error when the output directory or schema cannot be written.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let output = PathBuf::from("target/scriberig-protocol-schema");
     fs::create_dir_all(&output)?;
@@ -37,14 +39,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 /// Serializes one schema with stable pretty JSON formatting.
 ///
-/// # Parameters
 /// - `output`: Destination directory.
 /// - `name`: Stable schema file stem.
 ///
-/// # Returns
 /// An empty result after the schema is written.
 ///
-/// # Errors
 /// Returns an error when serialization or file writing fails.
 fn write_schema<T: schemars::JsonSchema>(
     output: &Path,

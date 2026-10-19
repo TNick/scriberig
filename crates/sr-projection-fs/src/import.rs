@@ -19,15 +19,16 @@ pub enum RenderError {
 impl std::fmt::Display for RenderError {
     /// Formats a render failure.
     ///
-    /// # Parameters
     /// - `self`: Render failure.
     /// - `formatter`: Formatting destination.
     ///
-    /// # Returns
     /// Formatting result.
     ///
-    /// # Errors
     /// Returns a formatting error when the destination rejects the message.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Io(error) => write!(formatter, "filesystem render failed: {error}"),
@@ -43,14 +44,11 @@ impl std::error::Error for RenderError {}
 impl<F: FileSystem> SyncCoordinator<F> {
     /// Renders a managed projection through its adapter and writes it atomically.
     ///
-    /// # Parameters
     /// - `projection`: Projection to render.
     /// - `adapter`: Domain adapter that owns deterministic rendering.
     ///
-    /// # Returns
     /// Unit after the file and synchronization state are updated.
     ///
-    /// # Errors
     /// Returns an adapter diagnostic or filesystem failure when rendering cannot complete.
     pub fn render_managed_projection<A: ProjectionAdapter>(
         &mut self,
@@ -78,16 +76,13 @@ impl<F: FileSystem> SyncCoordinator<F> {
 
     /// Runs the adapter import lifecycle and synchronizes an accepted result.
     ///
-    /// # Parameters
     /// - `request`: Exact import request returned by [`Self::observe`].
     /// - `adapter`: Domain adapter that owns parsing and reconciliation.
     /// - `promote`: Callback that validates and promotes a proposed migration.
     /// - `conflict`: Callback that converts an adapter conflict into a diagnostic.
     ///
-    /// # Returns
     /// Unit after the projection is synchronized or retryable evidence is retained.
     ///
-    /// # Errors
     /// Returns an IO or ownership error when synchronization state cannot be updated.
     pub fn process_import<A, Promote, Conflict>(
         &mut self,
@@ -182,15 +177,12 @@ impl<F: FileSystem> SyncCoordinator<F> {
 
     /// Renders an adapter-approved semantic state and writes it atomically.
     ///
-    /// # Parameters
     /// - `request`: Original external import request.
     /// - `adapter`: Domain adapter that owns rendering.
     /// - `base`: Semantic state represented by the rendered bytes.
     ///
-    /// # Returns
     /// Unit after the accepted state is synchronized.
     ///
-    /// # Errors
     /// Returns an IO or ownership error when state cannot be synchronized.
     fn rerender_import<A: ProjectionAdapter>(
         &mut self,

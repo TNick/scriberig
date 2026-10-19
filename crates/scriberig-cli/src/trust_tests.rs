@@ -112,16 +112,17 @@ struct DenyingService;
 impl QueryService for FakeService {
     /// Returns the deterministic inspection fixture.
     ///
-    /// # Parameters
     /// - `self`: Deterministic test service.
     /// - `_context`: Unused application context.
     /// - `_request`: Unused inspection request.
     ///
-    /// # Returns
     /// The inspection fixture.
     ///
-    /// # Errors
     /// This fixture never returns an error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         _context: &ApplicationContext,
@@ -134,16 +135,17 @@ impl QueryService for FakeService {
 impl QueryService for DenyingService {
     /// Returns a structured permission failure.
     ///
-    /// # Parameters
     /// - `self`: Denying test service.
     /// - `_context`: Unused application context.
     /// - `_request`: Unused inspection request.
     ///
-    /// # Returns
     /// Never returns a successful inspection.
     ///
-    /// # Errors
     /// Always returns a permission denial.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(
         &self,
         _context: &ApplicationContext,
@@ -158,11 +160,13 @@ impl QueryService for DenyingService {
 
 /// Builds the inspection fixture used by renderer tests.
 ///
-/// # Returns
 /// A deterministic inspection result.
 ///
-/// # Errors
 /// This fixture construction cannot fail.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn result() -> InspectResult {
     InspectResult {
         entity: EntityId::from_bytes([1; 16]),

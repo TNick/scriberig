@@ -24,11 +24,12 @@ impl InspectService for InspectingReadFixture {
     /// Returns one generic inspection for capability-enrichment assertions.
     /// - `request`: Argument named `request`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(&self, request: &InspectRequest) -> Result<Inspection, QueryError> {
         Ok(Inspection {
             subject: request.target,
@@ -54,11 +55,12 @@ impl TraverseService for InspectingReadFixture {
     /// Returns an explicit unsupported list capability.
     /// - `request`: Argument named `request`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn list(&self, request: &ListRequest) -> Result<ListResult, QueryError> {
         ReadFixture.list(request)
     }
@@ -66,11 +68,12 @@ impl TraverseService for InspectingReadFixture {
     /// Returns an explicit unsupported follow capability.
     /// - `request`: Argument named `request`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn follow(&self, request: &FollowRequest) -> Result<FollowResult, QueryError> {
         ReadFixture.follow(request)
     }
@@ -80,11 +83,12 @@ impl FindService for InspectingReadFixture {
     /// Returns an explicit unsupported find capability.
     /// - `request`: Argument named `request`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn find(&self, request: &FindRequest) -> Result<FindResult, QueryError> {
         ReadFixture.find(request)
     }
@@ -94,11 +98,12 @@ impl StructuredQueryService for InspectingReadFixture {
     /// Returns an explicit unsupported query capability.
     /// - `request`: Argument named `request`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn query(&self, request: &QuerySpec) -> Result<QueryResult, QueryError> {
         ReadFixture.query(request)
     }
@@ -111,7 +116,7 @@ impl CapabilityProvider for InspectionCapabilityProvider {
     /// Returns relation, view, and operation descriptors for test entities.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     fn capabilities(&self) -> Vec<CapabilityDescriptor> {
         let entity_type = ObjectType::new("test.entity").expect("type");
         vec![
@@ -147,20 +152,50 @@ impl CapabilityProvider for InspectionCapabilityProvider {
             },
         ]
     }
+
+    /// Returns one exact-base change handle for the rename operation.
+    ///
+    /// - `request`: Authorized semantic subject and typed arguments.
+    ///
+    /// A candidate change handle bound to the selected entity and snapshot.
+    ///
+    /// Returns unsupported-capability for another operation identifier.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn execute(
+        &self,
+        request: &DomainOperationRequest,
+    ) -> Result<CapabilityExecution, ApplicationError> {
+        if request.capability.as_str() != "operation.rename" {
+            return Err(ApplicationError::UnsupportedCapability {
+                operation: "domain operation".to_owned(),
+                capability: request.capability.to_string(),
+            });
+        }
+        Ok(CapabilityExecution {
+            change: format!(
+                "candidate:{}:{}",
+                request.subject.entity, request.context.base_snapshot
+            ),
+        })
+    }
 }
 
 impl InspectService for ReadFixture {
     /// Returns an explicit provider error.
     ///
-    /// # Parameters
     /// - `self`: Fixture provider.
     /// - `_request`: Inspection request.
     ///
-    /// # Returns
     /// Never returns an inspection.
     ///
-    /// # Errors
     /// Always returns the fixture capability error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn inspect(&self, _request: &InspectRequest) -> Result<Inspection, QueryError> {
         Err(QueryError::UnsupportedCapability {
             operation: scriberig_query::ReadOperation::Inspect,
@@ -172,15 +207,16 @@ impl InspectService for ReadFixture {
 impl TraverseService for ReadFixture {
     /// Returns an explicit provider error.
     ///
-    /// # Parameters
     /// - `self`: Fixture provider.
     /// - `_request`: Collection request.
     ///
-    /// # Returns
     /// Never returns a collection page.
     ///
-    /// # Errors
     /// Always returns the fixture capability error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn list(&self, _request: &ListRequest) -> Result<ListResult, QueryError> {
         Err(QueryError::UnsupportedCapability {
             operation: scriberig_query::ReadOperation::List,
@@ -190,15 +226,16 @@ impl TraverseService for ReadFixture {
 
     /// Returns an explicit provider error.
     ///
-    /// # Parameters
     /// - `self`: Fixture provider.
     /// - `_request`: Relation request.
     ///
-    /// # Returns
     /// Never returns a traversal page.
     ///
-    /// # Errors
     /// Always returns the fixture capability error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn follow(&self, _request: &FollowRequest) -> Result<FollowResult, QueryError> {
         Err(QueryError::UnsupportedCapability {
             operation: scriberig_query::ReadOperation::Follow,
@@ -210,15 +247,16 @@ impl TraverseService for ReadFixture {
 impl FindService for ReadFixture {
     /// Returns an explicit provider error.
     ///
-    /// # Parameters
     /// - `self`: Fixture provider.
     /// - `_request`: Discovery request.
     ///
-    /// # Returns
     /// Never returns discovery results.
     ///
-    /// # Errors
     /// Always returns the fixture capability error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn find(&self, _request: &FindRequest) -> Result<FindResult, QueryError> {
         Err(QueryError::UnsupportedCapability {
             operation: scriberig_query::ReadOperation::Find,
@@ -230,15 +268,16 @@ impl FindService for ReadFixture {
 impl StructuredQueryService for ReadFixture {
     /// Returns an explicit provider error.
     ///
-    /// # Parameters
     /// - `self`: Fixture provider.
     /// - `_specification`: Structural query request.
     ///
-    /// # Returns
     /// Never returns query rows.
     ///
-    /// # Errors
     /// Always returns the fixture capability error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn query(&self, _specification: &QuerySpec) -> Result<QueryResult, QueryError> {
         Err(QueryError::UnsupportedCapability {
             operation: scriberig_query::ReadOperation::Query,

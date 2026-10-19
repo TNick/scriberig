@@ -4,15 +4,12 @@ use std::{
     fs,
     io::Write,
     path::PathBuf,
-    sync::{
-        Mutex, OnceLock,
-        mpsc::{self, Receiver},
-    },
+    sync::{Mutex, OnceLock, mpsc::Receiver},
     thread,
     time::{Duration, Instant},
 };
 
-use portable_pty::{CommandBuilder, PtySize, native_pty_system};
+use portable_pty::PtySize;
 use vt100::Parser;
 
 #[path = "tui_pty_support/lifecycle.rs"]
@@ -24,15 +21,13 @@ mod tui_pty_driver;
 mod tui_pty_fixture;
 #[path = "tui_pty_support/interaction.rs"]
 mod tui_pty_interaction;
-use tui_pty_fixture::{basic_fixture, copy_directory, read_output, temporary_fixture};
 
 #[path = "tui_pty_support/self_hosting.rs"]
 mod self_hosting;
-#[path = "tui_pty_support/startup_options.rs"]
-mod startup_options;
-use startup_options::ProjectStartupOptions;
 #[path = "tui_pty_support/startup.rs"]
 mod startup;
+#[path = "tui_pty_support/startup_options.rs"]
+mod startup_options;
 
 /// Owns one real terminal session used by native TUI workflow tests.
 pub struct TuiPty {
@@ -46,250 +41,21 @@ pub struct TuiPty {
     transcript: Vec<u8>,
 }
 
+/// Returns the Cargo target directory configured for spawned TUI processes.
+///
+/// The exact workspace target path used by PTY setup and observers.
+#[must_use]
+/// # Returns
+/// The operation result.
+pub fn workspace_target_directory() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .join("target")
+}
+
 impl TuiPty {
-    /// Starts the native TUI in a fixed-size `ConPTY` session.
-    ///
-    /// # Returns
-    /// A running TUI session with a temporary project fixture.
-    ///
-    /// # Panics
-    /// Panics when the fixture, pseudo-terminal, or child process cannot be created.
-    #[must_use]
-    pub fn start() -> Self {
-        Self::start_for_fixture(basic_fixture())
-    }
-
-    /// Starts a fresh-database TUI in a Git-backed checkout with deterministic agent provider.
-    ///
-    /// # Returns
-    /// A TUI process whose trusted bootstrap directory is a temporary Git project.
-    ///
-    /// # Panics
-    /// Panics when the fixture, Git repository, PTY, or child process cannot be created.
-    #[must_use]
-    pub fn start_bootstrap() -> Self {
-        let fixture = temporary_fixture();
-        let checkout = tui_pty_fixture::bootstrap_project(&fixture);
-        Self::start_configured(fixture, None, false, Some(checkout), true)
-    }
-
-    /// Reopens a bootstrap project by its registered checkout after a process restart.
-    ///
-    /// # Parameters
-    /// - `fixture`: Temporary database and checkout owner directory.
-    ///
-    /// # Returns
-    /// A new TUI process using the durable project and session state.
-    #[must_use]
-    pub fn restart_bootstrap(fixture: PathBuf) -> Self {
-        let checkout = fixture.join("scriberig");
-        Self::start_configured(fixture, Some(checkout.clone()), false, Some(checkout), true)
-    }
-
-    /// Starts the TUI against the checked-in Rust golden project copy.
-    ///
-    /// # Returns
-    /// A running TUI session with the named Rust fixture.
-    ///
-    /// # Panics
-    /// Panics when the fixture cannot be copied or the child cannot start.
-    #[must_use]
-    pub fn start_golden() -> Self {
-        let fixture = temporary_fixture();
-        let project = fixture.join("project");
-        copy_directory(
-            &PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("..")
-                .join("..")
-                .join("tests")
-                .join("fixtures")
-                .join("golden-rust-project"),
-            &project,
-        );
-        Self::start_configured(fixture, Some(project), true, None, false)
-    }
-
-    /// Restarts the native TUI against an existing golden fixture.
-    ///
-    /// # Parameters
-    /// - `fixture`: Existing project and database directory.
-    ///
-    /// # Returns
-    /// A running TUI session using the existing durable state.
-    #[must_use]
-    pub fn restart(fixture: PathBuf) -> Self {
-        let project = fixture.join("project");
-        if project.is_dir() {
-            Self::start_configured(fixture, Some(project), true, None, false)
-        } else {
-            Self::start_for_fixture(fixture)
-        }
-    }
-
-    /// Starts the native process for one prepared fixture.
-    ///
-    /// # Parameters
-    /// - `fixture`: Prepared project directory.
-    ///
-    /// # Returns
-    /// A running TUI session.
-    ///
-    /// # Panics
-    /// Panics when the pseudo-terminal or child process cannot be created.
-    fn start_for_fixture(fixture: PathBuf) -> Self {
-        Self::start_with_project(fixture, true)
-    }
-
-    /// Starts the native process with optional project-import arguments.
-    ///
-    /// # Parameters
-    /// - `fixture`: Directory used to hold the fresh or durable database.
-    /// - `import_project`: Whether to pass the fixture as a project to import.
-    ///
-    /// # Returns
-    /// A running TUI session.
-    ///
-    /// # Panics
-    /// Panics when the pseudo-terminal or child process cannot be created.
-    fn start_with_project(fixture: PathBuf, import_project: bool) -> Self {
-        let project_path = import_project.then(|| fixture.clone());
-        Self::start_configured(fixture, project_path, import_project, None, false)
-    }
-
-    /// Starts the native process with explicit runtime working directory and provider.
-    ///
-    /// # Parameters
-    /// - `fixture`: Directory used to hold the fresh or durable database.
-    /// - `project_path`: Optional project checkout passed to the product CLI.
-    /// - `import_project`: Whether to pass the fixture as a project to import.
-    /// - `working_directory`: Optional process working directory.
-    /// - `deterministic_agent`: Whether to select the deterministic provider.
-    ///
-    /// # Returns
-    /// A running native TUI session.
-    ///
-    /// # Panics
-    /// Panics when the PTY or child process cannot be created.
-    fn start_configured(
-        fixture: PathBuf,
-        project_path: Option<PathBuf>,
-        import_project: bool,
-        working_directory: Option<PathBuf>,
-        deterministic_agent: bool,
-    ) -> Self {
-        Self::start_configured_scenario(
-            fixture,
-            ProjectStartupOptions {
-                path: project_path,
-                import: import_project,
-                git_tracked: false,
-            },
-            working_directory,
-            deterministic_agent,
-            None,
-            None,
-        )
-    }
-
-    /// Starts the native process with an optional deterministic provider scenario.
-    ///
-    /// # Parameters
-    /// - `fixture`: Directory used for the fresh database.
-    /// - `project`: Optional project behavior selected for startup.
-    /// - `working_directory`: Optional process working directory.
-    /// - `deterministic_agent`: Whether a deterministic provider is selected.
-    /// - `scenario`: Optional deterministic scenario identifier.
-    /// - `executable`: Optional native executable override for restart gates.
-    /// - `super`: Parent PTY support module visibility marker.
-    ///
-    /// # Returns
-    /// A running native TUI process.
-    ///
-    /// # Panics
-    /// Panics when the PTY or child process cannot be created.
-    fn start_configured_scenario(
-        fixture: PathBuf,
-        project: ProjectStartupOptions,
-        working_directory: Option<PathBuf>,
-        deterministic_agent: bool,
-        scenario: Option<&str>,
-        executable: Option<PathBuf>,
-    ) -> Self {
-        let database = fixture.join("scriberig.sqlite");
-        let product_project = project.path.clone().unwrap_or_else(|| fixture.clone());
-        let pty_system = native_pty_system();
-        let pair = pty_system
-            .openpty(PtySize {
-                rows: 40,
-                cols: 140,
-                pixel_width: 0,
-                pixel_height: 0,
-            })
-            .expect("open pty");
-        let mut command = CommandBuilder::new(
-            executable.unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_srig"))),
-        );
-        if let Some(temp) = std::env::var_os("TEMP") {
-            command.env("TEMP", temp);
-        }
-        if let Some(tmp) = std::env::var_os("TMP") {
-            command.env("TMP", tmp);
-        }
-        if let Some(path) = working_directory {
-            command.cwd(path);
-        }
-        if deterministic_agent {
-            command.env("SCRIBE_AGENT_PROVIDER", "deterministic");
-            command.env("SCRIBE_AGENT_SCENARIO", scenario.unwrap_or("bootstrap"));
-        }
-        if matches!(
-            scenario,
-            Some(
-                "self_hosting_php_cancellation"
-                    | "self_hosting_php_discovery_cancellation"
-                    | "self_hosting_php_implementation_cancellation"
-            )
-        ) {
-            command.env(
-                "SCRIBE_AGENT_TEST_PROVIDER_GATE",
-                fixture
-                    .join("agent-provider.release")
-                    .to_str()
-                    .expect("provider release marker path"),
-            );
-        }
-        command.args(["tui", "--db", database.to_str().expect("database path")]);
-        if let Some(project_path) = project.path {
-            command.args(["--project", project_path.to_str().expect("project path")]);
-            if project.import {
-                command.arg("--import");
-            }
-            if project.git_tracked {
-                command.arg("--git-tracked");
-            }
-        }
-        let child = pair.slave.spawn_command(command).expect("spawn tui");
-        let master = pair.master;
-        let mut writer = master.take_writer().expect("take writer");
-        let reader = master.try_clone_reader().expect("clone reader");
-        let (sender, receiver) = mpsc::channel();
-        thread::spawn(move || read_output(reader, sender));
-        writer.flush().expect("flush terminal writer");
-        Self {
-            project: product_project,
-            fixture,
-            master,
-            child,
-            writer,
-            receiver,
-            parser: Parser::new(40, 140, 0),
-            transcript: Vec::new(),
-        }
-    }
-
     /// Resizes the native terminal surface.
     ///
-    /// # Parameters
     /// - `size`: New terminal dimensions.
     ///
     /// # Panics
@@ -301,30 +67,33 @@ impl TuiPty {
 
     /// Returns the current virtual terminal screen as visible text.
     ///
-    /// # Returns
     /// The current screen contents without terminal control sequences.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn screen(&self) -> String {
         self.parser.screen().contents()
     }
 
     /// Returns the fixture directory used for the database and checkout.
     ///
-    /// # Returns
     /// The temporary fixture root.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn fixture_path(&self) -> &std::path::Path {
         &self.fixture
     }
 
     /// Reads the golden source file from the process-owned fixture.
     ///
-    /// # Returns
     /// Current source bytes decoded as UTF-8.
     ///
     /// # Panics
     /// Panics when the fixture source cannot be read.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn source(&self) -> String {
         fs::read_to_string(self.project.join("src").join("lib.rs")).expect("read source")
     }
@@ -341,15 +110,15 @@ impl TuiPty {
 
     /// Stops the process while retaining its fixture for a restart test.
     ///
-    /// # Parameters
     /// - `self`: Running PTY session.
     ///
-    /// # Returns
     /// The retained fixture directory.
     ///
     /// # Panics
     /// Panics when the child cannot be polled or stopped.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn quit_retain_fixture(mut self) -> PathBuf {
         self.send(b"q");
         let deadline = Instant::now() + Duration::from_secs(3);
@@ -371,9 +140,10 @@ impl TuiPty {
 
     /// Describes the last virtual screen and raw terminal output.
     ///
-    /// # Returns
     /// Diagnostic screen and transcript text for a failed assertion.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn diagnostic(&self) -> String {
         format!(
             "screen: {}; transcript: {}",
@@ -384,8 +154,9 @@ impl TuiPty {
 }
 /// Serializes native PTY sessions for Windows `ConPTY` stability.
 ///
-/// # Returns
 /// The process-wide PTY test lock guard.
+/// # Returns
+/// The operation result.
 pub fn test_lock() -> std::sync::MutexGuard<'static, ()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
     LOCK.get_or_init(|| Mutex::new(()))

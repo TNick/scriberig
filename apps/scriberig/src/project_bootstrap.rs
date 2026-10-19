@@ -10,16 +10,17 @@ use crate::agent_tool_helpers::invalid_argument;
 impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
     /// Scans the trusted local working directory into a persisted project manifest.
     ///
-    /// # Parameters
     /// - `super`: Parent agent tool module.
     /// - `context`: Trusted local bootstrap environment.
     /// - `arguments`: Optional project name and Git selection policy.
     ///
-    /// # Returns
     /// Stable project and exact manifest identities with bounded counts.
     ///
-    /// # Errors
     /// Returns an authorization, bootstrap-context, or scan failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn project_scan(
         &self,
         context: &ApplicationContext,
@@ -77,15 +78,16 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Reviews a bounded page of the exact persisted scan manifest.
     ///
-    /// # Parameters
     /// - `super`: Parent agent tool module.
     /// - `arguments`: Project, manifest digest, and optional page offset/limit.
     ///
-    /// # Returns
     /// Manifest summary plus bounded path, digest, adapter, and status entries.
     ///
-    /// # Errors
     /// Returns invalid arguments, stale manifest, or project lookup failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn project_manifest(
         &self,
         arguments: &serde_json::Value,
@@ -146,15 +148,16 @@ impl<B: ApplicationBackend> LocalAgentTool<'_, B> {
 
     /// Resolves the authoritative snapshot and semantic root after import.
     ///
-    /// # Parameters
     /// - `super`: Parent agent tool module.
     /// - `arguments`: Provider arguments containing a project identity.
     ///
-    /// # Returns
     /// Exact project, snapshot, and semantic root references.
     ///
-    /// # Errors
     /// Returns invalid arguments or a project workspace failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn project_workspace(
         &self,
         arguments: &serde_json::Value,

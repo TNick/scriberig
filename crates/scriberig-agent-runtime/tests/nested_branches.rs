@@ -21,15 +21,33 @@ struct RecursiveProvider {
 impl ModelProvider for RecursiveProvider {
     /// Delegates until the configured depth and then completes.
     ///
-    /// # Parameters
     /// - `messages`: Current branch conversation.
     ///
-    /// # Returns
     /// A child request or a compact final response.
     ///
-    /// # Errors
     /// This deterministic provider never fails.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn decide(&mut self, messages: &[AgentMessage]) -> Result<ModelDecision, String> {
+        let completed_children = messages
+            .iter()
+            .filter(|message| matches!(message, AgentMessage::Child(_)))
+            .count();
+        if self.depth == 0 && completed_children < 2 {
+            let purpose = if completed_children == 0 {
+                "architecture"
+            } else {
+                "implementation"
+            };
+            return Ok(ModelDecision::Child(ChildRequest {
+                purpose: purpose.to_owned(),
+                prompt: format!("perform {purpose} work"),
+                capabilities: vec!["inspect.entity".to_owned()],
+                expected_result: "compact result".to_owned(),
+            }));
+        }
         if messages.len() == 1 && self.depth < self.delegation_limit {
             return Ok(ModelDecision::Child(ChildRequest {
                 purpose: format!("depth-{} work", self.depth + 1),
@@ -57,17 +75,18 @@ struct RecursiveExecutor {
 impl ChildExecutor for RecursiveExecutor {
     /// Executes one nested branch and projects only its compact result.
     ///
-    /// # Parameters
     /// - `context`: Trusted context inherited by the child.
     /// - `scope`: Parent branch scope.
     /// - `request`: Validated child request.
     /// - `cancelled`: Shared cancellation flag.
     ///
-    /// # Returns
     /// A compact nested result.
     ///
-    /// # Errors
     /// Returns a nested runtime failure as safe text.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute_child(
         &mut self,
         context: &ApplicationContext,
@@ -144,9 +163,14 @@ fn recursive_children_preserve_depth_and_hide_child_history() {
         .expect("recursive execution");
 
     assert_eq!(result.output, "completed-depth-0");
-    assert_eq!(result.messages.len(), 2);
+    assert_eq!(result.messages.len(), 3);
     assert!(matches!(result.messages[1], AgentMessage::Child(_)));
-    assert_eq!(*depths.lock().expect("depths"), vec![1, 2]);
+    assert!(matches!(result.messages[2], AgentMessage::Child(_)));
+    assert_eq!(*depths.lock().expect("depths"), vec![1, 2, 1, 2]);
+    assert!(result.messages.iter().all(|message| match message {
+        AgentMessage::Child(child) => !child.summary.contains("private-worker-transcript"),
+        _ => true,
+    }));
     assert_eq!(
         scope
             .active_branches

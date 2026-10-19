@@ -8,16 +8,17 @@ use scriberig_project::ProjectService;
 
 /// Loads an exact-base candidate for the shared change review operation.
 ///
-/// # Parameters
 /// - `workflow`: Shared durable project workflow.
 /// - `request`: Candidate ID and exact base snapshot from the application request.
 /// - `super`: Parent TUI service module.
 ///
-/// # Returns
 /// Candidate review data when the change handle is a durable project candidate.
 ///
-/// # Errors
 /// Returns storage, stale-base, or candidate retrieval errors.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn review_candidate(
     workflow: &ProjectService,
     request: &scriberig_app::ApplyRequest,
@@ -85,16 +86,17 @@ pub(super) fn review_candidate(
 
 /// Applies one durable project candidate after explicit application confirmation.
 ///
-/// # Parameters
 /// - `workflow`: Shared project candidate service.
 /// - `request`: Candidate ID and exact base snapshot from the commit operation.
 /// - `super`: Parent TUI service module.
 ///
-/// # Returns
 /// Canonical successor and materialization receipt in the shared commit result.
 ///
-/// # Errors
 /// Returns missing, stale, validation, safety, or effect-recovery errors.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn apply_candidate(
     workflow: &ProjectService,
     request: &CommitRequest,
@@ -137,11 +139,11 @@ pub(super) fn apply_candidate(
 
 /// Returns a bounded, readable preview for candidate source bytes.
 ///
-/// # Parameters
 /// - `bytes`: Optional exact source bytes.
 ///
-/// # Returns
 /// UTF-8 preview or a stable marker for absent source data.
+/// # Returns
+/// The operation result.
 fn review_bytes(bytes: Option<&[u8]>) -> String {
     bytes.map_or_else(
         || "<absent>".to_owned(),
@@ -158,11 +160,11 @@ fn review_bytes(bytes: Option<&[u8]>) -> String {
 
 /// Returns the stable source effect label used in review content.
 ///
-/// # Parameters
 /// - `kind`: Candidate source effect kind.
 ///
-/// # Returns
 /// Lowercase effect label.
+/// # Returns
+/// The operation result.
 fn effect_kind(kind: scriberig_project::ProjectSourceEffectKind) -> &'static str {
     match kind {
         scriberig_project::ProjectSourceEffectKind::Create => "create",

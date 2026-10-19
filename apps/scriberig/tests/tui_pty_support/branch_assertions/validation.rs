@@ -4,11 +4,9 @@ use scriberig_session::Branch;
 
 /// Verifies the implementation child requested every registered profile in policy order.
 ///
-/// # Parameters
 /// - `branch`: Durable implementation branch.
 /// - `super`: Parent assertion module.
 ///
-/// # Returns
 /// Unit when all required validation results are present and successful.
 ///
 /// # Panics
@@ -37,13 +35,15 @@ pub(super) fn assert_validation_profiles(branch: &Branch) {
                     .and_then(|input| input["profile"].as_str().map(str::to_owned))
             )
             .collect::<Vec<_>>(),
-        branch
-            .tool_results
+        invocations
             .iter()
-            .map(|result| (
-                result.failed,
-                String::from_utf8_lossy(&result.output).into_owned()
-            ))
+            .filter_map(|invocation| {
+                branch
+                    .tool_results
+                    .iter()
+                    .find(|result| result.invocation == invocation.id)
+            })
+            .map(|result| (result.failed, diagnostic_tail(&result.output)))
             .collect::<Vec<_>>()
     );
     for (invocation, expected_profile) in invocations.iter().zip(expected) {
@@ -66,13 +66,30 @@ pub(super) fn assert_validation_profiles(branch: &Branch) {
     }
 }
 
+/// Keeps profile diagnostics readable when an assertion fails.
+///
+/// - `output`: Durable result bytes from one validation profile.
+///
+/// The final 1200 characters of the result.
+/// # Returns
+/// The bounded diagnostic suffix.
+fn diagnostic_tail(output: &[u8]) -> String {
+    let output = String::from_utf8_lossy(output);
+    output
+        .chars()
+        .rev()
+        .take(1200)
+        .collect::<String>()
+        .chars()
+        .rev()
+        .collect()
+}
+
 /// Verifies locked dependency acquisition completed before offline code validation.
 ///
-/// # Parameters
 /// - `branch`: Durable implementation branch.
 /// - `super`: Parent assertion module.
 ///
-/// # Returns
 /// Unit when dependency acquisition precedes validation and is durably successful.
 ///
 /// # Panics

@@ -20,18 +20,37 @@ use std::net::TcpListener;
 use std::path::Path;
 use std::sync::Arc;
 
+/// Application service composed by the local SQLite-backed HTTP server.
+pub type LocalApplicationService = scriberig_app::ApplicationService<
+    scriberig_app::ApplicationBackendComposition<
+        scriberig_app::StoreInspectionBackend<Arc<scriberig_store_sqlite::SqliteStore>>,
+        scriberig_app::StoreOperationProvider<Arc<scriberig_store_sqlite::SqliteStore>>,
+    >,
+>;
+
+/// Trusted native runtime for advancing a durable plan lifecycle request.
+pub type PlanLifecycleHandler = dyn Fn(
+        &LocalApplicationService,
+        &scriberig_app::ApplicationContext,
+        &scriberig_app::PlanLifecycleRequest,
+        scriberig_app::PlanLifecycleAction,
+    ) -> Result<scriberig_session::Plan, scriberig_app::ApplicationError>
+    + Send
+    + Sync;
+
 /// Serve the development health endpoint over HTTP.
 ///
-/// # Parameters
 /// - `host`: Interface address to bind.
 /// - `port`: TCP port to bind.
 /// - `database_path`: SQLite file to initialize before accepting requests.
 ///
-/// # Returns
 /// Unit after the listener stops accepting connections.
 ///
-/// # Errors
 /// Returns an error when the database or listener cannot be initialized.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn serve(
     host: &str,
     port: u16,
@@ -42,25 +61,61 @@ pub fn serve(
 
 /// Serves the API with an optional exact browser origin policy.
 ///
-/// # Parameters
 /// - `host`: Interface address to bind.
 /// - `port`: TCP port to bind.
 /// - `database_path`: SQLite file to initialize before accepting requests.
 /// - `allowed_origin`: Exact browser origin allowed for CORS responses.
 /// - `project_roots`: Filesystem roots allowed for project onboarding.
 ///
-/// # Returns
 /// Unit after the listener stops accepting connections.
 ///
-/// # Errors
 /// Returns an error for invalid origin configuration, database failure, or
 /// listener initialization failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn serve_with_origin(
     host: &str,
     port: u16,
     database_path: &Path,
     allowed_origin: Option<&str>,
     project_roots: &[std::path::PathBuf],
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    serve_with_origin_and_plan_lifecycle(
+        host,
+        port,
+        database_path,
+        allowed_origin,
+        project_roots,
+        None,
+    )
+}
+
+/// Serves the API with a trusted provider-backed plan execution runtime.
+///
+/// - `host`: Interface address to bind.
+/// - `port`: TCP port to bind.
+/// - `database_path`: SQLite file to initialize before accepting requests.
+/// - `allowed_origin`: Exact browser origin allowed for CORS responses.
+/// - `project_roots`: Filesystem roots allowed for project onboarding.
+/// - `plan_lifecycle_handler`: Optional runtime that executes lifecycle requests.
+///
+/// Unit after the listener stops accepting connections.
+///
+/// Returns an error for invalid origin configuration, database failure, or
+/// listener initialization failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
+pub fn serve_with_origin_and_plan_lifecycle(
+    host: &str,
+    port: u16,
+    database_path: &Path,
+    allowed_origin: Option<&str>,
+    project_roots: &[std::path::PathBuf],
+    plan_lifecycle_handler: Option<Arc<PlanLifecycleHandler>>,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     if allowed_origin.is_some_and(|origin| origin.is_empty() || origin == "*") {
         return Err("allowed origin must be a non-empty exact origin".into());
@@ -89,6 +144,7 @@ pub fn serve_with_origin(
         allowed_origin: allowed_origin.map(ToOwned::to_owned),
         project_store: Some(Arc::clone(&store)),
         allowed_project_roots: canonical_project_roots(project_roots)?,
+        plan_lifecycle_handler,
     };
     let listener = TcpListener::bind((host, port))?;
     println!("Scriberig API listening on http://{host}:{port}");
@@ -115,14 +171,15 @@ pub fn serve_with_origin(
 
 /// Resolves configured project roots, defaulting to the current directory.
 ///
-/// # Parameters
 /// - `roots`: Operator-provided project roots.
 ///
-/// # Returns
 /// Canonical roots used by the HTTP path policy.
 ///
-/// # Errors
 /// Returns an error when a configured root cannot be resolved.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn canonical_project_roots(
     roots: &[std::path::PathBuf],
 ) -> Result<Vec<std::path::PathBuf>, Box<dyn Error + Send + Sync>> {

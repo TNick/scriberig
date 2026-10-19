@@ -219,25 +219,26 @@ fn read_only_adapters_have_explicit_unsupported_import_defaults() {
 
         /// Returns read-only capabilities for every test projection kind.
         ///
-        /// # Parameters
         /// - `_kind`: Projection kind being inspected.
         ///
-        /// # Returns
         /// Read-only capabilities.
+        /// # Returns
+        /// The operation result.
         fn capabilities(&self, _kind: &ProjectionKind) -> ProjectionCapabilities {
             ProjectionCapabilities::read_only()
         }
 
         /// Produces an empty rendered representation for the test adapter.
         ///
-        /// # Parameters
         /// - `request`: Exact render request.
         ///
-        /// # Returns
         /// An empty rendered projection.
         ///
-        /// # Errors
         /// This test adapter never returns an error.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn render(&self, request: &RenderRequest) -> ProjectionResult<RenderedProjection> {
             Ok(RenderedProjection::from_bytes(Vec::new(), request, None))
         }
@@ -307,52 +308,54 @@ fn adapter_reconciliation_receives_full_context() {
 
         /// Returns read-only capabilities for the test adapter.
         ///
-        /// # Parameters
         /// - `_kind`: Projection kind supplied by the caller.
         ///
-        /// # Returns
         /// Read-only capabilities.
+        /// # Returns
+        /// The operation result.
         fn capabilities(&self, _kind: &ProjectionKind) -> ProjectionCapabilities {
             ProjectionCapabilities::read_only()
         }
 
         /// Renders an empty representation for the test adapter.
         ///
-        /// # Parameters
         /// - `request`: Exact render request.
         ///
-        /// # Returns
         /// An empty rendered representation.
         ///
-        /// # Errors
         /// This test adapter does not return render errors.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn render(&self, request: &RenderRequest) -> ProjectionResult<RenderedProjection> {
             Ok(RenderedProjection::from_bytes(Vec::new(), request, None))
         }
 
         /// Accepts any representation for the test adapter.
         ///
-        /// # Parameters
         /// - `_kind`: Projection kind supplied by the caller.
         /// - `_bytes`: External representation bytes.
         ///
-        /// # Returns
         /// An empty candidate.
         ///
-        /// # Errors
         /// This test adapter does not return parse errors.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn parse(&self, _kind: &ProjectionKind, _bytes: &[u8]) -> ProjectionResult<()> {
             Ok(())
         }
 
         /// Verifies every synchronization context field before returning a no-op.
         ///
-        /// # Parameters
         /// - `_candidate`: Parsed candidate.
         /// - `context`: Synchronization context to verify.
         ///
-        /// # Returns
         /// A no-semantic-change outcome.
+        /// # Returns
+        /// The operation result.
         fn reconcile(
             &self,
             _candidate: (),
@@ -370,14 +373,15 @@ fn adapter_reconciliation_receives_full_context() {
 
         /// Accepts the test candidate.
         ///
-        /// # Parameters
         /// - `_candidate`: Parsed candidate.
         ///
-        /// # Returns
         /// Successful validation.
         ///
-        /// # Errors
         /// This test adapter does not return validation errors.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn validate(&self, _candidate: &()) -> ProjectionResult<()> {
             Ok(())
         }

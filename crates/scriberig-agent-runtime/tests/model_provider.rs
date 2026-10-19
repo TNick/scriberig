@@ -8,7 +8,9 @@ use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::provider::{
     FakeProvider, FinishReason, ModelResponse, ProviderMetadata, ToolCall, ToolDefinition,
 };
-use scriberig_agent_runtime::tools::{ToolCatalog, ToolDescriptor, ToolExecutionMode};
+use scriberig_agent_runtime::tools::{
+    ToolCatalog, ToolCategory, ToolDescriptor, ToolExecutionMode,
+};
 use scriberig_agent_runtime::{AgentMessage, ModelDecision, ModelProvider};
 
 /// Verifies a normalized final response becomes a runtime final decision.
@@ -110,6 +112,7 @@ fn named_tool_arguments_follow_sensitive_schema_annotations() {
     };
     let catalog = ToolCatalog::new(vec![ToolDescriptor {
         definition: tool,
+        category: ToolCategory::SemanticRead,
         result_shape: "bounded search result".to_owned(),
         invocation_label: Some("Search semantic content".to_owned()),
         state_changing: false,
@@ -126,6 +129,7 @@ fn named_tool_arguments_follow_sensitive_schema_annotations() {
         arguments,
         presentation_arguments,
         presentation_label,
+        category,
         ..
     } = decision
     else {
@@ -138,6 +142,7 @@ fn named_tool_arguments_follow_sensitive_schema_annotations() {
         presentation_label.as_deref(),
         Some("Search semantic content")
     );
+    assert_eq!(category, scriberig_session::ToolActivityKind::SemanticRead);
     assert!(
         !presentation_arguments
             .to_string()
@@ -170,6 +175,7 @@ fn normalized_delegate_response_drives_child_decision() {
             description: "Delegate focused work".to_owned(),
             parameters: serde_json::json!({"type": "object"}),
         },
+        category: ToolCategory::BranchProducing,
         result_shape: "compact child result".to_owned(),
         invocation_label: None,
         state_changing: false,

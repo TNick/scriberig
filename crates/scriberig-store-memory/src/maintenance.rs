@@ -12,14 +12,15 @@ use crate::MemoryStore;
 impl MaintenanceStore for MemoryStore {
     /// Verifies retained snapshots, revisions, and named roots.
     ///
-    /// # Parameters
     /// - `protected`: Stable snapshots for the verification.
     ///
-    /// # Returns
     /// Integrity and reachability findings.
     ///
-    /// # Errors
     /// Returns a lock-poisoning maintenance error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn integrity_check(
         &self,
         protected: &ProtectedRoots,
@@ -89,14 +90,15 @@ impl MaintenanceStore for MemoryStore {
 
     /// Runs a non-destructive maintenance report.
     ///
-    /// # Parameters
     /// - `protected`: Stable snapshots for the report.
     ///
-    /// # Returns
     /// The integrity and reachability report.
     ///
-    /// # Errors
     /// Returns a backend maintenance error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn gc_dry_run(
         &self,
         protected: &ProtectedRoots,
@@ -106,14 +108,15 @@ impl MaintenanceStore for MemoryStore {
 
     /// Removes valid snapshots and revisions outside the protected set.
     ///
-    /// # Parameters
     /// - `protected`: Stable snapshots for the sweep.
     ///
-    /// # Returns
     /// The pre-sweep integrity and reachability report.
     ///
-    /// # Errors
     /// Returns a lock-poisoning or integrity error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn gc_sweep(&self, protected: &ProtectedRoots) -> Result<IntegrityReport, StoreOperationError> {
         let mut report = self.integrity_check(protected)?;
         if report.is_corrupt() {
@@ -140,11 +143,13 @@ impl MaintenanceStore for MemoryStore {
 
     /// Rebuilds the empty in-memory derived-index boundary.
     ///
-    /// # Returns
     /// A consistent index status.
     ///
-    /// # Errors
     /// This backend has no derived indexes and cannot fail this operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn rebuild_indexes(&self) -> Result<IndexStatus, StoreOperationError> {
         Ok(IndexStatus { consistent: true })
     }

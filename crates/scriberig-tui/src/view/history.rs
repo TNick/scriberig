@@ -35,7 +35,7 @@ impl HistoryModel {
     /// - `summary`: Argument named `summary`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     pub fn from_summary(snapshot: SnapshotId, summary: &scriberig_app::OperationSummary) -> Self {
         let rows = summary
             .history
@@ -64,7 +64,7 @@ impl HistoryModel {
     /// - `entity`: Argument named `entity`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     pub fn selection(
         &self,
         row: usize,

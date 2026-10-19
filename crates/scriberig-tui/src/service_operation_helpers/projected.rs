@@ -4,15 +4,12 @@ use super::*;
 
 /// Executes legacy single-entity candidate requests against a project projection.
 ///
-/// # Parameters
 /// - `adapter`: Product adapter retaining candidate references.
 /// - `projection`: Snapshot-bound project source data.
 /// - `request`: Application request to execute.
 ///
-/// # Returns
 /// A project result when the request matches the projected candidate workflow.
 ///
-/// # Errors
 /// Returns validation, storage, stale-base, or missing-entity errors.
 pub(super) fn execute_projected_change<B: ApplicationBackend>(
     adapter: &ApplicationOperationAdapter<B>,
@@ -39,17 +36,14 @@ pub(super) fn execute_projected_change<B: ApplicationBackend>(
 
 /// Creates and retains a projected single-entity candidate.
 ///
-/// # Parameters
 /// - `adapter`: Product adapter retaining candidate references.
 /// - `projection`: Snapshot-bound source data.
 /// - `apply`: Exact-base application request.
 /// - `entity`: Source entity being edited.
 /// - `replacement`: Replacement expression from the candidate request.
 ///
-/// # Returns
 /// A summarized candidate result.
 ///
-/// # Errors
 /// Returns source, validation, lock, or stale-base errors.
 fn create_projected_candidate<B: ApplicationBackend>(
     adapter: &ApplicationOperationAdapter<B>,
@@ -113,15 +107,12 @@ fn create_projected_candidate<B: ApplicationBackend>(
 
 /// Applies a retained projected candidate through the project workflow.
 ///
-/// # Parameters
 /// - `adapter`: Product adapter retaining candidate references.
 /// - `projection`: Snapshot-bound project workflow.
 /// - `commit`: Exact-base commit request.
 ///
-/// # Returns
 /// A commit result carrying the authoritative successor snapshot.
 ///
-/// # Errors
 /// Returns stale-base, missing-candidate, or project-application errors.
 fn apply_projected_candidate<B: ApplicationBackend>(
     adapter: &ApplicationOperationAdapter<B>,

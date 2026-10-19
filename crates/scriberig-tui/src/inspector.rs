@@ -53,7 +53,7 @@ impl InspectorModel {
     /// - `result`: Argument named `result`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     pub fn from_result(result: InspectResult) -> Self {
         Self {
             entity: result.entity,
@@ -78,7 +78,7 @@ impl InspectorModel {
 /// - `stale`: Argument named `stale`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub fn presentation_error(error: &ApplicationError, stale: bool) -> LoadState<InspectorModel> {
     LoadState::Failed {
         category: error.category().to_owned(),
@@ -92,7 +92,7 @@ pub fn presentation_error(error: &ApplicationError, stale: bool) -> LoadState<In
 /// - `text`: Argument named `text`.
 ///
 /// # Returns
-/// The value produced by the declaration.
+/// The operation result.
 pub fn sanitize(text: &str) -> String {
     text.chars()
         .filter(|character| !character.is_control())

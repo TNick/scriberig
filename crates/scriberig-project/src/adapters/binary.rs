@@ -13,7 +13,6 @@ use super::add_child;
 
 /// Extracts binary metadata while retaining exact source bytes in the parent.
 ///
-/// # Parameters
 /// - `project`: Owning project identity.
 /// - `file`: Binary source file.
 /// - `source`: Source artifact entity.
@@ -22,11 +21,13 @@ use super::add_child;
 /// - `ownership`: Destination entity ownership records.
 /// - `super`: Parent support module visibility marker.
 ///
-/// # Returns
 /// Unit after the binary metadata entity is added.
 ///
-/// # Errors
 /// Returns serialization or revision errors.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn import_binary(
     project: ProjectId,
     file: &ProjectFileRecord,

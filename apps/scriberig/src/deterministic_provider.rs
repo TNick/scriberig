@@ -12,18 +12,19 @@ pub(super) struct BootstrapProvider;
 impl ProviderAdapter for BootstrapProvider {
     /// Returns the next deterministic onboarding tool call or final response.
     ///
-    /// # Parameters
     /// - `self`: Deterministic provider scenario.
     /// - `request`: Normalized model request from the shared runtime.
     ///
-    /// # Returns
     /// A normal provider response containing one tool call or final text.
     ///
-    /// # Errors
     /// Returns a configuration error when a different scenario is requested.
     ///
     /// The ordered transitions are kept explicit to make tool-call evidence auditable.
     #[allow(clippy::too_many_lines)]
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
         let prompt = request
             .messages
@@ -177,14 +178,15 @@ impl ProviderAdapter for BootstrapProvider {
 
 /// Drives exact-snapshot semantic discovery and a read-only child branch.
 ///
-/// # Parameters
 /// - `request`: Normalized parent or child model request.
 ///
-/// # Returns
 /// A semantic tool call, delegated request, or concise completion.
 ///
-/// # Errors
 /// Returns malformed-response when the exact project scope or semantic handles are absent.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn semantic_discovery_response(request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
     let scope = project_scope(request)?;
     let tools = request
@@ -231,7 +233,7 @@ fn semantic_discovery_response(request: &ModelRequest) -> Result<ModelResponse, 
         .any(|message| message.contains("child_summary="))
     {
         return Ok(final_response(
-            "I found the repository guidance and delegated a bounded architecture map at the same project snapshot.",
+            "I inspected the source structure and delegated a bounded architecture map at the same project snapshot.",
         ));
     }
     if let Some(found) = tools
@@ -263,7 +265,7 @@ fn semantic_discovery_response(request: &ModelRequest) -> Result<ModelResponse, 
         serde_json::json!({
             "project": scope.0,
             "snapshot": scope.1,
-            "query": "AGENTS.md",
+            "query": "lib.rs",
             "limit": 10
         }),
     ))
@@ -271,14 +273,15 @@ fn semantic_discovery_response(request: &ModelRequest) -> Result<ModelResponse, 
 
 /// Reads exact project and snapshot handles from compiled semantic context.
 ///
-/// # Parameters
 /// - `request`: Normalized provider request containing compiled branch context.
 ///
-/// # Returns
 /// Exact project and snapshot string identities.
 ///
-/// # Errors
 /// Returns malformed-response when project scope is missing.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn project_scope(request: &ModelRequest) -> Result<(String, String), ProviderError> {
     let scope = request
         .messages
@@ -306,14 +309,15 @@ fn project_scope(request: &ModelRequest) -> Result<(String, String), ProviderErr
 
 /// Extracts a semantic entity from a find result's stable JSON handle.
 ///
-/// # Parameters
 /// - `message`: Normalized semantic find result.
 ///
-/// # Returns
 /// Exact entity identity returned by semantic discovery.
 ///
-/// # Errors
 /// Returns malformed-response when no semantic entity handle exists.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn semantic_entity(message: &str) -> Result<String, ProviderError> {
     let handles = parse_handles(message)?;
     handles
@@ -326,11 +330,11 @@ fn semantic_entity(message: &str) -> Result<String, ProviderError> {
 
 /// Builds a normal deterministic completion without tool calls.
 ///
-/// # Parameters
 /// - `text`: Concise assistant response.
 ///
-/// # Returns
 /// A normalized stop response.
+/// # Returns
+/// The operation result.
 fn final_response(text: &str) -> ModelResponse {
     ModelResponse {
         text: Some(text.to_owned()),
@@ -343,12 +347,12 @@ fn final_response(text: &str) -> ModelResponse {
 
 /// Builds a normal normalized response with one named application tool call.
 ///
-/// # Parameters
 /// - `name`: Registered tool selected by the deterministic model.
 /// - `arguments`: Structured input passed through normal catalog validation.
 ///
-/// # Returns
 /// Provider response requesting the named tool.
+/// # Returns
+/// The operation result.
 fn tool_call(name: &str, arguments: serde_json::Value) -> ModelResponse {
     ModelResponse {
         text: None,
@@ -365,15 +369,16 @@ fn tool_call(name: &str, arguments: serde_json::Value) -> ModelResponse {
 
 /// Extracts stable handles from the shared provider-neutral tool observation.
 ///
-/// # Parameters
 /// - `message`: Normalized tool-result message.
 ///
 /// - `super`: Parent module visibility marker.
-/// # Returns
-/// Tool result handles in their emitted order.
+///   Tool result handles in their emitted order.
 ///
-/// # Errors
 /// Returns malformed-response when a tool result has no handle list.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(super) fn parse_handles(message: &str) -> Result<Vec<String>, ProviderError> {
     let values = message
         .split_once("handles=[")

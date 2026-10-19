@@ -10,11 +10,11 @@ use super::{
 impl ProjectCandidate {
     /// Converts a project candidate into durable storage data.
     ///
-    /// # Returns
     /// Storage-neutral candidate fields.
     ///
-    /// # Parameters
     /// - `super`: Candidate module visibility.
+    /// # Returns
+    /// The operation result.
     pub(super) fn record(&self) -> ProjectCandidateRecord {
         let (validation, diagnostics) = match &self.validation {
             CandidateValidation::Pending => ("pending", String::new()),
@@ -52,15 +52,16 @@ impl ProjectCandidate {
 
     /// Reconstructs a candidate loaded from durable storage.
     ///
-    /// # Parameters
     /// - `record`: Durable candidate record.
     /// - `super`: Candidate module visibility.
     ///
-    /// # Returns
     /// The public project candidate.
     ///
-    /// # Errors
     /// Returns a project error when persisted validation state is invalid.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub(super) fn from_record(record: ProjectCandidateRecord) -> Result<Self, ProjectError> {
         let validation = match record.validation.as_str() {
             "pending" => CandidateValidation::Pending,

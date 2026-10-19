@@ -37,10 +37,8 @@ macro_rules! digest_id {
         impl $name {
             /// Constructs an identifier from its BLAKE3 digest bytes.
             ///
-            /// # Parameters
             /// - `bytes`: Fixed-width BLAKE3 digest.
             ///
-            /// # Returns
             /// The new identifier.
             #[must_use]
             pub const fn new(bytes: [u8; 32]) -> Self {
@@ -49,10 +47,8 @@ macro_rules! digest_id {
 
             /// Constructs an identifier from its fixed-width digest bytes.
             ///
-            /// # Parameters
             /// - `bytes`: Fixed-width digest.
             ///
-            /// # Returns
             /// The new identifier.
             #[must_use]
             pub const fn from_bytes(bytes: [u8; 32]) -> Self {
@@ -61,10 +57,8 @@ macro_rules! digest_id {
 
             /// Borrows the identifier's digest bytes.
             ///
-            /// # Parameters
             /// - `self`: Identifier to inspect.
             ///
-            /// # Returns
             /// The digest bytes.
             #[must_use]
             pub const fn as_bytes(&self) -> &[u8; 32] {
@@ -76,15 +70,16 @@ macro_rules! digest_id {
         impl Display for $name {
             /// Formats the identifier as a type-prefixed lowercase hex digest.
             ///
-            /// # Parameters
             /// - `self`: Identifier to format.
             /// - `formatter`: Destination formatter.
             ///
-            /// # Returns
             /// A formatting result.
             ///
-            /// # Errors
             /// Returns a formatting error if writing to the formatter fails.
+            /// # Returns
+            /// The operation result.
+            /// # Errors
+            /// Returns an error when the operation fails.
             fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
                 write_hex($prefix, &self.bytes, formatter)
             }
@@ -96,14 +91,15 @@ macro_rules! digest_id {
 
             /// Parses a type-prefixed hexadecimal digest.
             ///
-            /// # Parameters
             /// - `text`: Text to parse.
             ///
-            /// # Returns
             /// The parsed identifier.
             ///
-            /// # Errors
             /// Returns `InvalidFormat` for a wrong prefix, length, or hex digit.
+            /// # Returns
+            /// The operation result.
+            /// # Errors
+            /// Returns an error when the operation fails.
             fn from_str(text: &str) -> Result<Self, Self::Err> {
                 Ok(Self::new(parse_hex($prefix, text)?))
             }

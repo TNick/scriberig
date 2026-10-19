@@ -8,15 +8,16 @@ use super::{
 impl<T: scriberig_protocol::ProtocolTransport> TuiModelRequestService for RemoteAdapter<T> {
     /// Reads shared presentation defaults through the remote protocol client.
     ///
-    /// # Parameters
     /// - `self`: Adapter holding the protocol client.
     /// - `_context`: Locally supplied context, not serialized remotely.
     ///
-    /// # Returns
     /// Revisioned shared preferences.
     ///
-    /// # Errors
     /// Returns a sanitized remote protocol error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn agent_presentation_preferences(
         &self,
         _context: &ApplicationContext,
@@ -28,17 +29,18 @@ impl<T: scriberig_protocol::ProtocolTransport> TuiModelRequestService for Remote
 
     /// Reads captured bounded request detail through the public client.
     ///
-    /// # Parameters
     /// - `_context`: Authorized application context.
     /// - `session`: Session containing the invocation.
     /// - `branch`: Branch containing the invocation.
     /// - `invocation`: Stable model-invocation identity.
     ///
-    /// # Returns
     /// Captured provider-neutral request detail.
     ///
-    /// # Errors
     /// Returns a sanitized remote protocol error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn model_request_detail(
         &self,
         _context: &ApplicationContext,

@@ -33,11 +33,13 @@ pub struct HtmlNode {
 impl HtmlDocument {
     /// Encodes the semantic document as stable versioned JSON bytes.
     ///
-    /// # Returns
     /// Canonical JSON representation of the parsed document.
     ///
-    /// # Errors
     /// Returns a serialization error when the document cannot be encoded.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn canonical_bytes(&self) -> Result<Vec<u8>, serde_json::Error> {
         serde_json::to_vec(self)
     }
@@ -46,11 +48,13 @@ impl HtmlDocument {
 impl HtmlNode {
     /// Encodes one semantic node as stable versioned JSON bytes.
     ///
-    /// # Returns
     /// Canonical JSON representation of the node.
     ///
-    /// # Errors
     /// Returns a serialization error when the node cannot be encoded.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     pub fn canonical_bytes(&self) -> Result<Vec<u8>, serde_json::Error> {
         serde_json::to_vec(self)
     }
@@ -58,14 +62,15 @@ impl HtmlNode {
 
 /// Parses an HTML byte stream without executing or fetching anything.
 ///
-/// # Parameters
 /// - `bytes`: HTML source bytes.
 ///
-/// # Returns
 /// Parsed semantic nodes and normalized HTML bytes.
 ///
-/// # Errors
 /// Returns an error when the source cannot be serialized after parsing.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn parse(bytes: &[u8]) -> Result<HtmlDocument, io::Error> {
     let document = kuchiki::parse_html().from_utf8().one(bytes);
     let title = document
@@ -86,12 +91,10 @@ pub fn parse(bytes: &[u8]) -> Result<HtmlDocument, io::Error> {
 
 /// Collects meaningful descendants while retaining active content as opaque.
 ///
-/// # Parameters
 /// - `node`: Current DOM node.
 /// - `depth`: Current nesting depth.
 /// - `nodes`: Destination semantic node list.
 ///
-/// # Returns
 /// Unit after descendants have been collected.
 fn collect_nodes(node: &NodeRef, depth: usize, nodes: &mut Vec<HtmlNode>) {
     for child in node.children() {
@@ -136,11 +139,11 @@ fn collect_nodes(node: &NodeRef, depth: usize, nodes: &mut Vec<HtmlNode>) {
 
 /// Identifies elements useful for progressive semantic disclosure.
 ///
-/// # Parameters
 /// - `name`: Lowercase HTML element name.
 ///
-/// # Returns
 /// Whether the element receives a semantic node kind.
+/// # Returns
+/// The operation result.
 fn is_meaningful(name: &str) -> bool {
     matches!(
         name,

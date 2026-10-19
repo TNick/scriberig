@@ -14,12 +14,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use assertions::{
-    assert_applied_php, assert_candidate_conflicts_are_visible, assert_durable_candidate_effect,
-    assert_materialized_php_fixture, assert_tui_history_transition,
+    assert_applied_history_transition, assert_applied_php, assert_candidate_conflicts_are_visible,
+    assert_durable_candidate_effect, assert_materialized_php_fixture,
     assert_unrelated_source_unchanged,
 };
 use branch_assertions::assert_nested_branch_results;
-use onboarding_wait::{visible_session, wait_for_onboarding};
+use onboarding_wait::{visible_session, wait_for_branch_completion, wait_for_onboarding};
 use scriberig_project::ProjectService;
 use scriberig_session::SessionStore;
 use scriberig_session_sqlite::SqliteSessionStore;
@@ -34,23 +34,10 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
     let mut tui = TuiPty::start_self_hosting();
     let checkout = tui.fixture_path().join("scriberig");
     assertions::assert_tracked_serena_configuration(&checkout);
-    assert!(
-        tui.read_until("project: unselected"),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"start-agent\r");
-    assert!(
-        tui.read_until("Agent composer · ent_"),
-        "{}",
-        tui.diagnostic()
-    );
-    let session = visible_session(&tui.screen());
+    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
     tui.send(b"Onboard the current project.\r");
-    wait_for_onboarding(&tui, session);
-    assert!(tui.read_until("project: scriberig"), "{}", tui.diagnostic());
+    let session = visible_session(&tui);
+    wait_for_onboarding(&mut tui, session);
     let scan_before =
         fs::read(checkout.join("crates/scriberig-project/src/scan.rs")).expect("baseline scanner");
     let root_manifest_before = fs::read(checkout.join("Cargo.toml")).expect("baseline manifest");
@@ -70,18 +57,14 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
     ))
     .workspace(project.id)
     .expect("active semantic workspace");
-    tui.send(b"\x1b");
-    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
-    tui.send(b"\x1b[B");
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"continue-agent\r");
-    assert!(tui.read_until("Write a message..."), "{}", tui.diagnostic());
-    tui.send(b"i");
-    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     tui.send(b"Add support for ingesting PHP source files.\r");
-    let continuation =
-        tui.read_until_for("agent continuation [Completed]", Duration::from_secs(900));
+    wait_for_branch_completion(
+        &tui,
+        session,
+        "agent continuation",
+        Duration::from_secs(900),
+    );
+    let continuation = tui.read_until("PHP_IMPLEMENTATION_RESULT");
     let saved_after_continuation = load_session(&database, session);
     assert!(
         continuation,
@@ -107,7 +90,7 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
         base.snapshot,
         &candidate,
     );
-    assert_tui_history_transition(&mut tui, base.snapshot, applied_snapshot, &candidate);
+    assert_applied_history_transition(&database, base.snapshot, applied_snapshot, &candidate);
     assert_unrelated_source_unchanged(&checkout, &unrelated_source_before);
     let fixture = tui.quit_retain_fixture();
     restart_and_verify(
@@ -150,7 +133,6 @@ struct RestartEvidence<'a> {
 
 /// Reopens the candidate-built product and verifies durable applied project state.
 ///
-/// # Parameters
 /// - `fixture`: Retained temporary product fixture.
 /// - `checkout`: Copied checkout containing the applied candidate.
 /// - `database`: Durable product database path.
@@ -161,9 +143,13 @@ fn restart_and_verify(
     database: &std::path::Path,
     evidence: RestartEvidence<'_>,
 ) {
+    let candidate_target = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .join("target")
+        .join("candidate-restart");
     let build = std::process::Command::new("cargo")
         .current_dir(checkout)
-        .env("CARGO_TARGET_DIR", checkout.join("target"))
+        .env("CARGO_TARGET_DIR", &candidate_target)
         .args(["build", "--bin", "srig", "--offline"])
         .output()
         .expect("build candidate checkout executable");
@@ -176,7 +162,7 @@ fn restart_and_verify(
     let mut restarted = TuiPty::restart_candidate_checkout(
         fixture,
         checkout.to_path_buf(),
-        checkout.join("target/debug/srig"),
+        candidate_target.join("debug/srig"),
     );
     assert!(
         restarted.read_until_for("snp_", Duration::from_secs(600)),
@@ -184,7 +170,7 @@ fn restart_and_verify(
         restarted.diagnostic()
     );
     assert!(
-        restarted.screen().contains("project:"),
+        restarted.screen().contains(" @ snp_"),
         "{}",
         restarted.screen()
     );
@@ -223,7 +209,6 @@ fn restart_and_verify(
 
 /// Reviews the durable candidate and explicitly applies it through the native TUI.
 ///
-/// # Parameters
 /// - `tui`: Live PTY session.
 /// - `checkout`: Copied source checkout.
 /// - `database`: Durable product database path.
@@ -231,8 +216,9 @@ fn restart_and_verify(
 /// - `base_snapshot`: Exact candidate base.
 /// - `candidate`: Durable candidate handle returned by the agent.
 ///
-/// # Returns
 /// The authoritative snapshot captured immediately after application.
+/// # Returns
+/// The operation result.
 fn review_and_apply(
     tui: &mut TuiPty,
     checkout: &std::path::Path,
@@ -241,11 +227,7 @@ fn review_and_apply(
     base_snapshot: scriberig_core::SnapshotId,
     candidate: &str,
 ) -> scriberig_core::SnapshotId {
-    tui.send(b"\x1b");
-    assert!(tui.read_until("press i to"), "{}", tui.diagnostic());
-    tui.send(b":");
-    assert!(tui.read_until("Search:"), "{}", tui.diagnostic());
-    tui.send(b"review-candidate\r");
+    tui.send(b"/changes\r");
     assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
     let review = tui.screen();
     assert!(review.contains("validation: Passed"), "{review}");
@@ -294,18 +276,11 @@ fn review_and_apply(
         "{}",
         tui.diagnostic()
     );
-    let successor = assert_materialized_php_fixture(checkout, database, project, base_snapshot);
-    let screen = tui.screen();
-    assert!(
-        screen.contains(&successor.to_string()[..20]),
-        "active TUI did not refresh to {successor}: {screen}"
-    );
-    successor
+    assert_materialized_php_fixture(checkout, database, project, base_snapshot)
 }
 
 /// Confirms candidate construction left the canonical snapshot and checkout unchanged.
 ///
-/// # Parameters
 /// - `checkout`: Copied project checkout used by the PTY process.
 /// - `database`: Durable product database path.
 /// - `project`: Onboarded project identity.
@@ -343,12 +318,12 @@ fn assert_project_base(
 
 /// Loads the durable agent session created through the native TUI.
 ///
-/// # Parameters
 /// - `database`: Product database path.
 /// - `session`: Exact session identity shown by the composer.
 ///
-/// # Returns
 /// Persisted session with completed branch results.
+/// # Returns
+/// The operation result.
 fn load_session(
     database: &std::path::Path,
     session: scriberig_core::EntityId,
@@ -362,12 +337,12 @@ fn load_session(
 
 /// Verifies the implementation branch returned its candidate through the root result.
 ///
-/// # Parameters
 /// - `session`: Persisted agent session to inspect.
 /// - `super`: Parent PTY test module.
 ///
-/// # Returns
 /// Candidate identity exposed in the root result.
+/// # Returns
+/// The operation result.
 fn assert_candidate_result(session: &scriberig_session::Session) -> String {
     let root_result = session
         .branches

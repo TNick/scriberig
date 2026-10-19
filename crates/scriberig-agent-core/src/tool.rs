@@ -62,22 +62,24 @@ pub enum ToolError {
 pub trait Tool {
     /// Returns the stable tool identifier.
     ///
-    /// # Returns
     /// Stable provider-neutral tool name.
+    /// # Returns
+    /// The operation result.
     fn name(&self) -> &'static str;
 
     /// Invokes the tool with semantic input and trusted request context.
     ///
-    /// # Parameters
     /// - `self`: Tool implementation.
     /// - `context`: Trusted application context.
     /// - `input`: Provider-neutral semantic input.
     ///
-    /// # Returns
     /// Compact structured tool result.
     ///
-    /// # Errors
     /// Returns a structured capability or application failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke(
         &self,
         context: &scriberig_app::ApplicationContext,
@@ -86,17 +88,18 @@ pub trait Tool {
 
     /// Invokes a named provider-facing control tool.
     ///
-    /// # Parameters
     /// - `self`: Tool implementation.
     /// - `_context`: Trusted application context.
     /// - `name`: Registered control-tool identifier.
     /// - `_arguments`: Validated provider arguments.
     ///
-    /// # Returns
     /// Compact structured control output.
     ///
-    /// # Errors
     /// Returns unsupported-operation unless the composed tool owns the name.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke_named(
         &self,
         _context: &scriberig_app::ApplicationContext,
@@ -111,18 +114,19 @@ pub trait Tool {
 
     /// Invokes a named provider-facing control tool with branch cancellation.
     ///
-    /// # Parameters
     /// - `self`: Tool implementation.
     /// - `context`: Trusted application context.
     /// - `name`: Registered control-tool identifier.
     /// - `arguments`: Validated provider arguments.
     /// - `cancelled`: Shared cancellation flag for the current branch.
     ///
-    /// # Returns
     /// Compact structured control output.
     ///
-    /// # Errors
     /// Returns unsupported-operation unless the composed tool owns the name.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn invoke_named_cancellable(
         &self,
         context: &scriberig_app::ApplicationContext,

@@ -2,13 +2,13 @@
 
 /// Builds the public identifier for a projected activity item.
 ///
-/// # Parameters
 /// - `kind`: Public category of the activity.
 /// - `has_no_parent`: Whether the source activity has no causal parent.
 /// - `id`: Durable source entity identity.
 ///
-/// # Returns
 /// Stable identifier with a role suffix for human and standalone output rows.
+/// # Returns
+/// The operation result.
 pub(super) fn projected_activity_id(
     kind: scriberig_protocol::SessionActivityKind,
     has_no_parent: bool,
@@ -25,12 +25,12 @@ pub(super) fn projected_activity_id(
 
 /// Projects bounded safe detail for one tool activity.
 ///
-/// # Parameters
 /// - `activity`: Durable activity reference being projected.
 /// - `branch`: Branch containing the corresponding tool record.
 ///
-/// # Returns
 /// Safe invocation arguments or result preview, with the other value absent.
+/// # Returns
+/// The operation result.
 pub(super) fn activity_tool_details(
     activity: &scriberig_session::ExecutionActivity,
     branch: &scriberig_session::Branch,
@@ -59,11 +59,11 @@ pub(super) fn activity_tool_details(
 
 /// Bounds display text by Unicode scalar values.
 ///
-/// # Parameters
 /// - `value`: Externally meaningful text.
 ///
-/// # Returns
 /// At most 512 characters with an ellipsis when truncated.
+/// # Returns
+/// The operation result.
 pub(super) fn bounded_summary(value: &str) -> String {
     let mut chars = value.chars();
     let mut summary = chars.by_ref().take(512).collect::<String>();
@@ -75,11 +75,11 @@ pub(super) fn bounded_summary(value: &str) -> String {
 
 /// Decodes and bounds persisted schema-redacted tool argument detail.
 ///
-/// # Parameters
 /// - `bytes`: Safe structured argument bytes stored with the invocation.
 ///
-/// # Returns
 /// The parsed argument value when its JSON form is at most 4096 characters.
+/// # Returns
+/// The operation result.
 pub(super) fn bounded_tool_arguments(bytes: &[u8]) -> Option<serde_json::Value> {
     let value = serde_json::from_slice::<serde_json::Value>(bytes).ok()?;
     (value.to_string().chars().count() <= 4096).then_some(value)
@@ -87,11 +87,11 @@ pub(super) fn bounded_tool_arguments(bytes: &[u8]) -> Option<serde_json::Value> 
 
 /// Projects only safe result metadata for bounded full-mode display.
 ///
-/// # Parameters
 /// - `bytes`: Structured result bytes retained by the trusted tool boundary.
 ///
-/// # Returns
 /// A whitelisted object bounded to 4096 serialized characters.
+/// # Returns
+/// The operation result.
 pub(super) fn bounded_tool_result_preview(bytes: &[u8]) -> Option<serde_json::Value> {
     let value = serde_json::from_slice::<serde_json::Value>(bytes).ok()?;
     let object = value.as_object()?;
@@ -117,12 +117,12 @@ pub(super) fn bounded_tool_result_preview(bytes: &[u8]) -> Option<serde_json::Va
 
 /// Reads the tool boundary's safe summary, falling back to a generic status.
 ///
-/// # Parameters
 /// - `result`: Durable result bytes returned by the trusted tool boundary.
 /// - `failed`: Whether the tool execution failed.
 ///
-/// # Returns
 /// A bounded result summary without exposing arbitrary output fields.
+/// # Returns
+/// The operation result.
 pub(super) fn tool_result_summary(result: &scriberig_session::ToolResult, failed: bool) -> String {
     let fallback = if failed {
         "Tool failed"

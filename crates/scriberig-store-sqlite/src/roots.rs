@@ -6,12 +6,12 @@ use scriberig_core::{RootName, SnapshotId};
 use scriberig_store::{RootError, RootStore};
 
 impl RootStore for SqliteStore {
-    /// # Parameters
     /// - `name`: Operation input.
     ///
-    /// # Returns
     /// The requested storage result.
     /// Reads a named root.
+    /// # Returns
+    /// The operation result.
     fn read_root(&self, name: &RootName) -> Option<SnapshotId> {
         let connection = self.connection.lock().ok()?;
         let bytes: Vec<u8> = connection
@@ -34,11 +34,12 @@ impl RootStore for SqliteStore {
     /// - `name`: Argument named `name`.
     /// - `snapshot`: Argument named `snapshot`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn set_root(&self, name: RootName, snapshot: SnapshotId) -> Result<(), RootError> {
         let connection = self
             .connection
@@ -47,17 +48,18 @@ impl RootStore for SqliteStore {
         write_root_in_connection(&connection, &name, snapshot)
             .map_err(|error| RootError::Backend(error.to_string()))
     }
-    /// # Parameters
     /// - `name`: Operation input.
     /// - `expected`: Operation input.
     /// - `new`: Operation input.
     ///
-    /// # Returns
     /// The requested storage result.
     ///
-    /// # Errors
     /// Returns a backend error when SQLite rejects the operation.
     /// Atomically promotes a root when its expected value matches.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn compare_and_set_root(
         &self,
         name: RootName,
@@ -90,17 +92,18 @@ impl RootStore for SqliteStore {
 
 /// Reads a root inside an existing transaction.
 ///
-/// # Parameters
 /// - `transaction`: Transaction containing the root table.
 /// - `name`: Root name to read.
 /// - `crate`: Internal visibility marker.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// The current snapshot assigned to the root, when present.
 ///
-/// # Errors
 /// Returns the SQLite query error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn read_root_in_transaction(
     transaction: &rusqlite::Transaction<'_>,
     name: &RootName,
@@ -125,18 +128,19 @@ pub(crate) fn read_root_in_transaction(
 
 /// Writes a root inside an existing transaction.
 ///
-/// # Parameters
 /// - `transaction`: Transaction receiving the root update.
 /// - `name`: Root name to update.
 /// - `snapshot`: Snapshot identity to assign.
 /// - `crate`: Internal visibility marker.
 /// - `crate`: Internal visibility marker.
 ///
-/// # Returns
 /// Unit after the update is accepted.
 ///
-/// # Errors
 /// Returns the SQLite update error.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub(crate) fn write_root_in_transaction(
     transaction: &rusqlite::Transaction<'_>,
     name: &RootName,
@@ -155,11 +159,12 @@ pub(crate) fn write_root_in_transaction(
 /// - `name`: Argument named `name`.
 /// - `snapshot`: Argument named `snapshot`.
 ///
-/// # Returns
-/// The value produced by the declaration.
 ///
-/// # Errors
 /// Returns an error when the operation cannot complete.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn write_root_in_connection(
     connection: &rusqlite::Connection,
     name: &RootName,

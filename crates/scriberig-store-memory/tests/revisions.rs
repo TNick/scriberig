@@ -6,12 +6,12 @@ use scriberig_store_memory::MemoryRevisionStore;
 
 /// Creates a deterministic revision fixture.
 ///
-/// # Parameters
 /// - `payload`: Canonical payload bytes.
 /// - `object`: Object type identifier.
 ///
-/// # Returns
 /// An immutable revision fixture.
+/// # Returns
+/// The operation result.
 fn revision(payload: &[u8], object: &str) -> Revision {
     Revision::new(
         EncodingVersion::V1,

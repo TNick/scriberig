@@ -10,12 +10,10 @@ use scriberig_protocol::{
 
 /// Reads the safe model library.
 ///
-/// # Parameters
 /// - `service`: Application service handling model configuration.
 /// - `context`: Trusted model-library capability context.
 /// - `correlation_id`: Request correlation identity.
 ///
-/// # Returns
 /// Safe model descriptors or a structured protocol error.
 pub(super) fn model_library<S: ApplicationService>(
     service: &S,
@@ -30,12 +28,10 @@ pub(super) fn model_library<S: ApplicationService>(
 
 /// Reads shared preferences for the trusted principal.
 ///
-/// # Parameters
 /// - `service`: Application service owning shared preferences.
 /// - `context`: Trusted capability and preference-owner context.
 /// - `correlation_id`: Request correlation identity.
 ///
-/// # Returns
 /// Revisioned shared preferences or a structured protocol error.
 pub(super) fn read_preferences<S: ApplicationService>(
     service: &S,
@@ -50,13 +46,11 @@ pub(super) fn read_preferences<S: ApplicationService>(
 
 /// Replaces shared preferences at the observed revision.
 ///
-/// # Parameters
 /// - `service`: Application service owning shared preferences.
 /// - `context`: Trusted capability and preference-owner context.
 /// - `request`: Expected revision and complete display choices.
 /// - `correlation_id`: Request correlation identity.
 ///
-/// # Returns
 /// Updated preferences or a structured protocol error.
 pub(super) fn set_preferences<S: ApplicationService>(
     service: &S,
@@ -74,12 +68,10 @@ pub(super) fn set_preferences<S: ApplicationService>(
 
 /// Selects a model profile for future invocations.
 ///
-/// # Parameters
 /// - `service`: Application service handling session selection.
 /// - `request`: Session, observed revision, and selected profile.
 /// - `correlation_id`: Request correlation identity.
 ///
-/// # Returns
 /// Updated execution selection or a structured protocol error.
 pub(super) fn set_model<S: ApplicationService>(
     service: &S,
@@ -101,12 +93,10 @@ pub(super) fn set_model<S: ApplicationService>(
 
 /// Selects a thinking level for future invocations.
 ///
-/// # Parameters
 /// - `service`: Application service handling session selection.
 /// - `request`: Session, observed revision, and selected thinking level.
 /// - `correlation_id`: Request correlation identity.
 ///
-/// # Returns
 /// Updated execution selection or a structured protocol error.
 pub(super) fn set_thinking<S: ApplicationService>(
     service: &S,
@@ -128,11 +118,11 @@ pub(super) fn set_thinking<S: ApplicationService>(
 
 /// Creates a trusted context for shared model preferences.
 ///
-/// # Parameters
 /// - `principal`: Caller identity established by the composition root.
 ///
-/// # Returns
 /// Capability-limited context with a separate user preference owner.
+/// # Returns
+/// The operation result.
 pub(super) fn presentation_context(principal: Option<&Principal>) -> ApplicationContext {
     ApplicationContext {
         principal: principal.cloned(),

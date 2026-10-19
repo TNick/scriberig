@@ -18,6 +18,7 @@ pub mod render;
 pub mod runtime;
 pub mod selection;
 pub mod service;
+pub mod slash_commands;
 pub mod state;
 pub mod terminal;
 pub mod view;
@@ -33,6 +34,8 @@ pub struct TuiConfig {
     pub snapshot: Option<SnapshotId>,
     /// Optional active project identity shown in the shell context.
     pub project: Option<String>,
+    /// Exact semantic scope inherited by the first conversation turn.
+    pub agent_selection: Option<scriberig_app::AgentSelection>,
 }
 
 /// Describes why the TUI runtime stopped.
@@ -57,11 +60,12 @@ impl std::fmt::Display for TuiError {
     /// Formats a safe terminal runtime error.
     /// - `formatter`: Argument named `formatter`.
     ///
-    /// # Returns
-    /// The value produced by the declaration.
     ///
-    /// # Errors
     /// Returns an error when the operation cannot complete.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Application(error) => error.fmt(formatter),
@@ -78,7 +82,7 @@ impl From<io::Error> for TuiError {
     /// - `error`: Argument named `error`.
     ///
     /// # Returns
-    /// The value produced by the declaration.
+    /// The operation result.
     fn from(error: io::Error) -> Self {
         Self::Io(error)
     }
@@ -93,16 +97,16 @@ pub use service::{
 
 /// Runs the line-oriented TUI shell over an application service.
 ///
-/// # Parameters
 /// - `service`: Application service used for semantic inspection.
 /// - `context`: Caller capability and snapshot context.
 /// - `config`: TUI interaction and initial-selection configuration.
 ///
-/// # Returns
 /// The terminal session outcome.
 ///
-/// # Errors
 /// Returns terminal I/O, invalid-command, or application failures.
+///
+/// # Errors
+/// Returns terminal I/O or application failures from the selected runtime.
 pub fn run<S: TuiService + Sync>(
     service: &S,
     context: &ApplicationContext,
@@ -114,17 +118,17 @@ pub fn run<S: TuiService + Sync>(
 
 /// Executes one inspection without taking over the caller's terminal.
 ///
-/// # Parameters
 /// - `service`: Application service used for semantic inspection.
 /// - `context`: Caller capability and snapshot context.
 /// - `entity`: Entity to inspect.
 /// - `snapshot`: Optional exact snapshot selector.
 ///
-/// # Returns
 /// Snapshot-bound inspection result.
 ///
-/// # Errors
 /// Returns an application or TUI boundary failure.
+///
+/// # Errors
+/// Returns application failures from snapshot-bound inspection.
 pub fn inspect_headless<S: TuiService>(
     service: &S,
     context: &ApplicationContext,
@@ -151,11 +155,12 @@ mod tests {
         /// - `_context`: Argument named `_context`.
         /// - `request`: Argument named `request`.
         ///
-        /// # Returns
-        /// The value produced by the declaration.
         ///
-        /// # Errors
         /// Returns an error when the operation cannot complete.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
         fn inspect(
             &self,
             _context: &ApplicationContext,

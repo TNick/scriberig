@@ -9,13 +9,26 @@ pub enum SessionError {
     EmptyTitle,
     MissingParent,
     DuplicateBranch,
+    /// The continuation branch does not exist.
+    MissingAnchorBranch,
+    /// The continuation target does not exist in the branch.
+    MissingAnchorTarget,
+    /// The target exists but does not represent a user-replyable point.
+    NonReplyableAnchor,
+    /// A plan identity already exists in the session.
+    DuplicatePlan,
+    /// The plan's owner does not match the containing session.
+    PlanSessionMismatch,
+    /// The plan has no exact continuation anchor.
+    MissingPlanAnchor,
+    /// The plan root branch differs from the resolved anchor branch.
+    PlanAnchorMismatch,
 }
 
 impl std::fmt::Display for SessionError {
     /// Formats a session error.
     /// Executes `fmt` for structured session state.
     ///
-    /// # Parameters
     /// - `self`: Session value or formatter.
     /// - `id`: Stable entity identifier when applicable.
     /// - `title`: Branch title when applicable.
@@ -27,11 +40,13 @@ impl std::fmt::Display for SessionError {
     /// - `decisions`: Decision entries when applicable.
     /// - `f`: Formatting destination when applicable.
     ///
-    /// # Returns
     /// The structured result.
     ///
-    /// # Errors
     /// Returns a validation or formatting error when inputs are invalid.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{self:?}")
     }

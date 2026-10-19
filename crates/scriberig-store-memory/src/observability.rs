@@ -10,11 +10,13 @@ use crate::MemoryStore;
 impl StoreObservability for MemoryStore {
     /// Returns counts from the in-memory authoritative collections.
     ///
-    /// # Returns
     /// Available in-memory statistics.
     ///
-    /// # Errors
     /// Returns an error when a collection lock is poisoned.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn stats(&self) -> Result<StoreStats, StoreOperationError> {
         let revisions = self
             .revisions
@@ -42,14 +44,15 @@ impl StoreObservability for MemoryStore {
 
     /// Returns counts annotated with memory reachability.
     ///
-    /// # Parameters
     /// - `protected`: Snapshot roots used for reachability counts.
     ///
-    /// # Returns
     /// Authoritative counts and marked-object counts.
     ///
-    /// # Errors
     /// Returns a maintenance error when a collection lock is poisoned.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn stats_for(&self, protected: &ProtectedRoots) -> Result<StoreStats, StoreOperationError> {
         let mut stats = self.stats()?;
         let report = MaintenanceStore::integrity_check(self, protected)?;
@@ -63,11 +66,13 @@ impl StoreObservability for MemoryStore {
 
     /// Lists in-memory roots in deterministic order.
     ///
-    /// # Returns
     /// Root status records ordered by root name.
     ///
-    /// # Errors
     /// Returns an error when the root lock is poisoned.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn root_statuses(&self) -> Result<Vec<RootStatus>, StoreOperationError> {
         Ok(self
             .roots
@@ -83,11 +88,13 @@ impl StoreObservability for MemoryStore {
 
     /// Rebuilds the in-memory derived-index boundary.
     ///
-    /// # Returns
     /// A consistent index status.
     ///
-    /// # Errors
     /// This backend has no derived indexes and does not fail this operation.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn rebuild_indexes(&self) -> Result<IndexStatus, StoreOperationError> {
         Ok(IndexStatus { consistent: true })
     }

@@ -9,6 +9,12 @@ use crate::selection::PrimaryView;
 use crate::view::history::{HistoryModel, HistoryRow};
 use scriberig_core::{EntityId, SnapshotId};
 
+/// Starts the native shell on the conversation home.
+#[test]
+fn default_state_opens_conversation_home() {
+    assert_eq!(TuiState::default().primary_view, PrimaryView::Conversation);
+}
+
 /// Verifies resize events update only terminal presentation state.
 #[test]
 fn resize_updates_state() {
@@ -21,15 +27,16 @@ fn resize_updates_state() {
     assert!(!state.should_quit);
 }
 
-/// Verifies quit input stops the runtime.
+/// Verifies ordinary conversation typing is not treated as a quit command.
 #[test]
-fn quit_key_sets_quit_flag() {
+fn printable_q_edits_conversation_draft() {
     let mut state = TuiState::default();
     state.apply_event(&TuiEvent::Key(Key {
         code: KeyCode::Char('q'),
         modifiers: Modifiers::default(),
     }));
-    assert!(state.should_quit);
+    assert!(!state.should_quit);
+    assert_eq!(state.conversation_composer.draft, "q");
 }
 
 /// Verifies the control-C quit chord stops the runtime.
@@ -283,126 +290,5 @@ fn history_row_activation_inspects_historical_entity() {
     ));
 }
 
-/// Verifies a diff row activates inspection on the target snapshot side.
-#[test]
-fn diff_row_activation_inspects_target_entity() {
-    let entity = EntityId::from_bytes([8; 16]);
-    let target = SnapshotId::new([4; 32]);
-    let mut state = TuiState {
-        focus: Focus::Primary,
-        primary_view: PrimaryView::Diff,
-        diff: crate::inspector::LoadState::Ready(crate::view::diff::DiffModel {
-            left: SnapshotId::new([3; 32]),
-            right: target,
-            rows: vec![crate::view::diff::DiffRow {
-                entity,
-                before: None,
-                after: None,
-            }],
-        }),
-        ..TuiState::default()
-    };
-
-    let effects = reduce(&mut state, Action::Activated);
-
-    assert!(matches!(
-        effects.as_slice(),
-        [Effect::InspectEntity {
-            entity: selected,
-            snapshot: Some(selected_snapshot),
-            ..
-        }] if selected == &entity && selected_snapshot == &target
-    ));
-}
-
-/// Verifies Enter on an Explorer row re-inspects that semantic entity.
-#[test]
-fn explorer_activation_inspects_selected_entity() {
-    let entity = scriberig_core::EntityId::from_bytes([8; 16]);
-    let mut state = TuiState {
-        focus: crate::state::Focus::Explorer,
-        ..TuiState::default()
-    };
-    state.explorer =
-        crate::explorer::ExplorerModel::from_selection(crate::selection::EntitySelection {
-            entity,
-            revision: None,
-            snapshot: None,
-        });
-
-    let effects = reduce(&mut state, Action::Activated);
-
-    assert!(matches!(
-        effects.as_slice(),
-        [Effect::InspectEntity {
-            entity: selected,
-            ..
-        }] if selected == &entity
-    ));
-    assert_eq!(state.primary_view, crate::selection::PrimaryView::Overview);
-}
-
-/// Verifies refresh re-reads the selected entity through the service port.
-#[test]
-fn refresh_reissues_selected_inspection() {
-    let mut state = TuiState::default();
-    let entity = scriberig_core::EntityId::from_bytes([7; 16]);
-    state.selection = Some(crate::selection::EntitySelection {
-        entity,
-        revision: None,
-        snapshot: None,
-    });
-    let effects = reduce(&mut state, Action::RefreshRequested);
-    assert!(
-        matches!(effects.as_slice(), [Effect::InspectEntity { entity: selected, .. }] if selected == &entity)
-    );
-}
-
-/// Verifies a start event exposes a cancellable operation before detail lookup completes.
-#[test]
-fn application_operation_event_immediately_exposes_running_state() {
-    let mut state = TuiState::default();
-    let operation = scriberig_core::OperationId::new("running").expect("operation id");
-    let effects = state.apply_event(&crate::event::TuiEvent::Application(
-        scriberig_app::ApplicationEvent::OperationStarted {
-            operation: operation.clone(),
-        },
-    ));
-    assert_eq!(state.operations[0].id, operation);
-    assert_eq!(
-        state.operations[0].status,
-        scriberig_app::OperationStatus::Running
-    );
-    assert!(state.operations[0].cancellable());
-    assert!(effects.contains(&Effect::OperationStatus { operation }));
-}
-
-/// Verifies closing the operations presentation cannot cancel application work.
-#[test]
-fn closing_overlay_does_not_cancel_operation() {
-    let mut state = TuiState::default();
-    let operation = scriberig_core::OperationId::new("active").expect("operation id");
-    let record =
-        scriberig_app::OperationRecord::queued(operation, scriberig_app::OperationKind::Query);
-    reduce(
-        &mut state,
-        Action::OperationObserved(crate::view::operations::OperationModel::from_record(
-            &record,
-        )),
-    );
-    assert!(state.operations[0].cancellable());
-    assert_eq!(
-        reduce(&mut state, Action::OverlayClosed),
-        vec![Effect::None]
-    );
-    assert!(state.operations[0].cancellable());
-}
-
-#[path = "state_late_tests.rs"]
-mod state_late_tests;
-#[path = "state_refresh_tests.rs"]
-mod state_refresh_tests;
-#[path = "state_session_composer_tests.rs"]
-mod state_session_composer_tests;
-#[path = "state_tail_tests.rs"]
-mod state_tail_tests;
+#[path = "state_tests_part1.rs"]
+mod part1;

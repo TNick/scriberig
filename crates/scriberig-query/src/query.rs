@@ -128,14 +128,15 @@ pub struct QueryResult {
 pub trait StructuredQueryService {
     /// Evaluates one query specification without changing its snapshot scope.
     ///
-    /// # Parameters
     /// - `self`: Query provider.
     /// - `specification`: Exact-scope structural query.
     ///
-    /// # Returns
     /// A bounded page of semantic rows.
     ///
-    /// # Errors
     /// Returns a structured error for unsupported expressions or invalid queries.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn query(&self, specification: &QuerySpec) -> Result<QueryResult, QueryError>;
 }

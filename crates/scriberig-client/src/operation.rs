@@ -12,12 +12,12 @@ pub struct OperationPoller {
 impl OperationPoller {
     /// Creates a poller for one operation.
     ///
-    /// # Parameters
     /// - `operation_id`: Stable operation identifier.
     ///
-    /// # Returns
     /// A polling handle.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(operation_id: impl Into<String>) -> Self {
         Self {
             operation_id: operation_id.into(),
@@ -26,12 +26,12 @@ impl OperationPoller {
 
     /// Accepts a status response from the semantic client.
     ///
-    /// # Parameters
     /// - `response`: Status response to expose to callers.
     ///
-    /// # Returns
     /// The contained protocol operation state.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn observe(&self, response: OperationStatusResponse) -> scriberig_protocol::Operation {
         response.operation
     }

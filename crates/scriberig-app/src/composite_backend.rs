@@ -21,11 +21,9 @@ pub struct CompositeBackend<R, O> {
 impl<R, O> CompositeBackend<R, O> {
     /// Creates a composite backend from independent providers.
     ///
-    /// # Parameters
     /// - `read`: Provider for inspect/list/follow/find/query.
     /// - `operations`: Provider for diff/history/render/branch/apply/commit.
     ///
-    /// # Returns
     /// A universal application backend.
     #[must_use]
     pub const fn new(read: R, operations: O) -> Self {
@@ -39,11 +37,9 @@ impl<R, O> CompositeBackend<R, O> {
 
     /// Sets the snapshot used to resolve current-root selectors.
     ///
-    /// # Parameters
     /// - `self`: Backend being configured.
     /// - `snapshot`: Exact current snapshot.
     ///
-    /// # Returns
     /// The configured backend.
     #[must_use]
     pub const fn with_current_snapshot(mut self, snapshot: SnapshotId) -> Self {
@@ -53,13 +49,13 @@ impl<R, O> CompositeBackend<R, O> {
 
     /// Installs the registry used to enrich inspection capabilities.
     ///
-    /// # Parameters
     /// - `self`: Backend being configured.
     /// - `capabilities`: Injected generic/domain capability registry.
     ///
-    /// # Returns
     /// The configured composite backend.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn with_capability_registry(mut self, capabilities: CapabilityRegistry) -> Self {
         self.capabilities = Some(capabilities);
         self
@@ -73,16 +69,17 @@ where
 {
     /// Dispatches each universal operation to its owning provider.
     ///
-    /// # Parameters
     /// - `self`: Composite application backend.
     /// - `context`: Authorized caller context.
     /// - `request`: Universal request to execute.
     ///
-    /// # Returns
     /// Structured universal operation result.
     ///
-    /// # Errors
     /// Returns the provider's structured application failure.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn execute(
         &self,
         context: &ApplicationContext,
@@ -120,6 +117,10 @@ where
                 .operations
                 .diff(context, value)
                 .map(ApplicationResult::Diff),
+            ApplicationRequest::Merge(value) => self
+                .operations
+                .merge(context, value)
+                .map(ApplicationResult::Merge),
             ApplicationRequest::History(value) => {
                 let value = resolve_history(&self.operations, value)?;
                 self.operations
@@ -146,20 +147,36 @@ where
                 .operations
                 .commit(context, value)
                 .map(ApplicationResult::Commit),
+            ApplicationRequest::DomainOperation(value) => {
+                let registry = self.capabilities.as_ref().ok_or_else(|| {
+                    ApplicationError::UnsupportedOperation {
+                        operation: "domain operation registry".to_owned(),
+                    }
+                })?;
+                CapabilityRegistry::authorize(context, value)?;
+                let inspection = self
+                    .read
+                    .inspect(&crate::capability_registry::subject_inspection(value))
+                    .map_err(map_query_error)?;
+                registry
+                    .execute_for_entity_type(context, value, inspection.entity_type.as_ref())
+                    .map(ApplicationResult::DomainOperation)
+            }
         }
     }
 
     /// Resolves the configured current snapshot for convenience APIs.
     ///
-    /// # Parameters
     /// - `self`: Composite application backend.
     /// - `_context`: Authorized caller context.
     ///
-    /// # Returns
     /// Exact configured current snapshot.
     ///
-    /// # Errors
     /// Returns an unsupported-operation error when no root is configured.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
     fn current_snapshot(
         &self,
         _context: &ApplicationContext,
@@ -218,11 +235,11 @@ fn resolve_selector<O: OperationProvider>(
 
 /// Maps a query error to the application boundary.
 ///
-/// # Parameters
 /// - `error`: Query failure returned by the read provider.
 ///
-/// # Returns
 /// Structured application-level failure.
+/// # Returns
+/// The operation result.
 fn map_query_error(error: QueryError) -> ApplicationError {
     match error {
         QueryError::NotFound { target, .. } => ApplicationError::NotFound {

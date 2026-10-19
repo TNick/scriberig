@@ -27,13 +27,13 @@ pub struct FindModel {
 impl FindModel {
     /// Builds a terminal model from a public find result.
     ///
-    /// # Parameters
     /// - `query`: User-authored discovery text.
     /// - `result`: Application-owned discovery result.
     ///
-    /// # Returns
     /// A bounded presentation model.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn from_result(query: impl Into<String>, result: &scriberig_query::FindResult) -> Self {
         Self {
             query: query.into(),

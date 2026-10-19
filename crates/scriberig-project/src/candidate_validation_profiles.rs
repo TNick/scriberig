@@ -18,12 +18,12 @@ pub enum CandidateValidationProfile {
 impl CandidateValidationProfile {
     /// Resolves a registered policy identifier.
     ///
-    /// # Parameters
     /// - `identifier`: Stable profile identifier supplied by an application caller.
     ///
-    /// # Returns
     /// A registered profile, or `None` when the identifier is unknown.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn from_identifier(identifier: &str) -> Option<Self> {
         match identifier {
             "php-domain-focused" => Some(Self::PhpDomainFocused),
@@ -37,7 +37,6 @@ impl CandidateValidationProfile {
 
     /// Returns the stable provider-facing identity for this profile.
     ///
-    /// # Returns
     /// Registered validation profile identifier.
     #[must_use]
     pub const fn identifier(self) -> &'static str {
@@ -52,7 +51,6 @@ impl CandidateValidationProfile {
 
     /// Returns fixed Cargo arguments owned by the profile policy.
     ///
-    /// # Returns
     /// Arguments passed directly to Cargo without a shell.
     pub(super) const fn cargo_arguments(self) -> &'static [&'static str] {
         match self {
@@ -81,7 +79,6 @@ impl CandidateValidationProfile {
 
     /// Returns whether this profile may access declared dependency sources.
     ///
-    /// # Returns
     /// `true` only for the bounded, lockfile-based dependency acquisition profile.
     pub(super) const fn allows_dependency_acquisition(self) -> bool {
         matches!(self, Self::CargoDependencyResolution)
@@ -89,7 +86,6 @@ impl CandidateValidationProfile {
 
     /// Returns the maximum process duration for this profile.
     ///
-    /// # Returns
     /// A bounded profile-specific execution deadline.
     pub(super) const fn timeout(self) -> std::time::Duration {
         match self {

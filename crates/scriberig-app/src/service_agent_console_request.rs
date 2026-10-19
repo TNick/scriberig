@@ -8,17 +8,14 @@ use scriberig_core::EntityId;
 
 /// Loads the session and resolves one captured request by stable identities.
 ///
-/// # Parameters
 /// - `service`: Application service that owns session reads.
 /// - `context`: Authorized request context.
 /// - `session`: Session containing the invocation.
 /// - `branch`: Branch containing the invocation.
 /// - `invocation`: Stable model-invocation identity.
 ///
-/// # Returns
 /// The captured safe request projection.
 ///
-/// # Errors
 /// Returns authorization or lookup errors when detail is unavailable.
 pub(super) fn model_request_detail<B: ApplicationBackend>(
     service: &ApplicationService<B>,

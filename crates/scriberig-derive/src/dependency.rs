@@ -30,12 +30,12 @@ pub struct DependencySet(Vec<Dependency>);
 impl DependencySet {
     /// Creates a dependency set, removing duplicate entries deterministically.
     ///
-    /// # Parameters
     /// - `dependencies`: Dependencies in any insertion order.
     ///
-    /// # Returns
     /// A sorted set with duplicates removed.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn new(mut dependencies: Vec<Dependency>) -> Self {
         dependencies.sort();
         dependencies.dedup();
@@ -44,12 +44,12 @@ impl DependencySet {
 
     /// Borrows the normalized dependencies in deterministic order.
     ///
-    /// # Parameters
     /// - `self`: Dependency set to inspect.
     ///
-    /// # Returns
     /// The ordered dependency slice.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn as_slice(&self) -> &[Dependency] {
         &self.0
     }

@@ -2,14 +2,15 @@
 
 /// Prints the effective local-agent settings and their sources.
 ///
-/// # Parameters
 /// - `args`: Output format selected for the inspection command.
 ///
-/// # Returns
 /// Unit after the resolved configuration is written to stdout.
 ///
-/// # Errors
 /// Returns an error when configuration loading or rendering fails.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn config_command(
     args: &scriberig_cli::ConfigArgs,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -25,11 +26,13 @@ pub fn config_command(
 
 /// Resolves configuration files and environment values without CLI overrides.
 ///
-/// # Returns
 /// Effective settings with per-property provenance.
 ///
-/// # Errors
 /// Returns a safe configuration-discovery or validation failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn resolve_current_config()
 -> Result<scriberig_cli::config::ResolvedConfig, scriberig_cli::config::ConfigError> {
     let resolver = scriberig_cli::config::ConfigResolver::from_process().map_err(|error| {
@@ -42,12 +45,14 @@ pub fn resolve_current_config()
 
 /// Builds the effective configured provider without reading its credential.
 ///
-/// # Returns
 /// Provider settings and whether a credential reference was configured, or no
 /// provider when `base_url` is absent.
 ///
-/// # Errors
 /// Returns safe configuration or credential-reference validation errors.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn resolve_provider_config() -> Result<
     Option<(scriberig_agent_runtime::provider::ProviderConfig, bool)>,
     scriberig_cli::config::ConfigError,
@@ -75,14 +80,15 @@ pub fn resolve_provider_config() -> Result<
 
 /// Resolves layered settings and applies them to one parsed run command.
 ///
-/// # Parameters
 /// - `args`: Parsed run or agent arguments, including explicit CLI options.
 ///
-/// # Returns
 /// A copy of the arguments with winning configured values applied.
 ///
-/// # Errors
 /// Returns an error when a discovered setting is malformed or invalid.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn resolve_run_config(
     args: &scriberig_cli::RunArgs,
 ) -> Result<scriberig_cli::RunArgs, scriberig_cli::config::ConfigError> {
@@ -187,14 +193,15 @@ pub fn resolve_run_config(
 
 /// Reads an atomic credential descriptor without resolving its secret value.
 ///
-/// # Parameters
 /// - `config`: Effective configuration with validated property types.
 ///
-/// # Returns
 /// The selected reference, or no credential for an explicit null.
 ///
-/// # Errors
 /// Returns a safe configuration error for an invalid reference.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn config_credential(
     config: &scriberig_cli::config::ResolvedConfig,
 ) -> Result<Option<scriberig_secrets::SecretRef>, scriberig_cli::config::ConfigError> {
@@ -207,14 +214,15 @@ fn config_credential(
 
 /// Composes a policy-checking credential provider without reading a secret.
 ///
-/// # Parameters
 /// - `args`: Effective provider settings and original explicit CLI markers.
 ///
-/// # Returns
 /// A live authorization boundary or explicit unauthenticated execution.
 ///
-/// # Errors
 /// Returns safe project, registry-location, or destination validation failures.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn credential_source(
     args: &scriberig_cli::RunArgs,
 ) -> Result<scriberig_agent_runtime::provider::CredentialSource, scriberig_secrets::SecretError> {
@@ -254,14 +262,15 @@ pub fn credential_source(
 
 /// Creates the ordinary live-policy credential source used by diagnostics.
 ///
-/// # Parameters
 /// - `reference`: Configured reference, or `None` for an unauthenticated API.
 ///
-/// # Returns
 /// A credential source that checks user and system policy on each request.
 ///
-/// # Errors
 /// Returns safe endpoint, path, or registry-location failures.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn credential_source_for_check(
     reference: Option<&scriberig_secrets::SecretRef>,
 ) -> Result<scriberig_agent_runtime::provider::CredentialSource, scriberig_secrets::SecretError> {
@@ -281,16 +290,17 @@ pub fn credential_source_for_check(
 
 /// Wraps a reference with the selected identity and live policy locations.
 ///
-/// # Parameters
 /// - `reference`: Credential source to resolve only after authorization.
 /// - `context`: Trusted project, purpose, and execution mode.
 /// - `invocation_binding`: Optional grant created from explicit local CLI use.
 ///
-/// # Returns
 /// An authorized runtime credential source.
 ///
-/// # Errors
 /// Returns a safe registry-location or path failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 fn authorized_credential_source(
     reference: &scriberig_secrets::SecretRef,
     context: scriberig_secrets::SecretUseContext,
@@ -312,12 +322,12 @@ fn authorized_credential_source(
 
 /// Reads one required string setting from resolved configuration.
 ///
-/// # Parameters
 /// - `config`: Resolved property collection.
 /// - `name`: Property name to read.
 ///
-/// # Returns
 /// The property value as a string, or an empty string for null.
+/// # Returns
+/// The operation result.
 fn config_string(config: &scriberig_cli::config::ResolvedConfig, name: &str) -> String {
     config.entries[name]
         .value
@@ -328,12 +338,12 @@ fn config_string(config: &scriberig_cli::config::ResolvedConfig, name: &str) -> 
 
 /// Reads one nullable string setting from resolved configuration.
 ///
-/// # Parameters
 /// - `config`: Resolved property collection.
 /// - `name`: Property name to read.
 ///
-/// # Returns
 /// The property string or `None` when it is null.
+/// # Returns
+/// The operation result.
 fn config_optional_string(
     config: &scriberig_cli::config::ResolvedConfig,
     name: &str,

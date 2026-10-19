@@ -27,6 +27,8 @@ pub enum OperationKind {
     Branch,
     /// Execute a model-driven agent operation.
     Agent,
+    /// Coordinate and execute a durable agent plan.
+    Plan,
     /// Apply a change.
     Apply,
     /// Commit a validated change.
@@ -35,6 +37,8 @@ pub enum OperationKind {
     Validate,
     /// Promote a candidate.
     Promote,
+    /// Execute a registered semantic domain operation.
+    DomainOperation,
     /// Extensible operation category.
     Custom(String),
 }

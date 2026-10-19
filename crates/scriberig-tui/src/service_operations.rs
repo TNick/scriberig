@@ -8,15 +8,15 @@ use crate::action::Action;
 impl<S: TuiService> TuiOperationService for S {
     /// Uses the operation method exposed by the TUI service boundary.
     ///
-    /// # Parameters
     /// - `context`: Application context for the request.
     /// - `request`: Public operation request.
     ///
+    ///
+    /// Returns the service operation error.
     /// # Returns
     /// The operation result.
-    ///
     /// # Errors
-    /// Returns the service operation error.
+    /// Returns an error when the operation fails.
     fn execute_operation(
         &self,
         context: &ApplicationContext,
@@ -28,16 +28,16 @@ impl<S: TuiService> TuiOperationService for S {
 
 /// Executes one public operation through the TUI operation port.
 ///
-/// # Parameters
 /// - `service`: TUI operation service.
 /// - `context`: Application capability context.
 /// - `request`: Operation request to execute.
 ///
-/// # Returns
 /// The application operation result.
 ///
-/// # Errors
 /// Returns the application error produced by the operation service.
+///
+/// # Errors
+/// Returns the operation error from the TUI service.
 pub fn execute_operation<S: TuiOperationService>(
     service: &S,
     context: &ApplicationContext,
@@ -84,13 +84,13 @@ pub fn execute_operation_effect<S: TuiOperationService>(
 
 /// Converts one successful public operation result into its TUI action.
 ///
-/// # Parameters
 /// - `request_id`: Request generation associated with the result.
 /// - `request`: Original application request.
 /// - `result`: Public result returned by the shared application boundary.
 ///
-/// # Returns
 /// The presentation action for the operation result.
+/// # Returns
+/// The operation result.
 fn map_operation_result(
     request_id: u64,
     request: scriberig_app::ApplicationRequest,

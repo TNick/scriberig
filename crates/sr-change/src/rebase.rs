@@ -25,12 +25,12 @@ pub struct ReplayState {
 impl ReplayState {
     /// Creates replay state from an exact snapshot with empty relations.
     ///
-    /// # Parameters
     /// - `snapshot`: Exact entity snapshot to replay onto.
     ///
-    /// # Returns
     /// Replay state containing the supplied snapshot.
     #[must_use]
+    /// # Returns
+    /// The operation result.
     pub fn from_snapshot(snapshot: Snapshot) -> Self {
         Self {
             snapshot,
@@ -68,12 +68,12 @@ pub enum DomainReplayOutcome {
 pub trait DomainReplayStrategy {
     /// Replays one operation without mutating historical input state.
     ///
-    /// # Parameters
     /// - `operation`: Recorded semantic operation.
     /// - `context`: Original and current exact states.
     ///
-    /// # Returns
     /// Applied deltas, a structured conflict detail, or not-applicable.
+    /// # Returns
+    /// The operation result.
     fn replay(&self, operation: &Operation, context: ReplayContext<'_>) -> DomainReplayOutcome;
 }
 
@@ -137,11 +137,11 @@ pub enum RebaseError {
 impl From<MigrationError> for RebaseError {
     /// Wraps migration construction failure.
     ///
-    /// # Parameters
     /// - `error`: Migration construction error.
     ///
-    /// # Returns
     /// Rebase error containing the migration failure.
+    /// # Returns
+    /// The operation result.
     fn from(error: MigrationError) -> Self {
         Self::Migration(error)
     }
@@ -153,16 +153,17 @@ impl From<MigrationError> for RebaseError {
 /// exact entity, relation, and collection preconditions; they never inspect
 /// rendered text or positional byte offsets.
 ///
-/// # Parameters
 /// - `input`: Original snapshots, new base, and ordered migrations.
 /// - `strategy`: Optional domain replay extension.
 ///
-/// # Returns
 /// A new history line and its resulting state. The result is never promoted.
 ///
-/// # Errors
 /// Returns an error when migration ancestry does not match the supplied order.
 #[allow(clippy::too_many_lines)]
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
 pub fn rebase(
     input: RebaseInput<'_>,
     strategy: Option<&dyn DomainReplayStrategy>,
@@ -274,11 +275,11 @@ pub fn rebase(
 
 /// Copies provenance and records that the migration was replayed.
 ///
-/// # Parameters
 /// - `provenance`: Original migration provenance.
 ///
-/// # Returns
 /// Copied provenance with a rebase parent marker.
+/// # Returns
+/// The operation result.
 fn rebased_provenance(provenance: &Provenance) -> Provenance {
     let mut result = provenance.clone();
     result.parents.push("rebase".to_owned());
