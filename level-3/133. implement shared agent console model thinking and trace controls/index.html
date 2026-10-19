@@ -7802,11 +7802,16 @@ history, and final results. Visibility changes do not request new execution.</p>
   exhausted D: while linking; <code>cargo clean</code> reclaimed generated artifacts.
   The subsequent workspace run passed the PHP candidate, stale-base,
   cancellation, and validation-failure scenarios, then stopped at
-  <code>provider_secrets_test</code>: Portmaster logged the test executable's
-  <code>127.0.0.1</code> connections as blocked while a prompt was pending. No Portmaster
-  policy or networking settings were changed, and the blocked test was not
-  retried. The full Rust workspace test gate remains unchecked pending owner
-  resolution of that Portmaster prompt and a successful complete rerun.</li>
+  <code>provider_secrets_test</code>. The owner subsequently confirmed the local
+  connection was allowed, but the workspace rerun still timed out before its
+  <code>127.0.0.1</code> ephemeral listener received requests; Windows <code>accept</code> reported
+  WSA error 10035. The provider test fixture now recognizes that Windows
+  would-block condition, with its focused regression test passing, but the
+  real HTTP tests still receive no connection. A separate bounded PowerShell
+  TCP probe to a local <code>127.0.0.1</code> listener also timed out after three
+  seconds. No Portmaster or networking settings were changed. The full Rust
+  workspace test gate remains unchecked pending restoration of local-loopback
+  connectivity and a successful complete rerun.</li>
 <li>[x] Full web formatting completes.</li>
 <li>[x] Full web typecheck passes.</li>
 <li>[x] Full web test suite passes.</li>

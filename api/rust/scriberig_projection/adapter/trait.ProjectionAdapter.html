@@ -42,66 +42,69 @@
 </div></details><details class="toggle" open><summary><section id="associatedtype.Migration" class="method"><h4 class="code-header">type <a href="#associatedtype.Migration" class="associatedtype">Migration</a></h4></section></summary><div class="docblock"><p>Adapter-owned proposed semantic migration.</p>
 </div></details><details class="toggle" open><summary><section id="associatedtype.Conflict" class="method"><h4 class="code-header">type <a href="#associatedtype.Conflict" class="associatedtype">Conflict</a></h4></section></summary><div class="docblock"><p>Adapter-owned semantic conflict representation.</p>
 </div></details></div><h2 id="required-methods" class="section-header">Required Methods<a href="#required-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="tymethod.capabilities" class="method"><h4 class="code-header">fn <a href="#tymethod.capabilities" class="fn">capabilities</a>(&amp;self, kind: &amp;<a class="struct" href="../struct.ProjectionKind.html" title="struct scriberig_projection::ProjectionKind">ProjectionKind</a>) -&gt; <a class="struct" href="../struct.ProjectionCapabilities.html" title="struct scriberig_projection::ProjectionCapabilities">ProjectionCapabilities</a></h4></section></summary><div class="docblock"><p>Returns capabilities for the requested projection kind.</p>
-<h5 id="parameters"><a class="doc-anchor" href="#parameters">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Adapter providing the contract.</li>
 <li><code>kind</code>: Projection kind to inspect.</li>
 </ul>
-<h5 id="returns"><a class="doc-anchor" href="#returns">§</a>Returns</h5>
 <p>Capabilities declared for the kind.</p>
+<h5 id="returns"><a class="doc-anchor" href="#returns">§</a>Returns</h5>
+<p>The operation result.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="tymethod.render" class="method"><h4 class="code-header">fn <a href="#tymethod.render" class="fn">render</a>(
     &amp;self,
     request: &amp;<a class="struct" href="../struct.RenderRequest.html" title="struct scriberig_projection::RenderRequest">RenderRequest</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../struct.RenderedProjection.html" title="struct scriberig_projection::RenderedProjection">RenderedProjection</a>, <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;<a class="struct" href="../struct.ProjectionDiagnostic.html" title="struct scriberig_projection::ProjectionDiagnostic">ProjectionDiagnostic</a>&gt;&gt;</h4></section></summary><div class="docblock"><p>Renders semantic state using the explicit request inputs.</p>
-<h5 id="parameters-1"><a class="doc-anchor" href="#parameters-1">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Adapter performing rendering.</li>
 <li><code>request</code>: Exact render inputs.</li>
 </ul>
-<h5 id="returns-1"><a class="doc-anchor" href="#returns-1">§</a>Returns</h5>
 <p>The rendered representation.</p>
-<h5 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h5>
 <p>Returns a structured diagnostic when rendering fails.</p>
+<h5 id="returns-1"><a class="doc-anchor" href="#returns-1">§</a>Returns</h5>
+<p>The operation result.</p>
+<h5 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h5>
+<p>Returns an error when the operation fails.</p>
 </div></details></div><h2 id="provided-methods" class="section-header">Provided Methods<a href="#provided-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="method.parse" class="method"><h4 class="code-header">fn <a href="#method.parse" class="fn">parse</a>(
     &amp;self,
     kind: &amp;<a class="struct" href="../struct.ProjectionKind.html" title="struct scriberig_projection::ProjectionKind">ProjectionKind</a>,
     bytes: &amp;[<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u8.html">u8</a>],
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self::<a class="associatedtype" href="../trait.ProjectionAdapter.html#associatedtype.Candidate" title="type scriberig_projection::ProjectionAdapter::Candidate">Candidate</a>, <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;<a class="struct" href="../struct.ProjectionDiagnostic.html" title="struct scriberig_projection::ProjectionDiagnostic">ProjectionDiagnostic</a>&gt;&gt;</h4></section></summary><div class="docblock"><p>Parses an external representation without assigning canonical identity.</p>
-<h5 id="parameters-2"><a class="doc-anchor" href="#parameters-2">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Adapter performing parsing.</li>
 <li><code>kind</code>: External representation format.</li>
 <li><code>bytes</code>: Exact external representation bytes.</li>
 </ul>
-<h5 id="returns-2"><a class="doc-anchor" href="#returns-2">§</a>Returns</h5>
 <p>An adapter-owned semantic candidate.</p>
-<h5 id="errors-1"><a class="doc-anchor" href="#errors-1">§</a>Errors</h5>
 <p>Returns a structured diagnostic when parsing fails.</p>
+<h5 id="returns-2"><a class="doc-anchor" href="#returns-2">§</a>Returns</h5>
+<p>The operation result.</p>
+<h5 id="errors-1"><a class="doc-anchor" href="#errors-1">§</a>Errors</h5>
+<p>Returns an error when the operation fails.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.reconcile" class="method"><h4 class="code-header">fn <a href="#method.reconcile" class="fn">reconcile</a>(
     &amp;self,
     candidate: Self::<a class="associatedtype" href="../trait.ProjectionAdapter.html#associatedtype.Candidate" title="type scriberig_projection::ProjectionAdapter::Candidate">Candidate</a>,
     context: &amp;<a class="struct" href="../struct.ReconciliationContext.html" title="struct scriberig_projection::ReconciliationContext">ReconciliationContext</a>,
 ) -&gt; <a class="enum" href="../enum.ReconciliationOutcome.html" title="enum scriberig_projection::ReconciliationOutcome">ReconciliationOutcome</a>&lt;Self::<a class="associatedtype" href="../trait.ProjectionAdapter.html#associatedtype.Migration" title="type scriberig_projection::ProjectionAdapter::Migration">Migration</a>, Self::<a class="associatedtype" href="../trait.ProjectionAdapter.html#associatedtype.Conflict" title="type scriberig_projection::ProjectionAdapter::Conflict">Conflict</a>, <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;<a class="struct" href="../struct.ProjectionDiagnostic.html" title="struct scriberig_projection::ProjectionDiagnostic">ProjectionDiagnostic</a>&gt;&gt;</h4></section></summary><div class="docblock"><p>Reconciles a candidate against the exact state from which it was edited.</p>
-<h5 id="parameters-3"><a class="doc-anchor" href="#parameters-3">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Adapter performing reconciliation.</li>
 <li><code>candidate</code>: Parsed external candidate.</li>
 <li><code>context</code>: Exact canonical and projection synchronization context.</li>
 </ul>
-<h5 id="returns-3"><a class="doc-anchor" href="#returns-3">§</a>Returns</h5>
 <p>A typed outcome distinguishing no-op, proposal, ambiguity, conflict,
 and invalid external state.</p>
+<h5 id="returns-3"><a class="doc-anchor" href="#returns-3">§</a>Returns</h5>
+<p>The operation result.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.validate" class="method"><h4 class="code-header">fn <a href="#method.validate" class="fn">validate</a>(
     &amp;self,
     candidate: &amp;Self::<a class="associatedtype" href="../trait.ProjectionAdapter.html#associatedtype.Candidate" title="type scriberig_projection::ProjectionAdapter::Candidate">Candidate</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.unit.html">()</a>, <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;<a class="struct" href="../struct.ProjectionDiagnostic.html" title="struct scriberig_projection::ProjectionDiagnostic">ProjectionDiagnostic</a>&gt;&gt;</h4></section></summary><div class="docblock"><p>Validates an adapter-owned candidate before proposing canonical change.</p>
-<h5 id="parameters-4"><a class="doc-anchor" href="#parameters-4">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Adapter performing validation.</li>
 <li><code>candidate</code>: Parsed external candidate.</li>
 </ul>
-<h5 id="returns-4"><a class="doc-anchor" href="#returns-4">§</a>Returns</h5>
 <p>Success when the candidate satisfies adapter invariants.</p>
-<h5 id="errors-2"><a class="doc-anchor" href="#errors-2">§</a>Errors</h5>
 <p>Returns a structured diagnostic when validation fails.</p>
+<h5 id="returns-4"><a class="doc-anchor" href="#returns-4">§</a>Returns</h5>
+<p>The operation result.</p>
+<h5 id="errors-2"><a class="doc-anchor" href="#errors-2">§</a>Errors</h5>
+<p>Returns an error when the operation fails.</p>
 </div></details></div><h2 id="dyn-compatibility" class="section-header">Dyn Compatibility<a href="#dyn-compatibility" class="anchor">§</a></h2><div class="dyn-compatibility-info"><p>This trait <b>is</b> <a href="https://doc.rust-lang.org/1.99.1/reference/items/traits.html#dyn-compatibility">dyn compatible</a>.</p><p><i>In older versions of Rust, dyn compatibility was called "object safety".</i></p></div><h2 id="implementors" class="section-header">Implementors<a href="#implementors" class="anchor">§</a></h2><div id="implementors-list"></div><script src="../../trait.impl/sr_projection/adapter/trait.ProjectionAdapter.js" async></script></section></div></main></body></html>

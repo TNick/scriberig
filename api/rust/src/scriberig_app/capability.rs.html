@@ -112,16 +112,16 @@
 <a href=#112 id=112 data-nosnippet>112</a><span class="kw">impl </span>Capability {
 <a href=#113 id=113 data-nosnippet>113</a>    <span class="doccomment">/// Reports whether this capability covers an action and request context.
 <a href=#114 id=114 data-nosnippet>114</a>    ///
-<a href=#115 id=115 data-nosnippet>115</a>    /// # Parameters
-<a href=#116 id=116 data-nosnippet>116</a>    /// - `self`: Capability being checked.
-<a href=#117 id=117 data-nosnippet>117</a>    /// - `action`: Requested action.
-<a href=#118 id=118 data-nosnippet>118</a>    /// - `scope`: Requested scope.
-<a href=#119 id=119 data-nosnippet>119</a>    /// - `snapshot`: Exact snapshot requested, when applicable.
-<a href=#120 id=120 data-nosnippet>120</a>    /// - `operation`: Universal operation requested, when applicable.
-<a href=#121 id=121 data-nosnippet>121</a>    ///
-<a href=#122 id=122 data-nosnippet>122</a>    /// # Returns
-<a href=#123 id=123 data-nosnippet>123</a>    /// `true` only when action, scope, and constraints all match.
-<a href=#124 id=124 data-nosnippet>124</a>    </span><span class="attr">#[must_use]
+<a href=#115 id=115 data-nosnippet>115</a>    /// - `self`: Capability being checked.
+<a href=#116 id=116 data-nosnippet>116</a>    /// - `action`: Requested action.
+<a href=#117 id=117 data-nosnippet>117</a>    /// - `scope`: Requested scope.
+<a href=#118 id=118 data-nosnippet>118</a>    /// - `snapshot`: Exact snapshot requested, when applicable.
+<a href=#119 id=119 data-nosnippet>119</a>    /// - `operation`: Universal operation requested, when applicable.
+<a href=#120 id=120 data-nosnippet>120</a>    ///
+<a href=#121 id=121 data-nosnippet>121</a>    /// `true` only when action, scope, and constraints all match.
+<a href=#122 id=122 data-nosnippet>122</a>    </span><span class="attr">#[must_use]
+<a href=#123 id=123 data-nosnippet>123</a>    </span><span class="doccomment">/// # Returns
+<a href=#124 id=124 data-nosnippet>124</a>    /// The operation result.
 <a href=#125 id=125 data-nosnippet>125</a>    </span><span class="kw">pub fn </span>covers(
 <a href=#126 id=126 data-nosnippet>126</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#127 id=127 data-nosnippet>127</a>        action: <span class="kw-2">&amp;</span>CapabilityAction,
@@ -157,13 +157,13 @@
 <a href=#157 id=157 data-nosnippet>157</a>
 <a href=#158 id=158 data-nosnippet>158</a>    <span class="doccomment">/// Reports whether a delegated capability is no broader than this parent.
 <a href=#159 id=159 data-nosnippet>159</a>    ///
-<a href=#160 id=160 data-nosnippet>160</a>    /// # Parameters
-<a href=#161 id=161 data-nosnippet>161</a>    /// - `self`: Parent capability.
-<a href=#162 id=162 data-nosnippet>162</a>    /// - `child`: Delegated capability to check.
-<a href=#163 id=163 data-nosnippet>163</a>    ///
-<a href=#164 id=164 data-nosnippet>164</a>    /// # Returns
-<a href=#165 id=165 data-nosnippet>165</a>    /// `true` when the child grants only a subset of the parent's authority.
-<a href=#166 id=166 data-nosnippet>166</a>    </span><span class="attr">#[must_use]
+<a href=#160 id=160 data-nosnippet>160</a>    /// - `self`: Parent capability.
+<a href=#161 id=161 data-nosnippet>161</a>    /// - `child`: Delegated capability to check.
+<a href=#162 id=162 data-nosnippet>162</a>    ///
+<a href=#163 id=163 data-nosnippet>163</a>    /// `true` when the child grants only a subset of the parent's authority.
+<a href=#164 id=164 data-nosnippet>164</a>    </span><span class="attr">#[must_use]
+<a href=#165 id=165 data-nosnippet>165</a>    </span><span class="doccomment">/// # Returns
+<a href=#166 id=166 data-nosnippet>166</a>    /// The operation result.
 <a href=#167 id=167 data-nosnippet>167</a>    </span><span class="kw">pub fn </span>can_delegate(<span class="kw-2">&amp;</span><span class="self">self</span>, child: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; bool {
 <a href=#168 id=168 data-nosnippet>168</a>        child.actions.is_subset(<span class="kw-2">&amp;</span><span class="self">self</span>.actions)
 <a href=#169 id=169 data-nosnippet>169</a>            &amp;&amp; scope_covers(<span class="kw-2">&amp;</span><span class="self">self</span>.scope, <span class="kw-2">&amp;</span>child.scope)
@@ -190,12 +190,12 @@
 <a href=#190 id=190 data-nosnippet>190</a>
 <a href=#191 id=191 data-nosnippet>191</a><span class="doccomment">/// Reports whether a parent scope contains a requested child scope.
 <a href=#192 id=192 data-nosnippet>192</a>///
-<a href=#193 id=193 data-nosnippet>193</a>/// # Parameters
-<a href=#194 id=194 data-nosnippet>194</a>/// - `parent`: Scope granted by the existing capability.
-<a href=#195 id=195 data-nosnippet>195</a>/// - `child`: Scope requested by the operation or delegation.
-<a href=#196 id=196 data-nosnippet>196</a>///
+<a href=#193 id=193 data-nosnippet>193</a>/// - `parent`: Scope granted by the existing capability.
+<a href=#194 id=194 data-nosnippet>194</a>/// - `child`: Scope requested by the operation or delegation.
+<a href=#195 id=195 data-nosnippet>195</a>///
+<a href=#196 id=196 data-nosnippet>196</a>/// `true` when the parent scope contains the child scope.
 <a href=#197 id=197 data-nosnippet>197</a>/// # Returns
-<a href=#198 id=198 data-nosnippet>198</a>/// `true` when the parent scope contains the child scope.
+<a href=#198 id=198 data-nosnippet>198</a>/// The operation result.
 <a href=#199 id=199 data-nosnippet>199</a></span><span class="kw">fn </span>scope_covers(parent: <span class="kw-2">&amp;</span>CapabilityScope, child: <span class="kw-2">&amp;</span>CapabilityScope) -&gt; bool {
 <a href=#200 id=200 data-nosnippet>200</a>    <span class="kw">match </span>(parent, child) {
 <a href=#201 id=201 data-nosnippet>201</a>        (CapabilityScope::Project, CapabilityScope::ExternalDestination(<span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
@@ -234,12 +234,12 @@
 <a href=#234 id=234 data-nosnippet>234</a>
 <a href=#235 id=235 data-nosnippet>235</a><span class="doccomment">/// Reports whether child constraints are no broader than parent constraints.
 <a href=#236 id=236 data-nosnippet>236</a>///
-<a href=#237 id=237 data-nosnippet>237</a>/// # Parameters
-<a href=#238 id=238 data-nosnippet>238</a>/// - `parent`: Constraints granted by the existing capability.
-<a href=#239 id=239 data-nosnippet>239</a>/// - `child`: Constraints requested by the delegated capability.
-<a href=#240 id=240 data-nosnippet>240</a>///
+<a href=#237 id=237 data-nosnippet>237</a>/// - `parent`: Constraints granted by the existing capability.
+<a href=#238 id=238 data-nosnippet>238</a>/// - `child`: Constraints requested by the delegated capability.
+<a href=#239 id=239 data-nosnippet>239</a>///
+<a href=#240 id=240 data-nosnippet>240</a>/// `true` when every child constraint remains within the parent bounds.
 <a href=#241 id=241 data-nosnippet>241</a>/// # Returns
-<a href=#242 id=242 data-nosnippet>242</a>/// `true` when every child constraint remains within the parent bounds.
+<a href=#242 id=242 data-nosnippet>242</a>/// The operation result.
 <a href=#243 id=243 data-nosnippet>243</a></span><span class="kw">fn </span>constraints_cover(parent: <span class="kw-2">&amp;</span>CapabilityConstraints, child: <span class="kw-2">&amp;</span>CapabilityConstraints) -&gt; bool {
 <a href=#244 id=244 data-nosnippet>244</a>    parent
 <a href=#245 id=245 data-nosnippet>245</a>        .snapshot

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["resolve_execution_selection"],"struct":["ExecutionSelectionSources"]};
+window.SIDEBAR_ITEMS = {"fn":["resolve_execution_selection","resolve_plan_node_execution","resolve_plan_node_execution_with_sources"],"struct":["ExecutionSelectionSources","ResolvedPlanExecution"]};

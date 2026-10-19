@@ -128,15 +128,16 @@
 <a href=#128 id=128 data-nosnippet>128</a></span><span class="kw">pub trait </span>StructuredQueryService {
 <a href=#129 id=129 data-nosnippet>129</a>    <span class="doccomment">/// Evaluates one query specification without changing its snapshot scope.
 <a href=#130 id=130 data-nosnippet>130</a>    ///
-<a href=#131 id=131 data-nosnippet>131</a>    /// # Parameters
-<a href=#132 id=132 data-nosnippet>132</a>    /// - `self`: Query provider.
-<a href=#133 id=133 data-nosnippet>133</a>    /// - `specification`: Exact-scope structural query.
-<a href=#134 id=134 data-nosnippet>134</a>    ///
-<a href=#135 id=135 data-nosnippet>135</a>    /// # Returns
-<a href=#136 id=136 data-nosnippet>136</a>    /// A bounded page of semantic rows.
-<a href=#137 id=137 data-nosnippet>137</a>    ///
-<a href=#138 id=138 data-nosnippet>138</a>    /// # Errors
-<a href=#139 id=139 data-nosnippet>139</a>    /// Returns a structured error for unsupported expressions or invalid queries.
-<a href=#140 id=140 data-nosnippet>140</a>    </span><span class="kw">fn </span>query(<span class="kw-2">&amp;</span><span class="self">self</span>, specification: <span class="kw-2">&amp;</span>QuerySpec) -&gt; <span class="prelude-ty">Result</span>&lt;QueryResult, QueryError&gt;;
-<a href=#141 id=141 data-nosnippet>141</a>}
+<a href=#131 id=131 data-nosnippet>131</a>    /// - `self`: Query provider.
+<a href=#132 id=132 data-nosnippet>132</a>    /// - `specification`: Exact-scope structural query.
+<a href=#133 id=133 data-nosnippet>133</a>    ///
+<a href=#134 id=134 data-nosnippet>134</a>    /// A bounded page of semantic rows.
+<a href=#135 id=135 data-nosnippet>135</a>    ///
+<a href=#136 id=136 data-nosnippet>136</a>    /// Returns a structured error for unsupported expressions or invalid queries.
+<a href=#137 id=137 data-nosnippet>137</a>    /// # Returns
+<a href=#138 id=138 data-nosnippet>138</a>    /// The operation result.
+<a href=#139 id=139 data-nosnippet>139</a>    /// # Errors
+<a href=#140 id=140 data-nosnippet>140</a>    /// Returns an error when the operation fails.
+<a href=#141 id=141 data-nosnippet>141</a>    </span><span class="kw">fn </span>query(<span class="kw-2">&amp;</span><span class="self">self</span>, specification: <span class="kw-2">&amp;</span>QuerySpec) -&gt; <span class="prelude-ty">Result</span>&lt;QueryResult, QueryError&gt;;
+<a href=#142 id=142 data-nosnippet>142</a>}
 </code></pre></div></section></main></body></html>

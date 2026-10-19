@@ -4,85 +4,86 @@
     registry: OperationRegistry,
     operation: OperationId,
 ) -&gt; Self</h4></section></summary><div class="docblock"><p>Publishes runtime activity under an already-running application operation.</p>
-<h5 id="parameters"><a class="doc-anchor" href="#parameters">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Runtime being configured.</li>
 <li><code>registry</code>: Shared operation event registry.</li>
 <li><code>operation</code>: Existing application operation identity.</li>
 </ul>
-<h5 id="returns"><a class="doc-anchor" href="#returns">§</a>Returns</h5>
 <p>The runtime configured to publish transient activity without owning the
 operation lifecycle.</p>
+<h5 id="returns"><a class="doc-anchor" href="#returns">§</a>Returns</h5>
+<p>The operation result.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.with_operation_registry" class="method"><a class="src rightside" href="../../src/scriberig_agent_runtime/runtime/configuration.rs.html#40-43">Source</a><h4 class="code-header">pub fn <a href="#method.with_operation_registry" class="fn">with_operation_registry</a>(self, registry: OperationRegistry) -&gt; Self</h4></section></summary><div class="docblock"><p>Attaches an application operation registry to this runtime.</p>
-<h5 id="parameters-1"><a class="doc-anchor" href="#parameters-1">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Runtime being configured.</li>
 <li><code>registry</code>: Shared lifecycle registry.</li>
 </ul>
-<h5 id="returns-1"><a class="doc-anchor" href="#returns-1">§</a>Returns</h5>
 <p>The configured runtime.</p>
+<h5 id="returns-1"><a class="doc-anchor" href="#returns-1">§</a>Returns</h5>
+<p>The operation result.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.with_event_log" class="method"><a class="src rightside" href="../../src/scriberig_agent_runtime/runtime/configuration.rs.html#54-57">Source</a><h4 class="code-header">pub fn <a href="#method.with_event_log" class="fn">with_event_log</a>(self, event_log: <a class="struct" href="../events/struct.RuntimeEventLog.html" title="struct scriberig_agent_runtime::events::RuntimeEventLog">RuntimeEventLog</a>) -&gt; Self</h4></section></summary><div class="docblock"><p>Attaches a bounded event log to this runtime.</p>
-<h5 id="parameters-2"><a class="doc-anchor" href="#parameters-2">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Runtime being configured.</li>
 <li><code>event_log</code>: Event destination for lifecycle observations.</li>
 </ul>
-<h5 id="returns-2"><a class="doc-anchor" href="#returns-2">§</a>Returns</h5>
 <p>The runtime configured to emit safe phase events.</p>
+<h5 id="returns-2"><a class="doc-anchor" href="#returns-2">§</a>Returns</h5>
+<p>The operation result.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.with_output_callback" class="method"><a class="src rightside" href="../../src/scriberig_agent_runtime/runtime/configuration.rs.html#68-71">Source</a><h4 class="code-header">pub fn <a href="#method.with_output_callback" class="fn">with_output_callback</a>(self, callback: <a class="type" href="../type.OutputCallback.html" title="type scriberig_agent_runtime::OutputCallback">OutputCallback</a>) -&gt; Self</h4></section></summary><div class="docblock"><p>Attaches a callback for bounded provider-neutral text fragments.</p>
-<h5 id="parameters-3"><a class="doc-anchor" href="#parameters-3">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Runtime being configured.</li>
 <li><code>callback</code>: Thread-safe presentation or observation callback.</li>
 </ul>
-<h5 id="returns-3"><a class="doc-anchor" href="#returns-3">§</a>Returns</h5>
 <p>The runtime configured to forward text fragments.</p>
+<h5 id="returns-3"><a class="doc-anchor" href="#returns-3">§</a>Returns</h5>
+<p>The operation result.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.with_branch_id" class="method"><a class="src rightside" href="../../src/scriberig_agent_runtime/runtime/configuration.rs.html#82-85">Source</a><h4 class="code-header">pub fn <a href="#method.with_branch_id" class="fn">with_branch_id</a>(self, branch_id: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;) -&gt; Self</h4></section></summary><div class="docblock"><p>Assigns a stable branch correlation identifier for emitted events.</p>
-<h5 id="parameters-4"><a class="doc-anchor" href="#parameters-4">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Runtime being configured.</li>
 <li><code>branch_id</code>: Safe branch correlation identifier.</li>
 </ul>
-<h5 id="returns-4"><a class="doc-anchor" href="#returns-4">§</a>Returns</h5>
 <p>The runtime configured with the branch identifier.</p>
+<h5 id="returns-4"><a class="doc-anchor" href="#returns-4">§</a>Returns</h5>
+<p>The operation result.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.with_limits" class="method"><a class="src rightside" href="../../src/scriberig_agent_runtime/runtime/configuration.rs.html#97-100">Source</a><h4 class="code-header">pub fn <a href="#method.with_limits" class="fn">with_limits</a>(self, limits: <a class="struct" href="../orchestration/struct.RuntimeLimits.html" title="struct scriberig_agent_runtime::orchestration::RuntimeLimits">RuntimeLimits</a>) -&gt; Self</h4></section></summary><div class="docblock"><p>Replaces the runtime budgets enforced by the execution loop.</p>
-<h5 id="parameters-5"><a class="doc-anchor" href="#parameters-5">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Runtime being configured.</li>
 <li><code>limits</code>: Maximum work permitted for each branch.</li>
 <li><code>super</code>: Runtime module visibility context.</li>
 </ul>
-<h5 id="returns-5"><a class="doc-anchor" href="#returns-5">§</a>Returns</h5>
 <p>The runtime with explicit budgets.</p>
-</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-AgentRuntime%3CP,+T%3E-1" class="impl"><a class="src rightside" href="../../src/scriberig_agent_runtime/runtime.rs.html#55-369">Source</a><a href="#impl-AgentRuntime%3CP,+T%3E-1" class="anchor">§</a><h3 class="code-header">impl&lt;P, T&gt; <a class="struct" href="struct.AgentRuntime.html" title="struct scriberig_agent_runtime::runtime::AgentRuntime">AgentRuntime</a>&lt;P, T&gt;<div class="where">where
+<h5 id="returns-5"><a class="doc-anchor" href="#returns-5">§</a>Returns</h5>
+<p>The operation result.</p>
+</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-AgentRuntime%3CP,+T%3E-1" class="impl"><a class="src rightside" href="../../src/scriberig_agent_runtime/runtime.rs.html#55-375">Source</a><a href="#impl-AgentRuntime%3CP,+T%3E-1" class="anchor">§</a><h3 class="code-header">impl&lt;P, T&gt; <a class="struct" href="struct.AgentRuntime.html" title="struct scriberig_agent_runtime::runtime::AgentRuntime">AgentRuntime</a>&lt;P, T&gt;<div class="where">where
     P: <a class="trait" href="../trait.ModelProvider.html" title="trait scriberig_agent_runtime::ModelProvider">ModelProvider</a>,
     T: Tool,</div></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.new" class="method"><a class="src rightside" href="../../src/scriberig_agent_runtime/runtime.rs.html#70-86">Source</a><h4 class="code-header">pub fn <a href="#method.new" class="fn">new</a>(provider: P, tool: T, step_limit: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.usize.html">usize</a>) -&gt; Self</h4></section></summary><div class="docblock"><p>Creates a runtime with a bounded tool-loop step count.</p>
-<h5 id="parameters-6"><a class="doc-anchor" href="#parameters-6">§</a>Parameters</h5>
 <ul>
 <li><code>provider</code>: Model decision provider.</li>
 <li><code>tool</code>: Application-backed agent tool.</li>
 <li><code>step_limit</code>: Maximum number of decisions before failure.</li>
 </ul>
-<h5 id="returns-6"><a class="doc-anchor" href="#returns-6">§</a>Returns</h5>
 <p>A configured agent runtime.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.run" class="method"><a class="src rightside" href="../../src/scriberig_agent_runtime/runtime.rs.html#101-108">Source</a><h4 class="code-header">pub fn <a href="#method.run" class="fn">run</a>(
+<h5 id="returns-6"><a class="doc-anchor" href="#returns-6">§</a>Returns</h5>
+<p>The operation result.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.run" class="method"><a class="src rightside" href="../../src/scriberig_agent_runtime/runtime.rs.html#102-109">Source</a><h4 class="code-header">pub fn <a href="#method.run" class="fn">run</a>(
     &amp;mut self,
     context: &amp;ApplicationContext,
     prompt: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     cancelled: &amp;<a class="type" href="https://doc.rust-lang.org/1.99.1/core/sync/atomic/type.AtomicBool.html" title="type core::sync::atomic::AtomicBool">AtomicBool</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../struct.AgentResult.html" title="struct scriberig_agent_runtime::AgentResult">AgentResult</a>, <a class="enum" href="../enum.AgentError.html" title="enum scriberig_agent_runtime::AgentError">AgentError</a>&gt;</h4></section></summary><div class="docblock"><p>Executes one prompt until a final model response or failure.</p>
-<h5 id="parameters-7"><a class="doc-anchor" href="#parameters-7">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Runtime to execute.</li>
 <li><code>context</code>: Trusted application request context.</li>
 <li><code>prompt</code>: User instruction.</li>
 <li><code>cancelled</code>: Shared cancellation flag.</li>
 </ul>
-<h5 id="returns-7"><a class="doc-anchor" href="#returns-7">§</a>Returns</h5>
 <p>Final model output and tool observations.</p>
-<h5 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h5>
 <p>Returns provider, tool, step-limit, or cancellation failures.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.run_with_child_executor" class="method"><a class="src rightside" href="../../src/scriberig_agent_runtime/runtime.rs.html#124-135">Source</a><h4 class="code-header">pub fn <a href="#method.run_with_child_executor" class="fn">run_with_child_executor</a>&lt;C&gt;(
+<h5 id="returns-7"><a class="doc-anchor" href="#returns-7">§</a>Returns</h5>
+<p>The operation result.</p>
+<h5 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h5>
+<p>Returns an error when the operation fails.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.run_with_child_executor" class="method"><a class="src rightside" href="../../src/scriberig_agent_runtime/runtime.rs.html#126-137">Source</a><h4 class="code-header">pub fn <a href="#method.run_with_child_executor" class="fn">run_with_child_executor</a>&lt;C&gt;(
     &amp;mut self,
     context: &amp;ApplicationContext,
     prompt: impl <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
@@ -90,7 +91,6 @@ operation lifecycle.</p>
     children: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.reference.html">&amp;mut C</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../struct.AgentResult.html" title="struct scriberig_agent_runtime::AgentResult">AgentResult</a>, <a class="enum" href="../enum.AgentError.html" title="enum scriberig_agent_runtime::AgentError">AgentError</a>&gt;<div class="where">where
     C: <a class="trait" href="../trait.ChildExecutor.html" title="trait scriberig_agent_runtime::ChildExecutor">ChildExecutor</a>,</div></h4></section></summary><div class="docblock"><p>Executes one prompt with a trusted nested-branch executor.</p>
-<h5 id="parameters-8"><a class="doc-anchor" href="#parameters-8">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Runtime to execute.</li>
 <li><code>context</code>: Trusted application request context.</li>
@@ -98,11 +98,12 @@ operation lifecycle.</p>
 <li><code>cancelled</code>: Shared cancellation flag.</li>
 <li><code>children</code>: Executor responsible for recursive child invocation.</li>
 </ul>
-<h5 id="returns-8"><a class="doc-anchor" href="#returns-8">§</a>Returns</h5>
 <p>Final model output and compact child/tool observations.</p>
+<h5 id="returns-8"><a class="doc-anchor" href="#returns-8">§</a>Returns</h5>
+<p>Final model output and bounded observations.</p>
 <h5 id="errors-1"><a class="doc-anchor" href="#errors-1">§</a>Errors</h5>
 <p>Returns provider, child, tool, step-limit, or cancellation failures.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.run_with_child_executor_at" class="method"><a class="src rightside" href="../../src/scriberig_agent_runtime/runtime.rs.html#152-170">Source</a><h4 class="code-header">pub fn <a href="#method.run_with_child_executor_at" class="fn">run_with_child_executor_at</a>&lt;C&gt;(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.run_with_child_executor_at" class="method"><a class="src rightside" href="../../src/scriberig_agent_runtime/runtime.rs.html#155-173">Source</a><h4 class="code-header">pub fn <a href="#method.run_with_child_executor_at" class="fn">run_with_child_executor_at</a>&lt;C&gt;(
     &amp;mut self,
     scope: &amp;<a class="struct" href="../struct.ChildExecutionScope.html" title="struct scriberig_agent_runtime::ChildExecutionScope">ChildExecutionScope</a>,
     context: &amp;ApplicationContext,
@@ -111,7 +112,6 @@ operation lifecycle.</p>
     children: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.reference.html">&amp;mut C</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../struct.AgentResult.html" title="struct scriberig_agent_runtime::AgentResult">AgentResult</a>, <a class="enum" href="../enum.AgentError.html" title="enum scriberig_agent_runtime::AgentError">AgentError</a>&gt;<div class="where">where
     C: <a class="trait" href="../trait.ChildExecutor.html" title="trait scriberig_agent_runtime::ChildExecutor">ChildExecutor</a>,</div></h4></section></summary><div class="docblock"><p>Executes one prompt with a durable parent branch scope.</p>
-<h5 id="parameters-9"><a class="doc-anchor" href="#parameters-9">§</a>Parameters</h5>
 <ul>
 <li><code>self</code>: Runtime to execute.</li>
 <li><code>scope</code>: Session and parent branch owning delegated children.</li>
@@ -120,8 +120,9 @@ operation lifecycle.</p>
 <li><code>cancelled</code>: Shared cancellation flag.</li>
 <li><code>children</code>: Executor responsible for recursive child invocation.</li>
 </ul>
-<h5 id="returns-9"><a class="doc-anchor" href="#returns-9">§</a>Returns</h5>
 <p>Final model output and compact child/tool observations.</p>
+<h5 id="returns-9"><a class="doc-anchor" href="#returns-9">§</a>Returns</h5>
+<p>Final model output and bounded observations.</p>
 <h5 id="errors-2"><a class="doc-anchor" href="#errors-2">§</a>Errors</h5>
 <p>Returns provider, child, tool, step-limit, or cancellation failures.</p>
 </div></details></div></details></div><h2 id="synthetic-implementations" class="section-header">Auto Trait Implementations<a href="#synthetic-implementations" class="anchor">§</a></h2><div id="synthetic-implementations-list"><section id="impl-RefUnwindSafe-for-AgentRuntime%3CP,+T%3E" class="impl"><a href="#impl-RefUnwindSafe-for-AgentRuntime%3CP,+T%3E" class="anchor">§</a><h3 class="code-header">impl&lt;P, T&gt; !<a class="trait" href="https://doc.rust-lang.org/1.99.1/core/panic/unwind_safe/trait.RefUnwindSafe.html" title="trait core::panic::unwind_safe::RefUnwindSafe">RefUnwindSafe</a> for <a class="struct" href="struct.AgentRuntime.html" title="struct scriberig_agent_runtime::runtime::AgentRuntime">AgentRuntime</a>&lt;P, T&gt;</h3></section><section id="impl-UnwindSafe-for-AgentRuntime%3CP,+T%3E" class="impl"><a href="#impl-UnwindSafe-for-AgentRuntime%3CP,+T%3E" class="anchor">§</a><h3 class="code-header">impl&lt;P, T&gt; !<a class="trait" href="https://doc.rust-lang.org/1.99.1/core/panic/unwind_safe/trait.UnwindSafe.html" title="trait core::panic::unwind_safe::UnwindSafe">UnwindSafe</a> for <a class="struct" href="struct.AgentRuntime.html" title="struct scriberig_agent_runtime::runtime::AgentRuntime">AgentRuntime</a>&lt;P, T&gt;</h3></section><section id="impl-Freeze-for-AgentRuntime%3CP,+T%3E" class="impl"><a href="#impl-Freeze-for-AgentRuntime%3CP,+T%3E" class="anchor">§</a><h3 class="code-header">impl&lt;P, T&gt; <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/marker/trait.Freeze.html" title="trait core::marker::Freeze">Freeze</a> for <a class="struct" href="struct.AgentRuntime.html" title="struct scriberig_agent_runtime::runtime::AgentRuntime">AgentRuntime</a>&lt;P, T&gt;<div class="where">where

@@ -77,13 +77,13 @@
 <a href=#77 id=77 data-nosnippet>77</a>
 <a href=#78 id=78 data-nosnippet>78</a><span class="doccomment">/// Matches a candidate document against canonical nodes in deterministic phases.
 <a href=#79 id=79 data-nosnippet>79</a>///
-<a href=#80 id=80 data-nosnippet>80</a>/// # Parameters
-<a href=#81 id=81 data-nosnippet>81</a>/// - `base`: Canonical nodes in projected structural order.
-<a href=#82 id=82 data-nosnippet>82</a>/// - `candidate`: Parsed candidate document.
-<a href=#83 id=83 data-nosnippet>83</a>///
-<a href=#84 id=84 data-nosnippet>84</a>/// # Returns
-<a href=#85 id=85 data-nosnippet>85</a>/// Match evidence, explicit ambiguity, and unmatched canonical identities.
-<a href=#86 id=86 data-nosnippet>86</a></span><span class="attr">#[must_use]
+<a href=#80 id=80 data-nosnippet>80</a>/// - `base`: Canonical nodes in projected structural order.
+<a href=#81 id=81 data-nosnippet>81</a>/// - `candidate`: Parsed candidate document.
+<a href=#82 id=82 data-nosnippet>82</a>///
+<a href=#83 id=83 data-nosnippet>83</a>/// Match evidence, explicit ambiguity, and unmatched canonical identities.
+<a href=#84 id=84 data-nosnippet>84</a></span><span class="attr">#[must_use]
+<a href=#85 id=85 data-nosnippet>85</a></span><span class="doccomment">/// # Returns
+<a href=#86 id=86 data-nosnippet>86</a>/// The operation result.
 <a href=#87 id=87 data-nosnippet>87</a></span><span class="kw">pub fn </span>match_nodes(base: <span class="kw-2">&amp;</span>[CanonicalNode], candidate: <span class="kw-2">&amp;</span>MarkdownDocument) -&gt; MatchReport {
 <a href=#88 id=88 data-nosnippet>88</a>    <span class="kw">let </span>candidates = flatten(candidate);
 <a href=#89 id=89 data-nosnippet>89</a>    <span class="kw">let </span><span class="kw-2">mut </span>used = <span class="macro">vec!</span>[<span class="bool-val">false</span>; base.len()];
@@ -119,7 +119,7 @@
 <a href=#119 id=119 data-nosnippet>119</a>/// - `block`: Candidate block to match against canonical nodes.
 <a href=#120 id=120 data-nosnippet>120</a>///
 <a href=#121 id=121 data-nosnippet>121</a>/// # Returns
-<a href=#122 id=122 data-nosnippet>122</a>/// The value produced by the declaration.
+<a href=#122 id=122 data-nosnippet>122</a>/// The operation result.
 <a href=#123 id=123 data-nosnippet>123</a></span><span class="kw">fn </span>match_candidate(
 <a href=#124 id=124 data-nosnippet>124</a>    base: <span class="kw-2">&amp;</span>[CanonicalNode],
 <a href=#125 id=125 data-nosnippet>125</a>    used: <span class="kw-2">&amp;mut </span>[bool],
@@ -248,7 +248,7 @@
 <a href=#248 id=248 data-nosnippet>248</a>/// - `evidence`: Argument named `evidence`.
 <a href=#249 id=249 data-nosnippet>249</a>///
 <a href=#250 id=250 data-nosnippet>250</a>/// # Returns
-<a href=#251 id=251 data-nosnippet>251</a>/// The value produced by the declaration.
+<a href=#251 id=251 data-nosnippet>251</a>/// The operation result.
 <a href=#252 id=252 data-nosnippet>252</a></span><span class="kw">fn </span>matched(
 <a href=#253 id=253 data-nosnippet>253</a>    path: <span class="kw-2">&amp;</span>[usize],
 <a href=#254 id=254 data-nosnippet>254</a>    base: <span class="kw-2">&amp;</span>[CanonicalNode],
@@ -270,7 +270,7 @@
 <a href=#270 id=270 data-nosnippet>270</a>/// - `indexes`: Argument named `indexes`.
 <a href=#271 id=271 data-nosnippet>271</a>///
 <a href=#272 id=272 data-nosnippet>272</a>/// # Returns
-<a href=#273 id=273 data-nosnippet>273</a>/// The value produced by the declaration.
+<a href=#273 id=273 data-nosnippet>273</a>/// The operation result.
 <a href=#274 id=274 data-nosnippet>274</a></span><span class="kw">fn </span>ambiguous(path: <span class="kw-2">&amp;</span>[usize], base: <span class="kw-2">&amp;</span>[CanonicalNode], indexes: <span class="kw-2">&amp;</span>[usize]) -&gt; NodeMatch {
 <a href=#275 id=275 data-nosnippet>275</a>    NodeMatch::Ambiguous {
 <a href=#276 id=276 data-nosnippet>276</a>        candidate_path: path.to_owned(),

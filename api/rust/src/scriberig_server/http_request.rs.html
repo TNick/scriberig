@@ -14,13 +14,13 @@
 <a href=#14 id=14 data-nosnippet>14</a>
 <a href=#15 id=15 data-nosnippet>15</a><span class="doccomment">/// Allows only the configured exact origin, never a wildcard.
 <a href=#16 id=16 data-nosnippet>16</a>///
-<a href=#17 id=17 data-nosnippet>17</a>/// # Parameters
-<a href=#18 id=18 data-nosnippet>18</a>/// - `super`: Internal server-module visibility.
-<a href=#19 id=19 data-nosnippet>19</a>/// - `head`: HTTP request headers.
-<a href=#20 id=20 data-nosnippet>20</a>/// - `configured`: Optional configured exact origin.
-<a href=#21 id=21 data-nosnippet>21</a>///
+<a href=#17 id=17 data-nosnippet>17</a>/// - `super`: Internal server-module visibility.
+<a href=#18 id=18 data-nosnippet>18</a>/// - `head`: HTTP request headers.
+<a href=#19 id=19 data-nosnippet>19</a>/// - `configured`: Optional configured exact origin.
+<a href=#20 id=20 data-nosnippet>20</a>///
+<a href=#21 id=21 data-nosnippet>21</a>/// The allowed origin when the request matches configuration.
 <a href=#22 id=22 data-nosnippet>22</a>/// # Returns
-<a href=#23 id=23 data-nosnippet>23</a>/// The allowed origin when the request matches configuration.
+<a href=#23 id=23 data-nosnippet>23</a>/// The operation result.
 <a href=#24 id=24 data-nosnippet>24</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>allowed_origin(head: <span class="kw-2">&amp;</span>str, configured: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;) -&gt; <span class="prelude-ty">Option</span>&lt;String&gt; {
 <a href=#25 id=25 data-nosnippet>25</a>    <span class="kw">let </span>origin = header_value(head, <span class="string">"origin"</span>)<span class="question-mark">?</span>;
 <a href=#26 id=26 data-nosnippet>26</a>    configured
@@ -31,12 +31,12 @@
 <a href=#31 id=31 data-nosnippet>31</a>
 <a href=#32 id=32 data-nosnippet>32</a><span class="doccomment">/// Returns a bounded request correlation identifier from headers or local state.
 <a href=#33 id=33 data-nosnippet>33</a>///
-<a href=#34 id=34 data-nosnippet>34</a>/// # Parameters
-<a href=#35 id=35 data-nosnippet>35</a>/// - `super`: Internal server-module visibility.
-<a href=#36 id=36 data-nosnippet>36</a>/// - `head`: HTTP request headers.
-<a href=#37 id=37 data-nosnippet>37</a>///
+<a href=#34 id=34 data-nosnippet>34</a>/// - `super`: Internal server-module visibility.
+<a href=#35 id=35 data-nosnippet>35</a>/// - `head`: HTTP request headers.
+<a href=#36 id=36 data-nosnippet>36</a>///
+<a href=#37 id=37 data-nosnippet>37</a>/// A bounded request correlation identifier.
 <a href=#38 id=38 data-nosnippet>38</a>/// # Returns
-<a href=#39 id=39 data-nosnippet>39</a>/// A bounded request correlation identifier.
+<a href=#39 id=39 data-nosnippet>39</a>/// The operation result.
 <a href=#40 id=40 data-nosnippet>40</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>request_id(head: <span class="kw-2">&amp;</span>str) -&gt; String {
 <a href=#41 id=41 data-nosnippet>41</a>    <span class="kw">let </span>supplied = head.lines().skip(<span class="number">1</span>).find_map(|line| {
 <a href=#42 id=42 data-nosnippet>42</a>        <span class="kw">let </span>(name, value) = line.split_once(<span class="string">':'</span>)<span class="question-mark">?</span>;

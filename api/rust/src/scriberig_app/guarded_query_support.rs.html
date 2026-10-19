@@ -7,12 +7,12 @@
 <a href=#7 id=7 data-nosnippet>7</a>
 <a href=#8 id=8 data-nosnippet>8</a><span class="doccomment">/// Returns the entity represented by a semantic target.
 <a href=#9 id=9 data-nosnippet>9</a>///
-<a href=#10 id=10 data-nosnippet>10</a>/// # Parameters
-<a href=#11 id=11 data-nosnippet>11</a>/// - `target`: Semantic target to inspect.
-<a href=#12 id=12 data-nosnippet>12</a>/// - `crate`: Owning application crate.
-<a href=#13 id=13 data-nosnippet>13</a>///
+<a href=#10 id=10 data-nosnippet>10</a>/// - `target`: Semantic target to inspect.
+<a href=#11 id=11 data-nosnippet>11</a>/// - `crate`: Owning application crate.
+<a href=#12 id=12 data-nosnippet>12</a>///
+<a href=#13 id=13 data-nosnippet>13</a>/// The stable entity identity represented by the target.
 <a href=#14 id=14 data-nosnippet>14</a>/// # Returns
-<a href=#15 id=15 data-nosnippet>15</a>/// The stable entity identity represented by the target.
+<a href=#15 id=15 data-nosnippet>15</a>/// The operation result.
 <a href=#16 id=16 data-nosnippet>16</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>target_entity(target: TargetRef) -&gt; EntityId {
 <a href=#17 id=17 data-nosnippet>17</a>    <span class="kw">match </span>target {
 <a href=#18 id=18 data-nosnippet>18</a>        TargetRef::Revision(value) =&gt; value.entity,
@@ -22,12 +22,12 @@
 <a href=#22 id=22 data-nosnippet>22</a>
 <a href=#23 id=23 data-nosnippet>23</a><span class="doccomment">/// Returns the exact snapshot represented by a semantic target.
 <a href=#24 id=24 data-nosnippet>24</a>///
-<a href=#25 id=25 data-nosnippet>25</a>/// # Parameters
-<a href=#26 id=26 data-nosnippet>26</a>/// - `target`: Semantic target to inspect.
-<a href=#27 id=27 data-nosnippet>27</a>/// - `crate`: Owning application crate.
-<a href=#28 id=28 data-nosnippet>28</a>///
+<a href=#25 id=25 data-nosnippet>25</a>/// - `target`: Semantic target to inspect.
+<a href=#26 id=26 data-nosnippet>26</a>/// - `crate`: Owning application crate.
+<a href=#27 id=27 data-nosnippet>27</a>///
+<a href=#28 id=28 data-nosnippet>28</a>/// The target snapshot, or `None` for an exact revision target.
 <a href=#29 id=29 data-nosnippet>29</a>/// # Returns
-<a href=#30 id=30 data-nosnippet>30</a>/// The target snapshot, or `None` for an exact revision target.
+<a href=#30 id=30 data-nosnippet>30</a>/// The operation result.
 <a href=#31 id=31 data-nosnippet>31</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>target_snapshot(target: TargetRef) -&gt; <span class="prelude-ty">Option</span>&lt;scriberig_core::SnapshotId&gt; {
 <a href=#32 id=32 data-nosnippet>32</a>    <span class="kw">match </span>target {
 <a href=#33 id=33 data-nosnippet>33</a>        TargetRef::Revision(<span class="kw">_</span>) =&gt; <span class="prelude-val">None</span>,
@@ -37,12 +37,12 @@
 <a href=#37 id=37 data-nosnippet>37</a>
 <a href=#38 id=38 data-nosnippet>38</a><span class="doccomment">/// Maps reusable query failures into safe application categories.
 <a href=#39 id=39 data-nosnippet>39</a>///
-<a href=#40 id=40 data-nosnippet>40</a>/// # Parameters
-<a href=#41 id=41 data-nosnippet>41</a>/// - `error`: Provider error to translate.
-<a href=#42 id=42 data-nosnippet>42</a>/// - `crate`: Owning application crate.
-<a href=#43 id=43 data-nosnippet>43</a>///
+<a href=#40 id=40 data-nosnippet>40</a>/// - `error`: Provider error to translate.
+<a href=#41 id=41 data-nosnippet>41</a>/// - `crate`: Owning application crate.
+<a href=#42 id=42 data-nosnippet>42</a>///
+<a href=#43 id=43 data-nosnippet>43</a>/// A backend-neutral application error without restricted content.
 <a href=#44 id=44 data-nosnippet>44</a>/// # Returns
-<a href=#45 id=45 data-nosnippet>45</a>/// A backend-neutral application error without restricted content.
+<a href=#45 id=45 data-nosnippet>45</a>/// The operation result.
 <a href=#46 id=46 data-nosnippet>46</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>query_error_to_application(error: QueryError) -&gt; ApplicationError {
 <a href=#47 id=47 data-nosnippet>47</a>    <span class="kw">match </span>error {
 <a href=#48 id=48 data-nosnippet>48</a>        QueryError::NotFound { target, .. } | QueryError::InvalidTarget { target, .. } =&gt; {
@@ -70,13 +70,13 @@
 <a href=#70 id=70 data-nosnippet>70</a>
 <a href=#71 id=71 data-nosnippet>71</a><span class="doccomment">/// Reports whether a result target is authorized for exposure.
 <a href=#72 id=72 data-nosnippet>72</a>///
-<a href=#73 id=73 data-nosnippet>73</a>/// # Parameters
-<a href=#74 id=74 data-nosnippet>74</a>/// - `context`: Caller grants to evaluate.
-<a href=#75 id=75 data-nosnippet>75</a>/// - `target`: Semantic target at the result boundary.
-<a href=#76 id=76 data-nosnippet>76</a>/// - `crate`: Owning application crate.
-<a href=#77 id=77 data-nosnippet>77</a>///
+<a href=#73 id=73 data-nosnippet>73</a>/// - `context`: Caller grants to evaluate.
+<a href=#74 id=74 data-nosnippet>74</a>/// - `target`: Semantic target at the result boundary.
+<a href=#75 id=75 data-nosnippet>75</a>/// - `crate`: Owning application crate.
+<a href=#76 id=76 data-nosnippet>76</a>///
+<a href=#77 id=77 data-nosnippet>77</a>/// `true` when the target can be exposed.
 <a href=#78 id=78 data-nosnippet>78</a>/// # Returns
-<a href=#79 id=79 data-nosnippet>79</a>/// `true` when the target can be exposed.
+<a href=#79 id=79 data-nosnippet>79</a>/// The operation result.
 <a href=#80 id=80 data-nosnippet>80</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>can_expose(context: <span class="kw-2">&amp;</span>ApplicationContext, target: TargetRef) -&gt; bool {
 <a href=#81 id=81 data-nosnippet>81</a>    <span class="kw">let </span>(entity, snapshot) = <span class="kw">match </span>target {
 <a href=#82 id=82 data-nosnippet>82</a>        TargetRef::Revision(value) =&gt; (value.entity, context.snapshot),
@@ -97,37 +97,34 @@
 <a href=#97 id=97 data-nosnippet>97</a>
 <a href=#98 id=98 data-nosnippet>98</a><span class="doccomment">/// Removes unauthorized navigation entries in place.
 <a href=#99 id=99 data-nosnippet>99</a>///
-<a href=#100 id=100 data-nosnippet>100</a>/// # Parameters
-<a href=#101 id=101 data-nosnippet>101</a>/// - `context`: Caller grants to evaluate.
-<a href=#102 id=102 data-nosnippet>102</a>/// - `entries`: Navigation entries to filter.
-<a href=#103 id=103 data-nosnippet>103</a>/// - `crate`: Owning application crate.
-<a href=#104 id=104 data-nosnippet>104</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>filter_navigation(context: <span class="kw-2">&amp;</span>ApplicationContext, entries: <span class="kw-2">&amp;mut </span>Vec&lt;NavigationEntry&gt;) {
-<a href=#105 id=105 data-nosnippet>105</a>    entries.retain(|entry| can_expose(context, entry.target));
-<a href=#106 id=106 data-nosnippet>106</a>}
-<a href=#107 id=107 data-nosnippet>107</a>
-<a href=#108 id=108 data-nosnippet>108</a><span class="doccomment">/// Removes unauthorized exact-query rows in place.
-<a href=#109 id=109 data-nosnippet>109</a>///
-<a href=#110 id=110 data-nosnippet>110</a>/// # Parameters
-<a href=#111 id=111 data-nosnippet>111</a>/// - `context`: Caller grants to evaluate.
-<a href=#112 id=112 data-nosnippet>112</a>/// - `result`: Query result whose rows are filtered.
-<a href=#113 id=113 data-nosnippet>113</a>/// - `crate`: Owning application crate.
-<a href=#114 id=114 data-nosnippet>114</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>filter_query_rows(context: <span class="kw-2">&amp;</span>ApplicationContext, result: <span class="kw-2">&amp;mut </span>QueryResult) {
-<a href=#115 id=115 data-nosnippet>115</a>    result
-<a href=#116 id=116 data-nosnippet>116</a>        .page
-<a href=#117 id=117 data-nosnippet>117</a>        .items
-<a href=#118 id=118 data-nosnippet>118</a>        .retain(|row| can_expose(context, row.target));
-<a href=#119 id=119 data-nosnippet>119</a>}
-<a href=#120 id=120 data-nosnippet>120</a>
-<a href=#121 id=121 data-nosnippet>121</a><span class="doccomment">/// Removes unauthorized discovery hits in place.
-<a href=#122 id=122 data-nosnippet>122</a>///
-<a href=#123 id=123 data-nosnippet>123</a>/// # Parameters
-<a href=#124 id=124 data-nosnippet>124</a>/// - `context`: Caller grants to evaluate.
-<a href=#125 id=125 data-nosnippet>125</a>/// - `result`: Find result whose hits are filtered.
-<a href=#126 id=126 data-nosnippet>126</a>/// - `crate`: Owning application crate.
-<a href=#127 id=127 data-nosnippet>127</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>filter_find_hits(context: <span class="kw-2">&amp;</span>ApplicationContext, result: <span class="kw-2">&amp;mut </span>FindResult) {
-<a href=#128 id=128 data-nosnippet>128</a>    result
-<a href=#129 id=129 data-nosnippet>129</a>        .page
-<a href=#130 id=130 data-nosnippet>130</a>        .items
-<a href=#131 id=131 data-nosnippet>131</a>        .retain(|hit| can_expose(context, hit.target));
-<a href=#132 id=132 data-nosnippet>132</a>}
+<a href=#100 id=100 data-nosnippet>100</a>/// - `context`: Caller grants to evaluate.
+<a href=#101 id=101 data-nosnippet>101</a>/// - `entries`: Navigation entries to filter.
+<a href=#102 id=102 data-nosnippet>102</a>/// - `crate`: Owning application crate.
+<a href=#103 id=103 data-nosnippet>103</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>filter_navigation(context: <span class="kw-2">&amp;</span>ApplicationContext, entries: <span class="kw-2">&amp;mut </span>Vec&lt;NavigationEntry&gt;) {
+<a href=#104 id=104 data-nosnippet>104</a>    entries.retain(|entry| can_expose(context, entry.target));
+<a href=#105 id=105 data-nosnippet>105</a>}
+<a href=#106 id=106 data-nosnippet>106</a>
+<a href=#107 id=107 data-nosnippet>107</a><span class="doccomment">/// Removes unauthorized exact-query rows in place.
+<a href=#108 id=108 data-nosnippet>108</a>///
+<a href=#109 id=109 data-nosnippet>109</a>/// - `context`: Caller grants to evaluate.
+<a href=#110 id=110 data-nosnippet>110</a>/// - `result`: Query result whose rows are filtered.
+<a href=#111 id=111 data-nosnippet>111</a>/// - `crate`: Owning application crate.
+<a href=#112 id=112 data-nosnippet>112</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>filter_query_rows(context: <span class="kw-2">&amp;</span>ApplicationContext, result: <span class="kw-2">&amp;mut </span>QueryResult) {
+<a href=#113 id=113 data-nosnippet>113</a>    result
+<a href=#114 id=114 data-nosnippet>114</a>        .page
+<a href=#115 id=115 data-nosnippet>115</a>        .items
+<a href=#116 id=116 data-nosnippet>116</a>        .retain(|row| can_expose(context, row.target));
+<a href=#117 id=117 data-nosnippet>117</a>}
+<a href=#118 id=118 data-nosnippet>118</a>
+<a href=#119 id=119 data-nosnippet>119</a><span class="doccomment">/// Removes unauthorized discovery hits in place.
+<a href=#120 id=120 data-nosnippet>120</a>///
+<a href=#121 id=121 data-nosnippet>121</a>/// - `context`: Caller grants to evaluate.
+<a href=#122 id=122 data-nosnippet>122</a>/// - `result`: Find result whose hits are filtered.
+<a href=#123 id=123 data-nosnippet>123</a>/// - `crate`: Owning application crate.
+<a href=#124 id=124 data-nosnippet>124</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>filter_find_hits(context: <span class="kw-2">&amp;</span>ApplicationContext, result: <span class="kw-2">&amp;mut </span>FindResult) {
+<a href=#125 id=125 data-nosnippet>125</a>    result
+<a href=#126 id=126 data-nosnippet>126</a>        .page
+<a href=#127 id=127 data-nosnippet>127</a>        .items
+<a href=#128 id=128 data-nosnippet>128</a>        .retain(|hit| can_expose(context, hit.target));
+<a href=#129 id=129 data-nosnippet>129</a>}
 </code></pre></div></section></main></body></html>

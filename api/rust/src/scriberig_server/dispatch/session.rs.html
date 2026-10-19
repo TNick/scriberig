@@ -7,13 +7,13 @@
 <a href=#7 id=7 data-nosnippet>7</a><span class="kw">impl</span>&lt;S: ApplicationService&gt; Dispatcher&lt;S&gt; {
 <a href=#8 id=8 data-nosnippet>8</a>    <span class="doccomment">/// Reads one durable session through the application boundary.
 <a href=#9 id=9 data-nosnippet>9</a>    ///
-<a href=#10 id=10 data-nosnippet>10</a>    /// # Parameters
-<a href=#11 id=11 data-nosnippet>11</a>    /// - `self`: Protocol dispatcher.
-<a href=#12 id=12 data-nosnippet>12</a>    /// - `request`: Typed session read request.
-<a href=#13 id=13 data-nosnippet>13</a>    /// - `correlation_id`: Request correlation identity.
-<a href=#14 id=14 data-nosnippet>14</a>    ///
+<a href=#10 id=10 data-nosnippet>10</a>    /// - `self`: Protocol dispatcher.
+<a href=#11 id=11 data-nosnippet>11</a>    /// - `request`: Typed session read request.
+<a href=#12 id=12 data-nosnippet>12</a>    /// - `correlation_id`: Request correlation identity.
+<a href=#13 id=13 data-nosnippet>13</a>    ///
+<a href=#14 id=14 data-nosnippet>14</a>    /// Typed session response or protocol error.
 <a href=#15 id=15 data-nosnippet>15</a>    /// # Returns
-<a href=#16 id=16 data-nosnippet>16</a>    /// Typed session response or protocol error.
+<a href=#16 id=16 data-nosnippet>16</a>    /// The operation result.
 <a href=#17 id=17 data-nosnippet>17</a>    </span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>session_read(
 <a href=#18 id=18 data-nosnippet>18</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#19 id=19 data-nosnippet>19</a>        request: <span class="kw-2">&amp;</span>SessionReadRequest,

@@ -11,11 +11,11 @@
     operation: &amp;<a class="enum" href="../operation/enum.Operation.html" title="enum sr_change::operation::Operation">Operation</a>,
     context: <a class="struct" href="struct.ReplayContext.html" title="struct sr_change::rebase::ReplayContext">ReplayContext</a>&lt;'_&gt;,
 ) -&gt; <a class="enum" href="enum.DomainReplayOutcome.html" title="enum sr_change::rebase::DomainReplayOutcome">DomainReplayOutcome</a></h4></section></summary><div class="docblock"><p>Replays one operation without mutating historical input state.</p>
-<h5 id="parameters"><a class="doc-anchor" href="#parameters">§</a>Parameters</h5>
 <ul>
 <li><code>operation</code>: Recorded semantic operation.</li>
 <li><code>context</code>: Original and current exact states.</li>
 </ul>
-<h5 id="returns"><a class="doc-anchor" href="#returns">§</a>Returns</h5>
 <p>Applied deltas, a structured conflict detail, or not-applicable.</p>
+<h5 id="returns"><a class="doc-anchor" href="#returns">§</a>Returns</h5>
+<p>The operation result.</p>
 </div></details></div><h2 id="dyn-compatibility" class="section-header">Dyn Compatibility<a href="#dyn-compatibility" class="anchor">§</a></h2><div class="dyn-compatibility-info"><p>This trait <b>is</b> <a href="https://doc.rust-lang.org/1.99.1/reference/items/traits.html#dyn-compatibility">dyn compatible</a>.</p><p><i>In older versions of Rust, dyn compatibility was called "object safety".</i></p></div><h2 id="implementors" class="section-header">Implementors<a href="#implementors" class="anchor">§</a></h2><div id="implementors-list"></div><script src="../../trait.impl/sr_change/rebase/trait.DomainReplayStrategy.js" async></script></section></div></main></body></html>

@@ -13,12 +13,12 @@
 <a href=#13 id=13 data-nosnippet>13</a>
 <a href=#14 id=14 data-nosnippet>14</a><span class="doccomment">/// Projects ordered execution references without exposing raw tool payloads.
 <a href=#15 id=15 data-nosnippet>15</a>///
-<a href=#16 id=16 data-nosnippet>16</a>/// # Parameters
-<a href=#17 id=17 data-nosnippet>17</a>/// - `session`: Stable identity of the containing session.
-<a href=#18 id=18 data-nosnippet>18</a>/// - `branch`: Durable branch containing execution records.
-<a href=#19 id=19 data-nosnippet>19</a>///
+<a href=#16 id=16 data-nosnippet>16</a>/// - `session`: Stable identity of the containing session.
+<a href=#17 id=17 data-nosnippet>17</a>/// - `branch`: Durable branch containing execution records.
+<a href=#18 id=18 data-nosnippet>18</a>///
+<a href=#19 id=19 data-nosnippet>19</a>/// Safe activity items in the branch's recorded causal order.
 <a href=#20 id=20 data-nosnippet>20</a>/// # Returns
-<a href=#21 id=21 data-nosnippet>21</a>/// Safe activity items in the branch's recorded causal order.
+<a href=#21 id=21 data-nosnippet>21</a>/// The operation result.
 <a href=#22 id=22 data-nosnippet>22</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>branch_execution_activity(
 <a href=#23 id=23 data-nosnippet>23</a>    session: <span class="kw-2">&amp;</span>str,
 <a href=#24 id=24 data-nosnippet>24</a>    branch: <span class="kw-2">&amp;</span>Branch,
@@ -55,14 +55,14 @@
 <a href=#55 id=55 data-nosnippet>55</a>
 <a href=#56 id=56 data-nosnippet>56</a><span class="doccomment">/// Projects one ordered activity into its public protocol representation.
 <a href=#57 id=57 data-nosnippet>57</a>///
-<a href=#58 id=58 data-nosnippet>58</a>/// # Parameters
-<a href=#59 id=59 data-nosnippet>59</a>/// - `session`: Stable session identity.
-<a href=#60 id=60 data-nosnippet>60</a>/// - `branch`: Durable branch containing the activity.
-<a href=#61 id=61 data-nosnippet>61</a>/// - `sequence`: Position in the durable causal activity list.
-<a href=#62 id=62 data-nosnippet>62</a>/// - `activity`: Durable activity reference to project.
-<a href=#63 id=63 data-nosnippet>63</a>///
+<a href=#58 id=58 data-nosnippet>58</a>/// - `session`: Stable session identity.
+<a href=#59 id=59 data-nosnippet>59</a>/// - `branch`: Durable branch containing the activity.
+<a href=#60 id=60 data-nosnippet>60</a>/// - `sequence`: Position in the durable causal activity list.
+<a href=#61 id=61 data-nosnippet>61</a>/// - `activity`: Durable activity reference to project.
+<a href=#62 id=62 data-nosnippet>62</a>///
+<a href=#63 id=63 data-nosnippet>63</a>/// Safe protocol activity with stable parent and durable references.
 <a href=#64 id=64 data-nosnippet>64</a>/// # Returns
-<a href=#65 id=65 data-nosnippet>65</a>/// Safe protocol activity with stable parent and durable references.
+<a href=#65 id=65 data-nosnippet>65</a>/// The operation result.
 <a href=#66 id=66 data-nosnippet>66</a></span><span class="kw">fn </span>project_item(
 <a href=#67 id=67 data-nosnippet>67</a>    session: <span class="kw-2">&amp;</span>str,
 <a href=#68 id=68 data-nosnippet>68</a>    branch: <span class="kw-2">&amp;</span>Branch,
@@ -89,258 +89,266 @@
 <a href=#89 id=89 data-nosnippet>89</a>        model: projection.model,
 <a href=#90 id=90 data-nosnippet>90</a>        thinking_level: projection.thinking_level,
 <a href=#91 id=91 data-nosnippet>91</a>        tool_name: projection.tool_name,
-<a href=#92 id=92 data-nosnippet>92</a>        tool_arguments,
-<a href=#93 id=93 data-nosnippet>93</a>        tool_result_preview,
-<a href=#94 id=94 data-nosnippet>94</a>    })
-<a href=#95 id=95 data-nosnippet>95</a>}
-<a href=#96 id=96 data-nosnippet>96</a>
-<a href=#97 id=97 data-nosnippet>97</a><span class="doccomment">/// Converts one durable activity reference to display-safe activity fields.
-<a href=#98 id=98 data-nosnippet>98</a>///
-<a href=#99 id=99 data-nosnippet>99</a>/// # Parameters
-<a href=#100 id=100 data-nosnippet>100</a>/// - `activity`: Durable activity reference.
-<a href=#101 id=101 data-nosnippet>101</a>/// - `branch`: Branch containing referenced records.
-<a href=#102 id=102 data-nosnippet>102</a>///
-<a href=#103 id=103 data-nosnippet>103</a>/// # Returns
-<a href=#104 id=104 data-nosnippet>104</a>/// Safe activity fields when the referenced durable record exists.
-<a href=#105 id=105 data-nosnippet>105</a></span><span class="kw">fn </span>activity_projection(activity: <span class="kw-2">&amp;</span>Activity, branch: <span class="kw-2">&amp;</span>Branch) -&gt; <span class="prelude-ty">Option</span>&lt;ActivityProjection&gt; {
-<a href=#106 id=106 data-nosnippet>106</a>    <span class="kw">match </span>activity {
-<a href=#107 id=107 data-nosnippet>107</a>        Activity::ModelInvocation(id) =&gt; project_model_invocation(<span class="kw-2">*</span>id, branch),
-<a href=#108 id=108 data-nosnippet>108</a>        Activity::HumanInput(id) =&gt; project_human_input(<span class="kw-2">*</span>id, branch),
-<a href=#109 id=109 data-nosnippet>109</a>        Activity::ModelOutput(id) | Activity::AgentOutput(id) =&gt; {
-<a href=#110 id=110 data-nosnippet>110</a>            project_assistant_output(<span class="kw-2">*</span>id, branch)
-<a href=#111 id=111 data-nosnippet>111</a>        }
-<a href=#112 id=112 data-nosnippet>112</a>        Activity::ToolInvocation(id) =&gt; project_tool_invocation(<span class="kw-2">*</span>id, branch),
-<a href=#113 id=113 data-nosnippet>113</a>        Activity::ToolResult(id) =&gt; project_tool_result(<span class="kw-2">*</span>id, branch),
-<a href=#114 id=114 data-nosnippet>114</a>        Activity::ChildBranch(id) =&gt; <span class="prelude-val">Some</span>(child_branch_projection(<span class="kw-2">*</span>id, <span class="prelude-val">None</span>)),
-<a href=#115 id=115 data-nosnippet>115</a>        Activity::ChildBranchSpawned {
-<a href=#116 id=116 data-nosnippet>116</a>            branch,
-<a href=#117 id=117 data-nosnippet>117</a>            parent_tool_invocation,
-<a href=#118 id=118 data-nosnippet>118</a>        } =&gt; <span class="prelude-val">Some</span>(child_branch_projection(
-<a href=#119 id=119 data-nosnippet>119</a>            <span class="kw-2">*</span>branch,
-<a href=#120 id=120 data-nosnippet>120</a>            <span class="prelude-val">Some</span>(<span class="kw-2">*</span>parent_tool_invocation),
-<a href=#121 id=121 data-nosnippet>121</a>        )),
-<a href=#122 id=122 data-nosnippet>122</a>        Activity::BranchResult(id) =&gt; project_branch_result(<span class="kw-2">*</span>id, branch),
-<a href=#123 id=123 data-nosnippet>123</a>    }
-<a href=#124 id=124 data-nosnippet>124</a>}
-<a href=#125 id=125 data-nosnippet>125</a>
-<a href=#126 id=126 data-nosnippet>126</a><span class="doccomment">/// Projects one model invocation and its selected model metadata.
-<a href=#127 id=127 data-nosnippet>127</a>///
-<a href=#128 id=128 data-nosnippet>128</a>/// # Parameters
-<a href=#129 id=129 data-nosnippet>129</a>/// - `id`: Durable model-invocation identity.
-<a href=#130 id=130 data-nosnippet>130</a>/// - `branch`: Branch containing model invocation records.
-<a href=#131 id=131 data-nosnippet>131</a>///
-<a href=#132 id=132 data-nosnippet>132</a>/// # Returns
-<a href=#133 id=133 data-nosnippet>133</a>/// Safe model invocation fields when the record exists.
-<a href=#134 id=134 data-nosnippet>134</a></span><span class="kw">fn </span>project_model_invocation(id: EntityId, branch: <span class="kw-2">&amp;</span>Branch) -&gt; <span class="prelude-ty">Option</span>&lt;ActivityProjection&gt; {
-<a href=#135 id=135 data-nosnippet>135</a>    <span class="kw">let </span>invocation = branch.model_invocations.iter().find(|item| item.id == id)<span class="question-mark">?</span>;
-<a href=#136 id=136 data-nosnippet>136</a>    <span class="kw">let </span>model = invocation.model.clone();
-<a href=#137 id=137 data-nosnippet>137</a>    <span class="kw">let </span>summary = model.as_ref().map_or_else(
-<a href=#138 id=138 data-nosnippet>138</a>        || <span class="string">"Model request"</span>.to_owned(),
-<a href=#139 id=139 data-nosnippet>139</a>        |value| <span class="macro">format!</span>(<span class="string">"Model request: {value}"</span>),
-<a href=#140 id=140 data-nosnippet>140</a>    );
-<a href=#141 id=141 data-nosnippet>141</a>    <span class="prelude-val">Some</span>(ActivityProjection {
-<a href=#142 id=142 data-nosnippet>142</a>        id,
-<a href=#143 id=143 data-nosnippet>143</a>        parent: <span class="prelude-val">None</span>,
-<a href=#144 id=144 data-nosnippet>144</a>        kind: Kind::ModelInvocation,
-<a href=#145 id=145 data-nosnippet>145</a>        state: model_invocation_state(branch.status, invocation.output.is_some()),
-<a href=#146 id=146 data-nosnippet>146</a>        summary,
-<a href=#147 id=147 data-nosnippet>147</a>        model,
-<a href=#148 id=148 data-nosnippet>148</a>        thinking_level: invocation.thinking_level.clone(),
-<a href=#149 id=149 data-nosnippet>149</a>        tool_name: <span class="prelude-val">None</span>,
-<a href=#150 id=150 data-nosnippet>150</a>    })
-<a href=#151 id=151 data-nosnippet>151</a>}
-<a href=#152 id=152 data-nosnippet>152</a>
-<a href=#153 id=153 data-nosnippet>153</a><span class="doccomment">/// Resolves model invocation lifecycle state from branch and output records.
-<a href=#154 id=154 data-nosnippet>154</a>///
-<a href=#155 id=155 data-nosnippet>155</a>/// # Parameters
-<a href=#156 id=156 data-nosnippet>156</a>/// - `branch`: Current lifecycle state of the branch.
-<a href=#157 id=157 data-nosnippet>157</a>/// - `has_output`: Whether an output record already exists.
-<a href=#158 id=158 data-nosnippet>158</a>///
-<a href=#159 id=159 data-nosnippet>159</a>/// # Returns
-<a href=#160 id=160 data-nosnippet>160</a>/// Public model invocation lifecycle state.
-<a href=#161 id=161 data-nosnippet>161</a></span><span class="kw">fn </span>model_invocation_state(branch: BranchStatus, has_output: bool) -&gt; State {
-<a href=#162 id=162 data-nosnippet>162</a>    <span class="kw">match </span>branch {
-<a href=#163 id=163 data-nosnippet>163</a>        BranchStatus::Completed =&gt; State::Completed,
-<a href=#164 id=164 data-nosnippet>164</a>        BranchStatus::Active <span class="kw">if </span>has_output =&gt; State::Completed,
-<a href=#165 id=165 data-nosnippet>165</a>        BranchStatus::Active =&gt; State::Running,
-<a href=#166 id=166 data-nosnippet>166</a>        BranchStatus::Abandoned =&gt; State::Failed,
-<a href=#167 id=167 data-nosnippet>167</a>    }
-<a href=#168 id=168 data-nosnippet>168</a>}
-<a href=#169 id=169 data-nosnippet>169</a>
-<a href=#170 id=170 data-nosnippet>170</a><span class="doccomment">/// Projects one human-input marker without exposing prompt content.
-<a href=#171 id=171 data-nosnippet>171</a>///
-<a href=#172 id=172 data-nosnippet>172</a>/// # Parameters
-<a href=#173 id=173 data-nosnippet>173</a>/// - `id`: Durable turn identity.
-<a href=#174 id=174 data-nosnippet>174</a>/// - `branch`: Branch containing the input turn.
-<a href=#175 id=175 data-nosnippet>175</a>///
-<a href=#176 id=176 data-nosnippet>176</a>/// # Returns
-<a href=#177 id=177 data-nosnippet>177</a>/// Safe human-input marker when the turn exists.
-<a href=#178 id=178 data-nosnippet>178</a></span><span class="kw">fn </span>project_human_input(id: EntityId, branch: <span class="kw-2">&amp;</span>Branch) -&gt; <span class="prelude-ty">Option</span>&lt;ActivityProjection&gt; {
-<a href=#179 id=179 data-nosnippet>179</a>    branch
-<a href=#180 id=180 data-nosnippet>180</a>        .turns
-<a href=#181 id=181 data-nosnippet>181</a>        .iter()
-<a href=#182 id=182 data-nosnippet>182</a>        .any(|turn| turn.id == id)
-<a href=#183 id=183 data-nosnippet>183</a>        .then(|| ActivityProjection {
-<a href=#184 id=184 data-nosnippet>184</a>            id,
-<a href=#185 id=185 data-nosnippet>185</a>            parent: <span class="prelude-val">None</span>,
-<a href=#186 id=186 data-nosnippet>186</a>            kind: Kind::HumanInput,
-<a href=#187 id=187 data-nosnippet>187</a>            state: State::Completed,
-<a href=#188 id=188 data-nosnippet>188</a>            summary: <span class="string">"Human input"</span>.to_owned(),
-<a href=#189 id=189 data-nosnippet>189</a>            model: <span class="prelude-val">None</span>,
-<a href=#190 id=190 data-nosnippet>190</a>            thinking_level: <span class="prelude-val">None</span>,
-<a href=#191 id=191 data-nosnippet>191</a>            tool_name: <span class="prelude-val">None</span>,
-<a href=#192 id=192 data-nosnippet>192</a>        })
-<a href=#193 id=193 data-nosnippet>193</a>}
-<a href=#194 id=194 data-nosnippet>194</a>
-<a href=#195 id=195 data-nosnippet>195</a><span class="doccomment">/// Projects a model or agent output summary without the raw input record.
-<a href=#196 id=196 data-nosnippet>196</a>///
-<a href=#197 id=197 data-nosnippet>197</a>/// # Parameters
-<a href=#198 id=198 data-nosnippet>198</a>/// - `id`: Durable output or turn identity.
-<a href=#199 id=199 data-nosnippet>199</a>/// - `branch`: Branch containing output records.
-<a href=#200 id=200 data-nosnippet>200</a>///
-<a href=#201 id=201 data-nosnippet>201</a>/// # Returns
-<a href=#202 id=202 data-nosnippet>202</a>/// Safe assistant-output fields when the record exists.
-<a href=#203 id=203 data-nosnippet>203</a></span><span class="kw">fn </span>project_assistant_output(id: EntityId, branch: <span class="kw-2">&amp;</span>Branch) -&gt; <span class="prelude-ty">Option</span>&lt;ActivityProjection&gt; {
-<a href=#204 id=204 data-nosnippet>204</a>    <span class="kw">let </span>(parent, summary) =
-<a href=#205 id=205 data-nosnippet>205</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(output) = branch.model_outputs.iter().find(|item| item.id == id) {
-<a href=#206 id=206 data-nosnippet>206</a>            (
-<a href=#207 id=207 data-nosnippet>207</a>                <span class="prelude-val">Some</span>(output.invocation.to_string()),
-<a href=#208 id=208 data-nosnippet>208</a>                output.text.as_ref().map_or_else(
-<a href=#209 id=209 data-nosnippet>209</a>                    || <span class="string">"Assistant output"</span>.to_owned(),
-<a href=#210 id=210 data-nosnippet>210</a>                    |value| bounded_summary(value),
-<a href=#211 id=211 data-nosnippet>211</a>                ),
-<a href=#212 id=212 data-nosnippet>212</a>            )
-<a href=#213 id=213 data-nosnippet>213</a>        } <span class="kw">else </span>{
-<a href=#214 id=214 data-nosnippet>214</a>            <span class="kw">let </span>turn = branch.turns.iter().find(|turn| turn.id == id)<span class="question-mark">?</span>;
-<a href=#215 id=215 data-nosnippet>215</a>            (<span class="prelude-val">None</span>, bounded_summary(<span class="kw-2">&amp;</span>turn.agent.as_ref()<span class="question-mark">?</span>.text))
-<a href=#216 id=216 data-nosnippet>216</a>        };
-<a href=#217 id=217 data-nosnippet>217</a>    <span class="prelude-val">Some</span>(ActivityProjection {
-<a href=#218 id=218 data-nosnippet>218</a>        id,
-<a href=#219 id=219 data-nosnippet>219</a>        parent,
-<a href=#220 id=220 data-nosnippet>220</a>        kind: Kind::AssistantOutput,
-<a href=#221 id=221 data-nosnippet>221</a>        state: State::Completed,
-<a href=#222 id=222 data-nosnippet>222</a>        summary,
-<a href=#223 id=223 data-nosnippet>223</a>        model: <span class="prelude-val">None</span>,
-<a href=#224 id=224 data-nosnippet>224</a>        thinking_level: <span class="prelude-val">None</span>,
-<a href=#225 id=225 data-nosnippet>225</a>        tool_name: <span class="prelude-val">None</span>,
-<a href=#226 id=226 data-nosnippet>226</a>    })
-<a href=#227 id=227 data-nosnippet>227</a>}
-<a href=#228 id=228 data-nosnippet>228</a>
-<a href=#229 id=229 data-nosnippet>229</a><span class="doccomment">/// Projects a tool invocation using its safe presentation label.
-<a href=#230 id=230 data-nosnippet>230</a>///
-<a href=#231 id=231 data-nosnippet>231</a>/// # Parameters
-<a href=#232 id=232 data-nosnippet>232</a>/// - `id`: Durable tool-invocation identity.
-<a href=#233 id=233 data-nosnippet>233</a>/// - `branch`: Branch containing invocation and result records.
-<a href=#234 id=234 data-nosnippet>234</a>///
-<a href=#235 id=235 data-nosnippet>235</a>/// # Returns
-<a href=#236 id=236 data-nosnippet>236</a>/// Safe tool invocation fields when the record exists.
-<a href=#237 id=237 data-nosnippet>237</a></span><span class="kw">fn </span>project_tool_invocation(id: EntityId, branch: <span class="kw-2">&amp;</span>Branch) -&gt; <span class="prelude-ty">Option</span>&lt;ActivityProjection&gt; {
-<a href=#238 id=238 data-nosnippet>238</a>    <span class="kw">let </span>invocation = branch.tool_invocations.iter().find(|item| item.id == id)<span class="question-mark">?</span>;
-<a href=#239 id=239 data-nosnippet>239</a>    <span class="kw">let </span>has_result = branch
-<a href=#240 id=240 data-nosnippet>240</a>        .tool_results
-<a href=#241 id=241 data-nosnippet>241</a>        .iter()
-<a href=#242 id=242 data-nosnippet>242</a>        .any(|result| result.invocation == invocation.id);
-<a href=#243 id=243 data-nosnippet>243</a>    <span class="prelude-val">Some</span>(ActivityProjection {
-<a href=#244 id=244 data-nosnippet>244</a>        id,
-<a href=#245 id=245 data-nosnippet>245</a>        parent: invocation
-<a href=#246 id=246 data-nosnippet>246</a>            .parent_model_invocation
-<a href=#247 id=247 data-nosnippet>247</a>            .map(|parent| parent.to_string()),
-<a href=#248 id=248 data-nosnippet>248</a>        kind: Kind::ToolInvocation,
-<a href=#249 id=249 data-nosnippet>249</a>        state: <span class="kw">if </span>has_result {
-<a href=#250 id=250 data-nosnippet>250</a>            State::Completed
-<a href=#251 id=251 data-nosnippet>251</a>        } <span class="kw">else </span>{
-<a href=#252 id=252 data-nosnippet>252</a>            State::Running
-<a href=#253 id=253 data-nosnippet>253</a>        },
-<a href=#254 id=254 data-nosnippet>254</a>        summary: invocation
-<a href=#255 id=255 data-nosnippet>255</a>            .presentation_label
-<a href=#256 id=256 data-nosnippet>256</a>            .clone()
-<a href=#257 id=257 data-nosnippet>257</a>            .unwrap_or_else(|| <span class="macro">format!</span>(<span class="string">"Tool: {}"</span>, invocation.name)),
-<a href=#258 id=258 data-nosnippet>258</a>        model: <span class="prelude-val">None</span>,
-<a href=#259 id=259 data-nosnippet>259</a>        thinking_level: <span class="prelude-val">None</span>,
-<a href=#260 id=260 data-nosnippet>260</a>        tool_name: <span class="prelude-val">Some</span>(invocation.name.clone()),
-<a href=#261 id=261 data-nosnippet>261</a>    })
-<a href=#262 id=262 data-nosnippet>262</a>}
-<a href=#263 id=263 data-nosnippet>263</a>
-<a href=#264 id=264 data-nosnippet>264</a><span class="doccomment">/// Projects a tool result without serializing raw output bytes.
-<a href=#265 id=265 data-nosnippet>265</a>///
-<a href=#266 id=266 data-nosnippet>266</a>/// # Parameters
-<a href=#267 id=267 data-nosnippet>267</a>/// - `id`: Durable tool-result identity.
-<a href=#268 id=268 data-nosnippet>268</a>/// - `branch`: Branch containing the result record.
-<a href=#269 id=269 data-nosnippet>269</a>///
-<a href=#270 id=270 data-nosnippet>270</a>/// # Returns
-<a href=#271 id=271 data-nosnippet>271</a>/// Safe bounded tool-result fields when the record exists.
-<a href=#272 id=272 data-nosnippet>272</a></span><span class="kw">fn </span>project_tool_result(id: EntityId, branch: <span class="kw-2">&amp;</span>Branch) -&gt; <span class="prelude-ty">Option</span>&lt;ActivityProjection&gt; {
-<a href=#273 id=273 data-nosnippet>273</a>    <span class="kw">let </span>result = branch.tool_results.iter().find(|item| item.id == id)<span class="question-mark">?</span>;
-<a href=#274 id=274 data-nosnippet>274</a>    <span class="prelude-val">Some</span>(ActivityProjection {
-<a href=#275 id=275 data-nosnippet>275</a>        id,
-<a href=#276 id=276 data-nosnippet>276</a>        parent: <span class="prelude-val">Some</span>(result.invocation.to_string()),
-<a href=#277 id=277 data-nosnippet>277</a>        kind: Kind::ToolResult,
-<a href=#278 id=278 data-nosnippet>278</a>        state: <span class="kw">if </span>result.failed {
-<a href=#279 id=279 data-nosnippet>279</a>            State::Failed
-<a href=#280 id=280 data-nosnippet>280</a>        } <span class="kw">else </span>{
-<a href=#281 id=281 data-nosnippet>281</a>            State::Completed
-<a href=#282 id=282 data-nosnippet>282</a>        },
-<a href=#283 id=283 data-nosnippet>283</a>        summary: tool_result_summary(result, result.failed),
-<a href=#284 id=284 data-nosnippet>284</a>        model: <span class="prelude-val">None</span>,
-<a href=#285 id=285 data-nosnippet>285</a>        thinking_level: <span class="prelude-val">None</span>,
-<a href=#286 id=286 data-nosnippet>286</a>        tool_name: <span class="prelude-val">None</span>,
-<a href=#287 id=287 data-nosnippet>287</a>    })
-<a href=#288 id=288 data-nosnippet>288</a>}
-<a href=#289 id=289 data-nosnippet>289</a>
-<a href=#290 id=290 data-nosnippet>290</a><span class="doccomment">/// Projects a child-branch reference and optional spawning tool parent.
-<a href=#291 id=291 data-nosnippet>291</a>///
-<a href=#292 id=292 data-nosnippet>292</a>/// # Parameters
-<a href=#293 id=293 data-nosnippet>293</a>/// - `id`: Child branch identity.
-<a href=#294 id=294 data-nosnippet>294</a>/// - `parent`: Optional spawning tool invocation identity.
-<a href=#295 id=295 data-nosnippet>295</a>///
-<a href=#296 id=296 data-nosnippet>296</a>/// # Returns
-<a href=#297 id=297 data-nosnippet>297</a>/// Safe child-branch fields.
-<a href=#298 id=298 data-nosnippet>298</a></span><span class="kw">fn </span>child_branch_projection(id: EntityId, parent: <span class="prelude-ty">Option</span>&lt;EntityId&gt;) -&gt; ActivityProjection {
-<a href=#299 id=299 data-nosnippet>299</a>    ActivityProjection {
-<a href=#300 id=300 data-nosnippet>300</a>        id,
-<a href=#301 id=301 data-nosnippet>301</a>        parent: parent.map(|parent| parent.to_string()),
-<a href=#302 id=302 data-nosnippet>302</a>        kind: Kind::BranchStarted,
-<a href=#303 id=303 data-nosnippet>303</a>        state: State::Running,
-<a href=#304 id=304 data-nosnippet>304</a>        summary: <span class="string">"Child branch"</span>.to_owned(),
-<a href=#305 id=305 data-nosnippet>305</a>        model: <span class="prelude-val">None</span>,
-<a href=#306 id=306 data-nosnippet>306</a>        thinking_level: <span class="prelude-val">None</span>,
-<a href=#307 id=307 data-nosnippet>307</a>        tool_name: <span class="prelude-val">None</span>,
-<a href=#308 id=308 data-nosnippet>308</a>    }
-<a href=#309 id=309 data-nosnippet>309</a>}
-<a href=#310 id=310 data-nosnippet>310</a>
-<a href=#311 id=311 data-nosnippet>311</a><span class="doccomment">/// Projects a branch result and its terminal status.
-<a href=#312 id=312 data-nosnippet>312</a>///
-<a href=#313 id=313 data-nosnippet>313</a>/// # Parameters
-<a href=#314 id=314 data-nosnippet>314</a>/// - `id`: Durable branch-result identity.
-<a href=#315 id=315 data-nosnippet>315</a>/// - `branch`: Branch containing the result.
-<a href=#316 id=316 data-nosnippet>316</a>///
-<a href=#317 id=317 data-nosnippet>317</a>/// # Returns
-<a href=#318 id=318 data-nosnippet>318</a>/// Safe branch-result fields when the result exists.
-<a href=#319 id=319 data-nosnippet>319</a></span><span class="kw">fn </span>project_branch_result(id: EntityId, branch: <span class="kw-2">&amp;</span>Branch) -&gt; <span class="prelude-ty">Option</span>&lt;ActivityProjection&gt; {
-<a href=#320 id=320 data-nosnippet>320</a>    <span class="kw">let </span>result = branch.result.as_ref().filter(|result| result.id == id)<span class="question-mark">?</span>;
-<a href=#321 id=321 data-nosnippet>321</a>    <span class="prelude-val">Some</span>(ActivityProjection {
-<a href=#322 id=322 data-nosnippet>322</a>        id,
-<a href=#323 id=323 data-nosnippet>323</a>        parent: <span class="prelude-val">None</span>,
-<a href=#324 id=324 data-nosnippet>324</a>        kind: Kind::BranchCompleted,
-<a href=#325 id=325 data-nosnippet>325</a>        state: <span class="kw">match </span>result.status {
-<a href=#326 id=326 data-nosnippet>326</a>            BranchStatus::Completed =&gt; State::Completed,
-<a href=#327 id=327 data-nosnippet>327</a>            BranchStatus::Active =&gt; State::Running,
-<a href=#328 id=328 data-nosnippet>328</a>            BranchStatus::Abandoned =&gt; State::Failed,
-<a href=#329 id=329 data-nosnippet>329</a>        },
-<a href=#330 id=330 data-nosnippet>330</a>        summary: result
-<a href=#331 id=331 data-nosnippet>331</a>            .summary
-<a href=#332 id=332 data-nosnippet>332</a>            .as_deref()
-<a href=#333 id=333 data-nosnippet>333</a>            .map_or_else(|| <span class="string">"Branch result"</span>.to_owned(), bounded_summary),
-<a href=#334 id=334 data-nosnippet>334</a>        model: <span class="prelude-val">None</span>,
-<a href=#335 id=335 data-nosnippet>335</a>        thinking_level: <span class="prelude-val">None</span>,
-<a href=#336 id=336 data-nosnippet>336</a>        tool_name: <span class="prelude-val">None</span>,
-<a href=#337 id=337 data-nosnippet>337</a>    })
-<a href=#338 id=338 data-nosnippet>338</a>}
-<a href=#339 id=339 data-nosnippet>339</a>
-<a href=#340 id=340 data-nosnippet>340</a><span class="attr">#[cfg(test)]
-<a href=#341 id=341 data-nosnippet>341</a>#[path = <span class="string">"server_helpers_activity_oversized_tests.rs"</span>]
-<a href=#342 id=342 data-nosnippet>342</a></span><span class="kw">mod </span>oversized_tests;
-<a href=#343 id=343 data-nosnippet>343</a><span class="attr">#[cfg(test)]
-<a href=#344 id=344 data-nosnippet>344</a>#[path = <span class="string">"server_helpers_activity_tests.rs"</span>]
-<a href=#345 id=345 data-nosnippet>345</a></span><span class="kw">mod </span>tests;
+<a href=#92 id=92 data-nosnippet>92</a>        tool_category: <span class="kw">match </span>activity {
+<a href=#93 id=93 data-nosnippet>93</a>            Activity::ToolInvocation(id) =&gt; branch
+<a href=#94 id=94 data-nosnippet>94</a>                .tool_invocations
+<a href=#95 id=95 data-nosnippet>95</a>                .iter()
+<a href=#96 id=96 data-nosnippet>96</a>                .find(|invocation| invocation.id == <span class="kw-2">*</span>id)
+<a href=#97 id=97 data-nosnippet>97</a>                .and_then(|invocation| invocation.category),
+<a href=#98 id=98 data-nosnippet>98</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#99 id=99 data-nosnippet>99</a>        },
+<a href=#100 id=100 data-nosnippet>100</a>        tool_arguments,
+<a href=#101 id=101 data-nosnippet>101</a>        tool_result_preview,
+<a href=#102 id=102 data-nosnippet>102</a>    })
+<a href=#103 id=103 data-nosnippet>103</a>}
+<a href=#104 id=104 data-nosnippet>104</a>
+<a href=#105 id=105 data-nosnippet>105</a><span class="doccomment">/// Converts one durable activity reference to display-safe activity fields.
+<a href=#106 id=106 data-nosnippet>106</a>///
+<a href=#107 id=107 data-nosnippet>107</a>/// - `activity`: Durable activity reference.
+<a href=#108 id=108 data-nosnippet>108</a>/// - `branch`: Branch containing referenced records.
+<a href=#109 id=109 data-nosnippet>109</a>///
+<a href=#110 id=110 data-nosnippet>110</a>/// Safe activity fields when the referenced durable record exists.
+<a href=#111 id=111 data-nosnippet>111</a>/// # Returns
+<a href=#112 id=112 data-nosnippet>112</a>/// The operation result.
+<a href=#113 id=113 data-nosnippet>113</a></span><span class="kw">fn </span>activity_projection(activity: <span class="kw-2">&amp;</span>Activity, branch: <span class="kw-2">&amp;</span>Branch) -&gt; <span class="prelude-ty">Option</span>&lt;ActivityProjection&gt; {
+<a href=#114 id=114 data-nosnippet>114</a>    <span class="kw">match </span>activity {
+<a href=#115 id=115 data-nosnippet>115</a>        Activity::ModelInvocation(id) =&gt; project_model_invocation(<span class="kw-2">*</span>id, branch),
+<a href=#116 id=116 data-nosnippet>116</a>        Activity::HumanInput(id) =&gt; project_human_input(<span class="kw-2">*</span>id, branch),
+<a href=#117 id=117 data-nosnippet>117</a>        Activity::ModelOutput(id) | Activity::AgentOutput(id) =&gt; {
+<a href=#118 id=118 data-nosnippet>118</a>            project_assistant_output(<span class="kw-2">*</span>id, branch)
+<a href=#119 id=119 data-nosnippet>119</a>        }
+<a href=#120 id=120 data-nosnippet>120</a>        Activity::ToolInvocation(id) =&gt; project_tool_invocation(<span class="kw-2">*</span>id, branch),
+<a href=#121 id=121 data-nosnippet>121</a>        Activity::ToolResult(id) =&gt; project_tool_result(<span class="kw-2">*</span>id, branch),
+<a href=#122 id=122 data-nosnippet>122</a>        Activity::ChildBranch(id) =&gt; <span class="prelude-val">Some</span>(child_branch_projection(<span class="kw-2">*</span>id, <span class="prelude-val">None</span>)),
+<a href=#123 id=123 data-nosnippet>123</a>        Activity::ChildBranchSpawned {
+<a href=#124 id=124 data-nosnippet>124</a>            branch,
+<a href=#125 id=125 data-nosnippet>125</a>            parent_tool_invocation,
+<a href=#126 id=126 data-nosnippet>126</a>        } =&gt; <span class="prelude-val">Some</span>(child_branch_projection(
+<a href=#127 id=127 data-nosnippet>127</a>            <span class="kw-2">*</span>branch,
+<a href=#128 id=128 data-nosnippet>128</a>            <span class="prelude-val">Some</span>(<span class="kw-2">*</span>parent_tool_invocation),
+<a href=#129 id=129 data-nosnippet>129</a>        )),
+<a href=#130 id=130 data-nosnippet>130</a>        Activity::BranchResult(id) =&gt; project_branch_result(<span class="kw-2">*</span>id, branch),
+<a href=#131 id=131 data-nosnippet>131</a>    }
+<a href=#132 id=132 data-nosnippet>132</a>}
+<a href=#133 id=133 data-nosnippet>133</a>
+<a href=#134 id=134 data-nosnippet>134</a><span class="doccomment">/// Projects one model invocation and its selected model metadata.
+<a href=#135 id=135 data-nosnippet>135</a>///
+<a href=#136 id=136 data-nosnippet>136</a>/// - `id`: Durable model-invocation identity.
+<a href=#137 id=137 data-nosnippet>137</a>/// - `branch`: Branch containing model invocation records.
+<a href=#138 id=138 data-nosnippet>138</a>///
+<a href=#139 id=139 data-nosnippet>139</a>/// Safe model invocation fields when the record exists.
+<a href=#140 id=140 data-nosnippet>140</a>/// # Returns
+<a href=#141 id=141 data-nosnippet>141</a>/// The operation result.
+<a href=#142 id=142 data-nosnippet>142</a></span><span class="kw">fn </span>project_model_invocation(id: EntityId, branch: <span class="kw-2">&amp;</span>Branch) -&gt; <span class="prelude-ty">Option</span>&lt;ActivityProjection&gt; {
+<a href=#143 id=143 data-nosnippet>143</a>    <span class="kw">let </span>invocation = branch.model_invocations.iter().find(|item| item.id == id)<span class="question-mark">?</span>;
+<a href=#144 id=144 data-nosnippet>144</a>    <span class="kw">let </span>model = invocation.model.clone();
+<a href=#145 id=145 data-nosnippet>145</a>    <span class="kw">let </span>summary = model.as_ref().map_or_else(
+<a href=#146 id=146 data-nosnippet>146</a>        || <span class="string">"Model request"</span>.to_owned(),
+<a href=#147 id=147 data-nosnippet>147</a>        |value| <span class="macro">format!</span>(<span class="string">"Model request: {value}"</span>),
+<a href=#148 id=148 data-nosnippet>148</a>    );
+<a href=#149 id=149 data-nosnippet>149</a>    <span class="prelude-val">Some</span>(ActivityProjection {
+<a href=#150 id=150 data-nosnippet>150</a>        id,
+<a href=#151 id=151 data-nosnippet>151</a>        parent: <span class="prelude-val">None</span>,
+<a href=#152 id=152 data-nosnippet>152</a>        kind: Kind::ModelInvocation,
+<a href=#153 id=153 data-nosnippet>153</a>        state: model_invocation_state(branch.status, invocation.output.is_some()),
+<a href=#154 id=154 data-nosnippet>154</a>        summary,
+<a href=#155 id=155 data-nosnippet>155</a>        model,
+<a href=#156 id=156 data-nosnippet>156</a>        thinking_level: invocation.thinking_level.clone(),
+<a href=#157 id=157 data-nosnippet>157</a>        tool_name: <span class="prelude-val">None</span>,
+<a href=#158 id=158 data-nosnippet>158</a>    })
+<a href=#159 id=159 data-nosnippet>159</a>}
+<a href=#160 id=160 data-nosnippet>160</a>
+<a href=#161 id=161 data-nosnippet>161</a><span class="doccomment">/// Resolves model invocation lifecycle state from branch and output records.
+<a href=#162 id=162 data-nosnippet>162</a>///
+<a href=#163 id=163 data-nosnippet>163</a>/// - `branch`: Current lifecycle state of the branch.
+<a href=#164 id=164 data-nosnippet>164</a>/// - `has_output`: Whether an output record already exists.
+<a href=#165 id=165 data-nosnippet>165</a>///
+<a href=#166 id=166 data-nosnippet>166</a>/// Public model invocation lifecycle state.
+<a href=#167 id=167 data-nosnippet>167</a>/// # Returns
+<a href=#168 id=168 data-nosnippet>168</a>/// The operation result.
+<a href=#169 id=169 data-nosnippet>169</a></span><span class="kw">fn </span>model_invocation_state(branch: BranchStatus, has_output: bool) -&gt; State {
+<a href=#170 id=170 data-nosnippet>170</a>    <span class="kw">match </span>branch {
+<a href=#171 id=171 data-nosnippet>171</a>        BranchStatus::Completed =&gt; State::Completed,
+<a href=#172 id=172 data-nosnippet>172</a>        BranchStatus::Active <span class="kw">if </span>has_output =&gt; State::Completed,
+<a href=#173 id=173 data-nosnippet>173</a>        BranchStatus::Active =&gt; State::Running,
+<a href=#174 id=174 data-nosnippet>174</a>        BranchStatus::Abandoned =&gt; State::Failed,
+<a href=#175 id=175 data-nosnippet>175</a>    }
+<a href=#176 id=176 data-nosnippet>176</a>}
+<a href=#177 id=177 data-nosnippet>177</a>
+<a href=#178 id=178 data-nosnippet>178</a><span class="doccomment">/// Projects one human-input marker without exposing prompt content.
+<a href=#179 id=179 data-nosnippet>179</a>///
+<a href=#180 id=180 data-nosnippet>180</a>/// - `id`: Durable turn identity.
+<a href=#181 id=181 data-nosnippet>181</a>/// - `branch`: Branch containing the input turn.
+<a href=#182 id=182 data-nosnippet>182</a>///
+<a href=#183 id=183 data-nosnippet>183</a>/// Safe human-input marker when the turn exists.
+<a href=#184 id=184 data-nosnippet>184</a>/// # Returns
+<a href=#185 id=185 data-nosnippet>185</a>/// The operation result.
+<a href=#186 id=186 data-nosnippet>186</a></span><span class="kw">fn </span>project_human_input(id: EntityId, branch: <span class="kw-2">&amp;</span>Branch) -&gt; <span class="prelude-ty">Option</span>&lt;ActivityProjection&gt; {
+<a href=#187 id=187 data-nosnippet>187</a>    branch
+<a href=#188 id=188 data-nosnippet>188</a>        .turns
+<a href=#189 id=189 data-nosnippet>189</a>        .iter()
+<a href=#190 id=190 data-nosnippet>190</a>        .any(|turn| turn.id == id)
+<a href=#191 id=191 data-nosnippet>191</a>        .then(|| ActivityProjection {
+<a href=#192 id=192 data-nosnippet>192</a>            id,
+<a href=#193 id=193 data-nosnippet>193</a>            parent: <span class="prelude-val">None</span>,
+<a href=#194 id=194 data-nosnippet>194</a>            kind: Kind::HumanInput,
+<a href=#195 id=195 data-nosnippet>195</a>            state: State::Completed,
+<a href=#196 id=196 data-nosnippet>196</a>            summary: <span class="string">"Human input"</span>.to_owned(),
+<a href=#197 id=197 data-nosnippet>197</a>            model: <span class="prelude-val">None</span>,
+<a href=#198 id=198 data-nosnippet>198</a>            thinking_level: <span class="prelude-val">None</span>,
+<a href=#199 id=199 data-nosnippet>199</a>            tool_name: <span class="prelude-val">None</span>,
+<a href=#200 id=200 data-nosnippet>200</a>        })
+<a href=#201 id=201 data-nosnippet>201</a>}
+<a href=#202 id=202 data-nosnippet>202</a>
+<a href=#203 id=203 data-nosnippet>203</a><span class="doccomment">/// Projects a model or agent output summary without the raw input record.
+<a href=#204 id=204 data-nosnippet>204</a>///
+<a href=#205 id=205 data-nosnippet>205</a>/// - `id`: Durable output or turn identity.
+<a href=#206 id=206 data-nosnippet>206</a>/// - `branch`: Branch containing output records.
+<a href=#207 id=207 data-nosnippet>207</a>///
+<a href=#208 id=208 data-nosnippet>208</a>/// Safe assistant-output fields when the record exists.
+<a href=#209 id=209 data-nosnippet>209</a>/// # Returns
+<a href=#210 id=210 data-nosnippet>210</a>/// The operation result.
+<a href=#211 id=211 data-nosnippet>211</a></span><span class="kw">fn </span>project_assistant_output(id: EntityId, branch: <span class="kw-2">&amp;</span>Branch) -&gt; <span class="prelude-ty">Option</span>&lt;ActivityProjection&gt; {
+<a href=#212 id=212 data-nosnippet>212</a>    <span class="kw">let </span>(parent, summary) =
+<a href=#213 id=213 data-nosnippet>213</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(output) = branch.model_outputs.iter().find(|item| item.id == id) {
+<a href=#214 id=214 data-nosnippet>214</a>            (
+<a href=#215 id=215 data-nosnippet>215</a>                <span class="prelude-val">Some</span>(output.invocation.to_string()),
+<a href=#216 id=216 data-nosnippet>216</a>                output.text.as_ref().map_or_else(
+<a href=#217 id=217 data-nosnippet>217</a>                    || <span class="string">"Assistant output"</span>.to_owned(),
+<a href=#218 id=218 data-nosnippet>218</a>                    |value| bounded_summary(value),
+<a href=#219 id=219 data-nosnippet>219</a>                ),
+<a href=#220 id=220 data-nosnippet>220</a>            )
+<a href=#221 id=221 data-nosnippet>221</a>        } <span class="kw">else </span>{
+<a href=#222 id=222 data-nosnippet>222</a>            <span class="kw">let </span>turn = branch.turns.iter().find(|turn| turn.id == id)<span class="question-mark">?</span>;
+<a href=#223 id=223 data-nosnippet>223</a>            (<span class="prelude-val">None</span>, bounded_summary(<span class="kw-2">&amp;</span>turn.agent.as_ref()<span class="question-mark">?</span>.text))
+<a href=#224 id=224 data-nosnippet>224</a>        };
+<a href=#225 id=225 data-nosnippet>225</a>    <span class="prelude-val">Some</span>(ActivityProjection {
+<a href=#226 id=226 data-nosnippet>226</a>        id,
+<a href=#227 id=227 data-nosnippet>227</a>        parent,
+<a href=#228 id=228 data-nosnippet>228</a>        kind: Kind::AssistantOutput,
+<a href=#229 id=229 data-nosnippet>229</a>        state: State::Completed,
+<a href=#230 id=230 data-nosnippet>230</a>        summary,
+<a href=#231 id=231 data-nosnippet>231</a>        model: <span class="prelude-val">None</span>,
+<a href=#232 id=232 data-nosnippet>232</a>        thinking_level: <span class="prelude-val">None</span>,
+<a href=#233 id=233 data-nosnippet>233</a>        tool_name: <span class="prelude-val">None</span>,
+<a href=#234 id=234 data-nosnippet>234</a>    })
+<a href=#235 id=235 data-nosnippet>235</a>}
+<a href=#236 id=236 data-nosnippet>236</a>
+<a href=#237 id=237 data-nosnippet>237</a><span class="doccomment">/// Projects a tool invocation using its safe presentation label.
+<a href=#238 id=238 data-nosnippet>238</a>///
+<a href=#239 id=239 data-nosnippet>239</a>/// - `id`: Durable tool-invocation identity.
+<a href=#240 id=240 data-nosnippet>240</a>/// - `branch`: Branch containing invocation and result records.
+<a href=#241 id=241 data-nosnippet>241</a>///
+<a href=#242 id=242 data-nosnippet>242</a>/// Safe tool invocation fields when the record exists.
+<a href=#243 id=243 data-nosnippet>243</a>/// # Returns
+<a href=#244 id=244 data-nosnippet>244</a>/// The operation result.
+<a href=#245 id=245 data-nosnippet>245</a></span><span class="kw">fn </span>project_tool_invocation(id: EntityId, branch: <span class="kw-2">&amp;</span>Branch) -&gt; <span class="prelude-ty">Option</span>&lt;ActivityProjection&gt; {
+<a href=#246 id=246 data-nosnippet>246</a>    <span class="kw">let </span>invocation = branch.tool_invocations.iter().find(|item| item.id == id)<span class="question-mark">?</span>;
+<a href=#247 id=247 data-nosnippet>247</a>    <span class="kw">let </span>has_result = branch
+<a href=#248 id=248 data-nosnippet>248</a>        .tool_results
+<a href=#249 id=249 data-nosnippet>249</a>        .iter()
+<a href=#250 id=250 data-nosnippet>250</a>        .any(|result| result.invocation == invocation.id);
+<a href=#251 id=251 data-nosnippet>251</a>    <span class="prelude-val">Some</span>(ActivityProjection {
+<a href=#252 id=252 data-nosnippet>252</a>        id,
+<a href=#253 id=253 data-nosnippet>253</a>        parent: invocation
+<a href=#254 id=254 data-nosnippet>254</a>            .parent_model_invocation
+<a href=#255 id=255 data-nosnippet>255</a>            .map(|parent| parent.to_string()),
+<a href=#256 id=256 data-nosnippet>256</a>        kind: Kind::ToolInvocation,
+<a href=#257 id=257 data-nosnippet>257</a>        state: <span class="kw">if </span>has_result {
+<a href=#258 id=258 data-nosnippet>258</a>            State::Completed
+<a href=#259 id=259 data-nosnippet>259</a>        } <span class="kw">else </span>{
+<a href=#260 id=260 data-nosnippet>260</a>            State::Running
+<a href=#261 id=261 data-nosnippet>261</a>        },
+<a href=#262 id=262 data-nosnippet>262</a>        summary: invocation
+<a href=#263 id=263 data-nosnippet>263</a>            .presentation_label
+<a href=#264 id=264 data-nosnippet>264</a>            .clone()
+<a href=#265 id=265 data-nosnippet>265</a>            .unwrap_or_else(|| <span class="macro">format!</span>(<span class="string">"Tool: {}"</span>, invocation.name)),
+<a href=#266 id=266 data-nosnippet>266</a>        model: <span class="prelude-val">None</span>,
+<a href=#267 id=267 data-nosnippet>267</a>        thinking_level: <span class="prelude-val">None</span>,
+<a href=#268 id=268 data-nosnippet>268</a>        tool_name: <span class="prelude-val">Some</span>(invocation.name.clone()),
+<a href=#269 id=269 data-nosnippet>269</a>    })
+<a href=#270 id=270 data-nosnippet>270</a>}
+<a href=#271 id=271 data-nosnippet>271</a>
+<a href=#272 id=272 data-nosnippet>272</a><span class="doccomment">/// Projects a tool result without serializing raw output bytes.
+<a href=#273 id=273 data-nosnippet>273</a>///
+<a href=#274 id=274 data-nosnippet>274</a>/// - `id`: Durable tool-result identity.
+<a href=#275 id=275 data-nosnippet>275</a>/// - `branch`: Branch containing the result record.
+<a href=#276 id=276 data-nosnippet>276</a>///
+<a href=#277 id=277 data-nosnippet>277</a>/// Safe bounded tool-result fields when the record exists.
+<a href=#278 id=278 data-nosnippet>278</a>/// # Returns
+<a href=#279 id=279 data-nosnippet>279</a>/// The operation result.
+<a href=#280 id=280 data-nosnippet>280</a></span><span class="kw">fn </span>project_tool_result(id: EntityId, branch: <span class="kw-2">&amp;</span>Branch) -&gt; <span class="prelude-ty">Option</span>&lt;ActivityProjection&gt; {
+<a href=#281 id=281 data-nosnippet>281</a>    <span class="kw">let </span>result = branch.tool_results.iter().find(|item| item.id == id)<span class="question-mark">?</span>;
+<a href=#282 id=282 data-nosnippet>282</a>    <span class="prelude-val">Some</span>(ActivityProjection {
+<a href=#283 id=283 data-nosnippet>283</a>        id,
+<a href=#284 id=284 data-nosnippet>284</a>        parent: <span class="prelude-val">Some</span>(result.invocation.to_string()),
+<a href=#285 id=285 data-nosnippet>285</a>        kind: Kind::ToolResult,
+<a href=#286 id=286 data-nosnippet>286</a>        state: <span class="kw">if </span>result.failed {
+<a href=#287 id=287 data-nosnippet>287</a>            State::Failed
+<a href=#288 id=288 data-nosnippet>288</a>        } <span class="kw">else </span>{
+<a href=#289 id=289 data-nosnippet>289</a>            State::Completed
+<a href=#290 id=290 data-nosnippet>290</a>        },
+<a href=#291 id=291 data-nosnippet>291</a>        summary: tool_result_summary(result, result.failed),
+<a href=#292 id=292 data-nosnippet>292</a>        model: <span class="prelude-val">None</span>,
+<a href=#293 id=293 data-nosnippet>293</a>        thinking_level: <span class="prelude-val">None</span>,
+<a href=#294 id=294 data-nosnippet>294</a>        tool_name: <span class="prelude-val">None</span>,
+<a href=#295 id=295 data-nosnippet>295</a>    })
+<a href=#296 id=296 data-nosnippet>296</a>}
+<a href=#297 id=297 data-nosnippet>297</a>
+<a href=#298 id=298 data-nosnippet>298</a><span class="doccomment">/// Projects a child-branch reference and optional spawning tool parent.
+<a href=#299 id=299 data-nosnippet>299</a>///
+<a href=#300 id=300 data-nosnippet>300</a>/// - `id`: Child branch identity.
+<a href=#301 id=301 data-nosnippet>301</a>/// - `parent`: Optional spawning tool invocation identity.
+<a href=#302 id=302 data-nosnippet>302</a>///
+<a href=#303 id=303 data-nosnippet>303</a>/// Safe child-branch fields.
+<a href=#304 id=304 data-nosnippet>304</a>/// # Returns
+<a href=#305 id=305 data-nosnippet>305</a>/// The operation result.
+<a href=#306 id=306 data-nosnippet>306</a></span><span class="kw">fn </span>child_branch_projection(id: EntityId, parent: <span class="prelude-ty">Option</span>&lt;EntityId&gt;) -&gt; ActivityProjection {
+<a href=#307 id=307 data-nosnippet>307</a>    ActivityProjection {
+<a href=#308 id=308 data-nosnippet>308</a>        id,
+<a href=#309 id=309 data-nosnippet>309</a>        parent: parent.map(|parent| parent.to_string()),
+<a href=#310 id=310 data-nosnippet>310</a>        kind: Kind::BranchStarted,
+<a href=#311 id=311 data-nosnippet>311</a>        state: State::Running,
+<a href=#312 id=312 data-nosnippet>312</a>        summary: <span class="string">"Child branch"</span>.to_owned(),
+<a href=#313 id=313 data-nosnippet>313</a>        model: <span class="prelude-val">None</span>,
+<a href=#314 id=314 data-nosnippet>314</a>        thinking_level: <span class="prelude-val">None</span>,
+<a href=#315 id=315 data-nosnippet>315</a>        tool_name: <span class="prelude-val">None</span>,
+<a href=#316 id=316 data-nosnippet>316</a>    }
+<a href=#317 id=317 data-nosnippet>317</a>}
+<a href=#318 id=318 data-nosnippet>318</a>
+<a href=#319 id=319 data-nosnippet>319</a><span class="doccomment">/// Projects a branch result and its terminal status.
+<a href=#320 id=320 data-nosnippet>320</a>///
+<a href=#321 id=321 data-nosnippet>321</a>/// - `id`: Durable branch-result identity.
+<a href=#322 id=322 data-nosnippet>322</a>/// - `branch`: Branch containing the result.
+<a href=#323 id=323 data-nosnippet>323</a>///
+<a href=#324 id=324 data-nosnippet>324</a>/// Safe branch-result fields when the result exists.
+<a href=#325 id=325 data-nosnippet>325</a>/// # Returns
+<a href=#326 id=326 data-nosnippet>326</a>/// The operation result.
+<a href=#327 id=327 data-nosnippet>327</a></span><span class="kw">fn </span>project_branch_result(id: EntityId, branch: <span class="kw-2">&amp;</span>Branch) -&gt; <span class="prelude-ty">Option</span>&lt;ActivityProjection&gt; {
+<a href=#328 id=328 data-nosnippet>328</a>    <span class="kw">let </span>result = branch.result.as_ref().filter(|result| result.id == id)<span class="question-mark">?</span>;
+<a href=#329 id=329 data-nosnippet>329</a>    <span class="prelude-val">Some</span>(ActivityProjection {
+<a href=#330 id=330 data-nosnippet>330</a>        id,
+<a href=#331 id=331 data-nosnippet>331</a>        parent: <span class="prelude-val">None</span>,
+<a href=#332 id=332 data-nosnippet>332</a>        kind: Kind::BranchCompleted,
+<a href=#333 id=333 data-nosnippet>333</a>        state: <span class="kw">match </span>result.status {
+<a href=#334 id=334 data-nosnippet>334</a>            BranchStatus::Completed =&gt; State::Completed,
+<a href=#335 id=335 data-nosnippet>335</a>            BranchStatus::Active =&gt; State::Running,
+<a href=#336 id=336 data-nosnippet>336</a>            BranchStatus::Abandoned =&gt; State::Failed,
+<a href=#337 id=337 data-nosnippet>337</a>        },
+<a href=#338 id=338 data-nosnippet>338</a>        summary: result
+<a href=#339 id=339 data-nosnippet>339</a>            .summary
+<a href=#340 id=340 data-nosnippet>340</a>            .as_deref()
+<a href=#341 id=341 data-nosnippet>341</a>            .map_or_else(|| <span class="string">"Branch result"</span>.to_owned(), bounded_summary),
+<a href=#342 id=342 data-nosnippet>342</a>        model: <span class="prelude-val">None</span>,
+<a href=#343 id=343 data-nosnippet>343</a>        thinking_level: <span class="prelude-val">None</span>,
+<a href=#344 id=344 data-nosnippet>344</a>        tool_name: <span class="prelude-val">None</span>,
+<a href=#345 id=345 data-nosnippet>345</a>    })
+<a href=#346 id=346 data-nosnippet>346</a>}
+<a href=#347 id=347 data-nosnippet>347</a>
+<a href=#348 id=348 data-nosnippet>348</a><span class="attr">#[cfg(test)]
+<a href=#349 id=349 data-nosnippet>349</a>#[path = <span class="string">"server_helpers_activity_oversized_tests.rs"</span>]
+<a href=#350 id=350 data-nosnippet>350</a></span><span class="kw">mod </span>oversized_tests;
+<a href=#351 id=351 data-nosnippet>351</a><span class="attr">#[cfg(test)]
+<a href=#352 id=352 data-nosnippet>352</a>#[path = <span class="string">"server_helpers_activity_tests.rs"</span>]
+<a href=#353 id=353 data-nosnippet>353</a></span><span class="kw">mod </span>tests;
 </code></pre></div></section></main></body></html>

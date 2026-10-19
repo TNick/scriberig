@@ -6,13 +6,13 @@
 <a href=#6 id=6 data-nosnippet>6</a>
 <a href=#7 id=7 data-nosnippet>7</a><span class="doccomment">/// Builds a panel border with a visible focus state.
 <a href=#8 id=8 data-nosnippet>8</a>///
-<a href=#9 id=9 data-nosnippet>9</a>/// # Parameters
-<a href=#10 id=10 data-nosnippet>10</a>/// - `title`: Panel title displayed in the border.
-<a href=#11 id=11 data-nosnippet>11</a>/// - `focused`: Whether this panel currently owns keyboard focus.
-<a href=#12 id=12 data-nosnippet>12</a>/// - `super`: Parent-module visibility marker.
-<a href=#13 id=13 data-nosnippet>13</a>///
+<a href=#9 id=9 data-nosnippet>9</a>/// - `title`: Panel title displayed in the border.
+<a href=#10 id=10 data-nosnippet>10</a>/// - `focused`: Whether this panel currently owns keyboard focus.
+<a href=#11 id=11 data-nosnippet>11</a>/// - `super`: Parent-module visibility marker.
+<a href=#12 id=12 data-nosnippet>12</a>///
+<a href=#13 id=13 data-nosnippet>13</a>/// A styled panel block.
 <a href=#14 id=14 data-nosnippet>14</a>/// # Returns
-<a href=#15 id=15 data-nosnippet>15</a>/// A styled panel block.
+<a href=#15 id=15 data-nosnippet>15</a>/// The operation result.
 <a href=#16 id=16 data-nosnippet>16</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>panel_block(title: <span class="kw-2">&amp;</span>str, focused: bool) -&gt; Block&lt;<span class="lifetime">'_</span>&gt; {
 <a href=#17 id=17 data-nosnippet>17</a>    <span class="kw">let </span>color = <span class="kw">if </span>focused {
 <a href=#18 id=18 data-nosnippet>18</a>        Color::Cyan
@@ -32,12 +32,12 @@
 <a href=#32 id=32 data-nosnippet>32</a>
 <a href=#33 id=33 data-nosnippet>33</a><span class="doccomment">/// Formats inspector loading, error, and ready states with exact identifiers.
 <a href=#34 id=34 data-nosnippet>34</a>///
-<a href=#35 id=35 data-nosnippet>35</a>/// # Parameters
-<a href=#36 id=36 data-nosnippet>36</a>/// - `state`: Cached presentation state.
-<a href=#37 id=37 data-nosnippet>37</a>/// - `super`: Parent-module visibility marker.
-<a href=#38 id=38 data-nosnippet>38</a>///
+<a href=#35 id=35 data-nosnippet>35</a>/// - `state`: Cached presentation state.
+<a href=#36 id=36 data-nosnippet>36</a>/// - `super`: Parent-module visibility marker.
+<a href=#37 id=37 data-nosnippet>37</a>///
+<a href=#38 id=38 data-nosnippet>38</a>/// Text representing inspector state.
 <a href=#39 id=39 data-nosnippet>39</a>/// # Returns
-<a href=#40 id=40 data-nosnippet>40</a>/// Text representing inspector state.
+<a href=#40 id=40 data-nosnippet>40</a>/// The operation result.
 <a href=#41 id=41 data-nosnippet>41</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>inspector_text(state: <span class="kw-2">&amp;</span>TuiState) -&gt; String {
 <a href=#42 id=42 data-nosnippet>42</a>    <span class="kw">match </span><span class="kw-2">&amp;</span>state.inspector {
 <a href=#43 id=43 data-nosnippet>43</a>        <span class="kw">crate</span>::inspector::LoadState::NotRequested =&gt; {
@@ -72,17 +72,16 @@
 <a href=#72 id=72 data-nosnippet>72</a>
 <a href=#73 id=73 data-nosnippet>73</a><span class="doccomment">/// Renders the runtime status line.
 <a href=#74 id=74 data-nosnippet>74</a>///
-<a href=#75 id=75 data-nosnippet>75</a>/// # Parameters
-<a href=#76 id=76 data-nosnippet>76</a>/// - `frame`: Terminal frame to draw.
-<a href=#77 id=77 data-nosnippet>77</a>/// - `area`: Status-line rectangle.
-<a href=#78 id=78 data-nosnippet>78</a>/// - `state`: Cached presentation state.
-<a href=#79 id=79 data-nosnippet>79</a>/// - `super`: Parent-module visibility marker.
-<a href=#80 id=80 data-nosnippet>80</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>render_status(frame: <span class="kw-2">&amp;mut </span>Frame&lt;<span class="lifetime">'_</span>&gt;, area: Rect, state: <span class="kw-2">&amp;</span>TuiState) {
-<a href=#81 id=81 data-nosnippet>81</a>    <span class="kw">let </span>hints = keymap::hints(state)
-<a href=#82 id=82 data-nosnippet>82</a>        .into_iter()
-<a href=#83 id=83 data-nosnippet>83</a>        .map(|(key, label)| <span class="macro">format!</span>(<span class="string">"{key} {label}"</span>))
-<a href=#84 id=84 data-nosnippet>84</a>        .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
-<a href=#85 id=85 data-nosnippet>85</a>        .join(<span class="string">" | "</span>);
-<a href=#86 id=86 data-nosnippet>86</a>    frame.render_widget(Paragraph::new(<span class="macro">format!</span>(<span class="string">" {hints} "</span>)), area);
-<a href=#87 id=87 data-nosnippet>87</a>}
+<a href=#75 id=75 data-nosnippet>75</a>/// - `frame`: Terminal frame to draw.
+<a href=#76 id=76 data-nosnippet>76</a>/// - `area`: Status-line rectangle.
+<a href=#77 id=77 data-nosnippet>77</a>/// - `state`: Cached presentation state.
+<a href=#78 id=78 data-nosnippet>78</a>/// - `super`: Parent-module visibility marker.
+<a href=#79 id=79 data-nosnippet>79</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>render_status(frame: <span class="kw-2">&amp;mut </span>Frame&lt;<span class="lifetime">'_</span>&gt;, area: Rect, state: <span class="kw-2">&amp;</span>TuiState) {
+<a href=#80 id=80 data-nosnippet>80</a>    <span class="kw">let </span>hints = keymap::hints(state)
+<a href=#81 id=81 data-nosnippet>81</a>        .into_iter()
+<a href=#82 id=82 data-nosnippet>82</a>        .map(|(key, label)| <span class="macro">format!</span>(<span class="string">"{key} {label}"</span>))
+<a href=#83 id=83 data-nosnippet>83</a>        .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
+<a href=#84 id=84 data-nosnippet>84</a>        .join(<span class="string">" | "</span>);
+<a href=#85 id=85 data-nosnippet>85</a>    frame.render_widget(Paragraph::new(<span class="macro">format!</span>(<span class="string">" {hints} "</span>)), area);
+<a href=#86 id=86 data-nosnippet>86</a>}
 </code></pre></div></section></main></body></html>

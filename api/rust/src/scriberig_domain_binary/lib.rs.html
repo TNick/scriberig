@@ -17,13 +17,13 @@
 <a href=#17 id=17 data-nosnippet>17</a>
 <a href=#18 id=18 data-nosnippet>18</a><span class="doccomment">/// Creates binary metadata without decoding or modifying source bytes.
 <a href=#19 id=19 data-nosnippet>19</a>///
-<a href=#20 id=20 data-nosnippet>20</a>/// # Parameters
-<a href=#21 id=21 data-nosnippet>21</a>/// - `path`: Source path used for media-type inference.
-<a href=#22 id=22 data-nosnippet>22</a>/// - `source`: Exact source bytes.
-<a href=#23 id=23 data-nosnippet>23</a>///
-<a href=#24 id=24 data-nosnippet>24</a>/// # Returns
-<a href=#25 id=25 data-nosnippet>25</a>/// Binary metadata retaining path, type, and byte length.
-<a href=#26 id=26 data-nosnippet>26</a></span><span class="attr">#[must_use]
+<a href=#20 id=20 data-nosnippet>20</a>/// - `path`: Source path used for media-type inference.
+<a href=#21 id=21 data-nosnippet>21</a>/// - `source`: Exact source bytes.
+<a href=#22 id=22 data-nosnippet>22</a>///
+<a href=#23 id=23 data-nosnippet>23</a>/// Binary metadata retaining path, type, and byte length.
+<a href=#24 id=24 data-nosnippet>24</a></span><span class="attr">#[must_use]
+<a href=#25 id=25 data-nosnippet>25</a></span><span class="doccomment">/// # Returns
+<a href=#26 id=26 data-nosnippet>26</a>/// The operation result.
 <a href=#27 id=27 data-nosnippet>27</a></span><span class="kw">pub fn </span>parse(path: <span class="kw-2">&amp;</span>Path, source: <span class="kw-2">&amp;</span>[u8]) -&gt; BinaryDocument {
 <a href=#28 id=28 data-nosnippet>28</a>    BinaryDocument {
 <a href=#29 id=29 data-nosnippet>29</a>        path: path.to_string_lossy().replace(<span class="string">'\\'</span>, <span class="string">"/"</span>),
@@ -34,11 +34,11 @@
 <a href=#34 id=34 data-nosnippet>34</a>
 <a href=#35 id=35 data-nosnippet>35</a><span class="doccomment">/// Infers a stable media type for a binary path.
 <a href=#36 id=36 data-nosnippet>36</a>///
-<a href=#37 id=37 data-nosnippet>37</a>/// # Parameters
-<a href=#38 id=38 data-nosnippet>38</a>/// - `path`: Source path.
-<a href=#39 id=39 data-nosnippet>39</a>///
+<a href=#37 id=37 data-nosnippet>37</a>/// - `path`: Source path.
+<a href=#38 id=38 data-nosnippet>38</a>///
+<a href=#39 id=39 data-nosnippet>39</a>/// Media type suitable for indexing and agent context.
 <a href=#40 id=40 data-nosnippet>40</a>/// # Returns
-<a href=#41 id=41 data-nosnippet>41</a>/// Media type suitable for indexing and agent context.
+<a href=#41 id=41 data-nosnippet>41</a>/// The operation result.
 <a href=#42 id=42 data-nosnippet>42</a></span><span class="kw">fn </span>media_type(path: <span class="kw-2">&amp;</span>Path) -&gt; String {
 <a href=#43 id=43 data-nosnippet>43</a>    <span class="kw">let </span>extension = path
 <a href=#44 id=44 data-nosnippet>44</a>        .extension()

@@ -11,11 +11,11 @@
 <a href=#11 id=11 data-nosnippet>11</a>
 <a href=#12 id=12 data-nosnippet>12</a><span class="doccomment">/// Converts parser heading levels to stable numeric levels.
 <a href=#13 id=13 data-nosnippet>13</a>///
-<a href=#14 id=14 data-nosnippet>14</a>/// # Parameters
-<a href=#15 id=15 data-nosnippet>15</a>/// - `level`: Parser heading level.
-<a href=#16 id=16 data-nosnippet>16</a>///
+<a href=#14 id=14 data-nosnippet>14</a>/// - `level`: Parser heading level.
+<a href=#15 id=15 data-nosnippet>15</a>///
+<a href=#16 id=16 data-nosnippet>16</a>/// Numeric heading depth from one through six.
 <a href=#17 id=17 data-nosnippet>17</a>/// # Returns
-<a href=#18 id=18 data-nosnippet>18</a>/// Numeric heading depth from one through six.
+<a href=#18 id=18 data-nosnippet>18</a>/// The operation result.
 <a href=#19 id=19 data-nosnippet>19</a></span><span class="kw">fn </span>heading_level(level: HeadingLevel) -&gt; u8 {
 <a href=#20 id=20 data-nosnippet>20</a>    <span class="kw">match </span>level {
 <a href=#21 id=21 data-nosnippet>21</a>        HeadingLevel::H1 =&gt; <span class="number">1</span>,
@@ -30,12 +30,12 @@
 <a href=#30 id=30 data-nosnippet>30</a>
 <a href=#31 id=31 data-nosnippet>31</a><span class="doccomment">/// Parses supported Markdown syntax into semantic blocks.
 <a href=#32 id=32 data-nosnippet>32</a>///
-<a href=#33 id=33 data-nosnippet>33</a>/// # Parameters
-<a href=#34 id=34 data-nosnippet>34</a>/// - `source`: Markdown source text.
-<a href=#35 id=35 data-nosnippet>35</a>///
-<a href=#36 id=36 data-nosnippet>36</a>/// # Returns
-<a href=#37 id=37 data-nosnippet>37</a>/// A semantic Markdown document preserving block order.
-<a href=#38 id=38 data-nosnippet>38</a></span><span class="attr">#[must_use]
+<a href=#33 id=33 data-nosnippet>33</a>/// - `source`: Markdown source text.
+<a href=#34 id=34 data-nosnippet>34</a>///
+<a href=#35 id=35 data-nosnippet>35</a>/// A semantic Markdown document preserving block order.
+<a href=#36 id=36 data-nosnippet>36</a></span><span class="attr">#[must_use]
+<a href=#37 id=37 data-nosnippet>37</a></span><span class="doccomment">/// # Returns
+<a href=#38 id=38 data-nosnippet>38</a>/// The operation result.
 <a href=#39 id=39 data-nosnippet>39</a></span><span class="kw">pub fn </span>parse(source: <span class="kw-2">&amp;</span>str) -&gt; MarkdownDocument {
 <a href=#40 id=40 data-nosnippet>40</a>    <span class="kw">let </span>parser = Parser::new_ext(source, Options::all());
 <a href=#41 id=41 data-nosnippet>41</a>    <span class="kw">let </span><span class="kw-2">mut </span>blocks = Vec::new();

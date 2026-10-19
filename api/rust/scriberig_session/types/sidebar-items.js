@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["BranchResult","Decision","Goal","Observation","Question","Session","Summary","Task"]};
+window.SIDEBAR_ITEMS = {"struct":["BranchCandidateContext","BranchResult","Decision","Goal","Observation","Question","Session","Summary","Task"]};

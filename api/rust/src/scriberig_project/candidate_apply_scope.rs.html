@@ -8,33 +8,34 @@
 <a href=#8 id=8 data-nosnippet>8</a>
 <a href=#9 id=9 data-nosnippet>9</a><span class="doccomment">/// Selects the working-tree path set for candidate preflight and refresh.
 <a href=#10 id=10 data-nosnippet>10</a>///
-<a href=#11 id=11 data-nosnippet>11</a>/// # Parameters
-<a href=#12 id=12 data-nosnippet>12</a>/// - `root`: Authorized project checkout.
-<a href=#13 id=13 data-nosnippet>13</a>/// - `base_files`: Exact project manifest at candidate base.
-<a href=#14 id=14 data-nosnippet>14</a>/// - `effects`: Candidate-owned paths, including new source files.
-<a href=#15 id=15 data-nosnippet>15</a>/// - `super`: Parent candidate module.
-<a href=#16 id=16 data-nosnippet>16</a>///
-<a href=#17 id=17 data-nosnippet>17</a>/// # Returns
-<a href=#18 id=18 data-nosnippet>18</a>/// Git working paths plus base/effect paths for repositories; `None` for
-<a href=#19 id=19 data-nosnippet>19</a>/// non-Git projects, whose full source trees remain the scan boundary.
-<a href=#20 id=20 data-nosnippet>20</a>///
-<a href=#21 id=21 data-nosnippet>21</a>/// # Errors
-<a href=#22 id=22 data-nosnippet>22</a>/// Returns a structured Git discovery error.
-<a href=#23 id=23 data-nosnippet>23</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>candidate_scan_paths(
-<a href=#24 id=24 data-nosnippet>24</a>    root: <span class="kw-2">&amp;</span>Path,
-<a href=#25 id=25 data-nosnippet>25</a>    base_files: <span class="kw-2">&amp;</span>[ProjectFileRecord],
-<a href=#26 id=26 data-nosnippet>26</a>    effects: <span class="kw-2">&amp;</span>[ProjectSourceEffect],
-<a href=#27 id=27 data-nosnippet>27</a>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;BTreeSet&lt;String&gt;&gt;, ProjectError&gt; {
-<a href=#28 id=28 data-nosnippet>28</a>    <span class="kw">if </span>!root.join(<span class="string">".git"</span>).exists() {
-<a href=#29 id=29 data-nosnippet>29</a>        <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
-<a href=#30 id=30 data-nosnippet>30</a>    }
-<a href=#31 id=31 data-nosnippet>31</a>    <span class="kw">let </span><span class="kw-2">mut </span>paths = <span class="kw">crate</span>::support::git_candidate_paths(root).map_err(|error| ProjectError {
-<a href=#32 id=32 data-nosnippet>32</a>        code: <span class="string">"git_scan_failed"</span>,
-<a href=#33 id=33 data-nosnippet>33</a>        message: error.to_string(),
-<a href=#34 id=34 data-nosnippet>34</a>        diagnostics: Vec::new(),
-<a href=#35 id=35 data-nosnippet>35</a>    })<span class="question-mark">?</span>;
-<a href=#36 id=36 data-nosnippet>36</a>    paths.extend(base_files.iter().map(|file| file.relative_path.clone()));
-<a href=#37 id=37 data-nosnippet>37</a>    paths.extend(effects.iter().map(|effect| effect.path.clone()));
-<a href=#38 id=38 data-nosnippet>38</a>    <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(paths))
-<a href=#39 id=39 data-nosnippet>39</a>}
+<a href=#11 id=11 data-nosnippet>11</a>/// - `root`: Authorized project checkout.
+<a href=#12 id=12 data-nosnippet>12</a>/// - `base_files`: Exact project manifest at candidate base.
+<a href=#13 id=13 data-nosnippet>13</a>/// - `effects`: Candidate-owned paths, including new source files.
+<a href=#14 id=14 data-nosnippet>14</a>/// - `super`: Parent candidate module.
+<a href=#15 id=15 data-nosnippet>15</a>///
+<a href=#16 id=16 data-nosnippet>16</a>/// Git working paths plus base/effect paths for repositories; `None` for
+<a href=#17 id=17 data-nosnippet>17</a>/// non-Git projects, whose full source trees remain the scan boundary.
+<a href=#18 id=18 data-nosnippet>18</a>///
+<a href=#19 id=19 data-nosnippet>19</a>/// Returns a structured Git discovery error.
+<a href=#20 id=20 data-nosnippet>20</a>/// # Returns
+<a href=#21 id=21 data-nosnippet>21</a>/// The operation result.
+<a href=#22 id=22 data-nosnippet>22</a>/// # Errors
+<a href=#23 id=23 data-nosnippet>23</a>/// Returns an error when the operation fails.
+<a href=#24 id=24 data-nosnippet>24</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>candidate_scan_paths(
+<a href=#25 id=25 data-nosnippet>25</a>    root: <span class="kw-2">&amp;</span>Path,
+<a href=#26 id=26 data-nosnippet>26</a>    base_files: <span class="kw-2">&amp;</span>[ProjectFileRecord],
+<a href=#27 id=27 data-nosnippet>27</a>    effects: <span class="kw-2">&amp;</span>[ProjectSourceEffect],
+<a href=#28 id=28 data-nosnippet>28</a>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;BTreeSet&lt;String&gt;&gt;, ProjectError&gt; {
+<a href=#29 id=29 data-nosnippet>29</a>    <span class="kw">if </span>!root.join(<span class="string">".git"</span>).exists() {
+<a href=#30 id=30 data-nosnippet>30</a>        <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
+<a href=#31 id=31 data-nosnippet>31</a>    }
+<a href=#32 id=32 data-nosnippet>32</a>    <span class="kw">let </span><span class="kw-2">mut </span>paths = <span class="kw">crate</span>::support::git_candidate_paths(root).map_err(|error| ProjectError {
+<a href=#33 id=33 data-nosnippet>33</a>        code: <span class="string">"git_scan_failed"</span>,
+<a href=#34 id=34 data-nosnippet>34</a>        message: error.to_string(),
+<a href=#35 id=35 data-nosnippet>35</a>        diagnostics: Vec::new(),
+<a href=#36 id=36 data-nosnippet>36</a>    })<span class="question-mark">?</span>;
+<a href=#37 id=37 data-nosnippet>37</a>    paths.extend(base_files.iter().map(|file| file.relative_path.clone()));
+<a href=#38 id=38 data-nosnippet>38</a>    paths.extend(effects.iter().map(|effect| effect.path.clone()));
+<a href=#39 id=39 data-nosnippet>39</a>    <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(paths))
+<a href=#40 id=40 data-nosnippet>40</a>}
 </code></pre></div></section></main></body></html>

@@ -7,12 +7,12 @@
 <a href=#7 id=7 data-nosnippet>7</a>
 <a href=#8 id=8 data-nosnippet>8</a><span class="doccomment">/// Reports whether the trusted context exposes the inspect tool surface.
 <a href=#9 id=9 data-nosnippet>9</a>///
-<a href=#10 id=10 data-nosnippet>10</a>/// # Parameters
-<a href=#11 id=11 data-nosnippet>11</a>/// - `context`: Trusted application context.
-<a href=#12 id=12 data-nosnippet>12</a>///
-<a href=#13 id=13 data-nosnippet>13</a>/// # Returns
-<a href=#14 id=14 data-nosnippet>14</a>/// `true` when the inspect capability is granted.
-<a href=#15 id=15 data-nosnippet>15</a></span><span class="attr">#[must_use]
+<a href=#10 id=10 data-nosnippet>10</a>/// - `context`: Trusted application context.
+<a href=#11 id=11 data-nosnippet>11</a>///
+<a href=#12 id=12 data-nosnippet>12</a>/// `true` when the inspect capability is granted.
+<a href=#13 id=13 data-nosnippet>13</a></span><span class="attr">#[must_use]
+<a href=#14 id=14 data-nosnippet>14</a></span><span class="doccomment">/// # Returns
+<a href=#15 id=15 data-nosnippet>15</a>/// The operation result.
 <a href=#16 id=16 data-nosnippet>16</a></span><span class="kw">pub fn </span>inspect_available(context: <span class="kw-2">&amp;</span>ApplicationContext) -&gt; bool {
 <a href=#17 id=17 data-nosnippet>17</a>    CapabilityId::new(INSPECT_CAPABILITY)
 <a href=#18 id=18 data-nosnippet>18</a>        .is_ok_and(|capability| context.capabilities.allows(<span class="kw-2">&amp;</span>capability))

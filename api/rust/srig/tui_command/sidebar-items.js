@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["project_labels","run"],"type":["ProjectStartup"]};
+window.SIDEBAR_ITEMS = {"fn":["project_labels","run"],"struct":["ProjectStartup"]};

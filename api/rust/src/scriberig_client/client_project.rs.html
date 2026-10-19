@@ -7,31 +7,32 @@
 <a href=#7 id=7 data-nosnippet>7</a><span class="kw">impl</span>&lt;T: ProtocolTransport&gt; Client&lt;T&gt; {
 <a href=#8 id=8 data-nosnippet>8</a>    <span class="doccomment">/// Executes one typed project onboarding operation.
 <a href=#9 id=9 data-nosnippet>9</a>    ///
-<a href=#10 id=10 data-nosnippet>10</a>    /// # Parameters
-<a href=#11 id=11 data-nosnippet>11</a>    /// - `operation`: Stable project operation such as `scan` or `import`.
-<a href=#12 id=12 data-nosnippet>12</a>    /// - `payload`: Operation-specific JSON payload.
-<a href=#13 id=13 data-nosnippet>13</a>    ///
-<a href=#14 id=14 data-nosnippet>14</a>    /// # Returns
-<a href=#15 id=15 data-nosnippet>15</a>    /// The presentation-neutral project operation result.
-<a href=#16 id=16 data-nosnippet>16</a>    ///
-<a href=#17 id=17 data-nosnippet>17</a>    /// # Errors
-<a href=#18 id=18 data-nosnippet>18</a>    /// Returns a structured server error or response mismatch.
-<a href=#19 id=19 data-nosnippet>19</a>    </span><span class="kw">pub fn </span>project(
-<a href=#20 id=20 data-nosnippet>20</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
-<a href=#21 id=21 data-nosnippet>21</a>        operation: <span class="kw">impl </span>Into&lt;String&gt;,
-<a href=#22 id=22 data-nosnippet>22</a>        payload: serde_json::Value,
-<a href=#23 id=23 data-nosnippet>23</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;serde_json::Value, ClientError&gt; {
-<a href=#24 id=24 data-nosnippet>24</a>        <span class="kw">match </span><span class="self">self
-<a href=#25 id=25 data-nosnippet>25</a>            </span>.send(Request::Project(ProjectRequest {
-<a href=#26 id=26 data-nosnippet>26</a>                operation: operation.into(),
-<a href=#27 id=27 data-nosnippet>27</a>                payload,
-<a href=#28 id=28 data-nosnippet>28</a>            }))<span class="question-mark">?
-<a href=#29 id=29 data-nosnippet>29</a>            </span>.response
-<a href=#30 id=30 data-nosnippet>30</a>        {
-<a href=#31 id=31 data-nosnippet>31</a>            Response::Project(response) =&gt; <span class="prelude-val">Ok</span>(response.result),
-<a href=#32 id=32 data-nosnippet>32</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
-<a href=#33 id=33 data-nosnippet>33</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
-<a href=#34 id=34 data-nosnippet>34</a>        }
-<a href=#35 id=35 data-nosnippet>35</a>    }
-<a href=#36 id=36 data-nosnippet>36</a>}
+<a href=#10 id=10 data-nosnippet>10</a>    /// - `operation`: Stable project operation such as `scan` or `import`.
+<a href=#11 id=11 data-nosnippet>11</a>    /// - `payload`: Operation-specific JSON payload.
+<a href=#12 id=12 data-nosnippet>12</a>    ///
+<a href=#13 id=13 data-nosnippet>13</a>    /// The presentation-neutral project operation result.
+<a href=#14 id=14 data-nosnippet>14</a>    ///
+<a href=#15 id=15 data-nosnippet>15</a>    /// Returns a structured server error or response mismatch.
+<a href=#16 id=16 data-nosnippet>16</a>    /// # Returns
+<a href=#17 id=17 data-nosnippet>17</a>    /// The operation result.
+<a href=#18 id=18 data-nosnippet>18</a>    /// # Errors
+<a href=#19 id=19 data-nosnippet>19</a>    /// Returns an error when the operation fails.
+<a href=#20 id=20 data-nosnippet>20</a>    </span><span class="kw">pub fn </span>project(
+<a href=#21 id=21 data-nosnippet>21</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
+<a href=#22 id=22 data-nosnippet>22</a>        operation: <span class="kw">impl </span>Into&lt;String&gt;,
+<a href=#23 id=23 data-nosnippet>23</a>        payload: serde_json::Value,
+<a href=#24 id=24 data-nosnippet>24</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;serde_json::Value, ClientError&gt; {
+<a href=#25 id=25 data-nosnippet>25</a>        <span class="kw">match </span><span class="self">self
+<a href=#26 id=26 data-nosnippet>26</a>            </span>.send(Request::Project(ProjectRequest {
+<a href=#27 id=27 data-nosnippet>27</a>                operation: operation.into(),
+<a href=#28 id=28 data-nosnippet>28</a>                payload,
+<a href=#29 id=29 data-nosnippet>29</a>            }))<span class="question-mark">?
+<a href=#30 id=30 data-nosnippet>30</a>            </span>.response
+<a href=#31 id=31 data-nosnippet>31</a>        {
+<a href=#32 id=32 data-nosnippet>32</a>            Response::Project(response) =&gt; <span class="prelude-val">Ok</span>(response.result),
+<a href=#33 id=33 data-nosnippet>33</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#34 id=34 data-nosnippet>34</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
+<a href=#35 id=35 data-nosnippet>35</a>        }
+<a href=#36 id=36 data-nosnippet>36</a>    }
+<a href=#37 id=37 data-nosnippet>37</a>}
 </code></pre></div></section></main></body></html>

@@ -141,16 +141,45 @@
 <a href=#141 id=141 data-nosnippet>141</a>        <span class="doccomment">/// User-authored command text.
 <a href=#142 id=142 data-nosnippet>142</a>        </span>prompt: String,
 <a href=#143 id=143 data-nosnippet>143</a>    },
-<a href=#144 id=144 data-nosnippet>144</a>    <span class="doccomment">/// Run the deterministic semantic project agent for the selected entity.
-<a href=#145 id=145 data-nosnippet>145</a>    </span>ProjectAgent {
-<a href=#146 id=146 data-nosnippet>146</a>        <span class="doccomment">/// Monotonic request identifier.
-<a href=#147 id=147 data-nosnippet>147</a>        </span>request_id: u64,
-<a href=#148 id=148 data-nosnippet>148</a>        <span class="doccomment">/// Selected semantic entity.
-<a href=#149 id=149 data-nosnippet>149</a>        </span>entity: scriberig_core::EntityId,
-<a href=#150 id=150 data-nosnippet>150</a>        <span class="doccomment">/// Exact base snapshot.
-<a href=#151 id=151 data-nosnippet>151</a>        </span>snapshot: scriberig_core::SnapshotId,
-<a href=#152 id=152 data-nosnippet>152</a>        <span class="doccomment">/// User instruction sent to the provider.
-<a href=#153 id=153 data-nosnippet>153</a>        </span>prompt: String,
-<a href=#154 id=154 data-nosnippet>154</a>    },
-<a href=#155 id=155 data-nosnippet>155</a>}
+<a href=#144 id=144 data-nosnippet>144</a>    <span class="doccomment">/// Starts a new session through shared application semantics.
+<a href=#145 id=145 data-nosnippet>145</a>    </span>StartNewConversation {
+<a href=#146 id=146 data-nosnippet>146</a>        <span class="doccomment">/// First user-authored instruction.
+<a href=#147 id=147 data-nosnippet>147</a>        </span>prompt: String,
+<a href=#148 id=148 data-nosnippet>148</a>        <span class="doccomment">/// Exact semantic project selection for the initial model context.
+<a href=#149 id=149 data-nosnippet>149</a>        </span>selection: <span class="prelude-ty">Option</span>&lt;scriberig_app::AgentSelection&gt;,
+<a href=#150 id=150 data-nosnippet>150</a>    },
+<a href=#151 id=151 data-nosnippet>151</a>    <span class="doccomment">/// Continues at one exact durable conversation anchor.
+<a href=#152 id=152 data-nosnippet>152</a>    </span>ContinueConversation {
+<a href=#153 id=153 data-nosnippet>153</a>        <span class="doccomment">/// Owning session identity.
+<a href=#154 id=154 data-nosnippet>154</a>        </span>session: scriberig_core::EntityId,
+<a href=#155 id=155 data-nosnippet>155</a>        <span class="doccomment">/// Stable semantic continuation target.
+<a href=#156 id=156 data-nosnippet>156</a>        </span>anchor: scriberig_session::ContinuationAnchor,
+<a href=#157 id=157 data-nosnippet>157</a>        <span class="doccomment">/// User-authored follow-up instruction.
+<a href=#158 id=158 data-nosnippet>158</a>        </span>prompt: String,
+<a href=#159 id=159 data-nosnippet>159</a>    },
+<a href=#160 id=160 data-nosnippet>160</a>    <span class="doccomment">/// Creates a durable plan through the shared application plan operation.
+<a href=#161 id=161 data-nosnippet>161</a>    </span>CreatePlan(scriberig_app::PlanCreateRequest),
+<a href=#162 id=162 data-nosnippet>162</a>    <span class="doccomment">/// Applies a complete structured revision to a durable plan.
+<a href=#163 id=163 data-nosnippet>163</a>    </span>Replan(scriberig_app::PlanReplanRequest),
+<a href=#164 id=164 data-nosnippet>164</a>    <span class="doccomment">/// Changes a durable plan's lifecycle through shared application semantics.
+<a href=#165 id=165 data-nosnippet>165</a>    </span>PlanLifecycle {
+<a href=#166 id=166 data-nosnippet>166</a>        <span class="doccomment">/// Plan identity and expected durable revision.
+<a href=#167 id=167 data-nosnippet>167</a>        </span>request: scriberig_app::PlanLifecycleRequest,
+<a href=#168 id=168 data-nosnippet>168</a>        <span class="doccomment">/// Requested lifecycle transition.
+<a href=#169 id=169 data-nosnippet>169</a>        </span>action: scriberig_app::PlanLifecycleAction,
+<a href=#170 id=170 data-nosnippet>170</a>    },
+<a href=#171 id=171 data-nosnippet>171</a>    <span class="doccomment">/// Changes one plan node's credential-safe model-library assignment.
+<a href=#172 id=172 data-nosnippet>172</a>    </span>SetPlanNodeAssignment(scriberig_app::PlanAssignmentRequest),
+<a href=#173 id=173 data-nosnippet>173</a>    <span class="doccomment">/// Run the deterministic semantic project agent for the selected entity.
+<a href=#174 id=174 data-nosnippet>174</a>    </span>ProjectAgent {
+<a href=#175 id=175 data-nosnippet>175</a>        <span class="doccomment">/// Monotonic request identifier.
+<a href=#176 id=176 data-nosnippet>176</a>        </span>request_id: u64,
+<a href=#177 id=177 data-nosnippet>177</a>        <span class="doccomment">/// Selected semantic entity.
+<a href=#178 id=178 data-nosnippet>178</a>        </span>entity: scriberig_core::EntityId,
+<a href=#179 id=179 data-nosnippet>179</a>        <span class="doccomment">/// Exact base snapshot.
+<a href=#180 id=180 data-nosnippet>180</a>        </span>snapshot: scriberig_core::SnapshotId,
+<a href=#181 id=181 data-nosnippet>181</a>        <span class="doccomment">/// User instruction sent to the provider.
+<a href=#182 id=182 data-nosnippet>182</a>        </span>prompt: String,
+<a href=#183 id=183 data-nosnippet>183</a>    },
+<a href=#184 id=184 data-nosnippet>184</a>}
 </code></pre></div></section></main></body></html>

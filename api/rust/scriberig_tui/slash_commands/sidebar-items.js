@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["COMMANDS"],"fn":["find","suggestions"],"struct":["SlashCommandDescriptor"]};

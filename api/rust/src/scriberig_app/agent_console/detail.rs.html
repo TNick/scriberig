@@ -2,11 +2,11 @@
 <a href=#2 id=2 data-nosnippet>2</a>
 <a href=#3 id=3 data-nosnippet>3</a>/// Extracts safe presentation fields from a structured tool result.
 <a href=#4 id=4 data-nosnippet>4</a>///
-<a href=#5 id=5 data-nosnippet>5</a>/// # Parameters
-<a href=#6 id=6 data-nosnippet>6</a>/// - `bytes`: Structured result bytes from the trusted tool boundary.
-<a href=#7 id=7 data-nosnippet>7</a>///
+<a href=#5 id=5 data-nosnippet>5</a>/// - `bytes`: Structured result bytes from the trusted tool boundary.
+<a href=#6 id=6 data-nosnippet>6</a>///
+<a href=#7 id=7 data-nosnippet>7</a>/// The allowlisted detail object and whether any field was truncated.
 <a href=#8 id=8 data-nosnippet>8</a>/// # Returns
-<a href=#9 id=9 data-nosnippet>9</a>/// The allowlisted detail object and whether any field was truncated.
+<a href=#9 id=9 data-nosnippet>9</a>/// The operation result.
 <a href=#10 id=10 data-nosnippet>10</a></span><span class="kw">pub fn </span>safe_tool_result_detail(bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; (serde_json::Value, bool) {
 <a href=#11 id=11 data-nosnippet>11</a>    <span class="kw">const </span>MAX_TEXT_CHARS: usize = <span class="number">4_096</span>;
 <a href=#12 id=12 data-nosnippet>12</a>    <span class="kw">let </span><span class="prelude-val">Some</span>(object) = serde_json::from_slice::&lt;serde_json::Value&gt;(bytes)

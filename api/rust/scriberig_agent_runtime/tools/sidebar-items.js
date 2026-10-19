@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ToolExecutionMode","ToolValidationError"],"struct":["ToolCatalog","ToolDescriptor"]};
+window.SIDEBAR_ITEMS = {"enum":["ToolExecutionMode","ToolValidationError"],"struct":["ToolCatalog","ToolDescriptor"],"type":["ToolCategory"]};

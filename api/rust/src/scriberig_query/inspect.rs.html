@@ -17,15 +17,16 @@
 <a href=#17 id=17 data-nosnippet>17</a></span><span class="kw">pub trait </span>InspectService {
 <a href=#18 id=18 data-nosnippet>18</a>    <span class="doccomment">/// Inspects one target without changing its snapshot or revision context.
 <a href=#19 id=19 data-nosnippet>19</a>    ///
-<a href=#20 id=20 data-nosnippet>20</a>    /// # Parameters
-<a href=#21 id=21 data-nosnippet>21</a>    /// - `self`: Read service implementation.
-<a href=#22 id=22 data-nosnippet>22</a>    /// - `request`: Exact-target inspection request.
-<a href=#23 id=23 data-nosnippet>23</a>    ///
-<a href=#24 id=24 data-nosnippet>24</a>    /// # Returns
-<a href=#25 id=25 data-nosnippet>25</a>    /// Compact or expanded inspection metadata.
-<a href=#26 id=26 data-nosnippet>26</a>    ///
-<a href=#27 id=27 data-nosnippet>27</a>    /// # Errors
-<a href=#28 id=28 data-nosnippet>28</a>    /// Returns a structured query error when the target or view is unavailable.
-<a href=#29 id=29 data-nosnippet>29</a>    </span><span class="kw">fn </span>inspect(<span class="kw-2">&amp;</span><span class="self">self</span>, request: <span class="kw-2">&amp;</span>InspectRequest) -&gt; <span class="prelude-ty">Result</span>&lt;Inspection, QueryError&gt;;
-<a href=#30 id=30 data-nosnippet>30</a>}
+<a href=#20 id=20 data-nosnippet>20</a>    /// - `self`: Read service implementation.
+<a href=#21 id=21 data-nosnippet>21</a>    /// - `request`: Exact-target inspection request.
+<a href=#22 id=22 data-nosnippet>22</a>    ///
+<a href=#23 id=23 data-nosnippet>23</a>    /// Compact or expanded inspection metadata.
+<a href=#24 id=24 data-nosnippet>24</a>    ///
+<a href=#25 id=25 data-nosnippet>25</a>    /// Returns a structured query error when the target or view is unavailable.
+<a href=#26 id=26 data-nosnippet>26</a>    /// # Returns
+<a href=#27 id=27 data-nosnippet>27</a>    /// The operation result.
+<a href=#28 id=28 data-nosnippet>28</a>    /// # Errors
+<a href=#29 id=29 data-nosnippet>29</a>    /// Returns an error when the operation fails.
+<a href=#30 id=30 data-nosnippet>30</a>    </span><span class="kw">fn </span>inspect(<span class="kw-2">&amp;</span><span class="self">self</span>, request: <span class="kw-2">&amp;</span>InspectRequest) -&gt; <span class="prelude-ty">Result</span>&lt;Inspection, QueryError&gt;;
+<a href=#31 id=31 data-nosnippet>31</a>}
 </code></pre></div></section></main></body></html>

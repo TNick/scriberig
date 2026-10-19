@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["AgentAcceptedResponse","AgentContinueRequest","AgentResult","AgentSelection","AgentStartRequest","BranchReference","CandidateChangeReference","SessionReference"]};
+window.SIDEBAR_ITEMS = {"struct":["AgentAcceptedResponse","AgentContinueAtRequest","AgentContinueRequest","AgentNewSessionRequest","AgentResult","AgentSelection","AgentStartRequest","BranchReference","CandidateChangeReference","SessionReference"]};

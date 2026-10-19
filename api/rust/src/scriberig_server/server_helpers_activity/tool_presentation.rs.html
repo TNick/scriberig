@@ -2,13 +2,13 @@
 <a href=#2 id=2 data-nosnippet>2</a>
 <a href=#3 id=3 data-nosnippet>3</a>/// Builds the public identifier for a projected activity item.
 <a href=#4 id=4 data-nosnippet>4</a>///
-<a href=#5 id=5 data-nosnippet>5</a>/// # Parameters
-<a href=#6 id=6 data-nosnippet>6</a>/// - `kind`: Public category of the activity.
-<a href=#7 id=7 data-nosnippet>7</a>/// - `has_no_parent`: Whether the source activity has no causal parent.
-<a href=#8 id=8 data-nosnippet>8</a>/// - `id`: Durable source entity identity.
-<a href=#9 id=9 data-nosnippet>9</a>///
+<a href=#5 id=5 data-nosnippet>5</a>/// - `kind`: Public category of the activity.
+<a href=#6 id=6 data-nosnippet>6</a>/// - `has_no_parent`: Whether the source activity has no causal parent.
+<a href=#7 id=7 data-nosnippet>7</a>/// - `id`: Durable source entity identity.
+<a href=#8 id=8 data-nosnippet>8</a>///
+<a href=#9 id=9 data-nosnippet>9</a>/// Stable identifier with a role suffix for human and standalone output rows.
 <a href=#10 id=10 data-nosnippet>10</a>/// # Returns
-<a href=#11 id=11 data-nosnippet>11</a>/// Stable identifier with a role suffix for human and standalone output rows.
+<a href=#11 id=11 data-nosnippet>11</a>/// The operation result.
 <a href=#12 id=12 data-nosnippet>12</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>projected_activity_id(
 <a href=#13 id=13 data-nosnippet>13</a>    kind: scriberig_protocol::SessionActivityKind,
 <a href=#14 id=14 data-nosnippet>14</a>    has_no_parent: bool,
@@ -25,12 +25,12 @@
 <a href=#25 id=25 data-nosnippet>25</a>
 <a href=#26 id=26 data-nosnippet>26</a><span class="doccomment">/// Projects bounded safe detail for one tool activity.
 <a href=#27 id=27 data-nosnippet>27</a>///
-<a href=#28 id=28 data-nosnippet>28</a>/// # Parameters
-<a href=#29 id=29 data-nosnippet>29</a>/// - `activity`: Durable activity reference being projected.
-<a href=#30 id=30 data-nosnippet>30</a>/// - `branch`: Branch containing the corresponding tool record.
-<a href=#31 id=31 data-nosnippet>31</a>///
+<a href=#28 id=28 data-nosnippet>28</a>/// - `activity`: Durable activity reference being projected.
+<a href=#29 id=29 data-nosnippet>29</a>/// - `branch`: Branch containing the corresponding tool record.
+<a href=#30 id=30 data-nosnippet>30</a>///
+<a href=#31 id=31 data-nosnippet>31</a>/// Safe invocation arguments or result preview, with the other value absent.
 <a href=#32 id=32 data-nosnippet>32</a>/// # Returns
-<a href=#33 id=33 data-nosnippet>33</a>/// Safe invocation arguments or result preview, with the other value absent.
+<a href=#33 id=33 data-nosnippet>33</a>/// The operation result.
 <a href=#34 id=34 data-nosnippet>34</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>activity_tool_details(
 <a href=#35 id=35 data-nosnippet>35</a>    activity: <span class="kw-2">&amp;</span>scriberig_session::ExecutionActivity,
 <a href=#36 id=36 data-nosnippet>36</a>    branch: <span class="kw-2">&amp;</span>scriberig_session::Branch,
@@ -59,11 +59,11 @@
 <a href=#59 id=59 data-nosnippet>59</a>
 <a href=#60 id=60 data-nosnippet>60</a><span class="doccomment">/// Bounds display text by Unicode scalar values.
 <a href=#61 id=61 data-nosnippet>61</a>///
-<a href=#62 id=62 data-nosnippet>62</a>/// # Parameters
-<a href=#63 id=63 data-nosnippet>63</a>/// - `value`: Externally meaningful text.
-<a href=#64 id=64 data-nosnippet>64</a>///
+<a href=#62 id=62 data-nosnippet>62</a>/// - `value`: Externally meaningful text.
+<a href=#63 id=63 data-nosnippet>63</a>///
+<a href=#64 id=64 data-nosnippet>64</a>/// At most 512 characters with an ellipsis when truncated.
 <a href=#65 id=65 data-nosnippet>65</a>/// # Returns
-<a href=#66 id=66 data-nosnippet>66</a>/// At most 512 characters with an ellipsis when truncated.
+<a href=#66 id=66 data-nosnippet>66</a>/// The operation result.
 <a href=#67 id=67 data-nosnippet>67</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>bounded_summary(value: <span class="kw-2">&amp;</span>str) -&gt; String {
 <a href=#68 id=68 data-nosnippet>68</a>    <span class="kw">let </span><span class="kw-2">mut </span>chars = value.chars();
 <a href=#69 id=69 data-nosnippet>69</a>    <span class="kw">let </span><span class="kw-2">mut </span>summary = chars.by_ref().take(<span class="number">512</span>).collect::&lt;String&gt;();
@@ -75,11 +75,11 @@
 <a href=#75 id=75 data-nosnippet>75</a>
 <a href=#76 id=76 data-nosnippet>76</a><span class="doccomment">/// Decodes and bounds persisted schema-redacted tool argument detail.
 <a href=#77 id=77 data-nosnippet>77</a>///
-<a href=#78 id=78 data-nosnippet>78</a>/// # Parameters
-<a href=#79 id=79 data-nosnippet>79</a>/// - `bytes`: Safe structured argument bytes stored with the invocation.
-<a href=#80 id=80 data-nosnippet>80</a>///
+<a href=#78 id=78 data-nosnippet>78</a>/// - `bytes`: Safe structured argument bytes stored with the invocation.
+<a href=#79 id=79 data-nosnippet>79</a>///
+<a href=#80 id=80 data-nosnippet>80</a>/// The parsed argument value when its JSON form is at most 4096 characters.
 <a href=#81 id=81 data-nosnippet>81</a>/// # Returns
-<a href=#82 id=82 data-nosnippet>82</a>/// The parsed argument value when its JSON form is at most 4096 characters.
+<a href=#82 id=82 data-nosnippet>82</a>/// The operation result.
 <a href=#83 id=83 data-nosnippet>83</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>bounded_tool_arguments(bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Option</span>&lt;serde_json::Value&gt; {
 <a href=#84 id=84 data-nosnippet>84</a>    <span class="kw">let </span>value = serde_json::from_slice::&lt;serde_json::Value&gt;(bytes).ok()<span class="question-mark">?</span>;
 <a href=#85 id=85 data-nosnippet>85</a>    (value.to_string().chars().count() &lt;= <span class="number">4096</span>).then_some(value)
@@ -87,11 +87,11 @@
 <a href=#87 id=87 data-nosnippet>87</a>
 <a href=#88 id=88 data-nosnippet>88</a><span class="doccomment">/// Projects only safe result metadata for bounded full-mode display.
 <a href=#89 id=89 data-nosnippet>89</a>///
-<a href=#90 id=90 data-nosnippet>90</a>/// # Parameters
-<a href=#91 id=91 data-nosnippet>91</a>/// - `bytes`: Structured result bytes retained by the trusted tool boundary.
-<a href=#92 id=92 data-nosnippet>92</a>///
+<a href=#90 id=90 data-nosnippet>90</a>/// - `bytes`: Structured result bytes retained by the trusted tool boundary.
+<a href=#91 id=91 data-nosnippet>91</a>///
+<a href=#92 id=92 data-nosnippet>92</a>/// A whitelisted object bounded to 4096 serialized characters.
 <a href=#93 id=93 data-nosnippet>93</a>/// # Returns
-<a href=#94 id=94 data-nosnippet>94</a>/// A whitelisted object bounded to 4096 serialized characters.
+<a href=#94 id=94 data-nosnippet>94</a>/// The operation result.
 <a href=#95 id=95 data-nosnippet>95</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>bounded_tool_result_preview(bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Option</span>&lt;serde_json::Value&gt; {
 <a href=#96 id=96 data-nosnippet>96</a>    <span class="kw">let </span>value = serde_json::from_slice::&lt;serde_json::Value&gt;(bytes).ok()<span class="question-mark">?</span>;
 <a href=#97 id=97 data-nosnippet>97</a>    <span class="kw">let </span>object = value.as_object()<span class="question-mark">?</span>;
@@ -117,12 +117,12 @@
 <a href=#117 id=117 data-nosnippet>117</a>
 <a href=#118 id=118 data-nosnippet>118</a><span class="doccomment">/// Reads the tool boundary's safe summary, falling back to a generic status.
 <a href=#119 id=119 data-nosnippet>119</a>///
-<a href=#120 id=120 data-nosnippet>120</a>/// # Parameters
-<a href=#121 id=121 data-nosnippet>121</a>/// - `result`: Durable result bytes returned by the trusted tool boundary.
-<a href=#122 id=122 data-nosnippet>122</a>/// - `failed`: Whether the tool execution failed.
-<a href=#123 id=123 data-nosnippet>123</a>///
+<a href=#120 id=120 data-nosnippet>120</a>/// - `result`: Durable result bytes returned by the trusted tool boundary.
+<a href=#121 id=121 data-nosnippet>121</a>/// - `failed`: Whether the tool execution failed.
+<a href=#122 id=122 data-nosnippet>122</a>///
+<a href=#123 id=123 data-nosnippet>123</a>/// A bounded result summary without exposing arbitrary output fields.
 <a href=#124 id=124 data-nosnippet>124</a>/// # Returns
-<a href=#125 id=125 data-nosnippet>125</a>/// A bounded result summary without exposing arbitrary output fields.
+<a href=#125 id=125 data-nosnippet>125</a>/// The operation result.
 <a href=#126 id=126 data-nosnippet>126</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>tool_result_summary(result: <span class="kw-2">&amp;</span>scriberig_session::ToolResult, failed: bool) -&gt; String {
 <a href=#127 id=127 data-nosnippet>127</a>    <span class="kw">let </span>fallback = <span class="kw">if </span>failed {
 <a href=#128 id=128 data-nosnippet>128</a>        <span class="string">"Tool failed"

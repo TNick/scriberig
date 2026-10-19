@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["AgentOutput","HumanInput","ToolInvocation","ToolResult","Turn"]};
+window.SIDEBAR_ITEMS = {"enum":["ContinuationAnchor","ContinuationOrigin"],"struct":["AgentOutput","ContinuationProvenance","HumanInput","ResolvedContinuationAnchor","ToolInvocation","ToolResult","Turn"]};

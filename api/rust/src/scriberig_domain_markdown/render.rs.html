@@ -4,11 +4,11 @@
 <a href=#4 id=4 data-nosnippet>4</a>
 <a href=#5 id=5 data-nosnippet>5</a><span class="doccomment">/// Renders a semantic Markdown document using the default stable style.
 <a href=#6 id=6 data-nosnippet>6</a>///
-<a href=#7 id=7 data-nosnippet>7</a>/// # Parameters
-<a href=#8 id=8 data-nosnippet>8</a>/// - `document`: Semantic document to render.
-<a href=#9 id=9 data-nosnippet>9</a>///
+<a href=#7 id=7 data-nosnippet>7</a>/// - `document`: Semantic document to render.
+<a href=#8 id=8 data-nosnippet>8</a>///
+<a href=#9 id=9 data-nosnippet>9</a>/// Deterministic Markdown text.
 <a href=#10 id=10 data-nosnippet>10</a>/// # Returns
-<a href=#11 id=11 data-nosnippet>11</a>/// Deterministic Markdown text.
+<a href=#11 id=11 data-nosnippet>11</a>/// The operation result.
 <a href=#12 id=12 data-nosnippet>12</a></span><span class="kw">pub fn </span>render(document: <span class="kw-2">&amp;</span>MarkdownDocument) -&gt; String {
 <a href=#13 id=13 data-nosnippet>13</a>    document
 <a href=#14 id=14 data-nosnippet>14</a>        .blocks
@@ -20,11 +20,11 @@
 <a href=#20 id=20 data-nosnippet>20</a>
 <a href=#21 id=21 data-nosnippet>21</a><span class="doccomment">/// Renders one semantic block.
 <a href=#22 id=22 data-nosnippet>22</a>///
-<a href=#23 id=23 data-nosnippet>23</a>/// # Parameters
-<a href=#24 id=24 data-nosnippet>24</a>/// - `block`: Semantic block to render.
-<a href=#25 id=25 data-nosnippet>25</a>///
+<a href=#23 id=23 data-nosnippet>23</a>/// - `block`: Semantic block to render.
+<a href=#24 id=24 data-nosnippet>24</a>///
+<a href=#25 id=25 data-nosnippet>25</a>/// Deterministic Markdown for the block.
 <a href=#26 id=26 data-nosnippet>26</a>/// # Returns
-<a href=#27 id=27 data-nosnippet>27</a>/// Deterministic Markdown for the block.
+<a href=#27 id=27 data-nosnippet>27</a>/// The operation result.
 <a href=#28 id=28 data-nosnippet>28</a></span><span class="kw">fn </span>render_block(block: <span class="kw-2">&amp;</span>MarkdownBlock) -&gt; String {
 <a href=#29 id=29 data-nosnippet>29</a>    <span class="kw">match </span>block {
 <a href=#30 id=30 data-nosnippet>30</a>        MarkdownBlock::Heading { level, text } =&gt; <span class="macro">format!</span>(<span class="string">"{} {text}"</span>, <span class="string">"#"</span>.repeat(<span class="kw-2">*</span>level <span class="kw">as </span>usize)),

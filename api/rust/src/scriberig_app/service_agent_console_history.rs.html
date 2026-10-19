@@ -6,25 +6,24 @@
 <a href=#6 id=6 data-nosnippet>6</a>
 <a href=#7 id=7 data-nosnippet>7</a><span class="doccomment">/// Appends bounded durable provenance for one execution-selection change.
 <a href=#8 id=8 data-nosnippet>8</a>///
-<a href=#9 id=9 data-nosnippet>9</a>/// # Parameters
-<a href=#10 id=10 data-nosnippet>10</a>/// - `selection`: Updated authoritative session selection.
-<a href=#11 id=11 data-nosnippet>11</a>/// - `kind`: Model or thinking selection category.
-<a href=#12 id=12 data-nosnippet>12</a>/// - `summary`: Safe concise description of the change.
-<a href=#13 id=13 data-nosnippet>13</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>record_selection_change(
-<a href=#14 id=14 data-nosnippet>14</a>    selection: <span class="kw-2">&amp;mut </span>SessionExecutionSelection,
-<a href=#15 id=15 data-nosnippet>15</a>    kind: AgentActivityKind,
-<a href=#16 id=16 data-nosnippet>16</a>    summary: String,
-<a href=#17 id=17 data-nosnippet>17</a>) {
-<a href=#18 id=18 data-nosnippet>18</a>    selection.history.push(SessionExecutionChange {
-<a href=#19 id=19 data-nosnippet>19</a>        revision: selection.revision,
-<a href=#20 id=20 data-nosnippet>20</a>        kind,
-<a href=#21 id=21 data-nosnippet>21</a>        summary,
-<a href=#22 id=22 data-nosnippet>22</a>        model: selection.model.clone(),
-<a href=#23 id=23 data-nosnippet>23</a>        thinking_level: selection.thinking_level.clone(),
-<a href=#24 id=24 data-nosnippet>24</a>    });
-<a href=#25 id=25 data-nosnippet>25</a>    <span class="kw">if </span>selection.history.len() &gt; MAX_SELECTION_HISTORY {
-<a href=#26 id=26 data-nosnippet>26</a>        <span class="kw">let </span>excess = selection.history.len() - MAX_SELECTION_HISTORY;
-<a href=#27 id=27 data-nosnippet>27</a>        selection.history.drain(..excess);
-<a href=#28 id=28 data-nosnippet>28</a>    }
-<a href=#29 id=29 data-nosnippet>29</a>}
+<a href=#9 id=9 data-nosnippet>9</a>/// - `selection`: Updated authoritative session selection.
+<a href=#10 id=10 data-nosnippet>10</a>/// - `kind`: Model or thinking selection category.
+<a href=#11 id=11 data-nosnippet>11</a>/// - `summary`: Safe concise description of the change.
+<a href=#12 id=12 data-nosnippet>12</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>record_selection_change(
+<a href=#13 id=13 data-nosnippet>13</a>    selection: <span class="kw-2">&amp;mut </span>SessionExecutionSelection,
+<a href=#14 id=14 data-nosnippet>14</a>    kind: AgentActivityKind,
+<a href=#15 id=15 data-nosnippet>15</a>    summary: String,
+<a href=#16 id=16 data-nosnippet>16</a>) {
+<a href=#17 id=17 data-nosnippet>17</a>    selection.history.push(SessionExecutionChange {
+<a href=#18 id=18 data-nosnippet>18</a>        revision: selection.revision,
+<a href=#19 id=19 data-nosnippet>19</a>        kind,
+<a href=#20 id=20 data-nosnippet>20</a>        summary,
+<a href=#21 id=21 data-nosnippet>21</a>        model: selection.model.clone(),
+<a href=#22 id=22 data-nosnippet>22</a>        thinking_level: selection.thinking_level.clone(),
+<a href=#23 id=23 data-nosnippet>23</a>    });
+<a href=#24 id=24 data-nosnippet>24</a>    <span class="kw">if </span>selection.history.len() &gt; MAX_SELECTION_HISTORY {
+<a href=#25 id=25 data-nosnippet>25</a>        <span class="kw">let </span>excess = selection.history.len() - MAX_SELECTION_HISTORY;
+<a href=#26 id=26 data-nosnippet>26</a>        selection.history.drain(..excess);
+<a href=#27 id=27 data-nosnippet>27</a>    }
+<a href=#28 id=28 data-nosnippet>28</a>}
 </code></pre></div></section></main></body></html>

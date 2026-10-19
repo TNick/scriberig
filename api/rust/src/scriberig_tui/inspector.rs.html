@@ -53,7 +53,7 @@
 <a href=#53 id=53 data-nosnippet>53</a>    </span><span class="doccomment">/// - `result`: Argument named `result`.
 <a href=#54 id=54 data-nosnippet>54</a>    ///
 <a href=#55 id=55 data-nosnippet>55</a>    /// # Returns
-<a href=#56 id=56 data-nosnippet>56</a>    /// The value produced by the declaration.
+<a href=#56 id=56 data-nosnippet>56</a>    /// The operation result.
 <a href=#57 id=57 data-nosnippet>57</a>    </span><span class="kw">pub fn </span>from_result(result: InspectResult) -&gt; <span class="self">Self </span>{
 <a href=#58 id=58 data-nosnippet>58</a>        <span class="self">Self </span>{
 <a href=#59 id=59 data-nosnippet>59</a>            entity: result.entity,
@@ -78,7 +78,7 @@
 <a href=#78 id=78 data-nosnippet>78</a>/// - `stale`: Argument named `stale`.
 <a href=#79 id=79 data-nosnippet>79</a>///
 <a href=#80 id=80 data-nosnippet>80</a>/// # Returns
-<a href=#81 id=81 data-nosnippet>81</a>/// The value produced by the declaration.
+<a href=#81 id=81 data-nosnippet>81</a>/// The operation result.
 <a href=#82 id=82 data-nosnippet>82</a></span><span class="kw">pub fn </span>presentation_error(error: <span class="kw-2">&amp;</span>ApplicationError, stale: bool) -&gt; LoadState&lt;InspectorModel&gt; {
 <a href=#83 id=83 data-nosnippet>83</a>    LoadState::Failed {
 <a href=#84 id=84 data-nosnippet>84</a>        category: error.category().to_owned(),
@@ -92,7 +92,7 @@
 <a href=#92 id=92 data-nosnippet>92</a></span><span class="doccomment">/// - `text`: Argument named `text`.
 <a href=#93 id=93 data-nosnippet>93</a>///
 <a href=#94 id=94 data-nosnippet>94</a>/// # Returns
-<a href=#95 id=95 data-nosnippet>95</a>/// The value produced by the declaration.
+<a href=#95 id=95 data-nosnippet>95</a>/// The operation result.
 <a href=#96 id=96 data-nosnippet>96</a></span><span class="kw">pub fn </span>sanitize(text: <span class="kw-2">&amp;</span>str) -&gt; String {
 <a href=#97 id=97 data-nosnippet>97</a>    text.chars()
 <a href=#98 id=98 data-nosnippet>98</a>        .filter(|character| !character.is_control())

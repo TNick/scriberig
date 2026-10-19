@@ -7,25 +7,25 @@
 <a href=#7 id=7 data-nosnippet>7</a>
 <a href=#8 id=8 data-nosnippet>8</a><span class="doccomment">/// Renders a semantic document with the default style.
 <a href=#9 id=9 data-nosnippet>9</a>///
-<a href=#10 id=10 data-nosnippet>10</a>/// # Parameters
-<a href=#11 id=11 data-nosnippet>11</a>/// - `document`: Semantic document to render.
-<a href=#12 id=12 data-nosnippet>12</a>///
-<a href=#13 id=13 data-nosnippet>13</a>/// # Returns
-<a href=#14 id=14 data-nosnippet>14</a>/// Deterministic Markdown text.
-<a href=#15 id=15 data-nosnippet>15</a></span><span class="attr">#[must_use]
+<a href=#10 id=10 data-nosnippet>10</a>/// - `document`: Semantic document to render.
+<a href=#11 id=11 data-nosnippet>11</a>///
+<a href=#12 id=12 data-nosnippet>12</a>/// Deterministic Markdown text.
+<a href=#13 id=13 data-nosnippet>13</a></span><span class="attr">#[must_use]
+<a href=#14 id=14 data-nosnippet>14</a></span><span class="doccomment">/// # Returns
+<a href=#15 id=15 data-nosnippet>15</a>/// The operation result.
 <a href=#16 id=16 data-nosnippet>16</a></span><span class="kw">pub fn </span>render(document: <span class="kw-2">&amp;</span>MarkdownDocument) -&gt; String {
 <a href=#17 id=17 data-nosnippet>17</a>    render_document(document, <span class="kw-2">&amp;</span>MarkdownStyle::default())
 <a href=#18 id=18 data-nosnippet>18</a>}
 <a href=#19 id=19 data-nosnippet>19</a>
 <a href=#20 id=20 data-nosnippet>20</a><span class="doccomment">/// Renders a semantic document with an exact style.
 <a href=#21 id=21 data-nosnippet>21</a>///
-<a href=#22 id=22 data-nosnippet>22</a>/// # Parameters
-<a href=#23 id=23 data-nosnippet>23</a>/// - `document`: Semantic document to render.
-<a href=#24 id=24 data-nosnippet>24</a>/// - `style`: Formatting choices to apply.
-<a href=#25 id=25 data-nosnippet>25</a>///
-<a href=#26 id=26 data-nosnippet>26</a>/// # Returns
-<a href=#27 id=27 data-nosnippet>27</a>/// Deterministic Markdown text.
-<a href=#28 id=28 data-nosnippet>28</a></span><span class="attr">#[must_use]
+<a href=#22 id=22 data-nosnippet>22</a>/// - `document`: Semantic document to render.
+<a href=#23 id=23 data-nosnippet>23</a>/// - `style`: Formatting choices to apply.
+<a href=#24 id=24 data-nosnippet>24</a>///
+<a href=#25 id=25 data-nosnippet>25</a>/// Deterministic Markdown text.
+<a href=#26 id=26 data-nosnippet>26</a></span><span class="attr">#[must_use]
+<a href=#27 id=27 data-nosnippet>27</a></span><span class="doccomment">/// # Returns
+<a href=#28 id=28 data-nosnippet>28</a>/// The operation result.
 <a href=#29 id=29 data-nosnippet>29</a></span><span class="kw">pub fn </span>render_document(document: <span class="kw-2">&amp;</span>MarkdownDocument, style: <span class="kw-2">&amp;</span>MarkdownStyle) -&gt; String {
 <a href=#30 id=30 data-nosnippet>30</a>    <span class="kw">let </span>style = style
 <a href=#31 id=31 data-nosnippet>31</a>        .clone()
@@ -54,160 +54,155 @@
 <a href=#54 id=54 data-nosnippet>54</a>
 <a href=#55 id=55 data-nosnippet>55</a><span class="doccomment">/// Renders one block and its nested content.
 <a href=#56 id=56 data-nosnippet>56</a>///
-<a href=#57 id=57 data-nosnippet>57</a>/// # Parameters
-<a href=#58 id=58 data-nosnippet>58</a>/// - `block`: Block to render.
-<a href=#59 id=59 data-nosnippet>59</a>/// - `style`: Formatting choices to apply.
-<a href=#60 id=60 data-nosnippet>60</a>/// - `output`: Destination string.
-<a href=#61 id=61 data-nosnippet>61</a></span><span class="kw">fn </span>render_block(block: <span class="kw-2">&amp;</span>MarkdownBlock, style: <span class="kw-2">&amp;</span>MarkdownStyle, output: <span class="kw-2">&amp;mut </span>String) {
-<a href=#62 id=62 data-nosnippet>62</a>    <span class="kw">match </span>block {
-<a href=#63 id=63 data-nosnippet>63</a>        MarkdownBlock::Heading { level, text } =&gt; {
-<a href=#64 id=64 data-nosnippet>64</a>            output.push_str(<span class="kw-2">&amp;</span><span class="string">"#"</span>.repeat(usize::from(<span class="kw-2">*</span>level).clamp(<span class="number">1</span>, <span class="number">6</span>)));
-<a href=#65 id=65 data-nosnippet>65</a>            output.push(<span class="string">' '</span>);
-<a href=#66 id=66 data-nosnippet>66</a>            output.push_str(text.trim());
-<a href=#67 id=67 data-nosnippet>67</a>        }
-<a href=#68 id=68 data-nosnippet>68</a>        MarkdownBlock::Paragraph(text) =&gt; output.push_str(text.trim()),
-<a href=#69 id=69 data-nosnippet>69</a>        MarkdownBlock::List { ordered, items } =&gt; render_list(<span class="kw-2">*</span>ordered, items, style, output),
-<a href=#70 id=70 data-nosnippet>70</a>        MarkdownBlock::Table { headers, rows } =&gt; render_table(headers, rows, style, output),
-<a href=#71 id=71 data-nosnippet>71</a>        MarkdownBlock::CodeBlock { language, text } =&gt; {
-<a href=#72 id=72 data-nosnippet>72</a>            output.push_str(<span class="kw-2">&amp;</span>style.code_fence_preference);
-<a href=#73 id=73 data-nosnippet>73</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(language) = language {
-<a href=#74 id=74 data-nosnippet>74</a>                output.push_str(language.trim());
-<a href=#75 id=75 data-nosnippet>75</a>            }
-<a href=#76 id=76 data-nosnippet>76</a>            output.push(<span class="string">'\n'</span>);
-<a href=#77 id=77 data-nosnippet>77</a>            output.push_str(text.trim_end());
-<a href=#78 id=78 data-nosnippet>78</a>            output.push(<span class="string">'\n'</span>);
-<a href=#79 id=79 data-nosnippet>79</a>            output.push_str(<span class="kw-2">&amp;</span>style.code_fence_preference);
-<a href=#80 id=80 data-nosnippet>80</a>        }
-<a href=#81 id=81 data-nosnippet>81</a>        MarkdownBlock::QuoteBlock(blocks) =&gt; {
-<a href=#82 id=82 data-nosnippet>82</a>            <span class="kw">for </span>(index, nested) <span class="kw">in </span>blocks.iter().enumerate() {
-<a href=#83 id=83 data-nosnippet>83</a>                <span class="kw">if </span>index &gt; <span class="number">0 </span>{
-<a href=#84 id=84 data-nosnippet>84</a>                    output.push(<span class="string">'\n'</span>);
-<a href=#85 id=85 data-nosnippet>85</a>                }
-<a href=#86 id=86 data-nosnippet>86</a>                <span class="kw">let </span><span class="kw-2">mut </span>rendered = String::new();
-<a href=#87 id=87 data-nosnippet>87</a>                render_block(nested, style, <span class="kw-2">&amp;mut </span>rendered);
-<a href=#88 id=88 data-nosnippet>88</a>                <span class="kw">for </span>line <span class="kw">in </span>rendered.lines() {
-<a href=#89 id=89 data-nosnippet>89</a>                    output.push_str(<span class="string">"&gt; "</span>);
-<a href=#90 id=90 data-nosnippet>90</a>                    output.push_str(line);
-<a href=#91 id=91 data-nosnippet>91</a>                    output.push(<span class="string">'\n'</span>);
-<a href=#92 id=92 data-nosnippet>92</a>                }
-<a href=#93 id=93 data-nosnippet>93</a>                output.pop();
-<a href=#94 id=94 data-nosnippet>94</a>            }
-<a href=#95 id=95 data-nosnippet>95</a>        }
-<a href=#96 id=96 data-nosnippet>96</a>        MarkdownBlock::Link { label, target } =&gt; {
-<a href=#97 id=97 data-nosnippet>97</a>            output.push(<span class="string">'['</span>);
-<a href=#98 id=98 data-nosnippet>98</a>            output.push_str(label.trim());
-<a href=#99 id=99 data-nosnippet>99</a>            output.push_str(<span class="string">"]("</span>);
-<a href=#100 id=100 data-nosnippet>100</a>            output.push_str(target.trim());
-<a href=#101 id=101 data-nosnippet>101</a>            output.push(<span class="string">')'</span>);
-<a href=#102 id=102 data-nosnippet>102</a>        }
-<a href=#103 id=103 data-nosnippet>103</a>        MarkdownBlock::Image { alt, target } =&gt; {
-<a href=#104 id=104 data-nosnippet>104</a>            output.push_str(<span class="string">"!["</span>);
-<a href=#105 id=105 data-nosnippet>105</a>            output.push_str(alt.trim());
-<a href=#106 id=106 data-nosnippet>106</a>            output.push_str(<span class="string">"]("</span>);
-<a href=#107 id=107 data-nosnippet>107</a>            output.push_str(target.trim());
-<a href=#108 id=108 data-nosnippet>108</a>            output.push(<span class="string">')'</span>);
-<a href=#109 id=109 data-nosnippet>109</a>        }
-<a href=#110 id=110 data-nosnippet>110</a>        MarkdownBlock::Section(section) =&gt; render_section(section, style, output),
-<a href=#111 id=111 data-nosnippet>111</a>    }
-<a href=#112 id=112 data-nosnippet>112</a>}
-<a href=#113 id=113 data-nosnippet>113</a>
-<a href=#114 id=114 data-nosnippet>114</a><span class="doccomment">/// Renders a section heading and its child blocks.
-<a href=#115 id=115 data-nosnippet>115</a>///
-<a href=#116 id=116 data-nosnippet>116</a>/// # Parameters
-<a href=#117 id=117 data-nosnippet>117</a>/// - `section`: Section to render.
-<a href=#118 id=118 data-nosnippet>118</a>/// - `style`: Formatting choices to apply.
-<a href=#119 id=119 data-nosnippet>119</a>/// - `output`: Destination string.
-<a href=#120 id=120 data-nosnippet>120</a></span><span class="kw">fn </span>render_section(section: <span class="kw-2">&amp;</span>Section, style: <span class="kw-2">&amp;</span>MarkdownStyle, output: <span class="kw-2">&amp;mut </span>String) {
-<a href=#121 id=121 data-nosnippet>121</a>    output.push_str(<span class="kw-2">&amp;</span><span class="string">"#"</span>.repeat(usize::from(section.level).clamp(<span class="number">1</span>, <span class="number">6</span>)));
-<a href=#122 id=122 data-nosnippet>122</a>    output.push(<span class="string">' '</span>);
-<a href=#123 id=123 data-nosnippet>123</a>    output.push_str(section.heading.trim());
-<a href=#124 id=124 data-nosnippet>124</a>    <span class="kw">for </span>block <span class="kw">in </span><span class="kw-2">&amp;</span>section.blocks {
-<a href=#125 id=125 data-nosnippet>125</a>        output.push_str(<span class="kw-2">&amp;</span><span class="string">"\n"</span>.repeat(style.blank_lines_between_blocks + <span class="number">1</span>));
-<a href=#126 id=126 data-nosnippet>126</a>        render_block(block, style, output);
-<a href=#127 id=127 data-nosnippet>127</a>    }
-<a href=#128 id=128 data-nosnippet>128</a>}
-<a href=#129 id=129 data-nosnippet>129</a>
-<a href=#130 id=130 data-nosnippet>130</a><span class="doccomment">/// Renders a list using explicit marker choices.
-<a href=#131 id=131 data-nosnippet>131</a>///
-<a href=#132 id=132 data-nosnippet>132</a>/// # Parameters
-<a href=#133 id=133 data-nosnippet>133</a>/// - `ordered`: Whether numeric markers are used.
-<a href=#134 id=134 data-nosnippet>134</a>/// - `items`: List items in source order.
-<a href=#135 id=135 data-nosnippet>135</a>/// - `style`: Formatting choices to apply.
-<a href=#136 id=136 data-nosnippet>136</a>/// - `output`: Destination string.
-<a href=#137 id=137 data-nosnippet>137</a></span><span class="kw">fn </span>render_list(ordered: bool, items: <span class="kw-2">&amp;</span>[ListItem], style: <span class="kw-2">&amp;</span>MarkdownStyle, output: <span class="kw-2">&amp;mut </span>String) {
-<a href=#138 id=138 data-nosnippet>138</a>    <span class="kw">for </span>(index, item) <span class="kw">in </span>items.iter().enumerate() {
-<a href=#139 id=139 data-nosnippet>139</a>        <span class="kw">if </span>index &gt; <span class="number">0 </span>{
-<a href=#140 id=140 data-nosnippet>140</a>            output.push(<span class="string">'\n'</span>);
-<a href=#141 id=141 data-nosnippet>141</a>        }
-<a href=#142 id=142 data-nosnippet>142</a>        <span class="kw">if </span>ordered {
-<a href=#143 id=143 data-nosnippet>143</a>            output.push_str(<span class="kw-2">&amp;</span>(index + <span class="number">1</span>).to_string());
-<a href=#144 id=144 data-nosnippet>144</a>            output.push(style.ordered_list_delimiter);
-<a href=#145 id=145 data-nosnippet>145</a>        } <span class="kw">else </span>{
-<a href=#146 id=146 data-nosnippet>146</a>            output.push(style.list_marker);
-<a href=#147 id=147 data-nosnippet>147</a>        }
-<a href=#148 id=148 data-nosnippet>148</a>        output.push(<span class="string">' '</span>);
-<a href=#149 id=149 data-nosnippet>149</a>        <span class="kw">for </span>(block_index, block) <span class="kw">in </span>item.blocks.iter().enumerate() {
-<a href=#150 id=150 data-nosnippet>150</a>            <span class="kw">if </span>block_index &gt; <span class="number">0 </span>{
-<a href=#151 id=151 data-nosnippet>151</a>                output.push(<span class="string">'\n'</span>);
-<a href=#152 id=152 data-nosnippet>152</a>                <span class="kw">let </span><span class="kw-2">mut </span>nested = String::new();
-<a href=#153 id=153 data-nosnippet>153</a>                render_block(block, style, <span class="kw-2">&amp;mut </span>nested);
-<a href=#154 id=154 data-nosnippet>154</a>                <span class="kw">for </span>line <span class="kw">in </span>nested.lines() {
-<a href=#155 id=155 data-nosnippet>155</a>                    output.push_str(<span class="string">"  "</span>);
-<a href=#156 id=156 data-nosnippet>156</a>                    output.push_str(line);
-<a href=#157 id=157 data-nosnippet>157</a>                    output.push(<span class="string">'\n'</span>);
-<a href=#158 id=158 data-nosnippet>158</a>                }
-<a href=#159 id=159 data-nosnippet>159</a>                output.pop();
-<a href=#160 id=160 data-nosnippet>160</a>            } <span class="kw">else </span>{
-<a href=#161 id=161 data-nosnippet>161</a>                render_block(block, style, output);
-<a href=#162 id=162 data-nosnippet>162</a>            }
-<a href=#163 id=163 data-nosnippet>163</a>        }
-<a href=#164 id=164 data-nosnippet>164</a>    }
-<a href=#165 id=165 data-nosnippet>165</a>}
-<a href=#166 id=166 data-nosnippet>166</a>
-<a href=#167 id=167 data-nosnippet>167</a><span class="doccomment">/// Renders a table with stable spacing and a delimiter row.
-<a href=#168 id=168 data-nosnippet>168</a>///
-<a href=#169 id=169 data-nosnippet>169</a>/// # Parameters
-<a href=#170 id=170 data-nosnippet>170</a>/// - `headers`: Header cells.
-<a href=#171 id=171 data-nosnippet>171</a>/// - `rows`: Body rows.
-<a href=#172 id=172 data-nosnippet>172</a>/// - `style`: Formatting choices to apply.
-<a href=#173 id=173 data-nosnippet>173</a>/// - `output`: Destination string.
-<a href=#174 id=174 data-nosnippet>174</a></span><span class="kw">fn </span>render_table(
-<a href=#175 id=175 data-nosnippet>175</a>    headers: <span class="kw-2">&amp;</span>[String],
-<a href=#176 id=176 data-nosnippet>176</a>    rows: <span class="kw-2">&amp;</span>[Vec&lt;String&gt;],
-<a href=#177 id=177 data-nosnippet>177</a>    style: <span class="kw-2">&amp;</span>MarkdownStyle,
-<a href=#178 id=178 data-nosnippet>178</a>    output: <span class="kw-2">&amp;mut </span>String,
-<a href=#179 id=179 data-nosnippet>179</a>) {
-<a href=#180 id=180 data-nosnippet>180</a>    render_table_row(headers, style, output);
-<a href=#181 id=181 data-nosnippet>181</a>    output.push(<span class="string">'\n'</span>);
-<a href=#182 id=182 data-nosnippet>182</a>    <span class="kw">let </span>separators = headers.iter().map(|<span class="kw">_</span>| <span class="string">"---"</span>).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-<a href=#183 id=183 data-nosnippet>183</a>    render_table_row(
-<a href=#184 id=184 data-nosnippet>184</a>        <span class="kw-2">&amp;</span>separators
-<a href=#185 id=185 data-nosnippet>185</a>            .iter()
-<a href=#186 id=186 data-nosnippet>186</a>            .map(|value| (<span class="kw-2">*</span>value).to_owned())
-<a href=#187 id=187 data-nosnippet>187</a>            .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;(),
-<a href=#188 id=188 data-nosnippet>188</a>        style,
-<a href=#189 id=189 data-nosnippet>189</a>        output,
-<a href=#190 id=190 data-nosnippet>190</a>    );
-<a href=#191 id=191 data-nosnippet>191</a>    <span class="kw">for </span>row <span class="kw">in </span>rows {
-<a href=#192 id=192 data-nosnippet>192</a>        output.push(<span class="string">'\n'</span>);
-<a href=#193 id=193 data-nosnippet>193</a>        render_table_row(row, style, output);
-<a href=#194 id=194 data-nosnippet>194</a>    }
-<a href=#195 id=195 data-nosnippet>195</a>}
-<a href=#196 id=196 data-nosnippet>196</a>
-<a href=#197 id=197 data-nosnippet>197</a><span class="doccomment">/// Renders one table row.
-<a href=#198 id=198 data-nosnippet>198</a>///
-<a href=#199 id=199 data-nosnippet>199</a>/// # Parameters
-<a href=#200 id=200 data-nosnippet>200</a>/// - `cells`: Cells in source order.
-<a href=#201 id=201 data-nosnippet>201</a>/// - `style`: Formatting choices to apply.
-<a href=#202 id=202 data-nosnippet>202</a>/// - `output`: Destination string.
-<a href=#203 id=203 data-nosnippet>203</a></span><span class="kw">fn </span>render_table_row(cells: <span class="kw-2">&amp;</span>[String], style: <span class="kw-2">&amp;</span>MarkdownStyle, output: <span class="kw-2">&amp;mut </span>String) {
-<a href=#204 id=204 data-nosnippet>204</a>    <span class="kw">let </span>padding = <span class="string">" "</span>.repeat(style.table_spacing);
-<a href=#205 id=205 data-nosnippet>205</a>    output.push(<span class="string">'|'</span>);
-<a href=#206 id=206 data-nosnippet>206</a>    <span class="kw">for </span>cell <span class="kw">in </span>cells {
-<a href=#207 id=207 data-nosnippet>207</a>        output.push_str(<span class="kw-2">&amp;</span>padding);
-<a href=#208 id=208 data-nosnippet>208</a>        output.push_str(cell.trim());
-<a href=#209 id=209 data-nosnippet>209</a>        output.push_str(<span class="kw-2">&amp;</span>padding);
-<a href=#210 id=210 data-nosnippet>210</a>        output.push(<span class="string">'|'</span>);
-<a href=#211 id=211 data-nosnippet>211</a>    }
-<a href=#212 id=212 data-nosnippet>212</a>}
+<a href=#57 id=57 data-nosnippet>57</a>/// - `block`: Block to render.
+<a href=#58 id=58 data-nosnippet>58</a>/// - `style`: Formatting choices to apply.
+<a href=#59 id=59 data-nosnippet>59</a>/// - `output`: Destination string.
+<a href=#60 id=60 data-nosnippet>60</a></span><span class="kw">fn </span>render_block(block: <span class="kw-2">&amp;</span>MarkdownBlock, style: <span class="kw-2">&amp;</span>MarkdownStyle, output: <span class="kw-2">&amp;mut </span>String) {
+<a href=#61 id=61 data-nosnippet>61</a>    <span class="kw">match </span>block {
+<a href=#62 id=62 data-nosnippet>62</a>        MarkdownBlock::Heading { level, text } =&gt; {
+<a href=#63 id=63 data-nosnippet>63</a>            output.push_str(<span class="kw-2">&amp;</span><span class="string">"#"</span>.repeat(usize::from(<span class="kw-2">*</span>level).clamp(<span class="number">1</span>, <span class="number">6</span>)));
+<a href=#64 id=64 data-nosnippet>64</a>            output.push(<span class="string">' '</span>);
+<a href=#65 id=65 data-nosnippet>65</a>            output.push_str(text.trim());
+<a href=#66 id=66 data-nosnippet>66</a>        }
+<a href=#67 id=67 data-nosnippet>67</a>        MarkdownBlock::Paragraph(text) =&gt; output.push_str(text.trim()),
+<a href=#68 id=68 data-nosnippet>68</a>        MarkdownBlock::List { ordered, items } =&gt; render_list(<span class="kw-2">*</span>ordered, items, style, output),
+<a href=#69 id=69 data-nosnippet>69</a>        MarkdownBlock::Table { headers, rows } =&gt; render_table(headers, rows, style, output),
+<a href=#70 id=70 data-nosnippet>70</a>        MarkdownBlock::CodeBlock { language, text } =&gt; {
+<a href=#71 id=71 data-nosnippet>71</a>            output.push_str(<span class="kw-2">&amp;</span>style.code_fence_preference);
+<a href=#72 id=72 data-nosnippet>72</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>(language) = language {
+<a href=#73 id=73 data-nosnippet>73</a>                output.push_str(language.trim());
+<a href=#74 id=74 data-nosnippet>74</a>            }
+<a href=#75 id=75 data-nosnippet>75</a>            output.push(<span class="string">'\n'</span>);
+<a href=#76 id=76 data-nosnippet>76</a>            output.push_str(text.trim_end());
+<a href=#77 id=77 data-nosnippet>77</a>            output.push(<span class="string">'\n'</span>);
+<a href=#78 id=78 data-nosnippet>78</a>            output.push_str(<span class="kw-2">&amp;</span>style.code_fence_preference);
+<a href=#79 id=79 data-nosnippet>79</a>        }
+<a href=#80 id=80 data-nosnippet>80</a>        MarkdownBlock::QuoteBlock(blocks) =&gt; {
+<a href=#81 id=81 data-nosnippet>81</a>            <span class="kw">for </span>(index, nested) <span class="kw">in </span>blocks.iter().enumerate() {
+<a href=#82 id=82 data-nosnippet>82</a>                <span class="kw">if </span>index &gt; <span class="number">0 </span>{
+<a href=#83 id=83 data-nosnippet>83</a>                    output.push(<span class="string">'\n'</span>);
+<a href=#84 id=84 data-nosnippet>84</a>                }
+<a href=#85 id=85 data-nosnippet>85</a>                <span class="kw">let </span><span class="kw-2">mut </span>rendered = String::new();
+<a href=#86 id=86 data-nosnippet>86</a>                render_block(nested, style, <span class="kw-2">&amp;mut </span>rendered);
+<a href=#87 id=87 data-nosnippet>87</a>                <span class="kw">for </span>line <span class="kw">in </span>rendered.lines() {
+<a href=#88 id=88 data-nosnippet>88</a>                    output.push_str(<span class="string">"&gt; "</span>);
+<a href=#89 id=89 data-nosnippet>89</a>                    output.push_str(line);
+<a href=#90 id=90 data-nosnippet>90</a>                    output.push(<span class="string">'\n'</span>);
+<a href=#91 id=91 data-nosnippet>91</a>                }
+<a href=#92 id=92 data-nosnippet>92</a>                output.pop();
+<a href=#93 id=93 data-nosnippet>93</a>            }
+<a href=#94 id=94 data-nosnippet>94</a>        }
+<a href=#95 id=95 data-nosnippet>95</a>        MarkdownBlock::Link { label, target } =&gt; {
+<a href=#96 id=96 data-nosnippet>96</a>            output.push(<span class="string">'['</span>);
+<a href=#97 id=97 data-nosnippet>97</a>            output.push_str(label.trim());
+<a href=#98 id=98 data-nosnippet>98</a>            output.push_str(<span class="string">"]("</span>);
+<a href=#99 id=99 data-nosnippet>99</a>            output.push_str(target.trim());
+<a href=#100 id=100 data-nosnippet>100</a>            output.push(<span class="string">')'</span>);
+<a href=#101 id=101 data-nosnippet>101</a>        }
+<a href=#102 id=102 data-nosnippet>102</a>        MarkdownBlock::Image { alt, target } =&gt; {
+<a href=#103 id=103 data-nosnippet>103</a>            output.push_str(<span class="string">"!["</span>);
+<a href=#104 id=104 data-nosnippet>104</a>            output.push_str(alt.trim());
+<a href=#105 id=105 data-nosnippet>105</a>            output.push_str(<span class="string">"]("</span>);
+<a href=#106 id=106 data-nosnippet>106</a>            output.push_str(target.trim());
+<a href=#107 id=107 data-nosnippet>107</a>            output.push(<span class="string">')'</span>);
+<a href=#108 id=108 data-nosnippet>108</a>        }
+<a href=#109 id=109 data-nosnippet>109</a>        MarkdownBlock::Section(section) =&gt; render_section(section, style, output),
+<a href=#110 id=110 data-nosnippet>110</a>    }
+<a href=#111 id=111 data-nosnippet>111</a>}
+<a href=#112 id=112 data-nosnippet>112</a>
+<a href=#113 id=113 data-nosnippet>113</a><span class="doccomment">/// Renders a section heading and its child blocks.
+<a href=#114 id=114 data-nosnippet>114</a>///
+<a href=#115 id=115 data-nosnippet>115</a>/// - `section`: Section to render.
+<a href=#116 id=116 data-nosnippet>116</a>/// - `style`: Formatting choices to apply.
+<a href=#117 id=117 data-nosnippet>117</a>/// - `output`: Destination string.
+<a href=#118 id=118 data-nosnippet>118</a></span><span class="kw">fn </span>render_section(section: <span class="kw-2">&amp;</span>Section, style: <span class="kw-2">&amp;</span>MarkdownStyle, output: <span class="kw-2">&amp;mut </span>String) {
+<a href=#119 id=119 data-nosnippet>119</a>    output.push_str(<span class="kw-2">&amp;</span><span class="string">"#"</span>.repeat(usize::from(section.level).clamp(<span class="number">1</span>, <span class="number">6</span>)));
+<a href=#120 id=120 data-nosnippet>120</a>    output.push(<span class="string">' '</span>);
+<a href=#121 id=121 data-nosnippet>121</a>    output.push_str(section.heading.trim());
+<a href=#122 id=122 data-nosnippet>122</a>    <span class="kw">for </span>block <span class="kw">in </span><span class="kw-2">&amp;</span>section.blocks {
+<a href=#123 id=123 data-nosnippet>123</a>        output.push_str(<span class="kw-2">&amp;</span><span class="string">"\n"</span>.repeat(style.blank_lines_between_blocks + <span class="number">1</span>));
+<a href=#124 id=124 data-nosnippet>124</a>        render_block(block, style, output);
+<a href=#125 id=125 data-nosnippet>125</a>    }
+<a href=#126 id=126 data-nosnippet>126</a>}
+<a href=#127 id=127 data-nosnippet>127</a>
+<a href=#128 id=128 data-nosnippet>128</a><span class="doccomment">/// Renders a list using explicit marker choices.
+<a href=#129 id=129 data-nosnippet>129</a>///
+<a href=#130 id=130 data-nosnippet>130</a>/// - `ordered`: Whether numeric markers are used.
+<a href=#131 id=131 data-nosnippet>131</a>/// - `items`: List items in source order.
+<a href=#132 id=132 data-nosnippet>132</a>/// - `style`: Formatting choices to apply.
+<a href=#133 id=133 data-nosnippet>133</a>/// - `output`: Destination string.
+<a href=#134 id=134 data-nosnippet>134</a></span><span class="kw">fn </span>render_list(ordered: bool, items: <span class="kw-2">&amp;</span>[ListItem], style: <span class="kw-2">&amp;</span>MarkdownStyle, output: <span class="kw-2">&amp;mut </span>String) {
+<a href=#135 id=135 data-nosnippet>135</a>    <span class="kw">for </span>(index, item) <span class="kw">in </span>items.iter().enumerate() {
+<a href=#136 id=136 data-nosnippet>136</a>        <span class="kw">if </span>index &gt; <span class="number">0 </span>{
+<a href=#137 id=137 data-nosnippet>137</a>            output.push(<span class="string">'\n'</span>);
+<a href=#138 id=138 data-nosnippet>138</a>        }
+<a href=#139 id=139 data-nosnippet>139</a>        <span class="kw">if </span>ordered {
+<a href=#140 id=140 data-nosnippet>140</a>            output.push_str(<span class="kw-2">&amp;</span>(index + <span class="number">1</span>).to_string());
+<a href=#141 id=141 data-nosnippet>141</a>            output.push(style.ordered_list_delimiter);
+<a href=#142 id=142 data-nosnippet>142</a>        } <span class="kw">else </span>{
+<a href=#143 id=143 data-nosnippet>143</a>            output.push(style.list_marker);
+<a href=#144 id=144 data-nosnippet>144</a>        }
+<a href=#145 id=145 data-nosnippet>145</a>        output.push(<span class="string">' '</span>);
+<a href=#146 id=146 data-nosnippet>146</a>        <span class="kw">for </span>(block_index, block) <span class="kw">in </span>item.blocks.iter().enumerate() {
+<a href=#147 id=147 data-nosnippet>147</a>            <span class="kw">if </span>block_index &gt; <span class="number">0 </span>{
+<a href=#148 id=148 data-nosnippet>148</a>                output.push(<span class="string">'\n'</span>);
+<a href=#149 id=149 data-nosnippet>149</a>                <span class="kw">let </span><span class="kw-2">mut </span>nested = String::new();
+<a href=#150 id=150 data-nosnippet>150</a>                render_block(block, style, <span class="kw-2">&amp;mut </span>nested);
+<a href=#151 id=151 data-nosnippet>151</a>                <span class="kw">for </span>line <span class="kw">in </span>nested.lines() {
+<a href=#152 id=152 data-nosnippet>152</a>                    output.push_str(<span class="string">"  "</span>);
+<a href=#153 id=153 data-nosnippet>153</a>                    output.push_str(line);
+<a href=#154 id=154 data-nosnippet>154</a>                    output.push(<span class="string">'\n'</span>);
+<a href=#155 id=155 data-nosnippet>155</a>                }
+<a href=#156 id=156 data-nosnippet>156</a>                output.pop();
+<a href=#157 id=157 data-nosnippet>157</a>            } <span class="kw">else </span>{
+<a href=#158 id=158 data-nosnippet>158</a>                render_block(block, style, output);
+<a href=#159 id=159 data-nosnippet>159</a>            }
+<a href=#160 id=160 data-nosnippet>160</a>        }
+<a href=#161 id=161 data-nosnippet>161</a>    }
+<a href=#162 id=162 data-nosnippet>162</a>}
+<a href=#163 id=163 data-nosnippet>163</a>
+<a href=#164 id=164 data-nosnippet>164</a><span class="doccomment">/// Renders a table with stable spacing and a delimiter row.
+<a href=#165 id=165 data-nosnippet>165</a>///
+<a href=#166 id=166 data-nosnippet>166</a>/// - `headers`: Header cells.
+<a href=#167 id=167 data-nosnippet>167</a>/// - `rows`: Body rows.
+<a href=#168 id=168 data-nosnippet>168</a>/// - `style`: Formatting choices to apply.
+<a href=#169 id=169 data-nosnippet>169</a>/// - `output`: Destination string.
+<a href=#170 id=170 data-nosnippet>170</a></span><span class="kw">fn </span>render_table(
+<a href=#171 id=171 data-nosnippet>171</a>    headers: <span class="kw-2">&amp;</span>[String],
+<a href=#172 id=172 data-nosnippet>172</a>    rows: <span class="kw-2">&amp;</span>[Vec&lt;String&gt;],
+<a href=#173 id=173 data-nosnippet>173</a>    style: <span class="kw-2">&amp;</span>MarkdownStyle,
+<a href=#174 id=174 data-nosnippet>174</a>    output: <span class="kw-2">&amp;mut </span>String,
+<a href=#175 id=175 data-nosnippet>175</a>) {
+<a href=#176 id=176 data-nosnippet>176</a>    render_table_row(headers, style, output);
+<a href=#177 id=177 data-nosnippet>177</a>    output.push(<span class="string">'\n'</span>);
+<a href=#178 id=178 data-nosnippet>178</a>    <span class="kw">let </span>separators = headers.iter().map(|<span class="kw">_</span>| <span class="string">"---"</span>).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+<a href=#179 id=179 data-nosnippet>179</a>    render_table_row(
+<a href=#180 id=180 data-nosnippet>180</a>        <span class="kw-2">&amp;</span>separators
+<a href=#181 id=181 data-nosnippet>181</a>            .iter()
+<a href=#182 id=182 data-nosnippet>182</a>            .map(|value| (<span class="kw-2">*</span>value).to_owned())
+<a href=#183 id=183 data-nosnippet>183</a>            .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;(),
+<a href=#184 id=184 data-nosnippet>184</a>        style,
+<a href=#185 id=185 data-nosnippet>185</a>        output,
+<a href=#186 id=186 data-nosnippet>186</a>    );
+<a href=#187 id=187 data-nosnippet>187</a>    <span class="kw">for </span>row <span class="kw">in </span>rows {
+<a href=#188 id=188 data-nosnippet>188</a>        output.push(<span class="string">'\n'</span>);
+<a href=#189 id=189 data-nosnippet>189</a>        render_table_row(row, style, output);
+<a href=#190 id=190 data-nosnippet>190</a>    }
+<a href=#191 id=191 data-nosnippet>191</a>}
+<a href=#192 id=192 data-nosnippet>192</a>
+<a href=#193 id=193 data-nosnippet>193</a><span class="doccomment">/// Renders one table row.
+<a href=#194 id=194 data-nosnippet>194</a>///
+<a href=#195 id=195 data-nosnippet>195</a>/// - `cells`: Cells in source order.
+<a href=#196 id=196 data-nosnippet>196</a>/// - `style`: Formatting choices to apply.
+<a href=#197 id=197 data-nosnippet>197</a>/// - `output`: Destination string.
+<a href=#198 id=198 data-nosnippet>198</a></span><span class="kw">fn </span>render_table_row(cells: <span class="kw-2">&amp;</span>[String], style: <span class="kw-2">&amp;</span>MarkdownStyle, output: <span class="kw-2">&amp;mut </span>String) {
+<a href=#199 id=199 data-nosnippet>199</a>    <span class="kw">let </span>padding = <span class="string">" "</span>.repeat(style.table_spacing);
+<a href=#200 id=200 data-nosnippet>200</a>    output.push(<span class="string">'|'</span>);
+<a href=#201 id=201 data-nosnippet>201</a>    <span class="kw">for </span>cell <span class="kw">in </span>cells {
+<a href=#202 id=202 data-nosnippet>202</a>        output.push_str(<span class="kw-2">&amp;</span>padding);
+<a href=#203 id=203 data-nosnippet>203</a>        output.push_str(cell.trim());
+<a href=#204 id=204 data-nosnippet>204</a>        output.push_str(<span class="kw-2">&amp;</span>padding);
+<a href=#205 id=205 data-nosnippet>205</a>        output.push(<span class="string">'|'</span>);
+<a href=#206 id=206 data-nosnippet>206</a>    }
+<a href=#207 id=207 data-nosnippet>207</a>}
 </code></pre></div></section></main></body></html>

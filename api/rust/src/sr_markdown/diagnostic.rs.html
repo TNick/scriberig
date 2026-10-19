@@ -14,13 +14,13 @@
 <a href=#14 id=14 data-nosnippet>14</a><span class="kw">impl </span>MarkdownDiagnostic {
 <a href=#15 id=15 data-nosnippet>15</a>    <span class="doccomment">/// Creates a diagnostic with no source offset.
 <a href=#16 id=16 data-nosnippet>16</a>    ///
-<a href=#17 id=17 data-nosnippet>17</a>    /// # Parameters
-<a href=#18 id=18 data-nosnippet>18</a>    /// - `code`: Stable diagnostic code.
-<a href=#19 id=19 data-nosnippet>19</a>    /// - `message`: Human-readable explanation.
-<a href=#20 id=20 data-nosnippet>20</a>    ///
-<a href=#21 id=21 data-nosnippet>21</a>    /// # Returns
-<a href=#22 id=22 data-nosnippet>22</a>    /// A diagnostic without a source location.
-<a href=#23 id=23 data-nosnippet>23</a>    </span><span class="attr">#[must_use]
+<a href=#17 id=17 data-nosnippet>17</a>    /// - `code`: Stable diagnostic code.
+<a href=#18 id=18 data-nosnippet>18</a>    /// - `message`: Human-readable explanation.
+<a href=#19 id=19 data-nosnippet>19</a>    ///
+<a href=#20 id=20 data-nosnippet>20</a>    /// A diagnostic without a source location.
+<a href=#21 id=21 data-nosnippet>21</a>    </span><span class="attr">#[must_use]
+<a href=#22 id=22 data-nosnippet>22</a>    </span><span class="doccomment">/// # Returns
+<a href=#23 id=23 data-nosnippet>23</a>    /// The operation result.
 <a href=#24 id=24 data-nosnippet>24</a>    </span><span class="kw">pub fn </span>new(code: <span class="kw">impl </span>Into&lt;String&gt;, message: <span class="kw">impl </span>Into&lt;String&gt;) -&gt; <span class="self">Self </span>{
 <a href=#25 id=25 data-nosnippet>25</a>        <span class="self">Self </span>{
 <a href=#26 id=26 data-nosnippet>26</a>            code: code.into(),

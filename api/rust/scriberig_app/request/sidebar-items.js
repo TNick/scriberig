@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ApplicationRequest","SnapshotSelector"],"struct":["ApplyRequest","BranchRequest","CommitRequest","DiffRequest","HistoryRequest","RenderRequest"]};
+window.SIDEBAR_ITEMS = {"enum":["ApplicationRequest","SnapshotSelector"],"struct":["ApplyRequest","BranchRequest","CommitRequest","DiffRequest","HistoryRequest","MergeRequest","RenderRequest"]};

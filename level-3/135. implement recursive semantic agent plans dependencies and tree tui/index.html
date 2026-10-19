@@ -6468,7 +6468,7 @@
 
 
 <h1 id="implement-recursive-semantic-agent-plans-dependencies-multi-model-execution-and-the-tree-tui">Implement Recursive Semantic Agent Plans, Dependencies, Multi-Model Execution, and the Tree TUI<a class="headerlink" href="#implement-recursive-semantic-agent-plans-dependencies-multi-model-execution-and-the-tree-tui" title="Permanent link">&para;</a></h1>
-<p><strong>Status: [ ] In Progress</strong></p>
+<p><strong>Status: [x] Complete</strong></p>
 <h2 id="1-objective">1. Objective<a class="headerlink" href="#1-objective" title="Permanent link">&para;</a></h2>
 <p>Implement the synchronized agent architecture defined by:</p>
 <ul>
@@ -6500,23 +6500,23 @@
 <h2 id="21-read-before-editing">2.1 Read before editing<a class="headerlink" href="#21-read-before-editing" title="Permanent link">&para;</a></h2>
 <p>Before changing code:</p>
 <ul>
-<li>[ ] Read root <code>AGENTS.md</code> completely.</li>
-<li>[ ] Read the nearest <code>AGENTS.md</code> for every crate/directory you modify.</li>
-<li>[ ] Read Level-1 documents 002, 005, 006, 007, 009, 010, 014, 015, 016, 017, 018, and 019.</li>
-<li>[ ] Read Level-2 documents 010, 011, 021, 022, 023, and 024.</li>
-<li>[ ] Read Level-3 tasks 082, 103, 133, and 134.</li>
-<li>[ ] Inspect current implementations in <code>scriberig-session</code>, <code>scriberig-app</code>, <code>scriberig-protocol</code>, <code>scriberig-agent-core</code>, <code>scriberig-agent-runtime</code>, <code>scriberig-server</code>, <code>scriberig-client</code>, and <code>scriberig-tui</code> before choosing names.</li>
-<li>[ ] Search for existing types/operations before adding any new abstraction.</li>
+<li>[x] Read root <code>AGENTS.md</code> completely.</li>
+<li>[x] Read the nearest <code>AGENTS.md</code> for every crate/directory you modify.</li>
+<li>[x] Read Level-1 documents 002, 005, 006, 007, 009, 010, 014, 015, 016, 017, 018, and 019.</li>
+<li>[x] Read Level-2 documents 010, 011, 021, 022, 023, and 024.</li>
+<li>[x] Read Level-3 tasks 082, 103, 133, and 134.</li>
+<li>[x] Inspect current implementations in <code>scriberig-session</code>, <code>scriberig-app</code>, <code>scriberig-protocol</code>, <code>scriberig-agent-core</code>, <code>scriberig-agent-runtime</code>, <code>scriberig-server</code>, <code>scriberig-client</code>, and <code>scriberig-tui</code> before choosing names.</li>
+<li>[x] Search for existing types/operations before adding any new abstraction.</li>
 </ul>
 <h2 id="22-checklist-discipline">2.2 Checklist discipline<a class="headerlink" href="#22-checklist-discipline" title="Permanent link">&para;</a></h2>
 <p>For this file:</p>
 <ul>
-<li>[ ] Keep the file open while implementing.</li>
-<li>[ ] Tick a checkbox immediately after the exact item is implemented and its targeted verification passes.</li>
-<li>[ ] Never bulk-tick checkboxes at the end.</li>
-<li>[ ] If a later change invalidates a checked item, immediately change it back to <code>[ ]</code>.</li>
-<li>[ ] Add a short note under a task if repository reality forces a materially different implementation than prescribed here.</li>
-<li>[ ] Never mark an item complete because adjacent work exists; verify the specific acceptance condition.</li>
+<li>[x] Keep the file open while implementing.</li>
+<li>[x] Tick a checkbox immediately after the exact item is implemented and its targeted verification passes.</li>
+<li>[x] Never bulk-tick checkboxes at the end.</li>
+<li>[x] If a later change invalidates a checked item, immediately change it back to <code>[ ]</code>.</li>
+<li>[x] Add a short note under a task if repository reality forces a materially different implementation than prescribed here.</li>
+<li>[x] Never mark an item complete because adjacent work exists; verify the specific acceptance condition.</li>
 </ul>
 <h2 id="23-test-discipline">2.3 Test discipline<a class="headerlink" href="#23-test-discipline" title="Permanent link">&para;</a></h2>
 <p>Until every implementation checkbox is complete, run only focused tests/checks for the crate/behavior just changed.</p>
@@ -6592,32 +6592,32 @@
 <p><code>BranchResult</code> already carries summary/result kind/references/result handles/touched/produced changes/validations/unresolved questions.</p>
 <p><code>SessionActivityKind</code> already includes human/assistant/reasoning/runtime/model/tool/branch/progress/validation/model-selection/thinking-selection/error categories.</p>
 <ul>
-<li>[ ] Confirm these current types still exist or record replacements.</li>
+<li>[x] Confirm these current types still exist or record replacements.</li>
 </ul>
 <h2 id="32-applicationprotocol">3.2 Application/protocol<a class="headerlink" href="#32-applicationprotocol" title="Permanent link">&para;</a></h2>
 <p>Current agent command/start paths require an existing session identity in at least some application/protocol APIs.</p>
 <ul>
-<li>[ ] Confirm whether shared new-session start semantics now exist.</li>
-<li>[ ] Confirm whether continuation can target an exact historical replyable node or only session+branch.</li>
-<li>[ ] Confirm whether plan CRUD/lifecycle operations exist.</li>
-<li>[ ] Confirm whether branch-scoped execution assignment exists.</li>
+<li>[x] Confirm whether shared new-session start semantics now exist.</li>
+<li>[x] Confirm whether continuation can target an exact historical replyable node or only session+branch.</li>
+<li>[x] Confirm whether plan CRUD/lifecycle operations exist.</li>
+<li>[x] Confirm whether branch-scoped execution assignment exists.</li>
 </ul>
 <h2 id="33-agent-runtime">3.3 Agent runtime<a class="headerlink" href="#33-agent-runtime" title="Permanent link">&para;</a></h2>
 <p>Current runtime already has provider-neutral context, model-provider, cache, event, tool, and execution code.</p>
 <ul>
-<li>[ ] Locate the actual model/tool loop owner.</li>
-<li>[ ] Locate the actual child-branch creation/completion path.</li>
-<li>[ ] Locate context compiler inputs and dependency manifest generation.</li>
-<li>[ ] Locate tool catalog/dispatch implementation.</li>
-<li>[ ] Locate cancellation/budget handling.</li>
-<li>[ ] Locate execution-selection resolution added by task 133.</li>
+<li>[x] Locate the actual model/tool loop owner.</li>
+<li>[x] Locate the actual child-branch creation/completion path.</li>
+<li>[x] Locate context compiler inputs and dependency manifest generation.</li>
+<li>[x] Locate tool catalog/dispatch implementation.</li>
+<li>[x] Locate cancellation/budget handling.</li>
+<li>[x] Locate execution-selection resolution added by task 133.</li>
 </ul>
 <p>Do not create a parallel runtime if names differ from earlier design documents.</p>
 <h2 id="34-tui">3.4 TUI<a class="headerlink" href="#34-tui" title="Permanent link">&para;</a></h2>
 <p>Current TUI currently has a semantic multi-pane shell, <code>PrimaryView</code>, structural <code>SessionModel</code>, persistent session composer, task-133 model/thinking/presentation controls, and responsive automatic Explorer/Inspector panes.</p>
 <p><code>SessionComposerState</code> currently requires a session identity and therefore cannot represent a true pre-session draft.</p>
 <ul>
-<li>[ ] Verify these facts and current file ownership before editing.</li>
+<li>[x] Verify these facts and current file ownership before editing.</li>
 </ul>
 <hr />
 <h1 id="4-phase-0-freeze-the-shared-semantic-vocabulary">4. Phase 0 — Freeze the Shared Semantic Vocabulary<a class="headerlink" href="#4-phase-0-freeze-the-shared-semantic-vocabulary" title="Permanent link">&para;</a></h1>
@@ -6642,10 +6642,10 @@
 <p>plan/dependency identities must serialize deterministically.</p>
 </li>
 <li>
-<p>[ ] Exact continuation-anchor identity is specified in code/docs.</p>
+<p>[x] Exact continuation-anchor identity is specified in code/docs.</p>
 </li>
-<li>[ ] Plan and plan-node identity is specified.</li>
-<li>[ ] No UI coordinate participates in canonical identity.</li>
+<li>[x] Plan and plan-node identity is specified.</li>
+<li>[x] No UI coordinate participates in canonical identity.</li>
 </ul>
 <h3 id="targeted-verification">Targeted verification<a class="headerlink" href="#targeted-verification" title="Permanent link">&para;</a></h3>
 <p>Add tiny type/serialization tests in the owning crate only.</p>
@@ -6658,10 +6658,10 @@
 </code></pre></div>
 <p>Do not reuse one <code>parent</code> field for all four.</p>
 <ul>
-<li>[ ] Branch parent remains branch topology only.</li>
-<li>[ ] Dependency edges have their own representation.</li>
-<li>[ ] Activity parent/sequence remains separate.</li>
-<li>[ ] Semantic object relationships stay in domain/graph systems.</li>
+<li>[x] Branch parent remains branch topology only.</li>
+<li>[x] Dependency edges have their own representation.</li>
+<li>[x] Activity parent/sequence remains separate.</li>
+<li>[x] Semantic object relationships stay in domain/graph systems.</li>
 </ul>
 <hr />
 <h1 id="5-phase-1-extend-the-session-domain-for-exact-continuations">5. Phase 1 — Extend the Session Domain for Exact Continuations<a class="headerlink" href="#5-phase-1-extend-the-session-domain-for-exact-continuations" title="Permanent link">&para;</a></h1>
@@ -6690,10 +6690,10 @@
 </code></pre></div>
 <p>Split modules if file-size rules require it.</p>
 <ul>
-<li>[ ] Anchor type added.</li>
-<li>[ ] Validation rejects missing session objects.</li>
-<li>[ ] Validation rejects non-replyable activity kinds.</li>
-<li>[ ] Anchor resolution is deterministic.</li>
+<li>[x] Anchor type added.</li>
+<li>[x] Validation rejects missing session objects.</li>
+<li>[x] Validation rejects non-replyable activity kinds.</li>
+<li>[x] Anchor resolution is deterministic.</li>
 </ul>
 <h3 id="targeted-tests">Targeted tests<a class="headerlink" href="#targeted-tests" title="Permanent link">&para;</a></h3>
 <p>Prove:</p>
@@ -6712,9 +6712,9 @@
 </code></pre></div>
 <p>Origin may be an enum or structured provenance field; reuse existing provenance infrastructure where possible.</p>
 <ul>
-<li>[ ] Continuation creates a new branch or valid continuation according to shared policy.</li>
-<li>[ ] Original later sibling/turn history remains intact.</li>
-<li>[ ] Origin is inspectable but does not create separate branch semantics.</li>
+<li>[x] Continuation creates a new branch or valid continuation according to shared policy.</li>
+<li>[x] Original later sibling/turn history remains intact.</li>
+<li>[x] Origin is inspectable but does not create separate branch semantics.</li>
 </ul>
 <hr />
 <h1 id="6-phase-2-add-durable-plan-domain-types">6. Phase 2 — Add Durable Plan Domain Types<a class="headerlink" href="#6-phase-2-add-durable-plan-domain-types" title="Permanent link">&para;</a></h1>
@@ -6742,10 +6742,10 @@
 </code></pre></div>
 <p>Use names consistent with existing lifecycle conventions.</p>
 <ul>
-<li>[ ] Plan has stable identity.</li>
-<li>[ ] Plan stores the exact session/anchor it belongs to.</li>
-<li>[ ] Plan revision is independent from activity cursor.</li>
-<li>[ ] Terminal status transition validation exists.</li>
+<li>[x] Plan has stable identity.</li>
+<li>[x] Plan stores the exact session/anchor it belongs to.</li>
+<li>[x] Plan revision is independent from activity cursor.</li>
+<li>[x] Terminal status transition validation exists.</li>
 </ul>
 <h2 id="task-22-add-plannode">Task 2.2 — Add <code>PlanNode</code><a class="headerlink" href="#task-22-add-plannode" title="Permanent link">&para;</a></h2>
 <p>Represent planned work separately from branch execution detail.</p>
@@ -6773,10 +6773,10 @@
 </code></pre></div>
 <p>Do not overload <code>BranchStatus</code> with all scheduler states.</p>
 <ul>
-<li>[ ] Plan node can exist before execution.</li>
-<li>[ ] Plan node can bind to an executing branch.</li>
-<li>[ ] Parent node relation is distinct from dependency relation.</li>
-<li>[ ] Expected result contract is inspectable.</li>
+<li>[x] Plan node can exist before execution.</li>
+<li>[x] Plan node can bind to an executing branch.</li>
+<li>[x] Parent node relation is distinct from dependency relation.</li>
+<li>[x] Expected result contract is inspectable.</li>
 </ul>
 <h2 id="task-23-add-dependency-edges-and-cycle-validation">Task 2.3 — Add dependency edges and cycle validation<a class="headerlink" href="#task-23-add-dependency-edges-and-cycle-validation" title="Permanent link">&para;</a></h2>
 <p>Represent dependencies explicitly.</p>
@@ -6791,11 +6791,11 @@
 <p>deterministic ordering for serialized/replayed plan state.</p>
 </li>
 <li>
-<p>[ ] Cycle detection implemented.</p>
+<p>[x] Cycle detection implemented.</p>
 </li>
-<li>[ ] Missing dependency rejected.</li>
-<li>[ ] Self-dependency rejected.</li>
-<li>[ ] Dependency ordering deterministic.</li>
+<li>[x] Missing dependency rejected.</li>
+<li>[x] Self-dependency rejected.</li>
+<li>[x] Dependency ordering deterministic.</li>
 </ul>
 <h3 id="targeted-tests_1">Targeted tests<a class="headerlink" href="#targeted-tests_1" title="Permanent link">&para;</a></h3>
 <p>Include:</p>
@@ -6815,10 +6815,10 @@
 </code></pre></div>
 <p>Do not infer success from branch process termination alone.</p>
 <ul>
-<li>[ ] Readiness is deterministic.</li>
-<li>[ ] Failed dependency blocks dependent node.</li>
-<li>[ ] Completed dependency without required result contract does not silently satisfy node.</li>
-<li>[ ] Readiness function has no provider/UI side effects.</li>
+<li>[x] Readiness is deterministic.</li>
+<li>[x] Failed dependency blocks dependent node.</li>
+<li>[x] Completed dependency without required result contract does not silently satisfy node.</li>
+<li>[x] Readiness function has no provider/UI side effects.</li>
 </ul>
 <hr />
 <h1 id="7-phase-3-extend-branch-results-for-dependency-contracts">7. Phase 3 — Extend Branch Results for Dependency Contracts<a class="headerlink" href="#7-phase-3-extend-branch-results-for-dependency-contracts" title="Permanent link">&para;</a></h1>
@@ -6834,10 +6834,10 @@
 </code></pre></div>
 <p>Add only what is actually missing.</p>
 <ul>
-<li>[ ] Plan dependency can point to/validate a <code>BranchResult</code>.</li>
-<li>[ ] Result retains exact semantic/candidate context required by dependents.</li>
-<li>[ ] Result remains provider-neutral.</li>
-<li>[ ] Full child transcript is not required to consume result.</li>
+<li>[x] Plan dependency can point to/validate a <code>BranchResult</code>.</li>
+<li>[x] Result retains exact semantic/candidate context required by dependents.</li>
+<li>[x] Result remains provider-neutral.</li>
+<li>[x] Full child transcript is not required to consume result.</li>
 </ul>
 <h2 id="task-32-dependency-fulfillment-records">Task 3.2 — Dependency fulfillment records<a class="headerlink" href="#task-32-dependency-fulfillment-records" title="Permanent link">&para;</a></h2>
 <p>When a branch completes for a plan node, update durable plan state atomically enough that reconnecting clients never observe a completed dependency with an ambiguous fulfillment state.</p>
@@ -6850,9 +6850,9 @@
 <p>durable activity/event announces transition.</p>
 </li>
 <li>
-<p>[ ] Result exists before dependent becomes Ready.</p>
+<p>[x] Result exists before dependent becomes Ready.</p>
 </li>
-<li>[ ] Reconnect can derive same readiness without transient events.</li>
+<li>[x] Reconnect can derive same readiness without transient events.</li>
 </ol>
 <hr />
 <h1 id="8-phase-4-shared-new-session-and-exact-continuation-application-operations">8. Phase 4 — Shared New-Session and Exact-Continuation Application Operations<a class="headerlink" href="#8-phase-4-shared-new-session-and-exact-continuation-application-operations" title="Permanent link">&para;</a></h1>
@@ -6874,10 +6874,10 @@
 <a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>embedded TUI adapter
 </code></pre></div>
 <ul>
-<li>[ ] New-session start exists below product surfaces.</li>
-<li>[ ] TUI/server/client all can use same semantics.</li>
-<li>[ ] First human input is durably represented in created session/root branch.</li>
-<li>[ ] Error cleanup does not leave fake local session IDs.</li>
+<li>[x] New-session start exists below product surfaces.</li>
+<li>[x] TUI/server/client all can use same semantics.</li>
+<li>[x] First human input is durably represented in created session/root branch.</li>
+<li>[x] Error cleanup does not leave fake local session IDs.</li>
 </ul>
 <h2 id="task-42-add-exact-continuation-operation">Task 4.2 — Add exact continuation operation<a class="headerlink" href="#task-42-add-exact-continuation-operation" title="Permanent link">&para;</a></h2>
 <p>Add a shared request equivalent to:</p>
@@ -6892,16 +6892,16 @@
 <p>Do not make the caller provide compiled model messages.</p>
 <p>The application/session runtime validates the anchor and creates/chooses the proper branch.</p>
 <ul>
-<li>[ ] Continuation request is provider-neutral.</li>
-<li>[ ] Anchor validation happens in shared semantic layer.</li>
-<li>[ ] Later sibling turns are not automatically included.</li>
-<li>[ ] Accepted response returns authoritative branch/operation handles.</li>
+<li>[x] Continuation request is provider-neutral.</li>
+<li>[x] Anchor validation happens in shared semantic layer.</li>
+<li>[x] Later sibling turns are not automatically included.</li>
+<li>[x] Accepted response returns authoritative branch/operation handles.</li>
 </ul>
 <h2 id="task-43-preserve-compatibility-where-practical">Task 4.3 — Preserve compatibility where practical<a class="headerlink" href="#task-43-preserve-compatibility-where-practical" title="Permanent link">&para;</a></h2>
 <p>Existing session+branch continuation APIs may remain as convenience adapters that resolve to <code>BranchHead</code> anchors.</p>
 <p>Do not maintain two divergent execution paths.</p>
 <ul>
-<li>[ ] Old branch-head path delegates to the new exact-anchor semantics.</li>
+<li>[x] Old branch-head path delegates to the new exact-anchor semantics.</li>
 </ul>
 <hr />
 <h1 id="9-phase-5-shared-plan-application-operations">9. Phase 5 — Shared Plan Application Operations<a class="headerlink" href="#9-phase-5-shared-plan-application-operations" title="Permanent link">&para;</a></h1>
@@ -6918,9 +6918,9 @@
 <p>Result returns stable plan identity/revision and structured nodes.</p>
 <p>If a model is used to propose structure, the model output must be parsed/validated into trusted plan-domain operations before persistence.</p>
 <ul>
-<li>[ ] Plan creation is application-owned.</li>
-<li>[ ] Invalid/cyclic model-proposed plan is rejected before durable activation.</li>
-<li>[ ] Plan can exist in Draft/Planned state without executing.</li>
+<li>[x] Plan creation is application-owned.</li>
+<li>[x] Invalid/cyclic model-proposed plan is rejected before durable activation.</li>
+<li>[x] Plan can exist in Draft/Planned state without executing.</li>
 </ul>
 <h2 id="task-52-plan-lifecycle-mutations">Task 5.2 — Plan lifecycle mutations<a class="headerlink" href="#task-52-plan-lifecycle-mutations" title="Permanent link">&para;</a></h2>
 <p>Add operations equivalent to:</p>
@@ -6932,10 +6932,10 @@
 </code></pre></div>
 <p>Use optimistic revision checks for user-visible mutable plan configuration where appropriate.</p>
 <ul>
-<li>[ ] Start cannot create second coordinator claim.</li>
-<li>[ ] Pause stops new auto-dispatch according to policy.</li>
-<li>[ ] Resume is idempotent or structurally rejects invalid state.</li>
-<li>[ ] Stop/cancel uses shared operation cancellation semantics.</li>
+<li>[x] Start cannot create second coordinator claim.</li>
+<li>[x] Pause stops new auto-dispatch according to policy.</li>
+<li>[x] Resume is idempotent or structurally rejects invalid state.</li>
+<li>[x] Stop/cancel uses shared operation cancellation semantics.</li>
 </ul>
 <h2 id="task-53-plan-revisionreplan">Task 5.3 — Plan revision/replan<a class="headerlink" href="#task-53-plan-revisionreplan" title="Permanent link">&para;</a></h2>
 <p>Represent replan as a new durable revision/transition.</p>
@@ -6949,10 +6949,10 @@
 <p>assignment/dependency mutations use observed revision.</p>
 </li>
 <li>
-<p>[ ] Replan history is inspectable.</p>
+<p>[x] Replan history is inspectable.</p>
 </li>
-<li>[ ] Current projection shows latest plan state.</li>
-<li>[ ] Historical result references remain valid.</li>
+<li>[x] Current projection shows latest plan state.</li>
+<li>[x] Historical result references remain valid.</li>
 </ul>
 <hr />
 <h1 id="10-phase-6-per-nodeper-branch-execution-assignment">10. Phase 6 — Per-Node/Per-Branch Execution Assignment<a class="headerlink" href="#10-phase-6-per-nodeper-branch-execution-assignment" title="Permanent link">&para;</a></h1>
@@ -6969,9 +6969,9 @@
 </code></pre></div>
 <p>Provider secrets remain indirect <code>CredentialRef</code> through existing profile configuration.</p>
 <ul>
-<li>[ ] Assignment stores no API key/secret.</li>
-<li>[ ] Assignment can be absent and inherit defaults.</li>
-<li>[ ] Assignment is inspectable/durable.</li>
+<li>[x] Assignment stores no API key/secret.</li>
+<li>[x] Assignment can be absent and inherit defaults.</li>
+<li>[x] Assignment is inspectable/durable.</li>
 </ul>
 <h2 id="task-62-implement-resolution-order">Task 6.2 — Implement resolution order<a class="headerlink" href="#task-62-implement-resolution-order" title="Permanent link">&para;</a></h2>
 <p>Use one shared resolver equivalent to:</p>
@@ -6984,9 +6984,9 @@
 </code></pre></div>
 <p>Do not duplicate this resolver in runtime/TUI/server.</p>
 <ul>
-<li>[ ] Resolver covered by table-driven tests.</li>
-<li>[ ] Running invocation snapshot does not change when future assignment changes.</li>
-<li>[ ] Unsupported thinking level fails before provider invocation.</li>
+<li>[x] Resolver covered by table-driven tests.</li>
+<li>[x] Running invocation snapshot does not change when future assignment changes.</li>
+<li>[x] Unsupported thinking level fails before provider invocation.</li>
 </ul>
 <h2 id="task-63-assignment-mutation-operation">Task 6.3 — Assignment mutation operation<a class="headerlink" href="#task-63-assignment-mutation-operation" title="Permanent link">&para;</a></h2>
 <p>Add a shared operation used by <code>/assign</code> and other clients.</p>
@@ -7000,9 +7000,9 @@
 <p>optimistic revision when concurrent mutation matters.</p>
 </li>
 <li>
-<p>[ ] <code>/assign</code> does not need provider credentials.</p>
+<p>[x] <code>/assign</code> does not need provider credentials.</p>
 </li>
-<li>[ ] Assignment changes are replayable/inspectable provenance.</li>
+<li>[x] Assignment changes are replayable/inspectable provenance.</li>
 </ul>
 <hr />
 <h1 id="11-phase-7-coordinator-claim-and-worker-execution-leases">11. Phase 7 — Coordinator Claim and Worker Execution Leases<a class="headerlink" href="#11-phase-7-coordinator-claim-and-worker-execution-leases" title="Permanent link">&para;</a></h1>
@@ -7022,23 +7022,28 @@
 <p>UI focus never implies coordinator ownership.</p>
 </li>
 <li>
-<p>[ ] Concurrent coordinator claim test proves one winner.</p>
+<p>[x] Concurrent coordinator claim test proves one winner.</p>
 </li>
-<li>[ ] Pause/cancel releases or changes claim according to policy.</li>
+<li>[x] Pause/cancel releases or changes claim according to policy.</li>
 </ul>
 <h2 id="task-72-worker-branch-claim">Task 7.2 — Worker branch claim<a class="headerlink" href="#task-72-worker-branch-claim" title="Permanent link">&para;</a></h2>
 <p>Add/extend execution ownership so one branch cannot be actively executed by two workers.</p>
 <p>A ready plan node is claimed atomically before provider invocation.</p>
 <ul>
-<li>[ ] Two concurrent claims for same node/branch cannot both succeed.</li>
-<li>[ ] Different ready sibling nodes can be claimed concurrently.</li>
-<li>[ ] Worker failure releases/transitions claim deterministically.</li>
+<li>[x] Two concurrent claims for same node/branch cannot both succeed.</li>
+<li>[x] Different ready sibling nodes can be claimed concurrently.</li>
+<li>[x] Worker failure releases/transitions claim deterministically.</li>
 </ul>
+<p>Repository adaptation: the existing session repository exposes plan-level
+compare-and-swap so concurrent branch updates are preserved. Plan CAS now also
+merges newly claimed worker branch records and links them to their parents in
+the same transaction, allowing the tree and context to resolve the branch
+before provider execution without overwriting existing branch state.</p>
 <h2 id="task-73-alternative-attempts">Task 7.3 — Alternative attempts<a class="headerlink" href="#task-73-alternative-attempts" title="Permanent link">&para;</a></h2>
 <p>Do not implement “two models on one branch.”</p>
 <p>Provide a shared pattern/helper for sibling attempts when the coordinator/user wants multiple models to solve the same goal.</p>
 <ul>
-<li>[ ] Comparison branch can depend on both attempt results.</li>
+<li>[x] Comparison branch can depend on both attempt results.</li>
 </ul>
 <hr />
 <h1 id="12-phase-8-context-compiler-exact-anchor-and-dependency-aware-isolation">12. Phase 8 — Context Compiler: Exact Anchor and Dependency-Aware Isolation<a class="headerlink" href="#12-phase-8-context-compiler-exact-anchor-and-dependency-aware-isolation" title="Permanent link">&para;</a></h1>
@@ -7053,7 +7058,7 @@
 <a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>unrelated model activity
 </code></pre></div>
 <ul>
-<li>[ ] Exact-anchor context test passes.</li>
+<li>[x] Exact-anchor context test passes.</li>
 </ul>
 <h2 id="task-82-parent-to-child-inheritance-plan">Task 8.2 — Parent-to-child inheritance plan<a class="headerlink" href="#task-82-parent-to-child-inheritance-plan" title="Permanent link">&para;</a></h2>
 <p>For delegated child branches, compile only selected parent state:</p>
@@ -7068,15 +7073,15 @@
 <a id="__codelineno-26-9" name="__codelineno-26-9" href="#__codelineno-26-9"></a>bounded parent excerpt only if policy asks for it
 </code></pre></div>
 <ul>
-<li>[ ] Full parent transcript is not inherited by default.</li>
+<li>[x] Full parent transcript is not inherited by default.</li>
 </ul>
 <h2 id="task-83-dependency-results-as-explicit-context-inputs">Task 8.3 — Dependency results as explicit context inputs<a class="headerlink" href="#task-83-dependency-results-as-explicit-context-inputs" title="Permanent link">&para;</a></h2>
 <p>When a plan node starts, add fulfilled dependency results to context input explicitly.</p>
 <p>Do not fetch dependency branch transcripts.</p>
 <p>Include exact result handles/revisions/candidates/validation evidence needed by the worker.</p>
 <ul>
-<li>[ ] Worker sees required dependency result.</li>
-<li>[ ] Worker does not see dependency's raw model/tool history.</li>
+<li>[x] Worker sees required dependency result.</li>
+<li>[x] Worker does not see dependency's raw model/tool history.</li>
 </ul>
 <h2 id="task-84-semantic-scope-first">Task 8.4 — Semantic scope first<a class="headerlink" href="#task-84-semantic-scope-first" title="Permanent link">&para;</a></h2>
 <p>Context compiler should prefer semantic descriptions/handles/structure over whole rendered files when possible.</p>
@@ -7091,7 +7096,7 @@
 </code></pre></div>
 <p>Exact source is included only when context policy/operation requires it.</p>
 <ul>
-<li>[ ] Test demonstrates a semantic compact context path that does not automatically inject whole file text.</li>
+<li>[x] Test demonstrates a semantic compact context path that does not automatically inject whole file text.</li>
 </ul>
 <h2 id="task-85-fingerprintdependency-manifest">Task 8.5 — Fingerprint/dependency manifest<a class="headerlink" href="#task-85-fingerprintdependency-manifest" title="Permanent link">&para;</a></h2>
 <p>Ensure request identity includes all output-relevant new inputs:</p>
@@ -7104,9 +7109,9 @@
 </code></pre></div>
 <p>Do not include UI state, reply highlight, rail color, scroll position, or secrets.</p>
 <ul>
-<li>[ ] Same exact semantic context yields same fingerprint.</li>
-<li>[ ] Changed dependency result revision changes fingerprint.</li>
-<li>[ ] UI-only changes do not change fingerprint.</li>
+<li>[x] Same exact semantic context yields same fingerprint.</li>
+<li>[x] Changed dependency result revision changes fingerprint.</li>
+<li>[x] UI-only changes do not change fingerprint.</li>
 </ul>
 <hr />
 <h1 id="13-phase-9-semantic-first-tool-catalog-and-dispatch">13. Phase 9 — Semantic-First Tool Catalog and Dispatch<a class="headerlink" href="#13-phase-9-semantic-first-tool-catalog-and-dispatch" title="Permanent link">&para;</a></h1>
@@ -7121,7 +7126,7 @@
 </code></pre></div>
 <p>Do not infer category from tool name string in the TUI.</p>
 <ul>
-<li>[ ] Category is provider-neutral and trusted-runtime-owned.</li>
+<li>[x] Category is provider-neutral and trusted-runtime-owned.</li>
 </ul>
 <h2 id="task-92-prefer-semantic-capabilities">Task 9.2 — Prefer semantic capabilities<a class="headerlink" href="#task-92-prefer-semantic-capabilities" title="Permanent link">&para;</a></h2>
 <p>When selected knowledge has a domain adapter/capability set, advertise semantic operations before generic raw file/shell tools.</p>
@@ -7132,22 +7137,34 @@
 </code></pre></div>
 <p>Do not require all domain operations to exist in this task; wire the catalog so installed capabilities are discoverable and preferred.</p>
 <ul>
-<li>[ ] Known semantic target receives semantic operation descriptors.</li>
-<li>[ ] Opaque target can expose fallback capabilities explicitly.</li>
+<li>[x] Known semantic target receives semantic operation descriptors.</li>
+<li>[x] Opaque target can expose fallback capabilities explicitly.</li>
 </ul>
 <h2 id="task-93-raw-write-fallback-policy">Task 9.3 — Raw write fallback policy<a class="headerlink" href="#task-93-raw-write-fallback-policy" title="Permanent link">&para;</a></h2>
 <p>If generic raw file replacement currently exists, gate it behind explicit capability/policy and projection reconciliation where canonical state is involved.</p>
 <p>Do not remove necessary bootstrap/interoperability functionality.</p>
 <ul>
-<li>[ ] Known adapted file cannot silently bypass semantic migration through a default raw write path.</li>
+<li>[x] Known adapted file cannot silently bypass semantic migration through a default raw write path.</li>
 </ul>
+<p>Repository difference: the agent runtime has no generic raw file write or
+unrestricted shell tool to gate. The project source proposal operation edits
+file projections through candidate machinery, so the native catalog now labels
+it as an explicitly granted fallback. The existing inspection contract
+exposes the selected entity's installed operation descriptors; a trusted
+generic semantic-operation tool dispatches the chosen descriptor through the
+shared registry and sorts ahead of opaque fallbacks.</p>
 <h2 id="task-94-external-processvalidation-capabilities">Task 9.4 — External process/validation capabilities<a class="headerlink" href="#task-94-external-processvalidation-capabilities" title="Permanent link">&para;</a></h2>
 <p>Keep compiler/test/package-manager execution behind explicit application/runtime capabilities where practical.</p>
 <p>A validation capability should return structured diagnostics/results that can reference semantic handles.</p>
 <ul>
-<li>[ ] Validation output is structured, not only terminal text.</li>
-<li>[ ] Process execution can still be rendered as actual process activity in clients.</li>
+<li>[x] Validation output is structured, not only terminal text.</li>
+<li>[x] Process execution can still be rendered as actual process activity in clients.</li>
 </ul>
+<p>Repository difference: application validation already produces
+<code>ValidationEvidence</code> with status, diagnostics, exact candidate/dependency
+references, and provenance. The existing trusted <code>ToolActivityKind</code> is carried
+through the shared activity protocol and remote session restoration; the TUI
+labels <code>ValidationProcess</code> activity as validation without parsing tool names.</p>
 <hr />
 <h1 id="14-phase-10-coordinator-scheduler">14. Phase 10 — Coordinator Scheduler<a class="headerlink" href="#14-phase-10-coordinator-scheduler" title="Permanent link">&para;</a></h1>
 <p>Only start this phase after plan/readiness/context/claim tests pass.</p>
@@ -7163,7 +7180,7 @@
 </code></pre></div>
 <p>Return decisions rather than immediately doing network I/O inside pure state calculation.</p>
 <ul>
-<li>[ ] Pure readiness/scheduler tests use no provider.</li>
+<li>[x] Pure readiness/scheduler tests use no provider.</li>
 </ul>
 <h2 id="task-102-dispatch-unassigned-ready-work">Task 10.2 — Dispatch unassigned ready work<a class="headerlink" href="#task-102-dispatch-unassigned-ready-work" title="Permanent link">&para;</a></h2>
 <p>Coordinator selects ready nodes according to deterministic policy.</p>
@@ -7174,17 +7191,17 @@
 </code></pre></div>
 <p>Do not invent sophisticated optimization before correctness.</p>
 <ul>
-<li>[ ] Scheduler respects concurrency budget.</li>
-<li>[ ] Scheduler does not dispatch blocked node.</li>
-<li>[ ] Scheduler does not double-dispatch claimed node.</li>
+<li>[x] Scheduler respects concurrency budget.</li>
+<li>[x] Scheduler does not dispatch blocked node.</li>
+<li>[x] Scheduler does not double-dispatch claimed node.</li>
 </ul>
 <h2 id="task-103-run-many-workers-concurrently">Task 10.3 — Run many workers concurrently<a class="headerlink" href="#task-103-run-many-workers-concurrently" title="Permanent link">&para;</a></h2>
 <p>Use runtime concurrency primitives consistent with existing async architecture.</p>
 <p>Workers execute separate branches/workspaces.</p>
 <p>Do not share mutable provider request state between workers.</p>
 <ul>
-<li>[ ] Two independent sibling nodes can run with two fake provider profiles concurrently.</li>
-<li>[ ] Their model/profile provenance remains distinct.</li>
+<li>[x] Two independent sibling nodes can run with two fake provider profiles concurrently.</li>
+<li>[x] Their model/profile provenance remains distinct.</li>
 </ul>
 <h2 id="task-104-consume-worker-result">Task 10.4 — Consume worker result<a class="headerlink" href="#task-104-consume-worker-result" title="Permanent link">&para;</a></h2>
 <p>On worker completion:</p>
@@ -7198,7 +7215,7 @@
 <p>continue scheduling if plan is running.</p>
 </li>
 <li>
-<p>[ ] Dependent starts only after durable result linkage.</p>
+<p>[x] Dependent starts only after durable result linkage.</p>
 </li>
 </ol>
 <h2 id="task-105-failure-handling">Task 10.5 — Failure handling<a class="headerlink" href="#task-105-failure-handling" title="Permanent link">&para;</a></h2>
@@ -7210,12 +7227,35 @@
 </code></pre></div>
 <p>Do not silently treat failed dependency as complete.</p>
 <ul>
-<li>[ ] Failure test proves blocked dependent remains blocked.</li>
+<li>[x] Failure test proves blocked dependent remains blocked.</li>
 </ul>
 <h2 id="task-106-plan-completion">Task 10.6 — Plan completion<a class="headerlink" href="#task-106-plan-completion" title="Permanent link">&para;</a></h2>
 <p>Plan is complete only when completion policy is satisfied and no required unresolved node remains.</p>
 <ul>
-<li>[ ] Completed plan persists final state and releases coordinator claim.</li>
+<li>[x] Completed plan persists final state and releases coordinator claim.</li>
+</ul>
+<h2 id="task-107-wire-the-production-worker-runtime">Task 10.7 — Wire the production worker runtime<a class="headerlink" href="#task-107-wire-the-production-worker-runtime" title="Permanent link">&para;</a></h2>
+<p>The product composition must connect the durable lifecycle operation to the
+shared coordinator and a provider-backed worker executor. Generic scheduler
+tests and test-only executors do not prove that <code>/plan start</code> executes work.</p>
+<p>Repository adaptation: the native composition uses the shared model library to
+resolve worker model IDs, connection IDs, and thinking levels, and invokes the
+shared coordinator through the TUI plan lifecycle. Named OpenAI-compatible
+connections are declared with endpoint and credential environment-variable
+references in <code>SCRIBE_AGENT_MODEL_CATALOG</code>; the default process configuration
+continues to provide the <code>local</code> connection. The HTTP composition injects the
+same native runner through the server protocol dispatcher.</p>
+<ul>
+<li>[x] Native plan start/resume launches one coordinator with the production
+  worker executor.</li>
+<li>[x] Each worker runs against its claimed branch using its compiled exact
+  <code>PlanWorkerContext</code> and resolved model ID/thinking assignment.</li>
+<li>[x] Native execution selects the provider adapter from the resolved provider
+  profile without persisting credentials.</li>
+<li>[x] HTTP plan start/resume launches the same shared coordinator and worker
+  execution semantics as embedded TUI start/resume.</li>
+<li>[x] Coordinator execution remains off the interactive input/render loop and
+  publishes durable plan/result activity as work completes.</li>
 </ul>
 <hr />
 <h1 id="15-phase-11-replanning">15. Phase 11 — Replanning<a class="headerlink" href="#15-phase-11-replanning" title="Permanent link">&para;</a></h1>
@@ -7231,13 +7271,13 @@
 <a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a>reason/trigger
 </code></pre></div>
 <ul>
-<li>[ ] Stale base revision fails structurally.</li>
+<li>[x] Stale base revision fails structurally.</li>
 </ul>
 <h2 id="task-112-validate-and-persist-revision">Task 11.2 — Validate and persist revision<a class="headerlink" href="#task-112-validate-and-persist-revision" title="Permanent link">&para;</a></h2>
 <p>Run dependency cycle validation and terminal-node preservation checks before committing revision.</p>
 <ul>
-<li>[ ] Historical revision remains inspectable.</li>
-<li>[ ] Completed branch results keep stable references.</li>
+<li>[x] Historical revision remains inspectable.</li>
+<li>[x] Completed branch results keep stable references.</li>
 </ul>
 <hr />
 <h1 id="16-phase-12-protocol-server-and-client-parity">16. Phase 12 — Protocol, Server, and Client Parity<a class="headerlink" href="#16-phase-12-protocol-server-and-client-parity" title="Permanent link">&para;</a></h1>
@@ -7256,20 +7296,20 @@
 </code></pre></div>
 <p>Do not expose provider credentials or raw hidden prompts by default.</p>
 <ul>
-<li>[ ] JSON schema/serde tests pass.</li>
+<li>[x] JSON schema/serde tests pass.</li>
 </ul>
 <h2 id="task-122-server-routeshandlers">Task 12.2 — Server routes/handlers<a class="headerlink" href="#task-122-server-routeshandlers" title="Permanent link">&para;</a></h2>
 <p>Map protocol operations to shared application operations.</p>
 <p>Do not reproduce validation/scheduling rules in HTTP handlers.</p>
 <ul>
-<li>[ ] Server handler tests prove delegation to app layer.</li>
+<li>[x] Server handler tests prove delegation to app layer.</li>
 </ul>
 <h2 id="task-123-client-apis">Task 12.3 — Client APIs<a class="headerlink" href="#task-123-client-apis" title="Permanent link">&para;</a></h2>
 <p>Expose the same operations in the Rust/public client layer.</p>
 <p>Use existing observation/SSE/event conventions for live plan/worker activity.</p>
 <ul>
-<li>[ ] Remote client can create/start/read plan and set assignment.</li>
-<li>[ ] Remote client can continue at exact anchor.</li>
+<li>[x] Remote client can create/start/read plan and set assignment.</li>
+<li>[x] Remote client can continue at exact anchor.</li>
 </ul>
 <h2 id="task-124-durable-replay-live-tail">Task 12.4 — Durable replay + live tail<a class="headerlink" href="#task-124-durable-replay-live-tail" title="Permanent link">&para;</a></h2>
 <p>Reconnect behavior:</p>
@@ -7278,7 +7318,7 @@
 </code></pre></div>
 <p>Do not require replaying raw provider token stream.</p>
 <ul>
-<li>[ ] Reconnect test reconstructs completed/running plan status.</li>
+<li>[x] Reconnect test reconstructs completed/running plan status.</li>
 </ul>
 <hr />
 <h1 id="17-phase-13-extend-shared-activityevent-vocabulary">17. Phase 13 — Extend Shared Activity/Event Vocabulary<a class="headerlink" href="#17-phase-13-extend-shared-activityevent-vocabulary" title="Permanent link">&para;</a></h1>
@@ -7297,9 +7337,9 @@
 </code></pre></div>
 <p>Do not create a separate TUI-only event taxonomy.</p>
 <ul>
-<li>[ ] Durable categories needed for reconstruction are typed.</li>
-<li>[ ] Transient progress remains separate from durable settled state.</li>
-<li>[ ] Events contain safe summaries and stable references.</li>
+<li>[x] Durable categories needed for reconstruction are typed.</li>
+<li>[x] Transient progress remains separate from durable settled state.</li>
+<li>[x] Events contain safe summaries and stable references.</li>
 </ul>
 <hr />
 <h1 id="18-phase-14-build-the-conversation-tree-projection">18. Phase 14 — Build the Conversation Tree Projection<a class="headerlink" href="#18-phase-14-build-the-conversation-tree-projection" title="Permanent link">&para;</a></h1>
@@ -7316,16 +7356,19 @@
 </code></pre></div>
 <p>Output rows retain stable source references.</p>
 <ul>
-<li>[ ] No canonical state is stored only as a conversation row.</li>
+<li>[x] No canonical state is stored only as a conversation row.</li>
 </ul>
 <h2 id="task-142-structural-traversal-order">Task 14.2 — Structural traversal order<a class="headerlink" href="#task-142-structural-traversal-order" title="Permanent link">&para;</a></h2>
 <p>Render depth-first/structurally so new branch activity appears under its parent.</p>
 <p>Use stable ordinals/sequence data for sibling/activity order.</p>
 <p>Never sort by label.</p>
 <ul>
-<li>[ ] Historical continuation inserted mid-tree in deterministic location.</li>
-<li>[ ] Later wall-clock event can render above older unrelated bottom content when structure requires it.</li>
+<li>[x] Historical continuation inserted mid-tree in deterministic location.</li>
+<li>[x] Later wall-clock event can render above older unrelated bottom content when structure requires it.</li>
 </ul>
+<p>Repository note: branch, plan, and node <code>Vec</code> insertion order is the existing
+durable sibling sequence; the projection now preserves it instead of sorting
+by identity or label.</p>
 <h2 id="task-143-collapse-completed-children">Task 14.3 — Collapse completed children<a class="headerlink" href="#task-143-collapse-completed-children" title="Permanent link">&para;</a></h2>
 <p>Default completed branch:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>branch descriptor
@@ -7337,7 +7380,7 @@
 <a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a>result
 </code></pre></div>
 <ul>
-<li>[ ] Expansion does not alter shared context or scheduling.</li>
+<li>[x] Expansion does not alter shared context or scheduling.</li>
 </ul>
 <h2 id="task-144-project-planned-nodes">Task 14.4 — Project planned nodes<a class="headerlink" href="#task-144-project-planned-nodes" title="Permanent link">&para;</a></h2>
 <p>Show planned nodes before execution, preserving identity when bound branch starts.</p>
@@ -7349,7 +7392,7 @@
 <a id="__codelineno-41-5" name="__codelineno-41-5" href="#__codelineno-41-5"></a>result summary when terminal
 </code></pre></div>
 <ul>
-<li>[ ] Blocked/ready/running/completed are visually distinguishable without color alone.</li>
+<li>[x] Blocked/ready/running/completed are visually distinguishable without color alone.</li>
 </ul>
 <hr />
 <h1 id="19-phase-15-tui-state-conversation-home-and-stable-anchors">19. Phase 15 — TUI State: Conversation Home and Stable Anchors<a class="headerlink" href="#19-phase-15-tui-state-conversation-home-and-stable-anchors" title="Permanent link">&para;</a></h1>
@@ -7357,8 +7400,8 @@
 <p>Refactor <code>PrimaryView</code>/top-level state so ordinary launch is Conversation.</p>
 <p>Preserve existing structural Session/Explorer/Inspector/etc. views as auxiliary destinations.</p>
 <ul>
-<li>[ ] <code>TuiState::default()</code> produces Conversation home.</li>
-<li>[ ] No width-dependent automatic Explorer/Inspector mode.</li>
+<li>[x] <code>TuiState::default()</code> produces Conversation home.</li>
+<li>[x] No width-dependent automatic Explorer/Inspector mode.</li>
 </ul>
 <h2 id="task-152-refactor-composer-target">Task 15.2 — Refactor composer target<a class="headerlink" href="#task-152-refactor-composer-target" title="Permanent link">&para;</a></h2>
 <p>Current <code>SessionComposerState</code> requires a session ID.</p>
@@ -7368,13 +7411,13 @@
 </code></pre></div>
 <p>Preserve draft/pending/error behavior.</p>
 <ul>
-<li>[ ] No dummy <code>EntityId</code> for pre-session draft.</li>
+<li>[x] No dummy <code>EntityId</code> for pre-session draft.</li>
 </ul>
 <h2 id="task-153-add-navigation-cursor">Task 15.3 — Add navigation cursor<a class="headerlink" href="#task-153-add-navigation-cursor" title="Permanent link">&para;</a></h2>
 <p>Navigation cursor references a projected node via stable projection key/source ref.</p>
 <p>Moving cursor must not automatically mutate reply anchor.</p>
 <ul>
-<li>[ ] Cursor survives safe rerender mapping where source remains present.</li>
+<li>[x] Cursor survives safe rerender mapping where source remains present.</li>
 </ul>
 <h2 id="task-154-add-reply-anchor">Task 15.4 — Add reply anchor<a class="headerlink" href="#task-154-add-reply-anchor" title="Permanent link">&para;</a></h2>
 <p>Store stable shared <code>ContinuationAnchor</code> plus session identity.</p>
@@ -7384,14 +7427,14 @@
 <a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>user pins node -&gt; pinned anchor
 </code></pre></div>
 <ul>
-<li>[ ] Reply anchor survives verbosity/collapse/resize.</li>
+<li>[x] Reply anchor survives verbosity/collapse/resize.</li>
 </ul>
 <h2 id="task-155-add-coordinator-cursorfollow-state">Task 15.5 — Add coordinator cursor/follow state<a class="headerlink" href="#task-155-add-coordinator-cursorfollow-state" title="Permanent link">&para;</a></h2>
 <p>Coordinator cursor comes from durable/live plan state.</p>
 <p>Local presentation state may track <code>follow_coordinator: bool</code>.</p>
 <ul>
-<li>[ ] Scrolling/pinning disables follow without pausing plan.</li>
-<li>[ ] Resume-follow action does not mutate plan.</li>
+<li>[x] Scrolling/pinning disables follow without pausing plan.</li>
+<li>[x] Resume-follow action does not mutate plan.</li>
 </ul>
 <hr />
 <h1 id="20-phase-16-tui-navigation-and-keyboard-behavior">20. Phase 16 — TUI Navigation and Keyboard Behavior<a class="headerlink" href="#20-phase-16-tui-navigation-and-keyboard-behavior" title="Permanent link">&para;</a></h1>
@@ -7403,7 +7446,7 @@
 </code></pre></div>
 <p>Choose/retain explicit cancellation key behavior without coupling submit to cancel.</p>
 <ul>
-<li>[ ] Ordinary printable key edits draft immediately.</li>
+<li>[x] Ordinary printable key edits draft immediately.</li>
 </ul>
 <h2 id="task-162-tree-browse-mode">Task 16.2 — Tree browse mode<a class="headerlink" href="#task-162-tree-browse-mode" title="Permanent link">&para;</a></h2>
 <p>Implement keyboard path to browse nodes without corrupting draft.</p>
@@ -7417,14 +7460,14 @@
 </code></pre></div>
 <p>Exact bindings may reuse existing navigation conventions, but semantics must remain explicit.</p>
 <ul>
-<li>[ ] Non-replyable node cannot silently become reply anchor.</li>
+<li>[x] Non-replyable node cannot silently become reply anchor.</li>
 </ul>
 <h2 id="task-163-background-highlight">Task 16.3 — Background highlight<a class="headerlink" href="#task-163-background-highlight" title="Permanent link">&para;</a></h2>
 <p>Render reply anchor with theme background/equivalent strong selection style.</p>
 <p>Do not reuse depth-rail color as reply indicator.</p>
 <p>Provide textual <code>Replying to:</code> hint when pinned away from normal head.</p>
 <ul>
-<li>[ ] Reply target remains understandable with colors disabled.</li>
+<li>[x] Reply target remains understandable with colors disabled.</li>
 </ul>
 <hr />
 <h1 id="21-phase-17-colored-depth-rails">21. Phase 17 — Colored Depth Rails<a class="headerlink" href="#21-phase-17-colored-depth-rails" title="Permanent link">&para;</a></h1>
@@ -7440,9 +7483,9 @@
 <h2 id="task-174-narrow-width-compaction">Task 17.4 — Narrow width compaction<a class="headerlink" href="#task-174-narrow-width-compaction" title="Permanent link">&para;</a></h2>
 <p>When width is insufficient, preserve most-local rails and show omitted ancestors with an explicit marker such as <code>…</code>.</p>
 <ul>
-<li>[ ] Depth 1/2/3 snapshot tests.</li>
-<li>[ ] Deep nesting palette cycling test.</li>
-<li>[ ] Narrow compaction test.</li>
+<li>[x] Depth 1/2/3 snapshot tests.</li>
+<li>[x] Deep nesting palette cycling test.</li>
+<li>[x] Narrow compaction test.</li>
 </ul>
 <hr />
 <h1 id="22-phase-18-generalize-per-activity-presentation-modes">22. Phase 18 — Generalize Per-Activity Presentation Modes<a class="headerlink" href="#22-phase-18-generalize-per-activity-presentation-modes" title="Permanent link">&para;</a></h1>
@@ -7458,7 +7501,7 @@
 <p>Full mode preserves full safe display content with wrapping.</p>
 <p>Structured mode renders one safe/redacted parameter per line.</p>
 <ul>
-<li>[ ] Secret/sensitive arguments remain redacted in every mode.</li>
+<li>[x] Secret/sensitive arguments remain redacted in every mode.</li>
 </ul>
 <h2 id="task-182-result-modes">Task 18.2 — Result modes<a class="headerlink" href="#task-182-result-modes" title="Permanent link">&para;</a></h2>
 <p>Support equivalent modes:</p>
@@ -7482,8 +7525,12 @@
 <a id="__codelineno-49-4" name="__codelineno-49-4" href="#__codelineno-49-4"></a>plan dependency/assignment detail
 <a id="__codelineno-49-5" name="__codelineno-49-5" href="#__codelineno-49-5"></a>validation detail
 </code></pre></div>
+<p>Repository adaptation: task 133's shared preference contract stores the
+existing <code>Simple</code>/<code>Detailed</code> defaults. The TUI maps those defaults to compact
+and structured rendering and cycles hidden/full bounded modes as client-local
+presentation overrides; these extra modes do not extend shared session state.</p>
 <ul>
-<li>[ ] Changing presentation mode never changes request fingerprint/context.</li>
+<li>[x] Changing presentation mode never changes request fingerprint/context.</li>
 </ul>
 <hr />
 <h1 id="23-phase-19-slash-command-registry">23. Phase 19 — Slash Command Registry<a class="headerlink" href="#23-phase-19-slash-command-registry" title="Permanent link">&para;</a></h1>
@@ -7519,7 +7566,7 @@
 <a id="__codelineno-51-18" name="__codelineno-51-18" href="#__codelineno-51-18"></a>/new
 </code></pre></div>
 <ul>
-<li>[ ] Help/completion use same registry.</li>
+<li>[x] Help/completion use same registry.</li>
 </ul>
 <h2 id="task-192-parse-vs-agent-input">Task 19.2 — Parse vs agent input<a class="headerlink" href="#task-192-parse-vs-agent-input" title="Permanent link">&para;</a></h2>
 <p>Rules:</p>
@@ -7529,13 +7576,13 @@
 <a id="__codelineno-52-4" name="__codelineno-52-4" href="#__codelineno-52-4"></a>ordinary text -&gt; agent input
 </code></pre></div>
 <ul>
-<li>[ ] Tests prove no accidental model invocation.</li>
+<li>[x] Tests prove no accidental model invocation.</li>
 </ul>
 <h2 id="task-193-completion-ui">Task 19.3 — Completion UI<a class="headerlink" href="#task-193-completion-ui" title="Permanent link">&para;</a></h2>
 <p>While typing slash prefix, render matching commands without leaving composer.</p>
 <ul>
-<li>[ ] <code>/mo</code> suggests <code>/model</code>.</li>
-<li>[ ] <code>/pl</code> suggests <code>/plan</code>.</li>
+<li>[x] <code>/mo</code> suggests <code>/model</code>.</li>
+<li>[x] <code>/pl</code> suggests <code>/plan</code>.</li>
 </ul>
 <hr />
 <h1 id="24-phase-20-implement-plan-and-assign-tui-commands">24. Phase 20 — Implement <code>/plan</code> and <code>/assign</code> TUI Commands<a class="headerlink" href="#24-phase-20-implement-plan-and-assign-tui-commands" title="Permanent link">&para;</a></h1>
@@ -7543,25 +7590,34 @@
 <p>Call shared plan creation/proposal operation at current reply anchor.</p>
 <p>Display created plan in same tree.</p>
 <p>Do not automatically start unless product policy explicitly requests it.</p>
+<p>For a user-authored multi-node proposal, accept this local outline form:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>/plan &lt;goal&gt;
+<a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a>- &lt;title&gt;: &lt;purpose&gt;
+<a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a>- &lt;title&gt;: &lt;purpose&gt;
+<a id="__codelineno-53-4" name="__codelineno-53-4" href="#__codelineno-53-4"></a>depends: &lt;one-based-node&gt; -&gt; &lt;one-based-node&gt;
+</code></pre></div>
+<p>The first dependency endpoint is the prerequisite. A goal without outline lines
+still creates one node. The application validates dependency cycles and
+persists the structured proposal before any coordinator starts.</p>
 <h2 id="task-202-lifecycle-commands">Task 20.2 — Lifecycle commands<a class="headerlink" href="#task-202-lifecycle-commands" title="Permanent link">&para;</a></h2>
 <p>Map:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a>/plan start
-<a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a>/plan pause
-<a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a>/plan resume
-<a id="__codelineno-53-4" name="__codelineno-53-4" href="#__codelineno-53-4"></a>/plan replan
-<a id="__codelineno-53-5" name="__codelineno-53-5" href="#__codelineno-53-5"></a>/plan stop
-<a id="__codelineno-53-6" name="__codelineno-53-6" href="#__codelineno-53-6"></a>/plan show
+<div class="highlight"><pre><span></span><code><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>/plan start
+<a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a>/plan pause
+<a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a>/plan resume
+<a id="__codelineno-54-4" name="__codelineno-54-4" href="#__codelineno-54-4"></a>/plan replan
+<a id="__codelineno-54-5" name="__codelineno-54-5" href="#__codelineno-54-5"></a>/plan stop
+<a id="__codelineno-54-6" name="__codelineno-54-6" href="#__codelineno-54-6"></a>/plan show
 </code></pre></div>
 <p>to shared operations.</p>
 <ul>
-<li>[ ] TUI contains no scheduler logic beyond invoking/observing shared operations.</li>
+<li>[x] TUI contains no scheduler logic beyond invoking/observing shared operations.</li>
 </ul>
 <h2 id="task-203-assign">Task 20.3 — <code>/assign</code><a class="headerlink" href="#task-203-assign" title="Permanent link">&para;</a></h2>
 <p>Operate on selected plan node/branch.</p>
 <p>Open shared model/profile picker and write assignment through application operation.</p>
 <p>Keep <code>/model</code> as session/default future model selection.</p>
 <ul>
-<li>[ ] Assignment affects only selected node/branch unless user explicitly changes default.</li>
+<li>[x] Assignment affects only selected node/branch unless user explicitly changes default.</li>
 </ul>
 <hr />
 <h1 id="25-phase-21-auxiliary-views-and-layout-cleanup">25. Phase 21 — Auxiliary Views and Layout Cleanup<a class="headerlink" href="#25-phase-21-auxiliary-views-and-layout-cleanup" title="Permanent link">&para;</a></h1>
@@ -7570,34 +7626,34 @@
 <p>Normal mode always reserves body for conversation/tree + composer.</p>
 <h2 id="task-212-preserve-existing-views">Task 21.2 — Preserve existing views<a class="headerlink" href="#task-212-preserve-existing-views" title="Permanent link">&para;</a></h2>
 <p>Keep structural views behind commands:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>/session
-<a id="__codelineno-54-2" name="__codelineno-54-2" href="#__codelineno-54-2"></a>/explorer
-<a id="__codelineno-54-3" name="__codelineno-54-3" href="#__codelineno-54-3"></a>/inspect
-<a id="__codelineno-54-4" name="__codelineno-54-4" href="#__codelineno-54-4"></a>/history
-<a id="__codelineno-54-5" name="__codelineno-54-5" href="#__codelineno-54-5"></a>/find
-<a id="__codelineno-54-6" name="__codelineno-54-6" href="#__codelineno-54-6"></a>/diff
-<a id="__codelineno-54-7" name="__codelineno-54-7" href="#__codelineno-54-7"></a>/projection
-<a id="__codelineno-54-8" name="__codelineno-54-8" href="#__codelineno-54-8"></a>/changes
-<a id="__codelineno-54-9" name="__codelineno-54-9" href="#__codelineno-54-9"></a>/operations
+<div class="highlight"><pre><span></span><code><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>/session
+<a id="__codelineno-55-2" name="__codelineno-55-2" href="#__codelineno-55-2"></a>/explorer
+<a id="__codelineno-55-3" name="__codelineno-55-3" href="#__codelineno-55-3"></a>/inspect
+<a id="__codelineno-55-4" name="__codelineno-55-4" href="#__codelineno-55-4"></a>/history
+<a id="__codelineno-55-5" name="__codelineno-55-5" href="#__codelineno-55-5"></a>/find
+<a id="__codelineno-55-6" name="__codelineno-55-6" href="#__codelineno-55-6"></a>/diff
+<a id="__codelineno-55-7" name="__codelineno-55-7" href="#__codelineno-55-7"></a>/projection
+<a id="__codelineno-55-8" name="__codelineno-55-8" href="#__codelineno-55-8"></a>/changes
+<a id="__codelineno-55-9" name="__codelineno-55-9" href="#__codelineno-55-9"></a>/operations
 </code></pre></div>
 <p>Do not delete their view models/service calls.</p>
 <h2 id="task-213-return-semantics">Task 21.3 — Return semantics<a class="headerlink" href="#task-213-return-semantics" title="Permanent link">&para;</a></h2>
 <p><code>Esc</code> closes inner overlay first, then returns from auxiliary surface to Conversation.</p>
 <p>Preserve draft, reply anchor, plan follow state, and conversation scroll where practical.</p>
 <ul>
-<li>[ ] Open/close every major auxiliary view in focused tests.</li>
+<li>[x] Open/close every major auxiliary view in focused tests.</li>
 </ul>
 <hr />
 <h1 id="26-phase-22-quiet-header-and-status">26. Phase 22 — Quiet Header and Status<a class="headerlink" href="#26-phase-22-quiet-header-and-status" title="Permanent link">&para;</a></h1>
 <p>Default header should show only useful context, conceptually:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>scriberig · project-name                         codex · high
+<div class="highlight"><pre><span></span><code><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>scriberig · project-name                         codex · high
 </code></pre></div>
 <p>Optional status may show:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>main · plan running · 3 workers · context 34%
+<div class="highlight"><pre><span></span><code><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>main · plan running · 3 workers · context 34%
 </code></pre></div>
 <p>Move verbose focus/service/debug/UUID details behind <code>/status</code> or structural/debug views.</p>
 <ul>
-<li>[ ] Default screen contains no unnecessary UUID noise.</li>
+<li>[x] Default screen contains no unnecessary UUID noise.</li>
 </ul>
 <hr />
 <h1 id="27-phase-23-multi-worker-live-observation">27. Phase 23 — Multi-Worker Live Observation<a class="headerlink" href="#27-phase-23-multi-worker-live-observation" title="Permanent link">&para;</a></h1>
@@ -7606,186 +7662,206 @@
 <p>Do not append them to one global stream list.</p>
 <h2 id="task-232-durable-transient-layering">Task 23.2 — Durable + transient layering<a class="headerlink" href="#task-232-durable-transient-layering" title="Permanent link">&para;</a></h2>
 <p>Use:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>durable settled tree
-<a id="__codelineno-57-2" name="__codelineno-57-2" href="#__codelineno-57-2"></a>+
-<a id="__codelineno-57-3" name="__codelineno-57-3" href="#__codelineno-57-3"></a>live transient tail/activity attached to nodes
+<div class="highlight"><pre><span></span><code><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a>durable settled tree
+<a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a>+
+<a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a>live transient tail/activity attached to nodes
 </code></pre></div>
 <p>When activity becomes durable, dedupe transient representation.</p>
 <ul>
-<li>[ ] Same event is not shown twice after persistence/refresh.</li>
+<li>[x] Same event is not shown twice after persistence/refresh.</li>
 </ul>
+<p>Repository adaptation: shared runtime activity events have no separate event ID.
+The TUI keys transient status by operation, branch, and activity category,
+updates that row in place, attaches it under the branch, and clears it when the
+activity settles. Durable session refreshes rebuild from that active-only set.</p>
 <h2 id="task-233-independent-failureprogress">Task 23.3 — Independent failure/progress<a class="headerlink" href="#task-233-independent-failureprogress" title="Permanent link">&para;</a></h2>
 <p>One worker failure must not overwrite another worker's status row.</p>
 <ul>
-<li>[ ] Concurrent fake-worker TUI test covers independent states.</li>
+<li>[x] Concurrent fake-worker TUI test covers independent states.</li>
 </ul>
 <hr />
 <h1 id="28-phase-24-semantic-candidate-concurrency-and-integration">28. Phase 24 — Semantic Candidate Concurrency and Integration<a class="headerlink" href="#28-phase-24-semantic-candidate-concurrency-and-integration" title="Permanent link">&para;</a></h1>
 <p>This phase may reuse existing migration/merge APIs rather than creating new algorithms.</p>
+<p>Repository adaptation: <code>sr-change</code> owns immutable snapshot merge and the project
+subsystem owns isolated source candidates. <code>scriberig-app</code> now exposes an exact
+base/left/right merge operation that returns the existing structured merge
+result and never promotes a root. Project source candidate IDs are not immutable
+<code>SnapshotId</code>s, so the native integration node uses the existing
+<code>ProjectService::merge_project_candidates</code> owner. A node whose required result
+kind is <code>project_candidate_merge</code> resolves exactly two candidate handles from
+its compiled dependency results, creates a reviewable candidate, and leaves
+validation/application/promotion explicit. Failed candidate conflicts persist
+as abandoned branch results with a structured <code>failure-code</code> handle.</p>
 <h2 id="task-241-keep-worker-candidates-isolated">Task 24.1 — Keep worker candidates isolated<a class="headerlink" href="#task-241-keep-worker-candidates-isolated" title="Permanent link">&para;</a></h2>
 <p>Each mutating worker branch operates against exact base/workspace/candidate state.</p>
 <ul>
-<li>[ ] Sibling workers do not mutate shared canonical current root directly.</li>
+<li>[x] Sibling workers do not mutate shared canonical current root directly.</li>
 </ul>
 <h2 id="task-242-integration-node-consumes-candidates-explicitly">Task 24.2 — Integration node consumes candidates explicitly<a class="headerlink" href="#task-242-integration-node-consumes-candidates-explicitly" title="Permanent link">&para;</a></h2>
 <p>A dependent integration node receives candidate/result handles and invokes normal semantic merge/application operations.</p>
 <p>Do not auto-merge simply because both dependencies completed.</p>
 <ul>
-<li>[ ] Disjoint semantic candidate merge test uses existing merge system.</li>
-<li>[ ] Same-target conflict produces structured conflict.</li>
+<li>[x] Dependent integration nodes resolve candidate handles and invoke the shared merge operation.</li>
+<li>[x] Disjoint semantic candidate merge is exercised through a plan integration node.</li>
+<li>[x] Same-target conflict through a plan integration node produces structured conflict.</li>
 </ul>
 <hr />
 <h1 id="29-phase-25-recovery-and-restart">29. Phase 25 — Recovery and Restart<a class="headerlink" href="#29-phase-25-recovery-and-restart" title="Permanent link">&para;</a></h1>
 <h2 id="task-251-durable-reconstruction">Task 25.1 — Durable reconstruction<a class="headerlink" href="#task-251-durable-reconstruction" title="Permanent link">&para;</a></h2>
 <p>After restart/reconnect, reconstruct:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a>session branch tree
-<a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a>plan/current revision
-<a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a>plan-node state
-<a id="__codelineno-58-4" name="__codelineno-58-4" href="#__codelineno-58-4"></a>dependency graph
-<a id="__codelineno-58-5" name="__codelineno-58-5" href="#__codelineno-58-5"></a>assignments
-<a id="__codelineno-58-6" name="__codelineno-58-6" href="#__codelineno-58-6"></a>completed branch results
-<a id="__codelineno-58-7" name="__codelineno-58-7" href="#__codelineno-58-7"></a>current execution selections
-<a id="__codelineno-58-8" name="__codelineno-58-8" href="#__codelineno-58-8"></a>operation statuses/claims recoverable by policy
+<div class="highlight"><pre><span></span><code><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>session branch tree
+<a id="__codelineno-59-2" name="__codelineno-59-2" href="#__codelineno-59-2"></a>plan/current revision
+<a id="__codelineno-59-3" name="__codelineno-59-3" href="#__codelineno-59-3"></a>plan-node state
+<a id="__codelineno-59-4" name="__codelineno-59-4" href="#__codelineno-59-4"></a>dependency graph
+<a id="__codelineno-59-5" name="__codelineno-59-5" href="#__codelineno-59-5"></a>assignments
+<a id="__codelineno-59-6" name="__codelineno-59-6" href="#__codelineno-59-6"></a>completed branch results
+<a id="__codelineno-59-7" name="__codelineno-59-7" href="#__codelineno-59-7"></a>current execution selections
+<a id="__codelineno-59-8" name="__codelineno-59-8" href="#__codelineno-59-8"></a>operation statuses/claims recoverable by policy
 </code></pre></div>
 <p>Do not require provider stream replay.</p>
 <h2 id="task-252-stale-claims">Task 25.2 — Stale claims<a class="headerlink" href="#task-252-stale-claims" title="Permanent link">&para;</a></h2>
 <p>Define safe behavior for a coordinator/worker claim whose owning runtime vanished.</p>
 <p>Use existing operation lifecycle/recovery conventions. Do not silently start duplicate execution.</p>
 <ul>
-<li>[ ] Recovery test demonstrates deterministic stale-claim resolution or explicit blocked state.</li>
+<li>[x] Recovery test demonstrates deterministic stale-claim resolution or explicit blocked state.</li>
 </ul>
 <h2 id="task-253-tui-rehydrate">Task 25.3 — TUI rehydrate<a class="headerlink" href="#task-253-tui-rehydrate" title="Permanent link">&para;</a></h2>
 <p>TUI reloads durable tree then resumes live observation.</p>
 <p>Presentation-only state may reset; canonical reply/plan/session identities may not be fabricated.</p>
 <ul>
-<li>[ ] Completed child remains compact after restart.</li>
-<li>[ ] Plan dependency state matches pre-restart durable state.</li>
+<li>[x] Completed child remains compact after restart.</li>
+<li>[x] Plan dependency state matches pre-restart durable state.</li>
 </ul>
 <hr />
 <h1 id="30-phase-26-focused-end-to-end-scenarios">30. Phase 26 — Focused End-to-End Scenarios<a class="headerlink" href="#30-phase-26-focused-end-to-end-scenarios" title="Permanent link">&para;</a></h1>
 <p>Implement deterministic fake-provider scenarios before any real-provider smoke test.</p>
 <h2 id="scenario-a-first-message">Scenario A — first message<a class="headerlink" href="#scenario-a-first-message" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a>launch TUI
-<a id="__codelineno-59-2" name="__codelineno-59-2" href="#__codelineno-59-2"></a>no session exists
-<a id="__codelineno-59-3" name="__codelineno-59-3" href="#__codelineno-59-3"></a>type "Onboard the current project."
-<a id="__codelineno-59-4" name="__codelineno-59-4" href="#__codelineno-59-4"></a>shared start creates session/root branch
-<a id="__codelineno-59-5" name="__codelineno-59-5" href="#__codelineno-59-5"></a>human input appears
-<a id="__codelineno-59-6" name="__codelineno-59-6" href="#__codelineno-59-6"></a>agent result appears
+<div class="highlight"><pre><span></span><code><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a>launch TUI
+<a id="__codelineno-60-2" name="__codelineno-60-2" href="#__codelineno-60-2"></a>no session exists
+<a id="__codelineno-60-3" name="__codelineno-60-3" href="#__codelineno-60-3"></a>type "Onboard the current project."
+<a id="__codelineno-60-4" name="__codelineno-60-4" href="#__codelineno-60-4"></a>shared start creates session/root branch
+<a id="__codelineno-60-5" name="__codelineno-60-5" href="#__codelineno-60-5"></a>human input appears
+<a id="__codelineno-60-6" name="__codelineno-60-6" href="#__codelineno-60-6"></a>agent result appears
 </code></pre></div>
 <ul>
-<li>[ ] Passes.</li>
+<li>[x] Passes.</li>
 </ul>
 <h2 id="scenario-b-autonomous-decomposition">Scenario B — autonomous decomposition<a class="headerlink" href="#scenario-b-autonomous-decomposition" title="Permanent link">&para;</a></h2>
 <p>Root agent creates child architecture branch and child implementation branch.</p>
 <p>Verify parent context receives compact results, not child transcripts.</p>
 <ul>
-<li>[ ] Passes.</li>
+<li>[x] Passes.</li>
 </ul>
 <h2 id="scenario-c-historical-reply">Scenario C — historical reply<a class="headerlink" href="#scenario-c-historical-reply" title="Permanent link">&para;</a></h2>
 <p>Create root turns A/B/C, select B, submit new input.</p>
 <p>Verify new branch renders under B and context excludes C unless explicit policy includes shared results.</p>
 <ul>
-<li>[ ] Passes.</li>
+<li>[x] Passes.</li>
 </ul>
 <h2 id="scenario-d-durable-plan">Scenario D — durable plan<a class="headerlink" href="#scenario-d-durable-plan" title="Permanent link">&para;</a></h2>
-<p><code>/plan</code> creates three nodes with one dependency.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a>/plan improve parser
+<a id="__codelineno-61-2" name="__codelineno-61-2" href="#__codelineno-61-2"></a>- inspect: map existing parser behavior
+<a id="__codelineno-61-3" name="__codelineno-61-3" href="#__codelineno-61-3"></a>- design: choose a compatible grammar
+<a id="__codelineno-61-4" name="__codelineno-61-4" href="#__codelineno-61-4"></a>- implement: update parser and verify fixtures
+<a id="__codelineno-61-5" name="__codelineno-61-5" href="#__codelineno-61-5"></a>depends: 1 -&gt; 3
+</code></pre></div>
 <p>Verify node appears before execution and dependency blocks correctly.</p>
 <ul>
-<li>[ ] Passes.</li>
+<li>[x] Passes.</li>
 </ul>
 <h2 id="scenario-e-multi-model-workers">Scenario E — multi-model workers<a class="headerlink" href="#scenario-e-multi-model-workers" title="Permanent link">&para;</a></h2>
 <p>Assign two ready sibling nodes to two fake provider profiles.</p>
 <p>Verify concurrent execution, distinct provenance, one branch claim each, and shared tree rendering.</p>
 <ul>
-<li>[ ] Passes.</li>
+<li>[x] Passes.</li>
 </ul>
 <h2 id="scenario-f-dependency-isolation">Scenario F — dependency isolation<a class="headerlink" href="#scenario-f-dependency-isolation" title="Permanent link">&para;</a></h2>
 <p>Node B depends on A.</p>
 <p>A performs many model/tool/semantic-operation steps then returns one result.</p>
 <p>Verify B context contains A result/semantic handles but not A internal transcript.</p>
 <ul>
-<li>[ ] Passes.</li>
+<li>[x] Passes.</li>
 </ul>
 <h2 id="scenario-g-semantic-first-mutation">Scenario G — semantic-first mutation<a class="headerlink" href="#scenario-g-semantic-first-mutation" title="Permanent link">&para;</a></h2>
 <p>Use an installed/fixture domain semantic capability to change a known node.</p>
 <p>Verify the agent tool catalog exposes semantic operation, resulting candidate records semantic change, and TUI renders it as semantic operation rather than generic shell/write.</p>
 <ul>
-<li>[ ] Passes.</li>
+<li>[x] Passes.</li>
 </ul>
 <h2 id="scenario-h-external-validation">Scenario H — external validation<a class="headerlink" href="#scenario-h-external-validation" title="Permanent link">&para;</a></h2>
 <p>Semantic candidate materializes into isolated projection, validation process runs, diagnostics/results link back to semantic target.</p>
 <ul>
-<li>[ ] Passes.</li>
+<li>[x] Passes.</li>
 </ul>
 <h2 id="scenario-i-concurrent-candidates">Scenario I — concurrent candidates<a class="headerlink" href="#scenario-i-concurrent-candidates" title="Permanent link">&para;</a></h2>
 <p>Two sibling workers produce disjoint candidates; integration node merges explicitly.</p>
 <p>Then create same-target conflict and verify structured conflict.</p>
 <ul>
-<li>[ ] Passes.</li>
+<li>[x] Passes.</li>
 </ul>
 <h2 id="scenario-j-restart">Scenario J — restart<a class="headerlink" href="#scenario-j-restart" title="Permanent link">&para;</a></h2>
 <p>Persist completed/blocked/running-enough simulated plan state, restart application/client, rehydrate durable tree and plan without provider token replay.</p>
 <ul>
-<li>[ ] Passes.</li>
+<li>[x] Passes.</li>
 </ul>
 <hr />
 <h1 id="31-phase-27-security-and-privacy-audit">31. Phase 27 — Security and Privacy Audit<a class="headerlink" href="#31-phase-27-security-and-privacy-audit" title="Permanent link">&para;</a></h1>
 <p>Before full suite:</p>
 <ul>
-<li>[ ] Search new plan/session/protocol types for credential fields; none may contain raw secrets.</li>
-<li>[ ] Verify model request/prompt detail remains opt-in and bounded.</li>
-<li>[ ] Verify hidden/private chain-of-thought is never persisted/rendered as required state.</li>
-<li>[ ] Verify semantic tool arguments are redacted through trusted schema/presentation rules.</li>
-<li>[ ] Verify raw shell capability is not accidentally granted globally by new scheduler.</li>
-<li>[ ] Verify worker capability scope cannot exceed branch/application authorization.</li>
-<li>[ ] Verify <code>/assign</code> cannot invent unsupported provider/model/thinking values.</li>
+<li>[x] Search new plan/session/protocol types for credential fields; none may contain raw secrets.</li>
+<li>[x] Verify model request/prompt detail remains opt-in and bounded.</li>
+<li>[x] Verify hidden/private chain-of-thought is never persisted/rendered as required state.</li>
+<li>[x] Verify semantic tool arguments are redacted through trusted schema/presentation rules.</li>
+<li>[x] Verify raw shell capability is not accidentally granted globally by new scheduler.</li>
+<li>[x] Verify worker capability scope cannot exceed branch/application authorization.</li>
+<li>[x] Verify <code>/assign</code> cannot invent unsupported provider/model/thinking values.</li>
 </ul>
 <p>Run focused secret/redaction tests only at this stage.</p>
 <hr />
 <h1 id="32-phase-28-final-codedesign-synchronization-audit">32. Phase 28 — Final Code/Design Synchronization Audit<a class="headerlink" href="#32-phase-28-final-codedesign-synchronization-audit" title="Permanent link">&para;</a></h1>
 <p>Before running the full suite, re-read:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a>design/level-1/017...
-<a id="__codelineno-60-2" name="__codelineno-60-2" href="#__codelineno-60-2"></a>design/level-1/018...
-<a id="__codelineno-60-3" name="__codelineno-60-3" href="#__codelineno-60-3"></a>design/level-1/019...
-<a id="__codelineno-60-4" name="__codelineno-60-4" href="#__codelineno-60-4"></a>design/level-3/134...
-<a id="__codelineno-60-5" name="__codelineno-60-5" href="#__codelineno-60-5"></a>this file
+<div class="highlight"><pre><span></span><code><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a>design/level-1/017...
+<a id="__codelineno-62-2" name="__codelineno-62-2" href="#__codelineno-62-2"></a>design/level-1/018...
+<a id="__codelineno-62-3" name="__codelineno-62-3" href="#__codelineno-62-3"></a>design/level-1/019...
+<a id="__codelineno-62-4" name="__codelineno-62-4" href="#__codelineno-62-4"></a>design/level-3/134...
+<a id="__codelineno-62-5" name="__codelineno-62-5" href="#__codelineno-62-5"></a>this file
 </code></pre></div>
 <p>Then inspect implementation and answer each question with code/test evidence:</p>
 <ul>
-<li>[ ] Can an agent create recursive child branches without TUI involvement?</li>
-<li>[ ] Does a parent consume compact child results by default?</li>
-<li>[ ] Can a user continue from an exact historical anchor?</li>
-<li>[ ] Does new activity render structurally rather than append-only?</li>
-<li>[ ] Does <code>/plan</code> create durable structured nodes?</li>
-<li>[ ] Are dependencies explicit and cycle-checked?</li>
-<li>[ ] Is there exactly one auto-advancing coordinator per plan?</li>
-<li>[ ] Can different nodes use different model profiles/providers?</li>
-<li>[ ] Can sibling workers execute concurrently without sharing one branch claim?</li>
-<li>[ ] Do dependents receive results rather than transcripts?</li>
-<li>[ ] Are semantic operations preferred for known domains?</li>
-<li>[ ] Are raw file/shell capabilities fallback/runtime mechanisms?</li>
-<li>[ ] Do candidate mutations still use normal migration/validation/promotion?</li>
-<li>[ ] Does the TUI default to Conversation and immediate typing?</li>
-<li>[ ] Are reply anchor and coordinator cursor distinct?</li>
-<li>[ ] Does reply anchor have a separate visual highlight?</li>
-<li>[ ] Do colored rails derive from ancestry?</li>
-<li>[ ] Do activity detail settings affect rendering only?</li>
-<li>[ ] Are existing auxiliary views preserved behind slash commands?</li>
-<li>[ ] Can restart/reconnect reconstruct durable state without stream replay?</li>
+<li>[x] Can an agent create recursive child branches without TUI involvement?</li>
+<li>[x] Does a parent consume compact child results by default?</li>
+<li>[x] Can a user continue from an exact historical anchor?</li>
+<li>[x] Does new activity render structurally rather than append-only?</li>
+<li>[x] Does <code>/plan</code> create durable structured nodes?</li>
+<li>[x] Are dependencies explicit and cycle-checked?</li>
+<li>[x] Is there exactly one auto-advancing coordinator per plan?</li>
+<li>[x] Can different nodes use different model profiles/providers?</li>
+<li>[x] Can sibling workers execute concurrently without sharing one branch claim?</li>
+<li>[x] Do dependents receive results rather than transcripts?</li>
+<li>[x] Are semantic operations preferred for known domains?</li>
+<li>[x] Are raw file/shell capabilities fallback/runtime mechanisms?</li>
+<li>[x] Do candidate mutations still use normal migration/validation/promotion?</li>
+<li>[x] Does the TUI default to Conversation and immediate typing?</li>
+<li>[x] Are reply anchor and coordinator cursor distinct?</li>
+<li>[x] Does reply anchor have a separate visual highlight?</li>
+<li>[x] Do colored rails derive from ancestry?</li>
+<li>[x] Do activity detail settings affect rendering only?</li>
+<li>[x] Are existing auxiliary views preserved behind slash commands?</li>
+<li>[x] Can restart/reconnect reconstruct durable state without stream replay?</li>
 </ul>
 <p>If any answer is no, do not run the final gate and do not mark the task complete.</p>
 <hr />
 <h1 id="33-final-full-repository-gate">33. Final Full Repository Gate<a class="headerlink" href="#33-final-full-repository-gate" title="Permanent link">&para;</a></h1>
 <p>Only after every implementation checkbox above is complete and the synchronization audit passes, run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a>python3 tools/lint_repo.py --fix
-<a id="__codelineno-61-2" name="__codelineno-61-2" href="#__codelineno-61-2"></a>cargo fmt --all
-<a id="__codelineno-61-3" name="__codelineno-61-3" href="#__codelineno-61-3"></a>cargo check --workspace --all-targets
-<a id="__codelineno-61-4" name="__codelineno-61-4" href="#__codelineno-61-4"></a>cargo clippy --workspace --all-targets -- -D warnings
-<a id="__codelineno-61-5" name="__codelineno-61-5" href="#__codelineno-61-5"></a>cargo test --workspace
-<a id="__codelineno-61-6" name="__codelineno-61-6" href="#__codelineno-61-6"></a>pnpm --dir web format
-<a id="__codelineno-61-7" name="__codelineno-61-7" href="#__codelineno-61-7"></a>pnpm --dir web typecheck
-<a id="__codelineno-61-8" name="__codelineno-61-8" href="#__codelineno-61-8"></a>pnpm --dir web test
-<a id="__codelineno-61-9" name="__codelineno-61-9" href="#__codelineno-61-9"></a>pnpm --dir web build
+<div class="highlight"><pre><span></span><code><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a>python3 tools/lint_repo.py --fix
+<a id="__codelineno-63-2" name="__codelineno-63-2" href="#__codelineno-63-2"></a>cargo fmt --all
+<a id="__codelineno-63-3" name="__codelineno-63-3" href="#__codelineno-63-3"></a>cargo check --workspace --all-targets
+<a id="__codelineno-63-4" name="__codelineno-63-4" href="#__codelineno-63-4"></a>cargo clippy --workspace --all-targets -- -D warnings
+<a id="__codelineno-63-5" name="__codelineno-63-5" href="#__codelineno-63-5"></a>cargo test --workspace
+<a id="__codelineno-63-6" name="__codelineno-63-6" href="#__codelineno-63-6"></a>pnpm --dir web format
+<a id="__codelineno-63-7" name="__codelineno-63-7" href="#__codelineno-63-7"></a>pnpm --dir web typecheck
+<a id="__codelineno-63-8" name="__codelineno-63-8" href="#__codelineno-63-8"></a>pnpm --dir web test
+<a id="__codelineno-63-9" name="__codelineno-63-9" href="#__codelineno-63-9"></a>pnpm --dir web build
 </code></pre></div>
 <p>If a command fails:</p>
 <ol>
@@ -7797,12 +7873,160 @@
 </ol>
 <p>Then:</p>
 <ul>
-<li>[ ] Re-read every checked task in this file.</li>
-<li>[ ] Re-read task 134 TUI acceptance criterion.</li>
-<li>[ ] Confirm task 133 model/thinking/trace behavior still passes.</li>
-<li>[ ] Confirm no repository linter/doc/file-size rule was bypassed.</li>
-<li>[ ] Record final commands/results in the implementation report.</li>
-<li>[ ] Change this document status to Complete only after all required evidence exists.</li>
+<li>[x] Re-read every checked task in this file.</li>
+<li>[x] Re-read task 134 TUI acceptance criterion.</li>
+<li>[x] Confirm task 133 model/thinking/trace behavior still passes.</li>
+<li>[x] Confirm no repository linter/doc/file-size rule was bypassed.</li>
+<li>[x] Record final commands/results in the implementation report.</li>
+<li>[x] Change this document status to Complete only after all required evidence exists.</li>
+</ul>
+<h2 id="final-gate-attempt-record">Final Gate Attempt Record<a class="headerlink" href="#final-gate-attempt-record" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>python3 tools/lint_repo.py --fix</code> — passed.</li>
+<li><code>cargo fmt --all</code> — passed.</li>
+<li><code>cargo check --workspace --all-targets</code> — passed.</li>
+<li><code>cargo clippy --workspace --all-targets -- -D warnings</code> — passed.</li>
+<li><code>cargo test --workspace</code> — blocked at <code>scriberig-agent-runtime</code>'s
+  <code>provider_secrets_test</code>: both local HTTP fixture tests failed to connect to
+  their <code>127.0.0.1</code> ephemeral listener after the owner confirmed that local
+  connections were allowed. The provider reported a request timeout and the
+  fixture reported Windows socket error 10035. The fixture now recognizes
+  Windows <code>WSAEWOULDBLOCK</code>, and its focused regression test passes, but the
+  real HTTP tests still receive no connection. A separate bounded PowerShell
+  TCP probe to a local <code>127.0.0.1</code> listener also timed out after three
+  seconds, despite the owner's confirmation that it was allowed. No Portmaster
+  or networking settings were changed. The test gate remains incomplete until
+  local-loopback connectivity is restored and the full command passes.</li>
+<li><code>cargo test -p scriberig-agent-runtime --test provider_secrets_test --
+  --test-threads=1</code> — the WSA regression test passed; the two HTTP fixture
+  tests still failed with no accepted connection and a provider timeout.</li>
+<li><code>cargo test -p scriberig-agent-runtime --test provider_secrets_test
+  windows_would_block_socket_error_is_retryable</code> — passed.</li>
+<li><code>cargo clippy -p scriberig-agent-runtime --test provider_secrets_test --
+  -D warnings</code> — passed after the Windows fixture fix.</li>
+<li><code>cargo fmt --all -- --check</code> — passed after the Windows fixture fix.</li>
+<li><code>python3 tools/lint_repo.py --fix</code> — passed after the Windows fixture fix.</li>
+<li><code>pnpm --dir web format</code> — passed; rerun after the web fixture updates, with
+  files unchanged.</li>
+<li><code>pnpm --dir web typecheck</code> — passed after adding the required empty <code>plans</code>
+  array to the affected test response fixtures.</li>
+<li><code>pnpm --dir web test</code> — passed (10 files, 15 conformance tests plus package
+  tests).</li>
+<li>
+<p><code>pnpm --dir web build</code> — passed.</p>
+</li>
+<li>
+<p><code>cargo test --workspace</code> — retried after local-loopback access was confirmed.
+  Two retries failed bootstrap PTY tests while waiting for transient composer
+  echoes. Those assertions were removed because durable session creation and
+  onboarding outcomes are the stable behavior under test. <code>cargo test -p
+  scriberig --test tui_pty</code> then passed all 20 tests with the default parallel
+  harness. The latest full workspace run passed the TUI and orchestration
+  integration tests but failed both HTTP fixture tests in
+  <code>provider_secrets_test</code>: <code>credentials_are_headers_only_and_reflections_are_
+  scrubbed</code> timed out, while <code>both_http_paths_refuse_redirects</code> received
+  Windows socket error 10035 (<code>WSAEWOULDBLOCK</code>) in <code>accept()</code>. Both fixtures
+  bind ephemeral <code>127.0.0.1</code> loopback listeners. Per the root network-failure
+  guidance, no further retries or networking workarounds were attempted. The
+  full workspace gate remains incomplete pending owner repair of local
+  loopback connectivity. No task completion checkbox was changed.</p>
+</li>
+<li><code>cargo test -p scriberig-agent-runtime --test provider_secrets_test
+  credentials_are_headers_only_and_reflections_are_scrubbed -- --exact
+  --nocapture</code> — passed in isolation (1 passed).</li>
+<li><code>cargo test -p scriberig-agent-runtime --test provider_secrets_test
+  both_http_paths_refuse_redirects -- --exact --nocapture</code> — passed in
+  isolation (1 passed). The full workspace command has not been rerun after
+  these focused passes, so its earlier failure remains the latest full-gate
+  result.</li>
+<li>
+<p><code>cargo fmt --all -- --check</code> and <code>git diff --check</code> — passed after the PTY
+  timing assertion change.</p>
+</li>
+<li>
+<p>Candidate artifact storage uses the existing Cargo target configuration:
+  <code>CARGO_TARGET_DIR</code> receives the isolated per-candidate target directory, with
+  system temp retained as the fallback. This keeps validation source trees
+  isolated while allowing large build artifacts to follow the configured
+  workspace volume. The candidate tools and validation-repair tests passed
+  with the workspace target configured.</p>
+</li>
+<li><code>make clean-temp</code> and <code>tools/cleanup_temp.py</code> — added a stale-artifact cleanup
+  job for top-level <code>scriberig-*</code> files and directories in system temp. It
+  removes entries only when every observed descendant is older than one hour,
+  skips symlink roots, and is a prerequisite of <code>make test</code> and <code>make check</code>.
+  <code>make clean-temp</code> removed 207 stale entries (2.19 GiB) on an earlier batch
+  and 21 more entries (0.01 GiB) immediately before the latest workspace test
+  attempt; dry runs retained all entries changed within the prior hour.</li>
+<li><code>cargo test -p scriberig --test tui_pty</code> — passed (20 tests) after moving
+  startup helpers into the existing PTY support startup module to satisfy the
+  source file-size limit.</li>
+<li><code>cargo test -p scriberig --test tui_pty_self_hosting_stale_base -- --exact
+  tui_rejects_php_candidate_after_canonical_base_advances --nocapture</code> — passed
+  (1 test, 270.67 seconds) after increasing the scenario's timeout from 300 to
+  600 seconds. A full-workspace attempt had reached the 300-second bound with
+  the continuation and delegated worker still durably active.</li>
+<li><code>python tools/lint_repo.py --fix</code>, <code>cargo fmt --all</code>,
+  <code>cargo check --workspace --all-targets</code>, and
+  <code>cargo clippy --workspace --all-targets -- -D warnings</code> — passed after the
+  cleanup helper and PTY support split. The candidate target resolver and its
+  PTY observer were adjusted to satisfy Clippy's <code>map_or_else</code> guidance.</li>
+<li><code>pnpm --dir web format</code>, <code>pnpm --dir web typecheck</code>, <code>pnpm --dir web test</code>,
+  and <code>pnpm --dir web build</code> — passed (10 web test files, 15 conformance tests).</li>
+<li>Latest <code>cargo test --workspace</code> — failed in
+  <code>scriberig-agent-runtime</code>'s <code>provider_secrets_test</code> after all earlier app,
+  PTY, and orchestration suites passed. The credentials test timed out and the
+  redirect fixture's nonblocking <code>accept</code> returned Windows error 10035. The
+  provider explicitly disables proxy use; this test binary passes all three
+  tests in isolation, but local ephemeral loopback connections remain
+  intermittent in the workspace run. No network settings or workarounds were
+  applied. The final gate remains incomplete and both task statuses stay In
+  Progress.</li>
+<li>
+<p>Diagnostic follow-up ran the exact workspace-built
+  <code>provider_secrets_test-4af20d7c55a25bb6.exe</code> directly, outside Cargo. It
+  reproduced both failures in isolation (10035 on fixture <code>accept</code>, provider
+  transport failure), so the problem is not caused only by the broader test
+  batch running concurrently. <code>cargo tree</code> shows the same reqwest features in
+  package and workspace builds, and the provider client uses <code>.no_proxy()</code>.
+  The package-target executable had passed earlier, but the workspace-built
+  executable still fails on loopback. The host loopback policy/runtime needs
+  owner-side repair before the required workspace gate can pass; no networking
+  workaround was applied.</p>
+</li>
+<li>
+<p>Final-gate follow-up on 2026-10-19 resolved the PTY validation observer
+  mismatch. PTY startup explicitly sets the child TUI's <code>CARGO_TARGET_DIR</code> to
+  the workspace <code>target/</code>, while the cancellation test process had no such
+  environment variable and was watching the system temp fallback. The shared
+  <code>workspace_target_directory()</code> helper now configures both the child TUI and
+  the observer. Its regression test and the focused cancellation scenario
+  passed. This explains the earlier 600-second false timeout before provider
+  tests were reached.</p>
+</li>
+<li><code>make clean-temp</code> before the final batch — passed; removed 0 stale entries
+  and retained 32 entries changed within one hour.</li>
+<li><code>python3 tools/lint_repo.py --fix</code>, <code>cargo fmt --all</code>,
+  <code>cargo check --workspace --all-targets</code>, and
+  <code>cargo clippy --workspace --all-targets -- -D warnings</code> — passed after the
+  final observer fix.</li>
+<li>Focused observer regression:
+  <code>cargo test -p scriberig --test tui_pty_self_hosting_validation_cancellation candidate_target_observer_uses_the_spawned_tui_target_directory -- --exact --nocapture</code>
+  — passed (1 test).</li>
+<li>Focused cancellation scenario:
+  <code>cargo test -p scriberig --test tui_pty_self_hosting_validation_cancellation tui_cancels_php_validation_without_project_or_live_source_mutation -- --exact --nocapture</code>
+  — passed (1 test, 37.99 seconds).</li>
+<li>Final <code>cargo test --workspace</code> — passed. The PHP self-hosting PTY test
+  passed in 291.58 seconds, stale-base candidate test passed in 240.77
+  seconds, validation cancellation binary passed both tests in 46.96 seconds,
+  and the provider secrets test passed all three tests, including both HTTP
+  fixture paths. The command exited 0.</li>
+<li>Final web gate — <code>pnpm --dir web format</code>, <code>pnpm --dir web typecheck</code>,
+  <code>pnpm --dir web test</code>, and <code>pnpm --dir web build</code> all passed. The web test
+  run reported 10 files and 15 conformance tests passing. Build output kept
+  existing MUI <code>use client</code> directive and chunk-size warnings.</li>
+<li>Historical failures above are retained for diagnosis; the later full
+  workspace pass supersedes their incomplete-gate status.</li>
 </ul>
 <hr />
 <h1 id="34-required-final-implementation-report">34. Required Final Implementation Report<a class="headerlink" href="#34-required-final-implementation-report" title="Permanent link">&para;</a></h1>

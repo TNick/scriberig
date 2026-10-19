@@ -55,12 +55,12 @@
 <a href=#55 id=55 data-nosnippet>55</a><span class="kw">impl </span>RenderCacheKey {
 <a href=#56 id=56 data-nosnippet>56</a>    <span class="doccomment">/// Builds a cache identity from every render request input.
 <a href=#57 id=57 data-nosnippet>57</a>    ///
-<a href=#58 id=58 data-nosnippet>58</a>    /// # Parameters
-<a href=#59 id=59 data-nosnippet>59</a>    /// - `request`: Exact render request.
-<a href=#60 id=60 data-nosnippet>60</a>    ///
-<a href=#61 id=61 data-nosnippet>61</a>    /// # Returns
-<a href=#62 id=62 data-nosnippet>62</a>    /// A stable cache identity containing all output-affecting inputs.
-<a href=#63 id=63 data-nosnippet>63</a>    </span><span class="attr">#[must_use]
+<a href=#58 id=58 data-nosnippet>58</a>    /// - `request`: Exact render request.
+<a href=#59 id=59 data-nosnippet>59</a>    ///
+<a href=#60 id=60 data-nosnippet>60</a>    /// A stable cache identity containing all output-affecting inputs.
+<a href=#61 id=61 data-nosnippet>61</a>    </span><span class="attr">#[must_use]
+<a href=#62 id=62 data-nosnippet>62</a>    </span><span class="doccomment">/// # Returns
+<a href=#63 id=63 data-nosnippet>63</a>    /// The operation result.
 <a href=#64 id=64 data-nosnippet>64</a>    </span><span class="kw">pub fn </span>from_request(request: <span class="kw-2">&amp;</span>RenderRequest) -&gt; <span class="self">Self </span>{
 <a href=#65 id=65 data-nosnippet>65</a>        <span class="self">Self </span>{
 <a href=#66 id=66 data-nosnippet>66</a>            specification: request.specification,
@@ -88,13 +88,13 @@
 <a href=#88 id=88 data-nosnippet>88</a><span class="kw">impl </span>RenderedFragment {
 <a href=#89 id=89 data-nosnippet>89</a>    <span class="doccomment">/// Creates a reusable fragment from exact local input and output bytes.
 <a href=#90 id=90 data-nosnippet>90</a>    ///
-<a href=#91 id=91 data-nosnippet>91</a>    /// # Parameters
-<a href=#92 id=92 data-nosnippet>92</a>    /// - `input`: Exact local immutable input bytes.
-<a href=#93 id=93 data-nosnippet>93</a>    /// - `bytes`: Exact fragment output bytes.
-<a href=#94 id=94 data-nosnippet>94</a>    ///
-<a href=#95 id=95 data-nosnippet>95</a>    /// # Returns
-<a href=#96 id=96 data-nosnippet>96</a>    /// A fragment with deterministic input and output metadata.
-<a href=#97 id=97 data-nosnippet>97</a>    </span><span class="attr">#[must_use]
+<a href=#91 id=91 data-nosnippet>91</a>    /// - `input`: Exact local immutable input bytes.
+<a href=#92 id=92 data-nosnippet>92</a>    /// - `bytes`: Exact fragment output bytes.
+<a href=#93 id=93 data-nosnippet>93</a>    ///
+<a href=#94 id=94 data-nosnippet>94</a>    /// A fragment with deterministic input and output metadata.
+<a href=#95 id=95 data-nosnippet>95</a>    </span><span class="attr">#[must_use]
+<a href=#96 id=96 data-nosnippet>96</a>    </span><span class="doccomment">/// # Returns
+<a href=#97 id=97 data-nosnippet>97</a>    /// The operation result.
 <a href=#98 id=98 data-nosnippet>98</a>    </span><span class="kw">pub fn </span>new(input: <span class="kw-2">&amp;</span>[u8], bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="self">Self </span>{
 <a href=#99 id=99 data-nosnippet>99</a>        <span class="self">Self </span>{
 <a href=#100 id=100 data-nosnippet>100</a>            input_key: blake3::hash(input).as_bytes().to_vec(),
@@ -143,14 +143,14 @@
 <a href=#143 id=143 data-nosnippet>143</a></span><span class="kw">impl </span>RenderedProjection {
 <a href=#144 id=144 data-nosnippet>144</a>    <span class="doccomment">/// Creates a rendered output and computes its BLAKE3 digest.
 <a href=#145 id=145 data-nosnippet>145</a>    ///
-<a href=#146 id=146 data-nosnippet>146</a>    /// # Parameters
-<a href=#147 id=147 data-nosnippet>147</a>    /// - `bytes`: Exact rendered representation.
-<a href=#148 id=148 data-nosnippet>148</a>    /// - `request`: Exact request inputs used to produce the bytes.
-<a href=#149 id=149 data-nosnippet>149</a>    /// - `projection`: Optional projection instance.
-<a href=#150 id=150 data-nosnippet>150</a>    ///
-<a href=#151 id=151 data-nosnippet>151</a>    /// # Returns
-<a href=#152 id=152 data-nosnippet>152</a>    /// A rendered output with its deterministic digest and input metadata.
-<a href=#153 id=153 data-nosnippet>153</a>    </span><span class="attr">#[must_use]
+<a href=#146 id=146 data-nosnippet>146</a>    /// - `bytes`: Exact rendered representation.
+<a href=#147 id=147 data-nosnippet>147</a>    /// - `request`: Exact request inputs used to produce the bytes.
+<a href=#148 id=148 data-nosnippet>148</a>    /// - `projection`: Optional projection instance.
+<a href=#149 id=149 data-nosnippet>149</a>    ///
+<a href=#150 id=150 data-nosnippet>150</a>    /// A rendered output with its deterministic digest and input metadata.
+<a href=#151 id=151 data-nosnippet>151</a>    </span><span class="attr">#[must_use]
+<a href=#152 id=152 data-nosnippet>152</a>    </span><span class="doccomment">/// # Returns
+<a href=#153 id=153 data-nosnippet>153</a>    /// The operation result.
 <a href=#154 id=154 data-nosnippet>154</a>    </span><span class="kw">pub fn </span>from_bytes(
 <a href=#155 id=155 data-nosnippet>155</a>        bytes: Vec&lt;u8&gt;,
 <a href=#156 id=156 data-nosnippet>156</a>        request: <span class="kw-2">&amp;</span>RenderRequest,
@@ -175,13 +175,13 @@
 <a href=#175 id=175 data-nosnippet>175</a>
 <a href=#176 id=176 data-nosnippet>176</a>    <span class="doccomment">/// Attaches reusable intermediate fragments to this rendered output.
 <a href=#177 id=177 data-nosnippet>177</a>    ///
-<a href=#178 id=178 data-nosnippet>178</a>    /// # Parameters
-<a href=#179 id=179 data-nosnippet>179</a>    /// - `self`: Rendered output receiving the fragments.
-<a href=#180 id=180 data-nosnippet>180</a>    /// - `fragments`: Adapter-owned reusable fragments.
-<a href=#181 id=181 data-nosnippet>181</a>    ///
-<a href=#182 id=182 data-nosnippet>182</a>    /// # Returns
-<a href=#183 id=183 data-nosnippet>183</a>    /// This output with the supplied fragments attached.
-<a href=#184 id=184 data-nosnippet>184</a>    </span><span class="attr">#[must_use]
+<a href=#178 id=178 data-nosnippet>178</a>    /// - `self`: Rendered output receiving the fragments.
+<a href=#179 id=179 data-nosnippet>179</a>    /// - `fragments`: Adapter-owned reusable fragments.
+<a href=#180 id=180 data-nosnippet>180</a>    ///
+<a href=#181 id=181 data-nosnippet>181</a>    /// This output with the supplied fragments attached.
+<a href=#182 id=182 data-nosnippet>182</a>    </span><span class="attr">#[must_use]
+<a href=#183 id=183 data-nosnippet>183</a>    </span><span class="doccomment">/// # Returns
+<a href=#184 id=184 data-nosnippet>184</a>    /// The operation result.
 <a href=#185 id=185 data-nosnippet>185</a>    </span><span class="kw">pub fn </span>with_fragments(<span class="kw-2">mut </span><span class="self">self</span>, fragments: Vec&lt;RenderedFragment&gt;) -&gt; <span class="self">Self </span>{
 <a href=#186 id=186 data-nosnippet>186</a>        <span class="self">self</span>.fragments = fragments;
 <a href=#187 id=187 data-nosnippet>187</a>        <span class="self">self

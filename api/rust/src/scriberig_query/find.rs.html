@@ -72,15 +72,16 @@
 <a href=#72 id=72 data-nosnippet>72</a></span><span class="kw">pub trait </span>FindService {
 <a href=#73 id=73 data-nosnippet>73</a>    <span class="doccomment">/// Executes one exact-scope discovery request.
 <a href=#74 id=74 data-nosnippet>74</a>    ///
-<a href=#75 id=75 data-nosnippet>75</a>    /// # Parameters
-<a href=#76 id=76 data-nosnippet>76</a>    /// - `self`: Discovery provider.
-<a href=#77 id=77 data-nosnippet>77</a>    /// - `request`: Exact-scope find request.
-<a href=#78 id=78 data-nosnippet>78</a>    ///
-<a href=#79 id=79 data-nosnippet>79</a>    /// # Returns
-<a href=#80 id=80 data-nosnippet>80</a>    /// A bounded page of semantic hits.
-<a href=#81 id=81 data-nosnippet>81</a>    ///
-<a href=#82 id=82 data-nosnippet>82</a>    /// # Errors
-<a href=#83 id=83 data-nosnippet>83</a>    /// Returns `UnsupportedCapability` when the requested strategy is unavailable.
-<a href=#84 id=84 data-nosnippet>84</a>    </span><span class="kw">fn </span>find(<span class="kw-2">&amp;</span><span class="self">self</span>, request: <span class="kw-2">&amp;</span>FindRequest) -&gt; <span class="prelude-ty">Result</span>&lt;FindResult, QueryError&gt;;
-<a href=#85 id=85 data-nosnippet>85</a>}
+<a href=#75 id=75 data-nosnippet>75</a>    /// - `self`: Discovery provider.
+<a href=#76 id=76 data-nosnippet>76</a>    /// - `request`: Exact-scope find request.
+<a href=#77 id=77 data-nosnippet>77</a>    ///
+<a href=#78 id=78 data-nosnippet>78</a>    /// A bounded page of semantic hits.
+<a href=#79 id=79 data-nosnippet>79</a>    ///
+<a href=#80 id=80 data-nosnippet>80</a>    /// Returns `UnsupportedCapability` when the requested strategy is unavailable.
+<a href=#81 id=81 data-nosnippet>81</a>    /// # Returns
+<a href=#82 id=82 data-nosnippet>82</a>    /// The operation result.
+<a href=#83 id=83 data-nosnippet>83</a>    /// # Errors
+<a href=#84 id=84 data-nosnippet>84</a>    /// Returns an error when the operation fails.
+<a href=#85 id=85 data-nosnippet>85</a>    </span><span class="kw">fn </span>find(<span class="kw-2">&amp;</span><span class="self">self</span>, request: <span class="kw-2">&amp;</span>FindRequest) -&gt; <span class="prelude-ty">Result</span>&lt;FindResult, QueryError&gt;;
+<a href=#86 id=86 data-nosnippet>86</a>}
 </code></pre></div></section></main></body></html>

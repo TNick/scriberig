@@ -88,12 +88,12 @@
 <a href=#88 id=88 data-nosnippet>88</a><span class="kw">impl </span>ProjectionDiagnostic {
 <a href=#89 id=89 data-nosnippet>89</a>    <span class="doccomment">/// Creates a structured diagnostic for an unsupported adapter operation.
 <a href=#90 id=90 data-nosnippet>90</a>    ///
-<a href=#91 id=91 data-nosnippet>91</a>    /// # Parameters
-<a href=#92 id=92 data-nosnippet>92</a>    /// - `stage`: Lifecycle stage where the unsupported operation was requested.
-<a href=#93 id=93 data-nosnippet>93</a>    ///
-<a href=#94 id=94 data-nosnippet>94</a>    /// # Returns
-<a href=#95 id=95 data-nosnippet>95</a>    /// An explicit non-retryable unsupported-operation diagnostic.
-<a href=#96 id=96 data-nosnippet>96</a>    </span><span class="attr">#[must_use]
+<a href=#91 id=91 data-nosnippet>91</a>    /// - `stage`: Lifecycle stage where the unsupported operation was requested.
+<a href=#92 id=92 data-nosnippet>92</a>    ///
+<a href=#93 id=93 data-nosnippet>93</a>    /// An explicit non-retryable unsupported-operation diagnostic.
+<a href=#94 id=94 data-nosnippet>94</a>    </span><span class="attr">#[must_use]
+<a href=#95 id=95 data-nosnippet>95</a>    </span><span class="doccomment">/// # Returns
+<a href=#96 id=96 data-nosnippet>96</a>    /// The operation result.
 <a href=#97 id=97 data-nosnippet>97</a>    </span><span class="kw">pub fn </span>unsupported(stage: DiagnosticStage) -&gt; <span class="self">Self </span>{
 <a href=#98 id=98 data-nosnippet>98</a>        <span class="self">Self </span>{
 <a href=#99 id=99 data-nosnippet>99</a>            kind: DiagnosticKind::UnsupportedOperation,

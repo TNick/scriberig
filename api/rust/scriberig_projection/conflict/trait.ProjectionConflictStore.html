@@ -13,24 +13,26 @@
     &amp;mut self,
     observation: <a class="struct" href="../struct.CapturedObservation.html" title="struct scriberig_projection::CapturedObservation">CapturedObservation</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.unit.html">()</a>, <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4></section></summary><div class="docblock"><p>Stores an immutable external observation.</p>
-<h5 id="parameters"><a class="doc-anchor" href="#parameters">§</a>Parameters</h5>
 <ul>
 <li><code>observation</code>: Exact captured evidence.</li>
 </ul>
-<h5 id="returns"><a class="doc-anchor" href="#returns">§</a>Returns</h5>
 <p>Unit after the evidence is recorded.</p>
-<h5 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h5>
 <p>Returns a backend-defined error when persistence fails.</p>
+<h5 id="returns"><a class="doc-anchor" href="#returns">§</a>Returns</h5>
+<p>The operation result.</p>
+<h5 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h5>
+<p>Returns an error when the operation fails.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="tymethod.record_conflict" class="method"><h4 class="code-header">fn <a href="#tymethod.record_conflict" class="fn">record_conflict</a>(
     &amp;mut self,
     conflict: <a class="struct" href="../struct.ProjectionConflict.html" title="struct scriberig_projection::ProjectionConflict">ProjectionConflict</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.unit.html">()</a>, <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4></section></summary><div class="docblock"><p>Stores an immutable unresolved or resolved conflict record.</p>
-<h5 id="parameters-1"><a class="doc-anchor" href="#parameters-1">§</a>Parameters</h5>
 <ul>
 <li><code>conflict</code>: Structured conflict to append.</li>
 </ul>
-<h5 id="returns-1"><a class="doc-anchor" href="#returns-1">§</a>Returns</h5>
 <p>Unit after the conflict is recorded.</p>
-<h5 id="errors-1"><a class="doc-anchor" href="#errors-1">§</a>Errors</h5>
 <p>Returns a backend-defined error when persistence fails.</p>
+<h5 id="returns-1"><a class="doc-anchor" href="#returns-1">§</a>Returns</h5>
+<p>The operation result.</p>
+<h5 id="errors-1"><a class="doc-anchor" href="#errors-1">§</a>Errors</h5>
+<p>Returns an error when the operation fails.</p>
 </div></details></div><h2 id="dyn-compatibility" class="section-header">Dyn Compatibility<a href="#dyn-compatibility" class="anchor">§</a></h2><div class="dyn-compatibility-info"><p>This trait <b>is</b> <a href="https://doc.rust-lang.org/1.99.1/reference/items/traits.html#dyn-compatibility">dyn compatible</a>.</p><p><i>In older versions of Rust, dyn compatibility was called "object safety".</i></p></div><h2 id="implementors" class="section-header">Implementors<a href="#implementors" class="anchor">§</a></h2><div id="implementors-list"></div><script src="../../trait.impl/sr_projection/conflict/trait.ProjectionConflictStore.js" async></script></section></div></main></body></html>

@@ -78,17 +78,21 @@
 <a href=#78 id=78 data-nosnippet>78</a>    </span>Query(QueryResult),
 <a href=#79 id=79 data-nosnippet>79</a>    <span class="doccomment">/// Result of semantic diff computation.
 <a href=#80 id=80 data-nosnippet>80</a>    </span>Diff(OperationSummary),
-<a href=#81 id=81 data-nosnippet>81</a>    <span class="doccomment">/// Result of history lookup.
-<a href=#82 id=82 data-nosnippet>82</a>    </span>History(OperationSummary),
-<a href=#83 id=83 data-nosnippet>83</a>    <span class="doccomment">/// Result of projection rendering.
-<a href=#84 id=84 data-nosnippet>84</a>    </span>Render(OperationSummary),
-<a href=#85 id=85 data-nosnippet>85</a>    <span class="doccomment">/// Result of a branch operation.
-<a href=#86 id=86 data-nosnippet>86</a>    </span>Branch(OperationSummary),
-<a href=#87 id=87 data-nosnippet>87</a>    <span class="doccomment">/// Result of applying a change.
-<a href=#88 id=88 data-nosnippet>88</a>    </span>Apply(OperationSummary),
-<a href=#89 id=89 data-nosnippet>89</a>    <span class="doccomment">/// Result of committing a change.
-<a href=#90 id=90 data-nosnippet>90</a>    </span>Commit(OperationSummary),
-<a href=#91 id=91 data-nosnippet>91</a>    <span class="doccomment">/// Reference to a long-running operation.
-<a href=#92 id=92 data-nosnippet>92</a>    </span>OperationStarted(OperationStarted),
-<a href=#93 id=93 data-nosnippet>93</a>}
+<a href=#81 id=81 data-nosnippet>81</a>    <span class="doccomment">/// Result of explicit semantic candidate integration.
+<a href=#82 id=82 data-nosnippet>82</a>    </span>Merge(sr_change::MergeResult),
+<a href=#83 id=83 data-nosnippet>83</a>    <span class="doccomment">/// Result of history lookup.
+<a href=#84 id=84 data-nosnippet>84</a>    </span>History(OperationSummary),
+<a href=#85 id=85 data-nosnippet>85</a>    <span class="doccomment">/// Result of projection rendering.
+<a href=#86 id=86 data-nosnippet>86</a>    </span>Render(OperationSummary),
+<a href=#87 id=87 data-nosnippet>87</a>    <span class="doccomment">/// Result of a branch operation.
+<a href=#88 id=88 data-nosnippet>88</a>    </span>Branch(OperationSummary),
+<a href=#89 id=89 data-nosnippet>89</a>    <span class="doccomment">/// Result of applying a change.
+<a href=#90 id=90 data-nosnippet>90</a>    </span>Apply(OperationSummary),
+<a href=#91 id=91 data-nosnippet>91</a>    <span class="doccomment">/// Result of committing a change.
+<a href=#92 id=92 data-nosnippet>92</a>    </span>Commit(OperationSummary),
+<a href=#93 id=93 data-nosnippet>93</a>    <span class="doccomment">/// Candidate change handle returned by a registered semantic operation.
+<a href=#94 id=94 data-nosnippet>94</a>    </span>DomainOperation(<span class="kw">crate</span>::CapabilityExecution),
+<a href=#95 id=95 data-nosnippet>95</a>    <span class="doccomment">/// Reference to a long-running operation.
+<a href=#96 id=96 data-nosnippet>96</a>    </span>OperationStarted(OperationStarted),
+<a href=#97 id=97 data-nosnippet>97</a>}
 </code></pre></div></section></main></body></html>

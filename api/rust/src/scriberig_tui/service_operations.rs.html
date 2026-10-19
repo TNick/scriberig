@@ -8,15 +8,15 @@
 <a href=#8 id=8 data-nosnippet>8</a><span class="kw">impl</span>&lt;S: TuiService&gt; TuiOperationService <span class="kw">for </span>S {
 <a href=#9 id=9 data-nosnippet>9</a>    <span class="doccomment">/// Uses the operation method exposed by the TUI service boundary.
 <a href=#10 id=10 data-nosnippet>10</a>    ///
-<a href=#11 id=11 data-nosnippet>11</a>    /// # Parameters
-<a href=#12 id=12 data-nosnippet>12</a>    /// - `context`: Application context for the request.
-<a href=#13 id=13 data-nosnippet>13</a>    /// - `request`: Public operation request.
+<a href=#11 id=11 data-nosnippet>11</a>    /// - `context`: Application context for the request.
+<a href=#12 id=12 data-nosnippet>12</a>    /// - `request`: Public operation request.
+<a href=#13 id=13 data-nosnippet>13</a>    ///
 <a href=#14 id=14 data-nosnippet>14</a>    ///
-<a href=#15 id=15 data-nosnippet>15</a>    /// # Returns
-<a href=#16 id=16 data-nosnippet>16</a>    /// The operation result.
-<a href=#17 id=17 data-nosnippet>17</a>    ///
+<a href=#15 id=15 data-nosnippet>15</a>    /// Returns the service operation error.
+<a href=#16 id=16 data-nosnippet>16</a>    /// # Returns
+<a href=#17 id=17 data-nosnippet>17</a>    /// The operation result.
 <a href=#18 id=18 data-nosnippet>18</a>    /// # Errors
-<a href=#19 id=19 data-nosnippet>19</a>    /// Returns the service operation error.
+<a href=#19 id=19 data-nosnippet>19</a>    /// Returns an error when the operation fails.
 <a href=#20 id=20 data-nosnippet>20</a>    </span><span class="kw">fn </span>execute_operation(
 <a href=#21 id=21 data-nosnippet>21</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#22 id=22 data-nosnippet>22</a>        context: <span class="kw-2">&amp;</span>ApplicationContext,
@@ -28,16 +28,16 @@
 <a href=#28 id=28 data-nosnippet>28</a>
 <a href=#29 id=29 data-nosnippet>29</a><span class="doccomment">/// Executes one public operation through the TUI operation port.
 <a href=#30 id=30 data-nosnippet>30</a>///
-<a href=#31 id=31 data-nosnippet>31</a>/// # Parameters
-<a href=#32 id=32 data-nosnippet>32</a>/// - `service`: TUI operation service.
-<a href=#33 id=33 data-nosnippet>33</a>/// - `context`: Application capability context.
-<a href=#34 id=34 data-nosnippet>34</a>/// - `request`: Operation request to execute.
-<a href=#35 id=35 data-nosnippet>35</a>///
-<a href=#36 id=36 data-nosnippet>36</a>/// # Returns
-<a href=#37 id=37 data-nosnippet>37</a>/// The application operation result.
+<a href=#31 id=31 data-nosnippet>31</a>/// - `service`: TUI operation service.
+<a href=#32 id=32 data-nosnippet>32</a>/// - `context`: Application capability context.
+<a href=#33 id=33 data-nosnippet>33</a>/// - `request`: Operation request to execute.
+<a href=#34 id=34 data-nosnippet>34</a>///
+<a href=#35 id=35 data-nosnippet>35</a>/// The application operation result.
+<a href=#36 id=36 data-nosnippet>36</a>///
+<a href=#37 id=37 data-nosnippet>37</a>/// Returns the application error produced by the operation service.
 <a href=#38 id=38 data-nosnippet>38</a>///
 <a href=#39 id=39 data-nosnippet>39</a>/// # Errors
-<a href=#40 id=40 data-nosnippet>40</a>/// Returns the application error produced by the operation service.
+<a href=#40 id=40 data-nosnippet>40</a>/// Returns the operation error from the TUI service.
 <a href=#41 id=41 data-nosnippet>41</a></span><span class="kw">pub fn </span>execute_operation&lt;S: TuiOperationService&gt;(
 <a href=#42 id=42 data-nosnippet>42</a>    service: <span class="kw-2">&amp;</span>S,
 <a href=#43 id=43 data-nosnippet>43</a>    context: <span class="kw-2">&amp;</span>ApplicationContext,
@@ -84,13 +84,13 @@
 <a href=#84 id=84 data-nosnippet>84</a>
 <a href=#85 id=85 data-nosnippet>85</a><span class="doccomment">/// Converts one successful public operation result into its TUI action.
 <a href=#86 id=86 data-nosnippet>86</a>///
-<a href=#87 id=87 data-nosnippet>87</a>/// # Parameters
-<a href=#88 id=88 data-nosnippet>88</a>/// - `request_id`: Request generation associated with the result.
-<a href=#89 id=89 data-nosnippet>89</a>/// - `request`: Original application request.
-<a href=#90 id=90 data-nosnippet>90</a>/// - `result`: Public result returned by the shared application boundary.
-<a href=#91 id=91 data-nosnippet>91</a>///
+<a href=#87 id=87 data-nosnippet>87</a>/// - `request_id`: Request generation associated with the result.
+<a href=#88 id=88 data-nosnippet>88</a>/// - `request`: Original application request.
+<a href=#89 id=89 data-nosnippet>89</a>/// - `result`: Public result returned by the shared application boundary.
+<a href=#90 id=90 data-nosnippet>90</a>///
+<a href=#91 id=91 data-nosnippet>91</a>/// The presentation action for the operation result.
 <a href=#92 id=92 data-nosnippet>92</a>/// # Returns
-<a href=#93 id=93 data-nosnippet>93</a>/// The presentation action for the operation result.
+<a href=#93 id=93 data-nosnippet>93</a>/// The operation result.
 <a href=#94 id=94 data-nosnippet>94</a></span><span class="kw">fn </span>map_operation_result(
 <a href=#95 id=95 data-nosnippet>95</a>    request_id: u64,
 <a href=#96 id=96 data-nosnippet>96</a>    request: scriberig_app::ApplicationRequest,

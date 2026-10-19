@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["SelectionStoreError"],"trait":["SessionStore"]};
+window.SIDEBAR_ITEMS = {"enum":["PlanStoreError","SelectionStoreError"],"trait":["SessionStore"]};

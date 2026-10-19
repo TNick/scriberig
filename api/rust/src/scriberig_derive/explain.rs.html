@@ -82,13 +82,13 @@
 <a href=#82 id=82 data-nosnippet>82</a>
 <a href=#83 id=83 data-nosnippet>83</a><span class="doccomment">/// Compares exact derivation keys and explains whether reuse is justified.
 <a href=#84 id=84 data-nosnippet>84</a>///
-<a href=#85 id=85 data-nosnippet>85</a>/// # Parameters
-<a href=#86 id=86 data-nosnippet>86</a>/// - `stored`: Key attached to the historical record.
-<a href=#87 id=87 data-nosnippet>87</a>/// - `requested`: Key required by the current request.
-<a href=#88 id=88 data-nosnippet>88</a>///
-<a href=#89 id=89 data-nosnippet>89</a>/// # Returns
-<a href=#90 id=90 data-nosnippet>90</a>/// Structured exact-match or first deterministic mismatch explanation.
-<a href=#91 id=91 data-nosnippet>91</a></span><span class="attr">#[must_use]
+<a href=#85 id=85 data-nosnippet>85</a>/// - `stored`: Key attached to the historical record.
+<a href=#86 id=86 data-nosnippet>86</a>/// - `requested`: Key required by the current request.
+<a href=#87 id=87 data-nosnippet>87</a>///
+<a href=#88 id=88 data-nosnippet>88</a>/// Structured exact-match or first deterministic mismatch explanation.
+<a href=#89 id=89 data-nosnippet>89</a></span><span class="attr">#[must_use]
+<a href=#90 id=90 data-nosnippet>90</a></span><span class="doccomment">/// # Returns
+<a href=#91 id=91 data-nosnippet>91</a>/// The operation result.
 <a href=#92 id=92 data-nosnippet>92</a></span><span class="kw">pub fn </span>explain_key_comparison(
 <a href=#93 id=93 data-nosnippet>93</a>    stored: <span class="kw-2">&amp;</span>DerivationKey,
 <a href=#94 id=94 data-nosnippet>94</a>    requested: <span class="kw-2">&amp;</span>DerivationKey,
@@ -177,12 +177,12 @@
 <a href=#177 id=177 data-nosnippet>177</a>
 <a href=#178 id=178 data-nosnippet>178</a><span class="doccomment">/// Reports whether two dependencies describe the same dependency category.
 <a href=#179 id=179 data-nosnippet>179</a>///
-<a href=#180 id=180 data-nosnippet>180</a>/// # Parameters
-<a href=#181 id=181 data-nosnippet>181</a>/// - `left`: Stored dependency.
-<a href=#182 id=182 data-nosnippet>182</a>/// - `right`: Requested dependency.
-<a href=#183 id=183 data-nosnippet>183</a>///
+<a href=#180 id=180 data-nosnippet>180</a>/// - `left`: Stored dependency.
+<a href=#181 id=181 data-nosnippet>181</a>/// - `right`: Requested dependency.
+<a href=#182 id=182 data-nosnippet>182</a>///
+<a href=#183 id=183 data-nosnippet>183</a>/// `true` when one dependency can replace the other by exact identity.
 <a href=#184 id=184 data-nosnippet>184</a>/// # Returns
-<a href=#185 id=185 data-nosnippet>185</a>/// `true` when one dependency can replace the other by exact identity.
+<a href=#185 id=185 data-nosnippet>185</a>/// The operation result.
 <a href=#186 id=186 data-nosnippet>186</a></span><span class="kw">fn </span>same_dependency_kind(left: <span class="kw-2">&amp;</span>Dependency, right: <span class="kw-2">&amp;</span>Dependency) -&gt; bool {
 <a href=#187 id=187 data-nosnippet>187</a>    <span class="macro">matches!</span>((left, right),
 <a href=#188 id=188 data-nosnippet>188</a>        (Dependency::ExactRevision { entity: a, .. }, Dependency::ExactRevision { entity: b, .. }) <span class="kw">if </span>a == b

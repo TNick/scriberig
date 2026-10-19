@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["serve","serve_with_origin"],"mod":["development","dispatch","http","operation","server","subscription","transport"]};
+window.SIDEBAR_ITEMS = {"fn":["serve","serve_with_origin","serve_with_origin_and_plan_lifecycle"],"mod":["development","dispatch","http","operation","server","subscription","transport"],"type":["LocalApplicationService","PlanLifecycleHandler"]};

@@ -47,15 +47,15 @@
 <a href=#47 id=47 data-nosnippet>47</a>
 <a href=#48 id=48 data-nosnippet>48</a><span class="doccomment">/// Reconciles one candidate against a single canonical base.
 <a href=#49 id=49 data-nosnippet>49</a>///
-<a href=#50 id=50 data-nosnippet>50</a>/// # Parameters
-<a href=#51 id=51 data-nosnippet>51</a>/// - `base_snapshot`: Exact synchronization-base snapshot.
-<a href=#52 id=52 data-nosnippet>52</a>/// - `base`: Canonical projected nodes.
-<a href=#53 id=53 data-nosnippet>53</a>/// - `candidate`: Parsed external candidate.
-<a href=#54 id=54 data-nosnippet>54</a>/// - `projection`: Stable projection identity/path metadata.
-<a href=#55 id=55 data-nosnippet>55</a>///
-<a href=#56 id=56 data-nosnippet>56</a>/// # Returns
-<a href=#57 id=57 data-nosnippet>57</a>/// A no-op, structured ambiguity, or unapplied migration proposal.
-<a href=#58 id=58 data-nosnippet>58</a></span><span class="attr">#[must_use]
+<a href=#50 id=50 data-nosnippet>50</a>/// - `base_snapshot`: Exact synchronization-base snapshot.
+<a href=#51 id=51 data-nosnippet>51</a>/// - `base`: Canonical projected nodes.
+<a href=#52 id=52 data-nosnippet>52</a>/// - `candidate`: Parsed external candidate.
+<a href=#53 id=53 data-nosnippet>53</a>/// - `projection`: Stable projection identity/path metadata.
+<a href=#54 id=54 data-nosnippet>54</a>///
+<a href=#55 id=55 data-nosnippet>55</a>/// A no-op, structured ambiguity, or unapplied migration proposal.
+<a href=#56 id=56 data-nosnippet>56</a></span><span class="attr">#[must_use]
+<a href=#57 id=57 data-nosnippet>57</a></span><span class="doccomment">/// # Returns
+<a href=#58 id=58 data-nosnippet>58</a>/// The operation result.
 <a href=#59 id=59 data-nosnippet>59</a></span><span class="kw">pub fn </span>reconcile(
 <a href=#60 id=60 data-nosnippet>60</a>    base_snapshot: SnapshotId,
 <a href=#61 id=61 data-nosnippet>61</a>    base: <span class="kw-2">&amp;</span>[CanonicalNode],
@@ -115,13 +115,13 @@
 <a href=#115 id=115 data-nosnippet>115</a>
 <a href=#116 id=116 data-nosnippet>116</a><span class="doccomment">/// Builds semantic operations while preserving matched identities.
 <a href=#117 id=117 data-nosnippet>117</a>///
-<a href=#118 id=118 data-nosnippet>118</a>/// # Parameters
-<a href=#119 id=119 data-nosnippet>119</a>/// - `base`: Canonical projected nodes.
-<a href=#120 id=120 data-nosnippet>120</a>/// - `document`: Candidate semantic document.
-<a href=#121 id=121 data-nosnippet>121</a>/// - `report`: Matching evidence.
-<a href=#122 id=122 data-nosnippet>122</a>///
+<a href=#118 id=118 data-nosnippet>118</a>/// - `base`: Canonical projected nodes.
+<a href=#119 id=119 data-nosnippet>119</a>/// - `document`: Candidate semantic document.
+<a href=#120 id=120 data-nosnippet>120</a>/// - `report`: Matching evidence.
+<a href=#121 id=121 data-nosnippet>121</a>///
+<a href=#122 id=122 data-nosnippet>122</a>/// Semantic operations that preserve matched identities.
 <a href=#123 id=123 data-nosnippet>123</a>/// # Returns
-<a href=#124 id=124 data-nosnippet>124</a>/// Semantic operations that preserve matched identities.
+<a href=#124 id=124 data-nosnippet>124</a>/// The operation result.
 <a href=#125 id=125 data-nosnippet>125</a></span><span class="kw">fn </span>build_operations(
 <a href=#126 id=126 data-nosnippet>126</a>    base: <span class="kw-2">&amp;</span>[CanonicalNode],
 <a href=#127 id=127 data-nosnippet>127</a>    document: <span class="kw-2">&amp;</span><span class="kw">crate</span>::MarkdownDocument,
@@ -205,7 +205,7 @@
 <a href=#205 id=205 data-nosnippet>205</a>/// - `matches`: Argument named `matches`.
 <a href=#206 id=206 data-nosnippet>206</a>///
 <a href=#207 id=207 data-nosnippet>207</a>/// # Returns
-<a href=#208 id=208 data-nosnippet>208</a>/// The value produced by the declaration.
+<a href=#208 id=208 data-nosnippet>208</a>/// The operation result.
 <a href=#209 id=209 data-nosnippet>209</a></span><span class="kw">fn </span>matched_parent(path: <span class="kw-2">&amp;</span>[usize], matches: <span class="kw-2">&amp;</span>[NodeMatch]) -&gt; <span class="prelude-ty">Option</span>&lt;EntityId&gt; {
 <a href=#210 id=210 data-nosnippet>210</a>    <span class="kw">if </span>path.len() &lt;= <span class="number">1 </span>{
 <a href=#211 id=211 data-nosnippet>211</a>        <span class="kw">return </span><span class="prelude-val">None</span>;
@@ -223,11 +223,11 @@
 <a href=#223 id=223 data-nosnippet>223</a>
 <a href=#224 id=224 data-nosnippet>224</a><span class="doccomment">/// Produces a deterministic revision for a projected block.
 <a href=#225 id=225 data-nosnippet>225</a>///
-<a href=#226 id=226 data-nosnippet>226</a>/// # Parameters
-<a href=#227 id=227 data-nosnippet>227</a>/// - `block`: Semantic block to identify.
-<a href=#228 id=228 data-nosnippet>228</a>///
+<a href=#226 id=226 data-nosnippet>226</a>/// - `block`: Semantic block to identify.
+<a href=#227 id=227 data-nosnippet>227</a>///
+<a href=#228 id=228 data-nosnippet>228</a>/// Revision identity for the block's canonical payload.
 <a href=#229 id=229 data-nosnippet>229</a>/// # Returns
-<a href=#230 id=230 data-nosnippet>230</a>/// Revision identity for the block's canonical payload.
+<a href=#230 id=230 data-nosnippet>230</a>/// The operation result.
 <a href=#231 id=231 data-nosnippet>231</a></span><span class="kw">fn </span>block_revision(block: <span class="kw-2">&amp;</span>MarkdownBlock) -&gt; scriberig_core::RevisionId {
 <a href=#232 id=232 data-nosnippet>232</a>    <span class="kw">let </span>payload = <span class="macro">format!</span>(<span class="string">"{block:?}"</span>);
 <a href=#233 id=233 data-nosnippet>233</a>    revision_id(
@@ -240,11 +240,11 @@
 <a href=#240 id=240 data-nosnippet>240</a>
 <a href=#241 id=241 data-nosnippet>241</a><span class="doccomment">/// Derives a stable new entity identity from a candidate path.
 <a href=#242 id=242 data-nosnippet>242</a>///
-<a href=#243 id=243 data-nosnippet>243</a>/// # Parameters
-<a href=#244 id=244 data-nosnippet>244</a>/// - `path`: Semantic candidate path used to distinguish duplicate inserts.
-<a href=#245 id=245 data-nosnippet>245</a>///
+<a href=#243 id=243 data-nosnippet>243</a>/// - `path`: Semantic candidate path used to distinguish duplicate inserts.
+<a href=#244 id=244 data-nosnippet>244</a>///
+<a href=#245 id=245 data-nosnippet>245</a>/// A deterministic 128-bit entity identity.
 <a href=#246 id=246 data-nosnippet>246</a>/// # Returns
-<a href=#247 id=247 data-nosnippet>247</a>/// A deterministic 128-bit entity identity.
+<a href=#247 id=247 data-nosnippet>247</a>/// The operation result.
 <a href=#248 id=248 data-nosnippet>248</a></span><span class="kw">fn </span>rand_bytes(path: <span class="kw-2">&amp;</span>[usize]) -&gt; [u8; <span class="number">16</span>] {
 <a href=#249 id=249 data-nosnippet>249</a>    <span class="kw">let </span>digest = blake3::hash(<span class="macro">format!</span>(<span class="string">"markdown.candidate:{path:?}"</span>).as_bytes());
 <a href=#250 id=250 data-nosnippet>250</a>    <span class="kw">let </span><span class="kw-2">mut </span>bytes = [<span class="number">0</span>; <span class="number">16</span>];
@@ -254,11 +254,11 @@
 <a href=#254 id=254 data-nosnippet>254</a>
 <a href=#255 id=255 data-nosnippet>255</a><span class="doccomment">/// Flattens blocks for operation lookup.
 <a href=#256 id=256 data-nosnippet>256</a>///
-<a href=#257 id=257 data-nosnippet>257</a>/// # Parameters
-<a href=#258 id=258 data-nosnippet>258</a>/// - `document`: Candidate document.
-<a href=#259 id=259 data-nosnippet>259</a>///
+<a href=#257 id=257 data-nosnippet>257</a>/// - `document`: Candidate document.
+<a href=#258 id=258 data-nosnippet>258</a>///
+<a href=#259 id=259 data-nosnippet>259</a>/// Top-level blocks paired with structural paths.
 <a href=#260 id=260 data-nosnippet>260</a>/// # Returns
-<a href=#261 id=261 data-nosnippet>261</a>/// Top-level blocks paired with structural paths.
+<a href=#261 id=261 data-nosnippet>261</a>/// The operation result.
 <a href=#262 id=262 data-nosnippet>262</a></span><span class="kw">fn </span>flatten_blocks(document: <span class="kw-2">&amp;</span><span class="kw">crate</span>::MarkdownDocument) -&gt; FlattenedBlocks {
 <a href=#263 id=263 data-nosnippet>263</a>    <span class="kw">let </span><span class="kw-2">mut </span>output = Vec::new();
 <a href=#264 id=264 data-nosnippet>264</a>    <span class="kw">for </span>(index, block) <span class="kw">in </span>document.blocks.iter().enumerate() {
@@ -269,18 +269,17 @@
 <a href=#269 id=269 data-nosnippet>269</a>
 <a href=#270 id=270 data-nosnippet>270</a><span class="doccomment">/// Adds one block and its nested sections to the operation lookup table.
 <a href=#271 id=271 data-nosnippet>271</a>///
-<a href=#272 id=272 data-nosnippet>272</a>/// # Parameters
-<a href=#273 id=273 data-nosnippet>273</a>/// - `block`: Semantic block to add.
-<a href=#274 id=274 data-nosnippet>274</a>/// - `path`: Structural path of the block.
-<a href=#275 id=275 data-nosnippet>275</a>/// - `output`: Destination flattened blocks.
-<a href=#276 id=276 data-nosnippet>276</a></span><span class="kw">fn </span>flatten_block(block: <span class="kw-2">&amp;</span>MarkdownBlock, path: <span class="kw-2">&amp;</span>[usize], output: <span class="kw-2">&amp;mut </span>FlattenedBlocks) {
-<a href=#277 id=277 data-nosnippet>277</a>    output.push((path.to_owned(), block.clone()));
-<a href=#278 id=278 data-nosnippet>278</a>    <span class="kw">if let </span>MarkdownBlock::Section(section) = block {
-<a href=#279 id=279 data-nosnippet>279</a>        <span class="kw">for </span>(index, child) <span class="kw">in </span>section.blocks.iter().enumerate() {
-<a href=#280 id=280 data-nosnippet>280</a>            <span class="kw">let </span><span class="kw-2">mut </span>child_path = path.to_owned();
-<a href=#281 id=281 data-nosnippet>281</a>            child_path.push(index);
-<a href=#282 id=282 data-nosnippet>282</a>            flatten_block(child, <span class="kw-2">&amp;</span>child_path, output);
-<a href=#283 id=283 data-nosnippet>283</a>        }
-<a href=#284 id=284 data-nosnippet>284</a>    }
-<a href=#285 id=285 data-nosnippet>285</a>}
+<a href=#272 id=272 data-nosnippet>272</a>/// - `block`: Semantic block to add.
+<a href=#273 id=273 data-nosnippet>273</a>/// - `path`: Structural path of the block.
+<a href=#274 id=274 data-nosnippet>274</a>/// - `output`: Destination flattened blocks.
+<a href=#275 id=275 data-nosnippet>275</a></span><span class="kw">fn </span>flatten_block(block: <span class="kw-2">&amp;</span>MarkdownBlock, path: <span class="kw-2">&amp;</span>[usize], output: <span class="kw-2">&amp;mut </span>FlattenedBlocks) {
+<a href=#276 id=276 data-nosnippet>276</a>    output.push((path.to_owned(), block.clone()));
+<a href=#277 id=277 data-nosnippet>277</a>    <span class="kw">if let </span>MarkdownBlock::Section(section) = block {
+<a href=#278 id=278 data-nosnippet>278</a>        <span class="kw">for </span>(index, child) <span class="kw">in </span>section.blocks.iter().enumerate() {
+<a href=#279 id=279 data-nosnippet>279</a>            <span class="kw">let </span><span class="kw-2">mut </span>child_path = path.to_owned();
+<a href=#280 id=280 data-nosnippet>280</a>            child_path.push(index);
+<a href=#281 id=281 data-nosnippet>281</a>            flatten_block(child, <span class="kw-2">&amp;</span>child_path, output);
+<a href=#282 id=282 data-nosnippet>282</a>        }
+<a href=#283 id=283 data-nosnippet>283</a>    }
+<a href=#284 id=284 data-nosnippet>284</a>}
 </code></pre></div></section></main></body></html>

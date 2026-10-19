@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["project_bootstrap","project_candidates","project_recovery","project_semantic","session_operations"],"struct":["LocalAgentTool"]};
+window.SIDEBAR_ITEMS = {"mod":["domain_operation","project_bootstrap","project_candidate_merge","project_candidates","project_recovery","project_semantic","session_operations"],"struct":["LocalAgentTool"]};

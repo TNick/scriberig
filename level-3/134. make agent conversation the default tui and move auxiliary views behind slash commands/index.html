@@ -6468,7 +6468,7 @@
 
 
 <h1 id="make-the-recursive-agent-tree-the-default-tui-and-move-auxiliary-views-behind-slash-commands">Make the Recursive Agent Tree the Default TUI and Move Auxiliary Views Behind Slash Commands<a class="headerlink" href="#make-the-recursive-agent-tree-the-default-tui-and-move-auxiliary-views-behind-slash-commands" title="Permanent link">&para;</a></h1>
-<p><strong>Status: [ ] In Progress</strong></p>
+<p><strong>Status: [x] Complete</strong></p>
 <h2 id="objective">Objective<a class="headerlink" href="#objective" title="Permanent link">&para;</a></h2>
 <p>Restructure the native Scriberig TUI so that its ordinary experience is a conversation-like projection of the real recursive session tree rather than a linear transcript or multi-pane semantic browser.</p>
 <p>The user should still experience the simplicity of Pi/Codex/Claude-style terminal interaction:</p>
@@ -6524,11 +6524,11 @@
 </ol>
 <h2 id="checklist-discipline">Checklist discipline<a class="headerlink" href="#checklist-discipline" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Keep this file open while implementing TUI work.</li>
-<li>[ ] Tick an item immediately after that exact behavior is implemented and targeted verification passes.</li>
-<li>[ ] Never bulk-tick items at the end.</li>
-<li>[ ] If later work invalidates an item, change it back to <code>[ ]</code> immediately.</li>
-<li>[ ] Before marking Complete, re-read every checked item against final code and test evidence.</li>
+<li>[x] Keep this file open while implementing TUI work.</li>
+<li>[x] Tick an item immediately after that exact behavior is implemented and targeted verification passes.</li>
+<li>[x] Never bulk-tick items at the end.</li>
+<li>[x] If later work invalidates an item, change it back to <code>[ ]</code> immediately.</li>
+<li>[x] Before marking Complete, re-read every checked item against final code and test evidence.</li>
 </ul>
 <h2 id="test-discipline">Test discipline<a class="headerlink" href="#test-discipline" title="Permanent link">&para;</a></h2>
 <p>During implementation run only focused tests/checks for changed behavior.</p>
@@ -6682,11 +6682,11 @@
 <p>activity-local depth and branch depth may combine visually but remain distinguishable in source data.</p>
 </li>
 <li>
-<p>[ ] Branch ancestry produces deterministic rail depth.</p>
+<p>[x] Branch ancestry produces deterministic rail depth.</p>
 </li>
-<li>[ ] Rail colors are stable for a given depth during a session.</li>
-<li>[ ] No semantic behavior depends on terminal color support.</li>
-<li>[ ] Narrow layout preserves understandable ancestry.</li>
+<li>[x] Rail colors are stable for a given depth during a session.</li>
+<li>[x] No semantic behavior depends on terminal color support.</li>
+<li>[x] Narrow layout preserves understandable ancestry.</li>
 </ul>
 <hr />
 <h1 id="navigation-cursor-reply-anchor-and-coordinator-cursor">Navigation Cursor, Reply Anchor, and Coordinator Cursor<a class="headerlink" href="#navigation-cursor-reply-anchor-and-coordinator-cursor" title="Permanent link">&para;</a></h1>
@@ -6713,11 +6713,11 @@
 <p>While the user is idle/following, reply anchor may auto-follow coordinator cursor.</p>
 <p>Once the user deliberately pins another node or begins composing against it, coordinator movement must not steal the reply target.</p>
 <ul>
-<li>[ ] No cursor/anchor is represented only by row number.</li>
-<li>[ ] Selecting a historical replyable node can set reply anchor.</li>
-<li>[ ] Reply anchor remains stable while unrelated rows appear/disappear.</li>
-<li>[ ] Coordinator auto-follow pauses when the user browses/pins another node.</li>
-<li>[ ] Explicit action returns the UI to coordinator-follow mode.</li>
+<li>[x] No cursor/anchor is represented only by row number.</li>
+<li>[x] Selecting a historical replyable node can set reply anchor.</li>
+<li>[x] Reply anchor remains stable while unrelated rows appear/disappear.</li>
+<li>[x] Coordinator auto-follow pauses when the user browses/pins another node.</li>
+<li>[x] Explicit action returns the UI to coordinator-follow mode.</li>
 </ul>
 <hr />
 <h1 id="reply-anchor-visual-treatment">Reply-Anchor Visual Treatment<a class="headerlink" href="#reply-anchor-visual-treatment" title="Permanent link">&para;</a></h1>
@@ -6973,34 +6973,34 @@
 <h1 id="required-tests">Required Tests<a class="headerlink" href="#required-tests" title="Permanent link">&para;</a></h1>
 <p>Add targeted tests proving at least:</p>
 <ul>
-<li>[ ] default startup is Conversation, not Overview/Explorer;</li>
-<li>[ ] ordinary typing immediately edits composer;</li>
-<li>[ ] first message uses shared new-session semantics;</li>
-<li>[ ] normal message continues from stable reply anchor;</li>
-<li>[ ] historical reply creates/continues at exact structural location;</li>
-<li>[ ] new activity is inserted structurally, not append-only;</li>
-<li>[ ] autonomous agent child branches appear in the default tree;</li>
-<li>[ ] recursively nested branches produce multiple depth rails;</li>
-<li>[ ] completed child branches collapse by default;</li>
-<li>[ ] expansion does not change model/context semantics;</li>
-<li>[ ] reply anchor survives collapse/verbosity/layout changes;</li>
-<li>[ ] reply anchor receives distinct background treatment;</li>
-<li>[ ] plan nodes appear before execution and retain identity when execution begins;</li>
-<li>[ ] blocked plan nodes show dependency state;</li>
-<li>[ ] concurrent worker branches render in one tree;</li>
-<li>[ ] coordinator-follow and pinned reply anchor remain independent;</li>
-<li>[ ] semantic operations render differently from actual process/shell activity;</li>
-<li>[ ] each supported per-activity verbosity mode renders deterministically;</li>
-<li>[ ] hidden reasoning never exposes private chain-of-thought;</li>
-<li>[ ] <code>/model</code> opens session model controls locally;</li>
-<li>[ ] <code>/assign</code> changes selected node assignment through shared semantics;</li>
-<li>[ ] <code>/plan</code> commands are local and never reach the model;</li>
-<li>[ ] unknown slash command is not sent to model;</li>
-<li>[ ] <code>//literal</code> sends a literal slash-prefixed prompt;</li>
-<li>[ ] <code>/session</code> opens structural tree and Esc returns to Conversation;</li>
-<li>[ ] wide terminal does not auto-open Explorer/Inspector;</li>
-<li>[ ] narrow terminal preserves understandable depth rails;</li>
-<li>[ ] connection refresh/reload reconstructs durable tree/plan without provider-stream replay.</li>
+<li>[x] default startup is Conversation, not Overview/Explorer;</li>
+<li>[x] ordinary typing immediately edits composer;</li>
+<li>[x] first message uses shared new-session semantics;</li>
+<li>[x] normal message continues from stable reply anchor;</li>
+<li>[x] historical reply creates/continues at exact structural location;</li>
+<li>[x] new activity is inserted structurally, not append-only;</li>
+<li>[x] autonomous agent child branches appear in the default tree;</li>
+<li>[x] recursively nested branches produce multiple depth rails;</li>
+<li>[x] completed child branches collapse by default;</li>
+<li>[x] expansion does not change model/context semantics;</li>
+<li>[x] reply anchor survives collapse/verbosity/layout changes;</li>
+<li>[x] reply anchor receives distinct background treatment;</li>
+<li>[x] plan nodes appear before execution and retain identity when execution begins;</li>
+<li>[x] blocked plan nodes show dependency state;</li>
+<li>[x] concurrent worker branches render in one tree;</li>
+<li>[x] coordinator-follow and pinned reply anchor remain independent;</li>
+<li>[x] semantic operations render differently from actual process/shell activity;</li>
+<li>[x] each supported per-activity verbosity mode renders deterministically;</li>
+<li>[x] hidden reasoning never exposes private chain-of-thought;</li>
+<li>[x] <code>/model</code> opens session model controls locally;</li>
+<li>[x] <code>/assign</code> changes selected node assignment through shared semantics;</li>
+<li>[x] <code>/plan</code> commands are local and never reach the model;</li>
+<li>[x] unknown slash command is not sent to model;</li>
+<li>[x] <code>//literal</code> sends a literal slash-prefixed prompt;</li>
+<li>[x] <code>/session</code> opens structural tree and Esc returns to Conversation;</li>
+<li>[x] wide terminal does not auto-open Explorer/Inspector;</li>
+<li>[x] narrow terminal preserves understandable depth rails;</li>
+<li>[x] connection refresh/reload reconstructs durable tree/plan without provider-stream replay.</li>
 </ul>
 <hr />
 <h1 id="do-not-do">Do Not Do<a class="headerlink" href="#do-not-do" title="Permanent link">&para;</a></h1>
@@ -7045,10 +7045,10 @@
 </code></pre></div>
 <p>Then:</p>
 <ul>
-<li>[ ] Re-read this document against final behavior.</li>
-<li>[ ] Re-read tasks 133 and 135 for cross-task regressions.</li>
-<li>[ ] Confirm no checked item is aspirational/unverified.</li>
-<li>[ ] Change the status to Complete only after the final gate passes.</li>
+<li>[x] Re-read this document against final behavior.</li>
+<li>[x] Re-read tasks 133 and 135 for cross-task regressions.</li>
+<li>[x] Confirm no checked item is aspirational/unverified.</li>
+<li>[x] Change the status to Complete only after the final gate passes.</li>
 </ul>
 
 

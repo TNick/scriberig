@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ConversationRowKind","ConversationSource"],"struct":["ConversationModel","ConversationRow"]};

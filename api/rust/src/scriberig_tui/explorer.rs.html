@@ -59,7 +59,7 @@
 <a href=#59 id=59 data-nosnippet>59</a>    </span><span class="doccomment">/// - `selection`: Argument named `selection`.
 <a href=#60 id=60 data-nosnippet>60</a>    ///
 <a href=#61 id=61 data-nosnippet>61</a>    /// # Returns
-<a href=#62 id=62 data-nosnippet>62</a>    /// The value produced by the declaration.
+<a href=#62 id=62 data-nosnippet>62</a>    /// The operation result.
 <a href=#63 id=63 data-nosnippet>63</a>    </span><span class="kw">pub fn </span>from_selection(selection: EntitySelection) -&gt; <span class="self">Self </span>{
 <a href=#64 id=64 data-nosnippet>64</a>        <span class="kw">let </span>label = selection.entity.to_string();
 <a href=#65 id=65 data-nosnippet>65</a>        <span class="self">Self </span>{
@@ -76,35 +76,34 @@
 <a href=#76 id=76 data-nosnippet>76</a>
 <a href=#77 id=77 data-nosnippet>77</a>    <span class="doccomment">/// Adds bounded, composition-supplied rows to the current semantic root.
 <a href=#78 id=78 data-nosnippet>78</a>    ///
-<a href=#79 id=79 data-nosnippet>79</a>    /// # Parameters
-<a href=#80 id=80 data-nosnippet>80</a>    /// - `self`: Explorer model receiving the rows.
-<a href=#81 id=81 data-nosnippet>81</a>    /// - `entities`: Stable entities visible in the same snapshot.
-<a href=#82 id=82 data-nosnippet>82</a>    /// - `snapshot`: Exact snapshot context for every row.
-<a href=#83 id=83 data-nosnippet>83</a>    </span><span class="kw">pub fn </span>add_entities(
-<a href=#84 id=84 data-nosnippet>84</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#85 id=85 data-nosnippet>85</a>        entities: <span class="kw">impl </span>IntoIterator&lt;Item = EntityId&gt;,
-<a href=#86 id=86 data-nosnippet>86</a>        snapshot: <span class="prelude-ty">Option</span>&lt;SnapshotId&gt;,
-<a href=#87 id=87 data-nosnippet>87</a>    ) {
-<a href=#88 id=88 data-nosnippet>88</a>        <span class="self">self</span>.rows
-<a href=#89 id=89 data-nosnippet>89</a>            .extend(entities.into_iter().map(|entity| ExplorerRow {
-<a href=#90 id=90 data-nosnippet>90</a>                selection: EntitySelection {
-<a href=#91 id=91 data-nosnippet>91</a>                    entity,
-<a href=#92 id=92 data-nosnippet>92</a>                    revision: <span class="prelude-val">None</span>,
-<a href=#93 id=93 data-nosnippet>93</a>                    snapshot,
-<a href=#94 id=94 data-nosnippet>94</a>                },
-<a href=#95 id=95 data-nosnippet>95</a>                label: entity.to_string(),
-<a href=#96 id=96 data-nosnippet>96</a>                kind: <span class="prelude-val">None</span>,
-<a href=#97 id=97 data-nosnippet>97</a>                inspectable: <span class="bool-val">true</span>,
-<a href=#98 id=98 data-nosnippet>98</a>            }));
-<a href=#99 id=99 data-nosnippet>99</a>    }
-<a href=#100 id=100 data-nosnippet>100</a>}
-<a href=#101 id=101 data-nosnippet>101</a>
-<a href=#102 id=102 data-nosnippet>102</a><span class="doccomment">/// One bounded Explorer page returned by the application service.
-<a href=#103 id=103 data-nosnippet>103</a></span><span class="attr">#[derive(Clone, Debug, Default, Eq, PartialEq)]
-<a href=#104 id=104 data-nosnippet>104</a></span><span class="kw">pub struct </span>ExplorerPage {
-<a href=#105 id=105 data-nosnippet>105</a>    <span class="doccomment">/// Rows returned for this page.
-<a href=#106 id=106 data-nosnippet>106</a>    </span><span class="kw">pub </span>rows: Vec&lt;ExplorerRow&gt;,
-<a href=#107 id=107 data-nosnippet>107</a>    <span class="doccomment">/// Opaque continuation for a subsequent page.
-<a href=#108 id=108 data-nosnippet>108</a>    </span><span class="kw">pub </span>next: <span class="prelude-ty">Option</span>&lt;ContinuationToken&gt;,
-<a href=#109 id=109 data-nosnippet>109</a>}
+<a href=#79 id=79 data-nosnippet>79</a>    /// - `self`: Explorer model receiving the rows.
+<a href=#80 id=80 data-nosnippet>80</a>    /// - `entities`: Stable entities visible in the same snapshot.
+<a href=#81 id=81 data-nosnippet>81</a>    /// - `snapshot`: Exact snapshot context for every row.
+<a href=#82 id=82 data-nosnippet>82</a>    </span><span class="kw">pub fn </span>add_entities(
+<a href=#83 id=83 data-nosnippet>83</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+<a href=#84 id=84 data-nosnippet>84</a>        entities: <span class="kw">impl </span>IntoIterator&lt;Item = EntityId&gt;,
+<a href=#85 id=85 data-nosnippet>85</a>        snapshot: <span class="prelude-ty">Option</span>&lt;SnapshotId&gt;,
+<a href=#86 id=86 data-nosnippet>86</a>    ) {
+<a href=#87 id=87 data-nosnippet>87</a>        <span class="self">self</span>.rows
+<a href=#88 id=88 data-nosnippet>88</a>            .extend(entities.into_iter().map(|entity| ExplorerRow {
+<a href=#89 id=89 data-nosnippet>89</a>                selection: EntitySelection {
+<a href=#90 id=90 data-nosnippet>90</a>                    entity,
+<a href=#91 id=91 data-nosnippet>91</a>                    revision: <span class="prelude-val">None</span>,
+<a href=#92 id=92 data-nosnippet>92</a>                    snapshot,
+<a href=#93 id=93 data-nosnippet>93</a>                },
+<a href=#94 id=94 data-nosnippet>94</a>                label: entity.to_string(),
+<a href=#95 id=95 data-nosnippet>95</a>                kind: <span class="prelude-val">None</span>,
+<a href=#96 id=96 data-nosnippet>96</a>                inspectable: <span class="bool-val">true</span>,
+<a href=#97 id=97 data-nosnippet>97</a>            }));
+<a href=#98 id=98 data-nosnippet>98</a>    }
+<a href=#99 id=99 data-nosnippet>99</a>}
+<a href=#100 id=100 data-nosnippet>100</a>
+<a href=#101 id=101 data-nosnippet>101</a><span class="doccomment">/// One bounded Explorer page returned by the application service.
+<a href=#102 id=102 data-nosnippet>102</a></span><span class="attr">#[derive(Clone, Debug, Default, Eq, PartialEq)]
+<a href=#103 id=103 data-nosnippet>103</a></span><span class="kw">pub struct </span>ExplorerPage {
+<a href=#104 id=104 data-nosnippet>104</a>    <span class="doccomment">/// Rows returned for this page.
+<a href=#105 id=105 data-nosnippet>105</a>    </span><span class="kw">pub </span>rows: Vec&lt;ExplorerRow&gt;,
+<a href=#106 id=106 data-nosnippet>106</a>    <span class="doccomment">/// Opaque continuation for a subsequent page.
+<a href=#107 id=107 data-nosnippet>107</a>    </span><span class="kw">pub </span>next: <span class="prelude-ty">Option</span>&lt;ContinuationToken&gt;,
+<a href=#108 id=108 data-nosnippet>108</a>}
 </code></pre></div></section></main></body></html>

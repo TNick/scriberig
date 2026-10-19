@@ -27,14 +27,14 @@
 <a href=#27 id=27 data-nosnippet>27</a><span class="kw">impl </span>WireRequest {
 <a href=#28 id=28 data-nosnippet>28</a>    <span class="doccomment">/// Converts a request using both global and model-specific translations.
 <a href=#29 id=29 data-nosnippet>29</a>    ///
-<a href=#30 id=30 data-nosnippet>30</a>    /// # Parameters
-<a href=#31 id=31 data-nosnippet>31</a>    /// - `request`: Provider-neutral request.
-<a href=#32 id=32 data-nosnippet>32</a>    /// - `stream`: Whether the provider should stream SSE fragments.
-<a href=#33 id=33 data-nosnippet>33</a>    /// - `thinking_parameters`: Adapter-wide translations by level id.
-<a href=#34 id=34 data-nosnippet>34</a>    /// - `model_thinking_parameters`: Translations by model and level id.
-<a href=#35 id=35 data-nosnippet>35</a>    ///
+<a href=#30 id=30 data-nosnippet>30</a>    /// - `request`: Provider-neutral request.
+<a href=#31 id=31 data-nosnippet>31</a>    /// - `stream`: Whether the provider should stream SSE fragments.
+<a href=#32 id=32 data-nosnippet>32</a>    /// - `thinking_parameters`: Adapter-wide translations by level id.
+<a href=#33 id=33 data-nosnippet>33</a>    /// - `model_thinking_parameters`: Translations by model and level id.
+<a href=#34 id=34 data-nosnippet>34</a>    ///
+<a href=#35 id=35 data-nosnippet>35</a>    /// OpenAI-compatible request fields.
 <a href=#36 id=36 data-nosnippet>36</a>    /// # Returns
-<a href=#37 id=37 data-nosnippet>37</a>    /// OpenAI-compatible request fields.
+<a href=#37 id=37 data-nosnippet>37</a>    /// The operation result.
 <a href=#38 id=38 data-nosnippet>38</a>    </span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>from_request_for_models(
 <a href=#39 id=39 data-nosnippet>39</a>        request: <span class="kw-2">&amp;</span>ModelRequest,
 <a href=#40 id=40 data-nosnippet>40</a>        stream: bool,
@@ -95,11 +95,11 @@
 <a href=#95 id=95 data-nosnippet>95</a><span class="doccomment">/// Omits the default false streaming flag from ordinary requests.
 <a href=#96 id=96 data-nosnippet>96</a></span><span class="attr">#[allow(clippy::trivially_copy_pass_by_ref)]
 <a href=#97 id=97 data-nosnippet>97</a></span><span class="doccomment">///
-<a href=#98 id=98 data-nosnippet>98</a>/// # Parameters
-<a href=#99 id=99 data-nosnippet>99</a>/// - `value`: Streaming flag to inspect.
-<a href=#100 id=100 data-nosnippet>100</a>///
+<a href=#98 id=98 data-nosnippet>98</a>/// - `value`: Streaming flag to inspect.
+<a href=#99 id=99 data-nosnippet>99</a>///
+<a href=#100 id=100 data-nosnippet>100</a>/// `true` when the flag is false.
 <a href=#101 id=101 data-nosnippet>101</a>/// # Returns
-<a href=#102 id=102 data-nosnippet>102</a>/// `true` when the flag is false.
+<a href=#102 id=102 data-nosnippet>102</a>/// The operation result.
 <a href=#103 id=103 data-nosnippet>103</a></span><span class="kw">fn </span>is_false(value: <span class="kw-2">&amp;</span>bool) -&gt; bool {
 <a href=#104 id=104 data-nosnippet>104</a>    !<span class="kw-2">*</span>value
 <a href=#105 id=105 data-nosnippet>105</a>}
@@ -116,11 +116,11 @@
 <a href=#116 id=116 data-nosnippet>116</a><span class="kw">impl </span>WireMessage {
 <a href=#117 id=117 data-nosnippet>117</a>    <span class="doccomment">/// Converts a semantic message role to its wire spelling.
 <a href=#118 id=118 data-nosnippet>118</a>    ///
-<a href=#119 id=119 data-nosnippet>119</a>    /// # Parameters
-<a href=#120 id=120 data-nosnippet>120</a>    /// - `message`: Provider-neutral message.
-<a href=#121 id=121 data-nosnippet>121</a>    ///
+<a href=#119 id=119 data-nosnippet>119</a>    /// - `message`: Provider-neutral message.
+<a href=#120 id=120 data-nosnippet>120</a>    ///
+<a href=#121 id=121 data-nosnippet>121</a>    /// Wire-compatible message fields.
 <a href=#122 id=122 data-nosnippet>122</a>    /// # Returns
-<a href=#123 id=123 data-nosnippet>123</a>    /// Wire-compatible message fields.
+<a href=#123 id=123 data-nosnippet>123</a>    /// The operation result.
 <a href=#124 id=124 data-nosnippet>124</a>    </span><span class="kw">fn </span>from_message(message: <span class="kw-2">&amp;</span><span class="kw">crate</span>::provider::ModelMessage) -&gt; <span class="self">Self </span>{
 <a href=#125 id=125 data-nosnippet>125</a>        <span class="kw">let </span>role = <span class="kw">match </span>message.role {
 <a href=#126 id=126 data-nosnippet>126</a>            MessageRole::System =&gt; <span class="string">"system"</span>,
@@ -137,14 +137,14 @@
 <a href=#137 id=137 data-nosnippet>137</a>}
 <a href=#138 id=138 data-nosnippet>138</a>
 <a href=#139 id=139 data-nosnippet>139</a><span class="attr">#[derive(Serialize)]
-<a href=#140 id=140 data-nosnippet>140</a></span><span class="doccomment">/// Serializes one function tool declaration.
+<a href=#140 id=140 data-nosnippet>140</a></span><span class="doccomment">/// Represents one tool descriptor in an OpenAI-compatible request.
 <a href=#141 id=141 data-nosnippet>141</a></span><span class="kw">struct </span>WireTool {
 <a href=#142 id=142 data-nosnippet>142</a>    r#type: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str,
 <a href=#143 id=143 data-nosnippet>143</a>    function: WireFunction,
 <a href=#144 id=144 data-nosnippet>144</a>}
 <a href=#145 id=145 data-nosnippet>145</a>
 <a href=#146 id=146 data-nosnippet>146</a><span class="attr">#[derive(Serialize)]
-<a href=#147 id=147 data-nosnippet>147</a></span><span class="doccomment">/// Serializes the function portion of a tool declaration.
+<a href=#147 id=147 data-nosnippet>147</a></span><span class="doccomment">/// Represents a callable function descriptor in a model request.
 <a href=#148 id=148 data-nosnippet>148</a></span><span class="kw">struct </span>WireFunction {
 <a href=#149 id=149 data-nosnippet>149</a>    name: String,
 <a href=#150 id=150 data-nosnippet>150</a>    description: String,
@@ -152,47 +152,46 @@
 <a href=#152 id=152 data-nosnippet>152</a>}
 <a href=#153 id=153 data-nosnippet>153</a>
 <a href=#154 id=154 data-nosnippet>154</a><span class="kw">impl </span>WireTool {
-<a href=#155 id=155 data-nosnippet>155</a>    <span class="doccomment">/// Converts a trusted tool definition to a function declaration.
-<a href=#156 id=156 data-nosnippet>156</a>    ///
-<a href=#157 id=157 data-nosnippet>157</a>    /// # Parameters
-<a href=#158 id=158 data-nosnippet>158</a>    /// - `definition`: Trusted provider-neutral tool definition.
-<a href=#159 id=159 data-nosnippet>159</a>    ///
-<a href=#160 id=160 data-nosnippet>160</a>    /// # Returns
-<a href=#161 id=161 data-nosnippet>161</a>    /// Wire-compatible function tool fields.
-<a href=#162 id=162 data-nosnippet>162</a>    </span><span class="kw">fn </span>from_definition(definition: <span class="kw-2">&amp;</span><span class="kw">crate</span>::provider::ToolDefinition) -&gt; <span class="self">Self </span>{
-<a href=#163 id=163 data-nosnippet>163</a>        <span class="self">Self </span>{
-<a href=#164 id=164 data-nosnippet>164</a>            r#type: <span class="string">"function"</span>,
-<a href=#165 id=165 data-nosnippet>165</a>            function: WireFunction {
-<a href=#166 id=166 data-nosnippet>166</a>                name: definition.name.clone(),
-<a href=#167 id=167 data-nosnippet>167</a>                description: definition.description.clone(),
-<a href=#168 id=168 data-nosnippet>168</a>                parameters: provider_schema(<span class="kw-2">&amp;</span>definition.parameters),
-<a href=#169 id=169 data-nosnippet>169</a>            },
-<a href=#170 id=170 data-nosnippet>170</a>        }
-<a href=#171 id=171 data-nosnippet>171</a>    }
-<a href=#172 id=172 data-nosnippet>172</a>}
-<a href=#173 id=173 data-nosnippet>173</a>
-<a href=#174 id=174 data-nosnippet>174</a><span class="doccomment">/// Removes Scriberig-only sensitivity annotations from provider schemas.
-<a href=#175 id=175 data-nosnippet>175</a>///
-<a href=#176 id=176 data-nosnippet>176</a>/// # Parameters
-<a href=#177 id=177 data-nosnippet>177</a>/// - `schema`: Trusted schema used for local presentation redaction.
-<a href=#178 id=178 data-nosnippet>178</a>///
-<a href=#179 id=179 data-nosnippet>179</a>/// # Returns
-<a href=#180 id=180 data-nosnippet>180</a>/// Provider-compatible schema without the private `x-sensitive` extension.
-<a href=#181 id=181 data-nosnippet>181</a></span><span class="kw">fn </span>provider_schema(schema: <span class="kw-2">&amp;</span>serde_json::Value) -&gt; serde_json::Value {
-<a href=#182 id=182 data-nosnippet>182</a>    <span class="kw">match </span>schema {
-<a href=#183 id=183 data-nosnippet>183</a>        serde_json::Value::Object(object) =&gt; {
-<a href=#184 id=184 data-nosnippet>184</a>            <span class="kw">let </span><span class="kw-2">mut </span>filtered = serde_json::Map::new();
-<a href=#185 id=185 data-nosnippet>185</a>            <span class="kw">for </span>(key, value) <span class="kw">in </span>object {
-<a href=#186 id=186 data-nosnippet>186</a>                <span class="kw">if </span>key != <span class="string">"x-sensitive" </span>{
-<a href=#187 id=187 data-nosnippet>187</a>                    filtered.insert(key.clone(), provider_schema(value));
-<a href=#188 id=188 data-nosnippet>188</a>                }
-<a href=#189 id=189 data-nosnippet>189</a>            }
-<a href=#190 id=190 data-nosnippet>190</a>            serde_json::Value::Object(filtered)
-<a href=#191 id=191 data-nosnippet>191</a>        }
-<a href=#192 id=192 data-nosnippet>192</a>        serde_json::Value::Array(items) =&gt; {
-<a href=#193 id=193 data-nosnippet>193</a>            serde_json::Value::Array(items.iter().map(provider_schema).collect())
-<a href=#194 id=194 data-nosnippet>194</a>        }
-<a href=#195 id=195 data-nosnippet>195</a>        value =&gt; value.clone(),
-<a href=#196 id=196 data-nosnippet>196</a>    }
-<a href=#197 id=197 data-nosnippet>197</a>}
+<a href=#155 id=155 data-nosnippet>155</a>    <span class="doccomment">///
+<a href=#156 id=156 data-nosnippet>156</a>    /// - `definition`: Trusted provider-neutral tool definition.
+<a href=#157 id=157 data-nosnippet>157</a>    ///
+<a href=#158 id=158 data-nosnippet>158</a>    /// Wire-compatible function tool fields.
+<a href=#159 id=159 data-nosnippet>159</a>    /// # Returns
+<a href=#160 id=160 data-nosnippet>160</a>    /// The operation result.
+<a href=#161 id=161 data-nosnippet>161</a>    </span><span class="kw">fn </span>from_definition(definition: <span class="kw-2">&amp;</span><span class="kw">crate</span>::provider::ToolDefinition) -&gt; <span class="self">Self </span>{
+<a href=#162 id=162 data-nosnippet>162</a>        <span class="self">Self </span>{
+<a href=#163 id=163 data-nosnippet>163</a>            r#type: <span class="string">"function"</span>,
+<a href=#164 id=164 data-nosnippet>164</a>            function: WireFunction {
+<a href=#165 id=165 data-nosnippet>165</a>                name: definition.name.clone(),
+<a href=#166 id=166 data-nosnippet>166</a>                description: definition.description.clone(),
+<a href=#167 id=167 data-nosnippet>167</a>                parameters: provider_schema(<span class="kw-2">&amp;</span>definition.parameters),
+<a href=#168 id=168 data-nosnippet>168</a>            },
+<a href=#169 id=169 data-nosnippet>169</a>        }
+<a href=#170 id=170 data-nosnippet>170</a>    }
+<a href=#171 id=171 data-nosnippet>171</a>}
+<a href=#172 id=172 data-nosnippet>172</a>
+<a href=#173 id=173 data-nosnippet>173</a><span class="doccomment">/// Removes Scriberig-only sensitivity annotations from provider schemas.
+<a href=#174 id=174 data-nosnippet>174</a>///
+<a href=#175 id=175 data-nosnippet>175</a>/// - `schema`: Trusted schema used for local presentation redaction.
+<a href=#176 id=176 data-nosnippet>176</a>///
+<a href=#177 id=177 data-nosnippet>177</a>/// Provider-compatible schema without the private `x-sensitive` extension.
+<a href=#178 id=178 data-nosnippet>178</a>/// # Returns
+<a href=#179 id=179 data-nosnippet>179</a>/// The operation result.
+<a href=#180 id=180 data-nosnippet>180</a></span><span class="kw">fn </span>provider_schema(schema: <span class="kw-2">&amp;</span>serde_json::Value) -&gt; serde_json::Value {
+<a href=#181 id=181 data-nosnippet>181</a>    <span class="kw">match </span>schema {
+<a href=#182 id=182 data-nosnippet>182</a>        serde_json::Value::Object(object) =&gt; {
+<a href=#183 id=183 data-nosnippet>183</a>            <span class="kw">let </span><span class="kw-2">mut </span>filtered = serde_json::Map::new();
+<a href=#184 id=184 data-nosnippet>184</a>            <span class="kw">for </span>(key, value) <span class="kw">in </span>object {
+<a href=#185 id=185 data-nosnippet>185</a>                <span class="kw">if </span>key != <span class="string">"x-sensitive" </span>{
+<a href=#186 id=186 data-nosnippet>186</a>                    filtered.insert(key.clone(), provider_schema(value));
+<a href=#187 id=187 data-nosnippet>187</a>                }
+<a href=#188 id=188 data-nosnippet>188</a>            }
+<a href=#189 id=189 data-nosnippet>189</a>            serde_json::Value::Object(filtered)
+<a href=#190 id=190 data-nosnippet>190</a>        }
+<a href=#191 id=191 data-nosnippet>191</a>        serde_json::Value::Array(items) =&gt; {
+<a href=#192 id=192 data-nosnippet>192</a>            serde_json::Value::Array(items.iter().map(provider_schema).collect())
+<a href=#193 id=193 data-nosnippet>193</a>        }
+<a href=#194 id=194 data-nosnippet>194</a>        value =&gt; value.clone(),
+<a href=#195 id=195 data-nosnippet>195</a>    }
+<a href=#196 id=196 data-nosnippet>196</a>}
 </code></pre></div></section></main></body></html>

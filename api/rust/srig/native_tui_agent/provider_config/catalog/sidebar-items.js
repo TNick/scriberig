@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["from_environment","from_json"],"struct":["CatalogInput","ModelInput","ProviderCatalog","ThinkingLevelInput"]};
+window.SIDEBAR_ITEMS = {"fn":["from_environment","from_json"],"struct":["CatalogInput","ConnectionInput","ModelInput","ProviderCatalog","ProviderConnection","ThinkingLevelInput"]};

@@ -11,14 +11,14 @@
 <a href=#11 id=11 data-nosnippet>11</a>    </span><span class="kw">pub </span>comments: Vec&lt;RustComment&gt;,
 <a href=#12 id=12 data-nosnippet>12</a>}
 <a href=#13 id=13 data-nosnippet>13</a>
-<a href=#14 id=14 data-nosnippet>14</a><span class="doccomment">/// Parsed Rust declaration.
-<a href=#15 id=15 data-nosnippet>15</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#14 id=14 data-nosnippet>14</a><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#15 id=15 data-nosnippet>15</a></span><span class="doccomment">/// Represents a parsed top-level item in a Rust source module.
 <a href=#16 id=16 data-nosnippet>16</a></span><span class="kw">pub enum </span>RustItem {
-<a href=#17 id=17 data-nosnippet>17</a>    <span class="doccomment">/// Function declaration.
+<a href=#17 id=17 data-nosnippet>17</a>    <span class="doccomment">/// Function declaration with parsed signature and body syntax.
 <a href=#18 id=18 data-nosnippet>18</a>    </span>Function(RustFunction),
-<a href=#19 id=19 data-nosnippet>19</a>    <span class="doccomment">/// Struct declaration.
+<a href=#19 id=19 data-nosnippet>19</a>    <span class="doccomment">/// Structure declaration with parsed semantic members.
 <a href=#20 id=20 data-nosnippet>20</a>    </span>Struct(RustDeclaration),
-<a href=#21 id=21 data-nosnippet>21</a>    <span class="doccomment">/// Enum declaration.
+<a href=#21 id=21 data-nosnippet>21</a>    <span class="doccomment">/// Enumeration declaration with parsed variants.
 <a href=#22 id=22 data-nosnippet>22</a>    </span>Enum(RustDeclaration),
 <a href=#23 id=23 data-nosnippet>23</a>    <span class="doccomment">/// Implementation block.
 <a href=#24 id=24 data-nosnippet>24</a>    </span>Impl(RustDeclaration),

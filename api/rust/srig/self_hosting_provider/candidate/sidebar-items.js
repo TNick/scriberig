@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["candidate_effects","effect","project_proposal"]};
+window.SIDEBAR_ITEMS = {"fn":["candidate_create_effects","candidate_effects","candidate_update_effects","effect","project_proposal"]};

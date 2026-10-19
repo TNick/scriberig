@@ -18,24 +18,24 @@
 <a href=#18 id=18 data-nosnippet>18</a>
 <a href=#19 id=19 data-nosnippet>19</a><span class="doccomment">/// Extracts named modules, types, functions, and methods from Rust source.
 <a href=#20 id=20 data-nosnippet>20</a>///
-<a href=#21 id=21 data-nosnippet>21</a>/// # Parameters
-<a href=#22 id=22 data-nosnippet>22</a>/// - `source`: Rust source text to parse.
-<a href=#23 id=23 data-nosnippet>23</a>///
-<a href=#24 id=24 data-nosnippet>24</a>/// # Returns
-<a href=#25 id=25 data-nosnippet>25</a>/// Named symbols in source order.
-<a href=#26 id=26 data-nosnippet>26</a>///
-<a href=#27 id=27 data-nosnippet>27</a>/// # Errors
-<a href=#28 id=28 data-nosnippet>28</a>/// Returns the parser diagnostic when the source is not valid Rust.
-<a href=#29 id=29 data-nosnippet>29</a></span><span class="kw">pub fn </span>named_symbols(source: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;NamedRustSymbol&gt;, String&gt; {
-<a href=#30 id=30 data-nosnippet>30</a>    <span class="kw">let </span>file = syn::parse_file(source).map_err(|error| error.to_string())<span class="question-mark">?</span>;
-<a href=#31 id=31 data-nosnippet>31</a>    <span class="kw">let </span><span class="kw-2">mut </span>symbols = Vec::new();
-<a href=#32 id=32 data-nosnippet>32</a>    collect_items(source, <span class="kw-2">&amp;</span>file.items, <span class="string">""</span>, <span class="kw-2">&amp;mut </span>symbols);
-<a href=#33 id=33 data-nosnippet>33</a>    <span class="prelude-val">Ok</span>(symbols)
-<a href=#34 id=34 data-nosnippet>34</a>}
-<a href=#35 id=35 data-nosnippet>35</a>
-<a href=#36 id=36 data-nosnippet>36</a><span class="doccomment">/// Walks a list of Rust items and records named declarations.
-<a href=#37 id=37 data-nosnippet>37</a>///
-<a href=#38 id=38 data-nosnippet>38</a>/// # Parameters
+<a href=#21 id=21 data-nosnippet>21</a>/// - `source`: Rust source text to parse.
+<a href=#22 id=22 data-nosnippet>22</a>///
+<a href=#23 id=23 data-nosnippet>23</a>/// Named symbols in source order.
+<a href=#24 id=24 data-nosnippet>24</a>///
+<a href=#25 id=25 data-nosnippet>25</a>/// Returns the parser diagnostic when the source is not valid Rust.
+<a href=#26 id=26 data-nosnippet>26</a>/// # Returns
+<a href=#27 id=27 data-nosnippet>27</a>/// The operation result.
+<a href=#28 id=28 data-nosnippet>28</a>/// # Errors
+<a href=#29 id=29 data-nosnippet>29</a>/// Returns an error when the operation fails.
+<a href=#30 id=30 data-nosnippet>30</a></span><span class="kw">pub fn </span>named_symbols(source: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;NamedRustSymbol&gt;, String&gt; {
+<a href=#31 id=31 data-nosnippet>31</a>    <span class="kw">let </span>file = syn::parse_file(source).map_err(|error| error.to_string())<span class="question-mark">?</span>;
+<a href=#32 id=32 data-nosnippet>32</a>    <span class="kw">let </span><span class="kw-2">mut </span>symbols = Vec::new();
+<a href=#33 id=33 data-nosnippet>33</a>    collect_items(source, <span class="kw-2">&amp;</span>file.items, <span class="string">""</span>, <span class="kw-2">&amp;mut </span>symbols);
+<a href=#34 id=34 data-nosnippet>34</a>    <span class="prelude-val">Ok</span>(symbols)
+<a href=#35 id=35 data-nosnippet>35</a>}
+<a href=#36 id=36 data-nosnippet>36</a>
+<a href=#37 id=37 data-nosnippet>37</a><span class="doccomment">/// Walks a list of Rust items and records named declarations.
+<a href=#38 id=38 data-nosnippet>38</a>///
 <a href=#39 id=39 data-nosnippet>39</a>/// - `source`: Source text used for ranges.
 <a href=#40 id=40 data-nosnippet>40</a>/// - `items`: Rust items to walk.
 <a href=#41 id=41 data-nosnippet>41</a>/// - `prefix`: Parent semantic key.
@@ -83,93 +83,92 @@
 <a href=#83 id=83 data-nosnippet>83</a>
 <a href=#84 id=84 data-nosnippet>84</a><span class="doccomment">/// Appends a symbol with a deterministic name range.
 <a href=#85 id=85 data-nosnippet>85</a>///
-<a href=#86 id=86 data-nosnippet>86</a>/// # Parameters
-<a href=#87 id=87 data-nosnippet>87</a>/// - `source`: Source text used for ranges.
-<a href=#88 id=88 data-nosnippet>88</a>/// - `kind`: Semantic kind label.
-<a href=#89 id=89 data-nosnippet>89</a>/// - `name`: Human-readable declaration name.
-<a href=#90 id=90 data-nosnippet>90</a>/// - `key`: Hierarchical semantic key.
-<a href=#91 id=91 data-nosnippet>91</a>/// - `symbols`: Output symbol collection.
-<a href=#92 id=92 data-nosnippet>92</a></span><span class="kw">fn </span>push_symbol(
-<a href=#93 id=93 data-nosnippet>93</a>    source: <span class="kw-2">&amp;</span>str,
-<a href=#94 id=94 data-nosnippet>94</a>    kind: <span class="kw-2">&amp;</span>str,
-<a href=#95 id=95 data-nosnippet>95</a>    name: <span class="kw-2">&amp;</span>str,
-<a href=#96 id=96 data-nosnippet>96</a>    key: <span class="kw-2">&amp;</span>str,
-<a href=#97 id=97 data-nosnippet>97</a>    symbols: <span class="kw-2">&amp;mut </span>Vec&lt;NamedRustSymbol&gt;,
-<a href=#98 id=98 data-nosnippet>98</a>) {
-<a href=#99 id=99 data-nosnippet>99</a>    <span class="kw">let </span>start = source.find(name).unwrap_or(<span class="number">0</span>);
-<a href=#100 id=100 data-nosnippet>100</a>    <span class="kw">let </span>key = unique_key(key, symbols);
-<a href=#101 id=101 data-nosnippet>101</a>    symbols.push(NamedRustSymbol {
-<a href=#102 id=102 data-nosnippet>102</a>        kind: kind.to_owned(),
-<a href=#103 id=103 data-nosnippet>103</a>        name: name.to_owned(),
-<a href=#104 id=104 data-nosnippet>104</a>        key,
-<a href=#105 id=105 data-nosnippet>105</a>        range: (start, start.saturating_add(name.len())),
-<a href=#106 id=106 data-nosnippet>106</a>    });
-<a href=#107 id=107 data-nosnippet>107</a>}
-<a href=#108 id=108 data-nosnippet>108</a>
-<a href=#109 id=109 data-nosnippet>109</a><span class="doccomment">/// Makes a repeated semantic key unique within one source file.
-<a href=#110 id=110 data-nosnippet>110</a>///
-<a href=#111 id=111 data-nosnippet>111</a>/// # Parameters
-<a href=#112 id=112 data-nosnippet>112</a>/// - `key`: Preferred semantic key.
-<a href=#113 id=113 data-nosnippet>113</a>/// - `symbols`: Symbols already extracted from the source file.
-<a href=#114 id=114 data-nosnippet>114</a>///
-<a href=#115 id=115 data-nosnippet>115</a>/// # Returns
-<a href=#116 id=116 data-nosnippet>116</a>/// The preferred key or a deterministic occurrence-suffixed variant.
-<a href=#117 id=117 data-nosnippet>117</a></span><span class="kw">fn </span>unique_key(key: <span class="kw-2">&amp;</span>str, symbols: <span class="kw-2">&amp;</span>[NamedRustSymbol]) -&gt; String {
-<a href=#118 id=118 data-nosnippet>118</a>    <span class="kw">if </span>!symbols.iter().any(|symbol| symbol.key == key) {
-<a href=#119 id=119 data-nosnippet>119</a>        <span class="kw">return </span>key.to_owned();
-<a href=#120 id=120 data-nosnippet>120</a>    }
-<a href=#121 id=121 data-nosnippet>121</a>    <span class="kw">let </span><span class="kw-2">mut </span>occurrence = <span class="number">2</span>;
-<a href=#122 id=122 data-nosnippet>122</a>    <span class="kw">loop </span>{
-<a href=#123 id=123 data-nosnippet>123</a>        <span class="kw">let </span>candidate = <span class="macro">format!</span>(<span class="string">"{key}#{occurrence}"</span>);
-<a href=#124 id=124 data-nosnippet>124</a>        <span class="kw">if </span>!symbols.iter().any(|symbol| symbol.key == candidate) {
-<a href=#125 id=125 data-nosnippet>125</a>            <span class="kw">return </span>candidate;
-<a href=#126 id=126 data-nosnippet>126</a>        }
-<a href=#127 id=127 data-nosnippet>127</a>        occurrence += <span class="number">1</span>;
-<a href=#128 id=128 data-nosnippet>128</a>    }
-<a href=#129 id=129 data-nosnippet>129</a>}
-<a href=#130 id=130 data-nosnippet>130</a>
-<a href=#131 id=131 data-nosnippet>131</a><span class="doccomment">/// Joins one semantic path component.
-<a href=#132 id=132 data-nosnippet>132</a>///
-<a href=#133 id=133 data-nosnippet>133</a>/// # Parameters
-<a href=#134 id=134 data-nosnippet>134</a>/// - `prefix`: Existing semantic path.
-<a href=#135 id=135 data-nosnippet>135</a>/// - `name`: New path component.
-<a href=#136 id=136 data-nosnippet>136</a>///
-<a href=#137 id=137 data-nosnippet>137</a>/// # Returns
-<a href=#138 id=138 data-nosnippet>138</a>/// The joined semantic path.
-<a href=#139 id=139 data-nosnippet>139</a></span><span class="kw">fn </span>join_key(prefix: <span class="kw-2">&amp;</span>str, name: <span class="kw-2">&amp;</span>str) -&gt; String {
-<a href=#140 id=140 data-nosnippet>140</a>    <span class="kw">if </span>prefix.is_empty() {
-<a href=#141 id=141 data-nosnippet>141</a>        name.to_owned()
-<a href=#142 id=142 data-nosnippet>142</a>    } <span class="kw">else </span>{
-<a href=#143 id=143 data-nosnippet>143</a>        <span class="macro">format!</span>(<span class="string">"{prefix}::{name}"</span>)
-<a href=#144 id=144 data-nosnippet>144</a>    }
-<a href=#145 id=145 data-nosnippet>145</a>}
-<a href=#146 id=146 data-nosnippet>146</a>
-<a href=#147 id=147 data-nosnippet>147</a><span class="attr">#[cfg(test)]
-<a href=#148 id=148 data-nosnippet>148</a></span><span class="kw">mod </span>tests {
-<a href=#149 id=149 data-nosnippet>149</a>    <span class="kw">use </span><span class="kw">super</span>::named_symbols;
-<a href=#150 id=150 data-nosnippet>150</a>
-<a href=#151 id=151 data-nosnippet>151</a>    <span class="doccomment">/// Extracts the stable names used by the golden Rust fixture.
-<a href=#152 id=152 data-nosnippet>152</a>    </span><span class="attr">#[test]
-<a href=#153 id=153 data-nosnippet>153</a>    </span><span class="kw">fn </span>extracts_nested_named_symbols() {
-<a href=#154 id=154 data-nosnippet>154</a>        <span class="kw">let </span>source = <span class="string">"pub mod math { pub struct Calculator; impl Calculator { pub fn add(&amp;self, left: i32, right: i32) -&gt; i32 { left + right } } }"</span>;
-<a href=#155 id=155 data-nosnippet>155</a>        <span class="kw">let </span>symbols = named_symbols(source).expect(<span class="string">"valid Rust"</span>);
-<a href=#156 id=156 data-nosnippet>156</a>        <span class="macro">assert!</span>(symbols.iter().any(|value| value.name == <span class="string">"math"</span>));
-<a href=#157 id=157 data-nosnippet>157</a>        <span class="macro">assert!</span>(symbols.iter().any(|value| value.name == <span class="string">"Calculator"</span>));
-<a href=#158 id=158 data-nosnippet>158</a>        <span class="macro">assert!</span>(symbols.iter().any(|value| value.name == <span class="string">"add"</span>));
-<a href=#159 id=159 data-nosnippet>159</a>    }
-<a href=#160 id=160 data-nosnippet>160</a>
-<a href=#161 id=161 data-nosnippet>161</a>    <span class="doccomment">/// Disambiguates repeated semantic declarations without dropping either one.
-<a href=#162 id=162 data-nosnippet>162</a>    </span><span class="attr">#[test]
-<a href=#163 id=163 data-nosnippet>163</a>    </span><span class="kw">fn </span>disambiguates_repeated_named_symbols() {
-<a href=#164 id=164 data-nosnippet>164</a>        <span class="kw">let </span>source = <span class="string">"struct Calculator; impl Calculator { fn add(&amp;self) {} } impl Calculator { fn add(&amp;self) {} }"</span>;
-<a href=#165 id=165 data-nosnippet>165</a>        <span class="kw">let </span>symbols = named_symbols(source).expect(<span class="string">"valid Rust"</span>);
-<a href=#166 id=166 data-nosnippet>166</a>        <span class="kw">let </span>methods = symbols
-<a href=#167 id=167 data-nosnippet>167</a>            .iter()
-<a href=#168 id=168 data-nosnippet>168</a>            .filter(|value| value.name == <span class="string">"add"</span>)
-<a href=#169 id=169 data-nosnippet>169</a>            .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
-<a href=#170 id=170 data-nosnippet>170</a>        <span class="macro">assert_eq!</span>(methods.len(), <span class="number">2</span>);
-<a href=#171 id=171 data-nosnippet>171</a>        <span class="macro">assert_eq!</span>(methods[<span class="number">0</span>].key, <span class="string">"Calculator::add"</span>);
-<a href=#172 id=172 data-nosnippet>172</a>        <span class="macro">assert_eq!</span>(methods[<span class="number">1</span>].key, <span class="string">"Calculator::add#2"</span>);
-<a href=#173 id=173 data-nosnippet>173</a>    }
-<a href=#174 id=174 data-nosnippet>174</a>}
+<a href=#86 id=86 data-nosnippet>86</a>/// - `source`: Source text used for ranges.
+<a href=#87 id=87 data-nosnippet>87</a>/// - `kind`: Semantic kind label.
+<a href=#88 id=88 data-nosnippet>88</a>/// - `name`: Human-readable declaration name.
+<a href=#89 id=89 data-nosnippet>89</a>/// - `key`: Hierarchical semantic key.
+<a href=#90 id=90 data-nosnippet>90</a>/// - `symbols`: Output symbol collection.
+<a href=#91 id=91 data-nosnippet>91</a></span><span class="kw">fn </span>push_symbol(
+<a href=#92 id=92 data-nosnippet>92</a>    source: <span class="kw-2">&amp;</span>str,
+<a href=#93 id=93 data-nosnippet>93</a>    kind: <span class="kw-2">&amp;</span>str,
+<a href=#94 id=94 data-nosnippet>94</a>    name: <span class="kw-2">&amp;</span>str,
+<a href=#95 id=95 data-nosnippet>95</a>    key: <span class="kw-2">&amp;</span>str,
+<a href=#96 id=96 data-nosnippet>96</a>    symbols: <span class="kw-2">&amp;mut </span>Vec&lt;NamedRustSymbol&gt;,
+<a href=#97 id=97 data-nosnippet>97</a>) {
+<a href=#98 id=98 data-nosnippet>98</a>    <span class="kw">let </span>start = source.find(name).unwrap_or(<span class="number">0</span>);
+<a href=#99 id=99 data-nosnippet>99</a>    <span class="kw">let </span>key = unique_key(key, symbols);
+<a href=#100 id=100 data-nosnippet>100</a>    symbols.push(NamedRustSymbol {
+<a href=#101 id=101 data-nosnippet>101</a>        kind: kind.to_owned(),
+<a href=#102 id=102 data-nosnippet>102</a>        name: name.to_owned(),
+<a href=#103 id=103 data-nosnippet>103</a>        key,
+<a href=#104 id=104 data-nosnippet>104</a>        range: (start, start.saturating_add(name.len())),
+<a href=#105 id=105 data-nosnippet>105</a>    });
+<a href=#106 id=106 data-nosnippet>106</a>}
+<a href=#107 id=107 data-nosnippet>107</a>
+<a href=#108 id=108 data-nosnippet>108</a><span class="doccomment">/// Makes a repeated semantic key unique within one source file.
+<a href=#109 id=109 data-nosnippet>109</a>///
+<a href=#110 id=110 data-nosnippet>110</a>/// - `key`: Preferred semantic key.
+<a href=#111 id=111 data-nosnippet>111</a>/// - `symbols`: Symbols already extracted from the source file.
+<a href=#112 id=112 data-nosnippet>112</a>///
+<a href=#113 id=113 data-nosnippet>113</a>/// The preferred key or a deterministic occurrence-suffixed variant.
+<a href=#114 id=114 data-nosnippet>114</a>/// # Returns
+<a href=#115 id=115 data-nosnippet>115</a>/// The operation result.
+<a href=#116 id=116 data-nosnippet>116</a></span><span class="kw">fn </span>unique_key(key: <span class="kw-2">&amp;</span>str, symbols: <span class="kw-2">&amp;</span>[NamedRustSymbol]) -&gt; String {
+<a href=#117 id=117 data-nosnippet>117</a>    <span class="kw">if </span>!symbols.iter().any(|symbol| symbol.key == key) {
+<a href=#118 id=118 data-nosnippet>118</a>        <span class="kw">return </span>key.to_owned();
+<a href=#119 id=119 data-nosnippet>119</a>    }
+<a href=#120 id=120 data-nosnippet>120</a>    <span class="kw">let </span><span class="kw-2">mut </span>occurrence = <span class="number">2</span>;
+<a href=#121 id=121 data-nosnippet>121</a>    <span class="kw">loop </span>{
+<a href=#122 id=122 data-nosnippet>122</a>        <span class="kw">let </span>candidate = <span class="macro">format!</span>(<span class="string">"{key}#{occurrence}"</span>);
+<a href=#123 id=123 data-nosnippet>123</a>        <span class="kw">if </span>!symbols.iter().any(|symbol| symbol.key == candidate) {
+<a href=#124 id=124 data-nosnippet>124</a>            <span class="kw">return </span>candidate;
+<a href=#125 id=125 data-nosnippet>125</a>        }
+<a href=#126 id=126 data-nosnippet>126</a>        occurrence += <span class="number">1</span>;
+<a href=#127 id=127 data-nosnippet>127</a>    }
+<a href=#128 id=128 data-nosnippet>128</a>}
+<a href=#129 id=129 data-nosnippet>129</a>
+<a href=#130 id=130 data-nosnippet>130</a><span class="doccomment">/// Joins one semantic path component.
+<a href=#131 id=131 data-nosnippet>131</a>///
+<a href=#132 id=132 data-nosnippet>132</a>/// - `prefix`: Existing semantic path.
+<a href=#133 id=133 data-nosnippet>133</a>/// - `name`: New path component.
+<a href=#134 id=134 data-nosnippet>134</a>///
+<a href=#135 id=135 data-nosnippet>135</a>/// The joined semantic path.
+<a href=#136 id=136 data-nosnippet>136</a>/// # Returns
+<a href=#137 id=137 data-nosnippet>137</a>/// The operation result.
+<a href=#138 id=138 data-nosnippet>138</a></span><span class="kw">fn </span>join_key(prefix: <span class="kw-2">&amp;</span>str, name: <span class="kw-2">&amp;</span>str) -&gt; String {
+<a href=#139 id=139 data-nosnippet>139</a>    <span class="kw">if </span>prefix.is_empty() {
+<a href=#140 id=140 data-nosnippet>140</a>        name.to_owned()
+<a href=#141 id=141 data-nosnippet>141</a>    } <span class="kw">else </span>{
+<a href=#142 id=142 data-nosnippet>142</a>        <span class="macro">format!</span>(<span class="string">"{prefix}::{name}"</span>)
+<a href=#143 id=143 data-nosnippet>143</a>    }
+<a href=#144 id=144 data-nosnippet>144</a>}
+<a href=#145 id=145 data-nosnippet>145</a>
+<a href=#146 id=146 data-nosnippet>146</a><span class="attr">#[cfg(test)]
+<a href=#147 id=147 data-nosnippet>147</a></span><span class="kw">mod </span>tests {
+<a href=#148 id=148 data-nosnippet>148</a>    <span class="kw">use </span><span class="kw">super</span>::named_symbols;
+<a href=#149 id=149 data-nosnippet>149</a>
+<a href=#150 id=150 data-nosnippet>150</a>    <span class="doccomment">/// Extracts the stable names used by the golden Rust fixture.
+<a href=#151 id=151 data-nosnippet>151</a>    </span><span class="attr">#[test]
+<a href=#152 id=152 data-nosnippet>152</a>    </span><span class="kw">fn </span>extracts_nested_named_symbols() {
+<a href=#153 id=153 data-nosnippet>153</a>        <span class="kw">let </span>source = <span class="string">"pub mod math { pub struct Calculator; impl Calculator { pub fn add(&amp;self, left: i32, right: i32) -&gt; i32 { left + right } } }"</span>;
+<a href=#154 id=154 data-nosnippet>154</a>        <span class="kw">let </span>symbols = named_symbols(source).expect(<span class="string">"valid Rust"</span>);
+<a href=#155 id=155 data-nosnippet>155</a>        <span class="macro">assert!</span>(symbols.iter().any(|value| value.name == <span class="string">"math"</span>));
+<a href=#156 id=156 data-nosnippet>156</a>        <span class="macro">assert!</span>(symbols.iter().any(|value| value.name == <span class="string">"Calculator"</span>));
+<a href=#157 id=157 data-nosnippet>157</a>        <span class="macro">assert!</span>(symbols.iter().any(|value| value.name == <span class="string">"add"</span>));
+<a href=#158 id=158 data-nosnippet>158</a>    }
+<a href=#159 id=159 data-nosnippet>159</a>
+<a href=#160 id=160 data-nosnippet>160</a>    <span class="doccomment">/// Disambiguates repeated semantic declarations without dropping either one.
+<a href=#161 id=161 data-nosnippet>161</a>    </span><span class="attr">#[test]
+<a href=#162 id=162 data-nosnippet>162</a>    </span><span class="kw">fn </span>disambiguates_repeated_named_symbols() {
+<a href=#163 id=163 data-nosnippet>163</a>        <span class="kw">let </span>source = <span class="string">"struct Calculator; impl Calculator { fn add(&amp;self) {} } impl Calculator { fn add(&amp;self) {} }"</span>;
+<a href=#164 id=164 data-nosnippet>164</a>        <span class="kw">let </span>symbols = named_symbols(source).expect(<span class="string">"valid Rust"</span>);
+<a href=#165 id=165 data-nosnippet>165</a>        <span class="kw">let </span>methods = symbols
+<a href=#166 id=166 data-nosnippet>166</a>            .iter()
+<a href=#167 id=167 data-nosnippet>167</a>            .filter(|value| value.name == <span class="string">"add"</span>)
+<a href=#168 id=168 data-nosnippet>168</a>            .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+<a href=#169 id=169 data-nosnippet>169</a>        <span class="macro">assert_eq!</span>(methods.len(), <span class="number">2</span>);
+<a href=#170 id=170 data-nosnippet>170</a>        <span class="macro">assert_eq!</span>(methods[<span class="number">0</span>].key, <span class="string">"Calculator::add"</span>);
+<a href=#171 id=171 data-nosnippet>171</a>        <span class="macro">assert_eq!</span>(methods[<span class="number">1</span>].key, <span class="string">"Calculator::add#2"</span>);
+<a href=#172 id=172 data-nosnippet>172</a>    }
+<a href=#173 id=173 data-nosnippet>173</a>}
 </code></pre></div></section></main></body></html>

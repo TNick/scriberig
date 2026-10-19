@@ -3,23 +3,24 @@
 <a href=#3 id=3 data-nosnippet>3</a><span class="kw">use </span>scriberig_schema::{DomainDescriptor, DomainId, SchemaVersion};
 <a href=#4 id=4 data-nosnippet>4</a><span class="doccomment">/// Returns the deterministic shared code schema.
 <a href=#5 id=5 data-nosnippet>5</a>///
-<a href=#6 id=6 data-nosnippet>6</a>/// # Returns
-<a href=#7 id=7 data-nosnippet>7</a>/// Domain descriptor.
-<a href=#8 id=8 data-nosnippet>8</a>///
-<a href=#9 id=9 data-nosnippet>9</a>/// # Panics
-<a href=#10 id=10 data-nosnippet>10</a>/// Panics only if a static identifier is invalid.
-<a href=#11 id=11 data-nosnippet>11</a></span><span class="attr">#[must_use]
-<a href=#12 id=12 data-nosnippet>12</a></span><span class="kw">pub fn </span>code_schema() -&gt; DomainDescriptor {
-<a href=#13 id=13 data-nosnippet>13</a>    DomainDescriptor {
-<a href=#14 id=14 data-nosnippet>14</a>        id: DomainId::new(<span class="string">"code"</span>).expect(<span class="string">"static domain"</span>),
-<a href=#15 id=15 data-nosnippet>15</a>        name: <span class="string">"Code"</span>.to_owned(),
-<a href=#16 id=16 data-nosnippet>16</a>        schema_version: SchemaVersion::new(<span class="number">1</span>),
-<a href=#17 id=17 data-nosnippet>17</a>        entity_types: ENTITY_TYPES
-<a href=#18 id=18 data-nosnippet>18</a>            .iter()
-<a href=#19 id=19 data-nosnippet>19</a>            .map(|name| scriberig_core::ObjectType::new(<span class="kw-2">*</span>name).expect(<span class="string">"static type"</span>))
-<a href=#20 id=20 data-nosnippet>20</a>            .collect(),
-<a href=#21 id=21 data-nosnippet>21</a>        relation_types: RELATIONS.iter().map(|name| (<span class="kw-2">*</span>name).to_owned()).collect(),
-<a href=#22 id=22 data-nosnippet>22</a>        capabilities: Vec::new(),
-<a href=#23 id=23 data-nosnippet>23</a>    }
-<a href=#24 id=24 data-nosnippet>24</a>}
+<a href=#6 id=6 data-nosnippet>6</a>/// Domain descriptor.
+<a href=#7 id=7 data-nosnippet>7</a>///
+<a href=#8 id=8 data-nosnippet>8</a>/// # Panics
+<a href=#9 id=9 data-nosnippet>9</a>/// Panics only if a static identifier is invalid.
+<a href=#10 id=10 data-nosnippet>10</a></span><span class="attr">#[must_use]
+<a href=#11 id=11 data-nosnippet>11</a></span><span class="doccomment">/// # Returns
+<a href=#12 id=12 data-nosnippet>12</a>/// The operation result.
+<a href=#13 id=13 data-nosnippet>13</a></span><span class="kw">pub fn </span>code_schema() -&gt; DomainDescriptor {
+<a href=#14 id=14 data-nosnippet>14</a>    DomainDescriptor {
+<a href=#15 id=15 data-nosnippet>15</a>        id: DomainId::new(<span class="string">"code"</span>).expect(<span class="string">"static domain"</span>),
+<a href=#16 id=16 data-nosnippet>16</a>        name: <span class="string">"Code"</span>.to_owned(),
+<a href=#17 id=17 data-nosnippet>17</a>        schema_version: SchemaVersion::new(<span class="number">1</span>),
+<a href=#18 id=18 data-nosnippet>18</a>        entity_types: ENTITY_TYPES
+<a href=#19 id=19 data-nosnippet>19</a>            .iter()
+<a href=#20 id=20 data-nosnippet>20</a>            .map(|name| scriberig_core::ObjectType::new(<span class="kw-2">*</span>name).expect(<span class="string">"static type"</span>))
+<a href=#21 id=21 data-nosnippet>21</a>            .collect(),
+<a href=#22 id=22 data-nosnippet>22</a>        relation_types: RELATIONS.iter().map(|name| (<span class="kw-2">*</span>name).to_owned()).collect(),
+<a href=#23 id=23 data-nosnippet>23</a>        capabilities: Vec::new(),
+<a href=#24 id=24 data-nosnippet>24</a>    }
+<a href=#25 id=25 data-nosnippet>25</a>}
 </code></pre></div></section></main></body></html>

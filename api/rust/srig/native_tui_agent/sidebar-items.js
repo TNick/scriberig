@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["execute_agent","handle_value","parse_workspace_handle","previous_workspace_selection","selection_handles"],"mod":["model_selection","provider_config","workspace"],"struct":["NativeTuiAgentRunner"]};
+window.SIDEBAR_ITEMS = {"fn":["execute_agent","handle_value","parse_workspace_handle","previous_workspace_selection","selection_handles"],"mod":["context","model_selection","plan_worker","provider_config","runner","workspace"],"struct":["NativeTuiAgentRunner"]};

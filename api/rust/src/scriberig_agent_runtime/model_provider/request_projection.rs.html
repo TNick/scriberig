@@ -6,11 +6,11 @@
 <a href=#6 id=6 data-nosnippet>6</a>
 <a href=#7 id=7 data-nosnippet>7</a><span class="doccomment">/// Projects provider-neutral request fields without transport metadata.
 <a href=#8 id=8 data-nosnippet>8</a>///
-<a href=#9 id=9 data-nosnippet>9</a>/// # Parameters
-<a href=#10 id=10 data-nosnippet>10</a>/// - `request`: Normalized request immediately before adapter execution.
-<a href=#11 id=11 data-nosnippet>11</a>///
+<a href=#9 id=9 data-nosnippet>9</a>/// - `request`: Normalized request immediately before adapter execution.
+<a href=#10 id=10 data-nosnippet>10</a>///
+<a href=#11 id=11 data-nosnippet>11</a>/// A bounded request projection containing messages and trusted tool schemas.
 <a href=#12 id=12 data-nosnippet>12</a>/// # Returns
-<a href=#13 id=13 data-nosnippet>13</a>/// A bounded request projection containing messages and trusted tool schemas.
+<a href=#13 id=13 data-nosnippet>13</a>/// The operation result.
 <a href=#14 id=14 data-nosnippet>14</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>capture(request: <span class="kw-2">&amp;</span>ModelRequest) -&gt; scriberig_session::ModelRequestProjection {
 <a href=#15 id=15 data-nosnippet>15</a>    <span class="kw">let </span><span class="kw-2">mut </span>budget = MAX_CAPTURED_CONTENT_CHARS;
 <a href=#16 id=16 data-nosnippet>16</a>    <span class="kw">let </span><span class="kw-2">mut </span>truncated = <span class="bool-val">false</span>;
@@ -68,12 +68,12 @@
 <a href=#68 id=68 data-nosnippet>68</a>
 <a href=#69 id=69 data-nosnippet>69</a><span class="doccomment">/// Copies at most the remaining character budget from one string.
 <a href=#70 id=70 data-nosnippet>70</a>///
-<a href=#71 id=71 data-nosnippet>71</a>/// # Parameters
-<a href=#72 id=72 data-nosnippet>72</a>/// - `value`: Content to copy.
-<a href=#73 id=73 data-nosnippet>73</a>/// - `budget`: Mutable remaining character allowance.
-<a href=#74 id=74 data-nosnippet>74</a>///
+<a href=#71 id=71 data-nosnippet>71</a>/// - `value`: Content to copy.
+<a href=#72 id=72 data-nosnippet>72</a>/// - `budget`: Mutable remaining character allowance.
+<a href=#73 id=73 data-nosnippet>73</a>///
+<a href=#74 id=74 data-nosnippet>74</a>/// The bounded prefix and updated remaining budget.
 <a href=#75 id=75 data-nosnippet>75</a>/// # Returns
-<a href=#76 id=76 data-nosnippet>76</a>/// The bounded prefix and updated remaining budget.
+<a href=#76 id=76 data-nosnippet>76</a>/// The operation result.
 <a href=#77 id=77 data-nosnippet>77</a></span><span class="kw">fn </span>take_bounded(value: <span class="kw-2">&amp;</span>str, budget: <span class="kw-2">&amp;mut </span>usize) -&gt; String {
 <a href=#78 id=78 data-nosnippet>78</a>    <span class="kw">let </span>bounded = value.chars().take(<span class="kw-2">*</span>budget).collect::&lt;String&gt;();
 <a href=#79 id=79 data-nosnippet>79</a>    <span class="kw-2">*</span>budget -= bounded.chars().count();
@@ -112,5 +112,16 @@
 <a href=#112 id=112 data-nosnippet>112</a>        <span class="macro">assert!</span>(!encoded.contains(<span class="string">"authorization"</span>));
 <a href=#113 id=113 data-nosnippet>113</a>        <span class="macro">assert!</span>(encoded.contains(<span class="string">"safe prompt"</span>));
 <a href=#114 id=114 data-nosnippet>114</a>    }
-<a href=#115 id=115 data-nosnippet>115</a>}
+<a href=#115 id=115 data-nosnippet>115</a>
+<a href=#116 id=116 data-nosnippet>116</a>    <span class="doccomment">/// Marks captured prompt detail when its provider-neutral budget truncates.
+<a href=#117 id=117 data-nosnippet>117</a>    </span><span class="attr">#[test]
+<a href=#118 id=118 data-nosnippet>118</a>    </span><span class="kw">fn </span>captured_model_request_detail_is_bounded_and_marks_truncation() {
+<a href=#119 id=119 data-nosnippet>119</a>        <span class="kw">let </span>request = ModelRequest::new(<span class="string">"model-a"</span>, <span class="macro">vec!</span>[ModelMessage::user(<span class="string">"x"</span>.repeat(<span class="number">20_000</span>))]);
+<a href=#120 id=120 data-nosnippet>120</a>
+<a href=#121 id=121 data-nosnippet>121</a>        <span class="kw">let </span>projection = capture(<span class="kw-2">&amp;</span>request);
+<a href=#122 id=122 data-nosnippet>122</a>
+<a href=#123 id=123 data-nosnippet>123</a>        <span class="macro">assert!</span>(projection.truncated);
+<a href=#124 id=124 data-nosnippet>124</a>        <span class="macro">assert_eq!</span>(projection.messages[<span class="number">0</span>].content.chars().count(), <span class="number">15_000</span>);
+<a href=#125 id=125 data-nosnippet>125</a>    }
+<a href=#126 id=126 data-nosnippet>126</a>}
 </code></pre></div></section></main></body></html>

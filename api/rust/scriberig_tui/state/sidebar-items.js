@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ConnectionState","Focus","PromptVisibility","ReasoningVisibility","ToolInvocationVisibility","ToolOutputVisibility"],"fn":["reduce"],"struct":["SessionComposerState","TransientAgentActivity","TuiState"]};
+window.SIDEBAR_ITEMS = {"enum":["ConnectionState","ConversationTarget","Focus","PromptVisibility","ReasoningVisibility","ToolInvocationVisibility","ToolOutputVisibility"],"fn":["reduce"],"struct":["ConversationComposerState","PlanAssignmentTarget","SessionComposerState","TransientAgentActivity","TuiState"]};

@@ -77,37 +77,39 @@
 <a href=#77 id=77 data-nosnippet>77</a></span><span class="kw">pub trait </span>TraverseService {
 <a href=#78 id=78 data-nosnippet>78</a>    <span class="doccomment">/// Lists one snapshot-bound collection.
 <a href=#79 id=79 data-nosnippet>79</a>    ///
-<a href=#80 id=80 data-nosnippet>80</a>    /// # Parameters
-<a href=#81 id=81 data-nosnippet>81</a>    /// - `self`: Read service implementation.
-<a href=#82 id=82 data-nosnippet>82</a>    /// - `request`: Exact collection listing request.
-<a href=#83 id=83 data-nosnippet>83</a>    ///
-<a href=#84 id=84 data-nosnippet>84</a>    /// # Returns
-<a href=#85 id=85 data-nosnippet>85</a>    /// One bounded collection page.
-<a href=#86 id=86 data-nosnippet>86</a>    ///
-<a href=#87 id=87 data-nosnippet>87</a>    /// # Errors
-<a href=#88 id=88 data-nosnippet>88</a>    /// Returns a structured query error when listing is unavailable.
-<a href=#89 id=89 data-nosnippet>89</a>    </span><span class="kw">fn </span>list(<span class="kw-2">&amp;</span><span class="self">self</span>, request: <span class="kw-2">&amp;</span>ListRequest) -&gt; <span class="prelude-ty">Result</span>&lt;ListResult, QueryError&gt;;
-<a href=#90 id=90 data-nosnippet>90</a>
-<a href=#91 id=91 data-nosnippet>91</a>    <span class="doccomment">/// Follows one typed relation in a fixed snapshot.
-<a href=#92 id=92 data-nosnippet>92</a>    ///
-<a href=#93 id=93 data-nosnippet>93</a>    /// # Parameters
+<a href=#80 id=80 data-nosnippet>80</a>    /// - `self`: Read service implementation.
+<a href=#81 id=81 data-nosnippet>81</a>    /// - `request`: Exact collection listing request.
+<a href=#82 id=82 data-nosnippet>82</a>    ///
+<a href=#83 id=83 data-nosnippet>83</a>    /// One bounded collection page.
+<a href=#84 id=84 data-nosnippet>84</a>    ///
+<a href=#85 id=85 data-nosnippet>85</a>    /// Returns a structured query error when listing is unavailable.
+<a href=#86 id=86 data-nosnippet>86</a>    /// # Returns
+<a href=#87 id=87 data-nosnippet>87</a>    /// The operation result.
+<a href=#88 id=88 data-nosnippet>88</a>    /// # Errors
+<a href=#89 id=89 data-nosnippet>89</a>    /// Returns an error when the operation fails.
+<a href=#90 id=90 data-nosnippet>90</a>    </span><span class="kw">fn </span>list(<span class="kw-2">&amp;</span><span class="self">self</span>, request: <span class="kw-2">&amp;</span>ListRequest) -&gt; <span class="prelude-ty">Result</span>&lt;ListResult, QueryError&gt;;
+<a href=#91 id=91 data-nosnippet>91</a>
+<a href=#92 id=92 data-nosnippet>92</a>    <span class="doccomment">/// Follows one typed relation in a fixed snapshot.
+<a href=#93 id=93 data-nosnippet>93</a>    ///
 <a href=#94 id=94 data-nosnippet>94</a>    /// - `self`: Read service implementation.
 <a href=#95 id=95 data-nosnippet>95</a>    /// - `request`: Exact relation traversal request.
 <a href=#96 id=96 data-nosnippet>96</a>    ///
-<a href=#97 id=97 data-nosnippet>97</a>    /// # Returns
-<a href=#98 id=98 data-nosnippet>98</a>    /// One bounded relation page.
-<a href=#99 id=99 data-nosnippet>99</a>    ///
-<a href=#100 id=100 data-nosnippet>100</a>    /// # Errors
-<a href=#101 id=101 data-nosnippet>101</a>    /// Returns a structured query error when traversal or reverse indexing is unavailable.
-<a href=#102 id=102 data-nosnippet>102</a>    </span><span class="kw">fn </span>follow(<span class="kw-2">&amp;</span><span class="self">self</span>, request: <span class="kw-2">&amp;</span>FollowRequest) -&gt; <span class="prelude-ty">Result</span>&lt;FollowResult, QueryError&gt;;
-<a href=#103 id=103 data-nosnippet>103</a>}
-<a href=#104 id=104 data-nosnippet>104</a>
-<a href=#105 id=105 data-nosnippet>105</a><span class="doccomment">/// Combines inspection and traversal services into one read boundary.
-<a href=#106 id=106 data-nosnippet>106</a></span><span class="kw">pub trait </span>ReadService: InspectService + TraverseService {}
-<a href=#107 id=107 data-nosnippet>107</a>
-<a href=#108 id=108 data-nosnippet>108</a><span class="kw">impl</span>&lt;T&gt; ReadService <span class="kw">for </span>T <span class="kw">where </span>T: InspectService + TraverseService {}
+<a href=#97 id=97 data-nosnippet>97</a>    /// One bounded relation page.
+<a href=#98 id=98 data-nosnippet>98</a>    ///
+<a href=#99 id=99 data-nosnippet>99</a>    /// Returns a structured query error when traversal or reverse indexing is unavailable.
+<a href=#100 id=100 data-nosnippet>100</a>    /// # Returns
+<a href=#101 id=101 data-nosnippet>101</a>    /// The operation result.
+<a href=#102 id=102 data-nosnippet>102</a>    /// # Errors
+<a href=#103 id=103 data-nosnippet>103</a>    /// Returns an error when the operation fails.
+<a href=#104 id=104 data-nosnippet>104</a>    </span><span class="kw">fn </span>follow(<span class="kw-2">&amp;</span><span class="self">self</span>, request: <span class="kw-2">&amp;</span>FollowRequest) -&gt; <span class="prelude-ty">Result</span>&lt;FollowResult, QueryError&gt;;
+<a href=#105 id=105 data-nosnippet>105</a>}
+<a href=#106 id=106 data-nosnippet>106</a>
+<a href=#107 id=107 data-nosnippet>107</a><span class="doccomment">/// Combines inspection and traversal services into one read boundary.
+<a href=#108 id=108 data-nosnippet>108</a></span><span class="kw">pub trait </span>ReadService: InspectService + TraverseService {}
 <a href=#109 id=109 data-nosnippet>109</a>
-<a href=#110 id=110 data-nosnippet>110</a><span class="doccomment">/// Keeps snapshot context explicit for APIs that need a standalone reference.
-<a href=#111 id=111 data-nosnippet>111</a></span><span class="attr">#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-<a href=#112 id=112 data-nosnippet>112</a></span><span class="kw">pub struct </span>SnapshotContext(<span class="kw">pub </span>SnapshotRef);
+<a href=#110 id=110 data-nosnippet>110</a><span class="kw">impl</span>&lt;T&gt; ReadService <span class="kw">for </span>T <span class="kw">where </span>T: InspectService + TraverseService {}
+<a href=#111 id=111 data-nosnippet>111</a>
+<a href=#112 id=112 data-nosnippet>112</a><span class="doccomment">/// Keeps snapshot context explicit for APIs that need a standalone reference.
+<a href=#113 id=113 data-nosnippet>113</a></span><span class="attr">#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+<a href=#114 id=114 data-nosnippet>114</a></span><span class="kw">pub struct </span>SnapshotContext(<span class="kw">pub </span>SnapshotRef);
 </code></pre></div></section></main></body></html>

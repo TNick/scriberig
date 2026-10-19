@@ -6,13 +6,13 @@
 <a href=#6 id=6 data-nosnippet>6</a>
 <a href=#7 id=7 data-nosnippet>7</a><span class="doccomment">/// Renders an inspection result as a stable JSON object.
 <a href=#8 id=8 data-nosnippet>8</a>///
-<a href=#9 id=9 data-nosnippet>9</a>/// # Parameters
-<a href=#10 id=10 data-nosnippet>10</a>/// - `result`: Shared application inspection result.
-<a href=#11 id=11 data-nosnippet>11</a>/// - `depth`: Compact or deep trust view.
-<a href=#12 id=12 data-nosnippet>12</a>///
-<a href=#13 id=13 data-nosnippet>13</a>/// # Returns
-<a href=#14 id=14 data-nosnippet>14</a>/// A valid JSON object containing the requested fields.
-<a href=#15 id=15 data-nosnippet>15</a></span><span class="attr">#[must_use]
+<a href=#9 id=9 data-nosnippet>9</a>/// - `result`: Shared application inspection result.
+<a href=#10 id=10 data-nosnippet>10</a>/// - `depth`: Compact or deep trust view.
+<a href=#11 id=11 data-nosnippet>11</a>///
+<a href=#12 id=12 data-nosnippet>12</a>/// A valid JSON object containing the requested fields.
+<a href=#13 id=13 data-nosnippet>13</a></span><span class="attr">#[must_use]
+<a href=#14 id=14 data-nosnippet>14</a></span><span class="doccomment">/// # Returns
+<a href=#15 id=15 data-nosnippet>15</a>/// The operation result.
 <a href=#16 id=16 data-nosnippet>16</a></span><span class="kw">pub fn </span>render_inspection_json(result: <span class="kw-2">&amp;</span>InspectResult, depth: InspectDepth) -&gt; String {
 <a href=#17 id=17 data-nosnippet>17</a>    <span class="kw">let </span><span class="kw-2">mut </span>fields = <span class="macro">vec!</span>[<span class="macro">format!</span>(
 <a href=#18 id=18 data-nosnippet>18</a>        <span class="string">"\"entity\":{}"</span>,
@@ -57,12 +57,12 @@
 <a href=#57 id=57 data-nosnippet>57</a>
 <a href=#58 id=58 data-nosnippet>58</a><span class="doccomment">/// Renders a capability denial as a structured JSON object.
 <a href=#59 id=59 data-nosnippet>59</a>///
-<a href=#60 id=60 data-nosnippet>60</a>/// # Parameters
-<a href=#61 id=61 data-nosnippet>61</a>/// - `denial`: Shared application denial details.
-<a href=#62 id=62 data-nosnippet>62</a>///
-<a href=#63 id=63 data-nosnippet>63</a>/// # Returns
-<a href=#64 id=64 data-nosnippet>64</a>/// Valid JSON containing every denial field without restricted content.
-<a href=#65 id=65 data-nosnippet>65</a></span><span class="attr">#[must_use]
+<a href=#60 id=60 data-nosnippet>60</a>/// - `denial`: Shared application denial details.
+<a href=#61 id=61 data-nosnippet>61</a>///
+<a href=#62 id=62 data-nosnippet>62</a>/// Valid JSON containing every denial field without restricted content.
+<a href=#63 id=63 data-nosnippet>63</a></span><span class="attr">#[must_use]
+<a href=#64 id=64 data-nosnippet>64</a></span><span class="doccomment">/// # Returns
+<a href=#65 id=65 data-nosnippet>65</a>/// The operation result.
 <a href=#66 id=66 data-nosnippet>66</a></span><span class="kw">pub fn </span>render_denial_json(denial: <span class="kw-2">&amp;</span>CapabilityDenial) -&gt; String {
 <a href=#67 id=67 data-nosnippet>67</a>    <span class="kw">let </span>alternatives = denial
 <a href=#68 id=68 data-nosnippet>68</a>        .alternatives
@@ -82,11 +82,11 @@
 <a href=#82 id=82 data-nosnippet>82</a>
 <a href=#83 id=83 data-nosnippet>83</a><span class="doccomment">/// Returns the stable display label for a source kind.
 <a href=#84 id=84 data-nosnippet>84</a>///
-<a href=#85 id=85 data-nosnippet>85</a>/// # Parameters
-<a href=#86 id=86 data-nosnippet>86</a>/// - `source`: Source kind to label.
-<a href=#87 id=87 data-nosnippet>87</a>///
+<a href=#85 id=85 data-nosnippet>85</a>/// - `source`: Source kind to label.
+<a href=#86 id=86 data-nosnippet>86</a>///
+<a href=#87 id=87 data-nosnippet>87</a>/// Stable machine-readable source label.
 <a href=#88 id=88 data-nosnippet>88</a>/// # Returns
-<a href=#89 id=89 data-nosnippet>89</a>/// Stable machine-readable source label.
+<a href=#89 id=89 data-nosnippet>89</a>/// The operation result.
 <a href=#90 id=90 data-nosnippet>90</a></span><span class="kw">fn </span>source_label(source: <span class="kw-2">&amp;</span>SourceKind) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
 <a href=#91 id=91 data-nosnippet>91</a>    <span class="kw">match </span>source {
 <a href=#92 id=92 data-nosnippet>92</a>        SourceKind::Authored =&gt; <span class="string">"authored"</span>,
@@ -99,11 +99,11 @@
 <a href=#99 id=99 data-nosnippet>99</a>
 <a href=#100 id=100 data-nosnippet>100</a><span class="doccomment">/// Returns the stable display label for a validation state.
 <a href=#101 id=101 data-nosnippet>101</a>///
-<a href=#102 id=102 data-nosnippet>102</a>/// # Parameters
-<a href=#103 id=103 data-nosnippet>103</a>/// - `validation`: Validation state to label.
-<a href=#104 id=104 data-nosnippet>104</a>///
+<a href=#102 id=102 data-nosnippet>102</a>/// - `validation`: Validation state to label.
+<a href=#103 id=103 data-nosnippet>103</a>///
+<a href=#104 id=104 data-nosnippet>104</a>/// Stable machine-readable validation label.
 <a href=#105 id=105 data-nosnippet>105</a>/// # Returns
-<a href=#106 id=106 data-nosnippet>106</a>/// Stable machine-readable validation label.
+<a href=#106 id=106 data-nosnippet>106</a>/// The operation result.
 <a href=#107 id=107 data-nosnippet>107</a></span><span class="kw">fn </span>validation_label(validation: <span class="kw-2">&amp;</span>ValidationState) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
 <a href=#108 id=108 data-nosnippet>108</a>    <span class="kw">match </span>validation {
 <a href=#109 id=109 data-nosnippet>109</a>        ValidationState::Current =&gt; <span class="string">"current"</span>,
@@ -115,11 +115,11 @@
 <a href=#115 id=115 data-nosnippet>115</a>
 <a href=#116 id=116 data-nosnippet>116</a><span class="doccomment">/// Escapes a string for inclusion in a JSON string literal.
 <a href=#117 id=117 data-nosnippet>117</a>///
-<a href=#118 id=118 data-nosnippet>118</a>/// # Parameters
-<a href=#119 id=119 data-nosnippet>119</a>/// - `value`: String content to escape.
-<a href=#120 id=120 data-nosnippet>120</a>///
+<a href=#118 id=118 data-nosnippet>118</a>/// - `value`: String content to escape.
+<a href=#119 id=119 data-nosnippet>119</a>///
+<a href=#120 id=120 data-nosnippet>120</a>/// A quoted JSON string literal.
 <a href=#121 id=121 data-nosnippet>121</a>/// # Returns
-<a href=#122 id=122 data-nosnippet>122</a>/// A quoted JSON string literal.
+<a href=#122 id=122 data-nosnippet>122</a>/// The operation result.
 <a href=#123 id=123 data-nosnippet>123</a></span><span class="kw">fn </span>json_string(value: <span class="kw-2">&amp;</span>str) -&gt; String {
 <a href=#124 id=124 data-nosnippet>124</a>    <span class="kw">let </span><span class="kw-2">mut </span>escaped = String::with_capacity(value.len() + <span class="number">2</span>);
 <a href=#125 id=125 data-nosnippet>125</a>    escaped.push(<span class="string">'"'</span>);
