@@ -9,7 +9,7 @@
 <span class="item-spacer"></span>    fn <a href="#tymethod.operation_status" class="fn">operation_status</a>(
         &amp;self,
         operation_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/operation/struct.Operation.html" title="struct scriberig_protocol::operation::Operation">Operation</a>, ApplicationError&gt;;
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt;;
 
     // Provided methods
     fn <a href="#method.migration_detail" class="fn">migration_detail</a>(
@@ -21,76 +21,76 @@
         &amp;self,
         _context: &amp;ApplicationContext,
         _session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/execution/struct.SessionReadResponse.html" title="struct scriberig_protocol::session::execution::SessionReadResponse">SessionReadResponse</a>, ApplicationError&gt; { ... }
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionReadResponse, ApplicationError&gt; { ... }
 <span class="item-spacer"></span>    fn <a href="#method.agent_new_session" class="fn">agent_new_session</a>(
         &amp;self,
         _context: &amp;ApplicationContext,
-        _request: &amp;<a class="struct" href="../../scriberig_protocol/agent/struct.AgentNewSessionRequest.html" title="struct scriberig_protocol::agent::AgentNewSessionRequest">AgentNewSessionRequest</a>,
-    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/agent/struct.AgentAcceptedResponse.html" title="struct scriberig_protocol::agent::AgentAcceptedResponse">AgentAcceptedResponse</a>, ApplicationError&gt; { ... }
+        _request: &amp;AgentNewSessionRequest,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentAcceptedResponse, ApplicationError&gt; { ... }
 <span class="item-spacer"></span>    fn <a href="#method.agent_continue_at" class="fn">agent_continue_at</a>(
         &amp;self,
         _context: &amp;ApplicationContext,
-        _request: &amp;<a class="struct" href="../../scriberig_protocol/agent/struct.AgentContinueAtRequest.html" title="struct scriberig_protocol::agent::AgentContinueAtRequest">AgentContinueAtRequest</a>,
-    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/agent/struct.AgentAcceptedResponse.html" title="struct scriberig_protocol::agent::AgentAcceptedResponse">AgentAcceptedResponse</a>, ApplicationError&gt; { ... }
+        _request: &amp;AgentContinueAtRequest,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentAcceptedResponse, ApplicationError&gt; { ... }
 <span class="item-spacer"></span>    fn <a href="#method.plan_operation" class="fn">plan_operation</a>(
         &amp;self,
         _context: &amp;ApplicationContext,
-        _request: &amp;<a class="enum" href="../../scriberig_protocol/transport/enum.Request.html" title="enum scriberig_protocol::transport::Request">Request</a>,
-    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/plan/struct.SessionPlan.html" title="struct scriberig_protocol::session::plan::SessionPlan">SessionPlan</a>, ApplicationError&gt; { ... }
+        _request: &amp;Request,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionPlan, ApplicationError&gt; { ... }
 <span class="item-spacer"></span>    fn <a href="#method.model_request_detail" class="fn">model_request_detail</a>(
         &amp;self,
         _context: &amp;ApplicationContext,
         _session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
         _branch: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
         _invocation: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/requests/struct.ModelRequestDetailResponse.html" title="struct scriberig_protocol::session::requests::ModelRequestDetailResponse">ModelRequestDetailResponse</a>, ApplicationError&gt; { ... }
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ModelRequestDetailResponse, ApplicationError&gt; { ... }
 <span class="item-spacer"></span>    fn <a href="#method.tool_result_detail" class="fn">tool_result_detail</a>(
         &amp;self,
         _context: &amp;ApplicationContext,
         _session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
         _branch: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
         _result: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/requests/struct.ToolResultDetailResponse.html" title="struct scriberig_protocol::session::requests::ToolResultDetailResponse">ToolResultDetailResponse</a>, ApplicationError&gt; { ... }
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ToolResultDetailResponse, ApplicationError&gt; { ... }
 <span class="item-spacer"></span>    fn <a href="#method.model_library" class="fn">model_library</a>(
         &amp;self,
         _context: &amp;ApplicationContext,
-    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/model/struct.ModelLibraryResponse.html" title="struct scriberig_protocol::model::ModelLibraryResponse">ModelLibraryResponse</a>, ApplicationError&gt; { ... }
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ModelLibraryResponse, ApplicationError&gt; { ... }
 <span class="item-spacer"></span>    fn <a href="#method.agent_presentation_preferences" class="fn">agent_presentation_preferences</a>(
         &amp;self,
         _context: &amp;ApplicationContext,
-    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/presentation/struct.AgentPresentationPreferencesResponse.html" title="struct scriberig_protocol::presentation::AgentPresentationPreferencesResponse">AgentPresentationPreferencesResponse</a>, ApplicationError&gt; { ... }
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentPresentationPreferencesResponse, ApplicationError&gt; { ... }
 <span class="item-spacer"></span>    fn <a href="#method.set_agent_presentation_preferences" class="fn">set_agent_presentation_preferences</a>(
         &amp;self,
         _context: &amp;ApplicationContext,
-        _request: &amp;<a class="struct" href="../../scriberig_protocol/presentation/struct.AgentPresentationPreferencesSetRequest.html" title="struct scriberig_protocol::presentation::AgentPresentationPreferencesSetRequest">AgentPresentationPreferencesSetRequest</a>,
-    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/presentation/struct.AgentPresentationPreferencesResponse.html" title="struct scriberig_protocol::presentation::AgentPresentationPreferencesResponse">AgentPresentationPreferencesResponse</a>, ApplicationError&gt; { ... }
+        _request: &amp;AgentPresentationPreferencesSetRequest,
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentPresentationPreferencesResponse, ApplicationError&gt; { ... }
 <span class="item-spacer"></span>    fn <a href="#method.set_session_model" class="fn">set_session_model</a>(
         &amp;self,
         _context: &amp;ApplicationContext,
         _session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
         _expected_revision: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>,
         _model_profile: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/execution/struct.SessionExecutionSelection.html" title="struct scriberig_protocol::session::execution::SessionExecutionSelection">SessionExecutionSelection</a>, ApplicationError&gt; { ... }
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionExecutionSelection, ApplicationError&gt; { ... }
 <span class="item-spacer"></span>    fn <a href="#method.set_session_thinking_level" class="fn">set_session_thinking_level</a>(
         &amp;self,
         _context: &amp;ApplicationContext,
         _session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
         _expected_revision: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>,
         _thinking_level: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/execution/struct.SessionExecutionSelection.html" title="struct scriberig_protocol::session::execution::SessionExecutionSelection">SessionExecutionSelection</a>, ApplicationError&gt; { ... }
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionExecutionSelection, ApplicationError&gt; { ... }
 <span class="item-spacer"></span>    fn <a href="#method.cancel_operation" class="fn">cancel_operation</a>(
         &amp;self,
         operation_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/operation/struct.Operation.html" title="struct scriberig_protocol::operation::Operation">Operation</a>, ApplicationError&gt; { ... }
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt; { ... }
 <span class="item-spacer"></span>    fn <a href="#method.events" class="fn">events</a>(
         &amp;self,
         _event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>],
-    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../../scriberig_protocol/event/struct.Event.html" title="struct scriberig_protocol::event::Event">Event</a>&gt;, ApplicationError&gt; { ... }
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Event&gt;, ApplicationError&gt; { ... }
 <span class="item-spacer"></span>    fn <a href="#method.events_after" class="fn">events_after</a>(
         &amp;self,
         event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>],
         after: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>,
-    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../../scriberig_protocol/event/struct.Event.html" title="struct scriberig_protocol::event::Event">Event</a>&gt;, ApplicationError&gt; { ... }
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Event&gt;, ApplicationError&gt; { ... }
 <span class="item-spacer"></span>    fn <a href="#method.query" class="fn">query</a>(
         &amp;self,
         _context: &amp;ApplicationContext,
@@ -111,7 +111,7 @@
         _context: &amp;ApplicationContext,
         _kind: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
         _payload: &amp;<a class="enum" href="https://docs.rs/serde_json/1.0.152/serde_json/value/enum.Value.html" title="enum serde_json::value::Value">Value</a>,
-    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/operation/struct.Operation.html" title="struct scriberig_protocol::operation::Operation">Operation</a>, ApplicationError&gt; { ... }
+    ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt; { ... }
 </details>}</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Application semantics supplied to protocol dispatch.</p>
 </div></details><h2 id="required-methods" class="section-header">Required Methods<a href="#required-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="tymethod.inspect" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#66-70">Source</a><h4 class="code-header">fn <a href="#tymethod.inspect" class="fn">inspect</a>(
     &amp;self,
@@ -135,7 +135,7 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="tymethod.operation_status" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#304">Source</a><h4 class="code-header">fn <a href="#tymethod.operation_status" class="fn">operation_status</a>(
     &amp;self,
     operation_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/operation/struct.Operation.html" title="struct scriberig_protocol::operation::Operation">Operation</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Returns one operation status in protocol-independent form.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Returns one operation status in protocol-independent form.</p>
 <ul>
 <li><code>operation_id</code>: Stable operation identity.</li>
 </ul>
@@ -164,7 +164,7 @@
     &amp;self,
     _context: &amp;ApplicationContext,
     _session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/execution/struct.SessionReadResponse.html" title="struct scriberig_protocol::session::execution::SessionReadResponse">SessionReadResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads one compact durable session tree.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionReadResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads one compact durable session tree.</p>
 <ul>
 <li><code>_context</code>: Trusted request context.</li>
 <li><code>_session</code>: Stable session identity.</li>
@@ -178,8 +178,8 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.agent_new_session" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#113-121">Source</a><h4 class="code-header">fn <a href="#method.agent_new_session" class="fn">agent_new_session</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
-    _request: &amp;<a class="struct" href="../../scriberig_protocol/agent/struct.AgentNewSessionRequest.html" title="struct scriberig_protocol::agent::AgentNewSessionRequest">AgentNewSessionRequest</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/agent/struct.AgentAcceptedResponse.html" title="struct scriberig_protocol::agent::AgentAcceptedResponse">AgentAcceptedResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Starts a session through the shared application service.</p>
+    _request: &amp;AgentNewSessionRequest,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentAcceptedResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Starts a session through the shared application service.</p>
 <ul>
 <li><code>_context</code>: Trusted operation context.</li>
 <li><code>_request</code>: Provider-neutral start request.</li>
@@ -193,8 +193,8 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.agent_continue_at" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#135-143">Source</a><h4 class="code-header">fn <a href="#method.agent_continue_at" class="fn">agent_continue_at</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
-    _request: &amp;<a class="struct" href="../../scriberig_protocol/agent/struct.AgentContinueAtRequest.html" title="struct scriberig_protocol::agent::AgentContinueAtRequest">AgentContinueAtRequest</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/agent/struct.AgentAcceptedResponse.html" title="struct scriberig_protocol::agent::AgentAcceptedResponse">AgentAcceptedResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Continues at one exact shared session anchor.</p>
+    _request: &amp;AgentContinueAtRequest,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentAcceptedResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Continues at one exact shared session anchor.</p>
 <ul>
 <li><code>_context</code>: Trusted operation context.</li>
 <li><code>_request</code>: Provider-neutral exact continuation request.</li>
@@ -208,8 +208,8 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.plan_operation" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#157-165">Source</a><h4 class="code-header">fn <a href="#method.plan_operation" class="fn">plan_operation</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
-    _request: &amp;<a class="enum" href="../../scriberig_protocol/transport/enum.Request.html" title="enum scriberig_protocol::transport::Request">Request</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/plan/struct.SessionPlan.html" title="struct scriberig_protocol::session::plan::SessionPlan">SessionPlan</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Applies one typed plan request through shared application operations.</p>
+    _request: &amp;Request,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionPlan, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Applies one typed plan request through shared application operations.</p>
 <ul>
 <li><code>_context</code>: Trusted caller capability context.</li>
 <li><code>_request</code>: Typed plan creation or mutation request.</li>
@@ -226,7 +226,7 @@
     _session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     _branch: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     _invocation: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/requests/struct.ModelRequestDetailResponse.html" title="struct scriberig_protocol::session::requests::ModelRequestDetailResponse">ModelRequestDetailResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads one captured safe request by session, branch, and invocation.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ModelRequestDetailResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads one captured safe request by session, branch, and invocation.</p>
 <ul>
 <li><code>_context</code>: Trusted request context.</li>
 <li><code>_session</code>: Stable session identity.</li>
@@ -245,7 +245,7 @@
     _session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     _branch: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     _result: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/requests/struct.ToolResultDetailResponse.html" title="struct scriberig_protocol::session::requests::ToolResultDetailResponse">ToolResultDetailResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads expanded bounded detail for one durable tool result.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ToolResultDetailResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads expanded bounded detail for one durable tool result.</p>
 <ul>
 <li><code>_context</code>: Trusted request context.</li>
 <li><code>_session</code>: Stable session identity.</li>
@@ -261,7 +261,7 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.model_library" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#230-237">Source</a><h4 class="code-header">fn <a href="#method.model_library" class="fn">model_library</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/model/struct.ModelLibraryResponse.html" title="struct scriberig_protocol::model::ModelLibraryResponse">ModelLibraryResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads safe model descriptors and curated profiles.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ModelLibraryResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads safe model descriptors and curated profiles.</p>
 <ul>
 <li><code>_context</code>: Trusted caller context.</li>
 </ul>
@@ -274,7 +274,7 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.agent_presentation_preferences" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#239">Source</a><h4 class="code-header">fn <a href="#method.agent_presentation_preferences" class="fn">agent_presentation_preferences</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/presentation/struct.AgentPresentationPreferencesResponse.html" title="struct scriberig_protocol::presentation::AgentPresentationPreferencesResponse">AgentPresentationPreferencesResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads shared principal-scoped agent presentation defaults.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentPresentationPreferencesResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads shared principal-scoped agent presentation defaults.</p>
 <ul>
 <li><code>_context</code>: Authorized caller context.</li>
 </ul>
@@ -287,8 +287,8 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.set_agent_presentation_preferences" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#239">Source</a><h4 class="code-header">fn <a href="#method.set_agent_presentation_preferences" class="fn">set_agent_presentation_preferences</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
-    _request: &amp;<a class="struct" href="../../scriberig_protocol/presentation/struct.AgentPresentationPreferencesSetRequest.html" title="struct scriberig_protocol::presentation::AgentPresentationPreferencesSetRequest">AgentPresentationPreferencesSetRequest</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/presentation/struct.AgentPresentationPreferencesResponse.html" title="struct scriberig_protocol::presentation::AgentPresentationPreferencesResponse">AgentPresentationPreferencesResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Updates shared presentation defaults with an expected revision.</p>
+    _request: &amp;AgentPresentationPreferencesSetRequest,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentPresentationPreferencesResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Updates shared presentation defaults with an expected revision.</p>
 <ul>
 <li><code>_context</code>: Authorized caller context.</li>
 <li><code>_request</code>: Expected revision and complete preference values.</li>
@@ -305,7 +305,7 @@
     _session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     _expected_revision: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>,
     _model_profile: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/execution/struct.SessionExecutionSelection.html" title="struct scriberig_protocol::session::execution::SessionExecutionSelection">SessionExecutionSelection</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Changes the model profile used by future session invocations.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionExecutionSelection, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Changes the model profile used by future session invocations.</p>
 <ul>
 <li><code>_context</code>: Trusted caller context.</li>
 <li><code>_session</code>: Stable session identity.</li>
@@ -324,7 +324,7 @@
     _session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     _expected_revision: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>,
     _thinking_level: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/execution/struct.SessionExecutionSelection.html" title="struct scriberig_protocol::session::execution::SessionExecutionSelection">SessionExecutionSelection</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Changes the thinking level used by future session invocations.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionExecutionSelection, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Changes the thinking level used by future session invocations.</p>
 <ul>
 <li><code>_context</code>: Trusted caller context.</li>
 <li><code>_session</code>: Stable session identity.</li>
@@ -340,7 +340,7 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.cancel_operation" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#317-321">Source</a><h4 class="code-header">fn <a href="#method.cancel_operation" class="fn">cancel_operation</a>(
     &amp;self,
     operation_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/operation/struct.Operation.html" title="struct scriberig_protocol::operation::Operation">Operation</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Cancels one tracked operation when the application supports cancellation.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Cancels one tracked operation when the application supports cancellation.</p>
 <ul>
 <li><code>operation_id</code>: Stable operation identity.</li>
 </ul>
@@ -353,7 +353,7 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.events" class="method"><a class="src rightside" href="../../src/scriberig_server/server.rs.html#335-339">Source</a><h4 class="code-header">fn <a href="#method.events" class="fn">events</a>(
     &amp;self,
     _event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>],
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../../scriberig_protocol/event/struct.Event.html" title="struct scriberig_protocol::event::Event">Event</a>&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Returns currently buffered public events matching the requested kinds.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Event&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Returns currently buffered public events matching the requested kinds.</p>
 <ul>
 <li><code>event_kinds</code>: Event kind filters; empty selects all available events.</li>
 </ul>
@@ -370,7 +370,7 @@
     &amp;self,
     event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>],
     after: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../../scriberig_protocol/event/struct.Event.html" title="struct scriberig_protocol::event::Event">Event</a>&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Returns public events after a reconnect cursor.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Event&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Returns public events after a reconnect cursor.</p>
 <ul>
 <li><code>event_kinds</code>: Event kind filters.</li>
 <li><code>after</code>: Last cursor already processed by the caller.</li>
@@ -429,7 +429,7 @@
     _context: &amp;ApplicationContext,
     _kind: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     _payload: &amp;<a class="enum" href="https://docs.rs/serde_json/1.0.152/serde_json/value/enum.Value.html" title="enum serde_json::value::Value">Value</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/operation/struct.Operation.html" title="struct scriberig_protocol::operation::Operation">Operation</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Executes one declared application command and returns its lifecycle state.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Executes one declared application command and returns its lifecycle state.</p>
 <p>Returns an application error when command execution is unavailable.</p>
 <ul>
 <li><code>_context</code>: Argument named <code>_context</code>.</li>
@@ -477,7 +477,7 @@
     &amp;self,
     context: &amp;ApplicationContext,
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/execution/struct.SessionReadResponse.html" title="struct scriberig_protocol::session::execution::SessionReadResponse">SessionReadResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads a compact session tree through the shared session boundary.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionReadResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads a compact session tree through the shared session boundary.</p>
 <ul>
 <li><code>context</code>: Trusted request context.</li>
 <li><code>session</code>: Serialized stable session identity.</li>
@@ -494,7 +494,7 @@
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     branch: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     invocation: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/requests/struct.ModelRequestDetailResponse.html" title="struct scriberig_protocol::session::requests::ModelRequestDetailResponse">ModelRequestDetailResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads a previously captured model request from an authorized session.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ModelRequestDetailResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads a previously captured model request from an authorized session.</p>
 <ul>
 <li><code>context</code>: Trusted request context.</li>
 <li><code>session</code>: Serialized session identity.</li>
@@ -513,7 +513,7 @@
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     branch: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     result: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/requests/struct.ToolResultDetailResponse.html" title="struct scriberig_protocol::session::requests::ToolResultDetailResponse">ToolResultDetailResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads bounded safe tool-result detail from an authorized session.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ToolResultDetailResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads bounded safe tool-result detail from an authorized session.</p>
 <ul>
 <li><code>context</code>: Trusted request context.</li>
 <li><code>session</code>: Serialized session identity.</li>
@@ -529,7 +529,7 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.model_library-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#154">Source</a><a href="#method.model_library-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.model_library" class="fn">model_library</a>(
     &amp;self,
     context: &amp;ApplicationContext,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/model/struct.ModelLibraryResponse.html" title="struct scriberig_protocol::model::ModelLibraryResponse">ModelLibraryResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads safe model descriptors and curated profiles.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ModelLibraryResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads safe model descriptors and curated profiles.</p>
 <ul>
 <li><code>context</code>: Trusted capability context.</li>
 </ul>
@@ -542,7 +542,7 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.agent_presentation_preferences-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#154">Source</a><a href="#method.agent_presentation_preferences-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.agent_presentation_preferences" class="fn">agent_presentation_preferences</a>(
     &amp;self,
     context: &amp;ApplicationContext,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/presentation/struct.AgentPresentationPreferencesResponse.html" title="struct scriberig_protocol::presentation::AgentPresentationPreferencesResponse">AgentPresentationPreferencesResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads shared principal-scoped agent presentation defaults.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentPresentationPreferencesResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads shared principal-scoped agent presentation defaults.</p>
 <ul>
 <li><code>context</code>: Trusted capability and principal context.</li>
 </ul>
@@ -555,8 +555,8 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.set_agent_presentation_preferences-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#154">Source</a><a href="#method.set_agent_presentation_preferences-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.set_agent_presentation_preferences" class="fn">set_agent_presentation_preferences</a>(
     &amp;self,
     context: &amp;ApplicationContext,
-    request: &amp;<a class="struct" href="../../scriberig_protocol/presentation/struct.AgentPresentationPreferencesSetRequest.html" title="struct scriberig_protocol::presentation::AgentPresentationPreferencesSetRequest">AgentPresentationPreferencesSetRequest</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/presentation/struct.AgentPresentationPreferencesResponse.html" title="struct scriberig_protocol::presentation::AgentPresentationPreferencesResponse">AgentPresentationPreferencesResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Replaces shared presentation defaults at an expected revision.</p>
+    request: &amp;AgentPresentationPreferencesSetRequest,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentPresentationPreferencesResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Replaces shared presentation defaults at an expected revision.</p>
 <ul>
 <li><code>context</code>: Trusted capability and principal context.</li>
 <li><code>request</code>: Expected revision and preference values.</li>
@@ -570,8 +570,8 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.agent_new_session-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#155">Source</a><a href="#method.agent_new_session-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.agent_new_session" class="fn">agent_new_session</a>(
     &amp;self,
     context: &amp;ApplicationContext,
-    request: &amp;<a class="struct" href="../../scriberig_protocol/agent/struct.AgentNewSessionRequest.html" title="struct scriberig_protocol::agent::AgentNewSessionRequest">AgentNewSessionRequest</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/agent/struct.AgentAcceptedResponse.html" title="struct scriberig_protocol::agent::AgentAcceptedResponse">AgentAcceptedResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Starts a new session through the shared session service.</p>
+    request: &amp;AgentNewSessionRequest,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentAcceptedResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Starts a new session through the shared session service.</p>
 <h5 id="parameters"><a class="doc-anchor" href="#parameters">§</a>Parameters</h5>
 <ul>
 <li><code>context</code>: Input for this operation.</li>
@@ -584,8 +584,8 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.agent_continue_at-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#155">Source</a><a href="#method.agent_continue_at-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.agent_continue_at" class="fn">agent_continue_at</a>(
     &amp;self,
     context: &amp;ApplicationContext,
-    request: &amp;<a class="struct" href="../../scriberig_protocol/agent/struct.AgentContinueAtRequest.html" title="struct scriberig_protocol::agent::AgentContinueAtRequest">AgentContinueAtRequest</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/agent/struct.AgentAcceptedResponse.html" title="struct scriberig_protocol::agent::AgentAcceptedResponse">AgentAcceptedResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Continues from one exact shared conversation anchor.</p>
+    request: &amp;AgentContinueAtRequest,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentAcceptedResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Continues from one exact shared conversation anchor.</p>
 <h5 id="parameters-1"><a class="doc-anchor" href="#parameters-1">§</a>Parameters</h5>
 <ul>
 <li><code>context</code>: Input for this operation.</li>
@@ -598,8 +598,8 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.plan_operation-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#156">Source</a><a href="#method.plan_operation-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.plan_operation" class="fn">plan_operation</a>(
     &amp;self,
     context: &amp;ApplicationContext,
-    request: &amp;<a class="enum" href="../../scriberig_protocol/transport/enum.Request.html" title="enum scriberig_protocol::transport::Request">Request</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/plan/struct.SessionPlan.html" title="struct scriberig_protocol::session::plan::SessionPlan">SessionPlan</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Applies typed plan operations through the shared application layer.</p>
+    request: &amp;Request,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionPlan, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Applies typed plan operations through the shared application layer.</p>
 <h5 id="parameters-2"><a class="doc-anchor" href="#parameters-2">§</a>Parameters</h5>
 <ul>
 <li><code>context</code>: Input for this operation.</li>
@@ -615,7 +615,7 @@
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     expected_revision: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>,
     model_profile: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/execution/struct.SessionExecutionSelection.html" title="struct scriberig_protocol::session::execution::SessionExecutionSelection">SessionExecutionSelection</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Selects a model profile for future session invocations.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionExecutionSelection, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Selects a model profile for future session invocations.</p>
 <ul>
 <li><code>context</code>: Trusted capability context.</li>
 <li><code>session</code>: Stable session identity.</li>
@@ -634,7 +634,7 @@
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     expected_revision: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>,
     thinking_level: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/execution/struct.SessionExecutionSelection.html" title="struct scriberig_protocol::session::execution::SessionExecutionSelection">SessionExecutionSelection</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Selects a thinking level for future session invocations.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionExecutionSelection, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Selects a thinking level for future session invocations.</p>
 <ul>
 <li><code>context</code>: Trusted capability context.</li>
 <li><code>session</code>: Stable session identity.</li>
@@ -698,7 +698,7 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.operation_status" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#261-268">Source</a><a href="#method.operation_status" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.operation_status" class="fn">operation_status</a>(
     &amp;self,
     operation_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/operation/struct.Operation.html" title="struct scriberig_protocol::operation::Operation">Operation</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads operation state from the shared application lifecycle registry.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads operation state from the shared application lifecycle registry.</p>
 <ul>
 <li><code>self</code>: Shared application service.</li>
 <li><code>operation_id</code>: Requested operation identity.</li>
@@ -711,7 +711,7 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.cancel_operation-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#279-286">Source</a><a href="#method.cancel_operation-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.cancel_operation" class="fn">cancel_operation</a>(
     &amp;self,
     operation_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/operation/struct.Operation.html" title="struct scriberig_protocol::operation::Operation">Operation</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Cancels operation state through the shared application lifecycle registry.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Cancels operation state through the shared application lifecycle registry.</p>
 <ul>
 <li><code>operation_id</code>: Argument named <code>operation_id</code>.</li>
 </ul>
@@ -720,7 +720,7 @@
 <p>The operation result.</p>
 <h5 id="errors-38"><a class="doc-anchor" href="#errors-38">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.events-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#297-309">Source</a><a href="#method.events-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.events" class="fn">events</a>(&amp;self, event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>]) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../../scriberig_protocol/event/struct.Event.html" title="struct scriberig_protocol::event::Event">Event</a>&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Exposes buffered lifecycle events as stable protocol envelopes.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.events-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_application.rs.html#297-309">Source</a><a href="#method.events-1" class="anchor">§</a><h4 class="code-header">fn <a href="#method.events" class="fn">events</a>(&amp;self, event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>]) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Event&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Exposes buffered lifecycle events as stable protocol envelopes.</p>
 <ul>
 <li><code>event_kinds</code>: Argument named <code>event_kinds</code>.</li>
 </ul>
@@ -733,7 +733,7 @@
     &amp;self,
     event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>],
     after: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../../scriberig_protocol/event/struct.Event.html" title="struct scriberig_protocol::event::Event">Event</a>&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Returns retained application events after a reconnect cursor.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Event&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Returns retained application events after a reconnect cursor.</p>
 <ul>
 <li><code>event_kinds</code>: Event kind filters.</li>
 <li><code>after</code>: Last cursor already processed by the caller.</li>
@@ -749,7 +749,7 @@
     context: &amp;ApplicationContext,
     kind: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     payload: &amp;<a class="enum" href="https://docs.rs/serde_json/1.0.152/serde_json/value/enum.Value.html" title="enum serde_json::value::Value">Value</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/operation/struct.Operation.html" title="struct scriberig_protocol::operation::Operation">Operation</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Decodes and executes one command through the shared application boundary.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Decodes and executes one command through the shared application boundary.</p>
 <ul>
 <li><code>context</code>: Trusted request context.</li>
 <li><code>kind</code>: Stable command family.</li>
@@ -797,7 +797,7 @@
     &amp;self,
     context: &amp;ApplicationContext,
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/execution/struct.SessionReadResponse.html" title="struct scriberig_protocol::session::execution::SessionReadResponse">SessionReadResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates compact session reads to the borrowed service.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionReadResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates compact session reads to the borrowed service.</p>
 <ul>
 <li><code>context</code>: Trusted request context.</li>
 <li><code>session</code>: Stable session identity.</li>
@@ -814,7 +814,7 @@
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     branch: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     invocation: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/requests/struct.ModelRequestDetailResponse.html" title="struct scriberig_protocol::session::requests::ModelRequestDetailResponse">ModelRequestDetailResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates model request detail reads to the borrowed service.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ModelRequestDetailResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates model request detail reads to the borrowed service.</p>
 <ul>
 <li><code>context</code>: Trusted request context.</li>
 <li><code>session</code>: Stable session identity.</li>
@@ -833,7 +833,7 @@
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     branch: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     result: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/requests/struct.ToolResultDetailResponse.html" title="struct scriberig_protocol::session::requests::ToolResultDetailResponse">ToolResultDetailResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates tool result detail reads to the borrowed service.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ToolResultDetailResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates tool result detail reads to the borrowed service.</p>
 <ul>
 <li><code>context</code>: Trusted request context.</li>
 <li><code>session</code>: Stable session identity.</li>
@@ -849,7 +849,7 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.model_library-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#135-140">Source</a><a href="#method.model_library-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.model_library" class="fn">model_library</a>(
     &amp;self,
     context: &amp;ApplicationContext,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/model/struct.ModelLibraryResponse.html" title="struct scriberig_protocol::model::ModelLibraryResponse">ModelLibraryResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates model-library reads to the borrowed service.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;ModelLibraryResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates model-library reads to the borrowed service.</p>
 <ul>
 <li><code>context</code>: Trusted caller context.</li>
 </ul>
@@ -862,7 +862,7 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.agent_presentation_preferences-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#153-158">Source</a><a href="#method.agent_presentation_preferences-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.agent_presentation_preferences" class="fn">agent_presentation_preferences</a>(
     &amp;self,
     context: &amp;ApplicationContext,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/presentation/struct.AgentPresentationPreferencesResponse.html" title="struct scriberig_protocol::presentation::AgentPresentationPreferencesResponse">AgentPresentationPreferencesResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates shared presentation reads to the borrowed service.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentPresentationPreferencesResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates shared presentation reads to the borrowed service.</p>
 <ul>
 <li><code>context</code>: Trusted caller identity and capabilities.</li>
 </ul>
@@ -875,8 +875,8 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.set_agent_presentation_preferences-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#172-178">Source</a><a href="#method.set_agent_presentation_preferences-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.set_agent_presentation_preferences" class="fn">set_agent_presentation_preferences</a>(
     &amp;self,
     context: &amp;ApplicationContext,
-    request: &amp;<a class="struct" href="../../scriberig_protocol/presentation/struct.AgentPresentationPreferencesSetRequest.html" title="struct scriberig_protocol::presentation::AgentPresentationPreferencesSetRequest">AgentPresentationPreferencesSetRequest</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/presentation/struct.AgentPresentationPreferencesResponse.html" title="struct scriberig_protocol::presentation::AgentPresentationPreferencesResponse">AgentPresentationPreferencesResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates shared presentation updates to the borrowed service.</p>
+    request: &amp;AgentPresentationPreferencesSetRequest,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentPresentationPreferencesResponse, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates shared presentation updates to the borrowed service.</p>
 <ul>
 <li><code>context</code>: Trusted caller identity and capabilities.</li>
 <li><code>request</code>: Revision-checked complete preference values.</li>
@@ -893,7 +893,7 @@
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     expected_revision: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>,
     model_profile: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/execution/struct.SessionExecutionSelection.html" title="struct scriberig_protocol::session::execution::SessionExecutionSelection">SessionExecutionSelection</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates model selection to the borrowed service.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionExecutionSelection, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates model selection to the borrowed service.</p>
 <ul>
 <li><code>context</code>: Trusted caller context.</li>
 <li><code>session</code>: Stable session identity.</li>
@@ -912,7 +912,7 @@
     session: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     expected_revision: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>,
     thinking_level: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/execution/struct.SessionExecutionSelection.html" title="struct scriberig_protocol::session::execution::SessionExecutionSelection">SessionExecutionSelection</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates thinking-level selection to the borrowed service.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionExecutionSelection, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates thinking-level selection to the borrowed service.</p>
 <ul>
 <li><code>context</code>: Trusted caller context.</li>
 <li><code>session</code>: Stable session identity.</li>
@@ -928,7 +928,7 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.operation_status-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#237-239">Source</a><a href="#method.operation_status-1" class="anchor">§</a><h4 class="code-header">fn <a href="#tymethod.operation_status" class="fn">operation_status</a>(
     &amp;self,
     operation_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/operation/struct.Operation.html" title="struct scriberig_protocol::operation::Operation">Operation</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates operation status to the borrowed application service.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates operation status to the borrowed application service.</p>
 <ul>
 <li><code>operation_id</code>: Argument named <code>operation_id</code>.</li>
 </ul>
@@ -940,7 +940,7 @@
 </div></details><details class="toggle method-toggle" open><summary><section id="method.cancel_operation-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#250-252">Source</a><a href="#method.cancel_operation-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.cancel_operation" class="fn">cancel_operation</a>(
     &amp;self,
     operation_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/operation/struct.Operation.html" title="struct scriberig_protocol::operation::Operation">Operation</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates operation cancellation to the borrowed application service.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates operation cancellation to the borrowed application service.</p>
 <ul>
 <li><code>operation_id</code>: Argument named <code>operation_id</code>.</li>
 </ul>
@@ -949,7 +949,7 @@
 <p>The operation result.</p>
 <h5 id="errors-53"><a class="doc-anchor" href="#errors-53">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.events-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#263-265">Source</a><a href="#method.events-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.events" class="fn">events</a>(&amp;self, event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>]) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../../scriberig_protocol/event/struct.Event.html" title="struct scriberig_protocol::event::Event">Event</a>&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates event observation to the borrowed application service.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.events-2" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_server/server_borrowed.rs.html#263-265">Source</a><a href="#method.events-2" class="anchor">§</a><h4 class="code-header">fn <a href="#method.events" class="fn">events</a>(&amp;self, event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>]) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Event&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates event observation to the borrowed application service.</p>
 <ul>
 <li><code>event_kinds</code>: Argument named <code>event_kinds</code>.</li>
 </ul>
@@ -962,7 +962,7 @@
     &amp;self,
     event_kinds: &amp;[<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>],
     after: <a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.u64.html">u64</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../../scriberig_protocol/event/struct.Event.html" title="struct scriberig_protocol::event::Event">Event</a>&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates cursor-based event observation to the borrowed service.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Event&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates cursor-based event observation to the borrowed service.</p>
 <ul>
 <li><code>event_kinds</code>: Event kind filters.</li>
 <li><code>after</code>: Last cursor already processed by the caller.</li>
@@ -1022,7 +1022,7 @@
     context: &amp;ApplicationContext,
     kind: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     payload: &amp;<a class="enum" href="https://docs.rs/serde_json/1.0.152/serde_json/value/enum.Value.html" title="enum serde_json::value::Value">Value</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/operation/struct.Operation.html" title="struct scriberig_protocol::operation::Operation">Operation</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates declared commands to the borrowed application service.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Operation, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Delegates declared commands to the borrowed application service.</p>
 <ul>
 <li><code>context</code>: Argument named <code>context</code>.</li>
 <li><code>kind</code>: Argument named <code>kind</code>.</li>

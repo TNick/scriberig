@@ -229,6 +229,10 @@
          <lastmod>2026-10-19</lastmod>
     </url>
     <url>
+         <loc>https://tnick.github.io/scriberig/level-2/030.%20agent%20profile%20context%20component%20and%20prompt%20experiment%20runtime/</loc>
+         <lastmod>2026-10-19</lastmod>
+    </url>
+    <url>
          <loc>https://tnick.github.io/scriberig/level-3/001.%20bootstrap%20persistence%20workspace%20and%20core%20ids/</loc>
          <lastmod>2026-10-19</lastmod>
     </url>
@@ -774,6 +778,10 @@
     </url>
     <url>
          <loc>https://tnick.github.io/scriberig/level-3/136.%20implement%20provider%20continuation%20full%20prompt%20and%20observable%20reasoning/</loc>
+         <lastmod>2026-10-19</lastmod>
+    </url>
+    <url>
+         <loc>https://tnick.github.io/scriberig/level-3/137.%20implement%20agent%20profiles%20branch%20handoff%20context%20components%20and%20prompt%20experiments/</loc>
          <lastmod>2026-10-19</lastmod>
     </url>
 </urlset>
