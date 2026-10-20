@@ -37,7 +37,7 @@ pub(super) fn assert_tracked_serena_configuration(checkout: &Path) {
 /// - `base`: Exact snapshot before candidate Apply.
 /// - `successor`: Authoritative snapshot after candidate Apply.
 /// - `candidate`: Accepted project candidate identity.
-/// - `super`: Parent test module visibility.
+/// - `super`: Parent PTY test module visibility.
 pub(super) fn assert_applied_history_transition(
     database: &Path,
     base: scriberig_core::SnapshotId,
@@ -169,8 +169,17 @@ pub(super) fn assert_candidate_conflicts_are_visible(
 /// - `tui`: Active native TUI process.
 fn open_candidate_review(tui: &mut TuiPty) {
     tui.send(b"\x1b");
-    tui.send(b"/changes\r");
-    assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
+    assert!(
+        tui.read_until_for("Message [ACTIVE]", Duration::from_secs(20)),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send_slow(b"/changes\r");
+    assert!(
+        tui.read_until_for("Change review", Duration::from_secs(60)),
+        "{}",
+        tui.diagnostic()
+    );
 }
 
 /// Verifies a conflict leaves the authoritative project at its exact base.
