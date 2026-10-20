@@ -84,8 +84,6 @@ pub(super) fn project_config_dir(current_dir: &Path) -> Option<PathBuf> {
 /// The platform system config directory, when one is available.
 /// # Returns
 /// The operation result.
-// The cross-platform contract is optional because Windows may not provide
-// PROGRAMDATA; Unix always has a conventional path for the same API.
 #[allow(clippy::unnecessary_wraps)]
 pub(super) fn system_config_dir() -> Option<PathBuf> {
     #[cfg(windows)]
