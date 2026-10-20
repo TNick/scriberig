@@ -20,7 +20,7 @@ impl<B: scriberig_app::ApplicationBackend> LocalAgentTool<'_, B> {
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
-    pub(super) fn project_resolve_dependencies(
+    pub(crate) fn project_resolve_dependencies(
         &self,
         arguments: &serde_json::Value,
         cancelled: &std::sync::atomic::AtomicBool,
