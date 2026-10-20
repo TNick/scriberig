@@ -209,7 +209,8 @@ impl<B: scriberig_app::ApplicationBackend> LocalAgentTool<'_, B> {
     ///
     /// Durable dependency acquisition evidence bound to the candidate.
     ///
-    /// Returns invalid input, stale-base, cancellation, or acquisition failure.
+    /// Returns invalid input, stale-base, cancellation, or workspace failure.
+    /// Acquisition failures are returned as durable failed evidence.
     /// # Returns
     /// The operation result.
     /// # Errors
@@ -224,15 +225,42 @@ impl<B: scriberig_app::ApplicationBackend> LocalAgentTool<'_, B> {
             .project_service()?
             .resolve_candidate_dependencies_cancellable(id, cancelled)
             .map_err(|error| Self::project_error(&error))?;
-        let mut result = Self::result(
-            format!(
-                "locked dependency acquisition passed for candidate {}",
-                candidate.id
+        let (summary, resolution) = match &candidate.validation {
+            CandidateValidation::Pending => (
+                format!(
+                    "locked dependency acquisition remains pending for candidate {}",
+                    candidate.id
+                ),
+                "pending",
             ),
+            CandidateValidation::Passed => (
+                format!(
+                    "locked dependency acquisition passed for candidate {}",
+                    candidate.id
+                ),
+                "passed",
+            ),
+            CandidateValidation::Failed { diagnostics } => (
+                format!(
+                    "locked dependency acquisition failed for candidate {}: {}",
+                    candidate.id,
+                    diagnostics
+                        .iter()
+                        .take(8)
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join("; ")
+                ),
+                "failed",
+            ),
+        };
+        let mut result = Self::result(
+            summary,
             vec![
                 format!("candidate:{}", candidate.id),
                 format!("snapshot:{}", candidate.base_snapshot),
-                "dependency_resolution:passed".to_owned(),
+                format!("dependency_resolution:{resolution}"),
+                format!("validation:{}", validation_name(&candidate.validation)),
                 "validation_profile:cargo-dependency-resolution".to_owned(),
             ],
         );
