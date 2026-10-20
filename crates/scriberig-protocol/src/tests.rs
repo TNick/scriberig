@@ -164,8 +164,8 @@ fn session_snapshot_contracts_round_trip() {
         plans: Vec::new(),
         execution: SessionExecutionSelection {
             revision: 7,
-            model_profile: Some("profile-1".to_owned()),
-            model: Some("model-1".to_owned()),
+            provider_id: Some("provider-1".to_owned()),
+            model_id: Some("model-1".to_owned()),
             thinking_level: Some("careful".to_owned()),
             history: Vec::new(),
         },
@@ -195,8 +195,8 @@ fn session_snapshot_contracts_round_trip() {
             }),
             semantic_scope: vec!["entity:1".to_owned()],
             assignment: Some(SessionModelAssignment {
-                profile: "profile-safe".to_owned(),
-                model: "model-safe".to_owned(),
+                provider_id: "provider-safe".to_owned(),
+                model_id: "model-safe".to_owned(),
                 thinking_level: Some("measured".to_owned()),
             }),
             claim: Some(SessionWorkerClaim {
@@ -267,8 +267,8 @@ fn session_plan_contracts_round_trip() {
         node: "node-a".to_owned(),
         expected_revision: 5,
         assignment: Some(SessionModelAssignment {
-            profile: "profile-safe".to_owned(),
-            model: "model-safe".to_owned(),
+            provider_id: "provider-safe".to_owned(),
+            model_id: "model-safe".to_owned(),
             thinking_level: None,
         }),
     });
@@ -325,7 +325,8 @@ fn model_contracts_round_trip() {
             id: "session-1".to_owned(),
         },
         expected_revision: 7,
-        model_profile: "profile-1".to_owned(),
+        provider_id: "provider-1".to_owned(),
+        model_id: "model-1".to_owned(),
     });
     round_trip(&SessionThinkingSelectionRequest {
         session: SessionReference {

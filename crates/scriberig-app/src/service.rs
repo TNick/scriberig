@@ -39,6 +39,7 @@ pub struct ApplicationService<B> {
     next_agent_handle: AtomicU64,
     session_store: Option<Arc<dyn scriberig_session::SessionStore>>,
     model_library: crate::ModelLibrary,
+    upstream_models: Vec<rpi_ai::Model>,
     presentation_preferences: Arc<dyn crate::AgentPresentationPreferenceStore>,
 }
 
@@ -59,6 +60,7 @@ impl<B> ApplicationService<B> {
             next_agent_handle: AtomicU64::new(1),
             session_store: None,
             model_library: crate::ModelLibrary::default(),
+            upstream_models: Vec::new(),
             presentation_preferences: Arc::new(
                 crate::InMemoryAgentPresentationPreferenceStore::default(),
             ),
@@ -79,6 +81,22 @@ impl<B> ApplicationService<B> {
     #[must_use]
     pub const fn operations(&self) -> &crate::OperationRegistry {
         &self.operations
+    }
+
+    /// Borrows the host-owned upstream model catalog for runtime composition.
+    ///
+    /// The returned catalog contains request metadata and must remain inside
+    /// trusted runtime composition. It is not a protocol projection.
+    ///
+    /// - `self`: Service owning the injected catalog.
+    ///
+    /// The upstream model catalog used for selection resolution.
+    ///
+    /// # Returns
+    /// A borrowed view of the host-owned upstream model catalog.
+    #[must_use]
+    pub fn upstream_models(&self) -> &[rpi_ai::Model] {
+        &self.upstream_models
     }
 }
 

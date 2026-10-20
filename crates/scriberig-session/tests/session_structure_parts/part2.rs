@@ -153,8 +153,8 @@ fn plan_dependencies_require_results_and_remain_acyclic() {
     );
     assert_eq!(plan.dependencies[0].fulfilled_by, Some(parser_result));
     let assignment = ModelAssignment {
-        profile: "fast".to_owned(),
-        model: "model-a".to_owned(),
+        provider_id: "provider-a".to_owned(),
+        model_id: "model-a".to_owned(),
         thinking_level: None,
     };
     plan.nodes

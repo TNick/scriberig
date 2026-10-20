@@ -18,7 +18,8 @@ pub(super) fn record_selection_change(
         revision: selection.revision,
         kind,
         summary,
-        model: selection.model.clone(),
+        provider_id: selection.provider_id.clone(),
+        model_id: selection.model_id.clone(),
         thinking_level: selection.thinking_level.clone(),
     });
     if selection.history.len() > MAX_SELECTION_HISTORY {

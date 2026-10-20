@@ -97,7 +97,7 @@ pub(super) fn model_request_detail<T: ProtocolTransport>(
         .map_err(super::service_remote_mapping::remote_error)
 }
 
-/// Applies a revision-checked model-profile selection remotely.
+/// Applies a revision-checked provider/model selection remotely.
 ///
 /// - `adapter`: Remote service adapter holding the protocol client.
 /// - `request`: Session and observed selection revision.
@@ -114,7 +114,8 @@ pub(super) fn set_session_model<T: ProtocolTransport>(
         .set_session_model(
             request.session.to_string(),
             request.expected_revision,
-            request.model_profile.clone(),
+            request.provider_id.clone(),
+            request.model_id.clone(),
         )
         .map_err(super::service_remote_mapping::remote_error)
         .map(to_session_selection)
@@ -155,8 +156,8 @@ fn to_session_selection(
 ) -> scriberig_session::SessionExecutionSelection {
     scriberig_session::SessionExecutionSelection {
         revision: selection.revision,
-        model_profile: selection.model_profile,
-        model: selection.model,
+        provider_id: selection.provider_id,
+        model_id: selection.model_id,
         thinking_level: selection.thinking_level,
         history: selection
             .history
@@ -165,7 +166,8 @@ fn to_session_selection(
                 revision: change.revision,
                 kind: change.kind,
                 summary: change.summary,
-                model: change.model,
+                provider_id: change.provider_id,
+                model_id: change.model_id,
                 thinking_level: change.thinking_level,
             })
             .collect(),

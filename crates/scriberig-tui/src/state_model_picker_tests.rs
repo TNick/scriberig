@@ -4,17 +4,17 @@ use super::*;
 
 /// Creates a picker state with one loaded session and selected model.
 ///
-/// - `model`: Optional current model identity.
+/// - `selection`: Optional current provider and model identity.
 ///
 /// Deterministic state for model-control reducer tests.
 /// # Returns
 /// The operation result.
-fn picker_state(model: Option<&str>) -> TuiState {
+fn picker_state(selection: Option<(&str, &str)>) -> TuiState {
     let session_id = EntityId::from_bytes([41; 16]);
     let execution = scriberig_session::SessionExecutionSelection {
         revision: 12,
-        model_profile: None,
-        model: model.map(str::to_owned),
+        provider_id: selection.map(|(provider, _)| provider.to_owned()),
+        model_id: selection.map(|(_, model)| model.to_owned()),
         thinking_level: None,
         history: Vec::new(),
     };
@@ -45,7 +45,7 @@ fn picker_state(model: Option<&str>) -> TuiState {
     }
 }
 
-/// Creates two models with separate profiles and thinking levels.
+/// Creates two displayed upstream models with separate thinking levels.
 ///
 /// Deterministic protocol model descriptors for picker tests.
 /// # Returns
@@ -82,34 +82,15 @@ fn model_library() -> scriberig_protocol::ModelLibraryResponse {
                 default_thinking_level: Some("quick".to_owned()),
             },
         ],
-        profiles: vec![
-            scriberig_protocol::PublicModelProfile {
-                id: "profile-a".to_owned(),
-                display_name: "Profile A".to_owned(),
-                model: "model-a".to_owned(),
-                connection: "connection-a".to_owned(),
-                credential: None,
-                default_thinking_level: Some("careful".to_owned()),
-                enabled: true,
-            },
-            scriberig_protocol::PublicModelProfile {
-                id: "profile-b".to_owned(),
-                display_name: "Profile B".to_owned(),
-                model: "model-b".to_owned(),
-                connection: "connection-b".to_owned(),
-                credential: None,
-                default_thinking_level: Some("quick".to_owned()),
-                enabled: true,
-            },
-        ],
+        profiles: Vec::new(),
     }
 }
 
-/// Verifies profile selection carries the current session revision.
+/// Verifies a displayed model selection carries the current session revision.
 #[test]
-fn model_profile_selection_uses_shared_session_revision() {
+fn displayed_model_selection_uses_shared_session_revision() {
     let mut state = picker_state(None);
-    let effects = select_model_profile(&mut state, "profile-a");
+    let effects = select_model(&mut state, "model-a");
     let session = EntityId::from_bytes([41; 16]);
 
     assert_eq!(
@@ -118,7 +99,8 @@ fn model_profile_selection_uses_shared_session_revision() {
             scriberig_app::SessionModelSelectionRequest {
                 session,
                 expected_revision: 12,
-                model_profile: "profile-a".to_owned(),
+                provider_id: "provider-a".to_owned(),
+                model_id: "provider-model-a".to_owned(),
             }
         )]
     );
@@ -127,7 +109,7 @@ fn model_profile_selection_uses_shared_session_revision() {
 /// Verifies thinking selection rejects levels unsupported by the active model.
 #[test]
 fn unsupported_thinking_level_does_not_mutate_session() {
-    let mut state = picker_state(Some("model-a"));
+    let mut state = picker_state(Some(("provider-a", "provider-model-a")));
 
     let effects = select_thinking_level(&mut state, "private-level");
 
@@ -138,7 +120,7 @@ fn unsupported_thinking_level_does_not_mutate_session() {
 /// Verifies supported thinking selection carries the latest mutation revision.
 #[test]
 fn supported_thinking_selection_uses_shared_session_revision() {
-    let mut state = picker_state(Some("model-a"));
+    let mut state = picker_state(Some(("provider-a", "provider-model-a")));
     let session = EntityId::from_bytes([41; 16]);
 
     let effects = select_thinking_level(&mut state, "careful");
@@ -158,7 +140,7 @@ fn supported_thinking_selection_uses_shared_session_revision() {
 /// Verifies mutation responses replace the displayed authoritative selection.
 #[test]
 fn selection_response_updates_session_header_and_revision() {
-    let mut state = picker_state(Some("model-old"));
+    let mut state = picker_state(Some(("provider-a", "model-old")));
     if let LoadState::Ready(session) = &mut state.session {
         session.execution.thinking_level = Some("deep".to_owned());
     }
@@ -168,8 +150,8 @@ fn selection_response_updates_session_header_and_revision() {
         crate::action::Action::SessionExecutionSelectionUpdated(
             scriberig_session::SessionExecutionSelection {
                 revision: 13,
-                model_profile: Some("profile-a".to_owned()),
-                model: Some("model-a".to_owned()),
+                provider_id: Some("provider-a".to_owned()),
+                model_id: Some("provider-model-a".to_owned()),
                 thinking_level: Some("careful".to_owned()),
                 history: Vec::new(),
             },
@@ -180,24 +162,24 @@ fn selection_response_updates_session_header_and_revision() {
         panic!("session remains loaded");
     };
     assert_eq!(session.execution.revision, 13);
-    assert!(session.rows[0].label.contains("Model model-a"));
+    assert!(session.rows[0].label.contains("Model provider-model-a"));
     assert_eq!(
         state
             .session_snapshot
             .as_ref()
-            .map(|session| session.execution.model_profile.as_deref()),
-        Some(Some("profile-a"))
+            .map(|session| session.execution.provider_id.as_deref()),
+        Some(Some("provider-a"))
     );
     assert!(
         state
             .shell_message
-            .contains("Model changed to model-a; thinking level adjusted to careful")
+            .contains("Model changed to provider-model-a; thinking level adjusted to careful")
     );
 }
 
-/// Verifies the palette opens, loads profiles, and emits a shared mutation.
+/// Verifies the palette opens, loads displayed models, and emits a shared mutation.
 #[test]
-fn palette_model_picker_loads_profiles_before_selecting_one() {
+fn palette_model_picker_loads_models_before_selecting_one() {
     let mut state = picker_state(None);
     state.model_library = LoadState::NotRequested;
     state.overlay = Some(Overlay::Palette(PaletteState {
@@ -232,43 +214,45 @@ fn palette_model_picker_loads_profiles_before_selecting_one() {
         palette
             .local_actions
             .iter()
-            .any(|item| item.id == "select-model:profile-b")
+            .any(|item| item.id == "select-model:model-b")
     );
     assert!(
         palette
             .local_actions
             .iter()
-            .any(|item| item.label == "Profile B · Model B · provider-b/provider-model-b")
+            .any(|item| item.label == "Model B · provider-b/provider-model-b")
     );
     let effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
 
     assert!(matches!(
         effects.as_slice(),
         [Effect::SetSessionModel(request)]
-            if request.expected_revision == 12 && request.model_profile == "profile-a"
+            if request.expected_revision == 12
+                && request.provider_id == "provider-a"
+                && request.model_id == "provider-model-a"
     ));
 }
 
 /// Verifies an empty model library reports a visible composer message.
 #[test]
-fn model_picker_reports_when_no_profiles_are_enabled() {
+fn model_picker_reports_when_no_models_are_available() {
     let mut state = picker_state(None);
     let mut library = model_library();
-    library.profiles.clear();
+    library.models.clear();
 
     show_model_picker(&mut state, &library);
 
     assert!(state.overlay.is_none());
     assert_eq!(
         state.conversation_composer.error.as_deref(),
-        Some("No enabled model profiles are available.")
+        Some("No models are available.")
     );
 }
 
 /// Verifies thinking controls load model-specific levels before presenting them.
 #[test]
 fn thinking_picker_loads_capabilities_then_emits_selection() {
-    let mut state = picker_state(Some("model-a"));
+    let mut state = picker_state(Some(("provider-a", "provider-model-a")));
     state.model_library = LoadState::NotRequested;
 
     let effects = super::activate_model_picker_action(&mut state, "thinking-picker")
@@ -302,7 +286,7 @@ fn thinking_picker_loads_capabilities_then_emits_selection() {
 /// Verifies the thinking palette follows a changed shared model identity.
 #[test]
 fn thinking_picker_tracks_the_selected_models_advertised_levels() {
-    let mut state = picker_state(Some("model-b"));
+    let mut state = picker_state(Some(("provider-b", "provider-model-b")));
 
     let effects = super::show_thinking_picker(&mut state);
 

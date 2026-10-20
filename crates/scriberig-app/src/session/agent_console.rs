@@ -2,15 +2,17 @@
 
 use super::{EntityId, SessionExecutionSelection};
 
-/// Identifies one requested model-profile mutation for a session.
+/// Identifies one upstream provider/model selection for a session.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SessionModelSelectionRequest {
     /// Stable session identity to update.
     pub session: EntityId,
     /// Selection revision observed by the client.
     pub expected_revision: u64,
-    /// Enabled model-profile identity to select.
-    pub model_profile: String,
+    /// Upstream provider identity to select.
+    pub provider_id: String,
+    /// Provider-scoped upstream model identity to select.
+    pub model_id: String,
 }
 
 /// Identifies one requested thinking-level mutation for a session.

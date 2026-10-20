@@ -104,12 +104,13 @@ export function resultFromSession(
 function normalizeExecution(value: unknown): SessionReadResponse["execution"] {
   const record =
     typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
-  const modelProfile = record.modelProfile ?? record.model_profile;
+  const providerId = record.providerId ?? record.provider_id;
+  const modelId = record.modelId ?? record.model_id;
   const thinkingLevel = record.thinkingLevel ?? record.thinking_level;
   return {
     revision: typeof record.revision === "number" ? record.revision : 0,
-    ...(typeof modelProfile === "string" ? { modelProfile } : {}),
-    ...(typeof record.model === "string" ? { model: record.model } : {}),
+    ...(typeof providerId === "string" ? { providerId } : {}),
+    ...(typeof modelId === "string" ? { modelId } : {}),
     ...(typeof thinkingLevel === "string" ? { thinkingLevel } : {}),
     ...(Array.isArray(record.history)
       ? { history: record.history.map(normalizeExecutionChange).filter(isExecutionChange) }
@@ -131,7 +132,12 @@ function normalizeExecutionChange(value: unknown): SessionExecutionChange | unde
     revision: item.revision,
     kind,
     summary: item.summary,
-    ...(typeof item.model === "string" ? { model: item.model } : {}),
+    ...(typeof (item.providerId ?? item.provider_id) === "string"
+      ? { providerId: String(item.providerId ?? item.provider_id) }
+      : {}),
+    ...(typeof (item.modelId ?? item.model_id) === "string"
+      ? { modelId: String(item.modelId ?? item.model_id) }
+      : {}),
     ...(typeof item.thinking_level === "string"
       ? { thinkingLevel: item.thinking_level }
       : typeof item.thinkingLevel === "string"

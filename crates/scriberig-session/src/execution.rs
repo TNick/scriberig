@@ -7,10 +7,10 @@ use scriberig_core::EntityId;
 pub struct SessionExecutionSelection {
     /// Monotonic mutation revision, independent from event cursors.
     pub revision: u64,
-    /// Selected curated model-profile identity.
-    pub model_profile: Option<String>,
-    /// Selected provider-neutral model identity.
-    pub model: Option<String>,
+    /// Selected upstream provider identity.
+    pub provider_id: Option<String>,
+    /// Selected upstream provider-scoped model identity.
+    pub model_id: Option<String>,
     /// Selected model-advertised thinking-level identity.
     pub thinking_level: Option<String>,
     /// Bounded replayable model and thinking selection provenance.
@@ -27,8 +27,10 @@ pub struct SessionExecutionChange {
     pub kind: AgentActivityKind,
     /// Safe concise description of the resulting selection.
     pub summary: String,
-    /// Resolved model identity after the change, when selected.
-    pub model: Option<String>,
+    /// Resolved upstream provider identity after the change, when selected.
+    pub provider_id: Option<String>,
+    /// Resolved upstream model identity after the change, when selected.
+    pub model_id: Option<String>,
     /// Resolved thinking level after the change, when selected.
     pub thinking_level: Option<String>,
 }
@@ -159,8 +161,8 @@ impl SessionExecutionSelection {
     ///
     /// - `self`: Current session selection.
     /// - `expected_revision`: Revision observed by the mutating client.
-    /// - `model_profile`: Profile identity, when a model is selected.
-    /// - `model`: Provider-neutral model identity, when selected.
+    /// - `provider_id`: Upstream provider identity, when a model is selected.
+    /// - `model_id`: Upstream provider-scoped model identity, when selected.
     /// - `thinking_level`: Supported thinking level, when selected.
     ///
     /// The updated selection with its next mutation revision.
@@ -173,8 +175,8 @@ impl SessionExecutionSelection {
     pub fn replace(
         &mut self,
         expected_revision: u64,
-        model_profile: Option<String>,
-        model: Option<String>,
+        provider_id: Option<String>,
+        model_id: Option<String>,
         thinking_level: Option<String>,
     ) -> Result<(), SelectionError> {
         if expected_revision != self.revision {
@@ -183,8 +185,8 @@ impl SessionExecutionSelection {
                 actual: self.revision,
             });
         }
-        if model_profile.is_some() != model.is_some()
-            || (model.is_none() && thinking_level.is_some())
+        if provider_id.is_some() != model_id.is_some()
+            || (model_id.is_none() && thinking_level.is_some())
         {
             return Err(SelectionError::InconsistentSelection);
         }
@@ -192,8 +194,8 @@ impl SessionExecutionSelection {
             .revision
             .checked_add(1)
             .ok_or(SelectionError::RevisionExhausted)?;
-        self.model_profile = model_profile;
-        self.model = model;
+        self.provider_id = provider_id;
+        self.model_id = model_id;
         self.thinking_level = thinking_level;
         Ok(())
     }
@@ -204,7 +206,7 @@ impl SessionExecutionSelection {
 pub enum SelectionError {
     /// The caller's observed revision is stale.
     RevisionConflict { expected: u64, actual: u64 },
-    /// Model and profile must be set or cleared together.
+    /// Provider and model must be set or cleared together.
     InconsistentSelection,
     /// The selection revision has no representable successor.
     RevisionExhausted,

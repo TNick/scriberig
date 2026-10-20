@@ -205,7 +205,7 @@ mod tests {
         assert!(matches!(
             decode_request(
                 "session_model_selection",
-                r#"{"session":{"id":"session-1"},"expected_revision":2,"model_profile":"profile-1"}"#
+                r#"{"session":{"id":"session-1"},"expected_revision":2,"provider_id":"provider-1","model_id":"model-1"}"#
             ),
             Ok(scriberig_protocol::Request::SessionModelSelection(_))
         ));

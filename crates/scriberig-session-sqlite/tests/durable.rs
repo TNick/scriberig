@@ -113,7 +113,7 @@ fn session_graph_survives_reopen() {
             .execution
             .replace(
                 0,
-                Some("profile-a".to_owned()),
+                Some("provider-a".to_owned()),
                 Some("model-a".to_owned()),
                 Some("careful".to_owned()),
             )
@@ -129,7 +129,8 @@ fn session_graph_survives_reopen() {
     assert_eq!(loaded.branches.len(), 2);
     assert_eq!(loaded.branches[0].children, vec![child_id]);
     assert_eq!(loaded.execution.revision, 1);
-    assert_eq!(loaded.execution.model.as_deref(), Some("model-a"));
+    assert_eq!(loaded.execution.provider_id.as_deref(), Some("provider-a"));
+    assert_eq!(loaded.execution.model_id.as_deref(), Some("model-a"));
     assert_eq!(loaded.execution.thinking_level.as_deref(), Some("careful"));
     assert_eq!(
         loaded.branches[0].model_invocations[0]
@@ -199,8 +200,8 @@ fn plan_dependencies_and_assignments_survive_reopen() {
                 result: None,
                 superseded_by: None,
                 assignment: Some(ModelAssignment {
-                    profile: "profile-a".to_owned(),
-                    model: "model-a".to_owned(),
+                    provider_id: "provider-a".to_owned(),
+                    model_id: "model-a".to_owned(),
                     thinking_level: Some("deep".to_owned()),
                 }),
                 claim: Some(scriberig_session::WorkerClaim {
@@ -210,8 +211,8 @@ fn plan_dependencies_and_assignments_survive_reopen() {
                     owner: "worker-a".to_owned(),
                     generation: 1,
                     assignment: Some(ModelAssignment {
-                        profile: "profile-a".to_owned(),
-                        model: "model-a".to_owned(),
+                        provider_id: "provider-a".to_owned(),
+                        model_id: "model-a".to_owned(),
                         thinking_level: Some("deep".to_owned()),
                     }),
                 }),
@@ -229,8 +230,8 @@ fn plan_dependencies_and_assignments_survive_reopen() {
                 result: None,
                 superseded_by: None,
                 assignment: Some(ModelAssignment {
-                    profile: "profile-b".to_owned(),
-                    model: "model-b".to_owned(),
+                    provider_id: "provider-b".to_owned(),
+                    model_id: "model-b".to_owned(),
                     thinking_level: None,
                 }),
                 claim: None,
@@ -320,10 +321,9 @@ fn plan_dependencies_and_assignments_survive_reopen() {
             .status,
         PlanNodeStatus::Running
     );
-    assert_eq!(
-        loaded_plan.nodes[0].assignment.as_ref().unwrap().profile,
-        "profile-a"
-    );
+    let loaded_assignment = loaded_plan.nodes[0].assignment.as_ref().unwrap();
+    assert_eq!(loaded_assignment.provider_id, "provider-a");
+    assert_eq!(loaded_assignment.model_id, "model-a");
     assert_eq!(loaded_plan.coordinator, Some(first));
     assert!(loaded.branches.iter().all(|branch| {
         branch

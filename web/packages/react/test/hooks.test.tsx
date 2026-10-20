@@ -62,7 +62,7 @@ describe("headless hook dependencies", () => {
   it("uses the latest session revision and refreshes shared selection state", async () => {
     const model = new WorkspaceModel();
     const sessionId = "session-1" as never;
-    const requests: Array<[string, number, string]> = [];
+    const requests: Array<[string, number, ...string[]]> = [];
     let revision = 4;
     const client = {
       getSession: async () => ({
@@ -71,8 +71,13 @@ describe("headless hook dependencies", () => {
         plans: [],
         execution: { revision },
       }),
-      setSessionModel: async (_session: unknown, expected: number, profile: string) => {
-        requests.push(["model", expected, profile]);
+      setSessionModel: async (
+        _session: unknown,
+        expected: number,
+        providerId: string,
+        modelId: string,
+      ) => {
+        requests.push(["model", expected, providerId, modelId]);
         revision += 1;
         return { revision };
       },
@@ -90,11 +95,11 @@ describe("headless hook dependencies", () => {
     });
     const controller = createAgentExecutionSelectionController(client, model, sessionId);
 
-    await controller.selectModel("profile-b");
+    await controller.selectModel("provider-b", "model-b");
     await controller.selectThinkingLevel("deep");
 
     expect(requests).toEqual([
-      ["model", 4, "profile-b"],
+      ["model", 4, "provider-b", "model-b"],
       ["thinking", 5, "deep"],
     ]);
     expect(model.getAgentState().execution.revision).toBe(6);

@@ -47,6 +47,8 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             let runner = Arc::new(native_tui_agent::NativeTuiAgentRunner::from_environment(
                 Arc::clone(&store),
             )?);
+            let model_library = runner.model_library();
+            let upstream_models = runner.upstream_models();
             let plan_lifecycle_handler: Arc<scriberig_server::PlanLifecycleHandler> =
                 Arc::new(move |service, context, request, action| {
                     let mut runtime_context = context.clone();
@@ -65,13 +67,17 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                         action,
                     )
                 });
-            scriberig_server::serve_with_origin_and_plan_lifecycle(
+            scriberig_server::serve_with_model_catalog_and_plan_lifecycle(
                 &args.host,
                 args.port,
                 &args.db,
                 args.allow_origin.as_deref(),
                 &args.project_roots,
                 Some(plan_lifecycle_handler),
+                scriberig_server::ServerModelCatalog {
+                    library: model_library,
+                    upstream_models,
+                },
             )?;
         }
         scriberig_cli::Command::Tui(args) => tui_command::run(&args)?,

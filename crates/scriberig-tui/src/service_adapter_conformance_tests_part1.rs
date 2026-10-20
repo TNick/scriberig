@@ -103,8 +103,8 @@ fn local_and_remote_session_adapters_share_semantics() {
                 }],
                 execution: scriberig_protocol::SessionExecutionSelection {
                     revision: 1,
-                    model_profile: Some("profile-fixture".to_owned()),
-                    model: Some("model-fixture".to_owned()),
+                    provider_id: Some("provider-fixture".to_owned()),
+                    model_id: Some("model-fixture".to_owned()),
                     thinking_level: Some("careful".to_owned()),
                     history: Vec::new(),
                 },

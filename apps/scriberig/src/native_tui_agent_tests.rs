@@ -9,10 +9,9 @@ use scriberig_agent_runtime::provider::{
 use scriberig_agent_runtime::{AgentMessage, ModelProvider};
 use scriberig_app::{
     AgentCommandRequest, ApplicationBackendComposition, ApplicationContext, ApplicationService,
-    CapabilityContext, CapabilityId, ModelCapabilities, ModelDescriptor, ModelId, ModelLibrary,
-    ModelProfile, PlanCreateRequest, PlanLifecycleAction, PlanLifecycleRequest, PlanNodeDraft,
-    SessionBackend, SessionExecutionSelection, StoreInspectionBackend, StoreOperationProvider,
-    ThinkingLevelDescriptor, ThinkingLevelId,
+    CapabilityContext, CapabilityId, ModelLibrary, PlanCreateRequest, PlanLifecycleAction,
+    PlanLifecycleRequest, PlanNodeDraft, SessionBackend, SessionExecutionSelection,
+    StoreInspectionBackend, StoreOperationProvider,
 };
 use scriberig_core::{EntityId, ProjectId, SnapshotId};
 use scriberig_session::{
@@ -27,10 +26,16 @@ use scriberig_tui::{
     state::{TuiState, reduce},
 };
 
-use super::{
-    NativeProvider, NativeTuiAgentRunner, model_selection::resolve_selected_runtime_model,
-    previous_workspace_selection,
-};
+use super::{NativeProvider, NativeTuiAgentRunner, previous_workspace_selection};
+use crate::native_tui_agent::model_selection::resolve_selected_runtime_model;
+
+/// Builds the upstream catalog used by native fake-provider fixtures.
+///
+/// # Returns
+/// A local provider model matching the fake runtime fallback.
+fn native_test_upstream_models() -> Vec<rpi_ai::Model> {
+    plan::upstream_model_catalog("local", &["fake-model"])
+}
 
 /// Runs the first typed message through the composed TUI and fake provider.
 #[test]
@@ -49,7 +54,9 @@ fn first_conversation_message_runs_and_persists_fake_provider_answer() {
         scriberig_session_sqlite::SqliteSessionStore::open(&session_path).expect("session store"),
     );
     let session_repository: Arc<dyn scriberig_session::SessionStore> = session_store.clone();
-    let service = ApplicationService::new(backend).with_session_store(session_repository);
+    let service = ApplicationService::new(backend)
+        .with_session_store(session_repository)
+        .with_upstream_models(native_test_upstream_models());
     let provider =
         scriberig_agent_runtime::provider::FakeProvider::from_responses([Ok(ModelResponse {
             text: Some("Welcome to the project.".to_owned()),
@@ -65,6 +72,7 @@ fn first_conversation_message_runs_and_persists_fake_provider_answer() {
         )]),
         model: "fake-model".to_owned(),
         model_library: ModelLibrary::default(),
+        upstream_models: native_test_upstream_models(),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
     };
@@ -163,7 +171,9 @@ fn autonomous_decomposition_persists_children_and_compact_parent_results() {
             .expect("session store"),
     );
     let session_repository: Arc<dyn scriberig_session::SessionStore> = session_store.clone();
-    let service = ApplicationService::new(backend).with_session_store(session_repository);
+    let service = ApplicationService::new(backend)
+        .with_session_store(session_repository)
+        .with_upstream_models(native_test_upstream_models());
     let provider = FakeProvider::from_responses([
         Ok(delegation_response("architecture", "architecture")),
         Ok(final_response("ARCHITECTURE_RESULT")),
@@ -178,6 +188,7 @@ fn autonomous_decomposition_persists_children_and_compact_parent_results() {
         )]),
         model: "fake-model".to_owned(),
         model_library: ModelLibrary::default(),
+        upstream_models: native_test_upstream_models(),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
     };

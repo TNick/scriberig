@@ -29,7 +29,7 @@ impl<T: ProtocolTransport> Client<T> {
     ) -> Result<SessionPlan, ClientError> {
         match self.send(Request::PlanCreate(request))?.response {
             Response::Plan(plan) => Ok(plan),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -51,7 +51,7 @@ impl<T: ProtocolTransport> Client<T> {
     ) -> Result<SessionPlan, ClientError> {
         match self.send(Request::PlanLifecycle(request))?.response {
             Response::Plan(plan) => Ok(plan),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -73,7 +73,7 @@ impl<T: ProtocolTransport> Client<T> {
     ) -> Result<SessionPlan, ClientError> {
         match self.send(Request::PlanAssignment(request))?.response {
             Response::Plan(plan) => Ok(plan),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -92,7 +92,7 @@ impl<T: ProtocolTransport> Client<T> {
     pub fn replan(&self, request: SessionPlanReplanRequest) -> Result<SessionPlan, ClientError> {
         match self.send(Request::PlanReplan(request))?.response {
             Response::Plan(plan) => Ok(plan),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -118,7 +118,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::AgentPresentationPreferences(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -151,7 +151,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::AgentPresentationPreferences(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -182,7 +182,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::Session(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -216,7 +216,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::ModelRequestDetail(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -250,7 +250,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::ToolResultDetail(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }

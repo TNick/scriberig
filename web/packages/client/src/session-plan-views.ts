@@ -197,13 +197,17 @@ function normalizePlanNode(value: unknown): SessionPlanNode {
  * @returns A model assignment or `undefined` when required fields are absent.
  */
 function normalizeAssignment(value: unknown): SessionModelAssignment | undefined {
-  if (!isObject(value) || typeof value.profile !== "string" || typeof value.model !== "string") {
+  if (
+    !isObject(value) ||
+    typeof (value.providerId ?? value.provider_id) !== "string" ||
+    typeof (value.modelId ?? value.model_id) !== "string"
+  ) {
     return undefined;
   }
   const thinkingLevel = value.thinkingLevel ?? value.thinking_level;
   return {
-    profile: value.profile,
-    model: value.model,
+    providerId: String(value.providerId ?? value.provider_id),
+    modelId: String(value.modelId ?? value.model_id),
     ...(typeof thinkingLevel === "string" ? { thinkingLevel } : {}),
   };
 }

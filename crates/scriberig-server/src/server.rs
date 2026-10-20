@@ -238,12 +238,13 @@ pub trait ApplicationService {
 
     agent_presentation_methods!();
 
-    /// Changes the model profile used by future session invocations.
+    /// Changes the upstream provider/model used by future invocations.
     ///
     /// - `_context`: Trusted caller context.
     /// - `_session`: Stable session identity.
     /// - `_expected_revision`: Selection revision observed by the caller.
-    /// - `_model_profile`: Curated profile identity to select.
+    /// - `_provider_id`: Exact upstream provider identity.
+    /// - `_model_id`: Provider-scoped upstream model identity.
     ///
     /// Updated session execution selection.
     ///
@@ -257,7 +258,8 @@ pub trait ApplicationService {
         _context: &ApplicationContext,
         _session: &str,
         _expected_revision: u64,
-        _model_profile: &str,
+        _provider_id: &str,
+        _model_id: &str,
     ) -> Result<scriberig_protocol::SessionExecutionSelection, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "session model selection".to_owned(),

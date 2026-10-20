@@ -121,8 +121,15 @@ where
         {
             return integrate_dependency_candidates(&self.project_store, claim, worker_context);
         }
-        let connection = execution.provider_profile.as_deref().unwrap_or("local");
-        let provider = self.providers.get(connection).ok_or_else(|| {
+        let connection = if execution.uses_runtime_fallback {
+            "local".to_owned()
+        } else {
+            super::provider_config::catalog::connection_identity(
+                &execution.provider_id,
+                &execution.model_id,
+            )
+        };
+        let provider = self.providers.get(&connection).ok_or_else(|| {
             format!("native plan runtime has no adapter for connection {connection}")
         })?;
         let cancellation = self
@@ -145,12 +152,12 @@ where
             service: self.service,
             operation: self.operation.clone(),
             provider: provider.clone(),
-            model: execution.provider_model_id.clone(),
+            model: execution.model_id.clone(),
             thinking_level: execution.thinking_level.clone(),
             cache: cache.clone(),
             project_store: Arc::clone(&self.project_store),
         };
-        let model = ProviderModel::new(provider.clone(), execution.provider_model_id.clone())
+        let model = ProviderModel::new(provider.clone(), execution.model_id.clone())
             .with_thinking_level(execution.thinking_level.clone())
             .with_catalog(inspect_catalog())
             .with_capabilities(self.context.capabilities.clone())
@@ -177,13 +184,8 @@ where
             )
             .map_err(|error| error.to_string())?;
         let mut result_handles = compact_result_handles(&result);
-        if let Some(profile) = &execution.model_profile {
-            result_handles.push(format!("model-profile:{profile}"));
-        }
-        if let Some(provider) = &execution.provider_profile {
-            result_handles.push(format!("provider-profile:{provider}"));
-        }
-        result_handles.push(format!("model:{}", execution.provider_model_id));
+        result_handles.push(format!("provider:{}", execution.provider_id));
+        result_handles.push(format!("model:{}", execution.model_id));
         if let Some(thinking) = &execution.thinking_level {
             result_handles.push(format!("thinking:{thinking}"));
         }

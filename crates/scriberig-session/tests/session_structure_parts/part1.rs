@@ -166,14 +166,14 @@ fn alternative_comparison_waits_for_both_attempt_results() {
     let root = plan.root_branch;
     let mut first = plan_node(120, root, "first attempt");
     first.assignment = Some(ModelAssignment {
-        profile: "profile-a".to_owned(),
-        model: "model-a".to_owned(),
+        provider_id: "provider-a".to_owned(),
+        model_id: "model-a".to_owned(),
         thinking_level: None,
     });
     let mut second = plan_node(121, root, "second attempt");
     second.assignment = Some(ModelAssignment {
-        profile: "profile-b".to_owned(),
-        model: "model-b".to_owned(),
+        provider_id: "provider-b".to_owned(),
+        model_id: "model-b".to_owned(),
         thinking_level: None,
     });
     let comparison = plan_node(122, root, "compare attempts");

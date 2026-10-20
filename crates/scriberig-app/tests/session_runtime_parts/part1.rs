@@ -129,7 +129,9 @@ fn shared_new_session_and_exact_continuation_return_durable_handles() {
 #[test]
 #[allow(clippy::too_many_lines)]
 fn application_plan_operations_validate_and_persist_structured_work() {
-    let service = ApplicationService::new(Fixture).with_model_library(session_model_library());
+    let service = ApplicationService::new(Fixture)
+        .with_model_library(session_model_library())
+        .with_upstream_models(session_upstream_models());
     let context = session_context();
     let session = EntityId::from_bytes([101; 16]);
     service
@@ -155,8 +157,8 @@ fn application_plan_operations_validate_and_persist_structured_work() {
                 }),
                 semantic_scope: vec!["entity:feature".to_owned()],
                 assignment: Some(scriberig_session::ModelAssignment {
-                    profile: "profile-a".to_owned(),
-                    model: "model-a".to_owned(),
+                    provider_id: "local".to_owned(),
+                    model_id: "native-a".to_owned(),
                     thinking_level: None,
                 }),
             },
@@ -212,8 +214,8 @@ fn application_plan_operations_validate_and_persist_structured_work() {
     assert_eq!(plan.dependencies[0].dependent, plan.nodes[2].id);
     assert!(plan.dependencies[0].fulfilled_by.is_none());
     assert_eq!(
-        plan.nodes[0].assignment.as_ref().unwrap().profile,
-        "profile-a"
+        plan.nodes[0].assignment.as_ref().unwrap().model_id,
+        "native-a"
     );
     let assigned = service
         .set_plan_node_assignment(
@@ -224,16 +226,16 @@ fn application_plan_operations_validate_and_persist_structured_work() {
                 node: plan.nodes[1].id,
                 expected_revision: plan.revision,
                 assignment: Some(scriberig_session::ModelAssignment {
-                    profile: "profile-b".to_owned(),
-                    model: "model-b".to_owned(),
+                    provider_id: "local".to_owned(),
+                    model_id: "native-b".to_owned(),
                     thinking_level: Some("steady".to_owned()),
                 }),
             },
         )
         .expect("assignment mutation");
     assert_eq!(
-        assigned.nodes[1].assignment.as_ref().unwrap().profile,
-        "profile-b"
+        assigned.nodes[1].assignment.as_ref().unwrap().model_id,
+        "native-b"
     );
     assert!(assigned.history.iter().any(|revision| {
         revision.nodes.iter().any(|node| {
@@ -241,7 +243,7 @@ fn application_plan_operations_validate_and_persist_structured_work() {
                 && node
                     .assignment
                     .as_ref()
-                    .is_some_and(|assignment| assignment.profile == "profile-b")
+                    .is_some_and(|assignment| assignment.model_id == "native-b")
         })
     }));
     let started = service

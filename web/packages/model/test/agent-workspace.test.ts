@@ -245,8 +245,8 @@ describe("agent workspace", () => {
       session: { id: "session-1" as never },
       execution: {
         revision: 3,
-        modelProfile: "profile-a",
-        model: "model-a",
+        providerId: "provider-a",
+        modelId: "model-a",
         thinkingLevel: "deliberate",
       },
       branches: [
@@ -287,8 +287,8 @@ describe("agent workspace", () => {
     expect(state.activity["branch-1"]?.items[0]?.summary).toBe("done");
     expect(state.execution).toEqual({
       revision: 3,
-      modelProfile: "profile-a",
-      model: "model-a",
+      providerId: "provider-a",
+      modelId: "model-a",
       thinkingLevel: "deliberate",
     });
   });
@@ -303,13 +303,15 @@ describe("agent workspace", () => {
             revision: 1,
             kind: "ModelSelectionChanged",
             summary: "Model selected: model-a",
-            model: "model-a",
+            providerId: "provider-a",
+            modelId: "model-a",
           },
           {
             revision: 2,
             kind: "ThinkingLevelChanged",
             summary: "Thinking level selected: steady",
-            model: "model-a",
+            providerId: "provider-a",
+            modelId: "model-a",
             thinkingLevel: "steady",
           },
         ],

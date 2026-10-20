@@ -103,7 +103,7 @@ fn accepted_plan_result_rebuilds_structural_conversation_rows() {
     assert_eq!(state.session_snapshot.unwrap().plans[0].id, plan_id);
 }
 
-/// Assigns the selected plan node through the credential-safe profile picker.
+/// Assigns the selected plan node through the displayed model picker.
 #[test]
 fn assign_command_targets_only_the_selected_plan_node() {
     let session_id = scriberig_core::EntityId::from_bytes([151; 16]);
@@ -152,16 +152,21 @@ fn assign_command_targets_only_the_selected_plan_node() {
         )),
         model_library: crate::inspector::LoadState::Ready(
             scriberig_protocol::ModelLibraryResponse {
-                models: Vec::new(),
-                profiles: vec![scriberig_protocol::PublicModelProfile {
-                    id: "profile-cpu".to_owned(),
-                    display_name: "CPU profile".to_owned(),
-                    model: "model-small".to_owned(),
-                    connection: "connection-local".to_owned(),
-                    credential: None,
+                models: vec![scriberig_protocol::PublicModelDescriptor {
+                    id: "model-small".to_owned(),
+                    display_name: "CPU model".to_owned(),
+                    provider_profile: "provider-cpu".to_owned(),
+                    provider_model_id: "model-small".to_owned(),
+                    capabilities: scriberig_protocol::PublicModelCapabilities::default(),
+                    thinking_levels: vec![scriberig_protocol::PublicThinkingLevelDescriptor {
+                        id: "balanced".to_owned(),
+                        label: "Balanced".to_owned(),
+                        description: None,
+                        order: 0,
+                    }],
                     default_thinking_level: Some("balanced".to_owned()),
-                    enabled: true,
                 }],
+                profiles: Vec::new(),
             },
         ),
         ..TuiState::default()
@@ -181,8 +186,8 @@ fn assign_command_targets_only_the_selected_plan_node() {
             if request.plan == plan_id
                 && request.node == node_id
                 && request.assignment.as_ref().is_some_and(|value| {
-                    value.profile == "profile-cpu"
-                        && value.model == "model-small"
+                    value.provider_id == "provider-cpu"
+                        && value.model_id == "model-small"
                         && value.thinking_level.as_deref() == Some("balanced")
                 })
     ));

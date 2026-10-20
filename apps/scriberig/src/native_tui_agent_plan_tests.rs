@@ -2,6 +2,29 @@
 
 use super::*;
 
+/// Builds provider models matching the plan test's safe library projection.
+///
+/// - `provider`: Upstream provider identity.
+/// - `model_ids`: Provider-native model ids and display names.
+///
+/// A catalog used by the plan selection runtime.
+/// # Returns
+/// The operation result.
+pub(super) fn upstream_model_catalog(provider: &str, model_ids: &[&str]) -> Vec<rpi_ai::Model> {
+    model_ids
+        .iter()
+        .map(|model_id| {
+            rpi_ai::Model::new(
+                *model_id,
+                *model_id,
+                rpi_ai::Api::AnthropicMessages,
+                provider,
+                "https://example.test",
+            )
+        })
+        .collect()
+}
+
 /// Starts a durable plan through the native lifecycle and executes its worker.
 #[test]
 #[allow(clippy::too_many_lines)] // Keeps worker assignment and resume evidence end to end.
@@ -19,14 +42,18 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
     let session_repository: Arc<dyn SessionStore> = session_store.clone();
     let model_library = scriberig_app::model_library_from_json(
         Some(
-            r#"{"models":[{"id":"plan-model-a","display_name":"Plan Model A","provider_model_id":"wire-plan-model-a","provider_profile":"fake","connection":"fake-a","thinking_levels":[{"id":"deep","label":"Deep"}]},{"id":"plan-model-b","display_name":"Plan Model B","provider_model_id":"wire-plan-model-b","provider_profile":"fake","connection":"fake-b","thinking_levels":[{"id":"extended","label":"Extended"}]}]}"#,
+            r#"{"models":[{"id":"plan-model-a","display_name":"Plan Model A","provider_model_id":"wire-plan-model-a","provider_profile":"fake","connection":"fake-a","thinking_levels":[{"id":"high","label":"Deep"}]},{"id":"plan-model-b","display_name":"Plan Model B","provider_model_id":"wire-plan-model-b","provider_profile":"fake","connection":"fake-b","thinking_levels":[{"id":"high","label":"Extended"}]}]}"#,
         ),
         "fake-model",
     )
     .expect("worker model library");
     let service = ApplicationService::new(backend)
         .with_session_store(session_repository)
-        .with_model_library(model_library.clone());
+        .with_model_library(model_library.clone())
+        .with_upstream_models(upstream_model_catalog(
+            "fake",
+            &["wire-plan-model-a", "wire-plan-model-b"],
+        ));
     let session_id = EntityId::new();
     let root_branch = EntityId::new();
     let mut branch = Branch::new(root_branch, "root").expect("root branch");
@@ -69,9 +96,9 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
                     expected_result: None,
                     semantic_scope: Vec::new(),
                     assignment: Some(ModelAssignment {
-                        profile: "plan-model-a-profile".to_owned(),
-                        model: "plan-model-a".to_owned(),
-                        thinking_level: Some("deep".to_owned()),
+                        provider_id: "plan-provider-a".to_owned(),
+                        model_id: "plan-model-a".to_owned(),
+                        thinking_level: Some("high".to_owned()),
                     }),
                 },
                 PlanNodeDraft {
@@ -82,9 +109,9 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
                     expected_result: None,
                     semantic_scope: Vec::new(),
                     assignment: Some(ModelAssignment {
-                        profile: "plan-model-b-profile".to_owned(),
-                        model: "plan-model-b".to_owned(),
-                        thinking_level: Some("extended".to_owned()),
+                        provider_id: "plan-provider-b".to_owned(),
+                        model_id: "plan-model-b".to_owned(),
+                        thinking_level: Some("high".to_owned()),
                     }),
                 },
                 PlanNodeDraft {
@@ -95,9 +122,9 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
                     expected_result: None,
                     semantic_scope: Vec::new(),
                     assignment: Some(ModelAssignment {
-                        profile: "plan-model-a-profile".to_owned(),
-                        model: "plan-model-a".to_owned(),
-                        thinking_level: Some("deep".to_owned()),
+                        provider_id: "plan-provider-a".to_owned(),
+                        model_id: "plan-model-a".to_owned(),
+                        thinking_level: Some("high".to_owned()),
                     }),
                 },
             ],
@@ -122,9 +149,9 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
                 expected_result: None,
                 semantic_scope: Vec::new(),
                 assignment: Some(ModelAssignment {
-                    profile: "plan-model-a-profile".to_owned(),
-                    model: "plan-model-a".to_owned(),
-                    thinking_level: Some("deep".to_owned()),
+                    provider_id: "plan-provider-a".to_owned(),
+                    model_id: "plan-model-a".to_owned(),
+                    thinking_level: Some("high".to_owned()),
                 }),
             }],
             dependencies: Vec::new(),
@@ -172,6 +199,10 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
         ]),
         model: "fake-model".to_owned(),
         model_library,
+        upstream_models: upstream_model_catalog(
+            "fake",
+            &["wire-plan-model-a", "wire-plan-model-b"],
+        ),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
     };
@@ -220,11 +251,10 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
     assert_eq!(provider_a.requests().len(), 2);
     assert_eq!(provider_b.requests().len(), 1);
     assert!(provider_a.requests().iter().any(|request| {
-        request.model == "wire-plan-model-a" && request.thinking_level.as_deref() == Some("deep")
+        request.model == "wire-plan-model-a" && request.thinking_level.as_deref() == Some("high")
     }));
     assert!(provider_b.requests().iter().any(|request| {
-        request.model == "wire-plan-model-b"
-            && request.thinking_level.as_deref() == Some("extended")
+        request.model == "wire-plan-model-b" && request.thinking_level.as_deref() == Some("high")
     }));
     assert!(
         provider_a.requests()[1]

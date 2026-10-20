@@ -271,15 +271,18 @@ pub(super) fn session_selection_updated(
         session.execution = selection.clone();
     }
     if let LoadState::Ready(session) = &mut state.session {
-        let previous_model = session.execution.model.clone();
-        let next_model = selection.model.clone();
+        let previous_model = (
+            session.execution.provider_id.clone(),
+            session.execution.model_id.clone(),
+        );
+        let next_model = (selection.provider_id.clone(), selection.model_id.clone());
         let previous_thinking = session.execution.thinking_level.clone();
         let next_thinking = selection.thinking_level.clone();
         session.set_execution(selection);
         if previous_model != next_model && previous_thinking != next_thinking {
             state.shell_message = format!(
                 "Model changed to {}; thinking level adjusted to {}.",
-                next_model.as_deref().unwrap_or("unspecified"),
+                next_model.1.as_deref().unwrap_or("unspecified"),
                 next_thinking.as_deref().unwrap_or("unspecified"),
             );
         } else if previous_thinking != next_thinking {

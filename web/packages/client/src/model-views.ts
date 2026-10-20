@@ -37,13 +37,13 @@ function normalizeModel(value: unknown): ModelDescriptor {
   return {
     id: requiredString(record.id, "model id"),
     displayName: requiredString(record.display_name ?? record.displayName, "model name"),
-    providerProfile: requiredString(
-      record.provider_profile ?? record.providerProfile,
-      "provider profile",
+    providerId: requiredString(
+      record.provider_id ?? record.providerId ?? record.provider_profile ?? record.providerProfile,
+      "provider id",
     ),
-    providerModelId: requiredString(
-      record.provider_model_id ?? record.providerModelId,
-      "provider model id",
+    modelId: requiredString(
+      record.model_id ?? record.modelId ?? record.provider_model_id ?? record.providerModelId,
+      "model id",
     ),
     capabilities: {
       streaming: capabilities.streaming === true,
@@ -118,7 +118,8 @@ export function normalizeExecutionSelection(value: unknown): SessionExecutionSel
             revision: change.revision,
             kind: kind as SessionExecutionChange["kind"],
             summary: change.summary,
-            ...optionalString(change.model, "model"),
+            ...optionalString(change.provider_id ?? change.providerId, "providerId"),
+            ...optionalString(change.model_id ?? change.modelId, "modelId"),
             ...optionalString(change.thinking_level ?? change.thinkingLevel, "thinkingLevel"),
           },
         ];
@@ -126,8 +127,8 @@ export function normalizeExecutionSelection(value: unknown): SessionExecutionSel
     : undefined;
   return {
     revision: typeof record.revision === "number" ? record.revision : 0,
-    ...optionalString(record.model_profile ?? record.modelProfile, "modelProfile"),
-    ...optionalString(record.model, "model"),
+    ...optionalString(record.provider_id ?? record.providerId, "providerId"),
+    ...optionalString(record.model_id ?? record.modelId, "modelId"),
     ...optionalString(record.thinking_level ?? record.thinkingLevel, "thinkingLevel"),
     ...(history === undefined ? {} : { history }),
   };

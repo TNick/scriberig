@@ -204,6 +204,15 @@ fn tool_verbosity_changes_leave_context_fingerprint_unchanged() {
 /// Reports a missing session when a queued assignment picker is activated.
 #[test]
 fn plan_assignment_picker_reports_lost_session_context() {
+    let model = scriberig_protocol::PublicModelDescriptor {
+        id: "descriptor-a".to_owned(),
+        display_name: "Model A".to_owned(),
+        provider_profile: "provider-a".to_owned(),
+        provider_model_id: "model-a".to_owned(),
+        capabilities: scriberig_protocol::PublicModelCapabilities::default(),
+        thinking_levels: Vec::new(),
+        default_thinking_level: None,
+    };
     let mut state = TuiState {
         plan_assignment_target: Some(crate::state::PlanAssignmentTarget {
             plan: scriberig_core::EntityId::from_bytes([181; 16]),
@@ -212,23 +221,15 @@ fn plan_assignment_picker_reports_lost_session_context() {
         }),
         model_library: crate::inspector::LoadState::Ready(
             scriberig_protocol::ModelLibraryResponse {
-                models: Vec::new(),
-                profiles: vec![scriberig_protocol::PublicModelProfile {
-                    id: "profile-a".to_owned(),
-                    display_name: "Profile A".to_owned(),
-                    model: "model-a".to_owned(),
-                    connection: "connection-a".to_owned(),
-                    credential: None,
-                    default_thinking_level: None,
-                    enabled: true,
-                }],
+                models: vec![model],
+                profiles: Vec::new(),
             },
         ),
         ..TuiState::default()
     };
 
     let effects =
-        crate::state::activate_palette_control(&mut state, "assign-plan-profile:profile-a")
+        crate::state::activate_palette_control(&mut state, "assign-plan-model:descriptor-a")
             .expect("assignment action");
 
     assert_eq!(effects, vec![Effect::None]);
@@ -241,21 +242,22 @@ fn plan_assignment_picker_reports_lost_session_context() {
     );
 }
 
-/// Resolves a plan profile selection through its stable profile identity.
+/// Resolves a displayed model selection to its upstream provider/model pair.
 #[test]
-fn plan_assignment_uses_stable_profile_id_after_reordering() {
+fn plan_assignment_uses_selected_model_after_reordering() {
     let session = scriberig_core::EntityId::from_bytes([111; 16]);
     let node = scriberig_core::EntityId::from_bytes([112; 16]);
     let plan = scriberig_core::EntityId::from_bytes([113; 16]);
-    let profile = |id: &str, model: &str| scriberig_protocol::PublicModelProfile {
-        id: id.to_owned(),
-        display_name: id.to_owned(),
-        model: model.to_owned(),
-        connection: "connection".to_owned(),
-        credential: None,
-        default_thinking_level: None,
-        enabled: true,
-    };
+    let model =
+        |id: &str, provider: &str, model_id: &str| scriberig_protocol::PublicModelDescriptor {
+            id: id.to_owned(),
+            display_name: id.to_owned(),
+            provider_profile: provider.to_owned(),
+            provider_model_id: model_id.to_owned(),
+            capabilities: scriberig_protocol::PublicModelCapabilities::default(),
+            thinking_levels: Vec::new(),
+            default_thinking_level: None,
+        };
     let mut state = TuiState {
         plan_assignment_target: Some(crate::state::PlanAssignmentTarget {
             plan,
@@ -272,25 +274,25 @@ fn plan_assignment_uses_stable_profile_id_after_reordering() {
         }),
         model_library: crate::inspector::LoadState::Ready(
             scriberig_protocol::ModelLibraryResponse {
-                models: Vec::new(),
-                profiles: vec![
-                    profile("profile-b", "model-b"),
-                    profile("profile-a", "model-a"),
+                models: vec![
+                    model("descriptor-b", "provider-b", "model-b"),
+                    model("descriptor-a", "provider-a", "model-a"),
                 ],
+                profiles: Vec::new(),
             },
         ),
         ..TuiState::default()
     };
 
     let effects =
-        crate::state::activate_palette_control(&mut state, "assign-plan-profile:profile-a")
+        crate::state::activate_palette_control(&mut state, "assign-plan-model:descriptor-a")
             .expect("assignment action");
 
     assert!(matches!(
         effects.as_slice(),
         [Effect::SetPlanNodeAssignment(request)]
             if request.assignment.as_ref().is_some_and(|assignment| {
-                assignment.profile == "profile-a" && assignment.model == "model-a"
+                assignment.provider_id == "provider-a" && assignment.model_id == "model-a"
             })
     ));
 }

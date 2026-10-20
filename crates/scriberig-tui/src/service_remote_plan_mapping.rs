@@ -187,8 +187,8 @@ fn assignment(
     value: scriberig_protocol::SessionModelAssignment,
 ) -> scriberig_session::ModelAssignment {
     scriberig_session::ModelAssignment {
-        profile: value.profile,
-        model: value.model,
+        provider_id: value.provider_id,
+        model_id: value.model_id,
         thinking_level: value.thinking_level,
     }
 }

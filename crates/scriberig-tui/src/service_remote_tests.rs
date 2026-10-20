@@ -111,8 +111,8 @@ fn remote_session_mapping_preserves_plan_results_and_assignments() {
                 expected_result: None,
                 semantic_scope: Vec::new(),
                 assignment: Some(scriberig_protocol::SessionModelAssignment {
-                    profile: "profile-a".to_owned(),
-                    model: "model-a".to_owned(),
+                    provider_id: "provider-a".to_owned(),
+                    model_id: "model-a".to_owned(),
                     thinking_level: Some("careful".to_owned()),
                 }),
                 claim: None,
@@ -157,14 +157,14 @@ fn remote_errors_remain_categorized() {
         action: "session.continue".to_owned(),
         scope: "session-1".to_owned(),
     };
-    let remote_denial = remote_error(scriberig_client::ClientError::Protocol(
+    let remote_denial = remote_error(scriberig_client::ClientError::Protocol(Box::new(
         scriberig_protocol::ProtocolError {
             code: scriberig_protocol::ProtocolErrorCode::PermissionDenied,
             message: "permission denied".to_owned(),
             details: None,
             correlation_id: None,
         },
-    ));
+    )));
     assert_eq!(local_denial.category(), "permission_denied");
     assert_eq!(remote_denial.category(), local_denial.category());
 
@@ -172,14 +172,14 @@ fn remote_errors_remain_categorized() {
         "connection refused".to_owned(),
     ));
     assert_eq!(transport.category(), "transport_unavailable");
-    let semantic = remote_error(scriberig_client::ClientError::Protocol(
+    let semantic = remote_error(scriberig_client::ClientError::Protocol(Box::new(
         scriberig_protocol::ProtocolError {
             code: scriberig_protocol::ProtocolErrorCode::NotFound,
             message: "missing".to_owned(),
             details: None,
             correlation_id: None,
         },
-    ));
+    )));
     assert_eq!(semantic.category(), "not_found");
 }
 

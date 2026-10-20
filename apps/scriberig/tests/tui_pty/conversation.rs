@@ -263,7 +263,7 @@ fn tui_pty_lists_local_palette_commands() {
 #[test]
 fn tui_pty_submits_model_command_on_return() {
     let _lock = test_lock();
-    let catalog = r#"{"models":[{"id":"default","display_name":"Fake Default","provider_model_id":"default"}]}"#;
+    let catalog = r#"{"providers":{"local":{"api":"openai-completions","models":[{"id":"default","name":"Fake Default"}]}}}"#;
     let mut tui = TuiPty::start_with_model_catalog(catalog);
 
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
@@ -280,11 +280,11 @@ fn tui_pty_submits_model_command_on_return() {
     assert!(tui.shutdown());
 }
 
-/// Verifies `/model` changes and persists the selected fake model profile.
+/// Verifies `/model` changes and persists the selected provider/model pair.
 #[test]
 fn tui_pty_changes_model_with_fake_profiles() {
     let _lock = test_lock();
-    let catalog = r#"{"models":[{"id":"default","display_name":"Fake Default","provider_model_id":"default"},{"id":"fake-b","display_name":"Fake B","provider_model_id":"fake-b"}]}"#;
+    let catalog = r#"{"providers":{"local":{"api":"openai-completions","models":[{"id":"default","name":"Fake Default"},{"id":"fake-b","name":"Fake B"}]}}}"#;
     let mut tui = TuiPty::start_with_model_catalog(catalog);
 
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
@@ -304,7 +304,7 @@ fn tui_pty_changes_model_with_fake_profiles() {
     );
     tui.send(b"\x1b[B");
     tui.send(b"\r");
-    assert!(tui.read_until("fake-b-profile"), "{}", tui.diagnostic());
+    assert!(tui.read_until("fake-b"), "{}", tui.diagnostic());
 
     let store = scriberig_session_sqlite::SqliteSessionStore::open(
         tui.fixture_path().join("scriberig.sqlite"),
@@ -314,11 +314,8 @@ fn tui_pty_changes_model_with_fake_profiles() {
         .load(session)
         .expect("read selected model session")
         .expect("selected model session exists");
-    assert_eq!(
-        saved.execution.model_profile.as_deref(),
-        Some("fake-b-profile")
-    );
-    assert_eq!(saved.execution.model.as_deref(), Some("fake-b"));
+    assert_eq!(saved.execution.provider_id.as_deref(), Some("local"));
+    assert_eq!(saved.execution.model_id.as_deref(), Some("fake-b"));
     drop(store);
     assert!(tui.shutdown());
 }

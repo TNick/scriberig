@@ -17,18 +17,18 @@ use service_agent_console_selection::{ensure_revision, invalid_selection, select
 use super::service_sessions::{authorize_model_library_read, authorize_session_model_selection};
 use crate::session::ToolResultDetail;
 use crate::{
-    ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService, ModelDescriptor,
-    ModelProfile, SessionModelSelectionRequest, SessionThinkingSelectionRequest,
+    ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService,
+    SessionModelSelectionRequest, SessionThinkingSelectionRequest,
 };
 use scriberig_core::EntityId;
 use scriberig_session::{Session, SessionExecutionSelection};
 
 impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B> {
-    /// Lists the configured safe model library for an authorized caller.
+    /// Projects safe model metadata from upstream state for an authorized caller.
     ///
     /// - `context`: Caller capabilities and request context.
     ///
-    /// The provider-neutral model descriptors and curated profiles.
+    /// Upstream-derived model descriptors and Scriberig curated profiles.
     ///
     /// Returns permission-denied when the caller cannot use agent models.
     /// # Returns
@@ -40,7 +40,33 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
         context: &ApplicationContext,
     ) -> Result<crate::ModelLibrary, ApplicationError> {
         authorize_model_library_read(context)?;
-        Ok(self.model_library.clone())
+        let mut library = self.model_library.clone();
+        for model in &mut library.models {
+            let resolved = rpi_model_runtime::resolve_selection(
+                &self.upstream_models,
+                &rpi_model_runtime::ModelSelection {
+                    provider_id: model.provider_profile.clone(),
+                    model_id: model.provider_model_id.clone(),
+                    thinking: rpi_ai::ThinkingLevel::Off,
+                },
+            )
+            .map_err(|error| invalid_selection(error.to_string()))?;
+            let upstream = &self.upstream_models[resolved.catalog_index];
+            model.thinking_levels = upstream
+                .supported_thinking_levels()
+                .into_iter()
+                .enumerate()
+                .map(|(order, level)| crate::ThinkingLevelDescriptor {
+                    id: crate::ThinkingLevelId::new(level.as_str())
+                        .expect("upstream thinking name parses upstream"),
+                    label: level.as_str().to_owned(),
+                    description: None,
+                    order: u32::try_from(order).unwrap_or(u32::MAX),
+                })
+                .collect();
+            model.default_thinking_level = None;
+        }
+        crate::ModelLibrary::new(library.models, library.profiles).map_err(invalid_selection)
     }
 
     /// Reads shared user presentation defaults without touching session state.
@@ -90,8 +116,8 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
 
     /// Changes the model profile used by future session invocations.
     ///
-    /// A still-supported thinking level is retained. Otherwise the profile
-    /// default, model default, then first advertised level is selected.
+    /// A canonical current level is retained. Otherwise the configured profile
+    /// default is selected and clamped by the upstream model.
     ///
     /// - `context`: Caller capabilities and request context.
     /// - `request`: Session, observed selection revision, and profile id.
@@ -111,30 +137,40 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
     ) -> Result<SessionExecutionSelection, ApplicationError> {
         authorize_session_model_selection(context, request.session)?;
         let (mut session, backend_owned) = self.selection_session(context, request.session)?;
-        let previous_profile = session.execution.model_profile.clone();
+        let previous_provider = session.execution.provider_id.clone();
+        let previous_model = session.execution.model_id.clone();
         let previous_thinking = session.execution.thinking_level.clone();
         ensure_revision(
             request.expected_revision,
             session.execution.revision,
             request.session,
         )?;
-        let (profile, model) = self.resolve_profile(&request.model_profile)?;
-        let thinking =
-            resolve_thinking(profile, model, session.execution.thinking_level.as_deref());
+        let (model, effective_thinking) = self.resolve_upstream_model(
+            &request.provider_id,
+            &request.model_id,
+            session.execution.thinking_level.as_deref(),
+        )?;
+        let thinking = session
+            .execution
+            .thinking_level
+            .as_ref()
+            .map(|_| effective_thinking.as_str().to_owned());
         session
             .execution
             .replace(
                 request.expected_revision,
-                Some(profile.id.clone()),
-                Some(model.id.as_str().to_owned()),
+                Some(model.provider.clone()),
+                Some(model.id.clone()),
                 thinking,
             )
             .map_err(|error| selection_error(error, request.session))?;
-        if previous_profile != session.execution.model_profile {
+        if previous_provider != session.execution.provider_id
+            || previous_model != session.execution.model_id
+        {
             record_selection_change(
                 &mut session.execution,
                 scriberig_session::AgentActivityKind::ModelSelectionChanged,
-                format!("Model selected: {}", model.display_name),
+                format!("Model selected: {}", model.name),
             );
         }
         if previous_thinking != session.execution.thinking_level {
@@ -150,11 +186,11 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
         }
         let selection = session.execution.clone();
         self.persist_selection(context, session, backend_owned, request.expected_revision)?;
-        if previous_profile != selection.model_profile {
+        if previous_provider != selection.provider_id || previous_model != selection.model_id {
             self.operations.publish_session_selection_changed(
                 request.session,
                 scriberig_session::AgentActivityKind::ModelSelectionChanged,
-                &format!("Model selected: {}", model.display_name),
+                &format!("Model selected: {}", model.name),
             );
         }
         if previous_thinking != selection.thinking_level {
@@ -178,7 +214,7 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
     ///
     /// The updated session selection.
     ///
-    /// Returns permission, active-model, advertised-level, stale-revision, or
+    /// Returns permission, active-model, invalid-level, stale-revision, or
     /// persistence failures.
     /// # Returns
     /// The operation result.
@@ -197,28 +233,28 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
             session.execution.revision,
             request.session,
         )?;
-        let profile_id = session
+        let provider_id = session
             .execution
-            .model_profile
+            .provider_id
             .as_deref()
-            .ok_or_else(|| invalid_selection("select a model profile first"))?;
-        let (profile, model) = self.resolve_profile(profile_id)?;
-        if !model
-            .thinking_levels
-            .iter()
-            .any(|level| level.id.as_str() == request.thinking_level)
-        {
-            return Err(invalid_selection(
-                "thinking level is not advertised by the selected model",
-            ));
-        }
+            .ok_or_else(|| invalid_selection("select a model first"))?;
+        let model_id = session
+            .execution
+            .model_id
+            .as_deref()
+            .ok_or_else(|| invalid_selection("select a model first"))?;
+        let requested = crate::ThinkingLevelId::new(request.thinking_level.clone())
+            .map_err(invalid_selection)?;
+        let (model, effective) =
+            self.resolve_upstream_model(provider_id, model_id, Some(requested.as_str()))?;
+        let effective = effective.as_str().to_owned();
         session
             .execution
             .replace(
                 request.expected_revision,
-                Some(profile.id.clone()),
-                Some(model.id.as_str().to_owned()),
-                Some(request.thinking_level.clone()),
+                Some(model.provider.clone()),
+                Some(model.id.clone()),
+                Some(effective),
             )
             .map_err(|error| selection_error(error, request.session))?;
         if previous_thinking != session.execution.thinking_level {
@@ -321,47 +357,4 @@ fn empty_session(id: EntityId) -> Session {
         plans: Vec::new(),
         execution: SessionExecutionSelection::default(),
     }
-}
-
-/// Chooses a supported thinking level while preserving a valid current choice.
-///
-/// - `profile`: Curated profile selected for the invocation.
-/// - `model`: Descriptor advertising supported levels.
-/// - `current`: Current selection, if any.
-///
-/// The supported current level or deterministic profile/model fallback.
-/// # Returns
-/// The operation result.
-fn resolve_thinking(
-    profile: &ModelProfile,
-    model: &ModelDescriptor,
-    current: Option<&str>,
-) -> Option<String> {
-    let supports = |candidate: &str| {
-        model
-            .thinking_levels
-            .iter()
-            .any(|level| level.id.as_str() == candidate)
-    };
-    current
-        .filter(|value| supports(value))
-        .map(str::to_owned)
-        .or_else(|| {
-            profile
-                .default_thinking_level
-                .as_ref()
-                .map(|level| level.as_str().to_owned())
-        })
-        .or_else(|| {
-            model
-                .default_thinking_level
-                .as_ref()
-                .map(|level| level.as_str().to_owned())
-        })
-        .or_else(|| {
-            model
-                .thinking_levels
-                .first()
-                .map(|level| level.id.as_str().to_owned())
-        })
 }

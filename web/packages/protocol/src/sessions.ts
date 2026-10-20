@@ -88,8 +88,8 @@ export interface SessionBranch {
 /** Future-invocation model selection shared across session clients. */
 export interface SessionExecutionSelection {
   revision: number;
-  modelProfile?: string;
-  model?: string;
+  providerId?: string;
+  modelId?: string;
   thinkingLevel?: string;
   history?: readonly SessionExecutionChange[];
 }
@@ -98,7 +98,8 @@ export interface SessionExecutionChange {
   revision: number;
   kind: "ModelSelectionChanged" | "ThinkingLevelChanged";
   summary: string;
-  model?: string;
+  providerId?: string;
+  modelId?: string;
   thinkingLevel?: string;
 }
 /** Durable lifecycle state for a planned work item. */
@@ -106,8 +107,8 @@ export type SessionPlanNodeStatus =
   "Planned" | "Ready" | "Running" | "Completed" | "Failed" | "Abandoned";
 /** Safe model-library configuration assigned to one plan node. */
 export interface SessionModelAssignment {
-  profile: string;
-  model: string;
+  providerId: string;
+  modelId: string;
   thinkingLevel?: string;
 }
 /** Durable planned work node located in a session tree. */

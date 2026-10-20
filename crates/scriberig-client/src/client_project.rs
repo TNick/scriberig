@@ -30,7 +30,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::Project(response) => Ok(response.result),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }

@@ -134,8 +134,14 @@ fn render_context(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
         .as_ref()
         .map(|session| &session.execution);
     let model = selection
-        .and_then(|value| value.model_profile.as_deref().or(value.model.as_deref()))
-        .unwrap_or("default model");
+        .and_then(|value| {
+            Some(format!(
+                "{}/{}",
+                value.provider_id.as_deref()?,
+                value.model_id.as_deref()?
+            ))
+        })
+        .unwrap_or_else(|| "default model".to_owned());
     let thinking = selection
         .and_then(|value| value.thinking_level.as_deref())
         .unwrap_or("default thinking");

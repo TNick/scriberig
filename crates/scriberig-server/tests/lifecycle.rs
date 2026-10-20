@@ -227,10 +227,8 @@ fn expired_event_cursor_is_structured() {
         .expect_err("expired cursor");
     assert!(matches!(
         error,
-        ClientError::Protocol(scriberig_protocol::ProtocolError {
-            code: scriberig_protocol::ProtocolErrorCode::CursorTooOld,
-            ..
-        })
+        ClientError::Protocol(error)
+            if error.code == scriberig_protocol::ProtocolErrorCode::CursorTooOld
     ));
 }
 

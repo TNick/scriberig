@@ -123,15 +123,17 @@ pub struct ProjectRequest {
 #[derive(Clone, Debug, Default, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct ModelLibraryRequest {}
 
-/// Requests a session model-profile selection mutation.
+/// Requests an upstream provider/model selection mutation.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct SessionModelSelectionRequest {
     /// Stable session identity.
     pub session: crate::SessionReference,
     /// Mutation revision observed by the caller.
     pub expected_revision: u64,
-    /// Curated model profile to select.
-    pub model_profile: String,
+    /// Upstream provider identity to select.
+    pub provider_id: String,
+    /// Provider-scoped upstream model identity to select.
+    pub model_id: String,
 }
 
 /// Requests a session thinking-level mutation.

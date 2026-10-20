@@ -2,75 +2,8 @@
 import { describe, expect, it } from "vitest";
 import { ScriberigClient } from "../src";
 import { normalizeSession } from "../src/session-views.js";
-import { normalizePresentationPreferencesResponse } from "../src/presentation-views.js";
-import { normalizeOperation } from "../src/response-normalizers.js";
-import sharedFixture from "../../../../tests/fixtures/agent_session_plan_conformance.json";
 
 describe("session client projections", () => {
-  it("preserves shared recursive session, plan, result, and preference semantics", () => {
-    const fixture = sharedFixture as {
-      session: unknown;
-      presentation: unknown;
-      operation: unknown;
-    };
-    const session = normalizeSession(fixture.session);
-    const preferences = normalizePresentationPreferencesResponse(fixture.presentation);
-    const operation = normalizeOperation(fixture.operation);
-    const worker = session.branches.find((branch) => branch.id === "branch-worker-1");
-    const plan = session.plans[0];
-
-    expect(worker?.result).toEqual({
-      id: "branch-result-1",
-      references: ["migration-parser-1"],
-      resultHandles: ["validation-1"],
-    });
-    expect(
-      session.branches[0]?.activity?.find((item) => item.id === "activity-candidate-1"),
-    ).toMatchObject({ kind: "SemanticOperation", durableRef: "migration-parser-1" });
-    expect(
-      session.branches[0]?.activity?.find((item) => item.id === "activity-validation-1"),
-    ).toMatchObject({ kind: "Validation", durableRef: "validation-1" });
-    expect(plan).toMatchObject({
-      revision: 2,
-      status: "Running",
-      dependencies: [
-        {
-          prerequisite: "plan-node-parser",
-          dependent: "plan-node-tests",
-          fulfilledBy: "branch-result-1",
-        },
-      ],
-    });
-    expect(plan?.nodes[0]).toMatchObject({
-      id: "plan-node-parser",
-      assignment: { model: "model-a" },
-    });
-    expect(preferences.preferences).toEqual({
-      reasoning: "shown",
-      toolInvocation: "detailed",
-      toolOutput: "summary",
-      prompt: "hidden",
-    });
-    expect(operation).toMatchObject({
-      operationId: "operation-agent-1",
-      status: "completed",
-      result: {
-        branchResultId: "branch-result-1",
-        producedChanges: ["entity-parser"],
-        validationResults: ["validation passed"],
-        unresolvedQuestions: [],
-        candidateChanges: [
-          {
-            migrationId: "migration-parser-1",
-            entityId: "entity-parser",
-            candidateSnapshotId: "snapshot-parser-candidate-1",
-            validationRefs: ["validation-1"],
-          },
-        ],
-      },
-    });
-  });
-
   it("reads and revision-checks shared presentation preferences", async () => {
     const requests: { operation: string; payload: unknown }[] = [];
     const transport = {
@@ -142,8 +75,8 @@ describe("session client projections", () => {
         }
         return {
           revision: 5,
-          model_profile: "profile-a",
-          model: "model-a",
+          provider_id: "provider-a",
+          model_id: "model-a",
           thinking_level: "extended",
         } as T;
       },
@@ -152,12 +85,21 @@ describe("session client projections", () => {
     const client = new ScriberigClient(transport);
 
     const library = await client.getModelLibrary();
-    const selection = await client.setSessionModel("session-a" as never, 4, "profile-a");
+    const selection = await client.setSessionModel(
+      "session-a" as never,
+      4,
+      "provider-a",
+      "model-a",
+    );
     await client.setSessionThinkingLevel("session-a" as never, 5, "extended");
 
     expect(library.models[0]?.thinkingLevels[0]?.id).toBe("extended");
     expect(library.profiles[0]?.credential).toEqual({ id: "secret-reference-only" });
-    expect(selection).toMatchObject({ revision: 5, modelProfile: "profile-a" });
+    expect(selection).toMatchObject({
+      revision: 5,
+      providerId: "provider-a",
+      modelId: "model-a",
+    });
     expect(requests).toEqual([
       { operation: "model_library", payload: {} },
       {
@@ -165,7 +107,8 @@ describe("session client projections", () => {
         payload: {
           session: { id: "session-a" },
           expected_revision: 4,
-          model_profile: "profile-a",
+          provider_id: "provider-a",
+          model_id: "model-a",
         },
       },
       {

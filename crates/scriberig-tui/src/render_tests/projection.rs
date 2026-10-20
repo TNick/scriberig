@@ -132,14 +132,15 @@ fn session_activity_shows_recovered_execution_selection_history() {
             rows: Vec::new(),
             execution: scriberig_session::SessionExecutionSelection {
                 revision: 2,
-                model_profile: Some("profile-b".to_owned()),
-                model: Some("model-b".to_owned()),
+                provider_id: Some("provider-b".to_owned()),
+                model_id: Some("model-b".to_owned()),
                 thinking_level: Some("careful".to_owned()),
                 history: vec![scriberig_session::SessionExecutionChange {
                     revision: 2,
                     kind: scriberig_session::AgentActivityKind::ThinkingLevelChanged,
                     summary: "Thinking level selected: careful".to_owned(),
-                    model: Some("model-b".to_owned()),
+                    provider_id: Some("provider-b".to_owned()),
+                    model_id: Some("model-b".to_owned()),
                     thinking_level: Some("careful".to_owned()),
                 }],
             },
