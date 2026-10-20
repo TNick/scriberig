@@ -19,8 +19,8 @@ scriberig-store = { path = "../scriberig-store" }
 sr-change = { path = "../sr-change" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "6e2f83b" }
-rpi-model-runtime = { git = "https://github.com/TNick/pi-rust", rev = "6e2f83b" }
+rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "3a9006c13c031048ccd578f30d951cc41671acb7" }
+rpi-model-runtime = { git = "https://github.com/TNick/pi-rust", rev = "3a9006c13c031048ccd578f30d951cc41671acb7" }
 
 [dev-dependencies]
 scriberig-store-memory = { path = "../scriberig-store-memory" }

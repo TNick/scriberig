@@ -26,10 +26,11 @@ pub(super) fn model_library<B: ApplicationBackend>(
             .into_iter()
             .map(|model| PublicModelDescriptor {
                 id: model.id.as_str().to_owned(),
-                display_name: model.display_name,
-                provider_id: model.provider_id,
-                provider_model_id: model.provider_model_id,
+                display_name: model.metadata_snapshot.display_name,
+                provider_id: model.metadata_snapshot.provider_id,
+                provider_model_id: model.metadata_snapshot.model_id,
                 thinking_levels: model
+                    .metadata_snapshot
                     .thinking_levels
                     .into_iter()
                     .map(|level| level.as_str().to_owned())
@@ -43,29 +44,25 @@ pub(super) fn model_library<B: ApplicationBackend>(
                         .input
                         .into_iter()
                         .map(|modality| match modality {
-                            scriberig_app::ModelInputModality::Text => {
-                                PublicModelInputModality::Text
-                            }
-                            scriberig_app::ModelInputModality::Image => {
-                                PublicModelInputModality::Image
-                            }
+                            rpi_ai::InputModality::Text => PublicModelInputModality::Text,
+                            rpi_ai::InputModality::Image => PublicModelInputModality::Image,
                         })
                         .collect(),
                     cost: PublicModelCostSnapshot {
-                        input: model.metadata_snapshot.cost.input,
-                        output: model.metadata_snapshot.cost.output,
-                        cache_read: model.metadata_snapshot.cost.cache_read,
-                        cache_write: model.metadata_snapshot.cost.cache_write,
+                        input: model.metadata_snapshot.cost.rates.input,
+                        output: model.metadata_snapshot.cost.rates.output,
+                        cache_read: model.metadata_snapshot.cost.rates.cache_read,
+                        cache_write: model.metadata_snapshot.cost.rates.cache_write,
                         tiers: model
                             .metadata_snapshot
                             .cost
                             .tiers
                             .into_iter()
                             .map(|tier| PublicModelCostTierSnapshot {
-                                input: tier.input,
-                                output: tier.output,
-                                cache_read: tier.cache_read,
-                                cache_write: tier.cache_write,
+                                input: tier.rates.input,
+                                output: tier.rates.output,
+                                cache_read: tier.rates.cache_read,
+                                cache_write: tier.rates.cache_write,
                                 input_tokens_above: tier.input_tokens_above,
                             })
                             .collect(),

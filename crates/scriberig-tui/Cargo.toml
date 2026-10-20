@@ -13,6 +13,7 @@ ratatui = "0.29"
 serde_json = "1.0"
 scriberig-agent-core = { path = "../scriberig-agent-core" }
 scriberig-agent-runtime = { path = "../scriberig-agent-runtime" }
+rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "3a9006c13c031048ccd578f30d951cc41671acb7" }
 scriberig-core = { path = "../scriberig-core" }
 scriberig-app = { path = "../scriberig-app" }
 scriberig-client = { path = "../scriberig-client" }

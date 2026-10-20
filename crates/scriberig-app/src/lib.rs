@@ -27,10 +27,7 @@ pub mod session;
 pub mod trust;
 pub mod validation;
 
-pub use agent_console::model::{
-    ModelCostSnapshot, ModelCostTierSnapshot, ModelDescriptor, ModelId, ModelInputModality,
-    ModelLibrary, ModelMetadataSnapshot, ThinkingLevelId,
-};
+pub use agent_console::model::{ModelDescriptor, ModelId, ModelLibrary, ThinkingLevelId};
 pub use agent_console::preferences::{
     AgentPresentationPreferenceSnapshot, AgentPresentationPreferenceStore,
     AgentPresentationPreferences, InMemoryAgentPresentationPreferenceStore, PromptVisibility,

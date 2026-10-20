@@ -150,14 +150,15 @@ fn model_library_projection_tracks_recomposed_upstream_catalog() {
     assert_eq!(first.models.len(), 1);
     assert_eq!(refreshed.models.len(), 2);
     assert!(refreshed.models.iter().any(|model| {
-        model.provider_model_id == "wire-a"
-            && model.display_name == "Updated Model A"
+        model.metadata_snapshot.model_id == "wire-a"
+            && model.metadata_snapshot.display_name == "Updated Model A"
             && model.metadata_snapshot.context_window == 128_000
     }));
     assert!(
         refreshed
             .models
             .iter()
-            .any(|model| model.provider_id == "provider-b" && model.provider_model_id == "wire-b")
+            .any(|model| model.metadata_snapshot.provider_id == "provider-b"
+                && model.metadata_snapshot.model_id == "wire-b")
     );
 }

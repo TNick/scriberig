@@ -154,7 +154,7 @@ fn model_library_projection_tracks_live_catalog_updates_and_removals() {
 
     assert_eq!(initial_library.models.len(), 1);
     assert_eq!(
-        initial_library.models[0].provider_model_id,
+        initial_library.models[0].metadata_snapshot.model_id,
         "model-before-refresh"
     );
 
@@ -172,20 +172,23 @@ fn model_library_projection_tracks_live_catalog_updates_and_removals() {
 
     assert_eq!(refreshed_library.models.len(), 1);
     assert_eq!(
-        refreshed_library.models[0].provider_id,
+        refreshed_library.models[0].metadata_snapshot.provider_id,
         "provider-after-refresh"
     );
     assert_eq!(
-        refreshed_library.models[0].provider_model_id,
+        refreshed_library.models[0].metadata_snapshot.model_id,
         "model-after-refresh"
     );
-    assert_eq!(refreshed_library.models[0].display_name, "Refreshed model");
+    assert_eq!(
+        refreshed_library.models[0].metadata_snapshot.display_name,
+        "Refreshed model"
+    );
     assert_ne!(initial_library.models[0].id, refreshed_library.models[0].id);
     assert!(
         !refreshed_library
             .models
             .iter()
-            .any(|model| model.provider_model_id == "model-before-refresh")
+            .any(|model| model.metadata_snapshot.model_id == "model-before-refresh")
     );
 
     catalog.reconcile_models(Vec::new());

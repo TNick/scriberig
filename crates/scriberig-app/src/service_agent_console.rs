@@ -51,48 +51,9 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
                     &safe_snapshot.model_id,
                 ))
                 .map_err(invalid_selection)?;
-                let thinking_levels = safe_snapshot.thinking_levels.clone();
-                let metadata_snapshot = crate::ModelMetadataSnapshot {
-                    schema_version: safe_snapshot.schema_version.clone(),
-                    api_id: safe_snapshot.api_id.clone(),
-                    reasoning: safe_snapshot.reasoning,
-                    input: safe_snapshot
-                        .input
-                        .iter()
-                        .map(|modality| match modality {
-                            rpi_ai::InputModality::Text => crate::ModelInputModality::Text,
-                            rpi_ai::InputModality::Image => crate::ModelInputModality::Image,
-                        })
-                        .collect(),
-                    cost: crate::ModelCostSnapshot {
-                        input: safe_snapshot.cost.rates.input,
-                        output: safe_snapshot.cost.rates.output,
-                        cache_read: safe_snapshot.cost.rates.cache_read,
-                        cache_write: safe_snapshot.cost.rates.cache_write,
-                        tiers: safe_snapshot
-                            .cost
-                            .tiers
-                            .iter()
-                            .map(|tier| crate::ModelCostTierSnapshot {
-                                input: tier.rates.input,
-                                output: tier.rates.output,
-                                cache_read: tier.rates.cache_read,
-                                cache_write: tier.rates.cache_write,
-                                input_tokens_above: tier.input_tokens_above,
-                            })
-                            .collect(),
-                    },
-                    cost_configured: safe_snapshot.cost_configured,
-                    context_window: safe_snapshot.context_window,
-                    max_tokens: safe_snapshot.max_tokens,
-                };
                 Ok(crate::ModelDescriptor {
                     id,
-                    display_name: safe_snapshot.display_name.clone(),
-                    provider_id: safe_snapshot.provider_id.clone(),
-                    provider_model_id: safe_snapshot.model_id.clone(),
-                    thinking_levels,
-                    metadata_snapshot,
+                    metadata_snapshot: safe_snapshot,
                 })
             })
             .collect::<Result<Vec<_>, ApplicationError>>()?;
