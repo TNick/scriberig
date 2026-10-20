@@ -9,8 +9,9 @@ use std::path::Path;
 ///
 /// - `options`: File open configuration.
 pub(super) fn configure(options: &mut OpenOptions) {
-    options
-        .custom_flags((rustix::fs::OFlags::NOFOLLOW | rustix::fs::OFlags::NONBLOCK).bits() as i32);
+    let flags = (rustix::fs::OFlags::NOFOLLOW | rustix::fs::OFlags::NONBLOCK).bits();
+    // `custom_flags` expects `i32`; preserve the bitmask instead of numerically casting it.
+    options.custom_flags(i32::from_ne_bytes(flags.to_ne_bytes()));
 }
 
 /// Restricts initial creation permissions before contents are written.
