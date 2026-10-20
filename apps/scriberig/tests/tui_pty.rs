@@ -32,11 +32,7 @@ fn tui_pty_shows_project_context() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(
-        tui.read_until("Message [ACTIVE]"),
-        "{}",
-        tui.diagnostic()
-    );
+    assert!(tui.read_until("Message [ACTIVE]"), "{}", tui.diagnostic());
     let screen = tui.screen();
     assert!(screen.contains("scriberig ·"));
     assert!(screen.contains("Conversation [ACTIVE]"));
