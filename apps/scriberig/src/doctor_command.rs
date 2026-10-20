@@ -24,7 +24,10 @@ pub fn run(args: &scriberig_cli::DoctorArgs) -> bool {
                     None,
                     "not configured",
                     "not run",
-                    Some("no provider base_url is configured"),
+                    Some((
+                        "no provider base_url is configured",
+                        "Configure a provider base URL and model, then retry.",
+                    )),
                 ),
             );
             return false;
@@ -39,7 +42,10 @@ pub fn run(args: &scriberig_cli::DoctorArgs) -> bool {
                     None,
                     "not verified",
                     "not run",
-                    Some(&error.message),
+                    Some((
+                        &error.message,
+                        "Run `srig config show` to inspect the effective settings.",
+                    )),
                 ),
             );
             return false;
@@ -67,7 +73,7 @@ fn run_provider_check(
     let endpoint = config.base_url.clone();
     let connection =
         OpenAiCompatibleProvider::new(config).and_then(|provider| test_provider(&provider, &model));
-    let (status, credential, api, message) = match connection {
+    let (status, credential, api, message, next_step) = match connection {
         Ok(()) => (
             "passed",
             if credential_configured {
@@ -76,6 +82,7 @@ fn run_provider_check(
                 "not configured"
             },
             "passed",
+            None,
             None,
         ),
         Err(error) => (
@@ -90,6 +97,7 @@ fn run_provider_check(
                 "failed"
             },
             Some(error.to_string()),
+            Some(failure_guidance(&error)),
         ),
     };
     print_report(
@@ -101,7 +109,7 @@ fn run_provider_check(
             Some(&endpoint),
             credential,
             api,
-            message.as_deref(),
+            message.as_deref().zip(next_step),
         ),
     );
     status == "passed"
@@ -146,6 +154,46 @@ fn credential_failure_status(configured: bool, error: &ProviderError) -> &'stati
     }
 }
 
+/// Suggests a portable next step for one classified doctor failure.
+///
+/// - `error`: Provider failure category and safe diagnostic.
+///
+/// Actionable guidance that does not assume a particular host or provider.
+/// # Returns
+/// The operation result.
+fn failure_guidance(error: &ProviderError) -> &'static str {
+    match error {
+        ProviderError::Configuration(_) => {
+            "Review the effective provider, model, and endpoint settings."
+        }
+        ProviderError::Authentication(_) | ProviderError::Permission(_) => {
+            "Verify the configured credential reference and provider access."
+        }
+        ProviderError::RateLimited(_) => {
+            "Wait for the provider rate limit window to pass, then retry."
+        }
+        ProviderError::Timeout(_) => {
+            "Check provider availability and load, then retry the bounded request."
+        }
+        ProviderError::Transport(message) if message.contains("connection refused") => {
+            "Confirm a service is listening at the configured endpoint and that network policy permits access."
+        }
+        ProviderError::Transport(_) => {
+            "Check endpoint reachability, network access, and TLS configuration."
+        }
+        ProviderError::InvalidRequest(_) => {
+            "Check that the selected model supports the configured API request."
+        }
+        ProviderError::ServerFailure(_) => {
+            "Check the provider service status and its server-side diagnostics."
+        }
+        ProviderError::MalformedResponse(_) => {
+            "Check API compatibility and confirm the model can return the required marker."
+        }
+        ProviderError::Cancelled => "Retry the check after the cancellation condition is cleared.",
+    }
+}
+
 /// Creates a stable report object containing no credential material.
 ///
 /// - `status`: Overall diagnostic outcome.
@@ -154,7 +202,7 @@ fn credential_failure_status(configured: bool, error: &ProviderError) -> &'stati
 /// - `endpoint`: Validated provider base URL.
 /// - `credential`: Credential status label.
 /// - `api`: API connectivity status label.
-/// - `message`: Optional safe diagnostic detail.
+/// - `advice`: Optional safe diagnostic detail and portable next step.
 ///
 /// A machine-readable secret-free diagnostic report.
 /// # Returns
@@ -166,7 +214,7 @@ fn report(
     endpoint: Option<&str>,
     credential: &str,
     api: &str,
-    message: Option<&str>,
+    advice: Option<(&str, &str)>,
 ) -> serde_json::Value {
     serde_json::json!({
         "status": status,
@@ -175,7 +223,8 @@ fn report(
         "endpoint": endpoint,
         "credential": credential,
         "api": api,
-        "message": message,
+        "message": advice.map(|(message, _)| message),
+        "next_step": advice.map(|(_, next_step)| next_step),
     })
 }
 
@@ -197,13 +246,16 @@ fn print_report(format: scriberig_cli::RunFormat, value: &serde_json::Value) {
     if let Some(message) = value["message"].as_str() {
         println!("detail: {message}");
     }
+    if let Some(next_step) = value["next_step"].as_str() {
+        println!("next: {next_step}");
+    }
 }
 
 #[cfg(test)]
 mod tests {
     //! Verifies safe credential status classification in doctor reports.
 
-    use super::credential_failure_status;
+    use super::{credential_failure_status, failure_guidance};
     use scriberig_agent_runtime::provider::ProviderError;
 
     /// Authentication failures identify a configured credential as rejected.
@@ -218,5 +270,16 @@ mod tests {
     fn unconfigured_credentials_are_reported_as_unconfigured() {
         let error = ProviderError::Transport("offline".to_owned());
         assert_eq!(credential_failure_status(false, &error), "not configured");
+    }
+
+    /// Refused connections include actionable guidance without host assumptions.
+    #[test]
+    fn transport_failure_guidance_explains_refused_connections() {
+        let error = ProviderError::Transport("connection refused".to_owned());
+
+        assert_eq!(
+            failure_guidance(&error),
+            "Confirm a service is listening at the configured endpoint and that network policy permits access."
+        );
     }
 }

@@ -54,6 +54,7 @@ fn palette_continues_agent_session_after_workspace_selection() {
             session,
             branch: Some(branch),
             workspace: None,
+            failure: None,
         }],
         ..TuiState::default()
     };
@@ -365,6 +366,7 @@ fn submitted_agent_operation_id_is_stable() {
             session,
             branch: None,
             workspace: None,
+            failure: None,
         }),
     );
     assert!(

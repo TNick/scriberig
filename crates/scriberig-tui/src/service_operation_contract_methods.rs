@@ -58,6 +58,44 @@ macro_rules! tui_operation_contract_methods {
             service_operation_helpers::read_session(self, context, session)
         }
 
+        /// Lists sessions through the shared application session repository.
+        ///
+        /// - `context`: Caller authorization context.
+        ///
+        /// Sessions ordered by stable identity.
+        ///
+        /// Returns an authorization or persistence failure.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when listing fails.
+        fn list_sessions(
+            &self,
+            context: &ApplicationContext,
+        ) -> Result<Vec<scriberig_session::Session>, ApplicationError> {
+            scriberig_app::SessionBackend::list_sessions(&self.service, context)
+        }
+
+        /// Removes one session through the shared application boundary.
+        ///
+        /// - `context`: Caller authorization context.
+        /// - `session`: Exact session identity to remove.
+        ///
+        /// Unit after the durable session is removed.
+        ///
+        /// Returns an authorization, active-work, or persistence failure.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when removal fails.
+        fn remove_session(
+            &self,
+            context: &ApplicationContext,
+            session: EntityId,
+        ) -> Result<(), ApplicationError> {
+            scriberig_app::SessionBackend::remove_session(&self.service, context, session)
+        }
+
         /// Submits an agent command through the shared application boundary.
         ///
         /// - `context`: Application context for the request.

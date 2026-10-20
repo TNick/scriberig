@@ -173,6 +173,7 @@ impl TuiService for BlockingAgentFixture {
             session: scriberig_core::EntityId::from_bytes([1; 16]),
             branch: Some(scriberig_core::EntityId::from_bytes([2; 16])),
             workspace: None,
+            failure: None,
         })
     }
 }
@@ -337,9 +338,9 @@ fn blocked_plan_lifecycle_keeps_worker_available() {
     });
 }
 
-/// Verifies reducer effects remain pending when the bounded worker queue is full.
+/// Verifies no-op effects are dropped and real effects remain ordered.
 #[test]
-fn full_worker_queue_retains_effects_in_order() {
+fn full_worker_queue_skips_noop_effects_and_retains_real_work() {
     let (sender, receiver) = std::sync::mpsc::sync_channel(1);
     sender
         .send(super::Work::PollApplicationEvents)
@@ -355,19 +356,14 @@ fn full_worker_queue_retains_effects_in_order() {
         ],
     );
 
-    assert_eq!(pending.len(), 2);
+    assert_eq!(pending.len(), 1);
     assert!(matches!(
         receiver.recv().expect("poll work"),
         super::Work::PollApplicationEvents
     ));
     super::flush_effects(&sender, &mut pending);
     assert!(matches!(
-        receiver.recv().expect("first effect"),
-        super::Work::Effect(effect) if *effect == crate::effect::Effect::None
-    ));
-    super::flush_effects(&sender, &mut pending);
-    assert!(matches!(
-        receiver.recv().expect("second effect"),
+        receiver.recv().expect("real effect"),
         super::Work::Effect(effect)
             if *effect == crate::effect::Effect::RequestCapabilities
     ));

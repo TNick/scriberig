@@ -63,6 +63,7 @@ fn persistent_session_composer_submits_without_a_modal() {
             session,
             branch: Some(branch),
             workspace: None,
+            failure: None,
         }),
     );
 
@@ -91,6 +92,7 @@ fn persistent_session_composer_submits_without_a_modal() {
             session,
             branch: Some(branch),
             workspace: None,
+            failure: None,
         }),
     );
     reduce(&mut state, Action::InputChanged("while running".to_owned()));
@@ -191,7 +193,8 @@ fn conversation_home_types_and_submits_without_allocating_local_identity() {
 
     let effects = reduce(&mut state, Action::InputSubmitted);
 
-    assert_eq!(state.conversation_composer.draft, "");
+    assert_eq!(state.conversation_composer.draft, "hello");
+    assert!(state.conversation_composer.pending);
     assert_eq!(
         state.conversation_composer.target,
         crate::state::ConversationTarget::NewSession
@@ -203,6 +206,22 @@ fn conversation_home_types_and_submits_without_allocating_local_identity() {
             selection: None
         }] if prompt == "hello"
     ));
+
+    reduce(
+        &mut state,
+        Action::OperationFailed {
+            request_id: 0,
+            category: "unsupported_operation".to_owned(),
+            message: "configure a provider connection".to_owned(),
+        },
+    );
+
+    assert_eq!(state.conversation_composer.draft, "hello");
+    assert!(!state.conversation_composer.pending);
+    assert_eq!(
+        state.conversation_composer.error.as_deref(),
+        Some("configure a provider connection")
+    );
 }
 
 /// Carries the exact configured semantic entity into a first agent session.
@@ -272,6 +291,7 @@ fn conversation_slash_routing_never_sends_unknown_commands_to_the_agent() {
         reduce(&mut state, Action::InputSubmitted).as_slice(),
         [Effect::ReadModelLibrary { .. }]
     ));
+    assert_eq!(state.conversation_composer.draft, "");
     let session = scriberig_core::EntityId::from_bytes([125; 16]);
     let branch = scriberig_core::EntityId::from_bytes([126; 16]);
     state.conversation_composer.target = crate::state::ConversationTarget::Existing {
@@ -299,6 +319,41 @@ fn conversation_slash_routing_never_sends_unknown_commands_to_the_agent() {
     ));
 }
 
+/// Routes exact session-management commands to local session effects.
+#[test]
+fn conversation_session_commands_are_local_and_exact() {
+    let id = scriberig_core::EntityId::from_bytes([127; 16]);
+    let mut state = TuiState::default();
+
+    state.conversation_composer.draft = "/sessions".to_owned();
+    assert!(matches!(
+        reduce(&mut state, Action::InputSubmitted).as_slice(),
+        [Effect::ListSessions]
+    ));
+
+    state.conversation_composer.draft = format!("/switch {id}");
+    assert!(matches!(
+        reduce(&mut state, Action::InputSubmitted).as_slice(),
+        [Effect::SwitchSession { session }] if *session == id
+    ));
+
+    state.conversation_composer.draft = format!("/remove-session {id}");
+    assert!(matches!(
+        reduce(&mut state, Action::InputSubmitted).as_slice(),
+        [Effect::RemoveSession { session }] if *session == id
+    ));
+
+    state.conversation_composer.draft = "/new".to_owned();
+    assert!(matches!(
+        reduce(&mut state, Action::InputSubmitted).as_slice(),
+        [Effect::None]
+    ));
+    assert_eq!(
+        state.conversation_composer.target,
+        crate::state::ConversationTarget::NewSession
+    );
+}
+
 /// Routes a local auxiliary command while a provider turn is still running.
 #[test]
 fn conversation_auxiliary_command_is_available_while_agent_is_pending() {
@@ -314,38 +369,6 @@ fn conversation_auxiliary_command_is_available_while_agent_is_pending() {
     );
     assert!(matches!(effects.as_slice(), [Effect::ListOperations]));
     assert!(state.conversation_composer.pending);
-}
-
-/// Rebinds the next reply to authoritative session and branch handles.
-#[test]
-fn accepted_conversation_start_installs_shared_branch_head_anchor() {
-    let mut state = TuiState::default();
-    let session = scriberig_core::EntityId::from_bytes([71; 16]);
-    let branch = scriberig_core::EntityId::from_bytes([72; 16]);
-    let operation = scriberig_core::OperationId::new("conversation-accepted").expect("operation");
-
-    let effects = reduce(
-        &mut state,
-        Action::ConversationAgentAccepted(crate::service::AgentHandle {
-            operation: operation.clone(),
-            session,
-            branch: Some(branch),
-            workspace: None,
-        }),
-    );
-
-    assert_eq!(
-        state.conversation_composer.target,
-        crate::state::ConversationTarget::Existing {
-            session,
-            reply_anchor: scriberig_session::ContinuationAnchor::BranchHead { branch },
-        }
-    );
-    assert!(matches!(
-        effects.as_slice(),
-        [Effect::ReadSession { session: value, .. }] if *value == session
-    ));
-    assert_eq!(state.agent_handles[0].operation, operation);
 }
 
 #[path = "state_session_composer_tests_part1.rs"]

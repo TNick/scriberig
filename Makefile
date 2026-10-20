@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help init build install tui onboard clean-temp test-tui product-golden docs format lint test check dev dev-stop
+.PHONY: help init build install tui doctor onboard clean-temp test-tui product-golden docs format lint test check dev dev-stop
 
 ONBOARD_DB ?= playground/dev-app-runtime/scriberig.sqlite
 
@@ -16,6 +16,7 @@ help:
 	@echo   make build      Build all workspace targets.
 	@echo   make install    Build and install the srig executable.
 	@echo   make tui        Onboard and open the current project in the TUI.
+	@echo   make doctor     Check the configured model API and credential.
 	@echo   make onboard    Import Git-tracked files from the current project.
 	@echo   make clean-temp Remove stale Scriberig test workspaces from system temp.
 	@echo   make test-tui   Run deterministic and PTY TUI test suites.
@@ -46,7 +47,11 @@ install:
 
 # Start the integrated srig executable in TUI mode.
 tui:
-	cargo run --package scriberig --bin srig -- tui --db "$(ONBOARD_DB)" --project . --git-tracked --import
+	cargo run --package scriberig --bin srig -- tui --debug --db "$(ONBOARD_DB)" --project . --git-tracked --import
+
+# Check the configured provider using the bounded doctor request.
+doctor:
+	cargo run --package scriberig --bin srig -- doctor
 
 # Scan and import the current project's Git-tracked files.
 onboard:

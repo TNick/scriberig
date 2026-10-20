@@ -2,6 +2,40 @@
 
 macro_rules! application_handle_method {
     () => {
+        /// Lists durable sessions through the shared application session owner.
+        ///
+        /// - `context`: Caller authorization context.
+        ///
+        /// Sessions ordered by stable identity.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an authorization or persistence failure.
+        fn list_sessions(
+            &self,
+            context: &ApplicationContext,
+        ) -> Result<Vec<scriberig_session::Session>, ApplicationError> {
+            self.service.list_sessions(context)
+        }
+
+        /// Removes one durable session through the shared application owner.
+        ///
+        /// - `context`: Caller authorization context.
+        /// - `session`: Exact session identity to remove.
+        ///
+        /// Unit after the session is removed.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an authorization, active-work, or persistence failure.
+        fn remove_session(
+            &self,
+            context: &ApplicationContext,
+            session: EntityId,
+        ) -> Result<(), ApplicationError> {
+            self.service.remove_session(context, session)
+        }
+
         /// Submits local agent work and resolves the accepted root branch handle.
         ///
         /// - `context`: Application context for the operation.
@@ -34,6 +68,7 @@ macro_rules! application_handle_method {
                 session,
                 branch,
                 workspace: None,
+                failure: None,
             })
         }
     };

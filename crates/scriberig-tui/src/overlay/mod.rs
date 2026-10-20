@@ -37,6 +37,8 @@ pub struct ComposerState {
 pub enum Overlay {
     /// Keyboard help generated from the keymap.
     Help,
+    /// Durable sessions displayed with IDs for `/switch` and `/remove`.
+    SessionList(Vec<String>),
     /// Local and semantic command palette.
     Palette(palette::PaletteState),
     /// Text input used by find and future commands.

@@ -10,6 +10,7 @@ use ratatui::{Terminal, backend::CrosstermBackend};
 use crate::{
     TuiConfig,
     action::Action,
+    debug_log::TuiDebugLog,
     effect::Effect,
     event,
     event::TuiEvent,
@@ -19,6 +20,10 @@ use crate::{
     terminal::TerminalGuard,
 };
 use scriberig_app::ApplicationContext;
+
+#[path = "runtime/drain.rs"]
+mod drain;
+use drain::{MessageDrain, drain_messages};
 
 /// Maximum lifecycle events reduced before returning to terminal input handling.
 const APPLICATION_EVENT_BATCH_SIZE: usize = 128;
@@ -43,6 +48,10 @@ pub fn run<S: TuiService + Sync>(
         io::stdin().is_terminal(),
         io::stdout().is_terminal(),
     )?;
+    let mut debug_log = config
+        .debug
+        .then(|| TuiDebugLog::open(config.debug_log_file.as_deref()))
+        .transpose()?;
     let _guard = TerminalGuard::enter()?;
     let backend = CrosstermBackend::new(io::stdout());
     let mut terminal = Terminal::new(backend)?;
@@ -51,6 +60,40 @@ pub fn run<S: TuiService + Sync>(
         agent_selection: config.agent_selection.clone(),
         ..TuiState::default()
     };
+    if let Some(log) = debug_log.as_mut() {
+        log.record_message("runtime-start", &state)?;
+    }
+    interactive_event_loop(
+        service,
+        context,
+        config,
+        &mut terminal,
+        &mut state,
+        debug_log.as_mut(),
+    )
+}
+/// Processes terminal input and shared application events until shutdown.
+///
+/// - `service`: Shared operations available to local effects.
+/// - `context`: Authorization and snapshot context for each operation.
+/// - `config`: Initial semantic selection to inspect after startup.
+/// - `terminal`: Active terminal backend and frame buffer.
+/// - `state`: Mutable client presentation state.
+/// - `debug_log`: Optional content-redacted diagnostic writer.
+///
+/// Unit after shutdown and worker completion.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an I/O error when input, rendering, or a worker fails.
+fn interactive_event_loop<S: TuiService + Sync>(
+    service: &S,
+    context: &ApplicationContext,
+    config: &TuiConfig,
+    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
+    state: &mut TuiState,
+    mut debug_log: Option<&mut TuiDebugLog>,
+) -> io::Result<()> {
     std::thread::scope(|scope| {
         let (work_sender, work_receiver) = mpsc::sync_channel(32);
         let (message_sender, message_receiver) = mpsc::sync_channel(32);
@@ -76,7 +119,7 @@ pub fn run<S: TuiService + Sync>(
             let request_id = state.next_request_id;
             state.next_request_id += 1;
             let effects = reduce(
-                &mut state,
+                state,
                 crate::action::Action::InspectRequested {
                     request_id,
                     entity,
@@ -89,17 +132,18 @@ pub fn run<S: TuiService + Sync>(
         let mut pending_events = VecDeque::new();
         let mut poll_in_flight = false;
         while !state.should_quit {
-            drain_messages(
-                &message_receiver,
-                &mut state,
-                &mut poll_in_flight,
-                &work_sender,
-                &mut pending_effects,
-                &mut pending_events,
-                &mut redraw,
-            );
+            {
+                let mut drain = MessageDrain {
+                    sender: &work_sender,
+                    pending_effects: &mut pending_effects,
+                    pending_events: &mut pending_events,
+                    redraw: &mut redraw,
+                    debug_log: debug_log.as_deref_mut(),
+                };
+                drain_messages(&message_receiver, state, &mut poll_in_flight, &mut drain)?;
+            }
             dispatch_pending_events(
-                &mut state,
+                state,
                 &mut pending_events,
                 &work_sender,
                 &mut pending_effects,
@@ -110,19 +154,19 @@ pub fn run<S: TuiService + Sync>(
                 poll_in_flight = try_queue(&work_sender, Work::PollApplicationEvents);
             }
             if redraw {
-                terminal.draw(|frame| render::render(frame, &state))?;
+                terminal.draw(|frame| render::render(frame, state))?;
                 redraw = false;
             }
             let input = event::read_event(Duration::from_millis(250))?;
             if matches!(input, TuiEvent::Tick) {
                 continue;
             }
-            queue_effects(
-                &work_sender,
-                &mut pending_effects,
-                state.apply_event(&input),
-            );
-            terminal.draw(|frame| render::render(frame, &state))?;
+            let effects = state.apply_event(&input);
+            if let Some(log) = debug_log.as_mut() {
+                log.record_event(&input, effects.len(), state)?;
+            }
+            queue_effects(&work_sender, &mut pending_effects, effects);
+            terminal.draw(|frame| render::render(frame, state))?;
         }
         drop(work_sender);
         drop(message_receiver);
@@ -228,6 +272,9 @@ fn queue_effects(sender: &SyncSender<Work>, pending: &mut VecDeque<Effect>, effe
 /// - `pending`: Effects retained until worker capacity returns.
 fn flush_effects(sender: &SyncSender<Work>, pending: &mut VecDeque<Effect>) {
     while let Some(effect) = pending.pop_front() {
+        if matches!(&effect, Effect::None) {
+            continue;
+        }
         match sender.try_send(Work::Effect(Box::new(effect))) {
             Ok(()) => {}
             Err(TrySendError::Full(Work::Effect(effect))) => {
@@ -237,58 +284,6 @@ fn flush_effects(sender: &SyncSender<Work>, pending: &mut VecDeque<Effect>) {
             Err(TrySendError::Disconnected(_)) => break,
             Err(TrySendError::Full(Work::PollApplicationEvents)) => {
                 unreachable!("only effects are queued through this helper")
-            }
-        }
-    }
-}
-
-/// Applies completed worker messages to the state and schedules follow-up work.
-///
-/// - `receiver`: Completed worker message queue.
-/// - `state`: Mutable TUI state.
-/// - `poll_in_flight`: Whether an event poll is active.
-/// - `sender`: Bounded worker queue.
-/// - `pending_effects`: Effects retained until worker capacity returns.
-/// - `pending_events`: Lifecycle events retained until dispatched.
-/// - `redraw`: Whether the terminal needs repainting.
-fn drain_messages(
-    receiver: &Receiver<RuntimeMessage>,
-    state: &mut TuiState,
-    poll_in_flight: &mut bool,
-    sender: &SyncSender<Work>,
-    pending_effects: &mut VecDeque<Effect>,
-    pending_events: &mut VecDeque<scriberig_app::ApplicationEvent>,
-    redraw: &mut bool,
-) {
-    while let Ok(message) = receiver.try_recv() {
-        match message {
-            RuntimeMessage::Action(action) => {
-                *redraw = true;
-                queue_effects(sender, pending_effects, reduce(state, *action));
-            }
-            RuntimeMessage::ApplicationEvents(events) => {
-                *poll_in_flight = false;
-                if state.connection == crate::state::ConnectionState::Disconnected {
-                    *redraw = true;
-                    queue_effects(
-                        sender,
-                        pending_effects,
-                        reduce(state, Action::ConnectionRestored),
-                    );
-                }
-                pending_events.extend(events);
-            }
-            RuntimeMessage::ApplicationEventsFailed { category, message } => {
-                *poll_in_flight = false;
-                *redraw = true;
-                reduce(
-                    state,
-                    Action::OperationFailed {
-                        request_id: 0,
-                        category,
-                        message,
-                    },
-                );
             }
         }
     }
@@ -343,6 +338,9 @@ fn run_headless<S: TuiService>(service: &S, context: &ApplicationContext, config
             },
         );
         for effect in effects {
+            if matches!(&effect, crate::effect::Effect::None) {
+                continue;
+            }
             let action = execute_effect(service, context, effect);
             reduce(&mut state, action);
         }

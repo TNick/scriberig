@@ -26,6 +26,8 @@ mod tui_pty_interaction;
 mod self_hosting;
 #[path = "tui_pty_support/startup.rs"]
 mod startup;
+#[path = "tui_pty_support/startup_arithmetic.rs"]
+mod startup_arithmetic;
 #[path = "tui_pty_support/startup_options.rs"]
 mod startup_options;
 

@@ -65,6 +65,21 @@ pub mod repository {
         /// Returns an error when the operation fails.
         fn load(&self, session: EntityId) -> Result<Option<Session>, String>;
 
+        /// Removes one exact durable session graph.
+        ///
+        /// - `_session`: Stable session identity to remove.
+        ///
+        /// Unit after the session record is removed.
+        ///
+        /// Returns a backend diagnostic when removal is unavailable or fails.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the repository cannot remove the record.
+        fn remove(&self, _session: EntityId) -> Result<(), String> {
+            Err("session removal is unsupported".to_owned())
+        }
+
         /// Stores one complete session graph atomically.
         ///
         /// - `session`: Session graph to persist.

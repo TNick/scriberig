@@ -97,6 +97,7 @@ pub trait AgentCommandRunner<B: ApplicationBackend>: Send + Sync {
             session: handle.session,
             branch: Some(handle.root_branch),
             workspace: None,
+            failure: None,
         })
     }
 }
@@ -151,6 +152,7 @@ impl<B: ApplicationBackend> AgentCommandRunner<B> for SharedAgentCommandRunner {
             session,
             branch,
             workspace: None,
+            failure: None,
         })
     }
 }

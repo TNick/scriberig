@@ -129,6 +129,31 @@ impl SessionStore for SqliteSessionStore {
             .transpose()
     }
 
+    /// Removes one exact session graph from the SQLite repository.
+    ///
+    /// - `session`: Stable session identity to remove.
+    ///
+    /// Unit after the record is removed; absent identities are already removed.
+    ///
+    /// Returns a bounded SQLite or repository-lock diagnostic.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when SQLite cannot delete the record.
+    fn remove(&self, session: EntityId) -> Result<(), String> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| "session repository lock poisoned".to_owned())?;
+        connection
+            .execute(
+                "DELETE FROM session_records WHERE session_id=?1",
+                params![session.as_bytes().as_slice()],
+            )
+            .map_err(|error| error.to_string())?;
+        Ok(())
+    }
+
     /// Encodes and atomically replaces one stored session graph.
     ///
     /// - `session`: Complete graph to persist.

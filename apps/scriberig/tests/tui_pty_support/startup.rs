@@ -24,6 +24,35 @@ impl TuiPty {
         Self::start_for_fixture(basic_fixture())
     }
 
+    /// Starts the TUI with a deterministic provider and supplied fake models.
+    ///
+    /// - `model_catalog`: Trusted test-only catalog containing fake profiles.
+    ///
+    /// A running TUI with an imported project and deterministic agent provider.
+    ///
+    /// # Panics
+    /// Panics when the fixture or child process cannot be created.
+    #[must_use]
+    /// # Returns
+    /// The operation result.
+    pub fn start_with_model_catalog(model_catalog: &str) -> Self {
+        let fixture = temporary_fixture();
+        let checkout = tui_pty_fixture::bootstrap_project(&fixture);
+        Self::start_configured_scenario_with_catalog(
+            fixture,
+            ProjectStartupOptions {
+                path: None,
+                import: false,
+                git_tracked: false,
+            },
+            Some(checkout),
+            true,
+            Some("bootstrap"),
+            None,
+            Some(model_catalog),
+        )
+    }
+
     /// Starts a fresh-database TUI in a Git-backed checkout with deterministic agent provider.
     ///
     /// A TUI process whose trusted bootstrap directory is a temporary Git project.
@@ -136,6 +165,8 @@ impl TuiPty {
     /// # Panics
     /// Panics when the PTY or child process cannot be created.
     /// # Returns
+    /// The running TUI process.
+    /// # Returns
     /// The operation result.
     fn start_configured(
         fixture: PathBuf,
@@ -182,6 +213,42 @@ impl TuiPty {
         scenario: Option<&str>,
         executable: Option<PathBuf>,
     ) -> Self {
+        Self::start_configured_scenario_with_catalog(
+            fixture,
+            project,
+            working_directory,
+            deterministic_agent,
+            scenario,
+            executable,
+            None,
+        )
+    }
+
+    /// Starts the native process with an optional trusted test model catalog.
+    ///
+    /// - `fixture`: Directory used for the fresh database.
+    /// - `project`: Optional project behavior selected for startup.
+    /// - `working_directory`: Optional process working directory.
+    /// - `deterministic_agent`: Whether to select the deterministic provider.
+    /// - `scenario`: Optional deterministic scenario identifier.
+    /// - `executable`: Optional native executable override for restart gates.
+    /// - `model_catalog`: Optional fake model catalog passed to the child.
+    ///
+    /// A running native TUI process.
+    ///
+    /// # Panics
+    /// Panics when the PTY or child process cannot be created.
+    /// # Returns
+    /// The running TUI process.
+    fn start_configured_scenario_with_catalog(
+        fixture: PathBuf,
+        project: ProjectStartupOptions,
+        working_directory: Option<PathBuf>,
+        deterministic_agent: bool,
+        scenario: Option<&str>,
+        executable: Option<PathBuf>,
+        model_catalog: Option<&str>,
+    ) -> Self {
         let database = fixture.join("scriberig.sqlite");
         let product_project = project.path.clone().unwrap_or_else(|| fixture.clone());
         let pty_system = native_pty_system();
@@ -197,6 +264,9 @@ impl TuiPty {
             executable.unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_srig"))),
         );
         command.env("CARGO_TARGET_DIR", workspace_target_directory());
+        if let Some(catalog) = model_catalog {
+            command.env("SCRIBE_AGENT_MODEL_CATALOG", catalog);
+        }
         if let Some(temp) = std::env::var_os("TEMP") {
             command.env("TEMP", temp);
         }

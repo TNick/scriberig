@@ -4,8 +4,76 @@ use super::{ConversationModel, ConversationRowKind, ConversationSource};
 use scriberig_core::EntityId;
 use scriberig_session::{
     Branch, BranchResult, BranchStatus, ContinuationAnchor, ContinuationOrigin, Plan, PlanNode,
-    PlanNodeParent, PlanNodeStatus, PlanStatus, Session,
+    PlanNodeParent, PlanNodeStatus, PlanStatus, Session, Turn,
 };
+
+/// Shows accepted user text and its durable failure result in conversation order.
+#[test]
+fn failed_first_turn_projects_message_followed_by_readable_error() {
+    let session_id = EntityId::from_bytes([31; 16]);
+    let branch_id = EntityId::from_bytes([32; 16]);
+    let turn_id = EntityId::from_bytes([33; 16]);
+    let result_id = EntityId::from_bytes([34; 16]);
+    let mut branch = Branch::new(branch_id, "agent root").expect("root branch");
+    branch.push_turn(Turn {
+        id: turn_id,
+        ordinal: 0,
+        human: Some(scriberig_session::HumanInput {
+            text: "1+1".to_owned(),
+        }),
+        agent: None,
+        tool_invocation: None,
+        tool_result: None,
+    });
+    branch
+        .activity
+        .push(scriberig_session::ExecutionActivity::HumanInput(turn_id));
+    branch.result = Some(BranchResult {
+        id: result_id,
+        branch: branch_id,
+        status: BranchStatus::Abandoned,
+        summary: Some("provider connection failed".to_owned()),
+        result_kind: Some("agent-failure".to_owned()),
+        candidate_context: None,
+        references: Vec::new(),
+        result_handles: Vec::new(),
+        touched: Vec::new(),
+        produced_changes: Vec::new(),
+        validations: Vec::new(),
+        unresolved_questions: Vec::new(),
+    });
+    branch
+        .transition(BranchStatus::Abandoned)
+        .expect("failed branch transition");
+    let session = Session {
+        id: session_id,
+        branches: vec![branch],
+        goals: Vec::new(),
+        tasks: Vec::new(),
+        plans: Vec::new(),
+        execution: scriberig_session::SessionExecutionSelection::default(),
+    };
+
+    let projection = ConversationModel::from_session(&session);
+    let message = projection
+        .rows
+        .iter()
+        .position(|row| row.source == ConversationSource::Activity(turn_id))
+        .expect("human message row");
+    let error = projection
+        .rows
+        .iter()
+        .position(|row| row.source == ConversationSource::BranchResult(result_id))
+        .expect("failure result row");
+
+    assert!(projection.rows[message].label.contains("You: 1+1"));
+    assert!(
+        projection.rows[error]
+            .label
+            .contains("Error: provider connection failed")
+    );
+    assert!(message < error);
+}
 
 /// Projects plan state as stable rows while keeping the session canonical.
 #[test]

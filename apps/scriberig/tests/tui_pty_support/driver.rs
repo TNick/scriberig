@@ -56,6 +56,19 @@ impl TuiPty {
         self.writer.flush().expect("flush terminal input");
     }
 
+    /// Types a command incrementally so slash completion receives ordered keys.
+    ///
+    /// - `input`: Terminal bytes to type into the child process.
+    ///
+    /// # Panics
+    /// Panics when the PTY input stream cannot be written.
+    pub fn send_slow(&mut self, input: &[u8]) {
+        for byte in input {
+            self.send(std::slice::from_ref(byte));
+            std::thread::sleep(Duration::from_millis(12));
+        }
+    }
+
     /// Reads the PTY until a visible screen string appears or a timeout expires.
     ///
     /// - `expected`: Visible text that must appear on the virtual screen.

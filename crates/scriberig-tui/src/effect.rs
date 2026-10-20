@@ -103,6 +103,18 @@ pub enum Effect {
         /// Optional branch whose activity is loaded on demand.
         branch: Option<scriberig_core::EntityId>,
     },
+    /// List the caller's durable conversation sessions.
+    ListSessions,
+    /// Read and select one exact durable session.
+    SwitchSession {
+        /// Stable session identity to load.
+        session: scriberig_core::EntityId,
+    },
+    /// Remove one exact idle durable session.
+    RemoveSession {
+        /// Stable session identity to remove.
+        session: scriberig_core::EntityId,
+    },
     /// Read credential-safe model profiles and capabilities.
     ReadModelLibrary {
         /// Request generation.

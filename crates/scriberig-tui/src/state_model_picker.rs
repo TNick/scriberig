@@ -14,23 +14,40 @@ use scriberig_core::EntityId;
 /// - `library`: Current safe model and profile descriptors.
 pub(crate) fn show_model_picker(
     state: &mut TuiState,
-    library: scriberig_protocol::ModelLibraryResponse,
+    library: &scriberig_protocol::ModelLibraryResponse,
 ) {
     let profiles = library
         .profiles
-        .into_iter()
+        .iter()
         .filter(|profile| profile.enabled)
-        .map(|profile| crate::overlay::palette::PaletteItem {
-            id: format!("select-model:{}", profile.id),
-            label: format!("{} · {}", profile.display_name, profile.model),
-            source: crate::overlay::palette::ActionSource::Local,
+        .map(|profile| {
+            let model = library
+                .models
+                .iter()
+                .find(|model| model.id == profile.model);
+            let model_details = model.map_or_else(
+                || profile.model.clone(),
+                |model| {
+                    format!(
+                        "{} · {}/{}",
+                        model.display_name, model.provider_profile, model.provider_model_id
+                    )
+                },
+            );
+            crate::overlay::palette::PaletteItem {
+                id: format!("select-model:{}", profile.id),
+                label: format!("{} · {model_details}", profile.display_name),
+                source: crate::overlay::palette::ActionSource::Local,
+            }
         })
         .collect::<Vec<_>>();
     if profiles.is_empty() {
-        "No enabled model profiles are available.".clone_into(&mut state.shell_message);
+        state.conversation_composer.error =
+            Some("No enabled model profiles are available.".to_owned());
         state.overlay = None;
         return;
     }
+    state.conversation_composer.error = None;
     state.overlay = Some(Overlay::Palette(PaletteState {
         query: String::new(),
         local_actions: profiles,
@@ -148,13 +165,14 @@ pub(crate) fn activate_model_picker_action(
     if item_id == "model-picker" {
         state.overlay = None;
         state.thinking_picker_pending = None;
-        if let LoadState::Ready(library) = &state.model_library {
-            show_model_picker(state, library.clone());
+        if let LoadState::Ready(library) = state.model_library.clone() {
+            show_model_picker(state, &library);
             return Some(vec![Effect::None]);
         }
         let request_id = state.next_request_id;
         state.next_request_id += 1;
         state.model_library = LoadState::Loading { request_id };
+        state.conversation_composer.error = None;
         "Loading available model profiles…".clone_into(&mut state.shell_message);
         return Some(vec![Effect::ReadModelLibrary { request_id }]);
     }

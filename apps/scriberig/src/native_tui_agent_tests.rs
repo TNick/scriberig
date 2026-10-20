@@ -100,6 +100,7 @@ fn first_conversation_message_runs_and_persists_fake_provider_answer() {
         "new conversation effect failed: {accepted:?}"
     );
     let refresh_effects = reduce(&mut state, accepted);
+    assert_eq!(state.conversation_composer.draft, "");
     let (request_id, session) = match refresh_effects.as_slice() {
         [
             Effect::ReadSession {
@@ -319,6 +320,8 @@ fn final_response(text: &str) -> ModelResponse {
     }
 }
 
+#[path = "native_tui_agent_tests/failed_message.rs"]
+mod failed_message;
 #[path = "native_tui_agent_tests_part1.rs"]
 mod part1;
 #[path = "native_tui_agent_plan_tests.rs"]

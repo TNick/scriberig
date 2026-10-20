@@ -45,7 +45,7 @@ Each subcommand also supports `-h` / `--help`.
 Start the local application-backed terminal UI.
 
 ```text
-srig tui [--db <PATH> | --connect <URL>]
+srig tui [--debug] [--log-file <PATH>] [--db <PATH> | --connect <URL>]
 ```
 
 The UI reads semantic data through the shared application boundary. Type
@@ -55,6 +55,8 @@ The UI reads semantic data through the shared application boundary. Type
 | --- | --- | --- |
 | `--db <PATH>` | `playground/dev-app-runtime/scriberig.sqlite` | SQLite database path used by the local TUI composition. |
 | `--connect <URL>` | none | Public protocol endpoint used by the remote TUI composition. Cannot be combined with `--db`. |
+| `--debug` | disabled | Write content-redacted runtime diagnostics to `playground/tui-logs/YYYYMMDD-HHMMSS.log`. |
+| `--log-file <PATH>` | generated timestamped path | Override the debug log destination. Requires `--debug`. |
 
 ## `srig serve`
 

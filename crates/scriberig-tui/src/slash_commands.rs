@@ -108,6 +108,21 @@ pub const COMMANDS: &[SlashCommandDescriptor] = &[
         summary: "Start a new conversation",
         argument_hint: "",
     },
+    SlashCommandDescriptor {
+        name: "/sessions",
+        summary: "List saved conversations",
+        argument_hint: "",
+    },
+    SlashCommandDescriptor {
+        name: "/switch",
+        summary: "Open a saved conversation by ID",
+        argument_hint: " <session-id>",
+    },
+    SlashCommandDescriptor {
+        name: "/remove-session",
+        summary: "Remove an idle saved conversation by ID",
+        argument_hint: " <session-id>",
+    },
 ];
 
 /// Finds command suggestions from the shared descriptor table.

@@ -128,6 +128,33 @@ mod tests {
     use super::{Cli, Command, ConfigCommand, RunFormat, explicit_run_options};
     use clap::{CommandFactory, Parser};
 
+    /// Verifies debug logging and its path override parse for TUI mode.
+    #[test]
+    fn tui_parses_debug_log_options() {
+        let cli = Cli::try_parse_from([
+            "srig",
+            "tui",
+            "--debug",
+            "--log-file",
+            "playground/custom-tui.log",
+        ])
+        .expect("TUI debug options");
+
+        assert!(matches!(
+            cli.command,
+            Command::Tui(args)
+                if args.debug
+                    && args.log_file.as_deref()
+                        == Some(std::path::Path::new("playground/custom-tui.log"))
+        ));
+    }
+
+    /// Verifies a log path cannot silently enable debug logging by itself.
+    #[test]
+    fn tui_log_path_requires_debug_flag() {
+        assert!(Cli::try_parse_from(["srig", "tui", "--log-file", "tui.log"]).is_err());
+    }
+
     /// Verifies headless provider options remain part of the native command.
     #[test]
     fn run_parses_provider_configuration_without_secret_value() {

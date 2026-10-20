@@ -58,7 +58,7 @@ impl NativeTuiAgentRunner {
     /// - `project_store`: Shared durable project and semantic store.
     /// - `super`: Parent module containing the native runtime composition.
     ///
-    /// A runner configured from the `SCRIBE_AGENT_*` environment variables.
+    /// A runner configured from shared application settings and optional TUI overrides.
     ///
     /// Returns a structured provider configuration failure.
     /// # Returns
@@ -66,12 +66,26 @@ impl NativeTuiAgentRunner {
     /// # Errors
     /// Returns an error when the operation fails.
     pub(super) fn from_environment(project_store: Arc<SqliteStore>) -> Result<Self, ProviderError> {
-        let model = std::env::var("SCRIBE_AGENT_MODEL").unwrap_or_else(|_| "default".to_owned());
         let provider_kind = std::env::var("SCRIBE_AGENT_PROVIDER")
             .unwrap_or_else(|_| "openai_compatible".to_owned());
+        let shared_config = if provider_kind == "openai_compatible"
+            && std::env::var_os("SCRIBE_AGENT_BASE_URL").is_none()
+        {
+            crate::agent_config::resolve_provider_config()
+                .map_err(|error| ProviderError::Configuration(error.message))?
+                .map(|(config, _)| config)
+        } else {
+            None
+        };
+        let configured_model = shared_config
+            .as_ref()
+            .map_or("default", |config| config.model.as_str());
+        let model =
+            std::env::var("SCRIBE_AGENT_MODEL").unwrap_or_else(|_| configured_model.to_owned());
         let catalog = provider_config::catalog::from_environment(&model)?;
         let mut providers = std::collections::BTreeMap::new();
-        if let Some(provider) = provider_config::from_environment(&provider_kind, &model, &catalog)?
+        if let Some(provider) =
+            provider_config::from_environment(&provider_kind, &model, &catalog, shared_config)?
         {
             providers.insert("local".to_owned(), provider);
         }

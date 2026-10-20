@@ -253,8 +253,26 @@ pub struct ServeArgs {
 }
 
 /// Configure the local application-backed terminal UI.
+///
+/// # Public members
+/// - `debug`: Enables content-redacted diagnostic logging.
+/// - `log_file`: Optional diagnostic log path override.
+/// - `db`: SQLite database path.
+/// - `connect`: Optional remote protocol endpoint.
+/// - `project`: Optional filesystem project to register.
+/// - `import_project`: Whether to import the selected project.
+/// - `git_tracked`: Whether project onboarding uses Git-indexed files.
+///
+/// # Private members
+/// None.
 #[derive(Debug, Args)]
 pub struct TuiArgs {
+    /// Write detailed, content-redacted interaction diagnostics to a log file.
+    #[arg(long)]
+    pub debug: bool,
+    /// Override the debug log path; defaults to a timestamped TUI log.
+    #[arg(long, requires = "debug")]
+    pub log_file: Option<std::path::PathBuf>,
     /// SQLite database path used by the local TUI composition.
     #[arg(
         long,

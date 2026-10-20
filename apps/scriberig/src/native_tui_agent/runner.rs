@@ -228,7 +228,7 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
             selected_runtime_model(service, context, session, &self.model)?;
         let cancelled = service.operations().cancellation_flag(&handle.operation)?;
         let Some(provider) = self.providers.get(&connection) else {
-            let message = "configure SCRIBE_AGENT_BASE_URL before starting agent work";
+            let message = "configure a provider connection before starting agent work";
             service.fail_local_agent(handle, message)?;
             return Err(ApplicationError::UnsupportedOperation {
                 operation: message.to_owned(),
@@ -293,6 +293,7 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
             session,
             branch: Some(handle.root_branch),
             workspace,
+            failure: None,
         })
     }
 }

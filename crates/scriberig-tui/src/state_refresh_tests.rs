@@ -19,6 +19,7 @@ fn completed_agent_operation_refreshes_session() {
         session,
         branch: Some(branch),
         workspace: None,
+        failure: None,
     });
     let mut record =
         scriberig_app::OperationRecord::queued(operation, scriberig_app::OperationKind::Agent);
@@ -60,6 +61,7 @@ fn completed_operation_preserves_pending_initial_session_read() {
         session,
         branch: None,
         workspace: None,
+        failure: None,
     });
     let mut record =
         scriberig_app::OperationRecord::queued(operation, scriberig_app::OperationKind::Agent);

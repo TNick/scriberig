@@ -2,6 +2,9 @@
 
 use super::*;
 
+#[path = "commands/session_argument.rs"]
+mod session_argument;
+
 /// Routes supported console commands to shared picker and preference actions.
 ///
 /// - `state`: Current TUI state used by the shared action reducers.
@@ -49,8 +52,40 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
             Some(vec![Effect::None])
         }
         _ if descriptor.name == "/new" => {
-            state.conversation_composer.target = crate::state::ConversationTarget::NewSession;
-            Some(vec![Effect::None])
+            Some(super::super::state_reducer_tail::new_conversation(state))
+        }
+        _ if descriptor.name == "/sessions" => {
+            if command != "/sessions" {
+                state.conversation_composer.error =
+                    Some("Use /sessions without arguments.".to_owned());
+                return Some(vec![Effect::None]);
+            }
+            state.overlay = None;
+            Some(vec![Effect::ListSessions])
+        }
+        _ if descriptor.name == "/switch" => {
+            match session_argument::parse_session_id(command, "/switch") {
+                Ok(session) => {
+                    state.overlay = None;
+                    Some(vec![Effect::SwitchSession { session }])
+                }
+                Err(message) => {
+                    state.conversation_composer.error = Some(message.to_owned());
+                    Some(vec![Effect::None])
+                }
+            }
+        }
+        _ if descriptor.name == "/remove-session" => {
+            match session_argument::parse_session_id(command, "/remove-session") {
+                Ok(session) => {
+                    state.overlay = None;
+                    Some(vec![Effect::RemoveSession { session }])
+                }
+                Err(message) => {
+                    state.conversation_composer.error = Some(message.to_owned());
+                    Some(vec![Effect::None])
+                }
+            }
         }
         _ if descriptor.name == "/edit" => {
             Some(super::super::state_actions::begin_projection_edit(state))

@@ -49,7 +49,7 @@ pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Ef
         Action::ModelLibraryLoaded {
             request_id,
             library,
-        } => Some(model_library_loaded(state, request_id, library)),
+        } => Some(model_library_loaded(state, request_id, &library)),
         Action::ToolResultDetailLoaded(detail) => {
             if let Ok(result) = detail.result.parse() {
                 state.tool_result_details.insert(result, detail);
@@ -90,6 +90,9 @@ pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Ef
         Action::SessionRequested { session, branch } => {
             Some(session_requested(state, session, branch))
         }
+        Action::SessionsListed(sessions) => Some(sessions_listed(state, &sessions)),
+        Action::SessionSwitched(session) => Some(session_switched(state, session)),
+        Action::SessionRemoved(session) => Some(session_removed(state, session)),
         Action::ComposerOpened { session, branch } => Some(composer_opened(state, session, branch)),
         Action::SessionComposerOpened { session, branch } => {
             Some(session_composer_opened(state, session, branch))
@@ -137,3 +140,35 @@ pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Ef
 #[path = "state_reducer_tail_handlers.rs"]
 mod handlers;
 use handlers::*;
+
+/// Detaches the active presentation from saved history for a new conversation.
+///
+/// The durable session remains available through `/sessions`; the next user
+/// message creates a separate session through the shared application API.
+///
+/// - `state`: TUI state whose active conversation is being cleared.
+///
+/// A no-op effect after returning the conversation home to its empty state.
+/// # Returns
+/// The operation result.
+pub(super) fn new_conversation(state: &mut TuiState) -> Vec<Effect> {
+    state.session = LoadState::NotRequested;
+    state.session_snapshot = None;
+    state.conversation = None;
+    state.conversation_cursor = None;
+    state.conversation_composer.target = ConversationTarget::NewSession;
+    state.conversation_composer.pending = false;
+    state.conversation_composer.error = None;
+    state.conversation_browsing = false;
+    state.coordinator_cursor = None;
+    state.follow_coordinator = true;
+    state.expanded_branches.clear();
+    state.session_branch_focus = None;
+    state.session_composer = None;
+    state.session_composer_focused = false;
+    state.cursor = 0;
+    state.primary_view = crate::selection::PrimaryView::Conversation;
+    state.focus = Focus::Primary;
+    state.overlay = None;
+    vec![Effect::None]
+}

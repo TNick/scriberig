@@ -136,6 +136,30 @@ pub fn execute_effect<S: TuiService>(
                 category: error.category().to_owned(),
                 message: crate::inspector::sanitize(&error.to_string()),
             }),
+        Effect::ListSessions => service
+            .list_sessions(context)
+            .map(Action::SessionsListed)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
+        Effect::SwitchSession { session } => service
+            .read_session(context, session)
+            .map(Action::SessionSwitched)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
+        Effect::RemoveSession { session } => service
+            .remove_session(context, session)
+            .map(|()| Action::SessionRemoved(session))
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
         Effect::ReadModelLibrary { request_id } => service
             .model_library(context)
             .map(|library| Action::ModelLibraryLoaded {

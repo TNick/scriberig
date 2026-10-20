@@ -62,6 +62,13 @@ fn render_overlay(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
             }))
             .collect::<Vec<_>>()
             .join("\n"),
+        crate::overlay::Overlay::SessionList(rows) => {
+            if rows.is_empty() {
+                "No saved conversations.".to_owned()
+            } else {
+                rows.join("\n")
+            }
+        }
         crate::overlay::Overlay::Palette(palette) => {
             let rows = palette
                 .filtered()

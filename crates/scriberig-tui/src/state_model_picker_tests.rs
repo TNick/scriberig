@@ -11,6 +11,13 @@ use super::*;
 /// The operation result.
 fn picker_state(model: Option<&str>) -> TuiState {
     let session_id = EntityId::from_bytes([41; 16]);
+    let execution = scriberig_session::SessionExecutionSelection {
+        revision: 12,
+        model_profile: None,
+        model: model.map(str::to_owned),
+        thinking_level: None,
+        history: Vec::new(),
+    };
     TuiState {
         session: LoadState::Ready(crate::view::session::SessionModel {
             rows: vec![crate::view::session::SessionRow {
@@ -22,14 +29,16 @@ fn picker_state(model: Option<&str>) -> TuiState {
                 snapshot: None,
                 transient: false,
             }],
-            execution: scriberig_session::SessionExecutionSelection {
-                revision: 12,
-                model_profile: None,
-                model: model.map(str::to_owned),
-                thinking_level: None,
-                history: Vec::new(),
-            },
+            execution: execution.clone(),
             tool_invocation_details: std::collections::BTreeMap::default(),
+        }),
+        session_snapshot: Some(scriberig_session::Session {
+            id: session_id,
+            branches: Vec::new(),
+            goals: Vec::new(),
+            tasks: Vec::new(),
+            plans: Vec::new(),
+            execution,
         }),
         model_library: LoadState::Ready(model_library()),
         ..TuiState::default()
@@ -172,6 +181,13 @@ fn selection_response_updates_session_header_and_revision() {
     };
     assert_eq!(session.execution.revision, 13);
     assert!(session.rows[0].label.contains("Model model-a"));
+    assert_eq!(
+        state
+            .session_snapshot
+            .as_ref()
+            .map(|session| session.execution.model_profile.as_deref()),
+        Some(Some("profile-a"))
+    );
     assert!(
         state
             .shell_message
@@ -218,6 +234,12 @@ fn palette_model_picker_loads_profiles_before_selecting_one() {
             .iter()
             .any(|item| item.id == "select-model:profile-b")
     );
+    assert!(
+        palette
+            .local_actions
+            .iter()
+            .any(|item| item.label == "Profile B · Model B · provider-b/provider-model-b")
+    );
     let effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
 
     assert!(matches!(
@@ -225,6 +247,22 @@ fn palette_model_picker_loads_profiles_before_selecting_one() {
         [Effect::SetSessionModel(request)]
             if request.expected_revision == 12 && request.model_profile == "profile-a"
     ));
+}
+
+/// Verifies an empty model library reports a visible composer message.
+#[test]
+fn model_picker_reports_when_no_profiles_are_enabled() {
+    let mut state = picker_state(None);
+    let mut library = model_library();
+    library.profiles.clear();
+
+    show_model_picker(&mut state, &library);
+
+    assert!(state.overlay.is_none());
+    assert_eq!(
+        state.conversation_composer.error.as_deref(),
+        Some("No enabled model profiles are available.")
+    );
 }
 
 /// Verifies thinking controls load model-specific levels before presenting them.

@@ -5,9 +5,33 @@ use scriberig_agent_runtime::provider::{
     ProviderMetadata, ToolCall,
 };
 
+#[path = "deterministic_provider/handles.rs"]
+mod handles;
+pub(super) use handles::parse_handles;
+
 /// Selects real onboarding tools through the normal agent model loop.
 #[derive(Clone, Copy, Debug, Default)]
 pub(super) struct BootstrapProvider;
+
+/// Returns a fixed arithmetic answer for the native conversation smoke test.
+#[derive(Clone, Copy, Debug, Default)]
+pub(super) struct ArithmeticProvider;
+
+impl ProviderAdapter for ArithmeticProvider {
+    /// Returns the scripted answer through the normal provider contract.
+    ///
+    /// - `self`: Deterministic arithmetic test provider.
+    /// - `_request`: Normalized request submitted by the shared agent runtime.
+    ///
+    /// A normal assistant completion containing `2`.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// This deterministic provider does not return an error.
+    fn complete(&self, _request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
+        Ok(final_response("2"))
+    }
+}
 
 impl ProviderAdapter for BootstrapProvider {
     /// Returns the next deterministic onboarding tool call or final response.
@@ -365,29 +389,4 @@ fn tool_call(name: &str, arguments: serde_json::Value) -> ModelResponse {
         usage: None,
         metadata: ProviderMetadata::default(),
     }
-}
-
-/// Extracts stable handles from the shared provider-neutral tool observation.
-///
-/// - `message`: Normalized tool-result message.
-///
-/// - `super`: Parent module visibility marker.
-///   Tool result handles in their emitted order.
-///
-/// Returns malformed-response when a tool result has no handle list.
-/// # Returns
-/// The operation result.
-/// # Errors
-/// Returns an error when the operation fails.
-pub(super) fn parse_handles(message: &str) -> Result<Vec<String>, ProviderError> {
-    let values = message
-        .split_once("handles=[")
-        .and_then(|(_, value)| value.split_once(']'))
-        .map(|(values, _)| values)
-        .ok_or_else(|| {
-            ProviderError::MalformedResponse("tool result omitted handles".to_owned())
-        })?;
-    serde_json::from_str(&format!("[{values}]")).map_err(|error| {
-        ProviderError::MalformedResponse(format!("invalid tool result handles: {error}"))
-    })
 }

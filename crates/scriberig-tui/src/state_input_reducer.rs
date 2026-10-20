@@ -128,7 +128,6 @@ fn submit_input(state: &mut TuiState) -> Vec<Effect> {
         }
         state.conversation_composer.pending = true;
         state.conversation_composer.error = None;
-        state.conversation_composer.draft.clear();
         state.agent_output_observations.clear();
         return match state.conversation_composer.target {
             crate::state::ConversationTarget::NewSession => {

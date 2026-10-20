@@ -9,7 +9,7 @@ use super::*;
 /// Protocol descriptors containing references but no resolved credentials.
 /// # Returns
 /// The operation result.
-pub(super) fn model_library_response(
+pub(in crate::service) fn model_library_response(
     library: scriberig_app::ModelLibrary,
 ) -> scriberig_protocol::ModelLibraryResponse {
     scriberig_protocol::ModelLibraryResponse {

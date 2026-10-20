@@ -206,6 +206,12 @@ pub enum Action {
         /// Shared session snapshot retained for presentation-only rebuilding.
         session_snapshot: Option<scriberig_session::Session>,
     },
+    /// Applies a durable list of sessions to the session-list overlay.
+    SessionsListed(Vec<scriberig_session::Session>),
+    /// Applies an exact session switch to the conversation projection.
+    SessionSwitched(scriberig_session::Session),
+    /// Applies removal of one exact session.
+    SessionRemoved(scriberig_core::EntityId),
     /// Applies an authoritative plan result and rebuilds the conversation tree.
     PlanUpdated(scriberig_session::Plan),
     /// Applies a successful model-library read.

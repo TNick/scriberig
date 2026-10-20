@@ -81,5 +81,6 @@ pub(super) fn submit_agent_handle<T: ProtocolTransport>(
         session,
         branch,
         workspace: None,
+        failure: None,
     })
 }

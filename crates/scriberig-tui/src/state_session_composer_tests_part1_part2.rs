@@ -207,6 +207,7 @@ fn changes_command_refreshes_session_before_candidate_review() {
             session,
             branch: None,
             workspace: None,
+            failure: None,
         }],
         ..TuiState::default()
     };

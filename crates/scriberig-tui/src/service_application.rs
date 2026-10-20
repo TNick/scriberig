@@ -75,6 +75,7 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
             session: accepted.session,
             branch: Some(accepted.branch),
             workspace: None,
+            failure: None,
         })
     }
 
@@ -109,6 +110,7 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
             session: accepted.session,
             branch: Some(accepted.root_branch),
             workspace: None,
+            failure: None,
         })
     }
 
@@ -388,5 +390,5 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
 }
 
 #[path = "service_application_query.rs"]
-mod query;
+pub(super) mod query;
 use query::model_library_response;

@@ -2,6 +2,10 @@
 
 use super::*;
 
+#[path = "state_reducer_tail_handlers/session_commands.rs"]
+mod session_commands;
+pub(super) use session_commands::{session_removed, session_switched, sessions_listed};
+
 /// Applies a current session read and reveals its pending branch target.
 ///
 /// - `state`: TUI state receiving the session projection.
@@ -115,7 +119,10 @@ pub(super) fn conversation_agent_accepted(
     };
     state.conversation_composer.pending = false;
     state.conversation_composer.draft.clear();
-    state.conversation_composer.error = None;
+    state.conversation_composer.error = handle
+        .failure
+        .as_ref()
+        .map(|failure| failure.message.clone());
     state.conversation_browsing = false;
     state.conversation_cursor = Some(crate::view::conversation::ConversationSource::Branch(
         branch,
@@ -214,7 +221,7 @@ pub(super) fn conversation_toggle_expansion(state: &mut TuiState) -> Vec<Effect>
 pub(super) fn model_library_loaded(
     state: &mut TuiState,
     request_id: u64,
-    library: scriberig_protocol::ModelLibraryResponse,
+    library: &scriberig_protocol::ModelLibraryResponse,
 ) -> Vec<Effect> {
     if matches!(state.model_library, LoadState::Loading { request_id: current } if current == request_id)
     {
@@ -224,7 +231,7 @@ pub(super) fn model_library_loaded(
             state.thinking_picker_pending = None;
             let _ = super::show_thinking_picker(state);
         } else if state.plan_assignment_target.is_some() {
-            super::state_model_picker::show_plan_assignment_picker(state, &library);
+            super::state_model_picker::show_plan_assignment_picker(state, library);
         } else {
             super::show_model_picker(state, library);
         }
@@ -244,6 +251,9 @@ pub(super) fn session_selection_updated(
     state: &mut TuiState,
     selection: scriberig_session::SessionExecutionSelection,
 ) -> Vec<Effect> {
+    if let Some(session) = state.session_snapshot.as_mut() {
+        session.execution = selection.clone();
+    }
     if let LoadState::Ready(session) = &mut state.session {
         let previous_model = session.execution.model.clone();
         let next_model = selection.model.clone();

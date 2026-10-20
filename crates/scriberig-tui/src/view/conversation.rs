@@ -172,10 +172,10 @@ impl ConversationModel {
 /// A conversation row retaining the semantic source.
 /// # Returns
 /// The operation result.
-fn conversation_row(session: EntityId, row: &super::session::SessionRow) -> ConversationRow {
+fn conversation_row(session: &Session, row: &super::session::SessionRow) -> ConversationRow {
     let (source, kind) = match row.kind {
         SessionRowKind::Session => (
-            ConversationSource::Session(session),
+            ConversationSource::Session(session.id),
             ConversationRowKind::Session,
         ),
         SessionRowKind::Branch => (
@@ -199,13 +199,70 @@ fn conversation_row(session: EntityId, row: &super::session::SessionRow) -> Conv
         source,
         reply_anchor: None,
         depth: row.depth,
-        label: if kind == ConversationRowKind::Session {
-            "Conversation".to_owned()
-        } else {
-            row.label.clone()
-        },
+        label: conversation_label(session, row, kind),
         kind,
     }
+}
+
+/// Adds readable message text and labels durable agent failures explicitly.
+///
+/// - `session`: Canonical session containing the projected row.
+/// - `row`: Existing provider-neutral session projection row.
+/// - `kind`: Typed conversation row category.
+///
+/// User-facing conversation label with bounded sanitized content.
+/// # Returns
+/// A label for the semantic conversation row.
+fn conversation_label(
+    session: &Session,
+    row: &super::session::SessionRow,
+    kind: ConversationRowKind,
+) -> String {
+    if kind == ConversationRowKind::Session {
+        return "Conversation".to_owned();
+    }
+    if kind == ConversationRowKind::Message
+        && let Some(text) = session.branches.iter().find_map(|branch| {
+            branch
+                .turns
+                .iter()
+                .find(|turn| turn.id == row.reference)
+                .and_then(|turn| turn.human.as_ref())
+                .map(|human| human.text.as_str())
+        })
+    {
+        return bounded_conversation_text("You", text);
+    }
+    if kind == ConversationRowKind::BranchResult
+        && let Some(result) = session
+            .branches
+            .iter()
+            .filter_map(|branch| branch.result.as_ref())
+            .find(|result| result.id == row.reference)
+        && result.result_kind.as_deref() == Some("agent-failure")
+    {
+        return bounded_conversation_text(
+            "Error",
+            result.summary.as_deref().unwrap_or("Agent failed"),
+        );
+    }
+    row.label.clone()
+}
+
+/// Sanitizes and bounds one human-authored or runtime conversation row.
+///
+/// - `prefix`: Visible role or failure label.
+/// - `text`: Untrusted row content.
+///
+/// Safe conversation text limited to 512 characters.
+/// # Returns
+/// A prefixed, sanitized conversation label.
+fn bounded_conversation_text(prefix: &str, text: &str) -> String {
+    let content = crate::inspector::sanitize(text)
+        .chars()
+        .take(512)
+        .collect::<String>();
+    format!("{prefix}: {content}")
 }
 
 /// Converts session rows while retaining their current branch and exact anchors.
@@ -243,7 +300,7 @@ fn conversation_rows(
             } else {
                 branch_path.last().map(|(branch, _)| *branch)
             };
-            let mut projected = conversation_row(session.id, row);
+            let mut projected = conversation_row(session, row);
             projected.reply_anchor = match row.kind {
                 SessionRowKind::Branch => Some(scriberig_session::ContinuationAnchor::BranchHead {
                     branch: row.reference,

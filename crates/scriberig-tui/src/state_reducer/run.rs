@@ -12,6 +12,9 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
     if matches!(
         action,
         Action::SessionSucceeded { .. }
+            | Action::SessionsListed(_)
+            | Action::SessionSwitched(_)
+            | Action::SessionRemoved(_)
             | Action::PlanUpdated(_)
             | Action::AgentSubmitted(_)
             | Action::ConversationAgentAccepted(_)
@@ -33,7 +36,7 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
         return reduce_tail(state, action).unwrap_or_default();
     }
     match action {
-        Action::Noop => vec![Effect::None],
+        Action::Noop => Vec::new(),
         Action::QuitRequested => {
             state.should_quit = true;
             vec![Effect::RequestQuit]

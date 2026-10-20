@@ -39,6 +39,39 @@ fn session_store_lists_durable_graphs() {
     let _ = std::fs::remove_file(path);
 }
 
+/// Removes exactly the requested durable session while retaining other sessions.
+#[test]
+fn session_store_removes_one_exact_graph() {
+    let path = std::env::temp_dir().join(format!(
+        "scriberig-session-remove-{}.sqlite",
+        EntityId::new()
+    ));
+    let store = SqliteSessionStore::open(&path).expect("open store");
+    let ids = [
+        EntityId::from_bytes([11; 16]),
+        EntityId::from_bytes([12; 16]),
+    ];
+    for id in ids {
+        store
+            .save(&Session {
+                id,
+                branches: vec![Branch::new(EntityId::new(), "root").expect("root")],
+                goals: Vec::new(),
+                tasks: Vec::new(),
+                plans: Vec::new(),
+                execution: scriberig_session::SessionExecutionSelection::default(),
+            })
+            .expect("save session");
+    }
+
+    store.remove(ids[0]).expect("remove session");
+
+    assert!(store.load(ids[0]).expect("load removed session").is_none());
+    assert!(store.load(ids[1]).expect("load retained session").is_some());
+    drop(store);
+    let _ = std::fs::remove_file(path);
+}
+
 /// Verifies a complete session graph round-trips through SQLite.
 #[test]
 fn session_graph_survives_reopen() {

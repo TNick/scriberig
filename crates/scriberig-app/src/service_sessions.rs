@@ -10,6 +10,11 @@ use scriberig_session::Session;
 #[path = "service_local_sessions.rs"]
 mod service_local_sessions;
 
+#[path = "service_sessions/management.rs"]
+mod management;
+#[path = "service_sessions/plan_store.rs"]
+mod plan_store;
+
 #[path = "service_session_authorization.rs"]
 mod service_session_authorization;
 use service_session_authorization::{authorize_agent_command, authorize_session_read};
@@ -21,6 +26,46 @@ pub(super) use service_session_authorization::{
 mod service_agent_execution;
 
 impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
+    /// Lists complete durable sessions through the application authorization boundary.
+    ///
+    /// - `self`: Shared application service.
+    /// - `context`: Authorized caller context.
+    ///
+    /// Sessions ordered by stable identity.
+    ///
+    /// Returns authorization or persistence failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn list_sessions(
+        &self,
+        context: &ApplicationContext,
+    ) -> Result<Vec<Session>, ApplicationError> {
+        management::list_sessions(self, context)
+    }
+
+    /// Removes a durable session through the application authorization boundary.
+    ///
+    /// - `self`: Shared application service.
+    /// - `context`: Authorized caller context.
+    /// - `session`: Stable identity to remove.
+    ///
+    /// Unit after the exact session is removed.
+    ///
+    /// Returns authorization, active-work, or persistence failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn remove_session(
+        &self,
+        context: &ApplicationContext,
+        session: EntityId,
+    ) -> Result<(), ApplicationError> {
+        management::remove_session(self, context, session)
+    }
+
     /// Continues at an exact anchor through the shared application operation.
     ///
     /// - `self`: Shared application service.
@@ -140,75 +185,7 @@ impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
         plan: EntityId,
         expected_revision: u64,
     ) -> Result<(), ApplicationError> {
-        service_session_authorization::authorize_session_mutation(context, session.id)?;
-        if let Some(store) = &self.session_store {
-            return store
-                .compare_and_swap_plan(session, plan, expected_revision)
-                .map_err(map_plan_store_error);
-        }
-        match self
-            .backend
-            .compare_and_swap_plan(context, session, plan, expected_revision)
-        {
-            Ok(()) => return Ok(()),
-            Err(error) if error.category() != "unsupported_operation" => return Err(error),
-            Err(_) => {}
-        }
-        let mut sessions = self
-            .sessions
-            .lock()
-            .map_err(|_| ApplicationError::Internal {
-                message: "application session lock failed".to_owned(),
-            })?;
-        let stored = sessions
-            .get_mut(&session.id)
-            .ok_or_else(|| ApplicationError::NotFound {
-                subject: session.id.to_string(),
-            })?;
-        let proposed_plan = session
-            .plans
-            .iter()
-            .find(|entry| entry.id == plan)
-            .ok_or_else(|| ApplicationError::NotFound {
-                subject: plan.to_string(),
-            })?;
-        let stored_plan = stored
-            .plans
-            .iter_mut()
-            .find(|entry| entry.id == plan)
-            .ok_or_else(|| ApplicationError::NotFound {
-                subject: plan.to_string(),
-            })?;
-        if stored_plan.revision != expected_revision {
-            return Err(map_plan_store_error(
-                scriberig_session::PlanStoreError::RevisionConflict {
-                    expected: expected_revision,
-                    actual: stored_plan.revision,
-                },
-            ));
-        }
-        if proposed_plan.revision != expected_revision.saturating_add(1) {
-            return Err(ApplicationError::Internal {
-                message: "proposed plan has an unexpected revision".to_owned(),
-            });
-        }
-        *stored_plan = proposed_plan.clone();
-        for branch in &session.branches {
-            if stored.branches.iter().any(|known| known.id == branch.id) {
-                continue;
-            }
-            stored.branches.push(branch.clone());
-            if let Some(parent_id) = branch.parent
-                && let Some(parent) = stored
-                    .branches
-                    .iter_mut()
-                    .find(|known| known.id == parent_id)
-                && !parent.children.contains(&branch.id)
-            {
-                parent.children.push(branch.id);
-            }
-        }
-        Ok(())
+        plan_store::compare_and_swap_plan(self, context, session, plan, expected_revision)
     }
 
     /// Creates a durable plan through the application plan service.
@@ -362,30 +339,6 @@ impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
                 .transition(&operation, crate::OperationStatus::Running)?;
         }
         Ok(operation)
-    }
-}
-
-/// Maps a session repository plan mutation failure into an application error.
-///
-/// - `error`: Typed repository failure.
-///
-/// A stable conflict or internal application failure.
-/// # Returns
-/// The operation result.
-fn map_plan_store_error(error: scriberig_session::PlanStoreError) -> ApplicationError {
-    match error {
-        scriberig_session::PlanStoreError::RevisionConflict { expected, actual } => {
-            ApplicationError::Conflict {
-                subject: "plan revision".to_owned(),
-                details: Box::new(crate::ConflictDetails {
-                    operation: Some(format!("expected {expected}, actual {actual}")),
-                    ..crate::ConflictDetails::default()
-                }),
-            }
-        }
-        scriberig_session::PlanStoreError::Persistence(message) => {
-            ApplicationError::Internal { message }
-        }
     }
 }
 

@@ -197,6 +197,7 @@ fn session_branch_activation_requests_scoped_history() {
         session,
         branch: None,
         workspace: None,
+        failure: None,
     });
     state.cursor = 0;
     let effects = activate_current(&mut state);
@@ -328,6 +329,7 @@ fn reconnect_refreshes_active_agent_state() {
         session,
         branch: Some(branch),
         workspace: None,
+        failure: None,
     });
 
     let effects = reduce(&mut state, Action::ConnectionRestored);

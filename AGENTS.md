@@ -133,6 +133,7 @@ All write surfaces must converge on the shared migration/change model. Do not ad
 - Keep scaffolding and architecture-preserving refactors separate from semantic feature implementations where practical.
 - Prefer exact immutable IDs and snapshot-bound APIs over hidden mutable-current-state assumptions.
 - Do not create duplicate core abstractions because a provisional design used a different crate prefix.
+- Every defect fix must add a regression test that reproduces the defect, fails before the fix, and passes after it.
 - Add or update tests at the lowest layer that owns a behavior.
 - Keep generated files clearly marked and out of hand-edited source paths when possible.
 

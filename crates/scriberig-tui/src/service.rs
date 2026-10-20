@@ -59,7 +59,7 @@ mod service_remote_model_request;
 #[path = "service_remote_models.rs"]
 mod service_remote_models;
 
-pub use agent_handle::{AgentHandle, AgentWorkspace};
+pub use agent_handle::{AgentExecutionFailure, AgentHandle, AgentWorkspace};
 pub use service_agent_runner::{AgentCommandRunner, SharedAgentCommandRunner};
 pub use service_application::ApplicationAdapter;
 use service_effects::select_branch_subtree;
@@ -304,6 +304,48 @@ pub trait TuiService: TuiModelRequestService {
     ) -> Result<scriberig_session::Session, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "session read".to_owned(),
+        })
+    }
+
+    /// Lists durable sessions available through the shared application.
+    ///
+    /// - `_context`: Caller authorization context.
+    ///
+    /// Sessions ordered by stable identity.
+    ///
+    /// Returns an unsupported-operation or storage error when unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when listing fails.
+    fn list_sessions(
+        &self,
+        _context: &ApplicationContext,
+    ) -> Result<Vec<Session>, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "session listing".to_owned(),
+        })
+    }
+
+    /// Removes one durable session through the shared application boundary.
+    ///
+    /// - `_context`: Caller authorization context.
+    /// - `_session`: Exact session identity to remove.
+    ///
+    /// Unit after the session is removed.
+    ///
+    /// Returns a structured authorization, active-work, or storage error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when removal is rejected or fails.
+    fn remove_session(
+        &self,
+        _context: &ApplicationContext,
+        _session: EntityId,
+    ) -> Result<(), ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "session removal".to_owned(),
         })
     }
 

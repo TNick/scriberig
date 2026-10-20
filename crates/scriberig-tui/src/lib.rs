@@ -6,6 +6,7 @@ use scriberig_app::{ApplicationContext, ApplicationError, InspectResult};
 use scriberig_core::{EntityId, SnapshotId};
 
 pub mod action;
+mod debug_log;
 pub mod effect;
 pub mod event;
 pub mod explorer;
@@ -24,10 +25,26 @@ pub mod terminal;
 pub mod view;
 
 /// Configures the first application-backed TUI shell.
+///
+/// # Public members
+/// - `interactive`: Whether to take over an interactive terminal.
+/// - `debug`: Whether to write content-redacted runtime diagnostics.
+/// - `debug_log_file`: Optional diagnostic destination override.
+/// - `initial_entity`: Optional initial semantic entity.
+/// - `snapshot`: Optional exact initial snapshot.
+/// - `project`: Optional active project label.
+/// - `agent_selection`: Exact semantic scope for the first conversation turn.
+///
+/// # Private members
+/// None.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct TuiConfig {
     /// Runs a line-oriented interactive shell when true.
     pub interactive: bool,
+    /// Writes content-redacted runtime diagnostics under `playground/tui-logs`.
+    pub debug: bool,
+    /// Optional path overriding the generated debug log path.
+    pub debug_log_file: Option<std::path::PathBuf>,
     /// Optional entity inspected when the shell starts.
     pub initial_entity: Option<EntityId>,
     /// Optional exact snapshot for the initial inspection.
@@ -90,7 +107,7 @@ impl From<io::Error> for TuiError {
 
 /// Provides semantic operations required by the TUI shell.
 pub use service::{
-    AgentCommandRunner, AgentHandle, AgentWorkspace, ApplicationAdapter,
+    AgentCommandRunner, AgentExecutionFailure, AgentHandle, AgentWorkspace, ApplicationAdapter,
     ApplicationOperationAdapter, ExplorerLabels, ProjectProjection, RemoteAdapter,
     SharedAgentCommandRunner, TuiModelRequestService, TuiOperationService, TuiService,
 };

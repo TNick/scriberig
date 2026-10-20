@@ -24,7 +24,13 @@ pub(super) fn operation_failed(
         state.stale = true;
     }
     state.operation_error = Some((category.to_owned(), message.to_owned()));
-    if request_id == 0 && state.conversation_composer.pending {
+    let model_library_pending = matches!(
+        &state.model_library,
+        LoadState::Loading {
+            request_id: current
+        } if *current == request_id
+    );
+    if request_id == 0 {
         state.conversation_composer.pending = false;
         state.conversation_composer.error = Some(message.to_owned());
     }
@@ -49,6 +55,9 @@ pub(super) fn operation_failed(
         message,
         false,
     );
+    if model_library_pending {
+        state.conversation_composer.error = Some(message.to_owned());
+    }
     mark_failed(&mut state.diff, request_id, category, message, false);
     mark_failed(&mut state.projection, request_id, category, message, false);
     let review_is_stale = state.review_proposal.is_some();

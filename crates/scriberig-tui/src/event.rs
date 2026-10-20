@@ -137,9 +137,9 @@ fn translate_key(key: KeyEvent) -> Key {
         {
             KeyCode::Char('c')
         }
+        CrosstermKeyCode::Char('\r' | '\n') | CrosstermKeyCode::Enter => KeyCode::Enter,
         CrosstermKeyCode::Char(character) => KeyCode::Char(character),
         CrosstermKeyCode::Esc => KeyCode::Esc,
-        CrosstermKeyCode::Enter => KeyCode::Enter,
         CrosstermKeyCode::BackTab => {
             modifiers.shift = true;
             KeyCode::Tab
@@ -175,6 +175,16 @@ mod tests {
                 modifiers: super::Modifiers::default(),
             })
         );
+    }
+
+    /// Verifies Windows-style carriage-return and newline keys submit input.
+    #[test]
+    fn translates_character_enter_keys() {
+        for character in ['\r', '\n'] {
+            let key = super::translate_key(KeyEvent::from(CrosstermKeyCode::Char(character)));
+
+            assert_eq!(key.code, KeyCode::Enter);
+        }
     }
 
     /// Verifies unsupported backend events are safely ignored.

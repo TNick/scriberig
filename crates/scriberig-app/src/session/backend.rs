@@ -9,6 +9,48 @@ use super::{
 
 /// Owns session and agent operations at the application boundary.
 pub trait SessionBackend {
+    /// Lists durable sessions available to the authorized caller.
+    ///
+    /// - `_context`: Authorized application request context.
+    ///
+    /// Complete sessions ordered by stable identity.
+    ///
+    /// Returns unsupported-operation when listing is unavailable.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the caller is unauthorized or storage fails.
+    fn list_sessions(
+        &self,
+        _context: &ApplicationContext,
+    ) -> Result<Vec<Session>, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "session listing".to_owned(),
+        })
+    }
+
+    /// Removes one durable session after checking its exact identity.
+    ///
+    /// - `_context`: Authorized application request context.
+    /// - `_session`: Stable identity of the session to remove.
+    ///
+    /// Unit after the selected session is removed.
+    ///
+    /// Returns not-found, authorization, active-work, or persistence failures.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when removal is rejected or fails.
+    fn remove_session(
+        &self,
+        _context: &ApplicationContext,
+        _session: EntityId,
+    ) -> Result<(), ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "session removal".to_owned(),
+        })
+    }
+
     /// Starts a new session through the authoritative application boundary.
     ///
     /// - `_context`: Authorized application request context.

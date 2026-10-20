@@ -281,6 +281,22 @@ fn request_timeout_status_is_classified() {
     assert!(matches!(error, ProviderError::Timeout(_)));
 }
 
+/// Keeps connection failures useful while removing the endpoint URL.
+#[test]
+fn transport_failure_reports_safe_connection_details() {
+    let listener = std::net::TcpListener::bind(("127.0.0.1", 0)).expect("free local port");
+    let address = listener.local_addr().expect("bound address");
+    drop(listener);
+    let error = reqwest::blocking::Client::new()
+        .get(format!("http://{address}/v1/chat/completions"))
+        .send()
+        .expect_err("closed local port cannot accept a connection");
+    let classified = super::openai_transport::classify_transport(error).to_string();
+
+    assert!(classified.contains("refused"), "{classified}");
+    assert!(!classified.contains("127.0.0.1"), "{classified}");
+}
+
 /// Verifies the concrete adapter normalizes a local mock text response.
 #[test]
 fn text_response_round_trips_through_local_mock_transport() {

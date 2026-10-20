@@ -89,7 +89,7 @@ impl CompletionTransport for ReqwestCompletionTransport {
         if let Some(credential) = credential {
             builder = builder.bearer_auth(credential);
         }
-        let response = builder.send().map_err(|error| classify_transport(&error))?;
+        let response = builder.send().map_err(classify_transport)?;
         let request_id = response
             .headers()
             .get("x-request-id")
@@ -166,7 +166,7 @@ impl OpenAiCompatibleProvider {
         if let Some(credential) = &credential {
             builder = builder.bearer_auth(credential.as_str());
         }
-        let response = builder.send().map_err(|error| classify_transport(&error))?;
+        let response = builder.send().map_err(classify_transport)?;
         let request_id = response
             .headers()
             .get("x-request-id")
@@ -220,14 +220,74 @@ impl OpenAiCompatibleProvider {
 /// A provider-neutral transport category.
 /// # Returns
 /// The operation result.
-pub(super) fn classify_transport(error: &reqwest::Error) -> ProviderError {
-    if error.is_timeout() {
-        ProviderError::Timeout("provider request timed out".to_owned())
-    } else if error.is_builder() {
-        ProviderError::Configuration("provider request could not be built".to_owned())
+pub(super) fn classify_transport(error: reqwest::Error) -> ProviderError {
+    let timed_out = error.is_timeout();
+    let connection_failed = error.is_connect();
+    let request_build_failed = error.is_builder();
+    let detail = safe_transport_detail(error.without_url());
+    if timed_out {
+        ProviderError::Timeout(format!("provider request timed out: {detail}"))
+    } else if request_build_failed {
+        ProviderError::Configuration(format!("provider request could not be built: {detail}"))
+    } else if connection_failed {
+        ProviderError::Transport(format!("provider connection failed: {detail}"))
     } else {
-        ProviderError::Transport("provider request failed".to_owned())
+        ProviderError::Transport(format!("provider HTTP request failed: {detail}"))
     }
+}
+
+/// Bounds and normalizes a URL-redacted transport error chain.
+///
+/// - `error`: Reqwest failure with its request URL removed.
+///
+/// A short, single-line diagnostic suitable for a doctor report.
+/// # Returns
+/// A bounded diagnostic, including a generic fallback when no detail exists.
+fn safe_transport_detail(error: reqwest::Error) -> String {
+    let detail = io_transport_detail(&error).unwrap_or_else(|| {
+        let error = error.without_url();
+        format!("{error:#}")
+    });
+    let bounded = detail
+        .chars()
+        .filter(|character| !character.is_control())
+        .take(240)
+        .collect::<String>();
+    if bounded.is_empty() {
+        "underlying transport detail unavailable".to_owned()
+    } else {
+        bounded
+    }
+}
+
+/// Maps operating-system socket failures to portable diagnostic phrases.
+///
+/// - `error`: Reqwest failure whose source chain may contain a socket error.
+///
+/// A safe generic socket cause when the operating system exposed one.
+/// # Returns
+/// A portable cause label, or `None` when no socket cause is available.
+fn io_transport_detail(error: &reqwest::Error) -> Option<String> {
+    let mut source = std::error::Error::source(error);
+    while let Some(cause) = source {
+        if let Some(io_error) = cause.downcast_ref::<std::io::Error>() {
+            return Some(
+                match io_error.kind() {
+                    std::io::ErrorKind::ConnectionRefused => "connection refused",
+                    std::io::ErrorKind::ConnectionReset => "connection reset",
+                    std::io::ErrorKind::ConnectionAborted => "connection aborted",
+                    std::io::ErrorKind::NotConnected => "network connection unavailable",
+                    std::io::ErrorKind::TimedOut => "connection attempt timed out",
+                    std::io::ErrorKind::AddrNotAvailable => "local network address unavailable",
+                    std::io::ErrorKind::PermissionDenied => "network operation denied",
+                    _ => "operating-system network error",
+                }
+                .to_owned(),
+            );
+        }
+        source = cause.source();
+    }
+    None
 }
 
 /// Classifies an HTTP status without retaining a sensitive response body.

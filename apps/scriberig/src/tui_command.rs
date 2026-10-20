@@ -56,6 +56,8 @@ pub(super) fn run(
             &context,
             &scriberig_tui::TuiConfig {
                 interactive: true,
+                debug: args.debug,
+                debug_log_file: args.log_file.clone(),
                 ..scriberig_tui::TuiConfig::default()
             },
         )?;
@@ -174,7 +176,15 @@ pub(super) fn run(
     };
     let context = ApplicationContext {
         capabilities: scriberig_app::CapabilityContext {
-            granted: vec![scriberig_app::CapabilityId::new("inspect.entity")?],
+            granted: [
+                "inspect.entity",
+                "agent_model_library",
+                "session_model_selection",
+                "session_management",
+            ]
+            .into_iter()
+            .map(scriberig_app::CapabilityId::new)
+            .collect::<Result<Vec<_>, _>>()?,
             grants: vec![scriberig_app::Capability {
                 scope: scriberig_app::CapabilityScope::Project,
                 actions: super::agent_actions(),
@@ -192,6 +202,8 @@ pub(super) fn run(
         &context,
         &scriberig_tui::TuiConfig {
             interactive: true,
+            debug: args.debug,
+            debug_log_file: args.log_file.clone(),
             project: project.as_ref().map(|value| {
                 format!(
                     "{} @ {}",

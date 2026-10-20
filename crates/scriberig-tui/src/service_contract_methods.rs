@@ -179,6 +179,7 @@ macro_rules! tui_agent_methods {
                 session,
                 branch,
                 workspace: None,
+                failure: None,
             })
         }
 

@@ -2,6 +2,8 @@
 
 #[path = "tui_pty_support/bootstrap_test.rs"]
 mod tui_pty_bootstrap;
+#[path = "tui_pty/conversation.rs"]
+mod tui_pty_conversation;
 #[path = "tui_pty_support/lifecycle_test.rs"]
 mod tui_pty_lifecycle;
 mod tui_pty_support;
@@ -242,84 +244,5 @@ fn tui_pty_types_immediately() {
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
     tui.send(b"hello");
     assert!(tui.read_until_next("> hello"), "{}", tui.diagnostic());
-    assert!(tui.shutdown());
-}
-
-/// Verifies slash command completion from the persistent composer.
-#[test]
-fn tui_pty_moves_palette_selection() {
-    let _lock = test_lock();
-    let mut tui = TuiPty::start();
-
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"/pl");
-    assert!(tui.read_until_next("/plan"), "{}", tui.diagnostic());
-    assert!(tui.shutdown());
-}
-
-/// Verifies slash command discovery is visible in the composer.
-#[test]
-fn tui_pty_lists_local_palette_commands() {
-    let _lock = test_lock();
-    let mut tui = TuiPty::start();
-
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"/pl");
-    assert!(tui.read_until("/plan"), "{}", tui.diagnostic());
-    assert!(tui.shutdown());
-}
-
-/// Verifies find input accepts text, handles backspace, and submits.
-#[test]
-fn tui_pty_submits_find_query() {
-    let _lock = test_lock();
-    let mut tui = TuiPty::start();
-
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"/find readme\r");
-    assert!(tui.read_until("Find: readme"), "{}", tui.diagnostic());
-    assert!(tui.shutdown());
-}
-
-/// Verifies local slash commands route to auxiliary views.
-#[test]
-fn tui_pty_activates_palette_commands() {
-    let _lock = test_lock();
-    let mut tui = TuiPty::start();
-
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"/operations\r");
-    assert!(
-        tui.read_until("No observed operations"),
-        "{}",
-        tui.diagnostic()
-    );
-
-    tui.send(b"\x1b");
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"/help\r");
-    assert!(
-        tui.read_until("Overlay [Esc close]"),
-        "{}",
-        tui.diagnostic()
-    );
-
-    assert!(tui.shutdown());
-}
-
-/// Verifies history and new conversation commands in the composer.
-#[test]
-fn tui_pty_opens_history_and_agent_composer() {
-    let _lock = test_lock();
-    let mut tui = TuiPty::start();
-
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"/history\r");
-    assert!(tui.read_until("History @"), "{}", tui.diagnostic());
-
-    tui.send(b"\x1b");
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"/new\r");
-    assert!(tui.read_until("New conversation"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }

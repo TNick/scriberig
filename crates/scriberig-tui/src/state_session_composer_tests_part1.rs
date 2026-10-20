@@ -2,6 +2,39 @@
 
 use super::*;
 
+/// Rebinds the next reply to authoritative session and branch handles.
+#[test]
+fn accepted_conversation_start_installs_shared_branch_head_anchor() {
+    let mut state = TuiState::default();
+    let session = scriberig_core::EntityId::from_bytes([71; 16]);
+    let branch = scriberig_core::EntityId::from_bytes([72; 16]);
+    let operation = scriberig_core::OperationId::new("conversation-accepted").expect("operation");
+
+    let effects = reduce(
+        &mut state,
+        Action::ConversationAgentAccepted(crate::service::AgentHandle {
+            operation: operation.clone(),
+            session,
+            branch: Some(branch),
+            workspace: None,
+            failure: None,
+        }),
+    );
+
+    assert_eq!(
+        state.conversation_composer.target,
+        crate::state::ConversationTarget::Existing {
+            session,
+            reply_anchor: scriberig_session::ContinuationAnchor::BranchHead { branch },
+        }
+    );
+    assert!(matches!(
+        effects.as_slice(),
+        [Effect::ReadSession { session: value, .. }] if *value == session
+    ));
+    assert_eq!(state.agent_handles[0].operation, operation);
+}
+
 /// Verifies conversation cursor survives structural rerender.
 #[test]
 fn conversation_cursor_survives_structural_rerender() {
