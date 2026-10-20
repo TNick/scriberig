@@ -13,6 +13,70 @@ where
     assert_eq!(decoded, *value);
 }
 
+/// Verifies the shared recursive session and dependency fixture round trips.
+#[test]
+fn shared_agent_session_fixture_preserves_cross_surface_semantics() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/agent_session_plan_conformance.json"
+    ))
+    .expect("shared semantic fixture");
+    let session: SessionReadResponse =
+        serde_json::from_value(fixture["session"].clone()).expect("session wire model");
+    let preferences: AgentPresentationPreferencesResponse =
+        serde_json::from_value(fixture["presentation"].clone())
+            .expect("shared preference wire model");
+    let operation: Operation =
+        serde_json::from_value(fixture["operation"].clone()).expect("operation wire model");
+    let branch = session
+        .branches
+        .iter()
+        .find(|branch| branch.id == "branch-worker-1")
+        .expect("worker branch");
+    let plan = session.plans.first().expect("plan fixture");
+    let dependency = plan.dependencies.first().expect("dependency fixture");
+
+    assert_eq!(
+        branch.result.as_ref().map(|result| result.id.as_str()),
+        Some("branch-result-1")
+    );
+    assert_eq!(
+        branch
+            .result
+            .as_ref()
+            .map(|result| result.result_handles.as_slice()),
+        Some(["validation-1".to_owned()].as_slice())
+    );
+    assert_eq!(dependency.fulfilled_by.as_deref(), Some("branch-result-1"));
+    assert!(session.branches[0].activity.iter().any(|activity| {
+        activity.kind == SessionActivityKind::SemanticOperation
+            && activity.durable_ref.as_deref() == Some("migration-parser-1")
+    }));
+    assert!(session.branches[0].activity.iter().any(|activity| {
+        activity.kind == SessionActivityKind::Validation
+            && activity.durable_ref.as_deref() == Some("validation-1")
+    }));
+    assert_eq!(plan.revision, 2);
+    assert_eq!(
+        plan.history.first().map(|revision| revision.revision),
+        Some(1)
+    );
+    assert_eq!(preferences.revision, 1);
+    assert_eq!(
+        preferences.preferences.reasoning,
+        PublicReasoningVisibility::Shown
+    );
+    let result = operation
+        .agent_result
+        .as_ref()
+        .expect("agent operation result");
+    assert_eq!(operation.status, OperationStatus::Completed);
+    assert_eq!(result.validation_results, vec!["validation passed"]);
+    assert_eq!(result.candidate_changes[0].validation, vec!["validation-1"]);
+    round_trip(&session);
+    round_trip(&preferences);
+    round_trip(&operation);
+}
+
 /// Verifies stable references and snapshot-aware requests round trip.
 #[test]
 fn references_and_requests_round_trip() {

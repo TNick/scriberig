@@ -227,8 +227,9 @@ fn plan_assignment_picker_reports_lost_session_context() {
         ..TuiState::default()
     };
 
-    let effects = crate::state::activate_palette_control(&mut state, "assign-plan-profile:0")
-        .expect("assignment action");
+    let effects =
+        crate::state::activate_palette_control(&mut state, "assign-plan-profile:profile-a")
+            .expect("assignment action");
 
     assert_eq!(effects, vec![Effect::None]);
     assert!(
@@ -238,6 +239,60 @@ fn plan_assignment_picker_reports_lost_session_context() {
             .as_deref()
             .is_some_and(|message| message.contains("Load the plan session"))
     );
+}
+
+/// Resolves a plan profile selection through its stable profile identity.
+#[test]
+fn plan_assignment_uses_stable_profile_id_after_reordering() {
+    let session = scriberig_core::EntityId::from_bytes([111; 16]);
+    let node = scriberig_core::EntityId::from_bytes([112; 16]);
+    let plan = scriberig_core::EntityId::from_bytes([113; 16]);
+    let profile = |id: &str, model: &str| scriberig_protocol::PublicModelProfile {
+        id: id.to_owned(),
+        display_name: id.to_owned(),
+        model: model.to_owned(),
+        connection: "connection".to_owned(),
+        credential: None,
+        default_thinking_level: None,
+        enabled: true,
+    };
+    let mut state = TuiState {
+        plan_assignment_target: Some(crate::state::PlanAssignmentTarget {
+            plan,
+            node,
+            expected_revision: 7,
+        }),
+        session_snapshot: Some(scriberig_session::Session {
+            id: session,
+            branches: Vec::new(),
+            goals: Vec::new(),
+            tasks: Vec::new(),
+            plans: Vec::new(),
+            execution: scriberig_session::SessionExecutionSelection::default(),
+        }),
+        model_library: crate::inspector::LoadState::Ready(
+            scriberig_protocol::ModelLibraryResponse {
+                models: Vec::new(),
+                profiles: vec![
+                    profile("profile-b", "model-b"),
+                    profile("profile-a", "model-a"),
+                ],
+            },
+        ),
+        ..TuiState::default()
+    };
+
+    let effects =
+        crate::state::activate_palette_control(&mut state, "assign-plan-profile:profile-a")
+            .expect("assignment action");
+
+    assert!(matches!(
+        effects.as_slice(),
+        [Effect::SetPlanNodeAssignment(request)]
+            if request.assignment.as_ref().is_some_and(|assignment| {
+                assignment.profile == "profile-a" && assignment.model == "model-a"
+            })
+    ));
 }
 
 /// Verifies navigation and presentation changes leave shared operations running.
@@ -284,81 +339,5 @@ fn navigation_and_presentation_changes_do_not_cancel_operations() {
     assert!(state.operations[0].cancellable());
 }
 
-/// Verifies prompt visibility loads captured requests without execution effects.
-#[test]
-fn prompt_visibility_requests_missing_model_details() {
-    let session = scriberig_core::EntityId::from_bytes([81; 16]);
-    let branch = scriberig_core::EntityId::from_bytes([82; 16]);
-    let invocation = scriberig_core::EntityId::from_bytes([83; 16]);
-    let mut state = TuiState {
-        session: LoadState::Ready(crate::view::session::SessionModel {
-            rows: vec![
-                crate::view::session::SessionRow {
-                    reference: session,
-                    depth: 0,
-                    label: "Session".to_owned(),
-                    kind: crate::view::session::SessionRowKind::Session,
-                    candidate: None,
-                    snapshot: None,
-                    transient: false,
-                },
-                crate::view::session::SessionRow {
-                    reference: branch,
-                    depth: 1,
-                    label: "main".to_owned(),
-                    kind: crate::view::session::SessionRowKind::Branch,
-                    candidate: None,
-                    snapshot: None,
-                    transient: true,
-                },
-                crate::view::session::SessionRow {
-                    reference: invocation,
-                    depth: 2,
-                    label: "Model: model-a".to_owned(),
-                    kind: crate::view::session::SessionRowKind::ModelInvocation,
-                    candidate: None,
-                    snapshot: None,
-                    transient: true,
-                },
-            ],
-            execution: scriberig_session::SessionExecutionSelection::default(),
-            tool_invocation_details: std::collections::BTreeMap::default(),
-        }),
-        overlay: Some(crate::overlay::Overlay::Palette(
-            crate::overlay::palette::PaletteState {
-                query: String::new(),
-                local_actions: vec![crate::overlay::palette::PaletteItem {
-                    id: "toggle-prompt".to_owned(),
-                    label: "Toggle captured model request".to_owned(),
-                    source: crate::overlay::palette::ActionSource::Local,
-                }],
-                semantic_actions: Vec::new(),
-                selected: 0,
-            },
-        )),
-        ..TuiState::default()
-    };
-
-    let effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
-
-    assert_eq!(
-        effects,
-        vec![Effect::ReadModelRequestDetail {
-            session,
-            branch,
-            invocation,
-        }]
-    );
-    assert_eq!(
-        state.prompt_visibility,
-        crate::state::PromptVisibility::Shown
-    );
-
-    let effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
-
-    assert_eq!(effects, vec![Effect::None]);
-    assert_eq!(
-        state.prompt_visibility,
-        crate::state::PromptVisibility::Hidden
-    );
-}
+#[path = "state_presentation_tests/prompt.rs"]
+mod prompt;

@@ -45,6 +45,8 @@ pub enum Action {
     ProjectionOpened,
     /// Update the active text input.
     InputChanged(String),
+    /// Moves the active conversation editor cursor.
+    ComposerCursorMoved(scriberig_tui_kit::CursorMotion),
     /// Submit the active text input.
     InputSubmitted,
     /// Applies an accepted conversation submission with authoritative handles.
@@ -256,6 +258,13 @@ pub enum Action {
     SessionComposerFocused(bool),
     /// Records successful contact after a remote disconnect.
     ConnectionRestored,
-    /// Records non-canonical agent output observation.
-    AgentOutputObserved(String),
+    /// Records bounded agent output under its shared operation identity.
+    AgentOutputObserved {
+        /// Operation producing this output.
+        operation: scriberig_core::OperationId,
+        /// Output fragment or complete output value.
+        text: String,
+        /// Whether the shared event contains the complete output value.
+        complete: bool,
+    },
 }

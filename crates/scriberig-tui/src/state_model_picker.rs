@@ -75,9 +75,8 @@ pub(crate) fn show_plan_assignment_picker(
         .profiles
         .iter()
         .filter(|profile| profile.enabled)
-        .enumerate()
-        .map(|(index, profile)| crate::overlay::palette::PaletteItem {
-            id: format!("assign-plan-profile:{index}"),
+        .map(|profile| crate::overlay::palette::PaletteItem {
+            id: format!("assign-plan-profile:{}", profile.id),
             label: format!("{} · {}", profile.display_name, profile.model),
             source: crate::overlay::palette::ActionSource::Local,
         })

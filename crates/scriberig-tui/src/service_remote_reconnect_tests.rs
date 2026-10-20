@@ -2,24 +2,30 @@
 
 use super::*;
 use std::collections::VecDeque;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 /// Returns a sequence of protocol responses for reconnect recovery tests.
 struct QueuedTransport {
     /// Responses returned in request order.
     responses: Mutex<VecDeque<ResponseEnvelope>>,
+    /// Requests received while recovering the event stream.
+    requests: Arc<Mutex<Vec<RequestEnvelope>>>,
 }
 
 impl ProtocolTransport for QueuedTransport {
     /// Returns the next queued protocol response.
     ///
     /// - `self`: Queued test transport.
-    /// - `_request`: Protocol request received from the client.
+    /// - `request`: Protocol request received from the client.
     ///
     /// The next deterministic response envelope.
     /// # Returns
     /// The operation result.
-    fn send(&self, _request: RequestEnvelope) -> ResponseEnvelope {
+    fn send(&self, request: RequestEnvelope) -> ResponseEnvelope {
+        self.requests
+            .lock()
+            .expect("request queue lock")
+            .push(request);
         self.responses
             .lock()
             .expect("response queue lock")
@@ -38,6 +44,7 @@ fn expired_event_cursor_replays_and_refreshes_known_sessions() {
         details: None,
         correlation_id: None,
     };
+    let requests = Arc::new(Mutex::new(Vec::new()));
     let transport = QueuedTransport {
         responses: Mutex::new(VecDeque::from([
             ResponseEnvelope {
@@ -51,6 +58,7 @@ fn expired_event_cursor_replays_and_refreshes_known_sessions() {
                 response: Response::Events(Vec::new()),
             },
         ])),
+        requests: Arc::clone(&requests),
     };
     let adapter = RemoteAdapter::new(Client::new(transport));
     *adapter.event_cursor.lock().expect("event cursor") = Some(1);
@@ -69,4 +77,11 @@ fn expired_event_cursor_replays_and_refreshes_known_sessions() {
         vec![scriberig_app::ApplicationEvent::SessionChanged { session }]
     );
     assert_eq!(*adapter.event_cursor.lock().expect("event cursor"), None);
+    let requests = requests.lock().expect("recorded requests");
+    assert_eq!(requests.len(), 2);
+    assert!(
+        requests.iter().all(|request| {
+            matches!(request.request, scriberig_protocol::Request::Subscribe(_))
+        })
+    );
 }

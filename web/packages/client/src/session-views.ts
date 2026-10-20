@@ -8,11 +8,9 @@ import type {
   SessionReadResponse,
   SessionActivityItem,
   SessionExecutionChange,
-  SessionPlan,
-  SessionPlanNode,
-  SessionPlanNodeStatus,
 } from "@scriberig/protocol";
 import { branchActivity, branchDescriptor } from "./session-activity-views.js";
+import { normalizeSessionPlan } from "./session-plan-views.js";
 
 export { branchActivity, branchDescriptor } from "./session-activity-views.js";
 
@@ -26,85 +24,8 @@ export function normalizeSession(value: unknown): SessionReadResponse {
   return {
     session: { id: session.id as SessionId },
     branches: (Array.isArray(record.branches) ? record.branches : []).map(normalizeBranch),
-    plans: (Array.isArray(record.plans) ? record.plans : []).map(normalizePlan),
+    plans: (Array.isArray(record.plans) ? record.plans : []).map(normalizeSessionPlan),
     execution: normalizeExecution(record.execution),
-  };
-}
-
-/** Normalizes a durable plan without exposing transcripts or credentials.
- * @param value Unknown plan value from the transport.
- * @returns A safe plan projection.
- * @throws An error when plan normalization encounters an invalid value.
- */
-function normalizePlan(value: unknown): SessionPlan {
-  const plan = isObject(value) ? value : {};
-  return {
-    id: typeof plan.id === "string" ? plan.id : "",
-    rootBranch: String(plan.rootBranch ?? plan.root_branch ?? "") as BranchId,
-    nodes: (Array.isArray(plan.nodes) ? plan.nodes : []).map(normalizePlanNode),
-    dependencies: (Array.isArray(plan.dependencies) ? plan.dependencies : []).flatMap((value) => {
-      if (!isObject(value)) return [];
-      const prerequisite = value.prerequisite;
-      const dependent = value.dependent;
-      if (typeof prerequisite !== "string" || typeof dependent !== "string") return [];
-      const fulfilledBy = value.fulfilledBy ?? value.fulfilled_by;
-      return [
-        {
-          prerequisite,
-          dependent,
-          ...(typeof fulfilledBy === "string" ? { fulfilledBy } : {}),
-        },
-      ];
-    }),
-    ...(typeof (plan.coordinator ?? plan.coordinator_branch) === "string"
-      ? { coordinator: String(plan.coordinator ?? plan.coordinator_branch) as BranchId }
-      : {}),
-    ...(typeof (plan.coordinatorCursor ?? plan.coordinator_cursor) === "string"
-      ? { coordinatorCursor: String(plan.coordinatorCursor ?? plan.coordinator_cursor) }
-      : {}),
-  };
-}
-
-/** Normalizes a planned work node and safe model assignment.
- * @param value Unknown plan-node value.
- * @returns A bounded node projection.
- * @throws An error when node normalization encounters an invalid value.
- */
-function normalizePlanNode(value: unknown): SessionPlanNode {
-  const node = isObject(value) ? value : {};
-  const status = node.status;
-  const validStatuses: readonly SessionPlanNodeStatus[] = [
-    "Planned",
-    "Ready",
-    "Running",
-    "Completed",
-    "Failed",
-    "Abandoned",
-  ];
-  const assignmentValue = node.assignment;
-  const assignment = isObject(assignmentValue) ? assignmentValue : undefined;
-  const thinkingLevel = assignment?.thinkingLevel ?? assignment?.thinking_level;
-  const branch = node.branch;
-  const result = node.result;
-  return {
-    id: typeof node.id === "string" ? node.id : "",
-    parent: String(node.parent ?? ""),
-    title: typeof node.title === "string" ? node.title : "",
-    purpose: typeof node.purpose === "string" ? node.purpose : "",
-    status: validStatuses.includes(status as SessionPlanNodeStatus)
-      ? (status as SessionPlanNodeStatus)
-      : "Planned",
-    ...(typeof branch === "string" ? { branch: branch as BranchId } : {}),
-    ...(typeof result === "string" ? { result } : {}),
-    ...(typeof assignment?.profile === "string" && typeof assignment.model === "string"
-      ? {
-          assignment: {
-            profile: assignment.profile,
-            model: assignment.model,
-            ...(typeof thinkingLevel === "string" ? { thinkingLevel } : {}),
-          },
-        }
-      : {}),
   };
 }
 
@@ -172,7 +93,7 @@ export function resultFromSession(
   return {
     branchId: branch.id,
     resultId: branch.result.id,
-    handles: branch.result.references,
+    handles: [...branch.result.references, ...(branch.result.resultHandles ?? [])],
   };
 }
 
@@ -232,7 +153,8 @@ function isExecutionChange(
 /** Normalizes a wire branch. @param value Unknown branch. @returns Public branch. */
 function normalizeBranch(value: unknown): SessionReadResponse["branches"][number] {
   const branch = value as Record<string, unknown>;
-  const result = branch.result as Record<string, unknown> | undefined;
+  const result = isObject(branch.result) ? branch.result : undefined;
+  const resultHandles = result?.resultHandles ?? result?.result_handles;
   const parent = typeof branch.parent === "string" ? (branch.parent as BranchId) : undefined;
   const normalizedResult =
     result === undefined
@@ -243,6 +165,9 @@ function normalizeBranch(value: unknown): SessionReadResponse["branches"][number
             ? result.references.filter(
                 (reference): reference is string => typeof reference === "string",
               )
+            : [],
+          resultHandles: Array.isArray(resultHandles)
+            ? resultHandles.filter((handle): handle is string => typeof handle === "string")
             : [],
         };
   return {
@@ -356,6 +281,17 @@ function isActivityKind(value: unknown): value is SessionActivityItem["kind"] {
     "Validation",
     "ModelSelectionChanged",
     "ThinkingLevelChanged",
+    "PlanCreated",
+    "PlanRevised",
+    "PlanNodeReady",
+    "PlanNodeStarted",
+    "PlanNodeCompleted",
+    "PlanNodeFailed",
+    "AssignmentChanged",
+    "CoordinatorChanged",
+    "DependencyStateChanged",
+    "SemanticOperation",
+    "ExternalProcess",
     "Error",
   ].includes(value as string);
 }

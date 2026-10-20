@@ -101,7 +101,11 @@ pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Ef
             state.session_composer_focused = focused && state.session_composer.is_some();
             Some(vec![Effect::None])
         }
-        Action::AgentOutputObserved(output) => Some(agent_output_observed(state, &output)),
+        Action::AgentOutputObserved {
+            operation,
+            text,
+            complete,
+        } => Some(agent_output_observed(state, &operation, &text, complete)),
         Action::OperationObserved(model) => {
             let operation_id = model.id.clone();
             let was_terminal = state
@@ -158,6 +162,8 @@ pub(super) fn new_conversation(state: &mut TuiState) -> Vec<Effect> {
     state.conversation_cursor = None;
     state.conversation_composer.target = ConversationTarget::NewSession;
     state.conversation_composer.pending = false;
+    state.conversation_composer.pending_prompt = None;
+    state.conversation_composer.pending_prompt = None;
     state.conversation_composer.error = None;
     state.conversation_browsing = false;
     state.coordinator_cursor = None;

@@ -14,6 +14,9 @@ export function reduceAgentEvent(
 ): AgentWorkspaceState {
   if (event.sequence <= state.eventCursor) return state;
   const next = { ...state, eventCursor: event.sequence };
+  if (state.eventCursor > 0 && event.sequence > state.eventCursor + 1) {
+    return { ...next, stale: true };
+  }
   const clearTransient = (operationId: string): Readonly<Record<string, string>> => {
     const streams = { ...state.transientStreams };
     delete streams[operationId];

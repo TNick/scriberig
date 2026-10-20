@@ -3,7 +3,16 @@
 import re
 
 CODE_SUFFIXES = {".rs", ".ts", ".tsx", ".js", ".jsx", ".py"}
-IGNORED_PARTS = {".git", "node_modules", "target", "dist", "build", "coverage"}
+# Vendored dependencies retain upstream style and are audited through provenance.
+IGNORED_PARTS = {
+    ".git",
+    "node_modules",
+    "target",
+    "dist",
+    "build",
+    "coverage",
+    "third_party",
+}
 MAX_SOURCE_LINES = 400
 RUST_FUNCTION = re.compile(
     r"^\s*(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?(?:unsafe\s+)?fn\s+(\w+)\s*\("

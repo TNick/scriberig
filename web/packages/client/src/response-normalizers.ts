@@ -39,6 +39,13 @@ export function normalizeOperation(value: unknown): Operation {
     const session = agent.session as Record<string, unknown> | undefined;
     const branch = agent.root_branch as Record<string, unknown> | undefined;
     const produced = Array.isArray(agent.produced_changes) ? agent.produced_changes : [];
+    const producedChanges = produced.flatMap((item) =>
+      isObject(item) && typeof item.id === "string" ? [item.id as never] : [],
+    );
+    const validationResults = normalizeStrings(agent.validation_results ?? agent.validationResults);
+    const unresolvedQuestions = normalizeStrings(
+      agent.unresolved_questions ?? agent.unresolvedQuestions,
+    );
     const candidateChanges = Array.isArray(agent.candidate_changes)
       ? agent.candidate_changes
           .filter(
@@ -65,6 +72,9 @@ export function normalizeOperation(value: unknown): Operation {
       rootBranchId: String(branch?.id ?? "") as Operation["branchId"] & string,
       branchResultId: String(agent.branch_result ?? ""),
       finalOutput: typeof agent.final_output === "string" ? agent.final_output : "",
+      producedChanges,
+      validationResults,
+      unresolvedQuestions,
       handles: produced.flatMap((item) =>
         typeof item === "object" && item !== null && typeof item.id === "string" ? [item.id] : [],
       ),
@@ -77,6 +87,24 @@ export function normalizeOperation(value: unknown): Operation {
     normalized.failure = { category: "operation_failure", message: normalized.error };
   }
   return normalized;
+}
+
+/** Narrows a JSON object from an untrusted protocol response.
+ * @param value Candidate response value.
+ * @returns Whether the value is a non-array object.
+ */
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Normalizes a list of safe wire strings.
+ * @param value Unknown wire value.
+ * @returns String items from an array, or an empty array.
+ */
+function normalizeStrings(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
 /** Normalizes an accepted agent response from either wire generation.

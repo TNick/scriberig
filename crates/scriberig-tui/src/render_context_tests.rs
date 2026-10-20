@@ -125,8 +125,8 @@ fn palette_renders_selected_row_marker() {
         .iter()
         .map(ratatui::buffer::Cell::symbol)
         .collect();
-    assert!(rendered.contains("> Refresh"));
-    assert!(!rendered.contains("> Open help"));
+    assert!(rendered.contains("→ Refresh"));
+    assert!(!rendered.contains("→ Open help"));
 }
 
 /// Verifies the selected explorer row remains visible below the viewport.
@@ -165,7 +165,7 @@ fn explorer_scrolls_to_keep_selected_row_visible() {
         .collect();
     let last_prefix = last.to_string();
     assert!(
-        rendered.contains(&format!("> {}", &last_prefix[..12])),
+        rendered.contains(&format!("→ {}", &last_prefix[..12])),
         "{rendered}"
     );
 }

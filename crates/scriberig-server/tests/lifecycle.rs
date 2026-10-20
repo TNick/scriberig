@@ -65,6 +65,7 @@ impl ApplicationBackend for Backend {
                 validation: None,
                 validation_profile: None,
                 validation_diagnostics: Vec::new(),
+                review_details: Vec::new(),
                 conflicts: Vec::new(),
             }));
         }
@@ -80,6 +81,7 @@ impl ApplicationBackend for Backend {
                 validation: None,
                 validation_profile: None,
                 validation_diagnostics: Vec::new(),
+                review_details: Vec::new(),
                 conflicts: Vec::new(),
             }));
         }

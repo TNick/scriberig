@@ -1,8 +1,76 @@
 /** @file Verifies authoritative session and branch projections. */
 import { describe, expect, it } from "vitest";
 import { ScriberigClient } from "../src";
+import { normalizeSession } from "../src/session-views.js";
+import { normalizePresentationPreferencesResponse } from "../src/presentation-views.js";
+import { normalizeOperation } from "../src/response-normalizers.js";
+import sharedFixture from "../../../../tests/fixtures/agent_session_plan_conformance.json";
 
 describe("session client projections", () => {
+  it("preserves shared recursive session, plan, result, and preference semantics", () => {
+    const fixture = sharedFixture as {
+      session: unknown;
+      presentation: unknown;
+      operation: unknown;
+    };
+    const session = normalizeSession(fixture.session);
+    const preferences = normalizePresentationPreferencesResponse(fixture.presentation);
+    const operation = normalizeOperation(fixture.operation);
+    const worker = session.branches.find((branch) => branch.id === "branch-worker-1");
+    const plan = session.plans[0];
+
+    expect(worker?.result).toEqual({
+      id: "branch-result-1",
+      references: ["migration-parser-1"],
+      resultHandles: ["validation-1"],
+    });
+    expect(
+      session.branches[0]?.activity?.find((item) => item.id === "activity-candidate-1"),
+    ).toMatchObject({ kind: "SemanticOperation", durableRef: "migration-parser-1" });
+    expect(
+      session.branches[0]?.activity?.find((item) => item.id === "activity-validation-1"),
+    ).toMatchObject({ kind: "Validation", durableRef: "validation-1" });
+    expect(plan).toMatchObject({
+      revision: 2,
+      status: "Running",
+      dependencies: [
+        {
+          prerequisite: "plan-node-parser",
+          dependent: "plan-node-tests",
+          fulfilledBy: "branch-result-1",
+        },
+      ],
+    });
+    expect(plan?.nodes[0]).toMatchObject({
+      id: "plan-node-parser",
+      assignment: { model: "model-a" },
+    });
+    expect(preferences.preferences).toEqual({
+      reasoning: "shown",
+      toolInvocation: "detailed",
+      toolOutput: "summary",
+      prompt: "hidden",
+    });
+    expect(operation).toMatchObject({
+      operationId: "operation-agent-1",
+      status: "completed",
+      result: {
+        branchResultId: "branch-result-1",
+        producedChanges: ["entity-parser"],
+        validationResults: ["validation passed"],
+        unresolvedQuestions: [],
+        candidateChanges: [
+          {
+            migrationId: "migration-parser-1",
+            entityId: "entity-parser",
+            candidateSnapshotId: "snapshot-parser-candidate-1",
+            validationRefs: ["validation-1"],
+          },
+        ],
+      },
+    });
+  });
+
   it("reads and revision-checks shared presentation preferences", async () => {
     const requests: { operation: string; payload: unknown }[] = [];
     const transport = {
@@ -170,12 +238,20 @@ describe("session client projections", () => {
               status: "Completed",
               children: [],
               turns: [],
-              result: { id: "result-1", references: ["migration-1"] },
+              result: {
+                id: "result-1",
+                references: ["migration-1"],
+                result_handles: ["artifact-1"],
+              },
             },
           ],
           plans: [
             {
               id: "plan-1",
+              revision: 4,
+              goal: "Implement parser and tests",
+              status: "Running",
+              anchor: { BranchHead: { branch: "root" } },
               root_branch: "root",
               nodes: [
                 {
@@ -186,10 +262,21 @@ describe("session client projections", () => {
                   status: "Completed",
                   branch: "parser-branch",
                   result: "parser-result",
+                  superseded_by: "parser-v2",
+                  expected_result: { kind: "semantic_changes", requires_handle: true },
+                  semantic_scope: ["entity-parser"],
                   assignment: {
                     profile: "profile-a",
                     model: "model-a",
                     thinking_level: "careful",
+                  },
+                  claim: {
+                    id: "claim-parser",
+                    node: "plan-parser",
+                    branch: "parser-branch",
+                    owner: "worker-1",
+                    generation: 2,
+                    assignment: { profile: "profile-a", model: "model-a" },
                   },
                 },
               ],
@@ -202,6 +289,22 @@ describe("session client projections", () => {
               ],
               coordinator: "root",
               coordinator_cursor: "plan-tests",
+              coordinator_claim: {
+                id: "coordinator-1",
+                operation: "operation-1",
+                owner: "runtime-1",
+                generation: 3,
+              },
+              history: [
+                {
+                  revision: 3,
+                  goal: "Earlier goal",
+                  status: "Planned",
+                  nodes: [],
+                  dependencies: [],
+                  reason: "Clarified scope",
+                },
+              ],
             },
           ],
         }) as T,
@@ -228,7 +331,13 @@ describe("session client projections", () => {
     expect(session.branches[0]?.turns[0]?.hasHumanInput).toBe(true);
     expect(session.plans[0]).toMatchObject({
       id: "plan-1",
+      revision: 4,
+      goal: "Implement parser and tests",
+      status: "Running",
       coordinator: "root",
+      anchor: { BranchHead: { branch: "root" } },
+      coordinatorClaim: { id: "coordinator-1", generation: 3 },
+      history: [{ revision: 3, goal: "Earlier goal", reason: "Clarified scope" }],
       dependencies: [
         {
           prerequisite: "plan-parser",
@@ -239,6 +348,16 @@ describe("session client projections", () => {
       nodes: [
         {
           id: "plan-parser",
+          supersededBy: "parser-v2",
+          expectedResult: { kind: "semantic_changes", requiresHandle: true },
+          semanticScope: ["entity-parser"],
+          claim: {
+            id: "claim-parser",
+            node: "plan-parser",
+            branch: "parser-branch",
+            owner: "worker-1",
+            generation: 2,
+          },
           assignment: {
             profile: "profile-a",
             model: "model-a",
@@ -246,6 +365,11 @@ describe("session client projections", () => {
           },
         },
       ],
+    });
+    expect(session.branches[1]?.result).toEqual({
+      id: "result-1",
+      references: ["migration-1"],
+      resultHandles: ["artifact-1"],
     });
     expect(await client.getBranch("session-1" as never, "child" as never)).toMatchObject({
       branchId: "child",
@@ -274,7 +398,7 @@ describe("session client projections", () => {
     expect(await client.getBranchResult("session-1" as never, "result-1")).toEqual({
       branchId: "child",
       resultId: "result-1",
-      handles: ["migration-1"],
+      handles: ["migration-1", "artifact-1"],
     });
   });
 });

@@ -295,10 +295,7 @@ fn result_branches(
 /// # Returns
 /// The operation result.
 pub(crate) fn activate_palette_control(state: &mut TuiState, item_id: &str) -> Option<Vec<Effect>> {
-    if let Some(index) = item_id
-        .strip_prefix("assign-plan-profile:")
-        .and_then(|value| value.parse::<usize>().ok())
-    {
+    if let Some(profile_id) = item_id.strip_prefix("assign-plan-profile:") {
         let target = state.plan_assignment_target.take()?;
         let LoadState::Ready(library) = &state.model_library else {
             state.conversation_composer.error =
@@ -309,8 +306,7 @@ pub(crate) fn activate_palette_control(state: &mut TuiState, item_id: &str) -> O
         let Some(profile) = library
             .profiles
             .iter()
-            .filter(|profile| profile.enabled)
-            .nth(index)
+            .find(|profile| profile.id == profile_id && profile.enabled)
         else {
             state.conversation_composer.error =
                 Some("The selected model profile is no longer available.".to_owned());

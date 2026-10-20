@@ -153,6 +153,21 @@ fn remote_session_mapping_preserves_plan_results_and_assignments() {
 /// Verifies transport and semantic remote failures retain distinct categories.
 #[test]
 fn remote_errors_remain_categorized() {
+    let local_denial = scriberig_app::ApplicationError::PermissionDenied {
+        action: "session.continue".to_owned(),
+        scope: "session-1".to_owned(),
+    };
+    let remote_denial = remote_error(scriberig_client::ClientError::Protocol(
+        scriberig_protocol::ProtocolError {
+            code: scriberig_protocol::ProtocolErrorCode::PermissionDenied,
+            message: "permission denied".to_owned(),
+            details: None,
+            correlation_id: None,
+        },
+    ));
+    assert_eq!(local_denial.category(), "permission_denied");
+    assert_eq!(remote_denial.category(), local_denial.category());
+
     let transport = remote_error(scriberig_client::ClientError::Transport(
         "connection refused".to_owned(),
     ));

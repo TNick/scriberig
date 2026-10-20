@@ -1,6 +1,6 @@
 //! Implements lifecycle construction and transition for operation records.
 
-use super::{OperationId, OperationKind, OperationProgress, OperationRecord, OperationStatus};
+use super::{OperationId, OperationKind, OperationRecord, OperationStatus};
 
 impl OperationRecord {
     /// Creates a queued operation record.
@@ -46,13 +46,10 @@ impl OperationRecord {
             });
         }
         self.status = status;
-        if status.is_terminal() {
-            self.progress = Some(OperationProgress {
-                status,
-                completed: self.progress.as_ref().and_then(|value| value.completed),
-                total: self.progress.as_ref().and_then(|value| value.total),
-                phase: self.progress.as_ref().and_then(|value| value.phase.clone()),
-            });
+        if status.is_terminal()
+            && let Some(progress) = self.progress.as_mut()
+        {
+            progress.status = status;
         }
         Ok(self)
     }

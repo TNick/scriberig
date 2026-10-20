@@ -342,6 +342,9 @@ describe("agent UI", () => {
             rootBranchId: "branch-1" as never,
             branchResultId: "result-1" as never,
             finalOutput: "done",
+            producedChanges: [],
+            validationResults: [],
+            unresolvedQuestions: [],
             handles: [],
             candidateChanges: [
               {

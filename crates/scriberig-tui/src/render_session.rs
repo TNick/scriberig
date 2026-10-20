@@ -1,30 +1,48 @@
 //! Builds styled session activity rows from cached TUI state.
 
 use ratatui::{
-    style::{Color, Style},
+    style::Style,
     text::{Line, Span, Text},
 };
+use std::ops::Range;
 
-use crate::{inspector::LoadState, state::TuiState};
+use crate::{inspector::LoadState, render::render_helpers::depth_color, state::TuiState};
+
+/// Maximum untrusted row-label characters presented in one terminal frame.
+const MAX_SESSION_LABEL_CHARS: usize = 512;
 
 /// Renders session activity with visible rails and finite depth colors.
 ///
 /// - `state`: Cached session and presentation state.
 /// - `available_width`: Width available for the session rows.
+/// - `available_rows`: Number of rows available for session presentation.
 ///
 /// Session activity text with hierarchy preserved independently of color.
 /// # Returns
 /// The operation result.
-pub(super) fn session_text(state: &TuiState, available_width: usize) -> Text<'static> {
+pub(super) fn session_text(
+    state: &TuiState,
+    available_width: usize,
+    available_rows: usize,
+) -> Text<'static> {
     let LoadState::Ready(model) = &state.session else {
         return Text::from(super::render_primary::primary_text(state));
     };
+    let visible_rows = visible_session_rows(
+        model.rows.len(),
+        state.cursor,
+        state.focus == crate::state::Focus::Primary,
+        available_rows,
+    );
     let mut lines = model
         .rows
         .iter()
         .enumerate()
+        .skip(visible_rows.start)
+        .take(visible_rows.len())
         .flat_map(|(index, row)| {
             let label = super::render_primary::session_row_label(state, row);
+            let label = scriberig_tui_kit::ExternalText::new(&bounded_label(&label));
             let mut spans = vec![Span::raw(
                 if state.focus == crate::state::Focus::Primary && state.cursor == index {
                     "> "
@@ -45,7 +63,7 @@ pub(super) fn session_text(state: &TuiState, available_width: usize) -> Text<'st
             if row.transient {
                 spans.push(Span::raw("~ "));
             }
-            let mut row_lines = label.lines();
+            let mut row_lines = label.as_str().lines();
             let first = row_lines.next().unwrap_or_default();
             spans.push(Span::raw(first.to_owned()));
             let mut rendered = vec![Line::from(spans)];
@@ -59,10 +77,11 @@ pub(super) fn session_text(state: &TuiState, available_width: usize) -> Text<'st
             rendered
         })
         .collect::<Vec<_>>();
-    lines.extend(state.agent_output_observations.iter().map(|output| {
+    lines.extend(state.transient_agent_outputs.iter().map(|output| {
         Line::from(format!(
-            "[stream, non-canonical] {}",
-            crate::inspector::sanitize(output)
+            "[stream · {}] {}",
+            output.operation,
+            crate::inspector::sanitize(&output.text)
         ))
     }));
     lines.extend(model.execution.history.iter().map(|change| {
@@ -103,21 +122,94 @@ pub(super) fn session_text(state: &TuiState, available_width: usize) -> Text<'st
     Text::from(lines)
 }
 
-/// Selects a stable terminal color for one nesting depth.
+/// Bounds a row label before terminal sanitization allocates its display form.
 ///
-/// - `depth`: Zero-based ancestor depth.
+/// - `label`: User or runtime supplied session row text.
 ///
-/// A color from the finite hierarchy palette.
+/// A bounded prefix with a truncation marker when content was clipped.
 /// # Returns
-/// The operation result.
-fn depth_color(depth: usize) -> Color {
-    const PALETTE: [Color; 6] = [
-        Color::Cyan,
-        Color::Green,
-        Color::Yellow,
-        Color::Magenta,
-        Color::Blue,
-        Color::LightCyan,
-    ];
-    PALETTE[depth % PALETTE.len()]
+/// The bounded safe label.
+fn bounded_label(label: &str) -> String {
+    let mut characters = label.chars();
+    let mut bounded = characters
+        .by_ref()
+        .take(MAX_SESSION_LABEL_CHARS)
+        .collect::<String>();
+    if characters.next().is_some() {
+        bounded.push('…');
+    }
+    bounded
+}
+
+/// Selects the session rows that fit the viewport around the active row.
+///
+/// - `row_count`: Number of rows in the complete semantic session tree.
+/// - `cursor`: Selected row index.
+/// - `focused`: Whether the session tree owns keyboard focus.
+/// - `available_rows`: Number of rows available for presentation.
+///
+/// A bounded row range that keeps the selected row visible when focused.
+/// # Returns
+/// The visible row indices.
+fn visible_session_rows(
+    row_count: usize,
+    cursor: usize,
+    focused: bool,
+    available_rows: usize,
+) -> Range<usize> {
+    let visible_count = row_count.min(available_rows.max(1));
+    let selected = if focused {
+        cursor.min(row_count.saturating_sub(1))
+    } else {
+        0
+    };
+    let start = selected.saturating_add(1).saturating_sub(visible_count);
+    start..start.saturating_add(visible_count).min(row_count)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::session_text;
+    use crate::{inspector::LoadState, state::TuiState, view::session::SessionRow};
+
+    /// Verifies large session trees render only rows that fit the viewport.
+    #[test]
+    fn large_session_tree_renders_a_bounded_selected_window() {
+        let rows = (0..10_000)
+            .map(|index| SessionRow {
+                reference: scriberig_core::EntityId::from_bytes(
+                    [u8::try_from(index % 256).expect("bounded entity byte"); 16],
+                ),
+                depth: index % 8,
+                label: if index == 9_999 {
+                    "x".repeat(100_000)
+                } else {
+                    format!("branch-{index}")
+                },
+                kind: crate::view::session::SessionRowKind::Branch,
+                candidate: None,
+                snapshot: None,
+                transient: false,
+            })
+            .collect();
+        let mut state = TuiState::default();
+        state.session = LoadState::Ready(crate::view::session::SessionModel {
+            rows,
+            ..crate::view::session::SessionModel::default()
+        });
+        state.cursor = 9_999;
+        state.focus = crate::state::Focus::Primary;
+
+        let rendered = session_text(&state, 80, 12);
+        let text = rendered
+            .lines
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>();
+
+        assert_eq!(text.len(), 12);
+        assert!(text.last().is_some_and(|row| row.ends_with('…')));
+        assert!(text.last().is_some_and(|row| row.chars().count() <= 540));
+        assert!(!text.iter().any(|row| row.contains("branch-0")));
+    }
 }

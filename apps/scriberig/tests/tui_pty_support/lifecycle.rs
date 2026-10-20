@@ -3,6 +3,28 @@
 use super::*;
 
 impl TuiPty {
+    /// Collects terminal teardown bytes and checks all presentation modes.
+    ///
+    /// The receive timeout gives the PTY reader time to forward bytes written
+    /// immediately before the child exited.
+    fn assert_terminal_restored(&mut self) {
+        while let Ok(bytes) = self.receiver.recv_timeout(Duration::from_millis(50)) {
+            self.transcript.extend_from_slice(&bytes);
+            self.parser.process(&bytes);
+        }
+        for command in [b"\x1b[?2004l".as_slice(), b"\x1b[?25h", b"\x1b[?1049l"] {
+            assert!(
+                self.transcript
+                    .windows(command.len())
+                    .any(|window| window == command),
+                "terminal restoration command missing: {command:?}; {}",
+                self.diagnostic()
+            );
+        }
+    }
+}
+
+impl TuiPty {
     /// Releases a deterministic cancellation scenario after the UI confirms cancellation.
     ///
     /// - `self`: Active TUI process and owning fixture directory.
@@ -50,6 +72,7 @@ impl TuiPty {
         let deadline = Instant::now() + Duration::from_secs(3);
         let status = loop {
             if let Some(status) = self.child.try_wait().expect("poll tui") {
+                self.assert_terminal_restored();
                 break status;
             }
             if let Ok(bytes) = self.receiver.recv_timeout(Duration::from_millis(25)) {
@@ -105,6 +128,7 @@ impl TuiPty {
         let deadline = Instant::now() + Duration::from_secs(3);
         let status = loop {
             if let Some(status) = self.child.try_wait().expect("poll tui") {
+                self.assert_terminal_restored();
                 break status;
             }
             if Instant::now() >= deadline {

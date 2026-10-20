@@ -185,17 +185,15 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
     tui_state.conversation_cursor = Some(
         scriberig_tui::view::conversation::ConversationSource::Plan(plan.id),
     );
-    tui_state.conversation_composer = scriberig_tui::state::ConversationComposerState {
-        target: scriberig_tui::state::ConversationTarget::Existing {
+    tui_state.conversation_composer = scriberig_tui::state::ConversationComposerState::new(
+        scriberig_tui::state::ConversationTarget::Existing {
             session: session_id,
             reply_anchor: ContinuationAnchor::BranchHead {
                 branch: root_branch,
             },
         },
-        draft: "/plan start".to_owned(),
-        pending: false,
-        error: None,
-    };
+        "/plan start".to_owned(),
+    );
     let effects = reduce(&mut tui_state, Action::InputSubmitted);
     let [start_effect] = effects.as_slice() else {
         panic!("/plan start should produce one lifecycle effect: {effects:?}");

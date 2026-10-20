@@ -156,7 +156,7 @@ fn create_session(
 /// - `sessions`: Durable session identities expected in the list.
 fn assert_sessions_visible(tui: &mut TuiPty, sessions: &[scriberig_core::EntityId]) {
     tui.send_slow(b"/sessions");
-    assert!(tui.read_until("> /sessions"), "{}", tui.diagnostic());
+    assert!(tui.read_until("· /sessions"), "{}", tui.diagnostic());
     tui.send(b"\r");
     for session in sessions {
         assert!(tui.read_until(&session.to_string()), "{}", tui.diagnostic());
@@ -185,7 +185,7 @@ fn switch_session(
 ) {
     tui.send_slow(format!("/switch {session}").as_bytes());
     assert!(
-        tui.read_until(&format!("> /switch {session}")),
+        tui.read_until(&format!("/switch {session}")),
         "{}",
         tui.diagnostic()
     );
@@ -205,7 +205,7 @@ fn switch_session(
 fn remove_session(tui: &mut TuiPty, session: scriberig_core::EntityId) {
     tui.send_slow(format!("/remove-session {session}").as_bytes());
     assert!(
-        tui.read_until(&format!("> /remove-session {session}")),
+        tui.read_until(&format!("/remove-session {session}")),
         "{}",
         tui.diagnostic()
     );
@@ -263,14 +263,19 @@ fn tui_pty_lists_local_palette_commands() {
 #[test]
 fn tui_pty_submits_model_command_on_return() {
     let _lock = test_lock();
-    let mut tui = TuiPty::start();
+    let catalog = r#"{"models":[{"id":"default","display_name":"Fake Default","provider_model_id":"default"}]}"#;
+    let mut tui = TuiPty::start_with_model_catalog(catalog);
 
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
     tui.send(b"/model");
-    assert!(tui.read_until("> /model"), "{}", tui.diagnostic());
+    assert!(tui.read_until("· /model"), "{}", tui.diagnostic());
     tui.send(b"\r");
-    assert!(tui.read_until_not("> /model"), "{}", tui.diagnostic());
-    assert!(tui.read_until("default · default"), "{}", tui.diagnostic());
+    assert!(tui.read_until_not("· /model"), "{}", tui.diagnostic());
+    assert!(
+        tui.read_until("Fake Default · Fake Default · local/default"),
+        "{}",
+        tui.diagnostic()
+    );
 
     assert!(tui.shutdown());
 }
@@ -293,7 +298,7 @@ fn tui_pty_changes_model_with_fake_profiles() {
 
     tui.send(b"/model\r");
     assert!(
-        tui.read_until("Fake B \u{b7} fake-b"),
+        tui.read_until("Fake B \u{b7} Fake B \u{b7} local/fake-b"),
         "{}",
         tui.diagnostic()
     );

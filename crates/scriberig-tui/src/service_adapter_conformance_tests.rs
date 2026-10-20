@@ -165,6 +165,29 @@ impl SessionBackend for LocalSessionFixture {
     }
 }
 
+impl scriberig_app::ApplicationBackend for LocalSessionFixture {
+    /// Rejects unrelated operations in the local operation conformance fixture.
+    ///
+    /// - `self`: Deterministic local fixture.
+    /// - `_context`: Authorized application context.
+    /// - `_request`: Operation outside the lifecycle-only test's scope.
+    ///
+    /// An unsupported-operation error for all semantic executions.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Always returns an unsupported-operation error.
+    fn execute(
+        &self,
+        _context: &ApplicationContext,
+        _request: &scriberig_app::ApplicationRequest,
+    ) -> Result<scriberig_app::ApplicationResult, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "conformance fixture execution".to_owned(),
+        })
+    }
+}
+
 /// Supplies the fixed protocol response used by this adapter test.
 #[derive(Clone)]
 struct FixtureTransport {
@@ -208,13 +231,74 @@ fn session_fixture() -> Session {
         tool_invocation: None,
         tool_result: None,
     });
+    let plan_id = EntityId::from_bytes([8; 16]);
+    let producer_id = EntityId::from_bytes([9; 16]);
+    let consumer_id = EntityId::from_bytes([10; 16]);
+    let result_id = EntityId::from_bytes([11; 16]);
     Session {
         id: session,
         branches: vec![root],
         goals: Vec::new(),
         tasks: Vec::new(),
-        plans: Vec::new(),
-        execution: scriberig_session::SessionExecutionSelection::default(),
+        plans: vec![scriberig_session::Plan {
+            id: plan_id,
+            session: Some(session),
+            anchor: Some(scriberig_session::ContinuationAnchor::BranchHead { branch }),
+            goal: "inspect fixture semantics".to_owned(),
+            revision: 2,
+            status: scriberig_session::PlanStatus::Planned,
+            root_branch: branch,
+            nodes: vec![
+                scriberig_session::PlanNode {
+                    id: producer_id,
+                    parent: Some(scriberig_session::PlanNodeParent::Branch(branch)),
+                    title: "produce".to_owned(),
+                    purpose: "produce result".to_owned(),
+                    expected_result: None,
+                    semantic_scope: Vec::new(),
+                    status: scriberig_session::PlanNodeStatus::Completed,
+                    branch: None,
+                    result: Some(result_id),
+                    superseded_by: None,
+                    assignment: None,
+                    claim: None,
+                    claim_generation: 0,
+                },
+                scriberig_session::PlanNode {
+                    id: consumer_id,
+                    parent: Some(scriberig_session::PlanNodeParent::Branch(branch)),
+                    title: "consume".to_owned(),
+                    purpose: "consume result".to_owned(),
+                    expected_result: None,
+                    semantic_scope: Vec::new(),
+                    status: scriberig_session::PlanNodeStatus::Ready,
+                    branch: None,
+                    result: None,
+                    superseded_by: None,
+                    assignment: None,
+                    claim: None,
+                    claim_generation: 0,
+                },
+            ],
+            dependencies: vec![scriberig_session::PlanDependency {
+                prerequisite: producer_id,
+                dependent: consumer_id,
+                fulfilled_by: Some(result_id),
+            }],
+            coordinator: None,
+            coordinator_cursor: None,
+            coordinator_claim: None,
+            coordinator_generation: 0,
+            root_nodes: Vec::new(),
+            history: Vec::new(),
+        }],
+        execution: scriberig_session::SessionExecutionSelection {
+            revision: 1,
+            model_profile: Some("profile-fixture".to_owned()),
+            model: Some("model-fixture".to_owned()),
+            thinking_level: Some("careful".to_owned()),
+            history: Vec::new(),
+        },
     }
 }
 

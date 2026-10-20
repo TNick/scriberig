@@ -25,6 +25,7 @@ members = [
   "crates/scriberig-agent-runtime",
   "crates/scriberig-server",
   "crates/scriberig-tui",
+  "crates/scriberig-tui-kit",
   "crates/scriberig-cli",
   "crates/scriberig-project",
   "crates/domains/scriberig-domain-markdown",
@@ -42,6 +43,7 @@ members = [
   "crates/scriberig-conformance",
   "apps/scriberig",
 ]
+exclude = ["third_party/rpi-tui/crate"]
 
 [workspace.package]
 version = "0.1.0"

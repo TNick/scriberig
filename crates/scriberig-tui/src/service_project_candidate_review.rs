@@ -50,11 +50,11 @@ pub(super) fn review_candidate(
             (scriberig_app::ValidationStatus::Failed, diagnostics.clone())
         }
     };
-    let mut conflicts = vec![format!(
+    let mut review_details = vec![format!(
         "scope: entity={} snapshot={}",
         candidate.entity, candidate.base_snapshot
     )];
-    conflicts.extend(
+    review_details.extend(
         candidate
             .effects
             .iter()
@@ -80,7 +80,8 @@ pub(super) fn review_candidate(
         validation: Some(validation),
         validation_profile: candidate.validation_profile.clone(),
         validation_diagnostics: diagnostics,
-        conflicts,
+        review_details,
+        conflicts: Vec::new(),
     })))
 }
 
@@ -133,7 +134,8 @@ pub(super) fn apply_candidate(
         validation: Some(ValidationStatus::Passed),
         validation_profile: candidate.validation_profile,
         validation_diagnostics: Vec::new(),
-        conflicts: vec![format!("materialized {}", report.path)],
+        review_details: vec![format!("materialized {}", report.path)],
+        conflicts: Vec::new(),
     }))
 }
 

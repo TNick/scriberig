@@ -207,6 +207,22 @@ describe("agent workspace", () => {
     expect(state.eventCursor).toBe(2);
   });
 
+  it("marks the workspace stale when the event stream skips a sequence", () => {
+    let state = reduceAgentEvent(createAgentWorkspaceState(), {
+      kind: "branchCreated",
+      sequence: 4,
+      branch,
+    });
+    state = reduceAgentEvent(state, {
+      kind: "branchChanged",
+      sequence: 6,
+      branchId: branch.branchId,
+    });
+
+    expect(state.eventCursor).toBe(6);
+    expect(state.stale).toBe(true);
+  });
+
   it("discards transient output when an operation reaches a terminal state", () => {
     let state = createAgentWorkspaceState();
     state = reduceAgentEvent(state, {
@@ -248,13 +264,26 @@ describe("agent workspace", () => {
               agentOutput: "done",
             },
           ],
-          result: { id: "result-1", references: ["ent-1"] },
+          result: { id: "result-1", references: ["ent-1"], resultHandles: ["file-1"] },
         },
       ],
-      plans: [],
+      plans: [
+        {
+          id: "plan-1",
+          revision: 2,
+          goal: "Build feature",
+          status: "Running",
+          rootBranch: "branch-1" as never,
+          nodes: [],
+          dependencies: [{ prerequisite: "node-a", dependent: "node-b", fulfilledBy: "result-a" }],
+          history: [],
+        },
+      ],
     });
     expect(state.branches["branch-1"]?.status).toBe("completed");
     expect(state.branches["branch-1"]?.result?.resultId).toBe("result-1");
+    expect(state.branches["branch-1"]?.result?.handles).toEqual(["ent-1", "file-1"]);
+    expect(state.plans[0]?.dependencies[0]?.fulfilledBy).toBe("result-a");
     expect(state.activity["branch-1"]?.items[0]?.summary).toBe("done");
     expect(state.execution).toEqual({
       revision: 3,

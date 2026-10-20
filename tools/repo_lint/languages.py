@@ -8,6 +8,7 @@ import re
 from .common import declaration_text
 from .config import RUST_FUNCTION, RUST_TYPE, TS_CLASS, TS_FUNCTION, TS_METHOD
 from .rust_parameters import rust_parameter_names
+from .rust_parameters import rust_return_type
 
 
 def rust_docs_before(lines: list[str], declaration_index: int) -> str:
@@ -86,9 +87,8 @@ def _check_rust_function(lines: list[str], index: int, name: str, issues: list[s
     for parameter_name in rust_parameter_names(declaration):
         if f"`{parameter_name}`" not in docs:
             issues.append(f"L{index + 1} {name}: PARAM_DOC: document `{parameter_name}`.")
-    return_match = re.search(r"->\s*([^\{]+)", declaration)
-    if return_match:
-        return_type = return_match.group(1).strip()
+    return_type = rust_return_type(declaration)
+    if return_type is not None:
         if return_type not in {"()", "!"} and "# Returns" not in docs:
             issues.append(f"L{index + 1} {name}: RETURN_DOC: non-unit return requires `# Returns`.")
         if "Result" in return_type and "# Errors" not in docs:
@@ -178,7 +178,17 @@ def _check_typescript_function(lines: list[str], index: int, name: str, issues: 
     if return_match and return_match.group(1).strip() not in {"void", "undefined", "never"}:
         if "@returns" not in docs:
             issues.append(f"L{index + 1} {name}: RETURN_DOC: meaningful return requires `@returns`.")
-    body = "\n".join(lines[index : index + 80])
+    next_declaration = next(
+        (
+            position
+            for position in range(index + 1, len(lines))
+            if TS_FUNCTION.match(lines[position])
+            or TS_METHOD.match(lines[position])
+            or TS_CLASS.match(lines[position])
+        ),
+        len(lines),
+    )
+    body = "\n".join(lines[index:next_declaration])
     if re.search(r"\bthrow\b", body) and "@throws" not in docs:
         issues.append(f"L{index + 1} {name}: THROW_DOC: throwing code requires `@throws`.")
 
