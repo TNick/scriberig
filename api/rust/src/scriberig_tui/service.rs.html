@@ -59,7 +59,7 @@
 <a href=#59 id=59 data-nosnippet>59</a><span class="attr">#[path = <span class="string">"service_remote_models.rs"</span>]
 <a href=#60 id=60 data-nosnippet>60</a></span><span class="kw">mod </span>service_remote_models;
 <a href=#61 id=61 data-nosnippet>61</a>
-<a href=#62 id=62 data-nosnippet>62</a><span class="kw">pub use </span>agent_handle::{AgentHandle, AgentWorkspace};
+<a href=#62 id=62 data-nosnippet>62</a><span class="kw">pub use </span>agent_handle::{AgentExecutionFailure, AgentHandle, AgentWorkspace};
 <a href=#63 id=63 data-nosnippet>63</a><span class="kw">pub use </span>service_agent_runner::{AgentCommandRunner, SharedAgentCommandRunner};
 <a href=#64 id=64 data-nosnippet>64</a><span class="kw">pub use </span>service_application::ApplicationAdapter;
 <a href=#65 id=65 data-nosnippet>65</a><span class="kw">use </span>service_effects::select_branch_subtree;
@@ -307,12 +307,54 @@
 <a href=#307 id=307 data-nosnippet>307</a>        })
 <a href=#308 id=308 data-nosnippet>308</a>    }
 <a href=#309 id=309 data-nosnippet>309</a>
-<a href=#310 id=310 data-nosnippet>310</a>    <span class="macro">tui_plan_methods!</span>();
-<a href=#311 id=311 data-nosnippet>311</a>
-<a href=#312 id=312 data-nosnippet>312</a>    <span class="macro">tui_agent_methods!</span>();
-<a href=#313 id=313 data-nosnippet>313</a>}
-<a href=#314 id=314 data-nosnippet>314</a>
-<a href=#315 id=315 data-nosnippet>315</a><span class="attr">#[cfg(test)]
-<a href=#316 id=316 data-nosnippet>316</a>#[path = <span class="string">"service_tests.rs"</span>]
-<a href=#317 id=317 data-nosnippet>317</a></span><span class="kw">mod </span>tests;
+<a href=#310 id=310 data-nosnippet>310</a>    <span class="doccomment">/// Lists durable sessions available through the shared application.
+<a href=#311 id=311 data-nosnippet>311</a>    ///
+<a href=#312 id=312 data-nosnippet>312</a>    /// - `_context`: Caller authorization context.
+<a href=#313 id=313 data-nosnippet>313</a>    ///
+<a href=#314 id=314 data-nosnippet>314</a>    /// Sessions ordered by stable identity.
+<a href=#315 id=315 data-nosnippet>315</a>    ///
+<a href=#316 id=316 data-nosnippet>316</a>    /// Returns an unsupported-operation or storage error when unavailable.
+<a href=#317 id=317 data-nosnippet>317</a>    /// # Returns
+<a href=#318 id=318 data-nosnippet>318</a>    /// The operation result.
+<a href=#319 id=319 data-nosnippet>319</a>    /// # Errors
+<a href=#320 id=320 data-nosnippet>320</a>    /// Returns an error when listing fails.
+<a href=#321 id=321 data-nosnippet>321</a>    </span><span class="kw">fn </span>list_sessions(
+<a href=#322 id=322 data-nosnippet>322</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
+<a href=#323 id=323 data-nosnippet>323</a>        _context: <span class="kw-2">&amp;</span>ApplicationContext,
+<a href=#324 id=324 data-nosnippet>324</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;Session&gt;, ApplicationError&gt; {
+<a href=#325 id=325 data-nosnippet>325</a>        <span class="prelude-val">Err</span>(ApplicationError::UnsupportedOperation {
+<a href=#326 id=326 data-nosnippet>326</a>            operation: <span class="string">"session listing"</span>.to_owned(),
+<a href=#327 id=327 data-nosnippet>327</a>        })
+<a href=#328 id=328 data-nosnippet>328</a>    }
+<a href=#329 id=329 data-nosnippet>329</a>
+<a href=#330 id=330 data-nosnippet>330</a>    <span class="doccomment">/// Removes one durable session through the shared application boundary.
+<a href=#331 id=331 data-nosnippet>331</a>    ///
+<a href=#332 id=332 data-nosnippet>332</a>    /// - `_context`: Caller authorization context.
+<a href=#333 id=333 data-nosnippet>333</a>    /// - `_session`: Exact session identity to remove.
+<a href=#334 id=334 data-nosnippet>334</a>    ///
+<a href=#335 id=335 data-nosnippet>335</a>    /// Unit after the session is removed.
+<a href=#336 id=336 data-nosnippet>336</a>    ///
+<a href=#337 id=337 data-nosnippet>337</a>    /// Returns a structured authorization, active-work, or storage error.
+<a href=#338 id=338 data-nosnippet>338</a>    /// # Returns
+<a href=#339 id=339 data-nosnippet>339</a>    /// The operation result.
+<a href=#340 id=340 data-nosnippet>340</a>    /// # Errors
+<a href=#341 id=341 data-nosnippet>341</a>    /// Returns an error when removal is rejected or fails.
+<a href=#342 id=342 data-nosnippet>342</a>    </span><span class="kw">fn </span>remove_session(
+<a href=#343 id=343 data-nosnippet>343</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
+<a href=#344 id=344 data-nosnippet>344</a>        _context: <span class="kw-2">&amp;</span>ApplicationContext,
+<a href=#345 id=345 data-nosnippet>345</a>        _session: EntityId,
+<a href=#346 id=346 data-nosnippet>346</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ApplicationError&gt; {
+<a href=#347 id=347 data-nosnippet>347</a>        <span class="prelude-val">Err</span>(ApplicationError::UnsupportedOperation {
+<a href=#348 id=348 data-nosnippet>348</a>            operation: <span class="string">"session removal"</span>.to_owned(),
+<a href=#349 id=349 data-nosnippet>349</a>        })
+<a href=#350 id=350 data-nosnippet>350</a>    }
+<a href=#351 id=351 data-nosnippet>351</a>
+<a href=#352 id=352 data-nosnippet>352</a>    <span class="macro">tui_plan_methods!</span>();
+<a href=#353 id=353 data-nosnippet>353</a>
+<a href=#354 id=354 data-nosnippet>354</a>    <span class="macro">tui_agent_methods!</span>();
+<a href=#355 id=355 data-nosnippet>355</a>}
+<a href=#356 id=356 data-nosnippet>356</a>
+<a href=#357 id=357 data-nosnippet>357</a><span class="attr">#[cfg(test)]
+<a href=#358 id=358 data-nosnippet>358</a>#[path = <span class="string">"service_tests.rs"</span>]
+<a href=#359 id=359 data-nosnippet>359</a></span><span class="kw">mod </span>tests;
 </code></pre></div></section></main></body></html>

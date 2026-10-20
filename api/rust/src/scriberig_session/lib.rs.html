@@ -65,91 +65,106 @@
 <a href=#65 id=65 data-nosnippet>65</a>        /// Returns an error when the operation fails.
 <a href=#66 id=66 data-nosnippet>66</a>        </span><span class="kw">fn </span>load(<span class="kw-2">&amp;</span><span class="self">self</span>, session: EntityId) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Session&gt;, String&gt;;
 <a href=#67 id=67 data-nosnippet>67</a>
-<a href=#68 id=68 data-nosnippet>68</a>        <span class="doccomment">/// Stores one complete session graph atomically.
+<a href=#68 id=68 data-nosnippet>68</a>        <span class="doccomment">/// Removes one exact durable session graph.
 <a href=#69 id=69 data-nosnippet>69</a>        ///
-<a href=#70 id=70 data-nosnippet>70</a>        /// - `session`: Session graph to persist.
+<a href=#70 id=70 data-nosnippet>70</a>        /// - `_session`: Stable session identity to remove.
 <a href=#71 id=71 data-nosnippet>71</a>        ///
-<a href=#72 id=72 data-nosnippet>72</a>        /// Returns a backend diagnostic when persistence fails.
+<a href=#72 id=72 data-nosnippet>72</a>        /// Unit after the session record is removed.
 <a href=#73 id=73 data-nosnippet>73</a>        ///
-<a href=#74 id=74 data-nosnippet>74</a>        /// Unit after the session is persisted.
+<a href=#74 id=74 data-nosnippet>74</a>        /// Returns a backend diagnostic when removal is unavailable or fails.
 <a href=#75 id=75 data-nosnippet>75</a>        /// # Returns
 <a href=#76 id=76 data-nosnippet>76</a>        /// The operation result.
 <a href=#77 id=77 data-nosnippet>77</a>        /// # Errors
-<a href=#78 id=78 data-nosnippet>78</a>        /// Returns an error when the operation fails.
-<a href=#79 id=79 data-nosnippet>79</a>        </span><span class="kw">fn </span>save(<span class="kw-2">&amp;</span><span class="self">self</span>, session: <span class="kw-2">&amp;</span>Session) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt;;
-<a href=#80 id=80 data-nosnippet>80</a>
-<a href=#81 id=81 data-nosnippet>81</a>        <span class="doccomment">/// Atomically updates only execution selection at an observed revision.
-<a href=#82 id=82 data-nosnippet>82</a>        ///
-<a href=#83 id=83 data-nosnippet>83</a>        /// - `_session`: Session carrying the proposed new selection.
-<a href=#84 id=84 data-nosnippet>84</a>        /// - `_expected_revision`: Selection revision observed by the caller.
-<a href=#85 id=85 data-nosnippet>85</a>        ///
-<a href=#86 id=86 data-nosnippet>86</a>        /// Unit after the selection is committed.
-<a href=#87 id=87 data-nosnippet>87</a>        ///
-<a href=#88 id=88 data-nosnippet>88</a>        /// Returns a revision conflict or a repository diagnostic.
-<a href=#89 id=89 data-nosnippet>89</a>        /// # Returns
-<a href=#90 id=90 data-nosnippet>90</a>        /// The operation result.
-<a href=#91 id=91 data-nosnippet>91</a>        /// # Errors
-<a href=#92 id=92 data-nosnippet>92</a>        /// Returns an error when the operation fails.
-<a href=#93 id=93 data-nosnippet>93</a>        </span><span class="kw">fn </span>compare_and_swap_execution_selection(
-<a href=#94 id=94 data-nosnippet>94</a>            <span class="kw-2">&amp;</span><span class="self">self</span>,
-<a href=#95 id=95 data-nosnippet>95</a>            _session: <span class="kw-2">&amp;</span>Session,
-<a href=#96 id=96 data-nosnippet>96</a>            _expected_revision: u64,
-<a href=#97 id=97 data-nosnippet>97</a>        ) -&gt; <span class="prelude-ty">Result</span>&lt;(), SelectionStoreError&gt; {
-<a href=#98 id=98 data-nosnippet>98</a>            <span class="prelude-val">Err</span>(SelectionStoreError::Persistence(
-<a href=#99 id=99 data-nosnippet>99</a>                <span class="string">"atomic session selection updates are unsupported"</span>.to_owned(),
-<a href=#100 id=100 data-nosnippet>100</a>            ))
-<a href=#101 id=101 data-nosnippet>101</a>        }
-<a href=#102 id=102 data-nosnippet>102</a>
-<a href=#103 id=103 data-nosnippet>103</a>        <span class="doccomment">/// Atomically replaces one plan at its observed revision.
-<a href=#104 id=104 data-nosnippet>104</a>        ///
-<a href=#105 id=105 data-nosnippet>105</a>        /// The repository must preserve unrelated session and branch updates.
-<a href=#106 id=106 data-nosnippet>106</a>        /// New branch records in the proposal are merged and linked to their
-<a href=#107 id=107 data-nosnippet>107</a>        /// existing parents in the same transaction. Existing branch records
-<a href=#108 id=108 data-nosnippet>108</a>        /// are never overwritten by this operation.
-<a href=#109 id=109 data-nosnippet>109</a>        ///
-<a href=#110 id=110 data-nosnippet>110</a>        /// - `_session`: Snapshot containing the proposed plan.
-<a href=#111 id=111 data-nosnippet>111</a>        /// - `_plan`: Stable plan identity being replaced.
-<a href=#112 id=112 data-nosnippet>112</a>        /// - `_expected_revision`: Plan revision observed by the caller.
-<a href=#113 id=113 data-nosnippet>113</a>        ///
-<a href=#114 id=114 data-nosnippet>114</a>        /// Returns a revision conflict or a repository diagnostic.
-<a href=#115 id=115 data-nosnippet>115</a>        /// # Returns
-<a href=#116 id=116 data-nosnippet>116</a>        /// The operation result.
-<a href=#117 id=117 data-nosnippet>117</a>        /// # Errors
-<a href=#118 id=118 data-nosnippet>118</a>        /// Returns an error when the operation fails.
-<a href=#119 id=119 data-nosnippet>119</a>        </span><span class="kw">fn </span>compare_and_swap_plan(
-<a href=#120 id=120 data-nosnippet>120</a>            <span class="kw-2">&amp;</span><span class="self">self</span>,
-<a href=#121 id=121 data-nosnippet>121</a>            _session: <span class="kw-2">&amp;</span>Session,
-<a href=#122 id=122 data-nosnippet>122</a>            _plan: EntityId,
-<a href=#123 id=123 data-nosnippet>123</a>            _expected_revision: u64,
-<a href=#124 id=124 data-nosnippet>124</a>        ) -&gt; <span class="prelude-ty">Result</span>&lt;(), PlanStoreError&gt; {
-<a href=#125 id=125 data-nosnippet>125</a>            <span class="prelude-val">Err</span>(PlanStoreError::Persistence(
-<a href=#126 id=126 data-nosnippet>126</a>                <span class="string">"atomic plan updates are unsupported"</span>.to_owned(),
-<a href=#127 id=127 data-nosnippet>127</a>            ))
-<a href=#128 id=128 data-nosnippet>128</a>        }
-<a href=#129 id=129 data-nosnippet>129</a>    }
-<a href=#130 id=130 data-nosnippet>130</a>}
-<a href=#131 id=131 data-nosnippet>131</a>
-<a href=#132 id=132 data-nosnippet>132</a><span class="kw">pub use </span>branch::{Branch, BranchStatus};
-<a href=#133 id=133 data-nosnippet>133</a><span class="kw">pub use </span>description::Description;
-<a href=#134 id=134 data-nosnippet>134</a><span class="kw">pub use </span>error::SessionError;
-<a href=#135 id=135 data-nosnippet>135</a><span class="kw">pub use </span>execution::{
-<a href=#136 id=136 data-nosnippet>136</a>    AgentActivityKind, AgentActivityState, CacheDisposition, ExecutionActivity, ModelInvocation,
-<a href=#137 id=137 data-nosnippet>137</a>    ModelOutput, ModelRequestMessage, ModelRequestProjection, ModelRequestTool, SelectionError,
-<a href=#138 id=138 data-nosnippet>138</a>    SessionActivityKind, SessionActivityState, SessionExecutionChange, SessionExecutionSelection,
-<a href=#139 id=139 data-nosnippet>139</a>    ToolActivityKind,
-<a href=#140 id=140 data-nosnippet>140</a>};
-<a href=#141 id=141 data-nosnippet>141</a><span class="kw">pub use </span>planning::{
-<a href=#142 id=142 data-nosnippet>142</a>    CoordinatorClaim, ExpectedResult, ModelAssignment, Plan, PlanDependency, PlanError, PlanNode,
-<a href=#143 id=143 data-nosnippet>143</a>    PlanNodeParent, PlanNodeStatus, PlanRevision, PlanStatus, WorkerClaim,
-<a href=#144 id=144 data-nosnippet>144</a>};
-<a href=#145 id=145 data-nosnippet>145</a><span class="kw">pub use </span>repository::{PlanStoreError, SelectionStoreError, SessionStore};
-<a href=#146 id=146 data-nosnippet>146</a><span class="kw">pub use </span>turn::{
-<a href=#147 id=147 data-nosnippet>147</a>    AgentOutput, ContinuationAnchor, ContinuationOrigin, ContinuationProvenance, HumanInput,
-<a href=#148 id=148 data-nosnippet>148</a>    ResolvedContinuationAnchor, ToolInvocation, ToolResult, Turn,
-<a href=#149 id=149 data-nosnippet>149</a>};
-<a href=#150 id=150 data-nosnippet>150</a><span class="kw">pub use </span>types::{
-<a href=#151 id=151 data-nosnippet>151</a>    BranchCandidateContext, BranchResult, Decision, Goal, Observation, Question, Session, Summary,
-<a href=#152 id=152 data-nosnippet>152</a>    Task,
-<a href=#153 id=153 data-nosnippet>153</a>};
-<a href=#154 id=154 data-nosnippet>154</a><span class="kw">pub use </span>views::{BranchDescriptor, ChildBranchSummary, DecisionEntry, SessionViews, TurnView};
+<a href=#78 id=78 data-nosnippet>78</a>        /// Returns an error when the repository cannot remove the record.
+<a href=#79 id=79 data-nosnippet>79</a>        </span><span class="kw">fn </span>remove(<span class="kw-2">&amp;</span><span class="self">self</span>, _session: EntityId) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt; {
+<a href=#80 id=80 data-nosnippet>80</a>            <span class="prelude-val">Err</span>(<span class="string">"session removal is unsupported"</span>.to_owned())
+<a href=#81 id=81 data-nosnippet>81</a>        }
+<a href=#82 id=82 data-nosnippet>82</a>
+<a href=#83 id=83 data-nosnippet>83</a>        <span class="doccomment">/// Stores one complete session graph atomically.
+<a href=#84 id=84 data-nosnippet>84</a>        ///
+<a href=#85 id=85 data-nosnippet>85</a>        /// - `session`: Session graph to persist.
+<a href=#86 id=86 data-nosnippet>86</a>        ///
+<a href=#87 id=87 data-nosnippet>87</a>        /// Returns a backend diagnostic when persistence fails.
+<a href=#88 id=88 data-nosnippet>88</a>        ///
+<a href=#89 id=89 data-nosnippet>89</a>        /// Unit after the session is persisted.
+<a href=#90 id=90 data-nosnippet>90</a>        /// # Returns
+<a href=#91 id=91 data-nosnippet>91</a>        /// The operation result.
+<a href=#92 id=92 data-nosnippet>92</a>        /// # Errors
+<a href=#93 id=93 data-nosnippet>93</a>        /// Returns an error when the operation fails.
+<a href=#94 id=94 data-nosnippet>94</a>        </span><span class="kw">fn </span>save(<span class="kw-2">&amp;</span><span class="self">self</span>, session: <span class="kw-2">&amp;</span>Session) -&gt; <span class="prelude-ty">Result</span>&lt;(), String&gt;;
+<a href=#95 id=95 data-nosnippet>95</a>
+<a href=#96 id=96 data-nosnippet>96</a>        <span class="doccomment">/// Atomically updates only execution selection at an observed revision.
+<a href=#97 id=97 data-nosnippet>97</a>        ///
+<a href=#98 id=98 data-nosnippet>98</a>        /// - `_session`: Session carrying the proposed new selection.
+<a href=#99 id=99 data-nosnippet>99</a>        /// - `_expected_revision`: Selection revision observed by the caller.
+<a href=#100 id=100 data-nosnippet>100</a>        ///
+<a href=#101 id=101 data-nosnippet>101</a>        /// Unit after the selection is committed.
+<a href=#102 id=102 data-nosnippet>102</a>        ///
+<a href=#103 id=103 data-nosnippet>103</a>        /// Returns a revision conflict or a repository diagnostic.
+<a href=#104 id=104 data-nosnippet>104</a>        /// # Returns
+<a href=#105 id=105 data-nosnippet>105</a>        /// The operation result.
+<a href=#106 id=106 data-nosnippet>106</a>        /// # Errors
+<a href=#107 id=107 data-nosnippet>107</a>        /// Returns an error when the operation fails.
+<a href=#108 id=108 data-nosnippet>108</a>        </span><span class="kw">fn </span>compare_and_swap_execution_selection(
+<a href=#109 id=109 data-nosnippet>109</a>            <span class="kw-2">&amp;</span><span class="self">self</span>,
+<a href=#110 id=110 data-nosnippet>110</a>            _session: <span class="kw-2">&amp;</span>Session,
+<a href=#111 id=111 data-nosnippet>111</a>            _expected_revision: u64,
+<a href=#112 id=112 data-nosnippet>112</a>        ) -&gt; <span class="prelude-ty">Result</span>&lt;(), SelectionStoreError&gt; {
+<a href=#113 id=113 data-nosnippet>113</a>            <span class="prelude-val">Err</span>(SelectionStoreError::Persistence(
+<a href=#114 id=114 data-nosnippet>114</a>                <span class="string">"atomic session selection updates are unsupported"</span>.to_owned(),
+<a href=#115 id=115 data-nosnippet>115</a>            ))
+<a href=#116 id=116 data-nosnippet>116</a>        }
+<a href=#117 id=117 data-nosnippet>117</a>
+<a href=#118 id=118 data-nosnippet>118</a>        <span class="doccomment">/// Atomically replaces one plan at its observed revision.
+<a href=#119 id=119 data-nosnippet>119</a>        ///
+<a href=#120 id=120 data-nosnippet>120</a>        /// The repository must preserve unrelated session and branch updates.
+<a href=#121 id=121 data-nosnippet>121</a>        /// New branch records in the proposal are merged and linked to their
+<a href=#122 id=122 data-nosnippet>122</a>        /// existing parents in the same transaction. Existing branch records
+<a href=#123 id=123 data-nosnippet>123</a>        /// are never overwritten by this operation.
+<a href=#124 id=124 data-nosnippet>124</a>        ///
+<a href=#125 id=125 data-nosnippet>125</a>        /// - `_session`: Snapshot containing the proposed plan.
+<a href=#126 id=126 data-nosnippet>126</a>        /// - `_plan`: Stable plan identity being replaced.
+<a href=#127 id=127 data-nosnippet>127</a>        /// - `_expected_revision`: Plan revision observed by the caller.
+<a href=#128 id=128 data-nosnippet>128</a>        ///
+<a href=#129 id=129 data-nosnippet>129</a>        /// Returns a revision conflict or a repository diagnostic.
+<a href=#130 id=130 data-nosnippet>130</a>        /// # Returns
+<a href=#131 id=131 data-nosnippet>131</a>        /// The operation result.
+<a href=#132 id=132 data-nosnippet>132</a>        /// # Errors
+<a href=#133 id=133 data-nosnippet>133</a>        /// Returns an error when the operation fails.
+<a href=#134 id=134 data-nosnippet>134</a>        </span><span class="kw">fn </span>compare_and_swap_plan(
+<a href=#135 id=135 data-nosnippet>135</a>            <span class="kw-2">&amp;</span><span class="self">self</span>,
+<a href=#136 id=136 data-nosnippet>136</a>            _session: <span class="kw-2">&amp;</span>Session,
+<a href=#137 id=137 data-nosnippet>137</a>            _plan: EntityId,
+<a href=#138 id=138 data-nosnippet>138</a>            _expected_revision: u64,
+<a href=#139 id=139 data-nosnippet>139</a>        ) -&gt; <span class="prelude-ty">Result</span>&lt;(), PlanStoreError&gt; {
+<a href=#140 id=140 data-nosnippet>140</a>            <span class="prelude-val">Err</span>(PlanStoreError::Persistence(
+<a href=#141 id=141 data-nosnippet>141</a>                <span class="string">"atomic plan updates are unsupported"</span>.to_owned(),
+<a href=#142 id=142 data-nosnippet>142</a>            ))
+<a href=#143 id=143 data-nosnippet>143</a>        }
+<a href=#144 id=144 data-nosnippet>144</a>    }
+<a href=#145 id=145 data-nosnippet>145</a>}
+<a href=#146 id=146 data-nosnippet>146</a>
+<a href=#147 id=147 data-nosnippet>147</a><span class="kw">pub use </span>branch::{Branch, BranchStatus};
+<a href=#148 id=148 data-nosnippet>148</a><span class="kw">pub use </span>description::Description;
+<a href=#149 id=149 data-nosnippet>149</a><span class="kw">pub use </span>error::SessionError;
+<a href=#150 id=150 data-nosnippet>150</a><span class="kw">pub use </span>execution::{
+<a href=#151 id=151 data-nosnippet>151</a>    AgentActivityKind, AgentActivityState, CacheDisposition, ExecutionActivity, ModelInvocation,
+<a href=#152 id=152 data-nosnippet>152</a>    ModelOutput, ModelRequestMessage, ModelRequestProjection, ModelRequestTool, SelectionError,
+<a href=#153 id=153 data-nosnippet>153</a>    SessionActivityKind, SessionActivityState, SessionExecutionChange, SessionExecutionSelection,
+<a href=#154 id=154 data-nosnippet>154</a>    ToolActivityKind,
+<a href=#155 id=155 data-nosnippet>155</a>};
+<a href=#156 id=156 data-nosnippet>156</a><span class="kw">pub use </span>planning::{
+<a href=#157 id=157 data-nosnippet>157</a>    CoordinatorClaim, ExpectedResult, ModelAssignment, Plan, PlanDependency, PlanError, PlanNode,
+<a href=#158 id=158 data-nosnippet>158</a>    PlanNodeParent, PlanNodeStatus, PlanRevision, PlanStatus, WorkerClaim,
+<a href=#159 id=159 data-nosnippet>159</a>};
+<a href=#160 id=160 data-nosnippet>160</a><span class="kw">pub use </span>repository::{PlanStoreError, SelectionStoreError, SessionStore};
+<a href=#161 id=161 data-nosnippet>161</a><span class="kw">pub use </span>turn::{
+<a href=#162 id=162 data-nosnippet>162</a>    AgentOutput, ContinuationAnchor, ContinuationOrigin, ContinuationProvenance, HumanInput,
+<a href=#163 id=163 data-nosnippet>163</a>    ResolvedContinuationAnchor, ToolInvocation, ToolResult, Turn,
+<a href=#164 id=164 data-nosnippet>164</a>};
+<a href=#165 id=165 data-nosnippet>165</a><span class="kw">pub use </span>types::{
+<a href=#166 id=166 data-nosnippet>166</a>    BranchCandidateContext, BranchResult, Decision, Goal, Observation, Question, Session, Summary,
+<a href=#167 id=167 data-nosnippet>167</a>    Task,
+<a href=#168 id=168 data-nosnippet>168</a>};
+<a href=#169 id=169 data-nosnippet>169</a><span class="kw">pub use </span>views::{BranchDescriptor, ChildBranchSummary, DecisionEntry, SessionViews, TurnView};
 </code></pre></div></section></main></body></html>

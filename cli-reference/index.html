@@ -6909,7 +6909,7 @@
 <p>Each subcommand also supports <code>-h</code> / <code>--help</code>.</p>
 <h2 id="srig-tui"><code>srig tui</code><a class="headerlink" href="#srig-tui" title="Permanent link">&para;</a></h2>
 <p>Start the local application-backed terminal UI.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>srig tui [--db &lt;PATH&gt; | --connect &lt;URL&gt;]
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>srig tui [--debug] [--log-file &lt;PATH&gt;] [--db &lt;PATH&gt; | --connect &lt;URL&gt;]
 </code></pre></div>
 <p>The UI reads semantic data through the shared application boundary. Type
 <code>inspect &lt;ENTITY&gt;</code> to inspect an entity, or <code>q</code> to quit.</p>
@@ -6931,6 +6931,16 @@
 <td><code>--connect &lt;URL&gt;</code></td>
 <td>none</td>
 <td>Public protocol endpoint used by the remote TUI composition. Cannot be combined with <code>--db</code>.</td>
+</tr>
+<tr>
+<td><code>--debug</code></td>
+<td>disabled</td>
+<td>Write content-redacted runtime diagnostics to <code>playground/tui-logs/YYYYMMDD-HHMMSS.log</code>.</td>
+</tr>
+<tr>
+<td><code>--log-file &lt;PATH&gt;</code></td>
+<td>generated timestamped path</td>
+<td>Override the debug log destination. Requires <code>--debug</code>.</td>
 </tr>
 </tbody>
 </table>

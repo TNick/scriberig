@@ -228,7 +228,7 @@
 <a href=#228 id=228 data-nosnippet>228</a>            selected_runtime_model(service, context, session, <span class="kw-2">&amp;</span><span class="self">self</span>.model)<span class="question-mark">?</span>;
 <a href=#229 id=229 data-nosnippet>229</a>        <span class="kw">let </span>cancelled = service.operations().cancellation_flag(<span class="kw-2">&amp;</span>handle.operation)<span class="question-mark">?</span>;
 <a href=#230 id=230 data-nosnippet>230</a>        <span class="kw">let </span><span class="prelude-val">Some</span>(provider) = <span class="self">self</span>.providers.get(<span class="kw-2">&amp;</span>connection) <span class="kw">else </span>{
-<a href=#231 id=231 data-nosnippet>231</a>            <span class="kw">let </span>message = <span class="string">"configure SCRIBE_AGENT_BASE_URL before starting agent work"</span>;
+<a href=#231 id=231 data-nosnippet>231</a>            <span class="kw">let </span>message = <span class="string">"configure a provider connection before starting agent work"</span>;
 <a href=#232 id=232 data-nosnippet>232</a>            service.fail_local_agent(handle, message)<span class="question-mark">?</span>;
 <a href=#233 id=233 data-nosnippet>233</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(ApplicationError::UnsupportedOperation {
 <a href=#234 id=234 data-nosnippet>234</a>                operation: message.to_owned(),
@@ -293,7 +293,8 @@
 <a href=#293 id=293 data-nosnippet>293</a>            session,
 <a href=#294 id=294 data-nosnippet>294</a>            branch: <span class="prelude-val">Some</span>(handle.root_branch),
 <a href=#295 id=295 data-nosnippet>295</a>            workspace,
-<a href=#296 id=296 data-nosnippet>296</a>        })
-<a href=#297 id=297 data-nosnippet>297</a>    }
-<a href=#298 id=298 data-nosnippet>298</a>}
+<a href=#296 id=296 data-nosnippet>296</a>            failure: <span class="prelude-val">None</span>,
+<a href=#297 id=297 data-nosnippet>297</a>        })
+<a href=#298 id=298 data-nosnippet>298</a>    }
+<a href=#299 id=299 data-nosnippet>299</a>}
 </code></pre></div></section></main></body></html>

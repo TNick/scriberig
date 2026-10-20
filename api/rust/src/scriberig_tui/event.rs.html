@@ -137,9 +137,9 @@
 <a href=#137 id=137 data-nosnippet>137</a>        {
 <a href=#138 id=138 data-nosnippet>138</a>            KeyCode::Char(<span class="string">'c'</span>)
 <a href=#139 id=139 data-nosnippet>139</a>        }
-<a href=#140 id=140 data-nosnippet>140</a>        CrosstermKeyCode::Char(character) =&gt; KeyCode::Char(character),
-<a href=#141 id=141 data-nosnippet>141</a>        CrosstermKeyCode::Esc =&gt; KeyCode::Esc,
-<a href=#142 id=142 data-nosnippet>142</a>        CrosstermKeyCode::Enter =&gt; KeyCode::Enter,
+<a href=#140 id=140 data-nosnippet>140</a>        CrosstermKeyCode::Char(<span class="string">'\r' </span>| <span class="string">'\n'</span>) | CrosstermKeyCode::Enter =&gt; KeyCode::Enter,
+<a href=#141 id=141 data-nosnippet>141</a>        CrosstermKeyCode::Char(character) =&gt; KeyCode::Char(character),
+<a href=#142 id=142 data-nosnippet>142</a>        CrosstermKeyCode::Esc =&gt; KeyCode::Esc,
 <a href=#143 id=143 data-nosnippet>143</a>        CrosstermKeyCode::BackTab =&gt; {
 <a href=#144 id=144 data-nosnippet>144</a>            modifiers.shift = <span class="bool-val">true</span>;
 <a href=#145 id=145 data-nosnippet>145</a>            KeyCode::Tab
@@ -177,65 +177,75 @@
 <a href=#177 id=177 data-nosnippet>177</a>        );
 <a href=#178 id=178 data-nosnippet>178</a>    }
 <a href=#179 id=179 data-nosnippet>179</a>
-<a href=#180 id=180 data-nosnippet>180</a>    <span class="doccomment">/// Verifies unsupported backend events are safely ignored.
+<a href=#180 id=180 data-nosnippet>180</a>    <span class="doccomment">/// Verifies Windows-style carriage-return and newline keys submit input.
 <a href=#181 id=181 data-nosnippet>181</a>    </span><span class="attr">#[test]
-<a href=#182 id=182 data-nosnippet>182</a>    </span><span class="kw">fn </span>ignores_unsupported_events() {
-<a href=#183 id=183 data-nosnippet>183</a>        <span class="kw">let </span>event = translate_event(<span class="prelude-val">Ok</span>(Event::FocusGained)).expect(<span class="string">"event"</span>);
-<a href=#184 id=184 data-nosnippet>184</a>        <span class="macro">assert_eq!</span>(event, TuiEvent::Tick);
-<a href=#185 id=185 data-nosnippet>185</a>    }
-<a href=#186 id=186 data-nosnippet>186</a>
-<a href=#187 id=187 data-nosnippet>187</a>    <span class="doccomment">/// Verifies key-release events do not duplicate text input.
-<a href=#188 id=188 data-nosnippet>188</a>    </span><span class="attr">#[test]
-<a href=#189 id=189 data-nosnippet>189</a>    </span><span class="kw">fn </span>ignores_key_release_events() {
-<a href=#190 id=190 data-nosnippet>190</a>        <span class="kw">let </span>event = translate_event(<span class="prelude-val">Ok</span>(Event::Key(KeyEvent::new_with_kind(
-<a href=#191 id=191 data-nosnippet>191</a>            CrosstermKeyCode::Char(<span class="string">'a'</span>),
-<a href=#192 id=192 data-nosnippet>192</a>            KeyModifiers::NONE,
-<a href=#193 id=193 data-nosnippet>193</a>            KeyEventKind::Release,
-<a href=#194 id=194 data-nosnippet>194</a>        ))))
-<a href=#195 id=195 data-nosnippet>195</a>        .expect(<span class="string">"event"</span>);
-<a href=#196 id=196 data-nosnippet>196</a>        <span class="macro">assert_eq!</span>(event, TuiEvent::Tick);
-<a href=#197 id=197 data-nosnippet>197</a>    }
-<a href=#198 id=198 data-nosnippet>198</a>
-<a href=#199 id=199 data-nosnippet>199</a>    <span class="doccomment">/// Verifies a raw control character is normalized to the quit chord.
-<a href=#200 id=200 data-nosnippet>200</a>    </span><span class="attr">#[test]
-<a href=#201 id=201 data-nosnippet>201</a>    </span><span class="kw">fn </span>translates_raw_control_c_as_quit_key() {
-<a href=#202 id=202 data-nosnippet>202</a>        <span class="kw">let </span>event = translate_event(<span class="prelude-val">Ok</span>(Event::Key(KeyEvent::new(
-<a href=#203 id=203 data-nosnippet>203</a>            CrosstermKeyCode::Char(<span class="string">'\u{3}'</span>),
-<a href=#204 id=204 data-nosnippet>204</a>            crossterm::event::KeyModifiers::NONE,
-<a href=#205 id=205 data-nosnippet>205</a>        ))))
-<a href=#206 id=206 data-nosnippet>206</a>        .expect(<span class="string">"event"</span>);
-<a href=#207 id=207 data-nosnippet>207</a>        <span class="macro">assert_eq!</span>(
-<a href=#208 id=208 data-nosnippet>208</a>            event,
-<a href=#209 id=209 data-nosnippet>209</a>            TuiEvent::Key(<span class="kw">super</span>::Key {
-<a href=#210 id=210 data-nosnippet>210</a>                code: KeyCode::Char(<span class="string">'c'</span>),
-<a href=#211 id=211 data-nosnippet>211</a>                modifiers: <span class="kw">super</span>::Modifiers {
-<a href=#212 id=212 data-nosnippet>212</a>                    control: <span class="bool-val">true</span>,
-<a href=#213 id=213 data-nosnippet>213</a>                    alt: <span class="bool-val">false</span>,
-<a href=#214 id=214 data-nosnippet>214</a>                    shift: <span class="bool-val">false</span>,
-<a href=#215 id=215 data-nosnippet>215</a>                },
-<a href=#216 id=216 data-nosnippet>216</a>            })
-<a href=#217 id=217 data-nosnippet>217</a>        );
-<a href=#218 id=218 data-nosnippet>218</a>    }
-<a href=#219 id=219 data-nosnippet>219</a>
-<a href=#220 id=220 data-nosnippet>220</a>    <span class="doccomment">/// Verifies terminal-native Shift+Tab becomes the reverse-focus chord.
-<a href=#221 id=221 data-nosnippet>221</a>    </span><span class="attr">#[test]
-<a href=#222 id=222 data-nosnippet>222</a>    </span><span class="kw">fn </span>translates_backtab_as_shifted_tab() {
-<a href=#223 id=223 data-nosnippet>223</a>        <span class="kw">let </span>event = translate_event(<span class="prelude-val">Ok</span>(Event::Key(KeyEvent::new(
-<a href=#224 id=224 data-nosnippet>224</a>            CrosstermKeyCode::BackTab,
-<a href=#225 id=225 data-nosnippet>225</a>            KeyModifiers::NONE,
-<a href=#226 id=226 data-nosnippet>226</a>        ))))
-<a href=#227 id=227 data-nosnippet>227</a>        .expect(<span class="string">"event"</span>);
-<a href=#228 id=228 data-nosnippet>228</a>        <span class="macro">assert_eq!</span>(
-<a href=#229 id=229 data-nosnippet>229</a>            event,
-<a href=#230 id=230 data-nosnippet>230</a>            TuiEvent::Key(<span class="kw">super</span>::Key {
-<a href=#231 id=231 data-nosnippet>231</a>                code: KeyCode::Tab,
-<a href=#232 id=232 data-nosnippet>232</a>                modifiers: <span class="kw">super</span>::Modifiers {
-<a href=#233 id=233 data-nosnippet>233</a>                    control: <span class="bool-val">false</span>,
-<a href=#234 id=234 data-nosnippet>234</a>                    alt: <span class="bool-val">false</span>,
-<a href=#235 id=235 data-nosnippet>235</a>                    shift: <span class="bool-val">true</span>,
-<a href=#236 id=236 data-nosnippet>236</a>                },
-<a href=#237 id=237 data-nosnippet>237</a>            })
-<a href=#238 id=238 data-nosnippet>238</a>        );
-<a href=#239 id=239 data-nosnippet>239</a>    }
-<a href=#240 id=240 data-nosnippet>240</a>}
+<a href=#182 id=182 data-nosnippet>182</a>    </span><span class="kw">fn </span>translates_character_enter_keys() {
+<a href=#183 id=183 data-nosnippet>183</a>        <span class="kw">for </span>character <span class="kw">in </span>[<span class="string">'\r'</span>, <span class="string">'\n'</span>] {
+<a href=#184 id=184 data-nosnippet>184</a>            <span class="kw">let </span>key = <span class="kw">super</span>::translate_key(KeyEvent::from(CrosstermKeyCode::Char(character)));
+<a href=#185 id=185 data-nosnippet>185</a>
+<a href=#186 id=186 data-nosnippet>186</a>            <span class="macro">assert_eq!</span>(key.code, KeyCode::Enter);
+<a href=#187 id=187 data-nosnippet>187</a>        }
+<a href=#188 id=188 data-nosnippet>188</a>    }
+<a href=#189 id=189 data-nosnippet>189</a>
+<a href=#190 id=190 data-nosnippet>190</a>    <span class="doccomment">/// Verifies unsupported backend events are safely ignored.
+<a href=#191 id=191 data-nosnippet>191</a>    </span><span class="attr">#[test]
+<a href=#192 id=192 data-nosnippet>192</a>    </span><span class="kw">fn </span>ignores_unsupported_events() {
+<a href=#193 id=193 data-nosnippet>193</a>        <span class="kw">let </span>event = translate_event(<span class="prelude-val">Ok</span>(Event::FocusGained)).expect(<span class="string">"event"</span>);
+<a href=#194 id=194 data-nosnippet>194</a>        <span class="macro">assert_eq!</span>(event, TuiEvent::Tick);
+<a href=#195 id=195 data-nosnippet>195</a>    }
+<a href=#196 id=196 data-nosnippet>196</a>
+<a href=#197 id=197 data-nosnippet>197</a>    <span class="doccomment">/// Verifies key-release events do not duplicate text input.
+<a href=#198 id=198 data-nosnippet>198</a>    </span><span class="attr">#[test]
+<a href=#199 id=199 data-nosnippet>199</a>    </span><span class="kw">fn </span>ignores_key_release_events() {
+<a href=#200 id=200 data-nosnippet>200</a>        <span class="kw">let </span>event = translate_event(<span class="prelude-val">Ok</span>(Event::Key(KeyEvent::new_with_kind(
+<a href=#201 id=201 data-nosnippet>201</a>            CrosstermKeyCode::Char(<span class="string">'a'</span>),
+<a href=#202 id=202 data-nosnippet>202</a>            KeyModifiers::NONE,
+<a href=#203 id=203 data-nosnippet>203</a>            KeyEventKind::Release,
+<a href=#204 id=204 data-nosnippet>204</a>        ))))
+<a href=#205 id=205 data-nosnippet>205</a>        .expect(<span class="string">"event"</span>);
+<a href=#206 id=206 data-nosnippet>206</a>        <span class="macro">assert_eq!</span>(event, TuiEvent::Tick);
+<a href=#207 id=207 data-nosnippet>207</a>    }
+<a href=#208 id=208 data-nosnippet>208</a>
+<a href=#209 id=209 data-nosnippet>209</a>    <span class="doccomment">/// Verifies a raw control character is normalized to the quit chord.
+<a href=#210 id=210 data-nosnippet>210</a>    </span><span class="attr">#[test]
+<a href=#211 id=211 data-nosnippet>211</a>    </span><span class="kw">fn </span>translates_raw_control_c_as_quit_key() {
+<a href=#212 id=212 data-nosnippet>212</a>        <span class="kw">let </span>event = translate_event(<span class="prelude-val">Ok</span>(Event::Key(KeyEvent::new(
+<a href=#213 id=213 data-nosnippet>213</a>            CrosstermKeyCode::Char(<span class="string">'\u{3}'</span>),
+<a href=#214 id=214 data-nosnippet>214</a>            crossterm::event::KeyModifiers::NONE,
+<a href=#215 id=215 data-nosnippet>215</a>        ))))
+<a href=#216 id=216 data-nosnippet>216</a>        .expect(<span class="string">"event"</span>);
+<a href=#217 id=217 data-nosnippet>217</a>        <span class="macro">assert_eq!</span>(
+<a href=#218 id=218 data-nosnippet>218</a>            event,
+<a href=#219 id=219 data-nosnippet>219</a>            TuiEvent::Key(<span class="kw">super</span>::Key {
+<a href=#220 id=220 data-nosnippet>220</a>                code: KeyCode::Char(<span class="string">'c'</span>),
+<a href=#221 id=221 data-nosnippet>221</a>                modifiers: <span class="kw">super</span>::Modifiers {
+<a href=#222 id=222 data-nosnippet>222</a>                    control: <span class="bool-val">true</span>,
+<a href=#223 id=223 data-nosnippet>223</a>                    alt: <span class="bool-val">false</span>,
+<a href=#224 id=224 data-nosnippet>224</a>                    shift: <span class="bool-val">false</span>,
+<a href=#225 id=225 data-nosnippet>225</a>                },
+<a href=#226 id=226 data-nosnippet>226</a>            })
+<a href=#227 id=227 data-nosnippet>227</a>        );
+<a href=#228 id=228 data-nosnippet>228</a>    }
+<a href=#229 id=229 data-nosnippet>229</a>
+<a href=#230 id=230 data-nosnippet>230</a>    <span class="doccomment">/// Verifies terminal-native Shift+Tab becomes the reverse-focus chord.
+<a href=#231 id=231 data-nosnippet>231</a>    </span><span class="attr">#[test]
+<a href=#232 id=232 data-nosnippet>232</a>    </span><span class="kw">fn </span>translates_backtab_as_shifted_tab() {
+<a href=#233 id=233 data-nosnippet>233</a>        <span class="kw">let </span>event = translate_event(<span class="prelude-val">Ok</span>(Event::Key(KeyEvent::new(
+<a href=#234 id=234 data-nosnippet>234</a>            CrosstermKeyCode::BackTab,
+<a href=#235 id=235 data-nosnippet>235</a>            KeyModifiers::NONE,
+<a href=#236 id=236 data-nosnippet>236</a>        ))))
+<a href=#237 id=237 data-nosnippet>237</a>        .expect(<span class="string">"event"</span>);
+<a href=#238 id=238 data-nosnippet>238</a>        <span class="macro">assert_eq!</span>(
+<a href=#239 id=239 data-nosnippet>239</a>            event,
+<a href=#240 id=240 data-nosnippet>240</a>            TuiEvent::Key(<span class="kw">super</span>::Key {
+<a href=#241 id=241 data-nosnippet>241</a>                code: KeyCode::Tab,
+<a href=#242 id=242 data-nosnippet>242</a>                modifiers: <span class="kw">super</span>::Modifiers {
+<a href=#243 id=243 data-nosnippet>243</a>                    control: <span class="bool-val">false</span>,
+<a href=#244 id=244 data-nosnippet>244</a>                    alt: <span class="bool-val">false</span>,
+<a href=#245 id=245 data-nosnippet>245</a>                    shift: <span class="bool-val">true</span>,
+<a href=#246 id=246 data-nosnippet>246</a>                },
+<a href=#247 id=247 data-nosnippet>247</a>            })
+<a href=#248 id=248 data-nosnippet>248</a>        );
+<a href=#249 id=249 data-nosnippet>249</a>    }
+<a href=#250 id=250 data-nosnippet>250</a>}
 </code></pre></div></section></main></body></html>

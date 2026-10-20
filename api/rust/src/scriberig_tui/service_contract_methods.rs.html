@@ -179,34 +179,35 @@
 <a href=#179 id=179 data-nosnippet>179</a>                session,
 <a href=#180 id=180 data-nosnippet>180</a>                branch,
 <a href=#181 id=181 data-nosnippet>181</a>                workspace: <span class="prelude-val">None</span>,
-<a href=#182 id=182 data-nosnippet>182</a>            })
-<a href=#183 id=183 data-nosnippet>183</a>        }
-<a href=#184 id=184 data-nosnippet>184</a>
-<a href=#185 id=185 data-nosnippet>185</a>        <span class="doccomment">/// Runs a semantically scoped project agent through the shared candidate path.
-<a href=#186 id=186 data-nosnippet>186</a>        ///
-<a href=#187 id=187 data-nosnippet>187</a>        /// - `_context`: Trusted application context.
-<a href=#188 id=188 data-nosnippet>188</a>        /// - `_entity`: Selected semantic entity.
-<a href=#189 id=189 data-nosnippet>189</a>        /// - `_snapshot`: Exact candidate base snapshot.
-<a href=#190 id=190 data-nosnippet>190</a>        /// - `_prompt`: User instruction.
-<a href=#191 id=191 data-nosnippet>191</a>        ///
-<a href=#192 id=192 data-nosnippet>192</a>        /// The normal candidate review operation result.
-<a href=#193 id=193 data-nosnippet>193</a>        ///
-<a href=#194 id=194 data-nosnippet>194</a>        /// Returns an unsupported-operation error when no project agent is composed.
-<a href=#195 id=195 data-nosnippet>195</a>        /// # Returns
-<a href=#196 id=196 data-nosnippet>196</a>        /// The operation result.
-<a href=#197 id=197 data-nosnippet>197</a>        /// # Errors
-<a href=#198 id=198 data-nosnippet>198</a>        /// Returns an error when the operation fails.
-<a href=#199 id=199 data-nosnippet>199</a>        </span><span class="kw">fn </span>project_agent(
-<a href=#200 id=200 data-nosnippet>200</a>            <span class="kw-2">&amp;</span><span class="self">self</span>,
-<a href=#201 id=201 data-nosnippet>201</a>            _context: <span class="kw-2">&amp;</span>ApplicationContext,
-<a href=#202 id=202 data-nosnippet>202</a>            _entity: EntityId,
-<a href=#203 id=203 data-nosnippet>203</a>            _snapshot: SnapshotId,
-<a href=#204 id=204 data-nosnippet>204</a>            _prompt: <span class="kw-2">&amp;</span>str,
-<a href=#205 id=205 data-nosnippet>205</a>        ) -&gt; <span class="prelude-ty">Result</span>&lt;ApplicationResult, ApplicationError&gt; {
-<a href=#206 id=206 data-nosnippet>206</a>            <span class="prelude-val">Err</span>(ApplicationError::UnsupportedOperation {
-<a href=#207 id=207 data-nosnippet>207</a>                operation: <span class="string">"project agent"</span>.to_owned(),
-<a href=#208 id=208 data-nosnippet>208</a>            })
-<a href=#209 id=209 data-nosnippet>209</a>        }
-<a href=#210 id=210 data-nosnippet>210</a>    };
-<a href=#211 id=211 data-nosnippet>211</a>}
+<a href=#182 id=182 data-nosnippet>182</a>                failure: <span class="prelude-val">None</span>,
+<a href=#183 id=183 data-nosnippet>183</a>            })
+<a href=#184 id=184 data-nosnippet>184</a>        }
+<a href=#185 id=185 data-nosnippet>185</a>
+<a href=#186 id=186 data-nosnippet>186</a>        <span class="doccomment">/// Runs a semantically scoped project agent through the shared candidate path.
+<a href=#187 id=187 data-nosnippet>187</a>        ///
+<a href=#188 id=188 data-nosnippet>188</a>        /// - `_context`: Trusted application context.
+<a href=#189 id=189 data-nosnippet>189</a>        /// - `_entity`: Selected semantic entity.
+<a href=#190 id=190 data-nosnippet>190</a>        /// - `_snapshot`: Exact candidate base snapshot.
+<a href=#191 id=191 data-nosnippet>191</a>        /// - `_prompt`: User instruction.
+<a href=#192 id=192 data-nosnippet>192</a>        ///
+<a href=#193 id=193 data-nosnippet>193</a>        /// The normal candidate review operation result.
+<a href=#194 id=194 data-nosnippet>194</a>        ///
+<a href=#195 id=195 data-nosnippet>195</a>        /// Returns an unsupported-operation error when no project agent is composed.
+<a href=#196 id=196 data-nosnippet>196</a>        /// # Returns
+<a href=#197 id=197 data-nosnippet>197</a>        /// The operation result.
+<a href=#198 id=198 data-nosnippet>198</a>        /// # Errors
+<a href=#199 id=199 data-nosnippet>199</a>        /// Returns an error when the operation fails.
+<a href=#200 id=200 data-nosnippet>200</a>        </span><span class="kw">fn </span>project_agent(
+<a href=#201 id=201 data-nosnippet>201</a>            <span class="kw-2">&amp;</span><span class="self">self</span>,
+<a href=#202 id=202 data-nosnippet>202</a>            _context: <span class="kw-2">&amp;</span>ApplicationContext,
+<a href=#203 id=203 data-nosnippet>203</a>            _entity: EntityId,
+<a href=#204 id=204 data-nosnippet>204</a>            _snapshot: SnapshotId,
+<a href=#205 id=205 data-nosnippet>205</a>            _prompt: <span class="kw-2">&amp;</span>str,
+<a href=#206 id=206 data-nosnippet>206</a>        ) -&gt; <span class="prelude-ty">Result</span>&lt;ApplicationResult, ApplicationError&gt; {
+<a href=#207 id=207 data-nosnippet>207</a>            <span class="prelude-val">Err</span>(ApplicationError::UnsupportedOperation {
+<a href=#208 id=208 data-nosnippet>208</a>                operation: <span class="string">"project agent"</span>.to_owned(),
+<a href=#209 id=209 data-nosnippet>209</a>            })
+<a href=#210 id=210 data-nosnippet>210</a>        }
+<a href=#211 id=211 data-nosnippet>211</a>    };
+<a href=#212 id=212 data-nosnippet>212</a>}
 </code></pre></div></section></main></body></html>

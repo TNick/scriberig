@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["deterministic_provider","from_connection","from_environment","self_hosting"],"mod":["catalog"]};
+window.SIDEBAR_ITEMS = {"fn":["configured_provider_config","deterministic_provider","from_connection","from_environment","openai_compatible","self_hosting"],"mod":["catalog"]};

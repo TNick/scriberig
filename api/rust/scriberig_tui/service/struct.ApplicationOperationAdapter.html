@@ -1,20 +1,20 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Adapts the application backend to operation-oriented TUI services."><title>ApplicationOperationAdapter in scriberig_tui::service - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-0c87338a.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="scriberig_tui" data-themes="" data-resource-suffix="" data-rustdoc-version="1.99.1 (58cf8f9c3 2026-10-13)" data-channel="1.99.1" data-search-js="search-cf4fc35e.js" data-stringdex-js="stringdex-b5109af9.js" data-settings-js="settings-170eb4bf.js" ><script src="../../static.files/storage-41dd4d93.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-417ebf0a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-9f56287d.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc struct"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">ApplicationOperationAdapter</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../scriberig_tui/index.html">scriberig_<wbr>tui</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Application<wbr>Operation<wbr>Adapter</a></h2><h3><a href="#implementations">Associated Functions</a></h3><ul class="block method"><li><a href="#method.new" title="new">new</a></li></ul><h3><a href="#implementations">Methods</a></h3><ul class="block method"><li><a href="#method.with_agent_runner" title="with_agent_runner">with_agent_runner</a></li><li><a href="#method.with_explorer_labels" title="with_explorer_labels">with_explorer_labels</a></li><li><a href="#method.with_project_projection" title="with_project_projection">with_project_projection</a></li><li><a href="#method.with_project_workflow" title="with_project_workflow">with_project_workflow</a></li></ul><h3><a href="#trait-implementations">Trait Implementations</a></h3><ul class="block trait-implementation"><li><a href="#impl-TuiModelRequestService-for-ApplicationOperationAdapter%3CB%3E" title="TuiModelRequestService">TuiModelRequestService</a></li><li><a href="#impl-TuiService-for-ApplicationOperationAdapter%3CB%3E" title="TuiService">TuiService</a></li></ul><h3><a href="#synthetic-implementations">Auto Trait Implementations</a></h3><ul class="block synthetic-implementation"><li><a href="#impl-Freeze-for-ApplicationOperationAdapter%3CB%3E" title="!Freeze">!Freeze</a></li><li><a href="#impl-RefUnwindSafe-for-ApplicationOperationAdapter%3CB%3E" title="!RefUnwindSafe">!RefUnwindSafe</a></li><li><a href="#impl-UnwindSafe-for-ApplicationOperationAdapter%3CB%3E" title="!UnwindSafe">!UnwindSafe</a></li><li><a href="#impl-Send-for-ApplicationOperationAdapter%3CB%3E" title="Send">Send</a></li><li><a href="#impl-Sync-for-ApplicationOperationAdapter%3CB%3E" title="Sync">Sync</a></li><li><a href="#impl-Unpin-for-ApplicationOperationAdapter%3CB%3E" title="Unpin">Unpin</a></li><li><a href="#impl-UnsafeUnpin-for-ApplicationOperationAdapter%3CB%3E" title="UnsafeUnpin">UnsafeUnpin</a></li></ul><h3><a href="#blanket-implementations">Blanket Implementations</a></h3><ul class="block blanket-implementation"><li><a href="#impl-Any-for-T" title="Any">Any</a></li><li><a href="#impl-Borrow%3CT%3E-for-T" title="Borrow&#60;T&#62;">Borrow&#60;T&#62;</a></li><li><a href="#impl-BorrowMut%3CT%3E-for-T" title="BorrowMut&#60;T&#62;">BorrowMut&#60;T&#62;</a></li><li><a href="#impl-From%3CT%3E-for-T" title="From&#60;T&#62;">From&#60;T&#62;</a></li><li><a href="#impl-FromIn%3C'a,+T%3E-for-T" title="FromIn&#60;&#39;a, T&#62;">FromIn&#60;&#39;a, T&#62;</a></li><li><a href="#impl-Instrument-for-T" title="Instrument">Instrument</a></li><li><a href="#impl-Into%3CU%3E-for-T" title="Into&#60;U&#62;">Into&#60;U&#62;</a></li><li><a href="#impl-IntoEither-for-T" title="IntoEither">IntoEither</a></li><li><a href="#impl-IntoIn%3C'a,+U%3E-for-T" title="IntoIn&#60;&#39;a, U&#62;">IntoIn&#60;&#39;a, U&#62;</a></li><li><a href="#impl-PolicyExt-for-T" title="PolicyExt">PolicyExt</a></li><li><a href="#impl-Same-for-T" title="Same">Same</a></li><li><a href="#impl-TryFrom%3CU%3E-for-T" title="TryFrom&#60;U&#62;">TryFrom&#60;U&#62;</a></li><li><a href="#impl-TryInto%3CU%3E-for-T" title="TryInto&#60;U&#62;">TryInto&#60;U&#62;</a></li><li><a href="#impl-TuiOperationService-for-S" title="TuiOperationService">TuiOperationService</a></li><li><a href="#impl-WithSubscriber-for-T" title="WithSubscriber">WithSubscriber</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In scriberig_<wbr>tui::<wbr>service</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">scriberig_tui</a>::<wbr><a href="index.html">service</a></div><h1>Struct <span class="struct">Application<wbr>Operation<wbr>Adapter</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/scriberig_tui/service_operation_adapter.rs.html#14-26">Source</a> </span></div><pre class="rust item-decl"><code>pub struct ApplicationOperationAdapter&lt;B&gt; { <span class="comment">/* private fields */</span> }</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Adapts the application backend to operation-oriented TUI services.</p>
-</div></details><h2 id="implementations" class="section-header">Implementations<a href="#implementations" class="anchor">§</a></h2><div id="implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-ApplicationOperationAdapter%3CB%3E" class="impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#29-109">Source</a><a href="#impl-ApplicationOperationAdapter%3CB%3E" class="anchor">§</a><h3 class="code-header">impl&lt;B: ApplicationBackend&gt; <a class="struct" href="struct.ApplicationOperationAdapter.html" title="struct scriberig_tui::service::ApplicationOperationAdapter">ApplicationOperationAdapter</a>&lt;B&gt;</h3><div class="docblock"><p>Adapts the public protocol client to the TUI inspection boundary.</p>
-</div></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.new" class="method"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#38-50">Source</a><h4 class="code-header">pub fn <a href="#method.new" class="fn">new</a>(service: ApplicationService&lt;B&gt;) -&gt; Self</h4></section></summary><div class="docblock"><p>Creates an operation adapter around an application service.</p>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Adapts the application backend to operation-oriented TUI services."><title>ApplicationOperationAdapter in scriberig_tui::service - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-0c87338a.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="scriberig_tui" data-themes="" data-resource-suffix="" data-rustdoc-version="1.99.1 (58cf8f9c3 2026-10-13)" data-channel="1.99.1" data-search-js="search-cf4fc35e.js" data-stringdex-js="stringdex-b5109af9.js" data-settings-js="settings-170eb4bf.js" ><script src="../../static.files/storage-41dd4d93.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../static.files/main-417ebf0a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-9f56287d.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc struct"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">ApplicationOperationAdapter</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../scriberig_tui/index.html">scriberig_<wbr>tui</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Application<wbr>Operation<wbr>Adapter</a></h2><h3><a href="#implementations">Associated Functions</a></h3><ul class="block method"><li><a href="#method.new" title="new">new</a></li></ul><h3><a href="#implementations">Methods</a></h3><ul class="block method"><li><a href="#method.with_agent_runner" title="with_agent_runner">with_agent_runner</a></li><li><a href="#method.with_explorer_labels" title="with_explorer_labels">with_explorer_labels</a></li><li><a href="#method.with_project_projection" title="with_project_projection">with_project_projection</a></li><li><a href="#method.with_project_workflow" title="with_project_workflow">with_project_workflow</a></li></ul><h3><a href="#trait-implementations">Trait Implementations</a></h3><ul class="block trait-implementation"><li><a href="#impl-TuiModelRequestService-for-ApplicationOperationAdapter%3CB%3E" title="TuiModelRequestService">TuiModelRequestService</a></li><li><a href="#impl-TuiService-for-ApplicationOperationAdapter%3CB%3E" title="TuiService">TuiService</a></li></ul><h3><a href="#synthetic-implementations">Auto Trait Implementations</a></h3><ul class="block synthetic-implementation"><li><a href="#impl-Freeze-for-ApplicationOperationAdapter%3CB%3E" title="!Freeze">!Freeze</a></li><li><a href="#impl-RefUnwindSafe-for-ApplicationOperationAdapter%3CB%3E" title="!RefUnwindSafe">!RefUnwindSafe</a></li><li><a href="#impl-UnwindSafe-for-ApplicationOperationAdapter%3CB%3E" title="!UnwindSafe">!UnwindSafe</a></li><li><a href="#impl-Send-for-ApplicationOperationAdapter%3CB%3E" title="Send">Send</a></li><li><a href="#impl-Sync-for-ApplicationOperationAdapter%3CB%3E" title="Sync">Sync</a></li><li><a href="#impl-Unpin-for-ApplicationOperationAdapter%3CB%3E" title="Unpin">Unpin</a></li><li><a href="#impl-UnsafeUnpin-for-ApplicationOperationAdapter%3CB%3E" title="UnsafeUnpin">UnsafeUnpin</a></li></ul><h3><a href="#blanket-implementations">Blanket Implementations</a></h3><ul class="block blanket-implementation"><li><a href="#impl-Any-for-T" title="Any">Any</a></li><li><a href="#impl-Borrow%3CT%3E-for-T" title="Borrow&#60;T&#62;">Borrow&#60;T&#62;</a></li><li><a href="#impl-BorrowMut%3CT%3E-for-T" title="BorrowMut&#60;T&#62;">BorrowMut&#60;T&#62;</a></li><li><a href="#impl-From%3CT%3E-for-T" title="From&#60;T&#62;">From&#60;T&#62;</a></li><li><a href="#impl-FromIn%3C'a,+T%3E-for-T" title="FromIn&#60;&#39;a, T&#62;">FromIn&#60;&#39;a, T&#62;</a></li><li><a href="#impl-Instrument-for-T" title="Instrument">Instrument</a></li><li><a href="#impl-Into%3CU%3E-for-T" title="Into&#60;U&#62;">Into&#60;U&#62;</a></li><li><a href="#impl-IntoEither-for-T" title="IntoEither">IntoEither</a></li><li><a href="#impl-IntoIn%3C'a,+U%3E-for-T" title="IntoIn&#60;&#39;a, U&#62;">IntoIn&#60;&#39;a, U&#62;</a></li><li><a href="#impl-PolicyExt-for-T" title="PolicyExt">PolicyExt</a></li><li><a href="#impl-Same-for-T" title="Same">Same</a></li><li><a href="#impl-TryFrom%3CU%3E-for-T" title="TryFrom&#60;U&#62;">TryFrom&#60;U&#62;</a></li><li><a href="#impl-TryInto%3CU%3E-for-T" title="TryInto&#60;U&#62;">TryInto&#60;U&#62;</a></li><li><a href="#impl-TuiOperationService-for-S" title="TuiOperationService">TuiOperationService</a></li><li><a href="#impl-WithSubscriber-for-T" title="WithSubscriber">WithSubscriber</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In scriberig_<wbr>tui::<wbr>service</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../index.html">scriberig_tui</a>::<wbr><a href="index.html">service</a></div><h1>Struct <span class="struct">Application<wbr>Operation<wbr>Adapter</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../src/scriberig_tui/service_operation_adapter.rs.html#19-31">Source</a> </span></div><pre class="rust item-decl"><code>pub struct ApplicationOperationAdapter&lt;B&gt; { <span class="comment">/* private fields */</span> }</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Adapts the application backend to operation-oriented TUI services.</p>
+</div></details><h2 id="implementations" class="section-header">Implementations<a href="#implementations" class="anchor">§</a></h2><div id="implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-ApplicationOperationAdapter%3CB%3E" class="impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#34-114">Source</a><a href="#impl-ApplicationOperationAdapter%3CB%3E" class="anchor">§</a><h3 class="code-header">impl&lt;B: ApplicationBackend&gt; <a class="struct" href="struct.ApplicationOperationAdapter.html" title="struct scriberig_tui::service::ApplicationOperationAdapter">ApplicationOperationAdapter</a>&lt;B&gt;</h3><div class="docblock"><p>Adapts the public protocol client to the TUI inspection boundary.</p>
+</div></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.new" class="method"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#43-55">Source</a><h4 class="code-header">pub fn <a href="#method.new" class="fn">new</a>(service: ApplicationService&lt;B&gt;) -&gt; Self</h4></section></summary><div class="docblock"><p>Creates an operation adapter around an application service.</p>
 <ul>
 <li><code>service</code>: Application service used by the adapter.</li>
 </ul>
 <p>An adapter with no project-specific explorer labels.</p>
 <h5 id="returns"><a class="doc-anchor" href="#returns">§</a>Returns</h5>
 <p>The operation result.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.with_agent_runner" class="method"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#59-65">Source</a><h4 class="code-header">pub fn <a href="#method.with_agent_runner" class="fn">with_agent_runner</a>&lt;R&gt;(self, runner: R) -&gt; Self<div class="where">where
+</div></details><details class="toggle method-toggle" open><summary><section id="method.with_agent_runner" class="method"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#64-70">Source</a><h4 class="code-header">pub fn <a href="#method.with_agent_runner" class="fn">with_agent_runner</a>&lt;R&gt;(self, runner: R) -&gt; Self<div class="where">where
     R: <a class="trait" href="trait.AgentCommandRunner.html" title="trait scriberig_tui::service::AgentCommandRunner">AgentCommandRunner</a>&lt;B&gt; + 'static,</div></h4></section></summary><div class="docblock"><p>Supplies the runtime that executes agent commands for this TUI client.</p>
 <ul>
 <li><code>self</code>: Adapter receiving the runtime.</li>
 <li><code>runner</code>: Product-composed provider and orchestration adapter.</li>
 </ul>
 <p>The configured application operation adapter.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.with_explorer_labels" class="method"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#76-79">Source</a><h4 class="code-header">pub fn <a href="#method.with_explorer_labels" class="fn">with_explorer_labels</a>(self, labels: <a class="type" href="type.ExplorerLabels.html" title="type scriberig_tui::service::ExplorerLabels">ExplorerLabels</a>) -&gt; Self</h4></section></summary><div class="docblock"><p>Supplies project-relative labels for local explorer navigation.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.with_explorer_labels" class="method"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#81-84">Source</a><h4 class="code-header">pub fn <a href="#method.with_explorer_labels" class="fn">with_explorer_labels</a>(self, labels: <a class="type" href="type.ExplorerLabels.html" title="type scriberig_tui::service::ExplorerLabels">ExplorerLabels</a>) -&gt; Self</h4></section></summary><div class="docblock"><p>Supplies project-relative labels for local explorer navigation.</p>
 <ul>
 <li><code>self</code>: Adapter receiving the project labels.</li>
 <li><code>labels</code>: Human-readable labels keyed by stable entity identity.</li>
@@ -22,7 +22,7 @@
 <p>The adapter configured with the supplied labels.</p>
 <h5 id="returns-1"><a class="doc-anchor" href="#returns-1">§</a>Returns</h5>
 <p>The operation result.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.with_project_projection" class="method"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#90-94">Source</a><h4 class="code-header">pub fn <a href="#method.with_project_projection" class="fn">with_project_projection</a>(self, projection: <a class="struct" href="struct.ProjectProjection.html" title="struct scriberig_tui::service::ProjectProjection">ProjectProjection</a>) -&gt; Self</h4></section></summary><div class="docblock"><p>Supplies the active project’s exact source projection data.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.with_project_projection" class="method"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#95-99">Source</a><h4 class="code-header">pub fn <a href="#method.with_project_projection" class="fn">with_project_projection</a>(self, projection: <a class="struct" href="struct.ProjectProjection.html" title="struct scriberig_tui::service::ProjectProjection">ProjectProjection</a>) -&gt; Self</h4></section></summary><div class="docblock"><p>Supplies the active project’s exact source projection data.</p>
 <ul>
 <li><code>self</code>: Adapter receiving project projection data.</li>
 <li><code>projection</code>: Snapshot-bound source projection.</li>
@@ -30,7 +30,7 @@
 <p>The configured adapter.</p>
 <h5 id="returns-2"><a class="doc-anchor" href="#returns-2">§</a>Returns</h5>
 <p>The operation result.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.with_project_workflow" class="method"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#105-108">Source</a><h4 class="code-header">pub fn <a href="#method.with_project_workflow" class="fn">with_project_workflow</a>(self, workflow: ProjectService) -&gt; Self</h4></section></summary><div class="docblock"><p>Supplies durable project operations for candidates created after onboarding.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.with_project_workflow" class="method"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#110-113">Source</a><h4 class="code-header">pub fn <a href="#method.with_project_workflow" class="fn">with_project_workflow</a>(self, workflow: ProjectService) -&gt; Self</h4></section></summary><div class="docblock"><p>Supplies durable project operations for candidates created after onboarding.</p>
 <ul>
 <li><code>self</code>: Adapter receiving the shared project workflow.</li>
 <li><code>workflow</code>: Project service using the product’s durable store.</li>
@@ -70,7 +70,50 @@
 <p>The operation result.</p>
 <h5 id="errors-1"><a class="doc-anchor" href="#errors-1">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-TuiService-for-ApplicationOperationAdapter%3CB%3E" class="impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#111-402">Source</a><a href="#impl-TuiService-for-ApplicationOperationAdapter%3CB%3E" class="anchor">§</a><h3 class="code-header">impl&lt;B: ApplicationBackend&gt; <a class="trait" href="trait.TuiService.html" title="trait scriberig_tui::service::TuiService">TuiService</a> for <a class="struct" href="struct.ApplicationOperationAdapter.html" title="struct scriberig_tui::service::ApplicationOperationAdapter">ApplicationOperationAdapter</a>&lt;B&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.plan_lifecycle" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#126-134">Source</a><a href="#method.plan_lifecycle" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.plan_lifecycle" class="fn">plan_lifecycle</a>(
+</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-TuiService-for-ApplicationOperationAdapter%3CB%3E" class="impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#116-294">Source</a><a href="#impl-TuiService-for-ApplicationOperationAdapter%3CB%3E" class="anchor">§</a><h3 class="code-header">impl&lt;B: ApplicationBackend&gt; <a class="trait" href="trait.TuiService.html" title="trait scriberig_tui::service::TuiService">TuiService</a> for <a class="struct" href="struct.ApplicationOperationAdapter.html" title="struct scriberig_tui::service::ApplicationOperationAdapter">ApplicationOperationAdapter</a>&lt;B&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.model_library" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#117">Source</a><a href="#method.model_library" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.model_library" class="fn">model_library</a>(
+    &amp;self,
+    context: &amp;ApplicationContext,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/model/struct.ModelLibraryResponse.html" title="struct scriberig_protocol::model::ModelLibraryResponse">ModelLibraryResponse</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reads the credential-safe model library through the shared application.</p>
+<ul>
+<li><code>context</code>: Authorized caller context.</li>
+</ul>
+<p>Public model and profile descriptors without provider credentials.</p>
+<p>Returns an authorization or model-library configuration error.</p>
+<h5 id="returns-6"><a class="doc-anchor" href="#returns-6">§</a>Returns</h5>
+<p>The operation result.</p>
+<h5 id="errors-2"><a class="doc-anchor" href="#errors-2">§</a>Errors</h5>
+<p>Returns an error when the operation fails.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_session_model" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#117">Source</a><a href="#method.set_session_model" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.set_session_model" class="fn">set_session_model</a>(
+    &amp;self,
+    context: &amp;ApplicationContext,
+    request: &amp;SessionModelSelectionRequest,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionExecutionSelection, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Updates the selected session model through the shared application.</p>
+<ul>
+<li><code>context</code>: Authorized caller context.</li>
+<li><code>request</code>: Session and revision-bound model profile selection.</li>
+</ul>
+<p>The authoritative future execution selection.</p>
+<p>Returns an authorization, conflict, or model-profile error.</p>
+<h5 id="returns-7"><a class="doc-anchor" href="#returns-7">§</a>Returns</h5>
+<p>The operation result.</p>
+<h5 id="errors-3"><a class="doc-anchor" href="#errors-3">§</a>Errors</h5>
+<p>Returns an error when the operation fails.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_session_thinking_level" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#117">Source</a><a href="#method.set_session_thinking_level" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.set_session_thinking_level" class="fn">set_session_thinking_level</a>(
+    &amp;self,
+    context: &amp;ApplicationContext,
+    request: &amp;SessionThinkingSelectionRequest,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionExecutionSelection, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Updates the selected session thinking level through the shared application.</p>
+<ul>
+<li><code>context</code>: Authorized caller context.</li>
+<li><code>request</code>: Session and revision-bound thinking selection.</li>
+</ul>
+<p>The authoritative future execution selection.</p>
+<p>Returns an authorization, conflict, or thinking-level error.</p>
+<h5 id="returns-8"><a class="doc-anchor" href="#returns-8">§</a>Returns</h5>
+<p>The operation result.</p>
+<h5 id="errors-4"><a class="doc-anchor" href="#errors-4">§</a>Errors</h5>
+<p>Returns an error when the operation fails.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.plan_lifecycle" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#117">Source</a><a href="#method.plan_lifecycle" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.plan_lifecycle" class="fn">plan_lifecycle</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     request: &amp;PlanLifecycleRequest,
@@ -84,11 +127,11 @@
 </ul>
 <p>The authoritative plan after the optional coordinator run.</p>
 <p>Returns a lifecycle or worker execution failure.</p>
-<h5 id="returns-6"><a class="doc-anchor" href="#returns-6">§</a>Returns</h5>
+<h5 id="returns-9"><a class="doc-anchor" href="#returns-9">§</a>Returns</h5>
 <p>The authoritative plan.</p>
-<h5 id="errors-2"><a class="doc-anchor" href="#errors-2">§</a>Errors</h5>
+<h5 id="errors-5"><a class="doc-anchor" href="#errors-5">§</a>Errors</h5>
 <p>Returns an error when the transition or execution fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.start_new_session_handle" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#149-164">Source</a><a href="#method.start_new_session_handle" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.start_new_session_handle" class="fn">start_new_session_handle</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.start_new_session_handle" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#117">Source</a><a href="#method.start_new_session_handle" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.start_new_session_handle" class="fn">start_new_session_handle</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     prompt: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
@@ -101,11 +144,11 @@
 </ul>
 <p>Stable handles after the composed runtime finishes the first turn.</p>
 <p>Returns a session acceptance or runtime execution failure.</p>
-<h5 id="returns-7"><a class="doc-anchor" href="#returns-7">§</a>Returns</h5>
+<h5 id="returns-10"><a class="doc-anchor" href="#returns-10">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-3"><a class="doc-anchor" href="#errors-3">§</a>Errors</h5>
+<h5 id="errors-6"><a class="doc-anchor" href="#errors-6">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.continue_agent_at_handle" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#180-199">Source</a><a href="#method.continue_agent_at_handle" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.continue_agent_at_handle" class="fn">continue_agent_at_handle</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.continue_agent_at_handle" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#117">Source</a><a href="#method.continue_agent_at_handle" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.continue_agent_at_handle" class="fn">continue_agent_at_handle</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     session: EntityId,
@@ -120,11 +163,11 @@
 </ul>
 <p>Stable operation, session, and child branch handles.</p>
 <p>Returns an anchor validation or runtime execution failure.</p>
-<h5 id="returns-8"><a class="doc-anchor" href="#returns-8">§</a>Returns</h5>
+<h5 id="returns-11"><a class="doc-anchor" href="#returns-11">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-4"><a class="doc-anchor" href="#errors-4">§</a>Errors</h5>
+<h5 id="errors-7"><a class="doc-anchor" href="#errors-7">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.submit_agent_handle" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#216-225">Source</a><a href="#method.submit_agent_handle" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.submit_agent_handle" class="fn">submit_agent_handle</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.submit_agent_handle" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#117">Source</a><a href="#method.submit_agent_handle" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.submit_agent_handle" class="fn">submit_agent_handle</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     session: EntityId,
@@ -140,11 +183,11 @@
 </ul>
 <p>Stable operation, session, and branch handles.</p>
 <p>Returns an application submission or session-read error.</p>
-<h5 id="returns-9"><a class="doc-anchor" href="#returns-9">§</a>Returns</h5>
+<h5 id="returns-12"><a class="doc-anchor" href="#returns-12">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-5"><a class="doc-anchor" href="#errors-5">§</a>Errors</h5>
+<h5 id="errors-8"><a class="doc-anchor" href="#errors-8">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.runtime_capabilities" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#239-244">Source</a><a href="#method.runtime_capabilities" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.runtime_capabilities" class="fn">runtime_capabilities</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.runtime_capabilities" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#131-136">Source</a><a href="#method.runtime_capabilities" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.runtime_capabilities" class="fn">runtime_capabilities</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;RuntimeCapability&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Reports the semantic operations exposed by the embedded application.</p>
@@ -154,11 +197,11 @@
 </ul>
 <p>Capability descriptors used to keep the command palette honest.</p>
 <p>This adapter has no separate capability-discovery failure path.</p>
-<h5 id="returns-10"><a class="doc-anchor" href="#returns-10">§</a>Returns</h5>
+<h5 id="returns-13"><a class="doc-anchor" href="#returns-13">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-6"><a class="doc-anchor" href="#errors-6">§</a>Errors</h5>
+<h5 id="errors-9"><a class="doc-anchor" href="#errors-9">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.project_agent" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#260-268">Source</a><a href="#method.project_agent" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.project_agent" class="fn">project_agent</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.project_agent" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#152-160">Source</a><a href="#method.project_agent" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.project_agent" class="fn">project_agent</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     entity: EntityId,
@@ -173,11 +216,11 @@
 </ul>
 <p>The normal candidate review operation result.</p>
 <p>Returns a structured agent, validation, or storage error.</p>
-<h5 id="returns-11"><a class="doc-anchor" href="#returns-11">§</a>Returns</h5>
+<h5 id="returns-14"><a class="doc-anchor" href="#returns-14">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-7"><a class="doc-anchor" href="#errors-7">§</a>Errors</h5>
+<h5 id="errors-10"><a class="doc-anchor" href="#errors-10">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.inspect_entity" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#283-290">Source</a><a href="#method.inspect_entity" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#tymethod.inspect_entity" class="fn">inspect_entity</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.inspect_entity" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#175-182">Source</a><a href="#method.inspect_entity" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#tymethod.inspect_entity" class="fn">inspect_entity</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     entity: EntityId,
@@ -190,11 +233,11 @@
 </ul>
 <p>The inspection result.</p>
 <p>Returns the application inspection error.</p>
-<h5 id="returns-12"><a class="doc-anchor" href="#returns-12">§</a>Returns</h5>
+<h5 id="returns-15"><a class="doc-anchor" href="#returns-15">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-8"><a class="doc-anchor" href="#errors-8">§</a>Errors</h5>
+<h5 id="errors-11"><a class="doc-anchor" href="#errors-11">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.list_explorer" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#306-314">Source</a><a href="#method.list_explorer" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.list_explorer" class="fn">list_explorer</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.list_explorer" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#198-206">Source</a><a href="#method.list_explorer" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.list_explorer" class="fn">list_explorer</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     entity: EntityId,
@@ -209,11 +252,11 @@
 </ul>
 <p>A bounded Explorer page.</p>
 <p>Returns the application listing error.</p>
-<h5 id="returns-13"><a class="doc-anchor" href="#returns-13">§</a>Returns</h5>
+<h5 id="returns-16"><a class="doc-anchor" href="#returns-16">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-9"><a class="doc-anchor" href="#errors-9">§</a>Errors</h5>
+<h5 id="errors-12"><a class="doc-anchor" href="#errors-12">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.find_entities" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#329-336">Source</a><a href="#method.find_entities" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.find_entities" class="fn">find_entities</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.find_entities" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#221-228">Source</a><a href="#method.find_entities" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.find_entities" class="fn">find_entities</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     snapshot: SnapshotId,
@@ -226,11 +269,11 @@
 </ul>
 <p>A bounded find model.</p>
 <p>Returns the application discovery error.</p>
-<h5 id="returns-14"><a class="doc-anchor" href="#returns-14">§</a>Returns</h5>
+<h5 id="returns-17"><a class="doc-anchor" href="#returns-17">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-10"><a class="doc-anchor" href="#errors-10">§</a>Errors</h5>
+<h5 id="errors-13"><a class="doc-anchor" href="#errors-13">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.execute_operation" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#349-359">Source</a><a href="#method.execute_operation" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.execute_operation" class="fn">execute_operation</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.execute_operation" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#241-251">Source</a><a href="#method.execute_operation" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.execute_operation" class="fn">execute_operation</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     request: &amp;ApplicationRequest,
@@ -240,11 +283,11 @@
 <li><code>request</code>: Public operation request.</li>
 </ul>
 <p>Returns the application operation error.</p>
-<h5 id="returns-15"><a class="doc-anchor" href="#returns-15">§</a>Returns</h5>
+<h5 id="returns-18"><a class="doc-anchor" href="#returns-18">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-11"><a class="doc-anchor" href="#errors-11">§</a>Errors</h5>
+<h5 id="errors-14"><a class="doc-anchor" href="#errors-14">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.operation_status" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#373-379">Source</a><a href="#method.operation_status" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.operation_status" class="fn">operation_status</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.operation_status" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#265-271">Source</a><a href="#method.operation_status" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.operation_status" class="fn">operation_status</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
     operation: &amp;OperationId,
@@ -255,11 +298,11 @@
 </ul>
 <p>The current operation record.</p>
 <p>Returns a lookup error when the operation is unknown.</p>
-<h5 id="returns-16"><a class="doc-anchor" href="#returns-16">§</a>Returns</h5>
+<h5 id="returns-19"><a class="doc-anchor" href="#returns-19">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-12"><a class="doc-anchor" href="#errors-12">§</a>Errors</h5>
+<h5 id="errors-15"><a class="doc-anchor" href="#errors-15">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.cancel_operation" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#393-399">Source</a><a href="#method.cancel_operation" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.cancel_operation" class="fn">cancel_operation</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.cancel_operation" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#285-291">Source</a><a href="#method.cancel_operation" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.cancel_operation" class="fn">cancel_operation</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
     operation: &amp;OperationId,
@@ -270,11 +313,11 @@
 </ul>
 <p>The cancelled operation record.</p>
 <p>Returns a cancellation error when the operation is unknown.</p>
-<h5 id="returns-17"><a class="doc-anchor" href="#returns-17">§</a>Returns</h5>
+<h5 id="returns-20"><a class="doc-anchor" href="#returns-20">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-13"><a class="doc-anchor" href="#errors-13">§</a>Errors</h5>
+<h5 id="errors-16"><a class="doc-anchor" href="#errors-16">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.operation_records" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#401">Source</a><a href="#method.operation_records" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.operation_records" class="fn">operation_records</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.operation_records" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#293">Source</a><a href="#method.operation_records" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.operation_records" class="fn">operation_records</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;OperationRecord&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Lists current shared application operation records.</p>
@@ -283,11 +326,11 @@
 </ul>
 <p>Current application operation records.</p>
 <p>This local adapter has no separate listing failure path.</p>
-<h5 id="returns-18"><a class="doc-anchor" href="#returns-18">§</a>Returns</h5>
+<h5 id="returns-21"><a class="doc-anchor" href="#returns-21">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-14"><a class="doc-anchor" href="#errors-14">§</a>Errors</h5>
+<h5 id="errors-17"><a class="doc-anchor" href="#errors-17">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.application_events" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#401">Source</a><a href="#method.application_events" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.application_events" class="fn">application_events</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.application_events" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#293">Source</a><a href="#method.application_events" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.application_events" class="fn">application_events</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;ApplicationEvent&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Returns lifecycle events retained by the shared application registry.</p>
@@ -296,11 +339,11 @@
 </ul>
 <p>Retained application events.</p>
 <p>This adapter does not return an event access error.</p>
-<h5 id="returns-19"><a class="doc-anchor" href="#returns-19">§</a>Returns</h5>
+<h5 id="returns-22"><a class="doc-anchor" href="#returns-22">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-15"><a class="doc-anchor" href="#errors-15">§</a>Errors</h5>
+<h5 id="errors-18"><a class="doc-anchor" href="#errors-18">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.read_session" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#401">Source</a><a href="#method.read_session" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.read_session" class="fn">read_session</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.read_session" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#293">Source</a><a href="#method.read_session" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.read_session" class="fn">read_session</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     session: EntityId,
@@ -311,11 +354,39 @@
 </ul>
 <p>The requested session.</p>
 <p>Returns the application session error.</p>
-<h5 id="returns-20"><a class="doc-anchor" href="#returns-20">§</a>Returns</h5>
+<h5 id="returns-23"><a class="doc-anchor" href="#returns-23">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-16"><a class="doc-anchor" href="#errors-16">§</a>Errors</h5>
+<h5 id="errors-19"><a class="doc-anchor" href="#errors-19">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.submit_agent_command" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#401">Source</a><a href="#method.submit_agent_command" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.submit_agent_command" class="fn">submit_agent_command</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.list_sessions" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#293">Source</a><a href="#method.list_sessions" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.list_sessions" class="fn">list_sessions</a>(
+    &amp;self,
+    context: &amp;ApplicationContext,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Session&gt;, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Lists sessions through the shared application session repository.</p>
+<ul>
+<li><code>context</code>: Caller authorization context.</li>
+</ul>
+<p>Sessions ordered by stable identity.</p>
+<p>Returns an authorization or persistence failure.</p>
+<h5 id="returns-24"><a class="doc-anchor" href="#returns-24">§</a>Returns</h5>
+<p>The operation result.</p>
+<h5 id="errors-20"><a class="doc-anchor" href="#errors-20">§</a>Errors</h5>
+<p>Returns an error when listing fails.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.remove_session" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#293">Source</a><a href="#method.remove_session" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.remove_session" class="fn">remove_session</a>(
+    &amp;self,
+    context: &amp;ApplicationContext,
+    session: EntityId,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.unit.html">()</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Removes one session through the shared application boundary.</p>
+<ul>
+<li><code>context</code>: Caller authorization context.</li>
+<li><code>session</code>: Exact session identity to remove.</li>
+</ul>
+<p>Unit after the durable session is removed.</p>
+<p>Returns an authorization, active-work, or persistence failure.</p>
+<h5 id="returns-25"><a class="doc-anchor" href="#returns-25">§</a>Returns</h5>
+<p>The operation result.</p>
+<h5 id="errors-21"><a class="doc-anchor" href="#errors-21">§</a>Errors</h5>
+<p>Returns an error when removal fails.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.submit_agent_command" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service_operation_adapter.rs.html#293">Source</a><a href="#method.submit_agent_command" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.submit_agent_command" class="fn">submit_agent_command</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     session: EntityId,
@@ -330,50 +401,39 @@
 </ul>
 <p>The accepted operation identity.</p>
 <p>Returns the application agent error.</p>
-<h5 id="returns-21"><a class="doc-anchor" href="#returns-21">§</a>Returns</h5>
+<h5 id="returns-26"><a class="doc-anchor" href="#returns-26">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-17"><a class="doc-anchor" href="#errors-17">§</a>Errors</h5>
+<h5 id="errors-22"><a class="doc-anchor" href="#errors-22">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.create_plan" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#310">Source</a><a href="#method.create_plan" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.create_plan" class="fn">create_plan</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.create_plan" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#352">Source</a><a href="#method.create_plan" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.create_plan" class="fn">create_plan</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
     _request: &amp;PlanCreateRequest,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Plan, ApplicationError&gt;</h4></section></summary><div class='docblock'>Creates a durable plan through the shared application operation. <a href="trait.TuiService.html#method.create_plan">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.replan" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#310">Source</a><a href="#method.replan" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.replan" class="fn">replan</a>(
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Plan, ApplicationError&gt;</h4></section></summary><div class='docblock'>Creates a durable plan through the shared application operation. <a href="trait.TuiService.html#method.create_plan">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.replan" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#352">Source</a><a href="#method.replan" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.replan" class="fn">replan</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
     _request: &amp;PlanReplanRequest,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Plan, ApplicationError&gt;</h4></section></summary><div class='docblock'>Applies a structured replan through the shared plan service. <a href="trait.TuiService.html#method.replan">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.set_plan_node_assignment" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#310">Source</a><a href="#method.set_plan_node_assignment" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.set_plan_node_assignment" class="fn">set_plan_node_assignment</a>(
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Plan, ApplicationError&gt;</h4></section></summary><div class='docblock'>Applies a structured replan through the shared plan service. <a href="trait.TuiService.html#method.replan">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.set_plan_node_assignment" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#352">Source</a><a href="#method.set_plan_node_assignment" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.set_plan_node_assignment" class="fn">set_plan_node_assignment</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
     _request: &amp;PlanAssignmentRequest,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Plan, ApplicationError&gt;</h4></section></summary><div class='docblock'>Changes a plan node’s credential-safe model assignment. <a href="trait.TuiService.html#method.set_plan_node_assignment">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.tool_result_detail" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#310">Source</a><a href="#method.tool_result_detail" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.tool_result_detail" class="fn">tool_result_detail</a>(
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Plan, ApplicationError&gt;</h4></section></summary><div class='docblock'>Changes a plan node’s credential-safe model assignment. <a href="trait.TuiService.html#method.set_plan_node_assignment">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.tool_result_detail" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#352">Source</a><a href="#method.tool_result_detail" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.tool_result_detail" class="fn">tool_result_detail</a>(
     &amp;self,
     _context: &amp;ApplicationContext,
     _session: EntityId,
     _branch: EntityId,
     _result: EntityId,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/requests/struct.ToolResultDetailResponse.html" title="struct scriberig_protocol::session::requests::ToolResultDetailResponse">ToolResultDetailResponse</a>, ApplicationError&gt;</h4></section></summary><div class='docblock'>Reads bounded safe detail for one tool result. <a href="trait.TuiService.html#method.tool_result_detail">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.model_library" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#310">Source</a><a href="#method.model_library" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.model_library" class="fn">model_library</a>(
-    &amp;self,
-    _context: &amp;ApplicationContext,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/model/struct.ModelLibraryResponse.html" title="struct scriberig_protocol::model::ModelLibraryResponse">ModelLibraryResponse</a>, ApplicationError&gt;</h4></section></summary><div class='docblock'>Reads the credential-safe model library for interactive selection. <a href="trait.TuiService.html#method.model_library">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.set_session_model" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#310">Source</a><a href="#method.set_session_model" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.set_session_model" class="fn">set_session_model</a>(
-    &amp;self,
-    _context: &amp;ApplicationContext,
-    _request: &amp;SessionModelSelectionRequest,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionExecutionSelection, ApplicationError&gt;</h4></section></summary><div class='docblock'>Updates a session’s future model selection using its observed revision. <a href="trait.TuiService.html#method.set_session_model">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.set_session_thinking_level" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#310">Source</a><a href="#method.set_session_thinking_level" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.set_session_thinking_level" class="fn">set_session_thinking_level</a>(
-    &amp;self,
-    _context: &amp;ApplicationContext,
-    _request: &amp;SessionThinkingSelectionRequest,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;SessionExecutionSelection, ApplicationError&gt;</h4></section></summary><div class='docblock'>Updates a session’s future thinking selection using its revision. <a href="trait.TuiService.html#method.set_session_thinking_level">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.read_session_branch" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#312">Source</a><a href="#method.read_session_branch" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.read_session_branch" class="fn">read_session_branch</a>(
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_protocol/session/requests/struct.ToolResultDetailResponse.html" title="struct scriberig_protocol::session::requests::ToolResultDetailResponse">ToolResultDetailResponse</a>, ApplicationError&gt;</h4></section></summary><div class='docblock'>Reads bounded safe detail for one tool result. <a href="trait.TuiService.html#method.tool_result_detail">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.read_session_branch" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#354">Source</a><a href="#method.read_session_branch" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.read_session_branch" class="fn">read_session_branch</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     session: EntityId,
     branch: EntityId,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Session, ApplicationError&gt;</h4></section></summary><div class='docblock'>Reads one branch subtree without requiring unrelated child histories. <a href="trait.TuiService.html#method.read_session_branch">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.start_agent" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#312">Source</a><a href="#method.start_agent" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.start_agent" class="fn">start_agent</a>(
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Session, ApplicationError&gt;</h4></section></summary><div class='docblock'>Reads one branch subtree without requiring unrelated child histories. <a href="trait.TuiService.html#method.read_session_branch">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.start_agent" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#354">Source</a><a href="#method.start_agent" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.start_agent" class="fn">start_agent</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     session: EntityId,
     prompt: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;OperationId, ApplicationError&gt;</h4></section></summary><div class='docblock'>Starts a shared agent operation at the session root. <a href="trait.TuiService.html#method.start_agent">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.continue_agent" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#312">Source</a><a href="#method.continue_agent" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.continue_agent" class="fn">continue_agent</a>(
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;OperationId, ApplicationError&gt;</h4></section></summary><div class='docblock'>Starts a shared agent operation at the session root. <a href="trait.TuiService.html#method.start_agent">Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.continue_agent" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_tui/service.rs.html#354">Source</a><a href="#method.continue_agent" class="anchor">§</a><h4 class="code-header">fn <a href="trait.TuiService.html#method.continue_agent" class="fn">continue_agent</a>(
     &amp;self,
     context: &amp;ApplicationContext,
     session: EntityId,
@@ -421,9 +481,9 @@ otherwise. <a href="https://docs.rs/either/1/either/into_either/trait.IntoEither
 <li><code>request</code>: Public operation request.</li>
 </ul>
 <p>Returns the service operation error.</p>
-<h5 id="returns-22"><a class="doc-anchor" href="#returns-22">§</a>Returns</h5>
+<h5 id="returns-27"><a class="doc-anchor" href="#returns-27">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-18"><a class="doc-anchor" href="#errors-18">§</a>Errors</h5>
+<h5 id="errors-23"><a class="doc-anchor" href="#errors-23">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
 </div></details></div></details><details class="toggle implementors-toggle"><summary><section id="impl-WithSubscriber-for-T" class="impl"><a href="#impl-WithSubscriber-for-T" class="anchor">§</a><h3 class="code-header">impl&lt;T&gt; WithSubscriber for T</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.with_subscriber" class="method trait-impl"><a href="#method.with_subscriber" class="anchor">§</a><h4 class="code-header">fn <a class="fn">with_subscriber</a>&lt;S&gt;(self, subscriber: S) -&gt; WithDispatch&lt;Self&gt; <a href="#" class="tooltip" data-notable-ty="WithDispatch&lt;Self&gt;">ⓘ</a><div class="where">where
     S: <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;Dispatch&gt;,</div></h4></section></summary><div class='docblock'>Attaches the provided <a href="super::Subscriber"><code>Subscriber</code></a> to this type, returning a

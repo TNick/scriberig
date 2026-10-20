@@ -656,7 +656,37 @@ returns a non-inspection result.</p>
 <p>The operation result.</p>
 <h5 id="errors-35"><a class="doc-anchor" href="#errors-35">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-SessionBackend-for-ApplicationService%3CB%3E" class="impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#23-366">Source</a><a href="#impl-SessionBackend-for-ApplicationService%3CB%3E" class="anchor">§</a><h3 class="code-header">impl&lt;B: <a class="trait" href="trait.ApplicationBackend.html" title="trait scriberig_app::service::ApplicationBackend">ApplicationBackend</a>&gt; <a class="trait" href="../session/trait.SessionBackend.html" title="trait scriberig_app::session::SessionBackend">SessionBackend</a> for <a class="struct" href="struct.ApplicationService.html" title="struct scriberig_app::service::ApplicationService">ApplicationService</a>&lt;B&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.continue_agent_at-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#37-43">Source</a><a href="#method.continue_agent_at-1" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.continue_agent_at" class="fn">continue_agent_at</a>(
+</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-SessionBackend-for-ApplicationService%3CB%3E" class="impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#28-343">Source</a><a href="#impl-SessionBackend-for-ApplicationService%3CB%3E" class="anchor">§</a><h3 class="code-header">impl&lt;B: <a class="trait" href="trait.ApplicationBackend.html" title="trait scriberig_app::service::ApplicationBackend">ApplicationBackend</a>&gt; <a class="trait" href="../session/trait.SessionBackend.html" title="trait scriberig_app::session::SessionBackend">SessionBackend</a> for <a class="struct" href="struct.ApplicationService.html" title="struct scriberig_app::service::ApplicationService">ApplicationService</a>&lt;B&gt;</h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.list_sessions" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#41-46">Source</a><a href="#method.list_sessions" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.list_sessions" class="fn">list_sessions</a>(
+    &amp;self,
+    context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Session&gt;, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class="docblock"><p>Lists complete durable sessions through the application authorization boundary.</p>
+<ul>
+<li><code>self</code>: Shared application service.</li>
+<li><code>context</code>: Authorized caller context.</li>
+</ul>
+<p>Sessions ordered by stable identity.</p>
+<p>Returns authorization or persistence failures.</p>
+<h5 id="returns-40"><a class="doc-anchor" href="#returns-40">§</a>Returns</h5>
+<p>The operation result.</p>
+<h5 id="errors-36"><a class="doc-anchor" href="#errors-36">§</a>Errors</h5>
+<p>Returns an error when the operation fails.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.remove_session" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#61-67">Source</a><a href="#method.remove_session" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.remove_session" class="fn">remove_session</a>(
+    &amp;self,
+    context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
+    session: EntityId,
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.unit.html">()</a>, <a class="enum" href="../error/enum.ApplicationError.html" title="enum scriberig_app::error::ApplicationError">ApplicationError</a>&gt;</h4></section></summary><div class="docblock"><p>Removes a durable session through the application authorization boundary.</p>
+<ul>
+<li><code>self</code>: Shared application service.</li>
+<li><code>context</code>: Authorized caller context.</li>
+<li><code>session</code>: Stable identity to remove.</li>
+</ul>
+<p>Unit after the exact session is removed.</p>
+<p>Returns authorization, active-work, or persistence failures.</p>
+<h5 id="returns-41"><a class="doc-anchor" href="#returns-41">§</a>Returns</h5>
+<p>The operation result.</p>
+<h5 id="errors-37"><a class="doc-anchor" href="#errors-37">§</a>Errors</h5>
+<p>Returns an error when the operation fails.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.continue_agent_at-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#82-88">Source</a><a href="#method.continue_agent_at-1" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.continue_agent_at" class="fn">continue_agent_at</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: <a class="struct" href="../session/struct.AgentContinueAtRequest.html" title="struct scriberig_app::session::AgentContinueAtRequest">AgentContinueAtRequest</a>,
@@ -668,11 +698,11 @@ returns a non-inspection result.</p>
 </ul>
 <p>Authoritative operation, session, and continuation branch handles.</p>
 <p>Returns anchor validation, authorization, persistence, or runtime errors.</p>
-<h5 id="returns-40"><a class="doc-anchor" href="#returns-40">§</a>Returns</h5>
+<h5 id="returns-42"><a class="doc-anchor" href="#returns-42">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-36"><a class="doc-anchor" href="#errors-36">§</a>Errors</h5>
+<h5 id="errors-38"><a class="doc-anchor" href="#errors-38">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.start_new_session_agent-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#58-64">Source</a><a href="#method.start_new_session_agent-1" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.start_new_session_agent" class="fn">start_new_session_agent</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.start_new_session_agent-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#103-109">Source</a><a href="#method.start_new_session_agent-1" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.start_new_session_agent" class="fn">start_new_session_agent</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: <a class="struct" href="../session/struct.NewSessionAgentRequest.html" title="struct scriberig_app::session::NewSessionAgentRequest">NewSessionAgentRequest</a>,
@@ -684,11 +714,11 @@ returns a non-inspection result.</p>
 </ul>
 <p>Authoritative operation, session, and root branch handles.</p>
 <p>Returns validation, authorization, persistence, or runtime errors.</p>
-<h5 id="returns-41"><a class="doc-anchor" href="#returns-41">§</a>Returns</h5>
+<h5 id="returns-43"><a class="doc-anchor" href="#returns-43">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-37"><a class="doc-anchor" href="#errors-37">§</a>Errors</h5>
+<h5 id="errors-39"><a class="doc-anchor" href="#errors-39">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.read_session" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#78-97">Source</a><a href="#method.read_session" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#tymethod.read_session" class="fn">read_session</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.read_session" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#123-142">Source</a><a href="#method.read_session" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#tymethod.read_session" class="fn">read_session</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../session/struct.SessionRequest.html" title="struct scriberig_app::session::SessionRequest">SessionRequest</a>,
@@ -699,11 +729,11 @@ returns a non-inspection result.</p>
 </ul>
 <p>The requested session.</p>
 <p>Returns the backend or session lookup error.</p>
-<h5 id="returns-42"><a class="doc-anchor" href="#returns-42">§</a>Returns</h5>
+<h5 id="returns-44"><a class="doc-anchor" href="#returns-44">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-38"><a class="doc-anchor" href="#errors-38">§</a>Errors</h5>
+<h5 id="errors-40"><a class="doc-anchor" href="#errors-40">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.save_session" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#109-122">Source</a><a href="#method.save_session" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.save_session" class="fn">save_session</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.save_session" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#154-167">Source</a><a href="#method.save_session" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.save_session" class="fn">save_session</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     session: &amp;Session,
@@ -713,11 +743,11 @@ returns a non-inspection result.</p>
 <li><code>session</code>: Complete changed session snapshot.</li>
 </ul>
 <p>Returns authorization or persistence failures.</p>
-<h5 id="returns-43"><a class="doc-anchor" href="#returns-43">§</a>Returns</h5>
+<h5 id="returns-45"><a class="doc-anchor" href="#returns-45">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-39"><a class="doc-anchor" href="#errors-39">§</a>Errors</h5>
+<h5 id="errors-41"><a class="doc-anchor" href="#errors-41">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.compare_and_swap_plan" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#136-212">Source</a><a href="#method.compare_and_swap_plan" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.compare_and_swap_plan" class="fn">compare_and_swap_plan</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.compare_and_swap_plan" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#181-189">Source</a><a href="#method.compare_and_swap_plan" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.compare_and_swap_plan" class="fn">compare_and_swap_plan</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     session: &amp;Session,
@@ -731,11 +761,11 @@ returns a non-inspection result.</p>
 <li><code>expected_revision</code>: Revision observed before mutation.</li>
 </ul>
 <p>Returns authorization, revision conflict, or persistence failures.</p>
-<h5 id="returns-44"><a class="doc-anchor" href="#returns-44">§</a>Returns</h5>
+<h5 id="returns-46"><a class="doc-anchor" href="#returns-46">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-40"><a class="doc-anchor" href="#errors-40">§</a>Errors</h5>
+<h5 id="errors-42"><a class="doc-anchor" href="#errors-42">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.create_plan-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#226-232">Source</a><a href="#method.create_plan-1" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.create_plan" class="fn">create_plan</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.create_plan-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#203-209">Source</a><a href="#method.create_plan-1" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.create_plan" class="fn">create_plan</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../session/struct.PlanCreateRequest.html" title="struct scriberig_app::session::PlanCreateRequest">PlanCreateRequest</a>,
@@ -746,11 +776,11 @@ returns a non-inspection result.</p>
 </ul>
 <p>The authoritative persisted plan.</p>
 <p>Returns plan validation, authorization, or persistence failures.</p>
-<h5 id="returns-45"><a class="doc-anchor" href="#returns-45">§</a>Returns</h5>
+<h5 id="returns-47"><a class="doc-anchor" href="#returns-47">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-41"><a class="doc-anchor" href="#errors-41">§</a>Errors</h5>
+<h5 id="errors-43"><a class="doc-anchor" href="#errors-43">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.replan-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#246-252">Source</a><a href="#method.replan-1" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.replan" class="fn">replan</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.replan-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#223-229">Source</a><a href="#method.replan-1" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.replan" class="fn">replan</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../session/struct.PlanReplanRequest.html" title="struct scriberig_app::session::PlanReplanRequest">PlanReplanRequest</a>,
@@ -761,11 +791,11 @@ returns a non-inspection result.</p>
 </ul>
 <p>The authoritative updated plan.</p>
 <p>Returns plan validation, conflict, authorization, or persistence errors.</p>
-<h5 id="returns-46"><a class="doc-anchor" href="#returns-46">§</a>Returns</h5>
+<h5 id="returns-48"><a class="doc-anchor" href="#returns-48">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-42"><a class="doc-anchor" href="#errors-42">§</a>Errors</h5>
+<h5 id="errors-44"><a class="doc-anchor" href="#errors-44">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.plan_lifecycle" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#267-290">Source</a><a href="#method.plan_lifecycle" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.plan_lifecycle" class="fn">plan_lifecycle</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.plan_lifecycle" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#244-267">Source</a><a href="#method.plan_lifecycle" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.plan_lifecycle" class="fn">plan_lifecycle</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../session/struct.PlanLifecycleRequest.html" title="struct scriberig_app::session::PlanLifecycleRequest">PlanLifecycleRequest</a>,
@@ -778,11 +808,11 @@ returns a non-inspection result.</p>
 </ul>
 <p>The authoritative updated plan.</p>
 <p>Returns plan transition, revision conflict, authorization, or persistence errors.</p>
-<h5 id="returns-47"><a class="doc-anchor" href="#returns-47">§</a>Returns</h5>
+<h5 id="returns-49"><a class="doc-anchor" href="#returns-49">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-43"><a class="doc-anchor" href="#errors-43">§</a>Errors</h5>
+<h5 id="errors-45"><a class="doc-anchor" href="#errors-45">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_plan_node_assignment-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#304-310">Source</a><a href="#method.set_plan_node_assignment-1" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.set_plan_node_assignment" class="fn">set_plan_node_assignment</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_plan_node_assignment-1" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#281-287">Source</a><a href="#method.set_plan_node_assignment-1" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#method.set_plan_node_assignment" class="fn">set_plan_node_assignment</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../session/struct.PlanAssignmentRequest.html" title="struct scriberig_app::session::PlanAssignmentRequest">PlanAssignmentRequest</a>,
@@ -793,11 +823,11 @@ returns a non-inspection result.</p>
 </ul>
 <p>The authoritative updated plan.</p>
 <p>Returns plan validation, authorization, or persistence failures.</p>
-<h5 id="returns-48"><a class="doc-anchor" href="#returns-48">§</a>Returns</h5>
+<h5 id="returns-50"><a class="doc-anchor" href="#returns-50">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-44"><a class="doc-anchor" href="#errors-44">§</a>Errors</h5>
+<h5 id="errors-46"><a class="doc-anchor" href="#errors-46">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.submit_agent_command" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#324-365">Source</a><a href="#method.submit_agent_command" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#tymethod.submit_agent_command" class="fn">submit_agent_command</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.submit_agent_command" class="method trait-impl"><a class="src rightside" href="../../src/scriberig_app/service_sessions.rs.html#301-342">Source</a><a href="#method.submit_agent_command" class="anchor">§</a><h4 class="code-header">fn <a href="../session/trait.SessionBackend.html#tymethod.submit_agent_command" class="fn">submit_agent_command</a>(
     &amp;self,
     context: &amp;<a class="struct" href="../context/struct.ApplicationContext.html" title="struct scriberig_app::context::ApplicationContext">ApplicationContext</a>,
     request: &amp;<a class="struct" href="../session/struct.AgentCommandRequest.html" title="struct scriberig_app::session::AgentCommandRequest">AgentCommandRequest</a>,
@@ -808,9 +838,9 @@ returns a non-inspection result.</p>
 </ul>
 <p>The accepted operation identity.</p>
 <p>Returns the backend or session state error.</p>
-<h5 id="returns-49"><a class="doc-anchor" href="#returns-49">§</a>Returns</h5>
+<h5 id="returns-51"><a class="doc-anchor" href="#returns-51">§</a>Returns</h5>
 <p>The operation result.</p>
-<h5 id="errors-45"><a class="doc-anchor" href="#errors-45">§</a>Errors</h5>
+<h5 id="errors-47"><a class="doc-anchor" href="#errors-47">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
 </div></details></div></details></div><h2 id="synthetic-implementations" class="section-header">Auto Trait Implementations<a href="#synthetic-implementations" class="anchor">§</a></h2><div id="synthetic-implementations-list"><section id="impl-Freeze-for-ApplicationService%3CB%3E" class="impl"><a href="#impl-Freeze-for-ApplicationService%3CB%3E" class="anchor">§</a><h3 class="code-header">impl&lt;B&gt; !<a class="trait" href="https://doc.rust-lang.org/1.99.1/core/marker/trait.Freeze.html" title="trait core::marker::Freeze">Freeze</a> for <a class="struct" href="struct.ApplicationService.html" title="struct scriberig_app::service::ApplicationService">ApplicationService</a>&lt;B&gt;</h3></section><section id="impl-RefUnwindSafe-for-ApplicationService%3CB%3E" class="impl"><a href="#impl-RefUnwindSafe-for-ApplicationService%3CB%3E" class="anchor">§</a><h3 class="code-header">impl&lt;B&gt; !<a class="trait" href="https://doc.rust-lang.org/1.99.1/core/panic/unwind_safe/trait.RefUnwindSafe.html" title="trait core::panic::unwind_safe::RefUnwindSafe">RefUnwindSafe</a> for <a class="struct" href="struct.ApplicationService.html" title="struct scriberig_app::service::ApplicationService">ApplicationService</a>&lt;B&gt;</h3></section><section id="impl-UnwindSafe-for-ApplicationService%3CB%3E" class="impl"><a href="#impl-UnwindSafe-for-ApplicationService%3CB%3E" class="anchor">§</a><h3 class="code-header">impl&lt;B&gt; !<a class="trait" href="https://doc.rust-lang.org/1.99.1/core/panic/unwind_safe/trait.UnwindSafe.html" title="trait core::panic::unwind_safe::UnwindSafe">UnwindSafe</a> for <a class="struct" href="struct.ApplicationService.html" title="struct scriberig_app::service::ApplicationService">ApplicationService</a>&lt;B&gt;</h3></section><section id="impl-Send-for-ApplicationService%3CB%3E" class="impl"><a href="#impl-Send-for-ApplicationService%3CB%3E" class="anchor">§</a><h3 class="code-header">impl&lt;B&gt; <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> for <a class="struct" href="struct.ApplicationService.html" title="struct scriberig_app::service::ApplicationService">ApplicationService</a>&lt;B&gt;<div class="where">where
     B: <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a>,</div></h3></section><section id="impl-Sync-for-ApplicationService%3CB%3E" class="impl"><a href="#impl-Sync-for-ApplicationService%3CB%3E" class="anchor">§</a><h3 class="code-header">impl&lt;B&gt; <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> for <a class="struct" href="struct.ApplicationService.html" title="struct scriberig_app::service::ApplicationService">ApplicationService</a>&lt;B&gt;<div class="where">where
