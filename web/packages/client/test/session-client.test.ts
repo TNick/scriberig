@@ -1,6 +1,7 @@
 /** @file Verifies authoritative session and branch projections. */
 import { describe, expect, it } from "vitest";
 import { ScriberigClient } from "../src";
+import { normalizeModelLibrary } from "../src/model-views.js";
 import { normalizeSession } from "../src/session-views.js";
 
 describe("session client projections", () => {
@@ -43,7 +44,7 @@ describe("session client projections", () => {
     ]);
   });
 
-  it("reads safe model capabilities and sends revision-checked selections", async () => {
+  it("reads upstream model rows and sends revision-checked selections", async () => {
     const requests: { operation: string; payload: unknown }[] = [];
     const transport = {
       request: async <T>(operation: string, payload: unknown): Promise<T> => {
@@ -54,21 +55,56 @@ describe("session client projections", () => {
               {
                 id: "model-a",
                 display_name: "Model A",
-                provider_profile: "provider-a",
+                provider_id: "provider-a",
                 provider_model_id: "wire-model-a",
-                capabilities: { streaming: true, tool_calls: true, structured_output: false },
-                thinking_levels: [{ id: "extended", label: "Extended", order: 0 }],
-                default_thinking_level: "extended",
+                thinking_levels: ["extended", "off", "high"],
+                metadata_snapshot: {
+                  schema_version: "rpi-safe-model-snapshot-v1",
+                  api_id: "anthropic-messages",
+                  reasoning: true,
+                  input: ["text", "image"],
+                  cost: {
+                    input: 3,
+                    output: 15,
+                    cache_read: 0.3,
+                    cache_write: 3.75,
+                    tiers: [
+                      {
+                        input: 2,
+                        output: 10,
+                        cache_read: 0.2,
+                        cache_write: 2.5,
+                        input_tokens_above: 100000,
+                      },
+                    ],
+                  },
+                  cost_configured: true,
+                  context_window: 200000,
+                  max_tokens: 8192,
+                },
               },
-            ],
-            profiles: [
               {
-                id: "profile-a",
-                display_name: "Primary",
-                model: "model-a",
-                connection: "connection-a",
-                credential: { id: "secret-reference-only" },
-                enabled: true,
+                id: "model-b",
+                display_name: "Model B",
+                provider_id: "provider-b",
+                provider_model_id: "wire-model-b",
+                thinking_levels: ["high", "off"],
+                metadata_snapshot: {
+                  schema_version: "rpi-safe-model-snapshot-v1",
+                  api_id: "openai-responses",
+                  reasoning: true,
+                  input: ["text"],
+                  cost: {
+                    input: 1,
+                    output: 5,
+                    cache_read: 0,
+                    cache_write: 0,
+                    tiers: [],
+                  },
+                  cost_configured: true,
+                  context_window: 128000,
+                  max_tokens: 4096,
+                },
               },
             ],
           } as T;
@@ -85,6 +121,31 @@ describe("session client projections", () => {
     const client = new ScriberigClient(transport);
 
     const library = await client.getModelLibrary();
+    expect(library.models[0]?.id).toBe("model-a");
+    expect(library.models[0]?.providerId).toBe("provider-a");
+    expect(library.models[0]?.metadataSnapshot?.reasoning).toBe(true);
+    expect(library.models[0]?.metadataSnapshot?.input).toEqual(["text", "image"]);
+    expect(library.models[0]?.modelId).toBe("wire-model-a");
+    expect(library.models[0]?.thinkingLevels).toEqual(["extended", "off", "high"]);
+    expect(
+      library.models.every((model) =>
+        model.thinkingLevels.every((level) => typeof level === "string"),
+      ),
+    ).toBe(true);
+    expect(library.models[1]?.thinkingLevels).toEqual(["high", "off"]);
+    expect(library.models.map((model) => model.thinkingLevels)).toEqual([
+      ["extended", "off", "high"],
+      ["high", "off"],
+    ]);
+    expect(library.models[0]?.metadataSnapshot?.cost.tiers).toEqual([
+      {
+        input: 2,
+        output: 10,
+        cacheRead: 0.2,
+        cacheWrite: 2.5,
+        inputTokensAbove: 100000,
+      },
+    ]);
     const selection = await client.setSessionModel(
       "session-a" as never,
       4,
@@ -93,8 +154,8 @@ describe("session client projections", () => {
     );
     await client.setSessionThinkingLevel("session-a" as never, 5, "extended");
 
-    expect(library.models[0]?.thinkingLevels[0]?.id).toBe("extended");
-    expect(library.profiles[0]?.credential).toEqual({ id: "secret-reference-only" });
+    expect(library.models[0]?.thinkingLevels[0]).toBe("extended");
+    expect(library.models).toHaveLength(2);
     expect(selection).toMatchObject({
       revision: 5,
       providerId: "provider-a",
@@ -122,226 +183,45 @@ describe("session client projections", () => {
     ]);
   });
 
-  it("normalizes Rust session reads and derives branch views", async () => {
-    const transport = {
-      request: async <T>(): Promise<T> =>
-        ({
-          session: { id: "session-1" },
-          execution: {
-            revision: 3,
-            model_profile: "profile-a",
-            model: "model-a",
-            thinking_level: "careful",
-            history: [
-              {
-                revision: 3,
-                kind: "ThinkingLevelChanged",
-                summary: "Thinking level selected: careful",
-                model: "model-a",
-                thinking_level: "careful",
-              },
-            ],
-          },
-          branches: [
-            {
-              id: "root",
-              title: "Root",
-              status: "Completed",
-              children: ["child"],
-              turns: [{ id: "turn-1", ordinal: 1, has_human_input: true, has_agent_output: false }],
-              activity: [
-                {
-                  id: "tool-call-1",
-                  session: "session-1",
-                  sequence: 2,
-                  branch: "root",
-                  kind: "ToolInvocation",
-                  state: "Completed",
-                  summary: "Tool: search",
-                  tool_name: "search",
-                  tool_arguments: { query: "architecture", token: "[REDACTED]" },
-                },
-                {
-                  id: "tool-result-1",
-                  session: "session-1",
-                  sequence: 3,
-                  branch: "root",
-                  parent: "tool-call-1",
-                  kind: "ToolResult",
-                  state: "Completed",
-                  summary: "Tool completed",
-                  durable_ref: "tool-result-1",
-                },
-              ],
-            },
-            {
-              id: "child",
-              parent: "root",
-              title: "Child",
-              status: "Completed",
-              children: [],
-              turns: [],
-              result: {
-                id: "result-1",
-                references: ["migration-1"],
-                result_handles: ["artifact-1"],
-              },
-            },
-          ],
-          plans: [
-            {
-              id: "plan-1",
-              revision: 4,
-              goal: "Implement parser and tests",
-              status: "Running",
-              anchor: { BranchHead: { branch: "root" } },
-              root_branch: "root",
-              nodes: [
-                {
-                  id: "plan-parser",
-                  parent: "root",
-                  title: "Implement parser",
-                  purpose: "Add semantic parser operations",
-                  status: "Completed",
-                  branch: "parser-branch",
-                  result: "parser-result",
-                  superseded_by: "parser-v2",
-                  expected_result: { kind: "semantic_changes", requires_handle: true },
-                  semantic_scope: ["entity-parser"],
-                  assignment: {
-                    profile: "profile-a",
-                    model: "model-a",
-                    thinking_level: "careful",
-                  },
-                  claim: {
-                    id: "claim-parser",
-                    node: "plan-parser",
-                    branch: "parser-branch",
-                    owner: "worker-1",
-                    generation: 2,
-                    assignment: { profile: "profile-a", model: "model-a" },
-                  },
-                },
-              ],
-              dependencies: [
-                {
-                  prerequisite: "plan-parser",
-                  dependent: "plan-tests",
-                  fulfilled_by: "parser-result",
-                },
-              ],
-              coordinator: "root",
-              coordinator_cursor: "plan-tests",
-              coordinator_claim: {
-                id: "coordinator-1",
-                operation: "operation-1",
-                owner: "runtime-1",
-                generation: 3,
-              },
-              history: [
-                {
-                  revision: 3,
-                  goal: "Earlier goal",
-                  status: "Planned",
-                  nodes: [],
-                  dependencies: [],
-                  reason: "Clarified scope",
-                },
-              ],
-            },
-          ],
-        }) as T,
-      subscribe: () => () => undefined,
-    };
-    const client = new ScriberigClient(transport);
-
-    const session = await client.getSession("session-1" as never);
-    expect(session.execution).toEqual({
-      revision: 3,
-      modelProfile: "profile-a",
-      model: "model-a",
-      thinkingLevel: "careful",
-      history: [
+  it("normalizes scalar upstream thinking ids without restoring retired catalog fields", () => {
+    const library = normalizeModelLibrary({
+      models: [
         {
-          revision: 3,
-          kind: "ThinkingLevelChanged",
-          summary: "Thinking level selected: careful",
+          id: "model-a",
+          display_name: "Model A",
+          provider_id: "provider-a",
+          provider_model_id: "wire-model-a",
+          capabilities: {
+            streaming: true,
+            tool_calls: true,
+            structured_output: false,
+          },
+          thinking_levels: ["extended"],
+          default_thinking_level: "extended",
+        },
+      ],
+      profiles: [
+        {
+          id: "profile-a",
+          display_name: "Primary",
           model: "model-a",
-          thinkingLevel: "careful",
+          connection: "connection-a",
+          credential: { id: "secret-reference-only" },
+          enabled: true,
         },
       ],
     });
-    expect(session.branches[0]?.turns[0]?.hasHumanInput).toBe(true);
-    expect(session.plans[0]).toMatchObject({
-      id: "plan-1",
-      revision: 4,
-      goal: "Implement parser and tests",
-      status: "Running",
-      coordinator: "root",
-      anchor: { BranchHead: { branch: "root" } },
-      coordinatorClaim: { id: "coordinator-1", generation: 3 },
-      history: [{ revision: 3, goal: "Earlier goal", reason: "Clarified scope" }],
-      dependencies: [
-        {
-          prerequisite: "plan-parser",
-          dependent: "plan-tests",
-          fulfilledBy: "parser-result",
-        },
-      ],
-      nodes: [
-        {
-          id: "plan-parser",
-          supersededBy: "parser-v2",
-          expectedResult: { kind: "semantic_changes", requiresHandle: true },
-          semanticScope: ["entity-parser"],
-          claim: {
-            id: "claim-parser",
-            node: "plan-parser",
-            branch: "parser-branch",
-            owner: "worker-1",
-            generation: 2,
-          },
-          assignment: {
-            profile: "profile-a",
-            model: "model-a",
-            thinkingLevel: "careful",
-          },
-        },
-      ],
-    });
-    expect(session.branches[1]?.result).toEqual({
-      id: "result-1",
-      references: ["migration-1"],
-      resultHandles: ["artifact-1"],
-    });
-    expect(await client.getBranch("session-1" as never, "child" as never)).toMatchObject({
-      branchId: "child",
-      status: "completed",
-    });
-    expect(await client.listBranchChildren("session-1" as never, "root" as never)).toMatchObject({
-      items: [{ branchId: "child" }],
-    });
-    expect(await client.listBranchActivity("session-1" as never, "root" as never)).toMatchObject({
-      items: [
-        {
-          id: "tool-call-1",
-          kind: "tool",
-          activityKind: "ToolInvocation",
-          toolArguments: { query: "architecture", token: "[REDACTED]" },
-        },
-        {
-          id: "tool-result-1",
-          kind: "tool",
-          activityKind: "ToolResult",
-          parentId: "tool-call-1",
-          handles: ["tool-result-1"],
-        },
-      ],
-    });
-    expect(await client.getBranchResult("session-1" as never, "result-1")).toEqual({
-      branchId: "child",
-      resultId: "result-1",
-      handles: ["migration-1", "artifact-1"],
-    });
+
+    expect(library.models).toEqual([
+      {
+        id: "model-a",
+        displayName: "Model A",
+        providerId: "provider-a",
+        modelId: "wire-model-a",
+        thinkingLevels: ["extended"],
+      },
+    ]);
+    expect(library.models[0]?.metadataSnapshot).toBeUndefined();
+    expect(library).not.toHaveProperty("profiles");
   });
 });

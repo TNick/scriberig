@@ -148,10 +148,10 @@ pub use branch::{Branch, BranchStatus};
 pub use description::Description;
 pub use error::SessionError;
 pub use execution::{
-    AgentActivityKind, AgentActivityState, CacheDisposition, ExecutionActivity, ModelInvocation,
-    ModelOutput, ModelRequestMessage, ModelRequestProjection, ModelRequestTool, SelectionError,
-    SessionActivityKind, SessionActivityState, SessionExecutionChange, SessionExecutionSelection,
-    ToolActivityKind,
+    AgentActivityKind, AgentActivityState, CacheDisposition, ExecutionActivity,
+    ModelContextRevisionRef, ModelInvocation, ModelOutput, ModelRequestMessage,
+    ModelRequestProjection, ModelRequestTool, SelectionError, SessionActivityKind,
+    SessionActivityState, SessionExecutionChange, SessionExecutionSelection, ToolActivityKind,
 };
 pub use planning::{
     CoordinatorClaim, ExpectedResult, ModelAssignment, Plan, PlanDependency, PlanError, PlanNode,

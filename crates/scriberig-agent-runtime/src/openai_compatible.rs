@@ -31,14 +31,6 @@ pub struct OpenAiCompatibleProvider {
     transport: Arc<dyn CompletionTransport>,
     /// Declared capabilities for this compatibility adapter.
     capabilities: ProviderCapabilities,
-    /// Adapter-local translation from public level ids to wire fields.
-    thinking_parameters:
-        std::collections::BTreeMap<String, std::collections::BTreeMap<String, serde_json::Value>>,
-    /// Model-specific translation from public levels to wire fields.
-    model_thinking_parameters: std::collections::BTreeMap<
-        (String, String),
-        std::collections::BTreeMap<String, serde_json::Value>,
-    >,
 }
 
 impl OpenAiCompatibleProvider {
@@ -80,50 +72,7 @@ impl OpenAiCompatibleProvider {
                 provider_model_fingerprint: true,
                 ..ProviderCapabilities::default()
             },
-            thinking_parameters: std::collections::BTreeMap::new(),
-            model_thinking_parameters: std::collections::BTreeMap::new(),
         })
-    }
-
-    /// Configures this adapter's translation for one advertised thinking id.
-    ///
-    /// - `self`: OpenAI-compatible provider adapter.
-    /// - `level`: Provider-neutral thinking capability id.
-    /// - `parameters`: Provider-specific request fields for this adapter.
-    ///
-    /// The adapter with the translation installed.
-    #[must_use]
-    /// # Returns
-    /// The operation result.
-    pub fn with_thinking_parameters(
-        mut self,
-        level: impl Into<String>,
-        parameters: std::collections::BTreeMap<String, serde_json::Value>,
-    ) -> Self {
-        self.thinking_parameters.insert(level.into(), parameters);
-        self
-    }
-
-    /// Configures a model-specific thinking-level translation.
-    ///
-    /// - `self`: OpenAI-compatible provider adapter.
-    /// - `model`: Provider-native model identifier.
-    /// - `level`: Model-advertised thinking capability id.
-    /// - `parameters`: Provider-specific request fields for this model level.
-    ///
-    /// The adapter with the model-specific translation installed.
-    #[must_use]
-    /// # Returns
-    /// The operation result.
-    pub fn with_model_thinking_parameters(
-        mut self,
-        model: impl Into<String>,
-        level: impl Into<String>,
-        parameters: std::collections::BTreeMap<String, serde_json::Value>,
-    ) -> Self {
-        self.model_thinking_parameters
-            .insert((model.into(), level.into()), parameters);
-        self
     }
 
     /// Replaces the completion transport for deterministic adapter tests.
@@ -183,12 +132,7 @@ impl ProviderAdapter for OpenAiCompatibleProvider {
     /// Returns an error when the operation fails.
     fn complete(&self, request: &ModelRequest) -> Result<ModelResponse, ProviderError> {
         let credential = self.config.resolve_credential()?;
-        let payload = WireRequest::from_request_for_models(
-            request,
-            false,
-            &self.thinking_parameters,
-            &self.model_thinking_parameters,
-        );
+        let payload = WireRequest::from_request(request, false);
         let response = self.transport.send(
             &self.endpoint(),
             &payload,

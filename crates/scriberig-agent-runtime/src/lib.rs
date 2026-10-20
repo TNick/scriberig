@@ -16,11 +16,13 @@ pub mod model_provider;
 pub mod openai_compatible;
 pub mod orchestration;
 pub mod plan_context;
+pub mod profile;
 pub mod provider;
 pub mod runtime;
 pub mod scheduler;
 pub mod stream;
 pub mod tools;
+pub mod upstream_tool;
 
 pub use runtime::{AgentRuntime, cancellation_flag};
 
@@ -143,7 +145,7 @@ pub trait ModelProvider {
 
     /// Returns and clears captured safe request projections since the last call.
     ///
-    /// Provider-neutral requests prepared for completed invocations.
+    /// Provider-neutral requests prepared immediately before provider calls.
     /// # Returns
     /// The operation result.
     fn take_request_projections(&mut self) -> Vec<scriberig_session::ModelRequestProjection> {

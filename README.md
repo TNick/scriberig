@@ -1,12 +1,12 @@
-# Scriberig
+# ScribeRig
 
-Scriberig is a structured knowledge and agent platform for working with code, documents, PDFs, sessions, project decisions, tool results, and other domains through one common model.
+ScribeRig is a structured knowledge and agent platform for working with code, documents, PDFs, sessions, project decisions, tool results, and other domains through one common model.
 
 Its central idea is:
 
 > Store meaning as structured knowledge. Treat files, transcripts, user interfaces, and model context as projections of that knowledge.
 
-Instead of making files or chat transcripts the primary source of truth, Scriberig models knowledge as typed entities, relations, immutable revisions, and snapshots. Supported files remain normal human-editable projections: changes made in external editors can be parsed and reconciled back into semantic changes.
+Instead of making files or chat transcripts the primary source of truth, ScribeRig models knowledge as typed entities, relations, immutable revisions, and snapshots. Supported files remain normal human-editable projections: changes made in external editors can be parsed and reconciled back into semantic changes.
 
 The same foundation is intended to support ordinary applications as well as agents. Storage, querying, domain adapters, projections, CLI, API, TUI, reusable web libraries, and the full editor are designed as layers over shared capabilities. Agents are consumers of those capabilities rather than privileged owners of the system.
 
@@ -132,34 +132,33 @@ The TUI can scan a project before startup and optionally import it:
 srig tui --db scriberig.sqlite --project PATH --import
 ```
 
-The native agent reads an optional JSON model catalog from
-`SCRIBE_AGENT_MODEL_CATALOG`. Each catalog entry supplies a stable model `id`,
-`display_name`, provider-native `provider_model_id`, and optional
-`thinking_levels`. A thinking level has an `id`, `label`, and optional
-provider-specific `provider_parameters` object. These parameters stay in the
-runtime adapter and are never returned in the public model library. If the
-variable is unset, the configured `SCRIBE_AGENT_MODEL` is exposed as the only
-model and has no thinking levels.
+The native agent reads an optional upstream `rpi-model-runtime` `ModelsConfig`
+from `SCRIBE_AGENT_MODEL_CATALOG`. Model metadata and thinking support come
+from the upstream catalog; ScribeRig does not accept a separate model list or
+thinking-level schema. The current native host rejects credentials and request
+headers embedded in this JSON until its protected provider-auth path is wired.
+If the variable is unset, `SCRIBE_AGENT_MODEL` supplies the single fallback
+model.
 
 ```json
 {
-  "models": [
-    {
-      "id": "local-reasoner",
-      "display_name": "Local Reasoner",
-      "provider_model_id": "reasoner-v2",
-      "thinking_levels": [
+  "providers": {
+    "openai": {
+      "name": "OpenAI-compatible",
+      "api": "openai-completions",
+      "baseUrl": "https://api.example.invalid/v1",
+      "models": [
         {
-          "id": "deliberate",
-          "label": "Deliberate",
-          "provider_parameters": {
-            "reasoning_effort": "high"
+          "id": "reasoner-v2",
+          "name": "Local Reasoner",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "high": "high"
           }
         }
-      ],
-      "default_thinking_level": "deliberate"
+      ]
     }
-  ]
+  }
 }
 ```
 

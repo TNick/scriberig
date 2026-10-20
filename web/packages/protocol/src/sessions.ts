@@ -210,11 +210,19 @@ export interface ModelRequestToolDetail {
   description: string;
   parameters?: string;
 }
+/** Exact safe reference to one profile or context-component revision. */
+export interface ModelContextRevisionReference {
+  identity: string;
+  revision: string;
+}
 /** Safe normalized request captured before provider-specific serialization. */
 export interface ModelRequestDetailResponse {
   invocation: string;
   model: string;
+  providerId?: string;
   thinkingLevel?: string;
+  profile?: ModelContextRevisionReference;
+  activeComponents?: readonly ModelContextRevisionReference[];
   messages: readonly ModelRequestMessageDetail[];
   tools: readonly ModelRequestToolDetail[];
   truncated: boolean;

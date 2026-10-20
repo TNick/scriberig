@@ -20,33 +20,18 @@ pub(super) struct WireRequest {
     max_tokens: Option<u32>,
     #[serde(skip_serializing_if = "is_false")]
     stream: bool,
-    #[serde(flatten)]
-    provider_parameters: std::collections::BTreeMap<String, serde_json::Value>,
 }
 
 impl WireRequest {
-    /// Converts a request using both global and model-specific translations.
+    /// Converts a request to provider wire fields without local reasoning maps.
     ///
     /// - `request`: Provider-neutral request.
     /// - `stream`: Whether the provider should stream SSE fragments.
-    /// - `thinking_parameters`: Adapter-wide translations by level id.
-    /// - `model_thinking_parameters`: Translations by model and level id.
     ///
     /// OpenAI-compatible request fields.
     /// # Returns
     /// The operation result.
-    pub(super) fn from_request_for_models(
-        request: &ModelRequest,
-        stream: bool,
-        thinking_parameters: &std::collections::BTreeMap<
-            String,
-            std::collections::BTreeMap<String, serde_json::Value>,
-        >,
-        model_thinking_parameters: &std::collections::BTreeMap<
-            (String, String),
-            std::collections::BTreeMap<String, serde_json::Value>,
-        >,
-    ) -> Self {
+    pub(super) fn from_request(request: &ModelRequest, stream: bool) -> Self {
         let tool_choice = match &request.tool_choice {
             ToolChoice::Auto => Some(serde_json::json!("auto")),
             ToolChoice::None => Some(serde_json::json!("none")),
@@ -78,16 +63,6 @@ impl WireRequest {
             temperature: request.temperature,
             max_tokens: request.max_tokens,
             stream,
-            provider_parameters: request
-                .thinking_level
-                .as_ref()
-                .and_then(|level| {
-                    model_thinking_parameters
-                        .get(&(request.model.clone(), level.clone()))
-                        .or_else(|| thinking_parameters.get(level))
-                })
-                .cloned()
-                .unwrap_or_default(),
         }
     }
 }

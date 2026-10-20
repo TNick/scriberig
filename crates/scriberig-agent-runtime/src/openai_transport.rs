@@ -152,12 +152,7 @@ impl OpenAiCompatibleProvider {
         on_text: &mut dyn FnMut(&str),
     ) -> Result<ModelResponse, ProviderError> {
         let credential = self.config.resolve_credential()?;
-        let payload = super::WireRequest::from_request_for_models(
-            request,
-            true,
-            &self.thinking_parameters,
-            &self.model_thinking_parameters,
-        );
+        let payload = super::WireRequest::from_request(request, true);
         let mut builder = self
             .client
             .post(self.endpoint())

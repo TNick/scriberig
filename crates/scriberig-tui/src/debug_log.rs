@@ -253,15 +253,7 @@ fn model_library_label(
         crate::inspector::LoadState::Loading { .. } => "loading".to_owned(),
         crate::inspector::LoadState::Failed { category, .. } => format!("failed:{category}"),
         crate::inspector::LoadState::Ready(library) => {
-            let enabled = library
-                .profiles
-                .iter()
-                .filter(|profile| profile.enabled)
-                .count();
-            format!(
-                "ready:profiles={},enabled={enabled}",
-                library.profiles.len()
-            )
+            format!("ready:models={}", library.models.len())
         }
     }
 }

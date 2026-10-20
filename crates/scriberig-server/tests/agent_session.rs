@@ -226,39 +226,6 @@ fn model_library_request_is_dispatched() {
 /// Verifies a model selection persists through the public protocol session read.
 #[test]
 fn model_selection_mutation_round_trips_through_server() {
-    let model_id = scriberig_app::ModelId::new("model-a").expect("model id");
-    let library = scriberig_app::ModelLibrary::new(
-        vec![scriberig_app::ModelDescriptor {
-            id: model_id.clone(),
-            display_name: "Model A".to_owned(),
-            provider_profile: "provider-a".to_owned(),
-            provider_model_id: "wire-model-a".to_owned(),
-            capabilities: scriberig_app::ModelCapabilities::default(),
-            thinking_levels: vec![scriberig_app::ThinkingLevelDescriptor {
-                id: scriberig_app::ThinkingLevelId::new("xhigh").expect("level id"),
-                label: "Deep dive".to_owned(),
-                description: None,
-                order: 0,
-            }],
-            default_thinking_level: Some(
-                scriberig_app::ThinkingLevelId::new("xhigh").expect("level id"),
-            ),
-        }],
-        vec![scriberig_app::ModelProfile {
-            id: "profile-a".to_owned(),
-            display_name: "Primary".to_owned(),
-            model: model_id,
-            connection: "connection-a".to_owned(),
-            credential: Some(scriberig_app::CredentialRef {
-                id: "credential-ref-only".to_owned(),
-            }),
-            default_thinking_level: Some(
-                scriberig_app::ThinkingLevelId::new("xhigh").expect("level id"),
-            ),
-            enabled: true,
-        }],
-    )
-    .expect("model library");
     let mut upstream_model = Model::new(
         "wire-model-a",
         "Model A",
@@ -270,9 +237,7 @@ fn model_selection_mutation_round_trips_through_server() {
         ThinkingLevel::Xhigh,
         Some("xhigh".to_owned()),
     )]));
-    let service = ApplicationService::new(Fixture)
-        .with_model_library(library)
-        .with_upstream_models(vec![upstream_model]);
+    let service = ApplicationService::new(Fixture).with_upstream_models(vec![upstream_model]);
     let dispatcher = Dispatcher::new(&service);
     let session = "ent_01010101010101010101010101010101".to_owned();
     let response = dispatcher.dispatch(RequestEnvelope {

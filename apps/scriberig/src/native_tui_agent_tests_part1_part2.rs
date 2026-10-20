@@ -14,7 +14,12 @@ fn native_runtime_model_resolution_uses_fallback_without_selection() {
 
     assert_eq!(
         resolved,
-        ("runtime-default".to_owned(), None, "local".to_owned())
+        (
+            "local".to_owned(),
+            "runtime-default".to_owned(),
+            None,
+            "local".to_owned(),
+        )
     );
 }
 
@@ -48,8 +53,9 @@ fn running_invocation_keeps_its_model_and_thinking_snapshot() {
             metadata: ProviderMetadata::default(),
         }),
     ]);
-    let mut active_model = ProviderModel::new(provider.clone(), active_invocation.0.clone())
-        .with_thinking_level(active_invocation.1.clone());
+    let mut active_model = ProviderModel::new(provider.clone(), active_invocation.1.clone())
+        .with_provider_id(active_invocation.0.clone())
+        .with_thinking_level(active_invocation.2.clone());
     let next_selection = SessionExecutionSelection {
         revision: 2,
         provider_id: Some("local".to_owned()),
@@ -63,8 +69,9 @@ fn running_invocation_keeps_its_model_and_thinking_snapshot() {
     active_model
         .decide(&[AgentMessage::User("active prompt".to_owned())])
         .expect("active invocation response");
-    let mut next_model = ProviderModel::new(provider.clone(), next_invocation.0.clone())
-        .with_thinking_level(next_invocation.1.clone());
+    let mut next_model = ProviderModel::new(provider.clone(), next_invocation.1.clone())
+        .with_provider_id(next_invocation.0.clone())
+        .with_thinking_level(next_invocation.2.clone());
     next_model
         .decide(&[AgentMessage::User("next prompt".to_owned())])
         .expect("next invocation response");
@@ -72,6 +79,7 @@ fn running_invocation_keeps_its_model_and_thinking_snapshot() {
     assert_eq!(
         active_invocation,
         (
+            "local".to_owned(),
             "wire-a".to_owned(),
             Some("medium".to_owned()),
             "local".to_owned()
@@ -80,6 +88,7 @@ fn running_invocation_keeps_its_model_and_thinking_snapshot() {
     assert_eq!(
         next_invocation,
         (
+            "local".to_owned(),
             "wire-b".to_owned(),
             Some("high".to_owned()),
             "local".to_owned()

@@ -75,7 +75,7 @@ export class WorkspaceModel {
   }
 
   /** Stores the safe public model library for reusable agent controls.
-   * @param library Shared model descriptors and profiles.
+   * @param library Shared upstream-derived model descriptors.
    */
   setAgentModelLibrary(library: ModelLibraryResponse): void {
     this.agentState = storeAgentModelLibrary(this.agentState, library);

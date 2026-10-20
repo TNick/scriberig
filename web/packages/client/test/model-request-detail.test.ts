@@ -12,6 +12,7 @@ describe("model request detail", () => {
         return {
           invocation: "invocation-1",
           model: "model-a",
+          provider_id: "provider-a",
           messages: [{ role: "user", content: "safe prompt" }],
           tools: [],
           truncated: false,
@@ -27,6 +28,7 @@ describe("model request detail", () => {
     );
 
     expect(detail.messages[0]?.content).toBe("safe prompt");
+    expect(detail.providerId).toBe("provider-a");
     expect(calls).toEqual([
       [
         "model_request_detail",

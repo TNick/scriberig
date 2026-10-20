@@ -1,4 +1,4 @@
-//! Builds interactive model and thinking pickers from shared descriptors.
+//! Builds model and thinking pickers from shared upstream-derived rows.
 
 use crate::{
     effect::Effect,
@@ -8,10 +8,10 @@ use crate::{
 };
 use scriberig_core::EntityId;
 
-/// Opens a model picker from the latest credential-safe model library.
+/// Opens a model picker from the upstream-derived model library.
 ///
 /// - `state`: TUI state whose model picker should open.
-/// - `library`: Current safe model and profile descriptors.
+/// - `library`: Current safe upstream-derived model rows.
 pub(crate) fn show_model_picker(
     state: &mut TuiState,
     library: &scriberig_protocol::ModelLibraryResponse,
@@ -23,7 +23,7 @@ pub(crate) fn show_model_picker(
             id: format!("select-model:{}", model.id),
             label: format!(
                 "{} · {}/{}",
-                model.display_name, model.provider_profile, model.provider_model_id
+                model.display_name, model.provider_id, model.provider_model_id
             ),
             source: crate::overlay::palette::ActionSource::Local,
         })
@@ -42,12 +42,12 @@ pub(crate) fn show_model_picker(
     }));
 }
 
-/// Opens a credential-safe model picker for one selected plan node.
+/// Opens a model picker for one selected plan node.
 ///
 /// - `state`: TUI state holding the exact plan assignment target.
-/// - `library`: Shared credential-safe model library.
+/// - `library`: Shared safe upstream-derived model library.
 ///
-/// Unit after showing enabled profile and model options.
+/// Unit after showing available model options.
 pub(crate) fn show_plan_assignment_picker(
     state: &mut TuiState,
     library: &scriberig_protocol::ModelLibraryResponse,
@@ -64,7 +64,7 @@ pub(crate) fn show_plan_assignment_picker(
             id: format!("assign-plan-model:{}", model.id),
             label: format!(
                 "{} · {}/{}",
-                model.display_name, model.provider_profile, model.provider_model_id
+                model.display_name, model.provider_id, model.provider_model_id
             ),
             source: crate::overlay::palette::ActionSource::Local,
         })
@@ -101,16 +101,14 @@ pub(crate) fn show_thinking_picker(state: &mut TuiState) -> Vec<Effect> {
         let levels = library
             .models
             .iter()
-            .find(|model| {
-                model.provider_profile == provider_id && model.provider_model_id == model_id
-            })
+            .find(|model| model.provider_id == provider_id && model.provider_model_id == model_id)
             .map(|model| {
                 model
                     .thinking_levels
                     .iter()
                     .map(|level| crate::overlay::palette::PaletteItem {
-                        id: format!("select-thinking:{}", level.id),
-                        label: level.label.clone(),
+                        id: format!("select-thinking:{level}"),
+                        label: level.clone(),
                         source: crate::overlay::palette::ActionSource::Local,
                     })
                     .collect::<Vec<_>>()
@@ -135,7 +133,7 @@ pub(crate) fn show_thinking_picker(state: &mut TuiState) -> Vec<Effect> {
     state.model_library = LoadState::Loading { request_id };
     state.thinking_picker_pending = Some(());
     state.overlay = None;
-    "Loading available model capabilities…".clone_into(&mut state.shell_message);
+    "Loading available model options…".clone_into(&mut state.shell_message);
     vec![Effect::ReadModelLibrary { request_id }]
 }
 
@@ -204,7 +202,7 @@ pub(crate) fn select_model(state: &mut TuiState, model_id: &str) -> Vec<Effect> 
         scriberig_app::SessionModelSelectionRequest {
             session,
             expected_revision: revision,
-            provider_id: model.provider_profile.clone(),
+            provider_id: model.provider_id.clone(),
             model_id: model.provider_model_id.clone(),
         },
     )]

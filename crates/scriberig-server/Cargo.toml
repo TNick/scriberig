@@ -21,7 +21,8 @@ scriberig-session = { path = "../scriberig-session" }
 scriberig-session-sqlite = { path = "../scriberig-session-sqlite" }
 scriberig-agent-core = { path = "../scriberig-agent-core" }
 scriberig-agent-runtime = { path = "../scriberig-agent-runtime" }
-rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "4a52baf41a19a889ca96c0f38369f7482f26973e" }
+rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "6e2f83b" }
+rpi-model-runtime = { git = "https://github.com/TNick/pi-rust", rev = "6e2f83b" }
 sr-projection-fs = { path = "../sr-projection-fs" }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }

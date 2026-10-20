@@ -238,6 +238,9 @@ pub struct ModelInvocation {
     pub context_fingerprint: Option<String>,
     /// Safe display identifier for the provider profile.
     pub provider_profile: Option<String>,
+    /// Upstream provider identity resolved for this invocation.
+    #[serde(default)]
+    pub provider_id: Option<String>,
     /// Safe model identifier.
     pub model: Option<String>,
     /// Curated model profile selected for this invocation.
@@ -267,14 +270,41 @@ pub struct ModelRequestProjection {
     pub ordinal: u64,
     /// Provider-neutral model identifier selected for the request.
     pub model: String,
+    /// Upstream provider identity resolved for this request, when available.
+    #[serde(default)]
+    pub provider_id: Option<String>,
+    /// Safe `ScribeRig` provider profile identifier, when used.
+    #[serde(default)]
+    pub provider_profile: Option<String>,
     /// Model-advertised thinking level selected for the request.
     pub thinking_level: Option<String>,
+    /// Exact safe profile revision used to compile this request.
+    #[serde(default)]
+    pub profile: Option<ModelContextRevisionRef>,
+    /// Active safe component revisions in compilation order.
+    #[serde(default)]
+    pub active_components: Vec<ModelContextRevisionRef>,
+    /// Secret-free identity of compiled `ScribeRig` context.
+    #[serde(default)]
+    pub context_fingerprint: Option<String>,
+    /// Secret-free fingerprint of normalized request and selection inputs.
+    #[serde(default)]
+    pub request_fingerprint: Option<String>,
     /// Ordered message sections sent to the provider adapter.
     pub messages: Vec<ModelRequestMessage>,
     /// Tool definitions exposed to the provider adapter.
     pub tools: Vec<ModelRequestTool>,
     /// Whether any content was omitted to preserve the projection budget.
     pub truncated: bool,
+}
+
+/// Safe exact reference to one profile or context-component revision.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct ModelContextRevisionRef {
+    /// Stable semantic identity.
+    pub identity: String,
+    /// Exact immutable revision identity.
+    pub revision: String,
 }
 
 /// One provider-neutral message retained in a request projection.

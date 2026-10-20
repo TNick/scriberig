@@ -2,6 +2,29 @@
 
 use super::*;
 
+/// Creates a safe model metadata fixture for presentation actions.
+///
+/// # Returns
+/// A neutral upstream metadata snapshot for model control fixtures.
+fn model_metadata_snapshot() -> scriberig_protocol::PublicModelMetadataSnapshot {
+    scriberig_protocol::PublicModelMetadataSnapshot {
+        schema_version: "rpi-safe-model-snapshot-v1".to_owned(),
+        api_id: "openai-completions".to_owned(),
+        reasoning: false,
+        input: vec![scriberig_protocol::PublicModelInputModality::Text],
+        cost: scriberig_protocol::PublicModelCostSnapshot {
+            input: 0.0,
+            output: 0.0,
+            cache_read: 0.0,
+            cache_write: 0.0,
+            tiers: Vec::new(),
+        },
+        cost_configured: false,
+        context_window: 4096,
+        max_tokens: 1024,
+    }
+}
+
 /// Verifies shared preferences fill untouched controls and preserve local choices.
 #[test]
 fn shared_preferences_resolve_beneath_local_tui_overrides() {
@@ -207,11 +230,10 @@ fn plan_assignment_picker_reports_lost_session_context() {
     let model = scriberig_protocol::PublicModelDescriptor {
         id: "descriptor-a".to_owned(),
         display_name: "Model A".to_owned(),
-        provider_profile: "provider-a".to_owned(),
+        provider_id: "provider-a".to_owned(),
         provider_model_id: "model-a".to_owned(),
-        capabilities: scriberig_protocol::PublicModelCapabilities::default(),
         thinking_levels: Vec::new(),
-        default_thinking_level: None,
+        metadata_snapshot: model_metadata_snapshot(),
     };
     let mut state = TuiState {
         plan_assignment_target: Some(crate::state::PlanAssignmentTarget {
@@ -222,7 +244,6 @@ fn plan_assignment_picker_reports_lost_session_context() {
         model_library: crate::inspector::LoadState::Ready(
             scriberig_protocol::ModelLibraryResponse {
                 models: vec![model],
-                profiles: Vec::new(),
             },
         ),
         ..TuiState::default()
@@ -252,11 +273,10 @@ fn plan_assignment_uses_selected_model_after_reordering() {
         |id: &str, provider: &str, model_id: &str| scriberig_protocol::PublicModelDescriptor {
             id: id.to_owned(),
             display_name: id.to_owned(),
-            provider_profile: provider.to_owned(),
+            provider_id: provider.to_owned(),
             provider_model_id: model_id.to_owned(),
-            capabilities: scriberig_protocol::PublicModelCapabilities::default(),
             thinking_levels: Vec::new(),
-            default_thinking_level: None,
+            metadata_snapshot: model_metadata_snapshot(),
         };
     let mut state = TuiState {
         plan_assignment_target: Some(crate::state::PlanAssignmentTarget {
@@ -278,7 +298,6 @@ fn plan_assignment_uses_selected_model_after_reordering() {
                     model("descriptor-b", "provider-b", "model-b"),
                     model("descriptor-a", "provider-a", "model-a"),
                 ],
-                profiles: Vec::new(),
             },
         ),
         ..TuiState::default()
@@ -292,7 +311,9 @@ fn plan_assignment_uses_selected_model_after_reordering() {
         effects.as_slice(),
         [Effect::SetPlanNodeAssignment(request)]
             if request.assignment.as_ref().is_some_and(|assignment| {
-                assignment.provider_id == "provider-a" && assignment.model_id == "model-a"
+                assignment.provider_id == "provider-a"
+                    && assignment.model_id == "model-a"
+                    && assignment.thinking_level.is_none()
             })
     ));
 }

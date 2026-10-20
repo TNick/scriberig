@@ -27,7 +27,8 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         provider_id: &str,
         model_id: &str,
         thinking_level: Option<&str>,
-    ) -> Result<(&rpi_ai::Model, rpi_ai::ThinkingLevel), ApplicationError> {
+    ) -> Result<(rpi_ai::Model, rpi_ai::ThinkingLevel), ApplicationError> {
+        let catalog_snapshot = self.model_catalog.snapshot();
         let thinking = thinking_level
             .map(|level| crate::ThinkingLevelId::new(level.to_owned()).map_err(invalid_selection))
             .transpose()?
@@ -36,7 +37,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
                     .expect("ThinkingLevelId uses upstream parsing")
             });
         let resolved = rpi_model_runtime::resolve_selection(
-            &self.upstream_models,
+            &catalog_snapshot.models,
             &rpi_model_runtime::ModelSelection {
                 provider_id: provider_id.to_owned(),
                 model_id: model_id.to_owned(),
@@ -45,7 +46,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         )
         .map_err(|error| invalid_selection(error.to_string()))?;
         Ok((
-            &self.upstream_models[resolved.catalog_index],
+            catalog_snapshot.models[resolved.catalog_index].clone(),
             resolved.effective_thinking,
         ))
     }

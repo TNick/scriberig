@@ -57,8 +57,7 @@ fn historical_tui_continuation_compiles_exact_provider_context() {
             NativeProvider::Fake(provider.clone()),
         )]),
         model: "fake-model".to_owned(),
-        model_library: ModelLibrary::default(),
-        upstream_models: native_test_upstream_models(),
+        model_catalog: model_catalog_from_models(native_test_upstream_models()),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
     };
@@ -251,7 +250,7 @@ fn native_context_uses_exact_anchor_and_current_branch_history() {
     )
     .expect("persist exact test session");
 
-    let compiled = super::super::context::compile_branch_context(
+    let compiled = crate::agent_context::compile_branch_context(
         &service,
         &context,
         session_id,
@@ -268,6 +267,36 @@ fn native_context_uses_exact_anchor_and_current_branch_history() {
     assert!(!compiled.canonical.contains("turn C excluded"));
     assert!(!compiled.canonical.contains("sibling secret"));
     assert_eq!(compiled.canonical.matches("current prompt").count(), 1);
+    assert!(
+        compiled
+            .canonical
+            .contains("scriberig.context-component.core-invariants@")
+    );
+    assert!(
+        compiled
+            .canonical
+            .contains("scriberig.context-component.non-root-handoff@")
+    );
+
+    let root_compiled = crate::agent_context::compile_branch_context(
+        &service,
+        &context,
+        session_id,
+        root_id,
+        "root user-facing prompt",
+        None,
+    )
+    .expect("compile root context without project scope");
+    assert!(
+        root_compiled
+            .canonical
+            .contains("scriberig.context-component.core-invariants@")
+    );
+    assert!(
+        !root_compiled
+            .canonical
+            .contains("scriberig.context-component.non-root-handoff@")
+    );
     drop(service);
     drop(store);
     std::fs::remove_dir_all(root).expect("remove fixture");
@@ -294,9 +323,10 @@ fn session_model_and_thinking_selection_resolve_for_native_runtime() {
     let resolved = resolve_selected_runtime_model(&[upstream_model], &selection, "runtime-default")
         .expect("resolve selected settings");
 
-    assert_eq!(resolved.0, "provider-model-2");
-    assert_eq!(resolved.1.as_deref(), Some("high"));
-    assert_eq!(resolved.2, "rpi1:17:openai_compatible16:provider-model-2");
+    assert_eq!(resolved.0, "openai_compatible");
+    assert_eq!(resolved.1, "provider-model-2");
+    assert_eq!(resolved.2.as_deref(), Some("high"));
+    assert_eq!(resolved.3, "rpi1:17:openai_compatible16:provider-model-2");
 }
 
 #[path = "native_tui_agent_tests_part1_part2.rs"]

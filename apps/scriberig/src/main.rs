@@ -13,6 +13,7 @@ use scriberig_app::{
 use scriberig_store_sqlite::SqliteStore;
 
 mod agent_config;
+mod agent_context;
 mod agent_tool;
 mod agent_tool_helpers;
 mod bootstrap_failure_provider;
@@ -47,8 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             let runner = Arc::new(native_tui_agent::NativeTuiAgentRunner::from_environment(
                 Arc::clone(&store),
             )?);
-            let model_library = runner.model_library();
-            let upstream_models = runner.upstream_models();
+            let model_catalog = runner.model_catalog();
             let plan_lifecycle_handler: Arc<scriberig_server::PlanLifecycleHandler> =
                 Arc::new(move |service, context, request, action| {
                     let mut runtime_context = context.clone();
@@ -74,10 +74,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 args.allow_origin.as_deref(),
                 &args.project_roots,
                 Some(plan_lifecycle_handler),
-                scriberig_server::ServerModelCatalog {
-                    library: model_library,
-                    upstream_models,
-                },
+                scriberig_server::ServerModelCatalog { model_catalog },
             )?;
         }
         scriberig_cli::Command::Tui(args) => tui_command::run(&args)?,
@@ -229,7 +226,13 @@ fn run_shared_agent(
                 return Err(Box::new(error));
             }
         };
-    service.complete_local_agent(&handle, runtime_result.output)?;
+    service.complete_local_agent_with_evidence(
+        &handle,
+        runtime_result.output,
+        Vec::new(),
+        runtime_result.tool_evidence,
+        runtime_result.model_requests,
+    )?;
     let operation = handle.operation;
     let record = service.operations().get(&operation)?;
     let result = record
@@ -285,6 +288,7 @@ fn run_composed_model<B: scriberig_app::ApplicationBackend>(
                 })?;
         return execute_model(
             provider,
+            Some(args.provider.clone()),
             args.model.clone(),
             service,
             project_store,

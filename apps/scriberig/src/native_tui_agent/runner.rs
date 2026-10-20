@@ -131,6 +131,7 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
             std::sync::Arc::clone(&self.project_store),
             claim.operation.clone(),
         );
+        let upstream_models = service.upstream_models();
         let execution = scriberig_agent_runtime::coordinator::PlanCoordinator::run_until_idle(
             service,
             context,
@@ -138,7 +139,7 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
             plan.id,
             claim.id,
             &executor,
-            service.upstream_models(),
+            &upstream_models,
             &self.model,
             4,
             EntityId::new,
@@ -224,7 +225,7 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
             || previous_workspace_selection(service, context, session),
             |value| Ok(Some(value)),
         )?;
-        let (model, thinking_level, connection) =
+        let (provider_id, model, thinking_level, connection) =
             selected_runtime_model(service, context, session, &self.model)?;
         let cancelled = service.operations().cancellation_flag(&handle.operation)?;
         let Some(provider) = self.providers.get(&connection) else {
@@ -238,9 +239,11 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
             || context.clone(),
             |selection| context.clone().with_snapshot(selection.snapshot),
         );
+        let mut model_requests_on_failure = Vec::new();
         let result = execute_agent(
             provider.clone(),
             &model,
+            Some(&provider_id),
             thinking_level.as_deref(),
             service,
             &self.project_store,
@@ -251,12 +254,17 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
             &handle.prompt,
             selection.as_ref(),
             &cancelled,
+            &mut model_requests_on_failure,
         );
         let result = match result {
             Ok(result) => result,
             Err(error) => {
                 let message = error.to_string();
-                service.fail_local_agent(handle, &message)?;
+                service.fail_local_agent_with_model_requests(
+                    handle,
+                    "agent execution failed",
+                    model_requests_on_failure,
+                )?;
                 return Err(ApplicationError::OperationFailed {
                     operation: handle.operation.to_string(),
                     message,

@@ -75,7 +75,7 @@ pub enum Request {
 }
 
 /// Initial typed responses supported by the remote vertical slice.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, JsonSchema, PartialEq, Serialize)]
 pub enum Response {
     /// Inspection result.
     Inspect(InspectEntityResponse),
@@ -129,7 +129,7 @@ pub struct RequestEnvelope {
 }
 
 /// Correlated protocol response envelope.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, JsonSchema, PartialEq, Serialize)]
 pub struct ResponseEnvelope {
     /// Protocol version used by the server.
     pub version: ProtocolVersion,

@@ -3,8 +3,7 @@
 use rpi_ai::{Api, Model, ThinkingLevel, ThinkingLevelMap};
 use scriberig_app::{
     ApplicationBackend, ApplicationContext, ApplicationError, ApplicationRequest,
-    ApplicationResult, ApplicationService, ModelCapabilities, ModelDescriptor, ModelId,
-    ModelLibrary, ModelProfile, ThinkingLevelDescriptor, ThinkingLevelId,
+    ApplicationResult, ApplicationService,
 };
 use scriberig_protocol::{ProtocolVersion, Request, RequestEnvelope, Response, SessionReference};
 use scriberig_server::Dispatcher;
@@ -55,18 +54,16 @@ fn envelope(correlation_id: &str, request: Request) -> RequestEnvelope {
 /// Verifies stale model and thinking writes conflict across two clients.
 #[test]
 fn stale_model_and_thinking_writes_conflict_between_clients() {
-    let service = ApplicationService::new(Fixture)
-        .with_model_library(model_library())
-        .with_upstream_models(vec![
-            Model::new(
-                "wire-a",
-                "Model A",
-                Api::AnthropicMessages,
-                "provider-a",
-                "https://example.test",
-            ),
-            model_b(),
-        ]);
+    let service = ApplicationService::new(Fixture).with_upstream_models(vec![
+        Model::new(
+            "wire-a",
+            "Model A",
+            Api::AnthropicMessages,
+            "provider-a",
+            "https://example.test",
+        ),
+        model_b(),
+    ]);
     let tui_client = Dispatcher::new(&service);
     let web_client = Dispatcher::new(&service);
     let session = SessionReference {
@@ -157,77 +154,6 @@ fn stale_model_and_thinking_writes_conflict_between_clients() {
         &switched,
         &changed,
     );
-}
-
-/// Builds a model library with two model-specific thinking-level sets.
-///
-/// Credential-safe descriptors used by the two-client concurrency test.
-/// # Returns
-/// The operation result.
-fn model_library() -> ModelLibrary {
-    let model_a = ModelId::new("model-a").expect("model id");
-    let model_b = ModelId::new("model-b").expect("model id");
-    ModelLibrary::new(
-        vec![
-            ModelDescriptor {
-                id: model_a.clone(),
-                display_name: "Model A".to_owned(),
-                provider_profile: "provider-a".to_owned(),
-                provider_model_id: "wire-a".to_owned(),
-                capabilities: ModelCapabilities::default(),
-                thinking_levels: vec![
-                    ThinkingLevelDescriptor {
-                        id: ThinkingLevelId::new("medium").expect("level id"),
-                        label: "Careful".to_owned(),
-                        description: None,
-                        order: 0,
-                    },
-                    ThinkingLevelDescriptor {
-                        id: ThinkingLevelId::new("high").expect("level id"),
-                        label: "Extended".to_owned(),
-                        description: None,
-                        order: 1,
-                    },
-                ],
-                default_thinking_level: Some(ThinkingLevelId::new("medium").expect("level id")),
-            },
-            ModelDescriptor {
-                id: model_b.clone(),
-                display_name: "Model B".to_owned(),
-                provider_profile: "provider-b".to_owned(),
-                provider_model_id: "wire-b".to_owned(),
-                capabilities: ModelCapabilities::default(),
-                thinking_levels: vec![ThinkingLevelDescriptor {
-                    id: ThinkingLevelId::new("low").expect("level id"),
-                    label: "Steady".to_owned(),
-                    description: None,
-                    order: 0,
-                }],
-                default_thinking_level: Some(ThinkingLevelId::new("low").expect("level id")),
-            },
-        ],
-        vec![
-            ModelProfile {
-                id: "profile-a".to_owned(),
-                display_name: "Profile A".to_owned(),
-                model: model_a,
-                connection: "connection-a".to_owned(),
-                credential: None,
-                default_thinking_level: None,
-                enabled: true,
-            },
-            ModelProfile {
-                id: "profile-b".to_owned(),
-                display_name: "Profile B".to_owned(),
-                model: model_b,
-                connection: "connection-b".to_owned(),
-                credential: None,
-                default_thinking_level: None,
-                enabled: true,
-            },
-        ],
-    )
-    .expect("model library")
 }
 
 /// Creates the upstream model whose low-only support clamps earlier choices.

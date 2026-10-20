@@ -283,7 +283,10 @@ fn assert_activity_detail_modes(
         scriberig_protocol::ModelRequestDetailResponse {
             invocation: entity.to_string(),
             model: "model-a".to_owned(),
+            provider_id: None,
             thinking_level: Some("careful".to_owned()),
+            profile: None,
+            active_components: Vec::new(),
             messages: vec![scriberig_protocol::ModelRequestMessageDetail {
                 role: "user".to_owned(),
                 content: "Inspect the safe fixture.".to_owned(),

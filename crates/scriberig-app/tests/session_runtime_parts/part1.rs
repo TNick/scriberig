@@ -129,9 +129,7 @@ fn shared_new_session_and_exact_continuation_return_durable_handles() {
 #[test]
 #[allow(clippy::too_many_lines)]
 fn application_plan_operations_validate_and_persist_structured_work() {
-    let service = ApplicationService::new(Fixture)
-        .with_model_library(session_model_library())
-        .with_upstream_models(session_upstream_models());
+    let service = ApplicationService::new(Fixture).with_upstream_models(session_upstream_models());
     let context = session_context();
     let session = EntityId::from_bytes([101; 16]);
     service

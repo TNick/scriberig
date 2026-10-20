@@ -3,80 +3,89 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// Describes a model-specific thinking capability.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct ThinkingLevelDescriptor {
-    /// Stable thinking capability id.
-    pub id: String,
-    /// Human-readable label.
-    pub label: String,
-    /// Optional safe explanation.
-    pub description: Option<String>,
-    /// Stable ordering within the model.
-    pub order: u32,
+/// Identifies an upstream model input modality safe for public display.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ModelInputModality {
+    /// Text input is supported.
+    Text,
+    /// Image input is supported.
+    Image,
 }
 
-/// Describes safe model features available to clients.
-#[derive(Clone, Debug, Default, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct ModelCapabilities {
-    /// Whether streamed output is available.
-    pub streaming: bool,
-    /// Whether structured tool calls are available.
-    pub tool_calls: bool,
-    /// Whether structured output is available.
-    pub structured_output: bool,
+/// Carries typed pricing metadata from the upstream safe snapshot.
+#[derive(Clone, Debug, Deserialize, JsonSchema, PartialEq, Serialize)]
+pub struct ModelCostSnapshot {
+    /// Cost per input token unit.
+    pub input: f64,
+    /// Cost per output token unit.
+    pub output: f64,
+    /// Cost per cached input token unit read.
+    pub cache_read: f64,
+    /// Cost per cached input token unit written.
+    pub cache_write: f64,
+    /// Optional pricing tiers for larger inputs.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tiers: Vec<ModelCostTierSnapshot>,
+}
+
+/// Describes one upstream pricing tier.
+#[derive(Clone, Debug, Deserialize, JsonSchema, PartialEq, Serialize)]
+pub struct ModelCostTierSnapshot {
+    /// Cost per input token unit at this tier.
+    pub input: f64,
+    /// Cost per output token unit at this tier.
+    pub output: f64,
+    /// Cost per cached input token unit read at this tier.
+    pub cache_read: f64,
+    /// Cost per cached input token unit written at this tier.
+    pub cache_write: f64,
+    /// Minimum input-token count for this tier.
+    pub input_tokens_above: i64,
+}
+
+/// Carries display-safe metadata from upstream's versioned model snapshot.
+#[derive(Clone, Debug, Deserialize, JsonSchema, PartialEq, Serialize)]
+pub struct ModelMetadataSnapshot {
+    /// Upstream snapshot schema identifier.
+    pub schema_version: String,
+    /// Public provider API identifier.
+    pub api_id: String,
+    /// Whether upstream marks the model as reasoning-capable.
+    pub reasoning: bool,
+    /// Input modalities supported by the model.
+    pub input: Vec<ModelInputModality>,
+    /// Typed pricing metadata from upstream.
+    pub cost: ModelCostSnapshot,
+    /// Whether pricing was explicitly configured upstream.
+    pub cost_configured: bool,
+    /// Upstream context-window limit in tokens.
+    pub context_window: u64,
+    /// Upstream maximum output-token limit.
+    pub max_tokens: u64,
 }
 
 /// Describes a provider model without resolved credentials.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, JsonSchema, PartialEq, Serialize)]
 pub struct ModelDescriptor {
     /// Stable Scriberig model id.
     pub id: String,
     /// Safe human-readable model name.
     pub display_name: String,
-    /// Safe provider profile id.
-    pub provider_profile: String,
+    /// Upstream provider id scoped to this model.
+    #[serde(alias = "provider_profile")]
+    pub provider_id: String,
     /// Provider-native model id needed to explain historical invocations.
     pub provider_model_id: String,
-    /// Safe model capabilities.
-    pub capabilities: ModelCapabilities,
-    /// Ordered thinking levels advertised by this model.
-    pub thinking_levels: Vec<ThinkingLevelDescriptor>,
-    /// Advertised default thinking capability.
-    pub default_thinking_level: Option<String>,
+    /// Upstream thinking-level identifiers supported by this model, in order.
+    pub thinking_levels: Vec<String>,
+    /// Safe metadata copied from the upstream versioned snapshot.
+    pub metadata_snapshot: ModelMetadataSnapshot,
 }
 
-/// Identifies a credential reference without its resolved value.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct CredentialRef {
-    /// Safe secret-store reference id.
-    pub id: String,
-}
-
-/// Describes one curated model entry available for selection.
-#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-pub struct ModelProfile {
-    /// Stable curated profile id.
-    pub id: String,
-    /// Safe display name.
-    pub display_name: String,
-    /// Stable model id selected by this profile.
-    pub model: String,
-    /// Safe connection reference.
-    pub connection: String,
-    /// Optional credential reference only.
-    pub credential: Option<CredentialRef>,
-    /// Optional supported default thinking level.
-    pub default_thinking_level: Option<String>,
-    /// Whether clients may select this profile.
-    pub enabled: bool,
-}
-
-/// Returns the safe model library and selectable profiles.
-#[derive(Clone, Debug, Default, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+/// Returns safe model rows projected from the upstream catalog.
+#[derive(Clone, Debug, Default, Deserialize, JsonSchema, PartialEq, Serialize)]
 pub struct ModelLibraryResponse {
-    /// Safe model descriptors.
+    /// Safe upstream-derived model display rows.
     pub models: Vec<ModelDescriptor>,
-    /// Curated model profiles.
-    pub profiles: Vec<ModelProfile>,
 }

@@ -323,9 +323,9 @@ pub(crate) fn activate_palette_control(state: &mut TuiState, item_id: &str) -> O
                 node: target.node,
                 expected_revision: target.expected_revision,
                 assignment: Some(scriberig_session::ModelAssignment {
-                    provider_id: model.provider_profile.clone(),
+                    provider_id: model.provider_id.clone(),
                     model_id: model.provider_model_id.clone(),
-                    thinking_level: model.default_thinking_level.clone(),
+                    thinking_level: None,
                 }),
             },
         )]);

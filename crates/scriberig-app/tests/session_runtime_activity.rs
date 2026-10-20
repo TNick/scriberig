@@ -91,7 +91,13 @@ fn local_agent_completion_persists_tool_invocation_and_result() {
             vec![scriberig_session::ModelRequestProjection {
                 ordinal: 0,
                 model: "local-model".to_owned(),
+                provider_id: Some("provider-upstream".to_owned()),
+                provider_profile: None,
                 thinking_level: Some("high".to_owned()),
+                profile: None,
+                active_components: Vec::new(),
+                context_fingerprint: None,
+                request_fingerprint: None,
                 messages: vec![scriberig_session::ModelRequestMessage {
                     role: "user".to_owned(),
                     content: "safe request".to_owned(),
@@ -109,6 +115,16 @@ fn local_agent_completion_persists_tool_invocation_and_result() {
             },
         )
         .expect("durable session");
+    let model_invocation = &session.branches[0].model_invocations[0];
+    assert_eq!(
+        model_invocation.provider_id.as_deref(),
+        Some("provider-upstream")
+    );
+    assert_eq!(model_invocation.provider_profile, None);
+    assert_eq!(
+        model_invocation.provider_model_id.as_deref(),
+        Some("local-model")
+    );
     assert_tool_evidence_is_persisted(&session);
 }
 
@@ -325,6 +341,15 @@ fn local_child_agent_start_creates_parent_link() {
             .expect("durable result")
             .result_handles,
         vec!["project:prj-one", "snapshot:snp-base"]
+    );
+    assert_eq!(
+        child_branch
+            .result
+            .as_ref()
+            .expect("durable result")
+            .summary
+            .as_deref(),
+        Some("child output")
     );
 }
 

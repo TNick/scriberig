@@ -194,10 +194,11 @@ pub fn resolve_execution_selection(
         .transpose()
         .map_err(invalid_selection)?
         .map(|level| level.as_str().to_owned());
-    let requested_thinking = thinking_level
-        .as_deref()
-        .and_then(rpi_ai::ThinkingLevel::parse_name)
-        .unwrap_or(rpi_ai::ThinkingLevel::Off);
+    let requested_thinking = match thinking_level.as_deref() {
+        Some(level) => rpi_ai::ThinkingLevel::parse_name(level)
+            .ok_or_else(|| invalid_selection("thinking level id is not supported by upstream"))?,
+        None => rpi_ai::ThinkingLevel::Off,
+    };
     let resolved = rpi_model_runtime::resolve_selection(
         upstream_models,
         &rpi_model_runtime::ModelSelection {

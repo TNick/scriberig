@@ -66,8 +66,9 @@ fn provider_model_captures_a_bounded_safe_request_projection() {
         usage: None,
         metadata: ProviderMetadata::default(),
     })]);
-    let mut model =
-        ProviderModel::new(provider, "model-a").with_thinking_level(Some("careful".to_owned()));
+    let mut model = ProviderModel::new(provider, "model-a")
+        .with_provider_id("provider-a")
+        .with_thinking_level(Some("careful".to_owned()));
 
     model
         .decide(&[AgentMessage::User("x".repeat(20_000))])
@@ -76,6 +77,7 @@ fn provider_model_captures_a_bounded_safe_request_projection() {
 
     assert_eq!(captured.len(), 1);
     assert_eq!(captured[0].model, "model-a");
+    assert_eq!(captured[0].provider_id.as_deref(), Some("provider-a"));
     assert_eq!(captured[0].thinking_level.as_deref(), Some("careful"));
     assert_eq!(captured[0].messages[0].content.chars().count(), 15_000);
     assert!(captured[0].truncated);

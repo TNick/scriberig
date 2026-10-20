@@ -1,7 +1,8 @@
-//! Compiles exact durable conversation state for a native TUI invocation.
+//! Compiles exact durable conversation state for integrated agent invocations.
 
 use scriberig_agent_runtime::context::{
-    BranchExecutionContext, CompiledContext, ContextActivity, ContextCompiler, ContextPolicy,
+    BranchExecutionContext, BranchRole, CompiledContext, ContextActivity, ContextCompiler,
+    ContextPolicy,
 };
 use scriberig_app::{
     ApplicationBackend, ApplicationContext, ApplicationService, SessionBackend, SessionRequest,
@@ -9,7 +10,7 @@ use scriberig_app::{
 use scriberig_core::EntityId;
 use scriberig_session::{Branch, ContinuationAnchor};
 
-/// Compiles the exact continuation prefix and local branch history.
+/// Compiles exact persisted branch context for an integrated model invocation.
 ///
 /// The current human instruction is carried by the runtime request itself, so
 /// this projection removes it from history to avoid sending it twice.
@@ -24,7 +25,7 @@ use scriberig_session::{Branch, ContinuationAnchor};
 /// Bounded provider-neutral context for the selected continuation branch.
 ///
 /// Returns a provider-runtime failure when session or anchor state is invalid.
-pub(super) fn compile_branch_context<B: ApplicationBackend>(
+pub(crate) fn compile_branch_context<B: ApplicationBackend>(
     service: &ApplicationService<B>,
     context: &ApplicationContext,
     session_id: EntityId,
@@ -61,6 +62,12 @@ pub(super) fn compile_branch_context<B: ApplicationBackend>(
         prompt,
     )
     .map_err(|error| scriberig_agent_runtime::AgentError::Provider(error.to_string()))?;
+    let branch_role = branch
+        .parent
+        .map_or(BranchRole::Root, |parent| BranchRole::NonRoot {
+            parent: parent.to_string(),
+        });
+    execution = execution.with_branch_role(branch_role);
     if let Some(scope) = project_scope {
         execution = execution.with_project_scope(scope);
     }
@@ -130,3 +137,7 @@ fn add_branch_history(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "agent_context_tests.rs"]
+mod tests;

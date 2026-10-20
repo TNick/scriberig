@@ -125,25 +125,21 @@ pub fn serve_with_origin_and_plan_lifecycle(
         project_roots,
         plan_lifecycle_handler,
         ServerModelCatalog {
-            library: scriberig_app::ModelLibrary::default(),
-            upstream_models: Vec::new(),
+            model_catalog: rpi_model_runtime::ModelCatalog::new(),
         },
     )
 }
 
-/// Carries the upstream model authority and its safe protocol projection.
+/// Carries the upstream model authority for shared application composition.
 ///
 /// # Public members
-/// - `library`: Safe display projection exposed by the protocol.
-/// - `upstream_models`: Upstream models used to resolve live selections.
+/// - `model_catalog`: Shared upstream live model authority.
 ///
 /// # Private members
 /// None.
 pub struct ServerModelCatalog {
-    /// Safe display projection exposed by the protocol.
-    pub library: scriberig_app::ModelLibrary,
-    /// Upstream models used to resolve live selections.
-    pub upstream_models: Vec<rpi_ai::Model>,
+    /// Shared upstream model catalog used to resolve live selections.
+    pub model_catalog: rpi_model_runtime::ModelCatalog,
 }
 
 /// Serves the API with a host-composed upstream model catalog.
@@ -154,7 +150,7 @@ pub struct ServerModelCatalog {
 /// - `allowed_origin`: Exact browser origin allowed for CORS responses.
 /// - `project_roots`: Filesystem roots allowed for project onboarding.
 /// - `plan_lifecycle_handler`: Optional runtime that executes lifecycle requests.
-/// - `model_catalog`: Safe display projection and upstream selection authority.
+/// - `model_catalog`: Upstream selection authority.
 ///
 /// Unit after the listener stops accepting connections.
 ///
@@ -186,8 +182,7 @@ pub fn serve_with_model_catalog_and_plan_lifecycle(
     )?);
     let service = scriberig_app::ApplicationService::new(backend)
         .with_session_store(session_store)
-        .with_model_library(model_catalog.library)
-        .with_upstream_models(model_catalog.upstream_models);
+        .with_model_catalog(model_catalog.model_catalog);
     let state = http::HttpState {
         service,
         principal: scriberig_app::Principal::new("local-user"),

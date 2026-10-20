@@ -127,6 +127,7 @@ fn renders_durable_model_and_tool_activity_without_raw_tool_output() {
         agent_profile: None,
         context_fingerprint: None,
         provider_profile: None,
+        provider_id: None,
         model: Some("model-a".to_owned()),
         model_profile: None,
         provider_model_id: None,
@@ -260,7 +261,10 @@ fn assert_durable_activity_is_safe(
             scriberig_protocol::ModelRequestDetailResponse {
                 invocation: invocation_id.to_string(),
                 model: "model-a".to_owned(),
+                provider_id: None,
                 thinking_level: Some("careful".to_owned()),
+                profile: None,
+                active_components: Vec::new(),
                 messages: vec![scriberig_protocol::ModelRequestMessageDetail {
                     role: "user".to_owned(),
                     content: "Safe captured request".to_owned(),

@@ -5,7 +5,7 @@ use scriberig_session::{BranchResult, Plan, PlanNode, WorkerClaim};
 
 use crate::plan_context::PlanWorkerContext;
 use crate::scheduler::{
-    PlanWorkerExecutor,
+    PlanWorkerExecutionResult, PlanWorkerExecutor,
     scheduler_helpers::{claimed_branch, failed_worker_result},
 };
 
@@ -119,7 +119,11 @@ pub(super) fn claim_workers(
 pub(super) fn execute_workers(
     claimed: &[ClaimedWorker],
     executor: &impl PlanWorkerExecutor,
-) -> Vec<(EntityId, EntityId, Result<BranchResult, String>)> {
+) -> Vec<(
+    EntityId,
+    EntityId,
+    Result<PlanWorkerExecutionResult, String>,
+)> {
     std::thread::scope(|scope| {
         let handles = claimed
             .iter()
@@ -128,7 +132,7 @@ pub(super) fn execute_workers(
                     (
                         node.id,
                         claim.id,
-                        executor.execute_with_context(node, claim, execution, context),
+                        executor.execute_with_context_and_requests(node, claim, execution, context),
                     )
                 })
             })
@@ -163,31 +167,48 @@ pub(super) fn settle_workers(
     plan: &mut Plan,
     results: &[BranchResult],
     claimed: &[ClaimedWorker],
-    executions: Vec<(EntityId, EntityId, Result<BranchResult, String>)>,
+    executions: Vec<(
+        EntityId,
+        EntityId,
+        Result<PlanWorkerExecutionResult, String>,
+    )>,
     mut next_id: impl FnMut() -> EntityId,
 ) -> Result<super::WorkerBatchResult, String> {
     let mut batch = super::WorkerBatchResult {
         completed: Vec::new(),
         failed: Vec::new(),
         results: Vec::new(),
+        model_request_evidence: Vec::new(),
     };
     let mut completed = Vec::new();
     let mut failed = Vec::new();
     for (node, claim, execution) in executions {
         let branch = claimed_branch(claimed, claim);
         match execution {
-            Ok(result)
-                if result.branch == branch
-                    && result.status == scriberig_session::BranchStatus::Completed =>
+            Ok(execution)
+                if execution.result.branch == branch
+                    && execution.result.status == scriberig_session::BranchStatus::Completed =>
             {
                 batch.completed.push(node);
-                completed.push((node, claim, result.clone()));
-                batch.results.push(result);
+                completed.push((node, claim, execution.result.clone()));
+                batch.results.push(execution.result);
+                batch
+                    .model_request_evidence
+                    .push(super::WorkerModelRequestEvidence {
+                        branch,
+                        requests: execution.model_requests,
+                    });
             }
-            Ok(result) if result.branch == branch => {
+            Ok(execution) if execution.result.branch == branch => {
                 batch.failed.push(node);
                 failed.push((node, claim));
-                batch.results.push(result);
+                batch.results.push(execution.result);
+                batch
+                    .model_request_evidence
+                    .push(super::WorkerModelRequestEvidence {
+                        branch,
+                        requests: execution.model_requests,
+                    });
             }
             Ok(_) => {
                 batch.failed.push(node);

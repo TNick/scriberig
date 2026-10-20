@@ -5,24 +5,17 @@ use std::collections::BTreeMap;
 use rpi_ai::{Api, Model};
 use rpi_model_runtime::{ConfigValueResolver, ModelsConfig, build_catalog};
 use scriberig_agent_runtime::provider::ProviderError;
-use scriberig_app::{
-    ModelCapabilities, ModelDescriptor, ModelId, ModelLibrary, ModelProfile,
-    ThinkingLevelDescriptor, ThinkingLevelId,
-};
-
-/// Holds authoritative upstream models and a credential-free display projection.
+/// Holds authoritative upstream models and native adapter connections.
 ///
 /// # Public members
-/// - Internal fields expose the upstream catalog, safe projection, and adapters
-///   to the native composition module.
+/// - Internal fields expose the upstream catalog and adapters to native
+///   composition.
 ///
 /// # Private members
 /// None.
 pub(in crate::native_tui_agent) struct ProviderCatalog {
     /// Upstream models used for model resolution and request configuration.
     pub(in crate::native_tui_agent) models: Vec<Model>,
-    /// Compatibility projection used by the current protocol and UI.
-    pub(in crate::native_tui_agent) library: ModelLibrary,
     /// Credential-free provider connections supported by the native adapter.
     pub(in crate::native_tui_agent) connections: Vec<ProviderConnection>,
 }
@@ -35,7 +28,7 @@ pub(in crate::native_tui_agent) struct ProviderCatalog {
 /// # Private members
 /// None.
 pub(in crate::native_tui_agent) struct ProviderConnection {
-    /// Provider-qualified model identity referenced by display profiles.
+    /// Provider-qualified model identity used by this adapter.
     pub(in crate::native_tui_agent) id: String,
     /// Adapter family supported by the native runtime.
     pub(in crate::native_tui_agent) provider: String,
@@ -223,7 +216,6 @@ pub(in crate::native_tui_agent) fn from_environment(
     for model in &mut models {
         model.headers = None;
     }
-    let library = display_projection(&models)?;
     let connections = models
         .iter()
         .map(|model| {
@@ -246,59 +238,8 @@ pub(in crate::native_tui_agent) fn from_environment(
         .collect::<Result<Vec<_>, ProviderError>>()?;
     Ok(ProviderCatalog {
         models,
-        library,
         connections,
     })
-}
-
-/// Builds the current protocol's safe model/profile projection.
-///
-/// # Parameters
-/// - `models`: Upstream models selected for the current native adapter.
-///
-/// # Returns
-/// A protocol-compatible projection without request-only model fields.
-///
-/// # Errors
-/// Returns a configuration error when a model identity or library is invalid.
-fn display_projection(models: &[Model]) -> Result<ModelLibrary, ProviderError> {
-    let mut descriptors = Vec::with_capacity(models.len());
-    let mut profiles = Vec::with_capacity(models.len());
-    for model in models {
-        let identity = connection_identity(&model.provider, &model.id);
-        let id = ModelId::new(identity.clone()).map_err(|_| invalid_catalog())?;
-        let levels = model
-            .supported_thinking_levels()
-            .into_iter()
-            .enumerate()
-            .map(|(index, level)| ThinkingLevelDescriptor {
-                id: ThinkingLevelId::new(level.as_str())
-                    .expect("upstream thinking level names are canonical"),
-                label: level.as_str().to_owned(),
-                description: None,
-                order: u32::try_from(index).unwrap_or(u32::MAX),
-            })
-            .collect::<Vec<_>>();
-        descriptors.push(ModelDescriptor {
-            id: id.clone(),
-            display_name: model.name.clone(),
-            provider_profile: model.provider.clone(),
-            provider_model_id: model.id.clone(),
-            capabilities: ModelCapabilities::default(),
-            default_thinking_level: None,
-            thinking_levels: levels,
-        });
-        profiles.push(ModelProfile {
-            id: format!("{identity}-profile"),
-            display_name: model.name.clone(),
-            model: id,
-            connection: connection_identity(&model.provider, &model.id),
-            credential: None,
-            default_thinking_level: None,
-            enabled: true,
-        });
-    }
-    ModelLibrary::new(descriptors, profiles).map_err(|_| invalid_catalog())
 }
 
 /// Creates the same generic failure for invalid catalog data.

@@ -1,13 +1,20 @@
 //! Persists complete provider-neutral session graphs in SQLite.
 
+mod payload;
+#[path = "store_mutations/plan.rs"]
+mod plan_mutation;
+mod recovery;
+#[path = "store_mutations/selection.rs"]
+mod selection_mutation;
+
+pub use payload::LegacyExecutionRecord;
+
 use std::path::Path;
 use std::sync::Mutex;
 
 use rusqlite::{Connection, TransactionBehavior, params};
 use scriberig_core::EntityId;
-use scriberig_session::{
-    PlanStoreError, SelectionStoreError, Session, SessionExecutionSelection, SessionStore,
-};
+use scriberig_session::{PlanStoreError, SelectionStoreError, Session, SessionStore};
 
 /// SQLite-backed repository for immutable session graph snapshots.
 pub struct SqliteSessionStore {
@@ -75,28 +82,70 @@ impl SessionStore for SqliteSessionStore {
     ///
     /// Complete stored session graphs ordered by identity.
     ///
+    /// Legacy selection rows are rewritten to their sanitized recovery envelope.
+    ///
     /// Returns a bounded SQLite or serialization diagnostic.
     /// # Returns
     /// The operation result.
     /// # Errors
     /// Returns an error when stored sessions cannot be read or decoded.
     fn list(&self) -> Result<Vec<Session>, String> {
-        let connection = self
+        let mut connection = self
             .connection
             .lock()
             .map_err(|_| "session repository lock poisoned".to_owned())?;
-        let mut statement = connection
-            .prepare("SELECT payload FROM session_records ORDER BY session_id")
-            .map_err(|error| error.to_string())?;
-        let payloads = statement
-            .query_map([], |row| row.get::<_, Vec<u8>>(0))
-            .map_err(|error| error.to_string())?;
-        payloads
-            .map(|payload| {
-                let payload = payload.map_err(|error| error.to_string())?;
-                serde_json::from_slice(&payload).map_err(|error| error.to_string())
-            })
-            .collect()
+        let records = {
+            let mut statement = connection
+                .prepare("SELECT session_id, payload FROM session_records ORDER BY session_id")
+                .map_err(|error| error.to_string())?;
+            statement
+                .query_map([], |row| {
+                    Ok((row.get::<_, Vec<u8>>(0)?, row.get::<_, Vec<u8>>(1)?))
+                })
+                .map_err(|error| error.to_string())?
+                .collect::<rusqlite::Result<Vec<_>>>()
+                .map_err(|error| error.to_string())?
+        };
+        let mut sessions = Vec::with_capacity(records.len());
+        let mut legacy_ids = Vec::new();
+        for (session_id, payload) in records {
+            let decoded = payload::decode(&payload)?;
+            if decoded.requires_rewrite {
+                legacy_ids.push(session_id);
+            }
+            sessions.push(decoded.session);
+        }
+        if !legacy_ids.is_empty() {
+            let transaction = connection
+                .transaction_with_behavior(TransactionBehavior::Immediate)
+                .map_err(|error| error.to_string())?;
+            for session_id in legacy_ids {
+                let payload = transaction
+                    .query_row(
+                        "SELECT payload FROM session_records WHERE session_id=?1",
+                        params![session_id],
+                        |row| row.get::<_, Vec<u8>>(0),
+                    )
+                    .optional()
+                    .map_err(|error| error.to_string())?;
+                let Some(payload) = payload else {
+                    continue;
+                };
+                let decoded = payload::decode(&payload)?;
+                if !decoded.requires_rewrite {
+                    continue;
+                }
+                let sanitized = payload::encode(&decoded.session, &decoded.legacy_execution)?;
+                transaction
+                    .execute(
+                        "UPDATE session_records SET payload=?2 WHERE session_id=?1",
+                        params![session_id, sanitized],
+                    )
+                    .map_err(|error| error.to_string())?;
+            }
+            transaction.commit().map_err(|error| error.to_string())?;
+        }
+        Ok(sessions)
     }
 
     /// Loads and decodes one stored session graph.
@@ -105,28 +154,60 @@ impl SessionStore for SqliteSessionStore {
     ///
     /// The decoded graph when present.
     ///
+    /// Legacy selection rows are rewritten to their sanitized recovery envelope.
+    ///
     /// Returns a bounded SQLite or serialization diagnostic.
     /// # Returns
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
     fn load(&self, session: EntityId) -> Result<Option<Session>, String> {
-        let connection = self
+        let mut connection = self
             .connection
             .lock()
             .map_err(|_| "session repository lock poisoned".to_owned())?;
-        let mut statement = connection
-            .prepare("SELECT payload FROM session_records WHERE session_id=?1")
-            .map_err(|error| error.to_string())?;
-        let payload = statement
-            .query_row(params![session.as_bytes().as_slice()], |row| {
-                row.get::<_, Vec<u8>>(0)
-            })
+        let payload = connection
+            .query_row(
+                "SELECT payload FROM session_records WHERE session_id=?1",
+                params![session.as_bytes().as_slice()],
+                |row| row.get::<_, Vec<u8>>(0),
+            )
             .optional()
             .map_err(|error| error.to_string())?;
-        payload
-            .map(|payload| serde_json::from_slice(&payload).map_err(|error| error.to_string()))
-            .transpose()
+        let Some(payload) = payload else {
+            return Ok(None);
+        };
+        let decoded = payload::decode(&payload)?;
+        if !decoded.requires_rewrite {
+            return Ok(Some(decoded.session));
+        }
+        let transaction = connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(|error| error.to_string())?;
+        let current_payload = transaction
+            .query_row(
+                "SELECT payload FROM session_records WHERE session_id=?1",
+                params![session.as_bytes().as_slice()],
+                |row| row.get::<_, Vec<u8>>(0),
+            )
+            .optional()
+            .map_err(|error| error.to_string())?;
+        let Some(current_payload) = current_payload else {
+            transaction.commit().map_err(|error| error.to_string())?;
+            return Ok(None);
+        };
+        let decoded = payload::decode(&current_payload)?;
+        if decoded.requires_rewrite {
+            let sanitized = payload::encode(&decoded.session, &decoded.legacy_execution)?;
+            transaction
+                .execute(
+                    "UPDATE session_records SET payload=?2 WHERE session_id=?1",
+                    params![session.as_bytes().as_slice(), sanitized],
+                )
+                .map_err(|error| error.to_string())?;
+        }
+        transaction.commit().map_err(|error| error.to_string())?;
+        Ok(Some(decoded.session))
     }
 
     /// Removes one exact session graph from the SQLite repository.
@@ -166,19 +247,34 @@ impl SessionStore for SqliteSessionStore {
     /// # Errors
     /// Returns an error when the operation fails.
     fn save(&self, session: &Session) -> Result<(), String> {
-        let payload = serde_json::to_vec(session).map_err(|error| error.to_string())?;
-        let connection = self
+        let mut connection = self
             .connection
             .lock()
             .map_err(|_| "session repository lock poisoned".to_owned())?;
-        connection
+        let transaction = connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(|error| error.to_string())?;
+        let prior_payload = transaction
+            .query_row(
+                "SELECT payload FROM session_records WHERE session_id=?1",
+                params![session.id.as_bytes().as_slice()],
+                |row| row.get::<_, Vec<u8>>(0),
+            )
+            .optional()
+            .map_err(|error| error.to_string())?;
+        let legacy_execution = prior_payload
+            .map(|payload| payload::decode(&payload).map(|decoded| decoded.legacy_execution))
+            .transpose()?
+            .unwrap_or_default();
+        let payload = payload::encode(session, &legacy_execution)?;
+        transaction
             .execute(
                 "INSERT INTO session_records(session_id, payload) VALUES (?1, ?2)
                  ON CONFLICT(session_id) DO UPDATE SET payload=excluded.payload",
                 params![session.id.as_bytes().as_slice(), payload],
             )
             .map_err(|error| error.to_string())?;
-        Ok(())
+        transaction.commit().map_err(|error| error.to_string())
     }
 
     /// Atomically changes only session execution selection at the observed revision.
@@ -198,63 +294,7 @@ impl SessionStore for SqliteSessionStore {
         session: &Session,
         expected_revision: u64,
     ) -> Result<(), SelectionStoreError> {
-        let mut connection = self
-            .connection
-            .lock()
-            .map_err(|_| SelectionStoreError::Persistence("session lock poisoned".to_owned()))?;
-        let transaction = connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|error| SelectionStoreError::Persistence(error.to_string()))?;
-        let payload = transaction
-            .query_row(
-                "SELECT payload FROM session_records WHERE session_id=?1",
-                params![session.id.as_bytes().as_slice()],
-                |row| row.get::<_, Vec<u8>>(0),
-            )
-            .optional()
-            .map_err(|error| SelectionStoreError::Persistence(error.to_string()))?;
-        let stored = payload
-            .map(|value| {
-                serde_json::from_slice::<Session>(&value)
-                    .map_err(|error| SelectionStoreError::Persistence(error.to_string()))
-            })
-            .transpose()?;
-        let actual_revision = stored.as_ref().map_or(0, |value| value.execution.revision);
-        if actual_revision != expected_revision {
-            return Err(SelectionStoreError::RevisionConflict {
-                expected: expected_revision,
-                actual: actual_revision,
-            });
-        }
-        let next_revision = expected_revision.checked_add(1).ok_or_else(|| {
-            SelectionStoreError::Persistence("selection revision exhausted".to_owned())
-        })?;
-        if session.execution.revision != next_revision {
-            return Err(SelectionStoreError::Persistence(
-                "proposed selection has an unexpected revision".to_owned(),
-            ));
-        }
-        let mut stored = stored.unwrap_or_else(|| Session {
-            id: session.id,
-            branches: Vec::new(),
-            goals: Vec::new(),
-            tasks: Vec::new(),
-            plans: Vec::new(),
-            execution: SessionExecutionSelection::default(),
-        });
-        stored.execution = session.execution.clone();
-        let payload = serde_json::to_vec(&stored)
-            .map_err(|error| SelectionStoreError::Persistence(error.to_string()))?;
-        transaction
-            .execute(
-                "INSERT INTO session_records(session_id, payload) VALUES (?1, ?2)
-                 ON CONFLICT(session_id) DO UPDATE SET payload=excluded.payload",
-                params![session.id.as_bytes().as_slice(), payload],
-            )
-            .map_err(|error| SelectionStoreError::Persistence(error.to_string()))?;
-        transaction
-            .commit()
-            .map_err(|error| SelectionStoreError::Persistence(error.to_string()))
+        self.compare_and_swap_execution_selection_inner(session, expected_revision)
     }
 
     /// Atomically replaces one plan without overwriting concurrent branch updates.
@@ -275,72 +315,7 @@ impl SessionStore for SqliteSessionStore {
         plan_id: EntityId,
         expected_revision: u64,
     ) -> Result<(), PlanStoreError> {
-        let mut connection = self
-            .connection
-            .lock()
-            .map_err(|_| PlanStoreError::Persistence("session lock poisoned".to_owned()))?;
-        let transaction = connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|error| PlanStoreError::Persistence(error.to_string()))?;
-        let payload = transaction
-            .query_row(
-                "SELECT payload FROM session_records WHERE session_id=?1",
-                params![session.id.as_bytes().as_slice()],
-                |row| row.get::<_, Vec<u8>>(0),
-            )
-            .optional()
-            .map_err(|error| PlanStoreError::Persistence(error.to_string()))?
-            .ok_or_else(|| PlanStoreError::Persistence("session is not stored".to_owned()))?;
-        let mut stored = serde_json::from_slice::<Session>(&payload)
-            .map_err(|error| PlanStoreError::Persistence(error.to_string()))?;
-        let stored_plan = stored
-            .plans
-            .iter_mut()
-            .find(|plan| plan.id == plan_id)
-            .ok_or_else(|| PlanStoreError::Persistence("plan is not stored".to_owned()))?;
-        if stored_plan.revision != expected_revision {
-            return Err(PlanStoreError::RevisionConflict {
-                expected: expected_revision,
-                actual: stored_plan.revision,
-            });
-        }
-        let proposed = session
-            .plans
-            .iter()
-            .find(|plan| plan.id == plan_id)
-            .ok_or_else(|| PlanStoreError::Persistence("proposed plan is absent".to_owned()))?;
-        if proposed.revision != expected_revision.saturating_add(1) {
-            return Err(PlanStoreError::Persistence(
-                "proposed plan has an unexpected revision".to_owned(),
-            ));
-        }
-        *stored_plan = proposed.clone();
-        for branch in &session.branches {
-            if stored.branches.iter().any(|known| known.id == branch.id) {
-                continue;
-            }
-            stored.branches.push(branch.clone());
-            if let Some(parent_id) = branch.parent
-                && let Some(parent) = stored
-                    .branches
-                    .iter_mut()
-                    .find(|known| known.id == parent_id)
-                && !parent.children.contains(&branch.id)
-            {
-                parent.children.push(branch.id);
-            }
-        }
-        let payload = serde_json::to_vec(&stored)
-            .map_err(|error| PlanStoreError::Persistence(error.to_string()))?;
-        transaction
-            .execute(
-                "UPDATE session_records SET payload=?2 WHERE session_id=?1",
-                params![session.id.as_bytes().as_slice(), payload],
-            )
-            .map_err(|error| PlanStoreError::Persistence(error.to_string()))?;
-        transaction
-            .commit()
-            .map_err(|error| PlanStoreError::Persistence(error.to_string()))
+        self.compare_and_swap_plan_inner(session, plan_id, expected_revision)
     }
 }
 

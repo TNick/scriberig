@@ -1,9 +1,9 @@
 //! Contains durable plan coordinator helper functions.
 
 use super::{
-    ApplicationError, Branch, BranchResult, EntityId, ExecutionActivity, Plan, PlanNodeParent,
-    PlanStatus, Session,
+    ApplicationError, Branch, BranchResult, EntityId, ExecutionActivity, Plan, PlanStatus, Session,
 };
+use crate::plan_context::worker_parent_branch;
 
 /// Returns all durable branch results in a session snapshot.
 /// # Parameters
@@ -89,43 +89,40 @@ pub(super) fn ensure_worker_branches(session: &mut Session, plan: &Plan) -> Resu
         let Some(claim) = &node.claim else {
             continue;
         };
-        if session
+        let parent_id = worker_parent_branch(plan, node);
+        if !session.branches.iter().any(|branch| branch.id == parent_id) {
+            return Err("plan worker parent branch is missing".to_owned());
+        }
+        if let Some(existing) = session
             .branches
             .iter()
-            .any(|branch| branch.id == claim.branch)
+            .find(|branch| branch.id == claim.branch)
         {
-            continue;
+            if existing.parent != Some(parent_id) {
+                return Err("claimed worker branch has a different persisted parent".to_owned());
+            }
+        } else {
+            let mut branch = Branch::new_child(
+                claim.branch,
+                parent_id,
+                node.title.clone(),
+                node.purpose.clone(),
+            )
+            .map_err(|error| format!("worker branch invalid: {error}"))?;
+            if let Some(anchor) = plan.anchor {
+                branch.continuation = Some(scriberig_session::ContinuationProvenance {
+                    anchor,
+                    origin: scriberig_session::ContinuationOrigin::PlanExecution,
+                });
+            }
+            session.branches.push(branch);
         }
-        let parent = match node.parent {
-            Some(PlanNodeParent::Branch(branch)) => branch,
-            Some(PlanNodeParent::Node(parent_node)) => plan
-                .nodes
-                .iter()
-                .find(|candidate| candidate.id == parent_node)
-                .and_then(|candidate| candidate.branch)
-                .unwrap_or(plan.root_branch),
-            None => plan.root_branch,
-        };
-        let mut branch = Branch::new_child(
-            claim.branch,
-            parent,
-            node.title.clone(),
-            node.purpose.clone(),
-        )
-        .map_err(|error| format!("worker branch invalid: {error}"))?;
-        if let Some(anchor) = plan.anchor {
-            branch.continuation = Some(scriberig_session::ContinuationProvenance {
-                anchor,
-                origin: scriberig_session::ContinuationOrigin::PlanExecution,
-            });
-        }
-        session.branches.push(branch);
-        if let Some(parent) = session
+        let parent = session
             .branches
             .iter_mut()
-            .find(|branch| branch.id == parent)
-            && !parent.children.contains(&claim.branch)
-        {
+            .find(|branch| branch.id == parent_id)
+            .ok_or_else(|| "plan worker parent branch is missing".to_owned())?;
+        if !parent.children.contains(&claim.branch) {
             parent.children.push(claim.branch);
         }
     }
@@ -152,16 +149,7 @@ pub(super) fn persist_worker_results(
             .iter()
             .find(|node| node.branch == Some(result.branch))
             .ok_or_else(|| internal_error("worker result branch is not claimed by the plan"))?;
-        let parent = match node.parent {
-            Some(PlanNodeParent::Branch(branch)) => branch,
-            Some(PlanNodeParent::Node(parent_node)) => plan
-                .nodes
-                .iter()
-                .find(|candidate| candidate.id == parent_node)
-                .and_then(|candidate| candidate.branch)
-                .unwrap_or(plan.root_branch),
-            None => plan.root_branch,
-        };
+        let parent = worker_parent_branch(plan, node);
         if let Some(branch) = session
             .branches
             .iter_mut()
@@ -169,6 +157,13 @@ pub(super) fn persist_worker_results(
         {
             branch.result = Some(result.clone());
             branch.status = result.status;
+            if !branch.activity.iter().any(|activity| {
+                matches!(activity, ExecutionActivity::BranchResult(id) if *id == result.id)
+            }) {
+                branch
+                    .activity
+                    .push(ExecutionActivity::BranchResult(result.id));
+            }
         } else {
             let mut branch = Branch::new_child(
                 result.branch,
@@ -198,10 +193,13 @@ pub(super) fn persist_worker_results(
 }
 
 /// Creates a stable application error for coordinator revision races.
-/// # Parameters
-/// - `plan`: Input for this operation.
+///
+/// - `plan`: Plan whose coordinator revision changed.
+///
+/// Conflict error describing the stale coordinator state.
+///
 /// # Returns
-/// The operation result.
+/// An application conflict error for the changed plan revision.
 pub(super) fn revision_conflict(plan: EntityId) -> ApplicationError {
     ApplicationError::Conflict {
         subject: plan.to_string(),
@@ -213,12 +211,165 @@ pub(super) fn revision_conflict(plan: EntityId) -> ApplicationError {
 }
 
 /// Creates an application error for impossible scheduler state.
-/// # Parameters
-/// - `message`: Input for this operation.
+///
+/// - `message`: Description of the impossible state.
+///
+/// Internal application error.
+///
 /// # Returns
-/// The operation result.
+/// An internal application error containing the supplied message.
 pub(super) fn internal_error(message: impl Into<String>) -> ApplicationError {
     ApplicationError::Internal {
         message: message.into(),
+    }
+}
+#[cfg(test)]
+mod tests {
+    //! Verifies durable plan results are included in worker branch activity.
+
+    use super::{ensure_worker_branches, persist_worker_results};
+    use scriberig_core::EntityId;
+    use scriberig_session::{
+        Branch, BranchResult, BranchStatus, ExecutionActivity, Plan, PlanNode, PlanNodeParent,
+        PlanNodeStatus, Session, WorkerClaim,
+    };
+
+    /// Rejects a claimed branch whose persisted parent disagrees with the plan.
+    #[test]
+    fn claimed_worker_branch_cannot_change_its_persisted_parent() {
+        let session_id = EntityId::from_bytes([1; 16]);
+        let root_id = EntityId::from_bytes([2; 16]);
+        let worker_id = EntityId::from_bytes([3; 16]);
+        let wrong_parent_id = EntityId::from_bytes([4; 16]);
+        let plan_id = EntityId::from_bytes([5; 16]);
+        let node_id = EntityId::from_bytes([6; 16]);
+        let root = Branch::new(root_id, "root").expect("root branch");
+        let wrong_parent = Branch::new(wrong_parent_id, "wrong parent").expect("parent branch");
+        let worker =
+            Branch::new_child(worker_id, wrong_parent_id, "worker", "work").expect("worker branch");
+        let mut plan = Plan::new(
+            plan_id,
+            session_id,
+            scriberig_session::ContinuationAnchor::BranchHead { branch: root_id },
+            "complete work",
+        )
+        .expect("plan");
+        plan.nodes.push(PlanNode {
+            id: node_id,
+            parent: Some(PlanNodeParent::Branch(root_id)),
+            title: "worker".to_owned(),
+            purpose: "work".to_owned(),
+            expected_result: None,
+            semantic_scope: Vec::new(),
+            status: PlanNodeStatus::Running,
+            branch: Some(worker_id),
+            result: None,
+            superseded_by: None,
+            assignment: None,
+            claim: Some(WorkerClaim {
+                id: EntityId::from_bytes([7; 16]),
+                node: node_id,
+                branch: worker_id,
+                owner: "coordinator".to_owned(),
+                generation: 1,
+                assignment: None,
+            }),
+            claim_generation: 1,
+        });
+        let mut session = Session {
+            id: session_id,
+            branches: vec![root, wrong_parent, worker],
+            goals: Vec::new(),
+            tasks: Vec::new(),
+            plans: Vec::new(),
+            execution: scriberig_session::SessionExecutionSelection::default(),
+        };
+
+        assert_eq!(
+            ensure_worker_branches(&mut session, &plan),
+            Err("claimed worker branch has a different persisted parent".to_owned())
+        );
+    }
+
+    /// Verifies an existing worker branch receives one idempotent result event.
+    #[test]
+    fn existing_worker_branch_records_result_activity_once() {
+        let session_id = EntityId::from_bytes([1; 16]);
+        let root_branch = EntityId::from_bytes([2; 16]);
+        let worker_branch = EntityId::from_bytes([3; 16]);
+        let plan_id = EntityId::from_bytes([4; 16]);
+        let node_id = EntityId::from_bytes([5; 16]);
+        let result_id = EntityId::from_bytes([6; 16]);
+        let root = Branch::new(root_branch, "root").expect("root branch");
+        let worker =
+            Branch::new_child(worker_branch, root_branch, "worker", "work").expect("worker branch");
+        let mut plan = Plan::new(
+            plan_id,
+            session_id,
+            scriberig_session::ContinuationAnchor::BranchHead {
+                branch: root_branch,
+            },
+            "complete work",
+        )
+        .expect("plan");
+        plan.nodes.push(PlanNode {
+            id: node_id,
+            parent: Some(PlanNodeParent::Branch(root_branch)),
+            title: "worker".to_owned(),
+            purpose: "work".to_owned(),
+            expected_result: None,
+            semantic_scope: Vec::new(),
+            status: PlanNodeStatus::Completed,
+            branch: Some(worker_branch),
+            result: Some(result_id),
+            superseded_by: None,
+            assignment: None,
+            claim: None,
+            claim_generation: 1,
+        });
+        let result = BranchResult {
+            id: result_id,
+            branch: worker_branch,
+            status: BranchStatus::Completed,
+            summary: Some("finished".to_owned()),
+            result_kind: None,
+            candidate_context: None,
+            references: Vec::new(),
+            result_handles: Vec::new(),
+            touched: Vec::new(),
+            produced_changes: Vec::new(),
+            validations: Vec::new(),
+            unresolved_questions: Vec::new(),
+        };
+        let mut session = Session {
+            id: session_id,
+            branches: vec![root, worker],
+            goals: Vec::new(),
+            tasks: Vec::new(),
+            plans: Vec::new(),
+            execution: scriberig_session::SessionExecutionSelection::default(),
+        };
+
+        persist_worker_results(&mut session, &plan, std::slice::from_ref(&result))
+            .expect("persist result");
+        persist_worker_results(&mut session, &plan, &[result]).expect("persist repeated result");
+
+        let worker = session
+            .branches
+            .iter()
+            .find(|branch| branch.id == worker_branch)
+            .expect("worker branch remains present");
+        assert_eq!(
+            worker.result.as_ref().map(|value| value.id),
+            Some(result_id)
+        );
+        assert_eq!(
+            worker
+                .activity
+                .iter()
+                .filter(|activity| matches!(activity, ExecutionActivity::BranchResult(id) if *id == result_id))
+                .count(),
+            1
+        );
     }
 }

@@ -70,7 +70,24 @@ pub(super) fn model_request_response(
     scriberig_protocol::ModelRequestDetailResponse {
         invocation: invocation.to_string(),
         model: detail.model,
+        provider_id: detail.provider_id,
         thinking_level: detail.thinking_level,
+        profile: detail.profile.map(|reference| {
+            scriberig_protocol::ModelContextRevisionReference {
+                identity: reference.identity,
+                revision: reference.revision,
+            }
+        }),
+        active_components: detail
+            .active_components
+            .into_iter()
+            .map(
+                |reference| scriberig_protocol::ModelContextRevisionReference {
+                    identity: reference.identity,
+                    revision: reference.revision,
+                },
+            )
+            .collect(),
         messages: detail
             .messages
             .into_iter()

@@ -31,8 +31,7 @@ fn first_conversation_failure_remains_in_tree_with_error() {
             NativeProvider::Fake(provider),
         )]),
         model: "fake-model".to_owned(),
-        model_library: ModelLibrary::default(),
-        upstream_models: native_test_upstream_models(),
+        model_catalog: model_catalog_from_models(native_test_upstream_models()),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
     };

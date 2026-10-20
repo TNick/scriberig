@@ -50,6 +50,7 @@ pub struct AgentRuntime<P, T> {
     output_callback: Option<OutputCallback>,
     branch_id: String,
     limits: RuntimeLimits,
+    model_request_history: Vec<scriberig_session::ModelRequestProjection>,
 }
 
 impl<P, T> AgentRuntime<P, T>
@@ -82,7 +83,21 @@ where
                 max_model_steps: step_limit,
                 ..RuntimeLimits::default()
             },
+            model_request_history: Vec::new(),
         }
+    }
+
+    /// Takes requests captured during the most recent run, including failures.
+    ///
+    /// - `self`: Runtime retaining requests not returned in a successful result.
+    ///
+    /// Captured bounded provider-neutral requests.
+    /// # Returns
+    /// Requests accumulated before the run returned an error.
+    pub fn take_captured_model_requests(
+        &mut self,
+    ) -> Vec<scriberig_session::ModelRequestProjection> {
+        std::mem::take(&mut self.model_request_history)
     }
 
     /// Executes one prompt until a final model response or failure.
@@ -196,6 +211,7 @@ where
         scope: Option<&ChildExecutionScope>,
         mut children: Option<&mut dyn ChildExecutor>,
     ) -> Result<AgentResult, AgentError> {
+        self.model_request_history.clear();
         let mut state = BranchRuntimeState::new(self.branch_id.clone());
         let branch_started = std::time::Instant::now();
         state.depth = scope.as_ref().map_or(0, |value| value.depth);
@@ -222,7 +238,6 @@ where
         ));
         let mut messages = vec![AgentMessage::User(prompt)];
         let mut tool_evidence = Vec::new();
-        let mut model_requests = Vec::new();
         let mut activity_ordinal = 0;
         loop {
             if cancelled.load(Ordering::Acquire) {
@@ -255,33 +270,31 @@ where
             let registry = self.registry.clone();
             let operation_id = operation.clone();
             let output_callback = self.output_callback.clone();
-            let decision = self
-                .provider
-                .decide_with_output(&messages, &mut |text| {
-                    if let Some(event_log) = &event_log {
-                        event_log.push(RuntimeEvent::model_text_delta(&branch_id, text));
-                    }
-                    if let (Some(registry), Some(operation_id)) = (&registry, &operation_id) {
-                        let _ = registry.publish_agent_output_delta(operation_id, text);
-                    }
-                    if let Some(output_callback) = &output_callback {
-                        output_callback(text);
-                    }
-                })
-                .map_err(|error| {
-                    self.emit(BranchPhase::Failed);
-                    self.emit_event(&RuntimeEvent::branch_execution_failed(
-                        &self.branch_id,
-                        "provider",
-                    ));
-                    self.finish_operation(operation.as_ref(), OperationStatus::Failed);
-                    AgentError::Provider(error)
-                })?;
+            let decision = self.provider.decide_with_output(&messages, &mut |text| {
+                if let Some(event_log) = &event_log {
+                    event_log.push(RuntimeEvent::model_text_delta(&branch_id, text));
+                }
+                if let (Some(registry), Some(operation_id)) = (&registry, &operation_id) {
+                    let _ = registry.publish_agent_output_delta(operation_id, text);
+                }
+                if let Some(output_callback) = &output_callback {
+                    output_callback(text);
+                }
+            });
             for mut request in self.provider.take_request_projections() {
                 request.ordinal = activity_ordinal;
                 activity_ordinal += 1;
-                model_requests.push(request);
+                self.model_request_history.push(request);
             }
+            let decision = decision.map_err(|error| {
+                self.emit(BranchPhase::Failed);
+                self.emit_event(&RuntimeEvent::branch_execution_failed(
+                    &self.branch_id,
+                    "provider",
+                ));
+                self.finish_operation(operation.as_ref(), OperationStatus::Failed);
+                AgentError::Provider(error)
+            })?;
             if provider_started.elapsed() > self.limits.max_provider_duration {
                 self.fail_budget(
                     operation.as_ref(),
@@ -310,7 +323,7 @@ where
                         output,
                         messages,
                         tool_evidence,
-                        model_requests,
+                        model_requests: std::mem::take(&mut self.model_request_history),
                     });
                 }
                 ModelDecision::Tool(input) => {

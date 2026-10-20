@@ -71,7 +71,19 @@ fn durable_detail_reads_do_not_reexecute_tools_or_models() {
             vec![scriberig_session::ModelRequestProjection {
                 ordinal: 0,
                 model: "model-a".to_owned(),
+                provider_id: Some("provider-a".to_owned()),
+                provider_profile: None,
                 thinking_level: Some("careful".to_owned()),
+                profile: Some(scriberig_session::ModelContextRevisionRef {
+                    identity: "profile.default".to_owned(),
+                    revision: "rev-3".to_owned(),
+                }),
+                active_components: vec![scriberig_session::ModelContextRevisionRef {
+                    identity: "component.core".to_owned(),
+                    revision: "rev-8".to_owned(),
+                }],
+                context_fingerprint: None,
+                request_fingerprint: None,
                 messages: vec![scriberig_session::ModelRequestMessage {
                     role: "user".to_owned(),
                     content: "inspect safely".to_owned(),
@@ -123,6 +135,15 @@ fn assert_details_are_read_only(
         )
         .expect("shared application request detail");
     assert_eq!(shared_detail.model, "model-a");
+    assert_eq!(shared_detail.provider_id.as_deref(), Some("provider-a"));
+    assert_eq!(
+        shared_detail
+            .profile
+            .as_ref()
+            .map(|reference| (reference.identity.as_str(), reference.revision.as_str())),
+        Some(("profile.default", "rev-3"))
+    );
+    assert_eq!(shared_detail.active_components.len(), 1);
     assert_eq!(shared_detail.messages[0].content, "inspect safely");
     let request = Request::ModelRequestDetail(scriberig_protocol::ModelRequestDetailRequest {
         session: SessionReference {
@@ -142,7 +163,16 @@ fn assert_details_are_read_only(
         panic!("unexpected response: {:?}", response.response);
     };
     assert_eq!(detail.model, "model-a");
+    assert_eq!(detail.provider_id.as_deref(), Some("provider-a"));
     assert_eq!(detail.thinking_level.as_deref(), Some("careful"));
+    assert_eq!(
+        detail
+            .profile
+            .as_ref()
+            .map(|reference| (reference.identity.as_str(), reference.revision.as_str())),
+        Some(("profile.default", "rev-3"))
+    );
+    assert_eq!(detail.active_components.len(), 1);
     assert_eq!(detail.messages[0].content, "inspect safely");
 
     let result_id = branch.tool_results[0].id.to_string();

@@ -2,22 +2,20 @@
 import type {
   ModelLibraryResponse,
   ModelDescriptor,
-  ModelProfile,
   SessionExecutionSelection,
   SessionExecutionChange,
 } from "@scriberig/protocol";
 
 /** Normalizes Rust or JavaScript model-library field casing.
  * @param value Unknown wire response.
- * @returns Safe model descriptors and profiles.
- * @throws When the response does not contain model and profile arrays.
+ * @returns Safe upstream-derived model descriptors.
+ * @throws When a present model descriptor or metadata snapshot is malformed.
  */
 export function normalizeModelLibrary(value: unknown): ModelLibraryResponse {
   if (typeof value !== "object" || value === null) throw new Error("invalid model library");
   const record = value as Record<string, unknown>;
   return {
     models: Array.isArray(record.models) ? record.models.map(normalizeModel) : [],
-    profiles: Array.isArray(record.profiles) ? record.profiles.map(normalizeProfile) : [],
   };
 }
 
@@ -28,7 +26,7 @@ export function normalizeModelLibrary(value: unknown): ModelLibraryResponse {
  */
 function normalizeModel(value: unknown): ModelDescriptor {
   const record = asRecord(value, "model");
-  const capabilities = asRecord(record.capabilities, "model capabilities");
+  const metadata = record.metadata_snapshot ?? record.metadataSnapshot;
   const levels = Array.isArray(record.thinking_levels)
     ? record.thinking_levels
     : Array.isArray(record.thinkingLevels)
@@ -45,52 +43,62 @@ function normalizeModel(value: unknown): ModelDescriptor {
       record.model_id ?? record.modelId ?? record.provider_model_id ?? record.providerModelId,
       "model id",
     ),
-    capabilities: {
-      streaming: capabilities.streaming === true,
-      toolCalls: (capabilities.tool_calls ?? capabilities.toolCalls) === true,
-      structuredOutput: (capabilities.structured_output ?? capabilities.structuredOutput) === true,
-    },
-    thinkingLevels: levels.map((level) => {
-      const item = asRecord(level, "thinking level");
-      return {
-        id: requiredString(item.id, "thinking level id"),
-        label: requiredString(item.label, "thinking level label"),
-        ...optionalString(item.description, "description"),
-        order: typeof item.order === "number" ? item.order : 0,
-      };
-    }),
-    ...optionalString(
-      record.default_thinking_level ?? record.defaultThinkingLevel,
-      "defaultThinkingLevel",
-    ),
+    thinkingLevels: levels.map((level) => requiredString(level, "thinking level id")),
+    ...(metadata === undefined ? {} : { metadataSnapshot: normalizeMetadataSnapshot(metadata) }),
   };
 }
 
-/** Normalizes one curated model profile without resolving credential values.
- * @param value Unknown model profile.
- * @returns Safe profile value.
- * @throws When required profile identifiers are missing.
+/** Normalizes optional upstream display metadata without synthesizing values.
+ * @param value Unknown model metadata snapshot.
+ * @returns Validated metadata snapshot.
+ * @throws When a present snapshot is malformed.
  */
-function normalizeProfile(value: unknown): ModelProfile {
-  const record = asRecord(value, "model profile");
-  const credential = record.credential;
-  const credentialRecord =
-    typeof credential === "object" && credential !== null
-      ? (credential as Record<string, unknown>)
-      : undefined;
+function normalizeMetadataSnapshot(
+  value: unknown,
+): NonNullable<ModelDescriptor["metadataSnapshot"]> {
+  const metadata = asRecord(value, "model metadata");
+  const cost = asRecord(metadata.cost, "model cost");
   return {
-    id: requiredString(record.id, "profile id"),
-    displayName: requiredString(record.display_name ?? record.displayName, "profile name"),
-    model: requiredString(record.model, "profile model"),
-    connection: requiredString(record.connection, "profile connection"),
-    ...(typeof credentialRecord?.id === "string"
-      ? { credential: { id: credentialRecord.id } }
-      : {}),
-    ...optionalString(
-      record.default_thinking_level ?? record.defaultThinkingLevel,
-      "defaultThinkingLevel",
+    schemaVersion: requiredString(
+      metadata.schema_version ?? metadata.schemaVersion,
+      "model metadata schema version",
     ),
-    enabled: record.enabled === true,
+    apiId: requiredString(metadata.api_id ?? metadata.apiId, "model API id"),
+    reasoning: requiredBoolean(metadata.reasoning, "model reasoning capability"),
+    input: requiredArray(metadata.input, "model input modalities").map((modality) => {
+      if (modality !== "text" && modality !== "image") {
+        throw new Error("invalid model input modality");
+      }
+      return modality;
+    }),
+    cost: {
+      input: requiredNumber(cost.input, "model input cost"),
+      output: requiredNumber(cost.output, "model output cost"),
+      cacheRead: requiredNumber(cost.cache_read ?? cost.cacheRead, "model cache read cost"),
+      cacheWrite: requiredNumber(cost.cache_write ?? cost.cacheWrite, "model cache write cost"),
+      tiers: (Array.isArray(cost.tiers) ? cost.tiers : []).map((tier) => {
+        const item = asRecord(tier, "model cost tier");
+        return {
+          input: requiredNumber(item.input, "tier input cost"),
+          output: requiredNumber(item.output, "tier output cost"),
+          cacheRead: requiredNumber(item.cache_read ?? item.cacheRead, "tier cache read cost"),
+          cacheWrite: requiredNumber(item.cache_write ?? item.cacheWrite, "tier cache write cost"),
+          inputTokensAbove: requiredNumber(
+            item.input_tokens_above ?? item.inputTokensAbove,
+            "tier input token threshold",
+          ),
+        };
+      }),
+    },
+    costConfigured: requiredBoolean(
+      metadata.cost_configured ?? metadata.costConfigured,
+      "model cost configured flag",
+    ),
+    contextWindow: requiredNumber(
+      metadata.context_window ?? metadata.contextWindow,
+      "model context window",
+    ),
+    maxTokens: requiredNumber(metadata.max_tokens ?? metadata.maxTokens, "model output limit"),
   };
 }
 
@@ -153,6 +161,41 @@ function asRecord(value: unknown, label: string): Record<string, unknown> {
  */
 function requiredString(value: unknown, label: string): string {
   if (typeof value !== "string") throw new Error(`missing ${label}`);
+  return value;
+}
+
+/** Reads a required finite numeric field.
+ * @param value Unknown field.
+ * @param label Field description for diagnostics.
+ * @returns The numeric field.
+ * @throws When value is not a finite number.
+ */
+function requiredNumber(value: unknown, label: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error(`missing ${label}`);
+  }
+  return value;
+}
+
+/** Reads a required boolean field.
+ * @param value Unknown field.
+ * @param label Field description for diagnostics.
+ * @returns The boolean field.
+ * @throws When value is not a boolean.
+ */
+function requiredBoolean(value: unknown, label: string): boolean {
+  if (typeof value !== "boolean") throw new Error(`missing ${label}`);
+  return value;
+}
+
+/** Reads a required array field.
+ * @param value Unknown field.
+ * @param label Field description for diagnostics.
+ * @returns The array contents.
+ * @throws When value is not an array.
+ */
+function requiredArray(value: unknown, label: string): unknown[] {
+  if (!Array.isArray(value)) throw new Error(`missing ${label}`);
   return value;
 }
 

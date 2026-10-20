@@ -6,9 +6,7 @@ use super::*;
 #[test]
 #[allow(clippy::too_many_lines)]
 fn application_replan_preserves_history_and_publishes_latest_projection() {
-    let service = ApplicationService::new(Fixture)
-        .with_model_library(session_model_library())
-        .with_upstream_models(session_upstream_models());
+    let service = ApplicationService::new(Fixture).with_upstream_models(session_upstream_models());
     let context = session_context();
     let session = EntityId::from_bytes([111; 16]);
     service
@@ -141,9 +139,7 @@ fn application_replan_preserves_history_and_publishes_latest_projection() {
 #[test]
 #[allow(clippy::too_many_lines)]
 fn application_completion_persists_final_plan_and_releases_operation() {
-    let service = ApplicationService::new(Fixture)
-        .with_model_library(session_model_library())
-        .with_upstream_models(session_upstream_models());
+    let service = ApplicationService::new(Fixture).with_upstream_models(session_upstream_models());
     let context = session_context();
     let session_id = EntityId::from_bytes([118; 16]);
     service
@@ -346,50 +342,5 @@ fn agent_submission_without_capability_is_denied() {
     ));
 }
 
-/// Verifies failed child execution is retained as an abandoned branch result.
-#[test]
-fn failed_local_child_agent_is_retained() {
-    let service = ApplicationService::new(Fixture);
-    let root = service
-        .start_local_agent(&AgentCommandRequest {
-            session: EntityId::from_bytes([31; 16]),
-            branch: None,
-            anchor: None,
-            prompt: "root".to_owned(),
-            selection: None,
-        })
-        .expect("root");
-    let child = service
-        .start_local_child_agent(
-            root.session,
-            root.root_branch,
-            "child",
-            "inspect",
-            "child work",
-        )
-        .expect("child");
-
-    service
-        .fail_local_child_agent(&child, "provider failed")
-        .expect("failure retained");
-
-    let state = service
-        .read_session(
-            &session_context(),
-            &SessionRequest {
-                session: root.session,
-            },
-        )
-        .expect("session");
-    let failed = state
-        .branches
-        .iter()
-        .find(|branch| branch.id == child.child_branch)
-        .expect("failed child");
-    assert_eq!(failed.status, scriberig_session::BranchStatus::Abandoned);
-    assert_eq!(failed.outcome.as_deref(), Some("provider failed"));
-    assert_eq!(
-        service.operations().get(&child.operation).unwrap().status,
-        scriberig_app::OperationStatus::Failed
-    );
-}
+#[path = "part2/failures.rs"]
+mod failures;

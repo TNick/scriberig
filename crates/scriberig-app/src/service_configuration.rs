@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use crate::{ApplicationService, ModelLibrary};
+use crate::ApplicationService;
 
 impl<B> ApplicationService<B> {
     /// Installs the shared user presentation-preference store.
@@ -36,32 +36,34 @@ impl<B> ApplicationService<B> {
         self
     }
 
-    /// Installs the safe model descriptors and selectable profile library.
-    ///
-    /// - `self`: Service being configured.
-    /// - `library`: Provider-neutral model descriptors and profile references.
-    ///
-    /// The service configured with the supplied model library.
-    #[must_use]
-    /// # Returns
-    /// The operation result.
-    pub fn with_model_library(mut self, library: ModelLibrary) -> Self {
-        self.model_library = library;
-        self
-    }
-
-    /// Installs the host-owned upstream model catalog for selection resolution.
+    /// Seeds a new live catalog from legacy host-owned model rows.
     ///
     /// - `self`: Service being configured.
     /// - `models`: Upstream model catalog, including request-only metadata.
     ///
-    /// The service configured to resolve selections against upstream models.
+    /// This compatibility builder is intended for static callers; use
+    /// `with_model_catalog` when multiple components must observe refreshes.
     ///
     /// # Returns
     /// The configured service with the supplied model catalog.
     #[must_use]
-    pub fn with_upstream_models(mut self, models: Vec<rpi_ai::Model>) -> Self {
-        self.upstream_models = models;
+    pub fn with_upstream_models(self, models: Vec<rpi_ai::Model>) -> Self {
+        self.model_catalog.reconcile_models(models);
+        self
+    }
+
+    /// Installs a shared live upstream model catalog.
+    ///
+    /// - `self`: Service being configured.
+    /// - `catalog`: Shared upstream catalog handle.
+    ///
+    /// The service configured to resolve reads and selections from `catalog`.
+    ///
+    /// # Returns
+    /// The configured service.
+    #[must_use]
+    pub fn with_model_catalog(mut self, catalog: rpi_model_runtime::ModelCatalog) -> Self {
+        self.model_catalog = catalog;
         self
     }
 }

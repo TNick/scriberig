@@ -21,17 +21,10 @@ fn http_plan_start_runs_the_native_fake_provider_worker() {
         scriberig_session_sqlite::SqliteSessionStore::open(root.join("session.sqlite"))
             .expect("session store"),
     );
-    let model_library = scriberig_app::model_library_from_json(
-        Some(
-            r#"{"models":[{"id":"http-plan-model","display_name":"HTTP Plan Model","provider_model_id":"wire-http-plan-model","thinking_levels":[{"id":"high","label":"Deep"}]}]}"#,
-        ),
-        "http-plan-model",
-    )
-    .expect("worker model library");
+    let upstream_models = upstream_model_catalog("local", &["wire-http-plan-model"]);
     let service = ApplicationService::new(backend)
         .with_session_store(session_store.clone())
-        .with_model_library(model_library.clone())
-        .with_upstream_models(upstream_model_catalog("local", &["wire-http-plan-model"]));
+        .with_upstream_models(upstream_models.clone());
     let session_id = EntityId::new();
     let root_branch = EntityId::new();
     let mut branch = Branch::new(root_branch, "root").expect("root branch");
@@ -90,8 +83,7 @@ fn http_plan_start_runs_the_native_fake_provider_worker() {
             NativeProvider::Fake(provider.clone()),
         )]),
         model: "http-plan-model".to_owned(),
-        model_library,
-        upstream_models: upstream_model_catalog("local", &["wire-http-plan-model"]),
+        model_catalog: model_catalog_from_models(upstream_models),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
     };

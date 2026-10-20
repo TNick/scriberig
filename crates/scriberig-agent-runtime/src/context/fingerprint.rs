@@ -17,8 +17,6 @@ pub struct RequestFingerprintInput {
     pub compiled_context: String,
     /// Canonical tool catalog identity.
     pub tools: String,
-    /// Secret deliberately excluded from identity material.
-    credential: Option<String>,
 }
 
 impl RequestFingerprintInput {
@@ -46,7 +44,6 @@ impl RequestFingerprintInput {
             capabilities: ProviderCapabilities::default(),
             compiled_context: compiled_context.into(),
             tools: tools.into(),
-            credential: None,
         }
     }
 
@@ -61,20 +58,6 @@ impl RequestFingerprintInput {
     /// The operation result.
     pub fn with_model(mut self, model: impl Into<String>) -> Self {
         self.model = model.into();
-        self
-    }
-
-    /// Adds a secret only to prove it is excluded from identity material.
-    ///
-    /// - `self`: Fingerprint input.
-    /// - `credential`: Secret value never hashed or serialized.
-    ///
-    /// Inputs retaining the secret outside canonical material.
-    #[must_use]
-    /// # Returns
-    /// The operation result.
-    pub fn with_credential(mut self, credential: impl Into<String>) -> Self {
-        self.credential = Some(credential.into());
         self
     }
 

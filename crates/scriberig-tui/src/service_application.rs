@@ -298,7 +298,7 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
     ///
     /// - `context`: Caller authorization context.
     ///
-    /// Credential-safe model descriptors and profiles.
+    /// Safe upstream-derived model display rows.
     ///
     /// Returns the application model-library error.
     /// # Returns

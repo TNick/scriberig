@@ -23,6 +23,27 @@ impl<B> ApplicationService<B> {
         handle: &LocalAgentHandle,
         failure: impl Into<String>,
     ) -> Result<(), ApplicationError> {
+        self.fail_local_agent_with_model_requests(handle, failure, Vec::new())
+    }
+
+    /// Abandons a root branch and retains safe requests captured before failure.
+    ///
+    /// - `self`: Application service.
+    /// - `handle`: Pending root operation handle.
+    /// - `failure`: Bounded failure description safe for durable storage.
+    /// - `model_requests`: Safe provider-neutral requests captured before failure.
+    ///
+    /// Unit after branch, request history, and operation failure are recorded.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn fail_local_agent_with_model_requests(
+        &self,
+        handle: &LocalAgentHandle,
+        failure: impl Into<String>,
+        model_requests: Vec<scriberig_session::ModelRequestProjection>,
+    ) -> Result<(), ApplicationError> {
         let failure = failure.into();
         let cancelled =
             self.operations.get(&handle.operation)?.status == crate::OperationStatus::Cancelled;
@@ -38,6 +59,7 @@ impl<B> ApplicationService<B> {
             .ok_or_else(|| ApplicationError::NotFound {
                 subject: handle.root_branch.to_string(),
             })?;
+        self.persist_model_requests(branch, model_requests);
         branch.outcome = Some(failure.clone());
         let result_id = self.next_entity(0xB8);
         branch.result = Some(BranchResult {
@@ -91,6 +113,27 @@ impl<B> ApplicationService<B> {
         handle: &LocalChildAgentHandle,
         failure: impl Into<String>,
     ) -> Result<(), ApplicationError> {
+        self.fail_local_child_agent_with_model_requests(handle, failure, Vec::new())
+    }
+
+    /// Abandons a child branch with its safely captured model requests.
+    ///
+    /// - `self`: Application service.
+    /// - `handle`: Pending child operation handle.
+    /// - `failure`: Bounded failure description safe for durable storage.
+    /// - `model_requests`: Safe provider-neutral requests captured before failure.
+    ///
+    /// Unit after branch, request history, and operation failure are recorded.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn fail_local_child_agent_with_model_requests(
+        &self,
+        handle: &LocalChildAgentHandle,
+        failure: impl Into<String>,
+        model_requests: Vec<scriberig_session::ModelRequestProjection>,
+    ) -> Result<(), ApplicationError> {
         let failure = failure.into();
         let mut session =
             self.load_session_state(handle.session)?
@@ -104,6 +147,7 @@ impl<B> ApplicationService<B> {
             .ok_or_else(|| ApplicationError::NotFound {
                 subject: handle.child_branch.to_string(),
             })?;
+        self.persist_model_requests(branch, model_requests);
         branch.outcome = Some(failure.clone());
         let result_id = self.next_entity(0xB7);
         branch.result = Some(BranchResult {

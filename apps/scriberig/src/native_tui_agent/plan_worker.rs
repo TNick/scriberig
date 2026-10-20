@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use scriberig_agent_runtime::cache::{CachePolicy, ModelCache};
 use scriberig_agent_runtime::model_provider::ProviderModel;
-use scriberig_agent_runtime::scheduler::PlanWorkerExecutor;
+use scriberig_agent_runtime::scheduler::{PlanWorkerExecutionResult, PlanWorkerExecutor};
 use scriberig_agent_runtime::{AgentRuntime, ChildExecutionScope};
 use scriberig_app::{ApplicationBackend, ApplicationContext, ApplicationService};
 use scriberig_core::EntityId;
@@ -114,12 +114,39 @@ where
         execution: &scriberig_app::ResolvedPlanExecution,
         worker_context: &scriberig_agent_runtime::plan_context::PlanWorkerContext,
     ) -> Result<BranchResult, String> {
+        self.execute_with_context_and_requests(node, claim, execution, worker_context)
+            .map(|execution| execution.result)
+    }
+
+    /// Runs a claimed worker and returns its bounded request projections.
+    ///
+    /// - `node`: Exact durable work node selected by the coordinator.
+    /// - `claim`: Exclusive branch claim persisted before provider execution.
+    /// - `execution`: Resolved provider, model, profile, and thinking settings.
+    /// - `worker_context`: Exact compiled branch context.
+    ///
+    /// The branch result and captured provider-neutral request history.
+    /// # Returns
+    /// The completed worker result with safe captured requests.
+    /// # Errors
+    /// Returns provider, tool, cancellation, or worker-context failures.
+    fn execute_with_context_and_requests(
+        &self,
+        node: &PlanNode,
+        claim: &WorkerClaim,
+        execution: &scriberig_app::ResolvedPlanExecution,
+        worker_context: &scriberig_agent_runtime::plan_context::PlanWorkerContext,
+    ) -> Result<PlanWorkerExecutionResult, String> {
         if node
             .expected_result
             .as_ref()
             .is_some_and(|expected| expected.kind == "project_candidate_merge")
         {
-            return integrate_dependency_candidates(&self.project_store, claim, worker_context);
+            return integrate_dependency_candidates(&self.project_store, claim, worker_context)
+                .map(|result| PlanWorkerExecutionResult {
+                    result,
+                    model_requests: Vec::new(),
+                });
         }
         let connection = if execution.uses_runtime_fallback {
             "local".to_owned()
@@ -153,11 +180,14 @@ where
             operation: self.operation.clone(),
             provider: provider.clone(),
             model: execution.model_id.clone(),
+            provider_id: Some(execution.provider_id.clone()),
+            provider_profile: None,
             thinking_level: execution.thinking_level.clone(),
             cache: cache.clone(),
             project_store: Arc::clone(&self.project_store),
         };
         let model = ProviderModel::new(provider.clone(), execution.model_id.clone())
+            .with_provider_id(execution.provider_id.clone())
             .with_thinking_level(execution.thinking_level.clone())
             .with_catalog(inspect_catalog())
             .with_capabilities(self.context.capabilities.clone())
@@ -174,24 +204,55 @@ where
             runtime = runtime
                 .with_observed_operation(self.service.operations().clone(), operation.clone());
         }
-        let result = runtime
-            .run_with_child_executor_at(
-                &scope,
-                self.context,
-                &node.purpose,
-                &cancelled,
-                &mut children,
-            )
-            .map_err(|error| error.to_string())?;
-        let mut result_handles = compact_result_handles(&result);
-        result_handles.push(format!("provider:{}", execution.provider_id));
-        result_handles.push(format!("model:{}", execution.model_id));
-        if let Some(thinking) = &execution.thinking_level {
-            result_handles.push(format!("thinking:{thinking}"));
-        }
-        Ok(BranchResult {
+        let result = match runtime.run_with_child_executor_at(
+            &scope,
+            self.context,
+            &node.purpose,
+            &cancelled,
+            &mut children,
+        ) {
+            Ok(result) => result,
+            Err(error) => {
+                let model_requests = runtime.take_captured_model_requests();
+                if model_requests.is_empty() {
+                    return Err(error.to_string());
+                }
+                return Ok(PlanWorkerExecutionResult {
+                    result: failed_plan_worker_result(claim.branch),
+                    model_requests,
+                });
+            }
+        };
+        Ok(completed_worker_result(claim.branch, execution, result))
+    }
+}
+
+/// Builds the durable result for a completed model-backed plan worker.
+///
+/// - `branch`: Exact worker branch that produced the result.
+/// - `execution`: Resolved provider, model, and thinking assignment.
+/// - `result`: Runtime output and captured model request projections.
+///
+/// A completed branch result with safe model provenance handles.
+/// # Returns
+/// The normalized worker result.
+/// # Errors
+/// This helper is infallible; `PlanWorkerExecutionResult` is a value type.
+fn completed_worker_result(
+    branch: EntityId,
+    execution: &scriberig_app::ResolvedPlanExecution,
+    result: scriberig_agent_runtime::AgentResult,
+) -> PlanWorkerExecutionResult {
+    let mut result_handles = compact_result_handles(&result);
+    result_handles.push(format!("provider:{}", execution.provider_id));
+    result_handles.push(format!("model:{}", execution.model_id));
+    if let Some(thinking) = &execution.thinking_level {
+        result_handles.push(format!("thinking:{thinking}"));
+    }
+    PlanWorkerExecutionResult {
+        result: BranchResult {
             id: EntityId::new(),
-            branch: claim.branch,
+            branch,
             status: BranchStatus::Completed,
             summary: Some(result.output),
             result_kind: Some("plan-worker".to_owned()),
@@ -202,7 +263,34 @@ where
             produced_changes: Vec::new(),
             validations: Vec::new(),
             unresolved_questions: Vec::new(),
-        })
+        },
+        model_requests: result.model_requests,
+    }
+}
+
+/// Creates the bounded failed result used when captured requests precede error.
+///
+/// - `branch`: Exact claimed branch that executed the failed request.
+///
+/// An abandoned worker result that cannot satisfy plan dependencies.
+/// # Returns
+/// A failure result with no provider error details.
+/// # Errors
+/// This helper records failure as data and does not return an error.
+fn failed_plan_worker_result(branch: EntityId) -> BranchResult {
+    BranchResult {
+        id: EntityId::new(),
+        branch,
+        status: BranchStatus::Abandoned,
+        summary: Some("worker execution failed".to_owned()),
+        result_kind: Some("worker_failure".to_owned()),
+        candidate_context: None,
+        references: Vec::new(),
+        result_handles: vec!["failure-code:worker_failed".to_owned()],
+        touched: Vec::new(),
+        produced_changes: Vec::new(),
+        validations: Vec::new(),
+        unresolved_questions: Vec::new(),
     }
 }
 

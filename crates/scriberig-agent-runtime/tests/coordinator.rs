@@ -1,6 +1,9 @@
 //! Verifies application-backed plan coordination and durable result ordering.
 
-use scriberig_agent_runtime::{coordinator::PlanCoordinator, scheduler::PlanWorkerExecutor};
+use scriberig_agent_runtime::{
+    coordinator::PlanCoordinator,
+    scheduler::{PlanWorkerExecutionResult, PlanWorkerExecutor},
+};
 use scriberig_app::{
     ApplicationBackend, ApplicationContext, ApplicationError, ApplicationRequest,
     ApplicationResult, ApplicationService, CapabilityContext, CapabilityId, OperationProvider,
@@ -137,6 +140,7 @@ impl PlanWorkerExecutor for FakeWorkers<'_> {
                 agent_profile: None,
                 context_fingerprint: None,
                 provider_profile: Some("private-worker-profile".to_owned()),
+                provider_id: None,
                 model: Some("private-worker-model".to_owned()),
                 model_profile: Some("private-worker-profile".to_owned()),
                 provider_model_id: None,

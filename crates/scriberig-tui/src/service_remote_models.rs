@@ -37,7 +37,7 @@ pub(super) fn runtime_capabilities<T: ProtocolTransport>(
 ///
 /// - `adapter`: Remote service adapter holding the protocol client.
 ///
-/// Safe model descriptors and profiles.
+/// Safe upstream-derived model display rows.
 ///
 /// Returns a sanitized remote protocol error.
 pub(super) fn model_library<T: ProtocolTransport>(

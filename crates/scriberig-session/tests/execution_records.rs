@@ -3,7 +3,8 @@
 use scriberig_core::EntityId;
 use scriberig_session::{
     Branch, BranchResult, BranchStatus, CacheDisposition, ExecutionActivity, ModelInvocation,
-    ModelOutput, SelectionError, Session, SessionExecutionSelection, SessionViews,
+    ModelOutput, ModelRequestProjection, SelectionError, Session, SessionExecutionSelection,
+    SessionViews,
 };
 
 /// Verifies model provenance and output are provider-neutral and secret-free.
@@ -19,6 +20,7 @@ fn model_execution_records_are_explicit() {
         agent_profile: Some("default".to_owned()),
         context_fingerprint: Some("ctx".to_owned()),
         provider_profile: Some("local".to_owned()),
+        provider_id: Some("provider-a".to_owned()),
         model: Some("model-a".to_owned()),
         model_profile: Some("profile-a".to_owned()),
         provider_model_id: Some("native-model-a".to_owned()),
@@ -39,6 +41,51 @@ fn model_execution_records_are_explicit() {
     assert_eq!(record.branch, branch);
     assert_eq!(result.id, output);
     assert!(!format!("{record:?}").contains("Authorization"));
+}
+
+/// Loads older serialized invocations without the provider identity field.
+#[test]
+fn model_invocation_defaults_missing_provider_identity() {
+    let record = ModelInvocation {
+        id: EntityId::from_bytes([11; 16]),
+        branch: EntityId::from_bytes([12; 16]),
+        ordinal: 0,
+        agent_profile: None,
+        context_fingerprint: None,
+        provider_profile: None,
+        provider_id: Some("provider-a".to_owned()),
+        model: Some("model-a".to_owned()),
+        model_profile: None,
+        provider_model_id: Some("model-a".to_owned()),
+        thinking_level: None,
+        request_fingerprint: None,
+        cache: CacheDisposition::NotUsed,
+        output: None,
+        request: None,
+    };
+    let mut value = serde_json::to_value(record).expect("serialize invocation");
+    value
+        .as_object_mut()
+        .expect("invocation object")
+        .remove("provider_id");
+
+    let decoded: ModelInvocation = serde_json::from_value(value).expect("legacy invocation");
+
+    assert_eq!(decoded.provider_id, None);
+
+    let legacy_projection = serde_json::json!({
+        "ordinal": 0,
+        "model": "model-a",
+        "thinking_level": null,
+        "messages": [],
+        "tools": [],
+        "truncated": false
+    });
+    let decoded_projection: ModelRequestProjection =
+        serde_json::from_value(legacy_projection).expect("legacy request projection");
+
+    assert_eq!(decoded_projection.provider_id, None);
+    assert_eq!(decoded_projection.provider_profile, None);
 }
 
 /// Verifies deterministic activity ordering and compact child results.
@@ -103,6 +150,7 @@ fn session_execution_selection_is_optimistic_and_versioned() {
         agent_profile: None,
         context_fingerprint: None,
         provider_profile: Some("provider".to_owned()),
+        provider_id: None,
         model: Some("model-a".to_owned()),
         model_profile: Some("profile-a".to_owned()),
         provider_model_id: Some("native-model-a".to_owned()),

@@ -10,7 +10,7 @@ mod execution_helpers;
 
 #[path = "scheduler_results.rs"]
 mod results;
-pub use results::WorkerBatchResult;
+pub use results::{PlanWorkerExecutionResult, WorkerBatchResult, WorkerModelRequestEvidence};
 #[path = "scheduler_helpers.rs"]
 mod scheduler_helpers;
 
@@ -82,6 +82,32 @@ pub trait PlanWorkerExecutor: Sync {
     ) -> Result<BranchResult, String> {
         let _ = context;
         self.execute(node, claim, execution)
+    }
+
+    /// Runs one worker and returns its safe model-request evidence separately.
+    ///
+    /// - `node`: Exact durable node snapshot.
+    /// - `claim`: Exclusive branch claim captured before provider invocation.
+    /// - `execution`: Resolved provider/model/thinking assignment.
+    /// - `context`: Exact anchor, semantic scope, ancestor, and dependency inputs.
+    ///
+    /// The durable result and requests belonging to the claimed branch.
+    /// # Returns
+    /// The worker result with its bounded requests.
+    /// # Errors
+    /// Returns a safe worker failure summary.
+    fn execute_with_context_and_requests(
+        &self,
+        node: &PlanNode,
+        claim: &WorkerClaim,
+        execution: &scriberig_app::ResolvedPlanExecution,
+        context: &crate::plan_context::PlanWorkerContext,
+    ) -> Result<PlanWorkerExecutionResult, String> {
+        self.execute_with_context(node, claim, execution, context)
+            .map(|result| PlanWorkerExecutionResult {
+                result,
+                model_requests: Vec::new(),
+            })
     }
 }
 

@@ -5,8 +5,9 @@ pub use scriberig_session::{SessionActivityKind, SessionActivityState, ToolActiv
 #[path = "session/requests.rs"]
 mod requests;
 pub use requests::{
-    ModelRequestDetailRequest, ModelRequestDetailResponse, ModelRequestMessageDetail,
-    ModelRequestToolDetail, SessionReadRequest, ToolResultDetailRequest, ToolResultDetailResponse,
+    ModelContextRevisionReference, ModelRequestDetailRequest, ModelRequestDetailResponse,
+    ModelRequestMessageDetail, ModelRequestToolDetail, SessionReadRequest, ToolResultDetailRequest,
+    ToolResultDetailResponse,
 };
 #[path = "session/activity.rs"]
 mod activity;

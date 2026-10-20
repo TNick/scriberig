@@ -22,7 +22,10 @@ fn reads_model_request_detail_through_protocol_client() {
         response: Response::ModelRequestDetail(scriberig_protocol::ModelRequestDetailResponse {
             invocation: invocation.to_string(),
             model: "model-a".to_owned(),
+            provider_id: Some("provider-a".to_owned()),
             thinking_level: Some("careful".to_owned()),
+            profile: None,
+            active_components: Vec::new(),
             messages: Vec::new(),
             tools: Vec::new(),
             truncated: false,
@@ -35,6 +38,7 @@ fn reads_model_request_detail_through_protocol_client() {
         .expect("captured request detail");
 
     assert_eq!(detail.model, "model-a");
+    assert_eq!(detail.provider_id.as_deref(), Some("provider-a"));
     assert_eq!(detail.thinking_level.as_deref(), Some("careful"));
     assert_eq!(
         observed.lock().expect("request").as_ref(),

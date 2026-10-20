@@ -18,8 +18,6 @@ use scriberig_store_sqlite::SqliteStore;
 use crate::agent_tool::LocalAgentTool;
 use crate::child_runtime::{LocalChildExecutor, inspect_catalog};
 use crate::native_provider::NativeProvider;
-#[path = "native_tui_agent/context.rs"]
-mod context;
 #[path = "native_tui_agent/workspace.rs"]
 mod workspace;
 use workspace::workspace_from_result;
@@ -44,10 +42,8 @@ pub(super) struct NativeTuiAgentRunner {
     providers: std::collections::BTreeMap<String, NativeProvider>,
     /// Model identifier selected by the local runtime configuration.
     model: String,
-    /// Safe models and selectable profiles exposed to the application service.
-    model_library: scriberig_app::ModelLibrary,
     /// Upstream catalog retained as the model selection authority.
-    upstream_models: Vec<rpi_ai::Model>,
+    model_catalog: rpi_model_runtime::ModelCatalog,
     /// Shared project store used by application-backed agent tools.
     project_store: Arc<SqliteStore>,
     /// In-process guard against starting two coordinator loops for one plan.
@@ -95,32 +91,39 @@ impl NativeTuiAgentRunner {
             let provider = provider_config::from_connection(connection, &model)?;
             providers.insert(connection.id.clone(), provider);
         }
+        let upstream_models = catalog.models;
         Ok(Self {
             providers,
             model,
-            model_library: catalog.library,
-            upstream_models: catalog.models,
+            model_catalog: model_catalog_from_models(upstream_models),
             project_store,
             active_coordinators: Mutex::new(HashSet::new()),
         })
     }
 
-    /// Returns the safe model library installed in the application service.
+    /// Returns the shared live catalog used by application compositions.
     ///
-    /// Configured model descriptors and selectable profiles.
     /// # Returns
-    /// The operation result.
-    pub(super) fn model_library(&self) -> scriberig_app::ModelLibrary {
-        self.model_library.clone()
+    /// A cloneable handle to the runner's model catalog.
+    pub(super) fn model_catalog(&self) -> rpi_model_runtime::ModelCatalog {
+        self.model_catalog.clone()
     }
+}
 
-    /// Returns the upstream catalog used for model resolution.
-    ///
-    /// # Returns
-    /// A copy of the upstream model catalog.
-    pub(super) fn upstream_models(&self) -> Vec<rpi_ai::Model> {
-        self.upstream_models.clone()
-    }
+/// Seeds a shared upstream model catalog from provider-qualified model rows.
+///
+/// - `models`: Upstream models grouped by their provider identity.
+///
+/// The live model catalog containing every supplied provider row.
+///
+/// # Returns
+/// The populated catalog handle.
+pub(super) fn model_catalog_from_models(
+    models: Vec<rpi_ai::Model>,
+) -> rpi_model_runtime::ModelCatalog {
+    let catalog = rpi_model_runtime::ModelCatalog::new();
+    catalog.reconcile_models(models);
+    catalog
 }
 
 /// Resolves the latest durable project scope produced in a session.
@@ -225,12 +228,14 @@ fn selection_handles(selection: Option<&AgentSelection>) -> Vec<String> {
 /// - `super`: Parent executable composition module.
 /// - `provider`: Cloneable provider adapter for parent and child branches.
 /// - `model`: Configured model identifier.
+/// - `provider_id`: Resolved upstream provider identity, when available.
 /// - `service`: Shared application operation boundary.
 /// - `project_store`: Shared project catalog and artifact store.
 /// - `context`: Trusted request capabilities and scope.
 /// - `session`: Durable session receiving branch activity.
 /// - `branch`: Exact root branch executing this turn.
 /// - `prompt`: User-authored instruction.
+/// - `model_requests_on_failure`: Destination for safe requests captured before an error.
 ///
 /// Provider-neutral runtime output and tool observations.
 ///
@@ -239,6 +244,7 @@ fn selection_handles(selection: Option<&AgentSelection>) -> Vec<String> {
 pub(super) fn execute_agent<P, B>(
     provider: P,
     model: &str,
+    provider_id: Option<&str>,
     thinking_level: Option<&str>,
     service: &ApplicationService<B>,
     project_store: &Arc<SqliteStore>,
@@ -249,6 +255,7 @@ pub(super) fn execute_agent<P, B>(
     prompt: &str,
     selection: Option<&AgentSelection>,
     cancelled: &std::sync::atomic::AtomicBool,
+    model_requests_on_failure: &mut Vec<scriberig_session::ModelRequestProjection>,
 ) -> Result<scriberig_agent_runtime::AgentResult, AgentError>
 where
     P: ProviderAdapter + Clone,
@@ -278,11 +285,14 @@ where
         operation: Some(operation.clone()),
         provider: provider.clone(),
         model: model.to_owned(),
+        provider_id: provider_id.map(str::to_owned),
+        provider_profile: None,
         thinking_level: thinking_level.map(str::to_owned),
         cache: cache.clone(),
         project_store: Arc::clone(project_store),
     };
     let mut model_provider = ProviderModel::new(provider, model)
+        .with_optional_provider_id(provider_id.map(str::to_owned))
         .with_thinking_level(thinking_level.map(str::to_owned))
         .with_catalog(inspect_catalog())
         .with_capabilities(context.capabilities.clone())
@@ -292,7 +302,7 @@ where
         || context.clone(),
         |selection| context.clone().with_snapshot(selection.snapshot),
     );
-    let compiled = context::compile_branch_context(
+    let compiled = crate::agent_context::compile_branch_context(
         service,
         &runtime_context,
         session,
@@ -308,5 +318,10 @@ where
     )
     .with_observed_operation(service.operations().clone(), operation)
     .with_branch_id(branch.to_string());
-    runtime.run_with_child_executor_at(&scope, context, prompt, cancelled, &mut children)
+    let result =
+        runtime.run_with_child_executor_at(&scope, context, prompt, cancelled, &mut children);
+    if result.is_err() {
+        *model_requests_on_failure = runtime.take_captured_model_requests();
+    }
+    result
 }

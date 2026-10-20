@@ -9,10 +9,9 @@ mod access_tests;
 use rpi_ai::{Api, Model, ThinkingLevel, ThinkingLevelMap};
 use scriberig_app::{
     AgentCommandRequest, AgentConsoleBackend, ApplicationContext, ApplicationError,
-    ApplicationService, CredentialRef, ModelCapabilities, ModelDescriptor, ModelId, ModelLibrary,
-    ModelProfile, PlanAssignmentRequest, PlanCreateRequest, PlanLifecycleRequest, PlanNodeDraft,
-    SessionBackend, SessionModelSelectionRequest, SessionRequest, SessionThinkingSelectionRequest,
-    ThinkingLevelDescriptor, ThinkingLevelId,
+    ApplicationService, PlanAssignmentRequest, PlanCreateRequest, PlanLifecycleRequest,
+    PlanNodeDraft, SessionBackend, SessionModelSelectionRequest, SessionRequest,
+    SessionThinkingSelectionRequest,
 };
 use scriberig_core::EntityId;
 
@@ -47,82 +46,10 @@ fn session_upstream_models() -> Vec<Model> {
     ]
 }
 
-/// Creates model profiles with independent thinking-level capabilities.
-///
-/// A validated model library used by selection tests.
-///
-/// # Panics
-/// Panics when the static fixture violates the model library contract.
-/// # Returns
-/// The operation result.
-fn session_model_library() -> ModelLibrary {
-    let first = ModelDescriptor {
-        id: ModelId::new("model-a").expect("model id"),
-        display_name: "Model A".to_owned(),
-        provider_profile: "local".to_owned(),
-        provider_model_id: "native-a".to_owned(),
-        capabilities: ModelCapabilities::default(),
-        thinking_levels: vec![
-            ThinkingLevelDescriptor {
-                id: ThinkingLevelId::new("medium").expect("thinking id"),
-                label: "Careful".to_owned(),
-                description: None,
-                order: 0,
-            },
-            ThinkingLevelDescriptor {
-                id: ThinkingLevelId::new("high").expect("thinking id"),
-                label: "Extended".to_owned(),
-                description: None,
-                order: 1,
-            },
-        ],
-        default_thinking_level: Some(ThinkingLevelId::new("medium").expect("thinking id")),
-    };
-    let second = ModelDescriptor {
-        id: ModelId::new("model-b").expect("model id"),
-        display_name: "Model B".to_owned(),
-        provider_profile: "local".to_owned(),
-        provider_model_id: "native-b".to_owned(),
-        capabilities: ModelCapabilities::default(),
-        thinking_levels: vec![ThinkingLevelDescriptor {
-            id: ThinkingLevelId::new("low").expect("thinking id"),
-            label: "Steady".to_owned(),
-            description: None,
-            order: 0,
-        }],
-        default_thinking_level: Some(ThinkingLevelId::new("low").expect("thinking id")),
-    };
-    let profiles = vec![
-        ModelProfile {
-            id: "profile-a".to_owned(),
-            display_name: "Model A".to_owned(),
-            model: first.id.clone(),
-            connection: "local".to_owned(),
-            credential: Some(CredentialRef {
-                id: "secret-ref-a".to_owned(),
-            }),
-            default_thinking_level: Some(ThinkingLevelId::new("medium").expect("thinking id")),
-            enabled: true,
-        },
-        ModelProfile {
-            id: "profile-b".to_owned(),
-            display_name: "Model B".to_owned(),
-            model: second.id.clone(),
-            connection: "local".to_owned(),
-            credential: None,
-            default_thinking_level: Some(ThinkingLevelId::new("low").expect("thinking id")),
-            enabled: true,
-        },
-    ];
-    ModelLibrary::new(vec![first, second], profiles).expect("model library")
-}
-
 /// Verifies session model operations validate thinking levels and reject stale writes.
 #[test]
-fn session_model_selection_uses_library_and_mutation_revision() {
-    let service = ApplicationService::new(Fixture)
-        .with_model_library(session_model_library())
-        .with_upstream_models(session_upstream_models());
+fn session_model_selection_uses_upstream_catalog_and_mutation_revision() {
+    let service = ApplicationService::new(Fixture).with_upstream_models(session_upstream_models());
     let context = session_context();
     let session = EntityId::from_bytes([24; 16]);
     service
@@ -204,8 +131,68 @@ fn session_model_selection_uses_library_and_mutation_revision() {
     let available = service
         .agent_model_library(&context)
         .expect("authorized model library");
-    assert_eq!(available.profiles.len(), 2);
-    assert!(!format!("{available:?}").contains("resolved-secret"));
+    assert_eq!(available.models.len(), 2);
+}
+
+/// Projects updates and removals from a shared upstream live catalog.
+#[test]
+fn model_library_projection_tracks_live_catalog_updates_and_removals() {
+    let context = session_context();
+    let initial_model = Model::new(
+        "model-before-refresh",
+        "Initial model",
+        Api::AnthropicMessages,
+        "provider-before-refresh",
+        "https://example.test",
+    );
+    let catalog = rpi_model_runtime::ModelCatalog::new();
+    catalog.replace_provider_models("provider-before-refresh", vec![initial_model]);
+    let service = ApplicationService::new(Fixture).with_model_catalog(catalog.clone());
+    let initial_library = service
+        .agent_model_library(&context)
+        .expect("initial upstream model projection");
+
+    assert_eq!(initial_library.models.len(), 1);
+    assert_eq!(
+        initial_library.models[0].provider_model_id,
+        "model-before-refresh"
+    );
+
+    let refreshed_model = Model::new(
+        "model-after-refresh",
+        "Refreshed model",
+        Api::OpenaiCompletions,
+        "provider-after-refresh",
+        "https://example.test",
+    );
+    catalog.reconcile_models(vec![refreshed_model]);
+    let refreshed_library = service
+        .agent_model_library(&context)
+        .expect("refreshed upstream model projection");
+
+    assert_eq!(refreshed_library.models.len(), 1);
+    assert_eq!(
+        refreshed_library.models[0].provider_id,
+        "provider-after-refresh"
+    );
+    assert_eq!(
+        refreshed_library.models[0].provider_model_id,
+        "model-after-refresh"
+    );
+    assert_eq!(refreshed_library.models[0].display_name, "Refreshed model");
+    assert_ne!(initial_library.models[0].id, refreshed_library.models[0].id);
+    assert!(
+        !refreshed_library
+            .models
+            .iter()
+            .any(|model| model.provider_model_id == "model-before-refresh")
+    );
+
+    catalog.reconcile_models(Vec::new());
+    let removed_library = service
+        .agent_model_library(&context)
+        .expect("model projection after provider removal");
+    assert_eq!(removed_library.models, Vec::new());
 }
 
 /// Verifies typed live selection events include model and fallback activity.

@@ -1,16 +1,32 @@
 /** @file Defines safe model library and execution selection protocol values. */
-/** One thinking capability advertised by a model. */
-export interface ThinkingLevelDescriptor {
-  id: string;
-  label: string;
-  description?: string;
-  order: number;
+/** One supported input modality in the upstream safe metadata snapshot. */
+export type ModelInputModality = "text" | "image";
+/** Typed pricing metadata copied from the upstream safe model snapshot. */
+export interface ModelCostSnapshot {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+  tiers?: readonly ModelCostTierSnapshot[];
 }
-/** Safe generation capabilities advertised by a model. */
-export interface ModelCapabilities {
-  streaming: boolean;
-  toolCalls: boolean;
-  structuredOutput: boolean;
+/** One upstream pricing tier. */
+export interface ModelCostTierSnapshot {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+  inputTokensAbove: number;
+}
+/** Display-safe fields from the versioned upstream model snapshot. */
+export interface ModelMetadataSnapshot {
+  schemaVersion: string;
+  apiId: string;
+  reasoning: boolean;
+  input: readonly ModelInputModality[];
+  cost: ModelCostSnapshot;
+  costConfigured: boolean;
+  contextWindow: number;
+  maxTokens: number;
 }
 /** Provider model descriptor without resolved credential values. */
 export interface ModelDescriptor {
@@ -18,28 +34,12 @@ export interface ModelDescriptor {
   displayName: string;
   providerId: string;
   modelId: string;
-  capabilities: ModelCapabilities;
-  thinkingLevels: readonly ThinkingLevelDescriptor[];
-  defaultThinkingLevel?: string;
+  thinkingLevels: readonly string[];
+  metadataSnapshot?: ModelMetadataSnapshot;
 }
-/** Safe reference to a configured credential. */
-export interface CredentialRef {
-  id: string;
-}
-/** Curated model entry clients may select. */
-export interface ModelProfile {
-  id: string;
-  displayName: string;
-  model: string;
-  connection: string;
-  credential?: CredentialRef;
-  defaultThinkingLevel?: string;
-  enabled: boolean;
-}
-/** Credential-safe descriptors and curated model profiles. */
+/** Credential-safe upstream-derived model display rows. */
 export interface ModelLibraryResponse {
   models: readonly ModelDescriptor[];
-  profiles: readonly ModelProfile[];
 }
 /** Session model mutation with its independent optimistic revision. */
 export interface SessionModelSelectionRequest {

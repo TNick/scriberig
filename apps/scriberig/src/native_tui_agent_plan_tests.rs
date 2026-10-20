@@ -25,6 +25,23 @@ pub(super) fn upstream_model_catalog(provider: &str, model_ids: &[&str]) -> Vec<
         .collect()
 }
 
+/// Builds a successful fake-provider response with the supplied text.
+///
+/// - `text`: Final response content.
+///
+/// # Returns
+/// A completed non-tool provider response.
+///
+fn final_response(text: &str) -> ModelResponse {
+    ModelResponse {
+        text: Some(text.to_owned()),
+        tool_calls: Vec::new(),
+        finish_reason: FinishReason::Stop,
+        usage: None,
+        metadata: ProviderMetadata::default(),
+    }
+}
+
 /// Starts a durable plan through the native lifecycle and executes its worker.
 #[test]
 #[allow(clippy::too_many_lines)] // Keeps worker assignment and resume evidence end to end.
@@ -40,20 +57,11 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
             .expect("session store"),
     );
     let session_repository: Arc<dyn SessionStore> = session_store.clone();
-    let model_library = scriberig_app::model_library_from_json(
-        Some(
-            r#"{"models":[{"id":"plan-model-a","display_name":"Plan Model A","provider_model_id":"wire-plan-model-a","provider_profile":"fake","connection":"fake-a","thinking_levels":[{"id":"high","label":"Deep"}]},{"id":"plan-model-b","display_name":"Plan Model B","provider_model_id":"wire-plan-model-b","provider_profile":"fake","connection":"fake-b","thinking_levels":[{"id":"high","label":"Extended"}]}]}"#,
-        ),
-        "fake-model",
-    )
-    .expect("worker model library");
+    let upstream_models =
+        upstream_model_catalog("fake", &["wire-plan-model-a", "wire-plan-model-b"]);
     let service = ApplicationService::new(backend)
         .with_session_store(session_repository)
-        .with_model_library(model_library.clone())
-        .with_upstream_models(upstream_model_catalog(
-            "fake",
-            &["wire-plan-model-a", "wire-plan-model-b"],
-        ));
+        .with_upstream_models(upstream_models.clone());
     let session_id = EntityId::new();
     let root_branch = EntityId::new();
     let mut branch = Branch::new(root_branch, "root").expect("root branch");
@@ -198,11 +206,7 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
             ),
         ]),
         model: "fake-model".to_owned(),
-        model_library,
-        upstream_models: upstream_model_catalog(
-            "fake",
-            &["wire-plan-model-a", "wire-plan-model-b"],
-        ),
+        model_catalog: model_catalog_from_models(upstream_models),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
     };

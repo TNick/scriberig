@@ -1,5 +1,10 @@
 /** @file Normalizes responses from legacy and current semantic transports. */
-import type { AgentAcceptedResponse, Operation, SnapshotId } from "@scriberig/protocol";
+import type {
+  AgentAcceptedResponse,
+  ModelRequestDetailResponse,
+  Operation,
+  SnapshotId,
+} from "@scriberig/protocol";
 
 /** Normalizes legacy and current operation response shapes.
  *
@@ -137,4 +142,49 @@ export function normalizeAcceptedAgent(value: unknown): AgentAcceptedResponse {
   return branchId === undefined
     ? accepted
     : { ...accepted, branchId: branchId as NonNullable<AgentAcceptedResponse["branchId"]> };
+}
+
+/** Normalizes a captured request detail response across Rust and browser casing.
+ * @param value Unknown request detail from the transport.
+ * @returns The safe request detail with browser field casing.
+ * @throws When required request identity fields are absent.
+ */
+export function normalizeModelRequestDetail(value: unknown): ModelRequestDetailResponse {
+  if (!isObject(value)) throw new Error("server returned invalid model request detail");
+  const invocation = value.invocation;
+  const model = value.model;
+  if (typeof invocation !== "string" || typeof model !== "string") {
+    throw new Error("server returned incomplete model request detail");
+  }
+  const providerId = value.provider_id ?? value.providerId;
+  const thinkingLevel = value.thinking_level ?? value.thinkingLevel;
+  const profileValue = value.profile;
+  const profile =
+    isObject(profileValue) &&
+    typeof profileValue.identity === "string" &&
+    typeof profileValue.revision === "string"
+      ? { identity: profileValue.identity, revision: profileValue.revision }
+      : undefined;
+  const activeComponentsValue = value.active_components ?? value.activeComponents;
+  const activeComponents = Array.isArray(activeComponentsValue)
+    ? activeComponentsValue.filter(
+        (reference): reference is { identity: string; revision: string } =>
+          isObject(reference) &&
+          typeof reference.identity === "string" &&
+          typeof reference.revision === "string",
+      )
+    : undefined;
+  return {
+    invocation,
+    model,
+    ...(typeof providerId === "string" ? { providerId } : {}),
+    ...(typeof thinkingLevel === "string" ? { thinkingLevel } : {}),
+    ...(profile ? { profile } : {}),
+    ...(activeComponents ? { activeComponents } : {}),
+    messages: Array.isArray(value.messages)
+      ? (value.messages as ModelRequestDetailResponse["messages"])
+      : [],
+    tools: Array.isArray(value.tools) ? (value.tools as ModelRequestDetailResponse["tools"]) : [],
+    truncated: value.truncated === true,
+  };
 }

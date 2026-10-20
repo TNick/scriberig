@@ -10,7 +10,7 @@ pub enum Direction {
 }
 
 /// A typed presentation action independent of terminal or service handles.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[allow(clippy::large_enum_variant)]
 pub enum Action {
     /// Records that an effect had no stateful result.

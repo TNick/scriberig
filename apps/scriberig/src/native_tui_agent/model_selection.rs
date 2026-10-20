@@ -13,7 +13,7 @@ use scriberig_core::EntityId;
 /// - `session`: Session whose persisted selection applies to this invocation.
 /// - `fallback_model`: Runtime model used when no profile is selected.
 ///
-/// Provider model identifier and the selected thinking id when available.
+/// Upstream provider/model identity and the selected thinking id.
 ///
 /// Returns a safe application error for invalid selections or an unsupported
 /// provider connection.
@@ -22,10 +22,11 @@ pub(super) fn selected_runtime_model<B: ApplicationBackend>(
     context: &ApplicationContext,
     session: EntityId,
     fallback_model: &str,
-) -> Result<(String, Option<String>, String), ApplicationError> {
+) -> Result<(String, String, Option<String>, String), ApplicationError> {
     let saved = SessionBackend::read_session(service, context, &SessionRequest { session })?;
     let selection = saved.execution;
-    resolve_selected_runtime_model(service.upstream_models(), &selection, fallback_model)
+    let upstream_models = service.upstream_models();
+    resolve_selected_runtime_model(&upstream_models, &selection, fallback_model)
 }
 
 /// Resolves an upstream model selection for the native provider.
@@ -34,7 +35,7 @@ pub(super) fn selected_runtime_model<B: ApplicationBackend>(
 /// - `selection`: Immutable session execution selection for this invocation.
 /// - `fallback_model`: Runtime model used when no profile is selected.
 ///
-/// Provider model identifier, thinking id, and native adapter identity.
+/// Upstream provider/model identity, thinking id, and native adapter identity.
 ///
 /// Returns an application error for invalid selections or an unsupported
 /// provider connection.
@@ -46,7 +47,7 @@ pub(super) fn resolve_selected_runtime_model(
     upstream_models: &[rpi_ai::Model],
     selection: &scriberig_app::SessionExecutionSelection,
     fallback_model: &str,
-) -> Result<(String, Option<String>, String), ApplicationError> {
+) -> Result<(String, String, Option<String>, String), ApplicationError> {
     let (provider_id, model_id, thinking_level) = resolve_execution_selection(
         ExecutionSelectionSources {
             invocation: None,
@@ -64,5 +65,5 @@ pub(super) fn resolve_selected_runtime_model(
     } else {
         "local".to_owned()
     };
-    Ok((model_id, thinking_level, connection))
+    Ok((provider_id, model_id, thinking_level, connection))
 }

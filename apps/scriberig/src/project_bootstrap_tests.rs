@@ -120,9 +120,11 @@ mod tests {
                 },
             )
             .expect("authorized project-less operation");
+        let mut model_requests_on_failure = Vec::new();
         let result = execute_agent(
             BootstrapProvider,
             "deterministic-bootstrap",
+            None,
             None,
             &service,
             &store,
@@ -136,6 +138,7 @@ mod tests {
                 .operations()
                 .cancellation_flag(&handle.operation)
                 .expect("cancellation flag"),
+            &mut model_requests_on_failure,
         )
         .expect("normal agent orchestration");
         assert!(result.output.contains("semantic root was inspected"));

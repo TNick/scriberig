@@ -135,13 +135,7 @@ fn request_serialization_contains_model_messages_and_tools() {
         }),
     });
 
-    let wire = serde_json::to_value(WireRequest::from_request_for_models(
-        &request,
-        false,
-        &std::collections::BTreeMap::new(),
-        &std::collections::BTreeMap::new(),
-    ))
-    .expect("wire JSON");
+    let wire = serde_json::to_value(WireRequest::from_request(&request, false)).expect("wire JSON");
 
     assert_eq!(wire["model"], "model");
     assert_eq!(wire["messages"][0]["role"], "user");
@@ -152,74 +146,9 @@ fn request_serialization_contains_model_messages_and_tools() {
     );
     assert!(wire.to_string().contains("writeOnly"));
     assert!(!wire.to_string().contains("x-sensitive"));
-    let streaming = serde_json::to_value(WireRequest::from_request_for_models(
-        &request,
-        true,
-        &std::collections::BTreeMap::new(),
-        &std::collections::BTreeMap::new(),
-    ))
-    .expect("streaming wire JSON");
+    let streaming = serde_json::to_value(WireRequest::from_request(&request, true))
+        .expect("streaming wire JSON");
     assert_eq!(streaming["stream"], true);
-}
-
-/// Verifies thinking ids translate to provider fields only inside the adapter.
-#[test]
-fn thinking_level_uses_configured_provider_wire_translation() {
-    let mut request = ModelRequest::new("mock-model", vec![ModelMessage::user("hello")]);
-    request.thinking_level = Some("deep-dive".to_owned());
-    let mut mappings = std::collections::BTreeMap::new();
-    mappings.insert(
-        "deep-dive".to_owned(),
-        std::collections::BTreeMap::from([(
-            "reasoning_effort".to_owned(),
-            serde_json::json!("high"),
-        )]),
-    );
-
-    let wire = serde_json::to_value(WireRequest::from_request_for_models(
-        &request,
-        false,
-        &mappings,
-        &std::collections::BTreeMap::new(),
-    ))
-    .expect("wire JSON");
-
-    assert_eq!(wire["reasoning_effort"], "high");
-    assert!(wire.get("thinking_level").is_none());
-}
-
-/// Resolves duplicate thinking ids using the exact provider model identifier.
-#[test]
-fn model_thinking_translation_is_scoped_to_provider_model() {
-    let mut request = ModelRequest::new("mock-model-b", vec![ModelMessage::user("hello")]);
-    request.thinking_level = Some("deep-dive".to_owned());
-    let mappings = std::collections::BTreeMap::from([
-        (
-            ("mock-model-a".to_owned(), "deep-dive".to_owned()),
-            std::collections::BTreeMap::from([(
-                "reasoning_effort".to_owned(),
-                serde_json::json!("low"),
-            )]),
-        ),
-        (
-            ("mock-model-b".to_owned(), "deep-dive".to_owned()),
-            std::collections::BTreeMap::from([(
-                "reasoning_budget".to_owned(),
-                serde_json::json!(12000),
-            )]),
-        ),
-    ]);
-
-    let wire = serde_json::to_value(WireRequest::from_request_for_models(
-        &request,
-        false,
-        &std::collections::BTreeMap::new(),
-        &mappings,
-    ))
-    .expect("wire JSON");
-
-    assert_eq!(wire["reasoning_budget"], 12000);
-    assert!(wire.get("reasoning_effort").is_none());
 }
 
 /// Verifies fragmented provider function arguments are parsed only when complete.

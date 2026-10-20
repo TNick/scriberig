@@ -5,9 +5,7 @@ use scriberig_app::{
     SessionRequest,
 };
 use scriberig_core::EntityId;
-use scriberig_session::{
-    Branch, BranchResult, ExecutionActivity, Plan, PlanNodeParent, PlanStatus, Session,
-};
+use scriberig_session::{Branch, BranchResult, ExecutionActivity, Plan, PlanStatus, Session};
 
 use crate::scheduler::{PlanScheduler, PlanWorkerExecutor, ScheduleTick, WorkerBatchResult};
 
@@ -151,6 +149,7 @@ impl PlanCoordinator {
                     completed: Vec::new(),
                     failed: Vec::new(),
                     results: Vec::new(),
+                    model_request_evidence: Vec::new(),
                 },
                 plan,
             });
@@ -169,8 +168,10 @@ impl PlanCoordinator {
             runtime_fallback,
             next_id,
             |claimed_plan, node, claim| {
+                let mut worker_session = session.clone();
+                ensure_worker_branches(&mut worker_session, claimed_plan)?;
                 crate::plan_context::PlanWorkerContext::from_plan(
-                    &session,
+                    &worker_session,
                     claimed_plan,
                     node,
                     claim,
@@ -223,6 +224,14 @@ impl PlanCoordinator {
             return Err(revision_conflict(plan_id));
         }
         persist_worker_results(&mut session, &plan, &workers.results)?;
+        for evidence in &workers.model_request_evidence {
+            let branch = session
+                .branches
+                .iter_mut()
+                .find(|branch| branch.id == evidence.branch)
+                .ok_or_else(|| internal_error("worker request evidence has no claimed branch"))?;
+            service.persist_plan_worker_model_requests(branch, evidence.requests.clone());
+        }
         SessionBackend::save_session(service, context, &session)?;
 
         let latest = SessionBackend::read_session(

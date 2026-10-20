@@ -12,6 +12,8 @@ use crate::{AgentMessage, ModelDecision};
 use scriberig_agent_core::{ToolDetail, ToolInput};
 use scriberig_app::CapabilityContext;
 
+#[path = "model_provider/configuration.rs"]
+mod configuration;
 #[path = "model_provider/decision.rs"]
 mod decision;
 #[path = "model_provider/presentation.rs"]
@@ -25,6 +27,10 @@ pub struct ProviderModel<P> {
     provider: P,
     /// Model identifier sent with each request.
     model: String,
+    /// Resolved upstream provider identity for safe invocation provenance.
+    provider_id: Option<String>,
+    /// Safe `ScribeRig` provider profile for invocation provenance.
+    provider_profile: Option<String>,
     /// Thinking capability snapshotted for each request.
     thinking_level: Option<String>,
     /// Trusted tool definitions exposed to the provider.
@@ -59,6 +65,8 @@ impl<P> ProviderModel<P> {
         Self {
             provider,
             model: model.into(),
+            provider_id: None,
+            provider_profile: None,
             thinking_level: None,
             tools: Vec::new(),
             catalog: None,
@@ -69,113 +77,6 @@ impl<P> ProviderModel<P> {
             compiled_context: None,
             request_projections: Vec::new(),
         }
-    }
-
-    /// Adds the trusted tool catalog exposed to future requests.
-    ///
-    /// - `self`: Model adapter being configured.
-    /// - `tools`: Provider-neutral trusted tool definitions.
-    ///
-    /// The configured model adapter.
-    #[must_use]
-    /// # Returns
-    /// The operation result.
-    pub fn with_tools(mut self, tools: Vec<crate::provider::ToolDefinition>) -> Self {
-        self.tools = tools;
-        self
-    }
-
-    /// Selects a provider-neutral thinking capability for future invocations.
-    ///
-    /// - `self`: Model adapter being configured.
-    /// - `thinking_level`: Model-advertised capability identity.
-    ///
-    /// The configured model adapter.
-    #[must_use]
-    /// # Returns
-    /// The operation result.
-    pub fn with_thinking_level(mut self, thinking_level: Option<String>) -> Self {
-        self.thinking_level = thinking_level;
-        self
-    }
-
-    /// Attaches the trusted catalog used to validate returned tool calls.
-    ///
-    /// - `self`: Model adapter being configured.
-    /// - `catalog`: Trusted branch-visible tool catalog.
-    ///
-    /// The configured model adapter.
-    #[must_use]
-    /// # Returns
-    /// The operation result.
-    pub fn with_catalog(mut self, catalog: ToolCatalog) -> Self {
-        self.tools = catalog.definitions();
-        self.catalog = Some(catalog);
-        self
-    }
-
-    /// Restricts provider-visible tools to the branch capability context.
-    ///
-    /// - `self`: Model adapter being configured.
-    /// - `capabilities`: Authority available to this branch.
-    ///
-    /// The configured model adapter.
-    #[must_use]
-    /// # Returns
-    /// The operation result.
-    pub fn with_capabilities(mut self, capabilities: CapabilityContext) -> Self {
-        self.capabilities = capabilities;
-        if let Some(catalog) = &self.catalog {
-            self.tools = catalog
-                .descriptors_for(&self.capabilities)
-                .into_iter()
-                .map(|descriptor| descriptor.definition)
-                .collect();
-        }
-        self
-    }
-
-    /// Installs a complete-response cache for exact request reuse.
-    ///
-    /// - `self`: Model adapter being configured.
-    /// - `cache`: Shared normalized response cache.
-    /// - `policy`: Cache policy for provider invocations.
-    ///
-    /// The configured model adapter.
-    #[must_use]
-    /// # Returns
-    /// The operation result.
-    pub fn with_cache(mut self, cache: ModelCache, policy: CachePolicy) -> Self {
-        self.cache = Some((cache, policy));
-        self
-    }
-
-    /// Adds an isolated branch namespace to cache identity.
-    ///
-    /// - `self`: Model adapter being configured.
-    /// - `namespace`: Stable branch identity.
-    ///
-    /// The adapter with branch-scoped cache keys.
-    #[must_use]
-    /// # Returns
-    /// The operation result.
-    pub fn with_cache_namespace(mut self, namespace: impl Into<String>) -> Self {
-        self.cache_namespace = Some(namespace.into());
-        self
-    }
-
-    /// Adds bounded compiled branch context to every normalized request.
-    ///
-    /// - `self`: Model adapter being configured.
-    /// - `context`: Exact context selected for this branch.
-    ///
-    /// The adapter with provider-visible, cache-bound context.
-    #[must_use]
-    /// # Returns
-    /// The operation result.
-    pub fn with_compiled_context(mut self, context: CompiledContext) -> Self {
-        self.compiled_context = Some(context);
-        self
     }
 }
 
@@ -213,8 +114,12 @@ impl<P: ProviderAdapter> crate::ModelProvider for ProviderModel<P> {
         on_text: &mut dyn FnMut(&str),
     ) -> Result<ModelDecision, String> {
         let request = self.model_request(messages);
-        self.request_projections
-            .push(request_projection::capture(&request));
+        self.request_projections.push(request_projection::capture(
+            &request,
+            self.provider_id.clone(),
+            self.provider_profile.clone(),
+            self.compiled_context.as_ref(),
+        ));
         self.invocation_sequence += 1;
         let response = if let Some((cache, policy)) = self.cache.clone() {
             let fingerprint =
@@ -309,16 +214,7 @@ impl<P: ProviderAdapter> ProviderModel<P> {
     /// # Returns
     /// The operation result.
     fn model_request(&self, messages: &[AgentMessage]) -> ModelRequest {
-        let mut request_messages =
-            self.compiled_context
-                .as_ref()
-                .map_or_else(Vec::new, |context| {
-                    vec![crate::provider::ModelMessage::system(format!(
-                        "Compiled branch context:\n{}",
-                        context.canonical
-                    ))]
-                });
-        request_messages.extend(messages.iter().map(message));
+        let request_messages = assemble_request_messages(self.compiled_context.as_ref(), messages);
         ModelRequest {
             model: self.model.clone(),
             thinking_level: self.thinking_level.clone(),
@@ -333,28 +229,36 @@ impl<P: ProviderAdapter> ProviderModel<P> {
     }
 }
 
-/// Converts one non-inspection provider tool call into a runtime decision.
+/// Assembles provider messages while keeping the current instruction in user role.
 ///
-/// - `call`: Validated provider tool call.
+/// - `context`: Compiled context without the current instruction in its provider view.
+/// - `messages`: Runtime conversation messages for the current invocation.
 ///
-/// A delegated child request or named application tool request.
-///
-/// Returns an error when a child call omits required fields.
-/// Reads a required string argument from a provider tool call.
-///
-/// - `call`: Provider tool call containing structured arguments.
-/// - `name`: Required argument name.
-///
-/// The copied argument string.
-///
-/// Returns an error when the argument is missing or not a string.
+/// Ordered provider messages with the current instruction represented once.
+/// # Returns
+/// The assembled provider messages.
+fn assemble_request_messages(
+    context: Option<&CompiledContext>,
+    messages: &[AgentMessage],
+) -> Vec<ModelMessage> {
+    let mut request_messages = context.map_or_else(Vec::new, |context| {
+        vec![ModelMessage::system(format!(
+            "Compiled branch context:\n{}",
+            context.provider_context
+        ))]
+    });
+    request_messages.extend(messages.iter().map(message));
+    request_messages
+}
+
 /// Converts one runtime message into normalized provider context.
 ///
 /// - `message`: Runtime message to convert.
 ///
 /// A normalized provider context message.
+///
 /// # Returns
-/// The operation result.
+/// The converted provider message.
 fn message(message: &AgentMessage) -> ModelMessage {
     match message {
         AgentMessage::User(content) => ModelMessage::user(content),
@@ -387,8 +291,54 @@ fn message(message: &AgentMessage) -> ModelMessage {
 /// - `error`: Classified provider failure.
 ///
 /// Safe runtime error text.
+///
 /// # Returns
-/// The operation result.
+/// The provider error's display text.
 fn provider_error(error: &ProviderError) -> String {
     error.to_string()
+}
+
+#[cfg(test)]
+mod request_assembly_tests {
+    use super::assemble_request_messages;
+    use crate::AgentMessage;
+    use crate::context::CompiledContext;
+    use scriberig_agent_core::{AgentProfileRevisionRef, ContextComponentRevisionRef};
+
+    /// Keeps the current instruction once as user content and canonical provenance intact.
+    #[test]
+    fn current_instruction_is_not_duplicated_in_compiled_provider_context() {
+        let prompt = "current instruction";
+        let compiled = CompiledContext {
+            profile: AgentProfileRevisionRef {
+                identity: "profile.default".to_owned(),
+                revision: "rev-1".to_owned(),
+            },
+            active_components: vec![ContextComponentRevisionRef {
+                identity: "component.core".to_owned(),
+                revision: "rev-1".to_owned(),
+            }],
+            messages: Vec::new(),
+            dependencies: Vec::new(),
+            omitted_handles: Vec::new(),
+            canonical: format!("[instruction] {prompt}\n"),
+            provider_context: "[system] core guidance\n".to_owned(),
+        };
+
+        let request =
+            assemble_request_messages(Some(&compiled), &[AgentMessage::User(prompt.to_owned())]);
+        let combined = request
+            .iter()
+            .map(|message| message.content.as_str())
+            .collect::<Vec<_>>()
+            .join("\n");
+        let canonical_system_message = format!("Compiled branch context:\n{}", compiled.canonical);
+
+        assert!(compiled.canonical.contains(prompt));
+        assert!(!combined.contains(canonical_system_message.as_str()));
+        assert_eq!(combined.matches(prompt).count(), 1);
+        assert!(request.last().is_some_and(|message| {
+            message.role == crate::provider::MessageRole::User && message.content == prompt
+        }));
+    }
 }

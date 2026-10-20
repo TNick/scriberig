@@ -27,10 +27,9 @@ pub mod session;
 pub mod trust;
 pub mod validation;
 
-pub use agent_console::configuration::model_library_from_json;
 pub use agent_console::model::{
-    CredentialRef, ModelCapabilities, ModelDescriptor, ModelId, ModelLibrary, ModelProfile,
-    ThinkingLevelDescriptor, ThinkingLevelId,
+    ModelCostSnapshot, ModelCostTierSnapshot, ModelDescriptor, ModelId, ModelInputModality,
+    ModelLibrary, ModelMetadataSnapshot, ThinkingLevelId,
 };
 pub use agent_console::preferences::{
     AgentPresentationPreferenceSnapshot, AgentPresentationPreferenceStore,

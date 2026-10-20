@@ -2933,7 +2933,7 @@ dependencies = [
 [[package]]
 name = "rpi-agent"
 version = "0.6.2"
-source = "git+https://github.com/TNick/pi-rust?rev=4a52baf41a19a889ca96c0f38369f7482f26973e#4a52baf41a19a889ca96c0f38369f7482f26973e"
+source = "git+https://github.com/TNick/pi-rust?rev=6e2f83b#6e2f83b1b26466a37bba7313b9f42c4cc6a595cf"
 dependencies = [
  "async-trait",
  "futures",
@@ -2951,7 +2951,7 @@ dependencies = [
 [[package]]
 name = "rpi-ai"
 version = "0.6.2"
-source = "git+https://github.com/TNick/pi-rust?rev=4a52baf41a19a889ca96c0f38369f7482f26973e#4a52baf41a19a889ca96c0f38369f7482f26973e"
+source = "git+https://github.com/TNick/pi-rust?rev=6e2f83b#6e2f83b1b26466a37bba7313b9f42c4cc6a595cf"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2970,12 +2970,13 @@ dependencies = [
  "tokio-util",
  "tracing",
  "uuid",
+ "zeroize",
 ]
 
 [[package]]
 name = "rpi-extensions"
 version = "0.6.2"
-source = "git+https://github.com/TNick/pi-rust?rev=4a52baf41a19a889ca96c0f38369f7482f26973e#4a52baf41a19a889ca96c0f38369f7482f26973e"
+source = "git+https://github.com/TNick/pi-rust?rev=6e2f83b#6e2f83b1b26466a37bba7313b9f42c4cc6a595cf"
 dependencies = [
  "async-trait",
  "dirs",
@@ -2996,7 +2997,7 @@ dependencies = [
 [[package]]
 name = "rpi-model-runtime"
 version = "0.6.2"
-source = "git+https://github.com/TNick/pi-rust?rev=4a52baf41a19a889ca96c0f38369f7482f26973e#4a52baf41a19a889ca96c0f38369f7482f26973e"
+source = "git+https://github.com/TNick/pi-rust?rev=6e2f83b#6e2f83b1b26466a37bba7313b9f42c4cc6a595cf"
 dependencies = [
  "indexmap 2.14.2",
  "rpi-ai",
@@ -3005,12 +3006,13 @@ dependencies = [
  "serde_json",
  "sha2",
  "thiserror 1.0.69",
+ "tokio",
 ]
 
 [[package]]
 name = "rpi-plugin-sdk"
 version = "0.6.2"
-source = "git+https://github.com/TNick/pi-rust?rev=4a52baf41a19a889ca96c0f38369f7482f26973e#4a52baf41a19a889ca96c0f38369f7482f26973e"
+source = "git+https://github.com/TNick/pi-rust?rev=6e2f83b#6e2f83b1b26466a37bba7313b9f42c4cc6a595cf"
 dependencies = [
  "serde_json",
 ]
@@ -3018,7 +3020,7 @@ dependencies = [
 [[package]]
 name = "rpi-telemetry"
 version = "0.6.2"
-source = "git+https://github.com/TNick/pi-rust?rev=4a52baf41a19a889ca96c0f38369f7482f26973e#4a52baf41a19a889ca96c0f38369f7482f26973e"
+source = "git+https://github.com/TNick/pi-rust?rev=6e2f83b#6e2f83b1b26466a37bba7313b9f42c4cc6a595cf"
 dependencies = [
  "async-trait",
  "serde",
@@ -3242,18 +3244,22 @@ dependencies = [
 name = "scriberig-agent-runtime"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "blake3",
  "reqwest",
+ "rpi-agent",
  "rpi-ai",
  "scriberig-agent-core",
  "scriberig-app",
  "scriberig-core",
  "scriberig-secrets",
  "scriberig-session",
+ "scriberig-session-sqlite",
  "scriberig-store",
  "scriberig-store-memory",
  "serde",
  "serde_json",
+ "tokio-util",
  "zeroize",
 ]
 
@@ -3578,6 +3584,7 @@ version = "0.1.0"
 dependencies = [
  "blake3",
  "rpi-ai",
+ "rpi-model-runtime",
  "scriberig-agent-core",
  "scriberig-agent-runtime",
  "scriberig-app",
@@ -3615,6 +3622,7 @@ dependencies = [
  "rusqlite",
  "scriberig-core",
  "scriberig-session",
+ "serde",
  "serde_json",
 ]
 

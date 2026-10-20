@@ -2,8 +2,9 @@
 
 use super::{ApplicationBackend, ApplicationService};
 use crate::{
-    ApplicationContext, ApplicationError, ApplicationRequest, ApplicationResult, DetailLevel,
-    InspectRequest, QueryService, SnapshotResolution,
+    AgentConsoleBackend, ApplicationContext, ApplicationError, ApplicationRequest,
+    ApplicationResult, CapabilityContext, CapabilityId, DetailLevel, InspectRequest, QueryService,
+    SnapshotResolution,
 };
 use scriberig_core::{EntityId, ObjectType, RevisionId, SnapshotId};
 use scriberig_query::{EntityAtRevision, Inspection, TargetRef};
@@ -107,4 +108,56 @@ fn current_inspection_is_resolved_to_one_exact_snapshot() {
         .inspect(&ApplicationContext::empty(), &request)
         .expect("current inspection");
     assert_eq!(result.snapshot, Some(SnapshotId::new([3; 32])));
+}
+
+/// Verifies a changed upstream catalog is reflected by a newly composed service.
+#[test]
+fn model_library_projection_tracks_recomposed_upstream_catalog() {
+    let context = ApplicationContext {
+        capabilities: CapabilityContext::new([
+            CapabilityId::new("agent_model_library").expect("valid model-library capability")
+        ]),
+        ..ApplicationContext::default()
+    };
+    let original = rpi_ai::Model::new(
+        "wire-a",
+        "Model A",
+        rpi_ai::Api::AnthropicMessages,
+        "provider-a",
+        "https://example.test",
+    );
+    let first_service =
+        ApplicationService::new(Fixture).with_upstream_models(vec![original.clone()]);
+
+    let mut updated = original;
+    updated.name = "Updated Model A".to_owned();
+    updated.context_window = 128_000;
+    let added = rpi_ai::Model::new(
+        "wire-b",
+        "Model B",
+        rpi_ai::Api::AnthropicMessages,
+        "provider-b",
+        "https://example.test",
+    );
+    let refreshed_service =
+        ApplicationService::new(Fixture).with_upstream_models(vec![updated, added]);
+
+    let first = AgentConsoleBackend::agent_model_library(&first_service, &context)
+        .expect("initial upstream projection");
+    let refreshed = AgentConsoleBackend::agent_model_library(&refreshed_service, &context)
+        .expect("refreshed upstream projection");
+
+    assert_eq!(first.models.len(), 1);
+    assert_eq!(refreshed.models.len(), 2);
+    assert!(refreshed.models.iter().any(|model| {
+        model.provider_model_id == "wire-a"
+            && model.display_name == "Updated Model A"
+            && model.metadata_snapshot.context_window == 128_000
+    }));
+    assert!(
+        refreshed
+            .models
+            .iter()
+            .any(|model| model.provider_id == "provider-b" && model.provider_model_id == "wire-b")
+    );
 }

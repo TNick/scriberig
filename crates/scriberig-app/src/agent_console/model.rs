@@ -90,101 +90,88 @@ impl ThinkingLevelId {
     }
 }
 
-/// Describes one user-selectable thinking mode supported by a model.
-#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub struct ThinkingLevelDescriptor {
-    /// Stable id interpreted by the selected model adapter.
-    pub id: ThinkingLevelId,
-    /// Human-readable label shown in model controls.
-    pub label: String,
-    /// Optional explanation of this model-specific level.
-    pub description: Option<String>,
-    /// Stable presentation order within the model's advertised levels.
-    pub order: u32,
+/// Mirrors display-safe metadata emitted by the upstream model snapshot.
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct ModelMetadataSnapshot {
+    /// Upstream snapshot schema identifier.
+    pub schema_version: String,
+    /// Public provider API identifier.
+    pub api_id: String,
+    /// Whether upstream marks the model as reasoning-capable.
+    pub reasoning: bool,
+    /// Input modalities supported by the model.
+    pub input: Vec<ModelInputModality>,
+    /// Typed pricing metadata from upstream.
+    pub cost: ModelCostSnapshot,
+    /// Whether pricing was explicitly configured upstream.
+    pub cost_configured: bool,
+    /// Upstream context-window limit in tokens.
+    pub context_window: u64,
+    /// Upstream maximum output-token limit.
+    pub max_tokens: u64,
 }
 
-/// Declares safe behavior available for a model.
-#[derive(Clone, Debug, Default, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub struct ModelCapabilities {
-    /// Whether the model supports streamed output.
-    pub streaming: bool,
-    /// Whether the model supports structured tool calls.
-    pub tool_calls: bool,
-    /// Whether the model supports structured output.
-    pub structured_output: bool,
+/// Identifies an input modality in the upstream safe model snapshot.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ModelInputModality {
+    /// Text input is supported.
+    Text,
+    /// Image input is supported.
+    Image,
+}
+
+/// Contains the typed pricing rates from an upstream model snapshot.
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct ModelCostSnapshot {
+    /// Cost per input token unit.
+    pub input: f64,
+    /// Cost per output token unit.
+    pub output: f64,
+    /// Cost per cached input token unit read.
+    pub cache_read: f64,
+    /// Cost per cached input token unit written.
+    pub cache_write: f64,
+    /// Optional pricing tiers for larger inputs.
+    pub tiers: Vec<ModelCostTierSnapshot>,
+}
+
+/// Describes one upstream pricing tier.
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct ModelCostTierSnapshot {
+    /// Cost per input token unit at this tier.
+    pub input: f64,
+    /// Cost per output token unit at this tier.
+    pub output: f64,
+    /// Cost per cached input token unit read at this tier.
+    pub cache_read: f64,
+    /// Cost per cached input token unit written at this tier.
+    pub cache_write: f64,
+    /// Minimum input-token count for this tier.
+    pub input_tokens_above: i64,
 }
 
 /// Describes a provider model without exposing provider credentials.
-#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct ModelDescriptor {
     /// Stable Scriberig model identity.
     pub id: ModelId,
     /// Safe human-readable model name.
     pub display_name: String,
-    /// Safe provider profile identity.
-    pub provider_profile: String,
+    /// Upstream provider identity scoped to this model.
+    pub provider_id: String,
     /// Provider-native model identifier.
     pub provider_model_id: String,
-    /// Safe capabilities advertised by this model.
-    pub capabilities: ModelCapabilities,
-    /// Ordered model-specific thinking levels.
-    pub thinking_levels: Vec<ThinkingLevelDescriptor>,
-    /// Model default when it advertises a thinking level.
-    pub default_thinking_level: Option<ThinkingLevelId>,
-}
-
-/// References a configured credential without containing its resolved value.
-#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub struct CredentialRef {
-    /// Safe secret-store reference identifier.
-    pub id: String,
-}
-
-/// Curates one enabled or disabled entry in a model library.
-#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
-pub struct ModelProfile {
-    /// Stable profile identity.
-    pub id: String,
-    /// Safe user-facing profile name.
-    pub display_name: String,
-    /// Model selected by this profile.
-    pub model: ModelId,
-    /// Provider connection reference, without resolved transport credentials.
-    pub connection: String,
-    /// Optional credential reference, never a resolved secret value.
-    pub credential: Option<CredentialRef>,
-    /// Optional profile default supported by the selected model.
-    pub default_thinking_level: Option<ThinkingLevelId>,
-    /// Whether the profile may be selected for new invocations.
-    pub enabled: bool,
-}
-
-impl ModelProfile {
-    /// Validates the profile's model identity against its descriptor.
-    ///
-    /// - `model`: Descriptor selected by this profile.
-    ///
-    /// Returns an error when the profile references another model. Thinking
-    /// support and fallback are handled by the upstream model runtime.
-    ///
-    /// Unit when the profile matches the descriptor.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn validate_for_model(&self, model: &ModelDescriptor) -> Result<(), &'static str> {
-        if self.model != model.id {
-            return Err("profile model must match the supplied descriptor");
-        }
-        Ok(())
-    }
+    /// Upstream thinking levels supported by this model, in upstream order.
+    pub thinking_levels: Vec<rpi_ai::ThinkingLevel>,
+    /// Safe display metadata returned by the upstream versioned snapshot.
+    pub metadata_snapshot: ModelMetadataSnapshot,
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        CredentialRef, ModelCapabilities, ModelDescriptor, ModelId, ModelLibrary, ModelProfile,
-        ThinkingLevelDescriptor, ThinkingLevelId,
+        ModelCostSnapshot, ModelDescriptor, ModelId, ModelInputModality, ModelMetadataSnapshot,
     };
 
     /// Creates a descriptor with the supplied model-specific levels.
@@ -192,28 +179,36 @@ mod tests {
     /// - `id`: Stable model identity.
     /// - `levels`: Ordered model-specific thinking identifiers.
     ///
-    /// A descriptor whose first thinking level is the default.
+    /// A model row with the supplied upstream thinking levels.
     /// # Returns
     /// The operation result.
     fn model(id: &str, levels: &[&str]) -> ModelDescriptor {
         let thinking_levels = levels
             .iter()
-            .enumerate()
-            .map(|(order, id)| ThinkingLevelDescriptor {
-                id: ThinkingLevelId::new(*id).expect("valid thinking id"),
-                label: (*id).to_owned(),
-                description: None,
-                order: u32::try_from(order).unwrap_or(u32::MAX),
-            })
+            .map(|id| rpi_ai::ThinkingLevel::parse_name(id).expect("valid thinking id"))
             .collect::<Vec<_>>();
         ModelDescriptor {
             id: ModelId::new(id).expect("valid model id"),
             display_name: id.to_owned(),
-            provider_profile: "provider-safe-id".to_owned(),
+            provider_id: "provider-safe-id".to_owned(),
             provider_model_id: id.to_owned(),
-            capabilities: ModelCapabilities::default(),
-            default_thinking_level: thinking_levels.first().map(|level| level.id.clone()),
             thinking_levels,
+            metadata_snapshot: ModelMetadataSnapshot {
+                schema_version: "rpi-safe-model-snapshot-v1".to_owned(),
+                api_id: "openai-completions".to_owned(),
+                reasoning: false,
+                input: vec![ModelInputModality::Text],
+                cost: ModelCostSnapshot {
+                    input: 0.0,
+                    output: 0.0,
+                    cache_read: 0.0,
+                    cache_write: 0.0,
+                    tiers: Vec::new(),
+                },
+                cost_configured: false,
+                context_window: 0,
+                max_tokens: 0,
+            },
         }
     }
 
@@ -225,68 +220,6 @@ mod tests {
 
         assert_eq!(first.thinking_levels.len(), 2);
         assert_eq!(second.thinking_levels.len(), 3);
-        assert_eq!(second.thinking_levels[2].id.as_str(), "max");
-    }
-
-    /// Verifies a profile serializes references without resolved credential data.
-    #[test]
-    fn profile_contains_only_a_credential_reference() {
-        let profile = ModelProfile {
-            id: "work-profile".to_owned(),
-            display_name: "Work model".to_owned(),
-            model: ModelId::new("model-a").expect("valid model id"),
-            connection: "work-endpoint".to_owned(),
-            credential: Some(CredentialRef {
-                id: "secret-store:work-provider".to_owned(),
-            }),
-            default_thinking_level: None,
-            enabled: true,
-        };
-        let serialized = serde_json::to_string(&profile).expect("serialize profile");
-
-        assert!(serialized.contains("secret-store:work-provider"));
-        assert!(!serialized.contains("resolved-secret-marker"));
-        assert!(!format!("{profile:?}").contains("resolved-secret-marker"));
-    }
-
-    /// Verifies profile defaults are not validated against local support lists.
-    #[test]
-    fn profile_accepts_upstream_level_outside_presentation_list() {
-        let descriptor = model("model-a", &["low"]);
-        let profile = ModelProfile {
-            id: "work-profile".to_owned(),
-            display_name: "Work model".to_owned(),
-            model: descriptor.id.clone(),
-            connection: "work-endpoint".to_owned(),
-            credential: None,
-            default_thinking_level: Some(ThinkingLevelId::new("max").expect("valid thinking id")),
-            enabled: true,
-        };
-
-        assert!(profile.validate_for_model(&descriptor).is_ok());
-    }
-
-    /// Verifies library entries reference known models and unique identities.
-    #[test]
-    fn model_library_validates_profile_references() {
-        let descriptor = model("model-a", &["low"]);
-        let profile = ModelProfile {
-            id: "profile-a".to_owned(),
-            display_name: "Profile A".to_owned(),
-            model: descriptor.id.clone(),
-            connection: "connection-a".to_owned(),
-            credential: None,
-            default_thinking_level: None,
-            enabled: true,
-        };
-        let library = ModelLibrary::new(vec![descriptor.clone()], vec![profile.clone()])
-            .expect("valid library");
-
-        assert_eq!(library.model(&descriptor.id), Some(&descriptor));
-        assert_eq!(library.profile("profile-a"), Some(&profile));
-        assert_eq!(
-            ModelLibrary::new(vec![descriptor], vec![profile.clone(), profile]),
-            Err("model profile ids must be unique")
-        );
+        assert_eq!(second.thinking_levels[2].as_str(), "max");
     }
 }

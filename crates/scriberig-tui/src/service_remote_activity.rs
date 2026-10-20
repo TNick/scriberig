@@ -89,6 +89,7 @@ fn activity_identity(item: &SessionActivityItem) -> Result<EntityId, Application
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
+#[allow(clippy::too_many_lines)] // One match keeps activity reconstruction ordered.
 fn restore_activity_record(
     branch: &mut Branch,
     item: SessionActivityItem,
@@ -106,6 +107,7 @@ fn restore_activity_record(
                 agent_profile: None,
                 context_fingerprint: None,
                 provider_profile: None,
+                provider_id: None,
                 model: item.model,
                 model_profile: None,
                 provider_model_id: None,

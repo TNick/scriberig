@@ -257,7 +257,7 @@ pub struct PlanAssignmentTarget {
 
 /// Runtime and presentation state for the initial TUI shell.
 #[allow(clippy::struct_excessive_bools)] // Independent UI toggles are persisted presentation preferences.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TuiState {
     /// Whether the event loop should terminate.
     pub should_quit: bool,

@@ -2,6 +2,9 @@
 use scriberig_agent_runtime::provider::ProviderAdapter;
 
 use scriberig_agent_runtime::cache::{CachePolicy, ModelCache};
+use scriberig_agent_runtime::context::{
+    BranchExecutionContext, BranchRole, CompiledContext, ContextCompiler, ContextPolicy,
+};
 use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::{ChildExecutionScope, ChildExecutor, ChildRequest, ChildResult};
 use scriberig_app::{ApplicationBackend, ApplicationContext, ApplicationService};
@@ -33,6 +36,10 @@ pub(super) struct LocalChildExecutor<'a, B, P> {
     pub(super) provider: P,
     /// Model identifier shared by child provider requests.
     pub(super) model: String,
+    /// Upstream provider identity shared by child provider requests.
+    pub(super) provider_id: Option<String>,
+    /// `ScribeRig` provider profile shared by child provider requests.
+    pub(super) provider_profile: Option<String>,
     /// Thinking capability snapshotted for this execution tree.
     pub(super) thinking_level: Option<String>,
     /// Shared exact-response cache scoped by branch namespace.
@@ -94,6 +101,8 @@ where
             operation: self.operation.clone(),
             provider: self.provider.clone(),
             model: self.model.clone(),
+            provider_id: self.provider_id.clone(),
+            provider_profile: self.provider_profile.clone(),
             thinking_level: self.thinking_level.clone(),
             cache: self.cache.clone(),
             project_store: std::sync::Arc::clone(&self.project_store),
@@ -105,25 +114,27 @@ where
             ..context.clone()
         };
         let model = ProviderModel::new(self.provider.clone(), self.model.clone())
+            .with_optional_provider_id(self.provider_id.clone())
+            .with_optional_provider_profile(self.provider_profile.clone())
             .with_thinking_level(self.thinking_level.clone())
             .with_catalog(inspect_catalog())
             .with_capabilities(child_capabilities)
             .with_cache(self.cache.clone(), CachePolicy::ReuseExact)
             .with_cache_namespace(child_scope.parent_branch.to_string());
-        let model = with_child_context(model, &child_scope, &request);
-        let result = scriberig_agent_runtime::AgentRuntime::new(
+        let model = with_child_context(model, &scope, handle.child_branch, &request);
+        let mut runtime = scriberig_agent_runtime::AgentRuntime::new(
             model,
             LocalAgentTool::new(self.service)
                 .with_project_store(std::sync::Arc::clone(&self.project_store)),
             64,
         )
         .with_branch_id(handle.child_branch.to_string());
-        let result = if let Some(operation) = &self.operation {
-            result.with_observed_operation(self.service.operations().clone(), operation.clone())
+        runtime = if let Some(operation) = &self.operation {
+            runtime.with_observed_operation(self.service.operations().clone(), operation.clone())
         } else {
-            result
-        }
-        .run_with_child_executor_at(
+            runtime
+        };
+        let result = runtime.run_with_child_executor_at(
             &child_scope,
             &child_context,
             prompt,
@@ -133,9 +144,12 @@ where
         let result = match result {
             Ok(result) => result,
             Err(error) => {
-                let message = error.to_string();
-                let _ = self.service.fail_local_child_agent(&handle, &message);
-                return Err(message);
+                let _ = self.service.fail_local_child_agent_with_model_requests(
+                    &handle,
+                    "child agent execution failed",
+                    runtime.take_captured_model_requests(),
+                );
+                return Err(error.to_string());
             }
         };
         let result_handles = compact_result_handles(&result);
@@ -159,34 +173,50 @@ where
     }
 }
 
-/// Adds a bounded project context to one delegated child model request.
+/// Adds profile and optional project context to one delegated child request.
 ///
 /// - `model`: Configured provider model for this child branch.
-/// - `scope`: Child session, branch, and optional semantic scope.
+/// - `scope`: Parent branch scope that created this child.
+/// - `child_branch`: Persisted child branch receiving the request.
 /// - `request`: Validated child purpose and prompt.
 ///
-/// The model with compiled context when a semantic scope is present.
+/// # Returns
+/// The model with compiled profile and optional project context.
 fn with_child_context<P>(
     model: ProviderModel<P>,
     scope: &ChildExecutionScope,
+    child_branch: scriberig_core::EntityId,
     request: &ChildRequest,
 ) -> ProviderModel<P> {
-    let Some(semantic_scope) = scope.semantic_scope.clone() else {
-        return model;
-    };
-    let compiled = scriberig_agent_runtime::context::ContextCompiler::new(
-        scriberig_agent_runtime::context::ContextPolicy::default(),
+    model.with_compiled_context(compile_child_context(scope, child_branch, request))
+}
+
+/// Compiles branch-role profile context and optional semantic project scope.
+///
+/// - `scope`: Parent branch scope that created this child.
+/// - `child_branch`: Persisted child branch receiving the request.
+/// - `request`: Validated child purpose and prompt.
+///
+/// # Returns
+/// The compiled context for the non-root child branch.
+fn compile_child_context(
+    scope: &ChildExecutionScope,
+    child_branch: scriberig_core::EntityId,
+    request: &ChildRequest,
+) -> CompiledContext {
+    let mut execution = BranchExecutionContext::new(
+        scope.session.to_string(),
+        child_branch.to_string(),
+        &request.purpose,
+        &request.prompt,
     )
-    .compile(
-        &scriberig_agent_runtime::context::BranchExecutionContext::new(
-            scope.session.to_string(),
-            scope.parent_branch.to_string(),
-            &request.purpose,
-            &request.prompt,
-        )
-        .with_project_scope(semantic_scope),
-    );
-    model.with_compiled_context(compiled)
+    .with_branch_role(BranchRole::NonRoot {
+        parent: scope.parent_branch.to_string(),
+    });
+    if let Some(semantic_scope) = scope.semantic_scope.clone() {
+        execution = execution.with_project_scope(semantic_scope);
+    }
+    ContextCompiler::new(ContextPolicy::default()).compile(&execution)
 }
 
 #[cfg(test)]

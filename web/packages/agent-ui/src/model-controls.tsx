@@ -73,8 +73,8 @@ export function AgentModelControls({
             <option value="">No thinking levels advertised</option>
           ) : null}
           {model?.thinkingLevels.map((level) => (
-            <option key={level.id} value={level.id}>
-              {level.label}
+            <option key={level} value={level}>
+              {level}
             </option>
           ))}
         </select>

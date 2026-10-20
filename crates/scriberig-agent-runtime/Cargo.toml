@@ -19,7 +19,10 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
 blake3 = "1.8"
-rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "4a52baf41a19a889ca96c0f38369f7482f26973e" }
+rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "6e2f83b" }
+rpi-agent = { git = "https://github.com/TNick/pi-rust", rev = "6e2f83b" }
+async-trait = "0.1"
+tokio-util = { version = "0.7", features = ["rt"] }
 
 [lints]
 workspace = true
@@ -27,3 +30,4 @@ workspace = true
 [dev-dependencies]
 scriberig-store = { path = "../scriberig-store" }
 scriberig-store-memory = { path = "../scriberig-store-memory" }
+scriberig-session-sqlite = { path = "../scriberig-session-sqlite" }

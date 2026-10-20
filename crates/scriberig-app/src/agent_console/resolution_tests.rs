@@ -5,7 +5,8 @@ use super::{
     resolve_plan_node_execution_with_sources,
 };
 use crate::SessionExecutionSelection;
-use rpi_ai::{Api, Model};
+use rpi_ai::{Api, Model, ThinkingLevel};
+use std::collections::BTreeMap;
 
 /// Builds the upstream catalog corresponding to the safe test projection.
 ///
@@ -183,21 +184,92 @@ fn each_selection_scope_resolves_its_configured_model() {
 #[test]
 fn unsupported_invocation_thinking_is_rejected() {
     let invocation = selection("local", "wire-alpha", Some("not-advertised"));
-    assert!(
-        resolve_execution_selection(
-            ExecutionSelectionSources {
-                invocation: Some(&invocation),
-                plan_node: None,
-                branch: None,
-                session: None,
-                project: None,
-                user_profile: None,
-            },
-            &upstream_models(),
-            "runtime-default",
-        )
-        .is_err()
-    );
+    let error = resolve_execution_selection(
+        ExecutionSelectionSources {
+            invocation: Some(&invocation),
+            plan_node: None,
+            branch: None,
+            session: None,
+            project: None,
+            user_profile: None,
+        },
+        &upstream_models(),
+        "runtime-default",
+    )
+    .expect_err("reject noncanonical persisted thinking");
+    assert!(matches!(
+        error,
+        crate::ApplicationError::InvalidRequest {
+            operation,
+            message,
+        } if operation == "agent_start"
+            && message == "thinking level id is not supported by upstream"
+    ));
+}
+
+/// Lets upstream clamp a canonical level that this model does not advertise.
+#[test]
+fn valid_unadvertised_thinking_is_clamped_by_upstream() {
+    let invocation = selection("local", "wire-alpha", Some("max"));
+    let resolved = resolve_execution_selection(
+        ExecutionSelectionSources {
+            invocation: Some(&invocation),
+            plan_node: None,
+            branch: None,
+            session: None,
+            project: None,
+            user_profile: None,
+        },
+        &upstream_models(),
+        "runtime-default",
+    )
+    .expect("canonical unsupported level is clamped by upstream");
+
+    assert_eq!(resolved.2.as_deref(), Some("high"));
+}
+
+/// Re-resolves the retained thinking choice against the newly selected model.
+#[test]
+fn model_switch_uses_new_upstream_thinking_support_and_clamps() {
+    let mut models = upstream_models();
+    let mut beta_thinking = BTreeMap::new();
+    beta_thinking.insert(ThinkingLevel::High, None);
+    beta_thinking.insert(ThinkingLevel::Medium, Some("balanced".to_owned()));
+    models[1].thinking_level_map = Some(beta_thinking);
+
+    let previous = selection("local", "wire-alpha", Some("high"));
+    let previous_resolution = resolve_execution_selection(
+        ExecutionSelectionSources {
+            invocation: Some(&previous),
+            plan_node: None,
+            branch: None,
+            session: None,
+            project: None,
+            user_profile: None,
+        },
+        &models,
+        "runtime-default",
+    )
+    .expect("resolve prior model selection");
+    assert_eq!(previous_resolution.2.as_deref(), Some("high"));
+
+    let switched = selection("local", "wire-beta", previous_resolution.2.as_deref());
+    let switched_resolution = resolve_execution_selection(
+        ExecutionSelectionSources {
+            invocation: Some(&switched),
+            plan_node: None,
+            branch: None,
+            session: None,
+            project: None,
+            user_profile: None,
+        },
+        &models,
+        "runtime-default",
+    )
+    .expect("resolve switched model from upstream catalog");
+
+    assert_eq!(switched_resolution.1, "wire-beta");
+    assert_eq!(switched_resolution.2.as_deref(), Some("medium"));
 }
 
 /// Keeps an invocation override above its node's stored assignment.
@@ -242,112 +314,5 @@ fn invocation_override_wins_over_node_assignment() {
     assert_eq!(resolved.thinking_level.as_deref(), Some("high"));
 }
 
-/// Resolves the nearest available scope through branch, session, project, user.
-#[test]
-fn lower_scope_order_is_branch_then_session_then_project_then_user_profile() {
-    let branch = selection("local", "wire-beta", Some("minimal"));
-    let session = selection("local", "wire-alpha", Some("high"));
-    let project = selection("local", "wire-beta", Some("minimal"));
-    let user = selection("local", "wire-alpha", Some("low"));
-    let branch_result = resolve_execution_selection(
-        ExecutionSelectionSources {
-            invocation: None,
-            plan_node: None,
-            branch: Some(&branch),
-            session: Some(&session),
-            project: Some(&project),
-            user_profile: Some(&user),
-        },
-        &upstream_models(),
-        "runtime-default",
-    )
-    .expect("resolve branch scope");
-    let session_result = resolve_execution_selection(
-        ExecutionSelectionSources {
-            invocation: None,
-            plan_node: None,
-            branch: None,
-            session: Some(&session),
-            project: Some(&project),
-            user_profile: Some(&user),
-        },
-        &upstream_models(),
-        "runtime-default",
-    )
-    .expect("resolve session scope");
-    let project_result = resolve_execution_selection(
-        ExecutionSelectionSources {
-            invocation: None,
-            plan_node: None,
-            branch: None,
-            session: None,
-            project: Some(&project),
-            user_profile: Some(&user),
-        },
-        &upstream_models(),
-        "runtime-default",
-    )
-    .expect("resolve project scope");
-    let user_result = resolve_execution_selection(
-        ExecutionSelectionSources {
-            invocation: None,
-            plan_node: None,
-            branch: None,
-            session: None,
-            project: None,
-            user_profile: Some(&user),
-        },
-        &upstream_models(),
-        "runtime-default",
-    )
-    .expect("resolve user-profile scope");
-
-    assert_eq!(branch_result.1, "wire-beta");
-    assert_eq!(session_result.1, "wire-alpha");
-    assert_eq!(project_result.1, "wire-beta");
-    assert_eq!(user_result.1, "wire-alpha");
-}
-
-/// Falls back through lower scopes and then the runtime model when needed.
-#[test]
-fn empty_narrow_scopes_fall_back_to_session_then_runtime() {
-    let session = selection("local", "wire-beta", Some("minimal"));
-    let resolved = resolve_execution_selection(
-        ExecutionSelectionSources {
-            invocation: None,
-            plan_node: None,
-            branch: None,
-            session: Some(&session),
-            project: None,
-            user_profile: None,
-        },
-        &upstream_models(),
-        "runtime-default",
-    )
-    .expect("resolve session scope");
-
-    assert_eq!(
-        resolved,
-        (
-            "local".to_owned(),
-            "wire-beta".to_owned(),
-            Some("minimal".to_owned()),
-        )
-    );
-    assert_eq!(
-        resolve_execution_selection(
-            ExecutionSelectionSources {
-                invocation: None,
-                plan_node: None,
-                branch: None,
-                session: None,
-                project: None,
-                user_profile: None,
-            },
-            &upstream_models(),
-            "runtime-default",
-        )
-        .expect("runtime fallback"),
-        ("local".to_owned(), "runtime-default".to_owned(), None,)
-    );
-}
+#[path = "resolution_tests/fallback.rs"]
+mod fallback;

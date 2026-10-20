@@ -1,7 +1,7 @@
 //! Compiles exact isolated context for one durable plan worker.
 
 use crate::context::{
-    BranchExecutionContext, CompactResultContext, CompiledContext, ContextActivity,
+    BranchExecutionContext, BranchRole, CompactResultContext, CompiledContext, ContextActivity,
     ContextCompiler, ContextPolicy,
 };
 use scriberig_core::EntityId;
@@ -39,7 +39,10 @@ impl PlanWorkerContext {
             claim.branch.to_string(),
             worker_purpose(node),
             node.purpose.clone(),
-        );
+        )
+        .with_branch_role(BranchRole::NonRoot {
+            parent: worker_parent_branch(plan, node).to_string(),
+        });
         let compiled = ContextCompiler::new(ContextPolicy::default()).compile(&inputs);
         Self { inputs, compiled }
     }
@@ -87,6 +90,18 @@ impl PlanWorkerContext {
             node.purpose.clone(),
         )
         .map_err(|error| format!("plan worker continuation anchor invalid: {error}"))?;
+        let worker_branch = session
+            .branches
+            .iter()
+            .find(|branch| branch.id == claim.branch)
+            .ok_or_else(|| "plan worker branch is missing from session".to_owned())?;
+        let branch_role =
+            worker_branch
+                .parent
+                .map_or(BranchRole::Root, |parent| BranchRole::NonRoot {
+                    parent: parent.to_string(),
+                });
+        inputs = inputs.with_branch_role(branch_role);
 
         for result in structural_ancestor_results(session, plan, node)? {
             inputs = inputs.with_ancestor_result(result);
@@ -98,6 +113,31 @@ impl PlanWorkerContext {
 
         let compiled = ContextCompiler::new(ContextPolicy::default()).compile(&inputs);
         Ok(Self { inputs, compiled })
+    }
+}
+
+/// Resolves the parent branch assigned to a plan worker by coordinator policy.
+///
+/// `from_plan` prefers the persisted branch parent's identity. This helper is
+/// for sessionless fallback work and matches the coordinator's creation rule.
+///
+/// - `plan`: Durable plan selecting the worker.
+/// - `node`: Plan node assigned to the worker branch.
+///
+/// The parent branch identity, falling back to the plan root when the node
+/// parent is absent or its parent node has no assigned branch.
+/// # Returns
+/// The resolved parent branch identity.
+pub(crate) fn worker_parent_branch(plan: &Plan, node: &PlanNode) -> EntityId {
+    match node.parent {
+        Some(PlanNodeParent::Branch(branch)) => branch,
+        Some(PlanNodeParent::Node(parent_node)) => plan
+            .nodes
+            .iter()
+            .find(|candidate| candidate.id == parent_node)
+            .and_then(|candidate| candidate.branch)
+            .unwrap_or(plan.root_branch),
+        None => plan.root_branch,
     }
 }
 
@@ -272,3 +312,7 @@ fn add_local_branch_history(
         }
     }
 }
+
+#[cfg(test)]
+#[path = "plan_context_tests.rs"]
+mod tests;

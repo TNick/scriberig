@@ -1,5 +1,8 @@
 //! Verifies real HTTP credential isolation, streaming redaction, and redirect denial.
 
+#[path = "provider_secret_persistence.rs"]
+mod provider_secret_persistence;
+
 use scriberig_agent_runtime::model_provider::ProviderModel;
 use scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider;
 use scriberig_agent_runtime::provider::{
@@ -248,6 +251,10 @@ fn credentials_are_headers_only_and_reflections_are_scrubbed() {
     );
     assert_eq!(projections.len(), 1);
     assert!(!format!("{:?}", projections[0]).contains("CANARY_C"));
+    provider_secret_persistence::persist_and_assert_secret_absent(
+        projections[0].clone(),
+        "CANARY_C",
+    );
     let requests = worker.join().expect("fixture worker");
     for (request, credential) in requests
         .iter()

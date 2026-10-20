@@ -11,6 +11,38 @@ mod operations;
 #[path = "service_local_sessions/start_agent.rs"]
 mod start_agent;
 
+impl<B> ApplicationService<B> {
+    /// Records safe model requests on a coordinator-owned worker branch.
+    ///
+    /// The caller must include the mutated branch in its normal session save.
+    /// This shares the same invocation-ID and activity projection used by
+    /// root and child agent completion operations.
+    ///
+    /// - `self`: Application identity allocator.
+    /// - `branch`: Exact claimed worker branch receiving request history.
+    /// - `model_requests`: Bounded provider-neutral requests captured at runtime.
+    pub fn persist_plan_worker_model_requests(
+        &self,
+        branch: &mut Branch,
+        model_requests: Vec<ModelRequestProjection>,
+    ) {
+        self.persist_model_requests(branch, model_requests);
+    }
+
+    /// Records safe model requests on a session branch before its terminal result.
+    ///
+    /// - `self`: Application identity allocator.
+    /// - `branch`: Exact root, child, or worker branch receiving request history.
+    /// - `model_requests`: Bounded provider-neutral requests captured by the runtime.
+    pub(crate) fn persist_model_requests(
+        &self,
+        branch: &mut Branch,
+        model_requests: Vec<ModelRequestProjection>,
+    ) {
+        persist_execution_evidence(self, branch, Vec::new(), model_requests);
+    }
+}
+
 /// Persists ordered model requests and tool invocation/result pairs.
 ///
 /// - `service`: Application identity allocator.
@@ -94,14 +126,18 @@ fn persist_model_request<B>(
         id: invocation,
         branch: branch.id,
         ordinal: request.ordinal,
-        agent_profile: None,
-        context_fingerprint: None,
-        provider_profile: None,
+        agent_profile: request
+            .profile
+            .as_ref()
+            .map(|profile| format!("{}@{}", profile.identity, profile.revision)),
+        context_fingerprint: request.context_fingerprint.clone(),
+        provider_profile: request.provider_profile.clone(),
+        provider_id: request.provider_id.clone(),
         model: Some(request.model.clone()),
         model_profile: None,
-        provider_model_id: None,
+        provider_model_id: request.provider_id.as_ref().map(|_| request.model.clone()),
         thinking_level: request.thinking_level.clone(),
-        request_fingerprint: None,
+        request_fingerprint: request.request_fingerprint.clone(),
         cache: CacheDisposition::NotUsed,
         output: None,
         request: Some(request),

@@ -89,6 +89,7 @@ fn session_graph_survives_reopen() {
             agent_profile: None,
             context_fingerprint: Some("context-fingerprint".to_owned()),
             provider_profile: Some("provider-a".to_owned()),
+            provider_id: None,
             model: Some("model-a".to_owned()),
             model_profile: Some("profile-a".to_owned()),
             provider_model_id: Some("native-model-a".to_owned()),
@@ -363,3 +364,5 @@ fn plan_dependencies_and_assignments_survive_reopen() {
 
 #[path = "durable_parts/part1.rs"]
 mod part1;
+#[path = "durable_parts/request_provenance.rs"]
+mod request_provenance;

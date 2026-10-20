@@ -45,6 +45,15 @@ pub struct ModelRequestToolDetail {
     pub parameters: Option<String>,
 }
 
+/// Safe exact reference to one profile or context-component revision.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct ModelContextRevisionReference {
+    /// Stable semantic identity.
+    pub identity: String,
+    /// Exact immutable revision identity.
+    pub revision: String,
+}
+
 /// Safe provider-neutral detail captured for one model invocation.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct ModelRequestDetailResponse {
@@ -52,8 +61,17 @@ pub struct ModelRequestDetailResponse {
     pub invocation: String,
     /// Normalized model identifier.
     pub model: String,
+    /// Resolved upstream provider identity, when available.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_id: Option<String>,
     /// Selected provider-neutral thinking level, when configured.
     pub thinking_level: Option<String>,
+    /// Exact profile revision used to compile this request, when available.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<ModelContextRevisionReference>,
+    /// Active context-component revisions in compilation order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub active_components: Vec<ModelContextRevisionReference>,
     /// Ordered normalized messages.
     pub messages: Vec<ModelRequestMessageDetail>,
     /// Trusted tools exposed to the model.

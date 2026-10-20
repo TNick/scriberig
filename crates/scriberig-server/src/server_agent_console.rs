@@ -2,16 +2,17 @@
 
 use scriberig_app::{AgentConsoleBackend, ApplicationBackend, ApplicationContext};
 use scriberig_protocol::{
-    ModelLibraryResponse, PublicModelCapabilities, PublicModelDescriptor, PublicModelProfile,
-    PublicThinkingLevelDescriptor, SessionExecutionSelection,
+    ModelLibraryResponse, PublicModelCostSnapshot, PublicModelCostTierSnapshot,
+    PublicModelDescriptor, PublicModelInputModality, PublicModelMetadataSnapshot,
+    SessionExecutionSelection,
 };
 
-/// Reads the configured credential-safe model library.
+/// Reads the upstream-derived model compatibility projection.
 ///
 /// - `self`: Shared application service.
 /// - `context`: Trusted capability context.
 ///
-/// Protocol-safe model descriptors and profiles.
+/// Protocol-safe upstream-derived model display rows.
 ///
 /// Returns authorization or application configuration failures.
 pub(super) fn model_library<B: ApplicationBackend>(
@@ -26,43 +27,53 @@ pub(super) fn model_library<B: ApplicationBackend>(
             .map(|model| PublicModelDescriptor {
                 id: model.id.as_str().to_owned(),
                 display_name: model.display_name,
-                provider_profile: model.provider_profile,
+                provider_id: model.provider_id,
                 provider_model_id: model.provider_model_id,
-                capabilities: PublicModelCapabilities {
-                    streaming: model.capabilities.streaming,
-                    tool_calls: model.capabilities.tool_calls,
-                    structured_output: model.capabilities.structured_output,
-                },
                 thinking_levels: model
                     .thinking_levels
                     .into_iter()
-                    .map(|level| PublicThinkingLevelDescriptor {
-                        id: level.id.as_str().to_owned(),
-                        label: level.label,
-                        description: level.description,
-                        order: level.order,
-                    })
+                    .map(|level| level.as_str().to_owned())
                     .collect(),
-                default_thinking_level: model
-                    .default_thinking_level
-                    .map(|value| value.as_str().to_owned()),
-            })
-            .collect(),
-        profiles: library
-            .profiles
-            .into_iter()
-            .map(|profile| PublicModelProfile {
-                id: profile.id,
-                display_name: profile.display_name,
-                model: profile.model.as_str().to_owned(),
-                connection: profile.connection,
-                credential: profile
-                    .credential
-                    .map(|credential| scriberig_protocol::ModelCredentialRef { id: credential.id }),
-                default_thinking_level: profile
-                    .default_thinking_level
-                    .map(|value| value.as_str().to_owned()),
-                enabled: profile.enabled,
+                metadata_snapshot: PublicModelMetadataSnapshot {
+                    schema_version: model.metadata_snapshot.schema_version,
+                    api_id: model.metadata_snapshot.api_id,
+                    reasoning: model.metadata_snapshot.reasoning,
+                    input: model
+                        .metadata_snapshot
+                        .input
+                        .into_iter()
+                        .map(|modality| match modality {
+                            scriberig_app::ModelInputModality::Text => {
+                                PublicModelInputModality::Text
+                            }
+                            scriberig_app::ModelInputModality::Image => {
+                                PublicModelInputModality::Image
+                            }
+                        })
+                        .collect(),
+                    cost: PublicModelCostSnapshot {
+                        input: model.metadata_snapshot.cost.input,
+                        output: model.metadata_snapshot.cost.output,
+                        cache_read: model.metadata_snapshot.cost.cache_read,
+                        cache_write: model.metadata_snapshot.cost.cache_write,
+                        tiers: model
+                            .metadata_snapshot
+                            .cost
+                            .tiers
+                            .into_iter()
+                            .map(|tier| PublicModelCostTierSnapshot {
+                                input: tier.input,
+                                output: tier.output,
+                                cache_read: tier.cache_read,
+                                cache_write: tier.cache_write,
+                                input_tokens_above: tier.input_tokens_above,
+                            })
+                            .collect(),
+                    },
+                    cost_configured: model.metadata_snapshot.cost_configured,
+                    context_window: model.metadata_snapshot.context_window,
+                    max_tokens: model.metadata_snapshot.max_tokens,
+                },
             })
             .collect(),
     })
@@ -254,7 +265,24 @@ fn project_model_request(
     scriberig_protocol::ModelRequestDetailResponse {
         invocation,
         model: request.model.clone(),
+        provider_id: request.provider_id.clone(),
         thinking_level: request.thinking_level.clone(),
+        profile: request.profile.as_ref().map(|reference| {
+            scriberig_protocol::ModelContextRevisionReference {
+                identity: reference.identity.clone(),
+                revision: reference.revision.clone(),
+            }
+        }),
+        active_components: request
+            .active_components
+            .iter()
+            .map(
+                |reference| scriberig_protocol::ModelContextRevisionReference {
+                    identity: reference.identity.clone(),
+                    revision: reference.revision.clone(),
+                },
+            )
+            .collect(),
         messages: request
             .messages
             .iter()
@@ -306,6 +334,9 @@ pub(super) fn selection_response(
     }
 }
 
+#[cfg(test)]
+#[path = "server_agent_console_model_projection_tests.rs"]
+mod model_projection_tests;
 #[cfg(test)]
 #[path = "server_agent_console_tests.rs"]
 mod tests;

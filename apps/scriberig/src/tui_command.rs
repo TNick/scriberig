@@ -128,8 +128,7 @@ pub(super) fn run(
         super::native_tui_agent::NativeTuiAgentRunner::from_environment(Arc::clone(&store))?;
     let service = ApplicationService::new(backend)
         .with_session_store(session_store)
-        .with_model_library(agent_runner.model_library())
-        .with_upstream_models(agent_runner.upstream_models());
+        .with_model_catalog(agent_runner.model_catalog());
     let labels = project
         .as_ref()
         .map(|value| project_labels(&store, value.project))

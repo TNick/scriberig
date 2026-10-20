@@ -14,6 +14,7 @@ use crate::child_runtime::{LocalChildExecutor, inspect_catalog};
 /// Runs one provider-neutral model through the shared runtime loop.
 ///
 /// - `provider`: Model provider adapter.
+/// - `provider_profile`: Safe `ScribeRig` provider profile used for provenance.
 /// - `model`: Provider-native model identifier.
 /// - `service`: Shared application operation boundary.
 /// - `project_store`: Durable project store for application-backed tools.
@@ -29,6 +30,7 @@ use crate::child_runtime::{LocalChildExecutor, inspect_catalog};
 #[allow(clippy::too_many_arguments)]
 pub(super) fn execute_model<P: ProviderAdapter + Clone, B: ApplicationBackend>(
     provider: P,
+    provider_profile: Option<String>,
     model: String,
     service: &ApplicationService<B>,
     project_store: &Arc<SqliteStore>,
@@ -40,17 +42,31 @@ pub(super) fn execute_model<P: ProviderAdapter + Clone, B: ApplicationBackend>(
 ) -> Result<scriberig_agent_runtime::AgentResult, scriberig_agent_runtime::AgentError> {
     let catalog = inspect_catalog();
     let cache = scriberig_agent_runtime::cache::ModelCache::new();
-    let mut children = LocalChildExecutor::new(
+    let mut children = LocalChildExecutor {
         service,
-        provider.clone(),
-        model.clone(),
-        cache.clone(),
-        Arc::clone(project_store),
-    );
+        operation: None,
+        provider: provider.clone(),
+        model: model.clone(),
+        provider_id: None,
+        provider_profile: provider_profile.clone(),
+        thinking_level: None,
+        cache: cache.clone(),
+        project_store: Arc::clone(project_store),
+    };
+    let compiled_context = crate::agent_context::compile_branch_context(
+        service,
+        context,
+        scope.session,
+        scope.parent_branch,
+        prompt,
+        None,
+    )?;
     let runtime = scriberig_agent_runtime::AgentRuntime::new(
         ProviderModel::new(provider, model)
+            .with_optional_provider_profile(provider_profile)
             .with_catalog(catalog)
             .with_capabilities(context.capabilities.clone())
+            .with_compiled_context(compiled_context)
             .with_cache(
                 cache,
                 scriberig_agent_runtime::cache::CachePolicy::ReuseExact,

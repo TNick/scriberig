@@ -28,7 +28,7 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
     ///
     /// - `context`: Caller capabilities and request context.
     ///
-    /// Upstream-derived model descriptors and Scriberig curated profiles.
+    /// Upstream-derived model descriptor projection.
     ///
     /// Returns permission-denied when the caller cannot use agent models.
     /// # Returns
@@ -40,33 +40,63 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
         context: &ApplicationContext,
     ) -> Result<crate::ModelLibrary, ApplicationError> {
         authorize_model_library_read(context)?;
-        let mut library = self.model_library.clone();
-        for model in &mut library.models {
-            let resolved = rpi_model_runtime::resolve_selection(
-                &self.upstream_models,
-                &rpi_model_runtime::ModelSelection {
-                    provider_id: model.provider_profile.clone(),
-                    model_id: model.provider_model_id.clone(),
-                    thinking: rpi_ai::ThinkingLevel::Off,
-                },
-            )
-            .map_err(|error| invalid_selection(error.to_string()))?;
-            let upstream = &self.upstream_models[resolved.catalog_index];
-            model.thinking_levels = upstream
-                .supported_thinking_levels()
-                .into_iter()
-                .enumerate()
-                .map(|(order, level)| crate::ThinkingLevelDescriptor {
-                    id: crate::ThinkingLevelId::new(level.as_str())
-                        .expect("upstream thinking name parses upstream"),
-                    label: level.as_str().to_owned(),
-                    description: None,
-                    order: u32::try_from(order).unwrap_or(u32::MAX),
+        let catalog_snapshot = self.model_catalog.snapshot();
+        let models = catalog_snapshot
+            .models
+            .iter()
+            .map(|upstream| {
+                let safe_snapshot = rpi_model_runtime::safe_model_snapshot(upstream);
+                let id = crate::ModelId::new(model_projection_id(
+                    &safe_snapshot.provider_id,
+                    &safe_snapshot.model_id,
+                ))
+                .map_err(invalid_selection)?;
+                let thinking_levels = safe_snapshot.thinking_levels.clone();
+                let metadata_snapshot = crate::ModelMetadataSnapshot {
+                    schema_version: safe_snapshot.schema_version.clone(),
+                    api_id: safe_snapshot.api_id.clone(),
+                    reasoning: safe_snapshot.reasoning,
+                    input: safe_snapshot
+                        .input
+                        .iter()
+                        .map(|modality| match modality {
+                            rpi_ai::InputModality::Text => crate::ModelInputModality::Text,
+                            rpi_ai::InputModality::Image => crate::ModelInputModality::Image,
+                        })
+                        .collect(),
+                    cost: crate::ModelCostSnapshot {
+                        input: safe_snapshot.cost.rates.input,
+                        output: safe_snapshot.cost.rates.output,
+                        cache_read: safe_snapshot.cost.rates.cache_read,
+                        cache_write: safe_snapshot.cost.rates.cache_write,
+                        tiers: safe_snapshot
+                            .cost
+                            .tiers
+                            .iter()
+                            .map(|tier| crate::ModelCostTierSnapshot {
+                                input: tier.rates.input,
+                                output: tier.rates.output,
+                                cache_read: tier.rates.cache_read,
+                                cache_write: tier.rates.cache_write,
+                                input_tokens_above: tier.input_tokens_above,
+                            })
+                            .collect(),
+                    },
+                    cost_configured: safe_snapshot.cost_configured,
+                    context_window: safe_snapshot.context_window,
+                    max_tokens: safe_snapshot.max_tokens,
+                };
+                Ok(crate::ModelDescriptor {
+                    id,
+                    display_name: safe_snapshot.display_name.clone(),
+                    provider_id: safe_snapshot.provider_id.clone(),
+                    provider_model_id: safe_snapshot.model_id.clone(),
+                    thinking_levels,
+                    metadata_snapshot,
                 })
-                .collect();
-            model.default_thinking_level = None;
-        }
-        crate::ModelLibrary::new(library.models, library.profiles).map_err(invalid_selection)
+            })
+            .collect::<Result<Vec<_>, ApplicationError>>()?;
+        Ok(crate::ModelLibrary { models })
     }
 
     /// Reads shared user presentation defaults without touching session state.
@@ -114,17 +144,16 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
             .compare_and_swap(principal, expected_revision, preferences)
     }
 
-    /// Changes the model profile used by future session invocations.
+    /// Changes the provider/model pair used by future session invocations.
     ///
-    /// A canonical current level is retained. Otherwise the configured profile
-    /// default is selected and clamped by the upstream model.
+    /// A canonical current level is retained and clamped by the upstream model.
     ///
     /// - `context`: Caller capabilities and request context.
-    /// - `request`: Session, observed selection revision, and profile id.
+    /// - `request`: Session, observed revision, provider id, and model id.
     ///
     /// The updated session selection.
     ///
-    /// Returns permission, model/profile validation, stale-revision, or
+    /// Returns permission, upstream selection validation, stale-revision, or
     /// persistence failures.
     /// # Returns
     /// The operation result.
@@ -334,13 +363,24 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
     }
 }
 
-/// Resolves the stable caller identity required for shared preferences.
+/// Creates a collision-free display identity for one provider/model pair.
 ///
-/// - `context`: Authorized application request context.
+/// - `provider`: Exact upstream provider identity.
+/// - `model`: Exact provider-scoped upstream model identity.
 ///
-/// The stable principal identifier.
-///
-/// Returns invalid-request when the caller has no principal identity.
+/// A stable Scriberig compatibility-row identity.
+/// # Returns
+/// The length-prefixed pair identity.
+fn model_projection_id(provider: &str, model: &str) -> String {
+    format!(
+        "rpi1:{}:{}{}:{}",
+        provider.len(),
+        provider,
+        model.len(),
+        model
+    )
+}
+
 /// Creates an empty session for selection before the first agent message.
 ///
 /// - `id`: Stable identity supplied by the caller.

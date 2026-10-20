@@ -2,6 +2,81 @@
 
 use super::*;
 
+/// Verifies model, prompt, and presentation contracts round trip.
+pub(super) fn model_contracts_round_trip() {
+    round_trip(&ModelRequestDetailRequest {
+        session: SessionReference {
+            id: "session-1".to_owned(),
+        },
+        branch: BranchReference {
+            id: "branch-1".to_owned(),
+        },
+        invocation: "invocation-1".to_owned(),
+    });
+    round_trip(&ModelRequestDetailResponse {
+        invocation: "invocation-1".to_owned(),
+        model: "model-1".to_owned(),
+        provider_id: Some("provider-1".to_owned()),
+        thinking_level: Some("careful".to_owned()),
+        profile: Some(ModelContextRevisionReference {
+            identity: "profile.default".to_owned(),
+            revision: "rev-2".to_owned(),
+        }),
+        active_components: vec![ModelContextRevisionReference {
+            identity: "component.core".to_owned(),
+            revision: "rev-7".to_owned(),
+        }],
+        messages: vec![ModelRequestMessageDetail {
+            role: "user".to_owned(),
+            content: "safe prompt".to_owned(),
+        }],
+        tools: vec![ModelRequestToolDetail {
+            name: "inspect".to_owned(),
+            description: "Inspect an entity".to_owned(),
+            parameters: Some("{}".to_owned()),
+        }],
+        truncated: false,
+    });
+    let legacy_detail: ModelRequestDetailResponse = serde_json::from_value(serde_json::json!({
+        "invocation": "invocation-legacy",
+        "model": "model-legacy",
+        "thinking_level": null,
+        "messages": [],
+        "tools": [],
+        "truncated": false
+    }))
+    .expect("legacy model request detail");
+    assert_eq!(legacy_detail.provider_id, None);
+    assert_eq!(legacy_detail.profile, None);
+    assert_eq!(legacy_detail.active_components, Vec::new());
+    round_trip(&ModelLibraryRequest::default());
+    round_trip(&SessionModelSelectionRequest {
+        session: SessionReference {
+            id: "session-1".to_owned(),
+        },
+        expected_revision: 7,
+        provider_id: "provider-1".to_owned(),
+        model_id: "model-1".to_owned(),
+    });
+    round_trip(&SessionThinkingSelectionRequest {
+        session: SessionReference {
+            id: "session-1".to_owned(),
+        },
+        expected_revision: 8,
+        thinking_level: "extended".to_owned(),
+    });
+    round_trip(&ModelLibraryResponse {
+        models: vec![PublicModelDescriptor {
+            id: "model-1".to_owned(),
+            display_name: "Safe Model Name".to_owned(),
+            provider_id: "provider-1".to_owned(),
+            provider_model_id: "provider-model-1".to_owned(),
+            thinking_levels: vec!["deep-dive".to_owned()],
+            metadata_snapshot: model_metadata_snapshot(),
+        }],
+    });
+}
+
 /// Verifies errors preserve every machine-readable category field.
 #[test]
 fn structured_error_round_trip() {

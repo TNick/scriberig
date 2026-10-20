@@ -18,6 +18,115 @@ struct RecursiveProvider {
     delegation_limit: usize,
 }
 
+/// Completes one model step and records how many requests the child made.
+struct CountingFinalProvider {
+    /// Number of child provider invocations.
+    calls: Arc<std::sync::atomic::AtomicUsize>,
+    /// Final child output returned by the provider.
+    output: String,
+}
+
+impl ModelProvider for CountingFinalProvider {
+    /// Returns the configured final output and increments the invocation count.
+    ///
+    /// - `_messages`: Current child conversation, unused by this fixture.
+    ///
+    /// A final response for the child branch.
+    ///
+    /// This deterministic provider does not fail.
+    /// # Returns
+    /// The final model decision.
+    /// # Errors
+    /// Never returns an error.
+    fn decide(&mut self, _messages: &[AgentMessage]) -> Result<ModelDecision, String> {
+        self.calls.fetch_add(1, std::sync::atomic::Ordering::AcqRel);
+        Ok(ModelDecision::Final(self.output.clone()))
+    }
+}
+
+/// Delegates once, then finishes after the compact child result arrives.
+struct OneChildParentProvider;
+
+impl ModelProvider for OneChildParentProvider {
+    /// Requests one child and checks the follow-up contains only its compact result.
+    ///
+    /// - `messages`: Current parent conversation.
+    ///
+    /// A child request on the first call and a final response afterward.
+    ///
+    /// This deterministic provider does not fail.
+    /// # Returns
+    /// The next parent model decision.
+    /// # Errors
+    /// Never returns an error.
+    fn decide(&mut self, messages: &[AgentMessage]) -> Result<ModelDecision, String> {
+        if messages
+            .iter()
+            .any(|message| matches!(message, AgentMessage::Child(_)))
+        {
+            assert!(!messages.iter().any(|message| {
+                matches!(message, AgentMessage::User(text) if text.contains("CHILD_PRIVATE_TRANSCRIPT"))
+            }));
+            Ok(ModelDecision::Final("parent answer".to_owned()))
+        } else {
+            Ok(ModelDecision::Child(ChildRequest {
+                purpose: "focused work".to_owned(),
+                prompt: "CHILD_PRIVATE_TRANSCRIPT".to_owned(),
+                capabilities: Vec::new(),
+                expected_result: "one compact summary".to_owned(),
+            }))
+        }
+    }
+}
+
+/// Runs a one-step child and projects its final output and handles to the parent.
+struct OneStepChildExecutor {
+    /// Number of calls made by the child provider.
+    calls: Arc<std::sync::atomic::AtomicUsize>,
+}
+
+impl ChildExecutor for OneStepChildExecutor {
+    /// Executes the child once and returns its final output as compact summary.
+    ///
+    /// - `context`: Trusted context inherited by the child.
+    /// - `scope`: Durable parent branch scope.
+    /// - `request`: Validated purpose and child prompt.
+    /// - `cancelled`: Shared execution cancellation flag.
+    ///
+    /// The child final output, stable handle, and branch identity.
+    ///
+    /// Returns an error when the parent scope is missing or child execution fails.
+    /// # Returns
+    /// The compact result produced for the parent branch.
+    /// # Errors
+    /// Returns an error when child execution cannot complete.
+    fn execute_child(
+        &mut self,
+        context: &ApplicationContext,
+        scope: Option<ChildExecutionScope>,
+        request: ChildRequest,
+        cancelled: &AtomicBool,
+    ) -> Result<ChildResult, String> {
+        let scope = scope.ok_or_else(|| "missing parent scope".to_owned())?;
+        let mut runtime = AgentRuntime::new(
+            CountingFinalProvider {
+                calls: Arc::clone(&self.calls),
+                output: "final child output".to_owned(),
+            },
+            UnconfiguredTool,
+            1,
+        );
+        let result = runtime
+            .run_with_child_executor_at(&scope, context, request.prompt, cancelled, self)
+            .map_err(|error| error.to_string())?;
+        Ok(ChildResult {
+            summary: result.output,
+            handles: vec!["entity:child-result".to_owned()],
+            branch: Some(EntityId::from_bytes([7; 16])),
+        })
+    }
+}
+
 impl ModelProvider for RecursiveProvider {
     /// Delegates until the configured depth and then completes.
     ///
@@ -177,4 +286,40 @@ fn recursive_children_preserve_depth_and_hide_child_history() {
             .load(std::sync::atomic::Ordering::Acquire),
         0
     );
+}
+
+/// Verifies final child output stays separate from handles without a summarizer call.
+#[test]
+fn child_final_output_is_compact_result_without_extra_model_call() {
+    let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let scope = ChildExecutionScope {
+        session: EntityId::from_bytes([1; 16]),
+        parent_branch: EntityId::from_bytes([2; 16]),
+        depth: 0,
+        active_branches: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+        semantic_scope: None,
+    };
+    let mut executor = OneStepChildExecutor {
+        calls: Arc::clone(&calls),
+    };
+    let mut runtime = AgentRuntime::new(OneChildParentProvider, UnconfiguredTool, 2);
+    let result = runtime
+        .run_with_child_executor_at(
+            &scope,
+            &ApplicationContext::empty(),
+            "parent task",
+            &AtomicBool::new(false),
+            &mut executor,
+        )
+        .expect("parent completes after child");
+
+    assert_eq!(result.output, "parent answer");
+    assert_eq!(calls.load(std::sync::atomic::Ordering::Acquire), 1);
+    assert!(matches!(
+        result.messages.get(1),
+        Some(AgentMessage::Child(child))
+            if child.summary == "final child output"
+                && child.handles == vec!["entity:child-result"]
+                && child.branch == Some(EntityId::from_bytes([7; 16]))
+    ));
 }

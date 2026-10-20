@@ -2,13 +2,36 @@
 
 use super::*;
 
+/// Creates a safe model metadata fixture for picker rows.
+///
+/// # Returns
+/// A neutral upstream metadata snapshot for model picker fixtures.
+fn model_metadata_snapshot() -> scriberig_protocol::PublicModelMetadataSnapshot {
+    scriberig_protocol::PublicModelMetadataSnapshot {
+        schema_version: "rpi-safe-model-snapshot-v1".to_owned(),
+        api_id: "openai-completions".to_owned(),
+        reasoning: false,
+        input: vec![scriberig_protocol::PublicModelInputModality::Text],
+        cost: scriberig_protocol::PublicModelCostSnapshot {
+            input: 0.0,
+            output: 0.0,
+            cache_read: 0.0,
+            cache_write: 0.0,
+            tiers: Vec::new(),
+        },
+        cost_configured: false,
+        context_window: 4096,
+        max_tokens: 1024,
+    }
+}
+
 /// Creates a picker state with one loaded session and selected model.
 ///
+/// # Parameters
 /// - `selection`: Optional current provider and model identity.
 ///
-/// Deterministic state for model-control reducer tests.
 /// # Returns
-/// The operation result.
+/// A deterministic state for model-control reducer tests.
 fn picker_state(selection: Option<(&str, &str)>) -> TuiState {
     let session_id = EntityId::from_bytes([41; 16]);
     let execution = scriberig_session::SessionExecutionSelection {
@@ -47,42 +70,28 @@ fn picker_state(selection: Option<(&str, &str)>) -> TuiState {
 
 /// Creates two displayed upstream models with separate thinking levels.
 ///
-/// Deterministic protocol model descriptors for picker tests.
 /// # Returns
-/// The operation result.
+/// Two safe model rows with distinct provider and thinking-level identities.
 fn model_library() -> scriberig_protocol::ModelLibraryResponse {
     scriberig_protocol::ModelLibraryResponse {
         models: vec![
             scriberig_protocol::PublicModelDescriptor {
                 id: "model-a".to_owned(),
                 display_name: "Model A".to_owned(),
-                provider_profile: "provider-a".to_owned(),
+                provider_id: "provider-a".to_owned(),
                 provider_model_id: "provider-model-a".to_owned(),
-                capabilities: scriberig_protocol::PublicModelCapabilities::default(),
-                thinking_levels: vec![scriberig_protocol::PublicThinkingLevelDescriptor {
-                    id: "careful".to_owned(),
-                    label: "Careful".to_owned(),
-                    description: None,
-                    order: 1,
-                }],
-                default_thinking_level: Some("careful".to_owned()),
+                thinking_levels: vec!["careful".to_owned()],
+                metadata_snapshot: model_metadata_snapshot(),
             },
             scriberig_protocol::PublicModelDescriptor {
                 id: "model-b".to_owned(),
                 display_name: "Model B".to_owned(),
-                provider_profile: "provider-b".to_owned(),
+                provider_id: "provider-b".to_owned(),
                 provider_model_id: "provider-model-b".to_owned(),
-                capabilities: scriberig_protocol::PublicModelCapabilities::default(),
-                thinking_levels: vec![scriberig_protocol::PublicThinkingLevelDescriptor {
-                    id: "quick".to_owned(),
-                    label: "Quick".to_owned(),
-                    description: None,
-                    order: 1,
-                }],
-                default_thinking_level: Some("quick".to_owned()),
+                thinking_levels: vec!["quick".to_owned()],
+                metadata_snapshot: model_metadata_snapshot(),
             },
         ],
-        profiles: Vec::new(),
     }
 }
 
