@@ -1,5 +1,6 @@
 //! Defines modal presentation state and its focused overlay models.
 
+#[cfg(test)]
 pub mod help;
 pub mod input;
 pub mod palette;

@@ -1,6 +1,11 @@
 //! Verifies production plan execution through the native TUI runtime.
 
 use super::*;
+use crate::native_tui_agent::tests::model_catalog_from_models;
+
+#[path = "native_tui_agent_plan_tests/support.rs"]
+mod support;
+use support::agentic_fixture_root;
 
 /// Builds provider models matching the plan test's safe library projection.
 ///
@@ -32,16 +37,6 @@ pub(super) fn upstream_model_catalog(provider: &str, model_ids: &[&str]) -> Vec<
 /// # Returns
 /// A completed non-tool provider response.
 ///
-fn final_response(text: &str) -> ModelResponse {
-    ModelResponse {
-        text: Some(text.to_owned()),
-        tool_calls: Vec::new(),
-        finish_reason: FinishReason::Stop,
-        usage: None,
-        metadata: ProviderMetadata::default(),
-    }
-}
-
 /// Starts a durable plan through the native lifecycle and executes its worker.
 #[test]
 #[allow(clippy::too_many_lines)] // Keeps worker assignment and resume evidence end to end.
@@ -188,27 +183,30 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
         PlanLifecycleAction::Pause,
     )
     .expect("pause second plan");
-    let provider_a = FakeProvider::from_responses([
-        Ok(final_response("Independent result.")),
-        Ok(final_response("Parser validation completed.")),
-        Ok(final_response("Resumed parser validation completed.")),
-    ]);
-    let provider_b = FakeProvider::from_responses([Ok(final_response("Independent result."))]);
+    let provider_a = rpi_ai::providers::faux::FauxScript::new()
+        .with_text("Independent result.")
+        .with_text("Parser validation completed.")
+        .with_text("Resumed parser validation completed.");
+    let provider_b = rpi_ai::providers::faux::FauxScript::new().with_text("Independent result.");
     let runner = NativeTuiAgentRunner {
         providers: std::collections::BTreeMap::from([
             (
                 "fake-a".to_owned(),
-                NativeProvider::Fake(provider_a.clone()),
+                NativeScenario::Faux(provider_a.clone()),
             ),
             (
                 "fake-b".to_owned(),
-                NativeProvider::Fake(provider_b.clone()),
+                NativeScenario::Faux(provider_b.clone()),
             ),
         ]),
         model: "fake-model".to_owned(),
+        upstream_credentials: None,
+        upstream_enabled: false,
         model_catalog: model_catalog_from_models(upstream_models),
+        model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
+        continuations: std::sync::Mutex::default(),
     };
     let adapter = ApplicationOperationAdapter::new(service).with_agent_runner(runner);
     let session_snapshot = session_store
@@ -252,29 +250,44 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
             .iter()
             .all(|node| node.status == scriberig_session::PlanNodeStatus::Completed)
     );
-    assert_eq!(provider_a.requests().len(), 2);
-    assert_eq!(provider_b.requests().len(), 1);
-    assert!(provider_a.requests().iter().any(|request| {
-        request.model == "wire-plan-model-a" && request.thinking_level.as_deref() == Some("high")
-    }));
-    assert!(provider_b.requests().iter().any(|request| {
-        request.model == "wire-plan-model-b" && request.thinking_level.as_deref() == Some("high")
-    }));
-    assert!(
-        provider_a.requests()[1]
-            .messages
-            .iter()
-            .any(|message| { message.content.contains("Independent result.") })
-    );
-    assert!(provider_a.requests()[1].messages.iter().all(|message| {
-        !message
-            .content
-            .contains("Summarize the existing parser behavior.")
-    }));
     let durable = session_store
         .load(session_id)
         .expect("load session")
         .expect("session exists");
+    let invocations = durable
+        .branches
+        .iter()
+        .flat_map(|branch| &branch.model_invocations)
+        .collect::<Vec<_>>();
+    let requests_a = invocations
+        .iter()
+        .filter(|invocation| invocation.provider_id.as_deref() == Some("fake-a"))
+        .filter_map(|invocation| invocation.request.as_ref())
+        .collect::<Vec<_>>();
+    let requests_b = invocations
+        .iter()
+        .filter(|invocation| invocation.provider_id.as_deref() == Some("fake-b"))
+        .filter_map(|invocation| invocation.request.as_ref())
+        .collect::<Vec<_>>();
+    assert_eq!(requests_a.len(), 2);
+    assert_eq!(requests_b.len(), 1);
+    assert!(requests_a.iter().any(|request| {
+        request.model == "wire-plan-model-a" && request.thinking_level.as_deref() == Some("high")
+    }));
+    assert!(requests_b.iter().any(|request| {
+        request.model == "wire-plan-model-b" && request.thinking_level.as_deref() == Some("high")
+    }));
+    assert!(
+        requests_a[1]
+            .messages
+            .iter()
+            .any(|message| message.content.contains("Independent result."))
+    );
+    assert!(requests_a[1].messages.iter().all(|message| {
+        !message
+            .content
+            .contains("Summarize the existing parser behavior.")
+    }));
     let worker = durable
         .branches
         .iter()
@@ -336,7 +349,19 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
         panic!("plan resume should execute its ready worker: {resumed:?}");
     };
     assert_eq!(resumed.status, scriberig_session::PlanStatus::Completed);
-    assert_eq!(provider_a.requests().len(), 3);
+    let resumed_session = session_store
+        .load(session_id)
+        .expect("load resumed plan session")
+        .expect("resumed session exists");
+    assert_eq!(
+        resumed_session
+            .branches
+            .iter()
+            .flat_map(|branch| &branch.model_invocations)
+            .filter(|invocation| invocation.provider_id.as_deref() == Some("fake-a"))
+            .count(),
+        3
+    );
 
     drop(adapter);
     drop(session_store);
@@ -348,52 +373,3 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
 mod http;
 #[path = "native_tui_agent_plan_tests/integration.rs"]
 mod integration;
-
-/// Creates and returns a uniquely named agent-owned test directory.
-///
-/// - `label`: Short representative name for the temporary fixture.
-///
-/// A path below `playground/agentic-work` with the required timestamp prefix.
-/// # Returns
-/// The created fixture directory.
-fn agentic_fixture_root(label: &str) -> std::path::PathBuf {
-    assert!(
-        label.len() <= 40,
-        "fixture label must be at most 40 characters"
-    );
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .expect("system time after Unix epoch");
-    let seconds = i64::try_from(now.as_secs()).expect("timestamp fits i64");
-    let days = seconds.div_euclid(86_400);
-    let day_seconds = seconds.rem_euclid(86_400);
-    let shifted = days + 719_468;
-    let era = if shifted >= 0 {
-        shifted
-    } else {
-        shifted - 146_096
-    }
-    .div_euclid(146_097);
-    let day_of_era = shifted - era * 146_097;
-    let year_of_era = (day_of_era - day_of_era / 1_460 + day_of_era / 36_524
-        - day_of_era / 146_096)
-        .div_euclid(365);
-    let mut year = year_of_era + era * 400;
-    let day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
-    let month_part = (5 * day_of_year + 2).div_euclid(153);
-    let day = day_of_year - (153 * month_part + 2).div_euclid(5) + 1;
-    let month = month_part + if month_part < 10 { 3 } else { -9 };
-    year += i64::from(month <= 2);
-    let hour = day_seconds / 3_600;
-    let minute = day_seconds % 3_600 / 60;
-    let second = day_seconds % 60;
-    let timestamp = format!("{year:04}{month:02}{day:02}-{hour:02}{minute:02}{second:02}");
-    let identifier = EntityId::new().to_string();
-    let suffix = &identifier[4..12];
-    let directory_name = format!("{timestamp} {label}-{suffix}");
-    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../playground/agentic-work")
-        .join(directory_name);
-    std::fs::create_dir_all(&root).expect("fixture root");
-    root
-}

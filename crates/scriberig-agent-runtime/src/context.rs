@@ -1,6 +1,54 @@
 //! Compiles deterministic, branch-scoped provider-neutral model context.
 
-use crate::provider::ModelMessage;
+/// Identifies the semantic author of a compiled context message.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ContextMessageRole {
+    /// ScribeRig-authored runtime instruction.
+    System,
+    /// Human-authored branch instruction.
+    User,
+}
+
+/// One ScribeRig-compiled context component before upstream projection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ModelMessage {
+    /// Semantic author of the context text.
+    pub role: ContextMessageRole,
+    /// Text compiled from `ScribeRig` branch state.
+    pub content: String,
+}
+
+impl ModelMessage {
+    /// Creates a human-authored context component.
+    ///
+    /// # Parameters
+    /// - `content`: User-authored branch instruction.
+    ///
+    /// # Returns
+    /// A user-role context message.
+    #[must_use]
+    pub fn user(content: impl Into<String>) -> Self {
+        Self {
+            role: ContextMessageRole::User,
+            content: content.into(),
+        }
+    }
+
+    /// Creates a ScribeRig-authored runtime instruction.
+    ///
+    /// # Parameters
+    /// - `content`: Runtime instruction compiled from semantic state.
+    ///
+    /// # Returns
+    /// A system-role context message.
+    #[must_use]
+    pub fn system(content: impl Into<String>) -> Self {
+        Self {
+            role: ContextMessageRole::System,
+            content: content.into(),
+        }
+    }
+}
 
 #[path = "context/components.rs"]
 mod components;

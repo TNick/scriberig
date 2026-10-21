@@ -44,6 +44,32 @@ impl<B> ApplicationService<B> {
         failure: impl Into<String>,
         model_requests: Vec<scriberig_session::ModelRequestProjection>,
     ) -> Result<(), ApplicationError> {
+        self.fail_local_agent_with_evidence(handle, failure, model_requests, Vec::new())
+    }
+
+    /// Abandons a root branch with its captured request and tool evidence.
+    ///
+    /// - `self`: Application service owning session and operation state.
+    /// - `handle`: Pending root operation handle.
+    /// - `failure`: Bounded failure description safe for durable storage.
+    /// - `model_requests`: Safe provider-neutral requests captured before failure.
+    /// - `tool_evidence`: Safe semantic tool evidence captured before failure.
+    ///
+    /// Unit after branch evidence and operation failure are recorded.
+    ///
+    /// # Returns
+    /// Success after the abandoned root result is persisted.
+    ///
+    /// # Errors
+    /// Returns an application error when session persistence or operation
+    /// settlement fails.
+    pub fn fail_local_agent_with_evidence(
+        &self,
+        handle: &LocalAgentHandle,
+        failure: impl Into<String>,
+        model_requests: Vec<scriberig_session::ModelRequestProjection>,
+        tool_evidence: Vec<crate::ToolExecutionEvidence>,
+    ) -> Result<(), ApplicationError> {
         let failure = failure.into();
         let cancelled =
             self.operations.get(&handle.operation)?.status == crate::OperationStatus::Cancelled;
@@ -59,7 +85,7 @@ impl<B> ApplicationService<B> {
             .ok_or_else(|| ApplicationError::NotFound {
                 subject: handle.root_branch.to_string(),
             })?;
-        self.persist_model_requests(branch, model_requests);
+        self.persist_execution_evidence(branch, tool_evidence, model_requests);
         branch.outcome = Some(failure.clone());
         let result_id = self.next_entity(0xB8);
         branch.result = Some(BranchResult {
@@ -134,6 +160,32 @@ impl<B> ApplicationService<B> {
         failure: impl Into<String>,
         model_requests: Vec<scriberig_session::ModelRequestProjection>,
     ) -> Result<(), ApplicationError> {
+        self.fail_local_child_agent_with_evidence(handle, failure, model_requests, Vec::new())
+    }
+
+    /// Abandons a child branch with its captured request and tool evidence.
+    ///
+    /// - `self`: Application service owning session and operation state.
+    /// - `handle`: Pending child operation handle.
+    /// - `failure`: Bounded failure description safe for durable storage.
+    /// - `model_requests`: Safe provider-neutral requests captured before failure.
+    /// - `tool_evidence`: Safe semantic tool evidence captured before failure.
+    ///
+    /// Unit after branch, evidence, and operation failure are recorded.
+    ///
+    /// # Returns
+    /// Success after the abandoned child result is persisted.
+    ///
+    /// # Errors
+    /// Returns an application error when session persistence or operation
+    /// settlement fails.
+    pub fn fail_local_child_agent_with_evidence(
+        &self,
+        handle: &LocalChildAgentHandle,
+        failure: impl Into<String>,
+        model_requests: Vec<scriberig_session::ModelRequestProjection>,
+        tool_evidence: Vec<crate::ToolExecutionEvidence>,
+    ) -> Result<(), ApplicationError> {
         let failure = failure.into();
         let mut session =
             self.load_session_state(handle.session)?
@@ -147,7 +199,7 @@ impl<B> ApplicationService<B> {
             .ok_or_else(|| ApplicationError::NotFound {
                 subject: handle.child_branch.to_string(),
             })?;
-        self.persist_model_requests(branch, model_requests);
+        self.persist_execution_evidence(branch, tool_evidence, model_requests);
         branch.outcome = Some(failure.clone());
         let result_id = self.next_entity(0xB7);
         branch.result = Some(BranchResult {

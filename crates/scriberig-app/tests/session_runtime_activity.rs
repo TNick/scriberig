@@ -98,11 +98,14 @@ fn local_agent_completion_persists_tool_invocation_and_result() {
                 active_components: Vec::new(),
                 context_fingerprint: None,
                 request_fingerprint: None,
+                model_execution_configuration: None,
                 messages: vec![scriberig_session::ModelRequestMessage {
                     role: "user".to_owned(),
                     content: "safe request".to_owned(),
                 }],
                 tools: Vec::new(),
+                applied_settings: None,
+                applied_settings_fingerprint: None,
                 truncated: false,
             }],
         )

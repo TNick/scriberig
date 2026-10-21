@@ -17,11 +17,12 @@ scriberig-core = { path = "../scriberig-core" }
 scriberig-session = { path = "../scriberig-session" }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
 blake3 = "1.8"
-rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "3a9006c13c031048ccd578f30d951cc41671acb7" }
-rpi-agent = { git = "https://github.com/TNick/pi-rust", rev = "3a9006c13c031048ccd578f30d951cc41671acb7" }
+rpi-ai = { workspace = true }
+rpi-model-runtime = { workspace = true }
+rpi-agent = { workspace = true }
 async-trait = "0.1"
+tokio = { version = "1", features = ["rt", "macros"] }
 tokio-util = { version = "0.7", features = ["rt"] }
 
 [lints]

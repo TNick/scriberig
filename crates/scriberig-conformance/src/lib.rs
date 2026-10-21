@@ -1,7 +1,5 @@
 //! Defines deterministic fixtures shared by cross-surface conformance tests.
 
-pub mod agent_fixture;
-
 use scriberig_agent_core::{INSPECT_CAPABILITY, InspectTool};
 use scriberig_app::{
     ApplicationContext, ApplicationError, CapabilityContext, CapabilityId, InspectRequest,

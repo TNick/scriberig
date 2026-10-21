@@ -1,5 +1,6 @@
 //! Covers additional focused cases for the parent test module.
 
+use super::model_catalog_from_models;
 use super::*;
 
 /// Verifies historical tui continuation compiles exact provider context.
@@ -43,23 +44,20 @@ fn historical_tui_continuation_compiles_exact_provider_context() {
             tool_result: None,
         });
     }
-    let provider =
-        scriberig_agent_runtime::provider::FakeProvider::from_responses([Ok(ModelResponse {
-            text: Some("historical answer".to_owned()),
-            tool_calls: Vec::new(),
-            finish_reason: FinishReason::Stop,
-            usage: None,
-            metadata: ProviderMetadata::default(),
-        })]);
+    let provider = rpi_ai::providers::faux::FauxScript::new().with_text("historical answer");
     let runner = NativeTuiAgentRunner {
         providers: std::collections::BTreeMap::from([(
             "local".to_owned(),
-            NativeProvider::Fake(provider.clone()),
+            NativeScenario::Faux(provider.clone()),
         )]),
         model: "fake-model".to_owned(),
+        upstream_credentials: None,
+        upstream_enabled: false,
         model_catalog: model_catalog_from_models(native_test_upstream_models()),
+        model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
+        continuations: std::sync::Mutex::default(),
     };
     let context = ApplicationContext {
         capabilities: CapabilityContext::new([
@@ -105,7 +103,17 @@ fn historical_tui_continuation_compiles_exact_provider_context() {
         .load(session_id)
         .expect("reload session")
         .expect("session exists");
-    let context_message = &provider.requests()[0].messages[0].content;
+    let context_message = &durable
+        .branches
+        .iter()
+        .find(|branch| branch.parent == Some(root_id))
+        .expect("continuation branch")
+        .model_invocations[0]
+        .request
+        .as_ref()
+        .expect("captured upstream request")
+        .messages[0]
+        .content;
 
     assert!(context_message.contains("turn 1 user"));
     assert!(context_message.contains("turn 2 user"));

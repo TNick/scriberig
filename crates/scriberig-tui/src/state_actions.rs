@@ -22,7 +22,7 @@ mod session_changed;
 /// The operation result.
 pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
     if state.overlay.is_none() {
-        if state.focus == crate::state::Focus::Explorer {
+        if state.primary_view == crate::selection::PrimaryView::Explorer {
             let selection = if state.cursor == 0 {
                 state.explorer.root.as_ref().map(|row| row.selection)
             } else {
@@ -174,8 +174,7 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
         return vec![Effect::None];
     };
     let filtered = palette.filtered();
-    let selector = palette.selector(filtered.len().max(1));
-    let Some(selected_id) = selector.selected_id() else {
+    let Some(selected_id) = filtered.get(palette.selected).map(|item| item.id.as_str()) else {
         return vec![Effect::None];
     };
     if selected_id == "review-candidate" {
@@ -189,11 +188,14 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
         "refresh" => Action::RefreshRequested,
         "back" => Action::Back,
         "quit" => Action::QuitRequested,
+        "conversation" => Action::ViewSelected(crate::selection::PrimaryView::Conversation),
         "inspect_entity" => {
             state.overlay = Some(Overlay::Input(InputState::default()));
             return vec![Effect::None];
         }
         "overview" => Action::ViewSelected(crate::selection::PrimaryView::Overview),
+        "explorer" => Action::ViewSelected(crate::selection::PrimaryView::Explorer),
+        "find" => return reduce(state, Action::FindOpened),
         "history" => {
             let Some(snapshot) = state.selection.and_then(|selection| selection.snapshot) else {
                 return vec![Effect::None];
@@ -232,6 +234,7 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
             return vec![Effect::None];
         }
         "session" => Action::ViewSelected(crate::selection::PrimaryView::Session),
+        "plans" => Action::ViewSelected(crate::selection::PrimaryView::Plan),
         "start-agent" => {
             state.overlay = None;
             return reduce(
@@ -288,7 +291,6 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
 /// The effect that refreshes the session or opens the latest candidate review.
 pub(super) fn refresh_candidate_review(state: &mut TuiState) -> Vec<Effect> {
     state.primary_view = crate::selection::PrimaryView::Changes;
-    state.focus = crate::state::Focus::Primary;
     let Some(session) = state.agent_handles.last().map(|handle| handle.session) else {
         return review_latest_candidate(state);
     };

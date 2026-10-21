@@ -243,6 +243,7 @@ fn plan_assignment_picker_reports_lost_session_context() {
         }),
         model_library: crate::inspector::LoadState::Ready(
             scriberig_protocol::ModelLibraryResponse {
+                provider_readiness: Vec::new(),
                 models: vec![model],
             },
         ),
@@ -294,6 +295,7 @@ fn plan_assignment_uses_selected_model_after_reordering() {
         }),
         model_library: crate::inspector::LoadState::Ready(
             scriberig_protocol::ModelLibraryResponse {
+                provider_readiness: Vec::new(),
                 models: vec![
                     model("descriptor-b", "provider-b", "model-b"),
                     model("descriptor-a", "provider-a", "model-a"),

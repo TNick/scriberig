@@ -153,31 +153,26 @@ fn shared_fixture_preserves_causal_activity_identity() {
         plans: Vec::new(),
         execution: scriberig_session::SessionExecutionSelection::default(),
     });
+    let tool_id = EntityId::from_bytes([0x54; 16]);
     let activity_ids = session_model
         .rows
         .iter()
         .map(|row| row.reference)
         .collect::<Vec<_>>();
-    let mut state = crate::state::TuiState {
-        primary_view: crate::selection::PrimaryView::Session,
-        session: crate::inspector::LoadState::Ready(session_model),
-        ..crate::state::TuiState::default()
-    };
-    let simple = crate::render::primary_text(&state);
-    state.tool_invocation_visibility = crate::state::ToolInvocationVisibility::StructuredParameters;
-    let detailed = crate::render::primary_text(&state);
-
-    assert!(simple.contains("Find documents"));
-    assert!(detailed.contains("[REDACTED]"));
+    assert!(
+        session_model
+            .rows
+            .iter()
+            .any(|row| row.label.contains("Find documents"))
+    );
+    assert!(session_model.tool_invocation_details[&tool_id].contains("[REDACTED]"));
+    assert!(!session_model.tool_invocation_details[&tool_id].contains("SECRET_MARKER"));
     assert_eq!(
         activity_ids,
-        match &state.session {
-            crate::inspector::LoadState::Ready(model) => model
-                .rows
-                .iter()
-                .map(|row| row.reference)
-                .collect::<Vec<_>>(),
-            _ => unreachable!(),
-        }
+        session_model
+            .rows
+            .iter()
+            .map(|row| row.reference)
+            .collect::<Vec<_>>()
     );
 }

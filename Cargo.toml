@@ -25,7 +25,6 @@ members = [
   "crates/scriberig-agent-runtime",
   "crates/scriberig-server",
   "crates/scriberig-tui",
-  "crates/scriberig-tui-kit",
   "crates/scriberig-cli",
   "crates/scriberig-project",
   "crates/domains/scriberig-domain-markdown",
@@ -43,13 +42,21 @@ members = [
   "crates/scriberig-conformance",
   "apps/scriberig",
 ]
-exclude = ["third_party/rpi-tui/crate"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
 repository = "https://github.com/TNick/scriberig"
+
+[workspace.dependencies]
+# Controlled integration fork, including official upstream parent
+# Controlled TNick fork, including bigfish1913/pi-rust main commit
+# 7a272ecf42e5ec17efedc92031a5cdba85e213e9 and ScribeRig API extractions.
+rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "b78a199486351d86804995c27a0c5ed2bd8a28e3" }
+rpi-agent = { git = "https://github.com/TNick/pi-rust", rev = "b78a199486351d86804995c27a0c5ed2bd8a28e3" }
+rpi-model-runtime = { git = "https://github.com/TNick/pi-rust", rev = "b78a199486351d86804995c27a0c5ed2bd8a28e3" }
+rpi-tui = { git = "https://github.com/TNick/pi-rust", rev = "b78a199486351d86804995c27a0c5ed2bd8a28e3" }
 
 [workspace.lints.rust]
 warnings = "deny"

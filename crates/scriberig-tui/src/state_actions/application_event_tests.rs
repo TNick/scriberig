@@ -59,7 +59,6 @@ fn streamed_output_is_operation_scoped_and_yields_to_durable_text() {
                 },
             },
             draft: String::new(),
-            editor: scriberig_tui_kit::Composer::new(),
             pending_prompt: None,
             pending: false,
             error: None,

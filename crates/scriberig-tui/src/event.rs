@@ -1,11 +1,10 @@
 //! Defines terminal events independently from the terminal backend.
 
+#[cfg(test)]
 use std::io;
-use std::time::Duration;
 
-use crossterm::event::{
-    self, Event, KeyCode as CrosstermKeyCode, KeyEvent, KeyEventKind, KeyModifiers,
-};
+#[cfg(test)]
+use crossterm::event::{Event, KeyCode as CrosstermKeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 /// A terminal event understood by the TUI runtime.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -82,23 +81,6 @@ pub struct Modifiers {
     pub shift: bool,
 }
 
-/// Reads one translated event when one is available before the timeout.
-///
-/// Returns the terminal backend error when polling or reading fails.
-/// - `timeout`: Argument named `timeout`.
-///
-/// # Returns
-/// The operation result.
-/// # Errors
-/// Returns an error when the operation fails.
-pub fn read_event(timeout: Duration) -> io::Result<TuiEvent> {
-    if !event::poll(timeout)? {
-        return Ok(TuiEvent::Tick);
-    }
-
-    translate_event(event::read())
-}
-
 /// Translates one Crossterm event at the terminal boundary.
 ///
 /// - `result`: Terminal event or source read failure.
@@ -110,6 +92,7 @@ pub fn read_event(timeout: Duration) -> io::Result<TuiEvent> {
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
+#[cfg(test)]
 pub(crate) fn translate_event(result: io::Result<Event>) -> io::Result<TuiEvent> {
     let event = result?;
     Ok(match event {
@@ -126,6 +109,7 @@ pub(crate) fn translate_event(result: io::Result<Event>) -> io::Result<TuiEvent>
 ///
 /// # Returns
 /// The operation result.
+#[cfg(test)]
 fn translate_key(key: KeyEvent) -> Key {
     let mut modifiers = Modifiers {
         control: key.modifiers.contains(KeyModifiers::CONTROL),

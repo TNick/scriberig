@@ -10,7 +10,7 @@ use scriberig_app::{Capability, CapabilityAction, CapabilityContext};
 /// A child capability context that is no broader than the parent request.
 /// # Returns
 /// The operation result.
-pub(super) fn delegated_capabilities(
+pub(crate) fn delegated_capabilities(
     parent: &CapabilityContext,
     requested: &[String],
 ) -> CapabilityContext {

@@ -51,8 +51,6 @@ pub(super) fn action(id: ActionId) -> Action {
     match id {
         ActionId::Quit => Action::QuitRequested,
         ActionId::CloseOverlay => Action::OverlayClosed,
-        ActionId::FocusNext => Action::FocusNext,
-        ActionId::FocusPrevious => Action::FocusPrevious,
         ActionId::Activate => Action::Activated,
         ActionId::Back => Action::Back,
         ActionId::Forward => Action::Forward,

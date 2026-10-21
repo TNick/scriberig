@@ -1,8 +1,17 @@
 //! Implements native TUI agent and plan lifecycle execution.
 
+use std::sync::Arc;
+
+#[path = "runner/completion.rs"]
+mod completion;
+use completion::complete_accepted_result;
+#[path = "runner/validation.rs"]
+mod validation;
+use validation::validate_plan_provider;
+
 use super::{
-    NativePlanWorkerExecutor, NativeTuiAgentRunner, execute_agent, previous_workspace_selection,
-    selected_runtime_model, selection_handles, workspace_from_result,
+    NativePlanWorkerExecutor, NativeTuiAgentRunner, previous_workspace_selection,
+    selected_runtime_model,
 };
 use scriberig_app::{
     AgentCommandRequest, ApplicationBackend, ApplicationContext, ApplicationError,
@@ -10,50 +19,63 @@ use scriberig_app::{
 };
 use scriberig_core::EntityId;
 
-/// Validates provider availability before a plan can begin automatic work.
-///
-/// Integration-only nodes may merge dependency candidates without a model
-/// provider. Every other pending node requires a configured provider adapter.
-///
-/// - `runner`: Configured provider adapters for the current native runtime.
-/// - `plan`: Current durable plan state, when it exists.
-/// - `action`: Requested lifecycle transition.
-///
-/// Unit when provider configuration is sufficient for the transition.
-/// # Returns
-/// Whether the plan may proceed to lifecycle mutation.
-/// # Errors
-/// Returns an unsupported-operation error when worker execution lacks a provider.
-fn validate_plan_provider(
-    runner: &NativeTuiAgentRunner,
-    plan: Option<&scriberig_session::Plan>,
-    action: scriberig_app::PlanLifecycleAction,
-) -> Result<(), ApplicationError> {
-    let begins_execution = matches!(
-        action,
-        scriberig_app::PlanLifecycleAction::Start | scriberig_app::PlanLifecycleAction::Resume
-    );
-    let needs_provider = plan.is_some_and(|plan| {
-        plan.nodes.iter().any(|node| {
-            matches!(
-                node.status,
-                scriberig_session::PlanNodeStatus::Planned
-                    | scriberig_session::PlanNodeStatus::Ready
-            ) && node
-                .expected_result
-                .as_ref()
-                .is_none_or(|expected| expected.kind != "project_candidate_merge")
-        })
-    });
-    if begins_execution && needs_provider && runner.providers.is_empty() {
-        return Err(ApplicationError::UnsupportedOperation {
-            operation: "configure a provider connection before starting plan work".to_owned(),
-        });
-    }
-    Ok(())
-}
-
 impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for NativeTuiAgentRunner {
+    /// Reads provider-schema-backed properties for the selected model.
+    ///
+    /// # Parameters
+    /// - `provider_id`: Exact upstream provider identity.
+    /// - `model_id`: Provider-native model identity.
+    ///
+    /// # Returns
+    /// Upstream property descriptors for the local settings surface.
+    /// # Errors
+    /// Returns a safe error if the model schema is unavailable.
+    fn model_properties(
+        &self,
+        provider_id: &str,
+        model_id: &str,
+    ) -> Result<Vec<rpi_model_runtime::ModelPropertyDescriptor>, ApplicationError> {
+        NativeTuiAgentRunner::model_properties(self, provider_id, model_id).map_err(|_| {
+            ApplicationError::UnsupportedOperation {
+                operation: "upstream model property settings".to_owned(),
+            }
+        })
+    }
+
+    /// Validates a model property through upstream and updates the live catalog.
+    ///
+    /// # Parameters
+    /// - `provider_id`: Exact upstream provider identity.
+    /// - `model_id`: Provider-native model identity.
+    /// - `key`: Provider-declared property key.
+    /// - `value`: User value passed to upstream validation.
+    ///
+    /// # Returns
+    /// Success after the config and live catalog are updated.
+    /// # Errors
+    /// Returns a safe validation or config error.
+    fn set_model_property(
+        &self,
+        provider_id: &str,
+        model_id: &str,
+        key: &str,
+        value: serde_json::Value,
+    ) -> Result<(), ApplicationError> {
+        NativeTuiAgentRunner::set_model_property(self, provider_id, model_id, key, value).map_err(
+            |_| ApplicationError::SchemaViolation {
+                message: "upstream model property update was rejected".to_owned(),
+            },
+        )
+    }
+
+    /// Resolves safe per-model credential status from upstream and host policy.
+    ///
+    /// # Returns
+    /// Credential readiness rows without resolved credential material.
+    fn provider_readiness(&self) -> Vec<scriberig_protocol::ProviderReadiness> {
+        super::provider_readiness::project(self)
+    }
+
     /// Persists a plan transition and runs newly started work to its next idle point.
     ///
     /// Start and resume transitions claim one durable coordinator before this
@@ -123,11 +145,11 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
                 return Ok(plan);
             }
         }
-        let executor = NativePlanWorkerExecutor::new(
+        let executor = NativePlanWorkerExecutor::with_upstream_runner(
+            self,
             service,
             context,
             request.session,
-            &self.providers,
             std::sync::Arc::clone(&self.project_store),
             claim.operation.clone(),
         );
@@ -200,6 +222,10 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
         self.execute_accepted(service, context, &handle)
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "This coordinates one accepted root branch and validates continuation provenance before caching it."
+    )]
     /// Runs one already persisted operation through the trusted model runtime.
     ///
     /// - `self`: Native provider and project-tool composition.
@@ -225,45 +251,84 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
             || previous_workspace_selection(service, context, session),
             |value| Ok(Some(value)),
         )?;
-        let (provider_id, model, thinking_level, connection) =
-            selected_runtime_model(service, context, session, &self.model)?;
+        let selected = selected_runtime_model(service, context, session, &self.model)?;
+        let thinking_level = selected.thinking_level;
+        let connection = selected.connection;
         let cancelled = service.operations().cancellation_flag(&handle.operation)?;
-        let Some(provider) = self.providers.get(&connection) else {
-            let message = "configure a provider connection before starting agent work";
+        let cached = self
+            .continuations
+            .lock()
+            .ok()
+            .and_then(|mut entries| entries.remove(&handle.root_branch));
+        let runtime_context = selection.as_ref().map_or_else(
+            || context.clone(),
+            |selection| context.clone().with_snapshot(selection.snapshot),
+        );
+        let upstream_provider = match self.upstream_provider_for(&selected.model, &connection) {
+            Ok(provider) => provider,
+            Err(error) => {
+                let message = error.to_string();
+                service.fail_local_agent(handle, &message)?;
+                return Err(ApplicationError::UnsupportedOperation { operation: message });
+            }
+        };
+        let Some((upstream, upstream_model, request_secret)) = upstream_provider else {
+            let message = "configure an upstream provider before starting agent work";
             service.fail_local_agent(handle, message)?;
             return Err(ApplicationError::UnsupportedOperation {
                 operation: message.to_owned(),
             });
         };
-        let runtime_context = selection.as_ref().map_or_else(
-            || context.clone(),
-            |selection| context.clone().with_snapshot(selection.snapshot),
-        );
-        let mut model_requests_on_failure = Vec::new();
-        let result = execute_agent(
-            provider.clone(),
-            &model,
-            Some(&provider_id),
-            thinking_level.as_deref(),
+        let provider_id = upstream.id().to_owned();
+        let context_fingerprint = super::upstream_execution::completed_root_context_fingerprint(
             service,
-            &self.project_store,
             &runtime_context,
             session,
             handle.root_branch,
-            handle.operation.clone(),
+            "",
+            selection.as_ref(),
+        )
+        .ok();
+        let continuation = cached.and_then(|entry| {
+            let exact_identity = entry.provider_id == upstream.id()
+                && entry.model == upstream_model
+                && entry.profile == connection
+                && entry.thinking_level == thinking_level.unwrap_or_default();
+            let exact_context = context_fingerprint
+                .as_ref()
+                .is_some_and(|fingerprint| fingerprint == &entry.provider_context_fingerprint);
+            (exact_identity
+                && exact_context
+                && upstream.supports_response_continuation()
+                && entry.handle.is_scoped_to(upstream.id(), &upstream_model.id))
+            .then_some((entry.handle, entry.provider_context_fingerprint))
+        });
+        let result = super::upstream_execution::execute_root_branch_with_continuation(
+            service,
+            &runtime_context,
+            session,
+            handle.root_branch,
             &handle.prompt,
             selection.as_ref(),
+            Arc::clone(&self.project_store),
+            Arc::clone(&upstream),
+            upstream_model.clone(),
+            request_secret,
+            thinking_level,
             &cancelled,
-            &mut model_requests_on_failure,
+            Some(connection.clone()),
+            None,
+            continuation,
         );
         let result = match result {
             Ok(result) => result,
-            Err(error) => {
-                let message = error.to_string();
-                service.fail_local_agent_with_model_requests(
+            Err(failure) => {
+                let message = failure.failure.error.to_string();
+                service.fail_local_agent_with_evidence(
                     handle,
                     "agent execution failed",
-                    model_requests_on_failure,
+                    failure.failure.model_requests,
+                    failure.tool_evidence,
                 )?;
                 return Err(ApplicationError::OperationFailed {
                     operation: handle.operation.to_string(),
@@ -271,37 +336,36 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
                 });
             }
         };
-        let workspace = workspace_from_result(&result)?;
-        let mut result_handles = crate::child_runtime::compact_result_handles(&result);
-        let workspace_handles = workspace.as_ref().map_or_else(
-            || selection_handles(selection.as_ref()),
-            |workspace| {
-                vec![
-                    format!("project:{}", workspace.project),
-                    format!("snapshot:{}", workspace.snapshot),
-                    format!("root:{}", workspace.root),
-                    format!("manifest:{}", workspace.manifest_id),
-                ]
-            },
-        );
-        for handle in workspace_handles {
-            if !result_handles.contains(&handle) {
-                result_handles.push(handle);
-            }
+        let continuation = result.continuation;
+        let completed =
+            complete_accepted_result(service, handle, session, selection.as_ref(), result.result)?;
+        if !cancelled.load(std::sync::atomic::Ordering::Acquire)
+            && upstream.supports_response_continuation()
+            && let Some(continuation) = continuation
+            && continuation.is_scoped_to(upstream.id(), &upstream_model.id)
+            && let Ok(fingerprint) = super::upstream_execution::completed_root_context_fingerprint(
+                service,
+                &runtime_context,
+                session,
+                handle.root_branch,
+                "",
+                selection.as_ref(),
+            )
+            && !cancelled.load(std::sync::atomic::Ordering::Acquire)
+            && let Ok(mut entries) = self.continuations.lock()
+        {
+            entries.insert(
+                handle.root_branch,
+                super::RootContinuationCacheEntry {
+                    provider_id,
+                    model: upstream_model,
+                    profile: connection,
+                    thinking_level: thinking_level.unwrap_or_default(),
+                    provider_context_fingerprint: fingerprint,
+                    handle: continuation,
+                },
+            );
         }
-        service.complete_local_agent_with_evidence(
-            handle,
-            result.output,
-            result_handles,
-            result.tool_evidence,
-            result.model_requests,
-        )?;
-        Ok(scriberig_tui::AgentHandle {
-            operation: handle.operation.clone(),
-            session,
-            branch: Some(handle.root_branch),
-            workspace,
-            failure: None,
-        })
+        Ok(completed)
     }
 }

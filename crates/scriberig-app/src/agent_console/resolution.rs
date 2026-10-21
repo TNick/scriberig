@@ -26,16 +26,21 @@ pub struct ExecutionSelectionSources<'a> {
 }
 
 /// Resolves the safe provider/model/thinking configuration for one plan node.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct ResolvedPlanExecution {
     /// Upstream provider identity selected for this node.
     pub provider_id: String,
     /// Provider-scoped upstream model identity selected for this node.
     pub model_id: String,
+    /// Exact upstream model from the catalog snapshot used for resolution.
+    ///
+    /// Keep this invocation value in memory for provider binding. Do not log,
+    /// serialize, or expose it through public model projections.
+    pub model: rpi_ai::Model,
     /// Whether this execution uses the host's configured runtime fallback.
     pub uses_runtime_fallback: bool,
-    /// Advertised thinking capability selected for this invocation.
-    pub thinking_level: Option<String>,
+    /// Upstream thinking level selected for this invocation.
+    pub thinking_level: Option<rpi_ai::ThinkingLevel>,
 }
 
 /// Resolves one node override before branch and session model defaults.
@@ -45,7 +50,7 @@ pub struct ResolvedPlanExecution {
 /// - `upstream_models`: Host-owned upstream model catalog.
 /// - `runtime_fallback`: Runtime model used when no profile is selected.
 ///
-/// Safe provider and model identities plus the resolved thinking level.
+/// Exact upstream model, identities, and resolved thinking level.
 ///
 /// Returns an error for unavailable upstream provider/model pairs or thinking
 /// values. Unsupported levels are clamped by the upstream model runtime.
@@ -91,7 +96,7 @@ pub fn resolve_plan_node_execution(
 /// - `upstream_models`: Host-owned upstream model catalog.
 /// - `runtime_fallback`: Provider model used when no profile is selected.
 ///
-/// Safe provider/model identities and the selected thinking level.
+/// Exact upstream model, identities, and selected thinking level.
 ///
 /// Returns an error when a selected upstream model or thinking id is invalid.
 /// Valid but unsupported thinking is clamped upstream.
@@ -102,6 +107,39 @@ pub fn resolve_plan_node_execution(
 pub fn resolve_plan_node_execution_with_sources(
     node: &scriberig_session::PlanNode,
     sources: ExecutionSelectionSources<'_>,
+    upstream_models: &[rpi_ai::Model],
+    runtime_fallback: &str,
+) -> Result<ResolvedPlanExecution, ApplicationError> {
+    resolve_plan_node_execution_with_profile_preference(
+        node,
+        sources,
+        None,
+        upstream_models,
+        runtime_fallback,
+    )
+}
+
+/// Resolves one plan node using the resolved agent-profile preference last.
+///
+/// Explicit invocation, plan-node, branch, session, and project selections
+/// retain their existing precedence. The agent-profile preference supplies a
+/// model default before the general user-profile fallback.
+///
+/// - `node`: Plan node whose assignment overrides broader defaults.
+/// - `sources`: Invocation, branch, session, project, and user selections.
+/// - `agent_profile`: Resolved preference from the exact active profile.
+/// - `upstream_models`: Host-owned upstream model catalog.
+/// - `runtime_fallback`: Runtime model used when no preference is selected.
+///
+/// Exact upstream model, identities, and resolved thinking level.
+/// # Returns
+/// The model assignment resolved against the supplied upstream catalog.
+/// # Errors
+/// Returns an error for unavailable models or invalid thinking identifiers.
+pub fn resolve_plan_node_execution_with_profile_preference(
+    node: &scriberig_session::PlanNode,
+    sources: ExecutionSelectionSources<'_>,
+    agent_profile: Option<&SessionExecutionSelection>,
     upstream_models: &[rpi_ai::Model],
     runtime_fallback: &str,
 ) -> Result<ResolvedPlanExecution, ApplicationError> {
@@ -121,7 +159,7 @@ pub fn resolve_plan_node_execution_with_sources(
         branch: sources.branch,
         session: sources.session,
         project: sources.project,
-        user_profile: sources.user_profile,
+        user_profile: agent_profile.or(sources.user_profile),
     };
     let uses_runtime_fallback = [
         resolved_sources.invocation,
@@ -135,10 +173,16 @@ pub fn resolve_plan_node_execution_with_sources(
     .flatten()
     .all(|selection| selection.provider_id.is_none());
     let (provider_id, model_id, thinking_level) =
-        resolve_execution_selection(resolved_sources, upstream_models, runtime_fallback)?;
+        resolve_execution_selection_typed(resolved_sources, upstream_models, runtime_fallback)?;
+    let model = upstream_models
+        .iter()
+        .find(|model| model.provider == provider_id && model.id == model_id)
+        .cloned()
+        .ok_or_else(|| invalid_selection("resolved model is missing from the catalog"))?;
     Ok(ResolvedPlanExecution {
         provider_id,
         model_id,
+        model,
         uses_runtime_fallback,
         thinking_level,
     })
@@ -167,6 +211,67 @@ pub fn resolve_execution_selection(
     upstream_models: &[rpi_ai::Model],
     runtime_fallback: &str,
 ) -> Result<(String, String, Option<String>), ApplicationError> {
+    let (provider_id, model_id, thinking_level) =
+        resolve_execution_selection_typed(sources, upstream_models, runtime_fallback)?;
+    Ok((
+        provider_id,
+        model_id,
+        thinking_level.map(|level| level.as_str().to_owned()),
+    ))
+}
+
+/// Resolves a selection hierarchy with an exact agent-profile preference.
+///
+/// The preference fills the user-profile slot after all invocation, plan-node,
+/// branch, session, and project selections. This keeps explicit semantic
+/// assignments authoritative while retaining the existing general profile as
+/// the final fallback.
+///
+/// - `sources`: Existing execution-scope selections.
+/// - `agent_profile`: Resolved preference from the exact active profile.
+/// - `upstream_models`: Host-owned upstream model catalog.
+/// - `runtime_fallback`: Runtime model used when no selection is present.
+///
+/// Upstream provider/model IDs and canonical thinking ID.
+/// # Returns
+/// The effective selection resolved against the upstream catalog.
+/// # Errors
+/// Returns an error for unavailable or inconsistent selections.
+pub fn resolve_execution_selection_with_profile_preference(
+    sources: ExecutionSelectionSources<'_>,
+    agent_profile: Option<&SessionExecutionSelection>,
+    upstream_models: &[rpi_ai::Model],
+    runtime_fallback: &str,
+) -> Result<(String, String, Option<rpi_ai::ThinkingLevel>), ApplicationError> {
+    let profile_sources = ExecutionSelectionSources {
+        invocation: sources.invocation,
+        plan_node: sources.plan_node,
+        branch: sources.branch,
+        session: sources.session,
+        project: sources.project,
+        user_profile: agent_profile.or(sources.user_profile),
+    };
+    resolve_execution_selection_typed(profile_sources, upstream_models, runtime_fallback)
+}
+
+/// Resolves provider, model, and typed upstream thinking selections.
+///
+/// - `sources`: Optional selections ordered by their semantic scope.
+/// - `upstream_models`: Host-owned upstream model catalog.
+/// - `runtime_fallback`: Provider model id used when no selection is present.
+///
+/// Upstream provider/model IDs and the effective typed thinking level.
+///
+/// # Returns
+/// The resolved provider, model, and optional upstream thinking value.
+///
+/// # Errors
+/// Returns an application error for unavailable or inconsistent selections.
+pub fn resolve_execution_selection_typed(
+    sources: ExecutionSelectionSources<'_>,
+    upstream_models: &[rpi_ai::Model],
+    runtime_fallback: &str,
+) -> Result<(String, String, Option<rpi_ai::ThinkingLevel>), ApplicationError> {
     let ordered = [
         sources.invocation,
         sources.plan_node,
@@ -189,12 +294,7 @@ pub fn resolve_execution_selection(
         .into_iter()
         .flatten()
         .find_map(|selection| selection.thinking_level.as_deref());
-    let thinking_level = explicit_thinking
-        .map(|level| super::model::ThinkingLevelId::new(level.to_owned()))
-        .transpose()
-        .map_err(invalid_selection)?
-        .map(|level| level.as_str().to_owned());
-    let requested_thinking = match thinking_level.as_deref() {
+    let requested_thinking = match explicit_thinking {
         Some(level) => rpi_ai::ThinkingLevel::parse_name(level)
             .ok_or_else(|| invalid_selection("thinking level id is not supported by upstream"))?,
         None => rpi_ai::ThinkingLevel::Off,
@@ -209,8 +309,7 @@ pub fn resolve_execution_selection(
     )
     .map_err(|error| invalid_selection(&error.to_string()))?;
     let model = &upstream_models[resolved.catalog_index];
-    let effective_thinking =
-        thinking_level.map(|_| resolved.effective_thinking.as_str().to_owned());
+    let effective_thinking = explicit_thinking.map(|_| resolved.effective_thinking);
     Ok((model.provider.clone(), model.id.clone(), effective_thinking))
 }
 

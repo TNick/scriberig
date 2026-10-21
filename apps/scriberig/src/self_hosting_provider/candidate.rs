@@ -2,7 +2,7 @@
 
 use super::SemanticScope;
 use super::tool_call;
-use scriberig_agent_runtime::provider::ModelResponse;
+use rpi_ai::{AssistantMessage, Model};
 use serde_json::{Value, json};
 
 const PHP_WORKSPACE_MEMBER: &str = "  \"crates/domains/scriberig-domain-php\",\n";
@@ -30,17 +30,22 @@ dependencies = [
 /// Builds the project-wide PHP candidate from checked-in source-reference data.
 ///
 /// - `scope`: Exact project and immutable base snapshot.
+/// - `model`: Upstream model producing the project candidate proposal.
 /// - `validation_failure`: Whether to propose an intentionally invalid Rust crate root.
-/// - `super`: Parent scenario module.
 ///
 /// A normal project proposal tool call containing source effects.
 ///
 /// Returns serialization failures as provider errors.
 /// # Returns
 /// The operation result.
-pub(super) fn project_proposal(scope: &SemanticScope, validation_failure: bool) -> ModelResponse {
+pub(super) fn project_proposal(
+    model: &Model,
+    scope: &SemanticScope,
+    validation_failure: bool,
+) -> AssistantMessage {
     let effects = candidate_effects(validation_failure);
     tool_call(
+        model,
         "project_propose",
         json!({"project":scope.project,"base_snapshot":scope.snapshot,"effects":effects}),
     )
@@ -242,13 +247,13 @@ mod tests {
     #[test]
     fn php_candidate_derives_workspace_metadata_from_current_checkout() {
         let manifest = candidate_workspace_manifest();
-        assert!(manifest.contains("crates/scriberig-tui-kit"));
+        assert!(!manifest.contains("crates/scriberig-tui-kit"));
         assert!(manifest.contains("crates/domains/scriberig-domain-php"));
-        assert!(manifest.contains("exclude = [\"third_party/rpi-tui/crate\"]"));
+        assert!(!manifest.contains("third_party/rpi-tui"));
 
         let lock = candidate_workspace_lock();
         assert!(lock.contains("name = \"rpi-tui\""));
-        assert!(lock.contains("name = \"scriberig-tui-kit\""));
+        assert!(!lock.contains("name = \"scriberig-tui-kit\""));
         assert!(lock.contains("name = \"scriberig-domain-php\""));
         assert!(lock.contains("name = \"tree-sitter-php\""));
         let project = lock

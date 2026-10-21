@@ -99,6 +99,29 @@ pub fn sanitize(text: &str) -> String {
         .collect()
 }
 
+/// Makes external terminal text safe while preserving line breaks.
+///
+/// # Parameters
+/// - `text`: Untrusted text to display or retain as input.
+///
+/// # Returns
+/// Text with terminal controls escaped and newlines preserved.
+#[must_use]
+pub fn sanitize_external_text(text: &str) -> String {
+    let mut safe = String::with_capacity(text.len());
+    for character in text.chars() {
+        if character == '\n' {
+            safe.push(character);
+        } else if character.is_control() {
+            use std::fmt::Write as _;
+            let _ = write!(safe, "\\u{{{:x}}}", u32::from(character));
+        } else {
+            safe.push(character);
+        }
+    }
+    safe
+}
+
 #[cfg(test)]
 mod tests {
     use super::{InspectorModel, sanitize};

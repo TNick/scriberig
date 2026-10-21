@@ -102,7 +102,7 @@ fn explorer_slash_command_lists_the_selected_snapshot() {
     let effects = reduce(&mut state, Action::InputSubmitted);
 
     assert_eq!(state.primary_view, crate::selection::PrimaryView::Explorer);
-    assert_eq!(state.focus, crate::state::Focus::Explorer);
+    assert_eq!(state.primary_view, crate::selection::PrimaryView::Explorer);
     assert!(matches!(effects.as_slice(), [Effect::ListExplorer {
         entity: actual_entity,
         snapshot: actual_snapshot,
@@ -291,7 +291,6 @@ fn plan_start_command_invokes_shared_lifecycle_operation() {
                 },
             },
             draft: "/plan start".to_owned(),
-            editor: scriberig_tui_kit::Composer::new(),
             pending_prompt: None,
             pending: false,
             error: None,

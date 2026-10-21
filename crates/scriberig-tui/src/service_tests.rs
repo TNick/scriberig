@@ -215,7 +215,7 @@ impl scriberig_app::AgentConsoleBackend for Fixture {
     fn agent_model_library(
         &self,
         _context: &ApplicationContext,
-    ) -> Result<scriberig_app::ModelLibrary, ApplicationError> {
+    ) -> Result<Vec<rpi_model_runtime::SafeModelSnapshot>, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "test model library".to_owned(),
         })

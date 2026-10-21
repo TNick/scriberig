@@ -27,6 +27,7 @@ pub(super) fn reduce_tail(state: &mut TuiState, action: Action) -> Option<Vec<Ef
         } => {
             state.explorer.rows.extend(rows);
             state.explorer.next = next;
+            crate::runtime::reconcile_semantic_row_cursor(state);
             state.shell_message = format!(
                 "Explorer loaded {} snapshot entities (request {request_id}).",
                 state.explorer.rows.len()
@@ -157,6 +158,7 @@ use handlers::*;
 /// The operation result.
 pub(super) fn new_conversation(state: &mut TuiState) -> Vec<Effect> {
     state.session = LoadState::NotRequested;
+    state.session_cursor = None;
     state.session_snapshot = None;
     state.conversation = None;
     state.conversation_cursor = None;
@@ -174,7 +176,6 @@ pub(super) fn new_conversation(state: &mut TuiState) -> Vec<Effect> {
     state.session_composer_focused = false;
     state.cursor = 0;
     state.primary_view = crate::selection::PrimaryView::Conversation;
-    state.focus = Focus::Primary;
     state.overlay = None;
     vec![Effect::None]
 }

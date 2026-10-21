@@ -1,6 +1,6 @@
 //! Provides stable identity encoding for trusted tool catalogs.
 
-use crate::provider::ToolDefinition;
+use rpi_ai::types::Tool;
 
 /// Retains a tool catalog in a stable identity string.
 ///
@@ -11,7 +11,7 @@ use crate::provider::ToolDefinition;
 /// # Returns
 /// Stable text identifying each trusted tool definition.
 #[must_use]
-pub fn tool_catalog_identity(tools: &[ToolDefinition]) -> String {
+pub fn tool_catalog_identity(tools: &[Tool]) -> String {
     tools
         .iter()
         .map(|tool| {

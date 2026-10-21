@@ -111,3 +111,72 @@ fn empty_narrow_scopes_fall_back_to_session_then_runtime() {
         ("local".to_owned(), "runtime-default".to_owned(), None,)
     );
 }
+
+/// Keeps explicit branch and plan assignments above the profile preference.
+#[test]
+fn explicit_branch_and_plan_assignments_precede_agent_profile_preference() {
+    use crate::agent_console::resolution::resolve_execution_selection_with_profile_preference;
+
+    let profile = selection("local", "wire-alpha", Some("high"));
+    let explicit = selection("local", "wire-beta", Some("minimal"));
+    let user = selection("local", "runtime-default", None);
+    let models = upstream_models();
+
+    let branch = resolve_execution_selection_with_profile_preference(
+        ExecutionSelectionSources {
+            invocation: None,
+            plan_node: None,
+            branch: Some(&explicit),
+            session: None,
+            project: None,
+            user_profile: Some(&user),
+        },
+        Some(&profile),
+        &models,
+        "runtime-default",
+    )
+    .expect("resolve explicit branch assignment");
+    let plan_node = resolve_execution_selection_with_profile_preference(
+        ExecutionSelectionSources {
+            invocation: None,
+            plan_node: Some(&explicit),
+            branch: None,
+            session: None,
+            project: None,
+            user_profile: Some(&user),
+        },
+        Some(&profile),
+        &models,
+        "runtime-default",
+    )
+    .expect("resolve explicit plan assignment");
+
+    assert_eq!(branch.1, "wire-beta");
+    assert_eq!(plan_node.1, "wire-beta");
+}
+
+/// Places an active agent-profile preference before the generic user default.
+#[test]
+fn agent_profile_preference_precedes_general_user_profile_default() {
+    use crate::agent_console::resolution::resolve_execution_selection_with_profile_preference;
+
+    let profile = selection("local", "wire-alpha", Some("high"));
+    let user = selection("local", "wire-beta", Some("minimal"));
+    let resolved = resolve_execution_selection_with_profile_preference(
+        ExecutionSelectionSources {
+            invocation: None,
+            plan_node: None,
+            branch: None,
+            session: None,
+            project: None,
+            user_profile: Some(&user),
+        },
+        Some(&profile),
+        &upstream_models(),
+        "runtime-default",
+    )
+    .expect("resolve agent-profile preference");
+
+    assert_eq!(resolved.1, "wire-alpha");
+    assert_eq!(resolved.2, Some(ThinkingLevel::High));
+}

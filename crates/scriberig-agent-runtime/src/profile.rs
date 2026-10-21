@@ -4,6 +4,8 @@ use scriberig_agent_core::{
     AgentProfileDescriptor, AgentProfileRevisionRef, ContextActivationRule,
     ContextComponentDescriptor, ContextComponentKind, ContextComponentRevisionRef,
 };
+mod execution;
+pub use execution::{resolve_profile_execution_selection, resolve_profile_plan_node_execution};
 
 /// Stable identity for the bootstrap profile.
 const PROFILE_IDENTITY: &str = "scriberig.agent-profile.default";
@@ -55,30 +57,56 @@ pub fn bootstrap_default_agent_profile() -> AgentProfileDescriptor {
             1,
         ),
     ];
-    AgentProfileDescriptor {
-        reference: profile_reference(&components),
+    let mut profile = AgentProfileDescriptor {
+        reference: AgentProfileRevisionRef {
+            identity: PROFILE_IDENTITY.to_owned(),
+            revision: String::new(),
+        },
         name: "Default ScribeRig agent profile".to_owned(),
         components,
-    }
+        preferred_execution: None,
+    };
+    profile.reference = agent_profile_revision(&profile);
+    profile
 }
 
-/// Builds the profile revision from its identity and ordered component refs.
+/// Computes a profile revision from its identity, components, and preference.
 ///
-/// - `components`: Components in the profile's declared order.
+/// This function is used after changing a profile's semantic contents. It
+/// records only public upstream selection identifiers, never catalog metadata
+/// or credentials.
 ///
-/// Stable profile identity and composition revision.
+/// - `profile`: Profile descriptor whose new revision is required.
+///
+/// Stable profile identity and a revision for its current composition.
 /// # Returns
-/// Stable identity and composition-derived revision.
-fn profile_reference(components: &[ContextComponentDescriptor]) -> AgentProfileRevisionRef {
+/// The exact profile reference for the descriptor contents.
+#[must_use]
+pub fn agent_profile_revision(profile: &AgentProfileDescriptor) -> AgentProfileRevisionRef {
     let mut fingerprint = Fingerprint::new("scriberig-agent-profile-v1");
-    fingerprint.field(PROFILE_IDENTITY);
-    fingerprint.field("Default ScribeRig agent profile");
-    for component in components {
+    fingerprint.field(&profile.reference.identity);
+    fingerprint.field(&profile.name);
+    for component in &profile.components {
         fingerprint.field(&component.reference.identity);
         fingerprint.field(&component.reference.revision);
     }
+    match profile.preferred_execution.as_ref() {
+        Some(preference) => {
+            fingerprint.field("preferred-execution");
+            fingerprint.field(&preference.provider_id);
+            fingerprint.field(&preference.model_id);
+            match preference.thinking_level.as_deref() {
+                Some(level) => {
+                    fingerprint.field("thinking-level");
+                    fingerprint.field(level);
+                }
+                None => fingerprint.field("no-thinking-level"),
+            }
+        }
+        None => fingerprint.field("no-preferred-execution"),
+    }
     AgentProfileRevisionRef {
-        identity: PROFILE_IDENTITY.to_owned(),
+        identity: profile.reference.identity.clone(),
         revision: fingerprint.finish(),
     }
 }
@@ -206,6 +234,7 @@ mod tests {
     //! Verifies stable, content-sensitive bootstrap profile references.
 
     use super::*;
+    use scriberig_agent_core::AgentProfileExecutionPreference;
 
     /// Verifies identical bootstrap definitions produce identical references.
     #[test]
@@ -239,11 +268,13 @@ mod tests {
         );
         let mut changed_components = profile.components.clone();
         changed_components[0] = changed.clone();
+        let mut changed_profile = profile.clone();
+        changed_profile.components = changed_components;
 
         assert_eq!(changed.reference.identity, original.reference.identity);
         assert_ne!(changed.reference.revision, original.reference.revision);
         assert_ne!(
-            profile_reference(&changed_components).revision,
+            agent_profile_revision(&changed_profile).revision,
             profile.reference.revision
         );
     }
@@ -254,6 +285,8 @@ mod tests {
         let profile = bootstrap_default_agent_profile();
         let mut reordered_components = profile.components.clone();
         reordered_components.reverse();
+        let mut reordered_profile = profile.clone();
+        reordered_profile.components = reordered_components.clone();
 
         assert_eq!(
             reordered_components[0].reference,
@@ -264,8 +297,34 @@ mod tests {
             profile.components[0].reference
         );
         assert_ne!(
-            profile_reference(&reordered_components).revision,
+            agent_profile_revision(&reordered_profile).revision,
             profile.reference.revision
+        );
+    }
+
+    /// Verifies changing the preferred upstream selection revises the profile.
+    #[test]
+    fn preferred_execution_changes_profile_revision() {
+        let profile = bootstrap_default_agent_profile();
+        let mut changed = profile.clone();
+        changed.preferred_execution = Some(AgentProfileExecutionPreference {
+            provider_id: "provider-a".to_owned(),
+            model_id: "model-a".to_owned(),
+            thinking_level: Some("high".to_owned()),
+        });
+        changed.reference = agent_profile_revision(&changed);
+
+        assert_ne!(changed.reference.revision, profile.reference.revision);
+
+        let mut changed_again = changed.clone();
+        changed_again.preferred_execution = Some(AgentProfileExecutionPreference {
+            provider_id: "provider-a".to_owned(),
+            model_id: "model-a".to_owned(),
+            thinking_level: Some("medium".to_owned()),
+        });
+        assert_ne!(
+            agent_profile_revision(&changed_again).revision,
+            changed.reference.revision
         );
     }
 }

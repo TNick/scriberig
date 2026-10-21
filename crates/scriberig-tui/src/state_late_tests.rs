@@ -3,25 +3,6 @@
 use super::*;
 use crate::state::ConnectionState;
 
-/// Verifies resizing preserves semantic navigation history.
-#[test]
-fn resize_preserves_navigation() {
-    let mut state = TuiState::default();
-    reduce(
-        &mut state,
-        Action::ActivateLocation(crate::selection::NavigationLocation::default()),
-    );
-    let history = state.navigation.clone();
-    reduce(
-        &mut state,
-        Action::TerminalResized {
-            width: 20,
-            height: 8,
-        },
-    );
-    assert_eq!(state.navigation, history);
-}
-
 /// Verifies post-onboarding continuation uses the durable session handle.
 #[test]
 fn palette_continues_agent_session_after_workspace_selection() {
@@ -168,7 +149,7 @@ fn confirmation_does_not_mutate_without_explicit_confirm() {
     let base = scriberig_core::SnapshotId::new([9; 32]);
     state.review = crate::inspector::LoadState::Ready(crate::view::changes::ChangeReviewModel {
         base_snapshot: base,
-        candidate_snapshot: None,
+        candidate_snapshot: Some(scriberig_core::SnapshotId::new([21; 32])),
         change: "change-1".to_owned(),
         branch: None,
         affected_entities: Vec::new(),
@@ -196,6 +177,7 @@ fn conflicted_review_cannot_be_confirmed_or_committed() {
     let base = scriberig_core::SnapshotId::new([10; 32]);
     let commit = crate::view::changes::ConfirmedCommit {
         base_snapshot: base,
+        candidate_snapshot: scriberig_core::SnapshotId::new([11; 32]),
         change: "change-conflict".to_owned(),
         branch: None,
     };
@@ -256,6 +238,7 @@ fn confirmed_commit_preserves_reviewed_base() {
         &mut state,
         Action::CommitConfirmed(crate::view::changes::ConfirmedCommit {
             base_snapshot: base,
+            candidate_snapshot: scriberig_core::SnapshotId::new([21; 32]),
             change: "change-2".to_owned(),
             branch: None,
         }),
@@ -263,6 +246,47 @@ fn confirmed_commit_preserves_reviewed_base() {
     assert!(
         matches!(effects.as_slice(), [Effect::Commit { request_id: 1, request }] if request.base_snapshot == base && request.change == "change-2")
     );
+}
+
+/// Rejects a confirmation if the review changed to a different result snapshot.
+#[test]
+fn confirmation_rejects_changed_candidate_result_identity() {
+    let base = scriberig_core::SnapshotId::new([12; 32]);
+    let reviewed_result = scriberig_core::SnapshotId::new([13; 32]);
+    let stale_result = scriberig_core::SnapshotId::new([14; 32]);
+    let mut state = TuiState {
+        review: crate::inspector::LoadState::Ready(crate::view::changes::ChangeReviewModel {
+            base_snapshot: base,
+            candidate_snapshot: Some(reviewed_result),
+            change: "change-3".to_owned(),
+            branch: None,
+            affected_entities: Vec::new(),
+            deltas: Vec::new(),
+            details: Vec::new(),
+            conflicts: Vec::new(),
+            validation: crate::view::changes::ReviewValidation::Passed,
+            validation_profile: None,
+            requires_confirmation: true,
+        }),
+        ..TuiState::default()
+    };
+
+    let effects = reduce(
+        &mut state,
+        Action::CommitConfirmed(crate::view::changes::ConfirmedCommit {
+            base_snapshot: base,
+            candidate_snapshot: stale_result,
+            change: "change-3".to_owned(),
+            branch: None,
+        }),
+    );
+
+    assert_eq!(effects, vec![Effect::None]);
+    assert!(matches!(
+        state.review,
+        crate::inspector::LoadState::Ready(_)
+    ));
+    assert!(state.shell_message.contains("no longer matches"));
 }
 
 /// Verifies successful commit advances the active selection to its successor snapshot.

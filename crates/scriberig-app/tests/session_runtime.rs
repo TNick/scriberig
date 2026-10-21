@@ -130,13 +130,13 @@ fn session_model_selection_uses_upstream_catalog_and_mutation_revision() {
     assert_replayed_selection_history(&service, &context, session, &selected);
     let available = service
         .agent_model_library(&context)
-        .expect("authorized model library");
-    assert_eq!(available.models.len(), 2);
+        .expect("authorized model snapshots");
+    assert_eq!(available.len(), 2);
 }
 
 /// Projects updates and removals from a shared upstream live catalog.
 #[test]
-fn model_library_projection_tracks_live_catalog_updates_and_removals() {
+fn upstream_safe_model_snapshots_track_live_catalog_updates_and_removals() {
     let context = session_context();
     let initial_model = Model::new(
         "model-before-refresh",
@@ -148,15 +148,12 @@ fn model_library_projection_tracks_live_catalog_updates_and_removals() {
     let catalog = rpi_model_runtime::ModelCatalog::new();
     catalog.replace_provider_models("provider-before-refresh", vec![initial_model]);
     let service = ApplicationService::new(Fixture).with_model_catalog(catalog.clone());
-    let initial_library = service
+    let initial_models = service
         .agent_model_library(&context)
         .expect("initial upstream model projection");
 
-    assert_eq!(initial_library.models.len(), 1);
-    assert_eq!(
-        initial_library.models[0].metadata_snapshot.model_id,
-        "model-before-refresh"
-    );
+    assert_eq!(initial_models.len(), 1);
+    assert_eq!(initial_models[0].model_id, "model-before-refresh");
 
     let refreshed_model = Model::new(
         "model-after-refresh",
@@ -166,36 +163,25 @@ fn model_library_projection_tracks_live_catalog_updates_and_removals() {
         "https://example.test",
     );
     catalog.reconcile_models(vec![refreshed_model]);
-    let refreshed_library = service
+    let refreshed_models = service
         .agent_model_library(&context)
         .expect("refreshed upstream model projection");
 
-    assert_eq!(refreshed_library.models.len(), 1);
-    assert_eq!(
-        refreshed_library.models[0].metadata_snapshot.provider_id,
-        "provider-after-refresh"
-    );
-    assert_eq!(
-        refreshed_library.models[0].metadata_snapshot.model_id,
-        "model-after-refresh"
-    );
-    assert_eq!(
-        refreshed_library.models[0].metadata_snapshot.display_name,
-        "Refreshed model"
-    );
-    assert_ne!(initial_library.models[0].id, refreshed_library.models[0].id);
+    assert_eq!(refreshed_models.len(), 1);
+    assert_eq!(refreshed_models[0].provider_id, "provider-after-refresh");
+    assert_eq!(refreshed_models[0].model_id, "model-after-refresh");
+    assert_eq!(refreshed_models[0].display_name, "Refreshed model");
     assert!(
-        !refreshed_library
-            .models
+        !refreshed_models
             .iter()
-            .any(|model| model.metadata_snapshot.model_id == "model-before-refresh")
+            .any(|model| model.model_id == "model-before-refresh")
     );
 
     catalog.reconcile_models(Vec::new());
-    let removed_library = service
+    let removed_models = service
         .agent_model_library(&context)
         .expect("model projection after provider removal");
-    assert_eq!(removed_library.models, Vec::new());
+    assert_eq!(removed_models, []);
 }
 
 /// Verifies typed live selection events include model and fallback activity.

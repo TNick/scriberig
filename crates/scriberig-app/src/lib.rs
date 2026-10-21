@@ -27,7 +27,6 @@ pub mod session;
 pub mod trust;
 pub mod validation;
 
-pub use agent_console::model::{ModelDescriptor, ModelId, ModelLibrary, ThinkingLevelId};
 pub use agent_console::preferences::{
     AgentPresentationPreferenceSnapshot, AgentPresentationPreferenceStore,
     AgentPresentationPreferences, InMemoryAgentPresentationPreferenceStore, PromptVisibility,
@@ -35,7 +34,9 @@ pub use agent_console::preferences::{
 };
 pub use agent_console::resolution::{
     ExecutionSelectionSources, ResolvedPlanExecution, resolve_execution_selection,
-    resolve_plan_node_execution, resolve_plan_node_execution_with_sources,
+    resolve_execution_selection_typed, resolve_execution_selection_with_profile_preference,
+    resolve_plan_node_execution, resolve_plan_node_execution_with_profile_preference,
+    resolve_plan_node_execution_with_sources,
 };
 pub use capability::{
     AuthorizationDenial, BranchContext, Capability, CapabilityAction, CapabilityConstraints,

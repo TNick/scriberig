@@ -110,9 +110,9 @@ fn current_inspection_is_resolved_to_one_exact_snapshot() {
     assert_eq!(result.snapshot, Some(SnapshotId::new([3; 32])));
 }
 
-/// Verifies a changed upstream catalog is reflected by a newly composed service.
+/// Verifies a changed upstream catalog is reflected in safe model snapshots.
 #[test]
-fn model_library_projection_tracks_recomposed_upstream_catalog() {
+fn safe_model_snapshots_track_recomposed_upstream_catalog() {
     let context = ApplicationContext {
         capabilities: CapabilityContext::new([
             CapabilityId::new("agent_model_library").expect("valid model-library capability")
@@ -147,18 +147,16 @@ fn model_library_projection_tracks_recomposed_upstream_catalog() {
     let refreshed = AgentConsoleBackend::agent_model_library(&refreshed_service, &context)
         .expect("refreshed upstream projection");
 
-    assert_eq!(first.models.len(), 1);
-    assert_eq!(refreshed.models.len(), 2);
-    assert!(refreshed.models.iter().any(|model| {
-        model.metadata_snapshot.model_id == "wire-a"
-            && model.metadata_snapshot.display_name == "Updated Model A"
-            && model.metadata_snapshot.context_window == 128_000
+    assert_eq!(first.len(), 1);
+    assert_eq!(refreshed.len(), 2);
+    assert!(refreshed.iter().any(|model| {
+        model.model_id == "wire-a"
+            && model.display_name == "Updated Model A"
+            && model.context_window == 128_000
     }));
     assert!(
         refreshed
-            .models
             .iter()
-            .any(|model| model.metadata_snapshot.provider_id == "provider-b"
-                && model.metadata_snapshot.model_id == "wire-b")
+            .any(|model| model.provider_id == "provider-b" && model.model_id == "wire-b")
     );
 }

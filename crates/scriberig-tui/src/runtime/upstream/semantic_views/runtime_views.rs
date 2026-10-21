@@ -1,0 +1,75 @@
+//! Formats `ScribeRig`'s durable session and operation read models.
+
+use super::common::{MAX_ROWS, append_value, render_load_state};
+use crate::state::TuiState;
+
+/// Renders durable session rows and model assignment labels.
+///
+/// - `state`: Session tree projection built from the canonical `ScribeRig` session.
+///
+/// # Returns
+/// Stable session row identities and their visible labels.
+pub(super) fn session(state: &TuiState) -> String {
+    render_load_state("Session tree", &state.session, |model, output| {
+        append_value(
+            output,
+            &format!(
+                "Session execution: {} / {}",
+                model
+                    .execution
+                    .provider_id
+                    .as_deref()
+                    .unwrap_or("unassigned"),
+                model.execution.model_id.as_deref().unwrap_or("unassigned")
+            ),
+        );
+        for (index, row) in model.rows.iter().take(MAX_ROWS).enumerate() {
+            append_value(
+                output,
+                &format!(
+                    "{}{}{} · {:?} · {}",
+                    if index == state.cursor { "› " } else { "  " },
+                    "  ".repeat(row.depth.min(8)),
+                    row.label,
+                    row.kind,
+                    row.reference
+                ),
+            );
+        }
+    })
+}
+
+/// Renders shared operation identities and their lifecycle state.
+///
+/// - `state`: Operation observations retained by the `ScribeRig` TUI.
+///
+/// # Returns
+/// Operation status and bounded result handles.
+pub(super) fn operations(state: &TuiState) -> String {
+    let mut output = String::from("# Operations\n\n");
+    for (index, operation) in state.operations.iter().take(MAX_ROWS).enumerate() {
+        append_value(
+            &mut output,
+            &format!(
+                "{}{} · {} · {:?}",
+                if index == state.cursor { "› " } else { "  " },
+                operation.id,
+                operation.kind,
+                operation.status
+            ),
+        );
+        if let Some(progress) = &operation.progress {
+            append_value(&mut output, progress);
+        }
+        if let Some(error) = &operation.error {
+            append_value(&mut output, error);
+        }
+        for handle in operation.result_handles.iter().take(32) {
+            append_value(&mut output, &format!("Result: {handle}"));
+        }
+    }
+    if let Some((category, message)) = &state.operation_error {
+        append_value(&mut output, &format!("{category}: {message}"));
+    }
+    output
+}

@@ -1,25 +1,21 @@
-//! Parses stable semantic handles from deterministic tool results.
+//! Extracts stable semantic handles from upstream tool results.
 
-use scriberig_agent_runtime::provider::ProviderError;
-
-/// Extracts ordered handles from one tool-result message.
+/// Parses ordered handles from a tool-result projection.
 ///
-/// - `message`: Normalized tool-result message.
+/// # Parameters
+/// - `message`: Text projected from an upstream tool result.
 ///
-/// The parsed handles.
 /// # Returns
-/// The handles in their emitted order.
+/// The parsed stable semantic handles.
+///
 /// # Errors
-/// Returns malformed-response when the result omits or corrupts handles.
-pub(crate) fn parse_handles(message: &str) -> Result<Vec<String>, ProviderError> {
+/// Returns an error when the result omits or corrupts its handle list.
+pub(crate) fn parse_handles(message: &str) -> Result<Vec<String>, String> {
     let values = message
         .split_once("handles=[")
         .and_then(|(_, value)| value.split_once(']'))
         .map(|(values, _)| values)
-        .ok_or_else(|| {
-            ProviderError::MalformedResponse("tool result omitted handles".to_owned())
-        })?;
-    serde_json::from_str(&format!("[{values}]")).map_err(|error| {
-        ProviderError::MalformedResponse(format!("invalid tool result handles: {error}"))
-    })
+        .ok_or_else(|| "tool result omitted handles".to_owned())?;
+    serde_json::from_str(&format!("[{values}]"))
+        .map_err(|error| format!("invalid tool result handles: {error}"))
 }

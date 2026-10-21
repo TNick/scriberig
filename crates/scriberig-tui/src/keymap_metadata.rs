@@ -21,14 +21,6 @@ pub fn metadata() -> &'static [ActionMetadata] {
             label: "close overlay",
         },
         ActionMetadata {
-            id: ActionId::FocusNext,
-            label: "focus next",
-        },
-        ActionMetadata {
-            id: ActionId::FocusPrevious,
-            label: "focus previous",
-        },
-        ActionMetadata {
             id: ActionId::Activate,
             label: "activate",
         },

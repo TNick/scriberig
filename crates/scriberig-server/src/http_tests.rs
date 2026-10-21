@@ -136,6 +136,7 @@ fn migration_route_maps_canonical_detail() {
         project_store: None,
         allowed_project_roots: Vec::new(),
         plan_lifecycle_handler: None,
+        provider_readiness_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -162,6 +163,7 @@ fn typed_operation_route_preserves_correlation() {
         project_store: None,
         allowed_project_roots: Vec::new(),
         plan_lifecycle_handler: None,
+        provider_readiness_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -195,6 +197,7 @@ fn typed_plan_lifecycle_route_invokes_runtime_handler() {
                 })
             },
         )),
+        provider_readiness_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -230,6 +233,7 @@ fn typed_preference_operations_use_the_http_principal() {
         project_store: None,
         allowed_project_roots: Vec::new(),
         plan_lifecycle_handler: None,
+        provider_readiness_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -271,6 +275,7 @@ fn typed_operation_route_rejects_unknown_operation() {
         project_store: None,
         allowed_project_roots: Vec::new(),
         plan_lifecycle_handler: None,
+        provider_readiness_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),
@@ -293,6 +298,7 @@ fn direct_project_route_preserves_project_errors() {
         project_store: None,
         allowed_project_roots: Vec::new(),
         plan_lifecycle_handler: None,
+        provider_readiness_handler: None,
         fixture: DevelopmentFixture {
             root_entity: EntityId::from_bytes([1; 16]),
             child_entities: Vec::new(),

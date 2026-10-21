@@ -11,15 +11,14 @@ central notice, add the exact required text here or in the package that
 distributes it. Do not invent attribution requirements for material that does
 not require them.
 
-## Vendored rpi-tui
+## rpi-tui
 
-Scriberig includes source from `bigfish1913/pi-rust`, crate path
-`crates/rpi-tui`, pinned at commit
-`aab74de0737f4b7c454cd8c8c16ca66e4dfbf898`.
-
-Copyright (c) 2025 Mario Zechner
-Copyright (c) 2026 pi-rust contributors
-
-The vendored source is licensed under the MIT License. The complete upstream
-license and notice are preserved in `third_party/rpi-tui/LICENSE` and
-`third_party/rpi-tui/NOTICE`.
+ScribeRig uses the `rpi-*` crates from `TNick/pi-rust`, pinned in Cargo
+manifests to commit `b78a199486351d86804995c27a0c5ed2bd8a28e3`. This fork
+revision includes official `bigfish1913/pi-rust` main commit
+`7a272ecf42e5ec17efedc92031a5cdba85e213e9` and the host-injected model
+catalog refresh, transactional model configuration, cancellable provider
+stream, TUI component event/focus extractions, and application-registered
+keybindings with shared help/footer enumeration. The crates are
+licensed under the MIT License; their license and notice are available from
+the pinned upstream repository.

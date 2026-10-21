@@ -174,6 +174,9 @@ export function normalizeModelRequestDetail(value: unknown): ModelRequestDetailR
           typeof reference.revision === "string",
       )
     : undefined;
+  const appliedSettings = value.applied_settings ?? value.appliedSettings;
+  const appliedSettingsFingerprint =
+    value.applied_settings_fingerprint ?? value.appliedSettingsFingerprint;
   return {
     invocation,
     model,
@@ -181,6 +184,8 @@ export function normalizeModelRequestDetail(value: unknown): ModelRequestDetailR
     ...(typeof thinkingLevel === "string" ? { thinkingLevel } : {}),
     ...(profile ? { profile } : {}),
     ...(activeComponents ? { activeComponents } : {}),
+    ...(appliedSettings !== undefined ? { appliedSettings } : {}),
+    ...(typeof appliedSettingsFingerprint === "string" ? { appliedSettingsFingerprint } : {}),
     messages: Array.isArray(value.messages)
       ? (value.messages as ModelRequestDetailResponse["messages"])
       : [],

@@ -1,27 +1,14 @@
 //! Implements presentation state defaults and local event behavior.
 
+#[cfg(test)]
+use super::{Action, TuiEvent, reduce};
 use super::{
-    Action, ConnectionState, ConversationComposerState, ConversationTarget, Effect, ExplorerModel,
-    Focus, HashSet, LoadState, NavigationState, Overlay, PresentationControl, PromptVisibility,
-    ReasoningVisibility, ToolInvocationVisibility, ToolOutputVisibility, TuiEvent, TuiState,
-    reduce, reduce_application_event,
+    ConnectionState, ConversationComposerState, ConversationTarget, Effect, ExplorerModel, HashSet,
+    LoadState, NavigationState, Overlay, PresentationControl, PromptVisibility,
+    ReasoningVisibility, ToolInvocationVisibility, ToolOutputVisibility, TuiState,
+    reduce_application_event,
 };
 use std::collections::BTreeSet;
-
-impl Focus {
-    /// Moves focus through the shell's stable pane order.
-    ///
-    /// - `reverse`: Whether focus moves to the previous pane.
-    ///
-    /// The next pane in the stable focus order.
-    /// # Returns
-    /// The new focus target.
-    pub(super) fn next(self, reverse: bool) -> Self {
-        let panes = [Self::Explorer, Self::Primary, Self::Inspector];
-        let index = panes.iter().position(|pane| *pane == self).unwrap_or(1);
-        panes[(index + if reverse { 2 } else { 1 }) % panes.len()]
-    }
-}
 
 impl ConversationComposerState {
     /// Creates a synchronized composer for one exact conversation target.
@@ -34,12 +21,9 @@ impl ConversationComposerState {
     /// The initialized conversation composer.
     #[must_use]
     pub fn new(target: ConversationTarget, draft: String) -> Self {
-        let editor = scriberig_tui_kit::Composer::new();
-        editor.replace_text(&draft);
         Self {
             target,
             draft,
-            editor,
             pending_prompt: None,
             pending: false,
             error: None,
@@ -55,8 +39,6 @@ impl Default for TuiState {
     fn default() -> Self {
         Self {
             should_quit: false,
-            terminal_size: (80, 24),
-            focus: Focus::Primary,
             shell_message: "No semantic service is attached in this runtime.".to_owned(),
             project: None,
             connection: ConnectionState::Connecting,
@@ -65,6 +47,8 @@ impl Default for TuiState {
             overlay: None,
             cursor: 0,
             selection: None,
+            semantic_row_cursor: None,
+            plan_cursor: None,
             agent_selection: None,
             explorer: ExplorerModel::default(),
             inspector: LoadState::NotRequested,
@@ -81,12 +65,12 @@ impl Default for TuiState {
             transient_agent_activities: Vec::new(),
             operations: Vec::new(),
             session: LoadState::NotRequested,
+            session_cursor: None,
             conversation: None,
             session_snapshot: None,
             conversation_composer: ConversationComposerState {
                 target: ConversationTarget::NewSession,
                 draft: String::new(),
-                editor: scriberig_tui_kit::Composer::new(),
                 pending_prompt: None,
                 pending: false,
                 error: None,
@@ -137,7 +121,22 @@ impl TuiState {
         self.presentation_overrides.insert(control);
     }
 
-    /// Applies one local terminal event to presentation state.
+    /// Applies one shared application event to presentation state.
+    ///
+    /// - `event`: Authoritative `ScribeRig` application event.
+    ///
+    /// Effects produced by reducing the event.
+    /// # Returns
+    /// Semantic effects requested by the event.
+    pub(crate) fn apply_application_event(
+        &mut self,
+        event: &scriberig_app::ApplicationEvent,
+    ) -> Vec<Effect> {
+        reduce_application_event(self, event)
+    }
+
+    /// Applies a test-only legacy terminal event to presentation state.
+    #[cfg(test)]
     /// - `event`: Argument named `event`.
     ///
     /// # Returns
@@ -149,15 +148,7 @@ impl TuiState {
                     return reduce(self, action);
                 }
             }
-            TuiEvent::Resize { width, height } => {
-                return reduce(
-                    self,
-                    Action::TerminalResized {
-                        width: *width,
-                        height: *height,
-                    },
-                );
-            }
+            TuiEvent::Resize { .. } => return Vec::new(),
             TuiEvent::Shutdown => return reduce(self, Action::QuitRequested),
             TuiEvent::Paste(text) => {
                 return reduce(self, Action::Paste(text.clone()));

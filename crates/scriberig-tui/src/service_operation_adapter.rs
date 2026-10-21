@@ -30,6 +30,31 @@ pub struct ApplicationOperationAdapter<B> {
     pub(crate) agent_runner: std::sync::Arc<dyn super::AgentCommandRunner<B>>,
 }
 
+/// Requires a capability granted only by the trusted embedded TUI composition.
+///
+/// - `context`: Trusted application context authorizing configuration edits.
+///
+/// # Returns
+/// Success when local upstream model configuration edits are authorized.
+///
+/// # Errors
+/// Returns a permission or internal error when the capability is unavailable.
+fn require_local_model_config_edit(context: &ApplicationContext) -> Result<(), ApplicationError> {
+    let capability = scriberig_app::CapabilityId::new("agent_model_config_edit").map_err(|_| {
+        ApplicationError::Internal {
+            message: "model configuration capability is invalid".to_owned(),
+        }
+    })?;
+    if context.capabilities.allows(&capability) {
+        Ok(())
+    } else {
+        Err(ApplicationError::PermissionDenied {
+            action: "edit upstream model properties".to_owned(),
+            scope: "local model configuration".to_owned(),
+        })
+    }
+}
+
 /// Adapts the public protocol client to the TUI inspection boundary.
 impl<B: ApplicationBackend> ApplicationOperationAdapter<B> {
     /// Creates an operation adapter around an application service.
@@ -115,6 +140,53 @@ impl<B: ApplicationBackend> ApplicationOperationAdapter<B> {
 
 impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
     operation_agent_methods!();
+
+    /// Reads upstream property descriptors for one locally authorized model.
+    ///
+    /// - `context`: Local authorization context for model settings.
+    /// - `provider_id`: Exact upstream provider identity.
+    /// - `model_id`: Provider-native model identity.
+    ///
+    /// # Returns
+    /// Upstream schema-backed descriptors for the selected model.
+    ///
+    /// # Errors
+    /// Returns an authorization or configuration error.
+    fn model_properties(
+        &self,
+        context: &ApplicationContext,
+        provider_id: &str,
+        model_id: &str,
+    ) -> Result<Vec<rpi_model_runtime::ModelPropertyDescriptor>, ApplicationError> {
+        require_local_model_config_edit(context)?;
+        self.agent_runner.model_properties(provider_id, model_id)
+    }
+
+    /// Updates a provider property only through upstream schema validation.
+    ///
+    /// - `context`: Local authorization context for model settings.
+    /// - `provider_id`: Exact upstream provider identity.
+    /// - `model_id`: Provider-native model identity.
+    /// - `key`: Upstream schema property key.
+    /// - `value`: User value validated by upstream.
+    ///
+    /// # Returns
+    /// Success after the upstream config accepts the value.
+    ///
+    /// # Errors
+    /// Returns an authorization, validation, or persistence error.
+    fn set_model_property(
+        &self,
+        context: &ApplicationContext,
+        provider_id: &str,
+        model_id: &str,
+        key: &str,
+        value: serde_json::Value,
+    ) -> Result<(), ApplicationError> {
+        require_local_model_config_edit(context)?;
+        self.agent_runner
+            .set_model_property(provider_id, model_id, key, value)
+    }
 
     /// Reports the semantic operations exposed by the embedded application.
     ///

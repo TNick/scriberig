@@ -2,11 +2,6 @@
 
 use std::sync::Arc;
 
-use scriberig_agent_runtime::model_provider::ProviderModel;
-use scriberig_agent_runtime::provider::{
-    FakeProvider, FinishReason, MessageRole, ModelResponse, ProviderMetadata,
-};
-use scriberig_agent_runtime::{AgentMessage, ModelProvider};
 use scriberig_app::{
     ApplicationBackendComposition, ApplicationContext, ApplicationService, CapabilityContext,
     CapabilityId, SessionBackend, SessionRequest, StoreInspectionBackend, StoreOperationProvider,
@@ -87,29 +82,4 @@ fn persisted_root_context_has_core_without_handoff() {
             .contains("scriberig.context-component.non-root-handoff@")
     );
     assert_eq!(compiled.canonical.matches(prompt).count(), 1);
-
-    let provider = FakeProvider::from_responses([Ok(ModelResponse {
-        text: Some("completed".to_owned()),
-        tool_calls: Vec::new(),
-        finish_reason: FinishReason::Stop,
-        usage: None,
-        metadata: ProviderMetadata::default(),
-    })]);
-    let mut model =
-        ProviderModel::new(provider.clone(), "test-model").with_compiled_context(compiled);
-    model
-        .decide(&[AgentMessage::User(prompt.to_owned())])
-        .expect("complete provider request");
-
-    let request = provider.requests().pop().expect("provider-facing request");
-    assert!(request.messages[0].content.contains("core-invariant"));
-    assert!(!request.messages[0].content.contains("non-root-handoff"));
-    assert!(!request.messages[0].content.contains(prompt));
-    let user_messages = request
-        .messages
-        .iter()
-        .filter(|message| message.role == MessageRole::User)
-        .collect::<Vec<_>>();
-    assert_eq!(user_messages.len(), 1);
-    assert_eq!(user_messages[0].content, prompt);
 }

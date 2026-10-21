@@ -150,6 +150,7 @@ impl PlanCoordinator {
                     failed: Vec::new(),
                     results: Vec::new(),
                     model_request_evidence: Vec::new(),
+                    tool_evidence: Vec::new(),
                 },
                 plan,
             });
@@ -224,13 +225,22 @@ impl PlanCoordinator {
             return Err(revision_conflict(plan_id));
         }
         persist_worker_results(&mut session, &plan, &workers.results)?;
-        for evidence in &workers.model_request_evidence {
+        for request_evidence in &workers.model_request_evidence {
             let branch = session
                 .branches
                 .iter_mut()
-                .find(|branch| branch.id == evidence.branch)
+                .find(|branch| branch.id == request_evidence.branch)
                 .ok_or_else(|| internal_error("worker request evidence has no claimed branch"))?;
-            service.persist_plan_worker_model_requests(branch, evidence.requests.clone());
+            let tool_evidence = workers
+                .tool_evidence
+                .iter()
+                .find(|evidence| evidence.branch == request_evidence.branch)
+                .map_or_else(Vec::new, |evidence| evidence.evidence.clone());
+            service.persist_plan_worker_evidence(
+                branch,
+                tool_evidence,
+                request_evidence.requests.clone(),
+            );
         }
         SessionBackend::save_session(service, context, &session)?;
 

@@ -10,7 +10,9 @@ mod execution_helpers;
 
 #[path = "scheduler_results.rs"]
 mod results;
-pub use results::{PlanWorkerExecutionResult, WorkerBatchResult, WorkerModelRequestEvidence};
+pub use results::{
+    PlanWorkerExecutionResult, WorkerBatchResult, WorkerModelRequestEvidence, WorkerToolEvidence,
+};
 #[path = "scheduler_helpers.rs"]
 mod scheduler_helpers;
 
@@ -107,6 +109,7 @@ pub trait PlanWorkerExecutor: Sync {
             .map(|result| PlanWorkerExecutionResult {
                 result,
                 model_requests: Vec::new(),
+                tool_evidence: Vec::new(),
             })
     }
 }

@@ -8,6 +8,8 @@ mod tui_pty_branch;
 mod tui_pty_conversation;
 #[path = "tui_pty_support/lifecycle_test.rs"]
 mod tui_pty_lifecycle;
+#[path = "tui_pty_support/model_controls_test.rs"]
+mod tui_pty_model_controls;
 #[path = "tui_pty/plan_view.rs"]
 mod tui_pty_plan_view;
 mod tui_pty_support;
@@ -110,6 +112,9 @@ fn tui_golden_03_edits_reviews_applies_and_restarts() {
     assert!(tui.source().contains("left + right"));
     tui.send(b"\r");
     assert!(tui.read_until("Enter confirm"), "{}", tui.diagnostic());
+    let confirmation = tui.screen();
+    assert!(confirmation.contains("Reviewed base:"), "{confirmation}");
+    assert!(confirmation.contains("Candidate result:"), "{confirmation}");
     tui.send(b"\r");
     assert!(tui.read_until("materialized"), "{}", tui.diagnostic());
     assert!(tui.source().contains("left.saturating_add(right)"));

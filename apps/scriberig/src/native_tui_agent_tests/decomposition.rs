@@ -1,7 +1,8 @@
 //! Verifies durable autonomous decomposition and compact parent handoff.
 
+use super::model_catalog_from_models;
 use super::*;
-use scriberig_agent_runtime::provider::ToolCall;
+use rpi_ai::providers::faux::FauxScript;
 
 /// Persists autonomous sibling decomposition through the product runtime.
 #[test]
@@ -25,23 +26,42 @@ fn autonomous_decomposition_persists_children_and_compact_parent_results() {
     let service = ApplicationService::new(backend)
         .with_session_store(session_repository)
         .with_upstream_models(native_test_upstream_models());
-    let provider = FakeProvider::from_responses([
-        Ok(delegation_response("architecture", "architecture")),
-        Ok(runtime_capabilities_response()),
-        Ok(final_response("ARCHITECTURE_RESULT")),
-        Ok(delegation_response("implementation", "implementation")),
-        Ok(final_response("IMPLEMENTATION_RESULT")),
-        Ok(final_response("decomposition complete")),
-    ]);
+    let provider = FauxScript::new()
+        .with_tool_call(
+            "delegate",
+            serde_json::json!({
+                "purpose": "architecture",
+                "prompt": "architecture private prompt",
+                "capabilities": ["inspect.entity", "runtime_capabilities"],
+                "expected_result": "compact architecture result"
+            }),
+        )
+        .with_tool_call("runtime_capabilities", serde_json::json!({}))
+        .with_text("ARCHITECTURE_RESULT")
+        .with_tool_call(
+            "delegate",
+            serde_json::json!({
+                "purpose": "implementation",
+                "prompt": "implementation private prompt",
+                "capabilities": ["inspect.entity", "runtime_capabilities"],
+                "expected_result": "compact implementation result"
+            }),
+        )
+        .with_text("IMPLEMENTATION_RESULT")
+        .with_text("decomposition complete");
     let runner = NativeTuiAgentRunner {
         providers: std::collections::BTreeMap::from([(
             "local".to_owned(),
-            NativeProvider::Fake(provider.clone()),
+            NativeScenario::Faux(provider.clone()),
         )]),
         model: "fake-model".to_owned(),
+        upstream_credentials: None,
+        upstream_enabled: false,
         model_catalog: model_catalog_from_models(native_test_upstream_models()),
+        model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
+        continuations: std::sync::Mutex::default(),
     };
     let adapter = ApplicationOperationAdapter::new(service).with_agent_runner(runner);
     let context = ApplicationContext {
@@ -256,87 +276,27 @@ fn autonomous_decomposition_persists_children_and_compact_parent_results() {
                 scriberig_session::ExecutionActivity::ToolInvocation(id) if *id == tool.id
             )))
     );
-    let requests = provider.requests();
-    assert_eq!(requests.len(), 6);
+    let root_requests = parent
+        .model_invocations
+        .iter()
+        .filter_map(|invocation| invocation.request.as_ref())
+        .collect::<Vec<_>>();
+    assert_eq!(root_requests.len(), 3);
     assert!(
-        requests[1]
+        root_requests[1]
             .messages
             .iter()
-            .any(|message| { message.content.contains("architecture") })
+            .any(|message| message.content.contains("ARCHITECTURE_RESULT"))
     );
     assert!(
-        requests[3]
+        root_requests[1]
             .messages
             .iter()
-            .any(|message| { message.content.contains("ARCHITECTURE_RESULT") })
-    );
-    assert!(
-        requests[3]
-            .messages
-            .iter()
-            .all(|message| { !message.content.contains("architecture private prompt") })
+            .all(|message| !message.content.contains("architecture private prompt"))
     );
 
     drop(adapter);
     drop(session_store);
     drop(project_store);
     std::fs::remove_dir_all(root).expect("remove fixture");
-}
-
-/// Creates a deterministic provider response that delegates one child branch.
-/// # Parameters
-/// - `id`: Input for this operation.
-/// - `purpose`: Input for this operation.
-/// # Returns
-/// The operation result.
-fn delegation_response(id: &str, purpose: &str) -> ModelResponse {
-    ModelResponse {
-        text: None,
-        tool_calls: vec![ToolCall {
-            id: format!("delegate-{id}"),
-            name: "delegate".to_owned(),
-            arguments: serde_json::json!({
-                "purpose": purpose,
-                "prompt": format!("{purpose} private prompt"),
-                "capabilities": ["inspect.entity", "runtime_capabilities"],
-                "expected_result": format!("compact {purpose} result")
-            }),
-        }],
-        finish_reason: FinishReason::ToolCall,
-        usage: None,
-        metadata: ProviderMetadata::default(),
-    }
-}
-
-/// Creates a deterministic child runtime capability response.
-///
-/// # Returns
-/// A provider response containing one runtime capability tool call.
-fn runtime_capabilities_response() -> ModelResponse {
-    ModelResponse {
-        text: None,
-        tool_calls: vec![ToolCall {
-            id: "child-runtime-capabilities".to_owned(),
-            name: "runtime_capabilities".to_owned(),
-            arguments: serde_json::json!({}),
-        }],
-        finish_reason: FinishReason::ToolCall,
-        usage: None,
-        metadata: ProviderMetadata::default(),
-    }
-}
-
-/// Creates a deterministic final provider response.
-/// # Parameters
-/// - `text`: Input for this operation.
-/// # Returns
-/// The operation result.
-fn final_response(text: &str) -> ModelResponse {
-    ModelResponse {
-        text: Some(text.to_owned()),
-        tool_calls: Vec::new(),
-        finish_reason: FinishReason::Stop,
-        usage: None,
-        metadata: ProviderMetadata::default(),
-    }
 }

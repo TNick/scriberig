@@ -76,6 +76,14 @@ pub struct ModelRequestDetailResponse {
     pub messages: Vec<ModelRequestMessageDetail>,
     /// Trusted tools exposed to the model.
     pub tools: Vec<ModelRequestToolDetail>,
+    /// Opaque safe applied-settings report supplied by the upstream provider.
+    ///
+    /// The report schema is owned by upstream and remains uninterpreted here.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub applied_settings: Option<serde_json::Value>,
+    /// Versioned digest of the applied-settings report, when captured.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub applied_settings_fingerprint: Option<String>,
     /// Whether content was omitted to respect capture bounds.
     pub truncated: bool,
 }

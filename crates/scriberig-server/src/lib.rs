@@ -10,7 +10,7 @@ pub mod transport;
 
 pub use development::{DevelopmentFixture, ensure_fixture};
 pub use dispatch::Dispatcher;
-pub use http::InProcessProjectTransport;
+pub use http::{InProcessProjectTransport, ProviderReadinessHandler};
 pub use server::ApplicationService;
 pub use subscription::SubscriptionSpec;
 pub use transport::InProcessTransport;
@@ -20,13 +20,14 @@ use std::net::TcpListener;
 use std::path::Path;
 use std::sync::Arc;
 
-/// Application service composed by the local SQLite-backed HTTP server.
-pub type LocalApplicationService = scriberig_app::ApplicationService<
-    scriberig_app::ApplicationBackendComposition<
-        scriberig_app::StoreInspectionBackend<Arc<scriberig_store_sqlite::SqliteStore>>,
-        scriberig_app::StoreOperationProvider<Arc<scriberig_store_sqlite::SqliteStore>>,
-    >,
+/// Backend composed by the local SQLite-backed HTTP server.
+pub type LocalApplicationBackend = scriberig_app::ApplicationBackendComposition<
+    scriberig_app::StoreInspectionBackend<Arc<scriberig_store_sqlite::SqliteStore>>,
+    scriberig_app::StoreOperationProvider<Arc<scriberig_store_sqlite::SqliteStore>>,
 >;
+
+/// Application service composed by the local SQLite-backed HTTP server.
+pub type LocalApplicationService = scriberig_app::ApplicationService<LocalApplicationBackend>;
 
 /// Trusted native runtime for advancing a durable plan lifecycle request.
 pub type PlanLifecycleHandler = dyn Fn(
@@ -126,6 +127,7 @@ pub fn serve_with_origin_and_plan_lifecycle(
         plan_lifecycle_handler,
         ServerModelCatalog {
             model_catalog: rpi_model_runtime::ModelCatalog::new(),
+            provider_readiness_handler: None,
         },
     )
 }
@@ -134,12 +136,16 @@ pub fn serve_with_origin_and_plan_lifecycle(
 ///
 /// # Public members
 /// - `model_catalog`: Shared upstream live model authority.
+/// - `provider_readiness_handler`: Optional live host-authorized credential
+///   readiness projection.
 ///
 /// # Private members
 /// None.
 pub struct ServerModelCatalog {
     /// Shared upstream model catalog used to resolve live selections.
     pub model_catalog: rpi_model_runtime::ModelCatalog,
+    /// Projects current safe credential readiness on model-library reads.
+    pub provider_readiness_handler: Option<Arc<ProviderReadinessHandler>>,
 }
 
 /// Serves the API with a host-composed upstream model catalog.
@@ -151,6 +157,8 @@ pub struct ServerModelCatalog {
 /// - `project_roots`: Filesystem roots allowed for project onboarding.
 /// - `plan_lifecycle_handler`: Optional runtime that executes lifecycle requests.
 /// - `model_catalog`: Upstream selection authority.
+/// - `provider_readiness_handler`: Optional live host-authorized readiness
+///   projection for model-library responses.
 ///
 /// Unit after the listener stops accepting connections.
 ///
@@ -191,6 +199,7 @@ pub fn serve_with_model_catalog_and_plan_lifecycle(
         project_store: Some(Arc::clone(&store)),
         allowed_project_roots: canonical_project_roots(project_roots)?,
         plan_lifecycle_handler,
+        provider_readiness_handler: model_catalog.provider_readiness_handler,
     };
     let listener = TcpListener::bind((host, port))?;
     println!("Scriberig API listening on http://{host}:{port}");

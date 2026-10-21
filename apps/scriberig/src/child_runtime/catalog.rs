@@ -1,7 +1,7 @@
 //! Defines the trusted provider-visible tool catalog.
 
 use super::control_parameters::control_parameters;
-use scriberig_agent_runtime::provider::ToolDefinition;
+use rpi_ai::types::Tool;
 use scriberig_agent_runtime::tools::ToolCategory;
 
 /// Builds the trusted provider-visible catalog for the local agent runtime.
@@ -19,7 +19,7 @@ pub(crate) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
 
     let mut descriptors = vec![
         ToolDescriptor {
-            definition: ToolDefinition {
+            definition: Tool {
                 name: "inspect".to_owned(),
                 description: "Inspect one semantic entity at an exact snapshot.".to_owned(),
                 parameters: serde_json::json!({
@@ -30,7 +30,9 @@ pub(crate) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
                         "detail": {"type": "string", "enum": ["compact", "detailed"]}
                     },
                     "required": ["entity"]
-                }),
+                })
+                .into(),
+                constrained_sampling: None,
             },
             category: ToolCategory::SemanticRead,
             result_shape: "compact entity handles and resolved revision".to_owned(),
@@ -40,7 +42,7 @@ pub(crate) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
             required_capability: Some("inspect.entity".to_owned()),
         },
         ToolDescriptor {
-            definition: ToolDefinition {
+            definition: Tool {
                 name: "delegate".to_owned(),
                 description: "Delegate focused reasoning to an isolated child branch.".to_owned(),
                 parameters: serde_json::json!({
@@ -52,7 +54,9 @@ pub(crate) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
                         "expected_result": {"type": "string"}
                     },
                     "required": ["purpose", "prompt", "capabilities", "expected_result"]
-                }),
+                })
+                .into(),
+                constrained_sampling: None,
             },
             category: ToolCategory::BranchProducing,
             result_shape: "compact child branch result and handles".to_owned(),
@@ -185,10 +189,11 @@ pub(crate) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
         ),
     ] {
         descriptors.push(ToolDescriptor {
-            definition: ToolDefinition {
+            definition: Tool {
                 name: name.to_owned(),
                 description: description.to_owned(),
-                parameters: control_parameters(name),
+                parameters: control_parameters(name).into(),
+                constrained_sampling: None,
             },
             category: tool_category(name),
             result_shape: "bounded provider-neutral control result".to_owned(),

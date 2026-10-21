@@ -1,13 +1,11 @@
 //! Composes the native TUI with the shared provider and agent orchestration runtime.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use scriberig_agent_runtime::cache::{CachePolicy, ModelCache};
-use scriberig_agent_runtime::model_provider::ProviderModel;
-use scriberig_agent_runtime::provider::{ProviderAdapter, ProviderError};
-use scriberig_agent_runtime::{AgentError, AgentRuntime, ChildExecutionScope};
+use rpi_ai::{Model, Provider, RequestSecret};
+use scriberig_agent_runtime::provider::HostConfigurationError;
 use scriberig_app::{
     AgentSelection, ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService,
     SessionBackend, SessionRequest,
@@ -15,23 +13,47 @@ use scriberig_app::{
 use scriberig_core::EntityId;
 use scriberig_store_sqlite::SqliteStore;
 
-use crate::agent_tool::LocalAgentTool;
-use crate::child_runtime::{LocalChildExecutor, inspect_catalog};
-use crate::native_provider::NativeProvider;
+use crate::native_scenario::NativeScenario;
+
+/// Provider, exact model, and optional protected request credential.
+type UpstreamProviderBinding = (Arc<dyn Provider>, Model, Option<RequestSecret>);
+
 #[path = "native_tui_agent/workspace.rs"]
 mod workspace;
 use workspace::workspace_from_result;
+#[path = "native_tui_agent/model_properties.rs"]
+mod model_properties;
 #[path = "native_tui_agent/model_selection.rs"]
 mod model_selection;
 #[path = "native_tui_agent/plan_worker.rs"]
 mod plan_worker;
 #[path = "native_tui_agent/provider_config.rs"]
 mod provider_config;
+#[path = "native_tui_agent/provider_readiness.rs"]
+mod provider_readiness;
 #[path = "native_tui_agent/runner.rs"]
 mod runner;
+#[path = "native_tui_agent/upstream_execution/mod.rs"]
+pub(crate) mod upstream_execution;
 use model_selection::selected_runtime_model;
 use plan_worker::NativePlanWorkerExecutor;
+pub(crate) use provider_config::extensions::reject_in_process_extensions;
 
+/// Builds the upstream adapter for the configured one-shot Echo fallback.
+///
+/// # Parameters
+/// - `model`: Exact faux model descriptor used by the one-shot CLI invocation.
+///
+/// # Returns
+/// A provider that executes deterministic Echo responses through rpi-agent.
+pub(crate) fn echo_provider(model: Model) -> Arc<dyn Provider> {
+    NativeScenario::Echo.into_provider(model)
+}
+#[cfg(test)]
+#[path = "native_tui_agent/test_execution.rs"]
+mod test_execution;
+#[cfg(test)]
+pub(crate) use test_execution::execute_agent;
 #[cfg(test)]
 #[path = "native_tui_agent_tests.rs"]
 mod tests;
@@ -39,15 +61,39 @@ mod tests;
 /// Runs provider-backed agent commands submitted through the native TUI.
 pub(super) struct NativeTuiAgentRunner {
     /// Configured adapters keyed by the model library's safe connection IDs.
-    providers: std::collections::BTreeMap<String, NativeProvider>,
+    providers: std::collections::BTreeMap<String, NativeScenario>,
     /// Model identifier selected by the local runtime configuration.
     model: String,
+    /// Host-authorized credentials for the shared provider configuration.
+    upstream_credentials: Option<crate::agent_config::AuthorizedCredentialProvider>,
+    /// Whether the selected process configuration supports upstream providers.
+    upstream_enabled: bool,
     /// Upstream catalog retained as the model selection authority.
     model_catalog: rpi_model_runtime::ModelCatalog,
+    /// Sanitized host model configuration updated through upstream validators.
+    model_config: Mutex<(rpi_model_runtime::ModelsConfig, Option<std::path::PathBuf>)>,
     /// Shared project store used by application-backed agent tools.
     project_store: Arc<SqliteStore>,
     /// In-process guard against starting two coordinator loops for one plan.
     active_coordinators: Mutex<HashSet<EntityId>>,
+    /// Root-only ephemeral continuation handles keyed by canonical branch.
+    continuations: Mutex<HashMap<EntityId, RootContinuationCacheEntry>>,
+}
+
+/// Holds one opaque continuation with the exact execution identity it belongs to.
+struct RootContinuationCacheEntry {
+    /// Exact resolved provider descriptor selected by the host.
+    provider_id: String,
+    /// Exact resolved model configuration used to create the handle.
+    model: Model,
+    /// Host connection/profile identity selected with the model.
+    profile: String,
+    /// Exact upstream thinking level used by the provider chain.
+    thinking_level: rpi_ai::ThinkingLevel,
+    /// Fingerprint of the durable branch context after the completed turn.
+    provider_context_fingerprint: String,
+    /// Opaque provider-owned, process-local continuation state.
+    handle: rpi_ai::ProviderContinuation,
 }
 
 impl NativeTuiAgentRunner {
@@ -63,41 +109,55 @@ impl NativeTuiAgentRunner {
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
-    pub(super) fn from_environment(project_store: Arc<SqliteStore>) -> Result<Self, ProviderError> {
+    pub(super) fn from_environment(
+        project_store: Arc<SqliteStore>,
+    ) -> Result<Self, HostConfigurationError> {
         let provider_kind = std::env::var("SCRIBE_AGENT_PROVIDER")
             .unwrap_or_else(|_| "openai_compatible".to_owned());
-        let shared_config = if provider_kind == "openai_compatible"
-            && std::env::var_os("SCRIBE_AGENT_BASE_URL").is_none()
-        {
+        let endpoint_override = std::env::var("SCRIBE_AGENT_BASE_URL").ok();
+        let shared_config = if provider_kind == "openai_compatible" && endpoint_override.is_none() {
             crate::agent_config::resolve_provider_config()
-                .map_err(|error| ProviderError::Configuration(error.message))?
-                .map(|(config, _)| config)
+                .map_err(|error| HostConfigurationError::Configuration(error.message))?
         } else {
             None
         };
+        let upstream_credentials = match shared_config.as_ref() {
+            Some((_, credentials, _)) => credentials.clone(),
+            None if provider_kind == "openai_compatible" && endpoint_override.is_some() => {
+                legacy_endpoint_credentials()?
+            }
+            None => None,
+        };
+        let upstream_enabled = provider_kind == "openai_compatible";
         let configured_model = shared_config
             .as_ref()
-            .map_or("default", |config| config.model.as_str());
+            .map_or("default", |(model, _, _)| model.id.as_str());
         let model =
             std::env::var("SCRIBE_AGENT_MODEL").unwrap_or_else(|_| configured_model.to_owned());
-        let catalog = provider_config::catalog::from_environment(&model)?;
+        let endpoint_override = endpoint_override.or_else(|| {
+            shared_config
+                .as_ref()
+                .map(|(model, _, _)| model.base_url.clone())
+        });
+        let catalog =
+            provider_config::catalog::from_environment(&model, endpoint_override.as_deref())?;
         let mut providers = std::collections::BTreeMap::new();
-        if let Some(provider) =
-            provider_config::from_environment(&provider_kind, &model, shared_config)?
+        if !upstream_enabled
+            && let Some(provider) = provider_config::from_environment(&provider_kind)?
         {
             providers.insert("local".to_owned(), provider);
         }
-        for connection in &catalog.connections {
-            let provider = provider_config::from_connection(connection, &model)?;
-            providers.insert(connection.id.clone(), provider);
-        }
-        let upstream_models = catalog.models;
+        provider_config::extensions::reject_in_process_extensions()?;
         Ok(Self {
             providers,
             model,
-            model_catalog: model_catalog_from_models(upstream_models),
+            upstream_credentials,
+            upstream_enabled,
+            model_catalog: catalog.model_catalog,
+            model_config: Mutex::new((catalog.config, catalog.config_path)),
             project_store,
             active_coordinators: Mutex::new(HashSet::new()),
+            continuations: Mutex::new(HashMap::new()),
         })
     }
 
@@ -108,22 +168,77 @@ impl NativeTuiAgentRunner {
     pub(super) fn model_catalog(&self) -> rpi_model_runtime::ModelCatalog {
         self.model_catalog.clone()
     }
+
+    /// Creates an upstream provider bound to one exact selected model.
+    ///
+    /// # Parameters
+    /// - `model`: Exact model retained from the resolved catalog snapshot.
+    /// - `connection`: Host-owned provider connection selected with the model.
+    ///
+    /// # Returns
+    /// The upstream provider, exact model, and protected request secret when
+    /// this composition supports the selected built-in API.
+    ///
+    /// # Errors
+    /// Returns a safe configuration or credential authorization failure.
+    pub(super) fn upstream_provider_for(
+        &self,
+        model: &Model,
+        connection: &str,
+    ) -> Result<Option<UpstreamProviderBinding>, HostConfigurationError> {
+        if let Some(provider) = self.providers.get(connection) {
+            return Ok(Some((
+                provider.clone().into_provider(model.clone()),
+                model.clone(),
+                None,
+            )));
+        }
+        if !self.upstream_enabled {
+            return Ok(None);
+        }
+        let provider = rpi_model_runtime::create_builtin_provider(
+            &model.provider,
+            vec![model.clone()],
+            reqwest::Client::new(),
+        )
+        .map_err(|error| HostConfigurationError::Configuration(error.to_string()))?;
+        let request_secret = self
+            .upstream_credentials
+            .as_deref()
+            .map(|credentials| {
+                scriberig_agent_runtime::protected_credential::request_secret_for_model(
+                    credentials,
+                    model,
+                )
+            })
+            .transpose()
+            .map_err(|error| HostConfigurationError::Configuration(error.to_string()))?
+            .flatten();
+        Ok(Some((provider, model.clone(), request_secret)))
+    }
 }
 
-/// Seeds a shared upstream model catalog from provider-qualified model rows.
-///
-/// - `models`: Upstream models grouped by their provider identity.
-///
-/// The live model catalog containing every supplied provider row.
+/// Builds the protected host credential source for a legacy endpoint override.
 ///
 /// # Returns
-/// The populated catalog handle.
-pub(super) fn model_catalog_from_models(
-    models: Vec<rpi_ai::Model>,
-) -> rpi_model_runtime::ModelCatalog {
-    let catalog = rpi_model_runtime::ModelCatalog::new();
-    catalog.reconcile_models(models);
-    catalog
+/// An authorized environment reference or an unauthenticated source when no
+/// credential reference was configured.
+///
+/// # Errors
+/// Returns a safe configuration error when the reference is invalid or the
+/// host credential policy cannot be loaded.
+fn legacy_endpoint_credentials()
+-> Result<Option<crate::agent_config::AuthorizedCredentialProvider>, HostConfigurationError> {
+    let Some(name) = std::env::var("SCRIBE_AGENT_API_KEY_ENV").ok() else {
+        return Ok(None);
+    };
+    let reference = scriberig_secrets::SecretRef::Environment { name };
+    reference.validate().map_err(|_| {
+        HostConfigurationError::Configuration("invalid credential reference".to_owned())
+    })?;
+    crate::agent_config::authorized_credential_provider_for_check(Some(&reference)).map_err(|_| {
+        HostConfigurationError::Configuration("credential policy is unavailable".to_owned())
+    })
 }
 
 /// Resolves the latest durable project scope produced in a session.
@@ -221,107 +336,4 @@ fn selection_handles(selection: Option<&AgentSelection>) -> Vec<String> {
         }
         handles
     })
-}
-
-/// Executes one model loop with the shared semantic tool and child-branch adapters.
-///
-/// - `super`: Parent executable composition module.
-/// - `provider`: Cloneable provider adapter for parent and child branches.
-/// - `model`: Configured model identifier.
-/// - `provider_id`: Resolved upstream provider identity, when available.
-/// - `service`: Shared application operation boundary.
-/// - `project_store`: Shared project catalog and artifact store.
-/// - `context`: Trusted request capabilities and scope.
-/// - `session`: Durable session receiving branch activity.
-/// - `branch`: Exact root branch executing this turn.
-/// - `prompt`: User-authored instruction.
-/// - `model_requests_on_failure`: Destination for safe requests captured before an error.
-///
-/// Provider-neutral runtime output and tool observations.
-///
-/// Returns a bounded runtime, provider, or tool failure.
-#[allow(clippy::too_many_arguments)]
-pub(super) fn execute_agent<P, B>(
-    provider: P,
-    model: &str,
-    provider_id: Option<&str>,
-    thinking_level: Option<&str>,
-    service: &ApplicationService<B>,
-    project_store: &Arc<SqliteStore>,
-    context: &ApplicationContext,
-    session: EntityId,
-    branch: EntityId,
-    operation: scriberig_app::OperationId,
-    prompt: &str,
-    selection: Option<&AgentSelection>,
-    cancelled: &std::sync::atomic::AtomicBool,
-    model_requests_on_failure: &mut Vec<scriberig_session::ModelRequestProjection>,
-) -> Result<scriberig_agent_runtime::AgentResult, AgentError>
-where
-    P: ProviderAdapter + Clone,
-    B: ApplicationBackend,
-{
-    let cache = ModelCache::new();
-    let semantic_scope =
-        selection.map(
-            |selection| scriberig_agent_runtime::context::ProjectSemanticScope {
-                project: selection
-                    .project
-                    .map_or_else(|| "unknown".to_owned(), |project| project.to_string()),
-                snapshot: selection.snapshot.to_string(),
-                root: selection.root.to_string(),
-                selection: Some(selection.entity.to_string()),
-            },
-        );
-    let scope = ChildExecutionScope {
-        session,
-        parent_branch: branch,
-        depth: 0,
-        active_branches: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-        semantic_scope: semantic_scope.clone(),
-    };
-    let mut children = LocalChildExecutor {
-        service,
-        operation: Some(operation.clone()),
-        provider: provider.clone(),
-        model: model.to_owned(),
-        provider_id: provider_id.map(str::to_owned),
-        provider_profile: None,
-        thinking_level: thinking_level.map(str::to_owned),
-        cache: cache.clone(),
-        project_store: Arc::clone(project_store),
-    };
-    let mut model_provider = ProviderModel::new(provider, model)
-        .with_optional_provider_id(provider_id.map(str::to_owned))
-        .with_thinking_level(thinking_level.map(str::to_owned))
-        .with_catalog(inspect_catalog())
-        .with_capabilities(context.capabilities.clone())
-        .with_cache(cache, CachePolicy::ReuseExact)
-        .with_cache_namespace(branch.to_string());
-    let runtime_context = selection.map_or_else(
-        || context.clone(),
-        |selection| context.clone().with_snapshot(selection.snapshot),
-    );
-    let compiled = crate::agent_context::compile_branch_context(
-        service,
-        &runtime_context,
-        session,
-        branch,
-        prompt,
-        semantic_scope,
-    )?;
-    model_provider = model_provider.with_compiled_context(compiled);
-    let mut runtime = AgentRuntime::new(
-        model_provider,
-        LocalAgentTool::new(service).with_project_store(Arc::clone(project_store)),
-        32,
-    )
-    .with_observed_operation(service.operations().clone(), operation)
-    .with_branch_id(branch.to_string());
-    let result =
-        runtime.run_with_child_executor_at(&scope, context, prompt, cancelled, &mut children);
-    if result.is_err() {
-        *model_requests_on_failure = runtime.take_captured_model_requests();
-    }
-    result
 }

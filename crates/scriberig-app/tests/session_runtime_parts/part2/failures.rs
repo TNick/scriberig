@@ -77,6 +77,7 @@ fn failed_local_child_agent_is_retained() {
 
 /// Verifies failed child execution retains its bounded model request history.
 #[test]
+#[allow(clippy::too_many_lines)] // Preserves request redaction and failure evidence.
 fn failed_local_child_agent_retains_safe_model_requests() {
     let service = ApplicationService::new(Fixture);
     let root = service
@@ -119,11 +120,14 @@ fn failed_local_child_agent_retains_safe_model_requests() {
         ],
         context_fingerprint: Some("context-fingerprint".to_owned()),
         request_fingerprint: Some("request-fingerprint".to_owned()),
+        model_execution_configuration: None,
         messages: vec![scriberig_session::ModelRequestMessage {
             role: "user".to_owned(),
             content: "child work".to_owned(),
         }],
         tools: Vec::new(),
+        applied_settings: None,
+        applied_settings_fingerprint: None,
         truncated: false,
     };
 

@@ -2,42 +2,27 @@
 
 use std::collections::BTreeMap;
 
-use rpi_ai::{Api, Model};
-use rpi_model_runtime::{ConfigValueResolver, ModelsConfig, build_catalog};
-use scriberig_agent_runtime::provider::ProviderError;
-/// Holds authoritative upstream models and native adapter connections.
+use rpi_ai::Model;
+use rpi_model_runtime::{ConfigValueResolver, ModelsConfig};
+use scriberig_agent_runtime::provider::HostConfigurationError;
+/// Holds authoritative upstream models from the configured model catalog.
 ///
 /// # Public members
-/// - Internal fields expose the upstream catalog and adapters to native
-///   composition.
+/// - `model_catalog`: Shared upstream catalog used by model resolution and providers.
 ///
 /// # Private members
 /// None.
 pub(in crate::native_tui_agent) struct ProviderCatalog {
-    /// Upstream models used for model resolution and request configuration.
-    pub(in crate::native_tui_agent) models: Vec<Model>,
-    /// Credential-free provider connections supported by the native adapter.
-    pub(in crate::native_tui_agent) connections: Vec<ProviderConnection>,
-}
-
-/// Describes one catalog provider adapter without credential material.
-///
-/// # Public members
-/// - Fields identify the provider adapter and its endpoint.
-///
-/// # Private members
-/// None.
-pub(in crate::native_tui_agent) struct ProviderConnection {
-    /// Provider-qualified model identity used by this adapter.
-    pub(in crate::native_tui_agent) id: String,
-    /// Adapter family supported by the native runtime.
-    pub(in crate::native_tui_agent) provider: String,
-    /// Resolved non-secret endpoint URL.
-    pub(in crate::native_tui_agent) base_url: String,
+    /// Shared model catalog used by application projections and providers.
+    pub(in crate::native_tui_agent) model_catalog: rpi_model_runtime::ModelCatalog,
+    /// Sanitized upstream model configuration retained for host-side settings.
+    pub(in crate::native_tui_agent) config: ModelsConfig,
+    /// Exact host-selected path when the config came from a persisted file.
+    pub(in crate::native_tui_agent) config_path: Option<std::path::PathBuf>,
 }
 
 /// Resolves literal values and environment references without running commands.
-struct EnvironmentResolver;
+pub(in crate::native_tui_agent) struct EnvironmentResolver;
 
 impl ConfigValueResolver for EnvironmentResolver {
     /// Resolves literals or `$NAME` and `${NAME}` expressions from the process.
@@ -53,36 +38,9 @@ impl ConfigValueResolver for EnvironmentResolver {
         value: &str,
         environment: Option<&BTreeMap<String, String>>,
     ) -> Option<String> {
-        if let Some(name) = value
-            .strip_prefix("${")
-            .and_then(|value| value.strip_suffix('}'))
-        {
-            return environment
-                .and_then(|values| values.get(name).cloned())
-                .or_else(|| std::env::var(name).ok());
-        }
-        if let Some(name) = value.strip_prefix('$') {
-            return environment
-                .and_then(|values| values.get(name).cloned())
-                .or_else(|| std::env::var(name).ok());
-        }
-        Some(value.to_owned())
-    }
-
-    /// Resolves values without using cached host state.
-    ///
-    /// # Parameters
-    /// - `value`: Literal or environment variable reference.
-    /// - `environment`: Optional scoped environment overlay.
-    ///
-    /// # Returns
-    /// Resolved value, or `None` when the variable is unavailable.
-    fn resolve_uncached(
-        &self,
-        value: &str,
-        environment: Option<&BTreeMap<String, String>>,
-    ) -> Option<String> {
-        self.resolve(value, environment)
+        rpi_model_runtime::resolve_environment_template(value, environment, |name| {
+            std::env::var(name).ok()
+        })
     }
 
     /// Reads one host environment variable.
@@ -125,6 +83,7 @@ fn insert_fallback_provider(config: &mut ModelsConfig, fallback_model: &str) {
                 cost: None,
                 sampling_params: None,
                 provider_options: BTreeMap::new(),
+                provider_options_schema: None,
                 input: None,
                 headers: None,
                 compat: None,
@@ -142,7 +101,7 @@ fn insert_fallback_provider(config: &mut ModelsConfig, fallback_model: &str) {
 /// `Ok(())` when the catalog contains no unsupported auth material.
 /// # Errors
 /// Returns an error when catalog auth is unsupported by the host boundary.
-fn strip_unsupported_catalog_auth(config: &mut ModelsConfig) -> Result<(), ProviderError> {
+fn strip_unsupported_catalog_auth(config: &mut ModelsConfig) -> Result<(), HostConfigurationError> {
     let has_auth = config.providers.values().any(|provider| {
         provider.api_key.is_some()
             || provider.auth_header.is_some()
@@ -168,16 +127,18 @@ fn strip_unsupported_catalog_auth(config: &mut ModelsConfig) -> Result<(), Provi
     if has_auth {
         Err(unsupported_catalog_auth_error())
     } else {
-        Ok(())
+        Ok::<(), HostConfigurationError>(())
     }
 }
 
 /// Loads upstream models from `SCRIBE_AGENT_MODEL_CATALOG`.
 ///
-/// The variable contains upstream `ModelsConfig` JSON. Only `OpenAI` Completions
-/// entries can currently be invoked by Scriberig's native provider adapter.
+/// The variable contains upstream `ModelsConfig` JSON. Models are retained
+/// when the pinned upstream runtime has a built-in provider implementation.
 ///
 /// - `fallback_model`: Model used when no provider configuration is present.
+/// - `endpoint_override`: Optional explicit legacy endpoint override for the
+///   configured fallback model.
 ///
 /// Upstream model authority and a safe display projection.
 ///
@@ -188,10 +149,17 @@ fn strip_unsupported_catalog_auth(config: &mut ModelsConfig) -> Result<(), Provi
 /// Returns an error when catalog construction or display projection fails.
 pub(in crate::native_tui_agent) fn from_environment(
     fallback_model: &str,
-) -> Result<ProviderCatalog, ProviderError> {
+    endpoint_override: Option<&str>,
+) -> Result<ProviderCatalog, HostConfigurationError> {
     let json = std::env::var("SCRIBE_AGENT_MODEL_CATALOG").ok();
-    let mut config = match json.as_deref() {
-        Some(json) => {
+    let config_path =
+        std::env::var_os("SCRIBE_AGENT_MODEL_CONFIG_PATH").map(std::path::PathBuf::from);
+    let (mut config, use_fallback) = match (config_path.as_deref(), json.as_deref()) {
+        (Some(path), _) => (
+            rpi_model_runtime::ModelsConfigFile::load(path).map_err(|_| invalid_catalog())?,
+            false,
+        ),
+        (None, Some(json)) => {
             let value =
                 serde_json::from_str::<serde_json::Value>(json).map_err(|_| invalid_catalog())?;
             if !value
@@ -200,62 +168,86 @@ pub(in crate::native_tui_agent) fn from_environment(
             {
                 return Err(invalid_catalog());
             }
-            serde_json::from_value::<ModelsConfig>(value).map_err(|_| invalid_catalog())?
+            (
+                serde_json::from_value::<ModelsConfig>(value).map_err(|_| invalid_catalog())?,
+                false,
+            )
         }
-        None => ModelsConfig::default(),
+        (None, None) => (ModelsConfig::default(), true),
     };
-    insert_fallback_provider(&mut config, fallback_model);
+    if use_fallback {
+        insert_fallback_provider(&mut config, fallback_model);
+    }
     strip_unsupported_catalog_auth(&mut config)?;
 
     let resolver = EnvironmentResolver;
-    let mut models = build_catalog(&mut config, &[], &resolver);
-    models.retain(|model| model.api == Api::OpenaiCompletions);
-    if models.is_empty() {
+    let endpoint_config = config.clone();
+    let model_catalog = rpi_model_runtime::ModelCatalog::new();
+    model_catalog.refresh_from_configuration(&mut config, &[], &resolver, |models| {
+        rpi_model_runtime::resolve_model_endpoints(models, &endpoint_config, &resolver)
+            .map_err(|_| invalid_catalog())?;
+        if let Some(endpoint) = endpoint_override {
+            apply_endpoint_override(models, fallback_model, endpoint)?;
+        }
+        for model in models {
+            model.headers = None;
+        }
+        Ok::<(), HostConfigurationError>(())
+    })?;
+    Ok(ProviderCatalog {
+        model_catalog,
+        config,
+        config_path,
+    })
+}
+
+/// Applies a host endpoint override to the configured fallback model.
+///
+/// # Parameters
+/// - `config`: Upstream provider configuration loaded for this process.
+/// - `fallback_model`: Provider-native model ID selected by fallback logic.
+/// - `endpoint`: Explicit endpoint value supplied by host configuration.
+/// - `models`: Mutable upstream models receiving the validated endpoint.
+///
+/// # Returns
+/// `Ok(())` when the endpoint is applied to exactly one model.
+///
+/// # Errors
+/// Returns a generic configuration error when the endpoint or model binding is
+/// invalid.
+fn apply_endpoint_override(
+    models: &mut [Model],
+    fallback_model: &str,
+    endpoint: &str,
+) -> Result<(), HostConfigurationError> {
+    if scriberig_secrets::validate_public_endpoint(endpoint).is_err() {
         return Err(invalid_catalog());
     }
-    for model in &mut models {
-        model.headers = None;
+    let mut matching = models
+        .iter_mut()
+        .filter(|model| model.id.eq_ignore_ascii_case(fallback_model));
+    let model = matching.next().ok_or_else(invalid_catalog)?;
+    if matching.next().is_some() {
+        return Err(invalid_catalog());
     }
-    let connections = models
-        .iter()
-        .map(|model| {
-            let provider = config
-                .providers
-                .get(&model.provider)
-                .ok_or_else(invalid_catalog)?;
-            let model_config = provider.models.iter().find(|item| item.id == model.id);
-            let base_url = model_config
-                .and_then(|item| item.base_url.as_deref())
-                .or(provider.base_url.as_deref())
-                .and_then(|value| resolver.resolve(value, None))
-                .unwrap_or_else(|| model.base_url.clone());
-            Ok(ProviderConnection {
-                id: connection_identity(&model.provider, &model.id),
-                provider: "openai_compatible".to_owned(),
-                base_url,
-            })
-        })
-        .collect::<Result<Vec<_>, ProviderError>>()?;
-    Ok(ProviderCatalog {
-        models,
-        connections,
-    })
+    endpoint.clone_into(&mut model.base_url);
+    Ok(())
 }
 
 /// Creates the same generic failure for invalid catalog data.
 ///
 /// # Returns
 /// A configuration error that contains no provider values.
-fn invalid_catalog() -> ProviderError {
-    ProviderError::Configuration("invalid upstream model catalog".to_owned())
+fn invalid_catalog() -> HostConfigurationError {
+    HostConfigurationError::Configuration("invalid upstream model catalog".to_owned())
 }
 
 /// Rejects auth configuration that cannot use Scriberig's authorized host path.
 ///
 /// # Returns
 /// A configuration error with no credential or header values.
-fn unsupported_catalog_auth_error() -> ProviderError {
-    ProviderError::Configuration(
+fn unsupported_catalog_auth_error() -> HostConfigurationError {
+    HostConfigurationError::Configuration(
         "catalog credentials and headers require Scriberig host configuration".to_owned(),
     )
 }
@@ -267,7 +259,7 @@ fn unsupported_catalog_auth_error() -> ProviderError {
 /// - `model_id`: Upstream model identity.
 ///
 /// # Returns
-/// A versioned, byte-length-prefixed identity for projections and adapter lookup.
+/// A versioned, byte-length-prefixed identity for provider/model lookup.
 pub(in crate::native_tui_agent) fn connection_identity(
     provider_id: &str,
     model_id: &str,

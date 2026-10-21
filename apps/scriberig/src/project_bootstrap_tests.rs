@@ -9,7 +9,6 @@ mod tests {
     use std::{process::Command, sync::Arc};
 
     use scriberig_agent_core::Tool;
-    use scriberig_agent_runtime::AgentMessage;
     use scriberig_app::{
         AgentCommandRequest, ApplicationBackendComposition, ApplicationContext, ApplicationService,
         BootstrapEnvironment, Capability, CapabilityAction, CapabilityConstraints,
@@ -20,7 +19,7 @@ mod tests {
 
     use crate::{
         agent_tool::LocalAgentTool, deterministic_provider::BootstrapProvider,
-        native_tui_agent::execute_agent,
+        native_scenario::NativeScenario, native_tui_agent::execute_agent,
     };
 
     /// Scans, reviews, imports, and resolves a project using agent tools only.
@@ -122,7 +121,7 @@ mod tests {
             .expect("authorized project-less operation");
         let mut model_requests_on_failure = Vec::new();
         let result = execute_agent(
-            BootstrapProvider,
+            NativeScenario::Bootstrap(BootstrapProvider),
             "deterministic-bootstrap",
             None,
             None,
@@ -143,50 +142,62 @@ mod tests {
         .expect("normal agent orchestration");
         assert!(result.output.contains("semantic root was inspected"));
         let tools = result
-            .messages
+            .tool_evidence
             .iter()
-            .filter_map(|message| match message {
-                AgentMessage::Tool(result) => Some(result),
-                _ => None,
+            .map(|evidence| {
+                serde_json::from_slice::<serde_json::Value>(&evidence.output)
+                    .expect("structured tool evidence")
             })
             .collect::<Vec<_>>();
         assert_eq!(tools.len(), 18);
-        assert!(tools[1].summary.as_ref().unwrap().contains("1210 files"));
-        let project: ProjectId = tools[1].handles[0].parse().expect("project identity");
-        let manifest_id = tools[1].handles[1].clone();
-        assert!(tools[2].summary.as_ref().unwrap().contains(&manifest_id));
+        assert!(tools[1]["summary"].as_str().unwrap().contains("1210 files"));
+        let project: ProjectId = tools[1]["handles"][0]
+            .as_str()
+            .unwrap()
+            .parse()
+            .expect("project identity");
+        let manifest_id = tools[1]["handles"][1].as_str().unwrap().to_owned();
+        assert!(tools[2]["summary"].as_str().unwrap().contains(&manifest_id));
         assert!(
-            tools[2]
-                .handles
+            tools[2]["handles"]
+                .as_array()
+                .unwrap()
                 .iter()
                 .any(|entry| entry == "next_offset:100")
         );
         assert!(
-            tools[3]
-                .summary
-                .as_ref()
+            tools[3]["summary"]
+                .as_str()
                 .unwrap()
                 .contains("page starts at 100")
         );
         assert!(
-            tools[14]
-                .summary
-                .as_ref()
+            tools[14]["summary"]
+                .as_str()
                 .unwrap()
                 .contains("page starts at 1200")
         );
         assert!(
-            tools[2]
-                .handles
+            tools[2]["handles"]
+                .as_array()
+                .unwrap()
                 .iter()
-                .any(|entry| entry.contains("Cargo.toml"))
+                .any(|entry| entry.as_str().unwrap().contains("Cargo.toml"))
         );
-        assert!(tools[15].summary.as_ref().unwrap().contains("snapshot"));
-        assert_eq!(tools[16].handles[0], project.to_string());
-        let snapshot: SnapshotId = tools[16].handles[1].parse().expect("snapshot identity");
-        let root_entity: EntityId = tools[16].handles[2].parse().expect("root identity");
-        assert_eq!(tools[17].entity, root_entity);
-        assert_eq!(tools[17].snapshot, Some(snapshot));
+        assert!(tools[15]["summary"].as_str().unwrap().contains("snapshot"));
+        assert_eq!(tools[16]["handles"][0], project.to_string());
+        let snapshot: SnapshotId = tools[16]["handles"][1]
+            .as_str()
+            .unwrap()
+            .parse()
+            .expect("snapshot identity");
+        let root_entity: EntityId = tools[16]["handles"][2]
+            .as_str()
+            .unwrap()
+            .parse()
+            .expect("root identity");
+        assert_eq!(tools[17]["entity"], root_entity.to_string());
+        assert_eq!(tools[17]["snapshot"], snapshot.to_string());
         let semantic_context = context.clone().with_snapshot(snapshot);
         let semantic_tools = LocalAgentTool::new(&service).with_project_store(Arc::clone(&store));
         let find = semantic_tools

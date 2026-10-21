@@ -29,13 +29,11 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         thinking_level: Option<&str>,
     ) -> Result<(rpi_ai::Model, rpi_ai::ThinkingLevel), ApplicationError> {
         let catalog_snapshot = self.model_catalog.snapshot();
-        let thinking = thinking_level
-            .map(|level| crate::ThinkingLevelId::new(level.to_owned()).map_err(invalid_selection))
-            .transpose()?
-            .map_or(rpi_ai::ThinkingLevel::Off, |level| {
-                rpi_ai::ThinkingLevel::parse_name(level.as_str())
-                    .expect("ThinkingLevelId uses upstream parsing")
-            });
+        let thinking = match thinking_level {
+            Some(level) => rpi_ai::ThinkingLevel::parse_name(level)
+                .ok_or_else(|| invalid_selection("thinking level id is not supported upstream"))?,
+            None => rpi_ai::ThinkingLevel::Off,
+        };
         let resolved = rpi_model_runtime::resolve_selection(
             &catalog_snapshot.models,
             &rpi_model_runtime::ModelSelection {

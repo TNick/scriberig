@@ -1,6 +1,6 @@
 //! Verifies trusted tool catalog validation before dispatch.
 
-use scriberig_agent_runtime::provider::{ToolCall, ToolDefinition};
+use rpi_ai::types::Tool;
 use scriberig_agent_runtime::tools::{
     ToolCatalog, ToolCategory, ToolDescriptor, ToolExecutionMode,
 };
@@ -13,55 +13,20 @@ use std::collections::BTreeSet;
 #[test]
 fn unknown_tool_id_is_rejected() {
     let catalog = ToolCatalog::new(vec![descriptor("inspect")]);
-    let error = catalog
-        .validate(&ToolCall {
-            id: "call-1".to_owned(),
-            name: "invented".to_owned(),
-            arguments: serde_json::json!({}),
-        })
-        .expect_err("unknown tool");
+    let error = catalog.authorize("invented").expect_err("unknown tool");
 
     assert!(error.to_string().contains("unknown trusted tool"));
-}
-
-/// Verifies required structured arguments are validated before invocation.
-#[test]
-fn required_argument_is_validated() {
-    let catalog = ToolCatalog::new(vec![descriptor("inspect")]);
-    let error = catalog
-        .validate(&ToolCall {
-            id: "call-1".to_owned(),
-            name: "inspect".to_owned(),
-            arguments: serde_json::json!({}),
-        })
-        .expect_err("missing entity");
-
-    assert!(error.to_string().contains("entity"));
-}
-
-/// Verifies delegated tools require purpose, prompt, scope, and result shape.
-#[test]
-fn delegated_tool_arguments_are_validated() {
-    let catalog = ToolCatalog::new(vec![descriptor("delegate")]);
-    let error = catalog
-        .validate(&ToolCall {
-            id: "call-1".to_owned(),
-            name: "delegate".to_owned(),
-            arguments: serde_json::json!({"purpose": "inspect"}),
-        })
-        .expect_err("missing delegated prompt");
-
-    assert!(error.to_string().contains("capabilities"));
 }
 
 /// Verifies a trusted descriptor cannot bypass the caller capability scope.
 #[test]
 fn required_capability_is_enforced_before_dispatch() {
     let catalog = ToolCatalog::new(vec![ToolDescriptor {
-        definition: ToolDefinition {
+        definition: Tool {
             name: "delegate".to_owned(),
             description: "Delegate focused work".to_owned(),
-            parameters: serde_json::json!({"type": "object"}),
+            parameters: serde_json::json!({"type": "object"}).into(),
+            constrained_sampling: None,
         },
         category: ToolCategory::BranchProducing,
         result_shape: "compact child result".to_owned(),
@@ -77,19 +42,7 @@ fn required_capability_is_enforced_before_dispatch() {
     }]);
 
     let error = catalog
-        .validate_for_context(
-            &ToolCall {
-                id: "call-1".to_owned(),
-                name: "delegate".to_owned(),
-                arguments: serde_json::json!({
-                    "purpose": "inspect",
-                    "prompt": "find it",
-                    "capabilities": ["inspect.entity"],
-                    "expected_result": "compact result"
-                }),
-            },
-            &context,
-        )
+        .authorize_for_context("delegate", &context)
         .expect_err("delegation must be denied");
 
     assert!(error.to_string().contains("agent.delegate"));
@@ -117,10 +70,11 @@ fn invocation_labels_are_bounded_and_control_free() {
 /// The operation result.
 fn descriptor(name: &str) -> ToolDescriptor {
     ToolDescriptor {
-        definition: ToolDefinition {
+        definition: Tool {
             name: name.to_owned(),
             description: "Inspect semantic state".to_owned(),
-            parameters: serde_json::json!({"type": "object"}),
+            parameters: serde_json::json!({"type": "object"}).into(),
+            constrained_sampling: None,
         },
         category: ToolCategory::SemanticRead,
         result_shape: "compact semantic result".to_owned(),

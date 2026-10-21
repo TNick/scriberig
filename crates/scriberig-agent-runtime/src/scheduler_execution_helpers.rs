@@ -179,6 +179,7 @@ pub(super) fn settle_workers(
         failed: Vec::new(),
         results: Vec::new(),
         model_request_evidence: Vec::new(),
+        tool_evidence: Vec::new(),
     };
     let mut completed = Vec::new();
     let mut failed = Vec::new();
@@ -198,6 +199,10 @@ pub(super) fn settle_workers(
                         branch,
                         requests: execution.model_requests,
                     });
+                batch.tool_evidence.push(super::WorkerToolEvidence {
+                    branch,
+                    evidence: execution.tool_evidence,
+                });
             }
             Ok(execution) if execution.result.branch == branch => {
                 batch.failed.push(node);
@@ -209,6 +214,10 @@ pub(super) fn settle_workers(
                         branch,
                         requests: execution.model_requests,
                     });
+                batch.tool_evidence.push(super::WorkerToolEvidence {
+                    branch,
+                    evidence: execution.tool_evidence,
+                });
             }
             Ok(_) => {
                 batch.failed.push(node);

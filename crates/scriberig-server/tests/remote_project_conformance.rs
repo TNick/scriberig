@@ -75,6 +75,7 @@ fn state(store: Arc<SqliteStore>, sessions: Arc<SqliteSessionStore>) -> HttpStat
         project_store: Some(store),
         allowed_project_roots: Vec::new(),
         plan_lifecycle_handler: None,
+        provider_readiness_handler: None,
     }
 }
 

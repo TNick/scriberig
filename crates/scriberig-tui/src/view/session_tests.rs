@@ -178,7 +178,7 @@ fn renders_durable_model_and_tool_activity_without_raw_tool_output() {
     assert!(model.rows.iter().any(|row| {
         row.kind == SessionRowKind::ToolInvocation && row.label.starts_with("Semantic operation:")
     }));
-    assert_durable_activity_is_safe(model, invocation_id, tool_id);
+    assert_durable_activity_is_safe(&model, invocation_id, tool_id);
 
     let mut process_session = session;
     process_session.branches[0].tool_invocations[0].category =
@@ -196,13 +196,13 @@ fn renders_durable_model_and_tool_activity_without_raw_tool_output() {
     }));
 }
 
-/// Verifies projected activity details and terminal rendering stay sanitized.
+/// Verifies projected activity details stay sanitized before presentation.
 ///
 /// - `model`: Projection built from durable execution activity.
 /// - `invocation_id`: Stable model invocation identity.
 /// - `tool_id`: Stable tool invocation identity.
 fn assert_durable_activity_is_safe(
-    model: SessionModel,
+    model: &SessionModel,
     invocation_id: EntityId,
     tool_id: EntityId,
 ) {
@@ -250,54 +250,10 @@ fn assert_durable_activity_is_safe(
     );
     assert!(model.tool_invocation_details[&tool_id].contains("[REDACTED]"));
 
-    let render_state = crate::state::TuiState {
-        primary_view: crate::selection::PrimaryView::Session,
-        session: crate::inspector::LoadState::Ready(model),
-        tool_invocation_visibility: crate::state::ToolInvocationVisibility::StructuredParameters,
-        tool_output_visibility: crate::state::ToolOutputVisibility::Full,
-        prompt_visibility: crate::state::PromptVisibility::Shown,
-        model_request_details: [(
-            invocation_id,
-            scriberig_protocol::ModelRequestDetailResponse {
-                invocation: invocation_id.to_string(),
-                model: "model-a".to_owned(),
-                provider_id: None,
-                thinking_level: Some("careful".to_owned()),
-                profile: None,
-                active_components: Vec::new(),
-                messages: vec![scriberig_protocol::ModelRequestMessageDetail {
-                    role: "user".to_owned(),
-                    content: "Safe captured request".to_owned(),
-                }],
-                tools: Vec::new(),
-                truncated: false,
-            },
-        )]
-        .into_iter()
-        .collect(),
-        ..crate::state::TuiState::default()
-    };
-    let rendered = crate::render::primary_text(&render_state);
-    assert!(rendered.contains("[REDACTED]"));
-    assert!(rendered.contains("Safe captured request"));
-    assert!(!rendered.contains("SECRET_MARKER"));
-    assert!(!rendered.contains("private_payload"));
-    for visibility in [
-        crate::state::ToolInvocationVisibility::Hidden,
-        crate::state::ToolInvocationVisibility::CompactTruncated,
-        crate::state::ToolInvocationVisibility::Full,
-        crate::state::ToolInvocationVisibility::StructuredParameters,
-    ] {
-        let mut mode_state = render_state.clone();
-        mode_state.tool_invocation_visibility = visibility;
-        let mode_render = crate::render::primary_text(&mode_state);
-        assert_eq!(mode_render, crate::render::primary_text(&mode_state));
-        assert!(!mode_render.contains("SECRET_MARKER"));
-        assert!(!mode_render.contains("private_payload"));
-        if visibility != crate::state::ToolInvocationVisibility::Hidden {
-            assert!(mode_render.contains("[REDACTED]"));
-        }
-    }
+    assert!(model.rows.iter().any(|row| row.reference == invocation_id));
+    assert!(model.tool_invocation_details[&tool_id].contains("[REDACTED]"));
+    assert!(!model.tool_invocation_details[&tool_id].contains("SECRET_MARKER"));
+    assert!(!model.tool_invocation_details[&tool_id].contains("private_payload"));
 }
 
 /// Shows current session model and thinking selection in the session header row.

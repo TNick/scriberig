@@ -74,7 +74,7 @@ describe("agent UI", () => {
         library={{
           models: [
             {
-              id: "model-a",
+              id: "rpi1:5:local6:wire-a",
               displayName: "Model A",
               providerId: "local",
               modelId: "wire-a",
@@ -97,7 +97,7 @@ describe("agent UI", () => {
               },
             },
             {
-              id: "model-b",
+              id: "rpi1:5:local6:wire-b",
               displayName: "Model B",
               providerId: "local",
               modelId: "wire-b",

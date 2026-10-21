@@ -7,7 +7,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::{event::TuiEvent, state::TuiState};
+use crate::state::TuiState;
 
 /// Owns the optional TUI diagnostic log file.
 ///
@@ -52,38 +52,6 @@ impl TuiDebugLog {
         )?;
         log.file.flush()?;
         Ok(log)
-    }
-
-    /// Records a translated terminal event and its immediate reducer effects.
-    ///
-    /// - `event`: Translated event, rendered without user text.
-    /// - `effect_count`: Number of effects returned by the reducer.
-    /// - `state`: Resulting TUI state, summarized without composer content.
-    ///
-    /// # Returns
-    /// Unit after the event has been recorded.
-    ///
-    /// # Errors
-    /// Returns an I/O error when the diagnostic destination cannot be written.
-    pub(crate) fn record_event(
-        &mut self,
-        event: &TuiEvent,
-        effect_count: usize,
-        state: &TuiState,
-    ) -> io::Result<()> {
-        let event = event_label(event);
-        writeln!(
-            self.file,
-            "time_ms={} event=terminal input={event} effects={effect_count} draft_bytes={} pending={} overlay={} model_library={} operation_error={} error_present={}",
-            timestamp_millis(),
-            state.conversation_composer.draft.len(),
-            state.conversation_composer.pending,
-            overlay_label(state),
-            model_library_label(&state.model_library),
-            operation_error_label(state),
-            state.conversation_composer.error.is_some(),
-        )?;
-        self.file.flush()
     }
 
     /// Records state after an asynchronous application result is reduced.
@@ -167,58 +135,6 @@ fn civil_date(days: i64) -> (i64, i64, i64) {
     (year, month, day)
 }
 
-/// Formats a terminal event without recording typed or pasted content.
-///
-/// - `event`: Translated terminal event to describe.
-///
-/// Content-safe event description.
-/// # Returns
-/// The operation result.
-fn event_label(event: &TuiEvent) -> String {
-    match event {
-        TuiEvent::Key(key) => format!(
-            "key:{}:ctrl={}:alt={}:shift={}",
-            key_code_label(key.code),
-            key.modifiers.control,
-            key.modifiers.alt,
-            key.modifiers.shift
-        ),
-        TuiEvent::Paste(text) => format!("paste:bytes={}", text.len()),
-        TuiEvent::Resize { width, height } => format!("resize:{width}x{height}"),
-        TuiEvent::Tick => "tick".to_owned(),
-        TuiEvent::Shutdown => "shutdown".to_owned(),
-        TuiEvent::Application(_) => "application".to_owned(),
-    }
-}
-
-/// Returns a content-safe label for a translated key code.
-///
-/// - `code`: Logical terminal key code.
-///
-/// Key name without printable character content.
-/// # Returns
-/// The operation result.
-fn key_code_label(code: crate::event::KeyCode) -> &'static str {
-    use crate::event::KeyCode;
-
-    match code {
-        KeyCode::Char(_) => "character",
-        KeyCode::Esc => "escape",
-        KeyCode::Enter => "enter",
-        KeyCode::Tab => "tab",
-        KeyCode::Backspace => "backspace",
-        KeyCode::Delete => "delete",
-        KeyCode::Home => "home",
-        KeyCode::End => "end",
-        KeyCode::Up => "up",
-        KeyCode::Down => "down",
-        KeyCode::Left => "left",
-        KeyCode::Right => "right",
-        KeyCode::Help => "help",
-        KeyCode::Other => "other",
-    }
-}
-
 /// Describes the current overlay without exposing its query text.
 ///
 /// - `state`: Current TUI state.
@@ -286,13 +202,13 @@ fn operation_error_label(state: &TuiState) -> String {
 mod tests {
     use std::{fs, path::PathBuf};
 
-    use crate::{event::TuiEvent, state::TuiState};
+    use crate::state::TuiState;
 
     use super::{TuiDebugLog, default_path, timestamp_millis};
 
     /// Verifies nested log directories are created and text content is redacted.
     #[test]
-    fn creates_log_parent_and_records_content_safe_key_diagnostics() {
+    fn creates_log_parent_and_records_content_safe_runtime_diagnostics() {
         let timestamp_path = default_path();
         let timestamp = timestamp_path
             .file_name()
@@ -307,19 +223,12 @@ mod tests {
         state.conversation_composer.error = Some("provider request failed".to_owned());
         {
             let mut log = TuiDebugLog::open(Some(&log_path)).expect("open nested log");
-            log.record_event(
-                &TuiEvent::Key(crate::event::Key {
-                    code: crate::event::KeyCode::Enter,
-                    modifiers: crate::event::Modifiers::default(),
-                }),
-                1,
-                &state,
-            )
-            .expect("record key event");
+            log.record_message("composer-submit", &state)
+                .expect("record runtime message");
         }
 
         let contents = fs::read_to_string(&log_path).expect("read log");
-        assert!(contents.contains("input=key:enter"));
+        assert!(contents.contains("event=runtime-message message=composer-submit"));
         assert!(contents.contains("draft_bytes=19"));
         assert!(contents.contains("operation_error=provider request failed"));
         assert!(!contents.contains("private prompt text"));

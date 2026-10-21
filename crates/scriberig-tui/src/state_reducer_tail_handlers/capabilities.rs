@@ -45,5 +45,8 @@ pub fn operations_loaded(
             state.operations.push(model);
         }
     }
+    if state.primary_view == crate::selection::PrimaryView::Operations {
+        crate::runtime::reconcile_semantic_row_cursor(state);
+    }
     vec![Effect::None]
 }

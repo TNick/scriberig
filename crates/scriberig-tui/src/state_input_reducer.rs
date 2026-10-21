@@ -51,10 +51,6 @@ pub(super) fn reduce_input(state: &mut TuiState, action: Action) -> Vec<Effect> 
             }
             vec![Effect::None]
         }
-        Action::ComposerCursorMoved(motion) => {
-            state.conversation_composer.move_cursor(motion);
-            vec![Effect::None]
-        }
         Action::Paste(text) => {
             if let Some(Overlay::Input(input)) = state.overlay.as_mut() {
                 input.append(&text);

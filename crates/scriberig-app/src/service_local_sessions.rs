@@ -29,6 +29,34 @@ impl<B> ApplicationService<B> {
         self.persist_model_requests(branch, model_requests);
     }
 
+    /// Records safe semantic tool calls on a coordinator-owned worker branch.
+    ///
+    /// - `self`: Application identity allocator.
+    /// - `branch`: Exact claimed worker branch receiving tool history.
+    /// - `tool_evidence`: Bounded tool inputs and outputs captured at runtime.
+    pub fn persist_plan_worker_tool_evidence(
+        &self,
+        branch: &mut Branch,
+        tool_evidence: Vec<crate::ToolExecutionEvidence>,
+    ) {
+        self.persist_execution_evidence(branch, tool_evidence, Vec::new());
+    }
+
+    /// Records ordered model and semantic tool evidence on a worker branch.
+    ///
+    /// - `self`: Application identity allocator.
+    /// - `branch`: Exact claimed worker branch receiving execution history.
+    /// - `tool_evidence`: Bounded tool inputs and outputs captured at runtime.
+    /// - `model_requests`: Bounded provider-neutral requests captured at runtime.
+    pub fn persist_plan_worker_evidence(
+        &self,
+        branch: &mut Branch,
+        tool_evidence: Vec<crate::ToolExecutionEvidence>,
+        model_requests: Vec<ModelRequestProjection>,
+    ) {
+        self.persist_execution_evidence(branch, tool_evidence, model_requests);
+    }
+
     /// Records safe model requests on a session branch before its terminal result.
     ///
     /// - `self`: Application identity allocator.
@@ -40,6 +68,21 @@ impl<B> ApplicationService<B> {
         model_requests: Vec<ModelRequestProjection>,
     ) {
         persist_execution_evidence(self, branch, Vec::new(), model_requests);
+    }
+
+    /// Persists ordered tool and model evidence on one mutable branch.
+    ///
+    /// - `self`: Application identity allocator.
+    /// - `branch`: Session branch receiving the evidence.
+    /// - `tool_evidence`: Ordered tool inputs and bounded outputs.
+    /// - `model_requests`: Ordered provider-neutral requests.
+    pub(crate) fn persist_execution_evidence(
+        &self,
+        branch: &mut Branch,
+        tool_evidence: Vec<crate::ToolExecutionEvidence>,
+        model_requests: Vec<ModelRequestProjection>,
+    ) {
+        persist_execution_evidence(self, branch, tool_evidence, model_requests);
     }
 }
 
@@ -61,7 +104,7 @@ fn persist_execution_evidence<B>(
         .chain(
             model_requests
                 .into_iter()
-                .map(|item| (item.ordinal, ExecutionEvidence::Model(item))),
+                .map(|item| (item.ordinal, ExecutionEvidence::Model(Box::new(item)))),
         )
         .collect::<Vec<_>>();
     ordered.sort_by_key(|(ordinal, _)| *ordinal);
@@ -105,7 +148,7 @@ fn persist_execution_evidence<B>(
                 branch.activity.push(ExecutionActivity::ToolResult(result));
             }
             ExecutionEvidence::Model(request) => {
-                parent_model_invocation = Some(persist_model_request(service, branch, request));
+                parent_model_invocation = Some(persist_model_request(service, branch, *request));
             }
         }
     }
@@ -151,7 +194,7 @@ fn persist_model_request<B>(
 /// Distinguishes provider requests from tool calls while preserving order.
 enum ExecutionEvidence {
     /// Safe normalized model request.
-    Model(ModelRequestProjection),
+    Model(Box<ModelRequestProjection>),
     /// Executed tool and bounded result evidence.
     Tool(crate::ToolExecutionEvidence),
 }

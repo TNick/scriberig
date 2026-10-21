@@ -2,37 +2,35 @@
 
 use super::*;
 
-/// Converts the application model rows into protocol compatibility DTOs.
+/// Converts upstream safe model snapshots into protocol DTOs.
 ///
-/// - `library`: Upstream-derived application model projection.
+/// - `models`: Upstream-owned display-safe model snapshots.
 ///
-/// Protocol model rows projected from the upstream-derived application rows.
+/// Protocol model rows projected at the client boundary.
 /// # Returns
 /// The operation result.
 pub(in crate::service) fn model_library_response(
-    library: scriberig_app::ModelLibrary,
+    models: Vec<rpi_model_runtime::SafeModelSnapshot>,
 ) -> scriberig_protocol::ModelLibraryResponse {
     scriberig_protocol::ModelLibraryResponse {
-        models: library
-            .models
+        provider_readiness: Vec::new(),
+        models: models
             .into_iter()
             .map(|model| scriberig_protocol::PublicModelDescriptor {
-                id: model.id.as_str().to_owned(),
-                display_name: model.metadata_snapshot.display_name,
-                provider_id: model.metadata_snapshot.provider_id,
-                provider_model_id: model.metadata_snapshot.model_id,
+                id: scriberig_protocol::model_row_id(&model.provider_id, &model.model_id),
+                display_name: model.display_name,
+                provider_id: model.provider_id,
+                provider_model_id: model.model_id,
                 thinking_levels: model
-                    .metadata_snapshot
                     .thinking_levels
                     .into_iter()
                     .map(|level| level.as_str().to_owned())
                     .collect(),
                 metadata_snapshot: scriberig_protocol::PublicModelMetadataSnapshot {
-                    schema_version: model.metadata_snapshot.schema_version,
-                    api_id: model.metadata_snapshot.api_id,
-                    reasoning: model.metadata_snapshot.reasoning,
+                    schema_version: model.schema_version,
+                    api_id: model.api_id,
+                    reasoning: model.reasoning,
                     input: model
-                        .metadata_snapshot
                         .input
                         .into_iter()
                         .map(|modality| match modality {
@@ -45,12 +43,11 @@ pub(in crate::service) fn model_library_response(
                         })
                         .collect(),
                     cost: scriberig_protocol::PublicModelCostSnapshot {
-                        input: model.metadata_snapshot.cost.rates.input,
-                        output: model.metadata_snapshot.cost.rates.output,
-                        cache_read: model.metadata_snapshot.cost.rates.cache_read,
-                        cache_write: model.metadata_snapshot.cost.rates.cache_write,
+                        input: model.cost.rates.input,
+                        output: model.cost.rates.output,
+                        cache_read: model.cost.rates.cache_read,
+                        cache_write: model.cost.rates.cache_write,
                         tiers: model
-                            .metadata_snapshot
                             .cost
                             .tiers
                             .into_iter()
@@ -63,9 +60,9 @@ pub(in crate::service) fn model_library_response(
                             })
                             .collect(),
                     },
-                    cost_configured: model.metadata_snapshot.cost_configured,
-                    context_window: model.metadata_snapshot.context_window,
-                    max_tokens: model.metadata_snapshot.max_tokens,
+                    cost_configured: model.cost_configured,
+                    context_window: model.context_window,
+                    max_tokens: model.max_tokens,
                 },
             })
             .collect(),

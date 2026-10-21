@@ -294,7 +294,7 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
             })
     }
 
-    /// Projects the application's safe model library into public protocol DTOs.
+    /// Projects upstream safe model snapshots into public protocol DTOs.
     ///
     /// - `context`: Caller authorization context.
     ///
@@ -309,8 +309,8 @@ impl<S: QueryService + SessionBackend + AgentConsoleBackend> TuiService for Appl
         &self,
         context: &ApplicationContext,
     ) -> Result<scriberig_protocol::ModelLibraryResponse, ApplicationError> {
-        let library = self.service.agent_model_library(context)?;
-        Ok(model_library_response(library))
+        let models = self.service.agent_model_library(context)?;
+        Ok(model_library_response(models))
     }
 
     /// Updates future model selection through the shared application service.

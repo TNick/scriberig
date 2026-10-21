@@ -1,90 +1,10 @@
 //! Verifies bounded child runtime tools and capability delegation.
 
-use super::{compile_child_context, inspect_catalog};
-use scriberig_agent_runtime::context::ProjectSemanticScope;
-use scriberig_agent_runtime::{ChildExecutionScope, ChildRequest};
+use super::inspect_catalog;
 use scriberig_app::{
     Capability, CapabilityAction, CapabilityConstraints, CapabilityContext, CapabilityId,
     CapabilityScope,
 };
-use scriberig_core::EntityId;
-
-#[path = "child_runtime_tests/nested.rs"]
-mod nested;
-
-/// Verifies children without project scope still receive profile guidance.
-#[test]
-fn child_without_project_scope_gets_core_and_handoff_context() {
-    let child_branch = EntityId::from_bytes([71; 16]);
-    let parent_branch = EntityId::from_bytes([72; 16]);
-    let scope = ChildExecutionScope {
-        session: EntityId::from_bytes([73; 16]),
-        parent_branch,
-        depth: 1,
-        active_branches: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-        semantic_scope: None,
-    };
-    let request = ChildRequest {
-        purpose: "inspect child path".to_owned(),
-        prompt: "inspect the code".to_owned(),
-        capabilities: Vec::new(),
-        expected_result: "compact findings".to_owned(),
-    };
-
-    let compiled = compile_child_context(&scope, child_branch, &request);
-
-    assert!(
-        compiled
-            .canonical
-            .contains("scriberig.context-component.core-invariants@")
-    );
-    assert!(
-        compiled
-            .canonical
-            .contains("scriberig.context-component.non-root-handoff@")
-    );
-    assert!(!compiled.canonical.contains("semantic_project_scope"));
-}
-
-/// Verifies a scoped child keeps its exact project selection and handoff.
-#[test]
-fn child_with_project_scope_keeps_exact_scope_and_handoff_context() {
-    let scope = ChildExecutionScope {
-        session: EntityId::from_bytes([81; 16]),
-        parent_branch: EntityId::from_bytes([82; 16]),
-        depth: 2,
-        active_branches: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-        semantic_scope: Some(ProjectSemanticScope {
-            project: "project-exact".to_owned(),
-            snapshot: "snapshot-exact".to_owned(),
-            root: "root-exact".to_owned(),
-            selection: Some("entity-exact".to_owned()),
-        }),
-    };
-    let request = ChildRequest {
-        purpose: "inspect scoped child path".to_owned(),
-        prompt: "inspect selected code".to_owned(),
-        capabilities: Vec::new(),
-        expected_result: "compact findings".to_owned(),
-    };
-
-    let compiled = compile_child_context(&scope, EntityId::from_bytes([83; 16]), &request);
-
-    assert!(compiled.canonical.contains("project=project-exact"));
-    assert!(compiled.canonical.contains("snapshot=snapshot-exact"));
-    assert!(compiled.canonical.contains("root=root-exact"));
-    assert!(compiled.canonical.contains("selection=entity-exact"));
-    assert!(
-        compiled
-            .canonical
-            .contains("scriberig.context-component.core-invariants@")
-    );
-    assert!(
-        compiled
-            .canonical
-            .contains("scriberig.context-component.non-root-handoff@")
-    );
-}
 
 /// Verifies project recovery tools are exposed to provider runtimes.
 #[test]
@@ -110,7 +30,7 @@ fn catalog_exposes_project_recovery_operations() {
         .find(|definition| definition.name == "project_import")
         .expect("project import descriptor");
     assert_eq!(
-        import.parameters["required"],
+        import.parameters.0["required"],
         serde_json::json!(["project", "manifest_id"])
     );
 }
@@ -143,7 +63,7 @@ fn catalog_exposes_locked_dependency_acquisition() {
         .expect("dependency acquisition descriptor");
     assert!(descriptor.state_changing);
     assert_eq!(
-        descriptor.definition.parameters["required"],
+        descriptor.definition.parameters.0["required"],
         serde_json::json!(["candidate"])
     );
 }
@@ -166,11 +86,11 @@ fn catalog_exposes_installed_semantic_operation_entrypoint() {
         scriberig_agent_runtime::tools::ToolCategory::SemanticMutation
     );
     assert_eq!(
-        descriptor.definition.parameters["required"],
+        descriptor.definition.parameters.0["required"],
         serde_json::json!(["capability", "entity", "snapshot"])
     );
     assert_eq!(
-        descriptor.definition.parameters["properties"]["arguments"]["additionalProperties"]["x-sensitive"],
+        descriptor.definition.parameters.0["properties"]["arguments"]["additionalProperties"]["x-sensitive"],
         true
     );
     let ordered = inspect_catalog()

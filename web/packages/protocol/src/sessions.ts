@@ -225,6 +225,10 @@ export interface ModelRequestDetailResponse {
   activeComponents?: readonly ModelContextRevisionReference[];
   messages: readonly ModelRequestMessageDetail[];
   tools: readonly ModelRequestToolDetail[];
+  /** Opaque provider-owned safe report of settings applied to the request. */
+  appliedSettings?: unknown;
+  /** Versioned digest of the applied-settings report, when captured. */
+  appliedSettingsFingerprint?: string;
   truncated: boolean;
 }
 /** Expanded safe detail for one durable tool result. */

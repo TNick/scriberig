@@ -1,5 +1,6 @@
 //! Defines the durable outcome of one concurrent plan worker batch.
 
+use scriberig_app::ToolExecutionEvidence;
 use scriberig_core::EntityId;
 use scriberig_session::BranchResult;
 
@@ -19,6 +20,8 @@ pub struct PlanWorkerExecutionResult {
     pub result: BranchResult,
     /// Bounded model requests captured during execution.
     pub model_requests: Vec<scriberig_session::ModelRequestProjection>,
+    /// Safe semantic tool calls and bounded results produced by this branch.
+    pub tool_evidence: Vec<ToolExecutionEvidence>,
 }
 
 /// Summarizes one concurrent claimed-worker batch.
@@ -32,4 +35,15 @@ pub struct WorkerBatchResult {
     pub results: Vec<BranchResult>,
     /// Safe model requests to persist on their exact worker branches.
     pub model_request_evidence: Vec<WorkerModelRequestEvidence>,
+    /// Safe semantic tool evidence to persist on exact worker branches.
+    pub tool_evidence: Vec<WorkerToolEvidence>,
+}
+
+/// Holds tool evidence produced by one exact plan worker branch.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorkerToolEvidence {
+    /// Claimed branch that owns these tool calls.
+    pub branch: EntityId,
+    /// Bounded semantic tool evidence captured during execution.
+    pub evidence: Vec<ToolExecutionEvidence>,
 }

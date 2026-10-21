@@ -362,19 +362,25 @@ impl PlanWorkerExecutor for CandidateWorkers<'_> {
                 model: execution.model_id.clone(),
                 provider_id: Some(execution.provider_id.clone()),
                 provider_profile: None,
-                thinking_level: execution.thinking_level.clone(),
+                thinking_level: execution
+                    .thinking_level
+                    .map(|level| level.as_str().to_owned()),
                 profile: None,
                 active_components: Vec::new(),
                 context_fingerprint: None,
                 request_fingerprint: None,
+                model_execution_configuration: None,
                 messages: Vec::new(),
                 tools: Vec::new(),
+                applied_settings: None,
+                applied_settings_fingerprint: None,
                 truncated: false,
             }]
         };
         Ok(PlanWorkerExecutionResult {
             result,
             model_requests,
+            tool_evidence: Vec::new(),
         })
     }
 }

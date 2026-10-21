@@ -12,5 +12,7 @@ pub use context_component::{
     ContextComponentRevisionRef,
 };
 pub use inspect::InspectTool;
-pub use profile::{AgentProfileDescriptor, AgentProfileRevisionRef};
+pub use profile::{
+    AgentProfileDescriptor, AgentProfileExecutionPreference, AgentProfileRevisionRef,
+};
 pub use tool::{Tool, ToolDetail, ToolError, ToolInput, ToolResult};

@@ -8,20 +8,19 @@ use scriberig_core::{EntityId, SnapshotId};
 pub mod action;
 mod debug_log;
 pub mod effect;
-pub mod event;
+#[cfg(test)]
+mod event;
 pub mod explorer;
 pub mod inspector;
-pub mod keymap;
-pub mod layout;
+#[cfg(test)]
+mod keymap;
 pub mod navigation;
 pub mod overlay;
-pub mod render;
 pub mod runtime;
 pub mod selection;
 pub mod service;
 pub mod slash_commands;
 pub mod state;
-pub mod terminal;
 pub mod view;
 
 /// Configures the first application-backed TUI shell.
@@ -39,7 +38,7 @@ pub mod view;
 /// None.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct TuiConfig {
-    /// Runs a line-oriented interactive shell when true.
+    /// Runs the upstream interactive terminal UI when true.
     pub interactive: bool,
     /// Writes content-redacted runtime diagnostics under `playground/tui-logs`.
     pub debug: bool,

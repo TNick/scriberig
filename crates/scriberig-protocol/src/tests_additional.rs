@@ -35,6 +35,8 @@ pub(super) fn model_contracts_round_trip() {
             description: "Inspect an entity".to_owned(),
             parameters: Some("{}".to_owned()),
         }],
+        applied_settings: None,
+        applied_settings_fingerprint: None,
         truncated: false,
     });
     let legacy_detail: ModelRequestDetailResponse = serde_json::from_value(serde_json::json!({
@@ -66,8 +68,9 @@ pub(super) fn model_contracts_round_trip() {
         thinking_level: "extended".to_owned(),
     });
     round_trip(&ModelLibraryResponse {
+        provider_readiness: Vec::new(),
         models: vec![PublicModelDescriptor {
-            id: "model-1".to_owned(),
+            id: model_row_id("provider-1", "provider-model-1"),
             display_name: "Safe Model Name".to_owned(),
             provider_id: "provider-1".to_owned(),
             provider_model_id: "provider-model-1".to_owned(),

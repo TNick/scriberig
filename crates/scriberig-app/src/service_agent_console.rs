@@ -38,26 +38,14 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
     fn agent_model_library(
         &self,
         context: &ApplicationContext,
-    ) -> Result<crate::ModelLibrary, ApplicationError> {
+    ) -> Result<Vec<rpi_model_runtime::SafeModelSnapshot>, ApplicationError> {
         authorize_model_library_read(context)?;
         let catalog_snapshot = self.model_catalog.snapshot();
-        let models = catalog_snapshot
+        Ok(catalog_snapshot
             .models
             .iter()
-            .map(|upstream| {
-                let safe_snapshot = rpi_model_runtime::safe_model_snapshot(upstream);
-                let id = crate::ModelId::new(model_projection_id(
-                    &safe_snapshot.provider_id,
-                    &safe_snapshot.model_id,
-                ))
-                .map_err(invalid_selection)?;
-                Ok(crate::ModelDescriptor {
-                    id,
-                    metadata_snapshot: safe_snapshot,
-                })
-            })
-            .collect::<Result<Vec<_>, ApplicationError>>()?;
-        Ok(crate::ModelLibrary { models })
+            .map(rpi_model_runtime::safe_model_snapshot)
+            .collect())
     }
 
     /// Reads shared user presentation defaults without touching session state.
@@ -233,8 +221,8 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
             .model_id
             .as_deref()
             .ok_or_else(|| invalid_selection("select a model first"))?;
-        let requested = crate::ThinkingLevelId::new(request.thinking_level.clone())
-            .map_err(invalid_selection)?;
+        let requested = rpi_ai::ThinkingLevel::parse_name(&request.thinking_level)
+            .ok_or_else(|| invalid_selection("thinking level id is not supported upstream"))?;
         let (model, effective) =
             self.resolve_upstream_model(provider_id, model_id, Some(requested.as_str()))?;
         let effective = effective.as_str().to_owned();
@@ -322,24 +310,6 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
             self, context, session, branch, invocation,
         )
     }
-}
-
-/// Creates a collision-free display identity for one provider/model pair.
-///
-/// - `provider`: Exact upstream provider identity.
-/// - `model`: Exact provider-scoped upstream model identity.
-///
-/// A stable Scriberig compatibility-row identity.
-/// # Returns
-/// The length-prefixed pair identity.
-fn model_projection_id(provider: &str, model: &str) -> String {
-    format!(
-        "rpi1:{}:{}{}:{}",
-        provider.len(),
-        provider,
-        model.len(),
-        model
-    )
 }
 
 /// Creates an empty session for selection before the first agent message.

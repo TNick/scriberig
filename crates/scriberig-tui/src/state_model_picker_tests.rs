@@ -74,6 +74,7 @@ fn picker_state(selection: Option<(&str, &str)>) -> TuiState {
 /// Two safe model rows with distinct provider and thinking-level identities.
 fn model_library() -> scriberig_protocol::ModelLibraryResponse {
     scriberig_protocol::ModelLibraryResponse {
+        provider_readiness: Vec::new(),
         models: vec![
             scriberig_protocol::PublicModelDescriptor {
                 id: "model-a".to_owned(),

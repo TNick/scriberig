@@ -3,38 +3,6 @@ use super::*;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
-/// Creates a safe upstream model metadata fixture.
-///
-/// # Returns
-/// A stable metadata fixture containing only safe display fields.
-fn model_metadata_snapshot() -> PublicModelMetadataSnapshot {
-    PublicModelMetadataSnapshot {
-        schema_version: "rpi-safe-model-snapshot-v1".to_owned(),
-        api_id: "anthropic-messages".to_owned(),
-        reasoning: true,
-        input: vec![
-            PublicModelInputModality::Text,
-            PublicModelInputModality::Image,
-        ],
-        cost: PublicModelCostSnapshot {
-            input: 3.0,
-            output: 15.0,
-            cache_read: 0.3,
-            cache_write: 3.75,
-            tiers: vec![PublicModelCostTierSnapshot {
-                input: 2.0,
-                output: 10.0,
-                cache_read: 0.2,
-                cache_write: 2.5,
-                input_tokens_above: 100_000,
-            }],
-        },
-        cost_configured: true,
-        context_window: 200_000,
-        max_tokens: 8_192,
-    }
-}
-
 /// Verifies a value survives JSON encoding without semantic loss.
 fn round_trip<T>(value: &T)
 where
@@ -43,54 +11,6 @@ where
     let encoded = serde_json::to_string(value).expect("serialize protocol value");
     let decoded: T = serde_json::from_str(&encoded).expect("deserialize protocol value");
     assert_eq!(decoded, *value);
-}
-
-/// Verifies model display DTOs omit request secrets and excluded metadata.
-#[test]
-fn model_snapshot_dto_contains_only_safe_display_metadata() {
-    let descriptor = PublicModelDescriptor {
-        id: "model-a".to_owned(),
-        display_name: "Model A".to_owned(),
-        provider_id: "provider-a".to_owned(),
-        provider_model_id: "wire-model-a".to_owned(),
-        thinking_levels: vec!["extended".to_owned()],
-        metadata_snapshot: model_metadata_snapshot(),
-    };
-    let serialized = serde_json::to_value(descriptor).expect("serialize safe model row");
-    let metadata = &serialized["metadata_snapshot"];
-
-    assert_eq!(serialized["id"], "model-a");
-    assert_eq!(serialized["provider_id"], "provider-a");
-    assert_eq!(serialized["provider_model_id"], "wire-model-a");
-    assert_eq!(
-        serialized["thinking_levels"],
-        serde_json::json!(["extended"])
-    );
-    assert!(serialized.get("providerId").is_none());
-    assert!(serialized.get("providerModelId").is_none());
-    assert_eq!(metadata["schema_version"], "rpi-safe-model-snapshot-v1");
-    assert_eq!(metadata["reasoning"], true);
-    assert_eq!(
-        metadata["cost"]["tiers"],
-        serde_json::json!([{
-            "input": 2.0,
-            "output": 10.0,
-            "cache_read": 0.2,
-            "cache_write": 2.5,
-            "input_tokens_above": 100_000,
-        }])
-    );
-    for excluded in [
-        "endpoint",
-        "base_url",
-        "headers",
-        "sampling_parameters",
-        "provider_options",
-        "compatibility",
-        "excluded_execution_fields",
-    ] {
-        assert!(metadata.get(excluded).is_none(), "unexpected {excluded}");
-    }
 }
 
 /// Verifies the shared recursive session and dependency fixture round trips.
@@ -375,3 +295,6 @@ fn session_plan_contracts_round_trip() {
 
 #[path = "tests_additional.rs"]
 mod tests_additional;
+#[path = "tests_models.rs"]
+mod tests_models;
+use tests_models::model_metadata_snapshot;

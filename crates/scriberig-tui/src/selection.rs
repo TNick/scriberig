@@ -13,6 +13,39 @@ pub struct EntitySelection {
     pub snapshot: Option<SnapshotId>,
 }
 
+/// Identifies a selectable semantic row independently of its current position.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SemanticRowIdentity {
+    /// Root or child row in the semantic explorer.
+    Explorer {
+        /// Semantic entity represented by the row.
+        entity: EntityId,
+        /// Exact revision represented by the row.
+        revision: Option<RevisionId>,
+        /// Exact snapshot represented by the row.
+        snapshot: Option<SnapshotId>,
+        /// Whether the row is the explorer root.
+        root: bool,
+    },
+    /// Immutable migration in semantic history.
+    History(String),
+    /// Entity result in a snapshot-bound semantic search.
+    Find(EntityId, SnapshotId),
+    /// Entity transition in an explicitly bounded diff.
+    Diff(EntityId, SnapshotId, SnapshotId),
+    /// Shared application operation.
+    Operation(scriberig_core::OperationId),
+}
+
+/// Identifies one durable plan or plan node independently of list position.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PlanSelection {
+    /// Durable plan identity.
+    pub plan: EntityId,
+    /// Durable node identity, or `None` when the plan header is selected.
+    pub node: Option<EntityId>,
+}
+
 /// A stable public reference used by a future semantic selection.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SemanticReference(pub String);
@@ -40,6 +73,8 @@ pub enum PrimaryView {
     Session,
     /// Long-running operation observation.
     Operations,
+    /// Durable plan structure and its separate dependency graph.
+    Plan,
 }
 
 /// Explicit context needed to interpret a presentation location.

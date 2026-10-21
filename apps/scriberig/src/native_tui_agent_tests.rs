@@ -2,11 +2,7 @@
 
 use std::sync::Arc;
 
-use scriberig_agent_runtime::model_provider::ProviderModel;
-use scriberig_agent_runtime::provider::{
-    FakeProvider, FinishReason, ModelResponse, ProviderMetadata,
-};
-use scriberig_agent_runtime::{AgentMessage, ModelProvider};
+use rpi_ai::providers::faux::FauxScript;
 use scriberig_app::{
     AgentCommandRequest, ApplicationBackendComposition, ApplicationContext, ApplicationService,
     CapabilityContext, CapabilityId, PlanCreateRequest, PlanLifecycleAction, PlanLifecycleRequest,
@@ -26,9 +22,7 @@ use scriberig_tui::{
     state::{TuiState, reduce},
 };
 
-use super::{
-    NativeProvider, NativeTuiAgentRunner, model_catalog_from_models, previous_workspace_selection,
-};
+use super::{NativeScenario, NativeTuiAgentRunner, previous_workspace_selection};
 use crate::native_tui_agent::model_selection::resolve_selected_runtime_model;
 
 /// Builds the upstream catalog used by native fake-provider fixtures.
@@ -37,6 +31,21 @@ use crate::native_tui_agent::model_selection::resolve_selected_runtime_model;
 /// A local provider model matching the fake runtime fallback.
 fn native_test_upstream_models() -> Vec<rpi_ai::Model> {
     plan::upstream_model_catalog("local", &["fake-model"])
+}
+
+/// Builds a shared upstream model catalog for deterministic provider fixtures.
+///
+/// # Parameters
+/// - `models`: Provider-qualified models retained by the fixture.
+///
+/// # Returns
+/// A live model catalog containing every supplied provider row.
+pub(super) fn model_catalog_from_models(
+    models: Vec<rpi_ai::Model>,
+) -> rpi_model_runtime::ModelCatalog {
+    let catalog = rpi_model_runtime::ModelCatalog::new();
+    catalog.reconcile_models(models);
+    catalog
 }
 
 /// Runs the first typed message through the composed TUI and fake provider.
@@ -59,23 +68,20 @@ fn first_conversation_message_runs_and_persists_fake_provider_answer() {
     let service = ApplicationService::new(backend)
         .with_session_store(session_repository)
         .with_upstream_models(native_test_upstream_models());
-    let provider =
-        scriberig_agent_runtime::provider::FakeProvider::from_responses([Ok(ModelResponse {
-            text: Some("Welcome to the project.".to_owned()),
-            tool_calls: Vec::new(),
-            finish_reason: FinishReason::Stop,
-            usage: None,
-            metadata: ProviderMetadata::default(),
-        })]);
+    let provider = FauxScript::new().with_text("Welcome to the project.");
     let runner = NativeTuiAgentRunner {
         providers: std::collections::BTreeMap::from([(
             "local".to_owned(),
-            NativeProvider::Fake(provider.clone()),
+            NativeScenario::Faux(provider.clone()),
         )]),
         model: "fake-model".to_owned(),
+        upstream_credentials: None,
+        upstream_enabled: false,
         model_catalog: model_catalog_from_models(native_test_upstream_models()),
+        model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
+        continuations: std::sync::Mutex::default(),
     };
     let adapter = ApplicationOperationAdapter::new(service).with_agent_runner(runner);
     let context = ApplicationContext {
@@ -146,7 +152,8 @@ fn first_conversation_message_runs_and_persists_fake_provider_answer() {
         "Welcome to the project."
     );
     assert!(state.conversation.is_some());
-    assert_eq!(provider.requests().len(), 1);
+    assert_eq!(root_branch.model_invocations.len(), 1);
+    assert!(root_branch.model_invocations[0].request.is_some());
     drop(adapter);
     drop(session_store);
     drop(project_store);

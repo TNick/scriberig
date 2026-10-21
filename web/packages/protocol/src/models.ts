@@ -7,7 +7,7 @@ export interface ModelCostSnapshot {
   output: number;
   cacheRead: number;
   cacheWrite: number;
-  tiers?: readonly ModelCostTierSnapshot[];
+  tiers: readonly ModelCostTierSnapshot[];
 }
 /** One upstream pricing tier. */
 export interface ModelCostTierSnapshot {
@@ -19,7 +19,7 @@ export interface ModelCostTierSnapshot {
 }
 /** Display-safe fields from the versioned upstream model snapshot. */
 export interface ModelMetadataSnapshot {
-  schemaVersion: string;
+  schemaVersion: "rpi-safe-model-snapshot-v1";
   apiId: string;
   reasoning: boolean;
   input: readonly ModelInputModality[];
@@ -28,18 +28,30 @@ export interface ModelMetadataSnapshot {
   contextWindow: number;
   maxTokens: number;
 }
-/** Provider model descriptor without resolved credential values. */
+/** Provider model descriptor without resolved credential values.
+ * `id` is the Rust `rpi1` UTF-8 length-prefixed provider/model row key.
+ */
 export interface ModelDescriptor {
   id: string;
   displayName: string;
   providerId: string;
   modelId: string;
   thinkingLevels: readonly string[];
-  metadataSnapshot?: ModelMetadataSnapshot;
+  metadataSnapshot: ModelMetadataSnapshot;
+}
+/** Safe provider credential readiness reported by the host. */
+export type ProviderCredentialReadiness =
+  "not_required" | "available" | "missing" | "denied" | "unsupported" | "catalog_header";
+/** Readiness for one provider/model endpoint without credential material. */
+export interface ProviderReadiness {
+  providerId: string;
+  modelId: string;
+  credential: ProviderCredentialReadiness;
 }
 /** Credential-safe upstream-derived model display rows. */
 export interface ModelLibraryResponse {
   models: readonly ModelDescriptor[];
+  providerReadiness?: readonly ProviderReadiness[];
 }
 /** Session model mutation with its independent optimistic revision. */
 export interface SessionModelSelectionRequest {

@@ -84,11 +84,14 @@ fn durable_detail_reads_do_not_reexecute_tools_or_models() {
                 }],
                 context_fingerprint: None,
                 request_fingerprint: None,
+                model_execution_configuration: None,
                 messages: vec![scriberig_session::ModelRequestMessage {
                     role: "user".to_owned(),
                     content: "inspect safely".to_owned(),
                 }],
                 tools: Vec::new(),
+                applied_settings: None,
+                applied_settings_fingerprint: None,
                 truncated: false,
             }],
         )

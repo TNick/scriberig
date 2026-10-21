@@ -105,6 +105,8 @@ pub(super) fn model_request_response(
                 parameters: tool.parameters,
             })
             .collect(),
+        applied_settings: detail.applied_settings,
+        applied_settings_fingerprint: detail.applied_settings_fingerprint,
         truncated: detail.truncated,
     }
 }

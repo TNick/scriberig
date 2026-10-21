@@ -311,7 +311,7 @@ fn invocation_override_wins_over_node_assignment() {
     .expect("invocation override");
     assert_eq!(resolved.provider_id, "local");
     assert_eq!(resolved.model_id, "wire-alpha");
-    assert_eq!(resolved.thinking_level.as_deref(), Some("high"));
+    assert_eq!(resolved.thinking_level, Some(ThinkingLevel::High));
 }
 
 #[path = "resolution_tests/fallback.rs"]

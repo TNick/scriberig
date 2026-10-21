@@ -28,6 +28,8 @@ fn reads_model_request_detail_through_protocol_client() {
             active_components: Vec::new(),
             messages: Vec::new(),
             tools: Vec::new(),
+            applied_settings: None,
+            applied_settings_fingerprint: None,
             truncated: false,
         }),
         request: Arc::clone(&observed),

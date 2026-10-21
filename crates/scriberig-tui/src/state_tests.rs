@@ -1,6 +1,6 @@
 //! Tests the module's deterministic behavior.
 
-use super::{Focus, TuiState, reduce};
+use super::{TuiState, reduce};
 use crate::action::{Action, Direction};
 use crate::effect::Effect;
 use crate::event::{Key, KeyCode, Modifiers, TuiEvent};
@@ -15,18 +15,6 @@ fn default_state_opens_conversation_home() {
     assert_eq!(TuiState::default().primary_view, PrimaryView::Conversation);
 }
 
-/// Verifies resize events update only terminal presentation state.
-#[test]
-fn resize_updates_state() {
-    let mut state = TuiState::default();
-    state.apply_event(&TuiEvent::Resize {
-        width: 72,
-        height: 24,
-    });
-    assert_eq!(state.terminal_size, (72, 24));
-    assert!(!state.should_quit);
-}
-
 /// Verifies ordinary conversation typing is not treated as a quit command.
 #[test]
 fn printable_q_edits_conversation_draft() {
@@ -39,18 +27,14 @@ fn printable_q_edits_conversation_draft() {
     assert_eq!(state.conversation_composer.draft, "q");
 }
 
-/// Verifies the upstream-backed editor inserts at a Unicode-aware cursor.
+/// Verifies composer draft updates preserve the semantic reply target.
 #[test]
-fn conversation_editor_moves_and_deletes_without_changing_reply_target() {
+fn conversation_draft_updates_without_changing_reply_target() {
     let mut state = TuiState::default();
     reduce(&mut state, Action::InputChanged("a界b".to_owned()));
-    reduce(
-        &mut state,
-        Action::ComposerCursorMoved(scriberig_tui_kit::CursorMotion::Left),
-    );
     reduce(&mut state, Action::InputChanged("x".to_owned()));
 
-    assert_eq!(state.conversation_composer.draft, "a界xb");
+    assert_eq!(state.conversation_composer.draft, "a界bx");
     assert_eq!(
         state.conversation_composer.target,
         super::ConversationTarget::NewSession
@@ -81,13 +65,10 @@ fn control_c_sets_quit_flag() {
     assert!(state.should_quit);
 }
 
-/// Verifies the global quit chord also works while Explorer owns focus.
+/// Verifies the global quit chord works independently of semantic view state.
 #[test]
-fn control_c_quits_from_explorer_focus() {
-    let mut state = TuiState {
-        focus: Focus::Explorer,
-        ..TuiState::default()
-    };
+fn control_c_quits_from_the_active_view() {
+    let mut state = TuiState::default();
     state.apply_event(&TuiEvent::Key(Key {
         code: KeyCode::Char('\u{3}'),
         modifiers: Modifiers::default(),
@@ -106,22 +87,6 @@ fn input_consumes_printable_keys() {
     }));
     assert_eq!(state.input_text(), Some("q"));
     assert!(!state.should_quit);
-}
-
-/// Verifies focus cycles without changing semantic history.
-#[test]
-fn focus_cycles_independently_of_navigation() {
-    let mut state = TuiState::default();
-    let history = state.navigation.clone();
-    reduce(&mut state, Action::FocusNext);
-    assert_eq!(state.focus, Focus::Inspector);
-    reduce(&mut state, Action::FocusNext);
-    assert_eq!(state.focus, Focus::Explorer);
-    reduce(&mut state, Action::FocusNext);
-    assert_eq!(state.focus, Focus::Primary);
-    reduce(&mut state, Action::FocusPrevious);
-    assert_eq!(state.focus, Focus::Explorer);
-    assert_eq!(state.navigation, history);
 }
 
 /// Verifies overlays own input and close without changing navigation.
@@ -290,7 +255,6 @@ fn history_row_activation_inspects_historical_entity() {
     let entity = EntityId::from_bytes([9; 16]);
     let snapshot = SnapshotId::new([3; 32]);
     let mut state = TuiState {
-        focus: Focus::Primary,
         primary_view: PrimaryView::History,
         history: crate::inspector::LoadState::Ready(HistoryModel {
             snapshot,

@@ -53,7 +53,7 @@ describe("session client projections", () => {
           return {
             models: [
               {
-                id: "model-a",
+                id: "rpi1:10:provider-a12:wire-model-a",
                 display_name: "Model A",
                 provider_id: "provider-a",
                 provider_model_id: "wire-model-a",
@@ -84,7 +84,7 @@ describe("session client projections", () => {
                 },
               },
               {
-                id: "model-b",
+                id: "rpi1:10:provider-b12:wire-model-b",
                 display_name: "Model B",
                 provider_id: "provider-b",
                 provider_model_id: "wire-model-b",
@@ -107,6 +107,13 @@ describe("session client projections", () => {
                 },
               },
             ],
+            provider_readiness: [
+              {
+                provider_id: "provider-a",
+                model_id: "wire-model-a",
+                credential: "available",
+              },
+            ],
           } as T;
         }
         return {
@@ -121,11 +128,18 @@ describe("session client projections", () => {
     const client = new ScriberigClient(transport);
 
     const library = await client.getModelLibrary();
-    expect(library.models[0]?.id).toBe("model-a");
+    expect(library.models[0]?.id).toBe("rpi1:10:provider-a12:wire-model-a");
     expect(library.models[0]?.providerId).toBe("provider-a");
     expect(library.models[0]?.metadataSnapshot?.reasoning).toBe(true);
     expect(library.models[0]?.metadataSnapshot?.input).toEqual(["text", "image"]);
     expect(library.models[0]?.modelId).toBe("wire-model-a");
+    expect(library.providerReadiness).toEqual([
+      {
+        providerId: "provider-a",
+        modelId: "wire-model-a",
+        credential: "available",
+      },
+    ]);
     expect(library.models[0]?.thinkingLevels).toEqual(["extended", "off", "high"]);
     expect(
       library.models.every((model) =>
@@ -187,7 +201,7 @@ describe("session client projections", () => {
     const library = normalizeModelLibrary({
       models: [
         {
-          id: "model-a",
+          id: "rpi1:10:provider-a12:wire-model-a",
           display_name: "Model A",
           provider_id: "provider-a",
           provider_model_id: "wire-model-a",
@@ -198,6 +212,21 @@ describe("session client projections", () => {
           },
           thinking_levels: ["extended"],
           default_thinking_level: "extended",
+          metadata_snapshot: {
+            schema_version: "rpi-safe-model-snapshot-v1",
+            api_id: "openai-completions",
+            reasoning: true,
+            input: ["text"],
+            cost: {
+              input: 1,
+              output: 2,
+              cache_read: 0,
+              cache_write: 0,
+            },
+            cost_configured: true,
+            context_window: 8192,
+            max_tokens: 2048,
+          },
         },
       ],
       profiles: [
@@ -214,14 +243,106 @@ describe("session client projections", () => {
 
     expect(library.models).toEqual([
       {
-        id: "model-a",
+        id: "rpi1:10:provider-a12:wire-model-a",
         displayName: "Model A",
         providerId: "provider-a",
         modelId: "wire-model-a",
         thinkingLevels: ["extended"],
+        metadataSnapshot: {
+          schemaVersion: "rpi-safe-model-snapshot-v1",
+          apiId: "openai-completions",
+          reasoning: true,
+          input: ["text"],
+          cost: {
+            input: 1,
+            output: 2,
+            cacheRead: 0,
+            cacheWrite: 0,
+            tiers: [],
+          },
+          costConfigured: true,
+          contextWindow: 8192,
+          maxTokens: 2048,
+        },
       },
     ]);
-    expect(library.models[0]?.metadataSnapshot).toBeUndefined();
     expect(library).not.toHaveProperty("profiles");
+    expect(() =>
+      normalizeModelLibrary({
+        models: [
+          {
+            id: "wrong-row-id",
+            display_name: "Model A",
+            provider_id: "provider-a",
+            provider_model_id: "wire-model-a",
+            thinking_levels: [],
+            metadata_snapshot: {
+              schema_version: "rpi-safe-model-snapshot-v1",
+              api_id: "openai-completions",
+              reasoning: true,
+              input: ["text"],
+              cost: { input: 0, output: 0, cache_read: 0, cache_write: 0 },
+              cost_configured: true,
+              context_window: 8192,
+              max_tokens: 2048,
+            },
+          },
+        ],
+      }),
+    ).toThrow("model row id does not match provider/model identity");
+    expect(() =>
+      normalizeModelLibrary({
+        models: [
+          {
+            id: "rpi1:5:p😀1:m",
+            display_name: "Unicode model",
+            provider_id: "p😀",
+            provider_model_id: "m",
+            thinking_levels: [],
+            metadata_snapshot: {
+              schema_version: "rpi-safe-model-snapshot-v1",
+              api_id: "openai-completions",
+              reasoning: true,
+              input: ["text"],
+              cost: { input: 0, output: 0, cache_read: 0, cache_write: 0 },
+              cost_configured: true,
+              context_window: 8192,
+              max_tokens: 2048,
+            },
+          },
+        ],
+      }),
+    ).not.toThrow();
+    expect(() =>
+      normalizeModelLibrary({
+        models: [
+          {
+            id: "rpi1:10:provider-a12:wire-model-a",
+            display_name: "Model A",
+            provider_id: "provider-a",
+            provider_model_id: "wire-model-a",
+            thinking_levels: [],
+            metadata_snapshot: {
+              schema_version: "rpi-safe-model-snapshot-v2",
+              cost: {},
+            },
+          },
+        ],
+      }),
+    ).toThrow("unsupported model metadata schema version");
+    expect(() =>
+      normalizeModelLibrary({
+        models: [
+          {
+            id: "model-a",
+            display_name: "Model A",
+            provider_profile: "retired-profile",
+            provider_model_id: "wire-model-a",
+            thinking_levels: [],
+            metadata_snapshot: {},
+          },
+        ],
+      }),
+    ).toThrow("provider id is required");
   });
 });

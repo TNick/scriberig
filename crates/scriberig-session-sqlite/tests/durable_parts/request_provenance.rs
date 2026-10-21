@@ -37,11 +37,14 @@ fn model_request_provenance_survives_reopen() {
         active_components: active_components.clone(),
         context_fingerprint: Some("context-fingerprint-51".to_owned()),
         request_fingerprint: Some("request-fingerprint-52".to_owned()),
+        model_execution_configuration: None,
         messages: vec![ModelRequestMessage {
             role: "user".to_owned(),
             content: "Review the bounded request.".to_owned(),
         }],
         tools: Vec::new(),
+        applied_settings: None,
+        applied_settings_fingerprint: None,
         truncated: false,
     };
     let mut branch = Branch::new(branch_id, "root").expect("root branch");

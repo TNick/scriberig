@@ -47,11 +47,11 @@ pub struct ToolResultDetail {
 
 /// Owns model-library reads and session-scoped execution selection.
 pub trait AgentConsoleBackend {
-    /// Lists safe model descriptors and curated profiles.
+    /// Lists upstream safe model snapshots for an authorized caller.
     ///
     /// - `context`: Authorized application request context.
     ///
-    /// The configured safe model library.
+    /// Safe rows projected by the upstream model-runtime crate.
     ///
     /// Returns a permission or configuration failure.
     /// # Returns
@@ -61,7 +61,7 @@ pub trait AgentConsoleBackend {
     fn agent_model_library(
         &self,
         context: &crate::ApplicationContext,
-    ) -> Result<crate::ModelLibrary, crate::ApplicationError>;
+    ) -> Result<Vec<rpi_model_runtime::SafeModelSnapshot>, crate::ApplicationError>;
 
     /// Reads the caller's shared presentation defaults.
     ///

@@ -175,6 +175,7 @@ fn assign_command_targets_only_the_selected_plan_node() {
         )),
         model_library: crate::inspector::LoadState::Ready(
             scriberig_protocol::ModelLibraryResponse {
+                provider_readiness: Vec::new(),
                 models: vec![scriberig_protocol::PublicModelDescriptor {
                     id: "model-small".to_owned(),
                     display_name: "CPU model".to_owned(),

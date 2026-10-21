@@ -287,13 +287,35 @@ pub struct ModelRequestProjection {
     /// Secret-free identity of compiled `ScribeRig` context.
     #[serde(default)]
     pub context_fingerprint: Option<String>,
-    /// Secret-free fingerprint of normalized request and selection inputs.
+    /// Secret-free fingerprint of normalized request inputs, upstream model
+    /// configuration, and any validated applied-settings report received.
+    ///
+    /// The applied report may be partial; this digest identifies captured
+    /// provenance and does not prove provider-request equivalence.
     #[serde(default)]
     pub request_fingerprint: Option<String>,
+    /// Upstream-defined partial execution configuration snapshot for the model.
+    ///
+    /// This is historical provenance only. Inspect upstream coverage metadata
+    /// before treating it as an execution-equivalence claim.
+    #[serde(default)]
+    pub model_execution_configuration: Option<serde_json::Value>,
     /// Ordered message sections sent to the provider adapter.
     pub messages: Vec<ModelRequestMessage>,
     /// Tool definitions exposed to the provider adapter.
     pub tools: Vec<ModelRequestTool>,
+    /// Safe upstream report of settings applied to the final provider request.
+    ///
+    /// The opaque JSON snapshot stays upstream-defined; `ScribeRig` stores it
+    /// only as historical execution provenance.
+    #[serde(default)]
+    pub applied_settings: Option<serde_json::Value>,
+    /// Versioned digest of the upstream applied-settings report, when received.
+    ///
+    /// This fingerprints only the attested partial report. It does not prove a
+    /// complete effective request because omitted categories remain excluded.
+    #[serde(default)]
+    pub applied_settings_fingerprint: Option<String>,
     /// Whether any content was omitted to preserve the projection budget.
     pub truncated: bool,
 }

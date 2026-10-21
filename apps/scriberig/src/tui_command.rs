@@ -179,6 +179,7 @@ pub(super) fn run(
             granted: [
                 "inspect.entity",
                 "agent_model_library",
+                "agent_model_config_edit",
                 "session_model_selection",
                 "session_management",
             ]

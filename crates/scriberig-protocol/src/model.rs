@@ -3,6 +3,28 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+/// Creates a collision-free presentation id for one provider/model pair.
+///
+/// The provider and model ids remain the authoritative selection fields. This
+/// encoded value exists only for consumers that require a single row key.
+///
+/// # Parameters
+/// - `provider_id`: Exact upstream provider identity.
+/// - `model_id`: Provider-scoped upstream model identity.
+///
+/// # Returns
+/// A versioned `rpi1` id using each identity's UTF-8 byte length.
+#[must_use]
+pub fn model_row_id(provider_id: &str, model_id: &str) -> String {
+    format!(
+        "rpi1:{}:{}{}:{}",
+        provider_id.len(),
+        provider_id,
+        model_id.len(),
+        model_id
+    )
+}
+
 /// Identifies an upstream model input modality safe for public display.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -68,12 +90,11 @@ pub struct ModelMetadataSnapshot {
 /// Describes a provider model without resolved credentials.
 #[derive(Clone, Debug, Deserialize, JsonSchema, PartialEq, Serialize)]
 pub struct ModelDescriptor {
-    /// Stable Scriberig model id.
+    /// Stable `rpi1` presentation row id; provider/model fields are authoritative.
     pub id: String,
     /// Safe human-readable model name.
     pub display_name: String,
     /// Upstream provider id scoped to this model.
-    #[serde(alias = "provider_profile")]
     pub provider_id: String,
     /// Provider-native model id needed to explain historical invocations.
     pub provider_model_id: String,
@@ -83,9 +104,41 @@ pub struct ModelDescriptor {
     pub metadata_snapshot: ModelMetadataSnapshot,
 }
 
+/// Reports credential readiness without exposing credential source values.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProviderCredentialReadiness {
+    /// The upstream provider declaration allows unauthenticated requests.
+    NotRequired,
+    /// A host-authorized credential is available for the configured endpoint.
+    Available,
+    /// No usable credential is configured for this provider.
+    Missing,
+    /// Host authorization denied or failed to resolve the configured secret.
+    Denied,
+    /// The configured credential source is not supported by this host path.
+    Unsupported,
+    /// Upstream catalog configuration supplies an authentication header.
+    CatalogHeader,
+}
+
+/// Associates a provider identity with its safe credential readiness state.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct ProviderReadiness {
+    /// Upstream provider identity.
+    pub provider_id: String,
+    /// Provider-native model identity whose endpoint was checked.
+    pub model_id: String,
+    /// Safe credential status derived from upstream and host authorization.
+    pub credential: ProviderCredentialReadiness,
+}
+
 /// Returns safe model rows projected from the upstream catalog.
 #[derive(Clone, Debug, Default, Deserialize, JsonSchema, PartialEq, Serialize)]
 pub struct ModelLibraryResponse {
     /// Safe upstream-derived model display rows.
     pub models: Vec<ModelDescriptor>,
+    /// Credential readiness by provider, when supplied by the host runtime.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub provider_readiness: Vec<ProviderReadiness>,
 }

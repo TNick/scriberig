@@ -27,7 +27,8 @@ pub use model::{
     ModelCostSnapshot as PublicModelCostSnapshot,
     ModelCostTierSnapshot as PublicModelCostTierSnapshot, ModelDescriptor as PublicModelDescriptor,
     ModelInputModality as PublicModelInputModality, ModelLibraryResponse,
-    ModelMetadataSnapshot as PublicModelMetadataSnapshot,
+    ModelMetadataSnapshot as PublicModelMetadataSnapshot, ProviderCredentialReadiness,
+    ProviderReadiness, model_row_id,
 };
 pub use operation::{Operation, OperationProgress, OperationStatus};
 pub use presentation::{

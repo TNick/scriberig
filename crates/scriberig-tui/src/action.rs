@@ -19,10 +19,6 @@ pub enum Action {
     QuitRequested,
     /// Close the active overlay, if any.
     OverlayClosed,
-    /// Move focus to the next visible pane.
-    FocusNext,
-    /// Move focus to the previous visible pane.
-    FocusPrevious,
     /// Move a local cursor.
     CursorMoved(Direction),
     /// Activate the focused row or overlay item.
@@ -45,8 +41,6 @@ pub enum Action {
     ProjectionOpened,
     /// Update the active text input.
     InputChanged(String),
-    /// Moves the active conversation editor cursor.
-    ComposerCursorMoved(scriberig_tui_kit::CursorMotion),
     /// Submit the active text input.
     InputSubmitted,
     /// Applies an accepted conversation submission with authoritative handles.
@@ -59,13 +53,6 @@ pub enum Action {
     ConversationFollowCoordinator,
     /// Expands or collapses the currently selected branch in the local tree.
     ConversationToggleExpansion,
-    /// Record a terminal resize.
-    TerminalResized {
-        /// New terminal width in columns.
-        width: u16,
-        /// New terminal height in rows.
-        height: u16,
-    },
     /// Insert one paste payload into the active input.
     Paste(String),
     /// Activate a concrete semantic location.

@@ -37,6 +37,7 @@ pub(super) fn dispatch<S: ApplicationService + 'static>(
             )
         });
     }
+    let is_model_library = matches!(&request, scriberig_protocol::Request::ModelLibrary(_));
     let lifecycle_handler = state.plan_lifecycle_handler.as_ref().map(|handler| {
         let handler = std::sync::Arc::clone(handler);
         std::sync::Arc::new(
@@ -48,7 +49,7 @@ pub(super) fn dispatch<S: ApplicationService + 'static>(
             },
         ) as std::sync::Arc<crate::http::PlanLifecycleHandler<&S>>
     });
-    let response = Dispatcher::for_principal(&state.service, state.principal.clone())
+    let mut response = Dispatcher::for_principal(&state.service, state.principal.clone())
         .dispatch_with_plan_lifecycle(
             scriberig_protocol::RequestEnvelope {
                 version: scriberig_protocol::ProtocolVersion::default(),
@@ -57,6 +58,22 @@ pub(super) fn dispatch<S: ApplicationService + 'static>(
             },
             lifecycle_handler.as_deref(),
         );
+    if is_model_library
+        && let (Some(handler), scriberig_protocol::Response::ModelLibrary(library)) = (
+            state.provider_readiness_handler.as_ref(),
+            &mut response.response,
+        )
+    {
+        let model_ids = library
+            .models
+            .iter()
+            .map(|model| (model.provider_id.as_str(), model.provider_model_id.as_str()))
+            .collect::<std::collections::BTreeSet<_>>();
+        library.provider_readiness = handler()
+            .into_iter()
+            .filter(|row| model_ids.contains(&(row.provider_id.as_str(), row.model_id.as_str())))
+            .collect();
+    }
     serde_json::to_value(response).map_err(|error| {
         (
             500,
