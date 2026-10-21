@@ -68,15 +68,10 @@ fn session_slash_view_returns_to_conversation() {
 
     reduce(&mut state, Action::InputSubmitted);
     assert_eq!(state.primary_view, crate::selection::PrimaryView::Session);
-    let escape = crate::keymap::action_for(
-        &state,
-        &crate::event::Key {
-            code: crate::event::KeyCode::Esc,
-            modifiers: crate::event::Modifiers::default(),
-        },
-    )
-    .expect("escape returns to conversation");
-    reduce(&mut state, escape);
+    reduce(
+        &mut state,
+        Action::ViewSelected(crate::selection::PrimaryView::Conversation),
+    );
 
     assert_eq!(
         state.primary_view,
@@ -109,12 +104,10 @@ fn explorer_slash_command_lists_the_selected_snapshot() {
         continuation: None,
         ..
     }] if *actual_entity == entity && *actual_snapshot == snapshot));
-    let escape = crate::event::Key {
-        code: crate::event::KeyCode::Esc,
-        modifiers: crate::event::Modifiers::default(),
-    };
-    let action = crate::keymap::action_for(&state, &escape).expect("view escape action");
-    reduce(&mut state, action);
+    reduce(
+        &mut state,
+        Action::ViewSelected(crate::selection::PrimaryView::Conversation),
+    );
     assert_eq!(
         state.primary_view,
         crate::selection::PrimaryView::Conversation
@@ -182,12 +175,10 @@ fn auxiliary_slash_views_open_and_return_to_conversation() {
         );
         assert_eq!(state.primary_view, expected_view, "{command}");
         assert!(!effects.is_empty(), "{command}");
-        let escape = crate::event::Key {
-            code: crate::event::KeyCode::Esc,
-            modifiers: crate::event::Modifiers::default(),
-        };
-        let action = crate::keymap::action_for(&state, &escape).expect("view escape action");
-        reduce(&mut state, action);
+        reduce(
+            &mut state,
+            Action::ViewSelected(crate::selection::PrimaryView::Conversation),
+        );
         assert_eq!(
             state.primary_view,
             crate::selection::PrimaryView::Conversation

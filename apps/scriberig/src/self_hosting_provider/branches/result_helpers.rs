@@ -1,6 +1,6 @@
 //! Reads stable branch and validation results from normalized tool records.
 
-use scriberig_agent_runtime::provider::HostConfigurationError;
+use scriberig_agent_runtime::host_configuration::HostConfigurationError;
 
 use super::super::malformed;
 

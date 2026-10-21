@@ -1,6 +1,6 @@
 //! Resolves the native agent provider from trusted process configuration.
 
-use scriberig_agent_runtime::provider::HostConfigurationError;
+use scriberig_agent_runtime::host_configuration::HostConfigurationError;
 
 use crate::native_scenario::NativeScenario;
 use crate::self_hosting_provider::{CancellationPhase, ValidationMode};

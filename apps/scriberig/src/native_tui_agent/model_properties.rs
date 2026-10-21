@@ -1,7 +1,7 @@
 //! Exposes and persists provider-declared properties from upstream model rows.
 
 use rpi_model_runtime::ModelsConfig;
-use scriberig_agent_runtime::provider::HostConfigurationError;
+use scriberig_agent_runtime::host_configuration::HostConfigurationError;
 
 use super::NativeTuiAgentRunner;
 

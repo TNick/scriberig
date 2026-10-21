@@ -4,8 +4,6 @@ mod behavior;
 
 use std::collections::{BTreeSet, HashSet};
 
-#[cfg(test)]
-use crate::event::TuiEvent;
 use crate::{
     action::Action,
     effect::Effect,

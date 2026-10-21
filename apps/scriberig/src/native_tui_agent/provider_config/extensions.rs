@@ -1,6 +1,6 @@
 //! Rejects native extensions until execution has a capability-scoped process boundary.
 
-use scriberig_agent_runtime::provider::HostConfigurationError;
+use scriberig_agent_runtime::host_configuration::HostConfigurationError;
 
 /// Rejects extension paths that would load third-party native code in-process.
 ///

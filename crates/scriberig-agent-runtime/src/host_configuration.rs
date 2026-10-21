@@ -1,4 +1,4 @@
-//! Defines ScribeRig-owned host configuration diagnostics.
+//! Defines host configuration and scenario diagnostics.
 
 use std::fmt;
 

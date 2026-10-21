@@ -2,8 +2,7 @@
 
 use std::io;
 
-use crossterm::event::{KeyCode, KeyModifiers};
-use rpi_tui::{KeyCombo, KeybindingDefinition, KeybindingId, Keybindings};
+use rpi_tui::{KeyCode, KeyCombo, KeyModifiers, KeybindingDefinition, KeybindingId, Keybindings};
 
 const PREFIX: &str = "scriberig.";
 

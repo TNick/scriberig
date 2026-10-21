@@ -12,7 +12,7 @@ use super::{
     malformed, parse_handles, semantic_entity, tool_call, tool_messages,
 };
 use rpi_ai::{AssistantMessage, Context, Model};
-use scriberig_agent_runtime::provider::HostConfigurationError;
+use scriberig_agent_runtime::host_configuration::HostConfigurationError;
 use serde_json::json;
 
 /// Advances the parent through capability discovery and two bounded child branches.

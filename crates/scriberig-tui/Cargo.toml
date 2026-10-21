@@ -8,7 +8,6 @@ description = "Terminal UI adapter over shared Scriberig application operations.
 repository.workspace = true
 
 [dependencies]
-crossterm = "0.27"
 serde_json = "1.0"
 rpi-tui = { workspace = true }
 scriberig-agent-core = { path = "../scriberig-agent-core" }

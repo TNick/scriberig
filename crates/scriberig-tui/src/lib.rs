@@ -8,12 +8,8 @@ use scriberig_core::{EntityId, SnapshotId};
 pub mod action;
 mod debug_log;
 pub mod effect;
-#[cfg(test)]
-mod event;
 pub mod explorer;
 pub mod inspector;
-#[cfg(test)]
-mod keymap;
 pub mod navigation;
 pub mod overlay;
 pub mod runtime;

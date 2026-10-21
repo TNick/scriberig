@@ -3,7 +3,6 @@
 use super::{TuiState, reduce};
 use crate::action::{Action, Direction};
 use crate::effect::Effect;
-use crate::event::{Key, KeyCode, Modifiers, TuiEvent};
 use crate::overlay::{Overlay, palette::PaletteState};
 use crate::selection::PrimaryView;
 use crate::view::history::{HistoryModel, HistoryRow};
@@ -15,14 +14,11 @@ fn default_state_opens_conversation_home() {
     assert_eq!(TuiState::default().primary_view, PrimaryView::Conversation);
 }
 
-/// Verifies ordinary conversation typing is not treated as a quit command.
+/// Verifies printable input edits the conversation draft instead of quitting.
 #[test]
 fn printable_q_edits_conversation_draft() {
     let mut state = TuiState::default();
-    state.apply_event(&TuiEvent::Key(Key {
-        code: KeyCode::Char('q'),
-        modifiers: Modifiers::default(),
-    }));
+    reduce(&mut state, Action::InputChanged("q".to_owned()));
     assert!(!state.should_quit);
     assert_eq!(state.conversation_composer.draft, "q");
 }
@@ -51,28 +47,22 @@ fn conversation_editor_sanitizes_pasted_control_sequences() {
     assert!(!state.conversation_composer.draft.contains('\u{1b}'));
 }
 
-/// Verifies the control-C quit chord stops the runtime.
+/// Verifies the quit action stops the runtime.
 #[test]
-fn control_c_sets_quit_flag() {
+fn quit_action_sets_quit_flag() {
     let mut state = TuiState::default();
-    state.apply_event(&TuiEvent::Key(Key {
-        code: KeyCode::Char('c'),
-        modifiers: Modifiers {
-            control: true,
-            ..Modifiers::default()
-        },
-    }));
+    reduce(&mut state, Action::QuitRequested);
     assert!(state.should_quit);
 }
 
-/// Verifies the global quit chord works independently of semantic view state.
+/// Verifies quitting is independent of the active semantic view.
 #[test]
-fn control_c_quits_from_the_active_view() {
-    let mut state = TuiState::default();
-    state.apply_event(&TuiEvent::Key(Key {
-        code: KeyCode::Char('\u{3}'),
-        modifiers: Modifiers::default(),
-    }));
+fn quit_action_is_global_across_views() {
+    let mut state = TuiState {
+        primary_view: PrimaryView::Session,
+        ..TuiState::default()
+    };
+    reduce(&mut state, Action::QuitRequested);
     assert!(state.should_quit);
 }
 
@@ -81,10 +71,7 @@ fn control_c_quits_from_the_active_view() {
 fn input_consumes_printable_keys() {
     let mut state = TuiState::default();
     reduce(&mut state, Action::FindOpened);
-    state.apply_event(&TuiEvent::Key(Key {
-        code: KeyCode::Char('q'),
-        modifiers: Modifiers::default(),
-    }));
+    reduce(&mut state, Action::InputChanged("q".to_owned()));
     assert_eq!(state.input_text(), Some("q"));
     assert!(!state.should_quit);
 }

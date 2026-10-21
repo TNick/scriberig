@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use rpi_ai::Model;
 use rpi_model_runtime::{ConfigValueResolver, ModelsConfig};
-use scriberig_agent_runtime::provider::HostConfigurationError;
+use scriberig_agent_runtime::host_configuration::HostConfigurationError;
 /// Holds authoritative upstream models from the configured model catalog.
 ///
 /// # Public members

@@ -4,11 +4,11 @@ use scriberig_core::EntityId;
 
 pub mod context;
 pub mod coordinator;
+pub mod host_configuration;
 pub mod orchestration;
 pub mod plan_context;
 pub mod profile;
 pub mod protected_credential;
-pub mod provider;
 pub mod scheduler;
 pub mod tools;
 pub mod upstream_invocation;

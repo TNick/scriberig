@@ -1,7 +1,7 @@
 //! Tests the effective upstream provider API through host credential policy.
 
 use rpi_ai::{Context, Message, Model, SimpleStreamOptions, StopReason, UserMessage};
-use scriberig_agent_runtime::provider::HostConfigurationError;
+use scriberig_agent_runtime::host_configuration::HostConfigurationError;
 
 #[derive(Debug)]
 /// Describes a safe failure while checking the configured upstream provider.

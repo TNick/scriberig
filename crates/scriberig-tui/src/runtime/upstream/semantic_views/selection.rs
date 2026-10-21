@@ -63,7 +63,12 @@ pub(super) fn list_from_state(state: &TuiState) -> Option<(SelectList, Vec<Selec
     let rows = rows_for_state(state)?;
     let items = rows
         .iter()
-        .map(|row| SelectItem::new(&row.id, &row.label).with_description(&row.description))
+        .map(|row| {
+            let search_text = format!("{} {}", row.label, row.description);
+            SelectItem::new(&row.id, &row.label)
+                .with_description(&row.description)
+                .with_search_text(&search_text)
+        })
         .collect();
     let list = SelectList::new(items, super::common::MAX_ROWS.min(16));
     let selected = state

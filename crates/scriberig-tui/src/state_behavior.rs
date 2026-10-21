@@ -1,7 +1,5 @@
-//! Implements presentation state defaults and local event behavior.
+//! Implements presentation state defaults and application-event reduction.
 
-#[cfg(test)]
-use super::{Action, TuiEvent, reduce};
 use super::{
     ConnectionState, ConversationComposerState, ConversationTarget, Effect, ExplorerModel, HashSet,
     LoadState, NavigationState, Overlay, PresentationControl, PromptVisibility,
@@ -132,30 +130,6 @@ impl TuiState {
         event: &scriberig_app::ApplicationEvent,
     ) -> Vec<Effect> {
         reduce_application_event(self, event)
-    }
-
-    /// Applies a test-only legacy terminal event to presentation state.
-    #[cfg(test)]
-    /// - `event`: Argument named `event`.
-    ///
-    /// # Returns
-    /// The operation result.
-    pub fn apply_event(&mut self, event: &TuiEvent) -> Vec<Effect> {
-        match event {
-            TuiEvent::Key(key) => {
-                if let Some(action) = crate::keymap::action_for(self, key) {
-                    return reduce(self, action);
-                }
-            }
-            TuiEvent::Resize { .. } => return Vec::new(),
-            TuiEvent::Shutdown => return reduce(self, Action::QuitRequested),
-            TuiEvent::Paste(text) => {
-                return reduce(self, Action::Paste(text.clone()));
-            }
-            TuiEvent::Application(event) => return reduce_application_event(self, event),
-            TuiEvent::Tick => {}
-        }
-        Vec::new()
     }
 
     /// Reports whether a text input currently owns keyboard focus.

@@ -81,11 +81,10 @@ fn refresh_reissues_selected_inspection() {
 fn application_operation_event_immediately_exposes_running_state() {
     let mut state = TuiState::default();
     let operation = scriberig_core::OperationId::new("running").expect("operation id");
-    let effects = state.apply_event(&crate::event::TuiEvent::Application(
-        scriberig_app::ApplicationEvent::OperationStarted {
+    let effects =
+        state.apply_application_event(&scriberig_app::ApplicationEvent::OperationStarted {
             operation: operation.clone(),
-        },
-    ));
+        });
     assert_eq!(state.operations[0].id, operation);
     assert_eq!(
         state.operations[0].status,

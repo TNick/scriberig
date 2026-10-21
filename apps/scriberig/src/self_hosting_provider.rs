@@ -1,7 +1,7 @@
 //! Scripts a provider-neutral PHP self-extension scenario for product gates.
 
 use rpi_ai::{AssistantMessage, Context, Model};
-use scriberig_agent_runtime::provider::HostConfigurationError;
+use scriberig_agent_runtime::host_configuration::HostConfigurationError;
 use serde_json::{Value, json};
 
 use crate::deterministic_provider::{BootstrapProvider, parse_handles};

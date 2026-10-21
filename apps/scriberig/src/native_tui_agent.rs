@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use rpi_ai::{Model, Provider, RequestSecret};
-use scriberig_agent_runtime::provider::HostConfigurationError;
+use scriberig_agent_runtime::host_configuration::HostConfigurationError;
 use scriberig_app::{
     AgentSelection, ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService,
     SessionBackend, SessionRequest,
