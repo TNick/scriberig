@@ -6,6 +6,7 @@ import type {
   BranchDescriptor,
   Operation,
   SessionReadResponse,
+  SessionPlan,
   SessionExecutionSelection,
   ModelLibraryResponse,
 } from "@scriberig/protocol";
@@ -32,6 +33,8 @@ export interface AgentWorkspaceState {
   stale: boolean;
   /** Current session model and thinking selection for future invocations. */
   execution: SessionExecutionSelection;
+  /** Durable plans and their exact dependency results for this session. */
+  plans: readonly SessionPlan[];
   /** Public model descriptors loaded from the shared client API. */
   modelLibrary?: ModelLibraryResponse;
   /** Client-local display choices that never alter session execution. */
@@ -172,6 +175,7 @@ export function createAgentWorkspaceState(): AgentWorkspaceState {
     eventCursor: 0,
     stale: false,
     execution: { revision: 0 },
+    plans: [],
     presentation: createAgentPresentationPreferences(),
     sharedPresentation: {},
     localPresentation: {},
@@ -253,7 +257,7 @@ export function storeAgentSession(
             result: {
               branchId: branch.id,
               resultId: branch.result.id,
-              handles: branch.result.references,
+              handles: [...branch.result.references, ...branch.result.resultHandles],
             },
           }),
     };
@@ -324,6 +328,7 @@ export function storeAgentSession(
     ...state,
     branches,
     execution: session.execution,
+    plans: session.plans,
     selectionActivities,
     stale: false,
   };

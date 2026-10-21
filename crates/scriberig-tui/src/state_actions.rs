@@ -174,16 +174,17 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
         return vec![Effect::None];
     };
     let filtered = palette.filtered();
-    let Some(item) = filtered.get(palette.selected) else {
+    let selector = palette.selector(filtered.len().max(1));
+    let Some(selected_id) = selector.selected_id() else {
         return vec![Effect::None];
     };
-    if item.id == "review-candidate" {
+    if selected_id == "review-candidate" {
         return refresh_candidate_review(state);
     }
-    if let Some(effects) = activate_palette_control(state, &item.id) {
+    if let Some(effects) = activate_palette_control(state, selected_id) {
         return effects;
     }
-    let action = match item.id.as_str() {
+    let action = match selected_id {
         "help" => Action::HelpOpened,
         "refresh" => Action::RefreshRequested,
         "back" => Action::Back,

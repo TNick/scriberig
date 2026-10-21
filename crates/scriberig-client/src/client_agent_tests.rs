@@ -62,8 +62,8 @@ fn selection_methods_preserve_mutation_revisions() {
     let client = Client::new(FixtureTransport {
         response: Response::SessionExecution(SessionExecutionSelection {
             revision: 4,
-            model_profile: Some("profile-a".to_owned()),
-            model: Some("model-a".to_owned()),
+            provider_id: Some("provider-a".to_owned()),
+            model_id: Some("model-a".to_owned()),
             thinking_level: Some("careful".to_owned()),
             history: Vec::new(),
         }),
@@ -71,7 +71,7 @@ fn selection_methods_preserve_mutation_revisions() {
     });
 
     let selection = client
-        .set_session_model("session-a", 3, "profile-a")
+        .set_session_model("session-a", 3, "provider-a", "model-a")
         .expect("selection response");
 
     assert_eq!(selection.revision, 4);
@@ -83,7 +83,8 @@ fn selection_methods_preserve_mutation_revisions() {
                     id: "session-a".to_owned(),
                 },
                 expected_revision: 3,
-                model_profile: "profile-a".to_owned(),
+                provider_id: "provider-a".to_owned(),
+                model_id: "model-a".to_owned(),
             }
         ))
     );

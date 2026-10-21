@@ -65,6 +65,7 @@ impl ApplicationBackend for Backend {
                 validation: None,
                 validation_profile: None,
                 validation_diagnostics: Vec::new(),
+                review_details: Vec::new(),
                 conflicts: Vec::new(),
             }));
         }
@@ -80,6 +81,7 @@ impl ApplicationBackend for Backend {
                 validation: None,
                 validation_profile: None,
                 validation_diagnostics: Vec::new(),
+                review_details: Vec::new(),
                 conflicts: Vec::new(),
             }));
         }
@@ -225,10 +227,8 @@ fn expired_event_cursor_is_structured() {
         .expect_err("expired cursor");
     assert!(matches!(
         error,
-        ClientError::Protocol(scriberig_protocol::ProtocolError {
-            code: scriberig_protocol::ProtocolErrorCode::CursorTooOld,
-            ..
-        })
+        ClientError::Protocol(error)
+            if error.code == scriberig_protocol::ProtocolErrorCode::CursorTooOld
     ));
 }
 

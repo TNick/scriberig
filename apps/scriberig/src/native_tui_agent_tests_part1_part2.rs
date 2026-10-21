@@ -6,7 +6,7 @@ use super::*;
 #[test]
 fn native_runtime_model_resolution_uses_fallback_without_selection() {
     let resolved = resolve_selected_runtime_model(
-        &ModelLibrary::default(),
+        &running_invocation_upstream_models(),
         &SessionExecutionSelection::default(),
         "runtime-default",
     )
@@ -21,16 +21,16 @@ fn native_runtime_model_resolution_uses_fallback_without_selection() {
 /// Keeps an active invocation's resolved settings after session selection changes.
 #[test]
 fn running_invocation_keeps_its_model_and_thinking_snapshot() {
-    let library = running_invocation_test_library();
     let active_selection = SessionExecutionSelection {
         revision: 1,
-        model_profile: Some("profile-a".to_owned()),
-        model: Some("model-a".to_owned()),
+        provider_id: Some("local".to_owned()),
+        model_id: Some("wire-a".to_owned()),
         thinking_level: Some("medium".to_owned()),
         history: Vec::new(),
     };
+    let upstream_models = running_invocation_upstream_models();
     let active_invocation =
-        resolve_selected_runtime_model(&library, &active_selection, "runtime-default")
+        resolve_selected_runtime_model(&upstream_models, &active_selection, "runtime-default")
             .expect("resolve active invocation");
     let provider = FakeProvider::from_responses([
         Ok(ModelResponse {
@@ -52,13 +52,13 @@ fn running_invocation_keeps_its_model_and_thinking_snapshot() {
         .with_thinking_level(active_invocation.1.clone());
     let next_selection = SessionExecutionSelection {
         revision: 2,
-        model_profile: Some("profile-b".to_owned()),
-        model: Some("model-b".to_owned()),
+        provider_id: Some("local".to_owned()),
+        model_id: Some("wire-b".to_owned()),
         thinking_level: Some("high".to_owned()),
         history: Vec::new(),
     };
     let next_invocation =
-        resolve_selected_runtime_model(&library, &next_selection, "runtime-default")
+        resolve_selected_runtime_model(&upstream_models, &next_selection, "runtime-default")
             .expect("resolve next invocation");
     active_model
         .decide(&[AgentMessage::User("active prompt".to_owned())])
@@ -97,64 +97,35 @@ fn running_invocation_keeps_its_model_and_thinking_snapshot() {
     );
 }
 
-/// Builds two models with distinct advertised thinking levels for snapshot tests.
+/// Creates upstream models for the invocation snapshot fixture.
 ///
-/// A valid local model library with two enabled profiles.
+/// The two model configurations selected by the fixture.
 /// # Returns
 /// The operation result.
-fn running_invocation_test_library() -> ModelLibrary {
-    let model_a = ModelDescriptor {
-        id: ModelId::new("model-a").expect("model id"),
-        display_name: "Model A".to_owned(),
-        provider_profile: "local".to_owned(),
-        provider_model_id: "wire-a".to_owned(),
-        capabilities: ModelCapabilities::default(),
-        thinking_levels: vec![ThinkingLevelDescriptor {
-            id: ThinkingLevelId::new("medium").expect("thinking id"),
-            label: "Medium".to_owned(),
-            description: None,
-            order: 0,
-        }],
-        default_thinking_level: None,
-    };
-    let model_b = ModelDescriptor {
-        id: ModelId::new("model-b").expect("model id"),
-        display_name: "Model B".to_owned(),
-        provider_profile: "local".to_owned(),
-        provider_model_id: "wire-b".to_owned(),
-        capabilities: ModelCapabilities::default(),
-        thinking_levels: vec![ThinkingLevelDescriptor {
-            id: ThinkingLevelId::new("high").expect("thinking id"),
-            label: "High".to_owned(),
-            description: None,
-            order: 0,
-        }],
-        default_thinking_level: None,
-    };
-    ModelLibrary::new(
-        vec![model_a, model_b],
-        vec![
-            ModelProfile {
-                id: "profile-a".to_owned(),
-                display_name: "Profile A".to_owned(),
-                model: ModelId::new("model-a").expect("model id"),
-                connection: "local".to_owned(),
-                credential: None,
-                default_thinking_level: None,
-                enabled: true,
-            },
-            ModelProfile {
-                id: "profile-b".to_owned(),
-                display_name: "Profile B".to_owned(),
-                model: ModelId::new("model-b").expect("model id"),
-                connection: "local".to_owned(),
-                credential: None,
-                default_thinking_level: None,
-                enabled: true,
-            },
-        ],
-    )
-    .expect("model library")
+fn running_invocation_upstream_models() -> Vec<rpi_ai::Model> {
+    vec![
+        rpi_ai::Model::new(
+            "wire-a",
+            "Model A",
+            rpi_ai::Api::AnthropicMessages,
+            "local",
+            "https://example.test",
+        ),
+        rpi_ai::Model::new(
+            "wire-b",
+            "Model B",
+            rpi_ai::Api::AnthropicMessages,
+            "local",
+            "https://example.test",
+        ),
+        rpi_ai::Model::new(
+            "runtime-default",
+            "Runtime fallback",
+            rpi_ai::Api::AnthropicMessages,
+            "local",
+            "https://example.test",
+        ),
+    ]
 }
 
 /// Recovers the exact project scope stored by a completed onboarding branch.

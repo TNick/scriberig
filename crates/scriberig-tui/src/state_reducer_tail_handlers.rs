@@ -5,6 +5,9 @@ use super::*;
 #[path = "state_reducer_tail_handlers/session_commands.rs"]
 mod session_commands;
 pub(super) use session_commands::{session_removed, session_switched, sessions_listed};
+#[path = "state_reducer_tail_handlers/agent_output.rs"]
+mod agent_output;
+pub(super) use agent_output::agent_output_observed;
 
 /// Applies a current session read and reveals its pending branch target.
 ///
@@ -36,6 +39,11 @@ pub(super) fn session_succeeded(
         }
         state.session = LoadState::Ready(model);
         state.session_snapshot = session_snapshot;
+        if let Some(session) = state.session_snapshot.as_ref() {
+            state
+                .transient_agent_outputs
+                .retain(|output| !super::super::output_is_durable(session, output));
+        }
         state.conversation = Some(state.session_snapshot.as_ref().map_or_else(
             || conversation,
             |session| crate::state::conversation_projection(state, session),
@@ -110,6 +118,13 @@ pub(super) fn conversation_agent_accepted(
 ) -> Vec<Effect> {
     let Some(branch) = handle.branch else {
         state.conversation_composer.pending = false;
+        if let Some(pending) = state.conversation_composer.pending_prompt.take() {
+            state.conversation_composer.draft = pending;
+            state
+                .conversation_composer
+                .editor
+                .replace_text(&state.conversation_composer.draft);
+        }
         state.conversation_composer.error = Some("accepted work has no branch handle".to_owned());
         return vec![Effect::None];
     };
@@ -118,7 +133,8 @@ pub(super) fn conversation_agent_accepted(
         reply_anchor: scriberig_session::ContinuationAnchor::BranchHead { branch },
     };
     state.conversation_composer.pending = false;
-    state.conversation_composer.draft.clear();
+    state.conversation_composer.pending_prompt = None;
+    state.conversation_composer.clear_draft();
     state.conversation_composer.error = handle
         .failure
         .as_ref()
@@ -255,15 +271,18 @@ pub(super) fn session_selection_updated(
         session.execution = selection.clone();
     }
     if let LoadState::Ready(session) = &mut state.session {
-        let previous_model = session.execution.model.clone();
-        let next_model = selection.model.clone();
+        let previous_model = (
+            session.execution.provider_id.clone(),
+            session.execution.model_id.clone(),
+        );
+        let next_model = (selection.provider_id.clone(), selection.model_id.clone());
         let previous_thinking = session.execution.thinking_level.clone();
         let next_thinking = selection.thinking_level.clone();
         session.set_execution(selection);
         if previous_model != next_model && previous_thinking != next_thinking {
             state.shell_message = format!(
                 "Model changed to {}; thinking level adjusted to {}.",
-                next_model.as_deref().unwrap_or("unspecified"),
+                next_model.1.as_deref().unwrap_or("unspecified"),
                 next_thinking.as_deref().unwrap_or("unspecified"),
             );
         } else if previous_thinking != next_thinking {
@@ -286,25 +305,6 @@ pub(super) fn session_selection_updated(
     vec![Effect::None]
 }
 
-/// Retains one sanitized live output observation for the session view.
-///
-/// - `state`: TUI state retaining bounded transient output.
-/// - `output`: Provider-neutral output observation.
-///
-/// A no-op effect after updating the transient observation list.
-/// # Returns
-/// The operation result.
-pub(super) fn agent_output_observed(state: &mut TuiState, output: &str) -> Vec<Effect> {
-    state
-        .agent_output_observations
-        .push(crate::inspector::sanitize(output));
-    if state.agent_output_observations.len() > 32 {
-        state.agent_output_observations.remove(0);
-    }
-    state.shell_message = "agent output observed (non-canonical)".to_owned();
-    vec![Effect::None]
-}
-
 /// Starts an authoritative read for one selected session.
 ///
 /// - `state`: TUI state receiving the session read.
@@ -321,7 +321,7 @@ pub(super) fn session_requested(
 ) -> Vec<Effect> {
     let request_id = state.next_request_id;
     state.next_request_id += 1;
-    state.agent_output_observations.clear();
+    state.transient_agent_outputs.clear();
     state.session = LoadState::Loading { request_id };
     vec![Effect::ReadSession {
         request_id,
@@ -382,7 +382,7 @@ pub(super) fn session_composer_opened(
         state.session = LoadState::NotRequested;
         vec![Effect::None]
     };
-    state.agent_output_observations.clear();
+    state.transient_agent_outputs.clear();
     state.session_composer = Some(crate::state::SessionComposerState {
         session,
         branch,

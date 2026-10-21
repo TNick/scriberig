@@ -273,17 +273,19 @@ export class ScriberigClient {
   ): Promise<AgentPresentationPreferencesResponse> {
     return replacePresentationPreferences(this.transport, expectedRevision, preferences, signal);
   }
-  /** Selects a model profile for future invocations in one session.
+  /** Selects an upstream provider/model pair for future session invocations.
    * @param sessionId Target durable session.
    * @param expectedRevision Selection mutation revision observed by the caller.
-   * @param modelProfile Curated profile id to select.
+   * @param providerId Public upstream provider id to select.
+   * @param modelId Public upstream model id to select.
    * @param signal Optional request cancellation signal.
    * @returns Updated shared execution selection.
    */
   setSessionModel(
     sessionId: SessionId,
     expectedRevision: number,
-    modelProfile: string,
+    providerId: string,
+    modelId: string,
     signal?: AbortSignal,
   ): Promise<SessionExecutionSelection> {
     return this.transport
@@ -292,7 +294,8 @@ export class ScriberigClient {
         {
           session: { id: sessionId },
           expected_revision: expectedRevision,
-          model_profile: modelProfile,
+          provider_id: providerId,
+          model_id: modelId,
         },
         signal,
       )

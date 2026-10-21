@@ -69,7 +69,12 @@ pub fn render(
         kind: sr_projection::ProjectionKind::new("rust.source").expect("static projection kind"),
         style: sr_projection::StyleRef::Value(sr_projection::StyleValue::new(vec![1])),
         renderer: sr_projection::RendererVersion::new("scriberig-tui-project-v1"),
-        context: sr_projection::RenderingContext::default(),
+        context: sr_projection::RenderingContext {
+            extensions: std::collections::BTreeMap::from([(
+                "scriberig.project.source_path".to_owned(),
+                path.as_bytes().to_vec(),
+            )]),
+        },
     };
     let source = String::from_utf8_lossy(bytes);
     let content = if source.contains("left.saturating_add(right)") {
@@ -92,6 +97,7 @@ pub fn render(
         validation: None,
         validation_profile: None,
         validation_diagnostics: Vec::new(),
+        review_details: Vec::new(),
         conflicts: Vec::new(),
     }))
 }

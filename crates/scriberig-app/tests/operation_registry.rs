@@ -89,6 +89,24 @@ fn registry_retains_failure_details() {
     ));
 }
 
+/// Verifies terminal operations do not invent progress that was never reported.
+#[test]
+fn terminal_transition_preserves_absent_progress() {
+    let registry = OperationRegistry::new();
+    let id = OperationId::new("operation-no-progress").expect("operation id");
+    registry
+        .start(id.clone(), OperationKind::Agent)
+        .expect("start");
+
+    registry
+        .transition(&id, OperationStatus::Completed)
+        .expect("complete");
+
+    let record = registry.get(&id).expect("record");
+    assert_eq!(record.status, OperationStatus::Completed);
+    assert_eq!(record.progress, None);
+}
+
 /// Verifies agent output is published with its operation correlation handle.
 #[test]
 fn registry_publishes_agent_output() {

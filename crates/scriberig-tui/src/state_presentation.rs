@@ -295,25 +295,17 @@ fn result_branches(
 /// # Returns
 /// The operation result.
 pub(crate) fn activate_palette_control(state: &mut TuiState, item_id: &str) -> Option<Vec<Effect>> {
-    if let Some(index) = item_id
-        .strip_prefix("assign-plan-profile:")
-        .and_then(|value| value.parse::<usize>().ok())
-    {
+    if let Some(model_id) = item_id.strip_prefix("assign-plan-model:") {
         let target = state.plan_assignment_target.take()?;
         let LoadState::Ready(library) = &state.model_library else {
             state.conversation_composer.error =
-                Some("Reload model profiles before assigning this plan node.".to_owned());
+                Some("Reload models before assigning this plan node.".to_owned());
             state.overlay = None;
             return Some(vec![Effect::None]);
         };
-        let Some(profile) = library
-            .profiles
-            .iter()
-            .filter(|profile| profile.enabled)
-            .nth(index)
-        else {
+        let Some(model) = library.models.iter().find(|model| model.id == model_id) else {
             state.conversation_composer.error =
-                Some("The selected model profile is no longer available.".to_owned());
+                Some("The selected model is no longer available.".to_owned());
             state.overlay = None;
             return Some(vec![Effect::None]);
         };
@@ -331,9 +323,9 @@ pub(crate) fn activate_palette_control(state: &mut TuiState, item_id: &str) -> O
                 node: target.node,
                 expected_revision: target.expected_revision,
                 assignment: Some(scriberig_session::ModelAssignment {
-                    profile: profile.id.clone(),
-                    model: profile.model.clone(),
-                    thinking_level: profile.default_thinking_level.clone(),
+                    provider_id: model.provider_profile.clone(),
+                    model_id: model.provider_model_id.clone(),
+                    thinking_level: model.default_thinking_level.clone(),
                 }),
             },
         )]);

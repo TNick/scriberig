@@ -291,6 +291,8 @@ fn plan_start_command_invokes_shared_lifecycle_operation() {
                 },
             },
             draft: "/plan start".to_owned(),
+            editor: scriberig_tui_kit::Composer::new(),
+            pending_prompt: None,
             pending: false,
             error: None,
         },

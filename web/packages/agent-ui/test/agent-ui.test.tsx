@@ -76,16 +76,16 @@ describe("agent UI", () => {
             {
               id: "model-a",
               displayName: "Model A",
-              providerProfile: "local",
-              providerModelId: "wire-a",
+              providerId: "local",
+              modelId: "wire-a",
               capabilities: { streaming: true, toolCalls: true, structuredOutput: false },
               thinkingLevels: [{ id: "brief", label: "Brief", order: 1 }],
             },
             {
               id: "model-b",
               displayName: "Model B",
-              providerProfile: "local",
-              providerModelId: "wire-b",
+              providerId: "local",
+              modelId: "wire-b",
               capabilities: { streaming: true, toolCalls: true, structuredOutput: false },
               thinkingLevels: [{ id: "deep", label: "Deep", order: 1 }],
             },
@@ -109,8 +109,8 @@ describe("agent UI", () => {
         }}
         selection={{
           revision: 2,
-          modelProfile: "profile-a",
-          model: "model-a",
+          providerId: "local",
+          modelId: "wire-a",
           thinkingLevel: "brief",
         }}
         onModelChange={() => undefined}
@@ -118,7 +118,7 @@ describe("agent UI", () => {
       />,
     );
 
-    expect(html).toContain("Profile A");
+    expect(html).toContain("Model A");
     expect(html).toContain("Brief");
     expect(html).toContain('aria-label="Agent model"');
     expect(html).toContain('aria-label="Agent thinking level"');
@@ -342,6 +342,9 @@ describe("agent UI", () => {
             rootBranchId: "branch-1" as never,
             branchResultId: "result-1" as never,
             finalOutput: "done",
+            producedChanges: [],
+            validationResults: [],
+            unresolvedQuestions: [],
             handles: [],
             candidateChanges: [
               {

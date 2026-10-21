@@ -3,6 +3,28 @@
 use super::*;
 
 impl scriberig_app::AgentConsoleBackend for LocalSessionFixture {
+    /// Returns stable fixture presentation preferences for conformance tests.
+    ///
+    /// - `_context`: Application request context.
+    ///
+    /// Revision four with detailed tool output.
+    /// # Returns
+    /// The revisioned preferences.
+    /// # Errors
+    /// Returns an error when the fixture does not expose the requested value.
+    fn agent_presentation_preferences(
+        &self,
+        _context: &ApplicationContext,
+    ) -> Result<scriberig_app::AgentPresentationPreferenceSnapshot, ApplicationError> {
+        Ok(scriberig_app::AgentPresentationPreferenceSnapshot {
+            revision: 4,
+            preferences: scriberig_app::AgentPresentationPreferences {
+                tool_output: scriberig_app::ToolOutputVisibility::Full,
+                ..scriberig_app::AgentPresentationPreferences::default()
+            },
+        })
+    }
+
     /// Rejects model-library reads in the session adapter fixture.
     ///
     /// - `_context`: Application request context.

@@ -50,9 +50,14 @@ pub struct TuiPty {
 /// # Returns
 /// The operation result.
 pub fn workspace_target_directory() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
-        .join("target")
+    std::env::var_os("CARGO_TARGET_DIR").map_or_else(
+        || {
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../..")
+                .join("target")
+        },
+        PathBuf::from,
+    )
 }
 
 impl TuiPty {

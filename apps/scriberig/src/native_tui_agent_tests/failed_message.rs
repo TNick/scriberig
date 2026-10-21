@@ -17,7 +17,9 @@ fn first_conversation_failure_remains_in_tree_with_error() {
             .expect("session store"),
     );
     let session_repository: Arc<dyn scriberig_session::SessionStore> = session_store.clone();
-    let service = ApplicationService::new(backend).with_session_store(session_repository);
+    let service = ApplicationService::new(backend)
+        .with_session_store(session_repository)
+        .with_upstream_models(native_test_upstream_models());
     let provider = FakeProvider::from_responses([Err(
         scriberig_agent_runtime::provider::ProviderError::Transport(
             "deterministic provider failure".to_owned(),
@@ -30,6 +32,7 @@ fn first_conversation_failure_remains_in_tree_with_error() {
         )]),
         model: "fake-model".to_owned(),
         model_library: ModelLibrary::default(),
+        upstream_models: native_test_upstream_models(),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
     };

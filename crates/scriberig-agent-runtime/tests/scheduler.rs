@@ -1,5 +1,6 @@
 //! Verifies pure durable-plan scheduling decisions.
 
+use rpi_ai::{Api, Model};
 use scriberig_agent_runtime::scheduler::{PlanScheduler, PlanWorkerExecutor};
 use scriberig_core::EntityId;
 #[path = "scheduler/worker.rs"]
@@ -10,40 +11,28 @@ use scriberig_session::{
     PlanStatus, WorkerClaim,
 };
 
-/// Builds the two safe profiles used by plan worker execution checks.
+/// Builds the upstream catalog used by scheduler assignment tests.
+///
+/// The provider models used for plan assignment resolution.
 /// # Returns
 /// The operation result.
-fn worker_library() -> scriberig_app::ModelLibrary {
-    let models = [("model-a", "wire-a"), ("model-b", "wire-b")]
-        .into_iter()
-        .map(|(id, provider_model_id)| scriberig_app::ModelDescriptor {
-            id: scriberig_app::ModelId::new(id).expect("model id"),
-            display_name: id.to_owned(),
-            provider_profile: "provider".to_owned(),
-            provider_model_id: provider_model_id.to_owned(),
-            capabilities: scriberig_app::ModelCapabilities::default(),
-            thinking_levels: vec![scriberig_app::ThinkingLevelDescriptor {
-                id: scriberig_app::ThinkingLevelId::new("steady").expect("level id"),
-                label: "Steady".to_owned(),
-                description: None,
-                order: 0,
-            }],
-            default_thinking_level: None,
-        })
-        .collect::<Vec<_>>();
-    let profiles = [("alpha", "model-a"), ("beta", "model-b")]
-        .into_iter()
-        .map(|(id, model)| scriberig_app::ModelProfile {
-            id: id.to_owned(),
-            display_name: id.to_owned(),
-            model: scriberig_app::ModelId::new(model).expect("profile model"),
-            connection: "provider-connection".to_owned(),
-            credential: None,
-            default_thinking_level: None,
-            enabled: true,
-        })
-        .collect();
-    scriberig_app::ModelLibrary::new(models, profiles).expect("valid model library")
+fn worker_models() -> Vec<Model> {
+    vec![
+        Model::new(
+            "wire-a",
+            "Model A",
+            Api::AnthropicMessages,
+            "provider",
+            "https://example.test",
+        ),
+        Model::new(
+            "wire-b",
+            "Model B",
+            Api::AnthropicMessages,
+            "provider",
+            "https://example.test",
+        ),
+    ]
 }
 
 /// Builds a running plan with one active worker and one blocked dependent.
@@ -114,12 +103,12 @@ fn sibling_workers_execute_concurrently_with_distinct_assignments() {
         "parallel workers",
     )
     .expect("plan");
-    for (id, profile, model) in [(234, "alpha", "model-a"), (235, "beta", "model-b")] {
+    for (id, model) in [(234, "wire-a"), (235, "wire-b")] {
         plan.add_node(PlanNode {
             id: EntityId::from_bytes([id; 16]),
             parent: Some(PlanNodeParent::Branch(root)),
-            title: profile.to_owned(),
-            purpose: profile.to_owned(),
+            title: model.to_owned(),
+            purpose: model.to_owned(),
             expected_result: None,
             semantic_scope: Vec::new(),
             status: PlanNodeStatus::Planned,
@@ -127,8 +116,8 @@ fn sibling_workers_execute_concurrently_with_distinct_assignments() {
             result: None,
             superseded_by: None,
             assignment: Some(ModelAssignment {
-                profile: profile.to_owned(),
-                model: model.to_owned(),
+                provider_id: "provider".to_owned(),
+                model_id: model.to_owned(),
                 thinking_level: None,
             }),
             claim: None,
@@ -150,7 +139,7 @@ fn sibling_workers_execute_concurrently_with_distinct_assignments() {
         &dispatch,
         &[],
         &executor,
-        &worker_library(),
+        &worker_models(),
         &scriberig_session::SessionExecutionSelection::default(),
         "fallback-model",
         || {
@@ -182,7 +171,7 @@ fn failed_candidate_integration_retains_structured_conflict_code() {
         &[ready],
         &[],
         &executor,
-        &worker_library(),
+        &worker_models(),
         &scriberig_session::SessionExecutionSelection::default(),
         "fallback-model",
         || {
@@ -260,7 +249,6 @@ impl PlanWorkerExecutor for FakeConcurrentWorkers {
         execution: &scriberig_app::ResolvedPlanExecution,
     ) -> Result<BranchResult, String> {
         self.barrier.wait();
-        let profile = execution.model_profile.clone().unwrap_or_default();
         Ok(BranchResult {
             id: EntityId::from_bytes([claim.id.as_bytes()[0].wrapping_add(10); 16]),
             branch: claim.branch,
@@ -269,7 +257,7 @@ impl PlanWorkerExecutor for FakeConcurrentWorkers {
             result_kind: None,
             candidate_context: None,
             references: Vec::new(),
-            result_handles: vec![format!("profile:{profile}")],
+            result_handles: vec![format!("provider:{}", execution.provider_id)],
             touched: Vec::new(),
             produced_changes: Vec::new(),
             validations: Vec::new(),

@@ -93,8 +93,8 @@ pub(super) fn session_response(
         plans,
         execution: scriberig_protocol::SessionExecutionSelection {
             revision: execution.revision,
-            model_profile: execution.model_profile,
-            model: execution.model,
+            provider_id: execution.provider_id,
+            model_id: execution.model_id,
             thinking_level: execution.thinking_level,
             history: execution
                 .history
@@ -103,7 +103,8 @@ pub(super) fn session_response(
                     revision: change.revision,
                     kind: change.kind,
                     summary: change.summary,
-                    model: change.model,
+                    provider_id: change.provider_id,
+                    model_id: change.model_id,
                     thinking_level: change.thinking_level,
                 })
                 .collect(),

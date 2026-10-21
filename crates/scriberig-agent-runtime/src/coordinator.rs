@@ -1,8 +1,8 @@
 //! Drives durable plan workers through the shared application session boundary.
 
 use scriberig_app::{
-    ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService, ModelLibrary,
-    SessionBackend, SessionRequest,
+    ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService, SessionBackend,
+    SessionRequest,
 };
 use scriberig_core::EntityId;
 use scriberig_session::{
@@ -38,7 +38,7 @@ impl PlanCoordinator {
     /// - `plan_id`: Plan to advance.
     /// - `coordinator_claim`: Exact claim held by this coordinator runtime.
     /// - `executor`: Provider-neutral worker executor.
-    /// - `library`: Existing validated model library.
+    /// - `upstream_models`: Host-owned upstream model catalog.
     /// - `runtime_fallback`: Runtime model used when a node has no assignment.
     /// - `concurrency_budget`: Maximum workers in one batch.
     /// - `next_id`: Allocates stable branch and claim identities.
@@ -60,7 +60,7 @@ impl PlanCoordinator {
         plan_id: EntityId,
         coordinator_claim: EntityId,
         executor: &E,
-        library: &ModelLibrary,
+        upstream_models: &[rpi_ai::Model],
         runtime_fallback: &str,
         concurrency_budget: usize,
         mut next_id: impl FnMut() -> EntityId,
@@ -77,7 +77,7 @@ impl PlanCoordinator {
                 plan_id,
                 coordinator_claim,
                 executor,
-                library,
+                upstream_models,
                 runtime_fallback,
                 concurrency_budget,
                 &mut next_id,
@@ -102,7 +102,7 @@ impl PlanCoordinator {
     /// - `plan_id`: Plan to advance.
     /// - `coordinator_claim`: Exact claim held by this coordinator runtime.
     /// - `executor`: Provider-neutral worker executor.
-    /// - `library`: Existing validated model library.
+    /// - `upstream_models`: Host-owned upstream model catalog.
     /// - `runtime_fallback`: Runtime model used when a node has no assignment.
     /// - `concurrency_budget`: Maximum workers in this batch.
     /// - `next_id`: Allocates stable branch and claim identities.
@@ -124,7 +124,7 @@ impl PlanCoordinator {
         plan_id: EntityId,
         coordinator_claim: EntityId,
         executor: &E,
-        library: &ModelLibrary,
+        upstream_models: &[rpi_ai::Model],
         runtime_fallback: &str,
         concurrency_budget: usize,
         next_id: &mut impl FnMut() -> EntityId,
@@ -164,7 +164,7 @@ impl PlanCoordinator {
             &schedule.dispatch,
             &results,
             executor,
-            library,
+            upstream_models,
             &selection,
             runtime_fallback,
             next_id,

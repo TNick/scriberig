@@ -20,6 +20,7 @@ scriberig-protocol = { path = "../scriberig-protocol" }
 scriberig-project = { path = "../scriberig-project" }
 scriberig-query = { path = "../scriberig-query" }
 scriberig-session = { path = "../scriberig-session" }
+scriberig-tui-kit = { path = "../scriberig-tui-kit" }
 sr-change = { path = "../sr-change" }
 sr-projection = { path = "../sr-projection" }
 

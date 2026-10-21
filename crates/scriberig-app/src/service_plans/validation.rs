@@ -1,10 +1,10 @@
 //! Implements validated durable plan application operations.
 use crate::{ApplicationError, PlanCreateRequest};
 use scriberig_core::EntityId;
-/// Validates an assignment against the existing model library without credentials.
+/// Validates assignment identity against upstream model state.
 ///
-/// - `library`: Configured provider-neutral model library.
-/// - `assignment`: Safe profile, model, and thinking identities.
+/// - `upstream_models`: Host-owned model catalog with provider request data.
+/// - `assignment`: Upstream provider, model, and thinking identities.
 ///
 /// Returns invalid-request when an identity is unavailable or unsupported.
 /// # Returns
@@ -12,31 +12,28 @@ use scriberig_core::EntityId;
 /// # Errors
 /// Returns an error when the operation fails.
 pub(super) fn validate_assignment(
-    library: &crate::ModelLibrary,
+    upstream_models: &[rpi_ai::Model],
     assignment: &scriberig_session::ModelAssignment,
 ) -> Result<(), ApplicationError> {
-    let profile = library
-        .profile(&assignment.profile)
-        .filter(|profile| profile.enabled)
-        .ok_or_else(|| invalid_plan("assigned model profile is unavailable"))?;
-    let model = library
-        .model(&profile.model)
-        .ok_or_else(|| invalid_plan("assigned model profile has no model"))?;
-    if assignment.model != model.id.as_str() {
-        return Err(invalid_plan("assigned model does not match its profile"));
-    }
-    if assignment
+    let thinking = assignment
         .thinking_level
         .as_deref()
-        .is_some_and(|thinking| {
-            !model
-                .thinking_levels
-                .iter()
-                .any(|level| level.id.as_str() == thinking)
+        .map(|thinking| {
+            crate::ThinkingLevelId::new(thinking.to_owned())
+                .map_err(|_| invalid_plan("assigned thinking level is invalid"))
         })
-    {
-        return Err(invalid_plan("assigned thinking level is unsupported"));
-    }
+        .transpose()?
+        .and_then(|level| rpi_ai::ThinkingLevel::parse_name(level.as_str()))
+        .unwrap_or(rpi_ai::ThinkingLevel::Off);
+    rpi_model_runtime::resolve_selection(
+        upstream_models,
+        &rpi_model_runtime::ModelSelection {
+            provider_id: assignment.provider_id.clone(),
+            model_id: assignment.model_id.clone(),
+            thinking,
+        },
+    )
+    .map_err(|error| invalid_plan(error.to_string()))?;
     Ok(())
 }
 

@@ -1,0 +1,39 @@
+[package]
+name = "rpi-tui"
+version = "0.6.2"
+edition = "2021"
+rust-version = "1.78"
+license = "MIT"
+authors = ["BigFish <fuwei201473@gmail.com>"]
+repository = "https://github.com/bigfish1913/pi-rust"
+homepage = "https://rpi.laofu.online/"
+documentation = "https://docs.rs/rpi-tui"
+description = "Terminal User Interface for pi-rust"
+readme = "README.md"
+keywords = ["agent", "llm", "ai", "terminal", "tui"]
+categories = ["command-line-interface", "api-bindings"]
+
+[dependencies]
+crossterm = { version = "0.28", features = ["events", "bracketed-paste"] }
+unicode-width = "0.1"
+unicode-segmentation = "1"
+thiserror = "1"
+tracing = "0.1"
+regex = "1"
+base64 = "0.22"
+similar = { version = "2", features = ["text", "unicode"] }
+pulldown-cmark = { version = "0.12", default-features = false }
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["consoleapi", "processenv", "winbase", "wincon", "winuser"] }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[features]
+default = []
+image-support = []
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "macros"] }

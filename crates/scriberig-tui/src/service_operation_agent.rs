@@ -101,8 +101,9 @@ pub(super) fn project_agent<B: ApplicationBackend>(
         validation: Some(validation),
         validation_profile: None,
         validation_diagnostics: Vec::new(),
-        conflicts: vec![format!(
+        review_details: vec![format!(
             "scope: entity={entity} snapshot={snapshot}; {path}: add | old: left + right | new: left.saturating_add(right)"
         )],
+        conflicts: Vec::new(),
     }))
 }

@@ -258,8 +258,8 @@ fn plan_claims_allow_one_coordinator_and_distinct_workers() {
     let docs_branch = EntityId::from_bytes([29; 16]);
     let coordinator = EntityId::from_bytes([30; 16]);
     let assignment = ModelAssignment {
-        profile: "profile-a".to_owned(),
-        model: "model-a".to_owned(),
+        provider_id: "provider-a".to_owned(),
+        model_id: "model-a".to_owned(),
         thinking_level: Some("deep".to_owned()),
     };
     plan.nodes[0].assignment = Some(assignment.clone());

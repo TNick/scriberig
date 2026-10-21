@@ -2,47 +2,52 @@
 
 use super::{
     ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService, EntityId,
-    ModelDescriptor, ModelProfile, Session, empty_session,
+    Session, empty_session,
 };
 use crate::ConflictDetails;
 use scriberig_session::{SelectionError, SelectionStoreError};
 
 impl<B: ApplicationBackend> ApplicationService<B> {
-    /// Resolves an enabled profile and its model descriptor.
+    /// Resolves an exact provider/model selection through upstream machinery.
     ///
     /// - `self`: Application service owning the model library.
-    /// - `profile_id`: Stable model-profile identity.
+    /// - `provider_id`: Upstream provider identity.
+    /// - `model_id`: Provider-scoped upstream model identity.
+    /// - `thinking_level`: Optional canonical upstream thinking level.
     ///
-    /// The profile and its validated model descriptor.
+    /// The exact upstream model and its effective thinking level.
     ///
     /// Returns not-found or invalid-request for unavailable configuration.
     /// # Returns
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
-    pub(super) fn resolve_profile(
+    pub(super) fn resolve_upstream_model(
         &self,
-        profile_id: &str,
-    ) -> Result<(&ModelProfile, &ModelDescriptor), ApplicationError> {
-        let profile =
-            self.model_library
-                .profile(profile_id)
-                .ok_or_else(|| ApplicationError::NotFound {
-                    subject: format!("model profile {profile_id}"),
-                })?;
-        if !profile.enabled {
-            return Err(invalid_selection("model profile is disabled"));
-        }
-        let model =
-            self.model_library
-                .model(&profile.model)
-                .ok_or_else(|| ApplicationError::NotFound {
-                    subject: format!("model {}", profile.model.as_str()),
-                })?;
-        profile
-            .validate_for_model(model)
-            .map_err(invalid_selection)?;
-        Ok((profile, model))
+        provider_id: &str,
+        model_id: &str,
+        thinking_level: Option<&str>,
+    ) -> Result<(&rpi_ai::Model, rpi_ai::ThinkingLevel), ApplicationError> {
+        let thinking = thinking_level
+            .map(|level| crate::ThinkingLevelId::new(level.to_owned()).map_err(invalid_selection))
+            .transpose()?
+            .map_or(rpi_ai::ThinkingLevel::Off, |level| {
+                rpi_ai::ThinkingLevel::parse_name(level.as_str())
+                    .expect("ThinkingLevelId uses upstream parsing")
+            });
+        let resolved = rpi_model_runtime::resolve_selection(
+            &self.upstream_models,
+            &rpi_model_runtime::ModelSelection {
+                provider_id: provider_id.to_owned(),
+                model_id: model_id.to_owned(),
+                thinking,
+            },
+        )
+        .map_err(|error| invalid_selection(error.to_string()))?;
+        Ok((
+            &self.upstream_models[resolved.catalog_index],
+            resolved.effective_thinking,
+        ))
     }
 
     /// Loads session state and identifies the subsystem that owns persistence.

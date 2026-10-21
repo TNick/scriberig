@@ -50,6 +50,8 @@ pub struct OperationSummary {
     pub validation_profile: Option<String>,
     /// Safe validation diagnostics associated with the operation.
     pub validation_diagnostics: Vec<String>,
+    /// Non-conflicting presentation details for candidate review.
+    pub review_details: Vec<String>,
     /// Safe conflict summaries associated with the operation.
     pub conflicts: Vec<String>,
 }

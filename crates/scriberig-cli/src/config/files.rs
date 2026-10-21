@@ -84,6 +84,7 @@ pub(super) fn project_config_dir(current_dir: &Path) -> Option<PathBuf> {
 /// The platform system config directory, when one is available.
 /// # Returns
 /// The operation result.
+#[allow(clippy::unnecessary_wraps)]
 pub(super) fn system_config_dir() -> Option<PathBuf> {
     #[cfg(windows)]
     {

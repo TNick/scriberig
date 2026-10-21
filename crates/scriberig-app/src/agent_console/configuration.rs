@@ -144,7 +144,7 @@ mod tests {
     fn configured_catalog_projects_safe_model_specific_levels() {
         let library = model_library_from_json(
             Some(
-                r#"{"models":[{"id":"one","display_name":"One","provider_model_id":"wire-one","thinking_levels":[{"id":"deep","label":"Deep","provider_parameters":{"secret":"fake-secret-marker"}}]},{"id":"two","display_name":"Two","provider_model_id":"wire-two","thinking_levels":[{"id":"deep","label":"Deep"}]}]}"#,
+                r#"{"models":[{"id":"one","display_name":"One","provider_model_id":"wire-one","thinking_levels":[{"id":"high","label":"Deep","provider_parameters":{"secret":"fake-secret-marker"}}]},{"id":"two","display_name":"Two","provider_model_id":"wire-two","thinking_levels":[{"id":"high","label":"Deep"}]}]}"#,
             ),
             "fallback",
         )
@@ -153,8 +153,8 @@ mod tests {
 
         assert_eq!(library.models.len(), 2);
         assert_eq!(library.profiles.len(), 2);
-        assert_eq!(library.models[0].thinking_levels[0].id.as_str(), "deep");
-        assert_eq!(library.models[1].thinking_levels[0].id.as_str(), "deep");
+        assert_eq!(library.models[0].thinking_levels[0].id.as_str(), "high");
+        assert_eq!(library.models[1].thinking_levels[0].id.as_str(), "high");
         assert!(!serialized.contains("provider_parameters"));
         assert!(!serialized.contains("fake-secret-marker"));
     }

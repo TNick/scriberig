@@ -5,7 +5,11 @@ use ratatui::{
     text::{Line, Span, Text},
 };
 
-use crate::state::{ConversationTarget, TuiState};
+use crate::{
+    render::render_helpers::depth_color,
+    state::{ConversationTarget, TuiState},
+};
+use scriberig_tui_kit::{ExternalText, render_markdown};
 
 /// Renders conversation rows with independently styled ancestry and reply target.
 ///
@@ -24,40 +28,61 @@ pub(super) fn conversation_text(state: &TuiState, available_width: usize) -> Tex
         ConversationTarget::NewSession => None,
     };
     let rail_capacity = (available_width.saturating_sub(8) / 2).max(1);
-    Text::from(
-        model
-            .rows
-            .iter()
-            .map(|row| {
-                let selected = state.conversation_cursor == Some(row.source);
-                let replying = reply_anchor.is_some_and(|anchor| row.reply_anchor == Some(anchor));
-                let visible = row.depth.min(rail_capacity);
-                let first = row.depth.saturating_sub(visible);
-                let mut spans = vec![Span::raw(if selected { "> " } else { "  " })];
-                if first > 0 {
-                    spans.push(Span::raw("…"));
-                }
-                spans.extend(
-                    (first..row.depth)
-                        .map(|depth| Span::styled("▏ ", Style::default().fg(depth_color(depth)))),
-                );
-                let label = if row.depth > visible {
-                    format!("{}{}", "  ".repeat(visible), row.label)
-                } else {
-                    row.label.clone()
-                };
-                spans.push(Span::styled(
-                    label,
-                    if replying {
-                        Style::default().bg(Color::DarkGray).fg(Color::White)
+    let lines = model
+        .rows
+        .iter()
+        .flat_map(|row| {
+            let selected = state.conversation_cursor == Some(row.source);
+            let replying = reply_anchor.is_some_and(|anchor| row.reply_anchor == Some(anchor));
+            let visible = row.depth.min(rail_capacity);
+            let first = row.depth.saturating_sub(visible);
+            let rail_text = if first > 0 { "…" } else { "" };
+            let rails = (first..row.depth)
+                .map(|depth| Span::styled("▏ ", Style::default().fg(depth_color(depth))))
+                .collect::<Vec<_>>();
+            let content_width = available_width
+                .saturating_sub(2 + usize::from(first > 0) + visible.saturating_mul(2))
+                .max(1);
+            let labels = if row.kind == crate::view::conversation::ConversationRowKind::Message {
+                render_markdown(&row.label, content_width)
+            } else {
+                vec![ExternalText::new(&row.label)]
+            };
+            let indentation = if row.depth > visible {
+                "  ".repeat(visible)
+            } else {
+                String::new()
+            };
+            labels
+                .into_iter()
+                .enumerate()
+                .map(move |(line_index, label)| {
+                    let mut spans = vec![Span::raw(if selected && line_index == 0 {
+                        "> "
                     } else {
-                        Style::default()
-                    },
-                ));
-                Line::from(spans)
-            })
-            .collect::<Vec<_>>(),
-    )
+                        "  "
+                    })];
+                    if line_index == 0 {
+                        if !rail_text.is_empty() {
+                            spans.push(Span::raw(rail_text));
+                        }
+                        spans.extend(rails.clone());
+                    } else {
+                        spans.push(Span::raw("  ".repeat(visible + usize::from(first > 0))));
+                    }
+                    spans.push(Span::styled(
+                        format!("{indentation}{}", label.as_str()),
+                        if replying {
+                            Style::default().bg(Color::DarkGray).fg(Color::White)
+                        } else {
+                            Style::default()
+                        },
+                    ));
+                    Line::from(spans)
+                })
+        })
+        .collect::<Vec<_>>();
+    Text::from(lines)
 }
 
 /// Selects a finite rail color from derived branch depth.
@@ -67,21 +92,10 @@ pub(super) fn conversation_text(state: &TuiState, available_width: usize) -> Tex
 /// A palette color that cycles for deeper nesting.
 /// # Returns
 /// The operation result.
-fn depth_color(depth: usize) -> Color {
-    const PALETTE: [Color; 6] = [
-        Color::Cyan,
-        Color::Green,
-        Color::Yellow,
-        Color::Magenta,
-        Color::Blue,
-        Color::Red,
-    ];
-    PALETTE[depth % PALETTE.len()]
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{conversation_text, depth_color};
+    use super::conversation_text;
+    use crate::render::render_helpers::depth_color;
     use crate::{
         state::TuiState,
         view::conversation::{
@@ -94,9 +108,9 @@ mod tests {
     /// Verifies depth colors cycle through the finite ancestry palette.
     #[test]
     fn depth_palette_cycles_after_all_colors() {
-        assert_eq!(depth_color(0), Color::Cyan);
-        assert_eq!(depth_color(1), Color::Green);
-        assert_eq!(depth_color(6), Color::Cyan);
+        assert_eq!(depth_color(0), Color::Indexed(39));
+        assert_eq!(depth_color(1), Color::Indexed(40));
+        assert_eq!(depth_color(6), Color::Indexed(39));
     }
 
     /// Verifies narrow rows keep a local rail and mark omitted ancestors.
@@ -160,5 +174,35 @@ mod tests {
             .expect("reply label");
 
         assert_eq!(label.style.bg, Some(Color::DarkGray));
+    }
+
+    /// Verifies message Markdown remains structured safe text in the TUI.
+    #[test]
+    fn message_markdown_uses_safe_terminal_rendering() {
+        let state = TuiState {
+            conversation: Some(ConversationModel {
+                rows: vec![ConversationRow {
+                    source: ConversationSource::Activity(EntityId::from_bytes([8; 16])),
+                    reply_anchor: None,
+                    depth: 0,
+                    label: "# heading\n\nunsafe \u{1b}[2J".to_owned(),
+                    kind: ConversationRowKind::Message,
+                }],
+                coordinator_cursor: None,
+            }),
+            ..TuiState::default()
+        };
+
+        let rendered = conversation_text(&state, 40);
+        let plain = rendered
+            .lines
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        assert!(plain.contains("heading"));
+        assert!(plain.contains("\\u{1b}[2J"));
+        assert!(!plain.contains('\u{1b}'));
     }
 }

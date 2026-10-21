@@ -39,6 +39,34 @@ fn printable_q_edits_conversation_draft() {
     assert_eq!(state.conversation_composer.draft, "q");
 }
 
+/// Verifies the upstream-backed editor inserts at a Unicode-aware cursor.
+#[test]
+fn conversation_editor_moves_and_deletes_without_changing_reply_target() {
+    let mut state = TuiState::default();
+    reduce(&mut state, Action::InputChanged("a界b".to_owned()));
+    reduce(
+        &mut state,
+        Action::ComposerCursorMoved(scriberig_tui_kit::CursorMotion::Left),
+    );
+    reduce(&mut state, Action::InputChanged("x".to_owned()));
+
+    assert_eq!(state.conversation_composer.draft, "a界xb");
+    assert_eq!(
+        state.conversation_composer.target,
+        super::ConversationTarget::NewSession
+    );
+}
+
+/// Verifies paste data is inserted without interpreting terminal controls.
+#[test]
+fn conversation_editor_sanitizes_pasted_control_sequences() {
+    let mut state = TuiState::default();
+    reduce(&mut state, Action::Paste("a\u{1b}[2J\nb".to_owned()));
+
+    assert_eq!(state.conversation_composer.draft, "a\\u{1b}[2J\nb");
+    assert!(!state.conversation_composer.draft.contains('\u{1b}'));
+}
+
 /// Verifies the control-C quit chord stops the runtime.
 #[test]
 fn control_c_sets_quit_flag() {

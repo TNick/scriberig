@@ -25,7 +25,9 @@ fn tui_cancellation_persists_abandoned_branch_without_project_or_source_mutation
     let session = visible_session(&tui);
     wait_for_provider_gate(&tui);
 
-    tui.send(b"/operations\r");
+    tui.send_slow(b"/operations");
+    assert!(tui.read_until_for("/operations", Duration::from_secs(10)));
+    tui.send(b"\r");
     assert!(
         tui.read_until_for("Running", Duration::from_secs(10)),
         "{}",

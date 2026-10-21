@@ -112,7 +112,7 @@ fn plan_integration_merges_candidates_without_promoting_project_state() {
         plan_id,
         coordinator_claim,
         &workers,
-        &worker_library(),
+        &runtime_fallback_models(),
         "fallback-model",
         2,
         || {
@@ -137,7 +137,6 @@ fn plan_integration_merges_candidates_without_promoting_project_state() {
             .is_none()
     );
 }
-
 /// Executes candidate-producing workers and an explicit integration merge.
 struct CandidateWorkers<'a> {
     /// Immutable store receiving worker candidate snapshots.
@@ -307,38 +306,4 @@ impl PlanWorkerExecutor for CandidateWorkers<'_> {
             unresolved_questions: Vec::new(),
         })
     }
-}
-
-/// Builds two independently assigned fake model profiles.
-/// # Returns
-/// The operation result.
-pub(super) fn worker_library() -> scriberig_app::ModelLibrary {
-    let models = [
-        ("model-a", "provider-a-model"),
-        ("model-b", "provider-b-model"),
-    ]
-    .into_iter()
-    .map(|(id, provider_model_id)| scriberig_app::ModelDescriptor {
-        id: scriberig_app::ModelId::new(id).expect("model id"),
-        display_name: id.to_owned(),
-        provider_profile: format!("provider:{id}"),
-        provider_model_id: provider_model_id.to_owned(),
-        capabilities: scriberig_app::ModelCapabilities::default(),
-        thinking_levels: Vec::new(),
-        default_thinking_level: None,
-    })
-    .collect();
-    let profiles = [("alpha", "model-a"), ("beta", "model-b")]
-        .into_iter()
-        .map(|(id, model)| scriberig_app::ModelProfile {
-            id: id.to_owned(),
-            display_name: id.to_owned(),
-            model: scriberig_app::ModelId::new(model).expect("profile model"),
-            connection: format!("connection:{id}"),
-            credential: None,
-            default_thinking_level: None,
-            enabled: true,
-        })
-        .collect();
-    scriberig_app::ModelLibrary::new(models, profiles).expect("model library")
 }

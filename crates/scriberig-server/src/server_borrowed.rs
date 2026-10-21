@@ -177,12 +177,13 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
         (**self).set_agent_presentation_preferences(context, request)
     }
 
-    /// Delegates model selection to the borrowed service.
+    /// Delegates upstream provider/model selection to the borrowed service.
     ///
     /// - `context`: Trusted caller context.
     /// - `session`: Stable session identity.
     /// - `expected_revision`: Selection revision observed by the caller.
-    /// - `model_profile`: Curated model profile id.
+    /// - `provider_id`: Exact upstream provider identity.
+    /// - `model_id`: Provider-scoped upstream model identity.
     ///
     /// The updated session execution selection.
     ///
@@ -196,9 +197,10 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
         context: &ApplicationContext,
         session: &str,
         expected_revision: u64,
-        model_profile: &str,
+        provider_id: &str,
+        model_id: &str,
     ) -> Result<scriberig_protocol::SessionExecutionSelection, ApplicationError> {
-        (**self).set_session_model(context, session, expected_revision, model_profile)
+        (**self).set_session_model(context, session, expected_revision, provider_id, model_id)
     }
 
     /// Delegates thinking-level selection to the borrowed service.

@@ -117,6 +117,62 @@ pub fn serve_with_origin_and_plan_lifecycle(
     project_roots: &[std::path::PathBuf],
     plan_lifecycle_handler: Option<Arc<PlanLifecycleHandler>>,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    serve_with_model_catalog_and_plan_lifecycle(
+        host,
+        port,
+        database_path,
+        allowed_origin,
+        project_roots,
+        plan_lifecycle_handler,
+        ServerModelCatalog {
+            library: scriberig_app::ModelLibrary::default(),
+            upstream_models: Vec::new(),
+        },
+    )
+}
+
+/// Carries the upstream model authority and its safe protocol projection.
+///
+/// # Public members
+/// - `library`: Safe display projection exposed by the protocol.
+/// - `upstream_models`: Upstream models used to resolve live selections.
+///
+/// # Private members
+/// None.
+pub struct ServerModelCatalog {
+    /// Safe display projection exposed by the protocol.
+    pub library: scriberig_app::ModelLibrary,
+    /// Upstream models used to resolve live selections.
+    pub upstream_models: Vec<rpi_ai::Model>,
+}
+
+/// Serves the API with a host-composed upstream model catalog.
+///
+/// - `host`: Interface address to bind.
+/// - `port`: TCP port to bind.
+/// - `database_path`: SQLite file to initialize before accepting requests.
+/// - `allowed_origin`: Exact browser origin allowed for CORS responses.
+/// - `project_roots`: Filesystem roots allowed for project onboarding.
+/// - `plan_lifecycle_handler`: Optional runtime that executes lifecycle requests.
+/// - `model_catalog`: Safe display projection and upstream selection authority.
+///
+/// Unit after the listener stops accepting connections.
+///
+/// Returns an error for invalid origin configuration, database failure, or
+/// listener initialization failure.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
+pub fn serve_with_model_catalog_and_plan_lifecycle(
+    host: &str,
+    port: u16,
+    database_path: &Path,
+    allowed_origin: Option<&str>,
+    project_roots: &[std::path::PathBuf],
+    plan_lifecycle_handler: Option<Arc<PlanLifecycleHandler>>,
+    model_catalog: ServerModelCatalog,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
     if allowed_origin.is_some_and(|origin| origin.is_empty() || origin == "*") {
         return Err("allowed origin must be a non-empty exact origin".into());
     }
@@ -128,15 +184,10 @@ pub fn serve_with_origin_and_plan_lifecycle(
     let session_store = Arc::new(scriberig_session_sqlite::SqliteSessionStore::open(
         database_path,
     )?);
-    let fallback_model =
-        std::env::var("SCRIBE_AGENT_MODEL").unwrap_or_else(|_| "default".to_owned());
-    let model_catalog = std::env::var("SCRIBE_AGENT_MODEL_CATALOG").ok();
-    let model_library =
-        scriberig_app::model_library_from_json(model_catalog.as_deref(), &fallback_model)
-            .map_err(std::io::Error::other)?;
     let service = scriberig_app::ApplicationService::new(backend)
         .with_session_store(session_store)
-        .with_model_library(model_library);
+        .with_model_library(model_catalog.library)
+        .with_upstream_models(model_catalog.upstream_models);
     let state = http::HttpState {
         service,
         principal: scriberig_app::Principal::new("local-user"),

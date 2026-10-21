@@ -13,7 +13,7 @@ fn scheduler_persists_claims_before_worker_execution() {
         &[ready],
         &[],
         &executor,
-        &worker_library(),
+        &worker_models(),
         &scriberig_session::SessionExecutionSelection::default(),
         "fallback-model",
         || {
@@ -51,8 +51,8 @@ fn unsupported_thinking_fails_before_worker_provider_invocation() {
         .find(|node| node.id == ready)
         .expect("ready node")
         .assignment = Some(ModelAssignment {
-        profile: "alpha".to_owned(),
-        model: "model-a".to_owned(),
+        provider_id: "provider".to_owned(),
+        model_id: "wire-a".to_owned(),
         thinking_level: Some("unsupported".to_owned()),
     });
     let executor = CountingWorker(std::sync::atomic::AtomicUsize::new(0));
@@ -62,7 +62,7 @@ fn unsupported_thinking_fails_before_worker_provider_invocation() {
         &[ready],
         &[],
         &executor,
-        &worker_library(),
+        &worker_models(),
         &scriberig_session::SessionExecutionSelection::default(),
         "fallback-model",
         || {

@@ -143,10 +143,7 @@ fn restart_and_verify(
     database: &std::path::Path,
     evidence: RestartEvidence<'_>,
 ) {
-    let candidate_target = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
-        .join("target")
-        .join("candidate-restart");
+    let candidate_target = tui_pty_support::workspace_target_directory().join("candidate-restart");
     let build = std::process::Command::new("cargo")
         .current_dir(checkout)
         .env("CARGO_TARGET_DIR", &candidate_target)

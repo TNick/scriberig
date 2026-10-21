@@ -18,6 +18,7 @@ type PanicHook = Arc<dyn Fn(&PanicHookInfo<'_>) + Send + Sync + 'static>;
 pub struct TerminalGuard {
     previous_hook: Option<PanicHook>,
     restored: bool,
+    restore: fn() -> io::Result<()>,
 }
 
 /// Tracks terminal capabilities changed by the guard.
@@ -48,16 +49,11 @@ impl TerminalGuard {
             let _ = Self::restore_terminal();
             return Err(error);
         }
-        let previous_hook: Arc<dyn Fn(&PanicHookInfo<'_>) + Send + Sync> =
-            Arc::from(panic::take_hook());
-        let panic_hook = Arc::clone(&previous_hook);
-        panic::set_hook(Box::new(move |panic| {
-            let _ = Self::restore_terminal();
-            panic_hook(panic);
-        }));
+        let previous_hook = install_panic_restoration_hook(Self::restore_terminal);
         Ok(Self {
             previous_hook: Some(previous_hook),
             restored: false,
+            restore: Self::restore_terminal,
         })
     }
 
@@ -70,11 +66,7 @@ impl TerminalGuard {
     /// # Errors
     /// Returns an error when the operation fails.
     pub fn restore(&mut self) -> io::Result<()> {
-        if self.restored {
-            return Ok(());
-        }
-        let result = Self::restore_terminal();
-        self.restored = true;
+        let result = restore_once(&mut self.restored, self.restore);
         if let Some(previous_hook) = self.previous_hook.take() {
             panic::set_hook(Box::new(move |panic| previous_hook(panic)));
         }
@@ -95,6 +87,56 @@ impl TerminalGuard {
         };
         restore_with(&mut driver)
     }
+}
+
+/// Runs an interactive operation while guaranteeing terminal cleanup on return.
+///
+/// - `guard`: Terminal lifecycle owner to restore when the operation exits.
+/// - `operation`: Event-loop and terminal work to execute under the guard.
+///
+/// The operation result after terminal cleanup has run.
+pub(crate) fn run_with_terminal_guard<T>(
+    guard: TerminalGuard,
+    operation: impl FnOnce() -> io::Result<T>,
+) -> io::Result<T> {
+    let result = operation();
+    drop(guard);
+    result
+}
+
+/// Runs terminal restoration once, including when the caller requests cleanup twice.
+///
+/// - `restored`: State tracking whether restoration already ran.
+/// - `restore`: Terminal cleanup action to run on the first request.
+///
+/// # Returns
+/// The first cleanup result, or success when cleanup already ran.
+/// # Errors
+/// Returns an error when the first restoration attempt fails.
+fn restore_once(restored: &mut bool, restore: impl FnOnce() -> io::Result<()>) -> io::Result<()> {
+    if *restored {
+        return Ok(());
+    }
+    let result = restore();
+    *restored = true;
+    result
+}
+
+/// Installs restoration before delegating panic reporting to the prior hook.
+///
+/// - `restore`: Terminal restoration action to attempt on panic.
+///
+/// The previous panic hook, which the owner can restore during teardown.
+/// # Returns
+/// The previous process panic hook.
+fn install_panic_restoration_hook(restore: fn() -> io::Result<()>) -> PanicHook {
+    let previous_hook: PanicHook = Arc::from(panic::take_hook());
+    let panic_hook = Arc::clone(&previous_hook);
+    panic::set_hook(Box::new(move |panic| {
+        let _ = restore();
+        panic_hook(panic);
+    }));
+    previous_hook
 }
 
 /// Returns the complete, ordered terminal restoration plan.
@@ -119,6 +161,10 @@ fn restoration_commands() -> [TerminalCommand; 3] {
 ///
 /// The first cleanup error, after all cleanup commands were attempted.
 ///
+/// Returns the first error reported by the driver.
+/// # Returns
+/// Success when all restoration commands succeed.
+/// # Errors
 /// Returns the first error reported by the driver.
 fn restore_with<D: TerminalDriver>(driver: &mut D) -> io::Result<()> {
     let mut first_error = driver.disable_raw_mode().err();
@@ -235,100 +281,5 @@ pub fn flush(output: &mut impl Write) -> io::Result<()> {
 }
 
 #[cfg(test)]
-mod tests {
-    use std::io;
-
-    use super::{
-        LifecycleState, TerminalCommand, TerminalDriver, flush, restoration_commands, restore_with,
-    };
-
-    /// Records restoration attempts while optionally failing one command.
-    struct FakeDriver {
-        /// Commands attempted by the restoration executor.
-        commands: Vec<TerminalCommand>,
-        /// Command that should return an injected failure.
-        failure: Option<TerminalCommand>,
-    }
-
-    impl TerminalDriver for FakeDriver {
-        /// Records raw-mode restoration without touching a terminal.
-        ///
-        /// Always succeeds for the fake driver.
-        ///
-        /// This fake driver does not return an error.
-        /// # Returns
-        /// The operation result.
-        /// # Errors
-        /// Returns an error when the operation fails.
-        fn disable_raw_mode(&mut self) -> io::Result<()> {
-            Ok(())
-        }
-
-        /// Records one restoration command and injects its configured failure.
-        ///
-        /// - `command`: Terminal restoration command to record.
-        ///
-        /// Success unless the command is configured to fail.
-        ///
-        /// Returns the configured injected error.
-        /// # Returns
-        /// The operation result.
-        /// # Errors
-        /// Returns an error when the operation fails.
-        fn execute(&mut self, command: TerminalCommand) -> io::Result<()> {
-            self.commands.push(command);
-            if self.failure == Some(command) {
-                Err(io::Error::other("injected restoration failure"))
-            } else {
-                Ok(())
-            }
-        }
-    }
-
-    /// Verifies lifecycle-adjacent output can be flushed through an abstraction.
-    #[test]
-    fn flushes_test_output() {
-        let mut output = Vec::new();
-        flush(&mut output).expect("flush");
-        assert_eq!(output.len(), 0);
-    }
-
-    /// Verifies lifecycle state can be exercised without changing a real terminal.
-    #[test]
-    fn lifecycle_state_records_all_owned_capabilities() {
-        let state = LifecycleState {
-            raw_mode: true,
-            alternate_screen: true,
-            cursor_hidden: true,
-            bracketed_paste: true,
-        };
-        assert!(state.raw_mode);
-        assert!(state.alternate_screen);
-        assert!(state.cursor_hidden);
-        assert!(state.bracketed_paste);
-    }
-
-    /// Verifies teardown attempts every owned capability in stable order.
-    #[test]
-    fn restoration_plan_is_complete_and_ordered() {
-        assert!(matches!(
-            restoration_commands(),
-            [
-                TerminalCommand::DisableBracketedPaste,
-                TerminalCommand::Show,
-                TerminalCommand::LeaveAlternateScreen
-            ]
-        ));
-    }
-
-    /// Verifies cleanup continues after one command fails.
-    #[test]
-    fn restoration_attempts_all_commands_after_failure() {
-        let mut driver = FakeDriver {
-            commands: Vec::new(),
-            failure: Some(TerminalCommand::Show),
-        };
-        assert!(restore_with(&mut driver).is_err());
-        assert_eq!(driver.commands, restoration_commands());
-    }
-}
+#[path = "terminal_tests.rs"]
+mod tests;

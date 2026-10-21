@@ -129,8 +129,8 @@ fn remote_session_read_reconstructs_branch_activity() {
                 plans: Vec::new(),
                 execution: scriberig_protocol::SessionExecutionSelection {
                     revision: 4,
-                    model_profile: Some("profile-a".to_owned()),
-                    model: Some("model-a".to_owned()),
+                    provider_id: Some("provider-a".to_owned()),
+                    model_id: Some("model-a".to_owned()),
                     thinking_level: Some("careful".to_owned()),
                     history: Vec::new(),
                 },
@@ -147,7 +147,7 @@ fn remote_session_read_reconstructs_branch_activity() {
     assert_eq!(value.branches[0].turns[0].id, turn);
     assert_eq!(value.branches[0].turns[0].ordinal, 3);
     assert_eq!(value.execution.revision, 4);
-    assert_eq!(value.execution.model.as_deref(), Some("model-a"));
+    assert_eq!(value.execution.model_id.as_deref(), Some("model-a"));
     assert_eq!(value.execution.thinking_level.as_deref(), Some("careful"));
     assert!(value.branches[0].turns[0].human.is_some());
     assert!(value.branches[0].turns[0].agent.is_some());

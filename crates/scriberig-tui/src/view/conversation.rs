@@ -129,40 +129,10 @@ impl ConversationModel {
     pub fn index_of(&self, source: ConversationSource) -> Option<usize> {
         self.rows.iter().position(|row| row.source == source)
     }
-
-    /// Inserts one transient status row below its owning branch subtree.
-    ///
-    /// - `branch`: Stable branch identity owning the observation.
-    /// - `key`: Stable client presentation identity for the operation activity.
-    /// - `label`: Bounded safe status label.
-    pub fn insert_transient_activity(&mut self, branch: EntityId, key: u64, label: String) {
-        let Some(branch_index) = self
-            .rows
-            .iter()
-            .position(|row| row.source == ConversationSource::Branch(branch))
-        else {
-            return;
-        };
-        let depth = self.rows[branch_index].depth;
-        let insertion = self.rows[branch_index + 1..]
-            .iter()
-            .position(|row| row.depth <= depth)
-            .map_or(self.rows.len(), |offset| branch_index + 1 + offset);
-        let mut identity = [0; 16];
-        identity[..8].copy_from_slice(&key.to_le_bytes());
-        identity[8..].copy_from_slice(&branch.as_bytes()[..8]);
-        self.rows.insert(
-            insertion,
-            ConversationRow {
-                source: ConversationSource::TransientActivity(EntityId::from_bytes(identity)),
-                reply_anchor: None,
-                depth: depth.saturating_add(1),
-                label,
-                kind: ConversationRowKind::Activity,
-            },
-        );
-    }
 }
+
+#[path = "conversation_transient.rs"]
+mod transient;
 
 /// Converts an existing session row to its typed conversation source.
 ///
@@ -258,10 +228,11 @@ fn conversation_label(
 /// # Returns
 /// A prefixed, sanitized conversation label.
 fn bounded_conversation_text(prefix: &str, text: &str) -> String {
-    let content = crate::inspector::sanitize(text)
-        .chars()
-        .take(512)
-        .collect::<String>();
+    let mut characters = text.chars().filter(|character| !character.is_control());
+    let mut content = characters.by_ref().take(512).collect::<String>();
+    if characters.next().is_some() {
+        content.push_str("… truncated …");
+    }
     format!("{prefix}: {content}")
 }
 

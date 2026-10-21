@@ -35,13 +35,24 @@ pub(super) fn observe_agent_activity(
         state
             .transient_agent_activities
             .retain(|activity| activity.key != key);
-        if let Some(session) = state.session_snapshot.clone() {
-            state.conversation = Some(crate::state::conversation_projection(state, &session));
-        }
+        crate::state::refresh_conversation_projection(state);
         return vec![Effect::None];
     }
+    let sequence = state
+        .transient_agent_activities
+        .iter()
+        .find(|existing| existing.key == key)
+        .map_or_else(
+            || {
+                let sequence = state.next_transient_sequence;
+                state.next_transient_sequence = sequence.saturating_add(1);
+                sequence
+            },
+            |existing| existing.sequence,
+        );
     let activity = crate::state::TransientAgentActivity {
         key,
+        sequence,
         branch: branch.chars().take(128).collect(),
         activity_kind,
         state: activity_state,
@@ -59,9 +70,7 @@ pub(super) fn observe_agent_activity(
             state.transient_agent_activities.remove(0);
         }
     }
-    if let Some(session) = state.session_snapshot.clone() {
-        state.conversation = Some(crate::state::conversation_projection(state, &session));
-    }
+    crate::state::refresh_conversation_projection(state);
     if state.reasoning_visibility == crate::state::ReasoningVisibility::Hidden {
         return vec![Effect::None];
     }

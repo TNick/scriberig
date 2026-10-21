@@ -1,0 +1,13 @@
+[
+  {"case":"CSI color/control","value":"\u001b[31mred\u001b[0m\u001b[2J"},
+  {"case":"OSC hyperlink","value":"\u001b]8;;https://invalid.test\u0007linked\u001b]8;;\u0007"},
+  {"case":"OSC clipboard","value":"\u001b]52;c;secret\u0007"},
+  {"case":"BEL","value":"bell\u0007after"},
+  {"case":"ESC-only/incomplete","value":"before\u001b[31;\u001b]8;"},
+  {"case":"CR/backspace","value":"safe\radmin\b!"},
+  {"case":"NUL/controls","value":"nul\u0000tab\tvertical\u000bform\u000c"},
+  {"case":"C1 CSI","value":"\u009b31mred"},
+  {"case":"malformed Markdown","value":"**bold _nested [label](javascript:bad)"},
+  {"case":"fenced code","value":"```\n\u001b[2J\u0007\n```"},
+  {"case":"Unicode width edge","value":"界e\u0301🙂"}
+]

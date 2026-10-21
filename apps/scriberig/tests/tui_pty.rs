@@ -2,10 +2,14 @@
 
 #[path = "tui_pty_support/bootstrap_test.rs"]
 mod tui_pty_bootstrap;
+#[path = "tui_pty/branch.rs"]
+mod tui_pty_branch;
 #[path = "tui_pty/conversation.rs"]
 mod tui_pty_conversation;
 #[path = "tui_pty_support/lifecycle_test.rs"]
 mod tui_pty_lifecycle;
+#[path = "tui_pty/plan_view.rs"]
+mod tui_pty_plan_view;
 mod tui_pty_support;
 
 use portable_pty::PtySize;
@@ -28,10 +32,11 @@ fn tui_pty_shows_project_context() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("scriberig ·"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Message [ACTIVE]"), "{}", tui.diagnostic());
     let screen = tui.screen();
+    assert!(screen.contains("scriberig ·"));
     assert!(screen.contains("Conversation [ACTIVE]"));
-    assert!(screen.contains("Message"));
+    assert!(screen.contains("Message [ACTIVE]"));
     assert!(tui.shutdown());
 }
 
@@ -174,11 +179,10 @@ fn tui_pty_opens_help_overlay() {
         "Up",
         "Down",
         "Left",
+        "Right",
         "Backspace",
         "/",
-        "?",
-        "r",
-        "Ctrl-C",
+        "command palette",
     ] {
         assert!(screen.contains(label), "missing help key {label}: {screen}");
     }
@@ -243,6 +247,6 @@ fn tui_pty_types_immediately() {
 
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
     tui.send(b"hello");
-    assert!(tui.read_until_next("> hello"), "{}", tui.diagnostic());
+    assert!(tui.read_until_next("hello"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }

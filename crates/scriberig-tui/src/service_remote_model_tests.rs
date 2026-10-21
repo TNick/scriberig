@@ -143,8 +143,8 @@ fn sets_session_model_with_expected_revision() {
     let adapter = RemoteAdapter::new(Client::new(FixtureTransport {
         response: Response::SessionExecution(SessionExecutionSelection {
             revision: 5,
-            model_profile: Some("profile-a".to_owned()),
-            model: Some("model-a".to_owned()),
+            provider_id: Some("provider-a".to_owned()),
+            model_id: Some("model-a".to_owned()),
             thinking_level: Some("careful".to_owned()),
             history: Vec::new(),
         }),
@@ -158,13 +158,15 @@ fn sets_session_model_with_expected_revision() {
             &SessionModelSelectionRequest {
                 session,
                 expected_revision: 4,
-                model_profile: "profile-a".to_owned(),
+                provider_id: "provider-a".to_owned(),
+                model_id: "model-a".to_owned(),
             },
         )
         .expect("updated selection");
 
     assert_eq!(updated.revision, 5);
-    assert_eq!(updated.model.as_deref(), Some("model-a"));
+    assert_eq!(updated.provider_id.as_deref(), Some("provider-a"));
+    assert_eq!(updated.model_id.as_deref(), Some("model-a"));
     assert_eq!(
         observed.lock().expect("request").as_ref(),
         Some(&Request::SessionModelSelection(
@@ -173,7 +175,8 @@ fn sets_session_model_with_expected_revision() {
                     id: session.to_string(),
                 },
                 expected_revision: 4,
-                model_profile: "profile-a".to_owned(),
+                provider_id: "provider-a".to_owned(),
+                model_id: "model-a".to_owned(),
             }
         ))
     );

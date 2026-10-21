@@ -51,6 +51,12 @@ pub enum KeyCode {
     Tab,
     /// The Backspace key.
     Backspace,
+    /// The Delete key.
+    Delete,
+    /// The Home key.
+    Home,
+    /// The End key.
+    End,
     /// The Up arrow key.
     Up,
     /// The Down arrow key.
@@ -146,6 +152,9 @@ fn translate_key(key: KeyEvent) -> Key {
         }
         CrosstermKeyCode::Tab => KeyCode::Tab,
         CrosstermKeyCode::Backspace => KeyCode::Backspace,
+        CrosstermKeyCode::Delete => KeyCode::Delete,
+        CrosstermKeyCode::Home => KeyCode::Home,
+        CrosstermKeyCode::End => KeyCode::End,
         CrosstermKeyCode::Up => KeyCode::Up,
         CrosstermKeyCode::Down => KeyCode::Down,
         CrosstermKeyCode::Left => KeyCode::Left,

@@ -84,7 +84,7 @@ fn execution_selection_compare_and_swap_is_atomic() {
         .execution
         .replace(
             0,
-            Some("profile-a".to_owned()),
+            Some("provider-a".to_owned()),
             Some("model-a".to_owned()),
             Some("careful".to_owned()),
         )
@@ -96,7 +96,8 @@ fn execution_selection_compare_and_swap_is_atomic() {
             revision: proposed.execution.revision,
             kind: scriberig_session::AgentActivityKind::ModelSelectionChanged,
             summary: "Model selected: model-a".to_owned(),
-            model: proposed.execution.model.clone(),
+            provider_id: proposed.execution.provider_id.clone(),
+            model_id: proposed.execution.model_id.clone(),
             thinking_level: proposed.execution.thinking_level.clone(),
         });
     let mut branch_update = store
@@ -111,7 +112,7 @@ fn execution_selection_compare_and_swap_is_atomic() {
         .execution
         .replace(
             0,
-            Some("profile-b".to_owned()),
+            Some("provider-b".to_owned()),
             Some("model-b".to_owned()),
             Some("steady".to_owned()),
         )
@@ -142,13 +143,13 @@ fn execution_selection_compare_and_swap_is_atomic() {
         .expect("session exists");
     assert_eq!(stored.branches.len(), 2);
     assert!(matches!(
-        stored.execution.model.as_deref(),
+        stored.execution.model_id.as_deref(),
         Some("model-a" | "model-b")
     ));
     assert_eq!(stored.execution.history.len(), 1);
     assert_eq!(
-        stored.execution.history[0].model.as_deref(),
-        stored.execution.model.as_deref()
+        stored.execution.history[0].provider_id.as_deref(),
+        stored.execution.provider_id.as_deref()
     );
 }
 

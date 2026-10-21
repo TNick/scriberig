@@ -88,8 +88,8 @@ fn updated_execution_selection_refreshes_session_header() {
 
     model.set_execution(scriberig_session::SessionExecutionSelection {
         revision: 2,
-        model_profile: Some("profile-a".to_owned()),
-        model: Some("model-a".to_owned()),
+        provider_id: Some("provider-a".to_owned()),
+        model_id: Some("model-a".to_owned()),
         thinking_level: Some("careful".to_owned()),
         history: Vec::new(),
     });
@@ -307,8 +307,8 @@ fn shows_shared_model_and_thinking_selection() {
         plans: Vec::new(),
         execution: scriberig_session::SessionExecutionSelection {
             revision: 4,
-            model_profile: Some("local-profile".to_owned()),
-            model: Some("model-b".to_owned()),
+            provider_id: Some("provider-b".to_owned()),
+            model_id: Some("model-b".to_owned()),
             thinking_level: Some("deliberate".to_owned()),
             history: Vec::new(),
         },

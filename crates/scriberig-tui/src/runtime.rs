@@ -52,25 +52,27 @@ pub fn run<S: TuiService + Sync>(
         .debug
         .then(|| TuiDebugLog::open(config.debug_log_file.as_deref()))
         .transpose()?;
-    let _guard = TerminalGuard::enter()?;
-    let backend = CrosstermBackend::new(io::stdout());
-    let mut terminal = Terminal::new(backend)?;
-    let mut state = TuiState {
-        project: config.project.clone(),
-        agent_selection: config.agent_selection.clone(),
-        ..TuiState::default()
-    };
-    if let Some(log) = debug_log.as_mut() {
-        log.record_message("runtime-start", &state)?;
-    }
-    interactive_event_loop(
-        service,
-        context,
-        config,
-        &mut terminal,
-        &mut state,
-        debug_log.as_mut(),
-    )
+    let guard = TerminalGuard::enter()?;
+    crate::terminal::run_with_terminal_guard(guard, || {
+        let backend = CrosstermBackend::new(io::stdout());
+        let mut terminal = Terminal::new(backend)?;
+        let mut state = TuiState {
+            project: config.project.clone(),
+            agent_selection: config.agent_selection.clone(),
+            ..TuiState::default()
+        };
+        if let Some(log) = debug_log.as_mut() {
+            log.record_message("runtime-start", &state)?;
+        }
+        interactive_event_loop(
+            service,
+            context,
+            config,
+            &mut terminal,
+            &mut state,
+            debug_log.as_mut(),
+        )
+    })
 }
 /// Processes terminal input and shared application events until shutdown.
 ///

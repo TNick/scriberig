@@ -251,10 +251,9 @@ fn execute_integration(
         &service, &context, session, &providers, store, None,
     );
     let execution = scriberig_app::ResolvedPlanExecution {
-        model_profile: None,
-        provider_profile: None,
-        model: None,
-        provider_model_id: "unused-for-integration".to_owned(),
+        provider_id: "local".to_owned(),
+        model_id: "unused-for-integration".to_owned(),
+        uses_runtime_fallback: true,
         thinking_level: None,
     };
     executor.execute_with_context(&node, &claim, &execution, &worker_context)

@@ -1,8 +1,13 @@
 //! Covers additional focused cases for the parent test module.
 
 use super::*;
+use crate::service::TuiModelRequestService;
 
 /// Verifies local and remote session adapters share semantics.
+///
+/// The fixture deliberately compares the full nested session contract in one
+/// place so future adapter drift is visible in a single parity assertion.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn local_and_remote_session_adapters_share_semantics() {
     let expected = session_fixture();
@@ -40,8 +45,69 @@ fn local_and_remote_session_adapters_share_semantics() {
                     activity: Vec::new(),
                     result: None,
                 }],
-                plans: Vec::new(),
-                execution: scriberig_protocol::SessionExecutionSelection::default(),
+                plans: vec![scriberig_protocol::SessionPlan {
+                    id: expected.plans[0].id.to_string(),
+                    revision: 2,
+                    goal: "inspect fixture semantics".to_owned(),
+                    status: scriberig_protocol::SessionPlanStatus::Planned,
+                    anchor: Some(scriberig_protocol::SessionContinuationAnchor::BranchHead {
+                        branch: expected.branches[0].id.to_string(),
+                    }),
+                    root_branch: expected.branches[0].id.to_string(),
+                    nodes: vec![
+                        scriberig_protocol::SessionPlanNode {
+                            id: expected.plans[0].nodes[0].id.to_string(),
+                            parent: expected.branches[0].id.to_string(),
+                            title: "produce".to_owned(),
+                            purpose: "produce result".to_owned(),
+                            status: scriberig_protocol::SessionPlanNodeStatus::Completed,
+                            branch: None,
+                            result: Some(
+                                expected.plans[0].dependencies[0]
+                                    .fulfilled_by
+                                    .unwrap()
+                                    .to_string(),
+                            ),
+                            superseded_by: None,
+                            expected_result: None,
+                            semantic_scope: Vec::new(),
+                            assignment: None,
+                            claim: None,
+                        },
+                        scriberig_protocol::SessionPlanNode {
+                            id: expected.plans[0].nodes[1].id.to_string(),
+                            parent: expected.branches[0].id.to_string(),
+                            title: "consume".to_owned(),
+                            purpose: "consume result".to_owned(),
+                            status: scriberig_protocol::SessionPlanNodeStatus::Ready,
+                            branch: None,
+                            result: None,
+                            superseded_by: None,
+                            expected_result: None,
+                            semantic_scope: Vec::new(),
+                            assignment: None,
+                            claim: None,
+                        },
+                    ],
+                    dependencies: vec![scriberig_protocol::SessionPlanDependency {
+                        prerequisite: expected.plans[0].nodes[0].id.to_string(),
+                        dependent: expected.plans[0].nodes[1].id.to_string(),
+                        fulfilled_by: expected.plans[0].dependencies[0]
+                            .fulfilled_by
+                            .map(|result| result.to_string()),
+                    }],
+                    coordinator: None,
+                    coordinator_cursor: None,
+                    coordinator_claim: None,
+                    history: Vec::new(),
+                }],
+                execution: scriberig_protocol::SessionExecutionSelection {
+                    revision: 1,
+                    provider_id: Some("provider-fixture".to_owned()),
+                    model_id: Some("model-fixture".to_owned()),
+                    thinking_level: Some("careful".to_owned()),
+                    history: Vec::new(),
+                },
             }),
         },
     };
@@ -64,121 +130,177 @@ fn local_and_remote_session_adapters_share_semantics() {
         local.branches[0].turns[0].human.is_some(),
         remote.branches[0].turns[0].human.is_some()
     );
+    assert_eq!(local.plans[0].id, remote.plans[0].id);
+    assert_eq!(local.plans[0].revision, remote.plans[0].revision);
+    assert_eq!(local.plans[0].goal, remote.plans[0].goal);
+    assert_eq!(local.plans[0].status, remote.plans[0].status);
+    assert_eq!(local.plans[0].anchor, remote.plans[0].anchor);
+    assert_eq!(
+        local.plans[0].dependencies[0].fulfilled_by,
+        remote.plans[0].dependencies[0].fulfilled_by
+    );
+    assert_eq!(
+        local.plans[0].nodes[1].status,
+        remote.plans[0].nodes[1].status
+    );
+    assert_eq!(local.execution, remote.execution);
 }
 
-/// Verifies remote nested branch references become the shared session graph.
+/// Verifies embedded and remote adapters expose the same operation lifecycle.
 #[test]
-fn remote_nested_branch_tree_preserves_parent_and_child_handles() {
-    let session = EntityId::from_bytes([20; 16]);
-    let root = EntityId::from_bytes([21; 16]);
-    let child = EntityId::from_bytes([22; 16]);
-    let transport = FixtureTransport {
+fn local_and_remote_operation_adapters_share_lifecycle_semantics() {
+    let operation =
+        scriberig_core::OperationId::new("operation-conformance").expect("operation id");
+    let session = session_fixture();
+    let entity = scriberig_core::EntityId::from_bytes([44; 16]);
+    let agent_result = scriberig_app::AgentResult {
+        session: session.id,
+        root_branch: session.branches[0].id,
+        final_output: "candidate validated".to_owned(),
+        branch_result: scriberig_core::EntityId::from_bytes([45; 16]),
+        produced_changes: vec![entity],
+        validation_results: vec!["validation passed".to_owned()],
+        unresolved_questions: Vec::new(),
+        candidate_changes: vec![scriberig_app::CandidateChange {
+            migration: Some("migration-conformance".to_owned()),
+            entity: Some(entity),
+            candidate_snapshot: Some(scriberig_core::SnapshotId::new([46; 32])),
+            validation: vec!["validation-conformance".to_owned()],
+        }],
+    };
+    let local_service = scriberig_app::ApplicationService::new(LocalSessionFixture {
+        session: session.clone(),
+    });
+    local_service
+        .operations()
+        .start(operation.clone(), scriberig_app::OperationKind::Agent)
+        .expect("start local operation");
+    local_service
+        .operations()
+        .complete_agent(
+            &operation,
+            vec!["validation-conformance".to_owned()],
+            agent_result,
+        )
+        .expect("complete local operation");
+    let local = crate::service::ApplicationOperationAdapter::new(local_service)
+        .operation_status(&ApplicationContext::empty(), &operation)
+        .expect("local operation status");
+
+    let remote = RemoteAdapter::new(Client::new(FixtureTransport {
         response: ResponseEnvelope {
             version: ProtocolVersion::default(),
-            correlation_id: "nested-session".to_owned(),
-            response: Response::Session(SessionReadResponse {
-                session: SessionReference {
-                    id: session.to_string(),
+            correlation_id: "operation-equivalence".to_owned(),
+            response: Response::OperationStatus(scriberig_protocol::OperationStatusResponse {
+                operation: scriberig_protocol::Operation {
+                    reference: OperationReference {
+                        id: operation.to_string(),
+                    },
+                    kind: scriberig_protocol::operation::OperationKind::Agent,
+                    status: scriberig_protocol::OperationStatus::Completed,
+                    progress: None,
+                    result_snapshot: None,
+                    result_handles: vec!["validation-conformance".to_owned()],
+                    agent_result: Some(scriberig_protocol::AgentResult {
+                        session: SessionReference {
+                            id: session.id.to_string(),
+                        },
+                        root_branch: scriberig_protocol::BranchReference {
+                            id: session.branches[0].id.to_string(),
+                        },
+                        final_output: "candidate validated".to_owned(),
+                        branch_result: scriberig_core::EntityId::from_bytes([45; 16]).to_string(),
+                        produced_changes: vec![scriberig_protocol::EntityReference {
+                            id: entity.to_string(),
+                        }],
+                        validation_results: vec!["validation passed".to_owned()],
+                        unresolved_questions: Vec::new(),
+                        candidate_changes: vec![scriberig_protocol::CandidateChangeReference {
+                            migration: Some("migration-conformance".to_owned()),
+                            entity: Some(scriberig_protocol::EntityReference {
+                                id: entity.to_string(),
+                            }),
+                            candidate_snapshot: Some(scriberig_protocol::SnapshotReference {
+                                id: scriberig_core::SnapshotId::new([46; 32]).to_string(),
+                            }),
+                            validation: vec!["validation-conformance".to_owned()],
+                        }],
+                    }),
+                    error: None,
                 },
-                branches: vec![
-                    SessionBranch {
-                        id: root.to_string(),
-                        parent: None,
-                        children: vec![child.to_string()],
-                        title: "root".to_owned(),
-                        status: SessionBranchStatus::Active,
-                        turns: Vec::new(),
-                        activity: Vec::new(),
-                        result: None,
-                    },
-                    SessionBranch {
-                        id: child.to_string(),
-                        parent: Some(root.to_string()),
-                        children: Vec::new(),
-                        title: "focused".to_owned(),
-                        status: SessionBranchStatus::Completed,
-                        turns: Vec::new(),
-                        activity: Vec::new(),
-                        result: None,
-                    },
-                ],
-                plans: Vec::new(),
-                execution: scriberig_protocol::SessionExecutionSelection::default(),
             }),
         },
-    };
-    let session = RemoteAdapter::new(Client::new(transport))
-        .read_session(&ApplicationContext::empty(), session)
-        .expect("nested session");
-
-    assert_eq!(session.branches.len(), 2);
-    assert_eq!(session.branches[0].children, vec![child]);
-    assert_eq!(session.branches[1].parent, Some(root));
-    assert_eq!(
-        session.branches[1].status,
-        scriberig_session::BranchStatus::Completed
-    );
-}
-
-/// Records subscription cursors while returning one durable operation event.
-#[derive(Clone)]
-struct CursorTransport {
-    /// Requests received by the transport.
-    requests: Arc<Mutex<Vec<RequestEnvelope>>>,
-}
-
-impl ProtocolTransport for CursorTransport {
-    /// Records the request and returns one stable completion event.
-    ///
-    /// - `self`: Cursor-aware fixture transport.
-    /// - `request`: Protocol subscription request.
-    ///
-    /// One operation-completed event at sequence five.
-    /// # Returns
-    /// The operation result.
-    fn send(&self, request: RequestEnvelope) -> ResponseEnvelope {
-        self.requests.lock().expect("request log").push(request);
-        ResponseEnvelope {
-            version: ProtocolVersion::default(),
-            correlation_id: "cursor".to_owned(),
-            response: Response::Events(vec![Event {
-                sequence: 5,
-                kind: EventKind::OperationCompleted,
-                entity: None,
-                revision: None,
-                snapshot: None,
-                operation: Some(OperationReference {
-                    id: "op-1".to_owned(),
-                }),
-                activity_kind: None,
-                activity_state: None,
-                metadata: Vec::new(),
-            }]),
-        }
-    }
-}
-
-/// Verifies remote reconnect polling resumes from the last durable cursor.
-#[test]
-fn remote_event_polling_resumes_from_last_cursor() {
-    let requests = Arc::new(Mutex::new(Vec::new()));
-    let adapter = RemoteAdapter::new(Client::new(CursorTransport {
-        requests: Arc::clone(&requests),
     }));
-    adapter
-        .application_events(&ApplicationContext::empty())
-        .expect("first event poll");
-    adapter
-        .application_events(&ApplicationContext::empty())
-        .expect("resumed event poll");
+    let remote = remote
+        .operation_status(&ApplicationContext::empty(), &operation)
+        .expect("remote operation status");
 
-    let requests = requests.lock().expect("request log");
-    let after = requests
-        .iter()
-        .map(|request| match &request.request {
-            Request::Subscribe(value) => value.after,
-            other => panic!("unexpected request: {other:?}"),
-        })
-        .collect::<Vec<_>>();
-    assert_eq!(after, vec![None, Some(5)]);
+    assert_eq!(local, remote);
 }
+
+/// Verifies both service paths enforce the same agent-start capability.
+#[test]
+fn local_and_remote_agent_capability_denial_share_semantics() {
+    let session = EntityId::from_bytes([47; 16]);
+    let context = ApplicationContext::empty();
+    let local = crate::service::ApplicationOperationAdapter::new(
+        scriberig_app::ApplicationService::new(LocalSessionFixture {
+            session: session_fixture(),
+        }),
+    )
+    .submit_agent_command(&context, session, None, "start")
+    .expect_err("local caller without agent_start capability");
+    let remote = RemoteAdapter::new(Client::new(FixtureTransport {
+        response: ResponseEnvelope {
+            version: ProtocolVersion::default(),
+            correlation_id: "capability-denial".to_owned(),
+            response: Response::Error(scriberig_protocol::ProtocolError {
+                code: scriberig_protocol::ProtocolErrorCode::PermissionDenied,
+                message: "permission denied".to_owned(),
+                details: None,
+                correlation_id: Some("capability-denial".to_owned()),
+            }),
+        },
+    }))
+    .submit_agent_command(&context, session, None, "start")
+    .expect_err("remote caller without agent_start capability");
+
+    assert_eq!(local.category(), "permission_denied");
+    assert_eq!(remote.category(), local.category());
+}
+
+/// Verifies embedded and remote TUI adapters share presentation preferences.
+#[test]
+fn local_and_remote_presentation_preferences_share_semantics() {
+    let context = ApplicationContext::empty();
+    let local = ApplicationAdapter::new(
+        LocalSessionFixture {
+            session: session_fixture(),
+        },
+        Vec::new(),
+    )
+    .agent_presentation_preferences(&context)
+    .expect("local presentation preferences");
+    let remote = RemoteAdapter::new(Client::new(FixtureTransport {
+        response: ResponseEnvelope {
+            version: ProtocolVersion::default(),
+            correlation_id: "preference-equivalence".to_owned(),
+            response: Response::AgentPresentationPreferences(
+                scriberig_protocol::AgentPresentationPreferencesResponse {
+                    revision: 4,
+                    preferences: scriberig_protocol::PublicAgentPresentationPreferences {
+                        tool_output: scriberig_protocol::PublicToolOutputVisibility::Full,
+                        ..scriberig_protocol::PublicAgentPresentationPreferences::default()
+                    },
+                },
+            ),
+        },
+    }))
+    .agent_presentation_preferences(&context)
+    .expect("remote presentation preferences");
+
+    assert_eq!(local, remote);
+}
+
+#[path = "service_adapter_conformance_tests_part1/remote.rs"]
+mod remote;

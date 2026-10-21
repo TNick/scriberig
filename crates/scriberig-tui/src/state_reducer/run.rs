@@ -9,30 +9,7 @@ use super::*;
 /// # Returns
 /// The operation result.
 pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
-    if matches!(
-        action,
-        Action::SessionSucceeded { .. }
-            | Action::SessionsListed(_)
-            | Action::SessionSwitched(_)
-            | Action::SessionRemoved(_)
-            | Action::PlanUpdated(_)
-            | Action::AgentSubmitted(_)
-            | Action::ConversationAgentAccepted(_)
-            | Action::ConversationBrowsing(_)
-            | Action::ConversationPinCursor
-            | Action::ConversationFollowCoordinator
-            | Action::ConversationToggleExpansion
-            | Action::SessionRequested { .. }
-            | Action::ComposerOpened { .. }
-            | Action::SessionComposerOpened { .. }
-            | Action::SessionComposerFocused(_)
-            | Action::AgentOutputObserved(_)
-            | Action::CapabilitiesLoaded(_)
-            | Action::OperationsLoaded(_)
-            | Action::OperationObserved(_)
-            | Action::OperationStatusRequested(_)
-            | Action::OperationCancelRequested(_)
-    ) {
+    if super::tail_actions::handles_tail_action(&action) {
         return reduce_tail(state, action).unwrap_or_default();
     }
     match action {
@@ -127,9 +104,10 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
                 },
             )
         }
-        Action::InputChanged(_) | Action::Paste(_) | Action::InputSubmitted => {
-            reduce_input(state, action)
-        }
+        Action::InputChanged(_)
+        | Action::ComposerCursorMoved(_)
+        | Action::Paste(_)
+        | Action::InputSubmitted => reduce_input(state, action),
         Action::TerminalResized { width, height } => {
             state.terminal_size = (width, height);
             vec![Effect::None]
@@ -275,6 +253,13 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
                 return reduce(state, Action::CommitConfirmed(confirm.commit));
             }
             if let LoadState::Ready(model) = &state.review {
+                if !model.conflicts.is_empty()
+                    || model.validation != crate::view::changes::ReviewValidation::Passed
+                {
+                    "Review conflicts and passing validation are required before confirmation."
+                        .clone_into(&mut state.shell_message);
+                    return vec![Effect::None];
+                }
                 let commit = crate::view::changes::ConfirmedCommit {
                     base_snapshot: model.base_snapshot,
                     change: model.change.clone(),
@@ -284,16 +269,28 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
                     action: "commit change".to_owned(),
                     target: model.change.clone(),
                     base: model.base_snapshot.to_string(),
-                    summary: format!(
-                        "{} affected semantic objects",
-                        model.affected_entities.len()
-                    ),
+                    summary: format!("{} affected semantic objects", model.deltas.len()),
                     commit,
                 }));
             }
             vec![Effect::None]
         }
         Action::CommitConfirmed(commit) => {
+            let LoadState::Ready(model) = &state.review else {
+                "No current change review to confirm.".clone_into(&mut state.shell_message);
+                return vec![Effect::None];
+            };
+            if !model.conflicts.is_empty()
+                || model.validation != crate::view::changes::ReviewValidation::Passed
+                || model.base_snapshot != commit.base_snapshot
+                || model.change != commit.change
+                || model.branch != commit.branch
+            {
+                "The change review is incomplete or no longer matches this confirmation."
+                    .clone_into(&mut state.shell_message);
+                state.overlay = None;
+                return vec![Effect::None];
+            }
             state.overlay = None;
             if let LoadState::Ready(model) = &state.review {
                 state.review_proposal = Some(model.clone());

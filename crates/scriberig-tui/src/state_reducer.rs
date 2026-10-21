@@ -18,4 +18,6 @@ use state_reducer_commit::commit_succeeded;
 mod run;
 #[path = "state_reducer_failure.rs"]
 mod state_reducer_failure;
+#[path = "state_reducer/tail_actions.rs"]
+mod tail_actions;
 pub use run::reduce;

@@ -230,8 +230,8 @@ fn protocol_node_reference(
 /// The operation result.
 fn protocol_assignment(assignment: &scriberig_session::ModelAssignment) -> SessionModelAssignment {
     SessionModelAssignment {
-        profile: assignment.profile.clone(),
-        model: assignment.model.clone(),
+        provider_id: assignment.provider_id.clone(),
+        model_id: assignment.model_id.clone(),
         thinking_level: assignment.thinking_level.clone(),
     }
 }

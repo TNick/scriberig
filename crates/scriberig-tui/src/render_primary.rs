@@ -125,11 +125,27 @@ pub(crate) fn primary_text(state: &TuiState) -> String {
         },
         crate::selection::PrimaryView::Projection => match &state.projection {
             crate::inspector::LoadState::Ready(model) => format!(
-                "Projection {}\nsource: {}\nstyle: {}\nbase: {}\n{}",
+                "Projection {}\nsource: {}\nsource path: {}\nsource revision: {}\nstyle: {}\nrenderer: {}\nbase: {}\nsync: {}\nedit capability: {}\n{}",
                 model.projection.as_deref().unwrap_or("unknown"),
                 model.source_entity,
+                model.source_path.as_deref().unwrap_or("not provided"),
+                model
+                    .source_revision
+                    .map_or_else(|| "unspecified".to_owned(), |revision| revision.to_string()),
                 model.style,
+                model.renderer,
                 model.base_snapshot,
+                model
+                    .synchronization
+                    .as_deref()
+                    .unwrap_or("not reported by renderer"),
+                if state.capabilities.iter().any(|capability| {
+                    capability.available && capability.id.as_str() == "projection_edit_candidate"
+                }) {
+                    "available"
+                } else {
+                    "not advertised"
+                },
                 model.content
             ),
             crate::inspector::LoadState::Loading { .. } => "Rendering projection...".to_owned(),
@@ -138,35 +154,68 @@ pub(crate) fn primary_text(state: &TuiState) -> String {
         },
         crate::selection::PrimaryView::Changes => match &state.review {
             crate::inspector::LoadState::Ready(model) => {
-                let fields = model.change.splitn(3, '|').collect::<Vec<_>>();
-                let selected = model.conflicts.get(state.cursor);
-                let review_diff = selected.and_then(|value| {
-                    let (scope_and_path, rest) = value.split_once("add | ")?;
-                    let prefix = scope_and_path
-                        .trim_end_matches(": ")
-                        .replace("; ", "\npath: ");
-                    Some(format!("{prefix}\n{}", rest.replace(" | ", "\n")))
-                });
-                let detail = if let Some(diff) = review_diff {
-                    diff
-                } else if fields.len() == 3 && fields[0] == "project-edit" {
-                    format!("path: src/lib.rs\nold: left + right\nnew: {}", fields[2])
-                } else if let Some(change) = selected {
-                    format!(
-                        "candidate: {}\nfile {}/{}\n{}",
-                        model.change,
-                        state.cursor + 1,
-                        model.conflicts.len(),
-                        change
-                    )
+                let selected_conflict = model.conflicts.get(state.cursor);
+                let affected = if model.deltas.is_empty() {
+                    "none reported".to_owned()
                 } else {
-                    format!("change: {}", model.change)
+                    model
+                        .deltas
+                        .iter()
+                        .map(|delta| {
+                            format!(
+                                "{}: {} → {}",
+                                delta.entity,
+                                delta.before.map_or_else(
+                                    || "absent".to_owned(),
+                                    |revision| revision.to_string()
+                                ),
+                                delta.after.map_or_else(
+                                    || "absent".to_owned(),
+                                    |revision| revision.to_string()
+                                )
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 };
+                let branch = model
+                    .branch
+                    .as_ref()
+                    .map_or_else(|| "none".to_owned(), ToString::to_string);
+                let detail = selected_conflict.map_or_else(
+                    || {
+                        let detail_index = state.cursor.saturating_sub(model.conflicts.len());
+                        let selected_detail = model
+                            .details
+                            .get(detail_index)
+                            .map_or("No review details were returned.", String::as_str);
+                        format!(
+                            "change: {}\nbranch: {branch}\naffected entities: {affected}\nreview detail {}/{}:\n{}",
+                            model.change,
+                            detail_index.saturating_add(1),
+                            model.details.len(),
+                            selected_detail,
+                        )
+                    },
+                    |conflict| {
+                        format!(
+                            "change: {}\nconflict {}/{}: {conflict}",
+                            model.change,
+                            state.cursor + 1,
+                            model.conflicts.len()
+                        )
+                    },
+                );
                 format!(
-                    "Change review\nbase: {}\nvalidation: {:?}\nprofile: {}\n{}\nUp/Down select file | Enter to confirm",
+                    "Change review\nbase: {}\ncandidate: {}\nvalidation: {:?}\nprofile: {}\nconfirmation required: {}\n{}\nUp/Down select conflict/detail | Enter to confirm",
                     model.base_snapshot,
+                    model.candidate_snapshot.map_or_else(
+                        || "not returned".to_owned(),
+                        |snapshot| snapshot.to_string()
+                    ),
                     model.validation,
                     model.validation_profile.as_deref().unwrap_or("unspecified"),
+                    model.requires_confirmation,
                     detail,
                 )
             }
@@ -195,10 +244,11 @@ pub(crate) fn primary_text(state: &TuiState) -> String {
                 })
                 .collect::<Vec<_>>()
                 .into_iter()
-                .chain(state.agent_output_observations.iter().map(|output| {
+                .chain(state.transient_agent_outputs.iter().map(|output| {
                     format!(
-                        "[stream, non-canonical] {}",
-                        crate::inspector::sanitize(output)
+                        "[stream · {}] {}",
+                        output.operation,
+                        crate::inspector::sanitize(&output.text)
                     )
                 }))
                 .chain(

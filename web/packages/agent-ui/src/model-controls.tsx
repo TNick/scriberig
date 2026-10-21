@@ -1,4 +1,4 @@
-/** @file Renders shared model-profile and model-specific thinking controls. */
+/** @file Renders upstream model and model-specific thinking controls. */
 
 import type { ReactElement } from "react";
 import type { ModelLibraryResponse, SessionExecutionSelection } from "@scriberig/protocol";
@@ -9,9 +9,9 @@ import type {
 
 /** Renders model and thinking selectors from the shared model library.
  * @param props Shared model controls.
- * @param props.library Safe model descriptors and selectable profiles.
+ * @param props.library Safe model descriptors used as display data.
  * @param props.selection Authoritative session execution selection.
- * @param props.onModelChange Called with a selected profile identity.
+ * @param props.onModelChange Called with upstream provider and model ids.
  * @param props.onThinkingChange Called with a level advertised by the selected model.
  * @param props.disabled Whether controls are unavailable during a mutation.
  * @returns Accessible model and thinking selectors.
@@ -25,28 +25,37 @@ export function AgentModelControls({
 }: {
   library: ModelLibraryResponse;
   selection: SessionExecutionSelection;
-  onModelChange: (profileId: string) => void;
+  onModelChange: (providerId: string, modelId: string) => void;
   onThinkingChange: (thinkingLevel: string) => void;
   disabled?: boolean;
 }): ReactElement {
-  const profiles = library.profiles.filter((profile) => profile.enabled);
-  const profile = profiles.find((value) => value.id === selection.modelProfile);
-  const model =
-    profile === undefined ? undefined : library.models.find((value) => value.id === profile.model);
+  const models = library.models;
+  const model = models.find(
+    (value) => value.providerId === selection.providerId && value.modelId === selection.modelId,
+  );
   return (
     <fieldset aria-label="Agent model controls" disabled={disabled}>
       <label>
         Model
         <select
           aria-label="Agent model"
-          value={profile?.id ?? ""}
-          onChange={(event) => onModelChange(event.currentTarget.value)}
+          value={model === undefined ? "" : JSON.stringify([model.providerId, model.modelId])}
+          onChange={(event) => {
+            const selected = models.find(
+              (value) =>
+                JSON.stringify([value.providerId, value.modelId]) === event.currentTarget.value,
+            );
+            if (selected !== undefined) onModelChange(selected.providerId, selected.modelId);
+          }}
         >
           <option value="" disabled>
             Select a model
           </option>
-          {profiles.map((value) => (
-            <option key={value.id} value={value.id}>
+          {models.map((value) => (
+            <option
+              key={JSON.stringify([value.providerId, value.modelId])}
+              value={JSON.stringify([value.providerId, value.modelId])}
+            >
               {value.displayName}
             </option>
           ))}

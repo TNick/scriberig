@@ -175,7 +175,7 @@ impl SessionModel {
 /// The operation result.
 fn execution_label(execution: &scriberig_session::SessionExecutionSelection) -> String {
     match (
-        execution.model.as_deref(),
+        execution.model_id.as_deref(),
         execution.thinking_level.as_deref(),
     ) {
         (Some(model), Some(thinking)) => format!(" · Model {model} · Thinking {thinking}"),

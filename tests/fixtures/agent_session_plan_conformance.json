@@ -1,0 +1,261 @@
+{
+  "session": {
+    "session": { "id": "session-conformance-1" },
+    "branches": [
+      {
+        "id": "branch-root-1",
+        "parent": null,
+        "children": ["branch-worker-1"],
+        "title": "Root",
+        "status": "Active",
+        "turns": [
+          {
+            "id": "turn-human-1",
+            "ordinal": 1,
+            "has_human_input": true,
+            "has_agent_output": false
+          }
+        ],
+        "activity": [
+          {
+            "id": "activity-human-1",
+            "session": "session-conformance-1",
+            "sequence": 1,
+            "branch": "branch-root-1",
+            "kind": "HumanInput",
+            "state": "Completed",
+            "summary": "Implement the parser and validate its output."
+          },
+          {
+            "id": "activity-model-1",
+            "session": "session-conformance-1",
+            "sequence": 4,
+            "branch": "branch-root-1",
+            "kind": "ModelInvocation",
+            "state": "Completed",
+            "summary": "Model invocation completed",
+            "model": "model-a",
+            "thinking_level": "careful"
+          },
+          {
+            "id": "activity-model-start-1",
+            "session": "session-conformance-1",
+            "sequence": 2,
+            "branch": "branch-root-1",
+            "kind": "ModelInvocation",
+            "state": "Running",
+            "summary": "Model invocation started",
+            "model": "model-a",
+            "thinking_level": "careful"
+          },
+          {
+            "id": "activity-reasoning-1",
+            "session": "session-conformance-1",
+            "sequence": 3,
+            "branch": "branch-root-1",
+            "kind": "ReasoningSummary",
+            "state": "Completed",
+            "summary": "Checking the parser interface before implementation."
+          },
+          {
+            "id": "activity-tool-1",
+            "session": "session-conformance-1",
+            "sequence": 5,
+            "branch": "branch-root-1",
+            "kind": "ToolInvocation",
+            "state": "Completed",
+            "summary": "Tool: semantic_search",
+            "tool_name": "semantic_search",
+            "tool_arguments": { "query": "parser contract" }
+          },
+          {
+            "id": "activity-result-1",
+            "session": "session-conformance-1",
+            "sequence": 6,
+            "branch": "branch-root-1",
+            "parent": "activity-tool-1",
+            "kind": "ToolResult",
+            "state": "Completed",
+            "summary": "Found one parser contract"
+          },
+          {
+            "id": "activity-candidate-1",
+            "session": "session-conformance-1",
+            "sequence": 7,
+            "branch": "branch-root-1",
+            "kind": "SemanticOperation",
+            "state": "Completed",
+            "summary": "Candidate change created",
+            "durable_ref": "migration-parser-1"
+          },
+          {
+            "id": "activity-validation-1",
+            "session": "session-conformance-1",
+            "sequence": 8,
+            "branch": "branch-root-1",
+            "kind": "Validation",
+            "state": "Completed",
+            "summary": "Validation passed",
+            "durable_ref": "validation-1"
+          },
+          {
+            "id": "activity-output-1",
+            "session": "session-conformance-1",
+            "sequence": 9,
+            "branch": "branch-root-1",
+            "kind": "AssistantOutput",
+            "state": "Completed",
+            "summary": "The parser is implemented and validated."
+          },
+          {
+            "id": "activity-operation-1",
+            "session": "session-conformance-1",
+            "sequence": 10,
+            "branch": "branch-root-1",
+            "kind": "OperationProgress",
+            "state": "Completed",
+            "summary": "Agent operation completed",
+            "durable_ref": "operation-agent-1"
+          },
+          {
+            "id": "activity-child-start-1",
+            "session": "session-conformance-1",
+            "sequence": 11,
+            "branch": "branch-root-1",
+            "kind": "BranchStarted",
+            "state": "Completed",
+            "summary": "Parser implementation branch started",
+            "durable_ref": "branch-worker-1"
+          },
+          {
+            "id": "activity-child-complete-1",
+            "session": "session-conformance-1",
+            "sequence": 12,
+            "branch": "branch-root-1",
+            "parent": "activity-child-start-1",
+            "kind": "BranchCompleted",
+            "state": "Completed",
+            "summary": "Parser implementation branch completed",
+            "durable_ref": "branch-result-1"
+          }
+        ],
+        "result": null
+      },
+      {
+        "id": "branch-worker-1",
+        "parent": "branch-root-1",
+        "children": [],
+        "title": "Parser implementation",
+        "status": "Completed",
+        "turns": [],
+        "result": {
+          "id": "branch-result-1",
+          "references": ["migration-parser-1"],
+          "result_handles": ["validation-1"]
+        }
+      }
+    ],
+    "plans": [
+      {
+        "id": "plan-conformance-1",
+        "revision": 2,
+        "goal": "Implement and validate parser",
+        "status": "Running",
+        "anchor": { "BranchHead": { "branch": "branch-root-1" } },
+        "root_branch": "branch-root-1",
+        "nodes": [
+          {
+            "id": "plan-node-parser",
+            "parent": "branch-root-1",
+            "title": "Implement parser",
+            "purpose": "Implement the parser contract.",
+            "status": "Completed",
+            "branch": "branch-worker-1",
+            "result": "branch-result-1",
+            "expected_result": { "kind": "semantic_changes", "requires_handle": true },
+            "semantic_scope": ["entity-parser"],
+            "assignment": {
+              "profile": "profile-a",
+              "model": "model-a",
+              "thinking_level": "careful"
+            }
+          },
+          {
+            "id": "plan-node-tests",
+            "parent": "branch-root-1",
+            "title": "Run tests",
+            "purpose": "Verify the parser changes.",
+            "status": "Ready",
+            "expected_result": { "kind": "validation", "requires_handle": true }
+          }
+        ],
+        "dependencies": [
+          {
+            "prerequisite": "plan-node-parser",
+            "dependent": "plan-node-tests",
+            "fulfilled_by": "branch-result-1"
+          }
+        ],
+        "coordinator": "branch-root-1",
+        "coordinator_cursor": "plan-node-tests",
+        "coordinator_claim": {
+          "id": "coordinator-claim-1",
+          "operation": "operation-coordinator-1",
+          "owner": "runtime-1",
+          "generation": 1
+        },
+        "history": [
+          {
+            "revision": 1,
+            "goal": "Implement parser",
+            "status": "Planned",
+            "nodes": [],
+            "dependencies": [],
+            "reason": "Initial plan"
+          }
+        ]
+      }
+    ],
+    "execution": {
+      "revision": 1,
+      "model_profile": "profile-a",
+      "model": "model-a",
+      "thinking_level": "careful"
+    }
+  },
+  "presentation": {
+    "revision": 1,
+    "preferences": {
+      "reasoning": "shown",
+      "tool_invocation": "detailed",
+      "tool_output": "summary",
+      "prompt": "hidden"
+    }
+  },
+  "operation": {
+    "reference": { "id": "operation-agent-1" },
+    "kind": "Agent",
+    "status": "Completed",
+    "progress": null,
+    "result_snapshot": null,
+    "result_handles": ["validation-1"],
+    "agent_result": {
+      "session": { "id": "session-conformance-1" },
+      "root_branch": { "id": "branch-root-1" },
+      "final_output": "The parser is implemented and validated.",
+      "branch_result": "branch-result-1",
+      "produced_changes": [{ "id": "entity-parser" }],
+      "validation_results": ["validation passed"],
+      "unresolved_questions": [],
+      "candidate_changes": [
+        {
+          "migration": "migration-parser-1",
+          "entity": { "id": "entity-parser" },
+          "candidate_snapshot": { "id": "snapshot-parser-candidate-1" },
+          "validation": ["validation-1"]
+        }
+      ]
+    },
+    "error": null
+  }
+}

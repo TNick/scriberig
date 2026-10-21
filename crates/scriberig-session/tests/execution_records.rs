@@ -91,7 +91,7 @@ fn session_execution_selection_is_optimistic_and_versioned() {
     selection
         .replace(
             0,
-            Some("profile-a".to_owned()),
+            Some("provider-a".to_owned()),
             Some("model-a".to_owned()),
             Some("careful".to_owned()),
         )
@@ -116,7 +116,7 @@ fn session_execution_selection_is_optimistic_and_versioned() {
     selection
         .replace(
             1,
-            Some("profile-b".to_owned()),
+            Some("provider-b".to_owned()),
             Some("model-b".to_owned()),
             Some("deep-dive".to_owned()),
         )
@@ -131,12 +131,13 @@ fn session_execution_selection_is_optimistic_and_versioned() {
     assert_eq!(invocation.thinking_level.as_deref(), Some("careful"));
     // The invocation owns resolved identifiers independently of the current
     // session selection or model-profile catalog.
-    assert_eq!(selection.model.as_deref(), Some("model-b"));
+    assert_eq!(selection.provider_id.as_deref(), Some("provider-b"));
+    assert_eq!(selection.model_id.as_deref(), Some("model-b"));
     assert_eq!(selection.revision, 2);
     assert_eq!(
         selection.replace(
             1,
-            Some("profile-c".to_owned()),
+            Some("provider-c".to_owned()),
             Some("model-c".to_owned()),
             None,
         ),

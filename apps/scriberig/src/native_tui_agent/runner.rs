@@ -138,7 +138,7 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
             plan.id,
             claim.id,
             &executor,
-            &self.model_library,
+            service.upstream_models(),
             &self.model,
             4,
             EntityId::new,

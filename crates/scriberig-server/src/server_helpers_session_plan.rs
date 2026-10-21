@@ -98,15 +98,15 @@ fn node(value: PlanNode) -> SessionPlanNode {
 
 /// Converts a safe model assignment.
 ///
-/// - `value`: Provider-neutral profile, model, and thinking identities.
+/// - `value`: Upstream provider, model, and thinking identities.
 ///
 /// Credential-free protocol assignment.
 /// # Returns
 /// The operation result.
 fn assignment(value: scriberig_session::ModelAssignment) -> SessionModelAssignment {
     SessionModelAssignment {
-        profile: value.profile,
-        model: value.model,
+        provider_id: value.provider_id,
+        model_id: value.model_id,
         thinking_level: value.thinking_level,
     }
 }
