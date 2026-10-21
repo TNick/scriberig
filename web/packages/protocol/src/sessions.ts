@@ -230,6 +230,33 @@ export interface ModelRequestDetailResponse {
   /** Versioned digest of the applied-settings report, when captured. */
   appliedSettingsFingerprint?: string;
   truncated: boolean;
+  contentComplete: boolean;
+  fragments?: readonly ModelRequestDetailFragment[];
+  offset?: number;
+  totalChars?: number;
+  nextOffset?: number;
+}
+/** Optional bounded page controls for captured model request detail. */
+export interface ModelRequestDetailPageRequest {
+  offset?: number;
+  maxChars?: number;
+}
+/** One bounded fragment from the ordered safe request text stream. */
+export interface ModelRequestDetailFragment {
+  kind: "message" | "toolCall" | "tool";
+  index: number;
+  parentIndex?: number;
+  field:
+    | "content"
+    | "toolName"
+    | "name"
+    | "arguments"
+    | "description"
+    | "parameters"
+    | "constrainedSampling";
+  fieldOffset: number;
+  role?: string;
+  text: string;
 }
 /** Expanded safe detail for one durable tool result. */
 export interface ToolResultDetailResponse {

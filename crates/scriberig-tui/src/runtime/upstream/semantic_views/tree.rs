@@ -1,31 +1,29 @@
-//! Projects stable `ScribeRig` rows into the upstream `TreeList` component.
+//! Projects stable `ScribeRig` rows into reusable upstream tree items.
 
-use rpi_tui::{TreeItem, TreeList};
+use rpi_tui::TreeItem;
 
+use super::projection::TreeProjection;
 use crate::state::TuiState;
 
-/// Builds an upstream tree from the already-filtered `ScribeRig` row projection.
+/// Builds reusable tree items and details for the active semantic view.
 ///
 /// - `state`: Current `ScribeRig` view and cursor.
 ///
-/// The selectable upstream tree and stable row identities when rows are loaded.
+/// Stable upstream items, the semantic selection, and supplementary details.
 /// # Returns
-/// Tree plus stable semantic rows when the active view has a projection.
-pub(super) fn tree_from_state(state: &TuiState) -> Option<(TreeList, Vec<SemanticTreeRow>)> {
+/// A tree projection when the active view has ready semantic rows.
+pub(super) fn projection(state: &TuiState) -> Option<TreeProjection> {
     let rows = semantic_rows(state)?;
-    let items = make_tree_items(&rows);
-    let expanded = items
-        .iter()
-        .filter_map(|item| item.parent_id.clone())
-        .collect::<std::collections::BTreeSet<_>>();
-    let tree = TreeList::new(items, super::common::MAX_ROWS).ok()?;
-    if let Some(selected) = selected_tree_id(state, &rows) {
-        let _ = tree.select(&selected);
-    }
-    for id in expanded {
-        let _ = tree.set_expanded(&id, true);
-    }
-    Some((tree, rows))
+    let details = match state.primary_view {
+        crate::selection::PrimaryView::Conversation => super::details::conversation_details(state),
+        crate::selection::PrimaryView::Session => super::details::session_details(state),
+        _ => return None,
+    };
+    Some(TreeProjection {
+        items: make_tree_items(&rows),
+        selected_id: selected_tree_id(state, &rows),
+        details,
+    })
 }
 
 /// Projects current visible conversation or session rows to stable tree IDs.
@@ -110,22 +108,24 @@ fn make_tree_items(rows: &[SemanticTreeRow]) -> Vec<TreeItem> {
 /// # Returns
 /// Stable item ID when the selected row is visible.
 fn selected_tree_id(state: &TuiState, rows: &[SemanticTreeRow]) -> Option<String> {
-    let desired = match state.primary_view {
-        crate::selection::PrimaryView::Conversation => state
-            .conversation_cursor
-            .map(conversation_source_id)
-            .or_else(|| rows.get(state.cursor).map(|row| row.id.clone())),
-        crate::selection::PrimaryView::Session => state
-            .session_cursor
-            .map(session_row_id)
-            .or_else(|| rows.get(state.cursor).map(|row| row.id.clone())),
+    let selected = match state.primary_view {
+        crate::selection::PrimaryView::Conversation => {
+            state.conversation_cursor.map(conversation_source_id)
+        }
+        crate::selection::PrimaryView::Session => state.session_cursor.map(session_row_id),
         _ => None,
-    }?;
-    if rows.iter().any(|row| row.id == desired) {
-        Some(desired)
-    } else {
-        rows.get(state.cursor).map(|row| row.id.clone())
+    };
+
+    // A retained semantic identity must never be replaced by an unrelated row
+    // that happens to occupy its old flattened cursor after projection changes.
+    if let Some(selected) = selected {
+        return rows
+            .iter()
+            .find(|row| row.id == selected)
+            .map(|row| row.id.clone());
     }
+
+    rows.get(state.cursor).map(|row| row.id.clone())
 }
 
 /// Converts a typed stable session-row identity to its upstream tree key.
@@ -171,23 +171,6 @@ fn bounded_label(label: &str) -> String {
         .chars()
         .take(800)
         .collect()
-}
-
-/// Builds the tree and supplementary details for the active semantic view.
-///
-/// - `state`: `ScribeRig` state selecting the active conversation or session.
-///
-/// The upstream tree and details when the selected view has a ready projection.
-/// # Returns
-/// Semantic tree and details when the active view is ready.
-pub(super) fn semantic_tree(state: &TuiState) -> Option<(TreeList, String)> {
-    let (tree, _) = tree_from_state(state)?;
-    let details = match state.primary_view {
-        crate::selection::PrimaryView::Conversation => super::details::conversation_details(state),
-        crate::selection::PrimaryView::Session => super::details::session_details(state),
-        _ => return None,
-    };
-    Some((tree, details))
 }
 
 /// Carries one semantic tree row between projections and the upstream widget.

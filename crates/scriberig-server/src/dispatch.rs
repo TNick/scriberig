@@ -218,6 +218,8 @@ impl<S: ApplicationService> Dispatcher<S> {
                     &request.session.id,
                     &request.branch.id,
                     &request.invocation,
+                    request.offset,
+                    request.max_chars,
                 )
                 .map_or_else(
                     |error| Response::Error(helpers::map_error(&error, correlation_id)),

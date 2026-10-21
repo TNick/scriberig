@@ -353,6 +353,7 @@ mod state_presentation;
 mod state_reducer;
 #[path = "state_reducer_tail.rs"]
 mod state_reducer_tail;
+pub(crate) use state_actions::activate_palette_item;
 use state_actions::reduce_application_event;
 pub(crate) use state_model_selection::{select_model, select_thinking_level};
 pub(super) use state_presentation::activate_palette_control;

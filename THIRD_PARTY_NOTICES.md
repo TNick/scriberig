@@ -14,11 +14,11 @@ not require them.
 ## rpi-tui
 
 ScribeRig uses the `rpi-*` crates from `TNick/pi-rust`, pinned in Cargo
-manifests to commit `15a68ef2d69a312122c09c1eccfa0fbd454c48b5`. This fork
-revision includes official `bigfish1913/pi-rust` main commit
-`7d019f85cde614a6aa267a7d2e816e04a7e6abbe` and the host-injected model
-catalog refresh, transactional model configuration, cancellable provider
-stream, TUI component event/focus extractions, and application-registered
-keybindings with shared help/footer enumeration. The crates are
+manifests to commit `b2fc63c78ae85044eb78e7ac9af184bd7fbfbc95`. This fork
+revision includes official `bigfish1913/pi-rust` 0.7.1 main commit
+`281dfddfa39ac063d86de57b75370974c4d75e6c`, the host-injected model catalog
+refresh, transactional model configuration, cancellable provider stream, TUI
+component event/focus extractions, application-registered keybindings, a host
+tick callback, and upstream-owned theme preset metadata. The crates are
 licensed under the MIT License; their license and notice are available from
 the pinned upstream repository.

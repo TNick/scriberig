@@ -108,20 +108,18 @@ fn tool_output_cycle_requests_only_missing_result_detail() {
         }),
         overlay: Some(crate::overlay::Overlay::Palette(
             crate::overlay::palette::PaletteState {
-                query: String::new(),
                 local_actions: vec![crate::overlay::palette::PaletteItem {
                     id: "toggle-tool-output".to_owned(),
                     label: "Toggle tool result summaries".to_owned(),
                     source: crate::overlay::palette::ActionSource::Local,
                 }],
                 semantic_actions: Vec::new(),
-                selected: 0,
             },
         )),
         ..TuiState::default()
     };
 
-    let effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
+    let effects = crate::state::activate_palette_item(&mut state, "toggle-tool-output");
 
     assert_eq!(
         effects,
@@ -159,20 +157,18 @@ fn tool_invocation_detail_toggle_is_presentation_only() {
     let mut state = TuiState {
         overlay: Some(crate::overlay::Overlay::Palette(
             crate::overlay::palette::PaletteState {
-                query: String::new(),
                 local_actions: vec![crate::overlay::palette::PaletteItem {
                     id: "toggle-tool-invocation".to_owned(),
                     label: "Toggle tool call detail".to_owned(),
                     source: crate::overlay::palette::ActionSource::Local,
                 }],
                 semantic_actions: Vec::new(),
-                selected: 0,
             },
         )),
         ..TuiState::default()
     };
 
-    let effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
+    let effects = crate::state::activate_palette_item(&mut state, "toggle-tool-invocation");
 
     assert_eq!(effects, vec![Effect::None]);
     assert_eq!(
@@ -336,18 +332,17 @@ fn navigation_and_presentation_changes_do_not_cancel_operations() {
     );
     state.overlay = Some(crate::overlay::Overlay::Palette(
         crate::overlay::palette::PaletteState {
-            query: String::new(),
             local_actions: vec![crate::overlay::palette::PaletteItem {
                 id: "toggle-tool-invocation".to_owned(),
                 label: "Toggle tool call detail".to_owned(),
                 source: crate::overlay::palette::ActionSource::Local,
             }],
             semantic_actions: Vec::new(),
-            selected: 0,
         },
     ));
 
-    let preference_effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
+    let preference_effects =
+        crate::state::activate_palette_item(&mut state, "toggle-tool-invocation");
     let navigation_effects = crate::state::reduce(
         &mut state,
         crate::action::Action::ActivateLocation(crate::selection::NavigationLocation::default()),

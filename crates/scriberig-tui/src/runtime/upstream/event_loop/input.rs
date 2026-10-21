@@ -1,7 +1,7 @@
 //! Dispatches upstream composer input to `ScribeRig` semantic actions.
 
 use std::io;
-use std::sync::mpsc;
+use std::sync::mpsc::TryRecvError;
 use std::sync::{Arc, Mutex};
 
 use rpi_tui::{Component, Editor, Focusable, TUI, TuiAltScreen};
@@ -62,7 +62,7 @@ macro_rules! input_context {
 )]
 pub(super) fn handle<S: TuiService + Sync>(
     context: InputContext<'_, '_, S>,
-    input: Result<ComposerInput, std::sync::mpsc::RecvTimeoutError>,
+    input: Result<ComposerInput, TryRecvError>,
 ) -> io::Result<bool> {
     let InputContext {
         service,
@@ -394,10 +394,10 @@ pub(super) fn handle<S: TuiService + Sync>(
                 *redraw = true;
             }
         }
-        Ok(ComposerInput::Quit) | Err(mpsc::RecvTimeoutError::Disconnected) => {
+        Ok(ComposerInput::Quit) | Err(TryRecvError::Disconnected) => {
             *should_quit = true;
         }
-        Err(mpsc::RecvTimeoutError::Timeout) => {}
+        Err(TryRecvError::Empty) => {}
     }
     Ok(false)
 }

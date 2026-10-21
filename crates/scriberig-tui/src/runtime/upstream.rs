@@ -258,27 +258,17 @@ pub(super) fn run<S: TuiService + Sync>(
     composer.set_focused(true);
     let focused_composer: Arc<dyn Component> = composer.clone();
     screen.set_focus(Some(focused_composer));
-    let mut debug_log = debug_log;
-    let mut input_receiver = Some(input_receiver);
-    let mut result = None;
-    screen.run_until(|| {
-        let receiver = input_receiver
-            .take()
-            .expect("upstream run_until invokes its stop predicate once first");
-        result = Some(event_loop::run(event_loop::EventLoopContext {
-            service,
-            context,
-            config,
-            state: &shared_state,
-            screen: &screen,
-            editor: &editor,
-            composer: &composer,
-            semantic_view: &conversation,
-            input_sender: &input_sender,
-            input_receiver: &receiver,
-            debug_log: debug_log.take(),
-        }));
-        true
-    });
-    result.unwrap_or(Ok(()))
+    event_loop::run(event_loop::EventLoopContext {
+        service,
+        context,
+        config,
+        state: &shared_state,
+        screen: &screen,
+        editor: &editor,
+        composer: &composer,
+        semantic_view: &conversation,
+        input_sender: &input_sender,
+        input_receiver: &input_receiver,
+        debug_log,
+    })
 }

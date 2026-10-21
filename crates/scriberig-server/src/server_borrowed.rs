@@ -79,6 +79,8 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// - `session`: Stable session identity.
     /// - `branch`: Stable branch identity.
     /// - `invocation`: Stable model invocation identity.
+    /// - `offset`: Optional Unicode-scalar cursor for full detail paging.
+    /// - `max_chars`: Optional maximum page character count.
     ///
     /// Safe normalized request detail.
     ///
@@ -93,8 +95,10 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
         session: &str,
         branch: &str,
         invocation: &str,
+        offset: Option<u64>,
+        max_chars: Option<u32>,
     ) -> Result<scriberig_protocol::ModelRequestDetailResponse, ApplicationError> {
-        (**self).model_request_detail(context, session, branch, invocation)
+        (**self).model_request_detail(context, session, branch, invocation, offset, max_chars)
     }
 
     /// Delegates tool result detail reads to the borrowed service.

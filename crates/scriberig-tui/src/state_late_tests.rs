@@ -40,11 +40,7 @@ fn palette_continues_agent_session_after_workspace_selection() {
         ..TuiState::default()
     };
     reduce(&mut state, Action::PaletteOpened);
-    reduce(
-        &mut state,
-        Action::InputChanged("continue-agent".to_owned()),
-    );
-    reduce(&mut state, Action::Activated);
+    crate::state::activate_palette_item(&mut state, "continue-agent");
     assert!(matches!(
         state.session_composer,
         Some(crate::state::SessionComposerState {

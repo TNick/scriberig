@@ -23,6 +23,33 @@ pub struct ModelRequestDetailRequest {
     pub branch: crate::BranchReference,
     /// Stable model invocation activity identity.
     pub invocation: String,
+    /// Unicode-scalar offset into the ordered safe detail text stream.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offset: Option<u64>,
+    /// Maximum Unicode scalar values returned in this page.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_chars: Option<u32>,
+}
+
+/// One bounded fragment from a safe model request detail page.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct ModelRequestDetailFragment {
+    /// Whether the fragment belongs to a message, tool call, or tool.
+    pub kind: String,
+    /// Zero-based index within the selected fragment kind.
+    pub index: u64,
+    /// Parent message index for a tool-call fragment.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_index: Option<u64>,
+    /// Text field represented by this fragment.
+    pub field: String,
+    /// Unicode-scalar offset within the field.
+    pub field_offset: u64,
+    /// Message role when this is a message fragment.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    /// Safe text at this position in the field.
+    pub text: String,
 }
 
 /// One safe message in a stored provider-neutral model request.
@@ -64,6 +91,9 @@ pub struct ModelRequestDetailResponse {
     /// Resolved upstream provider identity, when available.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provider_id: Option<String>,
+    /// Safe `ScribeRig` provider profile identifier, when selected.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_profile: Option<String>,
     /// Selected provider-neutral thinking level, when configured.
     pub thinking_level: Option<String>,
     /// Exact profile revision used to compile this request, when available.
@@ -72,6 +102,18 @@ pub struct ModelRequestDetailResponse {
     /// Active context-component revisions in compilation order.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub active_components: Vec<ModelContextRevisionReference>,
+    /// Secret-free identity of the compiled `ScribeRig` context.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context_fingerprint: Option<String>,
+    /// Secret-free fingerprint of captured request provenance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub request_fingerprint: Option<String>,
+    /// Upstream-defined partial safe model execution configuration.
+    ///
+    /// Coverage metadata must be retained; this is not a complete wire-request
+    /// equivalence claim.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model_execution_configuration: Option<serde_json::Value>,
     /// Ordered normalized messages.
     pub messages: Vec<ModelRequestMessageDetail>,
     /// Trusted tools exposed to the model.
@@ -86,6 +128,21 @@ pub struct ModelRequestDetailResponse {
     pub applied_settings_fingerprint: Option<String>,
     /// Whether content was omitted to respect capture bounds.
     pub truncated: bool,
+    /// Whether all safe text and tool content was captured.
+    #[serde(default)]
+    pub content_complete: bool,
+    /// Fragments included in the requested page; empty for legacy reads.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub fragments: Vec<ModelRequestDetailFragment>,
+    /// First Unicode-scalar offset represented by this page.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offset: Option<u64>,
+    /// Total Unicode-scalar length of the ordered safe detail text stream.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total_chars: Option<u64>,
+    /// Offset to request next, absent when this page reaches the end.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub next_offset: Option<u64>,
 }
 
 /// Requests expanded bounded detail for one durable tool result.

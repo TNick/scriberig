@@ -2,8 +2,11 @@
 
 use crate::state::TuiState;
 
+#[path = "details/model_request.rs"]
+mod model_request;
 #[path = "details/plan_graph.rs"]
 mod plan_graph;
+use model_request::append_model_request;
 
 /// Builds request and live details that accompany conversation tree rows.
 ///
@@ -140,66 +143,6 @@ fn append_selected_session_activity(
     }
 }
 
-/// Appends the safe request projection associated with one invocation.
-///
-/// - `output`: Markdown content receiving request details.
-/// - `detail`: Bounded, credential-safe request projection.
-fn append_model_request(
-    output: &mut String,
-    detail: &scriberig_protocol::ModelRequestDetailResponse,
-) {
-    super::common::append_value(
-        output,
-        &format!(
-            "Effective request · {} · {}",
-            detail.invocation, detail.model
-        ),
-    );
-    if let Some(provider) = &detail.provider_id {
-        super::common::append_value(output, &format!("Provider: {provider}"));
-    }
-    if let Some(thinking) = &detail.thinking_level {
-        super::common::append_value(output, &format!("Thinking level: {thinking}"));
-    }
-    if let Some(profile) = &detail.profile {
-        super::common::append_value(
-            output,
-            &format!(
-                "Profile revision: {} @ {}",
-                profile.identity, profile.revision
-            ),
-        );
-    }
-    for component in detail.active_components.iter().take(64) {
-        super::common::append_value(
-            output,
-            &format!(
-                "Context component: {} @ {}",
-                component.identity, component.revision
-            ),
-        );
-    }
-    for message in detail.messages.iter().take(64) {
-        super::common::append_value(output, &format!("{}: {}", message.role, message.content));
-    }
-    for tool in detail.tools.iter().take(64) {
-        super::common::append_value(
-            output,
-            &format!("Tool: {} · {}", tool.name, tool.description),
-        );
-        if let Some(parameters) = &tool.parameters {
-            super::common::append_value(output, &format!("Tool parameters: {parameters}"));
-        }
-    }
-    if let Some(report) = &detail.applied_settings {
-        let summary = serde_json::to_string(report).unwrap_or_else(|_| "{}".to_owned());
-        super::common::append_value(output, &format!("Applied settings: {summary}"));
-    }
-    if detail.truncated {
-        super::common::append_value(output, "Effective request detail is truncated.");
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::{conversation_details, session_details};
@@ -288,9 +231,13 @@ mod tests {
                     invocation: invocation.to_string(),
                     model: "model-a".to_owned(),
                     provider_id: None,
+                    provider_profile: None,
                     thinking_level: None,
                     profile: None,
                     active_components: Vec::new(),
+                    context_fingerprint: None,
+                    request_fingerprint: None,
+                    model_execution_configuration: None,
                     messages: vec![scriberig_protocol::ModelRequestMessageDetail {
                         role: "user".to_owned(),
                         content: "Safe captured request".to_owned(),
@@ -299,6 +246,11 @@ mod tests {
                     applied_settings: None,
                     applied_settings_fingerprint: None,
                     truncated: false,
+                    content_complete: true,
+                    fragments: Vec::new(),
+                    offset: None,
+                    total_chars: None,
+                    next_offset: None,
                 },
             )]
             .into_iter()

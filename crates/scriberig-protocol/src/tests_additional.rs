@@ -12,11 +12,14 @@ pub(super) fn model_contracts_round_trip() {
             id: "branch-1".to_owned(),
         },
         invocation: "invocation-1".to_owned(),
+        offset: None,
+        max_chars: None,
     });
     round_trip(&ModelRequestDetailResponse {
         invocation: "invocation-1".to_owned(),
         model: "model-1".to_owned(),
         provider_id: Some("provider-1".to_owned()),
+        provider_profile: None,
         thinking_level: Some("careful".to_owned()),
         profile: Some(ModelContextRevisionReference {
             identity: "profile.default".to_owned(),
@@ -26,6 +29,9 @@ pub(super) fn model_contracts_round_trip() {
             identity: "component.core".to_owned(),
             revision: "rev-7".to_owned(),
         }],
+        context_fingerprint: None,
+        request_fingerprint: None,
+        model_execution_configuration: None,
         messages: vec![ModelRequestMessageDetail {
             role: "user".to_owned(),
             content: "safe prompt".to_owned(),
@@ -38,6 +44,11 @@ pub(super) fn model_contracts_round_trip() {
         applied_settings: None,
         applied_settings_fingerprint: None,
         truncated: false,
+        content_complete: false,
+        fragments: Vec::new(),
+        offset: None,
+        total_chars: None,
+        next_offset: None,
     });
     let legacy_detail: ModelRequestDetailResponse = serde_json::from_value(serde_json::json!({
         "invocation": "invocation-legacy",

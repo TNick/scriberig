@@ -8,6 +8,10 @@ description = "Integrated Scriberig executable composition root."
 repository.workspace = true
 publish = false
 
+[features]
+default = []
+isolated-plugin-worker = ["scriberig-agent-runtime/isolated-plugin-worker"]
+
 [[bin]]
 name = "srig"
 path = "src/main.rs"

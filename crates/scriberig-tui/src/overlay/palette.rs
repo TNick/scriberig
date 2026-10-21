@@ -1,4 +1,4 @@
-//! Implements local command palette filtering and selection.
+//! Defines `ScribeRig` command palette rows; upstream owns filtering and navigation.
 
 /// A palette action source, ready for future semantic capability actions.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -20,29 +20,20 @@ pub struct PaletteItem {
     pub source: ActionSource,
 }
 
-/// Palette state with local actions and a future semantic source.
+/// Available palette rows with stable `ScribeRig` action identities.
 ///
 /// # Public members
-/// - `query`: Current user filter.
 /// - `local_actions`: Local actions and capability-filtered semantic actions.
 /// - `semantic_actions`: Additional capability-derived actions.
-/// - `selected`: Disposable cursor index into filtered rows.
-/// - [`PaletteState::filtered`]: Returns the visible filtered rows.
-/// - [`PaletteState::set_query`]: Replaces the filter.
-/// - [`PaletteState::select_id`]: Selects a stable action identifier.
 ///
 /// # Private members
 /// None.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PaletteState {
-    /// User filter.
-    pub query: String,
     /// Available rows.
     pub local_actions: Vec<PaletteItem>,
     /// Future capability-derived rows.
     pub semantic_actions: Vec<PaletteItem>,
-    /// Selected filtered row.
-    pub selected: usize,
 }
 
 impl Default for PaletteState {
@@ -52,7 +43,6 @@ impl Default for PaletteState {
     /// The operation result.
     fn default() -> Self {
         Self {
-            query: String::new(),
             local_actions: vec![
                 item("help", "Open help"),
                 item("refresh", "Refresh"),
@@ -95,7 +85,6 @@ impl Default for PaletteState {
                 item("operations", "View operations"),
             ],
             semantic_actions: Vec::new(),
-            selected: 0,
         }
     }
 }
@@ -170,68 +159,20 @@ fn item_with_source(id: &str, label: &str, source: ActionSource) -> PaletteItem 
     }
 }
 
-impl PaletteState {
-    /// Returns the currently visible filtered rows.
-    #[must_use]
-    ///
-    /// # Returns
-    /// The operation result.
-    pub fn filtered(&self) -> Vec<PaletteItem> {
-        let query = self.query.to_lowercase();
-        self.items()
-            .into_iter()
-            .filter(|item| {
-                query.is_empty()
-                    || item.id.to_lowercase().contains(&query)
-                    || item.label.to_lowercase().contains(&query)
-            })
-            .collect()
-    }
-    /// Changes the filter and clamps the selection.
-    /// - `query`: Argument named `query`.
-    pub fn set_query(&mut self, query: String) {
-        self.query = query;
-        self.selected = self.selected.min(self.filtered().len().saturating_sub(1));
-    }
-
-    /// Selects an action by its stable ID and clears any previous query.
-    ///
-    /// # Parameters
-    /// - `id`: Stable palette action identifier.
-    ///
-    /// # Returns
-    /// Whether the identifier exists in the palette.
-    pub fn select_id(&mut self, id: &str) -> bool {
-        self.query.clear();
-        let Some(index) = self.items().iter().position(|item| item.id == id) else {
-            return false;
-        };
-        self.selected = index;
-        true
-    }
-
-    /// Returns all currently available palette actions.
-    ///
-    /// # Returns
-    /// Local and capability-filtered semantic actions.
-    fn items(&self) -> Vec<PaletteItem> {
-        self.local_actions
-            .iter()
-            .chain(&self.semantic_actions)
-            .cloned()
-            .collect()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Preserves stable command IDs and labels without local filtering state.
     #[test]
-    /// Implements `filters_local_actions_case_insensitively`.
-    fn filters_local_actions_through_the_selector() {
-        let mut state = PaletteState::default();
-        state.set_query("REF".to_owned());
-        assert!(state.filtered().iter().any(|item| item.id == "refresh"));
+    fn palette_items_preserve_command_identity() {
+        let palette = PaletteState::default();
+        let refresh = palette
+            .local_actions
+            .iter()
+            .find(|item| item.id == "refresh")
+            .expect("refresh command");
+        assert_eq!(refresh.label, "Refresh");
     }
 
     /// Verifies inspect is advertised only by an available runtime capability.
@@ -274,14 +215,5 @@ mod tests {
         assert!(ids.contains(&"session"));
         assert!(ids.contains(&"start-agent"));
         assert!(!ids.contains(&"continue-agent"));
-    }
-
-    /// Verifies the production palette selector returns a stable action ID.
-    #[test]
-    fn selector_preserves_action_identity_after_filtering() {
-        let mut palette = PaletteState::default();
-        palette.set_query("refresh".to_owned());
-
-        assert_eq!(palette.filtered()[0].id, "refresh");
     }
 }

@@ -1,9 +1,9 @@
 //! Tests the module's deterministic behavior.
 
 use super::{TuiState, reduce};
-use crate::action::{Action, Direction};
+use crate::action::Action;
 use crate::effect::Effect;
-use crate::overlay::{Overlay, palette::PaletteState};
+use crate::overlay::Overlay;
 use crate::selection::PrimaryView;
 use crate::view::history::{HistoryModel, HistoryRow};
 use scriberig_core::{EntityId, SnapshotId};
@@ -97,36 +97,32 @@ fn paste_is_input_data() {
     assert!(!state.should_quit);
 }
 
-/// Verifies pasted text is retained by the command palette.
+/// Verifies palette rows keep stable command IDs without local filtering state.
 #[test]
-fn palette_paste_updates_filter_text() {
+fn palette_paste_does_not_own_filter_text() {
     let mut state = TuiState::default();
     reduce(&mut state, Action::PaletteOpened);
     reduce(&mut state, Action::Paste("REF".into()));
-    assert_eq!(
-        state.overlay,
-        Some(Overlay::Palette(PaletteState {
-            query: "REF".to_owned(),
-            ..PaletteState::default()
-        }))
+    assert!(matches!(state.overlay, Some(Overlay::Palette(_))));
+    let Some(Overlay::Palette(palette)) = state.overlay.as_ref() else {
+        return;
+    };
+    assert!(
+        palette
+            .local_actions
+            .iter()
+            .any(|item| item.id == "refresh")
     );
 }
 
-/// Verifies palette cursor movement and activation stay local to the overlay.
+/// Verifies palette activation consumes a stable action ID from upstream selection.
 #[test]
-fn palette_selection_moves_and_activates() {
+fn palette_activation_uses_stable_action_id() {
     let mut state = TuiState::default();
     reduce(&mut state, Action::PaletteOpened);
-    reduce(&mut state, Action::CursorMoved(Direction::Next));
-    assert_eq!(
-        state.overlay.as_ref().and_then(|overlay| match overlay {
-            Overlay::Palette(palette) => Some(palette.selected),
-            _ => None,
-        }),
-        Some(1)
-    );
-    let effects = reduce(&mut state, Action::Activated);
+    let effects = crate::state::activate_palette_item(&mut state, "quit");
     assert_eq!(effects, vec![Effect::None]);
+    assert!(state.should_quit);
     assert!(state.overlay.is_none());
 }
 
@@ -142,10 +138,7 @@ fn palette_history_activation_closes_overlay() {
         ..TuiState::default()
     };
     reduce(&mut state, Action::PaletteOpened);
-    for _ in 0..5 {
-        reduce(&mut state, Action::CursorMoved(Direction::Next));
-    }
-    let effects = reduce(&mut state, Action::Activated);
+    let effects = crate::state::activate_palette_item(&mut state, "history");
     assert_eq!(
         effects,
         vec![Effect::History {
@@ -170,8 +163,7 @@ fn palette_opens_agent_composer_for_selection() {
         ..TuiState::default()
     };
     reduce(&mut state, Action::PaletteOpened);
-    reduce(&mut state, Action::InputChanged("start-agent".to_owned()));
-    let effects = reduce(&mut state, Action::Activated);
+    let effects = crate::state::activate_palette_item(&mut state, "start-agent");
     assert_eq!(effects, vec![Effect::None]);
     assert!(matches!(
         state.session_composer,
@@ -189,8 +181,7 @@ fn palette_opens_agent_composer_for_selection() {
 fn palette_opens_bootstrap_agent_composer_without_selection() {
     let mut state = TuiState::default();
     reduce(&mut state, Action::PaletteOpened);
-    reduce(&mut state, Action::InputChanged("start-agent".to_owned()));
-    let effects = reduce(&mut state, Action::Activated);
+    let effects = crate::state::activate_palette_item(&mut state, "start-agent");
     assert_eq!(effects, vec![Effect::None]);
     assert!(matches!(
         state.session_composer,
@@ -217,10 +208,7 @@ fn palette_diff_collects_target_snapshot() {
         ..TuiState::default()
     };
     reduce(&mut state, Action::PaletteOpened);
-    for _ in 0..6 {
-        reduce(&mut state, Action::CursorMoved(Direction::Next));
-    }
-    reduce(&mut state, Action::Activated);
+    crate::state::activate_palette_item(&mut state, "diff");
     reduce(&mut state, Action::Paste(target.to_string()));
 
     assert_eq!(

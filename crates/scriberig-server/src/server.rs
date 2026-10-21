@@ -170,6 +170,8 @@ pub trait ApplicationService {
     /// - `_session`: Stable session identity.
     /// - `_branch`: Stable branch identity.
     /// - `_invocation`: Durable model invocation identity.
+    /// - `_offset`: Optional Unicode-scalar cursor for full detail paging.
+    /// - `_max_chars`: Optional maximum page character count.
     ///
     /// Safe normalized request detail for the selected invocation.
     ///
@@ -184,6 +186,8 @@ pub trait ApplicationService {
         _session: &str,
         _branch: &str,
         _invocation: &str,
+        _offset: Option<u64>,
+        _max_chars: Option<u32>,
     ) -> Result<scriberig_protocol::ModelRequestDetailResponse, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "model request detail".to_owned(),

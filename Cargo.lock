@@ -820,7 +820,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2531,7 +2531,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2781,7 +2781,7 @@ dependencies = [
 [[package]]
 name = "rpi-agent"
 version = "0.7.1"
-source = "git+https://github.com/TNick/pi-rust?rev=bad1c5b4aa6f26cc231168d75a09165e990de39a#bad1c5b4aa6f26cc231168d75a09165e990de39a"
+source = "git+https://github.com/TNick/pi-rust?rev=88e0fa8972df4be3ad5313b245a78c73d8bc1e29#88e0fa8972df4be3ad5313b245a78c73d8bc1e29"
 dependencies = [
  "async-trait",
  "futures",
@@ -2799,7 +2799,7 @@ dependencies = [
 [[package]]
 name = "rpi-ai"
 version = "0.7.1"
-source = "git+https://github.com/TNick/pi-rust?rev=bad1c5b4aa6f26cc231168d75a09165e990de39a#bad1c5b4aa6f26cc231168d75a09165e990de39a"
+source = "git+https://github.com/TNick/pi-rust?rev=88e0fa8972df4be3ad5313b245a78c73d8bc1e29#88e0fa8972df4be3ad5313b245a78c73d8bc1e29"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2824,7 +2824,7 @@ dependencies = [
 [[package]]
 name = "rpi-extensions"
 version = "0.7.1"
-source = "git+https://github.com/TNick/pi-rust?rev=bad1c5b4aa6f26cc231168d75a09165e990de39a#bad1c5b4aa6f26cc231168d75a09165e990de39a"
+source = "git+https://github.com/TNick/pi-rust?rev=88e0fa8972df4be3ad5313b245a78c73d8bc1e29#88e0fa8972df4be3ad5313b245a78c73d8bc1e29"
 dependencies = [
  "async-trait",
  "dirs",
@@ -2847,7 +2847,7 @@ dependencies = [
 [[package]]
 name = "rpi-model-runtime"
 version = "0.7.1"
-source = "git+https://github.com/TNick/pi-rust?rev=bad1c5b4aa6f26cc231168d75a09165e990de39a#bad1c5b4aa6f26cc231168d75a09165e990de39a"
+source = "git+https://github.com/TNick/pi-rust?rev=88e0fa8972df4be3ad5313b245a78c73d8bc1e29#88e0fa8972df4be3ad5313b245a78c73d8bc1e29"
 dependencies = [
  "async-trait",
  "fs2",
@@ -2866,15 +2866,17 @@ dependencies = [
 [[package]]
 name = "rpi-plugin-sdk"
 version = "0.7.1"
-source = "git+https://github.com/TNick/pi-rust?rev=bad1c5b4aa6f26cc231168d75a09165e990de39a#bad1c5b4aa6f26cc231168d75a09165e990de39a"
+source = "git+https://github.com/TNick/pi-rust?rev=88e0fa8972df4be3ad5313b245a78c73d8bc1e29#88e0fa8972df4be3ad5313b245a78c73d8bc1e29"
 dependencies = [
+ "libc",
  "serde_json",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
 name = "rpi-telemetry"
 version = "0.7.1"
-source = "git+https://github.com/TNick/pi-rust?rev=bad1c5b4aa6f26cc231168d75a09165e990de39a#bad1c5b4aa6f26cc231168d75a09165e990de39a"
+source = "git+https://github.com/TNick/pi-rust?rev=88e0fa8972df4be3ad5313b245a78c73d8bc1e29#88e0fa8972df4be3ad5313b245a78c73d8bc1e29"
 dependencies = [
  "async-trait",
  "serde",
@@ -2885,7 +2887,7 @@ dependencies = [
 [[package]]
 name = "rpi-tui"
 version = "0.7.1"
-source = "git+https://github.com/TNick/pi-rust?rev=bad1c5b4aa6f26cc231168d75a09165e990de39a#bad1c5b4aa6f26cc231168d75a09165e990de39a"
+source = "git+https://github.com/TNick/pi-rust?rev=88e0fa8972df4be3ad5313b245a78c73d8bc1e29#88e0fa8972df4be3ad5313b245a78c73d8bc1e29"
 dependencies = [
  "base64 0.22.1",
  "crossterm",
@@ -2959,7 +2961,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3095,10 +3097,12 @@ dependencies = [
  "blake3",
  "rpi-agent",
  "rpi-ai",
+ "rpi-extensions",
  "rpi-model-runtime",
  "scriberig-agent-core",
  "scriberig-app",
  "scriberig-core",
+ "scriberig-query",
  "scriberig-secrets",
  "scriberig-session",
  "scriberig-session-sqlite",
@@ -4040,7 +4044,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

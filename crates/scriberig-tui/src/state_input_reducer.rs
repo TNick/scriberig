@@ -28,15 +28,8 @@ pub(super) fn reduce_input(state: &mut TuiState, action: Action) -> Vec<Effect> 
                 } else {
                     input.append(&text);
                 }
-            } else if let Some(Overlay::Palette(palette)) = state.overlay.as_mut() {
-                if text.is_empty() {
-                    palette.query.pop();
-                    palette.selected = palette
-                        .selected
-                        .min(palette.filtered().len().saturating_sub(1));
-                } else {
-                    palette.set_query(format!("{}{}", palette.query, text));
-                }
+            } else if matches!(state.overlay, Some(Overlay::Palette(_))) {
+                // The upstream searchable selector owns palette filtering.
             } else if let Some(Overlay::Composer(composer)) = state.overlay.as_mut() {
                 edit_composer(&mut composer.text, &mut composer.error, &text);
             } else if state.session_composer_focused
@@ -54,8 +47,8 @@ pub(super) fn reduce_input(state: &mut TuiState, action: Action) -> Vec<Effect> 
         Action::Paste(text) => {
             if let Some(Overlay::Input(input)) = state.overlay.as_mut() {
                 input.append(&text);
-            } else if let Some(Overlay::Palette(palette)) = state.overlay.as_mut() {
-                palette.set_query(format!("{}{}", palette.query, text));
+            } else if matches!(state.overlay, Some(Overlay::Palette(_))) {
+                // The upstream searchable selector owns palette filtering.
             } else if let Some(Overlay::Composer(composer)) = state.overlay.as_mut() {
                 composer.text.push_str(&text);
             } else if state.session_composer_focused

@@ -3,7 +3,9 @@
 use crate::context::CompiledContext;
 use rpi_ai::{Context, Model, ThinkingLevel};
 use scriberig_session::{
-    ModelContextRevisionRef, ModelRequestMessage, ModelRequestProjection, ModelRequestTool,
+    ModelContextRevisionRef, ModelRequestDetailMessage, ModelRequestDetailPart,
+    ModelRequestDetailTool, ModelRequestMessage, ModelRequestProjection, ModelRequestTool,
+    ModelRequestToolCall,
 };
 
 #[path = "request_projection/content.rs"]
@@ -30,18 +32,22 @@ struct ProjectedMessages {
     truncated: bool,
     /// Durable, bounded provider-visible messages.
     durable: Vec<ModelRequestMessage>,
-    /// Full in-memory message values used for request identity.
-    fingerprint: Vec<(&'static str, Option<String>, String)>,
+    /// Complete safe messages for on-demand detail reads.
+    full: Vec<ModelRequestDetailMessage>,
+    /// Whether non-text provider content was excluded from complete detail.
+    content_complete: bool,
 }
 
 /// Holds bounded tool history and exact schema-fingerprint inputs.
-struct ProjectedTools<'a> {
+struct ProjectedTools {
     /// Whether tool details were omitted because of the content budget.
     truncated: bool,
     /// Durable, bounded provider-visible tools.
     durable: Vec<ModelRequestTool>,
-    /// Source tool names, descriptions, and schemas for request identity.
-    fingerprint: Vec<(&'a String, &'a String, &'a rpi_ai::types::Schema)>,
+    /// Complete safe tools for on-demand detail reads.
+    full: Vec<ModelRequestDetailTool>,
+    /// Whether every safe tool-definition field was captured.
+    content_complete: bool,
 }
 
 /// Captures a bounded request projection before provider serialization.
@@ -65,6 +71,7 @@ pub(super) fn capture_provider_request(
     let messages = project_messages(provider_context);
     let tools = project_tools(&provider_context.tools, messages.budget);
     let truncated = messages.truncated || tools.truncated;
+    let content_complete = messages.content_complete && tools.content_complete;
     let profile = Some(ModelContextRevisionRef {
         identity: compiled_context.profile.identity.clone(),
         revision: compiled_context.profile.revision.clone(),
@@ -83,8 +90,8 @@ pub(super) fn capture_provider_request(
     let request_fingerprint = request_fingerprint_for(&RequestFingerprintInput {
         model,
         thinking_level: &thinking_level,
-        messages: &messages.fingerprint,
-        tools: &tools.fingerprint,
+        messages: &messages.full,
+        tools: &tools.full,
         provider_profile: provider_profile.as_deref(),
         profile: profile.as_ref(),
         active_components: &active_components,
@@ -102,7 +109,10 @@ pub(super) fn capture_provider_request(
         request_fingerprint: Some(request_fingerprint),
         model_execution_configuration: None,
         messages: messages.durable,
+        full_messages: Some(messages.full),
         tools: tools.durable,
+        full_tools: Some(tools.full),
+        content_complete,
         applied_settings: None,
         applied_settings_fingerprint: None,
         truncated,
@@ -137,17 +147,24 @@ fn project_messages(provider_input: &Context) -> ProjectedMessages {
     let mut budget = MAX_CAPTURED_CONTENT_CHARS;
     let mut truncated = false;
     let mut durable = Vec::new();
-    let mut fingerprint = Vec::new();
+    let mut full = Vec::new();
+    let mut content_complete = true;
     if let Some(system_prompt) = &provider_input.system_prompt {
         append_message(
             "system",
-            None,
             system_prompt,
             &mut budget,
             &mut truncated,
             &mut durable,
-            &mut fingerprint,
         );
+        full.push(ModelRequestDetailMessage {
+            role: "system".to_owned(),
+            content: system_prompt.clone(),
+            tool_name: None,
+            tool_call_id: None,
+            tool_calls: Vec::new(),
+            parts: vec![ModelRequestDetailPart::Text(system_prompt.clone())],
+        });
     }
     for message in &provider_input.messages {
         match message {
@@ -156,42 +173,67 @@ fn project_messages(provider_input: &Context) -> ProjectedMessages {
                     rpi_ai::types::UserContent::Text(text) => (text.clone(), false),
                     rpi_ai::types::UserContent::Blocks(blocks) => (text_content(blocks), true),
                 };
+                if let rpi_ai::types::UserContent::Blocks(blocks) = &message.content {
+                    content_complete &= !contains_image(blocks);
+                }
                 truncated |= omitted;
-                append_message(
-                    "user",
-                    None,
-                    &content,
-                    &mut budget,
-                    &mut truncated,
-                    &mut durable,
-                    &mut fingerprint,
-                );
+                let parts = match &message.content {
+                    rpi_ai::types::UserContent::Text(text) => {
+                        vec![ModelRequestDetailPart::Text(text.clone())]
+                    }
+                    rpi_ai::types::UserContent::Blocks(blocks) => safe_content_parts(blocks),
+                };
+                append_message("user", &content, &mut budget, &mut truncated, &mut durable);
+                full.push(ModelRequestDetailMessage {
+                    role: "user".to_owned(),
+                    content: content.clone(),
+                    tool_name: None,
+                    tool_call_id: None,
+                    tool_calls: Vec::new(),
+                    parts,
+                });
             }
             rpi_ai::types::Message::Assistant(message) => {
                 let (content, omitted) = text_content_with_omissions(&message.content);
+                content_complete &= !contains_image(&message.content);
                 truncated |= omitted;
                 append_message(
                     "assistant",
-                    None,
                     &content,
                     &mut budget,
                     &mut truncated,
                     &mut durable,
-                    &mut fingerprint,
                 );
+                let parts = safe_content_parts(&message.content);
+                let tool_calls = parts
+                    .iter()
+                    .filter_map(|part| match part {
+                        ModelRequestDetailPart::ToolCall(call) => Some(call.clone()),
+                        ModelRequestDetailPart::Text(_) => None,
+                    })
+                    .collect();
+                full.push(ModelRequestDetailMessage {
+                    role: "assistant".to_owned(),
+                    content,
+                    tool_name: None,
+                    tool_call_id: None,
+                    tool_calls,
+                    parts,
+                });
             }
             rpi_ai::types::Message::ToolResult(message) => {
                 let (content, omitted) = text_content_with_omissions(&message.content);
+                content_complete &= !contains_image(&message.content);
                 truncated |= omitted;
-                append_message(
-                    "tool",
-                    Some(&message.tool_call_id),
-                    &content,
-                    &mut budget,
-                    &mut truncated,
-                    &mut durable,
-                    &mut fingerprint,
-                );
+                append_message("tool", &content, &mut budget, &mut truncated, &mut durable);
+                full.push(ModelRequestDetailMessage {
+                    role: "tool".to_owned(),
+                    content: content.clone(),
+                    tool_name: Some(message.tool_name.clone()),
+                    tool_call_id: Some(message.tool_call_id.clone()),
+                    tool_calls: Vec::new(),
+                    parts: safe_content_parts(&message.content),
+                });
             }
         }
     }
@@ -199,7 +241,8 @@ fn project_messages(provider_input: &Context) -> ProjectedMessages {
         budget,
         truncated,
         durable,
-        fingerprint,
+        full,
+        content_complete,
     }
 }
 
@@ -211,19 +254,30 @@ fn project_messages(provider_input: &Context) -> ProjectedMessages {
 ///
 /// # Returns
 /// Bounded durable tool descriptions and exact in-memory fingerprint inputs.
-fn project_tools(source: &[rpi_ai::types::Tool], mut budget: usize) -> ProjectedTools<'_> {
+fn project_tools(source: &[rpi_ai::types::Tool], mut budget: usize) -> ProjectedTools {
     let mut truncated = false;
     let mut durable = Vec::new();
-    let mut fingerprint = Vec::new();
+    let mut full = Vec::new();
+    let mut content_complete = true;
     for tool in source {
+        let encoded_schema = serde_json::to_string(&tool.parameters).ok();
+        content_complete &= encoded_schema.is_some();
+        let constrained_sampling = serde_json::to_value(&tool.constrained_sampling);
+        content_complete &= constrained_sampling.is_ok();
+        full.push(ModelRequestDetailTool {
+            name: tool.name.clone(),
+            description: tool.description.clone(),
+            parameters: encoded_schema.clone().unwrap_or_default(),
+            constrained_sampling: constrained_sampling.ok().filter(|value| !value.is_null()),
+        });
         if budget == 0 {
             truncated = true;
-            break;
+            continue;
         }
         let name = take_bounded(&tool.name, &mut budget);
         let description = take_bounded(&tool.description, &mut budget);
         truncated |= name.len() < tool.name.len() || description.len() < tool.description.len();
-        let encoded_schema = serde_json::to_string(&tool.parameters).unwrap_or_default();
+        let encoded_schema = encoded_schema.unwrap_or_default();
         let parameters = if encoded_schema.chars().count() <= budget {
             budget -= encoded_schema.chars().count();
             Some(encoded_schema.clone())
@@ -236,33 +290,29 @@ fn project_tools(source: &[rpi_ai::types::Tool], mut budget: usize) -> Projected
             description,
             parameters,
         });
-        fingerprint.push((&tool.name, &tool.description, &tool.parameters));
     }
     ProjectedTools {
         truncated,
         durable,
-        fingerprint,
+        full,
+        content_complete,
     }
 }
 
-/// Appends a message to the bounded history and full request fingerprint.
+/// Appends provider-visible message text to bounded durable history.
 ///
 /// # Parameters
 /// - `role`: Upstream message role.
-/// - `tool_call_id`: Tool call identity when the message is a tool result.
 /// - `content`: Provider-visible text for this message.
 /// - `budget`: Remaining safe history character budget.
 /// - `truncated`: Whether any request content has been omitted.
 /// - `projection`: Bounded durable messages being built.
-/// - `fingerprint`: Complete in-memory message inputs for request identity.
 fn append_message(
     role: &'static str,
-    tool_call_id: Option<&str>,
     content: &str,
     budget: &mut usize,
     truncated: &mut bool,
     projection: &mut Vec<ModelRequestMessage>,
-    fingerprint: &mut Vec<(&'static str, Option<String>, String)>,
 ) {
     if *budget == 0 {
         *truncated = true;
@@ -274,7 +324,47 @@ fn append_message(
             content: captured,
         });
     }
-    fingerprint.push((role, tool_call_id.map(str::to_owned), content.to_owned()));
+}
+
+/// Checks whether a provider message contains image data excluded from detail.
+///
+/// # Parameters
+/// - `content`: Provider message content blocks.
+///
+/// # Returns
+/// Whether any image block was omitted from the safe text projection.
+fn contains_image(content: &[rpi_ai::types::Content]) -> bool {
+    content
+        .iter()
+        .any(|block| matches!(block, rpi_ai::types::Content::Image(_)))
+}
+
+/// Projects ordered provider-visible text and safe tool calls.
+///
+/// # Parameters
+/// - `content`: Provider message content blocks.
+///
+/// # Returns
+/// Ordered text and safe tool-call parts.
+fn safe_content_parts(content: &[rpi_ai::types::Content]) -> Vec<ModelRequestDetailPart> {
+    content
+        .iter()
+        .filter_map(|block| match block {
+            rpi_ai::types::Content::Text(text) => {
+                Some(ModelRequestDetailPart::Text(text.text.clone()))
+            }
+            rpi_ai::types::Content::ToolCall(call) => {
+                Some(ModelRequestDetailPart::ToolCall(ModelRequestToolCall {
+                    name: call.name.clone(),
+                    arguments: serde_json::to_string(&call.arguments)
+                        .expect("upstream tool-call arguments are JSON"),
+                    id: Some(call.id.clone()),
+                    namespace: call.namespace.clone(),
+                }))
+            }
+            _ => None,
+        })
+        .collect()
 }
 
 /// Fingerprints the exact compiled `ScribeRig` context.

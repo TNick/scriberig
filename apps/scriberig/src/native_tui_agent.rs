@@ -37,7 +37,7 @@ mod runner;
 pub(crate) mod upstream_execution;
 use model_selection::selected_runtime_model;
 use plan_worker::NativePlanWorkerExecutor;
-pub(crate) use provider_config::extensions::reject_in_process_extensions;
+pub(crate) use provider_config::extensions::validate_isolated_plugin_configuration;
 
 /// Builds the upstream adapter for the configured one-shot Echo fallback.
 ///
@@ -147,7 +147,7 @@ impl NativeTuiAgentRunner {
         {
             providers.insert("local".to_owned(), provider);
         }
-        provider_config::extensions::reject_in_process_extensions()?;
+        provider_config::extensions::validate_isolated_plugin_configuration()?;
         Ok(Self {
             providers,
             model,

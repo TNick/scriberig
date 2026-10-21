@@ -73,7 +73,7 @@ pub(crate) fn execute_model<B: ApplicationBackend + Sync>(
     cancellation: &std::sync::atomic::AtomicBool,
     output_callback: Option<scriberig_agent_runtime::OutputCallback>,
 ) -> Result<scriberig_agent_runtime::AgentResult, ComposedAgentFailure> {
-    crate::native_tui_agent::reject_in_process_extensions()
+    crate::native_tui_agent::validate_isolated_plugin_configuration()
         .map_err(|error| scriberig_agent_runtime::AgentError::Provider(error.to_string()))?;
     let (model, provider, request_secret) = if let Some(base_url) = &args.base_url {
         let model = configured_model(args, base_url);
@@ -113,6 +113,9 @@ pub(crate) fn execute_model<B: ApplicationBackend + Sync>(
             scriberig_agent_runtime::upstream_invocation::UpstreamBranchError::Cancelled => {
                 scriberig_agent_runtime::AgentError::Cancelled
             }
+            scriberig_agent_runtime::upstream_invocation::UpstreamBranchError::Authentication(
+                message,
+            ) => scriberig_agent_runtime::AgentError::Authentication(message),
             error => scriberig_agent_runtime::AgentError::Provider(error.to_string()),
         };
         ComposedAgentFailure {

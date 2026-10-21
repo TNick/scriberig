@@ -79,15 +79,17 @@ pub(super) fn claim_workers(
     compile_context: impl Fn(&Plan, &PlanNode, &WorkerClaim) -> Result<PlanWorkerContext, String>,
     persist_claims: impl FnOnce(&Plan) -> Result<(), String>,
 ) -> Result<Vec<ClaimedWorker>, String> {
+    let mut claimed_plan = plan.clone();
     let claims = dispatch
         .iter()
         .map(|node_id| (*node_id, next_id(), next_id()))
         .collect::<Vec<_>>();
-    plan.start_nodes(&claims, "plan-worker", results)
+    claimed_plan
+        .start_nodes(&claims, "plan-worker", results)
         .map_err(|error| format!("plan worker claim failed: {error:?}"))?;
     let mut claimed = Vec::with_capacity(dispatch.len());
     for (index, (node_id, _, _)) in claims.iter().enumerate() {
-        let node = plan
+        let node = claimed_plan
             .nodes
             .iter()
             .find(|node| node.id == *node_id)
@@ -97,12 +99,13 @@ pub(super) fn claim_workers(
             .claim
             .clone()
             .ok_or_else(|| "claimed plan node has no worker claim".to_owned())?;
-        let context = compile_context(plan, &node, &claim)?;
+        let context = compile_context(&claimed_plan, &node, &claim)?;
         claimed.push((node, claim, resolved[index].clone(), context));
     }
     if !claimed.is_empty() {
-        persist_claims(plan)?;
+        persist_claims(&claimed_plan)?;
     }
+    *plan = claimed_plan;
     Ok(claimed)
 }
 

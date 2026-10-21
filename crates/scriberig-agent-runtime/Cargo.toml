@@ -8,12 +8,17 @@ description = "Integrated agent execution, orchestration, and model-provider run
 repository.workspace = true
 publish = false
 
+[features]
+default = []
+isolated-plugin-worker = ["dep:rpi-extensions"]
+
 [dependencies]
 scriberig-secrets = { path = "../scriberig-secrets" }
 zeroize = "1"
 scriberig-agent-core = { path = "../scriberig-agent-core" }
 scriberig-app = { path = "../scriberig-app" }
 scriberig-core = { path = "../scriberig-core" }
+scriberig-query = { path = "../scriberig-query" }
 scriberig-session = { path = "../scriberig-session" }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
@@ -21,6 +26,7 @@ blake3 = "1.8"
 rpi-ai = { workspace = true }
 rpi-model-runtime = { workspace = true }
 rpi-agent = { workspace = true }
+rpi-extensions = { workspace = true, optional = true }
 async-trait = "0.1"
 tokio = { version = "1", features = ["rt", "macros"] }
 tokio-util = { version = "0.7", features = ["rt"] }

@@ -191,5 +191,67 @@ export function normalizeModelRequestDetail(value: unknown): ModelRequestDetailR
       : [],
     tools: Array.isArray(value.tools) ? (value.tools as ModelRequestDetailResponse["tools"]) : [],
     truncated: value.truncated === true,
+    contentComplete: value.content_complete === true || value.contentComplete === true,
+    ...(Array.isArray(value.fragments)
+      ? {
+          fragments: value.fragments.filter(isModelRequestDetailFragment).map((fragment) => ({
+            kind:
+              fragment.kind === "tool_call" || fragment.kind === "toolCall"
+                ? "toolCall"
+                : (fragment.kind as "message" | "tool"),
+            index: fragment.index as number,
+            ...(typeof (fragment.parent_index ?? fragment.parentIndex) === "number"
+              ? { parentIndex: (fragment.parent_index ?? fragment.parentIndex) as number }
+              : {}),
+            field:
+              fragment.field === "constrained_sampling" || fragment.field === "constrainedSampling"
+                ? "constrainedSampling"
+                : fragment.field === "tool_name" || fragment.field === "toolName"
+                  ? "toolName"
+                  : (fragment.field as NonNullable<
+                      ModelRequestDetailResponse["fragments"]
+                    >[number]["field"]),
+            fieldOffset: (fragment.field_offset ?? fragment.fieldOffset) as number,
+            ...(typeof fragment.role === "string" ? { role: fragment.role } : {}),
+            text: fragment.text as string,
+          })),
+        }
+      : {}),
+    ...(typeof value.offset === "number" ? { offset: value.offset } : {}),
+    ...(typeof (value.total_chars ?? value.totalChars) === "number"
+      ? { totalChars: (value.total_chars ?? value.totalChars) as number }
+      : {}),
+    ...(typeof (value.next_offset ?? value.nextOffset) === "number"
+      ? { nextOffset: (value.next_offset ?? value.nextOffset) as number }
+      : {}),
   };
+}
+
+/** Checks whether an unknown value is one valid request detail fragment.
+ * @param value Unknown fragment candidate.
+ * @returns Whether the candidate contains the required page fields.
+ */
+function isModelRequestDetailFragment(value: unknown): value is Record<string, unknown> {
+  if (!isObject(value)) return false;
+  const fieldOffset = value.field_offset ?? value.fieldOffset;
+  return (
+    (value.kind === "message" ||
+      value.kind === "tool_call" ||
+      value.kind === "toolCall" ||
+      value.kind === "tool") &&
+    typeof value.index === "number" &&
+    [
+      "content",
+      "tool_name",
+      "toolName",
+      "name",
+      "arguments",
+      "description",
+      "parameters",
+      "constrained_sampling",
+      "constrainedSampling",
+    ].includes(String(value.field)) &&
+    typeof fieldOffset === "number" &&
+    typeof value.text === "string"
+  );
 }

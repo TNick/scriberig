@@ -4,7 +4,6 @@ use std::io;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
 
 use rpi_tui::{Component, Editor, Focusable, TUI, TuiAltScreen};
 
@@ -142,113 +141,127 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
             }
         }
 
-        let mut should_quit = false;
-        while !should_quit {
-            let mut redraw = false;
-            let mut selector_to_open = None;
-            {
-                let mut state = state
-                    .lock()
-                    .map_err(|_| io::Error::other("TUI state lock poisoned"))?;
+        let mut loop_error = None;
+        screen.run_until_with_tick(|| {
+            if loop_error.is_some() {
+                return true;
+            }
+            let result = (|| -> io::Result<bool> {
+                let mut redraw = false;
+                let mut selector_to_open = None;
+                let mut should_quit;
                 {
-                    let mut drain = MessageDrain {
-                        sender: &work_sender,
-                        pending_effects: &mut pending_effects,
-                        pending_events: &mut pending_events,
-                        redraw: &mut redraw,
-                        debug_log: debug_log.as_deref_mut(),
-                    };
-                    super::super::drain::drain_messages(
-                        &message_receiver,
+                    let mut state = state
+                        .lock()
+                        .map_err(|_| io::Error::other("TUI state lock poisoned"))?;
+                    {
+                        let mut drain = MessageDrain {
+                            sender: &work_sender,
+                            pending_effects: &mut pending_effects,
+                            pending_events: &mut pending_events,
+                            redraw: &mut redraw,
+                            debug_log: debug_log.as_deref_mut(),
+                        };
+                        super::super::drain::drain_messages(
+                            &message_receiver,
+                            &mut state,
+                            &mut poll_in_flight,
+                            &mut drain,
+                        )?;
+                    }
+                    dispatch_pending_events(
                         &mut state,
-                        &mut poll_in_flight,
-                        &mut drain,
-                    )?;
+                        &mut pending_events,
+                        &work_sender,
+                        &mut pending_effects,
+                        &mut redraw,
+                    );
+                    flush_effects(&work_sender, &mut pending_effects);
+                    if !poll_in_flight && pending_events.is_empty() {
+                        poll_in_flight = try_queue(&work_sender, Work::PollApplicationEvents);
+                    }
+                    if !state.conversation_composer.draft.is_empty()
+                        && editor.get_expanded_text().is_empty()
+                    {
+                        editor.set_text(&state.conversation_composer.draft);
+                        redraw = true;
+                    }
+                    if let Some(kind) = pending_selector {
+                        match &state.model_library {
+                            crate::inspector::LoadState::Ready(library) => {
+                                let library = library.clone();
+                                state.overlay = None;
+                                pending_selector = None;
+                                selector_to_open = Some((kind, library));
+                            }
+                            crate::inspector::LoadState::Failed { .. } => {
+                                pending_selector = None;
+                            }
+                            _ => {}
+                        }
+                    }
+                    should_quit = state.should_quit;
                 }
-                dispatch_pending_events(
-                    &mut state,
-                    &mut pending_events,
-                    &work_sender,
-                    &mut pending_effects,
-                    &mut redraw,
-                );
-                flush_effects(&work_sender, &mut pending_effects);
-                if !poll_in_flight && pending_events.is_empty() {
-                    poll_in_flight = try_queue(&work_sender, Work::PollApplicationEvents);
-                }
-                if !state.conversation_composer.draft.is_empty()
-                    && editor.get_expanded_text().is_empty()
-                {
-                    editor.set_text(&state.conversation_composer.draft);
+                if let Some((kind, library)) = selector_to_open {
+                    let previous_focus = screen.get_focus();
+                    if open_control_selector(screen, state, kind, &library, None, input_sender) {
+                        if focus_before_overlay.is_none() {
+                            focus_before_overlay = previous_focus;
+                        }
+                        editor.set_focused(false);
+                    }
                     redraw = true;
                 }
-                if let Some(kind) = pending_selector {
-                    match &state.model_library {
-                        crate::inspector::LoadState::Ready(library) => {
-                            let library = library.clone();
-                            state.overlay = None;
-                            pending_selector = None;
-                            selector_to_open = Some((kind, library));
-                        }
-                        crate::inspector::LoadState::Failed { .. } => {
-                            pending_selector = None;
-                        }
-                        _ => {}
-                    }
-                }
-                should_quit = state.should_quit;
-            }
-            if let Some((kind, library)) = selector_to_open {
-                let previous_focus = screen.get_focus();
-                if open_control_selector(screen, state, kind, &library, None, input_sender) {
-                    if focus_before_overlay.is_none() {
-                        focus_before_overlay = previous_focus;
-                    }
-                    editor.set_focused(false);
-                }
-                redraw = true;
-            }
-            modal_overlay.synchronize(
-                screen,
-                state,
-                editor,
-                input_sender,
-                &mut focus_before_overlay,
-            );
-
-            if input::handle(
-                input::InputContext {
-                    service,
-                    context,
-                    state,
+                modal_overlay.synchronize(
                     screen,
+                    state,
                     editor,
-                    composer,
-                    semantic_view,
                     input_sender,
-                    work_sender: &work_sender,
-                    pending_selector: &mut pending_selector,
-                    pending_effects: &mut pending_effects,
-                    focus_before_overlay: &mut focus_before_overlay,
-                    shared_state: &shared_state,
-                    debug_log: &mut debug_log,
-                    should_quit: &mut should_quit,
-                    redraw: &mut redraw,
-                },
-                input_receiver.recv_timeout(Duration::from_millis(100)),
-            )? {
-                continue;
+                    &mut focus_before_overlay,
+                );
+
+                if input::handle(
+                    input::InputContext {
+                        service,
+                        context,
+                        state,
+                        screen,
+                        editor,
+                        composer,
+                        semantic_view,
+                        input_sender,
+                        work_sender: &work_sender,
+                        pending_selector: &mut pending_selector,
+                        pending_effects: &mut pending_effects,
+                        focus_before_overlay: &mut focus_before_overlay,
+                        shared_state: &shared_state,
+                        debug_log: &mut debug_log,
+                        should_quit: &mut should_quit,
+                        redraw: &mut redraw,
+                    },
+                    input_receiver.try_recv(),
+                )? {
+                    return Ok(false);
+                }
+                if redraw {
+                    screen.request_render(false);
+                }
+                Ok(should_quit)
+            })();
+            match result {
+                Ok(should_quit) => should_quit,
+                Err(error) => {
+                    loop_error = Some(error);
+                    true
+                }
             }
-            if redraw {
-                screen.request_render(false);
-            }
-        }
+        });
 
         drop(work_sender);
         drop(message_receiver);
         worker
             .join()
             .map_err(|_| io::Error::other("TUI worker panicked"))?;
-        Ok(())
+        loop_error.map_or(Ok(()), Err)
     })
 }

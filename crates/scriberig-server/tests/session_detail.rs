@@ -89,7 +89,10 @@ fn durable_detail_reads_do_not_reexecute_tools_or_models() {
                     role: "user".to_owned(),
                     content: "inspect safely".to_owned(),
                 }],
+                full_messages: None,
                 tools: Vec::new(),
+                full_tools: None,
+                content_complete: false,
                 applied_settings: None,
                 applied_settings_fingerprint: None,
                 truncated: false,
@@ -156,6 +159,8 @@ fn assert_details_are_read_only(
             id: handle.root_branch.to_string(),
         },
         invocation: branch.model_invocations[0].id.to_string(),
+        offset: None,
+        max_chars: None,
     });
     let response = dispatcher.dispatch(RequestEnvelope {
         version: ProtocolVersion::default(),

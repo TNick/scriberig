@@ -120,7 +120,32 @@ pub(super) fn append_status(output: &mut String, label: &str, value: &str, role:
 /// - `output`: Destination Markdown content.
 /// - `value`: Untrusted semantic label, identifier, or preview.
 pub(super) fn append_value(output: &mut String, value: &str) {
-    let characters = value.chars().take(MAX_VALUE_CHARS).collect::<Vec<_>>();
+    append_sanitized_value(output, value, Some(MAX_VALUE_CHARS));
+    output.push_str("\n\n");
+}
+
+/// Appends a complete safe value as escaped Markdown text.
+///
+/// This is reserved for explicitly expanded captured content; ordinary labels
+/// continue to use the bounded `append_value` path.
+///
+/// - `output`: Destination Markdown content.
+/// - `value`: Safe captured text to display completely.
+pub(super) fn append_complete_value(output: &mut String, value: &str) {
+    append_sanitized_value(output, value, None);
+    output.push_str("\n\n");
+}
+
+/// Escapes a value as inert Markdown, optionally limiting displayed characters.
+///
+/// - `output`: Destination Markdown content.
+/// - `value`: Text to sanitize.
+/// - `max_chars`: Optional Unicode-scalar display limit.
+fn append_sanitized_value(output: &mut String, value: &str, max_chars: Option<usize>) {
+    let characters = value
+        .chars()
+        .take(max_chars.unwrap_or(usize::MAX))
+        .collect::<Vec<_>>();
     let mut line_start = true;
     let mut line_indent = 0_usize;
     let mut line_digits = 0_usize;
@@ -177,12 +202,11 @@ pub(super) fn append_value(output: &mut String, value: &str) {
             line_has_other = true;
         }
     }
-    output.push_str("\n\n");
 }
 
 /// Reports whether a square-bracket label opens an inline Markdown link.
 ///
-/// - `characters`: Bounded value characters being escaped.
+/// - `characters`: Value characters being escaped.
 /// - `index`: Index of the opening bracket.
 ///
 /// # Returns

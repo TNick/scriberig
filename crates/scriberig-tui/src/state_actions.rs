@@ -170,13 +170,22 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
         }
         return vec![Effect::None];
     }
-    let Some(Overlay::Palette(palette)) = state.overlay.as_ref() else {
-        return vec![Effect::None];
-    };
-    let filtered = palette.filtered();
-    let Some(selected_id) = filtered.get(palette.selected).map(|item| item.id.as_str()) else {
-        return vec![Effect::None];
-    };
+    vec![Effect::None]
+}
+
+/// Activates one palette command by its stable `ScribeRig` action ID.
+///
+/// Filtering and row navigation are owned by the upstream selector; this
+/// function owns only the selected command's semantic effect.
+///
+/// - `state`: TUI state receiving the command effect.
+/// - `selected_id`: Stable palette action identity.
+///
+/// Effects produced by the selected command.
+/// # Returns
+/// The operation result.
+#[allow(clippy::too_many_lines)]
+pub(crate) fn activate_palette_item(state: &mut TuiState, selected_id: &str) -> Vec<Effect> {
     if selected_id == "review-candidate" {
         return refresh_candidate_review(state);
     }

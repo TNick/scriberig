@@ -51,16 +51,17 @@ pub use response::{
     QueryResponse,
 };
 pub use session::{
-    ModelContextRevisionReference, ModelRequestDetailRequest, ModelRequestDetailResponse,
-    ModelRequestMessageDetail, ModelRequestToolDetail, SessionActivityItem, SessionActivityKind,
-    SessionActivityState, SessionBranch, SessionBranchResult, SessionBranchStatus,
-    SessionContinuationAnchor, SessionCoordinatorClaim, SessionExecutionChange,
-    SessionExecutionSelection, SessionExpectedResult, SessionModelAssignment, SessionPlan,
-    SessionPlanAction, SessionPlanAssignmentRequest, SessionPlanCreateRequest,
-    SessionPlanDependency, SessionPlanLifecycleRequest, SessionPlanNode, SessionPlanNodeDraft,
-    SessionPlanNodeReference, SessionPlanNodeStatus, SessionPlanReplanRequest, SessionPlanRevision,
-    SessionPlanStatus, SessionReadRequest, SessionReadResponse, SessionTurn, SessionWorkerClaim,
-    ToolActivityKind, ToolResultDetailRequest, ToolResultDetailResponse,
+    ModelContextRevisionReference, ModelRequestDetailFragment, ModelRequestDetailRequest,
+    ModelRequestDetailResponse, ModelRequestMessageDetail, ModelRequestToolDetail,
+    SessionActivityItem, SessionActivityKind, SessionActivityState, SessionBranch,
+    SessionBranchResult, SessionBranchStatus, SessionContinuationAnchor, SessionCoordinatorClaim,
+    SessionExecutionChange, SessionExecutionSelection, SessionExpectedResult,
+    SessionModelAssignment, SessionPlan, SessionPlanAction, SessionPlanAssignmentRequest,
+    SessionPlanCreateRequest, SessionPlanDependency, SessionPlanLifecycleRequest, SessionPlanNode,
+    SessionPlanNodeDraft, SessionPlanNodeReference, SessionPlanNodeStatus,
+    SessionPlanReplanRequest, SessionPlanRevision, SessionPlanStatus, SessionReadRequest,
+    SessionReadResponse, SessionTurn, SessionWorkerClaim, ToolActivityKind,
+    ToolResultDetailRequest, ToolResultDetailResponse,
 };
 pub use transport::{ProtocolTransport, Request, RequestEnvelope, Response, ResponseEnvelope};
 pub use trust::{

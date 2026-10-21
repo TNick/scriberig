@@ -1,6 +1,8 @@
 //! Projects durable `ScribeRig` plans through upstream tree and Markdown APIs.
 
-use rpi_tui::{TreeItem, TreeList};
+use rpi_tui::TreeItem;
+#[cfg(test)]
+use rpi_tui::TreeList;
 use scriberig_core::EntityId;
 use scriberig_session::{Plan, PlanNode, PlanNodeParent};
 
@@ -8,6 +10,9 @@ use scriberig_session::{Plan, PlanNode, PlanNodeParent};
 mod details;
 #[path = "plan/status.rs"]
 mod status;
+use super::projection::TreeProjection;
+#[cfg(test)]
+use super::projection::tree_from_items;
 use crate::selection::PlanSelection;
 use crate::state::TuiState;
 use details::plan_details;
@@ -28,19 +33,25 @@ pub(super) struct PlanTreeRow {
     pub(super) selection: PlanSelection,
 }
 
-/// Builds a plan tree and its selected semantic details.
+/// Builds reusable plan tree items, selection, details, and stable rows.
 ///
 /// - `state`: `ScribeRig` presentation state containing the exact session view.
 ///
-/// Upstream `TreeList`, selected details, and the stable row sequence.
+/// A tree projection plus the stable row sequence used by details.
 /// # Returns
-/// Plan tree and details when a session snapshot is available.
-pub(super) fn plan_tree(state: &TuiState) -> Option<(TreeList, String, Vec<PlanTreeRow>)> {
+/// Plan projection when a session snapshot with plans is available.
+pub(super) fn projection(state: &TuiState) -> Option<(TreeProjection, Vec<PlanTreeRow>)> {
     let session = state.session_snapshot.as_ref()?;
     let rows = rows_for_plans(&session.plans);
     if rows.is_empty() {
         return None;
     }
+    let selection = selected_plan_selection(state, &rows);
+    let selected_id = selection.and_then(|selection| {
+        rows.iter()
+            .find(|row| row.selection == selection)
+            .map(|row| row.id.clone())
+    });
     let items = rows
         .iter()
         .map(|row| TreeItem {
@@ -48,28 +59,33 @@ pub(super) fn plan_tree(state: &TuiState) -> Option<(TreeList, String, Vec<PlanT
             label: row.label.clone(),
             parent_id: row.parent_id.clone(),
         })
-        .collect::<Vec<_>>();
-    let tree = TreeList::new(items, super::common::MAX_ROWS).ok()?;
-    for row in &rows {
-        if rows
-            .iter()
-            .any(|child| child.parent_id.as_deref() == Some(&row.id))
-        {
-            let _ = tree.set_expanded(&row.id, true);
-        }
-    }
-    let selection = selected_plan_selection(state, &rows);
-    if let Some(selection) = selection {
-        let selected_id = rows
-            .iter()
-            .find(|row| row.selection == selection)
-            .map(|row| row.id.as_str());
-        if let Some(selected_id) = selected_id {
-            let _ = tree.select(selected_id);
-        }
-    }
+        .collect();
     let details = plan_details(session, selection, &rows);
-    Some((tree, details, rows))
+    Some((
+        TreeProjection {
+            items,
+            selected_id,
+            details,
+        },
+        rows,
+    ))
+}
+
+/// Builds a standalone plan tree for focused projection tests.
+///
+/// - `state`: `ScribeRig` presentation state containing the exact session view.
+///
+/// An upstream `TreeList`, selected details, and the stable row sequence.
+/// # Returns
+/// Plan tree and details when a session snapshot is available.
+#[cfg(test)]
+pub(super) fn plan_tree(state: &TuiState) -> Option<(TreeList, String, Vec<PlanTreeRow>)> {
+    let (projection, rows) = projection(state)?;
+    let tree = tree_from_items(&projection.items)?;
+    if let Some(selected_id) = projection.selected_id {
+        let _ = tree.select(&selected_id);
+    }
+    Some((tree, projection.details, rows))
 }
 
 /// Resolves the selected plan identity once for tree and detail projections.
@@ -226,7 +242,7 @@ fn append_node_row(
 ) {
     rows.push(PlanTreeRow {
         id: plan_row_id(plan.id, Some(node.id)),
-        label: node_label(node),
+        label: node_label(node, plan.coordinator_cursor),
         parent_id,
         selection: PlanSelection {
             plan: plan.id,
@@ -239,19 +255,25 @@ fn append_node_row(
 /// Builds a safe node label that exposes its structural parent category.
 ///
 /// - `node`: Durable plan node represented by the row.
+/// - `coordinator_cursor`: Plan node currently owned by the coordinator.
 ///
 /// A bounded label including node identity and parent type.
 /// # Returns
 /// Human-readable bounded node label.
-fn node_label(node: &PlanNode) -> String {
+fn node_label(node: &PlanNode, coordinator_cursor: Option<EntityId>) -> String {
     let parent = match node.parent {
         Some(PlanNodeParent::Branch(branch)) => format!(" · branch parent {branch}"),
         Some(PlanNodeParent::Node(parent)) => format!(" · node parent {parent}"),
         None => " · root node".to_owned(),
     };
+    let coordinator = if coordinator_cursor == Some(node.id) {
+        " · coordinator cursor"
+    } else {
+        ""
+    };
     bounded_label(&format!(
-        "{:?} · {} · {}{}",
-        node.status, node.title, node.id, parent
+        "{:?} · {} · {}{}{}",
+        node.status, node.title, node.id, parent, coordinator
     ))
 }
 

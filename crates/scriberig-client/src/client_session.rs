@@ -212,6 +212,45 @@ impl<T: ProtocolTransport> Client<T> {
                 session: SessionReference { id: session.into() },
                 branch: BranchReference { id: branch.into() },
                 invocation: invocation.into(),
+                offset: None,
+                max_chars: None,
+            }))?
+            .response
+        {
+            Response::ModelRequestDetail(response) => Ok(response),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Reads one explicitly bounded page of complete safe model request text.
+    ///
+    /// - `session`: Stable session identity.
+    /// - `branch`: Stable branch identity.
+    /// - `invocation`: Stable model-invocation identity.
+    /// - `offset`: Unicode-scalar offset in the ordered text stream.
+    /// - `max_chars`: Requested character bound, capped by the server.
+    ///
+    /// Request metadata and one text page.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn model_request_detail_page(
+        &self,
+        session: impl Into<String>,
+        branch: impl Into<String>,
+        invocation: impl Into<String>,
+        offset: u64,
+        max_chars: u32,
+    ) -> Result<ModelRequestDetailResponse, ClientError> {
+        match self
+            .send(Request::ModelRequestDetail(ModelRequestDetailRequest {
+                session: SessionReference { id: session.into() },
+                branch: BranchReference { id: branch.into() },
+                invocation: invocation.into(),
+                offset: Some(offset),
+                max_chars: Some(max_chars),
             }))?
             .response
         {

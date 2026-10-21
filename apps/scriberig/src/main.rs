@@ -40,6 +40,14 @@ use main_agent_execution::execute_model;
 /// # Errors
 /// Returns an error when the operation fails.
 fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    #[cfg(feature = "isolated-plugin-worker")]
+    let arguments = std::env::args().collect::<Vec<_>>();
+    #[cfg(feature = "isolated-plugin-worker")]
+    if scriberig_agent_runtime::plugin_worker::run_worker_mode(&arguments)
+        .map_err(std::io::Error::other)?
+    {
+        return Ok(());
+    }
     let command = scriberig_cli::parse();
     match command {
         scriberig_cli::Command::Serve(args) => {

@@ -87,14 +87,65 @@ pub(super) fn model_request_detail<T: ProtocolTransport>(
     branch: scriberig_core::EntityId,
     invocation: scriberig_core::EntityId,
 ) -> Result<scriberig_protocol::ModelRequestDetailResponse, ApplicationError> {
-    adapter
-        .client
-        .model_request_detail(
-            session.to_string(),
-            branch.to_string(),
-            invocation.to_string(),
-        )
-        .map_err(super::service_remote_mapping::remote_error)
+    let session = session.to_string();
+    let branch = branch.to_string();
+    let invocation = invocation.to_string();
+    let mut offset = 0;
+    let mut detail: Option<scriberig_protocol::ModelRequestDetailResponse> = None;
+    let mut total_chars = None;
+
+    loop {
+        let page = adapter
+            .client
+            .model_request_detail_page(
+                session.clone(),
+                branch.clone(),
+                invocation.clone(),
+                offset,
+                32_768,
+            )
+            .map_err(super::service_remote_mapping::remote_error)?;
+        if page.invocation != invocation || page.offset != Some(offset) {
+            return Err(ApplicationError::Internal {
+                message: "remote model request detail returned an invalid page identity".to_owned(),
+            });
+        }
+        match (total_chars, page.total_chars) {
+            (Some(expected), Some(actual)) if expected == actual => {}
+            (None, Some(actual)) => total_chars = Some(actual),
+            _ => {
+                return Err(ApplicationError::Internal {
+                    message: "remote model request detail pages disagree on total length"
+                        .to_owned(),
+                });
+            }
+        }
+        if let Some(detail) = &mut detail {
+            detail.fragments.extend(page.fragments);
+            detail.content_complete &= page.content_complete;
+            detail.next_offset = page.next_offset;
+        } else {
+            detail = Some(page);
+        }
+        let next = detail.as_ref().and_then(|response| response.next_offset);
+        let Some(next) = next else {
+            break;
+        };
+        if next <= offset || total_chars.is_none_or(|total| next > total) {
+            return Err(ApplicationError::Internal {
+                message: "remote model request detail returned an invalid continuation".to_owned(),
+            });
+        }
+        offset = next;
+    }
+
+    let mut detail = detail.ok_or_else(|| ApplicationError::Internal {
+        message: "remote model request detail returned no page".to_owned(),
+    })?;
+    detail.offset = Some(0);
+    detail.total_chars = total_chars;
+    detail.next_offset = None;
+    Ok(detail)
 }
 
 /// Applies a revision-checked provider/model selection remotely.

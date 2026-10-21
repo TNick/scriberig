@@ -80,6 +80,9 @@ pub(crate) fn execute_agent<B: ApplicationBackend + Sync>(
                 scriberig_agent_runtime::upstream_invocation::UpstreamBranchError::Cancelled => {
                     AgentError::Cancelled
                 }
+                scriberig_agent_runtime::upstream_invocation::UpstreamBranchError::Authentication(
+                    message,
+                ) => AgentError::Authentication(message),
                 error => AgentError::Provider(error.to_string()),
             }
         },

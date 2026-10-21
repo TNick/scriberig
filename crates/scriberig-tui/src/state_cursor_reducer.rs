@@ -14,49 +14,45 @@ use crate::action::Direction;
 /// # Returns
 /// The operation result.
 pub(super) fn reduce_cursor(state: &mut TuiState, direction: Direction) -> Vec<Effect> {
-    if let Some(Overlay::Palette(palette)) = state.overlay.as_mut() {
-        let last = palette.filtered().len().saturating_sub(1);
-        palette.selected = match direction {
-            Direction::Previous => palette.selected.saturating_sub(1),
-            Direction::Next => palette.selected.saturating_add(1).min(last),
-        };
-    } else {
-        let last = cursor_limit(state);
-        state.cursor = match direction {
-            Direction::Previous => state.cursor.saturating_sub(1),
-            Direction::Next => state.cursor.saturating_add(1).min(last),
-        };
-        if state.primary_view == crate::selection::PrimaryView::Session
-            && let LoadState::Ready(model) = &state.session
-        {
-            state.session_cursor = model
-                .rows
-                .get(state.cursor)
-                .map(crate::view::session::SessionRow::identity);
+    if matches!(state.overlay, Some(Overlay::Palette(_))) {
+        // Palette selection and navigation are owned by the upstream selector.
+        return Vec::new();
+    }
+    let last = cursor_limit(state);
+    state.cursor = match direction {
+        Direction::Previous => state.cursor.saturating_sub(1),
+        Direction::Next => state.cursor.saturating_add(1).min(last),
+    };
+    if state.primary_view == crate::selection::PrimaryView::Session
+        && let LoadState::Ready(model) = &state.session
+    {
+        state.session_cursor = model
+            .rows
+            .get(state.cursor)
+            .map(crate::view::session::SessionRow::identity);
+    }
+    if state.primary_view == crate::selection::PrimaryView::Conversation {
+        state.conversation_cursor = state
+            .conversation
+            .as_ref()
+            .and_then(|model| model.rows.get(state.cursor))
+            .map(|row| row.source);
+        if state.conversation_browsing {
+            state.follow_coordinator = false;
         }
-        if state.primary_view == crate::selection::PrimaryView::Conversation {
-            state.conversation_cursor = state
-                .conversation
-                .as_ref()
-                .and_then(|model| model.rows.get(state.cursor))
-                .map(|row| row.source);
-            if state.conversation_browsing {
-                state.follow_coordinator = false;
-            }
-        }
-        if matches!(
-            state.primary_view,
-            crate::selection::PrimaryView::Explorer
-                | crate::selection::PrimaryView::History
-                | crate::selection::PrimaryView::Find
-                | crate::selection::PrimaryView::Diff
-                | crate::selection::PrimaryView::Operations
-        ) {
-            crate::runtime::retain_semantic_row_cursor(state);
-        }
-        if state.primary_view == crate::selection::PrimaryView::Plan {
-            crate::runtime::retain_plan_cursor(state);
-        }
+    }
+    if matches!(
+        state.primary_view,
+        crate::selection::PrimaryView::Explorer
+            | crate::selection::PrimaryView::History
+            | crate::selection::PrimaryView::Find
+            | crate::selection::PrimaryView::Diff
+            | crate::selection::PrimaryView::Operations
+    ) {
+        crate::runtime::retain_semantic_row_cursor(state);
+    }
+    if state.primary_view == crate::selection::PrimaryView::Plan {
+        crate::runtime::retain_plan_cursor(state);
     }
     vec![Effect::None]
 }

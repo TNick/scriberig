@@ -5,9 +5,10 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 
 use rpi_tui::keybindings::keys;
-use rpi_tui::{Component, InputEvent, Keybindings, Markdown, SelectList, TreeList};
+use rpi_tui::{Component, InputEvent, Keybindings, Markdown, SelectList};
 
 use crate::state::TuiState;
+use projection::{RetainedTree, TreeProjection, sync_tree};
 
 #[path = "semantic_views/common.rs"]
 mod common;
@@ -19,6 +20,8 @@ mod details;
 mod model_views;
 #[path = "semantic_views/plan.rs"]
 mod plan;
+#[path = "semantic_views/projection.rs"]
+mod projection;
 #[path = "semantic_views/runtime_views.rs"]
 mod runtime_views;
 #[path = "semantic_views/selection.rs"]
@@ -49,7 +52,7 @@ pub(super) struct SemanticViewPanel {
     /// Upstream Markdown renderer for supplementary details.
     markdown: Markdown,
     /// Upstream tree of the current visible semantic rows.
-    tree: Mutex<Option<TreeList>>,
+    tree: Mutex<Option<RetainedTree>>,
     /// Upstream selectable list for stable non-tree semantic rows.
     select_list: Mutex<Option<SelectList>>,
     /// Upstream keybinding manager shared with the active runtime.
@@ -91,35 +94,17 @@ impl Component for SemanticViewPanel {
     /// # Returns
     /// Rendered lines from the active upstream component.
     fn render(&self, width: usize) -> Vec<String> {
+        let projection = match self.state.lock() {
+            Ok(state) => Self::projection_for(&state),
+            Err(_) => None,
+        };
+        if let Some(projection) = projection {
+            self.markdown.set_content(projection.details.clone());
+            let mut rows = self.render_tree(&projection, width);
+            rows.extend(self.markdown.render(width));
+            return rows;
+        }
         if let Ok(state) = self.state.lock() {
-            if let Some((tree, details)) = tree::semantic_tree(&state) {
-                if let Ok(mut current) = self.tree.lock() {
-                    *current = Some(tree);
-                }
-                self.markdown.set_content(details);
-                let mut rows = self
-                    .tree
-                    .lock()
-                    .ok()
-                    .and_then(|tree| tree.as_ref().map(|tree| tree.render(width)))
-                    .unwrap_or_default();
-                rows.extend(self.markdown.render(width));
-                return rows;
-            }
-            if let Some((tree, details, _)) = plan::plan_tree(&state) {
-                if let Ok(mut current) = self.tree.lock() {
-                    *current = Some(tree);
-                }
-                self.markdown.set_content(details);
-                let mut rows = self
-                    .tree
-                    .lock()
-                    .ok()
-                    .and_then(|tree| tree.as_ref().map(|tree| tree.render(width)))
-                    .unwrap_or_default();
-                rows.extend(self.markdown.render(width));
-                return rows;
-            }
             if let Some((list, details)) = selection::semantic_list(&state) {
                 if let Ok(mut current) = self.select_list.lock() {
                     *current = Some(list);
@@ -132,17 +117,11 @@ impl Component for SemanticViewPanel {
                     .and_then(|list| list.as_ref().map(|list| list.render(width)))
                     .unwrap_or_default();
                 rows.extend(self.markdown.render(width));
-                if let Ok(mut tree) = self.tree.lock() {
-                    *tree = None;
-                }
                 return rows;
             }
             let content = content::render_view(&state);
             if self.markdown.get_content() != content {
                 self.markdown.set_content(content);
-            }
-            if let Ok(mut tree) = self.tree.lock() {
-                *tree = None;
             }
             if let Ok(mut list) = self.select_list.lock() {
                 *list = None;
@@ -236,7 +215,7 @@ impl Component for SemanticViewPanel {
         if let Ok(tree) = self.tree.lock()
             && let Some(tree) = tree.as_ref()
         {
-            tree.invalidate();
+            tree.tree.invalidate();
         }
         if let Ok(list) = self.select_list.lock()
             && let Some(list) = list.as_ref()
@@ -255,6 +234,43 @@ impl Component for SemanticViewPanel {
 }
 
 impl SemanticViewPanel {
+    /// Selects the reusable tree projection for the active semantic view.
+    ///
+    /// - `state`: Current `ScribeRig` presentation state.
+    ///
+    /// Tree items, selection, and details when the view is tree-backed.
+    /// # Returns
+    /// A projection for conversation, session, and plan views.
+    fn projection_for(state: &TuiState) -> Option<TreeProjection> {
+        match state.primary_view {
+            crate::selection::PrimaryView::Conversation
+            | crate::selection::PrimaryView::Session => tree::projection(state),
+            crate::selection::PrimaryView::Plan => {
+                plan::projection(state).map(|(projection, _)| projection)
+            }
+            _ => None,
+        }
+    }
+
+    /// Reuses the retained tree and renders the current projection.
+    ///
+    /// - `projection`: Current semantic tree projection.
+    /// - `width`: Available render width in terminal columns.
+    ///
+    /// # Returns
+    /// Rendered tree rows, or no rows when validation fails.
+    fn render_tree(&self, projection: &TreeProjection, width: usize) -> Vec<String> {
+        let Ok(mut slot) = self.tree.lock() else {
+            return Vec::new();
+        };
+        if sync_tree(&mut slot, projection).is_none() {
+            return Vec::new();
+        }
+        slot.as_ref()
+            .map(|tree| tree.tree.render(width))
+            .unwrap_or_default()
+    }
+
     /// Moves the upstream selectable list and forwards `ScribeRig` cursor intent.
     ///
     /// - `event`: Upstream key event to apply to the list.
@@ -310,27 +326,31 @@ impl SemanticViewPanel {
         event: &InputEvent,
         direction: crate::action::Direction,
     ) -> bool {
-        let Ok(state) = self.state.lock() else {
-            return false;
+        let projection = match self.state.lock() {
+            Ok(state) => Self::projection_for(&state),
+            Err(_) => None,
         };
-        let Some((tree, row_ids)) = (match state.primary_view {
-            crate::selection::PrimaryView::Plan => {
-                plan::plan_tree(&state).map(|(tree, _, rows)| {
-                    (tree, rows.into_iter().map(|row| row.id).collect::<Vec<_>>())
-                })
-            }
-            _ => tree::tree_from_state(&state)
-                .map(|(tree, rows)| (tree, rows.into_iter().map(|row| row.id).collect::<Vec<_>>())),
-        }) else {
-            drop(state);
+        let Some(projection) = projection else {
             return self.send_cursor_action(direction);
         };
-        let before = tree.selected_id();
-        let _ = tree.handle_event(event);
-        let after = tree.selected_id();
-        let old_index = before.and_then(|id| row_ids.iter().position(|row| row == &id));
-        let new_index = after.and_then(|id| row_ids.iter().position(|row| row == &id));
-        drop(state);
+        let Ok(mut slot) = self.tree.lock() else {
+            return false;
+        };
+        if sync_tree(&mut slot, &projection).is_none() {
+            drop(slot);
+            return self.send_cursor_action(direction);
+        }
+        let Some(tree) = slot.as_ref() else {
+            drop(slot);
+            return self.send_cursor_action(direction);
+        };
+        let before = tree.tree.selected_id();
+        let _ = tree.tree.handle_event(event);
+        let after = tree.tree.selected_id();
+        drop(slot);
+        let old_index =
+            before.and_then(|id| projection.items.iter().position(|item| item.id == id));
+        let new_index = after.and_then(|id| projection.items.iter().position(|item| item.id == id));
         if let (Some(old), Some(new)) = (old_index, new_index)
             && old != new
         {

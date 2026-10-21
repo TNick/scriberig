@@ -149,8 +149,9 @@ pub use description::Description;
 pub use error::SessionError;
 pub use execution::{
     AgentActivityKind, AgentActivityState, CacheDisposition, ExecutionActivity,
-    ModelContextRevisionRef, ModelInvocation, ModelOutput, ModelRequestMessage,
-    ModelRequestProjection, ModelRequestTool, SelectionError, SessionActivityKind,
+    ModelContextRevisionRef, ModelInvocation, ModelOutput, ModelRequestDetailMessage,
+    ModelRequestDetailPart, ModelRequestDetailTool, ModelRequestMessage, ModelRequestProjection,
+    ModelRequestTool, ModelRequestToolCall, SelectionError, SessionActivityKind,
     SessionActivityState, SessionExecutionChange, SessionExecutionSelection, ToolActivityKind,
 };
 pub use planning::{

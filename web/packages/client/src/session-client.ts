@@ -10,6 +10,7 @@ import type {
   SessionId,
   SessionReadResponse,
   ModelRequestDetailResponse,
+  ModelRequestDetailPageRequest,
   ToolResultDetailResponse,
   AgentResult,
   AgentEvent,
@@ -124,6 +125,35 @@ export class SessionClient extends SemanticClient {
           session: { id: sessionId },
           branch: { id: branchId },
           invocation: invocationId,
+        },
+        signal,
+      )
+      .then(normalizeModelRequestDetail);
+  }
+  /** Reads one bounded page of the complete safe captured request text.
+   * @param sessionId Session containing the invocation.
+   * @param branchId Branch containing the invocation.
+   * @param invocationId Stable invocation identity.
+   * @param page Numeric Unicode-scalar page cursor and character budget.
+   * @param signal Optional request cancellation signal.
+   * @returns Safe request metadata and one bounded text page.
+   */
+  getModelRequestDetailPage(
+    sessionId: SessionId,
+    branchId: BranchId,
+    invocationId: string,
+    page: ModelRequestDetailPageRequest = {},
+    signal?: AbortSignal,
+  ): Promise<ModelRequestDetailResponse> {
+    return this.transport
+      .request<unknown>(
+        "model_request_detail",
+        {
+          session: { id: sessionId },
+          branch: { id: branchId },
+          invocation: invocationId,
+          offset: page.offset ?? 0,
+          max_chars: page.maxChars ?? 16_384,
         },
         signal,
       )

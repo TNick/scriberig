@@ -68,12 +68,7 @@ pub(super) fn select<S>(context: &mut InputContext<'_, '_, S>, item_id: &str) ->
         .state
         .lock()
         .map_err(|_| io::Error::other("TUI state lock poisoned"))?;
-    let Some(crate::overlay::Overlay::Palette(palette)) = state.overlay.as_mut() else {
-        return Ok(true);
-    };
-    if palette.select_id(item_id) {
-        let effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
-        queue_effects(context.work_sender, context.pending_effects, effects);
-    }
+    let effects = crate::state::activate_palette_item(&mut state, item_id);
+    queue_effects(context.work_sender, context.pending_effects, effects);
     Ok(false)
 }

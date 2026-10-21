@@ -76,8 +76,10 @@ pub struct UpstreamBranchResult {
 /// Failure to execute one branch through upstream `rpi-agent`.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UpstreamBranchError {
-    /// The upstream agent loop returned an error.
+    /// The upstream agent loop returned an ordinary failure.
     Agent(String),
+    /// The upstream provider rejected authentication or authorization.
+    Authentication(String),
     /// The branch tool set is mis-scoped or contains an invalid name.
     InvalidToolSet,
     /// The branch cancellation token was cancelled.
@@ -117,6 +119,9 @@ impl std::fmt::Display for UpstreamBranchError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Agent(message) => write!(formatter, "upstream agent: {message}"),
+            Self::Authentication(message) => {
+                write!(formatter, "upstream authentication: {message}")
+            }
             Self::InvalidToolSet => formatter.write_str("branch tool set has invalid tool names"),
             Self::Cancelled => formatter.write_str("branch invocation cancelled"),
             Self::MissingFinalAssistant => {

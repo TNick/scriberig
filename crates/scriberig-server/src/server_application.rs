@@ -109,6 +109,8 @@ where
     /// - `session`: Serialized session identity.
     /// - `branch`: Serialized branch identity.
     /// - `invocation`: Serialized model invocation identity.
+    /// - `offset`: Optional Unicode-scalar cursor for full detail paging.
+    /// - `max_chars`: Optional maximum page character count.
     ///
     /// Bounded safe request detail captured before provider serialization.
     ///
@@ -123,8 +125,12 @@ where
         session: &str,
         branch: &str,
         invocation: &str,
+        offset: Option<u64>,
+        max_chars: Option<u32>,
     ) -> Result<scriberig_protocol::ModelRequestDetailResponse, ApplicationError> {
-        server_agent_console::model_request_detail(self, context, session, branch, invocation)
+        server_agent_console::model_request_detail(
+            self, context, session, branch, invocation, offset, max_chars,
+        )
     }
 
     /// Reads bounded safe tool-result detail from an authorized session.

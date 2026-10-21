@@ -2,4 +2,5 @@
 
 pub mod detail;
 pub mod preferences;
+pub mod request_page;
 pub mod resolution;

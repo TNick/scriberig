@@ -1,7 +1,9 @@
 //! Fingerprints normalized provider request values and safe upstream metadata.
 
 use rpi_ai::Model;
-use scriberig_session::ModelContextRevisionRef;
+use scriberig_session::{
+    ModelContextRevisionRef, ModelRequestDetailMessage, ModelRequestDetailTool,
+};
 
 /// Borrows values that define request and semantic context identity.
 ///
@@ -22,10 +24,10 @@ pub(super) struct RequestFingerprintInput<'a> {
     pub(super) model: &'a Model,
     /// Upstream thinking level selected for this invocation.
     pub(super) thinking_level: &'a str,
-    /// Provider-visible messages supplied to the selected provider.
-    pub(super) messages: &'a [(&'a str, Option<String>, String)],
-    /// Provider-visible tools supplied to the selected provider.
-    pub(super) tools: &'a [(&'a String, &'a String, &'a rpi_ai::types::Schema)],
+    /// Ordered safe provider-visible message parts.
+    pub(super) messages: &'a [ModelRequestDetailMessage],
+    /// Complete safe upstream tool definitions supplied to the provider.
+    pub(super) tools: &'a [ModelRequestDetailTool],
     /// Safe `ScribeRig` provider profile identifier, if selected.
     pub(super) provider_profile: Option<&'a str>,
     /// Exact immutable `ScribeRig` profile revision.
@@ -86,7 +88,7 @@ pub(super) fn request_fingerprint_for(input: &RequestFingerprintInput<'_>) -> St
         .map(|reference| (&reference.identity, &reference.revision))
         .collect::<Vec<_>>();
     let material = serde_json::to_vec(&(
-        "scriberig-request-v1",
+        "scriberig-request-v3",
         Some(input.model.provider.as_str()),
         input.provider_profile,
         &input.model.id,

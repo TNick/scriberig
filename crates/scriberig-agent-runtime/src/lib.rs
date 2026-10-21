@@ -7,6 +7,8 @@ pub mod coordinator;
 pub mod host_configuration;
 pub mod orchestration;
 pub mod plan_context;
+#[cfg(feature = "isolated-plugin-worker")]
+pub mod plugin_worker;
 pub mod profile;
 pub mod protected_credential;
 pub mod scheduler;
@@ -50,8 +52,21 @@ pub struct ChildExecutionScope {
 pub enum AgentError {
     /// Upstream provider or agent execution failed.
     Provider(String),
+    /// The upstream provider rejected authentication or authorization.
+    Authentication(String),
     /// The caller requested cancellation.
     Cancelled,
+}
+
+impl AgentError {
+    /// Reports whether this failure is an upstream authentication failure.
+    ///
+    /// # Returns
+    /// `true` for [`AgentError::Authentication`].
+    #[must_use]
+    pub fn is_authentication(&self) -> bool {
+        matches!(self, Self::Authentication(_))
+    }
 }
 
 impl std::fmt::Display for AgentError {
@@ -70,6 +85,9 @@ impl std::fmt::Display for AgentError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Provider(message) => write!(formatter, "agent provider: {message}"),
+            Self::Authentication(message) => {
+                write!(formatter, "agent authentication: {message}")
+            }
             Self::Cancelled => formatter.write_str("agent operation cancelled"),
         }
     }

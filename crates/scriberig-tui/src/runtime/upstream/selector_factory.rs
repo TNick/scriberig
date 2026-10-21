@@ -25,11 +25,12 @@ pub(super) fn open_theme_selector(
     screen: &Arc<rpi_tui::TuiAltScreen>,
     input_sender: &Sender<ComposerInput>,
 ) -> bool {
-    let items = vec![
-        SelectItem::new("dark", "Dark").with_description("Default dark theme"),
-        SelectItem::new("light", "Light").with_description("Light background"),
-        SelectItem::new("monochrome", "Monochrome").with_description("No color accents"),
-    ];
+    let items = rpi_tui::ThemePreset::ALL
+        .into_iter()
+        .map(|preset| {
+            SelectItem::new(preset.id(), preset.label()).with_description(preset.description())
+        })
+        .collect();
     let list = Arc::new(SelectList::new(items, 8));
     let sender = input_sender.clone();
     list.on_select(Arc::new(move |item| {
