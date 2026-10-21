@@ -157,6 +157,8 @@ pub(super) enum ControlKind {
     Provider,
     /// Choose any available model.
     Model,
+    /// Choose a model for the selected durable plan node.
+    PlanAssignment,
     /// Choose a thinking level for the selected model.
     Thinking,
 }
@@ -167,6 +169,8 @@ pub(super) enum SelectorChoice {
     Provider(String),
     /// Stable `ScribeRig` model-library identifier.
     Model(String),
+    /// Stable model-library identifier assigned to a plan node.
+    PlanModel(String),
     /// Advertised thinking level identifier.
     Thinking(String),
     /// Upstream theme preset identifier.

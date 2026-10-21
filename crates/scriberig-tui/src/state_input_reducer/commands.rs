@@ -29,12 +29,7 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
         return None;
     };
     match command {
-        "/model" => {
-            super::super::state_model_picker::activate_model_picker_action(state, "model-picker")
-        }
-        "/thinking" => {
-            super::super::state_model_picker::activate_model_picker_action(state, "thinking-picker")
-        }
+        "/model" | "/thinking" => Some(vec![Effect::None]),
         "/view reasoning" => super::super::state_presentation::activate_presentation_action(
             state,
             "toggle-reasoning",
@@ -159,9 +154,7 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
                 node,
                 expected_revision: plan.revision,
             });
-            if let crate::inspector::LoadState::Ready(library) = &state.model_library {
-                let library = library.clone();
-                super::super::state_model_picker::show_plan_assignment_picker(state, &library);
+            if matches!(state.model_library, crate::inspector::LoadState::Ready(_)) {
                 return Some(vec![Effect::None]);
             }
             if matches!(

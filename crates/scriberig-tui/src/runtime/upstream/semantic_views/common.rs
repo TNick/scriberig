@@ -65,32 +65,36 @@ pub(super) fn append_load_notice<T>(
 
 /// Appends a bounded semantic value as escaped Markdown text.
 ///
+/// Terminal controls become visible `\u{...}` text, Markdown punctuation is
+/// escaped, and underscores between alphanumeric characters stay literal so
+/// `ScribeRig` identities remain easy to copy and compare.
+///
 /// - `output`: Destination Markdown content.
 /// - `value`: Untrusted semantic label, identifier, or preview.
 pub(super) fn append_value(output: &mut String, value: &str) {
-    let clean = crate::inspector::sanitize(value);
-    for character in clean.chars().take(MAX_VALUE_CHARS) {
-        if matches!(
-            character,
-            '\\' | '`'
-                | '*'
-                | '_'
-                | '{'
-                | '}'
-                | '['
-                | ']'
-                | '<'
-                | '>'
-                | '#'
-                | '+'
-                | '-'
-                | '.'
-                | '!'
-                | '|'
-        ) {
+    let characters = value.chars().take(MAX_VALUE_CHARS).collect::<Vec<_>>();
+    let mut previous: Option<char> = None;
+    for (index, character) in characters.iter().copied().enumerate() {
+        if character == '\n' {
+            output.push('\n');
+            previous = None;
+            continue;
+        }
+        if character.is_control() {
+            use std::fmt::Write as _;
+            let _ = write!(output, "\\u{{{:x}}}", u32::from(character));
+            previous = None;
+            continue;
+        }
+        let next = characters.get(index + 1).copied();
+        let identity_underscore = character == '_'
+            && previous.is_some_and(char::is_alphanumeric)
+            && next.is_some_and(char::is_alphanumeric);
+        if character.is_ascii_punctuation() && !identity_underscore {
             output.push('\\');
         }
         output.push(character);
+        previous = Some(character);
     }
     output.push_str("\n\n");
 }
@@ -139,9 +143,47 @@ mod tests {
             );
         }
 
-        assert!(!markdown.chars().any(char::is_control), "{markdown}");
+        assert!(
+            !markdown
+                .chars()
+                .any(|character| character.is_control() && character != '\n'),
+            "{markdown}"
+        );
         assert!(markdown.contains("\\u{1b}"), "{markdown}");
         assert!(markdown.contains("\\u{7}"), "{markdown}");
         assert!(markdown.contains("\\*\\*"), "{markdown}");
+    }
+
+    /// Keeps exact identifier text copyable while still escaping structure.
+    #[test]
+    fn exact_identifiers_survive_markdown_escaping() {
+        let mut markdown = String::new();
+        append_value(
+            &mut markdown,
+            "Snapshot: sna_0123456789abcdef · entity ent_fedcba9876543210",
+        );
+        append_value(&mut markdown, "- list-like leading marker");
+        append_value(&mut markdown, "start _emphasis_ and ***bold***");
+
+        assert!(
+            markdown.contains("sna_0123456789abcdef"),
+            "snapshot identity must stay literal: {markdown}"
+        );
+        assert!(
+            markdown.contains("ent_fedcba9876543210"),
+            "entity identity must stay literal: {markdown}"
+        );
+        assert!(markdown.contains("\\- list-like"), "{markdown}");
+        assert!(markdown.contains("\\_emphasis\\_"), "{markdown}");
+        assert!(markdown.contains("\\*\\*\\*bold\\*\\*\\*"), "{markdown}");
+        append_value(&mut markdown, "[linked](https://example.invalid/path)");
+        append_value(&mut markdown, "1. ordered-list marker");
+        append_value(&mut markdown, "> quote marker");
+        assert!(
+            markdown.contains("\\[linked\\]\\(https\\:\\/\\/example\\.invalid\\/path\\)"),
+            "{markdown}"
+        );
+        assert!(markdown.contains("1\\. ordered-list"), "{markdown}");
+        assert!(markdown.contains("\\> quote marker"), "{markdown}");
     }
 }

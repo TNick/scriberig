@@ -8,6 +8,10 @@ use rpi_tui::{Component, SearchableSelectList, SelectItem, SelectList, TUI};
 use crate::state::TuiState;
 
 use super::{ComposerInput, ControlKind, SelectorChoice};
+#[path = "selector_factory/readiness.rs"]
+mod readiness;
+
+use readiness::{model_status, provider_status, safe_selector_text};
 
 /// Opens the built-in upstream theme presets in the upstream selector widget.
 ///
@@ -141,6 +145,9 @@ pub(super) fn open_control_selector(
             state.shell_message = match kind {
                 ControlKind::Provider => "No providers are available.".to_owned(),
                 ControlKind::Model => "No models are available for that provider.".to_owned(),
+                ControlKind::PlanAssignment => {
+                    "No models are available for plan assignment.".to_owned()
+                }
                 ControlKind::Thinking => {
                     "The selected model has no available thinking levels.".to_owned()
                 }
@@ -156,6 +163,7 @@ pub(super) fn open_control_selector(
         let choice = match kind {
             ControlKind::Provider => SelectorChoice::Provider(item.value.clone()),
             ControlKind::Model => SelectorChoice::Model(item.value.clone()),
+            ControlKind::PlanAssignment => SelectorChoice::PlanModel(item.value.clone()),
             ControlKind::Thinking => SelectorChoice::Thinking(item.value.clone()),
         };
         let _ = sender.send(ComposerInput::Selected(choice));
@@ -222,7 +230,7 @@ fn selector_items(
                 false,
             )
         }
-        ControlKind::Model => {
+        ControlKind::Model | ControlKind::PlanAssignment => {
             items.extend(
                 library
                     .models
@@ -250,11 +258,17 @@ fn selector_items(
                             .with_search_text(&search)
                     }),
             );
-            (
-                provider_filter.map_or("Select model", |_| "Select provider model"),
-                "Choose the model for future session invocations.",
-                true,
-            )
+            let title = match (kind, provider_filter.is_some()) {
+                (ControlKind::PlanAssignment, _) => "Assign plan node model",
+                (_, true) => "Select provider model",
+                _ => "Select model",
+            };
+            let description = if matches!(kind, ControlKind::PlanAssignment) {
+                "Choose the upstream model assigned to this plan node."
+            } else {
+                "Choose the model for future session invocations."
+            };
+            (title, description, true)
         }
         ControlKind::Thinking => {
             let selection = state.lock().ok().and_then(|state| {
@@ -292,82 +306,6 @@ fn selector_items(
     }
 }
 
-/// Summarizes readiness for all model endpoints under one provider.
-///
-/// # Parameters
-/// - `library`: Model metadata and safe readiness rows.
-/// - `provider`: Upstream provider identity.
-///
-/// # Returns
-/// A short credential status without exposing source details.
-fn provider_status(
-    library: &scriberig_protocol::ModelLibraryResponse,
-    provider: &str,
-) -> &'static str {
-    let statuses = library
-        .provider_readiness
-        .iter()
-        .filter(|status| status.provider_id == provider)
-        .map(|status| status.credential)
-        .collect::<Vec<_>>();
-    if statuses.is_empty() {
-        return "credential status unavailable";
-    }
-    if statuses.contains(&scriberig_protocol::ProviderCredentialReadiness::Denied) {
-        return "authorization denied";
-    }
-    if statuses.contains(&scriberig_protocol::ProviderCredentialReadiness::Available) {
-        return "credential available";
-    }
-    if statuses.contains(&scriberig_protocol::ProviderCredentialReadiness::NotRequired) {
-        return "authentication not required";
-    }
-    if statuses.contains(&scriberig_protocol::ProviderCredentialReadiness::Unsupported) {
-        return "credential source unsupported";
-    }
-    if statuses.contains(&scriberig_protocol::ProviderCredentialReadiness::CatalogHeader) {
-        return "catalog authentication configured";
-    }
-    "credential missing"
-}
-
-/// Looks up readiness for one exact provider/model endpoint.
-///
-/// # Parameters
-/// - `library`: Model metadata and safe readiness rows.
-/// - `provider`: Upstream provider identity.
-/// - `model`: Provider-native model identity.
-///
-/// # Returns
-/// A short credential status without exposing source details.
-fn model_status(
-    library: &scriberig_protocol::ModelLibraryResponse,
-    provider: &str,
-    model: &str,
-) -> &'static str {
-    let Some(status) = library
-        .provider_readiness
-        .iter()
-        .find(|status| status.provider_id == provider && status.model_id == model)
-    else {
-        return "credential status unavailable";
-    };
-    match status.credential {
-        scriberig_protocol::ProviderCredentialReadiness::NotRequired => {
-            "authentication not required"
-        }
-        scriberig_protocol::ProviderCredentialReadiness::Available => "credential available",
-        scriberig_protocol::ProviderCredentialReadiness::Missing => "credential missing",
-        scriberig_protocol::ProviderCredentialReadiness::Denied => "authorization denied",
-        scriberig_protocol::ProviderCredentialReadiness::Unsupported => {
-            "credential source unsupported"
-        }
-        scriberig_protocol::ProviderCredentialReadiness::CatalogHeader => {
-            "catalog authentication configured"
-        }
-    }
-}
-
 /// Holds selector rows and labels prepared from `ScribeRig` model metadata.
 ///
 /// # Public members
@@ -387,18 +325,4 @@ struct SelectorDefinition {
     description: &'static str,
     /// Whether to wrap rows in upstream search behavior.
     searchable: bool,
-}
-
-/// Removes terminal control characters and bounds selector labels.
-///
-/// # Parameters
-/// - `value`: External identifier or display text.
-///
-/// # Returns
-/// Safe text with at most 120 Unicode scalar values.
-fn safe_selector_text(value: &str) -> String {
-    crate::inspector::sanitize(value)
-        .chars()
-        .take(120)
-        .collect()
 }

@@ -249,11 +249,11 @@ pub(in crate::state::state_reducer_tail) fn conversation_toggle_expansion(
     vec![Effect::None]
 }
 
-/// Applies a loaded model library to the pending model or thinking picker.
+/// Caches the latest safe model projection for upstream selector consumers.
 ///
 /// - `state`: TUI state receiving the model library.
 /// - `request_id`: Request token returned with the library.
-/// - `library`: Credential-safe model descriptors.
+/// - `library`: Credential-safe upstream model projection.
 ///
 /// A no-op effect after applying or rejecting the response.
 /// # Returns
@@ -267,14 +267,6 @@ pub(in crate::state::state_reducer_tail) fn model_library_loaded(
     {
         state.model_library = LoadState::Ready(library.clone());
         state.shell_message = "Model library loaded.".to_owned();
-        if state.thinking_picker_pending.is_some() {
-            state.thinking_picker_pending = None;
-            let _ = super::super::show_thinking_picker(state);
-        } else if state.plan_assignment_target.is_some() {
-            super::state_model_picker::show_plan_assignment_picker(state, library);
-        } else {
-            super::super::show_model_picker(state, library);
-        }
     }
     vec![Effect::None]
 }

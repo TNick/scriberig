@@ -330,8 +330,7 @@ pub(crate) fn activate_palette_control(state: &mut TuiState, item_id: &str) -> O
             },
         )]);
     }
-    super::state_model_picker::activate_model_picker_action(state, item_id)
-        .or_else(|| activate_presentation_action(state, item_id))
+    activate_presentation_action(state, item_id)
 }
 
 #[cfg(test)]

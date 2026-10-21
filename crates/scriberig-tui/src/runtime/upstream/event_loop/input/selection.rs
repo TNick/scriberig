@@ -82,6 +82,15 @@ pub(super) fn handle<S: TuiService + Sync>(
                 log.record_message("model-selected", &state)?;
             }
         }
+        SelectorChoice::PlanModel(model_id) => {
+            let item_id = format!("assign-plan-model:{model_id}");
+            if let Some(effects) = crate::state::activate_palette_control(&mut state, &item_id) {
+                queue_effects(work_sender, pending_effects, effects);
+            }
+            if let Some(log) = debug_log.as_deref_mut() {
+                log.record_message("plan-model-assigned", &state)?;
+            }
+        }
         SelectorChoice::Thinking(level_id) => {
             let effects = crate::state::select_thinking_level(&mut state, &level_id);
             queue_effects(work_sender, pending_effects, effects);

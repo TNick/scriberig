@@ -81,7 +81,6 @@ impl Default for TuiState {
             follow_coordinator: true,
             expanded_branches: BTreeSet::new(),
             model_library: LoadState::NotRequested,
-            thinking_picker_pending: None,
             plan_assignment_target: None,
             session_branch_focus: None,
             pending_operation_refresh: Vec::new(),

@@ -300,7 +300,6 @@ pub struct TuiState {
     /// Credential-safe model library available to the interactive picker.
     pub model_library: LoadState<scriberig_protocol::ModelLibraryResponse>,
     /// Whether a pending model-library read was opened from thinking controls.
-    pub thinking_picker_pending: Option<()>,
     /// Selected plan node awaiting an assignment choice.
     pub plan_assignment_target: Option<PlanAssignmentTarget>,
     /// Branch to reveal after the matching agent submission finishes.
@@ -348,8 +347,8 @@ pub(crate) use behavior::{
 mod state_actions;
 #[path = "state_cursor_reducer.rs"]
 mod state_cursor_reducer;
-#[path = "state_model_picker.rs"]
-mod state_model_picker;
+#[path = "state_model_selection.rs"]
+mod state_model_selection;
 #[path = "state_presentation.rs"]
 mod state_presentation;
 #[path = "state_reducer.rs"]
@@ -357,8 +356,7 @@ mod state_reducer;
 #[path = "state_reducer_tail.rs"]
 mod state_reducer_tail;
 use state_actions::reduce_application_event;
-pub(crate) use state_model_picker::{select_model, select_thinking_level};
-pub(super) use state_model_picker::{show_model_picker, show_thinking_picker};
+pub(crate) use state_model_selection::{select_model, select_thinking_level};
 pub(super) use state_presentation::activate_palette_control;
 pub use state_reducer::reduce;
 

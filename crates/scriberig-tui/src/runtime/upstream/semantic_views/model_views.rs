@@ -182,7 +182,13 @@ pub(super) fn diff(state: &TuiState) -> String {
 /// Projection content or its loading/error state.
 pub(super) fn projection(state: &TuiState) -> String {
     render_load_state("Projection", &state.projection, |model, output| {
+        if let Some(projection) = &model.projection {
+            append_value(output, &format!("Projection: {projection}"));
+        }
         append_value(output, &format!("Source entity: {}", model.source_entity));
+        if let Some(path) = &model.source_path {
+            append_value(output, &format!("Source path: {path}"));
+        }
         if let Some(revision) = model.source_revision {
             append_value(output, &format!("Source revision: {revision}"));
         }
@@ -191,6 +197,9 @@ pub(super) fn projection(state: &TuiState) -> String {
             output,
             &format!("Renderer: {} · style {}", model.renderer, model.style),
         );
+        if let Some(synchronization) = &model.synchronization {
+            append_value(output, &format!("Synchronization: {synchronization}"));
+        }
         for line in model.content.lines().take(MAX_ROWS) {
             append_value(output, line);
         }

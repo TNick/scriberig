@@ -248,6 +248,7 @@ mod tests {
         };
         let mut state = TuiState {
             session: LoadState::Ready(model),
+            tool_invocation_visibility: ToolInvocationVisibility::Hidden,
             ..TuiState::default()
         };
 
@@ -343,6 +344,7 @@ mod tests {
         };
         let mut state = TuiState {
             session: LoadState::Ready(model),
+            tool_output_visibility: ToolOutputVisibility::Hidden,
             tool_result_details: [(
                 result,
                 scriberig_protocol::ToolResultDetailResponse {

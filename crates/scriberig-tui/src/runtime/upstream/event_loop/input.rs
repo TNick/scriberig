@@ -16,67 +16,33 @@ use super::super::super::{Work, queue_effects};
 use super::super::selector_factory::open_control_selector;
 use super::super::{ComposerInput, ControlKind, SelectorChoice};
 use super::focus::restore_overlay_focus;
+#[path = "input/context.rs"]
+mod context;
 #[path = "input/model_properties.rs"]
 mod model_properties;
+#[path = "input/palette.rs"]
+mod palette;
+#[path = "input/plan_assignment.rs"]
+mod plan_assignment;
 #[path = "input/selection.rs"]
 mod selection;
 #[path = "input/theme_and_edit.rs"]
 mod theme_and_edit;
+pub(super) use context::InputContext;
 
-/// Borrows runtime state required to process one composer input event.
-///
-/// # Public members
-/// None.
-///
-/// # Private members
-/// - `service`: Application operations for model properties.
-/// - `context`: Authorization context for application operations.
-/// - `state`: Shared `ScribeRig` presentation state.
-/// - `screen`: Upstream terminal screen.
-/// - `editor`: Upstream composer editor.
-/// - `composer`: `ScribeRig` composer adapter.
-/// - `semantic_view`: `ScribeRig` semantic navigation adapter.
-/// - `input_sender`: Channel for follow-up composer inputs.
-/// - `work_sender`: Worker command channel.
-/// - `pending_effects`: Effects waiting for worker capacity.
-/// - `focus_before_overlay`: Focus target to restore after closing overlays.
-/// - `shared_state`: Shared state used by upstream selectors.
-/// - `debug_log`: Optional redacted input diagnostics.
-/// - `should_quit`: Event loop termination flag.
-/// - `redraw`: Whether the upstream screen needs a render request.
-pub(super) struct InputContext<'a, 'log, S> {
-    /// Application operations for model properties.
-    pub(super) service: &'a S,
-    /// Authorization context for application operations.
-    pub(super) context: &'a scriberig_app::ApplicationContext,
-    /// Shared `ScribeRig` presentation state.
-    pub(super) state: &'a Arc<Mutex<TuiState>>,
-    /// Upstream terminal screen.
-    pub(super) screen: &'a Arc<TuiAltScreen>,
-    /// Upstream composer editor.
-    pub(super) editor: &'a Editor,
-    /// `ScribeRig` composer adapter.
-    pub(super) composer: &'a Arc<super::super::components::ComposerAdapter>,
-    /// `ScribeRig` semantic navigation adapter.
-    pub(super) semantic_view: &'a Arc<super::super::semantic_views::SemanticViewPanel>,
-    /// Channel for follow-up composer inputs.
-    pub(super) input_sender: &'a std::sync::mpsc::Sender<ComposerInput>,
-    /// Worker command channel.
-    pub(super) work_sender: &'a std::sync::mpsc::SyncSender<Work>,
-    /// Model selector waiting for a model library response.
-    pub(super) pending_selector: &'a mut Option<ControlKind>,
-    /// Effects waiting for worker capacity.
-    pub(super) pending_effects: &'a mut std::collections::VecDeque<Effect>,
-    /// Focus target to restore after closing overlays.
-    pub(super) focus_before_overlay: &'a mut Option<Arc<dyn Component>>,
-    /// Shared state used by upstream selectors.
-    pub(super) shared_state: &'a Arc<Mutex<TuiState>>,
-    /// Optional redacted input diagnostics.
-    pub(super) debug_log: &'a mut Option<&'log mut TuiDebugLog>,
-    /// Event loop termination flag.
-    pub(super) should_quit: &'a mut bool,
-    /// Whether the upstream screen needs a render request.
-    pub(super) redraw: &'a mut bool,
+macro_rules! input_context {
+    (($($value:expr),* $(,)?)) => {{
+        let (
+            service, context, state, screen, editor, composer, semantic_view,
+            input_sender, work_sender, pending_selector, pending_effects,
+            focus_before_overlay, shared_state, debug_log, should_quit, redraw,
+        ) = ($($value),*);
+        InputContext {
+            service, context, state, screen, editor, composer, semantic_view,
+            input_sender, work_sender, pending_selector, pending_effects,
+            focus_before_overlay, shared_state, debug_log, should_quit, redraw,
+        }
+    }};
 }
 
 /// Applies one upstream composer input and reports whether to skip the loop tail.
@@ -161,6 +127,31 @@ pub(super) fn handle<S: TuiService + Sync>(
                     let _ = input_sender.send(ComposerInput::OpenControl(ControlKind::Thinking));
                     return Ok(true);
                 }
+                "/assign" => {
+                    plan_assignment::open(
+                        &mut input_context!((
+                            service,
+                            context,
+                            state,
+                            screen,
+                            editor,
+                            composer,
+                            semantic_view,
+                            input_sender,
+                            work_sender,
+                            &mut *pending_selector,
+                            &mut *pending_effects,
+                            &mut *focus_before_overlay,
+                            shared_state,
+                            &mut *debug_log,
+                            &mut *should_quit,
+                            &mut *redraw
+                        )),
+                        &prompt,
+                    )?;
+                    *redraw = true;
+                    return Ok(true);
+                }
                 "/theme" => {
                     let _ = input_sender.send(ComposerInput::OpenThemeSelector);
                     return Ok(true);
@@ -232,7 +223,7 @@ pub(super) fn handle<S: TuiService + Sync>(
             *redraw = true;
         }
         Ok(ComposerInput::OpenModelProperties) => {
-            model_properties::open(InputContext {
+            model_properties::open(input_context!((
                 service,
                 context,
                 state,
@@ -242,14 +233,14 @@ pub(super) fn handle<S: TuiService + Sync>(
                 semantic_view,
                 input_sender,
                 work_sender,
-                pending_selector,
-                pending_effects,
-                focus_before_overlay,
+                &mut *pending_selector,
+                &mut *pending_effects,
+                &mut *focus_before_overlay,
                 shared_state,
-                debug_log,
-                should_quit,
-                redraw,
-            });
+                &mut *debug_log,
+                &mut *should_quit,
+                &mut *redraw
+            )));
         }
         Ok(
             input @ (ComposerInput::OpenThemeSelector
@@ -259,7 +250,7 @@ pub(super) fn handle<S: TuiService + Sync>(
             | ComposerInput::CancelSelection),
         ) => {
             theme_and_edit::handle(
-                InputContext {
+                input_context!((
                     service,
                     context,
                     state,
@@ -269,14 +260,14 @@ pub(super) fn handle<S: TuiService + Sync>(
                     semantic_view,
                     input_sender,
                     work_sender,
-                    pending_selector,
-                    pending_effects,
-                    focus_before_overlay,
+                    &mut *pending_selector,
+                    &mut *pending_effects,
+                    &mut *focus_before_overlay,
                     shared_state,
-                    debug_log,
-                    should_quit,
-                    redraw,
-                },
+                    &mut *debug_log,
+                    &mut *should_quit,
+                    &mut *redraw
+                )),
                 input,
             )?;
         }
@@ -316,54 +307,29 @@ pub(super) fn handle<S: TuiService + Sync>(
             *redraw = true;
         }
         Ok(ComposerInput::OpenPalette) => {
-            let mut state = state
-                .lock()
-                .map_err(|_| io::Error::other("TUI state lock poisoned"))?;
-            crate::state::reduce(&mut state, Action::PaletteOpened);
-            drop(state);
-            let previous_focus = screen.get_focus();
-            if super::super::selector_factory::open_palette_selector(
+            palette::open(&mut input_context!((
+                service,
+                context,
+                state,
                 screen,
-                shared_state,
+                editor,
+                composer,
+                semantic_view,
                 input_sender,
-            ) {
-                if focus_before_overlay.is_none() {
-                    *focus_before_overlay = previous_focus;
-                }
-                editor.set_focused(false);
-            }
+                work_sender,
+                &mut *pending_selector,
+                &mut *pending_effects,
+                &mut *focus_before_overlay,
+                shared_state,
+                &mut *debug_log,
+                &mut *should_quit,
+                &mut *redraw
+            )))?;
             *redraw = true;
         }
         Ok(ComposerInput::PaletteSelected(item_id)) => {
-            restore_overlay_focus(screen, editor, focus_before_overlay);
-            let routed_input = match item_id.as_str() {
-                "model-picker" => Some(ComposerInput::OpenControl(ControlKind::Model)),
-                "thinking-picker" => Some(ComposerInput::OpenControl(ControlKind::Thinking)),
-                "theme-picker" => Some(ComposerInput::OpenThemeSelector),
-                _ => None,
-            };
-            if let Some(input) = routed_input {
-                if let Ok(mut state) = state.lock() {
-                    state.overlay = None;
-                }
-                let _ = input_sender.send(input);
-                return Ok(true);
-            }
-            let mut state = state
-                .lock()
-                .map_err(|_| io::Error::other("TUI state lock poisoned"))?;
-            let Some(crate::overlay::Overlay::Palette(palette)) = state.overlay.as_mut() else {
-                return Ok(true);
-            };
-            if palette.select_id(&item_id) {
-                let effects = crate::state::reduce(&mut state, Action::Activated);
-                queue_effects(work_sender, pending_effects, effects);
-            }
-            *redraw = true;
-        }
-        Ok(ComposerInput::Selected(choice)) => {
-            selection::handle(
-                InputContext {
+            if palette::select(
+                &mut input_context!((
                     service,
                     context,
                     state,
@@ -373,14 +339,40 @@ pub(super) fn handle<S: TuiService + Sync>(
                     semantic_view,
                     input_sender,
                     work_sender,
-                    pending_selector,
-                    pending_effects,
-                    focus_before_overlay,
+                    &mut *pending_selector,
+                    &mut *pending_effects,
+                    &mut *focus_before_overlay,
                     shared_state,
-                    debug_log,
-                    should_quit,
-                    redraw,
-                },
+                    &mut *debug_log,
+                    &mut *should_quit,
+                    &mut *redraw
+                )),
+                &item_id,
+            )? {
+                return Ok(true);
+            }
+            *redraw = true;
+        }
+        Ok(ComposerInput::Selected(choice)) => {
+            selection::handle(
+                input_context!((
+                    service,
+                    context,
+                    state,
+                    screen,
+                    editor,
+                    composer,
+                    semantic_view,
+                    input_sender,
+                    work_sender,
+                    &mut *pending_selector,
+                    &mut *pending_effects,
+                    &mut *focus_before_overlay,
+                    shared_state,
+                    &mut *debug_log,
+                    &mut *should_quit,
+                    &mut *redraw
+                )),
                 choice,
             )?;
             *redraw = true;
