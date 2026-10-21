@@ -65,38 +65,91 @@ pub(super) fn append_load_notice<T>(
 
 /// Appends a bounded semantic value as escaped Markdown text.
 ///
-/// Terminal controls become visible `\u{...}` text, Markdown punctuation is
-/// escaped, and underscores between alphanumeric characters stay literal so
-/// `ScribeRig` identities remain easy to copy and compare.
+/// Terminal controls become visible `\u{...}` text, Markdown inline markers
+/// are escaped, and characters that only form structure at the start of a
+/// line are escaped there. Identity text such as `ent_...` and `sna_...` is
+/// preserved literally, because escaping its underscore would change the
+/// exact identifier a user needs to copy or compare.
 ///
 /// - `output`: Destination Markdown content.
 /// - `value`: Untrusted semantic label, identifier, or preview.
 pub(super) fn append_value(output: &mut String, value: &str) {
     let characters = value.chars().take(MAX_VALUE_CHARS).collect::<Vec<_>>();
+    let mut line_start = true;
+    let mut line_indent = 0_usize;
+    let mut line_digits = 0_usize;
+    let mut line_has_other = false;
     let mut previous: Option<char> = None;
     for (index, character) in characters.iter().copied().enumerate() {
         if character == '\n' {
             output.push('\n');
+            line_start = true;
+            line_indent = 0;
+            line_digits = 0;
+            line_has_other = false;
             previous = None;
             continue;
         }
         if character.is_control() {
             use std::fmt::Write as _;
             let _ = write!(output, "\\u{{{:x}}}", u32::from(character));
+            line_start = false;
             previous = None;
             continue;
         }
         let next = characters.get(index + 1).copied();
-        let identity_underscore = character == '_'
-            && previous.is_some_and(char::is_alphanumeric)
-            && next.is_some_and(char::is_alphanumeric);
-        if character.is_ascii_punctuation() && !identity_underscore {
+        let inline_marker = matches!(character, '\\' | '`' | '*' | '<' | '>' | '~' | '|');
+        let emphasis_at_word_boundary = character == '_'
+            && !(previous.is_some_and(char::is_alphanumeric)
+                && next.is_some_and(char::is_alphanumeric));
+        let structural_at_line_start = matches!(character, '#' | '+' | '-' | '=') && line_start;
+        let link_label = character == '[' && link_target_follows(&characters, index)
+            || character == ']' && next == Some('(');
+        let ordered_marker = character == '.'
+            && line_digits > 0
+            && !line_has_other
+            && next.is_some_and(char::is_whitespace);
+        if inline_marker
+            || emphasis_at_word_boundary
+            || structural_at_line_start
+            || link_label
+            || ordered_marker
+        {
             output.push('\\');
         }
         output.push(character);
+        if character == ' ' && line_start {
+            line_indent += 1;
+            line_start = line_indent <= 3;
+        } else {
+            line_start = false;
+        }
         previous = Some(character);
+        if character.is_ascii_digit() && !line_has_other {
+            line_digits += 1;
+        } else if character != ' ' || line_has_other {
+            line_has_other = true;
+        }
     }
     output.push_str("\n\n");
+}
+
+/// Reports whether a square-bracket label opens an inline Markdown link.
+///
+/// - `characters`: Bounded value characters being escaped.
+/// - `index`: Index of the opening bracket.
+///
+/// # Returns
+/// `true` when `](` follows on the same line, which is the only case where an
+/// unescaped bracket pair becomes a link in the upstream renderer.
+fn link_target_follows(characters: &[char], index: usize) -> bool {
+    let line_end = characters[index..]
+        .iter()
+        .position(|character| *character == '\n')
+        .map_or(characters.len(), |offset| index + offset);
+    characters[index..line_end]
+        .windows(2)
+        .any(|window| window == [']', '('])
 }
 
 /// Appends a bounded collection of semantic values under a heading.
@@ -179,11 +232,16 @@ mod tests {
         append_value(&mut markdown, "[linked](https://example.invalid/path)");
         append_value(&mut markdown, "1. ordered-list marker");
         append_value(&mut markdown, "> quote marker");
+        append_value(&mut markdown, "Tool result hidden. [REDACTED]");
         assert!(
-            markdown.contains("\\[linked\\]\\(https\\:\\/\\/example\\.invalid\\/path\\)"),
+            markdown.contains("\\[linked\\](https://example.invalid/path)"),
             "{markdown}"
         );
         assert!(markdown.contains("1\\. ordered-list"), "{markdown}");
         assert!(markdown.contains("\\> quote marker"), "{markdown}");
+        assert!(
+            markdown.contains("Tool result hidden. [REDACTED]"),
+            "ordinary punctuation and redaction labels must stay readable: {markdown}"
+        );
     }
 }
