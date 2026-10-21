@@ -1,6 +1,6 @@
 //! Formats `ScribeRig`'s durable session and operation read models.
 
-use super::common::{MAX_ROWS, append_value, render_load_state};
+use super::common::{MAX_ROWS, SemanticRole, append_status, append_value, render_load_state};
 use crate::state::TuiState;
 
 /// Renders durable session rows and model assignment labels.
@@ -51,25 +51,38 @@ pub(super) fn operations(state: &TuiState) -> String {
         append_value(
             &mut output,
             &format!(
-                "{}{} · {} · {:?}",
+                "{}{} · {}",
                 if index == state.cursor { "› " } else { "  " },
                 operation.id,
-                operation.kind,
-                operation.status
+                operation.kind
             ),
+        );
+        let role = match operation.status {
+            scriberig_app::OperationStatus::Completed => SemanticRole::Success,
+            scriberig_app::OperationStatus::Failed => SemanticRole::Error,
+            scriberig_app::OperationStatus::Cancelled => SemanticRole::Warning,
+            scriberig_app::OperationStatus::Queued | scriberig_app::OperationStatus::Running => {
+                SemanticRole::Neutral
+            }
+        };
+        append_status(
+            &mut output,
+            "Status",
+            &format!("{:?}", operation.status),
+            role,
         );
         if let Some(progress) = &operation.progress {
             append_value(&mut output, progress);
         }
         if let Some(error) = &operation.error {
-            append_value(&mut output, error);
+            append_status(&mut output, "Error", error, SemanticRole::Error);
         }
         for handle in operation.result_handles.iter().take(32) {
             append_value(&mut output, &format!("Result: {handle}"));
         }
     }
     if let Some((category, message)) = &state.operation_error {
-        append_value(&mut output, &format!("{category}: {message}"));
+        append_status(&mut output, category, message, SemanticRole::Error);
     }
     output
 }

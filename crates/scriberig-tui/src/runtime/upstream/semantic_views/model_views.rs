@@ -229,12 +229,24 @@ pub(super) fn changes(state: &TuiState) -> String {
     if let Some(snapshot) = model.candidate_snapshot {
         append_value(&mut output, &format!("Result snapshot: {snapshot}"));
     } else {
-        append_value(
+        super::common::append_status(
             &mut output,
-            "Result snapshot: unavailable; promotion is blocked.",
+            "Result snapshot",
+            "unavailable; promotion is blocked.",
+            super::common::SemanticRole::Warning,
         );
     }
-    append_value(&mut output, &format!("Validation: {:?}", model.validation));
+    let validation_role = match &model.validation {
+        crate::view::changes::ReviewValidation::Passed => super::common::SemanticRole::Success,
+        crate::view::changes::ReviewValidation::Failed(_) => super::common::SemanticRole::Error,
+        crate::view::changes::ReviewValidation::Unknown => super::common::SemanticRole::Warning,
+    };
+    super::common::append_status(
+        &mut output,
+        "Validation",
+        &format!("{:?}", model.validation),
+        validation_role,
+    );
     if let Some(profile) = &model.validation_profile {
         append_value(&mut output, &format!("Validation profile: {profile}"));
     }
@@ -256,7 +268,12 @@ pub(super) fn changes(state: &TuiState) -> String {
         }
     }
     for conflict in model.conflicts.iter().take(MAX_ROWS) {
-        append_value(&mut output, &format!("Conflict: {conflict}"));
+        super::common::append_status(
+            &mut output,
+            "Conflict",
+            conflict,
+            super::common::SemanticRole::Warning,
+        );
     }
     for detail in model.details.iter().take(MAX_ROWS) {
         append_value(&mut output, detail);
@@ -268,9 +285,11 @@ pub(super) fn changes(state: &TuiState) -> String {
                 "Confirmation is unavailable without the exact result snapshot.",
             );
         }
-        append_value(
+        super::common::append_status(
             &mut output,
-            "This candidate requires explicit confirmation.",
+            "Confirmation",
+            "required for this candidate.",
+            super::common::SemanticRole::Warning,
         );
     }
     output

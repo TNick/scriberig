@@ -1,6 +1,6 @@
 //! Selects and formats the active `ScribeRig` primary view.
 
-use super::common::{MAX_ROWS, append_value};
+use super::common::{MAX_ROWS, SemanticRole, append_status, append_value};
 use super::{model_views, runtime_views};
 use crate::selection::PrimaryView;
 use crate::state::TuiState;
@@ -83,7 +83,7 @@ fn conversation(state: &TuiState) -> String {
         append_value(&mut output, &format!("You: {prompt}"));
     }
     if let Some(error) = state.conversation_composer.error.as_deref() {
-        append_value(&mut output, &format!("Error: {error}"));
+        append_status(&mut output, "Error", error, SemanticRole::Error);
     }
     if state.conversation.is_none() && state.conversation_composer.pending_prompt.is_none() {
         append_value(&mut output, "Type a message to start a conversation.");

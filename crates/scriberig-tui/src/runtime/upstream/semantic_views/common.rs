@@ -8,6 +8,19 @@ pub(super) const MAX_ROWS: usize = 200;
 /// Maximum characters rendered from one untrusted semantic value.
 const MAX_VALUE_CHARS: usize = 800;
 
+/// Names a semantic status that maps to an upstream theme token.
+#[derive(Clone, Copy)]
+pub(super) enum SemanticRole {
+    /// Ordinary status or metadata text.
+    Neutral,
+    /// Successful completion.
+    Success,
+    /// Pending, paused, or attention-needed status.
+    Warning,
+    /// Failed operation or validation status.
+    Error,
+}
+
 /// Renders one effect-backed model and a safe loading or failure notice.
 ///
 /// - `title`: Semantic view name.
@@ -27,9 +40,14 @@ pub(super) fn render_load_state<T>(
         LoadState::Loading { .. } => append_value(&mut output, "Loading…"),
         LoadState::Ready(model) => render(model, &mut output),
         LoadState::Failed { message, stale, .. } => {
-            append_value(&mut output, message);
+            append_status(&mut output, "Error", message, SemanticRole::Error);
             if *stale {
-                append_value(&mut output, "Showing the last successful result.");
+                append_status(
+                    &mut output,
+                    "Notice",
+                    "Showing the last successful result.",
+                    SemanticRole::Warning,
+                );
             }
         }
     }
@@ -54,13 +72,41 @@ pub(super) fn append_load_notice<T>(
         LoadState::Loading { .. } => append_value(&mut output, &format!("Loading {title}…")),
         LoadState::Ready(_) => append_value(&mut output, "No review data is available."),
         LoadState::Failed { message, stale, .. } => {
-            append_value(&mut output, message);
+            append_status(&mut output, "Error", message, SemanticRole::Error);
             if *stale {
-                append_value(&mut output, "Showing the last successful result.");
+                append_status(
+                    &mut output,
+                    "Notice",
+                    "Showing the last successful result.",
+                    SemanticRole::Warning,
+                );
             }
         }
     }
     output
+}
+
+/// Appends a sanitized semantic status colored by the active upstream theme.
+///
+/// The role selects a color token from `rpi-tui`; `ScribeRig` stores no concrete
+/// color or style definition.
+///
+/// - `output`: Markdown content rendered by the upstream component.
+/// - `label`: Static `ScribeRig` status label.
+/// - `value`: Untrusted status text.
+/// - `role`: Semantic role mapped to an upstream theme token.
+pub(super) fn append_status(output: &mut String, label: &str, value: &str, role: SemanticRole) {
+    let mut safe = String::new();
+    append_value(&mut safe, &format!("{label}: {value}"));
+    safe.truncate(safe.len().saturating_sub(2));
+    let styled = match role {
+        SemanticRole::Neutral => rpi_tui::theme::theme().colors.text.fg(&safe),
+        SemanticRole::Success => rpi_tui::theme::theme().colors.success.fg(&safe),
+        SemanticRole::Warning => rpi_tui::theme::theme().colors.warning.fg(&safe),
+        SemanticRole::Error => rpi_tui::theme::theme().colors.error.fg(&safe),
+    };
+    output.push_str(&styled);
+    output.push_str("\n\n");
 }
 
 /// Appends a bounded semantic value as escaped Markdown text.

@@ -4,6 +4,8 @@ use rpi_tui::{TreeItem, TreeList};
 use scriberig_core::EntityId;
 use scriberig_session::{Plan, PlanNode, PlanNodeParent, Session};
 
+#[path = "plan/status.rs"]
+mod status;
 use crate::selection::PlanSelection;
 use crate::state::TuiState;
 
@@ -283,7 +285,7 @@ fn plan_details(session: &Session, cursor: Option<PlanSelection>, rows: &[PlanTr
     let mut output = String::from("# Plan\n\n");
     super::common::append_value(&mut output, &format!("Identity: {}", plan.id));
     super::common::append_value(&mut output, &format!("Revision: {}", plan.revision));
-    super::common::append_value(&mut output, &format!("Status: {:?}", plan.status));
+    status::append_plan_status(&mut output, plan.status);
     super::common::append_value(&mut output, &format!("Goal: {}", plan.goal));
     if let Some(claim) = &plan.coordinator_claim {
         super::common::append_value(
@@ -332,7 +334,7 @@ fn append_node_details(output: &mut String, node: &PlanNode) {
     super::common::append_value(output, &format!("## Node {}", node.id));
     super::common::append_value(output, &format!("Title: {}", node.title));
     super::common::append_value(output, &format!("Purpose: {}", node.purpose));
-    super::common::append_value(output, &format!("Status: {:?}", node.status));
+    status::append_node_status(output, node.status);
     match node.parent {
         Some(PlanNodeParent::Branch(branch)) => {
             super::common::append_value(output, &format!("Structural parent branch: {branch}"));
