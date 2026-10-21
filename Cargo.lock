@@ -820,7 +820,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2531,7 +2531,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2781,7 +2781,7 @@ dependencies = [
 [[package]]
 name = "rpi-agent"
 version = "0.7.0"
-source = "git+https://github.com/TNick/pi-rust?rev=b78a199486351d86804995c27a0c5ed2bd8a28e3#b78a199486351d86804995c27a0c5ed2bd8a28e3"
+source = "git+https://github.com/TNick/pi-rust?rev=15a68ef2d69a312122c09c1eccfa0fbd454c48b5#15a68ef2d69a312122c09c1eccfa0fbd454c48b5"
 dependencies = [
  "async-trait",
  "futures",
@@ -2799,7 +2799,7 @@ dependencies = [
 [[package]]
 name = "rpi-ai"
 version = "0.7.0"
-source = "git+https://github.com/TNick/pi-rust?rev=b78a199486351d86804995c27a0c5ed2bd8a28e3#b78a199486351d86804995c27a0c5ed2bd8a28e3"
+source = "git+https://github.com/TNick/pi-rust?rev=15a68ef2d69a312122c09c1eccfa0fbd454c48b5#15a68ef2d69a312122c09c1eccfa0fbd454c48b5"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2824,7 +2824,7 @@ dependencies = [
 [[package]]
 name = "rpi-extensions"
 version = "0.7.0"
-source = "git+https://github.com/TNick/pi-rust?rev=b78a199486351d86804995c27a0c5ed2bd8a28e3#b78a199486351d86804995c27a0c5ed2bd8a28e3"
+source = "git+https://github.com/TNick/pi-rust?rev=15a68ef2d69a312122c09c1eccfa0fbd454c48b5#15a68ef2d69a312122c09c1eccfa0fbd454c48b5"
 dependencies = [
  "async-trait",
  "dirs",
@@ -2847,7 +2847,7 @@ dependencies = [
 [[package]]
 name = "rpi-model-runtime"
 version = "0.7.0"
-source = "git+https://github.com/TNick/pi-rust?rev=b78a199486351d86804995c27a0c5ed2bd8a28e3#b78a199486351d86804995c27a0c5ed2bd8a28e3"
+source = "git+https://github.com/TNick/pi-rust?rev=15a68ef2d69a312122c09c1eccfa0fbd454c48b5#15a68ef2d69a312122c09c1eccfa0fbd454c48b5"
 dependencies = [
  "async-trait",
  "fs2",
@@ -2866,7 +2866,7 @@ dependencies = [
 [[package]]
 name = "rpi-plugin-sdk"
 version = "0.7.0"
-source = "git+https://github.com/TNick/pi-rust?rev=b78a199486351d86804995c27a0c5ed2bd8a28e3#b78a199486351d86804995c27a0c5ed2bd8a28e3"
+source = "git+https://github.com/TNick/pi-rust?rev=15a68ef2d69a312122c09c1eccfa0fbd454c48b5#15a68ef2d69a312122c09c1eccfa0fbd454c48b5"
 dependencies = [
  "serde_json",
 ]
@@ -2874,7 +2874,7 @@ dependencies = [
 [[package]]
 name = "rpi-telemetry"
 version = "0.7.0"
-source = "git+https://github.com/TNick/pi-rust?rev=b78a199486351d86804995c27a0c5ed2bd8a28e3#b78a199486351d86804995c27a0c5ed2bd8a28e3"
+source = "git+https://github.com/TNick/pi-rust?rev=15a68ef2d69a312122c09c1eccfa0fbd454c48b5#15a68ef2d69a312122c09c1eccfa0fbd454c48b5"
 dependencies = [
  "async-trait",
  "serde",
@@ -2885,7 +2885,7 @@ dependencies = [
 [[package]]
 name = "rpi-tui"
 version = "0.7.0"
-source = "git+https://github.com/TNick/pi-rust?rev=b78a199486351d86804995c27a0c5ed2bd8a28e3#b78a199486351d86804995c27a0c5ed2bd8a28e3"
+source = "git+https://github.com/TNick/pi-rust?rev=15a68ef2d69a312122c09c1eccfa0fbd454c48b5#15a68ef2d69a312122c09c1eccfa0fbd454c48b5"
 dependencies = [
  "base64 0.22.1",
  "crossterm",
@@ -2959,7 +2959,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4041,7 +4041,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

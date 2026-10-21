@@ -14,9 +14,9 @@ not require them.
 ## rpi-tui
 
 ScribeRig uses the `rpi-*` crates from `TNick/pi-rust`, pinned in Cargo
-manifests to commit `b78a199486351d86804995c27a0c5ed2bd8a28e3`. This fork
+manifests to commit `15a68ef2d69a312122c09c1eccfa0fbd454c48b5`. This fork
 revision includes official `bigfish1913/pi-rust` main commit
-`7a272ecf42e5ec17efedc92031a5cdba85e213e9` and the host-injected model
+`7d019f85cde614a6aa267a7d2e816e04a7e6abbe` and the host-injected model
 catalog refresh, transactional model configuration, cancellable provider
 stream, TUI component event/focus extractions, and application-registered
 keybindings with shared help/footer enumeration. The crates are

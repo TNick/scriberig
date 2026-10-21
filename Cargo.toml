@@ -52,11 +52,11 @@ repository = "https://github.com/TNick/scriberig"
 [workspace.dependencies]
 # Controlled integration fork, including official upstream parent
 # Controlled TNick fork, including bigfish1913/pi-rust main commit
-# 7a272ecf42e5ec17efedc92031a5cdba85e213e9 and ScribeRig API extractions.
-rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "b78a199486351d86804995c27a0c5ed2bd8a28e3" }
-rpi-agent = { git = "https://github.com/TNick/pi-rust", rev = "b78a199486351d86804995c27a0c5ed2bd8a28e3" }
-rpi-model-runtime = { git = "https://github.com/TNick/pi-rust", rev = "b78a199486351d86804995c27a0c5ed2bd8a28e3" }
-rpi-tui = { git = "https://github.com/TNick/pi-rust", rev = "b78a199486351d86804995c27a0c5ed2bd8a28e3" }
+# 7d019f85cde614a6aa267a7d2e816e04a7e6abbe and ScribeRig API extractions.
+rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "15a68ef2d69a312122c09c1eccfa0fbd454c48b5" }
+rpi-agent = { git = "https://github.com/TNick/pi-rust", rev = "15a68ef2d69a312122c09c1eccfa0fbd454c48b5" }
+rpi-model-runtime = { git = "https://github.com/TNick/pi-rust", rev = "15a68ef2d69a312122c09c1eccfa0fbd454c48b5" }
+rpi-tui = { git = "https://github.com/TNick/pi-rust", rev = "15a68ef2d69a312122c09c1eccfa0fbd454c48b5" }
 
 [workspace.lints.rust]
 warnings = "deny"
