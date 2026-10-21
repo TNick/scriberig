@@ -2780,8 +2780,8 @@ dependencies = [
 
 [[package]]
 name = "rpi-agent"
-version = "0.7.0"
-source = "git+https://github.com/TNick/pi-rust?rev=15a68ef2d69a312122c09c1eccfa0fbd454c48b5#15a68ef2d69a312122c09c1eccfa0fbd454c48b5"
+version = "0.7.1"
+source = "git+https://github.com/TNick/pi-rust?rev=6e65635a2ac2336a86847d85e2c3bb771a945c87#6e65635a2ac2336a86847d85e2c3bb771a945c87"
 dependencies = [
  "async-trait",
  "futures",
@@ -2798,8 +2798,8 @@ dependencies = [
 
 [[package]]
 name = "rpi-ai"
-version = "0.7.0"
-source = "git+https://github.com/TNick/pi-rust?rev=15a68ef2d69a312122c09c1eccfa0fbd454c48b5#15a68ef2d69a312122c09c1eccfa0fbd454c48b5"
+version = "0.7.1"
+source = "git+https://github.com/TNick/pi-rust?rev=6e65635a2ac2336a86847d85e2c3bb771a945c87#6e65635a2ac2336a86847d85e2c3bb771a945c87"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2823,8 +2823,8 @@ dependencies = [
 
 [[package]]
 name = "rpi-extensions"
-version = "0.7.0"
-source = "git+https://github.com/TNick/pi-rust?rev=15a68ef2d69a312122c09c1eccfa0fbd454c48b5#15a68ef2d69a312122c09c1eccfa0fbd454c48b5"
+version = "0.7.1"
+source = "git+https://github.com/TNick/pi-rust?rev=6e65635a2ac2336a86847d85e2c3bb771a945c87#6e65635a2ac2336a86847d85e2c3bb771a945c87"
 dependencies = [
  "async-trait",
  "dirs",
@@ -2846,8 +2846,8 @@ dependencies = [
 
 [[package]]
 name = "rpi-model-runtime"
-version = "0.7.0"
-source = "git+https://github.com/TNick/pi-rust?rev=15a68ef2d69a312122c09c1eccfa0fbd454c48b5#15a68ef2d69a312122c09c1eccfa0fbd454c48b5"
+version = "0.7.1"
+source = "git+https://github.com/TNick/pi-rust?rev=6e65635a2ac2336a86847d85e2c3bb771a945c87#6e65635a2ac2336a86847d85e2c3bb771a945c87"
 dependencies = [
  "async-trait",
  "fs2",
@@ -2865,16 +2865,16 @@ dependencies = [
 
 [[package]]
 name = "rpi-plugin-sdk"
-version = "0.7.0"
-source = "git+https://github.com/TNick/pi-rust?rev=15a68ef2d69a312122c09c1eccfa0fbd454c48b5#15a68ef2d69a312122c09c1eccfa0fbd454c48b5"
+version = "0.7.1"
+source = "git+https://github.com/TNick/pi-rust?rev=6e65635a2ac2336a86847d85e2c3bb771a945c87#6e65635a2ac2336a86847d85e2c3bb771a945c87"
 dependencies = [
  "serde_json",
 ]
 
 [[package]]
 name = "rpi-telemetry"
-version = "0.7.0"
-source = "git+https://github.com/TNick/pi-rust?rev=15a68ef2d69a312122c09c1eccfa0fbd454c48b5#15a68ef2d69a312122c09c1eccfa0fbd454c48b5"
+version = "0.7.1"
+source = "git+https://github.com/TNick/pi-rust?rev=6e65635a2ac2336a86847d85e2c3bb771a945c87#6e65635a2ac2336a86847d85e2c3bb771a945c87"
 dependencies = [
  "async-trait",
  "serde",
@@ -2884,8 +2884,8 @@ dependencies = [
 
 [[package]]
 name = "rpi-tui"
-version = "0.7.0"
-source = "git+https://github.com/TNick/pi-rust?rev=15a68ef2d69a312122c09c1eccfa0fbd454c48b5#15a68ef2d69a312122c09c1eccfa0fbd454c48b5"
+version = "0.7.1"
+source = "git+https://github.com/TNick/pi-rust?rev=6e65635a2ac2336a86847d85e2c3bb771a945c87#6e65635a2ac2336a86847d85e2c3bb771a945c87"
 dependencies = [
  "base64 0.22.1",
  "crossterm",
