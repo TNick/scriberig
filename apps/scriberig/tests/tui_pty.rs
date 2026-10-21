@@ -23,7 +23,17 @@ fn tui_pty_starts_without_a_project() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_empty();
 
-    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
+    assert!(
+        tui.read_until("Type a message to start a conversation."),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send(b"/project\r");
+    assert!(
+        tui.read_until("No active project is selected."),
+        "{}",
+        tui.diagnostic()
+    );
     assert!(!tui.screen().contains("Entity:"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }

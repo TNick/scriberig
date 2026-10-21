@@ -2,12 +2,15 @@
 
 use rpi_tui::{TreeItem, TreeList};
 use scriberig_core::EntityId;
-use scriberig_session::{Plan, PlanNode, PlanNodeParent, Session};
+use scriberig_session::{Plan, PlanNode, PlanNodeParent};
 
+#[path = "plan/details.rs"]
+mod details;
 #[path = "plan/status.rs"]
 mod status;
 use crate::selection::PlanSelection;
 use crate::state::TuiState;
+use details::plan_details;
 
 #[cfg(test)]
 #[path = "plan_tests.rs"]
@@ -55,19 +58,35 @@ pub(super) fn plan_tree(state: &TuiState) -> Option<(TreeList, String, Vec<PlanT
             let _ = tree.set_expanded(&row.id, true);
         }
     }
-    let selected = state
-        .plan_cursor
-        .and_then(|selection| {
-            rows.iter()
-                .find(|row| row.selection == selection)
-                .map(|row| row.id.as_str())
-        })
-        .or_else(|| rows.get(state.cursor).map(|row| row.id.as_str()));
-    if let Some(selected) = selected {
-        let _ = tree.select(selected);
+    let selection = selected_plan_selection(state, &rows);
+    if let Some(selection) = selection {
+        let selected_id = rows
+            .iter()
+            .find(|row| row.selection == selection)
+            .map(|row| row.id.as_str());
+        if let Some(selected_id) = selected_id {
+            let _ = tree.select(selected_id);
+        }
     }
-    let details = plan_details(session, state.plan_cursor, &rows);
+    let details = plan_details(session, selection, &rows);
     Some((tree, details, rows))
+}
+
+/// Resolves the selected plan identity once for tree and detail projections.
+///
+/// - `state`: `ScribeRig` navigation state with a stable plan cursor and fallback
+///   row position.
+/// - `rows`: Current stable plan and node rows.
+///
+/// The matching stable plan or node identity, or `None` when there are no rows.
+/// # Returns
+/// Selection shared by the upstream tree highlight and Markdown details.
+fn selected_plan_selection(state: &TuiState, rows: &[PlanTreeRow]) -> Option<PlanSelection> {
+    state
+        .plan_cursor
+        .filter(|selection| rows.iter().any(|row| row.selection == *selection))
+        .or_else(|| rows.get(state.cursor).map(|row| row.selection))
+        .or_else(|| rows.first().map(|row| row.selection))
 }
 
 /// Retains the stable selected plan or node after upstream tree movement.
@@ -261,118 +280,6 @@ fn plan_row_id(plan: EntityId, node: Option<EntityId>) -> String {
 /// Stable key under the plan header.
 fn plan_row_id_for_node(plan_id: &str, node: EntityId) -> String {
     format!("{plan_id}:node:{node}")
-}
-
-/// Builds bounded details for a plan and its explicit dependency graph.
-///
-/// - `session`: Canonical session snapshot supplying the plans.
-/// - `cursor`: Stable selected plan or node identity.
-/// - `rows`: Stable projected plan/node rows.
-///
-/// Escaped Markdown for the upstream renderer.
-/// # Returns
-/// Safe details for the selected plan or node.
-fn plan_details(session: &Session, cursor: Option<PlanSelection>, rows: &[PlanTreeRow]) -> String {
-    let selection = cursor
-        .filter(|selection| rows.iter().any(|row| row.selection == *selection))
-        .or_else(|| rows.first().map(|row| row.selection));
-    let Some(selection) = selection else {
-        return "# Plans\n\nNo durable plans are available.".to_owned();
-    };
-    let Some(plan) = session.plans.iter().find(|plan| plan.id == selection.plan) else {
-        return "# Plans\n\nSelected plan is no longer available.".to_owned();
-    };
-    let mut output = String::from("# Plan\n\n");
-    super::common::append_value(&mut output, &format!("Identity: {}", plan.id));
-    super::common::append_value(&mut output, &format!("Revision: {}", plan.revision));
-    status::append_plan_status(&mut output, plan.status);
-    super::common::append_value(&mut output, &format!("Goal: {}", plan.goal));
-    if let Some(claim) = &plan.coordinator_claim {
-        super::common::append_value(
-            &mut output,
-            &format!("Coordinator claim: {} · {}", claim.id, claim.owner),
-        );
-        if let Some(operation) = &claim.operation {
-            super::common::append_value(
-                &mut output,
-                &format!("Coordinator operation: {operation}"),
-            );
-        }
-    }
-    if let Some(cursor) = plan.coordinator_cursor {
-        super::common::append_value(&mut output, &format!("Coordinator node: {cursor}"));
-    }
-    if let Some(coordinator) = plan.coordinator {
-        super::common::append_value(&mut output, &format!("Coordinator branch: {coordinator}"));
-    }
-    if let Some(node_id) = selection.node
-        && let Some(node) = plan.nodes.iter().find(|node| node.id == node_id)
-    {
-        append_node_details(&mut output, node);
-    }
-    super::common::append_value(&mut output, "## Explicit dependency edges");
-    for edge in plan.dependencies.iter().take(super::common::MAX_ROWS) {
-        super::common::append_value(
-            &mut output,
-            &format!(
-                "{} → {} · result {}",
-                edge.prerequisite,
-                edge.dependent,
-                edge.fulfilled_by
-                    .map_or_else(|| "pending".to_owned(), |id| id.to_string())
-            ),
-        );
-    }
-    output
-}
-
-/// Appends durable execution and structural details for one node.
-///
-/// - `output`: Markdown receiving safe plan details.
-/// - `node`: Durable node from the selected plan.
-fn append_node_details(output: &mut String, node: &PlanNode) {
-    super::common::append_value(output, &format!("## Node {}", node.id));
-    super::common::append_value(output, &format!("Title: {}", node.title));
-    super::common::append_value(output, &format!("Purpose: {}", node.purpose));
-    status::append_node_status(output, node.status);
-    match node.parent {
-        Some(PlanNodeParent::Branch(branch)) => {
-            super::common::append_value(output, &format!("Structural parent branch: {branch}"));
-        }
-        Some(PlanNodeParent::Node(parent)) => {
-            super::common::append_value(output, &format!("Structural parent node: {parent}"));
-        }
-        None => super::common::append_value(output, "Structural parent: none"),
-    }
-    if let Some(branch) = node.branch {
-        super::common::append_value(output, &format!("Execution branch: {branch}"));
-    }
-    if let Some(result) = node.result {
-        super::common::append_value(output, &format!("BranchResult: {result}"));
-    }
-    if let Some(assignment) = &node.assignment {
-        super::common::append_value(
-            output,
-            &format!(
-                "Assignment: {} / {} / {}",
-                assignment.provider_id,
-                assignment.model_id,
-                assignment
-                    .thinking_level
-                    .as_deref()
-                    .unwrap_or("unspecified")
-            ),
-        );
-    }
-    if let Some(claim) = &node.claim {
-        super::common::append_value(
-            output,
-            &format!("Worker claim: {} · {}", claim.id, claim.owner),
-        );
-    }
-    if let Some(expected) = &node.expected_result {
-        super::common::append_value(output, &format!("Expected result: {}", expected.kind));
-    }
 }
 
 /// Sanitizes and bounds one untrusted plan tree label.

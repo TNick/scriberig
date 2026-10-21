@@ -70,7 +70,16 @@ fn structural_tree_and_dependency_edges_remain_distinct() {
     let branch = EntityId::from_bytes([2; 16]);
     let first = EntityId::from_bytes([3; 16]);
     let second = EntityId::from_bytes([4; 16]);
-    let plan = sample_plan(plan_id, branch, first, second);
+    let mut plan = sample_plan(plan_id, branch, first, second);
+    plan.nodes[0].superseded_by = Some(second);
+    plan.history.push(scriberig_session::PlanRevision {
+        revision: 3,
+        goal: "Previous graph goal".to_owned(),
+        status: scriberig_session::PlanStatus::Paused,
+        nodes: vec![node(first, None)],
+        dependencies: Vec::new(),
+        reason: Some("Split the root work into focused nodes".to_owned()),
+    });
     let rows = rows_for_plans(std::slice::from_ref(&plan));
     let first_row = rows
         .iter()
@@ -99,6 +108,16 @@ fn structural_tree_and_dependency_edges_remain_distinct() {
         &rows,
     );
     assert!(details.contains(&format!("{second} → {first}")));
+    assert!(details.contains("Replan reason: Split the root work into focused nodes"));
+    let node_details = plan_details(
+        &session,
+        Some(PlanSelection {
+            plan: plan_id,
+            node: Some(first),
+        }),
+        &rows,
+    );
+    assert!(node_details.contains(&format!("Superseded by node: {second}")));
 }
 
 /// Verifies node selection resolves by stable plan/node identity after reorder.
@@ -129,4 +148,30 @@ fn tree_selection_survives_plan_node_reordering() {
     let (tree, _, _) = plan_tree(&state).expect("plan tree");
 
     assert_eq!(tree.selected_id(), Some(plan_row_id(plan_id, Some(first))));
+}
+
+/// Keeps highlighted and detailed plan selections aligned after cursor fallback.
+#[test]
+fn tree_and_details_share_fallback_plan_selection() {
+    let plan_id = EntityId::from_bytes([1; 16]);
+    let branch = EntityId::from_bytes([2; 16]);
+    let first = EntityId::from_bytes([3; 16]);
+    let second = EntityId::from_bytes([4; 16]);
+    let state = TuiState {
+        session_snapshot: Some(scriberig_session::Session {
+            id: EntityId::from_bytes([9; 16]),
+            branches: Vec::new(),
+            goals: Vec::new(),
+            tasks: Vec::new(),
+            plans: vec![sample_plan(plan_id, branch, first, second)],
+            execution: scriberig_session::SessionExecutionSelection::default(),
+        }),
+        cursor: 2,
+        ..TuiState::default()
+    };
+
+    let (tree, details, _) = plan_tree(&state).expect("plan tree");
+
+    assert_eq!(tree.selected_id(), Some(plan_row_id(plan_id, Some(second))));
+    assert!(details.contains(&format!("## Node {second}")));
 }

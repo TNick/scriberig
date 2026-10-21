@@ -10,6 +10,12 @@ use scriberig_session::{
 mod content;
 use content::{take_bounded, text_content, text_content_with_omissions};
 
+#[path = "request_projection/fingerprint.rs"]
+mod fingerprint;
+use fingerprint::{
+    RequestFingerprintInput, request_fingerprint_for, request_fingerprint_with_model_execution,
+};
+
 #[cfg(test)]
 #[path = "request_projection/tests.rs"]
 mod tests;
@@ -111,6 +117,11 @@ pub(super) fn capture_provider_request(
         .expect("safe upstream model configuration is serializable");
         projection.request_fingerprint = Some(blake3::hash(&material).to_hex().to_string());
         projection.model_execution_configuration = Some(configuration);
+    }
+    if let Some(fingerprint) =
+        request_fingerprint_with_model_execution(projection.request_fingerprint.as_deref(), model)
+    {
+        projection.request_fingerprint = Some(fingerprint);
     }
     projection
 }
@@ -285,85 +296,5 @@ fn context_fingerprint_for(context: &CompiledContext) -> String {
         &context.canonical,
     ))
     .expect("context fingerprint inputs are serializable");
-    blake3::hash(&material).to_hex().to_string()
-}
-
-/// Fingerprints upstream request content with `ScribeRig` context identity.
-///
-/// # Parameters
-/// - `model`: Exact upstream model selected for the invocation.
-/// - `thinking_level`: Upstream thinking level selected for the invocation.
-/// - `messages`: Complete provider-visible message inputs.
-/// - `tools`: Complete upstream tool schemas supplied to the provider.
-/// - `provider_profile`: Safe `ScribeRig` provider profile, when selected.
-/// - `profile`: Exact `ScribeRig` profile revision reference.
-/// - `active_components`: Exact active context component references.
-/// - `context_fingerprint`: Fingerprint of the compiled `ScribeRig` context.
-///
-/// # Returns
-/// The hex-encoded request fingerprint.
-/// Borrows the inputs that define exact request and semantic context identity.
-/// Borrows the inputs that define exact request and semantic context identity.
-///
-/// Fields hold the canonical model, bounded message inputs, complete tool
-/// schemas, and immutable `ScribeRig` context references for one fingerprint.
-struct RequestFingerprintInput<'a> {
-    /// Exact upstream model selected for this invocation.
-    model: &'a Model,
-    /// Upstream thinking level selected for this invocation.
-    thinking_level: &'a str,
-    /// Provider-visible messages supplied to the selected provider.
-    messages: &'a [(&'a str, Option<String>, String)],
-    /// Provider-visible tools supplied to the selected provider.
-    tools: &'a [(&'a String, &'a String, &'a rpi_ai::types::Schema)],
-    /// Safe `ScribeRig` provider profile identifier, if selected.
-    provider_profile: Option<&'a str>,
-    /// Exact immutable `ScribeRig` profile revision.
-    profile: Option<&'a ModelContextRevisionRef>,
-    /// Exact immutable references for active context components.
-    active_components: &'a [ModelContextRevisionRef],
-    /// Fingerprint of the compiled `ScribeRig` context.
-    context_fingerprint: Option<&'a str>,
-}
-
-/// Fingerprints the safe normalized request inputs and semantic context.
-///
-/// This pre-provider digest is extended with the safe model-configuration
-/// snapshot by `capture_provider_request` and may be extended with an upstream
-/// applied-settings report after provider preparation. Omitted secrets,
-/// opaque properties, and other fields mean it is not a complete provider
-/// request-equivalence fingerprint.
-///
-/// # Parameters
-/// - `input`: Exact model, request content, `ScribeRig` context, and profile data.
-///
-/// # Returns
-/// The hex-encoded base request fingerprint.
-fn request_fingerprint_for(input: &RequestFingerprintInput<'_>) -> String {
-    let profile_identity = input
-        .profile
-        .map(|reference| (&reference.identity, &reference.revision));
-    let component_identity = input
-        .active_components
-        .iter()
-        .map(|reference| (&reference.identity, &reference.revision))
-        .collect::<Vec<_>>();
-    let material = serde_json::to_vec(&(
-        "scriberig-request-v1",
-        Some(input.model.provider.as_str()),
-        input.provider_profile,
-        &input.model.id,
-        Some(input.thinking_level),
-        ("auto", None::<&str>),
-        &None::<serde_json::Value>,
-        None::<u32>,
-        None::<u32>,
-        profile_identity,
-        component_identity,
-        input.context_fingerprint,
-        input.messages,
-        input.tools,
-    ))
-    .expect("request fingerprint inputs are serializable");
     blake3::hash(&material).to_hex().to_string()
 }
