@@ -379,5 +379,7 @@ mod request_provenance;
 
 #[path = "durable_parts/part2.rs"]
 mod part2;
+#[path = "durable_parts/plan_history_migration.rs"]
+mod plan_history_migration;
 #[path = "durable_parts/rollup_index.rs"]
 mod rollup_index;
