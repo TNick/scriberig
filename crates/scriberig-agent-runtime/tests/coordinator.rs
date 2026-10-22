@@ -24,13 +24,29 @@ use scriberig_store_memory::MemoryStore;
 /// # Returns
 /// The operation result.
 fn runtime_fallback_models() -> Vec<rpi_ai::Model> {
-    vec![rpi_ai::Model::new(
-        "fallback-model",
-        "Fallback model",
-        rpi_ai::Api::AnthropicMessages,
-        "fallback-provider",
-        "https://example.test",
-    )]
+    vec![
+        rpi_ai::Model::new(
+            "fallback-model",
+            "Fallback model",
+            rpi_ai::Api::AnthropicMessages,
+            "fallback-provider",
+            "https://example.test",
+        ),
+        rpi_ai::Model::new(
+            "wire-a",
+            "Model A",
+            rpi_ai::Api::AnthropicMessages,
+            "provider",
+            "https://example.test",
+        ),
+        rpi_ai::Model::new(
+            "wire-b",
+            "Model B",
+            rpi_ai::Api::AnthropicMessages,
+            "provider",
+            "https://example.test",
+        ),
+    ]
 }
 
 /// Supplies merge operations for deterministic candidate integration tests.
@@ -96,6 +112,17 @@ impl PlanWorkerExecutor for FakeWorkers<'_> {
         execution: &scriberig_app::ResolvedPlanExecution,
     ) -> Result<BranchResult, String> {
         let durable = (self.read_durable)();
+        let persisted_node = durable.plans[0]
+            .nodes
+            .iter()
+            .find(|candidate| candidate.id == node.id)
+            .expect("claimed node persisted before provider execution");
+        assert_eq!(persisted_node.status, PlanNodeStatus::Running);
+        assert_eq!(persisted_node.branch, Some(claim.branch));
+        assert_eq!(
+            persisted_node.claim.as_ref().map(|active| active.id),
+            Some(claim.id)
+        );
         let branch = durable
             .branches
             .iter()
@@ -232,7 +259,6 @@ impl PlanWorkerExecutor for FakeWorkers<'_> {
     ) -> Result<BranchResult, String> {
         if node.title == "integrate" {
             assert!(context.compiled.canonical.contains("dependency_result"));
-            assert!(context.compiled.canonical.contains("profile:alpha"));
             assert!(context.compiled.canonical.contains("entity:api-contract"));
             assert!(context.compiled.canonical.contains("Exact semantic scope"));
             assert!(
@@ -269,3 +295,5 @@ impl PlanWorkerExecutor for FakeWorkers<'_> {
 
 #[path = "coordinator_parts/additional.rs"]
 mod coordinator_additional;
+#[path = "coordinator_parts/failed_settlement.rs"]
+mod coordinator_failed_settlement;

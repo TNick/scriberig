@@ -132,7 +132,7 @@ fn stale_model_and_thinking_writes_conflict_between_clients() {
         panic!("unexpected switched model response: {switched:?}");
     };
     assert_eq!(switched.revision, 3);
-    assert_eq!(switched.model_id.as_deref(), Some("model-b"));
+    assert_eq!(switched.model_id.as_deref(), Some("wire-b"));
     assert_eq!(switched.thinking_level.as_deref(), Some("low"));
 
     let observed_by_web = web_client.dispatch(envelope(

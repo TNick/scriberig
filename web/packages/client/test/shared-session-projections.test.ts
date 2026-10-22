@@ -42,7 +42,11 @@ describe("shared session projections", () => {
     });
     expect(plan?.nodes[0]).toMatchObject({
       id: "plan-node-parser",
-      assignment: { model: "model-a" },
+      assignment: {
+        providerId: "provider-1",
+        modelId: "model-a",
+        thinkingLevel: "careful",
+      },
     });
     expect(preferences.preferences).toEqual({
       reasoning: "shown",

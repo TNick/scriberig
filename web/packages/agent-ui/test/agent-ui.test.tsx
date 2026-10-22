@@ -3,12 +3,13 @@
 import sensitiveActivityFixture from "../../../../tests/fixtures/agent_console_sensitive_activity.json";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import type { BranchActivityPage } from "@scriberig/protocol";
+import type { BranchActivityPage, SessionPlan } from "@scriberig/protocol";
 import { AgentComposer } from "../src/agent-panel";
 import { AgentModelControls, AgentPresentationControls } from "../src/model-controls";
 import { BranchActivityView } from "../src/branch-activity";
 import { AgentOperationPanel } from "../src/operation-panel";
 import { SessionBranchTree } from "../src/session-panel";
+import { SessionPlanPanel } from "../src/plan-panel";
 
 describe("agent UI", () => {
   it("renders the shared schema-redacted activity fixture without its secret marker", () => {

@@ -124,5 +124,7 @@ pub enum ApplicationEvent {
         state: scriberig_session::AgentActivityState,
         /// Safe concise text for transient presentation.
         summary: String,
+        /// Monotonic arrival ordinal within the producing invocation.
+        ordinal: u64,
     },
 }

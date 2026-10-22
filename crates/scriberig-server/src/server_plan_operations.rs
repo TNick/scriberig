@@ -1,6 +1,12 @@
 //! Adapts typed plan requests to shared application operations.
 
-use scriberig_app::{ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService};
+use scriberig_app::{
+    ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService, SessionBackend,
+};
+
+#[path = "server_plan_operations/plan_mutation.rs"]
+mod plan_mutation;
+use plan_mutation::plan_mutation;
 
 /// Applies one typed plan request using application-owned validation.
 ///
@@ -11,6 +17,9 @@ use scriberig_app::{ApplicationBackend, ApplicationContext, ApplicationError, Ap
 /// Safe projection of the authoritative plan state.
 ///
 /// Returns authorization, validation, revision conflict, or persistence errors.
+/// Request variants share one dispatcher to keep server plan writes on the
+/// application service boundary.
+#[allow(clippy::too_many_lines)]
 pub(super) fn apply<B: ApplicationBackend>(
     service: &ApplicationService<B>,
     context: &ApplicationContext,
@@ -84,6 +93,15 @@ pub(super) fn apply<B: ApplicationBackend>(
                 reason: request.reason.clone(),
             },
         )?,
+        scriberig_protocol::Request::PlanMutation(request) => service.mutate_plan(
+            context,
+            &scriberig_app::PlanMutationRequest {
+                session: parse_entity(&request.session.id)?,
+                plan: parse_entity(&request.plan)?,
+                expected_revision: request.expected_revision,
+                mutation: plan_mutation(&request.mutation)?,
+            },
+        )?,
         _ => {
             return Err(ApplicationError::InvalidRequest {
                 operation: "plan".to_owned(),
@@ -91,7 +109,39 @@ pub(super) fn apply<B: ApplicationBackend>(
             });
         }
     };
-    Ok(super::server_helpers::session_plan::project(plan))
+    let session_id = match request {
+        scriberig_protocol::Request::PlanCreate(request) => parse_entity(&request.session.id)?,
+        scriberig_protocol::Request::PlanLifecycle(request) => parse_entity(&request.session.id)?,
+        scriberig_protocol::Request::PlanAssignment(request) => parse_entity(&request.session.id)?,
+        scriberig_protocol::Request::PlanReplan(request) => parse_entity(&request.session.id)?,
+        scriberig_protocol::Request::PlanMutation(request) => parse_entity(&request.session.id)?,
+        _ => {
+            return Err(ApplicationError::InvalidRequest {
+                operation: "plan".to_owned(),
+                message: "request is not a plan operation".to_owned(),
+            });
+        }
+    };
+    let session = service.read_session(
+        context,
+        &scriberig_app::SessionRequest {
+            session: session_id,
+        },
+    )?;
+    let results = session
+        .branches
+        .iter()
+        .filter_map(|branch| branch.result.clone())
+        .collect::<Vec<_>>();
+    let plan_id = plan.id;
+    let authoritative = session
+        .plans
+        .iter()
+        .find(|candidate| candidate.id == plan_id)
+        .ok_or_else(|| ApplicationError::NotFound {
+            subject: plan_id.to_string(),
+        })?;
+    super::server_helpers::session_plan::project(authoritative.clone(), Some(&results))
 }
 
 /// Applies the requested plan lifecycle operation.
@@ -261,6 +311,81 @@ macro_rules! shared_plan_operation_methods {
             request: &scriberig_protocol::Request,
         ) -> Result<scriberig_protocol::SessionPlan, ApplicationError> {
             super::server_plan_operations::apply(self, context, request)
+        }
+    };
+}
+
+macro_rules! shared_plan_attempt_read_contract {
+    () => {
+        /// Reads a bounded page of attempts from one canonical plan node.
+        ///
+        /// # Parameters
+        /// - `_context`: Trusted session-read capability context.
+        /// - `_request`: Session, plan, node, and page selection.
+        ///
+        /// # Returns
+        /// Safe attempt metadata without branch transcript content.
+        ///
+        /// # Errors
+        /// Returns unsupported-operation when bounded attempt reads are unavailable.
+        fn read_plan_attempts(
+            &self,
+            _context: &ApplicationContext,
+            _request: &scriberig_protocol::SessionPlanAttemptsRequest,
+        ) -> Result<scriberig_protocol::SessionPlanAttemptsResponse, ApplicationError> {
+            Err(ApplicationError::UnsupportedOperation {
+                operation: "plan attempt history".to_owned(),
+            })
+        }
+    };
+}
+
+macro_rules! shared_plan_details_read_contract {
+    () => {
+        /// Reads bounded gates and evidence from one observed plan revision.
+        ///
+        /// # Parameters
+        /// - `_context`: Trusted session-read capability context.
+        /// - `_request`: Session, plan, revision, and page selection.
+        ///
+        /// # Returns
+        /// Bounded typed requirement records from the requested revision.
+        ///
+        /// # Errors
+        /// Returns unsupported-operation when plan detail reads are unavailable.
+        fn read_plan_details(
+            &self,
+            _context: &ApplicationContext,
+            _request: &scriberig_protocol::SessionPlanDetailsRequest,
+        ) -> Result<scriberig_protocol::SessionPlanDetailsResponse, ApplicationError> {
+            Err(ApplicationError::UnsupportedOperation {
+                operation: "plan requirement details".to_owned(),
+            })
+        }
+    };
+}
+
+macro_rules! shared_plan_view_read_contract {
+    () => {
+        /// Reads a compact plan graph at its current or exact snapshot.
+        ///
+        /// # Parameters
+        /// - `_context`: Trusted session-read capability context.
+        /// - `_request`: Session, plan, and optional snapshot identities.
+        ///
+        /// # Returns
+        /// Compact plan and node views with exact semantic revisions.
+        ///
+        /// # Errors
+        /// Returns unsupported-operation when compact plan views are unavailable.
+        fn read_plan_view(
+            &self,
+            _context: &ApplicationContext,
+            _request: &scriberig_protocol::SessionPlanViewRequest,
+        ) -> Result<scriberig_protocol::SessionPlanGraphView, ApplicationError> {
+            Err(ApplicationError::UnsupportedOperation {
+                operation: "compact plan graph view".to_owned(),
+            })
         }
     };
 }

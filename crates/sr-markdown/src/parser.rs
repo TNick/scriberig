@@ -254,12 +254,7 @@ pub fn parse_document(source: &str) -> Result<MarkdownDocument, MarkdownDiagnost
             | Event::End(TagEnd::FootnoteDefinition)
             | Event::FootnoteReference(_)
             | Event::Html(_)
-            | Event::InlineHtml(_) => {
-                return Err(MarkdownDiagnostic::new(
-                    "unsupported-markdown",
-                    "Markdown contains syntax outside the supported projection model",
-                ));
-            }
+            | Event::InlineHtml(_) => {}
             Event::Rule => {}
             Event::TaskListMarker(_) => {}
             _ if in_quote => {}
@@ -356,5 +351,20 @@ fn heading_level(level: HeadingLevel) -> u8 {
         HeadingLevel::H4 => 4,
         HeadingLevel::H5 => 5,
         HeadingLevel::H6 => 6,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Verifies HTML comments in ordinary Markdown are ignored rather than rejected.
+    #[test]
+    fn html_comments_are_ignored() {
+        let document = parse_document("# Title\n\n<!-- agent instructions -->\n\nBody.\n");
+        assert!(
+            document.is_ok(),
+            "HTML comments must not reject the document"
+        );
     }
 }

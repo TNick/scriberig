@@ -217,6 +217,7 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
                     request_id,
                     entity,
                     snapshot: None,
+                    switch_view: true,
                 },
             ))
         }

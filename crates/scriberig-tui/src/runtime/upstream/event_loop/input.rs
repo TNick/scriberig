@@ -36,11 +36,13 @@ macro_rules! input_context {
             service, context, state, screen, editor, composer, semantic_view,
             input_sender, work_sender, pending_selector, pending_effects,
             focus_before_overlay, shared_state, debug_log, should_quit, redraw,
+            suppress_composer_restore,
         ) = ($($value),*);
         InputContext {
             service, context, state, screen, editor, composer, semantic_view,
             input_sender, work_sender, pending_selector, pending_effects,
             focus_before_overlay, shared_state, debug_log, should_quit, redraw,
+            suppress_composer_restore,
         }
     }};
 }
@@ -81,6 +83,7 @@ pub(super) fn handle<S: TuiService + Sync>(
         debug_log,
         should_quit,
         redraw,
+        suppress_composer_restore,
     } = context;
     match input {
         Ok(ComposerInput::TogglePresentationFocus(focused)) => {
@@ -118,6 +121,7 @@ pub(super) fn handle<S: TuiService + Sync>(
             *redraw = true;
         }
         Ok(ComposerInput::Submit(prompt)) => {
+            *suppress_composer_restore = true;
             match prompt.trim() {
                 "/model" => {
                     let _ = input_sender.send(ComposerInput::OpenControl(ControlKind::Model));
@@ -145,7 +149,8 @@ pub(super) fn handle<S: TuiService + Sync>(
                             shared_state,
                             &mut *debug_log,
                             &mut *should_quit,
-                            &mut *redraw
+                            &mut *redraw,
+                            &mut *suppress_composer_restore
                         )),
                         &prompt,
                     )?;
@@ -179,6 +184,9 @@ pub(super) fn handle<S: TuiService + Sync>(
             *redraw = true;
         }
         Ok(ComposerInput::DraftChanged(draft)) => {
+            if !draft.is_empty() {
+                *suppress_composer_restore = false;
+            }
             let mut state = state
                 .lock()
                 .map_err(|_| io::Error::other("TUI state lock poisoned"))?;
@@ -239,7 +247,8 @@ pub(super) fn handle<S: TuiService + Sync>(
                 shared_state,
                 &mut *debug_log,
                 &mut *should_quit,
-                &mut *redraw
+                &mut *redraw,
+                &mut *suppress_composer_restore
             )));
         }
         Ok(
@@ -266,7 +275,8 @@ pub(super) fn handle<S: TuiService + Sync>(
                     shared_state,
                     &mut *debug_log,
                     &mut *should_quit,
-                    &mut *redraw
+                    &mut *redraw,
+                    &mut *suppress_composer_restore
                 )),
                 input,
             )?;
@@ -323,7 +333,8 @@ pub(super) fn handle<S: TuiService + Sync>(
                 shared_state,
                 &mut *debug_log,
                 &mut *should_quit,
-                &mut *redraw
+                &mut *redraw,
+                &mut *suppress_composer_restore
             )))?;
             *redraw = true;
         }
@@ -345,7 +356,8 @@ pub(super) fn handle<S: TuiService + Sync>(
                     shared_state,
                     &mut *debug_log,
                     &mut *should_quit,
-                    &mut *redraw
+                    &mut *redraw,
+                    &mut *suppress_composer_restore
                 )),
                 &item_id,
             )? {
@@ -371,7 +383,8 @@ pub(super) fn handle<S: TuiService + Sync>(
                     shared_state,
                     &mut *debug_log,
                     &mut *should_quit,
-                    &mut *redraw
+                    &mut *redraw,
+                    &mut *suppress_composer_restore
                 )),
                 choice,
             )?;

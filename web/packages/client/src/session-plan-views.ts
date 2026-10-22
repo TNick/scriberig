@@ -12,6 +12,16 @@ import type {
   SessionPlanStatus,
   SessionWorkerClaim,
 } from "@scriberig/protocol";
+import {
+  isAbandonReason,
+  normalizeEvidence,
+  normalizeEvidenceReference,
+  normalizeGate,
+  normalizeGateCounts,
+  normalizeStatusCounts,
+  normalizeStrings,
+  normalizeSummary,
+} from "./session-plan-semantic-views.js";
 
 /** Normalizes one durable plan without exposing transcripts or credentials.
  * @param value Unknown plan value from the transport.
@@ -21,15 +31,24 @@ export function normalizeSessionPlan(value: unknown): SessionPlan {
   const plan = isObject(value) ? value : {};
   const anchor = normalizeAnchor(plan.anchor);
   const coordinatorClaim = plan.coordinator_claim ?? plan.coordinatorClaim;
+  const exactRevision = plan.exactRevision ?? plan.exact_revision;
+  const snapshot = plan.snapshot;
   return {
     id: typeof plan.id === "string" ? plan.id : "",
     revision: typeof plan.revision === "number" ? plan.revision : 0,
+    ...(typeof exactRevision === "string" ? { exactRevision } : {}),
+    ...(typeof snapshot === "string" ? { snapshot } : {}),
     goal: typeof plan.goal === "string" ? plan.goal : "",
     status: normalizePlanStatus(plan.status),
     ...(anchor === undefined ? {} : { anchor }),
     rootBranch: String(plan.rootBranch ?? plan.root_branch ?? "") as BranchId,
     nodes: (Array.isArray(plan.nodes) ? plan.nodes : []).map(normalizePlanNode),
     dependencies: normalizeDependencies(plan.dependencies),
+    rootNodes: normalizeStrings(plan.rootNodes ?? plan.root_nodes),
+    statusCounts: normalizeStatusCounts(plan.statusCounts ?? plan.status_counts),
+    gates: (Array.isArray(plan.gates) ? plan.gates : []).flatMap(normalizeGate),
+    evidence: (Array.isArray(plan.evidence) ? plan.evidence : []).flatMap(normalizeEvidence),
+    summaries: (Array.isArray(plan.summaries) ? plan.summaries : []).flatMap(normalizeSummary),
     ...(typeof (plan.coordinator ?? plan.coordinator_branch) === "string"
       ? { coordinator: String(plan.coordinator ?? plan.coordinator_branch) as BranchId }
       : {}),
@@ -138,6 +157,13 @@ function normalizePlanRevision(value: unknown): SessionPlanRevision {
     status: normalizePlanStatus(revision.status),
     nodes: (Array.isArray(revision.nodes) ? revision.nodes : []).map(normalizePlanNode),
     dependencies: normalizeDependencies(revision.dependencies),
+    summaries: (Array.isArray(revision.summaries) ? revision.summaries : []).flatMap(
+      normalizeSummary,
+    ),
+    gates: (Array.isArray(revision.gates) ? revision.gates : []).flatMap(normalizeGate),
+    evidence: (Array.isArray(revision.evidence) ? revision.evidence : []).flatMap(
+      normalizeEvidence,
+    ),
     ...(typeof revision.reason === "string" ? { reason: revision.reason } : {}),
   };
 }
@@ -165,8 +191,16 @@ function normalizePlanNode(value: unknown): SessionPlanNode {
   const branch = node.branch;
   const result = node.result;
   const supersededBy = node.supersededBy ?? node.superseded_by;
+  const exactRevision = node.exactRevision ?? node.exact_revision;
+  const abandonReason = node.abandonReason ?? node.abandon_reason;
+  const lastFailure = normalizeEvidenceReference(node.lastFailure ?? node.last_failure);
+  const effectiveStatus = node.effectiveStatus ?? node.effective_status;
+  const entryGates = normalizeGateCounts(node.entryGates ?? node.entry_gates);
+  const completionGates = normalizeGateCounts(node.completionGates ?? node.completion_gates);
   return {
     id: typeof node.id === "string" ? node.id : "",
+    ...(typeof exactRevision === "string" ? { exactRevision } : {}),
+    ...(typeof node.snapshot === "string" ? { snapshot: node.snapshot } : {}),
     parent: String(node.parent ?? ""),
     title: typeof node.title === "string" ? node.title : "",
     purpose: typeof node.purpose === "string" ? node.purpose : "",
@@ -176,6 +210,25 @@ function normalizePlanNode(value: unknown): SessionPlanNode {
     ...(typeof branch === "string" ? { branch: branch as BranchId } : {}),
     ...(typeof result === "string" ? { result } : {}),
     ...(typeof supersededBy === "string" ? { supersededBy } : {}),
+    ...(isAbandonReason(abandonReason) ? { abandonReason } : {}),
+    ...(lastFailure === undefined ? {} : { lastFailure }),
+    ...(statuses.includes(effectiveStatus as SessionPlanNodeStatus)
+      ? { effectiveStatus: effectiveStatus as SessionPlanNodeStatus }
+      : {}),
+    ...(typeof (node.containsIgnored ?? node.contains_ignored) === "boolean"
+      ? { containsIgnored: Boolean(node.containsIgnored ?? node.contains_ignored) }
+      : {}),
+    ...(typeof (node.containsAbandoned ?? node.contains_abandoned) === "boolean"
+      ? { containsAbandoned: Boolean(node.containsAbandoned ?? node.contains_abandoned) }
+      : {}),
+    ...(entryGates === undefined ? {} : { entryGates }),
+    ...(completionGates === undefined ? {} : { completionGates }),
+    ...(typeof (node.evidenceCount ?? node.evidence_count) === "number"
+      ? { evidenceCount: Number(node.evidenceCount ?? node.evidence_count) }
+      : {}),
+    ...(typeof (node.canRetry ?? node.can_retry) === "boolean"
+      ? { canRetry: Boolean(node.canRetry ?? node.can_retry) }
+      : {}),
     ...(expected === undefined
       ? {}
       : {

@@ -1,0 +1,307 @@
+{
+  "version": 1,
+  "documents": [
+    {
+      "id": "396513a1-8417-44f4-b544-ba0462223293",
+      "title": "Isolated plugin-worker boundary: upstream rpi-extensions worker + ScribeRig host policy adapter",
+      "description": "Implementation handoff for the new versioned isolated upstream plugin-worker IPC boundary and ScribeRig host-policy integration seam, including remaining isolation gaps and validation status.",
+      "status": "active",
+      "filename": "isolated-plugin-worker-boundary-upstream-rpi-ext-396513a1.md",
+      "relativePath": "documents/active/isolated-plugin-worker-boundary-upstream-rpi-ext-396513a1.md",
+      "sourcePaths": [
+        "crates/scriberig-agent-runtime/src/plugin_worker.rs",
+        "apps/scriberig/src/native_tui_agent/provider_config/extensions.rs",
+        "apps/scriberig/src/main.rs",
+        "apps/scriberig/src/native_tui_agent.rs",
+        "apps/scriberig/src/main_agent_execution/upstream.rs",
+        "design/level-3/146. replace local provider tool loop and extension host with upstream agent and plugin runtime.md",
+        "design/level-3/149. remove superseded local infrastructure prove delegation and finish the correction.md"
+      ],
+      "sessionIds": [
+        "fe4c6493-9b2c-49dc-9570-e90a25fd6e90"
+      ],
+      "createdAt": "2026-10-21T10:42:28.462Z",
+      "updatedAt": "2026-10-21T10:42:28.462Z",
+      "lastAccessedAt": "2026-10-22T09:58:06.373Z",
+      "revision": 1,
+      "contentHash": "7d3f6fe468f2b7c0c2f4536cfa54d250b2b54d22a9ae5bc98c94082b8ee788f4",
+      "sizeBytes": 5972,
+      "memoryBodyIds": []
+    },
+    {
+      "id": "73c15a88-1530-449c-8a28-9758453c4274",
+      "title": "Worker-side plugin runtime_action bridge in upstream rpi-extensions isolated worker",
+      "description": "Implementation handoff for the worker-side runtime_action bridge (WorkerHostClient, ActionBridge relay, host capability allowlist) and its remaining lifecycle/security gaps.",
+      "status": "active",
+      "filename": "worker-side-plugin-runtime-action-bridge-in-upst-73c15a88.md",
+      "relativePath": "documents/active/worker-side-plugin-runtime-action-bridge-in-upst-73c15a88.md",
+      "sourcePaths": [
+        "playground/agentic-work/20261021-204000 pi-tree-virtualization/crates/rpi-extensions/src/isolated/worker.rs",
+        "playground/agentic-work/20261021-204000 pi-tree-virtualization/crates/rpi-extensions/src/isolated/plugin.rs",
+        "playground/agentic-work/20261021-204000 pi-tree-virtualization/crates/rpi-extensions/src/isolated/client/launch.rs",
+        "playground/agentic-work/20261021-204000 pi-tree-virtualization/crates/rpi-extensions/src/isolated/client/reader.rs",
+        "playground/agentic-work/20261021-204000 pi-tree-virtualization/crates/rpi-extensions/src/isolated/client/mod.rs",
+        "playground/agentic-work/20261021-204000 pi-tree-virtualization/crates/rpi-extensions/src/isolated/mod.rs"
+      ],
+      "sessionIds": [
+        "67691ee3-3bd2-4e69-9999-7c9150128ad0"
+      ],
+      "createdAt": "2026-10-21T11:03:05.915Z",
+      "updatedAt": "2026-10-21T11:03:05.915Z",
+      "lastAccessedAt": "2026-10-21T12:38:40.931Z",
+      "revision": 1,
+      "contentHash": "05795f14a03c172d0e3abd049e23665ad287e82ae89407f3e62cdbf29da211be",
+      "sizeBytes": 4718,
+      "memoryBodyIds": []
+    },
+    {
+      "id": "d637983f-8af5-4854-b5e5-c2c905663e13",
+      "title": "Typed authentication-failure propagation from upstream branch invocation",
+      "description": "Implementation handoff for AgentError::Authentication / UpstreamBranchError::Authentication, including the upstream error-flattening constraint, text-prefix classification, and known gaps.",
+      "status": "active",
+      "filename": "typed-authentication-failure-propagation-from-up-d637983f.md",
+      "relativePath": "documents/active/typed-authentication-failure-propagation-from-up-d637983f.md",
+      "sourcePaths": [
+        "crates/scriberig-agent-runtime/src/lib.rs",
+        "crates/scriberig-agent-runtime/src/upstream_invocation.rs",
+        "crates/scriberig-agent-runtime/src/upstream_invocation/types.rs",
+        "apps/scriberig/src/main_agent_execution/upstream.rs",
+        "apps/scriberig/src/native_tui_agent/test_execution.rs"
+      ],
+      "sessionIds": [
+        "06337231-aa7e-43f5-9806-acc0e2a684a8"
+      ],
+      "createdAt": "2026-10-21T11:09:56.728Z",
+      "updatedAt": "2026-10-21T11:09:56.728Z",
+      "lastAccessedAt": "2026-10-22T09:58:06.373Z",
+      "revision": 1,
+      "contentHash": "d835c6f4a4578a2b300740973888a8f2274bf715a8a8bc95b1b67a055e1a801c",
+      "sizeBytes": 3445,
+      "memoryBodyIds": []
+    },
+    {
+      "id": "70cd80f1-35d4-46fd-ad5c-c95859f358a7",
+      "title": "Isolated plugin-worker cancellation and shutdown hardening (upstream rpi-extensions fork)",
+      "description": "Implementation handoff for cooperative cancellation tokens, bounded thread settlement, and hard host-deadline process-tree termination in the isolated plugin worker, with the explicit FFI preemption limits.",
+      "status": "active",
+      "filename": "isolated-plugin-worker-cancellation-and-shutdown-70cd80f1.md",
+      "relativePath": "documents/active/isolated-plugin-worker-cancellation-and-shutdown-70cd80f1.md",
+      "sourcePaths": [
+        "playground/agentic-work/20261021-204000 pi-tree-virtualization/crates/rpi-extensions/src/isolated/worker.rs",
+        "playground/agentic-work/20261021-204000 pi-tree-virtualization/crates/rpi-extensions/src/isolated/plugin.rs",
+        "playground/agentic-work/20261021-204000 pi-tree-virtualization/crates/rpi-extensions/src/isolated/client/mod.rs"
+      ],
+      "sessionIds": [
+        "76162fc9-117f-407b-b001-b30b0657bdfb"
+      ],
+      "createdAt": "2026-10-21T11:19:58.039Z",
+      "updatedAt": "2026-10-21T11:19:58.039Z",
+      "lastAccessedAt": "2026-10-21T12:38:40.931Z",
+      "revision": 1,
+      "contentHash": "6c961a925e4c680ec21326ebb14e755a2165b10e883f3d92372ac033e0f215b2",
+      "sizeBytes": 4803,
+      "memoryBodyIds": []
+    },
+    {
+      "id": "264fdd96-8b8c-4779-8241-0e26ad976e68",
+      "title": "Upstream thinking-summary ordering gap in ScribeRig event adapter",
+      "description": "Investigation result: rpi-agent's thinking events cannot distinguish provider-visible reasoning summaries from raw thinking, so no ordered ReasoningSummary activity can be emitted safely; includes trace, evidence, and the required upstream API gap.",
+      "status": "active",
+      "filename": "upstream-thinking-summary-ordering-gap-in-scribe-264fdd96.md",
+      "relativePath": "documents/active/upstream-thinking-summary-ordering-gap-in-scribe-264fdd96.md",
+      "sourcePaths": [
+        "crates/scriberig-agent-runtime/src/upstream_invocation.rs",
+        "crates/scriberig-app/src/event.rs",
+        "crates/scriberig-app/src/operation_agent.rs",
+        "crates/scriberig-session/src/execution.rs",
+        "playground/agentic-work/20261021-204000 pi-tree-virtualization/crates/rpi-ai/src/providers/openai_responses.rs"
+      ],
+      "sessionIds": [
+        "48bda424-bbcb-4207-b004-4f4fabf610af"
+      ],
+      "createdAt": "2026-10-21T11:29:29.616Z",
+      "updatedAt": "2026-10-21T11:29:29.616Z",
+      "lastAccessedAt": "2026-10-22T09:58:06.373Z",
+      "revision": 1,
+      "contentHash": "e9041e46a48297fc74cd981810008cb9457d00d8758a44c2a54e9e2eabc1cd2e",
+      "sizeBytes": 4540,
+      "memoryBodyIds": []
+    },
+    {
+      "id": "645924a4-6252-4b56-8183-0dd9ce6a717c",
+      "title": "DSH ACP worker bridge for Codex: full-access mode, provider override, and launcher fixes",
+      "description": "Operating notes and implementation handoff for the Codex→DSH ACP worker bridge in scriberig: danger-full-access support, acp profile provider override, cmd /q launcher fix, and known stdout noise.",
+      "status": "active",
+      "filename": "dsh-acp-worker-bridge-for-codex-full-access-mode-645924a4.md",
+      "relativePath": "documents/active/dsh-acp-worker-bridge-for-codex-full-access-mode-645924a4.md",
+      "sourcePaths": [
+        "playground/setup_dsh_codex_worker.py",
+        "playground/.probe_mcp.py",
+        "playground/.probe_full_access.py",
+        "AGENTS.md"
+      ],
+      "sessionIds": [
+        "f9d10ce4-799e-44c6-ab78-3b18a249b4aa"
+      ],
+      "createdAt": "2026-10-21T11:41:55.266Z",
+      "updatedAt": "2026-10-21T11:41:55.266Z",
+      "lastAccessedAt": "2026-10-22T09:58:06.373Z",
+      "revision": 1,
+      "contentHash": "c22e52a8ab626a495ef89ab8ab0f5a8583676d7d5da7149d90cf5995fde4b010",
+      "sizeBytes": 5443,
+      "memoryBodyIds": []
+    },
+    {
+      "id": "ed5b81da-880f-4c29-a284-99c148c380fb",
+      "title": "DSH delegated worker sessions persist as Ungrouped sessions in the desktop app",
+      "description": "Investigation evidence: every dsh_start/dsh_run ACP job creates a durable DSH session under ~/.dsh/sessions keyed by worker cwd, but never joins its workspace record, so the session browser lists it in the Ungrouped bucket.",
+      "status": "active",
+      "filename": "dsh-delegated-worker-sessions-persist-as-ungroup-ed5b81da.md",
+      "relativePath": "documents/active/dsh-delegated-worker-sessions-persist-as-ungroup-ed5b81da.md",
+      "sourcePaths": [
+        "AGENTS.md"
+      ],
+      "sessionIds": [
+        "2dd86c1e-259a-4b37-86a4-80206dd83453"
+      ],
+      "createdAt": "2026-10-21T11:46:57.913Z",
+      "updatedAt": "2026-10-21T11:46:57.913Z",
+      "lastAccessedAt": "2026-10-21T12:06:55.120Z",
+      "revision": 1,
+      "contentHash": "054e3d0327234c302bf38e6b7fda76617fdd3635f5dd63920f97155214d5711d",
+      "sizeBytes": 4170,
+      "memoryBodyIds": []
+    },
+    {
+      "id": "93dd0f7e-7b6a-4f14-82ed-4da6c59ceb07",
+      "title": "Agent-controlled DSH session continuation in the Codex worker bridge",
+      "description": "Implementation handoff: dsh_sessions discovery, session_id continuation via ACP session/resume, and session id surfaced at creation in playground/setup_dsh_codex_worker.py, with verified ACP method support and the active-session caveat.",
+      "status": "active",
+      "filename": "agent-controlled-dsh-session-continuation-in-the-93dd0f7e.md",
+      "relativePath": "documents/active/agent-controlled-dsh-session-continuation-in-the-93dd0f7e.md",
+      "sourcePaths": [
+        "playground/setup_dsh_codex_worker.py",
+        "playground/.probe_sessions.py",
+        "playground/.probe_methods.py",
+        "playground/.probe_mcp_sessions.py",
+        "AGENTS.md"
+      ],
+      "sessionIds": [
+        "019409c7-8b8a-43df-9008-a3dadaec7c2c"
+      ],
+      "createdAt": "2026-10-21T11:58:05.518Z",
+      "updatedAt": "2026-10-21T11:58:05.518Z",
+      "lastAccessedAt": "2026-10-21T12:18:23.742Z",
+      "revision": 1,
+      "contentHash": "99975607383a6d0ed2bd53a138cd919f5d372dbdd67593c6ba56ee913f31ee02",
+      "sizeBytes": 5961,
+      "memoryBodyIds": []
+    },
+    {
+      "id": "ff0cb372-fb81-4361-91e2-acb34ba41a1e",
+      "title": "Codex–DSH worker bridge: arbitrary workspaces, user-scope registration, and trusted-root gating",
+      "description": "Implementation handoff for making the Codex→DSH MCP bridge usable from any Codex project: free-form workspace paths, user-level config by default, danger-full-access restricted to trusted roots, and structured rejection payloads because the MCP SDK hides exception text.",
+      "status": "active",
+      "filename": "codex-dsh-worker-bridge-arbitrary-workspaces-use-ff0cb372.md",
+      "relativePath": "documents/active/codex-dsh-worker-bridge-arbitrary-workspaces-use-ff0cb372.md",
+      "sourcePaths": [
+        "playground/setup_dsh_codex_worker.py",
+        "playground/.check_scope.py",
+        "playground/.probe_foreign.py",
+        "playground/.probe_envroots.py",
+        "AGENTS.md"
+      ],
+      "sessionIds": [
+        "3e3b58be-d7e5-4b23-a14f-74c293f8c125"
+      ],
+      "createdAt": "2026-10-21T12:07:02.808Z",
+      "updatedAt": "2026-10-21T12:07:02.808Z",
+      "lastAccessedAt": "2026-10-21T12:18:23.742Z",
+      "revision": 1,
+      "contentHash": "a358cf5a9746ee9ee4506f2b6281898195a13957982799a572c7ac64dd0c7093",
+      "sizeBytes": 4772,
+      "memoryBodyIds": []
+    },
+    {
+      "id": "ae8899c8-5cee-44cd-9200-c9d678ae705c",
+      "title": "Codex MCP client tool-call timeout: bounded dsh_run/dsh_wait protocol in the DSH worker bridge",
+      "description": "Why Codex aborts MCP tool calls at 300s regardless of worker timeout_seconds, the exact Codex config keys that change it, and the bounded-start/poll protocol (dsh_run returns running + job_id, dsh_wait long-polls ≤280s) implemented in the DSH worker bridge.",
+      "status": "active",
+      "filename": "codex-mcp-client-tool-call-timeout-bounded-dsh-r-ae8899c8.md",
+      "relativePath": "documents/active/codex-mcp-client-tool-call-timeout-bounded-dsh-r-ae8899c8.md",
+      "sourcePaths": [
+        "playground/setup_dsh_codex_worker.py",
+        "playground/.probe_wait.py",
+        "AGENTS.md"
+      ],
+      "sessionIds": [
+        "f073139c-d19c-475a-98ab-c691cc11b613"
+      ],
+      "createdAt": "2026-10-21T12:13:31.182Z",
+      "updatedAt": "2026-10-21T12:13:31.182Z",
+      "lastAccessedAt": "2026-10-21T12:18:23.742Z",
+      "revision": 1,
+      "contentHash": "a8545777757d8b9c2cbaaf3a0539f1cecaf966aaf144fac737e368eba38221fd",
+      "sizeBytes": 5084,
+      "memoryBodyIds": []
+    },
+    {
+      "id": "42332a36-6d53-43d6-91a6-6c289e8eb127",
+      "title": "ScribeRig upstream migration revalidation: pin 88e0fa8, safe reasoning-summary bridge, and audit corrections",
+      "description": "Reusable status/evidence snapshot for the ScribeRig→upstream-fork migration: current fork pin and divergence, corrected ownership audit items G6/G10, the safe ReasoningSummaryDelta bridge design, plugin-activation gaps, and what was actually validated.",
+      "status": "active",
+      "filename": "scriberig-upstream-migration-revalidation-pin-88-42332a36.md",
+      "relativePath": "documents/active/scriberig-upstream-migration-revalidation-pin-88-42332a36.md",
+      "sourcePaths": [
+        "design/level-3/144. stop local commodity ownership and establish upstream contribution gates.md",
+        "design/level-3/145. replace local model catalog provider auth thinking and custom model properties with upstream.md",
+        "design/level-3/146. replace local provider tool loop and extension host with upstream agent and plugin runtime.md",
+        "design/level-3/147. replace ratatui shell and tui kit bridge with upstream tui runtime and native model controls.md",
+        "design/level-3/148. rebuild scriberig semantic session plan and review surfaces as upstream tui components.md",
+        "design/level-3/149. remove superseded local infrastructure prove delegation and finish the correction.md",
+        "crates/scriberig-agent-runtime/src/lib.rs",
+        "crates/scriberig-agent-runtime/src/upstream_invocation.rs",
+        "apps/scriberig/src/native_tui_agent/runner/summary_activity.rs",
+        "apps/scriberig/src/native_tui_agent/runner.rs",
+        "crates/scriberig-app/src/event.rs",
+        "crates/scriberig-app/src/operation_agent.rs",
+        "crates/scriberig-tui/src/state_actions/agent_activity.rs"
+      ],
+      "sessionIds": [
+        "e7323260-df6a-4191-a63c-743b867990a8"
+      ],
+      "createdAt": "2026-10-21T12:38:51.329Z",
+      "updatedAt": "2026-10-21T12:38:51.329Z",
+      "lastAccessedAt": "2026-10-22T06:14:11.282Z",
+      "revision": 1,
+      "contentHash": "5ddc02289109b5b3feca7465edecf2d2275a0c9996008ff8a9d403e27315fe5f",
+      "sizeBytes": 7518,
+      "memoryBodyIds": []
+    },
+    {
+      "id": "51700d7e-ff71-48a7-8d9b-d78ca6519b26",
+      "title": "Self-hosting onboarding loop: HTML-comment Markdown rejection and masked import diagnostics",
+      "description": "Root-cause investigation and fix handoff for the ScribeRig self-hosting onboarding loop (Markdown adapter rejecting HTML comments), tool-error masking, child-result parsing, and the remaining agent-continuation delegation blocker.",
+      "status": "active",
+      "filename": "self-hosting-onboarding-loop-html-comment-markdo-51700d7e.md",
+      "relativePath": "documents/active/self-hosting-onboarding-loop-html-comment-markdo-51700d7e.md",
+      "sourcePaths": [
+        "apps/scriberig/src/self_hosting_provider/branches.rs",
+        "apps/scriberig/src/self_hosting_provider/branches/result_helpers.rs",
+        "apps/scriberig/src/native_tui_agent/upstream_execution/delegation.rs",
+        "crates/domains/sr-markdown",
+        "apps/scriberig/tests/tui_pty_support/onboarding_wait.rs"
+      ],
+      "sessionIds": [
+        "c7b850f7-6e49-4e05-a673-1c4c0747e63a"
+      ],
+      "createdAt": "2026-10-22T09:58:12.547Z",
+      "updatedAt": "2026-10-22T09:58:12.547Z",
+      "lastAccessedAt": "2026-10-22T09:58:12.547Z",
+      "revision": 1,
+      "contentHash": "c9bf311f90eab91f5bbd3b61441866ad9bdb713cbe5a85172e565f83a033f432",
+      "sizeBytes": 4305,
+      "memoryBodyIds": []
+    }
+  ]
+}

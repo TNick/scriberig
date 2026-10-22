@@ -37,6 +37,7 @@ use super::{
 /// - `prompt`: User or parent-tool instruction for the branch.
 /// - `cancellation`: Branch-local cancellation token.
 /// - `output_callback`: Optional provider-visible text sink.
+/// - `summary_callback`: Optional provider-visible reasoning-summary sink.
 ///
 /// # Returns
 /// Final output, captured model requests, and executed tool evidence.
@@ -54,6 +55,7 @@ pub(super) async fn run_branch_with_semantic_broker<'a, B>(
     prompt: String,
     cancellation: CancellationToken,
     output_callback: Option<scriberig_agent_runtime::OutputCallback>,
+    summary_callback: Option<scriberig_agent_runtime::ReasoningSummaryCallback>,
     continuation: Option<rpi_ai::ProviderContinuation>,
 ) -> Result<UpstreamBranchExecution, UpstreamBranchExecutionFailure>
 where
@@ -86,6 +88,7 @@ where
         invocation.branch,
         &sender,
     )?;
+    drop(sender);
     let broker_invocation = delegation::invocation_without_tools(&invocation);
     let branch_invocation = UpstreamBranchInvocation {
         tools,
@@ -110,6 +113,7 @@ where
         prompt,
         cancellation,
         output_callback,
+        summary_callback,
         continuation,
     );
     let (result, broker_result) = tokio::join!(model_run, broker_run);

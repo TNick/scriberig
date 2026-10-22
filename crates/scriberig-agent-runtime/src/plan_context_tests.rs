@@ -179,6 +179,8 @@ fn plan_node(id: EntityId, parent: Option<PlanNodeParent>, branch: Option<Entity
         branch,
         result: None,
         superseded_by: None,
+        abandon_reason: None,
+        last_failure: None,
         assignment: None,
         claim: None,
         claim_generation: 0,

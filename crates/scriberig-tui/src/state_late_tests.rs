@@ -88,6 +88,7 @@ fn stale_inspect_result_is_ignored() {
             request_id: 1,
             entity,
             snapshot: None,
+            switch_view: true,
         },
     );
     reduce(
@@ -96,6 +97,7 @@ fn stale_inspect_result_is_ignored() {
             request_id: 2,
             entity,
             snapshot: None,
+            switch_view: true,
         },
     );
     let model = crate::inspector::InspectorModel::from_result(scriberig_app::InspectResult {
@@ -219,7 +221,7 @@ fn confirmed_commit_preserves_reviewed_base() {
     let base = scriberig_core::SnapshotId::new([6; 32]);
     state.review = crate::inspector::LoadState::Ready(crate::view::changes::ChangeReviewModel {
         base_snapshot: base,
-        candidate_snapshot: None,
+        candidate_snapshot: Some(scriberig_core::SnapshotId::new([21; 32])),
         change: "change-2".to_owned(),
         branch: None,
         affected_entities: Vec::new(),

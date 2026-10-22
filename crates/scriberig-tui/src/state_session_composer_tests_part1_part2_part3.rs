@@ -101,6 +101,8 @@ fn accepted_plan_result_rebuilds_structural_conversation_rows() {
         assignment: None,
         claim: None,
         claim_generation: 0,
+        abandon_reason: None,
+        last_failure: None,
     })
     .expect("node");
     let mut state = TuiState {
@@ -156,6 +158,8 @@ fn assign_command_targets_only_the_selected_plan_node() {
         assignment: None,
         claim: None,
         claim_generation: 0,
+        abandon_reason: None,
+        last_failure: None,
     })
     .expect("node");
     let session = scriberig_session::Session {
@@ -190,12 +194,13 @@ fn assign_command_targets_only_the_selected_plan_node() {
     };
     state.conversation_composer.draft = "/assign".to_owned();
     reduce(&mut state, Action::InputSubmitted);
-    assert!(matches!(
-        state.overlay,
-        Some(crate::overlay::Overlay::Palette(_))
-    ));
+    assert!(state.plan_assignment_target.is_some());
 
-    let effects = reduce(&mut state, Action::Activated);
+    let effects = crate::state::state_presentation::activate_palette_control(
+        &mut state,
+        "assign-plan-model:model-small",
+    )
+    .expect("plan assignment selection");
 
     assert!(matches!(
         effects.as_slice(),

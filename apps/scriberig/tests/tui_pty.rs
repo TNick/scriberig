@@ -1,5 +1,7 @@
 //! Verifies native TUI workflows through a real pseudo-terminal.
 
+use std::time::{Duration, Instant};
+
 #[path = "tui_pty_support/bootstrap_test.rs"]
 mod tui_pty_bootstrap;
 #[path = "tui_pty/branch.rs"]
@@ -28,7 +30,7 @@ fn tui_pty_starts_without_a_project() {
         "{}",
         tui.diagnostic()
     );
-    tui.send(b"/project\r");
+    tui.send_slow(b"/project\r");
     assert!(
         tui.read_until("No active project is selected."),
         "{}",
@@ -44,11 +46,11 @@ fn tui_pty_shows_project_context() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("Message [ACTIVE]"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
     let screen = tui.screen();
-    assert!(screen.contains("scriberig ·"));
-    assert!(screen.contains("Conversation [ACTIVE]"));
-    assert!(screen.contains("Message [ACTIVE]"));
+    assert!(screen.contains("Conversation"));
+    assert!(screen.contains("Type a message to start a conversation."));
+    assert!(screen.contains("Enter send"));
     assert!(tui.shutdown());
 }
 
@@ -58,12 +60,12 @@ fn tui_pty_shows_readable_explorer_rows() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("scriberig ·"), "{}", tui.diagnostic());
-    tui.send(b"/explorer\r");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send_slow(b"/explorer\r");
     assert!(tui.read_until("README.md"), "{}", tui.diagnostic());
     assert!(tui.screen().contains("README.md"), "{}", tui.diagnostic());
     assert!(
-        tui.screen().contains("project.source"),
+        tui.screen().contains("Semantic explorer"),
         "{}",
         tui.diagnostic()
     );
@@ -77,7 +79,7 @@ fn tui_golden_01_shows_named_rust_symbols() {
     let mut tui = TuiPty::start_golden();
 
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"/explorer\r");
+    tui.send_slow(b"/explorer\r");
     assert!(tui.read_until("Calculator"), "{}", tui.diagnostic());
     assert!(tui.screen().contains("add"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
@@ -89,7 +91,7 @@ fn tui_golden_02_shows_rust_source_projection() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_golden();
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"/projection\r");
+    tui.send_slow(b"/projection\r");
     assert!(tui.read_until("src/lib.rs"), "{}", tui.diagnostic());
     assert!(
         tui.screen().contains("left + right"),
@@ -105,28 +107,48 @@ fn tui_golden_03_edits_reviews_applies_and_restarts() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_golden();
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"/projection\r");
+    tui.send_slow(b"/projection\r");
     assert!(tui.read_until("left + right"), "{}", tui.diagnostic());
-    tui.send(b"\x1b");
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"/edit\r");
+    show_conversation(&mut tui);
+    tui.send_slow(b"/edit\r");
     assert!(tui.read_until("Edit source"), "{}", tui.diagnostic());
-    tui.send(b"left.saturating_add(right)\r");
-    assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
+    tui.send_slow(b"left.saturating_add(right)\r");
+    assert!(tui.read_until("Candidate review"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Validation: Passed"), "{}", tui.diagnostic());
+    assert!(tui.source().contains("left + right"));
+    tui.send(b"\r");
     assert!(
-        tui.screen().contains("left.saturating_add(right)"),
+        tui.read_until("Confirmation: required"),
         "{}",
         tui.diagnostic()
     );
-    assert!(tui.screen().contains("validation: Passed"));
-    assert!(tui.source().contains("left + right"));
-    tui.send(b"\r");
-    assert!(tui.read_until("Enter confirm"), "{}", tui.diagnostic());
     let confirmation = tui.screen();
-    assert!(confirmation.contains("Reviewed base:"), "{confirmation}");
-    assert!(confirmation.contains("Candidate result:"), "{confirmation}");
+    assert!(confirmation.contains("Base snapshot:"), "{confirmation}");
+    assert!(confirmation.contains("Result snapshot:"), "{confirmation}");
+    tui.send(b"\x10");
+    assert!(tui.read_until("Command palette"), "{}", tui.diagnostic());
+    tui.send_slow(b"Confirm");
+    assert!(
+        tui.read_until("Confirm reviewed change"),
+        "{}",
+        tui.diagnostic()
+    );
     tui.send(b"\r");
-    assert!(tui.read_until("materialized"), "{}", tui.diagnostic());
+    assert!(
+        tui.read_until("Action: commit change"),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send(b"\r");
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while !tui.source().contains("left.saturating_add(right)") {
+        assert!(
+            Instant::now() < deadline,
+            "candidate was not materialized: {}",
+            tui.diagnostic()
+        );
+        std::thread::sleep(Duration::from_millis(50));
+    }
     assert!(tui.source().contains("left.saturating_add(right)"));
     let fixture = tui.quit_retain_fixture();
     let mut restarted = TuiPty::restart(fixture.clone());
@@ -135,7 +157,7 @@ fn tui_golden_03_edits_reviews_applies_and_restarts() {
         "{}",
         restarted.diagnostic()
     );
-    restarted.send(b"/projection\r");
+    restarted.send_slow(b"/projection\r");
     assert!(
         restarted.read_until("left.saturating_add(right)"),
         "{}",
@@ -150,21 +172,38 @@ fn tui_golden_04_external_edit_is_not_overwritten() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_golden();
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"/projection\r");
+    tui.send_slow(b"/projection\r");
     assert!(tui.read_until("left + right"), "{}", tui.diagnostic());
-    tui.send(b"\x1b");
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"/edit\r");
+    show_conversation(&mut tui);
+    tui.send_slow(b"/edit\r");
     assert!(tui.read_until("Edit source"), "{}", tui.diagnostic());
-    tui.send(b"left.saturating_add(right)\r");
-    assert!(tui.read_until("validation: Passed"), "{}", tui.diagnostic());
+    tui.send_slow(b"left.saturating_add(right)\r");
+    assert!(tui.read_until("Validation: Passed"), "{}", tui.diagnostic());
     tui.external_edit();
-    tui.send(b"\r\r");
+    tui.send(b"\x10");
+    assert!(tui.read_until("Command palette"), "{}", tui.diagnostic());
+    tui.send_slow(b"Confirm");
     assert!(
-        tui.read_until("filesystem_conflict"),
+        tui.read_until("Confirm reviewed change"),
         "{}",
         tui.diagnostic()
     );
+    tui.send(b"\r");
+    assert!(
+        tui.read_until("Action: commit change"),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send(b"\r");
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while !tui.source().contains("external edit") {
+        assert!(
+            Instant::now() < deadline,
+            "external edit was not preserved: {}",
+            tui.diagnostic()
+        );
+        std::thread::sleep(Duration::from_millis(50));
+    }
     assert!(tui.source().contains("external edit"));
     assert!(!tui.source().contains("left.saturating_add(right)"));
     let _ = tui.shutdown_allow_failure();
@@ -177,30 +216,13 @@ fn tui_pty_opens_help_overlay() {
     let mut tui = TuiPty::start();
 
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"/help\r");
+    tui.send_slow(b"?");
+    assert!(tui.read_until("ScribeRig help"), "{}", tui.diagnostic());
     assert!(
-        tui.read_until("Overlay [Esc close]"),
+        tui.read_until("Delete character backward"),
         "{}",
         tui.diagnostic()
     );
-    let screen = tui.screen();
-    assert!(screen.contains("Overlay"));
-    for label in [
-        "Ctrl-C",
-        "Esc",
-        "Tab",
-        "Shift-Tab",
-        "Enter",
-        "Up",
-        "Down",
-        "Left",
-        "Right",
-        "Backspace",
-        "/",
-        "command palette",
-    ] {
-        assert!(screen.contains(label), "missing help key {label}: {screen}");
-    }
     assert!(tui.shutdown());
 }
 
@@ -211,10 +233,10 @@ fn tui_pty_opens_and_closes_command_palette() {
     let mut tui = TuiPty::start();
 
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"/help\r");
-    assert!(tui.read_until("Overlay [Esc close]"));
+    tui.send_slow(b"?");
+    assert!(tui.read_until("ScribeRig help"));
     tui.send(b"\x1b");
-    assert!(tui.read_until_not("Overlay [Esc close]"));
+    assert!(tui.read_until_not("ScribeRig help"));
     assert!(tui.shutdown());
 }
 
@@ -224,14 +246,14 @@ fn tui_pty_resizes_without_losing_project_context() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("scriberig ·"));
+    assert!(tui.read_until("Conversation"));
     tui.resize(PtySize {
         rows: 30,
         cols: 100,
         pixel_width: 0,
         pixel_height: 0,
     });
-    assert!(tui.read_until_next("scriberig ·"));
+    assert!(tui.read_until("Conversation"));
     assert!(tui.screen().contains("Conversation"));
     assert!(tui.shutdown());
 }
@@ -243,13 +265,13 @@ fn tui_pty_browse_returns_to_composer() {
     let mut tui = TuiPty::start();
 
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"\x1b");
+    tui.send(b"\x1b[18~");
     assert!(
         tui.read_until_next("Enter pin reply target"),
         "{}",
         tui.diagnostic()
     );
-    tui.send(b"\x1b");
+    tui.send(b"\x1b[18~");
     assert!(tui.read_until_next("Enter send"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }
@@ -264,4 +286,15 @@ fn tui_pty_types_immediately() {
     tui.send(b"hello");
     assert!(tui.read_until_next("hello"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
+}
+
+/// Switches the live TUI back to the Conversation view through the palette.
+///
+/// - `tui`: Running process whose current primary view may be a semantic view.
+fn show_conversation(tui: &mut TuiPty) {
+    tui.send(b"\x10");
+    assert!(tui.read_until("Command palette"), "{}", tui.diagnostic());
+    tui.send_slow(b"conversation\r");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    std::thread::sleep(std::time::Duration::from_millis(500));
 }

@@ -159,7 +159,20 @@ fn autonomous_decomposition_persists_children_and_compact_parent_results() {
         architecture_result
             .result_handles
             .iter()
-            .any(|handle| handle == "runtime_capabilities")
+            .any(|handle| handle == "runtime_capabilities"),
+        "architecture handles: {:?}; child tools: {:?}",
+        architecture_result.result_handles,
+        durable.branches[1..]
+            .iter()
+            .map(|branch| (
+                branch.purpose.clone(),
+                branch
+                    .tool_invocations
+                    .iter()
+                    .map(|tool| tool.name.clone())
+                    .collect::<Vec<_>>()
+            ))
+            .collect::<Vec<_>>()
     );
     assert_eq!(
         durable.branches[0]

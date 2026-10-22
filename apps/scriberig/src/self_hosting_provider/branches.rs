@@ -5,7 +5,7 @@ mod queries;
 use queries::{ARCHITECTURE_QUERIES, IMPLEMENTATION_QUERIES, PHP_CANDIDATE_PROFILES};
 #[path = "branches/result_helpers.rs"]
 mod result_helpers;
-use result_helpers::{child_summary, is_successful_candidate_validation};
+use result_helpers::{child_summary, is_child_result, is_successful_candidate_validation};
 
 use super::{
     SemanticScope, ValidationMode, candidate, delegate, final_response, handle_with_prefix,
@@ -64,10 +64,7 @@ pub(super) fn root_branch(
             json!({"project":scope.project,"snapshot":scope.snapshot,"entity":entity}),
         ));
     }
-    if !tools
-        .iter()
-        .any(|message| message.contains("child_summary="))
-    {
+    if !tools.iter().any(|message| is_child_result(message)) {
         return Ok(delegate(
             model,
             "determine minimal extension points for PHP source ingestion",
@@ -78,7 +75,7 @@ pub(super) fn root_branch(
     }
     let child_results = tools
         .iter()
-        .filter(|message| message.contains("child_summary="))
+        .filter(|message| is_child_result(message))
         .collect::<Vec<_>>();
     if child_results.is_empty() {
         return Err(malformed("architecture BranchResult missing"));
@@ -337,11 +334,11 @@ fn semantic_step(
     let tools = tool_messages(request);
     let searched = tools
         .iter()
-        .filter(|message| message.contains("summary=Some(\"semantic find"))
+        .filter(|message| is_semantic_find(message))
         .count();
     let last_is_find = tools
         .last()
-        .is_some_and(|message| message.contains("summary=Some(\"semantic find"));
+        .is_some_and(|message| is_semantic_find(message));
     if searched >= queries.len() && !last_is_find {
         return Ok(None);
     }
@@ -376,4 +373,15 @@ fn semantic_step(
             "limit":50
         }),
     )))
+}
+
+/// Checks whether one tool result is a semantic-find projection.
+///
+/// - `message`: Provider-normalized tool result text.
+///
+/// # Returns
+/// `true` for the current JSON shape or the legacy debug shape.
+fn is_semantic_find(message: &str) -> bool {
+    message.contains("\"object_type\":\"semantic_find\"")
+        || message.contains("object_type=Some(\"semantic_find\")")
 }

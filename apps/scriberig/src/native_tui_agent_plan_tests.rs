@@ -52,8 +52,8 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
             .expect("session store"),
     );
     let session_repository: Arc<dyn SessionStore> = session_store.clone();
-    let upstream_models =
-        upstream_model_catalog("fake", &["wire-plan-model-a", "wire-plan-model-b"]);
+    let mut upstream_models = upstream_model_catalog("fake-a", &["wire-plan-model-a"]);
+    upstream_models.extend(upstream_model_catalog("fake-b", &["wire-plan-model-b"]));
     let service = ApplicationService::new(backend)
         .with_session_store(session_repository)
         .with_upstream_models(upstream_models.clone());
@@ -99,8 +99,8 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
                     expected_result: None,
                     semantic_scope: Vec::new(),
                     assignment: Some(ModelAssignment {
-                        provider_id: "plan-provider-a".to_owned(),
-                        model_id: "plan-model-a".to_owned(),
+                        provider_id: "fake-a".to_owned(),
+                        model_id: "wire-plan-model-a".to_owned(),
                         thinking_level: Some("high".to_owned()),
                     }),
                 },
@@ -112,8 +112,8 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
                     expected_result: None,
                     semantic_scope: Vec::new(),
                     assignment: Some(ModelAssignment {
-                        provider_id: "plan-provider-b".to_owned(),
-                        model_id: "plan-model-b".to_owned(),
+                        provider_id: "fake-b".to_owned(),
+                        model_id: "wire-plan-model-b".to_owned(),
                         thinking_level: Some("high".to_owned()),
                     }),
                 },
@@ -125,8 +125,8 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
                     expected_result: None,
                     semantic_scope: Vec::new(),
                     assignment: Some(ModelAssignment {
-                        provider_id: "plan-provider-a".to_owned(),
-                        model_id: "plan-model-a".to_owned(),
+                        provider_id: "fake-a".to_owned(),
+                        model_id: "wire-plan-model-a".to_owned(),
                         thinking_level: Some("high".to_owned()),
                     }),
                 },
@@ -152,8 +152,8 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
                 expected_result: None,
                 semantic_scope: Vec::new(),
                 assignment: Some(ModelAssignment {
-                    provider_id: "plan-provider-a".to_owned(),
-                    model_id: "plan-model-a".to_owned(),
+                    provider_id: "fake-a".to_owned(),
+                    model_id: "wire-plan-model-a".to_owned(),
                     thinking_level: Some("high".to_owned()),
                 }),
             }],
@@ -191,11 +191,17 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
     let runner = NativeTuiAgentRunner {
         providers: std::collections::BTreeMap::from([
             (
-                "fake-a".to_owned(),
+                crate::native_tui_agent::provider_config::catalog::connection_identity(
+                    "fake-a",
+                    "wire-plan-model-a",
+                ),
                 NativeScenario::Faux(provider_a.clone()),
             ),
             (
-                "fake-b".to_owned(),
+                crate::native_tui_agent::provider_config::catalog::connection_identity(
+                    "fake-b",
+                    "wire-plan-model-b",
+                ),
                 NativeScenario::Faux(provider_b.clone()),
             ),
         ]),
@@ -315,22 +321,22 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
     assert!(
         first_result
             .result_handles
-            .contains(&"model-profile:plan-model-a-profile".to_owned())
+            .contains(&"provider:fake-a".to_owned())
     );
     assert!(
         first_result
             .result_handles
-            .contains(&"provider-profile:fake-a".to_owned())
+            .contains(&"model:wire-plan-model-a".to_owned())
     );
     assert!(
         second_result
             .result_handles
-            .contains(&"model-profile:plan-model-b-profile".to_owned())
+            .contains(&"provider:fake-b".to_owned())
     );
     assert!(
         second_result
             .result_handles
-            .contains(&"provider-profile:fake-b".to_owned())
+            .contains(&"model:wire-plan-model-b".to_owned())
     );
 
     let resumed = execute_effect(

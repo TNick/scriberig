@@ -69,7 +69,7 @@ fn http_plan_start_runs_the_native_fake_provider_worker() {
                 semantic_scope: Vec::new(),
                 assignment: Some(ModelAssignment {
                     provider_id: "local".to_owned(),
-                    model_id: "http-plan-model".to_owned(),
+                    model_id: "wire-http-plan-model".to_owned(),
                     thinking_level: Some("high".to_owned()),
                 }),
             }],
@@ -80,7 +80,10 @@ fn http_plan_start_runs_the_native_fake_provider_worker() {
     let provider = rpi_ai::providers::faux::FauxScript::new().with_text("HTTP worker completed.");
     let runner = NativeTuiAgentRunner {
         providers: std::collections::BTreeMap::from([(
-            "local".to_owned(),
+            crate::native_tui_agent::provider_config::catalog::connection_identity(
+                "local",
+                "wire-http-plan-model",
+            ),
             NativeScenario::Faux(provider.clone()),
         )]),
         model: "http-plan-model".to_owned(),

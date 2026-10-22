@@ -8,7 +8,27 @@ use super::*;
 fn coordinator_persists_claims_results_and_dependency_completion() {
     let service = ApplicationService::new(Backend {
         store: std::sync::Arc::new(MemoryStore::new()),
-    });
+    })
+    .with_session_store(std::sync::Arc::new(
+        scriberig_session_sqlite::SqliteSessionStore::open_in_memory()
+            .expect("open durable session store"),
+    ))
+    .with_upstream_models(vec![
+        rpi_ai::Model::new(
+            "wire-a",
+            "Model A",
+            rpi_ai::Api::AnthropicMessages,
+            "provider",
+            "https://example.test",
+        ),
+        rpi_ai::Model::new(
+            "wire-b",
+            "Model B",
+            rpi_ai::Api::AnthropicMessages,
+            "provider",
+            "https://example.test",
+        ),
+    ]);
     let session_id = EntityId::from_bytes([1; 16]);
     let root = EntityId::from_bytes([2; 16]);
     let plan_id = EntityId::from_bytes([3; 16]);
@@ -67,6 +87,8 @@ fn coordinator_persists_claims_results_and_dependency_completion() {
             assignment,
             claim: None,
             claim_generation: 0,
+            abandon_reason: None,
+            last_failure: None,
         })
         .expect("node");
     }
@@ -181,12 +203,12 @@ fn coordinator_persists_claims_results_and_dependency_completion() {
     assert!(
         analyze_result
             .result_handles
-            .contains(&"profile:alpha".to_owned())
+            .contains(&"model:wire-a".to_owned())
     );
     assert!(
         document_result
             .result_handles
-            .contains(&"profile:beta".to_owned())
+            .contains(&"model:wire-b".to_owned())
     );
     assert_eq!(durable.branches.len(), 4);
     assert_eq!(durable.branches[0].children.len(), 3);

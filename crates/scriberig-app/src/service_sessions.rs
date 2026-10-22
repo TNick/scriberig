@@ -22,6 +22,25 @@ pub(super) use service_session_authorization::{
     authorize_model_library_read, authorize_session_model_selection,
 };
 
+/// Authorizes a compact plan read with the session-tree capability.
+///
+/// - `context`: Authorized caller context.
+/// - `session`: Stable ScribeRig session identity.
+///
+/// Unit when the caller may inspect the session tree.
+///
+/// Returns permission-denied when the caller lacks read access.
+/// # Returns
+/// The authorization result.
+/// # Errors
+/// Returns an authorization construction or permission error.
+pub(super) fn authorize_plan_read(
+    context: &ApplicationContext,
+    session: EntityId,
+) -> Result<(), ApplicationError> {
+    authorize_session_read(context, &crate::SessionRequest { session })
+}
+
 #[path = "service_agent_execution.rs"]
 mod service_agent_execution;
 
@@ -226,6 +245,26 @@ impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
         request: &crate::PlanReplanRequest,
     ) -> Result<scriberig_session::Plan, ApplicationError> {
         ApplicationService::replan(self, context, request)
+    }
+
+    /// Applies one typed semantic plan mutation through the shared service.
+    ///
+    /// - `context`: Authorized request context.
+    /// - `request`: Plan identity, expected revision, and typed mutation.
+    ///
+    /// The authoritative updated plan.
+    ///
+    /// Returns validation, conflict, authorization, or persistence errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn mutate_plan(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::PlanMutationRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        ApplicationService::apply_plan_mutation(self, context, request)
     }
 
     /// Applies one lifecycle action through the shared application service.

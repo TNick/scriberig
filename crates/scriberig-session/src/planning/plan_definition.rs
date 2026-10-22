@@ -37,6 +37,7 @@ impl Plan {
         }
         let mut plan = Self {
             id,
+            source_snapshot: None,
             session: Some(session),
             anchor: Some(anchor),
             goal,
@@ -45,6 +46,9 @@ impl Plan {
             root_branch,
             nodes: Vec::new(),
             dependencies: Vec::new(),
+            summaries: Vec::new(),
+            evidence: Vec::new(),
+            gates: Vec::new(),
             coordinator: None,
             coordinator_cursor: None,
             coordinator_claim: None,
@@ -82,9 +86,31 @@ impl Plan {
         if is_root {
             self.root_nodes.push(node_id);
         }
-        self.bump_revision()?;
         self.refresh_readiness();
+        self.bump_revision()?;
         Ok(())
+    }
+
+    /// Adds one explicitly discovered next step to a running plan.
+    ///
+    /// This is ordinary plan evolution, not replan replacement. It preserves
+    /// existing node identities and advances the plan mutation revision once.
+    ///
+    /// # Parameters
+    /// - `self`: Running plan receiving the new work.
+    /// - `node`: New node with an already allocated stable identity.
+    ///
+    /// # Returns
+    /// Unit after the next step is added.
+    ///
+    /// # Errors
+    /// Returns `InvalidTransition` when the plan is not running, or propagates
+    /// node validation and revision errors from `add_node`.
+    pub fn add_next_step(&mut self, node: PlanNode) -> Result<(), PlanError> {
+        if self.status != PlanStatus::Running {
+            return Err(PlanError::InvalidTransition);
+        }
+        self.add_node(node)
     }
 
     /// Adds an edge after checking that it will not create a cycle.
@@ -146,8 +172,8 @@ impl Plan {
         });
         self.dependencies
             .sort_by_key(|edge| (edge.prerequisite, edge.dependent));
-        self.bump_revision()?;
         self.refresh_readiness();
+        self.bump_revision()?;
         Ok(())
     }
 

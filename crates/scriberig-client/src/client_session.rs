@@ -6,12 +6,78 @@ use scriberig_protocol::{
     AgentPresentationPreferencesReadRequest, AgentPresentationPreferencesResponse,
     AgentPresentationPreferencesSetRequest, BranchReference, ModelRequestDetailRequest,
     ModelRequestDetailResponse, ProtocolTransport, PublicAgentPresentationPreferences, Request,
-    Response, SessionPlan, SessionPlanAssignmentRequest, SessionPlanCreateRequest,
-    SessionPlanLifecycleRequest, SessionPlanReplanRequest, SessionReadRequest, SessionReadResponse,
-    SessionReference, ToolResultDetailRequest, ToolResultDetailResponse,
+    Response, SessionPlan, SessionPlanAssignmentRequest, SessionPlanAttemptsRequest,
+    SessionPlanAttemptsResponse, SessionPlanCreateRequest, SessionPlanDetailsRequest,
+    SessionPlanDetailsResponse, SessionPlanGraphView, SessionPlanLifecycleRequest,
+    SessionPlanMutationRequest, SessionPlanReplanRequest, SessionPlanViewRequest,
+    SessionReadRequest, SessionReadResponse, SessionReference, ToolResultDetailRequest,
+    ToolResultDetailResponse,
 };
 
 impl<T: ProtocolTransport> Client<T> {
+    /// Reads a compact plan graph with exact semantic revision references.
+    ///
+    /// # Parameters
+    /// - `request`: Session, plan, and optional exact snapshot.
+    ///
+    /// # Returns
+    /// Compact plan graph without history or full detail collections.
+    ///
+    /// # Errors
+    /// Returns a structured server or transport error.
+    pub fn plan_view(
+        &self,
+        request: SessionPlanViewRequest,
+    ) -> Result<SessionPlanGraphView, ClientError> {
+        match self.send(Request::PlanView(request))?.response {
+            Response::PlanView(view) => Ok(view),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Reads one bounded page of attempts for a plan node.
+    ///
+    /// # Parameters
+    /// - `request`: Session, plan, node, and attempt-page identities.
+    ///
+    /// # Returns
+    /// Safe attempt metadata without worker transcript content.
+    ///
+    /// # Errors
+    /// Returns a structured server or transport error.
+    pub fn plan_attempts(
+        &self,
+        request: SessionPlanAttemptsRequest,
+    ) -> Result<SessionPlanAttemptsResponse, ClientError> {
+        match self.send(Request::PlanAttempts(request))?.response {
+            Response::PlanAttempts(attempts) => Ok(attempts),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Reads bounded gate and evidence pages from one observed plan revision.
+    ///
+    /// # Parameters
+    /// - `request`: Session, plan revision, and independent page offsets.
+    ///
+    /// # Returns
+    /// Typed gate/evidence details from the requested plan revision.
+    ///
+    /// # Errors
+    /// Returns a structured server or transport error.
+    pub fn plan_details(
+        &self,
+        request: SessionPlanDetailsRequest,
+    ) -> Result<SessionPlanDetailsResponse, ClientError> {
+        match self.send(Request::PlanDetails(request))?.response {
+            Response::PlanDetails(details) => Ok(details),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
     /// Creates a durable plan from a structured, provider-neutral proposal.
     ///
     /// - `request`: Exact anchor and validated plan proposal input.
@@ -91,6 +157,28 @@ impl<T: ProtocolTransport> Client<T> {
     /// Returns an error when the operation fails.
     pub fn replan(&self, request: SessionPlanReplanRequest) -> Result<SessionPlan, ClientError> {
         match self.send(Request::PlanReplan(request))?.response {
+            Response::Plan(plan) => Ok(plan),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Applies one typed semantic mutation to a durable plan.
+    ///
+    /// - `request`: Plan identity, observed revision, and semantic mutation.
+    ///
+    /// The authoritative updated plan projection.
+    ///
+    /// Returns a structured server or transport error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn mutate_plan(
+        &self,
+        request: SessionPlanMutationRequest,
+    ) -> Result<SessionPlan, ClientError> {
+        match self.send(Request::PlanMutation(request))?.response {
             Response::Plan(plan) => Ok(plan),
             Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),

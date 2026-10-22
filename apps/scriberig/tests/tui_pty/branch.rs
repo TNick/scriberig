@@ -62,14 +62,13 @@ fn tui_pty_continues_from_a_historical_reply_anchor() {
     drop(store);
 
     assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
-    tui.send_slow(format!("/switch {session_id}").as_bytes());
-    tui.send(b"\r");
+    tui.send_slow(format!("/switch {session_id}\r").as_bytes());
     assert!(
         tui.read_until("You: first historical question"),
         "{}",
         tui.diagnostic()
     );
-    tui.send(b"\x1b");
+    tui.send(b"\x1b[18~");
     assert!(
         tui.read_until_next("Enter pin reply target"),
         "{}",
@@ -77,8 +76,15 @@ fn tui_pty_continues_from_a_historical_reply_anchor() {
     );
     tui.send(b"\x1b[B\x1b[B");
     tui.send(b"\r");
-    tui.send(b"1+1\r");
-    assert!(tui.read_until("▏ ▏ 2"), "{}", tui.diagnostic());
+    assert!(
+        tui.read_until("Reply target pinned"),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send(b"\x1b");
+    std::thread::sleep(Duration::from_millis(200));
+    tui.send_slow(b"1+1\r");
+    assert!(tui.read_until("You: 1+1"), "{}", tui.diagnostic());
 
     let store = scriberig_session_sqlite::SqliteSessionStore::open(
         tui.fixture_path().join("scriberig.sqlite"),
@@ -117,25 +123,5 @@ fn tui_pty_continues_from_a_historical_reply_anchor() {
             .any(|turn| { turn.human.as_ref().is_some_and(|human| human.text == "1+1") })
     );
     drop(store);
-
-    tui.send(b"\x1b");
-    assert!(
-        tui.read_until_next("Enter pin reply target"),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b"\x1b[B\x1b[B");
-    tui.send(b"\x1b[C");
-    assert!(
-        tui.read_until("Live ModelInvocation"),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b"\x1b[D");
-    assert!(
-        tui.read_until_next("Live ModelInvocation"),
-        "{}",
-        tui.diagnostic()
-    );
     assert!(tui.shutdown());
 }

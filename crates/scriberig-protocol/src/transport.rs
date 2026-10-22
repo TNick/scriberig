@@ -5,9 +5,10 @@ use crate::{
     AgentPresentationPreferencesReadRequest, AgentPresentationPreferencesSetRequest,
     AgentStartRequest, CancelOperationRequest, CommandRequest, Event, FindRequest, ListRequest,
     ModelLibraryRequest, ModelRequestDetailRequest, ProjectRequest, QueryRequest,
-    SessionModelSelectionRequest, SessionPlanAssignmentRequest, SessionPlanCreateRequest,
-    SessionPlanLifecycleRequest, SessionPlanReplanRequest, SessionReadRequest,
-    SessionThinkingSelectionRequest, SubscribeRequest, ToolResultDetailRequest,
+    SessionModelSelectionRequest, SessionPlanAssignmentRequest, SessionPlanAttemptsRequest,
+    SessionPlanCreateRequest, SessionPlanDetailsRequest, SessionPlanLifecycleRequest,
+    SessionPlanMutationRequest, SessionPlanReplanRequest, SessionPlanViewRequest,
+    SessionReadRequest, SessionThinkingSelectionRequest, SubscribeRequest, ToolResultDetailRequest,
 };
 use crate::{
     CapabilitiesResponse, InspectEntityRequest, InspectEntityResponse, OperationStatusRequest,
@@ -56,6 +57,14 @@ pub enum Request {
     PlanAssignment(SessionPlanAssignmentRequest),
     /// Apply one complete durable replan revision.
     PlanReplan(SessionPlanReplanRequest),
+    /// Apply a typed gate, evidence, retry, or structure mutation.
+    PlanMutation(SessionPlanMutationRequest),
+    /// Read a bounded page of one node's worker attempts.
+    PlanAttempts(SessionPlanAttemptsRequest),
+    /// Read bounded gate and evidence pages from one plan revision.
+    PlanDetails(SessionPlanDetailsRequest),
+    /// Read a compact plan graph without history or detail collections.
+    PlanView(SessionPlanViewRequest),
     /// Read a bounded safe model request projection.
     ModelRequestDetail(ModelRequestDetailRequest),
     /// Read bounded safe detail for one tool result.
@@ -101,6 +110,12 @@ pub enum Response {
     Session(crate::SessionReadResponse),
     /// Current durable plan projection.
     Plan(crate::SessionPlan),
+    /// Bounded safe plan-attempt history page.
+    PlanAttempts(crate::SessionPlanAttemptsResponse),
+    /// Bounded gate and evidence pages from one exact plan revision.
+    PlanDetails(crate::SessionPlanDetailsResponse),
+    /// Compact plan graph with exact semantic revision references.
+    PlanView(crate::SessionPlanGraphView),
     /// Safe normalized request captured for one model invocation.
     ModelRequestDetail(crate::ModelRequestDetailResponse),
     /// Bounded safe detail for one tool result.

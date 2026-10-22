@@ -57,6 +57,7 @@ pub async fn run_upstream_branch_invocation(
         cancellation,
         output_callback,
         None,
+        None,
     )
     .await
     .map(|(result, _)| result)
@@ -72,6 +73,8 @@ pub async fn run_upstream_branch_invocation(
 /// - `prompt`: Current user instruction for this branch invocation.
 /// - `cancellation`: Branch-local cancellation token.
 /// - `output_callback`: Optional provider-visible text sink.
+/// - `summary_callback`: Optional provider-visible reasoning-summary sink with a
+///   per-invocation arrival ordinal. Raw thinking events are never forwarded.
 /// - `continuation`: Optional previously validated provider continuation.
 ///
 /// # Returns
@@ -84,6 +87,7 @@ pub async fn run_upstream_branch_invocation_with_continuation(
     prompt: impl Into<String>,
     cancellation: CancellationToken,
     output_callback: Option<crate::OutputCallback>,
+    summary_callback: Option<crate::ReasoningSummaryCallback>,
     continuation: Option<ProviderContinuation>,
 ) -> Result<(UpstreamBranchResult, Option<ProviderContinuation>), UpstreamBranchFailure> {
     let built = build_agent(&invocation, continuation)?;
@@ -92,6 +96,7 @@ pub async fn run_upstream_branch_invocation_with_continuation(
     let run = built.agent.prompt(prompt);
     tokio::pin!(run);
     let mut events_open = true;
+    let mut summary_ordinal = 0_u64;
     let run_result = loop {
         tokio::select! {
             () = cancellation.cancelled() => {
@@ -109,6 +114,16 @@ pub async fn run_upstream_branch_invocation_with_continuation(
                     }) => {
                         if let Some(callback) = &output_callback {
                             callback(&delta);
+                        }
+                    }
+                    Ok(AgentEvent::MessageUpdate {
+                        assistant_message_event:
+                            AssistantMessageEvent::ReasoningSummaryDelta { delta, .. },
+                        ..
+                    }) => {
+                        if let Some(callback) = &summary_callback {
+                            summary_ordinal = summary_ordinal.saturating_add(1);
+                            callback(summary_ordinal, &delta);
                         }
                     }
                     Ok(_) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
@@ -262,23 +277,41 @@ fn build_agent(
                 })
         });
     let continuation_sink = Arc::clone(&captured_continuation);
-    let agent: Agent = AgentBuilder::new()
+    let plain_provider = Arc::clone(&provider);
+    let plain_model = invocation.model.clone();
+    let plain_secret = invocation.request_secret.clone();
+    let plain_bearer = invocation.bearer;
+    let plain_stream = rpi_agent::stream_fn(move |_requested, context, options| {
+        rpi_ai::stream_provider_cancellable(
+            Arc::clone(&plain_provider),
+            plain_model.clone(),
+            context.clone(),
+            options.clone(),
+            plain_secret.clone().map(|secret| (secret, plain_bearer)),
+            None,
+            None,
+            false,
+            tokio_util::sync::CancellationToken::new(),
+        )
+    });
+    let builder = AgentBuilder::new()
         .model(invocation.model.clone())
         .system_prompt(invocation.context.provider_context.clone())
         .thinking_level(invocation.thinking_level)
         .tools(tools)
         .tool_execution(ToolExecutionMode::Sequential)
+        .stream_fn(plain_stream)
         .cancellable_provider_continuation(stream, extractor)
         .on_provider_continuation(Arc::new(move |continuation| {
             if let Ok(mut current) = continuation_sink.lock() {
                 *current = continuation;
             }
-        }))
-        .build()
-        .map_err(|error| UpstreamBranchFailure {
-            error: UpstreamBranchError::Agent(error.to_string()),
-            model_requests: Vec::new(),
-        })?;
+        }));
+    let built = builder.build();
+    let agent: Agent = built.map_err(|error| UpstreamBranchFailure {
+        error: UpstreamBranchError::Agent(error.to_string()),
+        model_requests: Vec::new(),
+    })?;
     agent.set_provider_continuation(continuation);
     Ok(BuiltAgent {
         agent,

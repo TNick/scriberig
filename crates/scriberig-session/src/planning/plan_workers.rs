@@ -49,7 +49,7 @@ impl Plan {
     pub fn settle_workers(
         &mut self,
         completed: &[(EntityId, EntityId, crate::BranchResult)],
-        failed: &[(EntityId, EntityId)],
+        failed: &[(EntityId, EntityId, Option<crate::BranchResult>)],
         available_results: &[crate::BranchResult],
     ) -> Result<(), PlanError> {
         self.ensure_mutable()?;
@@ -93,7 +93,7 @@ impl Plan {
                 edge.fulfilled_by = Some(result.id);
             }
         }
-        for (node_id, claim_id) in failed {
+        for (node_id, claim_id, failure_result) in failed {
             if !settled_nodes.insert(*node_id) {
                 return Err(PlanError::InvalidTransition);
             }
@@ -104,11 +104,29 @@ impl Plan {
                 .ok_or(PlanError::MissingNode)?;
             if target.status != PlanNodeStatus::Running
                 || target.claim.as_ref().map(|claim| claim.id) != Some(*claim_id)
+                || failure_result.as_ref().is_some_and(|result| {
+                    Some(result.branch) != target.branch
+                        || result.status == crate::BranchStatus::Completed
+                })
             {
                 return Err(PlanError::InvalidTransition);
             }
             target.status = PlanNodeStatus::Failed;
             target.claim = None;
+            if let Some(result) = failure_result {
+                target.last_failure = Some(crate::PlanEvidenceReference {
+                    kind: crate::PlanEvidenceKind::Failure,
+                    reference: crate::PlanSemanticReference {
+                        entity: result.id,
+                        revision: None,
+                        snapshot: None,
+                    },
+                    attributes: std::collections::BTreeMap::from([
+                        ("branch".to_owned(), result.branch.to_string()),
+                        ("status".to_owned(), "failed".to_owned()),
+                    ]),
+                });
+            }
         }
         proposed.refresh_readiness();
         if proposed.all_nodes_satisfied(available_results) {
@@ -132,6 +150,6 @@ impl Plan {
     /// # Errors
     /// Returns an error when the operation fails.
     pub fn fail_node(&mut self, node: EntityId, claim: EntityId) -> Result<(), PlanError> {
-        self.settle_workers(&[], &[(node, claim)], &[])
+        self.settle_workers(&[], &[(node, claim, None)], &[])
     }
 }

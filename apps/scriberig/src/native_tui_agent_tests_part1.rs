@@ -103,7 +103,7 @@ fn historical_tui_continuation_compiles_exact_provider_context() {
         .load(session_id)
         .expect("reload session")
         .expect("session exists");
-    let context_message = &durable
+    let request = durable
         .branches
         .iter()
         .find(|branch| branch.parent == Some(root_id))
@@ -111,16 +111,21 @@ fn historical_tui_continuation_compiles_exact_provider_context() {
         .model_invocations[0]
         .request
         .as_ref()
-        .expect("captured upstream request")
-        .messages[0]
-        .content;
+        .expect("captured upstream request");
+    let context_message = &request.messages[0].content;
+    let all_messages = request
+        .messages
+        .iter()
+        .map(|message| message.content.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
 
     assert!(context_message.contains("turn 1 user"));
     assert!(context_message.contains("turn 2 user"));
     assert!(context_message.contains("turn 2 answer"));
     assert!(!context_message.contains("turn 3 user"));
     assert!(!context_message.contains("turn 3 answer"));
-    assert_eq!(context_message.matches("continue from turn two").count(), 1);
+    assert_eq!(all_messages.matches("continue from turn two").count(), 1);
     assert_eq!(handle.session, session_id);
     let child = durable
         .branches

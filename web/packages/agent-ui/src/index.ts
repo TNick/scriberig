@@ -6,3 +6,4 @@ export * from "./session-panel";
 export * from "./operation-panel";
 export * from "./branch-activity";
 export * from "./model-controls";
+export * from "./plan-panel";

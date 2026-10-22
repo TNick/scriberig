@@ -32,6 +32,13 @@ fn worker_models() -> Vec<Model> {
             "provider",
             "https://example.test",
         ),
+        Model::new(
+            "fallback-model",
+            "Fallback Model",
+            Api::AnthropicMessages,
+            "provider",
+            "https://example.test",
+        ),
     ]
 }
 
@@ -71,6 +78,8 @@ fn scheduler_plan() -> (Plan, EntityId, EntityId, EntityId) {
             assignment: None,
             claim: None,
             claim_generation: 0,
+            abandon_reason: None,
+            last_failure: None,
         })
         .expect("add node");
     }
@@ -122,6 +131,8 @@ fn sibling_workers_execute_concurrently_with_distinct_assignments() {
             }),
             claim: None,
             claim_generation: 0,
+            abandon_reason: None,
+            last_failure: None,
         })
         .expect("add sibling");
     }
@@ -151,8 +162,8 @@ fn sibling_workers_execute_concurrently_with_distinct_assignments() {
     assert_eq!(batch.completed, dispatch);
     assert_eq!(batch.failed, [] as [scriberig_core::EntityId; 0]);
     assert_eq!(batch.results.len(), 2);
-    assert_eq!(batch.results[0].result_handles, vec!["profile:alpha"]);
-    assert_eq!(batch.results[1].result_handles, vec!["profile:beta"]);
+    assert_eq!(batch.results[0].result_handles, vec!["provider:provider"]);
+    assert_eq!(batch.results[1].result_handles, vec!["provider:provider"]);
     assert!(
         plan.nodes
             .iter()

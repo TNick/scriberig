@@ -325,7 +325,7 @@ pub(crate) fn activate_palette_control(state: &mut TuiState, item_id: &str) -> O
                 assignment: Some(scriberig_session::ModelAssignment {
                     provider_id: model.provider_id.clone(),
                     model_id: model.provider_model_id.clone(),
-                    thinking_level: None,
+                    thinking_level: model.thinking_levels.first().cloned(),
                 }),
             },
         )]);

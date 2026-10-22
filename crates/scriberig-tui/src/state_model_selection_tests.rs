@@ -116,15 +116,24 @@ fn displayed_model_selection_uses_shared_session_revision() {
     );
 }
 
-/// Verifies thinking selection rejects levels unsupported by the active model.
+/// Verifies thinking selection delegates unsupported validation upstream.
 #[test]
-fn unsupported_thinking_level_does_not_mutate_session() {
+fn unsupported_thinking_level_is_delegated_for_upstream_validation() {
     let mut state = picker_state(Some(("provider-a", "provider-model-a")));
+    let session = EntityId::from_bytes([41; 16]);
 
     let effects = select_thinking_level(&mut state, "private-level");
 
-    assert_eq!(effects, vec![Effect::None]);
-    assert!(state.shell_message.contains("not advertised"));
+    assert_eq!(
+        effects,
+        vec![Effect::SetSessionThinkingLevel(
+            scriberig_app::SessionThinkingSelectionRequest {
+                session,
+                expected_revision: 12,
+                thinking_level: "private-level".to_owned(),
+            }
+        )]
+    );
 }
 
 /// Verifies supported thinking selection carries the latest mutation revision.

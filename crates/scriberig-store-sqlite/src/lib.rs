@@ -11,6 +11,7 @@ mod observability;
 mod project_files;
 mod project_rows;
 mod projects;
+mod promotion;
 mod reachability;
 mod recovery;
 mod revision;
@@ -24,7 +25,7 @@ mod workflow;
 use std::path::Path;
 use std::sync::Mutex;
 
-use rusqlite::Connection;
+use rusqlite::{Connection, OpenFlags};
 use scriberig_core::{ProjectId, RevisionId, RootName, SnapshotId};
 use scriberig_store::{Revision, Snapshot, SnapshotError};
 
@@ -73,6 +74,23 @@ impl SqliteStore {
     /// Returns an error when the operation fails.
     pub fn open(path: impl AsRef<Path>) -> rusqlite::Result<Self> {
         Self::from_connection(connection::configure(Connection::open(path)?)?)
+    }
+
+    /// Opens an SQLite store using explicit connection flags.
+    ///
+    /// # Parameters
+    /// - `path`: SQLite path or URI.
+    /// - `flags`: SQLite connection flags.
+    ///
+    /// # Returns
+    /// An initialized durable store.
+    ///
+    /// # Errors
+    /// Returns a SQLite initialization error.
+    pub fn open_with_flags(path: impl AsRef<Path>, flags: OpenFlags) -> rusqlite::Result<Self> {
+        Self::from_connection(connection::configure(Connection::open_with_flags(
+            path, flags,
+        )?)?)
     }
     /// - `rusqlite`: Operation input.
     ///
@@ -159,80 +177,6 @@ impl SqliteStore {
         changes: &[scriberig_store::SnapshotChange],
     ) -> Result<SnapshotId, PromotionError> {
         self.apply_revisions_and_promote(name, expected, base, &[], changes)
-    }
-
-    /// Inserts revisions, creates a snapshot, and promotes its named root atomically.
-    ///
-    /// - `name`: Named root to promote.
-    /// - `expected`: Root value required for promotion.
-    /// - `base`: Existing snapshot to change.
-    /// - `revisions`: New immutable revisions to insert idempotently.
-    /// - `changes`: Mapping changes for the successor snapshot.
-    ///
-    /// The promoted immutable snapshot identity.
-    ///
-    /// Returns a snapshot, missing-revision, stale-root, or transaction error.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn apply_revisions_and_promote(
-        &self,
-        name: scriberig_core::RootName,
-        expected: Option<SnapshotId>,
-        base: SnapshotId,
-        revisions: &[Revision],
-        changes: &[scriberig_store::SnapshotChange],
-    ) -> Result<SnapshotId, PromotionError> {
-        let source = self.snapshot(base).map_err(PromotionError::Snapshot)?;
-        let next = source.apply(changes.iter().copied());
-        let mut connection = self
-            .connection
-            .lock()
-            .map_err(|_| PromotionError::Backend("lock poisoned".to_owned()))?;
-        let transaction = connection
-            .transaction()
-            .map_err(|error| PromotionError::Backend(error.to_string()))?;
-        for revision in revisions {
-            revision::insert_in_transaction(&transaction, revision)
-                .map_err(|error| PromotionError::Backend(error.to_string()))?;
-        }
-        for change in changes {
-            if let scriberig_store::SnapshotChange::Set(_, revision) = change {
-                let present: bool = transaction
-                    .query_row(
-                        "SELECT EXISTS(SELECT 1 FROM revisions WHERE id=?)",
-                        rusqlite::params![revision.as_bytes().as_slice()],
-                        |row| row.get(0),
-                    )
-                    .map_err(|error| PromotionError::Backend(error.to_string()))?;
-                if !present {
-                    return Err(PromotionError::MissingRevision(*revision));
-                }
-            }
-        }
-        if let Err(error) = Self::store_snapshot_in_transaction(&transaction, &next) {
-            return Err(PromotionError::Backend(error.to_string()));
-        }
-        if let Err(error) = snapshot::store_parent_in_transaction(&transaction, next.id(), base) {
-            return Err(PromotionError::Backend(error.to_string()));
-        }
-        let actual = roots::read_root_in_transaction(&transaction, &name)
-            .map_err(|error| PromotionError::Backend(error.to_string()))?;
-        if actual != expected {
-            drop(transaction);
-            return Err(PromotionError::Root(scriberig_store::RootError::Conflict {
-                name,
-                expected,
-                actual,
-            }));
-        }
-        roots::write_root_in_transaction(&transaction, &name, next.id())
-            .map_err(|error| PromotionError::Backend(error.to_string()))?;
-        transaction
-            .commit()
-            .map_err(|error| PromotionError::Backend(error.to_string()))?;
-        Ok(next.id())
     }
 
     /// Promotes a project snapshot and its catalog metadata atomically.

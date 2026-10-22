@@ -42,12 +42,19 @@ fn empty_plan() -> scriberig_protocol::SessionPlan {
     scriberig_protocol::SessionPlan {
         id: "plan-1".to_owned(),
         revision: 1,
+        exact_revision: None,
+        snapshot: None,
         goal: "goal".to_owned(),
         status: scriberig_protocol::SessionPlanStatus::Planned,
         anchor: None,
         root_branch: "branch-1".to_owned(),
         nodes: Vec::new(),
         dependencies: Vec::new(),
+        root_nodes: Vec::new(),
+        status_counts: scriberig_protocol::SessionPlanStatusCounts::default(),
+        gates: Vec::new(),
+        evidence: Vec::new(),
+        summaries: Vec::new(),
         coordinator: None,
         coordinator_cursor: None,
         coordinator_claim: None,
@@ -227,5 +234,23 @@ fn plan_client_methods_send_shared_application_requests() {
     assert!(matches!(
         observed.lock().expect("request").as_ref(),
         Some(Request::PlanAssignment(_))
+    ));
+    assert!(
+        client
+            .mutate_plan(scriberig_protocol::SessionPlanMutationRequest {
+                session: SessionReference {
+                    id: "session-1".to_owned(),
+                },
+                plan: "plan-1".to_owned(),
+                expected_revision: 2,
+                mutation: scriberig_protocol::SessionPlanMutation::RecoverFailedPlan,
+            })
+            .is_ok()
+    );
+    assert!(matches!(
+        observed.lock().expect("request").as_ref(),
+        Some(Request::PlanMutation(request))
+            if request.expected_revision == 2
+                && request.mutation == scriberig_protocol::SessionPlanMutation::RecoverFailedPlan
     ));
 }

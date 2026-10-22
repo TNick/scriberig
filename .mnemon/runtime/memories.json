@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "content": "When committing in Nicu's repositories, never GPG-sign: use `git commit --no-gpg-sign` (or `-c commit.gpgsign=false`).",
+      "created_at": "2026-10-21T11:48:50.000Z",
+      "updated_at": "2026-10-21T11:48:50.000Z",
+      "target": "user",
+      "importance": "critical"
+    }
+  ]
+}

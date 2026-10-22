@@ -27,6 +27,8 @@ use super::{
 /// - `debug_log`: Optional redacted input diagnostics.
 /// - `should_quit`: Event loop termination flag.
 /// - `redraw`: Whether the upstream screen needs a render request.
+/// - `suppress_composer_restore`: Whether a just-submitted draft must not be
+///   pushed back into the editor before its cleared draft change arrives.
 pub struct InputContext<'a, 'log, S> {
     /// Application operations for model properties.
     pub service: &'a S,
@@ -60,4 +62,6 @@ pub struct InputContext<'a, 'log, S> {
     pub should_quit: &'a mut bool,
     /// Whether the upstream screen needs a render request.
     pub redraw: &'a mut bool,
+    /// Whether a just-submitted draft must not be restored into the editor.
+    pub suppress_composer_restore: &'a mut bool,
 }

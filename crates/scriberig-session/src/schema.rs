@@ -18,6 +18,16 @@ pub enum SessionEntityType {
     Turn,
     ModelInvocation,
     ModelOutput,
+    Plan,
+    PlanNode,
+    PlanDependency,
+    PlanMembership,
+    PlanStructure,
+    PlanRevision,
+    PlanGate,
+    PlanEvidence,
+    PlanSummary,
+    PlanSummaryLink,
 }
 impl SessionEntityType {
     #[must_use]
@@ -39,6 +49,16 @@ impl SessionEntityType {
             Self::Turn => "Turn",
             Self::ModelInvocation => "ModelInvocation",
             Self::ModelOutput => "ModelOutput",
+            Self::Plan => "scriberig.session.plan",
+            Self::PlanNode => "scriberig.session.plan-node",
+            Self::PlanDependency => "scriberig.session.plan-dependency",
+            Self::PlanMembership => "scriberig.session.plan-membership",
+            Self::PlanStructure => "scriberig.session.plan-structure",
+            Self::PlanRevision => "scriberig.session.plan-revision",
+            Self::PlanGate => "scriberig.session.plan-gate",
+            Self::PlanEvidence => "scriberig.session.plan-evidence",
+            Self::PlanSummary => "scriberig.session.plan-summary",
+            Self::PlanSummaryLink => "scriberig.session.plan-summary-link",
         }
     }
 }

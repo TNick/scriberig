@@ -44,7 +44,7 @@ pub(in crate::state) fn reduce_application_event(
             activity_kind,
             state: activity_state,
             summary,
-            ..
+            ordinal,
         } => {
             return super::agent_activity::observe_agent_activity(
                 state,
@@ -53,6 +53,7 @@ pub(in crate::state) fn reduce_application_event(
                 *activity_kind,
                 *activity_state,
                 summary,
+                *ordinal,
             );
         }
         scriberig_app::ApplicationEvent::SessionSelectionChanged {
@@ -67,6 +68,7 @@ pub(in crate::state) fn reduce_application_event(
                 *activity_kind,
                 scriberig_session::AgentActivityState::Completed,
                 summary,
+                0,
             );
             state.shell_message.clone_from(summary);
             return effects;

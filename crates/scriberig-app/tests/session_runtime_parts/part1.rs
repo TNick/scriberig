@@ -226,7 +226,7 @@ fn application_plan_operations_validate_and_persist_structured_work() {
                 assignment: Some(scriberig_session::ModelAssignment {
                     provider_id: "local".to_owned(),
                     model_id: "native-b".to_owned(),
-                    thinking_level: Some("steady".to_owned()),
+                    thinking_level: Some("medium".to_owned()),
                 }),
             },
         )

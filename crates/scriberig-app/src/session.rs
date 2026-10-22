@@ -236,6 +236,78 @@ pub struct PlanReplanRequest {
     pub reason: String,
 }
 
+/// Requests one optimistic semantic mutation of a durable plan.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlanMutationRequest {
+    /// Owning session identity.
+    pub session: EntityId,
+    /// Stable plan identity.
+    pub plan: EntityId,
+    /// Plan revision observed by the caller.
+    pub expected_revision: u64,
+    /// Typed mutation to apply atomically.
+    pub mutation: PlanMutation,
+}
+
+/// Selects one semantic plan mutation owned by the shared application layer.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PlanMutation {
+    /// Appends ordinary work to a running plan.
+    AddNextStep(PlanNodeDraft),
+    /// Adds structural descendants and optional completion obligations.
+    Decompose {
+        /// Existing parent node.
+        parent: EntityId,
+        /// New child work items.
+        children: Vec<PlanNodeDraft>,
+        /// Whether every child must complete before its parent.
+        required: bool,
+    },
+    /// Adds a typed gate to one node.
+    AddGate {
+        /// Node whose lifecycle is constrained.
+        owner: EntityId,
+        /// Gate evaluation phase.
+        phase: scriberig_session::PlanGatePhase,
+        /// Typed requirement without an executable expression.
+        requirement: scriberig_session::PlanGateRequirement,
+    },
+    /// Retains an explicit waiver on a gate.
+    WaiveGate {
+        /// Stable gate identity.
+        gate: EntityId,
+        /// Safe reason for the waiver.
+        reason: String,
+    },
+    /// Associates an exact semantic reference with a node or gate.
+    AttachEvidence {
+        /// Node or gate receiving the evidence.
+        owner: scriberig_session::PlanEvidenceOwner,
+        /// Evidence role.
+        role: scriberig_session::PlanEvidenceRole,
+        /// Exact source evidence.
+        evidence: scriberig_session::PlanEvidenceReference,
+        /// Optional bounded safe note.
+        note: Option<String>,
+    },
+    /// Replaces one node's current summary.
+    UpdateSummary {
+        /// Node summarized by the record.
+        node: EntityId,
+        /// Concise safe summary text.
+        text: String,
+        /// Exact source revisions or snapshots used by the summary.
+        sources: Vec<scriberig_session::PlanSemanticReference>,
+    },
+    /// Retries one failed node after dependency and gate checks.
+    RetryFailedNode {
+        /// Failed node identity.
+        node: EntityId,
+    },
+    /// Recovers a failed plan into a paused state for explicit repair.
+    RecoverFailedPlan,
+}
+
 /// Identifies the exact semantic scope supplied to an agent.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AgentSelection {

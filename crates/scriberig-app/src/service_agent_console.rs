@@ -128,11 +128,37 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
             &request.model_id,
             session.execution.thinking_level.as_deref(),
         )?;
-        let thinking = session
-            .execution
-            .thinking_level
-            .as_ref()
-            .map(|_| effective_thinking.as_str().to_owned());
+        let thinking = if session.execution.thinking_level.is_some() {
+            Some(effective_thinking.as_str().to_owned())
+        } else {
+            let supported = model.supported_thinking_levels();
+            let explicit = model.thinking_level_map.as_ref().and_then(|map| {
+                [
+                    rpi_ai::ThinkingLevel::Medium,
+                    rpi_ai::ThinkingLevel::High,
+                    rpi_ai::ThinkingLevel::Low,
+                    rpi_ai::ThinkingLevel::Minimal,
+                    rpi_ai::ThinkingLevel::Xhigh,
+                    rpi_ai::ThinkingLevel::Max,
+                ]
+                .into_iter()
+                .find(|level| matches!(map.get(level), Some(Some(_))))
+            });
+            explicit
+                .or_else(|| {
+                    supported
+                        .iter()
+                        .find(|level| **level == rpi_ai::ThinkingLevel::Medium)
+                        .copied()
+                })
+                .or_else(|| {
+                    supported
+                        .iter()
+                        .find(|level| **level != rpi_ai::ThinkingLevel::Off)
+                        .copied()
+                })
+                .map(|level| level.as_str().to_owned())
+        };
         session
             .execution
             .replace(

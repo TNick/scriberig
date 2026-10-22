@@ -67,7 +67,7 @@ fn run_candidate_plan(conflict: bool) {
     )
     .expect("save session");
     let assignment = Some(ModelAssignment {
-        provider_id: "integration-provider".to_owned(),
+        provider_id: "local".to_owned(),
         model_id: "integration-model".to_owned(),
         thinking_level: None,
     });

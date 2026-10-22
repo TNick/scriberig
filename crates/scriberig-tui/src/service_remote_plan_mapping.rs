@@ -2,6 +2,9 @@
 
 use super::{ApplicationError, parse_entity, parse_plan_parent};
 
+#[path = "service_remote_plan_mapping/semantics.rs"]
+mod semantics;
+
 /// Restores a durable plan and its retained revisions from the protocol.
 ///
 /// - `value`: Safe remote plan projection.
@@ -22,6 +25,7 @@ pub(super) fn from_response(
         .map_or(0, |claim| claim.generation);
     Ok(scriberig_session::Plan {
         id: parse_entity(&value.id)?,
+        source_snapshot: semantics::snapshot(value.snapshot.as_deref())?,
         session: None,
         anchor: value.anchor.map(anchor).transpose()?,
         goal: value.goal,
@@ -37,6 +41,21 @@ pub(super) fn from_response(
             .dependencies
             .iter()
             .map(dependency)
+            .collect::<Result<Vec<_>, _>>()?,
+        summaries: value
+            .summaries
+            .into_iter()
+            .map(semantics::summary)
+            .collect::<Result<Vec<_>, _>>()?,
+        evidence: value
+            .evidence
+            .into_iter()
+            .map(semantics::evidence)
+            .collect::<Result<Vec<_>, _>>()?,
+        gates: value
+            .gates
+            .into_iter()
+            .map(semantics::gate)
             .collect::<Result<Vec<_>, _>>()?,
         coordinator: value.coordinator.as_deref().map(parse_entity).transpose()?,
         coordinator_cursor: value
@@ -63,7 +82,11 @@ pub(super) fn from_response(
             })
             .transpose()?,
         coordinator_generation,
-        root_nodes: Vec::new(),
+        root_nodes: value
+            .root_nodes
+            .iter()
+            .map(|identity| parse_entity(identity))
+            .collect::<Result<Vec<_>, _>>()?,
         history: value
             .history
             .into_iter()
@@ -99,6 +122,21 @@ fn revision(
             .dependencies
             .iter()
             .map(dependency)
+            .collect::<Result<Vec<_>, _>>()?,
+        summaries: value
+            .summaries
+            .into_iter()
+            .map(semantics::summary)
+            .collect::<Result<Vec<_>, _>>()?,
+        evidence: value
+            .evidence
+            .into_iter()
+            .map(semantics::evidence)
+            .collect::<Result<Vec<_>, _>>()?,
+        gates: value
+            .gates
+            .into_iter()
+            .map(semantics::gate)
             .collect::<Result<Vec<_>, _>>()?,
         reason: value.reason,
     })
@@ -157,6 +195,11 @@ fn node(
             .superseded_by
             .as_deref()
             .map(parse_entity)
+            .transpose()?,
+        abandon_reason: semantics::abandon_reason(value.abandon_reason),
+        last_failure: value
+            .last_failure
+            .map(semantics::evidence_reference)
             .transpose()?,
         assignment: value.assignment.map(assignment),
         claim: value

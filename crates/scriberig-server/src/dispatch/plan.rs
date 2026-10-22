@@ -79,8 +79,9 @@ impl<S: ApplicationService> Dispatcher<S> {
                         scriberig_app::PlanLifecycleAction::Complete
                     }
                 };
-                handler(&self.service, &context, &app_request, action)
-                    .map(crate::server::server_helpers::project_session_plan)
+                handler(&self.service, &context, &app_request, action).and_then(|plan| {
+                    crate::server::server_helpers::project_session_plan(plan, None)
+                })
             }
             _ => self.service.plan_operation(&context, request),
         };

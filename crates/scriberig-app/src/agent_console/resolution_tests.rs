@@ -287,6 +287,8 @@ fn invocation_override_wins_over_node_assignment() {
         branch: None,
         result: None,
         superseded_by: None,
+        abandon_reason: None,
+        last_failure: None,
         assignment: Some(scriberig_session::ModelAssignment {
             provider_id: "local".to_owned(),
             model_id: "wire-beta".to_owned(),

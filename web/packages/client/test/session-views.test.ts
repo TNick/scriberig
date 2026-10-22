@@ -10,15 +10,16 @@ describe("session views", () => {
           session: { id: "session-1" },
           execution: {
             revision: 3,
-            model_profile: "profile-a",
-            model: "model-a",
+            provider_id: "provider-1",
+            model_id: "model-a",
             thinking_level: "careful",
             history: [
               {
                 revision: 3,
                 kind: "ThinkingLevelChanged",
                 summary: "Thinking level selected: careful",
-                model: "model-a",
+                provider_id: "provider-1",
+                model_id: "model-a",
                 thinking_level: "careful",
               },
             ],
@@ -90,8 +91,8 @@ describe("session views", () => {
                   expected_result: { kind: "semantic_changes", requires_handle: true },
                   semantic_scope: ["entity-parser"],
                   assignment: {
-                    profile: "profile-a",
-                    model: "model-a",
+                    provider_id: "provider-1",
+                    model_id: "model-a",
                     thinking_level: "careful",
                   },
                   claim: {
@@ -100,7 +101,7 @@ describe("session views", () => {
                     branch: "parser-branch",
                     owner: "worker-1",
                     generation: 2,
-                    assignment: { profile: "profile-a", model: "model-a" },
+                    assignment: { provider_id: "provider-1", model_id: "model-a" },
                   },
                 },
               ],
@@ -139,15 +140,16 @@ describe("session views", () => {
     const session = await client.getSession("session-1" as never);
     expect(session.execution).toEqual({
       revision: 3,
-      modelProfile: "profile-a",
-      model: "model-a",
+      providerId: "provider-1",
+      modelId: "model-a",
       thinkingLevel: "careful",
       history: [
         {
           revision: 3,
           kind: "ThinkingLevelChanged",
           summary: "Thinking level selected: careful",
-          model: "model-a",
+          providerId: "provider-1",
+          modelId: "model-a",
           thinkingLevel: "careful",
         },
       ],
@@ -183,8 +185,8 @@ describe("session views", () => {
             generation: 2,
           },
           assignment: {
-            profile: "profile-a",
-            model: "model-a",
+            providerId: "provider-1",
+            modelId: "model-a",
             thinkingLevel: "careful",
           },
         },

@@ -14,8 +14,10 @@ pub mod views;
 
 /// Defines the durable session repository boundary.
 pub mod repository {
-    use crate::Session;
-    use scriberig_core::EntityId;
+    use std::collections::BTreeMap;
+
+    use crate::{Plan, PlanNodeRollup, Session};
+    use scriberig_core::{EntityId, SnapshotId};
 
     /// Reports durable execution-selection update failures.
     #[derive(Clone, Debug, Eq, PartialEq)]
@@ -64,6 +66,95 @@ pub mod repository {
         /// # Errors
         /// Returns an error when the operation fails.
         fn load(&self, session: EntityId) -> Result<Option<Session>, String>;
+
+        /// Loads one plan projection from an exact historical semantic snapshot.
+        ///
+        /// - `_session`: Owning durable session identity.
+        /// - `_plan`: Stable plan identity.
+        /// - `_snapshot`: Exact universal snapshot to resolve.
+        ///
+        /// The plan at that snapshot, or `None` when the snapshot is not in
+        /// the plan root's history.
+        ///
+        /// Returns an error when the backend cannot resolve semantic history.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns a backend diagnostic when snapshot resolution fails.
+        fn load_plan_at_snapshot(
+            &self,
+            _session: EntityId,
+            _plan: EntityId,
+            _snapshot: SnapshotId,
+        ) -> Result<Option<Plan>, String> {
+            Err("historical plan snapshot reads are unsupported".to_owned())
+        }
+
+        /// Loads one compact semantic plan projection without reconstructing history.
+        ///
+        /// - `_session`: Owning durable session identity.
+        /// - `_plan`: Stable plan identity.
+        /// - `_snapshot`: Exact snapshot, or `None` for the current plan root.
+        ///
+        /// The plan projection with an empty compatibility history, or `None`
+        /// when the plan or snapshot does not exist.
+        ///
+        /// Returns a backend diagnostic when the semantic projection cannot
+        /// be read.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns a backend diagnostic when snapshot resolution fails.
+        fn load_plan_projection(
+            &self,
+            _session: EntityId,
+            _plan: EntityId,
+            _snapshot: Option<SnapshotId>,
+        ) -> Result<Option<Plan>, String> {
+            Err("compact semantic plan reads are unsupported".to_owned())
+        }
+
+        /// Loads snapshot-bound derived rollups for compact plan views.
+        ///
+        /// - `_session`: Owning durable session identity.
+        /// - `_plan`: Stable plan identity.
+        /// - `_snapshot`: Exact canonical plan snapshot.
+        ///
+        /// Cached node rollups, or `None` when the backend has no matching
+        /// cache.
+        ///
+        /// Returns a backend diagnostic when a matching cache is corrupt.
+        /// # Returns
+        /// The current derived summary when available.
+        /// # Errors
+        /// Returns a backend error when the index cannot be read.
+        fn load_plan_rollups(
+            &self,
+            _session: EntityId,
+            _plan: EntityId,
+            _snapshot: SnapshotId,
+        ) -> Result<Option<BTreeMap<EntityId, PlanNodeRollup>>, String> {
+            Ok(None)
+        }
+
+        /// Loads branch results without hydrating semantic plan histories.
+        ///
+        /// - `_session`: Owning durable session identity.
+        ///
+        /// The session's branch results, or `None` when this optimized read is
+        /// unsupported or the session does not exist.
+        ///
+        /// Returns a backend diagnostic when the stored session is unreadable.
+        /// # Returns
+        /// The result data required to evaluate plan dependencies and retries.
+        /// # Errors
+        /// Returns a backend diagnostic when the payload cannot be decoded.
+        fn load_plan_branch_results(
+            &self,
+            _session: EntityId,
+        ) -> Result<Option<Vec<crate::BranchResult>>, String> {
+            Ok(None)
+        }
 
         /// Removes one exact durable session graph.
         ///
@@ -155,8 +246,17 @@ pub use execution::{
     SessionActivityState, SessionExecutionChange, SessionExecutionSelection, ToolActivityKind,
 };
 pub use planning::{
-    CoordinatorClaim, ExpectedResult, ModelAssignment, Plan, PlanDependency, PlanError, PlanNode,
-    PlanNodeParent, PlanNodeStatus, PlanRevision, PlanStatus, WorkerClaim,
+    CoordinatorClaim, ExpectedResult, ModelAssignment, Plan, PlanAbandonReason, PlanAttemptView,
+    PlanDependency, PlanError, PlanEvidenceAssociation, PlanEvidenceKind, PlanEvidenceOwner,
+    PlanEvidenceReference, PlanEvidenceRole, PlanGate, PlanGateCounts, PlanGateEvaluation,
+    PlanGatePhase, PlanGateRequirement, PlanGateStatus, PlanGateWaiver, PlanNode, PlanNodeParent,
+    PlanNodeRollup, PlanNodeRollupIndex, PlanNodeStatus, PlanNodeStatusCounts, PlanNodeSummary,
+    PlanNodeView, PlanRevision, PlanSemanticPredicate, PlanSemanticReference, PlanStatus, PlanView,
+    WorkerClaim,
+    semantic::{
+        PlanSemanticError, PlanSemanticHistory, PlanSemanticNodeRef, PlanSemanticRevision,
+        PlanSemanticSnapshot,
+    },
 };
 pub use repository::{PlanStoreError, SelectionStoreError, SessionStore};
 pub use turn::{

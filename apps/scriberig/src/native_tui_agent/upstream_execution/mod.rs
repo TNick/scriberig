@@ -109,6 +109,7 @@ pub(crate) fn execute_root_branch_with_options<B: ApplicationBackend + Sync>(
         provider_profile,
         output_callback,
         None,
+        None,
     )
     .map(|execution| execution.result)
 }
@@ -134,6 +135,7 @@ pub(crate) fn execute_root_branch_with_options<B: ApplicationBackend + Sync>(
 /// - `cancelled`: `ScribeRig` operation cancellation flag.
 /// - `provider_profile`: Safe provider profile used for provenance.
 /// - `output_callback`: Optional provider-visible text observer.
+/// - `summary_callback`: Optional provider-visible reasoning-summary observer.
 /// - `continuation`: Candidate provider handle and its prior context fingerprint.
 ///
 /// # Returns
@@ -157,6 +159,7 @@ pub(crate) fn execute_root_branch_with_continuation<B: ApplicationBackend + Sync
     cancelled: &std::sync::atomic::AtomicBool,
     provider_profile: Option<String>,
     output_callback: Option<scriberig_agent_runtime::OutputCallback>,
+    summary_callback: Option<scriberig_agent_runtime::ReasoningSummaryCallback>,
     continuation: Option<(rpi_ai::ProviderContinuation, String)>,
 ) -> Result<RootBranchRun, UpstreamBranchExecutionFailure> {
     let semantic_scope =
@@ -229,6 +232,7 @@ pub(crate) fn execute_root_branch_with_continuation<B: ApplicationBackend + Sync
         prompt.to_owned(),
         run_cancellation,
         output_callback,
+        summary_callback,
         continuation.map(|(handle, _)| handle),
     );
     let runtime = tokio::runtime::Builder::new_current_thread()
@@ -311,6 +315,7 @@ pub(super) fn execute_precompiled_branch<B: ApplicationBackend + Sync>(
         invocation,
         prompt.to_owned(),
         cancellation.clone(),
+        None,
         None,
         None,
     );

@@ -247,6 +247,7 @@ fn run_headless<S: TuiService>(service: &S, context: &ApplicationContext, config
                 request_id,
                 entity,
                 snapshot: config.snapshot,
+                switch_view: false,
             },
         );
         for effect in effects {

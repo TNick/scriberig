@@ -11,6 +11,15 @@
 /// # Errors
 /// Returns an error when the result omits or corrupts its handle list.
 pub(crate) fn parse_handles(message: &str) -> Result<Vec<String>, String> {
+    if let Ok(value) = serde_json::from_str::<serde_json::Value>(message)
+        && let Some(handles) = value.get("handles").and_then(serde_json::Value::as_array)
+    {
+        return Ok(handles
+            .iter()
+            .filter_map(serde_json::Value::as_str)
+            .map(str::to_owned)
+            .collect());
+    }
     let values = message
         .split_once("handles=[")
         .and_then(|(_, value)| value.split_once(']'))

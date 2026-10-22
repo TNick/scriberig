@@ -41,6 +41,10 @@ type ChildDispatchFuture<'a> =
 /// # Errors
 /// Returns a safe failure after recording an abandoned child when possible.
 #[allow(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_lines,
+    reason = "Child creation, context compilation, execution, and result settlement share one borrowed scope."
+)]
 pub(super) fn dispatch_child<'a, B: ApplicationBackend + Sync + 'a>(
     service: &'a ApplicationService<B>,
     context: &'a ApplicationContext,
@@ -112,11 +116,18 @@ pub(super) fn dispatch_child<'a, B: ApplicationBackend + Sync + 'a>(
             cancellation,
             output_callback,
             None,
+            None,
         )
         .await;
         match child_result {
             Ok(execution) => {
-                let result_handles = vec![format!("branch:{}", child_handle.child_branch)];
+                let compact = scriberig_agent_runtime::AgentResult {
+                    output: execution.result.output.clone(),
+                    tool_evidence: execution.tool_evidence.clone(),
+                    model_requests: execution.result.model_requests.clone(),
+                };
+                let mut result_handles = crate::child_runtime::compact_result_handles(&compact);
+                result_handles.push(format!("branch:{}", child_handle.child_branch));
                 let finalized = service
                     .complete_local_child_agent_with_evidence(
                         &child_handle,

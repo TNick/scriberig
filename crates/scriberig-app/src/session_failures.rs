@@ -221,6 +221,11 @@ impl<B> ApplicationService<B> {
             .map_err(|error| ApplicationError::Internal {
                 message: error.to_string(),
             })?;
+        branch
+            .activity
+            .push(scriberig_session::ExecutionActivity::BranchResult(
+                result_id,
+            ));
         self.save_session_state(session)?;
         self.operations.fail(
             &handle.operation,

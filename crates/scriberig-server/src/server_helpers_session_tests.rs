@@ -34,6 +34,8 @@ fn session_response_preserves_plan_dependencies_and_safe_assignments() {
                     branch: Some(EntityId::from_bytes([47; 16])),
                     result: Some(result),
                     superseded_by: None,
+                    abandon_reason: None,
+                    last_failure: None,
                     assignment: Some(ModelAssignment {
                         provider_id: "provider-a".to_owned(),
                         model_id: "model-a".to_owned(),
@@ -53,6 +55,8 @@ fn session_response_preserves_plan_dependencies_and_safe_assignments() {
                     branch: None,
                     result: None,
                     superseded_by: None,
+                    abandon_reason: None,
+                    last_failure: None,
                     assignment: None,
                     claim: None,
                     claim_generation: 0,
@@ -63,6 +67,10 @@ fn session_response_preserves_plan_dependencies_and_safe_assignments() {
                 dependent,
                 fulfilled_by: Some(result),
             }],
+            source_snapshot: None,
+            summaries: Vec::new(),
+            evidence: Vec::new(),
+            gates: Vec::new(),
             coordinator: Some(root),
             coordinator_cursor: Some(dependent),
             coordinator_claim: None,
@@ -78,7 +86,7 @@ fn session_response_preserves_plan_dependencies_and_safe_assignments() {
         execution: SessionExecutionSelection::default(),
     };
 
-    let response = super::session_response(session);
+    let response = super::session_response(session).expect("session response");
     let plan = &response.plans[0];
     assert_eq!(
         plan.dependencies[0].fulfilled_by.as_deref(),

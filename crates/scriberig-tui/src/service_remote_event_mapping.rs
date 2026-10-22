@@ -77,12 +77,16 @@ pub(crate) fn map_remote_event(
         scriberig_protocol::EventKind::AgentActivity => {
             let branch = metadata_value(event, "branch")?;
             let summary = metadata_value(event, "summary")?;
+            let ordinal = metadata_value(event, "ordinal")
+                .and_then(|value| value.parse().ok())
+                .unwrap_or_default();
             Some(scriberig_app::ApplicationEvent::AgentActivity {
                 operation,
                 branch,
                 activity_kind: *event.activity_kind.as_ref()?,
                 state: *event.activity_state.as_ref()?,
                 summary,
+                ordinal,
             })
         }
         _ => None,

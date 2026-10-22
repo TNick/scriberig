@@ -274,7 +274,7 @@ fn conversation_slash_routing_never_sends_unknown_commands_to_the_agent() {
     state.conversation_composer.draft = "/model".to_owned();
     assert!(matches!(
         reduce(&mut state, Action::InputSubmitted).as_slice(),
-        [Effect::ReadModelLibrary { .. }]
+        [Effect::None]
     ));
     assert_eq!(state.conversation_composer.draft, "");
     let session = scriberig_core::EntityId::from_bytes([125; 16]);
@@ -364,6 +364,19 @@ fn conversation_auxiliary_command_is_available_while_agent_is_pending() {
     assert_eq!(
         state.conversation_composer.pending_prompt.as_deref(),
         Some("request currently running")
+    );
+}
+
+/// Verifies the project slash command reports a missing project.
+#[test]
+fn project_command_reports_missing_project() {
+    let mut state = TuiState::default();
+    state.conversation_composer.draft = "/project".to_owned();
+    reduce(&mut state, Action::InputSubmitted);
+    assert!(
+        state
+            .shell_message
+            .contains("No active project is selected.")
     );
 }
 

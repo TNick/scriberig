@@ -7,6 +7,9 @@ use scriberig_app::{
 };
 use scriberig_protocol::{Event, Operation};
 use scriberig_query::{FindRequest, FindResult, ListRequest, ListResult, QueryResult, QuerySpec};
+#[macro_use]
+#[path = "server_borrowed_plan_view.rs"]
+mod plan_view_method;
 impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// Delegates migration detail to the borrowed application service.
     ///
@@ -72,6 +75,9 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     ) -> Result<scriberig_protocol::SessionReadResponse, ApplicationError> {
         (**self).read_session(context, session)
     }
+
+    shared_borrowed_plan_detail_methods!();
+    shared_borrowed_plan_view_method!();
 
     /// Delegates model request detail reads to the borrowed service.
     ///

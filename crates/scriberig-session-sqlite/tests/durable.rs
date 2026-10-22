@@ -182,6 +182,7 @@ fn plan_dependencies_and_assignments_survive_reopen() {
     };
     let mut plan = Plan {
         id: EntityId::from_bytes([36; 16]),
+        source_snapshot: None,
         session: Some(EntityId::from_bytes([38; 16])),
         anchor: Some(scriberig_session::ContinuationAnchor::BranchHead { branch: root }),
         goal: "durable plan".to_owned(),
@@ -200,6 +201,8 @@ fn plan_dependencies_and_assignments_survive_reopen() {
                 branch: Some(worker),
                 result: None,
                 superseded_by: None,
+                abandon_reason: None,
+                last_failure: None,
                 assignment: Some(ModelAssignment {
                     provider_id: "provider-a".to_owned(),
                     model_id: "model-a".to_owned(),
@@ -230,6 +233,8 @@ fn plan_dependencies_and_assignments_survive_reopen() {
                 branch: None,
                 result: None,
                 superseded_by: None,
+                abandon_reason: None,
+                last_failure: None,
                 assignment: Some(ModelAssignment {
                     provider_id: "provider-b".to_owned(),
                     model_id: "model-b".to_owned(),
@@ -249,12 +254,17 @@ fn plan_dependencies_and_assignments_survive_reopen() {
                 branch: None,
                 result: None,
                 superseded_by: None,
+                abandon_reason: None,
+                last_failure: None,
                 assignment: None,
                 claim: None,
                 claim_generation: 0,
             },
         ],
         dependencies: Vec::new(),
+        summaries: Vec::new(),
+        evidence: Vec::new(),
+        gates: Vec::new(),
         coordinator: Some(first),
         coordinator_cursor: Some(first),
         coordinator_claim: Some(scriberig_session::CoordinatorClaim {
@@ -366,3 +376,16 @@ fn plan_dependencies_and_assignments_survive_reopen() {
 mod part1;
 #[path = "durable_parts/request_provenance.rs"]
 mod request_provenance;
+
+#[path = "durable_parts/incremental_rollup.rs"]
+mod incremental_rollup;
+#[path = "durable_parts/lifecycle_revisions.rs"]
+mod lifecycle_revisions;
+#[path = "durable_parts/part2.rs"]
+mod part2;
+#[path = "durable_parts/plan_history_migration.rs"]
+mod plan_history_migration;
+#[path = "durable_parts/plan_projection.rs"]
+mod plan_projection;
+#[path = "durable_parts/rollup_index.rs"]
+mod rollup_index;

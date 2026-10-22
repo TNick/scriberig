@@ -177,5 +177,6 @@ pub(super) fn new_conversation(state: &mut TuiState) -> Vec<Effect> {
     state.cursor = 0;
     state.primary_view = crate::selection::PrimaryView::Conversation;
     state.overlay = None;
+    state.shell_message = "New conversation".to_owned();
     vec![Effect::None]
 }
