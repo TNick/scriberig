@@ -74,6 +74,14 @@ fn failed_plan_node_retries_with_a_new_branch_and_claim_generation() {
             .claim_generation,
         2
     );
+    let attempts = plan.attempt_history(node).expect("node attempt history");
+    assert_eq!(attempts.len(), 2);
+    assert_eq!(attempts[0].branch, first_branch);
+    assert_eq!(attempts[0].status, PlanNodeStatus::Failed);
+    assert_eq!(attempts[0].claim, Some(first_claim));
+    assert_eq!(attempts[1].branch, second_branch);
+    assert_eq!(attempts[1].status, PlanNodeStatus::Running);
+    assert_eq!(attempts[1].claim, Some(second_claim));
 }
 
 /// Rejects retry when the node's exact dependency result is unavailable.

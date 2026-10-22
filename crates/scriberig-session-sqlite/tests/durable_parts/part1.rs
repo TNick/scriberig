@@ -2,6 +2,125 @@
 
 use super::*;
 
+/// Confirms plan graphs are split across universal immutable revisions.
+#[test]
+fn plan_storage_uses_independent_universal_objects() {
+    use scriberig_core::RootName;
+    use scriberig_store::{RevisionStore, RootStore, SnapshotStore};
+
+    let path = std::env::temp_dir().join(format!(
+        "scriberig-semantic-plan-{}.sqlite",
+        EntityId::new()
+    ));
+    let session_id = EntityId::from_bytes([51; 16]);
+    let root_branch = EntityId::from_bytes([52; 16]);
+    let plan_id = EntityId::from_bytes([53; 16]);
+    let node_id = EntityId::from_bytes([54; 16]);
+    let store = SqliteSessionStore::open(&path).expect("open store");
+    let mut plan = Plan::new(
+        plan_id,
+        session_id,
+        scriberig_session::ContinuationAnchor::BranchHead {
+            branch: root_branch,
+        },
+        "persist independent plan objects",
+    )
+    .expect("plan");
+    plan.add_node(PlanNode {
+        id: node_id,
+        parent: Some(scriberig_session::PlanNodeParent::Branch(root_branch)),
+        title: "inspect graph".to_owned(),
+        purpose: "verify semantic object ownership".to_owned(),
+        expected_result: None,
+        semantic_scope: Vec::new(),
+        status: PlanNodeStatus::Planned,
+        branch: None,
+        result: None,
+        superseded_by: None,
+        assignment: None,
+        claim: None,
+        claim_generation: 0,
+    })
+    .expect("add node");
+    store
+        .save(&Session {
+            id: session_id,
+            branches: vec![Branch::new(root_branch, "root").expect("branch")],
+            goals: Vec::new(),
+            tasks: Vec::new(),
+            plans: vec![plan],
+            execution: scriberig_session::SessionExecutionSelection::default(),
+        })
+        .expect("save session");
+
+    let semantic_store =
+        scriberig_store_sqlite::SqliteStore::open(&path).expect("open universal store");
+    let root =
+        RootName::new(format!("scriberig-plan-{session_id}-{plan_id}")).expect("plan root name");
+    let snapshot = semantic_store
+        .read_root(&root)
+        .expect("canonical plan root exists");
+    let mappings = semantic_store.iter(snapshot).expect("plan objects");
+    let plan_revision_id = mappings
+        .iter()
+        .find_map(|(entity, revision)| (*entity == plan_id).then_some(*revision))
+        .expect("plan object mapping");
+    let node_revision_id = mappings
+        .iter()
+        .find_map(|(entity, revision)| (*entity == node_id).then_some(*revision))
+        .expect("independent node mapping");
+    let plan_revision = semantic_store
+        .get(plan_revision_id)
+        .expect("read plan revision")
+        .expect("plan revision exists");
+    let node_revision = semantic_store
+        .get(node_revision_id)
+        .expect("read node revision")
+        .expect("node revision exists");
+    let semantic_objects = mappings
+        .iter()
+        .map(|(entity, revision_id)| {
+            let revision = semantic_store
+                .get(*revision_id)
+                .expect("read semantic revision")
+                .expect("semantic revision exists");
+            scriberig_session::PlanSemanticRevision {
+                entity: *entity,
+                object_type: revision.object_type().clone(),
+                revision: revision.id(),
+                payload: revision.payload().to_vec(),
+            }
+        })
+        .collect();
+    let semantic_snapshot = scriberig_session::PlanSemanticSnapshot {
+        plan: plan_id,
+        snapshot: Some(snapshot),
+        objects: semantic_objects,
+    };
+    let plan_payload: serde_json::Value =
+        serde_json::from_slice(plan_revision.payload()).expect("plan payload JSON");
+
+    assert_eq!(
+        plan_revision.object_type().as_str(),
+        "scriberig.session.plan"
+    );
+    assert_eq!(
+        node_revision.object_type().as_str(),
+        "scriberig.session.plan-node"
+    );
+    assert!(plan_payload.get("nodes").is_none());
+    assert!(plan_payload.get("dependencies").is_none());
+    assert!(plan_payload.get("history").is_none());
+    assert!(mappings.len() > 2);
+    let exact_nodes = semantic_snapshot.node_refs().expect("exact node refs");
+    assert_eq!(exact_nodes.len(), 1);
+    assert_eq!(exact_nodes[0].entity, node_id);
+    assert_eq!(exact_nodes[0].revision, node_revision_id);
+    drop(semantic_store);
+    drop(store);
+    let _ = std::fs::remove_file(path);
+}
+
 /// Verifies plan compare and swap merges new worker branch.
 #[test]
 fn plan_compare_and_swap_merges_new_worker_branch() {

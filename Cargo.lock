@@ -3474,6 +3474,8 @@ dependencies = [
  "rusqlite",
  "scriberig-core",
  "scriberig-session",
+ "scriberig-store",
+ "scriberig-store-sqlite",
  "serde",
  "serde_json",
 ]

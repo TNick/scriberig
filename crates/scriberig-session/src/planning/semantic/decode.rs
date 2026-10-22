@@ -1,5 +1,8 @@
 //! Reconstructs plan projections from independently loaded semantic objects.
 
+#[path = "decode/node_refs.rs"]
+mod node_refs;
+
 use scriberig_core::{EncodingVersion, EntityId, revision_id};
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
@@ -9,10 +12,13 @@ use super::super::{
     PlanNodeParent, PlanNodeStatus, PlanRevision, PlanStatus, WorkerClaim,
 };
 use super::encode::{
-    DEPENDENCY_TYPE, DependencyIdentity, MEMBERSHIP_TYPE, NODE_TYPE, PLAN_TYPE, RelationIdentity,
-    STRUCTURE_TYPE, parent_identity, relation_id,
+    DEPENDENCY_TYPE, DependencyIdentity, HISTORY_TYPE, MEMBERSHIP_TYPE, NODE_TYPE, PLAN_TYPE,
+    RelationIdentity, STRUCTURE_TYPE, parent_identity, relation_id,
 };
-use super::{PlanSemanticError, PlanSemanticRevision, PlanSemanticSnapshot};
+use super::{
+    PlanSemanticError, PlanSemanticHistory, PlanSemanticNodeRef, PlanSemanticRevision,
+    PlanSemanticSnapshot,
+};
 
 #[derive(Deserialize)]
 struct PlanPayload {
@@ -73,6 +79,37 @@ struct DependencyPayload {
     fulfilled_by: Option<EntityId>,
 }
 
+#[derive(Deserialize)]
+struct HistoryPayload {
+    schema_version: u16,
+    plan: EntityId,
+    mutation_revision: u64,
+    reason: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct HistoryIdentity {
+    plan: EntityId,
+    mutation_revision: u64,
+}
+
+/// Queries relation-backed node positions without decoding Plan payload.
+///
+/// - `snapshot`: Exact semantic plan object set.
+///
+/// Node identities, revisions, and direct parents in stable order.
+///
+/// Returns an error for malformed relations.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
+pub(super) fn node_refs(
+    snapshot: &PlanSemanticSnapshot,
+) -> Result<Vec<PlanSemanticNodeRef>, PlanSemanticError> {
+    node_refs::node_refs(snapshot)
+}
+
 /// Assembles one typed plan projection after validating every object revision.
 ///
 /// - `snapshot`: Current immutable plan object set.
@@ -94,6 +131,7 @@ pub(super) fn into_plan(
     let mut memberships = BTreeMap::new();
     let mut structures = BTreeMap::new();
     let mut dependencies = Vec::new();
+    let mut history_metadata = BTreeMap::new();
 
     for object in &snapshot.objects {
         validate_revision(object)?;
@@ -173,6 +211,26 @@ pub(super) fn into_plan(
                     fulfilled_by: payload.fulfilled_by,
                 });
             }
+            HISTORY_TYPE => {
+                let payload: HistoryPayload = decode_payload(object)?;
+                if payload.schema_version != 1
+                    || payload.plan != snapshot.plan
+                    || relation_id(
+                        HISTORY_TYPE,
+                        &HistoryIdentity {
+                            plan: payload.plan,
+                            mutation_revision: payload.mutation_revision,
+                        },
+                    )? != object.entity
+                    || history_metadata
+                        .insert(payload.mutation_revision, payload.reason)
+                        .is_some()
+                {
+                    return Err(invalid(
+                        "duplicate, mismatched, or unsupported history record",
+                    ));
+                }
+            }
             type_name => {
                 return Err(invalid(format!(
                     "unsupported semantic object type {type_name}"
@@ -226,7 +284,7 @@ pub(super) fn into_plan(
         return Err(invalid("unreferenced node or structure relation"));
     }
     dependencies.sort_by_key(|edge| (edge.prerequisite, edge.dependent));
-    Ok(Plan {
+    let mut plan = Plan {
         id: snapshot.plan,
         session: payload.session,
         anchor: payload.anchor,
@@ -242,7 +300,61 @@ pub(super) fn into_plan(
         coordinator_generation: payload.coordinator_generation,
         root_nodes,
         history,
-    })
+    };
+    for record in &mut plan.history {
+        if let Some(reason) = history_metadata.get(&record.revision) {
+            record.reason = reason.clone();
+        }
+    }
+    Ok(plan)
+}
+
+/// Decodes safe mutation metadata from a semantic plan object set.
+///
+/// - `snapshot`: Semantic plan records to inspect.
+///
+/// Ordered revision metadata.
+///
+/// Returns an error for malformed or mismatched history objects.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
+pub(super) fn history_metadata(
+    snapshot: &PlanSemanticSnapshot,
+) -> Result<Vec<PlanSemanticHistory>, PlanSemanticError> {
+    let mut metadata = BTreeMap::new();
+    for object in &snapshot.objects {
+        if object.object_type.as_str() != HISTORY_TYPE {
+            continue;
+        }
+        validate_revision(object)?;
+        let payload: HistoryPayload = decode_payload(object)?;
+        if payload.schema_version != 1
+            || payload.plan != snapshot.plan
+            || relation_id(
+                HISTORY_TYPE,
+                &HistoryIdentity {
+                    plan: payload.plan,
+                    mutation_revision: payload.mutation_revision,
+                },
+            )? != object.entity
+            || metadata
+                .insert(payload.mutation_revision, payload.reason)
+                .is_some()
+        {
+            return Err(invalid(
+                "duplicate, mismatched, or unsupported history record",
+            ));
+        }
+    }
+    Ok(metadata
+        .into_iter()
+        .map(|(mutation_revision, reason)| PlanSemanticHistory {
+            mutation_revision,
+            reason,
+        })
+        .collect())
 }
 
 /// Verifies the canonical content identity before decoding an object.

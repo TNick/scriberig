@@ -65,8 +65,28 @@ fn semantic_plan_snapshot_round_trips_plan_nodes_and_relations() {
     let actual = snapshot
         .into_plan(expected.history.clone())
         .expect("assemble");
+    let node_refs = snapshot.node_refs().expect("node references");
 
     assert_eq!(actual, expected);
+    assert_eq!(node_refs.len(), expected.nodes.len());
+    assert_eq!(node_refs[0].entity, expected.nodes[0].id);
+    assert_eq!(node_refs[0].parent, expected.nodes[0].parent);
+    assert_eq!(
+        node_refs[0].revision,
+        snapshot
+            .objects
+            .iter()
+            .find(|object| object.entity == expected.nodes[0].id)
+            .expect("node revision")
+            .revision
+    );
+    assert_eq!(
+        snapshot
+            .direct_children(PlanNodeParent::Branch(expected.root_branch))
+            .expect("direct children")
+            .len(),
+        expected.nodes.len()
+    );
     assert!(
         snapshot
             .objects
@@ -123,6 +143,44 @@ fn semantic_plan_node_revision_is_independent_from_plan_revision() {
     assert_ne!(original_node.revision, changed_node.revision);
 }
 
+/// Changes structural parentage without revising the node content object.
+#[test]
+fn semantic_reparenting_revises_structure_without_revising_node_content() {
+    let original = plan();
+    let child = original.nodes[0].id;
+    let new_parent = original.nodes[1].id;
+    let mut moved = original.clone();
+    moved.nodes[0].parent = Some(PlanNodeParent::Node(new_parent));
+
+    let before = PlanSemanticSnapshot::from_plan(&original).expect("encode original");
+    let after = PlanSemanticSnapshot::from_plan(&moved).expect("encode moved");
+    let before_node = before
+        .objects
+        .iter()
+        .find(|object| object.entity == child)
+        .expect("node revision");
+    let after_node = after
+        .objects
+        .iter()
+        .find(|object| object.entity == child)
+        .expect("node revision");
+    let before_structures = before
+        .objects
+        .iter()
+        .filter(|object| object.object_type.as_str() == "scriberig.session.plan-structure")
+        .map(|object| object.revision)
+        .collect::<Vec<_>>();
+    let after_structures = after
+        .objects
+        .iter()
+        .filter(|object| object.object_type.as_str() == "scriberig.session.plan-structure")
+        .map(|object| object.revision)
+        .collect::<Vec<_>>();
+
+    assert_eq!(before_node.revision, after_node.revision);
+    assert_ne!(before_structures, after_structures);
+}
+
 /// Rejects modified object bytes whose recorded content revision is stale.
 #[test]
 fn semantic_plan_snapshot_validates_revision_identity_before_assembly() {
@@ -130,4 +188,36 @@ fn semantic_plan_snapshot_validates_revision_identity_before_assembly() {
     snapshot.objects[0].payload.push(0);
 
     assert!(snapshot.into_plan(Vec::new()).is_err());
+}
+
+/// Stores mutation reasons outside the compact plan revision payload.
+#[test]
+fn semantic_plan_history_metadata_round_trips_independently() {
+    let mut expected = plan();
+    expected.history.last_mut().expect("current history").reason =
+        Some("authorized replan".to_owned());
+    let snapshot = PlanSemanticSnapshot::from_plan(&expected).expect("encode");
+    let metadata = snapshot.history_metadata().expect("history metadata");
+    let mut projection = snapshot
+        .into_plan(expected.history.clone())
+        .expect("assemble");
+
+    assert!(metadata.iter().any(|item| {
+        item.mutation_revision == expected.revision
+            && item.reason.as_deref() == Some("authorized replan")
+    }));
+    projection
+        .history
+        .last_mut()
+        .expect("current history")
+        .reason = None;
+    assert_eq!(
+        snapshot
+            .into_plan(projection.history)
+            .expect("assemble from stored metadata")
+            .history
+            .last()
+            .and_then(|record| record.reason.as_deref()),
+        Some("authorized replan")
+    );
 }

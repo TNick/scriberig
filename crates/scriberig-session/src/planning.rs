@@ -97,6 +97,12 @@ pub struct PlanNode {
     /// Replacement node identity when this work was explicitly superseded.
     #[serde(default)]
     pub superseded_by: Option<EntityId>,
+    /// Explicit safe reason when the node was abandoned.
+    #[serde(default)]
+    pub abandon_reason: Option<PlanAbandonReason>,
+    /// Exact failure evidence for the most recent failed attempt.
+    #[serde(default)]
+    pub last_failure: Option<PlanEvidenceReference>,
     /// Independent execution configuration for this work.
     pub assignment: Option<ModelAssignment>,
     /// Active worker ownership when this node is running.
@@ -176,6 +182,15 @@ pub struct Plan {
     pub nodes: Vec<PlanNode>,
     /// Dependency edges, separate from structural parent relationships.
     pub dependencies: Vec<PlanDependency>,
+    /// Current node summaries stored as independent semantic objects.
+    #[serde(default)]
+    pub summaries: Vec<PlanNodeSummary>,
+    /// Exact evidence associations for nodes and gates.
+    #[serde(default)]
+    pub evidence: Vec<PlanEvidenceAssociation>,
+    /// Independent typed requirements constraining node entry/completion.
+    #[serde(default)]
+    pub gates: Vec<PlanGate>,
     /// Branch allowed to coordinate automatic plan advancement.
     pub coordinator: Option<EntityId>,
     /// Stable node identity where the coordinator is currently focused.
@@ -207,9 +222,43 @@ pub struct PlanRevision {
     pub nodes: Vec<PlanNode>,
     /// Explicit dependency edges at this revision.
     pub dependencies: Vec<PlanDependency>,
+    /// Summary records visible at this mutation revision.
+    #[serde(default)]
+    pub summaries: Vec<PlanNodeSummary>,
+    /// Evidence associations visible at this mutation revision.
+    #[serde(default)]
+    pub evidence: Vec<PlanEvidenceAssociation>,
+    /// Typed gates visible at this mutation revision.
+    #[serde(default)]
+    pub gates: Vec<PlanGate>,
     /// Safe reason for this revision when it was a replan.
     #[serde(default)]
     pub reason: Option<String>,
+}
+
+/// Read-only execution attempt reconstructed from immutable plan history.
+///
+/// # Public members
+/// - `branch`: Branch used for this node attempt.
+/// - `claim_generation`: Monotonic node-local attempt generation.
+/// - `claim`: Worker claim associated with the attempt, when retained.
+/// - `status`: Latest recorded lifecycle outcome for the attempt.
+/// - `result`: Accepted result reference, when the attempt completed.
+///
+/// # Private members
+/// None.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlanAttemptView {
+    /// Branch used for this node attempt.
+    pub branch: EntityId,
+    /// Monotonic node-local attempt generation.
+    pub claim_generation: u64,
+    /// Worker claim associated with the attempt, when retained.
+    pub claim: Option<EntityId>,
+    /// Latest recorded lifecycle outcome for the attempt.
+    pub status: PlanNodeStatus,
+    /// Accepted result reference, when the attempt completed.
+    pub result: Option<EntityId>,
 }
 
 /// Reports invalid plan graph operations.
@@ -231,15 +280,25 @@ pub enum PlanError {
     TerminalPlan,
     /// Plan revision has no representable successor.
     RevisionExhausted,
+    /// Structural parent relations contain a cycle.
+    StructuralCycle,
 }
 
 #[path = "planning/plan_coordinator.rs"]
 mod plan_coordinator;
 #[path = "planning/plan_definition.rs"]
 mod plan_definition;
+#[path = "planning/plan_history.rs"]
+mod plan_history;
 #[path = "planning/plan_readiness.rs"]
 mod plan_readiness;
+#[path = "planning/plan_requirement_types.rs"]
+mod plan_requirement_types;
+#[path = "planning/plan_requirements.rs"]
+mod plan_requirements;
 #[path = "planning/plan_workers.rs"]
 mod plan_workers;
 /// Defines independently revisioned semantic representations of plan state.
 pub mod semantic;
+
+pub use plan_requirement_types::*;

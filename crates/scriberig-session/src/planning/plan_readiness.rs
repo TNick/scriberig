@@ -345,6 +345,9 @@ impl Plan {
             status: self.status,
             nodes: self.nodes.clone(),
             dependencies: self.dependencies.clone(),
+            summaries: self.summaries.clone(),
+            evidence: self.evidence.clone(),
+            gates: self.gates.clone(),
             reason: None,
         });
     }

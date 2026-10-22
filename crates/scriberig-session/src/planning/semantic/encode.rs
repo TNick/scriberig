@@ -6,11 +6,17 @@ use serde::Serialize;
 use super::super::Plan;
 use super::{PlanSemanticError, PlanSemanticRevision, PlanSemanticSnapshot};
 
-pub(super) const PLAN_TYPE: &str = "scriberig.session.plan";
-pub(super) const NODE_TYPE: &str = "scriberig.session.plan-node";
-pub(super) const MEMBERSHIP_TYPE: &str = "scriberig.session.plan-membership";
-pub(super) const STRUCTURE_TYPE: &str = "scriberig.session.plan-structure";
-pub(super) const DEPENDENCY_TYPE: &str = "scriberig.session.plan-dependency";
+pub(super) const PLAN_TYPE: &str = crate::schema::SessionEntityType::Plan.as_str();
+pub(super) const NODE_TYPE: &str = crate::schema::SessionEntityType::PlanNode.as_str();
+pub(super) const MEMBERSHIP_TYPE: &str = crate::schema::SessionEntityType::PlanMembership.as_str();
+pub(super) const STRUCTURE_TYPE: &str = crate::schema::SessionEntityType::PlanStructure.as_str();
+pub(super) const DEPENDENCY_TYPE: &str = crate::schema::SessionEntityType::PlanDependency.as_str();
+pub(super) const HISTORY_TYPE: &str = crate::schema::SessionEntityType::PlanRevision.as_str();
+pub(super) const GATE_TYPE: &str = crate::schema::SessionEntityType::PlanGate.as_str();
+pub(super) const EVIDENCE_TYPE: &str = crate::schema::SessionEntityType::PlanEvidence.as_str();
+pub(super) const SUMMARY_TYPE: &str = crate::schema::SessionEntityType::PlanSummary.as_str();
+pub(super) const SUMMARY_LINK_TYPE: &str =
+    crate::schema::SessionEntityType::PlanSummaryLink.as_str();
 
 #[derive(Serialize)]
 struct PlanPayload<'a> {
@@ -39,6 +45,8 @@ struct NodePayload<'a> {
     branch: Option<EntityId>,
     result: Option<EntityId>,
     superseded_by: Option<EntityId>,
+    abandon_reason: Option<super::super::PlanAbandonReason>,
+    last_failure: &'a Option<super::super::PlanEvidenceReference>,
     assignment: &'a Option<super::super::ModelAssignment>,
     claim: &'a Option<super::super::WorkerClaim>,
     claim_generation: u64,
@@ -82,6 +90,58 @@ pub(super) struct DependencyIdentity {
     pub(super) plan: EntityId,
     pub(super) prerequisite: EntityId,
     pub(super) dependent: EntityId,
+}
+
+#[derive(Serialize)]
+struct HistoryPayload<'a> {
+    schema_version: u16,
+    plan: EntityId,
+    mutation_revision: u64,
+    reason: &'a Option<String>,
+}
+
+#[derive(Serialize)]
+struct HistoryIdentity {
+    plan: EntityId,
+    mutation_revision: u64,
+}
+
+#[derive(Serialize)]
+struct SummaryPayload<'a> {
+    schema_version: u16,
+    plan: EntityId,
+    node: EntityId,
+    text: &'a str,
+    sources: &'a [super::super::PlanSemanticReference],
+}
+
+#[derive(Serialize)]
+struct SummaryLinkPayload {
+    schema_version: u16,
+    plan: EntityId,
+    node: EntityId,
+    summary: EntityId,
+}
+
+#[derive(Serialize)]
+struct GatePayload<'a> {
+    schema_version: u16,
+    plan: EntityId,
+    owner: EntityId,
+    phase: super::super::PlanGatePhase,
+    requirement: &'a super::super::PlanGateRequirement,
+    waiver: &'a Option<super::super::PlanGateWaiver>,
+}
+
+#[derive(Serialize)]
+struct EvidencePayload<'a> {
+    schema_version: u16,
+    plan: EntityId,
+    owner: super::super::PlanEvidenceOwner,
+    role: super::super::PlanEvidenceRole,
+    evidence: &'a super::super::PlanEvidenceReference,
+    note: &'a Option<String>,
+    actor: Option<EntityId>,
 }
 
 /// Encodes a plan view into current independently revisioned objects.
@@ -132,6 +192,8 @@ pub(super) fn from_plan(plan: &Plan) -> Result<PlanSemanticSnapshot, PlanSemanti
                 branch: node.branch,
                 result: node.result,
                 superseded_by: node.superseded_by,
+                abandon_reason: node.abandon_reason,
+                last_failure: &node.last_failure,
                 assignment: &node.assignment,
                 claim: &node.claim,
                 claim_generation: node.claim_generation,
@@ -194,11 +256,91 @@ pub(super) fn from_plan(plan: &Plan) -> Result<PlanSemanticSnapshot, PlanSemanti
         )?;
     }
 
+    for summary in &plan.summaries {
+        push_object(
+            &mut objects,
+            summary.id,
+            SUMMARY_TYPE,
+            &SummaryPayload {
+                schema_version: 1,
+                plan: plan.id,
+                node: summary.node,
+                text: &summary.text,
+                sources: &summary.sources,
+            },
+        )?;
+        push_relation(
+            &mut objects,
+            SUMMARY_LINK_TYPE,
+            &RelationIdentity {
+                owner: summary.node,
+                target: summary.id,
+            },
+            &SummaryLinkPayload {
+                schema_version: 1,
+                plan: plan.id,
+                node: summary.node,
+                summary: summary.id,
+            },
+        )?;
+    }
+
+    for gate in &plan.gates {
+        push_object(
+            &mut objects,
+            gate.id,
+            GATE_TYPE,
+            &GatePayload {
+                schema_version: 1,
+                plan: plan.id,
+                owner: gate.owner,
+                phase: gate.phase,
+                requirement: &gate.requirement,
+                waiver: &gate.waiver,
+            },
+        )?;
+    }
+
+    for association in &plan.evidence {
+        push_object(
+            &mut objects,
+            association.id,
+            EVIDENCE_TYPE,
+            &EvidencePayload {
+                schema_version: 1,
+                plan: plan.id,
+                owner: association.owner,
+                role: association.role,
+                evidence: &association.evidence,
+                note: &association.note,
+                actor: association.actor,
+            },
+        )?;
+    }
+
+    for history in &plan.history {
+        push_relation(
+            &mut objects,
+            HISTORY_TYPE,
+            &HistoryIdentity {
+                plan: plan.id,
+                mutation_revision: history.revision,
+            },
+            &HistoryPayload {
+                schema_version: 1,
+                plan: plan.id,
+                mutation_revision: history.revision,
+                reason: &history.reason,
+            },
+        )?;
+    }
+
     objects.sort_by(|left, right| {
         (&left.entity, left.object_type.as_str()).cmp(&(&right.entity, right.object_type.as_str()))
     });
     Ok(PlanSemanticSnapshot {
         plan: plan.id,
+        snapshot: None,
         objects,
     })
 }

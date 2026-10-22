@@ -155,9 +155,12 @@ pub use execution::{
     SessionActivityState, SessionExecutionChange, SessionExecutionSelection, ToolActivityKind,
 };
 pub use planning::{
-    CoordinatorClaim, ExpectedResult, ModelAssignment, Plan, PlanDependency, PlanError, PlanNode,
-    PlanNodeParent, PlanNodeStatus, PlanRevision, PlanStatus, WorkerClaim,
-    semantic::{PlanSemanticError, PlanSemanticRevision, PlanSemanticSnapshot},
+    CoordinatorClaim, ExpectedResult, ModelAssignment, Plan, PlanAttemptView, PlanDependency,
+    PlanError, PlanNode, PlanNodeParent, PlanNodeStatus, PlanRevision, PlanStatus, WorkerClaim,
+    semantic::{
+        PlanSemanticError, PlanSemanticHistory, PlanSemanticNodeRef, PlanSemanticRevision,
+        PlanSemanticSnapshot,
+    },
 };
 pub use repository::{PlanStoreError, SelectionStoreError, SessionStore};
 pub use turn::{
