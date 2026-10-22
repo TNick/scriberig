@@ -8,7 +8,7 @@ fn tui_pty_quits_with_ctrl_c() {
     let _lock = test_lock();
     let mut tui = TuiPty::start();
 
-    assert!(tui.read_until("F2 provider"), "{}", tui.diagnostic());
+    assert!(tui.read_until("F(2) Provider"), "{}", tui.diagnostic());
     tui.send(&[3]);
     assert!(tui.wait_for_exit());
 }

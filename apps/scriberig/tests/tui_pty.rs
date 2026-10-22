@@ -226,13 +226,13 @@ fn tui_pty_browse_returns_to_composer() {
     let mut tui = TuiPty::start();
 
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"\x1b");
+    tui.send(b"\x1b[18~");
     assert!(
         tui.read_until_next("Enter pin reply target"),
         "{}",
         tui.diagnostic()
     );
-    tui.send(b"\x1b");
+    tui.send(b"\x1b[18~");
     assert!(tui.read_until_next("Enter send"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }

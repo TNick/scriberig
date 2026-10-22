@@ -13,6 +13,9 @@ use super::ComposerInput;
 #[path = "components/help_panel.rs"]
 mod help_panel;
 pub(super) use help_panel::HelpPanel;
+#[path = "components/session_list.rs"]
+mod session_list;
+pub(super) use session_list::SessionListPanel;
 
 /// Adapts focused terminal events to an upstream editor.
 ///
@@ -278,6 +281,12 @@ impl SelectionStatusPanel {
             }
         } else {
             content.push_str("No active session assignment");
+        }
+        if state.conversation_browsing {
+            if !content.is_empty() {
+                content.push_str(" · ");
+            }
+            content.push_str("Enter pin reply target");
         }
         if !state.shell_message.is_empty() {
             if !content.is_empty() {

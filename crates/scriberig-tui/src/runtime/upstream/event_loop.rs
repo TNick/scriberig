@@ -5,6 +5,7 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
+use rpi_tui::tui::{OverlayOptions, SizeValue};
 use rpi_tui::{Component, Editor, Focusable, TUI, TuiAltScreen};
 
 use crate::action::Action;
@@ -23,6 +24,7 @@ use super::super::{
     worker_loop,
 };
 use super::ComposerInput;
+use super::components::SessionListPanel;
 use super::modal_overlay::ModalOverlayController;
 use super::selector_factory::open_control_selector;
 
@@ -113,6 +115,7 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
         let mut pending_selector = None;
         let mut modal_overlay = ModalOverlayController::new();
         let mut focus_before_overlay: Option<Arc<dyn Component>> = None;
+        let mut session_list_open = false;
         let mut poll_in_flight = false;
         let mut suppress_composer_restore = false;
         {
@@ -178,20 +181,38 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
                         &mut pending_effects,
                         &mut redraw,
                     );
+                    let session_rows = match &state.overlay {
+                        Some(crate::overlay::Overlay::SessionList(rows)) if !session_list_open => {
+                            Some(rows.clone())
+                        }
+                        Some(crate::overlay::Overlay::SessionList(_)) => None,
+                        _ => {
+                            session_list_open = false;
+                            None
+                        }
+                    };
+                    if let Some(rows) = session_rows {
+                        if focus_before_overlay.is_none() {
+                            focus_before_overlay = screen.get_focus();
+                        }
+                        let panel: Arc<dyn Component> =
+                            Arc::new(SessionListPanel::new(rows, input_sender.clone()));
+                        screen.show_overlay(
+                            Arc::clone(&panel),
+                            Some(OverlayOptions {
+                                width: Some(SizeValue::Percent(0.72)),
+                                max_height: Some(SizeValue::Percent(0.82)),
+                                ..OverlayOptions::default()
+                            }),
+                        );
+                        screen.set_focus(Some(panel));
+                        editor.set_focused(false);
+                        session_list_open = true;
+                        redraw = true;
+                    }
                     flush_effects(&work_sender, &mut pending_effects);
                     if !poll_in_flight && pending_events.is_empty() {
                         poll_in_flight = try_queue(&work_sender, Work::PollApplicationEvents);
-                    }
-                    // The upstream editor owns the draft. Do not mirror the
-                    // reducer draft back into it: a cleared submitted draft
-                    // would be resurrected here before the clear event lands.
-                    if false
-                        && (!suppress_composer_restore || !state.conversation_composer.pending)
-                        && !state.conversation_composer.draft.is_empty()
-                        && editor.get_expanded_text().is_empty()
-                    {
-                        editor.set_text(&state.conversation_composer.draft);
-                        redraw = true;
                     }
                     if let Some(kind) = pending_selector {
                         match &state.model_library {

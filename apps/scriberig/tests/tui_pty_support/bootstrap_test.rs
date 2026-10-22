@@ -12,8 +12,14 @@ use scriberig_store_sqlite::SqliteStore;
 fn tui_bootstrap_import_failure_does_not_activate_partial_project() {
     let _lock = super::tui_pty_support::test_lock();
     let mut tui = super::tui_pty_support::TuiPty::start_bootstrap_import_failure();
-    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
-    tui.send(b"Onboard the current project.\r");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send_slow(b"/project\r");
+    assert!(
+        tui.read_until("No active project is selected."),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send_slow(b"Onboard the current project.\r");
     let session = tui.stored_session_id();
     let checkout = tui.fixture_path().join("scriberig");
     let manifest = std::fs::read(checkout.join("Cargo.toml")).expect("baseline manifest");
@@ -86,8 +92,14 @@ fn tui_bootstrap_import_failure_does_not_activate_partial_project() {
 fn tui_bootstraps_project_and_reopens_exact_workspace() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_bootstrap();
-    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
-    tui.send(b"Onboard the current project.\r");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send_slow(b"/project\r");
+    assert!(
+        tui.read_until("No active project is selected."),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send_slow(b"Onboard the current project.\r");
     let session = tui.stored_session_id();
     let onboarded = tui.read_until("The current project is onboarded");
     let saved = SqliteSessionStore::open(tui.fixture_path().join("scriberig.sqlite"))

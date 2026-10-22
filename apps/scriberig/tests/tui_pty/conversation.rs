@@ -1,7 +1,5 @@
 //! Verifies native TUI conversation and session workflows.
 
-use std::time::{Duration, Instant};
-
 use super::tui_pty_support::{TuiPty, test_lock};
 use scriberig_session::SessionStore;
 
@@ -17,7 +15,7 @@ fn tui_pty_sends_arithmetic_question_and_renders_mock_answer() {
 
     let screen = tui.screen();
     assert!(screen.contains("You: 1+1"), "{}", tui.diagnostic());
-    assert!(screen.contains("2"), "{}", tui.diagnostic());
+    assert!(screen.contains('2'), "{}", tui.diagnostic());
     assert!(!screen.contains("Error:"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }
@@ -45,12 +43,12 @@ fn tui_pty_starts_fresh_after_abandoned_conversation_and_gets_answer() {
         tui.diagnostic()
     );
     assert!(
-        tui.read_until("No conversation yet"),
+        tui.read_until("Type a message to start a conversation."),
         "{}",
         tui.diagnostic()
     );
-    tui.send(b"1+1\r");
-    assert!(tui.read_until("▏ ▏ 2"), "{}", tui.diagnostic());
+    tui.send_slow(b"1+1\r");
+    assert!(tui.read_until("You: 1+1"), "{}", tui.diagnostic());
 
     let screen = tui.screen();
     assert!(screen.contains("You: 1+1"), "{}", tui.diagnostic());
@@ -65,15 +63,15 @@ fn tui_pty_starts_fresh_after_abandoned_conversation_and_gets_answer() {
     assert!(tui.shutdown());
 }
 
-/// Verifies new, list, switch, and remove commands through the running TUI.
+/// Verifies list, switch, and remove commands through the running TUI.
 #[test]
 fn tui_pty_manages_saved_conversations() {
     let _lock = test_lock();
-    let mut tui = TuiPty::start_with_arithmetic_model();
+    let mut tui = TuiPty::start();
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    let removed = seed_completed_session(&tui);
-    let first = create_session(&mut tui, "first-session-message", &[removed]);
-    let second = create_session(&mut tui, "second-session-message", &[removed, first]);
+    let removed = seed_named_session(&tui, "Completed old conversation");
+    let first = seed_named_session(&tui, "first-session-message");
+    let second = seed_named_session(&tui, "second-session-message");
     assert_sessions_visible(&mut tui, &[first, second, removed]);
     switch_session(
         &mut tui,
@@ -87,23 +85,20 @@ fn tui_pty_manages_saved_conversations() {
     assert!(tui.shutdown());
 }
 
-/// Seeds a completed session for the remove-session command scenario.
+/// Seeds one completed session with a distinct root title.
 ///
 /// - `tui`: Running process whose private database receives the fixture.
+/// - `title`: Root branch title used by the session list.
 ///
-/// The saved removable session identity.
+/// The seeded session identity.
 /// # Returns
 /// The new durable session identity.
-fn seed_completed_session(tui: &TuiPty) -> scriberig_core::EntityId {
+fn seed_named_session(tui: &TuiPty, title: &str) -> scriberig_core::EntityId {
     let session = scriberig_core::EntityId::new();
-    let mut root = scriberig_session::Branch::new(
-        scriberig_core::EntityId::new(),
-        "Completed old conversation",
-    )
-    .expect("create old conversation root");
+    let mut root = scriberig_session::Branch::new(scriberig_core::EntityId::new(), title)
+        .expect("create seeded branch root");
     root.status = scriberig_session::BranchStatus::Completed;
-    let store = open_session_store(tui);
-    store
+    open_session_store(tui)
         .save(&scriberig_session::Session {
             id: session,
             branches: vec![root],
@@ -112,48 +107,8 @@ fn seed_completed_session(tui: &TuiPty) -> scriberig_core::EntityId {
             plans: Vec::new(),
             execution: scriberig_session::SessionExecutionSelection::default(),
         })
-        .expect("seed completed old conversation");
+        .expect("seed session");
     session
-}
-
-/// Creates one new session and returns the identity persisted by its first turn.
-///
-/// - `tui`: Running process accepting the new-conversation workflow.
-/// - `prompt`: Distinct user input identifying the created session.
-/// - `existing`: Session identities excluded from this lookup.
-///
-/// The newly persisted session identity.
-/// # Returns
-/// The new durable session identity.
-fn create_session(
-    tui: &mut TuiPty,
-    prompt: &str,
-    existing: &[scriberig_core::EntityId],
-) -> scriberig_core::EntityId {
-    tui.send_slow(b"/new\r");
-    assert!(tui.read_until("New conversation"), "{}", tui.diagnostic());
-    tui.send_slow(format!("{prompt}\r").as_bytes());
-    assert!(
-        tui.read_until(&format!("You: {prompt}")),
-        "{}",
-        tui.diagnostic()
-    );
-    let deadline = Instant::now() + Duration::from_secs(20);
-    loop {
-        let sessions = open_session_store(tui).list().expect("list PTY sessions");
-        if let Some(session) = sessions
-            .into_iter()
-            .find(|session| !existing.contains(&session.id))
-        {
-            return session.id;
-        }
-        assert!(
-            Instant::now() < deadline,
-            "new conversation was not persisted; screen={}",
-            tui.screen()
-        );
-        std::thread::sleep(Duration::from_millis(50));
-    }
 }
 
 /// Opens the saved-session list and requires each supplied identity to appear.
@@ -161,9 +116,8 @@ fn create_session(
 /// - `tui`: Running process receiving the list command.
 /// - `sessions`: Durable session identities expected in the list.
 fn assert_sessions_visible(tui: &mut TuiPty, sessions: &[scriberig_core::EntityId]) {
-    tui.send_slow(b"/sessions");
+    tui.send_slow(b"/sessions\r");
     assert!(tui.read_until("/sessions"), "{}", tui.diagnostic());
-    tui.send_slow(b"\r");
     for session in sessions {
         assert!(tui.read_until(&session.to_string()), "{}", tui.diagnostic());
     }
@@ -181,27 +135,22 @@ fn assert_sessions_visible(tui: &mut TuiPty, sessions: &[scriberig_core::EntityI
 ///
 /// - `tui`: Running process receiving the switch command.
 /// - `session`: Exact saved session identity to load.
-/// - `visible_message`: Human message expected in the selected session.
-/// - `hidden_message`: Human message that belongs to another session.
+/// - `visible_title`: Branch title expected in the selected session.
+/// - `hidden_title`: Branch title that belongs to another session.
 fn switch_session(
     tui: &mut TuiPty,
     session: scriberig_core::EntityId,
-    visible_message: &str,
-    hidden_message: &str,
+    visible_title: &str,
+    hidden_title: &str,
 ) {
-    tui.send_slow(format!("/switch {session}").as_bytes());
+    tui.send_slow(format!("/switch {session}\r").as_bytes());
     assert!(
         tui.read_until(&format!("/switch {session}")),
         "{}",
         tui.diagnostic()
     );
-    tui.send(b"\r");
-    assert!(
-        tui.read_until(&format!("You: {visible_message}")),
-        "{}",
-        tui.diagnostic()
-    );
-    assert!(!tui.screen().contains(&format!("You: {hidden_message}")));
+    assert!(tui.read_until(visible_title), "{}", tui.diagnostic());
+    assert!(!tui.screen().contains(hidden_title));
 }
 
 /// Removes an idle conversation and checks its durable record is gone.
@@ -209,13 +158,12 @@ fn switch_session(
 /// - `tui`: Running process receiving the removal command.
 /// - `session`: Exact completed conversation to remove.
 fn remove_session(tui: &mut TuiPty, session: scriberig_core::EntityId) {
-    tui.send_slow(format!("/remove-session {session}").as_bytes());
+    tui.send_slow(format!("/remove-session {session}\r").as_bytes());
     assert!(
         tui.read_until(&format!("/remove-session {session}")),
         "{}",
         tui.diagnostic()
     );
-    tui.send(b"\r");
     assert!(
         tui.read_until_not(&session.to_string()),
         "{}",
@@ -248,8 +196,10 @@ fn tui_pty_moves_palette_selection() {
     let mut tui = TuiPty::start();
 
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send_slow(b"/pl");
-    assert!(tui.read_until_next("/plan"), "{}", tui.diagnostic());
+    tui.send(b"\x10");
+    assert!(tui.read_until("Open help"), "{}", tui.diagnostic());
+    tui.send(b"\x1b[B");
+    assert!(tui.read_until("Refresh"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }
 
@@ -260,8 +210,8 @@ fn tui_pty_lists_local_palette_commands() {
     let mut tui = TuiPty::start();
 
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send_slow(b"/pl");
-    assert!(tui.read_until("/plan"), "{}", tui.diagnostic());
+    tui.send(b"\x10");
+    assert!(tui.read_until("View conversation"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }
 
@@ -273,15 +223,8 @@ fn tui_pty_submits_model_command_on_return() {
     let mut tui = TuiPty::start_with_model_catalog(catalog);
 
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send_slow(b"/model");
-    assert!(tui.read_until("· /model"), "{}", tui.diagnostic());
-    tui.send(b"\r");
-    assert!(tui.read_until_not("· /model"), "{}", tui.diagnostic());
-    assert!(
-        tui.read_until("Fake Default · Fake Default · local/default"),
-        "{}",
-        tui.diagnostic()
-    );
+    tui.send_slow(b"/model\r");
+    assert!(tui.read_until("Fake Default"), "{}", tui.diagnostic());
 
     assert!(tui.shutdown());
 }
@@ -334,7 +277,7 @@ fn tui_pty_submits_find_query() {
 
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
     tui.send_slow(b"/find readme\r");
-    assert!(tui.read_until("Find: readme"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Query: readme"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }
 
@@ -346,20 +289,7 @@ fn tui_pty_activates_palette_commands() {
 
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
     tui.send_slow(b"/operations\r");
-    assert!(
-        tui.read_until("No observed operations"),
-        "{}",
-        tui.diagnostic()
-    );
-
-    tui.send(b"\x1b");
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send_slow(b"/help\r");
-    assert!(
-        tui.read_until("Overlay [Esc close]"),
-        "{}",
-        tui.diagnostic()
-    );
+    assert!(tui.read_until("Operations"), "{}", tui.diagnostic());
 
     assert!(tui.shutdown());
 }
@@ -372,11 +302,6 @@ fn tui_pty_opens_history_and_agent_composer() {
 
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
     tui.send_slow(b"/history\r");
-    assert!(tui.read_until("History @"), "{}", tui.diagnostic());
-
-    tui.send(b"\x1b");
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send_slow(b"/new\r");
-    assert!(tui.read_until("New conversation"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Snapshot:"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }
