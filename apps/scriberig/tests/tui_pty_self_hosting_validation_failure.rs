@@ -16,7 +16,7 @@ use scriberig_project::{CandidateValidation, ProjectService};
 use scriberig_session::SessionStore;
 use scriberig_session_sqlite::SqliteSessionStore;
 use scriberig_store_sqlite::SqliteStore;
-use tui_pty_support::{TuiPty, test_lock};
+use tui_pty_support::{TuiPty, candidate_review, test_lock};
 
 /// Drives an intentionally invalid PHP candidate through the native TUI.
 #[test]
@@ -287,10 +287,9 @@ fn assert_project_unchanged(scenario: &FailureScenario, candidate: &str) {
 ///
 /// - `tui`: Active TUI with the failed candidate in its durable session result.
 fn review_failed_candidate(tui: &mut TuiPty) {
-    tui.send(b"/changes\r");
-    assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
+    candidate_review::open_candidate_review(tui);
     assert!(
-        tui.screen().contains("validation: Failed"),
+        tui.screen().contains("Validation: Failed"),
         "{}",
         tui.screen()
     );

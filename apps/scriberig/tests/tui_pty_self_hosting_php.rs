@@ -25,7 +25,7 @@ use scriberig_session::SessionStore;
 use scriberig_session_sqlite::SqliteSessionStore;
 use scriberig_store::SnapshotStore;
 use scriberig_store_sqlite::SqliteStore;
-use tui_pty_support::{TuiPty, test_lock};
+use tui_pty_support::{TuiPty, candidate_review, test_lock};
 
 /// Drives onboarding and PHP candidate construction through the native product process.
 #[test]
@@ -34,8 +34,14 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
     let mut tui = TuiPty::start_self_hosting();
     let checkout = tui.fixture_path().join("scriberig");
     assertions::assert_tracked_serena_configuration(&checkout);
-    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
-    tui.send(b"Onboard the current project.\r");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send_slow(b"/project\r");
+    assert!(
+        tui.read_until("No active project is selected."),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send_slow(b"Onboard the current project.\r");
     let session = visible_session(&tui);
     wait_for_onboarding(&mut tui, session);
     let scan_before =
@@ -224,10 +230,9 @@ fn review_and_apply(
     base_snapshot: scriberig_core::SnapshotId,
     candidate: &str,
 ) -> scriberig_core::SnapshotId {
-    tui.send(b"/changes\r");
-    assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
+    candidate_review::open_candidate_review(tui);
     let review = tui.screen();
-    assert!(review.contains("validation: Passed"), "{review}");
+    assert!(review.contains("Validation: Passed"), "{review}");
     assert!(
         review.contains("profile: project-ingestion-e2e"),
         "{review}"
@@ -265,15 +270,24 @@ fn review_and_apply(
         base_snapshot,
         candidate,
     );
-    tui.send(b"\r");
-    assert!(tui.read_until("Enter confirm"), "{}", tui.diagnostic());
-    tui.send(b"\r");
-    assert!(
-        tui.read_until_for("materialized", Duration::from_secs(120)),
-        "{}",
-        tui.diagnostic()
-    );
-    assert_materialized_php_fixture(checkout, database, project, base_snapshot)
+    candidate_review::open_apply_confirmation(tui);
+    candidate_review::confirm_candidate_apply(tui);
+    let deadline = std::time::Instant::now() + Duration::from_secs(120);
+    loop {
+        let file_exists = checkout
+            .join("crates/domains/scriberig-domain-php/src/lib.rs")
+            .is_file();
+        let current = ProjectService::new(Arc::new(
+            SqliteStore::open(database).expect("project store"),
+        ))
+        .workspace(project)
+        .expect("applied project workspace");
+        if file_exists && current.snapshot != base_snapshot {
+            return assert_materialized_php_fixture(checkout, database, project, base_snapshot);
+        }
+        assert!(std::time::Instant::now() < deadline, "{}", tui.diagnostic());
+        std::thread::sleep(Duration::from_millis(50));
+    }
 }
 
 /// Confirms candidate construction left the canonical snapshot and checkout unchanged.

@@ -14,6 +14,8 @@ use crate::{CandidateValidation, CandidateValidationProfile, ProjectError};
 mod validation_process;
 use validation_process::{ProcessFailure, bounded_tail, run_bounded};
 
+const MAX_CANDIDATE_DIAGNOSTIC_CHARS: usize = 8_000;
+
 /// Builds a stable candidate identity from exact request inputs.
 ///
 /// - `project`: Project identity.
@@ -337,7 +339,10 @@ fn run_candidate_cargo(
     } else {
         stderr.into_owned()
     };
-    Ok(vec![bounded_tail(&diagnostics, 16_384)])
+    Ok(vec![bounded_tail(
+        &diagnostics,
+        MAX_CANDIDATE_DIAGNOSTIC_CHARS,
+    )])
 }
 
 /// Resolves the isolated Cargo target cache for one exact candidate.

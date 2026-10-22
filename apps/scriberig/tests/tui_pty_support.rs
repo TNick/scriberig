@@ -15,6 +15,9 @@ use vt100::Parser;
 #[path = "tui_pty_support/lifecycle.rs"]
 mod lifecycle;
 
+#[allow(dead_code)]
+#[path = "tui_pty_support/candidate_review.rs"]
+pub mod candidate_review;
 #[path = "tui_pty_support/driver.rs"]
 mod tui_pty_driver;
 #[path = "tui_pty_support/fixture.rs"]
@@ -41,6 +44,7 @@ pub struct TuiPty {
     receiver: Receiver<Vec<u8>>,
     parser: Parser,
     transcript: Vec<u8>,
+    query_cursor: usize,
 }
 
 /// Returns the Cargo target directory configured for spawned TUI processes.

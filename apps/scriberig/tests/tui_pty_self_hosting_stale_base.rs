@@ -14,7 +14,7 @@ use scriberig_project::{CandidateValidation, ProjectService};
 use scriberig_session::SessionStore;
 use scriberig_session_sqlite::SqliteSessionStore;
 use scriberig_store_sqlite::SqliteStore;
-use tui_pty_support::TuiPty;
+use tui_pty_support::{TuiPty, candidate_review};
 
 /// Verifies stale review preserves the newer project and blocks PHP effects.
 #[test]
@@ -136,16 +136,14 @@ fn advance_canonical_project(
 ///
 /// - `tui`: Active native TUI with the agent candidate in its session.
 fn attempt_stale_apply(tui: &mut TuiPty) {
-    tui.send(b"/changes\r");
-    assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
+    candidate_review::open_candidate_review(tui);
     assert!(
-        tui.screen().contains("validation: Passed"),
+        tui.screen().contains("Validation: Passed"),
         "{}",
         tui.screen()
     );
-    tui.send(b"\r");
-    assert!(tui.read_until("Enter confirm"), "{}", tui.diagnostic());
-    tui.send(b"\r");
+    candidate_review::open_apply_confirmation(tui);
+    candidate_review::confirm_candidate_apply(tui);
     assert!(
         tui.read_until_for("stale_candidate", Duration::from_secs(30)),
         "{}",

@@ -211,19 +211,49 @@ fn invoke_semantic_tool<B: ApplicationBackend + Sync>(
                     cancelled.as_ref(),
                 )
             };
-            operation.map_err(|_| AgentError::tool("semantic operation failed"))
+            operation.map_err(|error| {
+                let message = match error {
+                    scriberig_agent_core::ToolError::CapabilityDenied { action, scope } => {
+                        format!("capability denied: {action} ({scope})")
+                    }
+                    scriberig_agent_core::ToolError::Application { category, message } => {
+                        format!("{category}: {message}")
+                    }
+                };
+                AgentError::tool(message.chars().take(500).collect::<String>())
+            })
         })();
         finished.store(true, std::sync::atomic::Ordering::Release);
         let _ = monitor.join();
         result
     })?;
+    let mut handles = result.handles;
+    if handles.len() > 32 {
+        if let Some(index) = handles
+            .iter()
+            .position(|handle| handle.starts_with("next_offset:"))
+        {
+            let continuation = handles.remove(index);
+            handles.truncate(31);
+            handles.push(continuation);
+        } else {
+            handles.truncate(32);
+        }
+    }
+    let summary = result.summary.map(|summary| {
+        if result.object_type.as_deref() == Some("candidate_validation") {
+            evidence::bounded_diagnostic_text(&summary, 2_048)
+        } else {
+            evidence::bounded_text(&summary, 2_048)
+        }
+    });
     let output = serde_json::json!({
-        "entity": result.entity,
-        "revision": result.revision,
-        "snapshot": result.snapshot,
+        "entity": result.entity.to_string(),
+        "revision": result.revision.map(|revision| revision.to_string()),
+        "snapshot": result.snapshot.map(|snapshot| snapshot.to_string()),
         "object_type": result.object_type,
-        "summary": result.summary.map(|summary| evidence::bounded_text(&summary, 2_048)),
-        "handles": result.handles.into_iter().take(32).collect::<Vec<_>>(),
+        "summary": summary,
+        "handles": handles,
     });
     Ok((output.to_string(), None))
 }

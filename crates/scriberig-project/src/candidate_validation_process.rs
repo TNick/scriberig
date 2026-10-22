@@ -35,7 +35,7 @@ pub(super) fn bounded_tail(value: &str, maximum: usize) -> String {
 /// - `cancelled`: Shared cancellation flag for the owning operation.
 /// - `super`: Parent candidate validation module.
 ///
-/// Process output with each stream limited to 64 KiB.
+/// Process output with each stream limited to its final 64 KiB.
 ///
 /// Returns a structured message for startup, timeout, or output-reader failure.
 /// # Returns
@@ -120,11 +120,11 @@ fn wait_bounded(
     }
 }
 
-/// Drains a process stream while retaining only a bounded prefix.
+/// Drains a process stream while retaining its bounded suffix.
 ///
 /// - `reader`: Child process output stream.
 ///
-/// At most 64 KiB of output.
+/// The final 64 KiB of output.
 ///
 /// Returns a stream read failure.
 /// # Returns
@@ -141,19 +141,36 @@ fn read_bounded(mut reader: impl Read) -> Result<Vec<u8>, String> {
         if count == 0 {
             return Ok(retained);
         }
-        let remaining = 65_536_usize.saturating_sub(retained.len());
-        retained.extend_from_slice(&buffer[..count.min(remaining)]);
+        retained.extend_from_slice(&buffer[..count]);
+        if retained.len() > 65_536 {
+            let excess = retained.len() - 65_536;
+            retained.drain(..excess);
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::bounded_tail;
+    use std::io::Cursor;
+
+    use super::{bounded_tail, read_bounded};
 
     /// Verifies bounded validation diagnostics retain their final error details.
     #[test]
     fn bounded_validation_diagnostics_retain_the_tail() {
         assert_eq!(bounded_tail("0123456789", 4), "6789");
         assert_eq!(bounded_tail("ééabc", 3), "abc");
+    }
+
+    /// Verifies process capture preserves errors emitted after large build logs.
+    #[test]
+    fn bounded_process_output_retains_the_final_bytes() {
+        let mut bytes = vec![b'a'; 65_540];
+        bytes[65_536..].copy_from_slice(b"tail");
+
+        let output = read_bounded(Cursor::new(bytes)).expect("read process output");
+
+        assert_eq!(output.len(), 65_536);
+        assert_eq!(&output[output.len() - 4..], b"tail");
     }
 }
