@@ -2,6 +2,107 @@
 
 use super::*;
 
+/// Verifies typed plan identities and payload revisions are deterministic.
+#[test]
+fn semantic_encoding_is_deterministic_and_uses_stable_types() {
+    let mut plan = plan();
+    let node = plan.nodes[0].id;
+    plan.coordinator = Some(plan.root_branch);
+    plan.coordinator_cursor = Some(node);
+    plan.coordinator_generation = 3;
+    plan.coordinator_claim = Some(scriberig_session::CoordinatorClaim {
+        id: EntityId::from_bytes([10; 16]),
+        operation: None,
+        owner: "runtime-a".to_owned(),
+        generation: 3,
+    });
+    let gate = EntityId::from_bytes([11; 16]);
+    plan.add_gate(PlanGate {
+        id: gate,
+        owner: node,
+        phase: PlanGatePhase::Entry,
+        requirement: PlanGateRequirement::EvidencePresent {
+            kind: PlanEvidenceKind::Artifact,
+        },
+        waiver: None,
+    })
+    .expect("add gate");
+    plan.attach_evidence(PlanEvidenceAssociation {
+        id: EntityId::from_bytes([12; 16]),
+        owner: PlanEvidenceOwner::Gate(gate),
+        role: PlanEvidenceRole::Supports,
+        evidence: PlanEvidenceReference {
+            kind: PlanEvidenceKind::Artifact,
+            reference: PlanSemanticReference {
+                entity: EntityId::from_bytes([13; 16]),
+                revision: None,
+                snapshot: None,
+            },
+            attributes: std::collections::BTreeMap::new(),
+        },
+        note: None,
+        actor: None,
+    })
+    .expect("attach evidence");
+    plan.update_summary(PlanNodeSummary {
+        id: EntityId::from_bytes([14; 16]),
+        node,
+        text: "summary with exact provenance references".to_owned(),
+        sources: vec![PlanSemanticReference {
+            entity: EntityId::from_bytes([15; 16]),
+            revision: None,
+            snapshot: None,
+        }],
+    })
+    .expect("set summary");
+
+    let first = PlanSemanticSnapshot::from_plan(&plan).expect("first encoding");
+    let second = PlanSemanticSnapshot::from_plan(&plan).expect("second encoding");
+    let types = first
+        .objects
+        .iter()
+        .map(|object| object.object_type.as_str())
+        .collect::<std::collections::BTreeSet<_>>();
+    let plan_object = first
+        .objects
+        .iter()
+        .find(|object| object.entity == plan.id)
+        .expect("independent plan object");
+    let plan_payload: serde_json::Value =
+        serde_json::from_slice(&plan_object.payload).expect("plan payload");
+    let node_object = first
+        .objects
+        .iter()
+        .find(|object| object.entity == node)
+        .expect("independent node object");
+    let node_payload: serde_json::Value =
+        serde_json::from_slice(&node_object.payload).expect("node payload");
+    let restored = first
+        .into_plan(plan.history.clone())
+        .expect("round-trip plan and coordinator");
+    let expected = [
+        "scriberig.session.plan",
+        "scriberig.session.plan-node",
+        "scriberig.session.plan-membership",
+        "scriberig.session.plan-structure",
+        "scriberig.session.plan-dependency",
+        "scriberig.session.plan-revision",
+        "scriberig.session.plan-gate",
+        "scriberig.session.plan-evidence",
+        "scriberig.session.plan-summary",
+        "scriberig.session.plan-summary-link",
+    ];
+
+    assert_eq!(first, second);
+    assert!(expected.into_iter().all(|item| types.contains(item)));
+    assert_eq!(restored, plan);
+    assert!(plan_payload.get("nodes").is_none());
+    assert!(plan_payload.get("dependencies").is_none());
+    assert!(plan_payload.get("history").is_none());
+    assert!(node_payload.get("effective_status").is_none());
+    assert!(node_payload.get("status_counts").is_none());
+}
+
 /// Round-trips the current plan graph through independent typed records.
 #[test]
 fn semantic_plan_snapshot_round_trips_plan_nodes_and_relations() {

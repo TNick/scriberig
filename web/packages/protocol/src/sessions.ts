@@ -6,6 +6,8 @@ export type {
   SessionPlanAttempt,
   SessionPlanAttemptsResponse,
   SessionPlanAttemptsRequest,
+  SessionPlanDetailsRequest,
+  SessionPlanDetailsResponse,
   SessionExpectedResult,
   SessionModelAssignment,
   SessionPlan,

@@ -12,6 +12,8 @@ import type {
   SessionPlan,
   SessionPlanAttemptsRequest,
   SessionPlanAttemptsResponse,
+  SessionPlanDetailsRequest,
+  SessionPlanDetailsResponse,
   SessionPlanMutationRequest,
   ModelRequestDetailResponse,
   ModelRequestDetailPageRequest,
@@ -46,6 +48,7 @@ import { SemanticClient } from "./semantic-client";
 import { normalizeSessionPlan } from "./session-plan-views";
 import { planMutationToWire } from "./session-plan-mutation-wire";
 import { normalizePlanAttempts } from "./session-plan-attempts";
+import { readPlanDetails } from "./session-plan-details";
 
 /** Durable agent and session operations on top of semantic operations.
  *
@@ -159,6 +162,17 @@ export class SessionClient extends SemanticClient {
         signal,
       )
       .then(normalizePlanAttempts);
+  }
+  /** Reads bounded gate/evidence pages tied to one plan revision.
+   * @param request Session, plan revision, and independent page bounds.
+   * @param signal Optional request cancellation signal.
+   * @returns Typed gate and evidence records from the observed plan revision.
+   */
+  getPlanDetails(
+    request: SessionPlanDetailsRequest,
+    signal?: AbortSignal,
+  ): Promise<SessionPlanDetailsResponse> {
+    return readPlanDetails(this.transport, request, signal);
   }
   /** Reads a previously captured safe model request without invoking a provider. */
   getModelRequestDetail(

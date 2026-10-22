@@ -99,6 +99,7 @@ pub trait ApplicationService {
     }
 
     shared_plan_attempt_read_contract!();
+    shared_plan_details_read_contract!();
 
     /// Starts a session through the shared application service.
     ///
@@ -379,6 +380,8 @@ mod server_application;
 mod server_borrowed;
 #[path = "server_plan_attempts.rs"]
 mod server_plan_attempts;
+#[path = "server_plan_details.rs"]
+mod server_plan_details;
 
 /// Decodes a protocol command into the transport-independent application model.
 /// - `kind`: Argument named `kind`.

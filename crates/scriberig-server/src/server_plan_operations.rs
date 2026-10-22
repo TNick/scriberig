@@ -331,3 +331,28 @@ macro_rules! shared_plan_attempt_read_contract {
         }
     };
 }
+
+macro_rules! shared_plan_details_read_contract {
+    () => {
+        /// Reads bounded gates and evidence from one observed plan revision.
+        ///
+        /// # Parameters
+        /// - `_context`: Trusted session-read capability context.
+        /// - `_request`: Session, plan, revision, and page selection.
+        ///
+        /// # Returns
+        /// Bounded typed requirement records from the requested revision.
+        ///
+        /// # Errors
+        /// Returns unsupported-operation when plan detail reads are unavailable.
+        fn read_plan_details(
+            &self,
+            _context: &ApplicationContext,
+            _request: &scriberig_protocol::SessionPlanDetailsRequest,
+        ) -> Result<scriberig_protocol::SessionPlanDetailsResponse, ApplicationError> {
+            Err(ApplicationError::UnsupportedOperation {
+                operation: "plan requirement details".to_owned(),
+            })
+        }
+    };
+}

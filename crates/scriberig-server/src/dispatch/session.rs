@@ -2,7 +2,9 @@
 
 use super::{Dispatcher, helpers};
 use crate::server::ApplicationService;
-use scriberig_protocol::{Response, SessionPlanAttemptsRequest, SessionReadRequest};
+use scriberig_protocol::{
+    Response, SessionPlanAttemptsRequest, SessionPlanDetailsRequest, SessionReadRequest,
+};
 
 impl<S: ApplicationService> Dispatcher<S> {
     /// Reads one bounded page of retained attempts for a plan node.
@@ -24,6 +26,28 @@ impl<S: ApplicationService> Dispatcher<S> {
             .map_or_else(
                 |error| Response::Error(helpers::map_error(&error, correlation_id)),
                 Response::PlanAttempts,
+            )
+    }
+
+    /// Reads one bounded gate/evidence page for an exact plan revision.
+    ///
+    /// # Parameters
+    /// - `self`: Protocol dispatcher.
+    /// - `request`: Session, plan revision, and page offsets.
+    /// - `correlation_id`: Request correlation identity.
+    ///
+    /// # Returns
+    /// Bounded gate/evidence details or a structured protocol error.
+    pub(super) fn plan_details_read(
+        &self,
+        request: &SessionPlanDetailsRequest,
+        correlation_id: &str,
+    ) -> Response {
+        self.service
+            .read_plan_details(&super::command_context("session_branch_tree"), request)
+            .map_or_else(
+                |error| Response::Error(helpers::map_error(&error, correlation_id)),
+                Response::PlanDetails,
             )
     }
 

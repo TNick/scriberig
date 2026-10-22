@@ -369,6 +369,34 @@ fn plan_attempts_round_trip() {
     });
 }
 
+/// Verifies bounded plan gate and evidence detail contracts round trip.
+#[test]
+fn plan_details_round_trip() {
+    round_trip(&SessionPlanDetailsRequest {
+        session: SessionReference {
+            id: "session-1".to_owned(),
+        },
+        plan: "plan-1".to_owned(),
+        expected_revision: 9,
+        gate_offset: 4,
+        evidence_offset: 8,
+        limit: 10,
+    });
+    round_trip(&SessionPlanDetailsResponse {
+        plan: "plan-1".to_owned(),
+        revision: 9,
+        snapshot: Some("snapshot-9".to_owned()),
+        gate_total: 4,
+        gate_offset: 4,
+        gates: Vec::new(),
+        gate_next_offset: None,
+        evidence_total: 8,
+        evidence_offset: 8,
+        evidence: Vec::new(),
+        evidence_next_offset: None,
+    });
+}
+
 #[path = "tests_additional.rs"]
 mod tests_additional;
 #[path = "tests_models.rs"]

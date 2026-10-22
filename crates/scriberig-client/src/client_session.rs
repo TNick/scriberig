@@ -7,9 +7,10 @@ use scriberig_protocol::{
     AgentPresentationPreferencesSetRequest, BranchReference, ModelRequestDetailRequest,
     ModelRequestDetailResponse, ProtocolTransport, PublicAgentPresentationPreferences, Request,
     Response, SessionPlan, SessionPlanAssignmentRequest, SessionPlanAttemptsRequest,
-    SessionPlanAttemptsResponse, SessionPlanCreateRequest, SessionPlanLifecycleRequest,
-    SessionPlanMutationRequest, SessionPlanReplanRequest, SessionReadRequest, SessionReadResponse,
-    SessionReference, ToolResultDetailRequest, ToolResultDetailResponse,
+    SessionPlanAttemptsResponse, SessionPlanCreateRequest, SessionPlanDetailsRequest,
+    SessionPlanDetailsResponse, SessionPlanLifecycleRequest, SessionPlanMutationRequest,
+    SessionPlanReplanRequest, SessionReadRequest, SessionReadResponse, SessionReference,
+    ToolResultDetailRequest, ToolResultDetailResponse,
 };
 
 impl<T: ProtocolTransport> Client<T> {
@@ -29,6 +30,27 @@ impl<T: ProtocolTransport> Client<T> {
     ) -> Result<SessionPlanAttemptsResponse, ClientError> {
         match self.send(Request::PlanAttempts(request))?.response {
             Response::PlanAttempts(attempts) => Ok(attempts),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Reads bounded gate and evidence pages from one observed plan revision.
+    ///
+    /// # Parameters
+    /// - `request`: Session, plan revision, and independent page offsets.
+    ///
+    /// # Returns
+    /// Typed gate/evidence details from the requested plan revision.
+    ///
+    /// # Errors
+    /// Returns a structured server or transport error.
+    pub fn plan_details(
+        &self,
+        request: SessionPlanDetailsRequest,
+    ) -> Result<SessionPlanDetailsResponse, ClientError> {
+        match self.send(Request::PlanDetails(request))?.response {
+            Response::PlanDetails(details) => Ok(details),
             Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }

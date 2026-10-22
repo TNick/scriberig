@@ -54,17 +54,17 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
         (**self).capabilities()
     }
 
-    /// Delegates compact session reads to the borrowed service.
+    /// Delegates compact session reads.
+    ///
+    /// # Parameters
     /// - `context`: Trusted request context.
     /// - `session`: Stable session identity.
     ///
+    /// # Returns
     /// Compact session tree response.
     ///
-    /// Returns the service's structured failure.
-    /// # Returns
-    /// The operation result.
     /// # Errors
-    /// Returns an error when the operation fails.
+    /// Returns the delegated service error.
     fn read_session(
         &self,
         context: &ApplicationContext,
@@ -73,23 +73,38 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
         (**self).read_session(context, session)
     }
 
-    /// Delegates bounded plan-attempt reads to the borrowed service.
+    /// Delegates bounded plan-attempt reads.
     ///
     /// # Parameters
     /// - `context`: Trusted session-read capability context.
     /// - `request`: Session, plan, node, and page selection.
-    ///
     /// # Returns
     /// The safe bounded attempt page.
-    ///
     /// # Errors
-    /// Returns the delegated service failure.
+    /// Returns the delegated service error.
     fn read_plan_attempts(
         &self,
         context: &ApplicationContext,
         request: &scriberig_protocol::SessionPlanAttemptsRequest,
     ) -> Result<scriberig_protocol::SessionPlanAttemptsResponse, ApplicationError> {
         (**self).read_plan_attempts(context, request)
+    }
+
+    /// Delegates bounded plan detail reads.
+    ///
+    /// # Parameters
+    /// - `context`: Trusted session-read capability context.
+    /// - `request`: Session, plan revision, and page selection.
+    /// # Returns
+    /// Bounded gate and evidence page.
+    /// # Errors
+    /// Returns the delegated service error.
+    fn read_plan_details(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_protocol::SessionPlanDetailsRequest,
+    ) -> Result<scriberig_protocol::SessionPlanDetailsResponse, ApplicationError> {
+        (**self).read_plan_details(context, request)
     }
 
     /// Delegates model request detail reads to the borrowed service.

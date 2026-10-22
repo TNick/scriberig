@@ -31,6 +31,29 @@ export interface SessionPlanAttemptsRequest {
   offset?: number;
   limit?: number;
 }
+/** Selects bounded gate and evidence pages from one observed plan revision. */
+export interface SessionPlanDetailsRequest {
+  session: { id: SessionId };
+  plan: string;
+  expectedRevision: number;
+  gateOffset?: number;
+  evidenceOffset?: number;
+  limit?: number;
+}
+/** Independently paged gate and evidence details for one plan revision. */
+export interface SessionPlanDetailsResponse {
+  plan: string;
+  revision: number;
+  snapshot?: string;
+  gateTotal: number;
+  gateOffset: number;
+  gates: readonly SessionPlanGate[];
+  gateNextOffset?: number;
+  evidenceTotal: number;
+  evidenceOffset: number;
+  evidence: readonly SessionPlanEvidenceAssociation[];
+  evidenceNextOffset?: number;
+}
 /** Safe model-library configuration assigned to one plan node. */
 export interface SessionModelAssignment {
   providerId: string;

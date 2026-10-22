@@ -29,6 +29,32 @@ pub(crate) fn attempt(value: &scriberig_session::PlanAttemptView) -> SessionPlan
     }
 }
 
+/// Converts one canonical plan gate to its transport projection.
+///
+/// # Parameters
+/// - `value`: Gate definition with retained waiver provenance.
+///
+/// # Returns
+/// The protocol gate without storage-specific details.
+pub(crate) fn gate_detail(
+    value: &scriberig_session::PlanGate,
+) -> scriberig_protocol::SessionPlanGate {
+    semantics::gate(value)
+}
+
+/// Converts one exact plan evidence association to its transport projection.
+///
+/// # Parameters
+/// - `value`: Evidence reference and typed role.
+///
+/// # Returns
+/// The protocol evidence association without copied source payloads.
+pub(crate) fn evidence_detail(
+    value: &scriberig_session::PlanEvidenceAssociation,
+) -> scriberig_protocol::SessionPlanEvidenceAssociation {
+    semantics::evidence(value)
+}
+
 /// Converts one plan and its retained history into a safe wire projection.
 ///
 /// - `plan`: Durable plan value from the shared session subsystem.

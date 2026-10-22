@@ -122,6 +122,25 @@ where
         super::server_plan_attempts::read(self, context, request)
     }
 
+    /// Reads a bounded gate and evidence page through shared session semantics.
+    ///
+    /// # Parameters
+    /// - `context`: Trusted session-read capability context.
+    /// - `request`: Session, plan revision, and independent page offsets.
+    ///
+    /// # Returns
+    /// Typed requirement records bound to the requested plan revision.
+    ///
+    /// # Errors
+    /// Returns authorization, lookup, stale revision, or identity errors.
+    fn read_plan_details(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_protocol::SessionPlanDetailsRequest,
+    ) -> Result<scriberig_protocol::SessionPlanDetailsResponse, ApplicationError> {
+        super::server_plan_details::read(self, context, request)
+    }
+
     /// Reads a previously captured model request from an authorized session.
     ///
     /// - `context`: Trusted request context.

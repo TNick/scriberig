@@ -1,5 +1,8 @@
 //! Maps operation-segment HTTP requests onto the typed protocol dispatcher.
 
+#[path = "http_protocol_plan.rs"]
+mod plan_requests;
+
 use serde_json::{Value, json};
 
 use crate::dispatch::Dispatcher;
@@ -104,6 +107,9 @@ fn decode_request(
             json!({"code": "invalid_request", "message": error.to_string()}),
         )
     };
+    if let Some(request) = plan_requests::decode(operation, body).map_err(invalid)? {
+        return Ok(request);
+    }
     let request = match operation {
         "inspect" => {
             scriberig_protocol::Request::Inspect(serde_json::from_str(body).map_err(invalid)?)
@@ -140,24 +146,6 @@ fn decode_request(
         ),
         "session" | "session_read" => {
             scriberig_protocol::Request::SessionRead(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "plan_create" => {
-            scriberig_protocol::Request::PlanCreate(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "plan_lifecycle" => {
-            scriberig_protocol::Request::PlanLifecycle(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "plan_assignment" => scriberig_protocol::Request::PlanAssignment(
-            serde_json::from_str(body).map_err(invalid)?,
-        ),
-        "plan_replan" => {
-            scriberig_protocol::Request::PlanReplan(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "plan_mutation" => {
-            scriberig_protocol::Request::PlanMutation(serde_json::from_str(body).map_err(invalid)?)
-        }
-        "plan_attempts" => {
-            scriberig_protocol::Request::PlanAttempts(serde_json::from_str(body).map_err(invalid)?)
         }
         "model_request_detail" => scriberig_protocol::Request::ModelRequestDetail(
             serde_json::from_str(body).map_err(invalid)?,
@@ -245,6 +233,13 @@ mod tests {
                 r#"{"session":{"id":"session-1"},"plan":"plan-1","node":"node-1","offset":5,"limit":10}"#
             ),
             Ok(scriberig_protocol::Request::PlanAttempts(_))
+        ));
+        assert!(matches!(
+            decode_request(
+                "plan_details",
+                r#"{"session":{"id":"session-1"},"plan":"plan-1","expected_revision":9,"gate_offset":0,"evidence_offset":10,"limit":25}"#
+            ),
+            Ok(scriberig_protocol::Request::PlanDetails(_))
         ));
     }
 }

@@ -14,8 +14,8 @@ pub mod views;
 
 /// Defines the durable session repository boundary.
 pub mod repository {
-    use crate::Session;
-    use scriberig_core::EntityId;
+    use crate::{Plan, Session};
+    use scriberig_core::{EntityId, SnapshotId};
 
     /// Reports durable execution-selection update failures.
     #[derive(Clone, Debug, Eq, PartialEq)]
@@ -64,6 +64,27 @@ pub mod repository {
         /// # Errors
         /// Returns an error when the operation fails.
         fn load(&self, session: EntityId) -> Result<Option<Session>, String>;
+
+        /// Loads one plan projection from an exact historical semantic snapshot.
+        ///
+        /// # Parameters
+        /// - `_session`: Owning durable session identity.
+        /// - `_plan`: Stable plan identity.
+        /// - `_snapshot`: Exact universal snapshot to resolve.
+        ///
+        /// # Returns
+        /// The plan at the snapshot, or `None` when it is outside plan history.
+        ///
+        /// # Errors
+        /// Returns a backend diagnostic when snapshot resolution fails.
+        fn load_plan_at_snapshot(
+            &self,
+            _session: EntityId,
+            _plan: EntityId,
+            _snapshot: SnapshotId,
+        ) -> Result<Option<Plan>, String> {
+            Err("historical plan snapshot reads are unsupported".to_owned())
+        }
 
         /// Removes one exact durable session graph.
         ///

@@ -3,6 +3,7 @@
 mod payload;
 #[path = "store_mutations/plan.rs"]
 mod plan_mutation;
+mod plan_snapshot_read;
 mod recovery;
 mod rollup_index;
 #[path = "store_mutations/selection.rs"]
@@ -15,8 +16,8 @@ use std::path::Path;
 use std::sync::Mutex;
 
 use rusqlite::{Connection, TransactionBehavior, params};
-use scriberig_core::EntityId;
-use scriberig_session::{PlanStoreError, SelectionStoreError, Session, SessionStore};
+use scriberig_core::{EntityId, SnapshotId};
+use scriberig_session::{Plan, PlanStoreError, SelectionStoreError, Session, SessionStore};
 use scriberig_store_sqlite::SqliteStore;
 
 /// SQLite-backed repository for immutable session graph snapshots.
@@ -300,6 +301,27 @@ impl SessionStore for SqliteSessionStore {
             )
             .map_err(|error| error.to_string())?;
         transaction.commit().map_err(|error| error.to_string())
+    }
+
+    /// Loads one exact plan revision from the plan root's snapshot history.
+    ///
+    /// # Parameters
+    /// - `session`: Owning durable session identity.
+    /// - `plan_id`: Stable plan identity.
+    /// - `snapshot`: Exact universal snapshot to resolve.
+    ///
+    /// # Returns
+    /// The historical plan projection, or `None` when outside root history.
+    ///
+    /// # Errors
+    /// Returns a backend diagnostic when snapshot resolution fails.
+    fn load_plan_at_snapshot(
+        &self,
+        session: EntityId,
+        plan_id: EntityId,
+        snapshot: SnapshotId,
+    ) -> Result<Option<Plan>, String> {
+        self.resolve_plan_snapshot(session, plan_id, snapshot)
     }
 
     /// Atomically changes only session execution selection at the observed revision.

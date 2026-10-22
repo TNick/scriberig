@@ -4,9 +4,12 @@ pub use scriberig_session::{SessionActivityKind, SessionActivityState, ToolActiv
 
 #[path = "session/attempts.rs"]
 mod attempts;
+#[path = "session/plan_details.rs"]
+mod plan_details;
 #[path = "session/requests.rs"]
 mod requests;
 pub use attempts::{SessionPlanAttempt, SessionPlanAttemptsRequest, SessionPlanAttemptsResponse};
+pub use plan_details::{SessionPlanDetailsRequest, SessionPlanDetailsResponse};
 pub use requests::{
     ModelContextRevisionReference, ModelRequestDetailFragment, ModelRequestDetailRequest,
     ModelRequestDetailResponse, ModelRequestMessageDetail, ModelRequestToolDetail,

@@ -248,7 +248,7 @@ impl SqliteSessionStore {
     /// # Errors
     /// Returns a diagnostic for missing, invalid, or corrupt semantic objects.
     /// - `_session`: Owning session identity for the requested snapshot.
-    fn load_plan_at_snapshot(
+    pub(crate) fn load_plan_at_snapshot(
         &self,
         _session: EntityId,
         plan: EntityId,
@@ -368,7 +368,7 @@ impl SqliteSessionStore {
 ///
 /// # Returns
 /// The value described by the return type.
-fn plan_root(session: EntityId, plan: EntityId) -> Result<RootName, String> {
+pub(crate) fn plan_root(session: EntityId, plan: EntityId) -> Result<RootName, String> {
     RootName::new(format!("scriberig-plan-{session}-{plan}"))
         .map_err(|error| format!("invalid plan root name: {error:?}"))
 }

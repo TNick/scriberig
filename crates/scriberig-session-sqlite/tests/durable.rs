@@ -383,5 +383,7 @@ mod incremental_rollup;
 mod part2;
 #[path = "durable_parts/plan_history_migration.rs"]
 mod plan_history_migration;
+#[path = "durable_parts/plan_projection.rs"]
+mod plan_projection;
 #[path = "durable_parts/rollup_index.rs"]
 mod rollup_index;
