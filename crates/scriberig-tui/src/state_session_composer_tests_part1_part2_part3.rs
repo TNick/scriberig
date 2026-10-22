@@ -101,6 +101,8 @@ fn accepted_plan_result_rebuilds_structural_conversation_rows() {
         assignment: None,
         claim: None,
         claim_generation: 0,
+        abandon_reason: None,
+        last_failure: None,
     })
     .expect("node");
     let mut state = TuiState {
@@ -156,6 +158,8 @@ fn assign_command_targets_only_the_selected_plan_node() {
         assignment: None,
         claim: None,
         claim_generation: 0,
+        abandon_reason: None,
+        last_failure: None,
     })
     .expect("node");
     let session = scriberig_session::Session {

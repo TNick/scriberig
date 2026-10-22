@@ -4,7 +4,7 @@ use super::{
     AgentCommandRequest, AgentContinuationAccepted, AgentContinueAtRequest, ApplicationContext,
     ApplicationError, EntityId, NewSessionAgentRequest, NewSessionAgentStart, OperationId,
     PlanAssignmentRequest, PlanCreateRequest, PlanLifecycleAction, PlanLifecycleRequest,
-    PlanReplanRequest, Session, SessionRequest,
+    PlanMutationRequest, PlanReplanRequest, Session, SessionRequest,
 };
 
 /// Owns session and agent operations at the application boundary.
@@ -208,6 +208,28 @@ pub trait SessionBackend {
     ) -> Result<scriberig_session::Plan, ApplicationError> {
         Err(ApplicationError::UnsupportedOperation {
             operation: "plan replan".to_owned(),
+        })
+    }
+
+    /// Applies one typed semantic plan mutation through the shared application boundary.
+    ///
+    /// - `_context`: Authorized caller context.
+    /// - `_request`: Plan identity, expected revision, and typed mutation.
+    ///
+    /// The authoritative updated plan.
+    ///
+    /// Returns unsupported-operation, conflict, validation, or persistence errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn mutate_plan(
+        &self,
+        _context: &ApplicationContext,
+        _request: &PlanMutationRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        Err(ApplicationError::UnsupportedOperation {
+            operation: "semantic plan mutation".to_owned(),
         })
     }
 

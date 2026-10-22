@@ -53,11 +53,11 @@ repository = "https://github.com/TNick/scriberig"
 # Controlled TNick fork on `codex/scriberig-upstream-ownership`, based on
 # upstream main 281dfddfa39ac063d86de57b75370974c4d75e6c. This pin also carries
 # typed provider failures, safe reasoning-summary events, and isolated workers.
-rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "9d13b3114b196f44424d45abdf5222eb09d9e78c" }
-rpi-agent = { git = "https://github.com/TNick/pi-rust", rev = "9d13b3114b196f44424d45abdf5222eb09d9e78c" }
-rpi-extensions = { git = "https://github.com/TNick/pi-rust", rev = "9d13b3114b196f44424d45abdf5222eb09d9e78c" }
-rpi-model-runtime = { git = "https://github.com/TNick/pi-rust", rev = "9d13b3114b196f44424d45abdf5222eb09d9e78c" }
-rpi-tui = { git = "https://github.com/TNick/pi-rust", rev = "9d13b3114b196f44424d45abdf5222eb09d9e78c" }
+rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "9d48f989dcce9ed62220c5cf0436126900bb2a79" }
+rpi-agent = { git = "https://github.com/TNick/pi-rust", rev = "9d48f989dcce9ed62220c5cf0436126900bb2a79" }
+rpi-extensions = { git = "https://github.com/TNick/pi-rust", rev = "9d48f989dcce9ed62220c5cf0436126900bb2a79" }
+rpi-model-runtime = { git = "https://github.com/TNick/pi-rust", rev = "9d48f989dcce9ed62220c5cf0436126900bb2a79" }
+rpi-tui = { git = "https://github.com/TNick/pi-rust", rev = "9d48f989dcce9ed62220c5cf0436126900bb2a79" }
 
 [workspace.lints.rust]
 warnings = "deny"

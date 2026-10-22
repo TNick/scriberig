@@ -211,7 +211,17 @@ fn invoke_semantic_tool<B: ApplicationBackend + Sync>(
                     cancelled.as_ref(),
                 )
             };
-            operation.map_err(|_| AgentError::tool("semantic operation failed"))
+            operation.map_err(|error| {
+                let message = match error {
+                    scriberig_agent_core::ToolError::CapabilityDenied { action, scope } => {
+                        format!("capability denied: {action} ({scope})")
+                    }
+                    scriberig_agent_core::ToolError::Application { category, message } => {
+                        format!("{category}: {message}")
+                    }
+                };
+                AgentError::tool(message.chars().take(500).collect::<String>())
+            })
         })();
         finished.store(true, std::sync::atomic::Ordering::Release);
         let _ = monitor.join();

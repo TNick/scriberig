@@ -34,8 +34,14 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
     let mut tui = TuiPty::start_self_hosting();
     let checkout = tui.fixture_path().join("scriberig");
     assertions::assert_tracked_serena_configuration(&checkout);
-    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
-    tui.send(b"Onboard the current project.\r");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    tui.send_slow(b"/project\r");
+    assert!(
+        tui.read_until("No active project is selected."),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send_slow(b"Onboard the current project.\r");
     let session = visible_session(&tui);
     wait_for_onboarding(&mut tui, session);
     let scan_before =

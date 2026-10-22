@@ -25,6 +25,9 @@ mod session_plan_tests;
 /// Session tree containing ordered activity and compact result handles.
 /// # Returns
 /// The operation result.
+///
+/// # Errors
+/// Returns an error when the requested operation cannot complete.
 pub(super) fn session_response(
     session: scriberig_session::Session,
 ) -> Result<scriberig_protocol::SessionReadResponse, scriberig_app::ApplicationError> {

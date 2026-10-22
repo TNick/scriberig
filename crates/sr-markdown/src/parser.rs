@@ -254,12 +254,7 @@ pub fn parse_document(source: &str) -> Result<MarkdownDocument, MarkdownDiagnost
             | Event::End(TagEnd::FootnoteDefinition)
             | Event::FootnoteReference(_)
             | Event::Html(_)
-            | Event::InlineHtml(_) => {
-                return Err(MarkdownDiagnostic::new(
-                    "unsupported-markdown",
-                    "Markdown contains syntax outside the supported projection model",
-                ));
-            }
+            | Event::InlineHtml(_) => {}
             Event::Rule => {}
             Event::TaskListMarker(_) => {}
             _ if in_quote => {}

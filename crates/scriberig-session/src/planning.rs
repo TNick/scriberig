@@ -292,6 +292,8 @@ pub enum PlanError {
     StaleRollupIndex,
 }
 
+#[path = "planning/plan_completion.rs"]
+mod plan_completion;
 #[path = "planning/plan_coordinator.rs"]
 mod plan_coordinator;
 #[path = "planning/plan_definition.rs"]

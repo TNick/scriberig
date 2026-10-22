@@ -119,6 +119,8 @@ impl SqliteSessionStore {
         transaction
             .commit()
             .map_err(|error| PlanStoreError::Persistence(error.to_string()))?;
-        self.compare_and_swap_semantic_plan(session.id, proposed, expected_revision)
+        self.compare_and_swap_semantic_plan(session.id, proposed, expected_revision)?;
+        let _ = self.rebuild_plan_rollup_index(session.id, plan_id);
+        Ok(())
     }
 }

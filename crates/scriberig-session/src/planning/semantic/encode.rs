@@ -4,7 +4,17 @@ use scriberig_core::{EncodingVersion, EntityId, TypeId, revision_id};
 use serde::Serialize;
 
 use super::super::Plan;
+
+#[path = "encode/payloads.rs"]
+mod payloads;
+
 use super::{PlanSemanticError, PlanSemanticRevision, PlanSemanticSnapshot};
+pub(super) use payloads::{DependencyIdentity, RelationIdentity};
+use payloads::{
+    DependencyPayload, EvidencePayload, GatePayload, HistoryIdentity, HistoryPayload,
+    MembershipPayload, NodePayload, PlanPayload, StructurePayload, SummaryLinkPayload,
+    SummaryPayload,
+};
 
 pub(super) const PLAN_TYPE: &str = crate::schema::SessionEntityType::Plan.as_str();
 pub(super) const NODE_TYPE: &str = crate::schema::SessionEntityType::PlanNode.as_str();
@@ -17,137 +27,12 @@ pub(super) const EVIDENCE_TYPE: &str = crate::schema::SessionEntityType::PlanEvi
 pub(super) const SUMMARY_TYPE: &str = crate::schema::SessionEntityType::PlanSummary.as_str();
 pub(super) const SUMMARY_LINK_TYPE: &str =
     crate::schema::SessionEntityType::PlanSummaryLink.as_str();
-
-#[derive(Serialize)]
-struct PlanPayload<'a> {
-    schema_version: u16,
-    session: Option<EntityId>,
-    anchor: Option<&'a crate::ContinuationAnchor>,
-    goal: &'a str,
-    mutation_revision: u64,
-    status: super::super::PlanStatus,
-    root_branch: EntityId,
-    coordinator: Option<EntityId>,
-    coordinator_cursor: Option<EntityId>,
-    coordinator_claim: Option<&'a super::super::CoordinatorClaim>,
-    coordinator_generation: u64,
-}
-
-#[derive(Serialize)]
-struct NodePayload<'a> {
-    schema_version: u16,
-    plan: EntityId,
-    title: &'a str,
-    purpose: &'a str,
-    expected_result: &'a Option<super::super::ExpectedResult>,
-    semantic_scope: &'a [String],
-    status: super::super::PlanNodeStatus,
-    branch: Option<EntityId>,
-    result: Option<EntityId>,
-    superseded_by: Option<EntityId>,
-    abandon_reason: Option<super::super::PlanAbandonReason>,
-    last_failure: &'a Option<super::super::PlanEvidenceReference>,
-    assignment: &'a Option<super::super::ModelAssignment>,
-    claim: &'a Option<super::super::WorkerClaim>,
-    claim_generation: u64,
-}
-
-#[derive(Serialize)]
-struct MembershipPayload {
-    schema_version: u16,
-    plan: EntityId,
-    node: EntityId,
-    ordinal: u64,
-}
-
-#[derive(Serialize)]
-struct StructurePayload {
-    schema_version: u16,
-    plan: EntityId,
-    root_branch: EntityId,
-    child: EntityId,
-    parent: Option<super::super::PlanNodeParent>,
-    ordinal: u64,
-}
-
-#[derive(Serialize)]
-struct DependencyPayload {
-    schema_version: u16,
-    plan: EntityId,
-    prerequisite: EntityId,
-    dependent: EntityId,
-    fulfilled_by: Option<EntityId>,
-}
-
-#[derive(Serialize)]
-pub(super) struct RelationIdentity {
-    pub(super) owner: EntityId,
-    pub(super) target: EntityId,
-}
-
-#[derive(Serialize)]
-pub(super) struct DependencyIdentity {
-    pub(super) plan: EntityId,
-    pub(super) prerequisite: EntityId,
-    pub(super) dependent: EntityId,
-}
-
-#[derive(Serialize)]
-struct HistoryPayload<'a> {
-    schema_version: u16,
-    plan: EntityId,
-    mutation_revision: u64,
-    reason: &'a Option<String>,
-}
-
-#[derive(Serialize)]
-struct HistoryIdentity {
-    plan: EntityId,
-    mutation_revision: u64,
-}
-
-#[derive(Serialize)]
-struct SummaryPayload<'a> {
-    schema_version: u16,
-    plan: EntityId,
-    node: EntityId,
-    text: &'a str,
-    sources: &'a [super::super::PlanSemanticReference],
-}
-
-#[derive(Serialize)]
-struct SummaryLinkPayload {
-    schema_version: u16,
-    plan: EntityId,
-    node: EntityId,
-    summary: EntityId,
-}
-
-#[derive(Serialize)]
-struct GatePayload<'a> {
-    schema_version: u16,
-    plan: EntityId,
-    owner: EntityId,
-    phase: super::super::PlanGatePhase,
-    requirement: &'a super::super::PlanGateRequirement,
-    waiver: &'a Option<super::super::PlanGateWaiver>,
-}
-
-#[derive(Serialize)]
-struct EvidencePayload<'a> {
-    schema_version: u16,
-    plan: EntityId,
-    owner: super::super::PlanEvidenceOwner,
-    role: super::super::PlanEvidenceRole,
-    evidence: &'a super::super::PlanEvidenceReference,
-    note: &'a Option<String>,
-    actor: Option<EntityId>,
-}
-
 /// Encodes a plan view into current independently revisioned objects.
 ///
 /// - `plan`: Aggregate read model to split into semantic records.
 ///
+/// The exhaustive object mapping stays together so identities and payloads
+/// remain adjacent for review.
 /// A stable object set sorted by entity and type identity.
 ///
 /// Returns a serialization or canonical identity error.
@@ -155,6 +40,7 @@ struct EvidencePayload<'a> {
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
+#[allow(clippy::too_many_lines)]
 pub(super) fn from_plan(plan: &Plan) -> Result<PlanSemanticSnapshot, PlanSemanticError> {
     let mut objects = Vec::new();
     push_object(

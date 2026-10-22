@@ -61,11 +61,12 @@ pub use session::{
     SessionPlanEvidenceAssociation, SessionPlanEvidenceKind, SessionPlanEvidenceOwner,
     SessionPlanEvidenceReference, SessionPlanEvidenceRole, SessionPlanGate, SessionPlanGateCounts,
     SessionPlanGatePhase, SessionPlanGateRequirement, SessionPlanGateWaiver,
-    SessionPlanLifecycleRequest, SessionPlanNode, SessionPlanNodeDraft, SessionPlanNodeReference,
-    SessionPlanNodeStatus, SessionPlanReplanRequest, SessionPlanRevision,
-    SessionPlanSemanticPredicate, SessionPlanStatus, SessionPlanStatusCounts, SessionPlanSummary,
-    SessionReadRequest, SessionReadResponse, SessionSemanticReference, SessionTurn,
-    SessionWorkerClaim, ToolActivityKind, ToolResultDetailRequest, ToolResultDetailResponse,
+    SessionPlanLifecycleRequest, SessionPlanMutation, SessionPlanMutationRequest, SessionPlanNode,
+    SessionPlanNodeDraft, SessionPlanNodeReference, SessionPlanNodeStatus,
+    SessionPlanReplanRequest, SessionPlanRevision, SessionPlanSemanticPredicate, SessionPlanStatus,
+    SessionPlanStatusCounts, SessionPlanSummary, SessionReadRequest, SessionReadResponse,
+    SessionSemanticReference, SessionTurn, SessionWorkerClaim, ToolActivityKind,
+    ToolResultDetailRequest, ToolResultDetailResponse,
 };
 pub use transport::{ProtocolTransport, Request, RequestEnvelope, Response, ResponseEnvelope};
 pub use trust::{

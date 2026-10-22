@@ -16,6 +16,9 @@ impl Plan {
     /// - `gate`: Stable gate identity to evaluate.
     ///
     /// The derived gate evaluation, or `None` for an unknown gate.
+    ///
+    /// # Returns
+    /// The value described by the return type.
     #[must_use]
     pub fn evaluate_gate(&self, gate: EntityId) -> Option<PlanGateEvaluation> {
         let gate_record = self.gates.iter().find(|candidate| candidate.id == gate)?;
@@ -102,6 +105,9 @@ impl Plan {
     /// - `phase`: Entry or completion phase to inspect.
     ///
     /// Ordered evaluations for matching gates.
+    ///
+    /// # Returns
+    /// The value described by the return type.
     #[must_use]
     pub fn evaluate_node_gates(
         &self,
@@ -126,6 +132,9 @@ impl Plan {
     /// - `phase`: Entry or completion phase to inspect.
     ///
     /// `true` when no matching gate is pending or failed.
+    ///
+    /// # Returns
+    /// The value described by the return type.
     #[must_use]
     pub fn node_gates_satisfied(&self, node: EntityId, phase: PlanGatePhase) -> bool {
         self.evaluate_node_gates(node, phase)
@@ -146,6 +155,9 @@ impl Plan {
 /// - `evidence`: Exact evidence object being evaluated.
 ///
 /// `true` when the exact evidence satisfies the requirement.
+///
+/// # Returns
+/// The value described by the return type.
 fn satisfies_requirement(
     requirement: &PlanGateRequirement,
     evidence: &PlanEvidenceReference,
@@ -194,6 +206,9 @@ fn satisfies_requirement(
 /// - `evidence`: Exact evidence object being evaluated.
 ///
 /// `true` when the evidence is a relevant failed/contradicting result.
+///
+/// # Returns
+/// The value described by the return type.
 fn relevant_to_requirement(
     requirement: &PlanGateRequirement,
     evidence: &PlanEvidenceReference,
@@ -230,6 +245,9 @@ fn relevant_to_requirement(
 /// - `evidence`: Exact evidence object being evaluated.
 ///
 /// `true` when a relevant source carries an explicit negative result.
+///
+/// # Returns
+/// The value described by the return type.
 fn failed_requirement(requirement: &PlanGateRequirement, evidence: &PlanEvidenceReference) -> bool {
     relevant_to_requirement(requirement, evidence)
         && match requirement {
@@ -250,6 +268,9 @@ fn failed_requirement(requirement: &PlanGateRequirement, evidence: &PlanEvidence
 /// - `actual`: Exact reference carried by the evidence.
 ///
 /// `true` when entity, revision, and snapshot constraints match.
+///
+/// # Returns
+/// The value described by the return type.
 fn semantic_reference_matches(
     expected: &PlanSemanticReference,
     actual: &PlanSemanticReference,

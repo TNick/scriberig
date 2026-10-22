@@ -21,6 +21,13 @@ mod session_changed;
 /// # Returns
 /// The operation result.
 pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
+    if matches!(
+        state.primary_view,
+        crate::selection::PrimaryView::Changes | crate::selection::PrimaryView::Projection
+    ) && matches!(state.review, LoadState::Ready(_))
+    {
+        return reduce(state, Action::ConfirmReview);
+    }
     if state.overlay.is_none() {
         if state.primary_view == crate::selection::PrimaryView::Explorer {
             let selection = if state.cursor == 0 {
@@ -120,11 +127,6 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
                 },
             );
         }
-        if state.primary_view == crate::selection::PrimaryView::Changes
-            && matches!(state.review, LoadState::Ready(_))
-        {
-            return reduce(state, Action::ConfirmReview);
-        }
         if state.primary_view == crate::selection::PrimaryView::Session {
             if let LoadState::Ready(model) = &state.session {
                 if let Some(row) = model.rows.get(state.cursor) {
@@ -192,6 +194,10 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
 pub(crate) fn activate_palette_item(state: &mut TuiState, selected_id: &str) -> Vec<Effect> {
     if selected_id == "review-candidate" {
         return refresh_candidate_review(state);
+    }
+    if selected_id == "confirm-review" {
+        state.overlay = None;
+        return reduce(state, Action::ConfirmReview);
     }
     if let Some(effects) = activate_palette_control(state, selected_id) {
         return effects;

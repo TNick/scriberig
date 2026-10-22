@@ -217,8 +217,8 @@ fn session_snapshot_contracts_round_trip() {
             summary_id: None,
             summary_preview: None,
             dependency_blockers: Vec::new(),
-            entry_gates: Default::default(),
-            completion_gates: Default::default(),
+            entry_gates: SessionPlanGateCounts::default(),
+            completion_gates: SessionPlanGateCounts::default(),
             evidence_count: 0,
             can_retry: false,
             last_failure: None,
@@ -229,7 +229,7 @@ fn session_snapshot_contracts_round_trip() {
             fulfilled_by: Some("result-0".to_owned()),
         }],
         root_nodes: vec!["node-1".to_owned()],
-        status_counts: Default::default(),
+        status_counts: SessionPlanStatusCounts::default(),
         gates: Vec::new(),
         evidence: Vec::new(),
         summaries: Vec::new(),
@@ -283,6 +283,22 @@ fn session_plan_contracts_round_trip() {
         plan: "plan-1".to_owned(),
         expected_revision: 4,
         action: SessionPlanAction::Pause,
+    });
+    round_trip(&SessionPlanMutationRequest {
+        session: session.clone(),
+        plan: "plan-1".to_owned(),
+        expected_revision: 5,
+        mutation: SessionPlanMutation::AddNextStep {
+            node: SessionPlanNodeDraft {
+                key: "next".to_owned(),
+                parent_index: None,
+                title: "Next".to_owned(),
+                purpose: "continue work".to_owned(),
+                expected_result: None,
+                semantic_scope: Vec::new(),
+                assignment: None,
+            },
+        },
     });
     round_trip(&SessionPlanAssignmentRequest {
         session: session.clone(),

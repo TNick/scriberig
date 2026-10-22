@@ -210,6 +210,9 @@ impl<S: ApplicationService> Dispatcher<S> {
             Request::PlanReplan(request) => {
                 self.plan_request(&Request::PlanReplan(request), correlation_id, None)
             }
+            Request::PlanMutation(request) => {
+                self.plan_request(&Request::PlanMutation(request), correlation_id, None)
+            }
             Request::SessionRead(request) => self.session_read(&request, correlation_id),
             Request::ModelRequestDetail(request) => self
                 .service

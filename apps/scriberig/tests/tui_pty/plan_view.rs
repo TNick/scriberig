@@ -34,6 +34,8 @@ fn tui_pty_shows_a_session_plan_in_the_conversation_tree() {
         assignment: None,
         claim: None,
         claim_generation: 0,
+        abandon_reason: None,
+        last_failure: None,
     })
     .expect("add durable plan node");
     plan.transition(scriberig_session::PlanStatus::Planned)

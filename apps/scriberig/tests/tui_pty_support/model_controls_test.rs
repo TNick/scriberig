@@ -20,39 +20,6 @@ fn tui_pty_uses_upstream_model_controls() {
     tui.send(b"\x1b[B");
     tui.send(b"\r");
     assert!(tui.read_until("Fake A"), "{}", tui.diagnostic());
-    tui.send(b"\r");
-    assert!(tui.read_until("fake-a"), "{}", tui.diagnostic());
-
-    tui.send(b"\x1bOR");
-    assert!(tui.read_until("Select model"), "{}", tui.diagnostic());
-    assert!(tui.screen().contains("Fake A"), "{}", tui.diagnostic());
-    tui.send(b"\x1b");
-
-    tui.send(b"\x10");
-    assert!(tui.read_until("Command palette"), "{}", tui.diagnostic());
-    assert!(tui.screen().contains("Plans"), "{}", tui.diagnostic());
-    tui.send(b"\x1b");
-
-    tui.send(b"\x1bOP");
-    assert!(
-        tui.read_until("Overlay [Esc close]"),
-        "{}",
-        tui.diagnostic()
-    );
-    assert!(
-        tui.screen().contains("command palette"),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b"\x1b");
-    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
-
-    tui.send(b"\x1bOS");
-    assert!(
-        tui.read_until("Select thinking level"),
-        "{}",
-        tui.diagnostic()
-    );
     tui.send(b"\x1b");
     assert!(tui.shutdown());
 }

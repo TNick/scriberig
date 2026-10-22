@@ -376,3 +376,8 @@ fn plan_dependencies_and_assignments_survive_reopen() {
 mod part1;
 #[path = "durable_parts/request_provenance.rs"]
 mod request_provenance;
+
+#[path = "durable_parts/part2.rs"]
+mod part2;
+#[path = "durable_parts/rollup_index.rs"]
+mod rollup_index;

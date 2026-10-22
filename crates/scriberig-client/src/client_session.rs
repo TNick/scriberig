@@ -7,8 +7,9 @@ use scriberig_protocol::{
     AgentPresentationPreferencesSetRequest, BranchReference, ModelRequestDetailRequest,
     ModelRequestDetailResponse, ProtocolTransport, PublicAgentPresentationPreferences, Request,
     Response, SessionPlan, SessionPlanAssignmentRequest, SessionPlanCreateRequest,
-    SessionPlanLifecycleRequest, SessionPlanReplanRequest, SessionReadRequest, SessionReadResponse,
-    SessionReference, ToolResultDetailRequest, ToolResultDetailResponse,
+    SessionPlanLifecycleRequest, SessionPlanMutationRequest, SessionPlanReplanRequest,
+    SessionReadRequest, SessionReadResponse, SessionReference, ToolResultDetailRequest,
+    ToolResultDetailResponse,
 };
 
 impl<T: ProtocolTransport> Client<T> {
@@ -91,6 +92,28 @@ impl<T: ProtocolTransport> Client<T> {
     /// Returns an error when the operation fails.
     pub fn replan(&self, request: SessionPlanReplanRequest) -> Result<SessionPlan, ClientError> {
         match self.send(Request::PlanReplan(request))?.response {
+            Response::Plan(plan) => Ok(plan),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
+    /// Applies one typed semantic mutation to a durable plan.
+    ///
+    /// - `request`: Plan identity, observed revision, and semantic mutation.
+    ///
+    /// The authoritative updated plan projection.
+    ///
+    /// Returns a structured server or transport error.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    pub fn mutate_plan(
+        &self,
+        request: SessionPlanMutationRequest,
+    ) -> Result<SessionPlan, ClientError> {
+        match self.send(Request::PlanMutation(request))?.response {
             Response::Plan(plan) => Ok(plan),
             Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),

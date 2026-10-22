@@ -17,6 +17,10 @@ mod semantics;
 /// Protocol state including current and historical graph revisions.
 /// # Returns
 /// The operation result.
+/// - `results`: Exact branch results used for projection and readiness.
+///
+/// # Errors
+/// Returns an error when the requested operation cannot complete.
 pub(crate) fn project(
     plan: Plan,
     results: Option<&[scriberig_session::BranchResult]>,
@@ -103,6 +107,7 @@ fn revision(value: PlanRevision) -> SessionPlanRevision {
 /// Protocol node with stable structural and execution references.
 /// # Returns
 /// The operation result.
+/// - `view`: Exact node view used for derived presentation fields.
 fn node(value: PlanNode, view: Option<&PlanNodeView>) -> SessionPlanNode {
     SessionPlanNode {
         id: value.id.to_string(),
@@ -169,6 +174,9 @@ fn node(value: PlanNode, view: Option<&PlanNodeView>) -> SessionPlanNode {
 /// - `error`: Typed plan projection failure.
 ///
 /// A bounded internal protocol-projection error.
+///
+/// # Returns
+/// The value described by the return type.
 fn view_error(error: impl std::fmt::Debug) -> scriberig_app::ApplicationError {
     scriberig_app::ApplicationError::Internal {
         message: format!("plan view assembly failed: {error:?}"),

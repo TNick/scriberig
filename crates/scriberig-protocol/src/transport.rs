@@ -6,8 +6,8 @@ use crate::{
     AgentStartRequest, CancelOperationRequest, CommandRequest, Event, FindRequest, ListRequest,
     ModelLibraryRequest, ModelRequestDetailRequest, ProjectRequest, QueryRequest,
     SessionModelSelectionRequest, SessionPlanAssignmentRequest, SessionPlanCreateRequest,
-    SessionPlanLifecycleRequest, SessionPlanReplanRequest, SessionReadRequest,
-    SessionThinkingSelectionRequest, SubscribeRequest, ToolResultDetailRequest,
+    SessionPlanLifecycleRequest, SessionPlanMutationRequest, SessionPlanReplanRequest,
+    SessionReadRequest, SessionThinkingSelectionRequest, SubscribeRequest, ToolResultDetailRequest,
 };
 use crate::{
     CapabilitiesResponse, InspectEntityRequest, InspectEntityResponse, OperationStatusRequest,
@@ -56,6 +56,8 @@ pub enum Request {
     PlanAssignment(SessionPlanAssignmentRequest),
     /// Apply one complete durable replan revision.
     PlanReplan(SessionPlanReplanRequest),
+    /// Apply a typed gate, evidence, retry, or structure mutation.
+    PlanMutation(SessionPlanMutationRequest),
     /// Read a bounded safe model request projection.
     ModelRequestDetail(ModelRequestDetailRequest),
     /// Read bounded safe detail for one tool result.

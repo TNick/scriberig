@@ -1,5 +1,7 @@
 //! Verifies native TUI conversation and session workflows.
 
+use std::time::{Duration, Instant};
+
 use super::tui_pty_support::{TuiPty, test_lock};
 use scriberig_session::SessionStore;
 
@@ -237,21 +239,12 @@ fn tui_pty_changes_model_with_fake_profiles() {
     let mut tui = TuiPty::start_with_model_catalog(catalog);
 
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    tui.send(b"Onboard the current project.\r");
-    assert!(
-        tui.read_until("The current project is onboarded"),
-        "{}",
-        tui.diagnostic()
-    );
-    let session = tui.stored_session_id();
+    let session = seed_named_session(&tui, "Model selection");
+    tui.send_slow(format!("/switch {session}\r").as_bytes());
+    assert!(tui.read_until("Model selection"), "{}", tui.diagnostic());
 
     tui.send_slow(b"/model\r");
-    assert!(
-        tui.read_until("Fake B \u{b7} Fake B \u{b7} local/fake-b"),
-        "{}",
-        tui.diagnostic()
-    );
-    tui.send(b"\x1b[B");
+    tui.send_slow(b"Fake B");
     tui.send(b"\r");
     assert!(tui.read_until("fake-b"), "{}", tui.diagnostic());
 
@@ -259,12 +252,22 @@ fn tui_pty_changes_model_with_fake_profiles() {
         tui.fixture_path().join("scriberig.sqlite"),
     )
     .expect("open selected model session store");
-    let saved = store
-        .load(session)
-        .expect("read selected model session")
-        .expect("selected model session exists");
-    assert_eq!(saved.execution.provider_id.as_deref(), Some("local"));
-    assert_eq!(saved.execution.model_id.as_deref(), Some("fake-b"));
+    let deadline = Instant::now() + Duration::from_secs(10);
+    loop {
+        let saved = store
+            .load(session)
+            .expect("read selected model session")
+            .expect("selected model session exists");
+        if saved.execution.model_id.as_deref() == Some("fake-b") {
+            assert_eq!(saved.execution.provider_id.as_deref(), Some("local"));
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "model selection was not persisted: {saved:?}"
+        );
+        std::thread::sleep(Duration::from_millis(50));
+    }
     drop(store);
     assert!(tui.shutdown());
 }

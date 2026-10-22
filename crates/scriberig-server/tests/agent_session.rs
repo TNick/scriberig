@@ -10,7 +10,8 @@ use scriberig_protocol::{
     OperationStatusRequest, ProtocolVersion, Request, RequestEnvelope, Response,
     RuntimeCapabilitiesRequest, SessionContinuationAnchor, SessionPlanAction,
     SessionPlanAssignmentRequest, SessionPlanCreateRequest, SessionPlanLifecycleRequest,
-    SessionPlanNodeDraft, SessionReadRequest, SessionReference, SubscribeRequest,
+    SessionPlanMutation, SessionPlanMutationRequest, SessionPlanNodeDraft, SessionReadRequest,
+    SessionReference, SubscribeRequest,
 };
 use scriberig_server::Dispatcher;
 

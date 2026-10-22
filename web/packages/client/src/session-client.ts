@@ -9,6 +9,8 @@ import type {
   BranchResultReference,
   SessionId,
   SessionReadResponse,
+  SessionPlan,
+  SessionPlanMutationRequest,
   ModelRequestDetailResponse,
   ModelRequestDetailPageRequest,
   ToolResultDetailResponse,
@@ -39,6 +41,8 @@ import { normalizeExecutionSelection, normalizeModelLibrary } from "./model-view
 import { readPresentationPreferences, replacePresentationPreferences } from "./presentation-views";
 import type { TransportConnectionState } from "./transport";
 import { SemanticClient } from "./semantic-client";
+import { normalizeSessionPlan } from "./session-plan-views";
+import { planMutationToWire } from "./session-plan-mutation-wire";
 
 /** Durable agent and session operations on top of semantic operations.
  *
@@ -110,6 +114,25 @@ export class SessionClient extends SemanticClient {
     return this.transport
       .request("session", { session: { id: sessionId } }, signal)
       .then(normalizeSession);
+  }
+  /** Applies one typed semantic plan mutation through the shared app boundary.
+   * @param request Plan identity, expected revision, and mutation.
+   * @param signal Optional request cancellation signal.
+   * @returns The authoritative plan projection.
+   */
+  mutatePlan(request: SessionPlanMutationRequest, signal?: AbortSignal): Promise<SessionPlan> {
+    return this.transport
+      .request<unknown>(
+        "plan_mutation",
+        {
+          session: request.session,
+          plan: request.plan,
+          expected_revision: request.expectedRevision,
+          mutation: planMutationToWire(request.mutation),
+        },
+        signal,
+      )
+      .then(normalizeSessionPlan);
   }
   /** Reads a previously captured safe model request without invoking a provider. */
   getModelRequestDetail(

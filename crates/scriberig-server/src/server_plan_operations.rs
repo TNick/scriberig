@@ -4,6 +4,10 @@ use scriberig_app::{
     ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService, SessionBackend,
 };
 
+#[path = "server_plan_operations/plan_mutation.rs"]
+mod plan_mutation;
+use plan_mutation::plan_mutation;
+
 /// Applies one typed plan request using application-owned validation.
 ///
 /// - `service`: Shared application service.
@@ -13,6 +17,9 @@ use scriberig_app::{
 /// Safe projection of the authoritative plan state.
 ///
 /// Returns authorization, validation, revision conflict, or persistence errors.
+/// Request variants share one dispatcher to keep server plan writes on the
+/// application service boundary.
+#[allow(clippy::too_many_lines)]
 pub(super) fn apply<B: ApplicationBackend>(
     service: &ApplicationService<B>,
     context: &ApplicationContext,
@@ -86,6 +93,15 @@ pub(super) fn apply<B: ApplicationBackend>(
                 reason: request.reason.clone(),
             },
         )?,
+        scriberig_protocol::Request::PlanMutation(request) => service.mutate_plan(
+            context,
+            &scriberig_app::PlanMutationRequest {
+                session: parse_entity(&request.session.id)?,
+                plan: parse_entity(&request.plan)?,
+                expected_revision: request.expected_revision,
+                mutation: plan_mutation(&request.mutation)?,
+            },
+        )?,
         _ => {
             return Err(ApplicationError::InvalidRequest {
                 operation: "plan".to_owned(),
@@ -98,6 +114,7 @@ pub(super) fn apply<B: ApplicationBackend>(
         scriberig_protocol::Request::PlanLifecycle(request) => parse_entity(&request.session.id)?,
         scriberig_protocol::Request::PlanAssignment(request) => parse_entity(&request.session.id)?,
         scriberig_protocol::Request::PlanReplan(request) => parse_entity(&request.session.id)?,
+        scriberig_protocol::Request::PlanMutation(request) => parse_entity(&request.session.id)?,
         _ => {
             return Err(ApplicationError::InvalidRequest {
                 operation: "plan".to_owned(),

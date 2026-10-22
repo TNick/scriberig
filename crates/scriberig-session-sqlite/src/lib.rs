@@ -4,6 +4,7 @@ mod payload;
 #[path = "store_mutations/plan.rs"]
 mod plan_mutation;
 mod recovery;
+mod rollup_index;
 #[path = "store_mutations/selection.rs"]
 mod selection_mutation;
 mod semantic_plans;
@@ -21,7 +22,7 @@ use scriberig_store_sqlite::SqliteStore;
 /// SQLite-backed repository for immutable session graph snapshots.
 pub struct SqliteSessionStore {
     /// Connection guarded for serialized repository operations.
-    connection: Mutex<Connection>,
+    pub(crate) connection: Mutex<Connection>,
     /// Universal immutable store used as canonical plan persistence.
     semantic_store: SqliteStore,
 }
@@ -62,6 +63,7 @@ impl SqliteSessionStore {
     /// Initializes the repository schema and universal semantic store.
     ///
     /// - `connection`: SQLite connection to initialize.
+    /// - `semantic_store`: Universal semantic store used for exact plan records.
     ///
     /// An initialized session repository.
     ///
@@ -78,8 +80,36 @@ impl SqliteSessionStore {
             "CREATE TABLE IF NOT EXISTS session_records (
                  session_id BLOB PRIMARY KEY,
                  payload BLOB NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS plan_node_rollup_index (
+                 session_id TEXT NOT NULL,
+                 plan_id TEXT NOT NULL,
+                 node_id TEXT NOT NULL,
+                 parent_node_id TEXT,
+                 node_revision TEXT NOT NULL,
+                 direct_status TEXT NOT NULL,
+                 effective_status TEXT NOT NULL,
+                 source_snapshot TEXT NOT NULL,
+                 evaluator_version INTEGER NOT NULL,
+                 payload BLOB NOT NULL,
+                 PRIMARY KEY (session_id, plan_id, node_id)
              );",
         )?;
+        let has_node_revision = {
+            let mut statement = connection.prepare("PRAGMA table_info(plan_node_rollup_index)")?;
+            let columns = statement.query_map([], |row| row.get::<_, String>(1))?;
+            columns
+                .collect::<rusqlite::Result<Vec<_>>>()?
+                .iter()
+                .any(|column| column == "node_revision")
+        };
+        if !has_node_revision {
+            connection.execute(
+                "ALTER TABLE plan_node_rollup_index
+                 ADD COLUMN node_revision TEXT NOT NULL DEFAULT ''",
+                [],
+            )?;
+        }
         Ok(Self {
             connection: Mutex::new(connection),
             semantic_store,

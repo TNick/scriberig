@@ -211,6 +211,8 @@ fn execute_integration(
         branch: Some(branch),
         result: None,
         superseded_by: None,
+        abandon_reason: None,
+        last_failure: None,
         assignment: None,
         claim: None,
         claim_generation: 0,

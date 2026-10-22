@@ -83,6 +83,8 @@ fn coordinator_persists_claims_results_and_dependency_completion() {
             assignment,
             claim: None,
             claim_generation: 0,
+            abandon_reason: None,
+            last_failure: None,
         })
         .expect("node");
     }

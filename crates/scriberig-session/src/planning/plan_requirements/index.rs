@@ -86,12 +86,18 @@ impl PlanNodeRollupIndex {
     /// - `node`: Stable plan-node identity.
     ///
     /// The derived node state, or `None` when the node is absent.
+    ///
+    /// # Returns
+    /// The value described by the return type.
     #[must_use]
     pub fn get(&self, node: EntityId) -> Option<&PlanNodeRollup> {
         self.rollups.get(&node)
     }
 
     /// Returns every cached node rollup in stable identity order.
+    ///
+    /// # Returns
+    /// The value described by the return type.
     #[must_use]
     pub fn all(&self) -> &BTreeMap<EntityId, PlanNodeRollup> {
         &self.rollups
@@ -124,15 +130,13 @@ impl PlanNodeRollupIndex {
         expected_base: SnapshotId,
         new_snapshot: SnapshotId,
         changed_nodes: &[EntityId],
-    ) -> Result<(), PlanError> {
-        if self.source_snapshot != expected_base
-            || self.evaluator_version != 1
-            || changed_nodes.is_empty()
-        {
+    ) -> Result<Vec<EntityId>, PlanError> {
+        if self.source_snapshot != expected_base || self.evaluator_version != 1 {
             return Err(PlanError::StaleRollupIndex);
         }
         let mut proposed = self.clone();
         let mut affected_parents = BTreeSet::new();
+        let mut touched = BTreeSet::new();
         let changed = changed_nodes.iter().copied().collect::<BTreeSet<_>>();
         if changed.len() != changed_nodes.len() {
             return Err(PlanError::InvalidTransition);
@@ -143,9 +147,13 @@ impl PlanNodeRollupIndex {
                 .iter()
                 .find(|candidate| candidate.id == *node_id)
                 .ok_or(PlanError::StaleRollupIndex)?;
-            let new_parent = node_parent(node.parent);
+            let new_parent = match node.parent {
+                Some(PlanNodeParent::Node(parent)) => Some(parent),
+                Some(PlanNodeParent::Branch(_)) | None => None,
+            };
             let old_parent = proposed.parents.get(node_id).copied();
             if old_parent.flatten() != new_parent {
+                touched.insert(*node_id);
                 if let Some(parent) = old_parent.flatten() {
                     proposed.children.entry(parent).or_default().remove(node_id);
                     affected_parents.insert(parent);
@@ -178,16 +186,16 @@ impl PlanNodeRollupIndex {
         let mut changed_order = changed.into_iter().collect::<Vec<_>>();
         changed_order.sort_by_key(|node| std::cmp::Reverse(node_depth(plan, *node)));
         for node in changed_order {
-            proposed.propagate(plan, node, false)?;
+            proposed.propagate(plan, node, false, &mut touched)?;
         }
         let mut parent_order = affected_parents.into_iter().collect::<Vec<_>>();
         parent_order.sort_by_key(|node| std::cmp::Reverse(node_depth(plan, *node)));
         for parent in parent_order {
-            proposed.propagate(plan, parent, true)?;
+            proposed.propagate(plan, parent, true, &mut touched)?;
         }
         proposed.source_snapshot = new_snapshot;
         *self = proposed;
-        Ok(())
+        Ok(touched.into_iter().collect())
     }
 
     /// Recomputes one node and propagates changed values toward the root.
@@ -205,11 +213,26 @@ impl PlanNodeRollupIndex {
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
+    /// Propagates one cached change toward the structural root.
+    ///
+    /// # Parameters
+    /// - `self`: Index being updated.
+    /// - `plan`: Canonical plan projection at the target snapshot.
+    /// - `start`: First node to evaluate.
+    /// - `force_parent`: Whether to continue after an unchanged first value.
+    /// - `touched`: Nodes whose derived values changed.
+    ///
+    /// # Returns
+    /// Unit after updating the affected ancestor path.
+    ///
+    /// # Errors
+    /// Returns an error for missing descendants or a structural cycle.
     fn propagate(
         &mut self,
         plan: &Plan,
         start: EntityId,
         force_parent: bool,
+        touched: &mut BTreeSet<EntityId>,
     ) -> Result<(), PlanError> {
         let mut current = start;
         let mut force = force_parent;
@@ -220,6 +243,9 @@ impl PlanNodeRollupIndex {
             }
             let next = self.compute(plan, current)?;
             let changed = self.rollups.insert(current, next) != Some(next);
+            if changed {
+                touched.insert(current);
+            }
             if !changed && !force {
                 break;
             }
@@ -303,26 +329,16 @@ impl PlanNodeRollupIndex {
     }
 }
 
-/// Resolves the plan-node parent from a structural relation.
-///
-/// # Parameters
-/// - `parent`: Branch or PlanNode structural relation.
-///
-/// The plan-node identity, or `None` for a plan root.
-fn node_parent(parent: Option<PlanNodeParent>) -> Option<EntityId> {
-    match parent {
-        Some(PlanNodeParent::Node(parent)) => Some(parent),
-        Some(PlanNodeParent::Branch(_)) | None => None,
-    }
-}
-
 /// Calculates one node's structural depth and rejects parent cycles.
 ///
 /// # Parameters
 /// - `plan`: Current plan projection.
 /// - `node`: Stable node identity whose depth is requested.
 ///
-/// The number of PlanNode ancestors before the branch/root boundary.
+/// The number of `PlanNode` ancestors before the branch/root boundary.
+///
+/// # Returns
+/// The value described by the return type.
 fn node_depth(plan: &Plan, node: EntityId) -> usize {
     let mut current = node;
     let mut visited = BTreeSet::new();
@@ -332,7 +348,10 @@ fn node_depth(plan: &Plan, node: EntityId) -> usize {
             .nodes
             .iter()
             .find(|candidate| candidate.id == current)
-            .and_then(|candidate| node_parent(candidate.parent))
+            .and_then(|candidate| match candidate.parent {
+                Some(PlanNodeParent::Node(parent)) => Some(parent),
+                Some(PlanNodeParent::Branch(_)) | None => None,
+            })
         else {
             break;
         };

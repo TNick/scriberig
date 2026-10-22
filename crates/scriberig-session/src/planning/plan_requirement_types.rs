@@ -92,7 +92,7 @@ pub enum PlanEvidenceOwner {
 /// - `role`: Supports, contradicts, or informational role.
 /// - `evidence`: Exact semantic evidence reference.
 /// - `note`: Optional safe explanatory text.
-/// - `actor`: Optional ScribeRig actor identity for provenance.
+/// - `actor`: Optional `ScribeRig` actor identity for provenance.
 ///
 /// # Private members
 /// None.
@@ -108,7 +108,7 @@ pub struct PlanEvidenceAssociation {
     pub evidence: PlanEvidenceReference,
     /// Optional safe explanatory text.
     pub note: Option<String>,
-    /// Optional ScribeRig actor identity for provenance.
+    /// Optional `ScribeRig` actor identity for provenance.
     pub actor: Option<EntityId>,
 }
 

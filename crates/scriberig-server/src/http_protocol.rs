@@ -153,6 +153,9 @@ fn decode_request(
         "plan_replan" => {
             scriberig_protocol::Request::PlanReplan(serde_json::from_str(body).map_err(invalid)?)
         }
+        "plan_mutation" => {
+            scriberig_protocol::Request::PlanMutation(serde_json::from_str(body).map_err(invalid)?)
+        }
         "model_request_detail" => scriberig_protocol::Request::ModelRequestDetail(
             serde_json::from_str(body).map_err(invalid)?,
         ),

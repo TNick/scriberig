@@ -20,6 +20,9 @@ use scriberig_session::{
 /// - `value`: Shared direct node status counts.
 ///
 /// A protocol-safe count record.
+///
+/// # Returns
+/// The value described by the return type.
 pub(super) fn status_counts(value: PlanNodeStatusCounts) -> SessionPlanStatusCounts {
     SessionPlanStatusCounts {
         planned: value.planned,
@@ -37,6 +40,9 @@ pub(super) fn status_counts(value: PlanNodeStatusCounts) -> SessionPlanStatusCou
 /// - `value`: Shared gate-state counts.
 ///
 /// A protocol-safe gate count record.
+///
+/// # Returns
+/// The value described by the return type.
 pub(super) fn gate_counts(value: PlanGateCounts) -> SessionPlanGateCounts {
     SessionPlanGateCounts {
         pending: value.pending,
@@ -52,6 +58,9 @@ pub(super) fn gate_counts(value: PlanGateCounts) -> SessionPlanGateCounts {
 /// - `value`: Shared typed gate and waiver.
 ///
 /// A protocol gate without physical storage information.
+///
+/// # Returns
+/// The value described by the return type.
 pub(super) fn gate(value: &PlanGate) -> SessionPlanGate {
     SessionPlanGate {
         id: value.id.to_string(),
@@ -112,6 +121,9 @@ pub(super) fn gate(value: &PlanGate) -> SessionPlanGate {
 /// - `value`: Shared exact evidence association.
 ///
 /// A protocol-safe evidence record.
+///
+/// # Returns
+/// The value described by the return type.
 pub(super) fn evidence(value: &PlanEvidenceAssociation) -> SessionPlanEvidenceAssociation {
     SessionPlanEvidenceAssociation {
         id: value.id.to_string(),
@@ -136,6 +148,9 @@ pub(super) fn evidence(value: &PlanEvidenceAssociation) -> SessionPlanEvidenceAs
 /// - `value`: Exact semantic reference and safe typed attributes.
 ///
 /// A protocol evidence reference.
+///
+/// # Returns
+/// The value described by the return type.
 pub(super) fn evidence_reference(value: &PlanEvidenceReference) -> SessionPlanEvidenceReference {
     SessionPlanEvidenceReference {
         kind: evidence_kind(&value.kind),
@@ -150,6 +165,9 @@ pub(super) fn evidence_reference(value: &PlanEvidenceReference) -> SessionPlanEv
 /// - `value`: Shared current node summary.
 ///
 /// A protocol summary record.
+///
+/// # Returns
+/// The value described by the return type.
 pub(super) fn summary(value: &PlanNodeSummary) -> SessionPlanSummary {
     SessionPlanSummary {
         id: value.id.to_string(),
@@ -165,6 +183,9 @@ pub(super) fn summary(value: &PlanNodeSummary) -> SessionPlanSummary {
 /// - `value`: Shared entity/revision/snapshot reference.
 ///
 /// A protocol-safe reference.
+///
+/// # Returns
+/// The value described by the return type.
 fn semantic_reference(value: &PlanSemanticReference) -> SessionSemanticReference {
     SessionSemanticReference {
         entity: value.entity.to_string(),
@@ -179,6 +200,9 @@ fn semantic_reference(value: &PlanSemanticReference) -> SessionSemanticReference
 /// - `value`: Shared registered evidence kind.
 ///
 /// The matching wire evidence kind.
+///
+/// # Returns
+/// The value described by the return type.
 fn evidence_kind(value: &PlanEvidenceKind) -> SessionPlanEvidenceKind {
     match value {
         PlanEvidenceKind::BranchResult => SessionPlanEvidenceKind::BranchResult,
@@ -198,6 +222,9 @@ fn evidence_kind(value: &PlanEvidenceKind) -> SessionPlanEvidenceKind {
 /// - `value`: Shared waiver reason and actor/operation identities.
 ///
 /// A protocol waiver record.
+///
+/// # Returns
+/// The value described by the return type.
 fn waiver(value: &PlanGateWaiver) -> SessionPlanGateWaiver {
     SessionPlanGateWaiver {
         reason: value.reason.clone(),
@@ -212,6 +239,9 @@ fn waiver(value: &PlanGateWaiver) -> SessionPlanGateWaiver {
 /// - `value`: Shared typed node abandonment reason.
 ///
 /// The matching wire value.
+///
+/// # Returns
+/// The value described by the return type.
 pub(super) fn abandon_reason(value: PlanAbandonReason) -> SessionPlanAbandonReason {
     match value {
         PlanAbandonReason::Ignored => SessionPlanAbandonReason::Ignored,

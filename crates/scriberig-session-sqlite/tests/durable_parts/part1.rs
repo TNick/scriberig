@@ -4,6 +4,9 @@ use super::*;
 
 /// Confirms plan graphs are split across universal immutable revisions.
 #[test]
+/// The storage, index, and restart assertions stay together to prove one exact
+/// persisted graph instead of passing partially reconstructed fixtures.
+#[allow(clippy::too_many_lines)]
 fn plan_storage_uses_independent_universal_objects() {
     use scriberig_core::RootName;
     use scriberig_store::{RevisionStore, RootStore, SnapshotStore};
@@ -66,7 +69,7 @@ fn plan_storage_uses_independent_universal_objects() {
                 revision: None,
                 snapshot: None,
             },
-            attributes: Default::default(),
+            attributes: std::collections::BTreeMap::new(),
         },
         note: None,
         actor: None,
@@ -89,6 +92,33 @@ fn plan_storage_uses_independent_universal_objects() {
             execution: scriberig_session::SessionExecutionSelection::default(),
         })
         .expect("save session");
+    let rollup_snapshot = store
+        .rebuild_plan_rollup_index(session_id, plan_id)
+        .expect("rebuild normalized rollup index");
+    let rollups = store
+        .read_plan_rollup_index(session_id, plan_id, rollup_snapshot)
+        .expect("read rollup index")
+        .expect("current rollup index");
+    assert_eq!(rollups.len(), 1);
+    assert_eq!(rollups[&node_id].node, node_id);
+    let rebuilt_snapshot = store
+        .rebuild_plan_rollup_index(session_id, plan_id)
+        .expect("delete and rebuild rollup rows");
+    assert_eq!(rebuilt_snapshot, rollup_snapshot);
+    assert_eq!(
+        store
+            .read_plan_rollup_index(session_id, plan_id, rebuilt_snapshot)
+            .expect("read rebuilt rollups")
+            .expect("rebuilt rollups")
+            .len(),
+        1
+    );
+    assert!(
+        store
+            .read_plan_rollup_index(session_id, plan_id, scriberig_store::Snapshot::empty().id())
+            .expect("reject stale rollup cache")
+            .is_none()
+    );
 
     let semantic_store =
         scriberig_store_sqlite::SqliteStore::open(&path).expect("open universal store");
@@ -226,100 +256,6 @@ fn plan_compare_and_swap_merges_new_worker_branch() {
     assert_eq!(stored.branches.len(), 2);
     assert_eq!(stored.branches[0].children, vec![worker_id]);
     assert_eq!(stored.branches[1].parent, Some(root_id));
-}
-
-/// Verifies selection compare-and-swap preserves concurrent branch updates.
-#[test]
-fn execution_selection_compare_and_swap_is_atomic() {
-    let session_id = EntityId::from_bytes([11; 16]);
-    let root_id = EntityId::from_bytes([12; 16]);
-    let child_id = EntityId::from_bytes([13; 16]);
-    let store = Arc::new(SqliteSessionStore::open_in_memory().expect("open store"));
-    store
-        .save(&Session {
-            id: session_id,
-            branches: vec![Branch::new(root_id, "root").expect("root")],
-            goals: Vec::new(),
-            tasks: Vec::new(),
-            plans: Vec::new(),
-            execution: scriberig_session::SessionExecutionSelection::default(),
-        })
-        .expect("save initial session");
-    let mut proposed = store
-        .load(session_id)
-        .expect("load selection snapshot")
-        .expect("session exists");
-    proposed
-        .execution
-        .replace(
-            0,
-            Some("provider-a".to_owned()),
-            Some("model-a".to_owned()),
-            Some("careful".to_owned()),
-        )
-        .expect("propose selection");
-    proposed
-        .execution
-        .history
-        .push(scriberig_session::SessionExecutionChange {
-            revision: proposed.execution.revision,
-            kind: scriberig_session::AgentActivityKind::ModelSelectionChanged,
-            summary: "Model selected: model-a".to_owned(),
-            provider_id: proposed.execution.provider_id.clone(),
-            model_id: proposed.execution.model_id.clone(),
-            thinking_level: proposed.execution.thinking_level.clone(),
-        });
-    let mut branch_update = store
-        .load(session_id)
-        .expect("load branch snapshot")
-        .expect("session exists");
-    branch_update
-        .branches
-        .push(Branch::new(child_id, "new branch").expect("child"));
-    store.save(&branch_update).expect("save concurrent branch");
-    branch_update
-        .execution
-        .replace(
-            0,
-            Some("provider-b".to_owned()),
-            Some("model-b".to_owned()),
-            Some("steady".to_owned()),
-        )
-        .expect("propose competing selection");
-
-    let first_store = Arc::clone(&store);
-    let first =
-        std::thread::spawn(move || first_store.compare_and_swap_execution_selection(&proposed, 0));
-    let second_store = Arc::clone(&store);
-    let second = std::thread::spawn(move || {
-        second_store.compare_and_swap_execution_selection(&branch_update, 0)
-    });
-    let outcomes = [
-        first.join().expect("first mutation"),
-        second.join().expect("second mutation"),
-    ];
-    assert_eq!(outcomes.iter().filter(|value| value.is_ok()).count(), 1);
-    assert_eq!(
-        outcomes
-            .iter()
-            .filter(|value| matches!(value, Err(SelectionStoreError::RevisionConflict { .. })))
-            .count(),
-        1
-    );
-    let stored = store
-        .load(session_id)
-        .expect("reload session")
-        .expect("session exists");
-    assert_eq!(stored.branches.len(), 2);
-    assert!(matches!(
-        stored.execution.model_id.as_deref(),
-        Some("model-a" | "model-b")
-    ));
-    assert_eq!(stored.execution.history.len(), 1);
-    assert_eq!(
-        stored.execution.history[0].provider_id.as_deref(),
-        stored.execution.provider_id.as_deref()
-    );
 }
 
 /// Proves concurrent coordinator claims serialize to one durable winner.

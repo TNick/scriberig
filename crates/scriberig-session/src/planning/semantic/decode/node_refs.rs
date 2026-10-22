@@ -9,7 +9,7 @@ use super::super::encode::{
 use super::super::{PlanSemanticError, PlanSemanticNodeRef, PlanSemanticSnapshot};
 use super::{MembershipPayload, StructurePayload, decode_payload, invalid, validate_revision};
 
-/// Lists PlanNode revisions using only identities and relation payloads.
+/// Lists `PlanNode` revisions using only identities and relation payloads.
 ///
 /// - `snapshot`: Exact semantic plan object set.
 ///
@@ -20,7 +20,7 @@ use super::{MembershipPayload, StructurePayload, decode_payload, invalid, valida
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
-pub(super) fn node_refs(
+pub(in crate::planning::semantic) fn node_refs(
     snapshot: &PlanSemanticSnapshot,
 ) -> Result<Vec<PlanSemanticNodeRef>, PlanSemanticError> {
     let mut plan_objects = 0;

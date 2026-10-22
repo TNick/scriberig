@@ -40,9 +40,9 @@ pub struct PlanNodeStatusCounts {
 /// Holds rebuildable effective subtree state for one plan node.
 ///
 /// # Public members
-/// - `node`: Stable PlanNode identity.
+/// - `node`: Stable `PlanNode` identity.
 /// - `direct_status`: Canonical state stored by the node.
-/// - `effective_status`: Derived status using PlanNodeStatus values.
+/// - `effective_status`: Derived status using `PlanNodeStatus` values.
 /// - `contains_ignored`: Whether this subtree contains ignored work.
 /// - `contains_abandoned`: Whether this subtree contains abandoned work.
 /// - `child_counts`: Direct-child counts by canonical status.
@@ -52,11 +52,11 @@ pub struct PlanNodeStatusCounts {
 /// None.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct PlanNodeRollup {
-    /// Stable PlanNode identity.
+    /// Stable `PlanNode` identity.
     pub node: EntityId,
     /// Canonical state stored by the node.
     pub direct_status: PlanNodeStatus,
-    /// Derived status using PlanNodeStatus values.
+    /// Derived status using `PlanNodeStatus` values.
     pub effective_status: PlanNodeStatus,
     /// Whether this subtree contains ignored work.
     pub contains_ignored: bool,
@@ -76,7 +76,7 @@ pub struct PlanNodeRollup {
 /// # Parameters
 /// - `self`: Plan snapshot with exact structural and gate state.
 ///
-/// A deterministic rollup for every PlanNode.
+/// A deterministic rollup for every `PlanNode`.
 ///
 /// Returns `StructuralCycle` for invalid cyclic parent relations.
 /// # Returns
@@ -84,6 +84,13 @@ pub struct PlanNodeRollup {
 /// # Errors
 /// Returns an error when the operation fails.
 impl Plan {
+    /// Computes deterministic status rollups from the plan snapshot.
+    ///
+    /// # Returns
+    /// A map from node identity to derived subtree status.
+    ///
+    /// # Errors
+    /// Returns `MissingNode` when a structural parent is absent.
     pub fn node_rollups(&self) -> Result<BTreeMap<EntityId, PlanNodeRollup>, PlanError> {
         let mut children = BTreeMap::<EntityId, Vec<EntityId>>::new();
         for node in &self.nodes {
@@ -169,7 +176,9 @@ fn compute_rollup(
                 )
             })
         })
-        .count() as u32;
+        .count()
+        .try_into()
+        .unwrap_or(u32::MAX);
     let relevant_children = child_rollups
         .iter()
         .filter(|child| {
@@ -208,6 +217,9 @@ fn compute_rollup(
 /// - `unsatisfied_gates`: Pending or failed completion gates.
 ///
 /// The deterministic effective status.
+///
+/// # Returns
+/// The value described by the return type.
 pub(super) fn rollup_status(
     direct: PlanNodeStatus,
     children: &[&PlanNodeRollup],

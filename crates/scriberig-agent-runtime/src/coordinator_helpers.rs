@@ -265,6 +265,8 @@ mod tests {
             branch: Some(worker_id),
             result: None,
             superseded_by: None,
+            abandon_reason: None,
+            last_failure: None,
             assignment: None,
             claim: Some(WorkerClaim {
                 id: EntityId::from_bytes([7; 16]),
@@ -323,6 +325,8 @@ mod tests {
             branch: Some(worker_branch),
             result: Some(result_id),
             superseded_by: None,
+            abandon_reason: None,
+            last_failure: None,
             assignment: None,
             claim: None,
             claim_generation: 1,

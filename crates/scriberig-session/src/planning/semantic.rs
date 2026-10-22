@@ -34,9 +34,9 @@ pub struct PlanSemanticSnapshot {
 /// Identifies a node revision and its structural position in one snapshot.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PlanSemanticNodeRef {
-    /// Stable PlanNode entity identity.
+    /// Stable `PlanNode` entity identity.
     pub entity: EntityId,
-    /// Exact immutable PlanNode revision identity.
+    /// Exact immutable `PlanNode` revision identity.
     pub revision: RevisionId,
     /// Direct structural parent, separate from dependency scheduling.
     pub parent: Option<super::PlanNodeParent>,
@@ -122,7 +122,7 @@ impl PlanSemanticSnapshot {
     /// - `self`: Exact semantic object set to query.
     ///
     /// # Returns
-    /// PlanNode identities and revision-bound structural positions in order.
+    /// `PlanNode` identities and revision-bound structural positions in order.
     ///
     /// # Errors
     /// Returns an error for missing, duplicated, or malformed relation records.

@@ -228,6 +228,26 @@ impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
         ApplicationService::replan(self, context, request)
     }
 
+    /// Applies one typed semantic plan mutation through the shared service.
+    ///
+    /// - `context`: Authorized request context.
+    /// - `request`: Plan identity, expected revision, and typed mutation.
+    ///
+    /// The authoritative updated plan.
+    ///
+    /// Returns validation, conflict, authorization, or persistence errors.
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns an error when the operation fails.
+    fn mutate_plan(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::PlanMutationRequest,
+    ) -> Result<scriberig_session::Plan, ApplicationError> {
+        ApplicationService::apply_plan_mutation(self, context, request)
+    }
+
     /// Applies one lifecycle action through the shared application service.
     ///
     /// - `context`: Authorized request context.

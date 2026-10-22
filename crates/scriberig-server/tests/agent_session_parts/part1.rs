@@ -221,6 +221,33 @@ fn protocol_plan_handlers_delegate_to_application_operations() {
         scriberig_protocol::SessionPlanStatus::Running
     );
     assert!(started_plan.coordinator_claim.is_some());
+    let appended = dispatcher.dispatch(RequestEnvelope {
+        version: ProtocolVersion::default(),
+        correlation_id: "append-plan-step".to_owned(),
+        request: Request::PlanMutation(SessionPlanMutationRequest {
+            session: SessionReference {
+                id: session.clone(),
+            },
+            plan: started_plan.id.clone(),
+            expected_revision: started_plan.revision,
+            mutation: SessionPlanMutation::AddNextStep {
+                node: SessionPlanNodeDraft {
+                    key: "follow-up".to_owned(),
+                    parent_index: None,
+                    title: "Follow up".to_owned(),
+                    purpose: "complete the remaining work".to_owned(),
+                    expected_result: None,
+                    semantic_scope: Vec::new(),
+                    assignment: None,
+                },
+            },
+        }),
+    });
+    let Response::Plan(appended) = appended.response else {
+        panic!("unexpected plan mutation response");
+    };
+    assert_eq!(appended.revision, started_plan.revision + 1);
+    assert_eq!(appended.nodes.len(), 2);
     let paused = dispatcher.dispatch(RequestEnvelope {
         version: ProtocolVersion::default(),
         correlation_id: "pause-plan".to_owned(),
@@ -228,8 +255,8 @@ fn protocol_plan_handlers_delegate_to_application_operations() {
             session: SessionReference {
                 id: session.clone(),
             },
-            plan: started_plan.id.clone(),
-            expected_revision: started_plan.revision,
+            plan: appended.id.clone(),
+            expected_revision: appended.revision,
             action: SessionPlanAction::Pause,
         }),
     });
@@ -307,13 +334,34 @@ fn remote_client_can_create_start_read_and_assign_plan() {
             action: SessionPlanAction::Start,
         })
         .expect("start through client");
-    let paused = client
-        .plan_lifecycle(SessionPlanLifecycleRequest {
+    let appended = client
+        .mutate_plan(SessionPlanMutationRequest {
             session: SessionReference {
                 id: session.to_owned(),
             },
             plan: running.id.clone(),
             expected_revision: running.revision,
+            mutation: SessionPlanMutation::AddNextStep {
+                node: SessionPlanNodeDraft {
+                    key: "next".to_owned(),
+                    parent_index: None,
+                    title: "Next".to_owned(),
+                    purpose: "continue remote work".to_owned(),
+                    expected_result: None,
+                    semantic_scope: Vec::new(),
+                    assignment: None,
+                },
+            },
+        })
+        .expect("append through client");
+    assert_eq!(appended.nodes.len(), 2);
+    let paused = client
+        .plan_lifecycle(SessionPlanLifecycleRequest {
+            session: SessionReference {
+                id: session.to_owned(),
+            },
+            plan: appended.id.clone(),
+            expected_revision: appended.revision,
             action: SessionPlanAction::Pause,
         })
         .expect("pause through client");

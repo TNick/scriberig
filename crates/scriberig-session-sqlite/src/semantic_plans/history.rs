@@ -10,6 +10,9 @@ use scriberig_store::{Revision, SnapshotChange};
 /// - `plan`: Plan state to retain in the historical view.
 ///
 /// The compact historical state for one mutation revision.
+///
+/// # Returns
+/// The value described by the return type.
 pub(super) fn plan_revision(plan: &Plan) -> PlanRevision {
     PlanRevision {
         revision: plan.revision,
@@ -31,6 +34,9 @@ pub(super) fn plan_revision(plan: &Plan) -> PlanRevision {
 /// - `revision`: Legacy graph state to restore.
 ///
 /// The reconstructed plan state at `revision.revision`.
+///
+/// # Returns
+/// The value described by the return type.
 pub(super) fn plan_at_revision(current: &Plan, revision: &PlanRevision) -> Plan {
     let mut historical = current.clone();
     historical.revision = revision.revision;

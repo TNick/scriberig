@@ -25,10 +25,10 @@ pub use plan::{
     SessionPlanEvidenceAssociation, SessionPlanEvidenceKind, SessionPlanEvidenceOwner,
     SessionPlanEvidenceReference, SessionPlanEvidenceRole, SessionPlanGate, SessionPlanGateCounts,
     SessionPlanGatePhase, SessionPlanGateRequirement, SessionPlanGateWaiver,
-    SessionPlanLifecycleRequest, SessionPlanNode, SessionPlanNodeDraft, SessionPlanNodeReference,
-    SessionPlanNodeStatus, SessionPlanReplanRequest, SessionPlanRevision,
-    SessionPlanSemanticPredicate, SessionPlanStatus, SessionPlanStatusCounts, SessionPlanSummary,
-    SessionSemanticReference, SessionWorkerClaim,
+    SessionPlanLifecycleRequest, SessionPlanMutation, SessionPlanMutationRequest, SessionPlanNode,
+    SessionPlanNodeDraft, SessionPlanNodeReference, SessionPlanNodeStatus,
+    SessionPlanReplanRequest, SessionPlanRevision, SessionPlanSemanticPredicate, SessionPlanStatus,
+    SessionPlanStatusCounts, SessionPlanSummary, SessionSemanticReference, SessionWorkerClaim,
 };
 #[path = "session/execution.rs"]
 mod execution;

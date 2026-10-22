@@ -55,9 +55,14 @@ pub(super) fn wait_for_onboarding(tui: &mut TuiPty, session: scriberig_core::Ent
             );
             return;
         }
+        let branches: Vec<String> = saved
+            .branches
+            .iter()
+            .map(|branch| format!("{}:{:?}:{:?}", branch.title, branch.status, branch.outcome))
+            .collect();
         assert!(
             Instant::now() < deadline,
-            "onboarding branch did not complete"
+            "onboarding branch did not complete: {branches:?}"
         );
         std::thread::sleep(Duration::from_millis(50));
     }

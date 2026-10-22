@@ -5,6 +5,7 @@ import {
   AgentModelControls,
   AgentPresentationControls,
   AgentOperationPanel,
+  SessionPlanPanel,
   BranchActivityView,
   SessionBranchTree,
 } from "@scriberig/agent-ui";
@@ -15,7 +16,14 @@ import {
   useScriberig,
 } from "@scriberig/react";
 import type { BranchDescriptor, Operation } from "@scriberig/model";
-import type { AgentSelection, BranchId, OperationId, SessionId } from "@scriberig/protocol";
+import type {
+  AgentSelection,
+  BranchId,
+  OperationId,
+  SessionId,
+  SessionPlan,
+  SessionPlanMutation,
+} from "@scriberig/protocol";
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactElement } from "react";
 import { capabilityAvailable, type AppRuntime, type ProjectCandidate } from "../runtime";
 
@@ -85,6 +93,7 @@ export function SessionAgentView({
   const [activeBranchId, setActiveBranchId] = useState<BranchId>();
   const [prompt, setPrompt] = useState("");
   const [status, setStatus] = useState("Ready");
+  const [planMutationPending, setPlanMutationPending] = useState(false);
   const { modelLibrary, presentation } = agentState;
   const executionSelection = useAgentExecutionSelection(sessionId);
   const { operation } = useOperation(activeOperationId);
@@ -276,6 +285,25 @@ export function SessionAgentView({
     }
   };
 
+  const mutatePlan = async (plan: SessionPlan, mutation: SessionPlanMutation): Promise<void> => {
+    setPlanMutationPending(true);
+    setStatus("Updating plan");
+    try {
+      const updated = await client.mutatePlan({
+        session: { id: sessionId },
+        plan: plan.id,
+        expectedRevision: plan.revision,
+        mutation,
+      });
+      model.setAgentPlan(updated);
+      setStatus("Plan updated");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Plan update failed");
+    } finally {
+      setPlanMutationPending(false);
+    }
+  };
+
   const panelOperation: Operation | undefined = operation;
   return (
     <section aria-label="Session and Agent">
@@ -292,6 +320,12 @@ export function SessionAgentView({
         branches={visibleBranches}
         onSelect={(branch) => setActiveBranchId(branch.branchId)}
         onNavigate={navigateResult}
+      />
+      <SessionPlanPanel
+        plans={agentState.plans}
+        branches={visibleBranches}
+        busy={planMutationPending}
+        onMutation={mutatePlan}
       />
       {modelLibrary ? (
         <AgentModelControls

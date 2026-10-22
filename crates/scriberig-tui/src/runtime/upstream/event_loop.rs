@@ -117,7 +117,6 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
         let mut focus_before_overlay: Option<Arc<dyn Component>> = None;
         let mut session_list_open = false;
         let mut poll_in_flight = false;
-        let mut suppress_composer_restore = false;
         {
             let mut state = state
                 .lock()
@@ -248,6 +247,7 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
                     &mut focus_before_overlay,
                 );
 
+                let mut suppress_composer_restore = false;
                 if input::handle(
                     input::InputContext {
                         service,
@@ -263,10 +263,10 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
                         pending_effects: &mut pending_effects,
                         focus_before_overlay: &mut focus_before_overlay,
                         shared_state: &shared_state,
+                        suppress_composer_restore: &mut suppress_composer_restore,
                         debug_log: &mut debug_log,
                         should_quit: &mut should_quit,
                         redraw: &mut redraw,
-                        suppress_composer_restore: &mut suppress_composer_restore,
                     },
                     input_receiver.try_recv(),
                 )? {

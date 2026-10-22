@@ -14,7 +14,7 @@ impl Plan {
     ///
     /// # Parameters
     /// - `self`: Plan containing current and historical revisions.
-    /// - `node`: Stable PlanNode identity.
+    /// - `node`: Stable `PlanNode` identity.
     ///
     /// # Returns
     /// Attempts ordered by claim generation, or `None` if the node is unknown.
@@ -72,6 +72,9 @@ impl Plan {
 /// - `plan`: Current plan state to include in the history walk.
 ///
 /// The equivalent plan revision record.
+///
+/// # Returns
+/// The value described by the return type.
 fn current_revision(plan: &Plan) -> PlanRevision {
     PlanRevision {
         revision: plan.revision,

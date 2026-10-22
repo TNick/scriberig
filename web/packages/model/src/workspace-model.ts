@@ -9,6 +9,7 @@ import {
   createAgentWorkspaceState,
   reduceAgentEvent,
   storeAgentOperation,
+  storeAgentPlan,
   storeAgentSession,
   markAgentWorkspaceStale,
   type AgentWorkspaceState,
@@ -71,6 +72,14 @@ export class WorkspaceModel {
   /** Stores an authoritative session branch tree. @param session Session response. */
   setAgentSession(session: import("@scriberig/protocol").SessionReadResponse): void {
     this.agentState = storeAgentSession(this.agentState, session);
+    this.agentChanges.notify(this.agentState);
+  }
+
+  /** Stores an authoritative plan returned by a shared mutation operation.
+   * @param plan Durable plan projection from the application client.
+   */
+  setAgentPlan(plan: import("@scriberig/protocol").SessionPlan): void {
+    this.agentState = storeAgentPlan(this.agentState, plan);
     this.agentChanges.notify(this.agentState);
   }
 

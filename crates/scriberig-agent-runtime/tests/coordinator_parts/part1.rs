@@ -48,6 +48,8 @@ fn plan_integration_merges_candidates_without_promoting_project_state() {
             branch: None,
             result: None,
             superseded_by: None,
+            abandon_reason: None,
+            last_failure: None,
             assignment: None,
             claim: None,
             claim_generation: 0,

@@ -78,14 +78,14 @@ pub struct PlanView {
 /// Projects one node's canonical state and derived blockers for product use.
 ///
 /// # Public members
-/// - `id`: Stable PlanNode identity.
-/// - `revision`: Exact immutable PlanNode revision.
+/// - `id`: Stable `PlanNode` identity.
+/// - `revision`: Exact immutable `PlanNode` revision.
 /// - `snapshot`: Exact universal snapshot, when loaded from durable storage.
 /// - `plan`: Stable owner Plan identity.
 /// - `parent`: Direct structural parent.
 /// - `title`: Human-readable work title.
 /// - `purpose`: Focused work instruction.
-/// - `direct_status`: Canonical PlanNode lifecycle state.
+/// - `direct_status`: Canonical `PlanNode` lifecycle state.
 /// - `effective_status`: Derived status including required descendants/gates.
 /// - `contains_ignored`: Whether this subtree includes ignored work.
 /// - `contains_abandoned`: Whether this subtree includes abandoned work.
@@ -105,9 +105,9 @@ pub struct PlanView {
 /// None.
 #[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct PlanNodeView {
-    /// Stable PlanNode identity.
+    /// Stable `PlanNode` identity.
     pub id: EntityId,
-    /// Exact immutable PlanNode revision.
+    /// Exact immutable `PlanNode` revision.
     pub revision: RevisionId,
     /// Exact universal snapshot, when loaded from durable storage.
     pub snapshot: Option<SnapshotId>,
@@ -119,7 +119,7 @@ pub struct PlanNodeView {
     pub title: String,
     /// Focused work instruction.
     pub purpose: String,
-    /// Canonical PlanNode lifecycle state.
+    /// Canonical `PlanNode` lifecycle state.
     pub direct_status: PlanNodeStatus,
     /// Derived status including required descendants/gates.
     pub effective_status: PlanNodeStatus,
@@ -195,7 +195,7 @@ impl Plan {
     ///
     /// # Parameters
     /// - `self`: Canonical plan projection.
-    /// - `node_id`: Stable PlanNode identity to inspect.
+    /// - `node_id`: Stable `PlanNode` identity to inspect.
     /// - `snapshot`: Exact universal snapshot, when known by the caller.
     /// - `results`: Branch results visible in the same session snapshot, when available.
     /// - `rollups`: Derived rollups computed for the same canonical state.
@@ -295,6 +295,9 @@ impl Plan {
     /// - `phase`: Entry or completion gate phase.
     ///
     /// Stable counts by gate result.
+    ///
+    /// # Returns
+    /// The value described by the return type.
     fn gate_counts(&self, node: EntityId, phase: PlanGatePhase) -> PlanGateCounts {
         let mut counts = PlanGateCounts::default();
         for evaluation in self.evaluate_node_gates(node, phase) {
@@ -315,7 +318,7 @@ impl Plan {
 ///
 /// # Parameters
 /// - `counts`: Direct status accumulator.
-/// - `status`: Canonical PlanNode lifecycle status.
+/// - `status`: Canonical `PlanNode` lifecycle status.
 fn increment_count(counts: &mut PlanNodeStatusCounts, status: PlanNodeStatus) {
     let count = match status {
         PlanNodeStatus::Planned => &mut counts.planned,
@@ -334,6 +337,9 @@ fn increment_count(counts: &mut PlanNodeStatusCounts, status: PlanNodeStatus) {
 /// - `count`: Collection size to convert.
 ///
 /// The value clamped to the public `u32` range.
+///
+/// # Returns
+/// The value described by the return type.
 fn count_u32(count: usize) -> u32 {
     u32::try_from(count).unwrap_or(u32::MAX)
 }
@@ -344,6 +350,9 @@ fn count_u32(count: usize) -> u32 {
 /// - `summary`: Full safe summary text.
 ///
 /// At most 240 Unicode scalar values with an ellipsis when truncated.
+///
+/// # Returns
+/// The value described by the return type.
 fn truncate_summary(summary: &str) -> String {
     let mut chars = summary.chars();
     let preview = chars.by_ref().take(240).collect::<String>();
@@ -360,6 +369,9 @@ fn truncate_summary(summary: &str) -> String {
 /// - `message`: Safe explanation of the invalid source projection.
 ///
 /// A view error.
+///
+/// # Returns
+/// The value described by the return type.
 fn invalid_view(message: &str) -> PlanSemanticError {
     PlanSemanticError::InvalidObject(message.to_owned())
 }

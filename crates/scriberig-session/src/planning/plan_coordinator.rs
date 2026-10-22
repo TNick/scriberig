@@ -271,6 +271,7 @@ impl Plan {
                 .ok_or(PlanError::RevisionExhausted)?;
             target.status = PlanNodeStatus::Running;
             target.branch = Some(*branch_id);
+            target.last_failure = None;
             target.claim = Some(WorkerClaim {
                 id: *claim_id,
                 node: *node_id,

@@ -1,5 +1,7 @@
 //! Verifies native TUI workflows through a real pseudo-terminal.
 
+use std::time::{Duration, Instant};
+
 #[path = "tui_pty_support/bootstrap_test.rs"]
 mod tui_pty_bootstrap;
 #[path = "tui_pty/branch.rs"]
@@ -107,26 +109,46 @@ fn tui_golden_03_edits_reviews_applies_and_restarts() {
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
     tui.send_slow(b"/projection\r");
     assert!(tui.read_until("left + right"), "{}", tui.diagnostic());
-    tui.send(b"\x1b");
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    show_conversation(&mut tui);
     tui.send_slow(b"/edit\r");
     assert!(tui.read_until("Edit source"), "{}", tui.diagnostic());
-    tui.send(b"left.saturating_add(right)\r");
-    assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
+    tui.send_slow(b"left.saturating_add(right)\r");
+    assert!(tui.read_until("Candidate review"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Validation: Passed"), "{}", tui.diagnostic());
+    assert!(tui.source().contains("left + right"));
+    tui.send(b"\r");
     assert!(
-        tui.screen().contains("left.saturating_add(right)"),
+        tui.read_until("Confirmation: required"),
         "{}",
         tui.diagnostic()
     );
-    assert!(tui.screen().contains("validation: Passed"));
-    assert!(tui.source().contains("left + right"));
-    tui.send(b"\r");
-    assert!(tui.read_until("Enter confirm"), "{}", tui.diagnostic());
     let confirmation = tui.screen();
-    assert!(confirmation.contains("Reviewed base:"), "{confirmation}");
-    assert!(confirmation.contains("Candidate result:"), "{confirmation}");
+    assert!(confirmation.contains("Base snapshot:"), "{confirmation}");
+    assert!(confirmation.contains("Result snapshot:"), "{confirmation}");
+    tui.send(b"\x10");
+    assert!(tui.read_until("Command palette"), "{}", tui.diagnostic());
+    tui.send_slow(b"Confirm");
+    assert!(
+        tui.read_until("Confirm reviewed change"),
+        "{}",
+        tui.diagnostic()
+    );
     tui.send(b"\r");
-    assert!(tui.read_until("materialized"), "{}", tui.diagnostic());
+    assert!(
+        tui.read_until("Action: commit change"),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send(b"\r");
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while !tui.source().contains("left.saturating_add(right)") {
+        assert!(
+            Instant::now() < deadline,
+            "candidate was not materialized: {}",
+            tui.diagnostic()
+        );
+        std::thread::sleep(Duration::from_millis(50));
+    }
     assert!(tui.source().contains("left.saturating_add(right)"));
     let fixture = tui.quit_retain_fixture();
     let mut restarted = TuiPty::restart(fixture.clone());
@@ -152,19 +174,36 @@ fn tui_golden_04_external_edit_is_not_overwritten() {
     assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
     tui.send_slow(b"/projection\r");
     assert!(tui.read_until("left + right"), "{}", tui.diagnostic());
-    tui.send(b"\x1b");
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    show_conversation(&mut tui);
     tui.send_slow(b"/edit\r");
     assert!(tui.read_until("Edit source"), "{}", tui.diagnostic());
-    tui.send(b"left.saturating_add(right)\r");
-    assert!(tui.read_until("validation: Passed"), "{}", tui.diagnostic());
+    tui.send_slow(b"left.saturating_add(right)\r");
+    assert!(tui.read_until("Validation: Passed"), "{}", tui.diagnostic());
     tui.external_edit();
-    tui.send(b"\r\r");
+    tui.send(b"\x10");
+    assert!(tui.read_until("Command palette"), "{}", tui.diagnostic());
+    tui.send_slow(b"Confirm");
     assert!(
-        tui.read_until("filesystem_conflict"),
+        tui.read_until("Confirm reviewed change"),
         "{}",
         tui.diagnostic()
     );
+    tui.send(b"\r");
+    assert!(
+        tui.read_until("Action: commit change"),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send(b"\r");
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while !tui.source().contains("external edit") {
+        assert!(
+            Instant::now() < deadline,
+            "external edit was not preserved: {}",
+            tui.diagnostic()
+        );
+        std::thread::sleep(Duration::from_millis(50));
+    }
     assert!(tui.source().contains("external edit"));
     assert!(!tui.source().contains("left.saturating_add(right)"));
     let _ = tui.shutdown_allow_failure();
@@ -247,4 +286,15 @@ fn tui_pty_types_immediately() {
     tui.send(b"hello");
     assert!(tui.read_until_next("hello"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
+}
+
+/// Switches the live TUI back to the Conversation view through the palette.
+///
+/// - `tui`: Running process whose current primary view may be a semantic view.
+fn show_conversation(tui: &mut TuiPty) {
+    tui.send(b"\x10");
+    assert!(tui.read_until("Command palette"), "{}", tui.diagnostic());
+    tui.send_slow(b"conversation\r");
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    std::thread::sleep(std::time::Duration::from_millis(500));
 }

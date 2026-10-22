@@ -1,5 +1,7 @@
 //! Scripts `ScribeRig` onboarding behavior with upstream request and response types.
 
+use std::fmt::Write as _;
+
 use rpi_ai::{Context, Model};
 
 use crate::scenario_helpers::{final_response, tool_call, tool_messages, user_prompt};
@@ -41,6 +43,23 @@ impl BootstrapProvider {
             return semantic_discovery_response(context, model);
         }
         let messages = tool_messages(context);
+        if let Some(path) = std::env::var_os("SCRIBE_IMPORT_DEBUG_PATH")
+            && messages
+                .iter()
+                .any(|message| message.contains("tool error:"))
+        {
+            let mut log = String::new();
+            for message in context.messages.iter().rev().take(12) {
+                if let rpi_ai::types::Message::ToolResult(result) = message {
+                    let _ = writeln!(
+                        log,
+                        "{} details={:?} content={:?}",
+                        result.tool_name, result.details, result.content
+                    );
+                }
+            }
+            let _ = std::fs::write(&path, log);
+        }
         let response = if messages
             .iter()
             .any(|message| message.contains("active semantic workspace"))

@@ -290,6 +290,9 @@ impl Plan {
     ///
     /// `true` when the identity belongs to an existing plan/node/gate,
     /// evidence association, or summary.
+    ///
+    /// # Returns
+    /// The value described by the return type.
     fn semantic_entity_in_use(&self, identity: EntityId) -> bool {
         identity == self.id
             || self.nodes.iter().any(|node| node.id == identity)
