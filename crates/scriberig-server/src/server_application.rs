@@ -103,6 +103,25 @@ where
         session_response(value)
     }
 
+    /// Reads a bounded attempt page from the authorized semantic session.
+    ///
+    /// # Parameters
+    /// - `context`: Trusted session-read capability context.
+    /// - `request`: Session, plan, node, and page selection.
+    ///
+    /// # Returns
+    /// Safe attempt metadata without branch transcript content.
+    ///
+    /// # Errors
+    /// Returns authorization, lookup, or invalid-identity errors.
+    fn read_plan_attempts(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_protocol::SessionPlanAttemptsRequest,
+    ) -> Result<scriberig_protocol::SessionPlanAttemptsResponse, ApplicationError> {
+        super::server_plan_attempts::read(self, context, request)
+    }
+
     /// Reads a previously captured model request from an authorized session.
     ///
     /// - `context`: Trusted request context.

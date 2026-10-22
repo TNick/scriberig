@@ -6,13 +6,34 @@ use scriberig_protocol::{
     AgentPresentationPreferencesReadRequest, AgentPresentationPreferencesResponse,
     AgentPresentationPreferencesSetRequest, BranchReference, ModelRequestDetailRequest,
     ModelRequestDetailResponse, ProtocolTransport, PublicAgentPresentationPreferences, Request,
-    Response, SessionPlan, SessionPlanAssignmentRequest, SessionPlanCreateRequest,
-    SessionPlanLifecycleRequest, SessionPlanMutationRequest, SessionPlanReplanRequest,
-    SessionReadRequest, SessionReadResponse, SessionReference, ToolResultDetailRequest,
-    ToolResultDetailResponse,
+    Response, SessionPlan, SessionPlanAssignmentRequest, SessionPlanAttemptsRequest,
+    SessionPlanAttemptsResponse, SessionPlanCreateRequest, SessionPlanLifecycleRequest,
+    SessionPlanMutationRequest, SessionPlanReplanRequest, SessionReadRequest, SessionReadResponse,
+    SessionReference, ToolResultDetailRequest, ToolResultDetailResponse,
 };
 
 impl<T: ProtocolTransport> Client<T> {
+    /// Reads one bounded page of attempts for a plan node.
+    ///
+    /// # Parameters
+    /// - `request`: Session, plan, node, and attempt-page identities.
+    ///
+    /// # Returns
+    /// Safe attempt metadata without worker transcript content.
+    ///
+    /// # Errors
+    /// Returns a structured server or transport error.
+    pub fn plan_attempts(
+        &self,
+        request: SessionPlanAttemptsRequest,
+    ) -> Result<SessionPlanAttemptsResponse, ClientError> {
+        match self.send(Request::PlanAttempts(request))?.response {
+            Response::PlanAttempts(attempts) => Ok(attempts),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
     /// Creates a durable plan from a structured, provider-neutral proposal.
     ///
     /// - `request`: Exact anchor and validated plan proposal input.

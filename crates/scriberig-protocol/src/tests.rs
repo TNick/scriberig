@@ -332,6 +332,43 @@ fn session_plan_contracts_round_trip() {
     });
 }
 
+/// Verifies bounded plan-attempt request and response contracts round trip.
+#[test]
+fn plan_attempts_round_trip() {
+    round_trip(&SessionPlanAttemptsRequest {
+        session: SessionReference {
+            id: "session-1".to_owned(),
+        },
+        plan: "plan-1".to_owned(),
+        node: "node-1".to_owned(),
+        offset: 4,
+        limit: 8,
+    });
+    round_trip(&SessionPlanAttemptsResponse {
+        plan: "plan-1".to_owned(),
+        node: "node-1".to_owned(),
+        total: 5,
+        offset: 4,
+        attempts: vec![SessionPlanAttempt {
+            branch: "branch-4".to_owned(),
+            claim_generation: 4,
+            claim: Some("claim-4".to_owned()),
+            status: SessionPlanNodeStatus::Failed,
+            result: None,
+            failure: Some(SessionPlanEvidenceReference {
+                kind: SessionPlanEvidenceKind::Failure,
+                reference: SessionSemanticReference {
+                    entity: "failure-4".to_owned(),
+                    revision: None,
+                    snapshot: None,
+                },
+                attributes: std::collections::BTreeMap::new(),
+            }),
+        }],
+        next_offset: None,
+    });
+}
+
 #[path = "tests_additional.rs"]
 mod tests_additional;
 #[path = "tests_models.rs"]

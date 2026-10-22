@@ -306,3 +306,28 @@ macro_rules! shared_plan_operation_methods {
         }
     };
 }
+
+macro_rules! shared_plan_attempt_read_contract {
+    () => {
+        /// Reads a bounded page of attempts from one canonical plan node.
+        ///
+        /// # Parameters
+        /// - `_context`: Trusted session-read capability context.
+        /// - `_request`: Session, plan, node, and page selection.
+        ///
+        /// # Returns
+        /// Safe attempt metadata without branch transcript content.
+        ///
+        /// # Errors
+        /// Returns unsupported-operation when bounded attempt reads are unavailable.
+        fn read_plan_attempts(
+            &self,
+            _context: &ApplicationContext,
+            _request: &scriberig_protocol::SessionPlanAttemptsRequest,
+        ) -> Result<scriberig_protocol::SessionPlanAttemptsResponse, ApplicationError> {
+            Err(ApplicationError::UnsupportedOperation {
+                operation: "plan attempt history".to_owned(),
+            })
+        }
+    };
+}

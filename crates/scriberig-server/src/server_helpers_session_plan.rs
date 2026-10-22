@@ -2,13 +2,32 @@
 
 use scriberig_protocol::{
     SessionContinuationAnchor, SessionCoordinatorClaim, SessionExpectedResult,
-    SessionModelAssignment, SessionPlan, SessionPlanDependency, SessionPlanNode,
-    SessionPlanNodeStatus, SessionPlanRevision, SessionPlanStatus, SessionWorkerClaim,
+    SessionModelAssignment, SessionPlan, SessionPlanAttempt, SessionPlanDependency,
+    SessionPlanNode, SessionPlanNodeStatus, SessionPlanRevision, SessionPlanStatus,
+    SessionWorkerClaim,
 };
 use scriberig_session::{Plan, PlanDependency, PlanNode, PlanNodeView, PlanRevision};
 
 #[path = "server_helpers_session_plan_semantics.rs"]
 mod semantics;
+
+/// Converts one retained attempt into a bounded, transcript-free DTO.
+///
+/// # Parameters
+/// - `value`: Shared attempt reconstructed from immutable plan history.
+///
+/// # Returns
+/// The safe protocol attempt record.
+pub(crate) fn attempt(value: &scriberig_session::PlanAttemptView) -> SessionPlanAttempt {
+    SessionPlanAttempt {
+        branch: value.branch.to_string(),
+        claim_generation: value.claim_generation,
+        claim: value.claim.map(|claim| claim.to_string()),
+        status: node_status(value.status),
+        result: value.result.map(|result| result.to_string()),
+        failure: value.failure.as_ref().map(semantics::evidence_reference),
+    }
+}
 
 /// Converts one plan and its retained history into a safe wire projection.
 ///

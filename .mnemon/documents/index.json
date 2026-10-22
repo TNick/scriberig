@@ -22,7 +22,7 @@
       ],
       "createdAt": "2026-10-21T10:42:28.462Z",
       "updatedAt": "2026-10-21T10:42:28.462Z",
-      "lastAccessedAt": "2026-10-21T12:38:40.931Z",
+      "lastAccessedAt": "2026-10-22T09:58:06.373Z",
       "revision": 1,
       "contentHash": "7d3f6fe468f2b7c0c2f4536cfa54d250b2b54d22a9ae5bc98c94082b8ee788f4",
       "sizeBytes": 5972,
@@ -73,7 +73,7 @@
       ],
       "createdAt": "2026-10-21T11:09:56.728Z",
       "updatedAt": "2026-10-21T11:09:56.728Z",
-      "lastAccessedAt": "2026-10-21T11:41:48.391Z",
+      "lastAccessedAt": "2026-10-22T09:58:06.373Z",
       "revision": 1,
       "contentHash": "d835c6f4a4578a2b300740973888a8f2274bf715a8a8bc95b1b67a055e1a801c",
       "sizeBytes": 3445,
@@ -121,7 +121,7 @@
       ],
       "createdAt": "2026-10-21T11:29:29.616Z",
       "updatedAt": "2026-10-21T11:29:29.616Z",
-      "lastAccessedAt": "2026-10-21T12:38:40.931Z",
+      "lastAccessedAt": "2026-10-22T09:58:06.373Z",
       "revision": 1,
       "contentHash": "e9041e46a48297fc74cd981810008cb9457d00d8758a44c2a54e9e2eabc1cd2e",
       "sizeBytes": 4540,
@@ -145,7 +145,7 @@
       ],
       "createdAt": "2026-10-21T11:41:55.266Z",
       "updatedAt": "2026-10-21T11:41:55.266Z",
-      "lastAccessedAt": "2026-10-21T12:18:23.742Z",
+      "lastAccessedAt": "2026-10-22T09:58:06.373Z",
       "revision": 1,
       "contentHash": "c22e52a8ab626a495ef89ab8ab0f5a8583676d7d5da7149d90cf5995fde4b010",
       "sizeBytes": 5443,
@@ -272,10 +272,35 @@
       ],
       "createdAt": "2026-10-21T12:38:51.329Z",
       "updatedAt": "2026-10-21T12:38:51.329Z",
-      "lastAccessedAt": "2026-10-21T12:38:51.329Z",
+      "lastAccessedAt": "2026-10-22T06:14:11.282Z",
       "revision": 1,
       "contentHash": "5ddc02289109b5b3feca7465edecf2d2275a0c9996008ff8a9d403e27315fe5f",
       "sizeBytes": 7518,
+      "memoryBodyIds": []
+    },
+    {
+      "id": "51700d7e-ff71-48a7-8d9b-d78ca6519b26",
+      "title": "Self-hosting onboarding loop: HTML-comment Markdown rejection and masked import diagnostics",
+      "description": "Root-cause investigation and fix handoff for the ScribeRig self-hosting onboarding loop (Markdown adapter rejecting HTML comments), tool-error masking, child-result parsing, and the remaining agent-continuation delegation blocker.",
+      "status": "active",
+      "filename": "self-hosting-onboarding-loop-html-comment-markdo-51700d7e.md",
+      "relativePath": "documents/active/self-hosting-onboarding-loop-html-comment-markdo-51700d7e.md",
+      "sourcePaths": [
+        "apps/scriberig/src/self_hosting_provider/branches.rs",
+        "apps/scriberig/src/self_hosting_provider/branches/result_helpers.rs",
+        "apps/scriberig/src/native_tui_agent/upstream_execution/delegation.rs",
+        "crates/domains/sr-markdown",
+        "apps/scriberig/tests/tui_pty_support/onboarding_wait.rs"
+      ],
+      "sessionIds": [
+        "c7b850f7-6e49-4e05-a673-1c4c0747e63a"
+      ],
+      "createdAt": "2026-10-22T09:58:12.547Z",
+      "updatedAt": "2026-10-22T09:58:12.547Z",
+      "lastAccessedAt": "2026-10-22T09:58:12.547Z",
+      "revision": 1,
+      "contentHash": "c9bf311f90eab91f5bbd3b61441866ad9bdb713cbe5a85172e565f83a033f432",
+      "sizeBytes": 4305,
       "memoryBodyIds": []
     }
   ]

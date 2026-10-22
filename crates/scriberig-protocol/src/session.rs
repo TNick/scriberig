@@ -2,8 +2,11 @@
 
 pub use scriberig_session::{SessionActivityKind, SessionActivityState, ToolActivityKind};
 
+#[path = "session/attempts.rs"]
+mod attempts;
 #[path = "session/requests.rs"]
 mod requests;
+pub use attempts::{SessionPlanAttempt, SessionPlanAttemptsRequest, SessionPlanAttemptsResponse};
 pub use requests::{
     ModelContextRevisionReference, ModelRequestDetailFragment, ModelRequestDetailRequest,
     ModelRequestDetailResponse, ModelRequestMessageDetail, ModelRequestToolDetail,

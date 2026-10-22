@@ -73,6 +73,25 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
         (**self).read_session(context, session)
     }
 
+    /// Delegates bounded plan-attempt reads to the borrowed service.
+    ///
+    /// # Parameters
+    /// - `context`: Trusted session-read capability context.
+    /// - `request`: Session, plan, node, and page selection.
+    ///
+    /// # Returns
+    /// The safe bounded attempt page.
+    ///
+    /// # Errors
+    /// Returns the delegated service failure.
+    fn read_plan_attempts(
+        &self,
+        context: &ApplicationContext,
+        request: &scriberig_protocol::SessionPlanAttemptsRequest,
+    ) -> Result<scriberig_protocol::SessionPlanAttemptsResponse, ApplicationError> {
+        (**self).read_plan_attempts(context, request)
+    }
+
     /// Delegates model request detail reads to the borrowed service.
     ///
     /// - `context`: Trusted request context.

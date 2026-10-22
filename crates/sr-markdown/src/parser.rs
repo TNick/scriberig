@@ -353,3 +353,18 @@ fn heading_level(level: HeadingLevel) -> u8 {
         HeadingLevel::H6 => 6,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Verifies HTML comments in ordinary Markdown are ignored rather than rejected.
+    #[test]
+    fn html_comments_are_ignored() {
+        let document = parse_document("# Title\n\n<!-- agent instructions -->\n\nBody.\n");
+        assert!(
+            document.is_ok(),
+            "HTML comments must not reject the document"
+        );
+    }
+}

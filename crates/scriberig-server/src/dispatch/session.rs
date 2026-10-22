@@ -2,9 +2,31 @@
 
 use super::{Dispatcher, helpers};
 use crate::server::ApplicationService;
-use scriberig_protocol::{Response, SessionReadRequest};
+use scriberig_protocol::{Response, SessionPlanAttemptsRequest, SessionReadRequest};
 
 impl<S: ApplicationService> Dispatcher<S> {
+    /// Reads one bounded page of retained attempts for a plan node.
+    ///
+    /// # Parameters
+    /// - `self`: Protocol dispatcher.
+    /// - `request`: Session, plan, node, and paging identities.
+    /// - `correlation_id`: Request correlation identity.
+    ///
+    /// # Returns
+    /// One safe page of attempt metadata or a structured protocol error.
+    pub(super) fn plan_attempts_read(
+        &self,
+        request: &SessionPlanAttemptsRequest,
+        correlation_id: &str,
+    ) -> Response {
+        self.service
+            .read_plan_attempts(&super::command_context("session_branch_tree"), request)
+            .map_or_else(
+                |error| Response::Error(helpers::map_error(&error, correlation_id)),
+                Response::PlanAttempts,
+            )
+    }
+
     /// Reads one durable session through the application boundary.
     ///
     /// - `self`: Protocol dispatcher.

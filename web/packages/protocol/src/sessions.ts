@@ -3,6 +3,9 @@ import type { SessionPlan } from "./plan-semantics";
 export type {
   SessionContinuationAnchor,
   SessionCoordinatorClaim,
+  SessionPlanAttempt,
+  SessionPlanAttemptsResponse,
+  SessionPlanAttemptsRequest,
   SessionExpectedResult,
   SessionModelAssignment,
   SessionPlan,

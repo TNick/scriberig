@@ -278,5 +278,7 @@ fn model_selection_mutation_round_trips_through_server() {
     assert_eq!(session.execution, selection);
 }
 
+#[path = "agent_session_parts/attempts.rs"]
+mod attempts;
 #[path = "agent_session_parts/part1.rs"]
 mod part1;

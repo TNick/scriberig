@@ -156,6 +156,9 @@ fn decode_request(
         "plan_mutation" => {
             scriberig_protocol::Request::PlanMutation(serde_json::from_str(body).map_err(invalid)?)
         }
+        "plan_attempts" => {
+            scriberig_protocol::Request::PlanAttempts(serde_json::from_str(body).map_err(invalid)?)
+        }
         "model_request_detail" => scriberig_protocol::Request::ModelRequestDetail(
             serde_json::from_str(body).map_err(invalid)?,
         ),
@@ -235,6 +238,13 @@ mod tests {
                 r#"{"session":{"id":"session-1"},"expected_revision":3,"thinking_level":"deep-dive"}"#
             ),
             Ok(scriberig_protocol::Request::SessionThinkingSelection(_))
+        ));
+        assert!(matches!(
+            decode_request(
+                "plan_attempts",
+                r#"{"session":{"id":"session-1"},"plan":"plan-1","node":"node-1","offset":5,"limit":10}"#
+            ),
+            Ok(scriberig_protocol::Request::PlanAttempts(_))
         ));
     }
 }

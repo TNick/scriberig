@@ -5,6 +5,32 @@ import type { BranchId, SessionId } from "./ids";
 /** Durable lifecycle state for a planned work item. */
 export type SessionPlanNodeStatus =
   "Planned" | "Ready" | "Running" | "Completed" | "Failed" | "Abandoned";
+/** Safe attempt metadata without worker transcript content. */
+export interface SessionPlanAttempt {
+  branch: BranchId;
+  claimGeneration: number;
+  claim?: string;
+  status: SessionPlanNodeStatus;
+  result?: string;
+  failure?: SessionPlanEvidenceReference;
+}
+/** Bounded page of attempts retained for one plan node. */
+export interface SessionPlanAttemptsResponse {
+  plan: string;
+  node: string;
+  total: number;
+  offset: number;
+  attempts: readonly SessionPlanAttempt[];
+  nextOffset?: number;
+}
+/** Selects a bounded page from one plan node's attempt history. */
+export interface SessionPlanAttemptsRequest {
+  session: { id: SessionId };
+  plan: string;
+  node: string;
+  offset?: number;
+  limit?: number;
+}
 /** Safe model-library configuration assigned to one plan node. */
 export interface SessionModelAssignment {
   providerId: string;
