@@ -214,9 +214,17 @@ fn incremental_rollup_tracks_leaf_changes_and_reparenting() {
         .find(|item| item.id == leaf_id)
         .expect("leaf node")
         .status = PlanNodeStatus::Failed;
-    index
+    let affected = index
         .apply_change(&plan, first_snapshot, second_snapshot, &[leaf_id])
         .expect("propagate leaf change");
+    assert_eq!(
+        affected
+            .into_iter()
+            .collect::<std::collections::BTreeSet<_>>(),
+        [EntityId::from_bytes([11; 16]), leaf_id]
+            .into_iter()
+            .collect()
+    );
     assert_eq!(
         index.all(),
         &plan.node_rollups().expect("reference rollups")
@@ -229,9 +237,12 @@ fn incremental_rollup_tracks_leaf_changes_and_reparenting() {
         .find(|item| item.id == moved_node)
         .expect("child node")
         .parent = Some(PlanNodeParent::Node(new_parent));
-    index
+    let moved = index
         .apply_change(&plan, second_snapshot, third_snapshot, &[moved_node])
         .expect("propagate reparenting");
+    assert!(moved.contains(&moved_node));
+    assert!(moved.contains(&EntityId::from_bytes([10; 16])));
+    assert!(moved.contains(&new_parent));
     assert_eq!(
         index.all(),
         &plan.node_rollups().expect("reference rollups")

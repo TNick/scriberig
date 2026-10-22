@@ -8,6 +8,7 @@ use super::super::{
     Plan, PlanAbandonReason, PlanError, PlanGatePhase, PlanGateStatus, PlanNodeParent,
     PlanNodeRollup, PlanNodeStatus,
 };
+use super::index_helpers::node_depth;
 use super::rollups::{increment_status_count, rollup_status};
 
 /// Holds snapshot-bound derived rollups outside canonical node revisions.
@@ -31,6 +32,57 @@ pub struct PlanNodeRollupIndex {
 }
 
 impl PlanNodeRollupIndex {
+    /// Restores a cached rollup graph for an exact plan snapshot.
+    ///
+    /// # Parameters
+    /// - `plan`: Plan projection represented by the cache.
+    /// - `source_snapshot`: Exact snapshot stored with the cache rows.
+    /// - `rollups`: Cached values keyed by stable node identity.
+    ///
+    /// # Returns
+    /// A reusable index with reconstructed structural topology.
+    ///
+    /// # Errors
+    /// Returns an error when node membership or parent references are invalid.
+    pub fn from_cached_rollups(
+        plan: &Plan,
+        source_snapshot: SnapshotId,
+        rollups: BTreeMap<EntityId, PlanNodeRollup>,
+    ) -> Result<Self, PlanError> {
+        let node_ids = plan
+            .nodes
+            .iter()
+            .map(|node| node.id)
+            .collect::<BTreeSet<_>>();
+        if node_ids.len() != plan.nodes.len()
+            || node_ids != rollups.keys().copied().collect::<BTreeSet<_>>()
+            || rollups.iter().any(|(id, value)| value.node != *id)
+        {
+            return Err(PlanError::StaleRollupIndex);
+        }
+        let mut parents = BTreeMap::new();
+        let mut children = BTreeMap::<EntityId, BTreeSet<EntityId>>::new();
+        for node in &plan.nodes {
+            let parent = match node.parent {
+                Some(PlanNodeParent::Node(parent)) if node_ids.contains(&parent) => Some(parent),
+                Some(PlanNodeParent::Node(_)) => return Err(PlanError::MissingNode),
+                Some(PlanNodeParent::Branch(_)) | None => None,
+            };
+            parents.insert(node.id, parent);
+            children.entry(node.id).or_default();
+            if let Some(parent) = parent {
+                children.entry(parent).or_default().insert(node.id);
+            }
+        }
+        Ok(Self {
+            source_snapshot,
+            evaluator_version: 1,
+            rollups,
+            parents,
+            children,
+        })
+    }
+
     /// Builds a complete derived index from one exact plan snapshot.
     ///
     /// # Parameters
@@ -327,36 +379,4 @@ impl PlanNodeRollupIndex {
             unsatisfied_completion_gates: u32::try_from(unsatisfied).unwrap_or(u32::MAX),
         })
     }
-}
-
-/// Calculates one node's structural depth and rejects parent cycles.
-///
-/// # Parameters
-/// - `plan`: Current plan projection.
-/// - `node`: Stable node identity whose depth is requested.
-///
-/// The number of `PlanNode` ancestors before the branch/root boundary.
-///
-/// # Returns
-/// The value described by the return type.
-fn node_depth(plan: &Plan, node: EntityId) -> usize {
-    let mut current = node;
-    let mut visited = BTreeSet::new();
-    let mut depth = 0;
-    while visited.insert(current) {
-        let Some(parent) = plan
-            .nodes
-            .iter()
-            .find(|candidate| candidate.id == current)
-            .and_then(|candidate| match candidate.parent {
-                Some(PlanNodeParent::Node(parent)) => Some(parent),
-                Some(PlanNodeParent::Branch(_)) | None => None,
-            })
-        else {
-            break;
-        };
-        current = parent;
-        depth += 1;
-    }
-    depth
 }

@@ -2,7 +2,7 @@
 
 use rusqlite::{TransactionBehavior, params};
 use scriberig_core::EntityId;
-use scriberig_session::{PlanStoreError, Session};
+use scriberig_session::{PlanStoreError, Session, SessionStore};
 
 use crate::{OptionalRow, SqliteSessionStore, payload};
 
@@ -60,6 +60,38 @@ impl SqliteSessionStore {
                 actual: current_plan.revision,
             });
         }
+        let previous_plan = current_plan.clone();
+        self.merge_session_branches(session, plan_id, expected_revision, proposed.revision)?;
+        self.compare_and_swap_semantic_plan(session.id, proposed, expected_revision)?;
+        if let Ok(Some(updated)) = SessionStore::load(self, session.id) {
+            if let Some(plan) = updated.plans.iter().find(|plan| plan.id == plan_id) {
+                let _ = self.update_plan_rollup_index_after_cas(session.id, &previous_plan, plan);
+            }
+        }
+        Ok(())
+    }
+
+    /// Merges new session branches before the canonical plan root is changed.
+    ///
+    /// # Parameters
+    /// - `self`: SQLite session repository.
+    /// - `session`: Caller projection containing new branch records.
+    /// - `plan_id`: Plan whose expected mutation is being persisted.
+    /// - `expected_revision`: Plan revision observed before the mutation.
+    /// - `proposed_revision`: Plan revision proposed by the caller.
+    ///
+    /// # Returns
+    /// Unit after the compatibility session projection transaction commits.
+    ///
+    /// # Errors
+    /// Returns a persistence diagnostic for an invalid revision or SQL failure.
+    fn merge_session_branches(
+        &self,
+        session: &Session,
+        plan_id: EntityId,
+        expected_revision: u64,
+        proposed_revision: u64,
+    ) -> Result<(), PlanStoreError> {
         let mut connection = self
             .connection
             .lock()
@@ -84,7 +116,7 @@ impl SqliteSessionStore {
             .iter()
             .find(|plan| plan.id == plan_id)
             .ok_or_else(|| PlanStoreError::Persistence("plan is not stored".to_owned()))?;
-        if proposed.revision
+        if proposed_revision
             != expected_revision.checked_add(1).ok_or_else(|| {
                 PlanStoreError::Persistence("plan revision is exhausted".to_owned())
             })?
@@ -119,8 +151,7 @@ impl SqliteSessionStore {
         transaction
             .commit()
             .map_err(|error| PlanStoreError::Persistence(error.to_string()))?;
-        self.compare_and_swap_semantic_plan(session.id, proposed, expected_revision)?;
-        let _ = self.rebuild_plan_rollup_index(session.id, plan_id);
+        drop(connection);
         Ok(())
     }
 }
