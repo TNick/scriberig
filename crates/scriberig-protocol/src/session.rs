@@ -16,12 +16,19 @@ pub use activity::{
 };
 #[path = "session/plan.rs"]
 mod plan;
+#[path = "session/plan_semantics.rs"]
+mod plan_semantics;
 pub use plan::{
     SessionContinuationAnchor, SessionCoordinatorClaim, SessionExpectedResult,
-    SessionModelAssignment, SessionPlan, SessionPlanAction, SessionPlanAssignmentRequest,
-    SessionPlanCreateRequest, SessionPlanDependency, SessionPlanLifecycleRequest, SessionPlanNode,
-    SessionPlanNodeDraft, SessionPlanNodeReference, SessionPlanNodeStatus,
-    SessionPlanReplanRequest, SessionPlanRevision, SessionPlanStatus, SessionWorkerClaim,
+    SessionModelAssignment, SessionPlan, SessionPlanAbandonReason, SessionPlanAction,
+    SessionPlanAssignmentRequest, SessionPlanCreateRequest, SessionPlanDependency,
+    SessionPlanEvidenceAssociation, SessionPlanEvidenceKind, SessionPlanEvidenceOwner,
+    SessionPlanEvidenceReference, SessionPlanEvidenceRole, SessionPlanGate, SessionPlanGateCounts,
+    SessionPlanGatePhase, SessionPlanGateRequirement, SessionPlanGateWaiver,
+    SessionPlanLifecycleRequest, SessionPlanNode, SessionPlanNodeDraft, SessionPlanNodeReference,
+    SessionPlanNodeStatus, SessionPlanReplanRequest, SessionPlanRevision,
+    SessionPlanSemanticPredicate, SessionPlanStatus, SessionPlanStatusCounts, SessionPlanSummary,
+    SessionSemanticReference, SessionWorkerClaim,
 };
 #[path = "session/execution.rs"]
 mod execution;

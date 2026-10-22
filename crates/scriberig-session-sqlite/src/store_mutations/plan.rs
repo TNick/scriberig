@@ -1,4 +1,4 @@
-//! Persists optimistic plan changes and newly claimed branches.
+//! Persists plan branches and delegates canonical plan writes to semantic roots.
 
 use rusqlite::{TransactionBehavior, params};
 use scriberig_core::EntityId;
@@ -24,6 +24,42 @@ impl SqliteSessionStore {
         plan_id: EntityId,
         expected_revision: u64,
     ) -> Result<(), PlanStoreError> {
+        let proposed = session
+            .plans
+            .iter()
+            .find(|plan| plan.id == plan_id)
+            .ok_or_else(|| PlanStoreError::Persistence("proposed plan is absent".to_owned()))?;
+        let current_payload = {
+            let connection = self
+                .connection
+                .lock()
+                .map_err(|_| PlanStoreError::Persistence("session lock poisoned".to_owned()))?;
+            connection
+                .query_row(
+                    "SELECT payload FROM session_records WHERE session_id=?1",
+                    params![session.id.as_bytes().as_slice()],
+                    |row| row.get::<_, Vec<u8>>(0),
+                )
+                .optional()
+                .map_err(|error| PlanStoreError::Persistence(error.to_string()))?
+                .ok_or_else(|| PlanStoreError::Persistence("session is not stored".to_owned()))?
+        };
+        let mut current = payload::decode(&current_payload)
+            .map_err(PlanStoreError::Persistence)?
+            .session;
+        self.hydrate_semantic_plans(&mut current)
+            .map_err(PlanStoreError::Persistence)?;
+        let current_plan = current
+            .plans
+            .iter()
+            .find(|plan| plan.id == plan_id)
+            .ok_or_else(|| PlanStoreError::Persistence("plan is not stored".to_owned()))?;
+        if current_plan.revision != expected_revision {
+            return Err(PlanStoreError::RevisionConflict {
+                expected: expected_revision,
+                actual: current_plan.revision,
+            });
+        }
         let mut connection = self
             .connection
             .lock()
@@ -43,28 +79,20 @@ impl SqliteSessionStore {
         let decoded = payload::decode(&payload).map_err(PlanStoreError::Persistence)?;
         let legacy_execution = decoded.legacy_execution;
         let mut stored = decoded.session;
-        let stored_plan = stored
-            .plans
-            .iter_mut()
-            .find(|plan| plan.id == plan_id)
-            .ok_or_else(|| PlanStoreError::Persistence("plan is not stored".to_owned()))?;
-        if stored_plan.revision != expected_revision {
-            return Err(PlanStoreError::RevisionConflict {
-                expected: expected_revision,
-                actual: stored_plan.revision,
-            });
-        }
-        let proposed = session
+        stored
             .plans
             .iter()
             .find(|plan| plan.id == plan_id)
-            .ok_or_else(|| PlanStoreError::Persistence("proposed plan is absent".to_owned()))?;
-        if proposed.revision != expected_revision.saturating_add(1) {
+            .ok_or_else(|| PlanStoreError::Persistence("plan is not stored".to_owned()))?;
+        if proposed.revision
+            != expected_revision.checked_add(1).ok_or_else(|| {
+                PlanStoreError::Persistence("plan revision is exhausted".to_owned())
+            })?
+        {
             return Err(PlanStoreError::Persistence(
                 "proposed plan has an unexpected revision".to_owned(),
             ));
         }
-        *stored_plan = proposed.clone();
         for branch in &session.branches {
             if stored.branches.iter().any(|known| known.id == branch.id) {
                 continue;
@@ -90,6 +118,7 @@ impl SqliteSessionStore {
             .map_err(|error| PlanStoreError::Persistence(error.to_string()))?;
         transaction
             .commit()
-            .map_err(|error| PlanStoreError::Persistence(error.to_string()))
+            .map_err(|error| PlanStoreError::Persistence(error.to_string()))?;
+        self.compare_and_swap_semantic_plan(session.id, proposed, expected_revision)
     }
 }

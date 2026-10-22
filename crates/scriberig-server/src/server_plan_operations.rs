@@ -1,6 +1,8 @@
 //! Adapts typed plan requests to shared application operations.
 
-use scriberig_app::{ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService};
+use scriberig_app::{
+    ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService, SessionBackend,
+};
 
 /// Applies one typed plan request using application-owned validation.
 ///
@@ -91,7 +93,30 @@ pub(super) fn apply<B: ApplicationBackend>(
             });
         }
     };
-    Ok(super::server_helpers::session_plan::project(plan))
+    let session_id = match request {
+        scriberig_protocol::Request::PlanCreate(request) => parse_entity(&request.session.id)?,
+        scriberig_protocol::Request::PlanLifecycle(request) => parse_entity(&request.session.id)?,
+        scriberig_protocol::Request::PlanAssignment(request) => parse_entity(&request.session.id)?,
+        scriberig_protocol::Request::PlanReplan(request) => parse_entity(&request.session.id)?,
+        _ => {
+            return Err(ApplicationError::InvalidRequest {
+                operation: "plan".to_owned(),
+                message: "request is not a plan operation".to_owned(),
+            });
+        }
+    };
+    let session = service.read_session(
+        context,
+        &scriberig_app::SessionRequest {
+            session: session_id,
+        },
+    )?;
+    let results = session
+        .branches
+        .iter()
+        .filter_map(|branch| branch.result.clone())
+        .collect::<Vec<_>>();
+    super::server_helpers::session_plan::project(plan, Some(&results))
 }
 
 /// Applies the requested plan lifecycle operation.

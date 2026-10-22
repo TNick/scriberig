@@ -5,7 +5,10 @@ use scriberig_protocol::{
     SessionModelAssignment, SessionPlan, SessionPlanDependency, SessionPlanNode,
     SessionPlanNodeStatus, SessionPlanRevision, SessionPlanStatus, SessionWorkerClaim,
 };
-use scriberig_session::{Plan, PlanDependency, PlanNode, PlanRevision};
+use scriberig_session::{Plan, PlanDependency, PlanNode, PlanNodeView, PlanRevision};
+
+#[path = "server_helpers_session_plan_semantics.rs"]
+mod semantics;
 
 /// Converts one plan and its retained history into a safe wire projection.
 ///
@@ -14,16 +17,48 @@ use scriberig_session::{Plan, PlanDependency, PlanNode, PlanRevision};
 /// Protocol state including current and historical graph revisions.
 /// # Returns
 /// The operation result.
-pub(crate) fn project(plan: Plan) -> SessionPlan {
-    SessionPlan {
+pub(crate) fn project(
+    plan: Plan,
+    results: Option<&[scriberig_session::BranchResult]>,
+) -> Result<SessionPlan, scriberig_app::ApplicationError> {
+    let snapshot = plan.source_snapshot;
+    let plan_view = plan.plan_view(snapshot).map_err(view_error)?;
+    let rollups = plan.node_rollups().map_err(view_error)?;
+    let node_views = plan
+        .nodes
+        .iter()
+        .map(|plan_node| {
+            plan.node_view(plan_node.id, snapshot, results, &rollups)
+                .map(|view| (plan_node.id, view))
+                .map_err(view_error)
+        })
+        .collect::<Result<std::collections::BTreeMap<_, _>, _>>()?;
+    let nodes = plan
+        .nodes
+        .into_iter()
+        .map(|plan_node| {
+            let view = node_views
+                .get(&plan_node.id)
+                .ok_or_else(|| view_error("shared node view is missing"))?;
+            Ok(node(plan_node, Some(view)))
+        })
+        .collect::<Result<Vec<_>, scriberig_app::ApplicationError>>()?;
+    Ok(SessionPlan {
         id: plan.id.to_string(),
         revision: plan.revision,
+        exact_revision: Some(plan_view.revision.to_string()),
+        snapshot: plan_view.snapshot.map(|value| value.to_string()),
         goal: plan.goal,
         status: plan_status(plan.status),
         anchor: plan.anchor.map(anchor),
         root_branch: plan.root_branch.to_string(),
-        nodes: plan.nodes.into_iter().map(node).collect(),
+        nodes,
         dependencies: plan.dependencies.iter().map(dependency).collect(),
+        root_nodes: plan.root_nodes.iter().map(ToString::to_string).collect(),
+        status_counts: semantics::status_counts(plan_view.status_counts),
+        gates: plan.gates.iter().map(semantics::gate).collect(),
+        evidence: plan.evidence.iter().map(semantics::evidence).collect(),
+        summaries: plan.summaries.iter().map(semantics::summary).collect(),
         coordinator: plan.coordinator.map(|value| value.to_string()),
         coordinator_cursor: plan.coordinator_cursor.map(|value| value.to_string()),
         coordinator_claim: plan.coordinator_claim.map(|claim| SessionCoordinatorClaim {
@@ -33,7 +68,7 @@ pub(crate) fn project(plan: Plan) -> SessionPlan {
             generation: claim.generation,
         }),
         history: plan.history.into_iter().map(revision).collect(),
-    }
+    })
 }
 
 /// Converts one immutable plan revision.
@@ -48,8 +83,15 @@ fn revision(value: PlanRevision) -> SessionPlanRevision {
         revision: value.revision,
         goal: value.goal,
         status: plan_status(value.status),
-        nodes: value.nodes.into_iter().map(node).collect(),
+        nodes: value
+            .nodes
+            .into_iter()
+            .map(|plan_node| node(plan_node, None))
+            .collect(),
         dependencies: value.dependencies.iter().map(dependency).collect(),
+        summaries: value.summaries.iter().map(semantics::summary).collect(),
+        gates: value.gates.iter().map(semantics::gate).collect(),
+        evidence: value.evidence.iter().map(semantics::evidence).collect(),
         reason: value.reason,
     }
 }
@@ -61,7 +103,7 @@ fn revision(value: PlanRevision) -> SessionPlanRevision {
 /// Protocol node with stable structural and execution references.
 /// # Returns
 /// The operation result.
-fn node(value: PlanNode) -> SessionPlanNode {
+fn node(value: PlanNode, view: Option<&PlanNodeView>) -> SessionPlanNode {
     SessionPlanNode {
         id: value.id.to_string(),
         parent: value
@@ -76,6 +118,11 @@ fn node(value: PlanNode) -> SessionPlanNode {
         title: value.title,
         purpose: value.purpose,
         status: node_status(value.status),
+        exact_revision: view.map(|view| view.revision.to_string()),
+        effective_status: view.map(|view| node_status(view.effective_status)),
+        contains_ignored: view.is_some_and(|view| view.contains_ignored),
+        contains_abandoned: view.is_some_and(|view| view.contains_abandoned),
+        abandon_reason: value.abandon_reason.map(semantics::abandon_reason),
         branch: value.branch.map(|id| id.to_string()),
         result: value.result.map(|id| id.to_string()),
         superseded_by: value.superseded_by.map(|id| id.to_string()),
@@ -93,6 +140,38 @@ fn node(value: PlanNode) -> SessionPlanNode {
             generation: claim.generation,
             assignment: claim.assignment.map(assignment),
         }),
+        summary_id: view.and_then(|view| view.summary_id.map(|value| value.to_string())),
+        summary_preview: view.and_then(|view| view.summary_preview.clone()),
+        dependency_blockers: view.map_or_else(Vec::new, |view| {
+            view.dependency_blockers
+                .iter()
+                .map(ToString::to_string)
+                .collect()
+        }),
+        entry_gates: view.map_or_else(Default::default, |view| {
+            semantics::gate_counts(view.entry_gates)
+        }),
+        completion_gates: view.map_or_else(Default::default, |view| {
+            semantics::gate_counts(view.completion_gates)
+        }),
+        evidence_count: view.map_or(0, |view| view.evidence_count),
+        can_retry: view.is_some_and(|view| view.can_retry),
+        last_failure: value
+            .last_failure
+            .as_ref()
+            .map(semantics::evidence_reference),
+    }
+}
+
+/// Converts a shared view assembly error to a safe server application error.
+///
+/// # Parameters
+/// - `error`: Typed plan projection failure.
+///
+/// A bounded internal protocol-projection error.
+fn view_error(error: impl std::fmt::Debug) -> scriberig_app::ApplicationError {
+    scriberig_app::ApplicationError::Internal {
+        message: format!("plan view assembly failed: {error:?}"),
     }
 }
 

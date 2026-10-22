@@ -270,6 +270,8 @@ fn plan_assignments_resolve_distinct_models_and_reject_unsupported_thinking() {
             branch: None,
             result: None,
             superseded_by: None,
+            abandon_reason: None,
+            last_failure: None,
             assignment: Some(scriberig_session::ModelAssignment {
                 provider_id: provider_id.to_owned(),
                 model_id: model_id.to_owned(),

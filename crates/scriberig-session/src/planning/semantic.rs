@@ -1,6 +1,6 @@
 //! Encodes and assembles independently revisioned semantic plan objects.
 
-use scriberig_core::{EntityId, RevisionId, TypeId};
+use scriberig_core::{EntityId, RevisionId, SnapshotId, TypeId};
 
 #[path = "semantic/decode.rs"]
 mod decode;
@@ -25,8 +25,32 @@ pub struct PlanSemanticRevision {
 pub struct PlanSemanticSnapshot {
     /// Stable identity of the plan represented by these objects.
     pub plan: EntityId,
+    /// Exact universal snapshot identity when loaded from durable storage.
+    pub snapshot: Option<SnapshotId>,
     /// Current plan, node, membership, structure, and dependency objects.
     pub objects: Vec<PlanSemanticRevision>,
+}
+
+/// Identifies a node revision and its structural position in one snapshot.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PlanSemanticNodeRef {
+    /// Stable PlanNode entity identity.
+    pub entity: EntityId,
+    /// Exact immutable PlanNode revision identity.
+    pub revision: RevisionId,
+    /// Direct structural parent, separate from dependency scheduling.
+    pub parent: Option<super::PlanNodeParent>,
+    /// Stable insertion order within its plan membership.
+    pub ordinal: u64,
+}
+
+/// Safe mutation metadata stored separately from plan graph snapshots.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlanSemanticHistory {
+    /// Plan-local mutation revision described by this record.
+    pub mutation_revision: u64,
+    /// Optional safe reason supplied for the mutation.
+    pub reason: Option<String>,
 }
 
 /// Reports invalid or incomplete semantic plan object payloads.
@@ -76,5 +100,55 @@ impl PlanSemanticSnapshot {
         history: Vec<super::PlanRevision>,
     ) -> Result<super::Plan, PlanSemanticError> {
         decode::into_plan(self, history)
+    }
+
+    /// Reads revision metadata without assembling historical plan projections.
+    ///
+    /// # Parameters
+    /// - `self`: Semantic object set to inspect.
+    ///
+    /// # Returns
+    /// Mutation revisions and their optional safe reasons in revision order.
+    ///
+    /// # Errors
+    /// Returns an error for malformed or mismatched metadata objects.
+    pub fn history_metadata(&self) -> Result<Vec<PlanSemanticHistory>, PlanSemanticError> {
+        decode::history_metadata(self)
+    }
+
+    /// Lists node revisions and parent relations without decoding Plan payload.
+    ///
+    /// # Parameters
+    /// - `self`: Exact semantic object set to query.
+    ///
+    /// # Returns
+    /// PlanNode identities and revision-bound structural positions in order.
+    ///
+    /// # Errors
+    /// Returns an error for missing, duplicated, or malformed relation records.
+    pub fn node_refs(&self) -> Result<Vec<PlanSemanticNodeRef>, PlanSemanticError> {
+        decode::node_refs(self)
+    }
+
+    /// Lists direct child nodes of a branch or plan node.
+    ///
+    /// # Parameters
+    /// - `self`: Exact semantic object set to query.
+    /// - `parent`: Direct structural parent identity.
+    ///
+    /// # Returns
+    /// Matching children in deterministic insertion order.
+    ///
+    /// # Errors
+    /// Returns an error for malformed membership or structure relations.
+    pub fn direct_children(
+        &self,
+        parent: super::PlanNodeParent,
+    ) -> Result<Vec<PlanSemanticNodeRef>, PlanSemanticError> {
+        Ok(self
+            .node_refs()?
+            .into_iter()
+            .filter(|node| node.parent == Some(parent))
+            .collect())
     }
 }

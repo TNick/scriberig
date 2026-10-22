@@ -209,7 +209,7 @@ pub(super) fn settle_workers(
             }
             Ok(execution) if execution.result.branch == branch => {
                 batch.failed.push(node);
-                failed.push((node, claim));
+                failed.push((node, claim, Some(execution.result.clone())));
                 batch.results.push(execution.result);
                 batch
                     .model_request_evidence
@@ -224,19 +224,19 @@ pub(super) fn settle_workers(
             }
             Ok(_) => {
                 batch.failed.push(node);
-                failed.push((node, claim));
-                batch.results.push(failed_worker_result(
+                let failure = failed_worker_result(
                     next_id(),
                     branch,
                     "worker returned a result for another branch",
-                ));
+                );
+                failed.push((node, claim, Some(failure.clone())));
+                batch.results.push(failure);
             }
             Err(error) => {
                 batch.failed.push(node);
-                failed.push((node, claim));
-                batch
-                    .results
-                    .push(failed_worker_result(next_id(), branch, &error));
+                let failure = failed_worker_result(next_id(), branch, &error);
+                failed.push((node, claim, Some(failure.clone())));
+                batch.results.push(failure);
             }
         }
     }

@@ -37,6 +37,7 @@ impl Plan {
         }
         let mut plan = Self {
             id,
+            source_snapshot: None,
             session: Some(session),
             anchor: Some(anchor),
             goal,
@@ -45,6 +46,9 @@ impl Plan {
             root_branch,
             nodes: Vec::new(),
             dependencies: Vec::new(),
+            summaries: Vec::new(),
+            evidence: Vec::new(),
+            gates: Vec::new(),
             coordinator: None,
             coordinator_cursor: None,
             coordinator_claim: None,
@@ -82,8 +86,8 @@ impl Plan {
         if is_root {
             self.root_nodes.push(node_id);
         }
-        self.bump_revision()?;
         self.refresh_readiness();
+        self.bump_revision()?;
         Ok(())
     }
 
@@ -168,8 +172,8 @@ impl Plan {
         });
         self.dependencies
             .sort_by_key(|edge| (edge.prerequisite, edge.dependent));
-        self.bump_revision()?;
         self.refresh_readiness();
+        self.bump_revision()?;
         Ok(())
     }
 

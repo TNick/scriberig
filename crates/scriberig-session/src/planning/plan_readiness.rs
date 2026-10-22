@@ -1,6 +1,9 @@
 //! Implements one responsibility of durable plan lifecycle behavior.
 
-use super::{EntityId, ModelAssignment, Plan, PlanError, PlanNodeStatus, PlanRevision, PlanStatus};
+use super::{
+    EntityId, ModelAssignment, Plan, PlanError, PlanGatePhase, PlanNodeStatus, PlanRevision,
+    PlanStatus,
+};
 
 impl Plan {
     /// Retries a failed node after verifying its dependencies remain satisfied.
@@ -47,6 +50,7 @@ impl Plan {
             || target.claim.is_some()
             || target.branch.is_none()
             || !self.dependencies_satisfied(node, results)
+            || !self.node_gates_satisfied(node, PlanGatePhase::Entry)
         {
             return Err(PlanError::InvalidTransition);
         }
@@ -115,6 +119,7 @@ impl Plan {
                     return false;
                 }
                 self.dependencies_satisfied(node.id, results)
+                    && self.node_gates_satisfied(node.id, PlanGatePhase::Entry)
             })
             .map(|node| node.id)
             .collect::<Vec<_>>();
@@ -131,38 +136,54 @@ impl Plan {
     ///
     /// # Returns
     /// `true` when every prerequisite points to its exact completed result.
-    fn dependencies_satisfied(&self, node: EntityId, results: &[crate::BranchResult]) -> bool {
+    pub(super) fn dependencies_satisfied(
+        &self,
+        node: EntityId,
+        results: &[crate::BranchResult],
+    ) -> bool {
         self.dependencies
             .iter()
             .filter(|edge| edge.dependent == node)
-            .all(|edge| {
-                let Some(result_id) = edge.fulfilled_by else {
-                    return false;
-                };
-                let Some(result) = results.iter().find(|item| item.id == result_id) else {
-                    return false;
-                };
-                let Some(prerequisite) =
-                    self.nodes.iter().find(|item| item.id == edge.prerequisite)
-                else {
-                    return false;
-                };
-                if result.status != crate::BranchStatus::Completed
-                    || prerequisite.status != PlanNodeStatus::Completed
-                    || prerequisite.result != Some(result_id)
-                    || prerequisite.branch != Some(result.branch)
-                {
-                    return false;
-                }
-                prerequisite
-                    .expected_result
-                    .as_ref()
-                    .is_none_or(|contract| {
-                        result.result_kind.as_deref() == Some(contract.kind.as_str())
-                            && (!contract.requires_handle
-                                || !result.result_handles.is_empty()
-                                || !result.references.is_empty())
-                    })
+            .all(|edge| self.dependency_satisfied(edge, results))
+    }
+
+    /// Validates one exact successful result against its prerequisite contract.
+    ///
+    /// # Parameters
+    /// - `self`: Plan defining prerequisite state and result policy.
+    /// - `edge`: Dependency edge to evaluate.
+    /// - `results`: Durable results in the same session snapshot.
+    ///
+    /// `true` when the edge points to the prerequisite's accepted result.
+    pub(super) fn dependency_satisfied(
+        &self,
+        edge: &super::PlanDependency,
+        results: &[crate::BranchResult],
+    ) -> bool {
+        let Some(result_id) = edge.fulfilled_by else {
+            return false;
+        };
+        let Some(result) = results.iter().find(|item| item.id == result_id) else {
+            return false;
+        };
+        let Some(prerequisite) = self.nodes.iter().find(|item| item.id == edge.prerequisite) else {
+            return false;
+        };
+        if result.status != crate::BranchStatus::Completed
+            || prerequisite.status != PlanNodeStatus::Completed
+            || prerequisite.result != Some(result_id)
+            || prerequisite.branch != Some(result.branch)
+        {
+            return false;
+        }
+        prerequisite
+            .expected_result
+            .as_ref()
+            .is_none_or(|contract| {
+                result.result_kind.as_deref() == Some(contract.kind.as_str())
+                    && (!contract.requires_handle
+                        || !result.result_handles.is_empty()
+                        || !result.references.is_empty())
             })
     }
 
@@ -201,6 +222,9 @@ impl Plan {
         !self.nodes.is_empty()
             && self.nodes.iter().all(|node| {
                 if node.status != PlanNodeStatus::Completed {
+                    return false;
+                }
+                if !self.node_gates_satisfied(node.id, PlanGatePhase::Completion) {
                     return false;
                 }
                 let Some(result_id) = node.result else {
@@ -331,6 +355,7 @@ impl Plan {
             .revision
             .checked_add(1)
             .ok_or(PlanError::RevisionExhausted)?;
+        self.source_snapshot = None;
         self.record_revision();
         Ok(())
     }
@@ -345,6 +370,9 @@ impl Plan {
             status: self.status,
             nodes: self.nodes.clone(),
             dependencies: self.dependencies.clone(),
+            summaries: self.summaries.clone(),
+            evidence: self.evidence.clone(),
+            gates: self.gates.clone(),
             reason: None,
         });
     }
@@ -383,15 +411,18 @@ impl Plan {
     ///
     /// - `self`: Plan to refresh.
     pub(super) fn refresh_readiness(&mut self) {
-        for node in &mut self.nodes {
-            if !matches!(node.status, PlanNodeStatus::Planned | PlanNodeStatus::Ready) {
+        for index in 0..self.nodes.len() {
+            let node_id = self.nodes[index].id;
+            let status = self.nodes[index].status;
+            if !matches!(status, PlanNodeStatus::Planned | PlanNodeStatus::Ready) {
                 continue;
             }
             let blocked = self
                 .dependencies
                 .iter()
-                .any(|edge| edge.dependent == node.id && edge.fulfilled_by.is_none());
-            node.status = if blocked {
+                .any(|edge| edge.dependent == node_id && edge.fulfilled_by.is_none())
+                || !self.node_gates_satisfied(node_id, PlanGatePhase::Entry);
+            self.nodes[index].status = if blocked {
                 PlanNodeStatus::Planned
             } else {
                 PlanNodeStatus::Ready

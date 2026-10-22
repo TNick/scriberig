@@ -5,17 +5,144 @@ use serde::Serialize;
 
 use super::super::Plan;
 use super::{PlanSemanticError, PlanSemanticRevision, PlanSemanticSnapshot};
-#[path = "encode/payloads.rs"]
-mod payloads;
 
-pub(super) use payloads::{DependencyIdentity, RelationIdentity};
-use payloads::{DependencyPayload, MembershipPayload, NodePayload, PlanPayload, StructurePayload};
+pub(super) const PLAN_TYPE: &str = crate::schema::SessionEntityType::Plan.as_str();
+pub(super) const NODE_TYPE: &str = crate::schema::SessionEntityType::PlanNode.as_str();
+pub(super) const MEMBERSHIP_TYPE: &str = crate::schema::SessionEntityType::PlanMembership.as_str();
+pub(super) const STRUCTURE_TYPE: &str = crate::schema::SessionEntityType::PlanStructure.as_str();
+pub(super) const DEPENDENCY_TYPE: &str = crate::schema::SessionEntityType::PlanDependency.as_str();
+pub(super) const HISTORY_TYPE: &str = crate::schema::SessionEntityType::PlanRevision.as_str();
+pub(super) const GATE_TYPE: &str = crate::schema::SessionEntityType::PlanGate.as_str();
+pub(super) const EVIDENCE_TYPE: &str = crate::schema::SessionEntityType::PlanEvidence.as_str();
+pub(super) const SUMMARY_TYPE: &str = crate::schema::SessionEntityType::PlanSummary.as_str();
+pub(super) const SUMMARY_LINK_TYPE: &str =
+    crate::schema::SessionEntityType::PlanSummaryLink.as_str();
 
-pub(super) const PLAN_TYPE: &str = "scriberig.session.plan";
-pub(super) const NODE_TYPE: &str = "scriberig.session.plan-node";
-pub(super) const MEMBERSHIP_TYPE: &str = "scriberig.session.plan-membership";
-pub(super) const STRUCTURE_TYPE: &str = "scriberig.session.plan-structure";
-pub(super) const DEPENDENCY_TYPE: &str = "scriberig.session.plan-dependency";
+#[derive(Serialize)]
+struct PlanPayload<'a> {
+    schema_version: u16,
+    session: Option<EntityId>,
+    anchor: Option<&'a crate::ContinuationAnchor>,
+    goal: &'a str,
+    mutation_revision: u64,
+    status: super::super::PlanStatus,
+    root_branch: EntityId,
+    coordinator: Option<EntityId>,
+    coordinator_cursor: Option<EntityId>,
+    coordinator_claim: Option<&'a super::super::CoordinatorClaim>,
+    coordinator_generation: u64,
+}
+
+#[derive(Serialize)]
+struct NodePayload<'a> {
+    schema_version: u16,
+    plan: EntityId,
+    title: &'a str,
+    purpose: &'a str,
+    expected_result: &'a Option<super::super::ExpectedResult>,
+    semantic_scope: &'a [String],
+    status: super::super::PlanNodeStatus,
+    branch: Option<EntityId>,
+    result: Option<EntityId>,
+    superseded_by: Option<EntityId>,
+    abandon_reason: Option<super::super::PlanAbandonReason>,
+    last_failure: &'a Option<super::super::PlanEvidenceReference>,
+    assignment: &'a Option<super::super::ModelAssignment>,
+    claim: &'a Option<super::super::WorkerClaim>,
+    claim_generation: u64,
+}
+
+#[derive(Serialize)]
+struct MembershipPayload {
+    schema_version: u16,
+    plan: EntityId,
+    node: EntityId,
+    ordinal: u64,
+}
+
+#[derive(Serialize)]
+struct StructurePayload {
+    schema_version: u16,
+    plan: EntityId,
+    root_branch: EntityId,
+    child: EntityId,
+    parent: Option<super::super::PlanNodeParent>,
+    ordinal: u64,
+}
+
+#[derive(Serialize)]
+struct DependencyPayload {
+    schema_version: u16,
+    plan: EntityId,
+    prerequisite: EntityId,
+    dependent: EntityId,
+    fulfilled_by: Option<EntityId>,
+}
+
+#[derive(Serialize)]
+pub(super) struct RelationIdentity {
+    pub(super) owner: EntityId,
+    pub(super) target: EntityId,
+}
+
+#[derive(Serialize)]
+pub(super) struct DependencyIdentity {
+    pub(super) plan: EntityId,
+    pub(super) prerequisite: EntityId,
+    pub(super) dependent: EntityId,
+}
+
+#[derive(Serialize)]
+struct HistoryPayload<'a> {
+    schema_version: u16,
+    plan: EntityId,
+    mutation_revision: u64,
+    reason: &'a Option<String>,
+}
+
+#[derive(Serialize)]
+struct HistoryIdentity {
+    plan: EntityId,
+    mutation_revision: u64,
+}
+
+#[derive(Serialize)]
+struct SummaryPayload<'a> {
+    schema_version: u16,
+    plan: EntityId,
+    node: EntityId,
+    text: &'a str,
+    sources: &'a [super::super::PlanSemanticReference],
+}
+
+#[derive(Serialize)]
+struct SummaryLinkPayload {
+    schema_version: u16,
+    plan: EntityId,
+    node: EntityId,
+    summary: EntityId,
+}
+
+#[derive(Serialize)]
+struct GatePayload<'a> {
+    schema_version: u16,
+    plan: EntityId,
+    owner: EntityId,
+    phase: super::super::PlanGatePhase,
+    requirement: &'a super::super::PlanGateRequirement,
+    waiver: &'a Option<super::super::PlanGateWaiver>,
+}
+
+#[derive(Serialize)]
+struct EvidencePayload<'a> {
+    schema_version: u16,
+    plan: EntityId,
+    owner: super::super::PlanEvidenceOwner,
+    role: super::super::PlanEvidenceRole,
+    evidence: &'a super::super::PlanEvidenceReference,
+    note: &'a Option<String>,
+    actor: Option<EntityId>,
+}
 
 /// Encodes a plan view into current independently revisioned objects.
 ///
@@ -49,37 +176,9 @@ pub(super) fn from_plan(plan: &Plan) -> Result<PlanSemanticSnapshot, PlanSemanti
         },
     )?;
 
-    encode_nodes(plan, &mut objects)?;
-    encode_dependencies(plan, &mut objects)?;
-
-    objects.sort_by(|left, right| {
-        (&left.entity, left.object_type.as_str()).cmp(&(&right.entity, right.object_type.as_str()))
-    });
-    Ok(PlanSemanticSnapshot {
-        plan: plan.id,
-        objects,
-    })
-}
-
-/// Encodes plan nodes with their membership and structure relations.
-///
-/// - `plan`: Plan projection whose nodes are encoded.
-/// - `objects`: Destination object set.
-///
-/// Unit after all node records are appended.
-///
-/// # Returns
-/// Unit on success.
-///
-/// # Errors
-/// Returns an error when a payload or stable relation identity cannot be encoded.
-fn encode_nodes(
-    plan: &Plan,
-    objects: &mut Vec<PlanSemanticRevision>,
-) -> Result<(), PlanSemanticError> {
     for (ordinal, node) in plan.nodes.iter().enumerate() {
         push_object(
-            objects,
+            &mut objects,
             node.id,
             NODE_TYPE,
             &NodePayload {
@@ -93,6 +192,8 @@ fn encode_nodes(
                 branch: node.branch,
                 result: node.result,
                 superseded_by: node.superseded_by,
+                abandon_reason: node.abandon_reason,
+                last_failure: &node.last_failure,
                 assignment: &node.assignment,
                 claim: &node.claim,
                 claim_generation: node.claim_generation,
@@ -108,7 +209,7 @@ fn encode_nodes(
             ordinal,
         };
         push_relation(
-            objects,
+            &mut objects,
             MEMBERSHIP_TYPE,
             &RelationIdentity {
                 owner: plan.id,
@@ -125,7 +226,7 @@ fn encode_nodes(
             ordinal,
         };
         push_relation(
-            objects,
+            &mut objects,
             STRUCTURE_TYPE,
             &RelationIdentity {
                 owner: node.id,
@@ -135,25 +236,6 @@ fn encode_nodes(
         )?;
     }
 
-    Ok(())
-}
-
-/// Encodes dependency relations between plan nodes.
-///
-/// - `plan`: Plan projection whose dependency edges are encoded.
-/// - `objects`: Destination object set.
-///
-/// Unit after all dependency records are appended.
-///
-/// # Returns
-/// Unit on success.
-///
-/// # Errors
-/// Returns an error when a payload or stable relation identity cannot be encoded.
-fn encode_dependencies(
-    plan: &Plan,
-    objects: &mut Vec<PlanSemanticRevision>,
-) -> Result<(), PlanSemanticError> {
     for dependency in &plan.dependencies {
         let payload = DependencyPayload {
             schema_version: 1,
@@ -163,7 +245,7 @@ fn encode_dependencies(
             fulfilled_by: dependency.fulfilled_by,
         };
         push_relation(
-            objects,
+            &mut objects,
             DEPENDENCY_TYPE,
             &DependencyIdentity {
                 plan: plan.id,
@@ -173,7 +255,102 @@ fn encode_dependencies(
             &payload,
         )?;
     }
-    Ok(())
+
+    for summary in &plan.summaries {
+        push_object(
+            &mut objects,
+            summary.id,
+            SUMMARY_TYPE,
+            &SummaryPayload {
+                schema_version: 1,
+                plan: plan.id,
+                node: summary.node,
+                text: &summary.text,
+                sources: &summary.sources,
+            },
+        )?;
+        push_relation(
+            &mut objects,
+            SUMMARY_LINK_TYPE,
+            &RelationIdentity {
+                owner: summary.node,
+                target: summary.id,
+            },
+            &SummaryLinkPayload {
+                schema_version: 1,
+                plan: plan.id,
+                node: summary.node,
+                summary: summary.id,
+            },
+        )?;
+    }
+
+    for gate in &plan.gates {
+        push_object(
+            &mut objects,
+            gate.id,
+            GATE_TYPE,
+            &GatePayload {
+                schema_version: 1,
+                plan: plan.id,
+                owner: gate.owner,
+                phase: gate.phase,
+                requirement: &gate.requirement,
+                waiver: &gate.waiver,
+            },
+        )?;
+    }
+
+    for association in &plan.evidence {
+        push_object(
+            &mut objects,
+            association.id,
+            EVIDENCE_TYPE,
+            &EvidencePayload {
+                schema_version: 1,
+                plan: plan.id,
+                owner: association.owner,
+                role: association.role,
+                evidence: &association.evidence,
+                note: &association.note,
+                actor: association.actor,
+            },
+        )?;
+    }
+
+    for history in &plan.history {
+        push_relation(
+            &mut objects,
+            HISTORY_TYPE,
+            &HistoryIdentity {
+                plan: plan.id,
+                mutation_revision: history.revision,
+            },
+            &HistoryPayload {
+                schema_version: 1,
+                plan: plan.id,
+                mutation_revision: history.revision,
+                reason: &history.reason,
+            },
+        )?;
+    }
+
+    objects.sort_by(|left, right| {
+        (&left.entity, left.object_type.as_str()).cmp(&(&right.entity, right.object_type.as_str()))
+    });
+    if objects
+        .windows(2)
+        .any(|pair| pair[0].entity == pair[1].entity)
+    {
+        return Err(PlanSemanticError::InvalidObject(
+            "multiple plan semantic objects use one entity identity".to_owned(),
+        ));
+    }
+    Ok(PlanSemanticSnapshot {
+        plan: plan.id,
+        snapshot: None,
+        objects,
+    })
 }
 
 /// Encodes one typed semantic object and computes its immutable revision ID.

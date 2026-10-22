@@ -6,6 +6,7 @@ mod plan_mutation;
 mod recovery;
 #[path = "store_mutations/selection.rs"]
 mod selection_mutation;
+mod semantic_plans;
 
 pub use payload::LegacyExecutionRecord;
 
@@ -15,11 +16,14 @@ use std::sync::Mutex;
 use rusqlite::{Connection, TransactionBehavior, params};
 use scriberig_core::EntityId;
 use scriberig_session::{PlanStoreError, SelectionStoreError, Session, SessionStore};
+use scriberig_store_sqlite::SqliteStore;
 
 /// SQLite-backed repository for immutable session graph snapshots.
 pub struct SqliteSessionStore {
     /// Connection guarded for serialized repository operations.
     connection: Mutex<Connection>,
+    /// Universal immutable store used as canonical plan persistence.
+    semantic_store: SqliteStore,
 }
 
 impl SqliteSessionStore {
@@ -35,7 +39,8 @@ impl SqliteSessionStore {
     /// # Errors
     /// Returns an error when the operation fails.
     pub fn open(path: impl AsRef<Path>) -> rusqlite::Result<Self> {
-        Self::from_connection(Connection::open(path)?)
+        let path = path.as_ref();
+        Self::from_connections(Connection::open(path)?, SqliteStore::open(path)?)
     }
 
     /// Creates an isolated in-memory session repository.
@@ -48,10 +53,13 @@ impl SqliteSessionStore {
     /// # Errors
     /// Returns an error when the operation fails.
     pub fn open_in_memory() -> rusqlite::Result<Self> {
-        Self::from_connection(Connection::open_in_memory()?)
+        Self::from_connections(
+            Connection::open_in_memory()?,
+            SqliteStore::open_in_memory()?,
+        )
     }
 
-    /// Initializes the repository schema on one connection.
+    /// Initializes the repository schema and universal semantic store.
     ///
     /// - `connection`: SQLite connection to initialize.
     ///
@@ -62,7 +70,10 @@ impl SqliteSessionStore {
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
-    fn from_connection(connection: Connection) -> rusqlite::Result<Self> {
+    fn from_connections(
+        connection: Connection,
+        semantic_store: SqliteStore,
+    ) -> rusqlite::Result<Self> {
         connection.execute_batch(
             "CREATE TABLE IF NOT EXISTS session_records (
                  session_id BLOB PRIMARY KEY,
@@ -71,6 +82,7 @@ impl SqliteSessionStore {
         )?;
         Ok(Self {
             connection: Mutex::new(connection),
+            semantic_store,
         })
     }
 }
@@ -107,35 +119,23 @@ impl SessionStore for SqliteSessionStore {
                 .map_err(|error| error.to_string())?
         };
         let mut sessions = Vec::with_capacity(records.len());
-        let mut legacy_ids = Vec::new();
+        let mut rewrites = Vec::new();
         for (session_id, payload) in records {
-            let decoded = payload::decode(&payload)?;
+            let mut decoded = payload::decode(&payload)?;
+            self.hydrate_semantic_plans(&mut decoded.session)?;
             if decoded.requires_rewrite {
-                legacy_ids.push(session_id);
+                rewrites.push((
+                    session_id,
+                    payload::encode(&decoded.session, &decoded.legacy_execution)?,
+                ));
             }
             sessions.push(decoded.session);
         }
-        if !legacy_ids.is_empty() {
+        if !rewrites.is_empty() {
             let transaction = connection
                 .transaction_with_behavior(TransactionBehavior::Immediate)
                 .map_err(|error| error.to_string())?;
-            for session_id in legacy_ids {
-                let payload = transaction
-                    .query_row(
-                        "SELECT payload FROM session_records WHERE session_id=?1",
-                        params![session_id],
-                        |row| row.get::<_, Vec<u8>>(0),
-                    )
-                    .optional()
-                    .map_err(|error| error.to_string())?;
-                let Some(payload) = payload else {
-                    continue;
-                };
-                let decoded = payload::decode(&payload)?;
-                if !decoded.requires_rewrite {
-                    continue;
-                }
-                let sanitized = payload::encode(&decoded.session, &decoded.legacy_execution)?;
+            for (session_id, sanitized) in rewrites {
                 transaction
                     .execute(
                         "UPDATE session_records SET payload=?2 WHERE session_id=?1",
@@ -177,35 +177,21 @@ impl SessionStore for SqliteSessionStore {
         let Some(payload) = payload else {
             return Ok(None);
         };
-        let decoded = payload::decode(&payload)?;
+        let mut decoded = payload::decode(&payload)?;
+        self.hydrate_semantic_plans(&mut decoded.session)?;
         if !decoded.requires_rewrite {
             return Ok(Some(decoded.session));
         }
         let transaction = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|error| error.to_string())?;
-        let current_payload = transaction
-            .query_row(
-                "SELECT payload FROM session_records WHERE session_id=?1",
-                params![session.as_bytes().as_slice()],
-                |row| row.get::<_, Vec<u8>>(0),
+        let sanitized = payload::encode(&decoded.session, &decoded.legacy_execution)?;
+        transaction
+            .execute(
+                "UPDATE session_records SET payload=?2 WHERE session_id=?1 AND payload=?3",
+                params![session.as_bytes().as_slice(), sanitized, payload],
             )
-            .optional()
             .map_err(|error| error.to_string())?;
-        let Some(current_payload) = current_payload else {
-            transaction.commit().map_err(|error| error.to_string())?;
-            return Ok(None);
-        };
-        let decoded = payload::decode(&current_payload)?;
-        if decoded.requires_rewrite {
-            let sanitized = payload::encode(&decoded.session, &decoded.legacy_execution)?;
-            transaction
-                .execute(
-                    "UPDATE session_records SET payload=?2 WHERE session_id=?1",
-                    params![session.as_bytes().as_slice(), sanitized],
-                )
-                .map_err(|error| error.to_string())?;
-        }
         transaction.commit().map_err(|error| error.to_string())?;
         Ok(Some(decoded.session))
     }
@@ -247,6 +233,27 @@ impl SessionStore for SqliteSessionStore {
     /// # Errors
     /// Returns an error when the operation fails.
     fn save(&self, session: &Session) -> Result<(), String> {
+        let prior_payload = {
+            let connection = self
+                .connection
+                .lock()
+                .map_err(|_| "session repository lock poisoned".to_owned())?;
+            connection
+                .query_row(
+                    "SELECT payload FROM session_records WHERE session_id=?1",
+                    params![session.id.as_bytes().as_slice()],
+                    |row| row.get::<_, Vec<u8>>(0),
+                )
+                .optional()
+                .map_err(|error| error.to_string())?
+        };
+        let prior = prior_payload.as_deref().map(payload::decode).transpose()?;
+        let legacy_execution = prior
+            .as_ref()
+            .map(|decoded| decoded.legacy_execution.clone())
+            .unwrap_or_default();
+        let mut projection = self.prepare_session_projection(session, prior)?;
+        self.hydrate_semantic_plans(&mut projection)?;
         let mut connection = self
             .connection
             .lock()
@@ -254,19 +261,7 @@ impl SessionStore for SqliteSessionStore {
         let transaction = connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(|error| error.to_string())?;
-        let prior_payload = transaction
-            .query_row(
-                "SELECT payload FROM session_records WHERE session_id=?1",
-                params![session.id.as_bytes().as_slice()],
-                |row| row.get::<_, Vec<u8>>(0),
-            )
-            .optional()
-            .map_err(|error| error.to_string())?;
-        let legacy_execution = prior_payload
-            .map(|payload| payload::decode(&payload).map(|decoded| decoded.legacy_execution))
-            .transpose()?
-            .unwrap_or_default();
-        let payload = payload::encode(session, &legacy_execution)?;
+        let payload = payload::encode(&projection, &legacy_execution)?;
         transaction
             .execute(
                 "INSERT INTO session_records(session_id, payload) VALUES (?1, ?2)

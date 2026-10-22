@@ -100,7 +100,7 @@ where
                 session: session_id,
             },
         )?;
-        Ok(session_response(value))
+        session_response(value)
     }
 
     /// Reads a previously captured model request from an authorized session.

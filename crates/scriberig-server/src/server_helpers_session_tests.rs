@@ -78,7 +78,7 @@ fn session_response_preserves_plan_dependencies_and_safe_assignments() {
         execution: SessionExecutionSelection::default(),
     };
 
-    let response = super::session_response(session);
+    let response = super::session_response(session).expect("session response");
     let plan = &response.plans[0];
     assert_eq!(
         plan.dependencies[0].fulfilled_by.as_deref(),

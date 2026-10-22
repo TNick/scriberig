@@ -32,8 +32,16 @@ fn failed_plan_node_retries_with_a_new_branch_and_claim_generation() {
         .expect("claim coordinator");
     plan.start_node(node, first_branch, first_claim, "worker", &[])
         .expect("start first attempt");
-    plan.fail_node(node, first_claim)
-        .expect("fail first attempt");
+    let failure_id = EntityId::from_bytes([228; 16]);
+    let mut failure = branch_result(failure_id, first_branch, None);
+    failure.status = BranchStatus::Abandoned;
+    failure.result_kind = Some("worker_failure".to_owned());
+    plan.settle_workers(
+        &[],
+        &[(node, first_claim, Some(failure.clone()))],
+        std::slice::from_ref(&failure),
+    )
+    .expect("fail first attempt");
     let failed_revision = plan.revision;
     assert_eq!(
         plan.start_node(
@@ -53,6 +61,13 @@ fn failed_plan_node_retries_with_a_new_branch_and_claim_generation() {
     assert_eq!(retried.status, PlanNodeStatus::Ready);
     assert_eq!(retried.branch, None);
     assert_eq!(retried.claim_generation, 1);
+    assert_eq!(
+        retried
+            .last_failure
+            .as_ref()
+            .map(|item| item.reference.entity),
+        Some(failure_id)
+    );
     assert!(plan.history.iter().any(|revision| {
         revision.revision == failed_revision
             && revision.nodes.iter().any(|entry| {
@@ -74,6 +89,21 @@ fn failed_plan_node_retries_with_a_new_branch_and_claim_generation() {
             .claim_generation,
         2
     );
+    let attempts = plan.attempt_history(node).expect("node attempt history");
+    assert_eq!(attempts.len(), 2);
+    assert_eq!(attempts[0].branch, first_branch);
+    assert_eq!(attempts[0].status, PlanNodeStatus::Failed);
+    assert_eq!(attempts[0].claim, Some(first_claim));
+    assert_eq!(
+        attempts[0]
+            .failure
+            .as_ref()
+            .map(|item| item.reference.entity),
+        Some(failure_id)
+    );
+    assert_eq!(attempts[1].branch, second_branch);
+    assert_eq!(attempts[1].status, PlanNodeStatus::Running);
+    assert_eq!(attempts[1].claim, Some(second_claim));
 }
 
 /// Rejects retry when the node's exact dependency result is unavailable.
@@ -158,6 +188,7 @@ fn plan_readiness_requires_explicit_result_contract() {
     let result_id = EntityId::from_bytes([84; 16]);
     let mut plan = Plan {
         id: EntityId::from_bytes([85; 16]),
+        source_snapshot: None,
         session: None,
         anchor: None,
         goal: "contract test".to_owned(),
@@ -166,6 +197,9 @@ fn plan_readiness_requires_explicit_result_contract() {
         root_branch: root,
         nodes: Vec::new(),
         dependencies: Vec::new(),
+        summaries: Vec::new(),
+        evidence: Vec::new(),
+        gates: Vec::new(),
         coordinator: None,
         coordinator_cursor: None,
         coordinator_claim: None,
@@ -448,6 +482,7 @@ pub(super) fn plan_fixture() -> Plan {
     let root = EntityId::from_bytes([20; 16]);
     let mut plan = Plan {
         id: EntityId::from_bytes([21; 16]),
+        source_snapshot: None,
         session: None,
         anchor: None,
         goal: String::new(),
@@ -456,6 +491,9 @@ pub(super) fn plan_fixture() -> Plan {
         root_branch: root,
         nodes: Vec::new(),
         dependencies: Vec::new(),
+        summaries: Vec::new(),
+        evidence: Vec::new(),
+        gates: Vec::new(),
         coordinator: None,
         coordinator_cursor: None,
         coordinator_claim: None,
