@@ -70,7 +70,9 @@ fn prompt_visibility_requests_missing_model_details() {
         crate::state::PromptVisibility::Shown
     );
 
-    let effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
+    let effects =
+        crate::state::state_presentation::activate_palette_control(&mut state, "toggle-prompt")
+            .expect("prompt toggle");
 
     assert_eq!(effects, vec![Effect::None]);
     assert_eq!(

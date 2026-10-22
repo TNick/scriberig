@@ -343,6 +343,6 @@ describe("session client projections", () => {
           },
         ],
       }),
-    ).toThrow("provider id is required");
+    ).toThrow("missing provider id");
   });
 });

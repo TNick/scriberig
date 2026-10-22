@@ -55,6 +55,7 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
                         request_id,
                         entity: selection.entity,
                         snapshot: selection.snapshot,
+                        switch_view: true,
                     },
                 );
             }
@@ -83,6 +84,7 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
                     request_id,
                     entity: row.entity,
                     snapshot: Some(row.snapshot),
+                    switch_view: true,
                 },
             );
         }
@@ -98,6 +100,7 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
                     request_id,
                     entity,
                     snapshot: Some(snapshot),
+                    switch_view: true,
                 },
             );
         }
@@ -113,6 +116,7 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
                     request_id,
                     entity: row.entity,
                     snapshot: Some(model.right),
+                    switch_view: true,
                 },
             );
         }

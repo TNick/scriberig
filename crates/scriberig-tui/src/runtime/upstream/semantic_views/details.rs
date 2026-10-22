@@ -262,6 +262,7 @@ mod tests {
                 activity_kind: scriberig_session::AgentActivityKind::ReasoningSummary,
                 state: scriberig_session::AgentActivityState::Completed,
                 summary: "Compare the selected revisions.".to_owned(),
+                ordinal: 1,
             }],
             ..TuiState::default()
         };

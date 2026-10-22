@@ -217,13 +217,26 @@ fn invoke_semantic_tool<B: ApplicationBackend + Sync>(
         let _ = monitor.join();
         result
     })?;
+    let mut handles = result.handles;
+    if handles.len() > 32 {
+        if let Some(index) = handles
+            .iter()
+            .position(|handle| handle.starts_with("next_offset:"))
+        {
+            let continuation = handles.remove(index);
+            handles.truncate(31);
+            handles.push(continuation);
+        } else {
+            handles.truncate(32);
+        }
+    }
     let output = serde_json::json!({
-        "entity": result.entity,
-        "revision": result.revision,
-        "snapshot": result.snapshot,
+        "entity": result.entity.to_string(),
+        "revision": result.revision.map(|revision| revision.to_string()),
+        "snapshot": result.snapshot.map(|snapshot| snapshot.to_string()),
         "object_type": result.object_type,
         "summary": result.summary.map(|summary| evidence::bounded_text(&summary, 2_048)),
-        "handles": result.handles.into_iter().take(32).collect::<Vec<_>>(),
+        "handles": handles,
     });
     Ok((output.to_string(), None))
 }

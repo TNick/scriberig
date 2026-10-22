@@ -175,8 +175,8 @@
             "expected_result": { "kind": "semantic_changes", "requires_handle": true },
             "semantic_scope": ["entity-parser"],
             "assignment": {
-              "profile": "profile-a",
-              "model": "model-a",
+              "provider_id": "provider-1",
+              "model_id": "model-a",
               "thinking_level": "careful"
             }
           },
@@ -218,8 +218,8 @@
     ],
     "execution": {
       "revision": 1,
-      "model_profile": "profile-a",
-      "model": "model-a",
+      "provider_id": "provider-1",
+      "model_id": "model-a",
       "thinking_level": "careful"
     }
   },

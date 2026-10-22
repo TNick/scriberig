@@ -22,6 +22,7 @@ impl OperationRegistry {
     /// - `activity_kind`: Provider-neutral activity category.
     /// - `state`: Lifecycle state for the activity.
     /// - `summary`: Safe concise status text.
+    /// - `ordinal`: Monotonic arrival ordinal within the producing invocation.
     ///
     /// Success after publication to the monotonic operation event stream.
     ///
@@ -37,6 +38,7 @@ impl OperationRegistry {
         activity_kind: scriberig_session::AgentActivityKind,
         state: scriberig_session::AgentActivityState,
         summary: impl Into<String>,
+        ordinal: u64,
     ) -> Result<(), ApplicationError> {
         let mut state_guard = self.lock()?;
         let record = state_guard.record_mut(id)?;
@@ -54,6 +56,7 @@ impl OperationRegistry {
             activity_kind,
             state,
             summary,
+            ordinal,
         });
         Ok(())
     }

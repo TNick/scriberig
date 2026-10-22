@@ -65,6 +65,8 @@ pub enum Action {
         entity: scriberig_core::EntityId,
         /// Optional exact snapshot.
         snapshot: Option<scriberig_core::SnapshotId>,
+        /// Whether this request should switch the primary view to Overview.
+        switch_view: bool,
     },
     /// Apply a successful inspect result.
     InspectSucceeded {

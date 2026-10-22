@@ -45,6 +45,7 @@ pub(super) fn reduce_input(state: &mut TuiState, action: Action) -> Vec<Effect> 
             vec![Effect::None]
         }
         Action::Paste(text) => {
+            let text = crate::state::sanitize_paste(&text);
             if let Some(Overlay::Input(input)) = state.overlay.as_mut() {
                 input.append(&text);
             } else if matches!(state.overlay, Some(Overlay::Palette(_))) {
@@ -271,6 +272,7 @@ fn submit_input(state: &mut TuiState) -> Vec<Effect> {
                         request_id,
                         entity,
                         snapshot: None,
+                        switch_view: true,
                     },
                 );
             }

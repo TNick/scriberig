@@ -21,6 +21,19 @@ use scriberig_core::EntityId;
 /// # Returns
 /// The operation result.
 fn session_upstream_models() -> Vec<Model> {
+    let mut model_a = Model::new(
+        "native-a",
+        "Model A",
+        Api::AnthropicMessages,
+        "local",
+        "https://example.test",
+    );
+    model_a.thinking_level_map = Some(ThinkingLevelMap::from([
+        (ThinkingLevel::Minimal, None),
+        (ThinkingLevel::Low, Some("low".to_owned())),
+        (ThinkingLevel::Medium, Some("medium".to_owned())),
+        (ThinkingLevel::High, Some("high".to_owned())),
+    ]));
     let mut model_b = Model::new(
         "native-b",
         "Model B",
@@ -31,19 +44,10 @@ fn session_upstream_models() -> Vec<Model> {
     model_b.thinking_level_map = Some(ThinkingLevelMap::from([
         (ThinkingLevel::Minimal, None),
         (ThinkingLevel::Low, Some("low".to_owned())),
-        (ThinkingLevel::Medium, None),
+        (ThinkingLevel::Medium, Some("steady".to_owned())),
         (ThinkingLevel::High, None),
     ]));
-    vec![
-        Model::new(
-            "native-a",
-            "Model A",
-            Api::AnthropicMessages,
-            "local",
-            "https://example.test",
-        ),
-        model_b,
-    ]
+    vec![model_a, model_b]
 }
 
 /// Verifies session model operations validate thinking levels and reject stale writes.
@@ -96,7 +100,7 @@ fn session_model_selection_uses_upstream_catalog_and_mutation_revision() {
         )
         .expect("switch model and fall back");
     assert_eq!(selected.revision, 3);
-    assert_eq!(selected.thinking_level.as_deref(), Some("low"));
+    assert_eq!(selected.thinking_level.as_deref(), Some("medium"));
 
     let conflict = service
         .set_session_model(
@@ -210,7 +214,7 @@ fn assert_selection_events(service: &ApplicationService<Fixture>, session: Entit
     }));
     assert!(selection_events.iter().any(|(kind, summary)| {
         *kind == scriberig_session::AgentActivityKind::ThinkingLevelChanged
-            && summary == "Thinking level selected: low"
+            && summary == "Thinking level selected: medium"
     }));
 }
 
@@ -232,17 +236,17 @@ fn assert_replayed_selection_history(
     assert_eq!(reloaded.execution.history, selected.history);
     assert!(reloaded.execution.history.iter().any(|change| {
         change.kind == scriberig_session::AgentActivityKind::ThinkingLevelChanged
-            && change.thinking_level.as_deref() == Some("low")
+            && change.thinking_level.as_deref() == Some("medium")
     }));
     assert!(reloaded.execution.history.iter().any(|change| {
         change.revision == 3
             && change.kind == scriberig_session::AgentActivityKind::ModelSelectionChanged
-            && change.model_id.as_deref() == Some("model-b")
+            && change.model_id.as_deref() == Some("native-b")
     }));
     assert!(reloaded.execution.history.iter().any(|change| {
         change.revision == 3
             && change.kind == scriberig_session::AgentActivityKind::ThinkingLevelChanged
-            && change.thinking_level.as_deref() == Some("low")
+            && change.thinking_level.as_deref() == Some("medium")
     }));
 }
 

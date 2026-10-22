@@ -185,11 +185,14 @@ impl Focusable for ComposerAdapter {
 /// # Private members
 /// - `state`: Shared `ScribeRig` session assignment and status.
 /// - `footer`: Upstream footer and status renderer.
+/// - `hints`: Full active key-label text.
 pub(super) struct SelectionStatusPanel {
     /// Shared `ScribeRig` session assignment and status.
     state: Arc<Mutex<TuiState>>,
     /// Upstream footer and status renderer.
     footer: FooterComponent,
+    /// Full active key-label text retained so status rows can truncate it.
+    hints: String,
 }
 
 impl SelectionStatusPanel {
@@ -205,7 +208,11 @@ impl SelectionStatusPanel {
         let footer = FooterComponent::new();
         footer.set_model("");
         footer.set_hints(hints.as_ref());
-        Self { state, footer }
+        Self {
+            state,
+            footer,
+            hints: hints.as_ref().to_owned(),
+        }
     }
 
     /// Builds safe assignment and readiness text for the upstream footer.
@@ -291,8 +298,13 @@ impl Component for SelectionStatusPanel {
     /// # Returns
     /// Rendered upstream footer lines.
     fn render(&self, width: usize) -> Vec<String> {
+        self.footer.invalidate();
         if let Ok(state) = self.state.lock() {
-            self.footer.set_status(&Self::content(&state));
+            let content = Self::content(&state);
+            let hint_width = width.saturating_sub(content.chars().count().saturating_add(1));
+            self.footer
+                .set_hints(&self.hints.chars().take(hint_width).collect::<String>());
+            self.footer.set_status(&content);
             if let crate::inspector::LoadState::Ready(session) = &state.session {
                 let model = session
                     .execution

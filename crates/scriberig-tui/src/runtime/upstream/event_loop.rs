@@ -135,6 +135,7 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
                         request_id,
                         entity,
                         snapshot: config.snapshot,
+                        switch_view: false,
                     },
                 );
                 queue_effects(&work_sender, &mut pending_effects, effects);

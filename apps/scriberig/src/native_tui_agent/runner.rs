@@ -8,6 +8,9 @@ use completion::complete_accepted_result;
 #[path = "runner/validation.rs"]
 mod validation;
 use validation::validate_plan_provider;
+#[path = "runner/summary_activity.rs"]
+mod summary_activity;
+use summary_activity::ReasoningSummaryActivity;
 
 use super::{
     NativePlanWorkerExecutor, NativeTuiAgentRunner, previous_workspace_selection,
@@ -303,6 +306,11 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
                 && entry.handle.is_scoped_to(upstream.id(), &upstream_model.id))
             .then_some((entry.handle, entry.provider_context_fingerprint))
         });
+        let summary_activity = ReasoningSummaryActivity::new(
+            service.operations().clone(),
+            handle.operation.clone(),
+            handle.root_branch.to_string(),
+        );
         let result = super::upstream_execution::execute_root_branch_with_continuation(
             service,
             &runtime_context,
@@ -318,15 +326,17 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
             &cancelled,
             Some(connection.clone()),
             None,
+            Some(summary_activity.callback()),
             continuation,
         );
+        summary_activity.settle();
         let result = match result {
             Ok(result) => result,
             Err(failure) => {
                 let message = failure.failure.error.to_string();
                 service.fail_local_agent_with_evidence(
                     handle,
-                    "agent execution failed",
+                    &message,
                     failure.failure.model_requests,
                     failure.tool_evidence,
                 )?;

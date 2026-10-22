@@ -19,6 +19,14 @@ pub mod upstream_tool;
 /// Thread-safe sink for provider-neutral assistant text fragments.
 pub type OutputCallback = std::sync::Arc<dyn Fn(&str) + Send + Sync>;
 
+/// Thread-safe sink for provider-visible reasoning-summary fragments.
+///
+/// The `u64` argument is a monotonic ordinal scoped to the current invocation
+/// and reflects provider arrival order. Only upstream
+/// [`rpi_ai::AssistantMessageEvent::ReasoningSummaryDelta`] text may be passed
+/// here; raw thinking deltas and hidden chain-of-thought must never use it.
+pub type ReasoningSummaryCallback = std::sync::Arc<dyn Fn(u64, &str) + Send + Sync>;
+
 /// Trusted request to start a nested reasoning branch.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ChildRequest {

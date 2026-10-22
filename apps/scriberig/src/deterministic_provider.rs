@@ -45,10 +45,9 @@ impl BootstrapProvider {
             .iter()
             .any(|message| message.contains("active semantic workspace"))
         {
-            if messages
-                .iter()
-                .any(|message| message.contains("summary=None"))
-            {
+            if messages.iter().any(|message| {
+                message.contains("summary=None") || message.contains("\"summary\":null")
+            }) {
                 return Ok(final_response(
                     model,
                     "The current project is onboarded and its semantic root was inspected.",
@@ -101,11 +100,10 @@ impl BootstrapProvider {
                 "project_workspace",
                 serde_json::json!({"project":project}),
             )
-        } else if let Some(manifest_page) = messages
-            .iter()
-            .rev()
-            .find(|message| message.contains("summary=Some(\"manifest "))
-        {
+        } else if let Some(manifest_page) = messages.iter().rev().find(|message| {
+            message.contains("summary=Some(\"manifest ")
+                || message.contains("\"summary\":\"manifest ")
+        }) {
             let scan = messages
                 .iter()
                 .find(|message| message.contains("scan persisted for"))

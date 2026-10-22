@@ -322,6 +322,7 @@ impl TuiPty {
             receiver,
             parser: Parser::new(40, 140, 0),
             transcript: Vec::new(),
+            query_cursor: 0,
         }
     }
 

@@ -203,7 +203,7 @@ pub(crate) fn assert_provider_gate_waiting(tui: &TuiPty) {
 ///
 /// - `tui`: Active TUI process.
 pub(crate) fn cancel_active_agent(tui: &mut TuiPty) {
-    tui.send(b"/operations\r");
+    tui.send_slow(b"/operations\r");
     assert!(tui.read_until("Operations"), "{}", tui.diagnostic());
     assert!(
         tui.read_until_for("Running", Duration::from_secs(10)),

@@ -135,14 +135,22 @@ fn tool_output_cycle_requests_only_missing_result_detail() {
     );
     assert!(state.shell_message.contains("Loading"));
 
-    let effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
+    let effects = crate::state::state_presentation::activate_palette_control(
+        &mut state,
+        "toggle-tool-output",
+    )
+    .expect("tool output toggle");
     assert_eq!(effects, vec![Effect::None]);
     assert_eq!(
         state.tool_output_visibility,
         crate::state::ToolOutputVisibility::Hidden
     );
 
-    let effects = crate::state::reduce(&mut state, crate::action::Action::Activated);
+    let effects = crate::state::state_presentation::activate_palette_control(
+        &mut state,
+        "toggle-tool-output",
+    )
+    .expect("tool output toggle");
 
     assert_eq!(effects, vec![Effect::None]);
     assert_eq!(

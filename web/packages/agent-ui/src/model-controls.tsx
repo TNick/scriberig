@@ -74,13 +74,25 @@ export function AgentModelControls({
           ) : null}
           {model?.thinkingLevels.map((level) => (
             <option key={level} value={level}>
-              {level}
+              {formatThinkingLevel(level)}
             </option>
           ))}
         </select>
       </label>
     </fieldset>
   );
+}
+
+/**
+ * Formats a scalar upstream thinking-level id for display.
+ * @param level Canonical upstream thinking-level id.
+ * @returns A human-readable label while preserving the underlying id as the value.
+ */
+function formatThinkingLevel(level: string): string {
+  if (level.length === 0) {
+    return level;
+  }
+  return `${level[0]?.toUpperCase() ?? ""}${level.slice(1).replaceAll("-", " ")}`;
 }
 
 /** Renders independent client-local controls for captured activity.

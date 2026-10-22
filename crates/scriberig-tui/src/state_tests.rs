@@ -121,7 +121,7 @@ fn palette_activation_uses_stable_action_id() {
     let mut state = TuiState::default();
     reduce(&mut state, Action::PaletteOpened);
     let effects = crate::state::activate_palette_item(&mut state, "quit");
-    assert_eq!(effects, vec![Effect::None]);
+    assert_eq!(effects, vec![Effect::RequestQuit]);
     assert!(state.should_quit);
     assert!(state.overlay.is_none());
 }

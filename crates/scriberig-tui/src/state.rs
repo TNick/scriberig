@@ -102,6 +102,8 @@ pub struct TransientAgentActivity {
     pub state: scriberig_session::AgentActivityState,
     /// Safe bounded user-facing summary.
     pub summary: String,
+    /// Monotonic arrival ordinal within the producing invocation.
+    pub ordinal: u64,
 }
 
 /// Holds bounded, operation-scoped assistant output until durable refresh.
@@ -196,16 +198,41 @@ impl ConversationComposerState {
 
     /// Appends a paste payload as data.
     ///
+    /// Terminal escape and control sequences are escaped before insertion so a
+    /// paste cannot drive the upstream renderer or editor.
+    ///
     /// # Parameters
     /// - `text`: Pasted text, including any line breaks.
     pub fn paste_text(&mut self, text: &str) {
-        self.draft.push_str(text);
+        self.draft.push_str(&sanitize_paste(text));
     }
 
     /// Clears the draft and resets the editor cursor.
     pub fn clear_draft(&mut self) {
         self.draft.clear();
     }
+}
+
+/// Escapes terminal control sequences in a paste payload.
+///
+/// Line breaks and tabs remain literal; other control characters are rendered
+/// as their escaped form so they cannot act as terminal commands.
+///
+/// # Parameters
+/// - `text`: Raw pasted text.
+///
+/// # Returns
+/// Safe text suitable for insertion into a composer.
+pub(crate) fn sanitize_paste(text: &str) -> String {
+    let mut sanitized = String::with_capacity(text.len());
+    for character in text.chars() {
+        if character == '\n' || character == '\t' || !character.is_control() {
+            sanitized.push(character);
+        } else {
+            sanitized.extend(character.escape_default());
+        }
+    }
+    sanitized
 }
 
 /// Retains one stable selected node while its model assignment picker is open.

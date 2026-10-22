@@ -136,7 +136,7 @@ fn advance_canonical_project(
 ///
 /// - `tui`: Active native TUI with the agent candidate in its session.
 fn attempt_stale_apply(tui: &mut TuiPty) {
-    tui.send(b"/changes\r");
+    tui.send_slow(b"/changes\r");
     assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
     assert!(
         tui.screen().contains("validation: Passed"),

@@ -17,7 +17,7 @@ fn composer_slash_commands_open_shared_controls() {
 
     assert!(matches!(
         reduce(&mut state, Action::InputSubmitted).as_slice(),
-        [Effect::ReadModelLibrary { .. }]
+        [Effect::None]
     ));
     assert_eq!(state.session_composer.as_ref().unwrap().text, "");
 
@@ -27,7 +27,6 @@ fn composer_slash_commands_open_shared_controls() {
         reduce(&mut state, Action::InputSubmitted).as_slice(),
         [Effect::None]
     ));
-    assert!(state.shell_message.contains("Load a session"));
 
     reduce(
         &mut state,

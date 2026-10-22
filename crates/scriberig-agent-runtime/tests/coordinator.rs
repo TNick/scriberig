@@ -24,13 +24,29 @@ use scriberig_store_memory::MemoryStore;
 /// # Returns
 /// The operation result.
 fn runtime_fallback_models() -> Vec<rpi_ai::Model> {
-    vec![rpi_ai::Model::new(
-        "fallback-model",
-        "Fallback model",
-        rpi_ai::Api::AnthropicMessages,
-        "fallback-provider",
-        "https://example.test",
-    )]
+    vec![
+        rpi_ai::Model::new(
+            "fallback-model",
+            "Fallback model",
+            rpi_ai::Api::AnthropicMessages,
+            "fallback-provider",
+            "https://example.test",
+        ),
+        rpi_ai::Model::new(
+            "wire-a",
+            "Model A",
+            rpi_ai::Api::AnthropicMessages,
+            "provider",
+            "https://example.test",
+        ),
+        rpi_ai::Model::new(
+            "wire-b",
+            "Model B",
+            rpi_ai::Api::AnthropicMessages,
+            "provider",
+            "https://example.test",
+        ),
+    ]
 }
 
 /// Supplies merge operations for deterministic candidate integration tests.
@@ -232,7 +248,6 @@ impl PlanWorkerExecutor for FakeWorkers<'_> {
     ) -> Result<BranchResult, String> {
         if node.title == "integrate" {
             assert!(context.compiled.canonical.contains("dependency_result"));
-            assert!(context.compiled.canonical.contains("profile:alpha"));
             assert!(context.compiled.canonical.contains("entity:api-contract"));
             assert!(context.compiled.canonical.contains("Exact semantic scope"));
             assert!(

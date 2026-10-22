@@ -112,8 +112,11 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             request_id,
             entity,
             snapshot,
+            switch_view,
         } => {
-            state.primary_view = crate::selection::PrimaryView::Overview;
+            if switch_view {
+                state.primary_view = crate::selection::PrimaryView::Overview;
+            }
             state.selection = Some(EntitySelection {
                 entity,
                 revision: None,

@@ -287,7 +287,7 @@ fn assert_project_unchanged(scenario: &FailureScenario, candidate: &str) {
 ///
 /// - `tui`: Active TUI with the failed candidate in its durable session result.
 fn review_failed_candidate(tui: &mut TuiPty) {
-    tui.send(b"/changes\r");
+    tui.send_slow(b"/changes\r");
     assert!(tui.read_until("Change review"), "{}", tui.diagnostic());
     assert!(
         tui.screen().contains("validation: Failed"),

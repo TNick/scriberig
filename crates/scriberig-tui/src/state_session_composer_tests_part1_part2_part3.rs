@@ -190,12 +190,13 @@ fn assign_command_targets_only_the_selected_plan_node() {
     };
     state.conversation_composer.draft = "/assign".to_owned();
     reduce(&mut state, Action::InputSubmitted);
-    assert!(matches!(
-        state.overlay,
-        Some(crate::overlay::Overlay::Palette(_))
-    ));
+    assert!(state.plan_assignment_target.is_some());
 
-    let effects = reduce(&mut state, Action::Activated);
+    let effects = crate::state::state_presentation::activate_palette_control(
+        &mut state,
+        "assign-plan-model:model-small",
+    )
+    .expect("plan assignment selection");
 
     assert!(matches!(
         effects.as_slice(),
