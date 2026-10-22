@@ -157,6 +157,7 @@ pub use execution::{
 pub use planning::{
     CoordinatorClaim, ExpectedResult, ModelAssignment, Plan, PlanDependency, PlanError, PlanNode,
     PlanNodeParent, PlanNodeStatus, PlanRevision, PlanStatus, WorkerClaim,
+    semantic::{PlanSemanticError, PlanSemanticRevision, PlanSemanticSnapshot},
 };
 pub use repository::{PlanStoreError, SelectionStoreError, SessionStore};
 pub use turn::{

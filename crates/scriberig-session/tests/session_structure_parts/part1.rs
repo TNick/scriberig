@@ -2,6 +2,122 @@
 
 use super::*;
 
+/// Appends coordinator-discovered work while a plan is already running.
+#[test]
+fn running_plan_accepts_next_step_with_one_mutation_revision() {
+    let mut plan = plan_fixture();
+    plan.transition(PlanStatus::Running).expect("run plan");
+    let prior_revision = plan.revision;
+    let prior_nodes = plan.nodes.len();
+    let next_step = plan_node(25, plan.root_branch, "newly discovered work");
+
+    plan.add_next_step(next_step.clone())
+        .expect("append next step");
+
+    assert_eq!(plan.revision, prior_revision + 1);
+    assert_eq!(plan.nodes.len(), prior_nodes + 1);
+    assert_eq!(plan.nodes.last().unwrap().id, next_step.id);
+    assert_eq!(plan.nodes.last().unwrap().status, PlanNodeStatus::Ready);
+}
+
+/// Keeps failed worker provenance while retrying the same semantic node.
+#[test]
+fn failed_plan_node_retries_with_a_new_branch_and_claim_generation() {
+    let mut plan = plan_fixture();
+    let node = plan.nodes[0].id;
+    let first_branch = EntityId::from_bytes([220; 16]);
+    let first_claim = EntityId::from_bytes([221; 16]);
+    plan.transition(PlanStatus::Running).expect("run plan");
+    plan.claim_coordinator(EntityId::from_bytes([222; 16]), "coordinator")
+        .expect("claim coordinator");
+    plan.start_node(node, first_branch, first_claim, "worker", &[])
+        .expect("start first attempt");
+    plan.fail_node(node, first_claim)
+        .expect("fail first attempt");
+    let failed_revision = plan.revision;
+    assert_eq!(
+        plan.start_node(
+            node,
+            EntityId::from_bytes([226; 16]),
+            EntityId::from_bytes([227; 16]),
+            "worker",
+            &[],
+        ),
+        Err(PlanError::InvalidTransition)
+    );
+
+    plan.retry_failed_node(node, &[])
+        .expect("retry failed node");
+
+    let retried = plan.nodes.iter().find(|entry| entry.id == node).unwrap();
+    assert_eq!(retried.status, PlanNodeStatus::Ready);
+    assert_eq!(retried.branch, None);
+    assert_eq!(retried.claim_generation, 1);
+    assert!(plan.history.iter().any(|revision| {
+        revision.revision == failed_revision
+            && revision.nodes.iter().any(|entry| {
+                entry.id == node
+                    && entry.status == PlanNodeStatus::Failed
+                    && entry.branch == Some(first_branch)
+            })
+    }));
+
+    let second_branch = EntityId::from_bytes([223; 16]);
+    let second_claim = EntityId::from_bytes([224; 16]);
+    plan.start_node(node, second_branch, second_claim, "worker", &[])
+        .expect("start second attempt");
+    assert_eq!(
+        plan.nodes
+            .iter()
+            .find(|entry| entry.id == node)
+            .unwrap()
+            .claim_generation,
+        2
+    );
+}
+
+/// Rejects retry when the node's exact dependency result is unavailable.
+#[test]
+fn failed_plan_node_retry_requires_completed_dependency_results() {
+    let mut plan = plan_fixture();
+    let prerequisite = plan.nodes[0].id;
+    let failed = plan.nodes[1].id;
+    plan.add_dependency(prerequisite, failed)
+        .expect("dependency");
+    let target = plan
+        .nodes
+        .iter_mut()
+        .find(|node| node.id == failed)
+        .unwrap();
+    target.status = PlanNodeStatus::Failed;
+    target.branch = Some(EntityId::from_bytes([225; 16]));
+
+    assert_eq!(
+        plan.retry_failed_node(failed, &[]),
+        Err(PlanError::InvalidTransition)
+    );
+    assert_eq!(
+        plan.nodes
+            .iter()
+            .find(|node| node.id == failed)
+            .unwrap()
+            .status,
+        PlanNodeStatus::Failed
+    );
+}
+
+/// Recovers a failed plan only after its worker claims have settled.
+#[test]
+fn failed_plan_recovers_to_paused_for_explicit_repair() {
+    let mut plan = plan_fixture();
+    plan.status = PlanStatus::Failed;
+
+    plan.recover_failed_plan().expect("recover failed plan");
+
+    assert_eq!(plan.status, PlanStatus::Paused);
+    assert_eq!(plan.history.last().unwrap().status, PlanStatus::Paused);
+}
+
 /// Verifies stale plan claim recovery is deterministic and blocks dependents.
 #[test]
 fn stale_plan_claim_recovery_is_deterministic_and_blocks_dependents() {
@@ -27,6 +143,7 @@ fn stale_plan_claim_recovery_is_deterministic_and_blocks_dependents() {
     assert_eq!(plan.nodes[0].status, PlanNodeStatus::Failed);
     assert_eq!(plan.nodes[0].branch, Some(branch));
     assert_eq!(plan.nodes[0].claim, None);
+    assert_eq!(plan.dependencies[0].fulfilled_by, None);
     assert_eq!(plan.nodes[2].status, PlanNodeStatus::Planned);
     assert!(!plan.ready_nodes_from_results(&[]).contains(&dependent));
 }

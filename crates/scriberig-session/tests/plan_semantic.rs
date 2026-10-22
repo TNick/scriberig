@@ -1,0 +1,133 @@
+//! Verifies immutable semantic plan object encoding and assembly.
+
+use scriberig_core::EntityId;
+use scriberig_session::{
+    ContinuationAnchor, Plan, PlanNode, PlanNodeParent, PlanNodeStatus, PlanSemanticSnapshot,
+    PlanStatus,
+};
+
+/// Creates a valid unstarted plan node with a stable identity.
+///
+/// # Parameters
+/// - `id`: Stable node identity byte repeated across the ID.
+/// - `branch`: Existing branch used as the structural parent.
+/// - `title`: Human-readable node title and purpose.
+///
+/// # Returns
+/// A planned node with no execution attempt.
+fn node(id: u8, branch: EntityId, title: &str) -> PlanNode {
+    PlanNode {
+        id: EntityId::from_bytes([id; 16]),
+        parent: Some(PlanNodeParent::Branch(branch)),
+        title: title.to_owned(),
+        purpose: title.to_owned(),
+        expected_result: None,
+        semantic_scope: Vec::new(),
+        status: PlanNodeStatus::Planned,
+        branch: None,
+        result: None,
+        superseded_by: None,
+        assignment: None,
+        claim: None,
+        claim_generation: 0,
+    }
+}
+
+/// Creates a plan with stable node, structure, and dependency identities.
+///
+/// # Returns
+/// A plan with two nodes and one explicit dependency.
+fn plan() -> Plan {
+    let session = EntityId::from_bytes([1; 16]);
+    let branch = EntityId::from_bytes([2; 16]);
+    let mut plan = Plan::new(
+        EntityId::from_bytes([3; 16]),
+        session,
+        ContinuationAnchor::BranchHead { branch },
+        "semantic plan fixture",
+    )
+    .expect("valid plan");
+    plan.add_node(node(4, branch, "producer"))
+        .expect("producer");
+    plan.add_node(node(5, branch, "consumer"))
+        .expect("consumer");
+    plan.add_dependency(EntityId::from_bytes([4; 16]), EntityId::from_bytes([5; 16]))
+        .expect("dependency");
+    plan.transition(PlanStatus::Planned).expect("planned");
+    plan
+}
+
+/// Round-trips the current plan graph through independent typed records.
+#[test]
+fn semantic_plan_snapshot_round_trips_plan_nodes_and_relations() {
+    let expected = plan();
+    let snapshot = PlanSemanticSnapshot::from_plan(&expected).expect("encode");
+    let actual = snapshot
+        .into_plan(expected.history.clone())
+        .expect("assemble");
+
+    assert_eq!(actual, expected);
+    assert!(
+        snapshot
+            .objects
+            .iter()
+            .any(|object| { object.object_type.as_str() == "scriberig.session.plan-membership" })
+    );
+    assert!(
+        snapshot
+            .objects
+            .iter()
+            .any(|object| { object.object_type.as_str() == "scriberig.session.plan-structure" })
+    );
+    assert!(
+        snapshot
+            .objects
+            .iter()
+            .any(|object| { object.object_type.as_str() == "scriberig.session.plan-dependency" })
+    );
+}
+
+/// Keeps a plan revision stable when only one node payload changes.
+#[test]
+fn semantic_plan_node_revision_is_independent_from_plan_revision() {
+    let original = plan();
+    let mut changed = original.clone();
+    let node_id = changed.nodes[0].id;
+    changed.nodes[0].title.push_str(" revised");
+    changed.nodes[0].status = PlanNodeStatus::Ready;
+
+    let before = PlanSemanticSnapshot::from_plan(&original).expect("encode original");
+    let after = PlanSemanticSnapshot::from_plan(&changed).expect("encode changed");
+    let original_plan = before
+        .objects
+        .iter()
+        .find(|object| object.entity == original.id)
+        .expect("plan record");
+    let changed_plan = after
+        .objects
+        .iter()
+        .find(|object| object.entity == changed.id)
+        .expect("changed plan record");
+    let original_node = before
+        .objects
+        .iter()
+        .find(|object| object.entity == node_id)
+        .expect("node record");
+    let changed_node = after
+        .objects
+        .iter()
+        .find(|object| object.entity == node_id)
+        .expect("changed node record");
+
+    assert_eq!(original_plan.revision, changed_plan.revision);
+    assert_ne!(original_node.revision, changed_node.revision);
+}
+
+/// Rejects modified object bytes whose recorded content revision is stale.
+#[test]
+fn semantic_plan_snapshot_validates_revision_identity_before_assembly() {
+    let mut snapshot = PlanSemanticSnapshot::from_plan(&plan()).expect("encode");
+    snapshot.objects[0].payload.push(0);
+
+    assert!(snapshot.into_plan(Vec::new()).is_err());
+}

@@ -114,6 +114,7 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
         let mut modal_overlay = ModalOverlayController::new();
         let mut focus_before_overlay: Option<Arc<dyn Component>> = None;
         let mut poll_in_flight = false;
+        let mut suppress_composer_restore = false;
         {
             let mut state = state
                 .lock()
@@ -181,7 +182,12 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
                     if !poll_in_flight && pending_events.is_empty() {
                         poll_in_flight = try_queue(&work_sender, Work::PollApplicationEvents);
                     }
-                    if !state.conversation_composer.draft.is_empty()
+                    // The upstream editor owns the draft. Do not mirror the
+                    // reducer draft back into it: a cleared submitted draft
+                    // would be resurrected here before the clear event lands.
+                    if false
+                        && (!suppress_composer_restore || !state.conversation_composer.pending)
+                        && !state.conversation_composer.draft.is_empty()
                         && editor.get_expanded_text().is_empty()
                     {
                         editor.set_text(&state.conversation_composer.draft);
@@ -239,6 +245,7 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
                         debug_log: &mut debug_log,
                         should_quit: &mut should_quit,
                         redraw: &mut redraw,
+                        suppress_composer_restore: &mut suppress_composer_restore,
                     },
                     input_receiver.try_recv(),
                 )? {

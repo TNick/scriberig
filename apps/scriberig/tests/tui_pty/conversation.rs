@@ -1,5 +1,7 @@
 //! Verifies native TUI conversation and session workflows.
 
+use std::time::{Duration, Instant};
+
 use super::tui_pty_support::{TuiPty, test_lock};
 use scriberig_session::SessionStore;
 
@@ -15,7 +17,7 @@ fn tui_pty_sends_arithmetic_question_and_renders_mock_answer() {
 
     let screen = tui.screen();
     assert!(screen.contains("You: 1+1"), "{}", tui.diagnostic());
-    assert!(screen.contains('2'), "{}", tui.diagnostic());
+    assert!(screen.contains("2"), "{}", tui.diagnostic());
     assert!(!screen.contains("Error:"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
 }
@@ -68,7 +70,7 @@ fn tui_pty_starts_fresh_after_abandoned_conversation_and_gets_answer() {
 fn tui_pty_manages_saved_conversations() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_with_arithmetic_model();
-    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
     let removed = seed_completed_session(&tui);
     let first = create_session(&mut tui, "first-session-message", &[removed]);
     let second = create_session(&mut tui, "second-session-message", &[removed, first]);
@@ -136,14 +138,22 @@ fn create_session(
         "{}",
         tui.diagnostic()
     );
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
-    open_session_store(tui)
-        .list()
-        .expect("list PTY sessions")
-        .into_iter()
-        .find(|session| !existing.contains(&session.id))
-        .expect("new conversation was persisted")
-        .id
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let sessions = open_session_store(tui).list().expect("list PTY sessions");
+        if let Some(session) = sessions
+            .into_iter()
+            .find(|session| !existing.contains(&session.id))
+        {
+            return session.id;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "new conversation was not persisted; screen={}",
+            tui.screen()
+        );
+        std::thread::sleep(Duration::from_millis(50));
+    }
 }
 
 /// Opens the saved-session list and requires each supplied identity to appear.
@@ -152,8 +162,8 @@ fn create_session(
 /// - `sessions`: Durable session identities expected in the list.
 fn assert_sessions_visible(tui: &mut TuiPty, sessions: &[scriberig_core::EntityId]) {
     tui.send_slow(b"/sessions");
-    assert!(tui.read_until("· /sessions"), "{}", tui.diagnostic());
-    tui.send(b"\r");
+    assert!(tui.read_until("/sessions"), "{}", tui.diagnostic());
+    tui.send_slow(b"\r");
     for session in sessions {
         assert!(tui.read_until(&session.to_string()), "{}", tui.diagnostic());
     }

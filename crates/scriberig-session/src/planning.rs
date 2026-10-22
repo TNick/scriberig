@@ -241,3 +241,5 @@ mod plan_definition;
 mod plan_readiness;
 #[path = "planning/plan_workers.rs"]
 mod plan_workers;
+/// Defines independently revisioned semantic representations of plan state.
+pub mod semantic;

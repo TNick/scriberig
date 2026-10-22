@@ -87,6 +87,28 @@ impl Plan {
         Ok(())
     }
 
+    /// Adds one explicitly discovered next step to a running plan.
+    ///
+    /// This is ordinary plan evolution, not replan replacement. It preserves
+    /// existing node identities and advances the plan mutation revision once.
+    ///
+    /// # Parameters
+    /// - `self`: Running plan receiving the new work.
+    /// - `node`: New node with an already allocated stable identity.
+    ///
+    /// # Returns
+    /// Unit after the next step is added.
+    ///
+    /// # Errors
+    /// Returns `InvalidTransition` when the plan is not running, or propagates
+    /// node validation and revision errors from `add_node`.
+    pub fn add_next_step(&mut self, node: PlanNode) -> Result<(), PlanError> {
+        if self.status != PlanStatus::Running {
+            return Err(PlanError::InvalidTransition);
+        }
+        self.add_node(node)
+    }
+
     /// Adds an edge after checking that it will not create a cycle.
     ///
     /// - `self`: Plan whose dependency graph is updated.
