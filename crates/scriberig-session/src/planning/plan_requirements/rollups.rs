@@ -47,6 +47,9 @@ pub struct PlanNodeStatusCounts {
 /// - `contains_abandoned`: Whether this subtree contains abandoned work.
 /// - `child_counts`: Direct-child counts by canonical status.
 /// - `unsatisfied_completion_gates`: Pending/failed completion gate count.
+/// - `entry_gates`: Entry gate counts by evaluated state.
+/// - `completion_gates`: Completion gate counts by evaluated state.
+/// - `evidence_count`: Node and gate evidence association count.
 ///
 /// # Private members
 /// None.
@@ -66,6 +69,12 @@ pub struct PlanNodeRollup {
     pub child_counts: PlanNodeStatusCounts,
     /// Pending/failed completion gate count.
     pub unsatisfied_completion_gates: u32,
+    /// Entry gate counts by evaluated state.
+    pub entry_gates: super::super::PlanGateCounts,
+    /// Completion gate counts by evaluated state.
+    pub completion_gates: super::super::PlanGateCounts,
+    /// Number of node and gate evidence associations.
+    pub evidence_count: u32,
 }
 
 /// Computes reference subtree rollups for every node in one plan snapshot.
@@ -204,6 +213,9 @@ fn compute_rollup(
         contains_abandoned,
         child_counts: counts,
         unsatisfied_completion_gates,
+        entry_gates: plan.gate_counts(node_id, PlanGatePhase::Entry),
+        completion_gates: plan.gate_counts(node_id, PlanGatePhase::Completion),
+        evidence_count: plan.evidence_count(node_id),
     };
     rollups.insert(node_id, rollup);
     Ok(rollup)

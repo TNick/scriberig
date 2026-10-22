@@ -197,6 +197,8 @@ fn protocol_plan_handlers_delegate_to_application_operations() {
     let Response::Plan(created) = created.response else {
         panic!("unexpected plan creation response");
     };
+    assert!(created.exact_revision.is_some());
+    assert!(created.nodes[0].exact_revision.is_some());
     assert_eq!(
         created.status,
         scriberig_protocol::SessionPlanStatus::Planned

@@ -61,6 +61,10 @@ impl<B: ApplicationBackend> ApplicationService<B> {
             request.mutation.clone(),
             &results,
             &catalog.models,
+            context
+                .principal
+                .as_ref()
+                .and_then(|principal| principal.id.parse().ok()),
         )?;
         let updated = plan.clone();
         self.compare_and_swap_plan(context, &session, request.plan, request.expected_revision)?;
@@ -83,6 +87,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
 /// - `mutation`: Typed operation to apply.
 /// - `results`: Exact branch results available for retry validation.
 /// - `models`: Upstream model catalog used to validate assignments.
+/// - `actor`: Trusted semantic identity of the caller, when available.
 ///
 /// Unit after the domain mutation advances the plan-local revision once.
 ///
@@ -97,6 +102,7 @@ fn apply_mutation<B: ApplicationBackend>(
     mutation: PlanMutation,
     results: &[scriberig_session::BranchResult],
     models: &[rpi_ai::Model],
+    actor: Option<EntityId>,
 ) -> Result<(), ApplicationError> {
     match mutation {
         PlanMutation::AddNextStep(draft) => {
@@ -142,7 +148,7 @@ fn apply_mutation<B: ApplicationBackend>(
                 gate,
                 PlanGateWaiver {
                     reason,
-                    actor: None,
+                    actor,
                     operation: None,
                 },
             )
@@ -159,7 +165,7 @@ fn apply_mutation<B: ApplicationBackend>(
                 role,
                 evidence,
                 note,
-                actor: None,
+                actor,
             })
             .map_err(|error| invalid_plan(format!("evidence rejected: {error:?}"))),
         PlanMutation::UpdateSummary {

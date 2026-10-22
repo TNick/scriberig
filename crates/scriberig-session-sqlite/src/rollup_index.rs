@@ -351,7 +351,7 @@ impl SqliteSessionStore {
         if rows.is_empty()
             || rows
                 .iter()
-                .any(|(_, _, source, version, _)| source != &snapshot.to_string() || *version != 1)
+                .any(|(_, _, source, version, _)| source != &snapshot.to_string() || *version != 2)
         {
             return Ok(None);
         }

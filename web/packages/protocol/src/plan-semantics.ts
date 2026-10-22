@@ -36,6 +36,7 @@ export interface SessionPlanDetailsRequest {
   session: { id: SessionId };
   plan: string;
   expectedRevision: number;
+  snapshot?: string;
   gateOffset?: number;
   evidenceOffset?: number;
   limit?: number;
@@ -53,6 +54,56 @@ export interface SessionPlanDetailsResponse {
   evidenceOffset: number;
   evidence: readonly SessionPlanEvidenceAssociation[];
   evidenceNextOffset?: number;
+}
+/** Requests a compact plan graph at the current or exact snapshot. */
+export interface SessionPlanViewRequest {
+  session: { id: SessionId };
+  plan: string;
+  snapshot?: string;
+}
+/** Compact plan graph with exact semantic revisions and bounded rollups. */
+export interface SessionPlanGraphView {
+  plan: SessionPlanView;
+  nodes: readonly SessionPlanNodeView[];
+}
+/** Compact metadata for one exact plan revision. */
+export interface SessionPlanView {
+  id: string;
+  revision: string;
+  snapshot?: string;
+  mutationRevision: number;
+  goal: string;
+  status: "Active" | "Completed" | "Cancelled";
+  coordinator?: string;
+  coordinatorCursor?: string;
+  rootNodes: readonly string[];
+  nodeCount: number;
+  statusCounts: SessionPlanStatusCounts;
+}
+/** Compact semantic and execution projection of one plan node. */
+export interface SessionPlanNodeView {
+  id: string;
+  revision: string;
+  snapshot?: string;
+  plan: string;
+  parent?: string;
+  title: string;
+  purpose: string;
+  directStatus: SessionPlanNodeStatus;
+  effectiveStatus: SessionPlanNodeStatus;
+  containsIgnored: boolean;
+  containsAbandoned: boolean;
+  summaryId?: string;
+  summaryPreview?: string;
+  branch?: BranchId;
+  result?: string;
+  assignment?: string;
+  dependencyBlockers: readonly string[];
+  entryGates: SessionPlanGateCounts;
+  completionGates: SessionPlanGateCounts;
+  evidenceCount: number;
+  canRetry: boolean;
+  lastFailure?: string;
 }
 /** Safe model-library configuration assigned to one plan node. */
 export interface SessionModelAssignment {

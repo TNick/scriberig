@@ -57,6 +57,11 @@ pub(super) fn compare_and_swap_plan<B: ApplicationBackend>(
         .ok_or_else(|| ApplicationError::NotFound {
             subject: plan.to_string(),
         })?;
+    let settled_branches = proposed_plan
+        .nodes
+        .iter()
+        .filter_map(|node| node.branch)
+        .collect::<std::collections::BTreeSet<_>>();
     let stored_plan = stored
         .plans
         .iter_mut()
@@ -79,18 +84,25 @@ pub(super) fn compare_and_swap_plan<B: ApplicationBackend>(
     }
     *stored_plan = proposed_plan.clone();
     for branch in &session.branches {
-        if stored.branches.iter().any(|known| known.id == branch.id) {
-            continue;
-        }
-        stored.branches.push(branch.clone());
-        if let Some(parent_id) = branch.parent
-            && let Some(parent) = stored
-                .branches
-                .iter_mut()
-                .find(|known| known.id == parent_id)
-            && !parent.children.contains(&branch.id)
+        if let Some(known) = stored
+            .branches
+            .iter_mut()
+            .find(|known| known.id == branch.id)
         {
-            parent.children.push(branch.id);
+            if settled_branches.contains(&branch.id) && branch.result.is_some() {
+                *known = branch.clone();
+            }
+        } else {
+            stored.branches.push(branch.clone());
+            if let Some(parent_id) = branch.parent
+                && let Some(parent) = stored
+                    .branches
+                    .iter_mut()
+                    .find(|known| known.id == parent_id)
+                && !parent.children.contains(&branch.id)
+            {
+                parent.children.push(branch.id);
+            }
         }
     }
     Ok(())

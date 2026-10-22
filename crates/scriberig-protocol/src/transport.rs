@@ -7,8 +7,8 @@ use crate::{
     ModelLibraryRequest, ModelRequestDetailRequest, ProjectRequest, QueryRequest,
     SessionModelSelectionRequest, SessionPlanAssignmentRequest, SessionPlanAttemptsRequest,
     SessionPlanCreateRequest, SessionPlanDetailsRequest, SessionPlanLifecycleRequest,
-    SessionPlanMutationRequest, SessionPlanReplanRequest, SessionReadRequest,
-    SessionThinkingSelectionRequest, SubscribeRequest, ToolResultDetailRequest,
+    SessionPlanMutationRequest, SessionPlanReplanRequest, SessionPlanViewRequest,
+    SessionReadRequest, SessionThinkingSelectionRequest, SubscribeRequest, ToolResultDetailRequest,
 };
 use crate::{
     CapabilitiesResponse, InspectEntityRequest, InspectEntityResponse, OperationStatusRequest,
@@ -63,6 +63,8 @@ pub enum Request {
     PlanAttempts(SessionPlanAttemptsRequest),
     /// Read bounded gate and evidence pages from one plan revision.
     PlanDetails(SessionPlanDetailsRequest),
+    /// Read a compact plan graph without history or detail collections.
+    PlanView(SessionPlanViewRequest),
     /// Read a bounded safe model request projection.
     ModelRequestDetail(ModelRequestDetailRequest),
     /// Read bounded safe detail for one tool result.
@@ -112,6 +114,8 @@ pub enum Response {
     PlanAttempts(crate::SessionPlanAttemptsResponse),
     /// Bounded gate and evidence pages from one exact plan revision.
     PlanDetails(crate::SessionPlanDetailsResponse),
+    /// Compact plan graph with exact semantic revision references.
+    PlanView(crate::SessionPlanGraphView),
     /// Safe normalized request captured for one model invocation.
     ModelRequestDetail(crate::ModelRequestDetailResponse),
     /// Bounded safe detail for one tool result.

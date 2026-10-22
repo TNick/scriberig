@@ -133,7 +133,15 @@ pub(super) fn apply<B: ApplicationBackend>(
         .iter()
         .filter_map(|branch| branch.result.clone())
         .collect::<Vec<_>>();
-    super::server_helpers::session_plan::project(plan, Some(&results))
+    let plan_id = plan.id;
+    let authoritative = session
+        .plans
+        .iter()
+        .find(|candidate| candidate.id == plan_id)
+        .ok_or_else(|| ApplicationError::NotFound {
+            subject: plan_id.to_string(),
+        })?;
+    super::server_helpers::session_plan::project(authoritative.clone(), Some(&results))
 }
 
 /// Applies the requested plan lifecycle operation.
@@ -352,6 +360,31 @@ macro_rules! shared_plan_details_read_contract {
         ) -> Result<scriberig_protocol::SessionPlanDetailsResponse, ApplicationError> {
             Err(ApplicationError::UnsupportedOperation {
                 operation: "plan requirement details".to_owned(),
+            })
+        }
+    };
+}
+
+macro_rules! shared_plan_view_read_contract {
+    () => {
+        /// Reads a compact plan graph at its current or exact snapshot.
+        ///
+        /// # Parameters
+        /// - `_context`: Trusted session-read capability context.
+        /// - `_request`: Session, plan, and optional snapshot identities.
+        ///
+        /// # Returns
+        /// Compact plan and node views with exact semantic revisions.
+        ///
+        /// # Errors
+        /// Returns unsupported-operation when compact plan views are unavailable.
+        fn read_plan_view(
+            &self,
+            _context: &ApplicationContext,
+            _request: &scriberig_protocol::SessionPlanViewRequest,
+        ) -> Result<scriberig_protocol::SessionPlanGraphView, ApplicationError> {
+            Err(ApplicationError::UnsupportedOperation {
+                operation: "compact plan graph view".to_owned(),
             })
         }
     };

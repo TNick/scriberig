@@ -76,7 +76,7 @@ impl PlanNodeRollupIndex {
         }
         Ok(Self {
             source_snapshot,
-            evaluator_version: 1,
+            evaluator_version: 2,
             rollups,
             parents,
             children,
@@ -112,7 +112,7 @@ impl PlanNodeRollupIndex {
         }
         Ok(Self {
             source_snapshot,
-            evaluator_version: 1,
+            evaluator_version: 2,
             rollups,
             parents,
             children,
@@ -183,7 +183,7 @@ impl PlanNodeRollupIndex {
         new_snapshot: SnapshotId,
         changed_nodes: &[EntityId],
     ) -> Result<Vec<EntityId>, PlanError> {
-        if self.source_snapshot != expected_base || self.evaluator_version != 1 {
+        if self.source_snapshot != expected_base || self.evaluator_version != 2 {
             return Err(PlanError::StaleRollupIndex);
         }
         let mut proposed = self.clone();
@@ -377,6 +377,9 @@ impl PlanNodeRollupIndex {
             contains_abandoned,
             child_counts: counts,
             unsatisfied_completion_gates: u32::try_from(unsatisfied).unwrap_or(u32::MAX),
+            entry_gates: plan.gate_counts(node_id, PlanGatePhase::Entry),
+            completion_gates: plan.gate_counts(node_id, PlanGatePhase::Completion),
+            evidence_count: plan.evidence_count(node_id),
         })
     }
 }

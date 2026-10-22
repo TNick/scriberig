@@ -8,12 +8,34 @@ use scriberig_protocol::{
     ModelRequestDetailResponse, ProtocolTransport, PublicAgentPresentationPreferences, Request,
     Response, SessionPlan, SessionPlanAssignmentRequest, SessionPlanAttemptsRequest,
     SessionPlanAttemptsResponse, SessionPlanCreateRequest, SessionPlanDetailsRequest,
-    SessionPlanDetailsResponse, SessionPlanLifecycleRequest, SessionPlanMutationRequest,
-    SessionPlanReplanRequest, SessionReadRequest, SessionReadResponse, SessionReference,
-    ToolResultDetailRequest, ToolResultDetailResponse,
+    SessionPlanDetailsResponse, SessionPlanGraphView, SessionPlanLifecycleRequest,
+    SessionPlanMutationRequest, SessionPlanReplanRequest, SessionPlanViewRequest,
+    SessionReadRequest, SessionReadResponse, SessionReference, ToolResultDetailRequest,
+    ToolResultDetailResponse,
 };
 
 impl<T: ProtocolTransport> Client<T> {
+    /// Reads a compact plan graph with exact semantic revision references.
+    ///
+    /// # Parameters
+    /// - `request`: Session, plan, and optional exact snapshot.
+    ///
+    /// # Returns
+    /// Compact plan graph without history or full detail collections.
+    ///
+    /// # Errors
+    /// Returns a structured server or transport error.
+    pub fn plan_view(
+        &self,
+        request: SessionPlanViewRequest,
+    ) -> Result<SessionPlanGraphView, ClientError> {
+        match self.send(Request::PlanView(request))?.response {
+            Response::PlanView(view) => Ok(view),
+            Response::Error(error) => Err(error.into()),
+            _ => Err(ClientError::UnexpectedResponse),
+        }
+    }
+
     /// Reads one bounded page of attempts for a plan node.
     ///
     /// # Parameters

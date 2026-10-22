@@ -13,6 +13,9 @@ pub struct SessionPlanDetailsRequest {
     pub plan: String,
     /// Plan mutation revision observed by the caller.
     pub expected_revision: u64,
+    /// Exact historical snapshot to read, or the current plan when absent.
+    #[serde(default)]
+    pub snapshot: Option<String>,
     /// Zero-based gate offset.
     #[serde(default)]
     pub gate_offset: u32,

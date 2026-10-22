@@ -9,7 +9,7 @@ use scriberig_protocol::{
 use scriberig_session::{Plan, PlanDependency, PlanNode, PlanNodeView, PlanRevision};
 
 #[path = "server_helpers_session_plan_semantics.rs"]
-mod semantics;
+pub(crate) mod semantics;
 
 /// Converts one retained attempt into a bounded, transcript-free DTO.
 ///
@@ -300,7 +300,7 @@ fn anchor(value: scriberig_session::ContinuationAnchor) -> SessionContinuationAn
 /// Provider-neutral protocol state.
 /// # Returns
 /// The operation result.
-fn plan_status(value: scriberig_session::PlanStatus) -> SessionPlanStatus {
+pub(crate) fn plan_status(value: scriberig_session::PlanStatus) -> SessionPlanStatus {
     match value {
         scriberig_session::PlanStatus::Draft => SessionPlanStatus::Draft,
         scriberig_session::PlanStatus::Planned => SessionPlanStatus::Planned,
@@ -319,7 +319,7 @@ fn plan_status(value: scriberig_session::PlanStatus) -> SessionPlanStatus {
 /// Provider-neutral protocol state.
 /// # Returns
 /// The operation result.
-fn node_status(value: scriberig_session::PlanNodeStatus) -> SessionPlanNodeStatus {
+pub(crate) fn node_status(value: scriberig_session::PlanNodeStatus) -> SessionPlanNodeStatus {
     match value {
         scriberig_session::PlanNodeStatus::Planned => SessionPlanNodeStatus::Planned,
         scriberig_session::PlanNodeStatus::Ready => SessionPlanNodeStatus::Ready,

@@ -82,10 +82,25 @@ fn historical_plan_snapshot_loads_exact_revision() {
         .expect("plan plan");
     plan.transition(scriberig_session::PlanStatus::Running)
         .expect("start plan");
+    let mut root = Branch::new(root_branch, "root").expect("branch");
+    root.result = Some(scriberig_session::BranchResult {
+        id: EntityId::from_bytes([67; 16]),
+        branch: root_branch,
+        status: scriberig_session::BranchStatus::Completed,
+        summary: Some("accepted result".to_owned()),
+        result_kind: None,
+        candidate_context: None,
+        references: Vec::new(),
+        result_handles: Vec::new(),
+        touched: Vec::new(),
+        produced_changes: Vec::new(),
+        validations: Vec::new(),
+        unresolved_questions: Vec::new(),
+    });
     store
         .save(&Session {
             id: session_id,
-            branches: vec![Branch::new(root_branch, "root").expect("branch")],
+            branches: vec![root],
             goals: Vec::new(),
             tasks: Vec::new(),
             plans: vec![plan],
@@ -123,4 +138,21 @@ fn historical_plan_snapshot_loads_exact_revision() {
     assert_eq!(historical.revision, initial.revision);
     assert_eq!(historical.source_snapshot, Some(snapshot));
     assert_eq!(current.status, scriberig_session::PlanStatus::Paused);
+    let compact = scriberig_session::repository::SessionStore::load_plan_projection(
+        &store,
+        session_id,
+        plan_id,
+        Some(snapshot),
+    )
+    .expect("load compact historical projection")
+    .expect("compact snapshot belongs to plan history");
+    assert_eq!(compact.status, scriberig_session::PlanStatus::Running);
+    assert_eq!(compact.source_snapshot, Some(snapshot));
+    assert!(compact.history.is_empty());
+    let branch_results =
+        scriberig_session::repository::SessionStore::load_plan_branch_results(&store, session_id)
+            .expect("load plan branch results")
+            .expect("session contains branch results");
+    assert_eq!(branch_results.len(), 1);
+    assert_eq!(branch_results[0].id, EntityId::from_bytes([67; 16]));
 }

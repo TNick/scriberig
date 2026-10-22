@@ -1,23 +1,26 @@
 //! Persists complete provider-neutral session graphs in SQLite.
 
 mod payload;
+#[macro_use]
+#[path = "session_sqlite_plan_reads.rs"]
+mod plan_reads;
 #[path = "store_mutations/plan.rs"]
 mod plan_mutation;
-mod plan_snapshot_read;
 mod recovery;
 mod rollup_index;
 #[path = "store_mutations/selection.rs"]
 mod selection_mutation;
 mod semantic_plans;
-
 pub use payload::LegacyExecutionRecord;
 
 use std::path::Path;
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 
-use rusqlite::{Connection, TransactionBehavior, params};
-use scriberig_core::{EntityId, SnapshotId};
-use scriberig_session::{Plan, PlanStoreError, SelectionStoreError, Session, SessionStore};
+use rusqlite::{Connection, OpenFlags, TransactionBehavior, params};
+use scriberig_core::EntityId;
+use scriberig_session::{PlanStoreError, SelectionStoreError, Session, SessionStore};
+use scriberig_store::{RootStore, SnapshotStore};
 use scriberig_store_sqlite::SqliteStore;
 
 /// SQLite-backed repository for immutable session graph snapshots.
@@ -27,6 +30,8 @@ pub struct SqliteSessionStore {
     /// Universal immutable store used as canonical plan persistence.
     semantic_store: SqliteStore,
 }
+
+static NEXT_MEMORY_DATABASE: AtomicU64 = AtomicU64::new(1);
 
 impl SqliteSessionStore {
     /// Opens or creates a session repository at `path`.
@@ -55,9 +60,15 @@ impl SqliteSessionStore {
     /// # Errors
     /// Returns an error when the operation fails.
     pub fn open_in_memory() -> rusqlite::Result<Self> {
+        let id = NEXT_MEMORY_DATABASE.fetch_add(1, Ordering::Relaxed);
+        let uri = format!("file:scriberig-session-{id}?mode=memory&cache=shared");
+        let flags = OpenFlags::SQLITE_OPEN_READ_WRITE
+            | OpenFlags::SQLITE_OPEN_CREATE
+            | OpenFlags::SQLITE_OPEN_URI
+            | OpenFlags::SQLITE_OPEN_SHARED_CACHE;
         Self::from_connections(
-            Connection::open_in_memory()?,
-            SqliteStore::open_in_memory()?,
+            Connection::open_with_flags(&uri, flags)?,
+            SqliteStore::open_with_flags(&uri, flags)?,
         )
     }
 
@@ -303,26 +314,7 @@ impl SessionStore for SqliteSessionStore {
         transaction.commit().map_err(|error| error.to_string())
     }
 
-    /// Loads one exact plan revision from the plan root's snapshot history.
-    ///
-    /// # Parameters
-    /// - `session`: Owning durable session identity.
-    /// - `plan_id`: Stable plan identity.
-    /// - `snapshot`: Exact universal snapshot to resolve.
-    ///
-    /// # Returns
-    /// The historical plan projection, or `None` when outside root history.
-    ///
-    /// # Errors
-    /// Returns a backend diagnostic when snapshot resolution fails.
-    fn load_plan_at_snapshot(
-        &self,
-        session: EntityId,
-        plan_id: EntityId,
-        snapshot: SnapshotId,
-    ) -> Result<Option<Plan>, String> {
-        self.resolve_plan_snapshot(session, plan_id, snapshot)
-    }
+    shared_session_plan_read_methods!();
 
     /// Atomically changes only session execution selection at the observed revision.
     ///

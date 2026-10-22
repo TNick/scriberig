@@ -164,3 +164,53 @@ fn plan_dependencies_require_results_and_remain_acyclic() {
         .assignment = Some(assignment);
     assert_eq!(plan.nodes.len(), 3);
 }
+
+/// Keeps dependencies blocked through failure and fulfills one retried result.
+#[test]
+fn retried_success_fulfills_dependency_once_after_failed_attempt() {
+    let mut plan = plan_fixture();
+    let producer = plan.nodes[0].id;
+    let dependent = plan.nodes[1].id;
+    let first_branch = EntityId::from_bytes([31; 16]);
+    let first_claim = EntityId::from_bytes([32; 16]);
+    let second_branch = EntityId::from_bytes([33; 16]);
+    let second_claim = EntityId::from_bytes([34; 16]);
+    let success_id = EntityId::from_bytes([35; 16]);
+    plan.add_dependency(producer, dependent)
+        .expect("producer dependency");
+    plan.transition(PlanStatus::Running).expect("run plan");
+    plan.claim_coordinator(EntityId::from_bytes([36; 16]), "coordinator")
+        .expect("claim coordinator");
+    plan.start_node(producer, first_branch, first_claim, "worker", &[])
+        .expect("start first attempt");
+    let failure_id = EntityId::from_bytes([37; 16]);
+    let mut failure = branch_result(failure_id, first_branch, None);
+    failure.status = BranchStatus::Abandoned;
+    plan.settle_workers(
+        &[],
+        &[(producer, first_claim, Some(failure.clone()))],
+        &[failure],
+    )
+    .expect("settle failed attempt");
+    assert_eq!(plan.dependencies[0].fulfilled_by, None);
+    assert!(!plan.ready_nodes_from_results(&[]).contains(&dependent));
+
+    plan.retry_failed_node(producer, &[])
+        .expect("retry failed producer");
+    plan.start_node(producer, second_branch, second_claim, "worker", &[])
+        .expect("start retry");
+    let success = branch_result(success_id, second_branch, None);
+    plan.complete_node(producer, second_claim, &success)
+        .expect("complete retry");
+
+    assert_eq!(plan.dependencies[0].fulfilled_by, Some(success_id));
+    assert!(
+        plan.ready_nodes_from_results(std::slice::from_ref(&success))
+            .contains(&dependent)
+    );
+    assert_eq!(
+        plan.complete_node(producer, second_claim, &success),
+        Err(PlanError::InvalidTransition)
+    );
+    assert_eq!(plan.dependencies[0].fulfilled_by, Some(success_id));
+}

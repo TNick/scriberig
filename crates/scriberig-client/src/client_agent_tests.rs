@@ -235,4 +235,22 @@ fn plan_client_methods_send_shared_application_requests() {
         observed.lock().expect("request").as_ref(),
         Some(Request::PlanAssignment(_))
     ));
+    assert!(
+        client
+            .mutate_plan(scriberig_protocol::SessionPlanMutationRequest {
+                session: SessionReference {
+                    id: "session-1".to_owned(),
+                },
+                plan: "plan-1".to_owned(),
+                expected_revision: 2,
+                mutation: scriberig_protocol::SessionPlanMutation::RecoverFailedPlan,
+            })
+            .is_ok()
+    );
+    assert!(matches!(
+        observed.lock().expect("request").as_ref(),
+        Some(Request::PlanMutation(request))
+            if request.expected_revision == 2
+                && request.mutation == scriberig_protocol::SessionPlanMutation::RecoverFailedPlan
+    ));
 }

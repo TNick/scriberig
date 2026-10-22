@@ -242,20 +242,9 @@ impl Plan {
             })
             .map(|edge| edge.prerequisite)
             .collect();
-        let entry_gates = self.gate_counts(node_id, PlanGatePhase::Entry);
-        let completion_gates = self.gate_counts(node_id, PlanGatePhase::Completion);
+        let entry_gates = rollup.entry_gates;
+        let completion_gates = rollup.completion_gates;
         let summary = self.summaries.iter().find(|item| item.node == node_id);
-        let evidence_count = self
-            .evidence
-            .iter()
-            .filter(|association| match association.owner {
-                super::PlanEvidenceOwner::Node(owner) => owner == node_id,
-                super::PlanEvidenceOwner::Gate(gate) => self
-                    .gates
-                    .iter()
-                    .any(|item| item.id == gate && item.owner == node_id),
-            })
-            .count();
         Ok(PlanNodeView {
             id: node.id,
             revision,
@@ -276,13 +265,14 @@ impl Plan {
             dependency_blockers,
             entry_gates,
             completion_gates,
-            evidence_count: count_u32(evidence_count),
+            evidence_count: rollup.evidence_count,
             can_retry: node.status == PlanNodeStatus::Failed
                 && node.claim.is_none()
                 && node.branch.is_some()
                 && matches!(self.status, PlanStatus::Running | PlanStatus::Paused)
                 && results.is_some_and(|results| self.dependencies_satisfied(node_id, results))
-                && self.node_gates_satisfied(node_id, PlanGatePhase::Entry),
+                && entry_gates.pending == 0
+                && entry_gates.failed == 0,
             last_failure: node.last_failure.clone(),
         })
     }
@@ -298,7 +288,7 @@ impl Plan {
     ///
     /// # Returns
     /// The value described by the return type.
-    fn gate_counts(&self, node: EntityId, phase: PlanGatePhase) -> PlanGateCounts {
+    pub(super) fn gate_counts(&self, node: EntityId, phase: PlanGatePhase) -> PlanGateCounts {
         let mut counts = PlanGateCounts::default();
         for evaluation in self.evaluate_node_gates(node, phase) {
             match evaluation.status {
@@ -311,6 +301,31 @@ impl Plan {
             }
         }
         counts
+    }
+
+    /// Counts node-level and owned-gate evidence without returning details.
+    ///
+    /// # Parameters
+    /// - `self`: Canonical plan snapshot containing gates and evidence.
+    /// - `node`: Stable node identity whose evidence associations are counted.
+    ///
+    /// The number of evidence associations owned by the node or its gates.
+    ///
+    /// # Returns
+    /// The saturated count used by compact projections.
+    pub(super) fn evidence_count(&self, node: EntityId) -> u32 {
+        let count = self
+            .evidence
+            .iter()
+            .filter(|association| match association.owner {
+                super::PlanEvidenceOwner::Node(owner) => owner == node,
+                super::PlanEvidenceOwner::Gate(gate) => self
+                    .gates
+                    .iter()
+                    .any(|item| item.id == gate && item.owner == node),
+            })
+            .count();
+        count_u32(count)
     }
 }
 

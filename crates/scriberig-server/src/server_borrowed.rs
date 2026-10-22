@@ -7,6 +7,9 @@ use scriberig_app::{
 };
 use scriberig_protocol::{Event, Operation};
 use scriberig_query::{FindRequest, FindResult, ListRequest, ListResult, QueryResult, QuerySpec};
+#[macro_use]
+#[path = "server_borrowed_plan_view.rs"]
+mod plan_view_method;
 impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// Delegates migration detail to the borrowed application service.
     ///
@@ -54,17 +57,17 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
         (**self).capabilities()
     }
 
-    /// Delegates compact session reads.
-    ///
-    /// # Parameters
+    /// Delegates compact session reads to the borrowed service.
     /// - `context`: Trusted request context.
     /// - `session`: Stable session identity.
     ///
-    /// # Returns
     /// Compact session tree response.
     ///
+    /// Returns the service's structured failure.
+    /// # Returns
+    /// The operation result.
     /// # Errors
-    /// Returns the delegated service error.
+    /// Returns an error when the operation fails.
     fn read_session(
         &self,
         context: &ApplicationContext,
@@ -73,39 +76,8 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
         (**self).read_session(context, session)
     }
 
-    /// Delegates bounded plan-attempt reads.
-    ///
-    /// # Parameters
-    /// - `context`: Trusted session-read capability context.
-    /// - `request`: Session, plan, node, and page selection.
-    /// # Returns
-    /// The safe bounded attempt page.
-    /// # Errors
-    /// Returns the delegated service error.
-    fn read_plan_attempts(
-        &self,
-        context: &ApplicationContext,
-        request: &scriberig_protocol::SessionPlanAttemptsRequest,
-    ) -> Result<scriberig_protocol::SessionPlanAttemptsResponse, ApplicationError> {
-        (**self).read_plan_attempts(context, request)
-    }
-
-    /// Delegates bounded plan detail reads.
-    ///
-    /// # Parameters
-    /// - `context`: Trusted session-read capability context.
-    /// - `request`: Session, plan revision, and page selection.
-    /// # Returns
-    /// Bounded gate and evidence page.
-    /// # Errors
-    /// Returns the delegated service error.
-    fn read_plan_details(
-        &self,
-        context: &ApplicationContext,
-        request: &scriberig_protocol::SessionPlanDetailsRequest,
-    ) -> Result<scriberig_protocol::SessionPlanDetailsResponse, ApplicationError> {
-        (**self).read_plan_details(context, request)
-    }
+    shared_borrowed_plan_detail_methods!();
+    shared_borrowed_plan_view_method!();
 
     /// Delegates model request detail reads to the borrowed service.
     ///

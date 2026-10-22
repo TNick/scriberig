@@ -151,7 +151,7 @@ pub(super) fn evidence(value: &PlanEvidenceAssociation) -> SessionPlanEvidenceAs
 ///
 /// # Returns
 /// The value described by the return type.
-pub(super) fn evidence_reference(value: &PlanEvidenceReference) -> SessionPlanEvidenceReference {
+pub(crate) fn evidence_reference(value: &PlanEvidenceReference) -> SessionPlanEvidenceReference {
     SessionPlanEvidenceReference {
         kind: evidence_kind(&value.kind),
         reference: semantic_reference(&value.reference),

@@ -24,6 +24,7 @@ rpi-model-runtime = { workspace = true }
 
 [dev-dependencies]
 scriberig-store-memory = { path = "../scriberig-store-memory" }
+scriberig-session-sqlite = { path = "../scriberig-session-sqlite" }
 
 [lints]
 workspace = true

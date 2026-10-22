@@ -242,26 +242,12 @@ impl PlanCoordinator {
                 request_evidence.requests.clone(),
             );
         }
-        SessionBackend::save_session(service, context, &session)?;
-
-        let latest = SessionBackend::read_session(
-            service,
-            context,
-            &SessionRequest {
-                session: session_id,
-            },
-        )?;
-        let observed_plan = get_plan(&latest, plan_id)?;
-        if observed_plan.revision != persisted_revision {
-            return Err(revision_conflict(plan_id));
-        }
         let latest_plan = plan.clone();
-        let mut updated = latest;
-        replace_plan(&mut updated, latest_plan.clone())?;
+        replace_plan(&mut session, latest_plan.clone())?;
         SessionBackend::compare_and_swap_plan(
             service,
             context,
-            &updated,
+            &session,
             plan_id,
             persisted_revision,
         )?;

@@ -10,6 +10,11 @@ mod plan_details;
 mod requests;
 pub use attempts::{SessionPlanAttempt, SessionPlanAttemptsRequest, SessionPlanAttemptsResponse};
 pub use plan_details::{SessionPlanDetailsRequest, SessionPlanDetailsResponse};
+#[path = "session/plan_view.rs"]
+mod plan_view;
+pub use plan_view::{
+    SessionPlanGraphView, SessionPlanNodeView, SessionPlanView, SessionPlanViewRequest,
+};
 pub use requests::{
     ModelContextRevisionReference, ModelRequestDetailFragment, ModelRequestDetailRequest,
     ModelRequestDetailResponse, ModelRequestMessageDetail, ModelRequestToolDetail,

@@ -35,14 +35,42 @@ fn legacy_session(
         status: PlanNodeStatus::Completed,
         branch: Some(EntityId::from_bytes([186; 16])),
         result: Some(EntityId::from_bytes([187; 16])),
+        superseded_by: Some(EntityId::from_bytes([188; 16])),
+        abandon_reason: None,
+        last_failure: None,
+        assignment: Some(scriberig_session::ModelAssignment {
+            provider_id: "legacy-provider".to_owned(),
+            model_id: "legacy-model".to_owned(),
+            thinking_level: Some("high".to_owned()),
+        }),
+        claim: None,
+        claim_generation: 2,
+    })
+    .expect("node");
+    plan.add_node(PlanNode {
+        id: EntityId::from_bytes([188; 16]),
+        parent: Some(scriberig_session::PlanNodeParent::Node(node_id)),
+        title: "dependent current node".to_owned(),
+        purpose: "preserve dependency topology".to_owned(),
+        expected_result: None,
+        semantic_scope: Vec::new(),
+        status: PlanNodeStatus::Planned,
+        branch: None,
+        result: None,
         superseded_by: None,
         abandon_reason: None,
         last_failure: None,
         assignment: None,
         claim: None,
-        claim_generation: 2,
+        claim_generation: 0,
     })
-    .expect("node");
+    .expect("dependent node");
+    plan.add_dependency(node_id, EntityId::from_bytes([188; 16]))
+        .expect("current dependency");
+    plan.dependencies[0].fulfilled_by = Some(EntityId::from_bytes([187; 16]));
+    plan.coordinator = Some(branch_id);
+    plan.coordinator_cursor = Some(EntityId::from_bytes([188; 16]));
+    plan.coordinator_generation = 5;
     let mut first = plan.nodes[0].clone();
     "first historical title".clone_into(&mut first.title);
     first.status = PlanNodeStatus::Planned;
@@ -100,6 +128,7 @@ fn legacy_plan_history_preserves_multiple_revisions_after_restart() {
     let plan_id = EntityId::from_bytes([182; 16]);
     let node_id = EntityId::from_bytes([183; 16]);
     let session = legacy_session(session_id, branch_id, plan_id, node_id);
+    let legacy = session.plans[0].clone();
     let store = SqliteSessionStore::open(&path).expect("open store");
     store.save(&session).expect("migrate legacy plan");
     drop(store);
@@ -110,6 +139,18 @@ fn legacy_plan_history_preserves_multiple_revisions_after_restart() {
         .expect("load migrated session")
         .expect("session exists");
     let migrated = &loaded.plans[0];
+    assert_eq!(migrated.id, legacy.id);
+    assert_eq!(migrated.goal, legacy.goal);
+    assert_eq!(migrated.root_branch, legacy.root_branch);
+    assert_eq!(migrated.nodes, legacy.nodes);
+    assert_eq!(migrated.dependencies, legacy.dependencies);
+    assert_eq!(migrated.coordinator, legacy.coordinator);
+    assert_eq!(migrated.coordinator_cursor, legacy.coordinator_cursor);
+    assert_eq!(
+        migrated.coordinator_generation,
+        legacy.coordinator_generation
+    );
+    assert_eq!(migrated.revision, legacy.revision);
     assert_eq!(migrated.revision, 3);
     assert_eq!(migrated.history.len(), 3);
     assert_eq!(migrated.history[0].goal, "first goal");

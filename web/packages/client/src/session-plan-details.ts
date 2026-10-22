@@ -1,37 +1,7 @@
 /** @file Normalizes bounded plan gate and evidence detail pages. */
 
-import type { SessionPlanDetailsRequest, SessionPlanDetailsResponse } from "@scriberig/protocol";
+import type { SessionPlanDetailsResponse } from "@scriberig/protocol";
 import { normalizeEvidence, normalizeGate } from "./session-plan-semantic-views.js";
-import type { SemanticTransport } from "./transport.js";
-
-/** Reads and normalizes one bounded plan detail page.
- * @param transport Semantic request transport.
- * @param request Session, plan revision, and independent page bounds.
- * @param signal Optional request cancellation signal.
- * @returns Typed gate and evidence records from the observed plan revision.
- */
-export function readPlanDetails(
-  transport: SemanticTransport,
-  request: SessionPlanDetailsRequest,
-  signal?: AbortSignal,
-): Promise<SessionPlanDetailsResponse> {
-  return transport
-    .request<unknown>(
-      "plan_details",
-      {
-        session: request.session,
-        plan: request.plan,
-        expected_revision: request.expectedRevision,
-        ...(request.gateOffset === undefined ? {} : { gate_offset: request.gateOffset }),
-        ...(request.evidenceOffset === undefined
-          ? {}
-          : { evidence_offset: request.evidenceOffset }),
-        ...(request.limit === undefined ? {} : { limit: request.limit }),
-      },
-      signal,
-    )
-    .then(normalizePlanDetails);
-}
 
 /** Normalizes bounded plan details from an untrusted protocol response.
  * @param value Untrusted wire response.

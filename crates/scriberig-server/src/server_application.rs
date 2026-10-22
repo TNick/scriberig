@@ -6,6 +6,9 @@ mod selection_methods;
 #[macro_use]
 #[path = "server_application_presentation.rs"]
 mod presentation_methods;
+#[macro_use]
+#[path = "server_application_plan_view.rs"]
+mod plan_view_method;
 use super::server_agent_console;
 use super::server_helpers::{
     event_from_application, event_matches, operation_from_record, session_response,
@@ -140,6 +143,8 @@ where
     ) -> Result<scriberig_protocol::SessionPlanDetailsResponse, ApplicationError> {
         super::server_plan_details::read(self, context, request)
     }
+
+    shared_plan_view_method!();
 
     /// Reads a previously captured model request from an authorized session.
     ///

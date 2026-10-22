@@ -3,6 +3,10 @@
 #[path = "semantic_plans/history.rs"]
 mod history;
 use history::{plan_at_revision, plan_revision, semantic_writes};
+#[path = "semantic_plans/equivalence.rs"]
+mod equivalence;
+#[path = "semantic_plans/projection.rs"]
+mod projection;
 
 use std::collections::BTreeMap;
 
@@ -224,6 +228,7 @@ impl SqliteSessionStore {
             }
             let encoded = scriberig_session::PlanSemanticSnapshot::from_plan(&historical)
                 .map_err(|error| format!("plan encoding failed: {error:?}"))?;
+            equivalence::verify_before_promotion(&historical, &encoded)?;
             let (revisions, changes) = semantic_writes(encoded.objects)?;
             let promoted = self
                 .semantic_store

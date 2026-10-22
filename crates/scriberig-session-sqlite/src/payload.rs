@@ -1,5 +1,9 @@
 //! Decodes versioned SQLite session payloads and preserves retired selections.
 
+#[path = "payload/branch_results.rs"]
+mod branch_results;
+pub(crate) use branch_results::decode as decode_branch_results;
+
 use scriberig_session::Session;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};

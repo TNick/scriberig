@@ -3,7 +3,7 @@
 use std::str::FromStr;
 
 use scriberig_app::{ApplicationContext, ApplicationError, SessionBackend, SessionRequest};
-use scriberig_core::EntityId;
+use scriberig_core::{EntityId, SnapshotId};
 use scriberig_protocol::{SessionPlanDetailsRequest, SessionPlanDetailsResponse};
 
 /// Reads stable pages of gates and evidence from one observed plan revision.
@@ -25,20 +25,30 @@ pub(super) fn read<B: scriberig_app::ApplicationBackend>(
 ) -> Result<SessionPlanDetailsResponse, ApplicationError> {
     let session_id = parse_identity(&request.session.id, "session")?;
     let plan_id = parse_identity(&request.plan, "plan")?;
-    let session = SessionBackend::read_session(
-        service,
-        context,
-        &SessionRequest {
-            session: session_id,
-        },
-    )?;
-    let plan = session
+    let plan = if let Some(snapshot) = request.snapshot.as_deref() {
+        let snapshot =
+            snapshot
+                .parse::<SnapshotId>()
+                .map_err(|error| ApplicationError::InvalidRequest {
+                    operation: "plan details".to_owned(),
+                    message: format!("invalid snapshot identifier: {error}"),
+                })?;
+        service.read_plan_at_snapshot(context, session_id, plan_id, snapshot)?
+    } else {
+        SessionBackend::read_session(
+            service,
+            context,
+            &SessionRequest {
+                session: session_id,
+            },
+        )?
         .plans
-        .iter()
+        .into_iter()
         .find(|plan| plan.id == plan_id)
         .ok_or_else(|| ApplicationError::NotFound {
             subject: request.plan.clone(),
-        })?;
+        })?
+    };
     if plan.revision != request.expected_revision {
         return Err(ApplicationError::Conflict {
             subject: request.plan.clone(),

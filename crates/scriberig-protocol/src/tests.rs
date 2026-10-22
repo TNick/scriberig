@@ -149,7 +149,7 @@ fn references_and_requests_round_trip() {
         prompt: "continue from this exact answer".to_owned(),
         selection: None,
     });
-    session_plan_contracts_round_trip();
+    plan_contracts::session_plan_contracts_round_trip();
     tests_additional::model_contracts_round_trip();
 }
 
@@ -255,83 +255,6 @@ fn session_snapshot_contracts_round_trip() {
     });
 }
 
-/// Verifies session plan mutation requests round trip.
-fn session_plan_contracts_round_trip() {
-    session_snapshot_contracts_round_trip();
-    let session = SessionReference {
-        id: "session-1".to_owned(),
-    };
-    round_trip(&SessionPlanCreateRequest {
-        session: session.clone(),
-        anchor: SessionContinuationAnchor::BranchHead {
-            branch: "branch-1".to_owned(),
-        },
-        goal: "create".to_owned(),
-        nodes: vec![SessionPlanNodeDraft {
-            key: "node-a".to_owned(),
-            parent_index: None,
-            title: "Node A".to_owned(),
-            purpose: "perform work".to_owned(),
-            expected_result: None,
-            semantic_scope: vec!["entity:a".to_owned()],
-            assignment: None,
-        }],
-        dependencies: Vec::new(),
-    });
-    round_trip(&SessionPlanLifecycleRequest {
-        session: session.clone(),
-        plan: "plan-1".to_owned(),
-        expected_revision: 4,
-        action: SessionPlanAction::Pause,
-    });
-    round_trip(&SessionPlanMutationRequest {
-        session: session.clone(),
-        plan: "plan-1".to_owned(),
-        expected_revision: 5,
-        mutation: SessionPlanMutation::AddNextStep {
-            node: SessionPlanNodeDraft {
-                key: "next".to_owned(),
-                parent_index: None,
-                title: "Next".to_owned(),
-                purpose: "continue work".to_owned(),
-                expected_result: None,
-                semantic_scope: Vec::new(),
-                assignment: None,
-            },
-        },
-    });
-    round_trip(&SessionPlanAssignmentRequest {
-        session: session.clone(),
-        plan: "plan-1".to_owned(),
-        node: "node-a".to_owned(),
-        expected_revision: 5,
-        assignment: Some(SessionModelAssignment {
-            provider_id: "provider-safe".to_owned(),
-            model_id: "model-safe".to_owned(),
-            thinking_level: None,
-        }),
-    });
-    round_trip(&SessionPlanReplanRequest {
-        session,
-        plan: "plan-1".to_owned(),
-        expected_revision: 6,
-        additions: Vec::new(),
-        dependencies: vec![(
-            SessionPlanNodeReference::Existing {
-                id: "node-a".to_owned(),
-            },
-            SessionPlanNodeReference::Proposed {
-                key: "node-b".to_owned(),
-            },
-        )],
-        removed_dependencies: Vec::new(),
-        superseded: Vec::new(),
-        assignment_changes: Vec::new(),
-        preserved_terminal_nodes: Vec::new(),
-        reason: "new information".to_owned(),
-    });
-}
-
 /// Verifies bounded plan-attempt request and response contracts round trip.
 #[test]
 fn plan_attempts_round_trip() {
@@ -378,6 +301,7 @@ fn plan_details_round_trip() {
         },
         plan: "plan-1".to_owned(),
         expected_revision: 9,
+        snapshot: Some("snapshot-9".to_owned()),
         gate_offset: 4,
         evidence_offset: 8,
         limit: 10,
@@ -397,6 +321,36 @@ fn plan_details_round_trip() {
     });
 }
 
+/// Verifies compact plan graph request and response contracts round trip.
+#[test]
+fn plan_view_round_trip() {
+    round_trip(&SessionPlanViewRequest {
+        session: SessionReference {
+            id: "session-1".to_owned(),
+        },
+        plan: "plan-1".to_owned(),
+        snapshot: Some("snapshot-1".to_owned()),
+    });
+    round_trip(&SessionPlanGraphView {
+        plan: SessionPlanView {
+            id: "plan-1".to_owned(),
+            revision: "revision-1".to_owned(),
+            snapshot: Some("snapshot-1".to_owned()),
+            mutation_revision: 3,
+            goal: "goal".to_owned(),
+            status: SessionPlanStatus::Running,
+            coordinator: None,
+            coordinator_cursor: None,
+            root_nodes: vec!["node-1".to_owned()],
+            node_count: 1,
+            status_counts: SessionPlanStatusCounts::default(),
+        },
+        nodes: Vec::new(),
+    });
+}
+
+#[path = "tests_plan_contracts.rs"]
+mod plan_contracts;
 #[path = "tests_additional.rs"]
 mod tests_additional;
 #[path = "tests_models.rs"]

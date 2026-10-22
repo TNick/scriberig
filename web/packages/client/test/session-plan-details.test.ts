@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { ScriberigClient } from "../src";
 
 describe("plan details client", () => {
-  it("requests exact-revision pages and normalizes their offsets", async () => {
+  it("requests exact-snapshot pages and normalizes their offsets", async () => {
     const requests: { operation: string; payload: unknown }[] = [];
     const transport = {
       request: async <T>(operation: string, payload: unknown): Promise<T> => {
@@ -48,6 +48,7 @@ describe("plan details client", () => {
       session: { id: "session-1" as never },
       plan: "plan-1",
       expectedRevision: 8,
+      snapshot: "snapshot-8",
       gateOffset: 1,
       evidenceOffset: 2,
       limit: 1,
@@ -70,6 +71,7 @@ describe("plan details client", () => {
           session: { id: "session-1" },
           plan: "plan-1",
           expected_revision: 8,
+          snapshot: "snapshot-8",
           gate_offset: 1,
           evidence_offset: 2,
           limit: 1,

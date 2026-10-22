@@ -379,6 +379,8 @@ mod request_provenance;
 
 #[path = "durable_parts/incremental_rollup.rs"]
 mod incremental_rollup;
+#[path = "durable_parts/lifecycle_revisions.rs"]
+mod lifecycle_revisions;
 #[path = "durable_parts/part2.rs"]
 mod part2;
 #[path = "durable_parts/plan_history_migration.rs"]

@@ -3,10 +3,33 @@
 use super::{Dispatcher, helpers};
 use crate::server::ApplicationService;
 use scriberig_protocol::{
-    Response, SessionPlanAttemptsRequest, SessionPlanDetailsRequest, SessionReadRequest,
+    Response, SessionPlanAttemptsRequest, SessionPlanDetailsRequest, SessionPlanViewRequest,
+    SessionReadRequest,
 };
 
 impl<S: ApplicationService> Dispatcher<S> {
+    /// Reads a compact plan graph with exact semantic revision references.
+    ///
+    /// # Parameters
+    /// - `self`: Protocol dispatcher.
+    /// - `request`: Session, plan, and optional snapshot identities.
+    /// - `correlation_id`: Request correlation identity.
+    ///
+    /// # Returns
+    /// Compact plan view or a structured protocol error.
+    pub(super) fn plan_view_read(
+        &self,
+        request: &SessionPlanViewRequest,
+        correlation_id: &str,
+    ) -> Response {
+        self.service
+            .read_plan_view(&super::command_context("session_branch_tree"), request)
+            .map_or_else(
+                |error| Response::Error(helpers::map_error(&error, correlation_id)),
+                Response::PlanView,
+            )
+    }
+
     /// Reads one bounded page of retained attempts for a plan node.
     ///
     /// # Parameters

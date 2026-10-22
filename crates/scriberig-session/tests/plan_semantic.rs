@@ -74,6 +74,32 @@ fn semantic_plan_requirement_records_round_trip_and_block_entry() {
     );
     assert_eq!(plan.ready_nodes_from_results(&[]), Vec::new());
 
+    let mut wrong_attributes = std::collections::BTreeMap::new();
+    wrong_attributes.insert("passed".to_owned(), "true".to_owned());
+    wrong_attributes.insert("profile".to_owned(), "unit".to_owned());
+    plan.attach_evidence(PlanEvidenceAssociation {
+        id: EntityId::from_bytes([5; 16]),
+        owner: PlanEvidenceOwner::Gate(gate_id),
+        role: PlanEvidenceRole::Supports,
+        evidence: PlanEvidenceReference {
+            kind: PlanEvidenceKind::ValidationResult,
+            reference: PlanSemanticReference {
+                entity: EntityId::from_bytes([14; 16]),
+                revision: None,
+                snapshot: None,
+            },
+            attributes: wrong_attributes,
+        },
+        note: None,
+        actor: None,
+    })
+    .expect("attach mismatched validation");
+    assert_eq!(
+        plan.evaluate_gate(gate_id).expect("evaluation").status,
+        PlanGateStatus::Pending
+    );
+    assert_eq!(plan.ready_nodes_from_results(&[]), Vec::new());
+
     let mut attributes = std::collections::BTreeMap::new();
     attributes.insert("passed".to_owned(), "true".to_owned());
     attributes.insert("profile".to_owned(), "lint".to_owned());
@@ -85,8 +111,8 @@ fn semantic_plan_requirement_records_round_trip_and_block_entry() {
             kind: PlanEvidenceKind::ValidationResult,
             reference: PlanSemanticReference {
                 entity: EntityId::from_bytes([9; 16]),
-                revision: None,
-                snapshot: None,
+                revision: Some(scriberig_core::RevisionId::from_bytes([10; 32])),
+                snapshot: Some(scriberig_core::SnapshotId::from_bytes([11; 32])),
             },
             attributes,
         },
@@ -108,14 +134,87 @@ fn semantic_plan_requirement_records_round_trip_and_block_entry() {
 
     assert_eq!(plan.nodes[0].status, PlanNodeStatus::Ready);
     assert_eq!(plan.ready_nodes_from_results(&[]), vec![node_id]);
+    let evaluation = plan.evaluate_gate(gate_id).expect("evaluation");
+    assert_eq!(evaluation.status, PlanGateStatus::Satisfied);
+    assert_eq!(evaluation.supporting_evidence.len(), 1);
     assert_eq!(
-        plan.evaluate_gate(gate_id).expect("evaluation").status,
-        PlanGateStatus::Satisfied
+        evaluation.supporting_evidence[0].reference.revision,
+        Some(scriberig_core::RevisionId::from_bytes([10; 32]))
     );
+    assert_eq!(
+        evaluation.supporting_evidence[0].reference.snapshot,
+        Some(scriberig_core::SnapshotId::from_bytes([11; 32]))
+    );
+    let rollup = plan.node_rollups().expect("gate summary rollup")[&node_id];
+    assert_eq!(rollup.entry_gates.satisfied, 1);
+    assert_eq!(rollup.evidence_count, 2);
     let snapshot = PlanSemanticSnapshot::from_plan(&plan).expect("encode");
     let decoded = snapshot.into_plan(plan.history.clone()).expect("decode");
 
     assert_eq!(decoded, plan);
+}
+
+/// Marks an explicit failed validation as a failed entry gate.
+#[test]
+fn failed_validation_evidence_fails_entry_gate() {
+    let branch = EntityId::from_bytes([15; 16]);
+    let node_id = EntityId::from_bytes([16; 16]);
+    let gate_id = EntityId::from_bytes([17; 16]);
+    let mut plan = Plan::new(
+        EntityId::from_bytes([18; 16]),
+        EntityId::from_bytes([19; 16]),
+        ContinuationAnchor::BranchHead { branch },
+        "failed validation gate",
+    )
+    .expect("plan");
+    plan.add_node(node(16, branch, "validated work"))
+        .expect("node");
+    plan.add_gate(PlanGate {
+        id: gate_id,
+        owner: node_id,
+        phase: PlanGatePhase::Entry,
+        requirement: PlanGateRequirement::ValidationPassed {
+            profile: Some("lint".to_owned()),
+        },
+        waiver: None,
+    })
+    .expect("entry gate");
+    plan.transition(PlanStatus::Planned).expect("plan work");
+    plan.transition(PlanStatus::Running).expect("run plan");
+    let attributes = std::collections::BTreeMap::from([
+        ("passed".to_owned(), "false".to_owned()),
+        ("profile".to_owned(), "lint".to_owned()),
+    ]);
+    plan.attach_evidence(PlanEvidenceAssociation {
+        id: EntityId::from_bytes([20; 16]),
+        owner: PlanEvidenceOwner::Gate(gate_id),
+        role: PlanEvidenceRole::Supports,
+        evidence: PlanEvidenceReference {
+            kind: PlanEvidenceKind::ValidationResult,
+            reference: PlanSemanticReference {
+                entity: EntityId::from_bytes([21; 16]),
+                revision: None,
+                snapshot: None,
+            },
+            attributes,
+        },
+        note: None,
+        actor: None,
+    })
+    .expect("attach failed validation");
+
+    assert_eq!(
+        plan.evaluate_gate(gate_id).expect("evaluation").status,
+        PlanGateStatus::Failed
+    );
+    assert_eq!(
+        plan.node_rollups().expect("failed gate rollup")[&node_id]
+            .entry_gates
+            .failed,
+        1
+    );
+    assert_eq!(plan.nodes[0].status, PlanNodeStatus::Planned);
+    assert!(plan.ready_nodes_from_results(&[]).is_empty());
 }
 
 /// Derives effective parent status and ignored/abandoned descendant flags.
@@ -266,41 +365,6 @@ fn incremental_rollup_rejects_a_stale_base_snapshot() {
     assert_eq!(index.source_snapshot(), expected);
 }
 
-/// Produces shared exact-revision views with dependency blockers and counts.
-#[test]
-fn plan_views_expose_exact_revisions_and_shared_blockers() {
-    let plan = plan();
-    let snapshot = scriberig_core::SnapshotId::new([25; 32]);
-    let plan_view = plan.plan_view(Some(snapshot)).expect("plan view");
-    let rollups = plan.node_rollups().expect("rollups");
-    let producer = EntityId::from_bytes([4; 16]);
-    let consumer = EntityId::from_bytes([5; 16]);
-    let consumer_view = plan
-        .node_view(consumer, Some(snapshot), Some(&[]), &rollups)
-        .expect("node view");
-    let semantic = PlanSemanticSnapshot::from_plan(&plan).expect("semantic records");
-    let plan_revision = semantic
-        .objects
-        .iter()
-        .find(|object| object.entity == plan.id)
-        .expect("plan revision");
-    let node_revision = semantic
-        .objects
-        .iter()
-        .find(|object| object.entity == consumer)
-        .expect("node revision");
-
-    assert_eq!(plan_view.revision, plan_revision.revision);
-    assert_eq!(plan_view.snapshot, Some(snapshot));
-    assert_eq!(plan_view.node_count, 2);
-    assert_eq!(plan_view.status_counts.ready, 1);
-    assert_eq!(plan_view.status_counts.planned, 1);
-    assert_eq!(consumer_view.revision, node_revision.revision);
-    assert_eq!(consumer_view.snapshot, Some(snapshot));
-    assert_eq!(consumer_view.dependency_blockers, vec![producer]);
-    assert_eq!(consumer_view.effective_status, PlanNodeStatus::Planned);
-}
-
 /// Creates a plan with stable node, structure, and dependency identities.
 ///
 /// # Returns
@@ -325,9 +389,13 @@ fn plan() -> Plan {
     plan
 }
 
+#[path = "plan_semantic/lifecycle_revisions.rs"]
+mod lifecycle_revisions;
 #[path = "plan_semantic/persistence.rs"]
 mod persistence;
 #[path = "plan_semantic/rollup_reference.rs"]
 mod rollup_reference;
 #[path = "plan_semantic/rollups.rs"]
 mod rollups;
+#[path = "plan_semantic/views.rs"]
+mod views;

@@ -35,8 +35,8 @@ fn semantic_encoding_is_deterministic_and_uses_stable_types() {
             kind: PlanEvidenceKind::Artifact,
             reference: PlanSemanticReference {
                 entity: EntityId::from_bytes([13; 16]),
-                revision: None,
-                snapshot: None,
+                revision: Some(scriberig_core::RevisionId::from_bytes([18; 32])),
+                snapshot: Some(scriberig_core::SnapshotId::from_bytes([19; 32])),
             },
             attributes: std::collections::BTreeMap::new(),
         },
@@ -50,8 +50,8 @@ fn semantic_encoding_is_deterministic_and_uses_stable_types() {
         text: "summary with exact provenance references".to_owned(),
         sources: vec![PlanSemanticReference {
             entity: EntityId::from_bytes([15; 16]),
-            revision: None,
-            snapshot: None,
+            revision: Some(scriberig_core::RevisionId::from_bytes([16; 32])),
+            snapshot: Some(scriberig_core::SnapshotId::from_bytes([17; 32])),
         }],
     })
     .expect("set summary");
@@ -101,6 +101,8 @@ fn semantic_encoding_is_deterministic_and_uses_stable_types() {
     assert!(plan_payload.get("history").is_none());
     assert!(node_payload.get("effective_status").is_none());
     assert!(node_payload.get("status_counts").is_none());
+    assert!(node_payload.get("evidence").is_none());
+    assert!(node_payload.get("gates").is_none());
 }
 
 /// Round-trips the current plan graph through independent typed records.
