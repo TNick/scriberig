@@ -15,6 +15,7 @@ pub mod parse;
 pub mod reconcile;
 pub mod render;
 pub mod schema;
+pub mod style;
 pub mod syntax;
 
 pub use analysis::{
@@ -32,8 +33,9 @@ pub use parse::parse;
 pub use reconcile::{
     RustMigrationProposal, RustReconciliation, reconcile, reconcile_with_comments,
 };
-pub use render::render;
+pub use render::{render, render_with_style};
 pub use schema::{RUST_ENTITY_TYPES, RUST_RELATIONS};
+pub use style::{RUST_SOURCE_KIND, RustIndent, RustStyle, RustStyleAdapter};
 pub use syntax::{
     RustBlock, RustDeclaration, RustFile, RustFunction, RustItem, RustMacro, RustParameter,
     RustStatement,

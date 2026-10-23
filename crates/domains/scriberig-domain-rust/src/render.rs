@@ -1,25 +1,45 @@
-//! Renders parser-independent Rust syntax deterministically.
+//! Renders parser-independent Rust syntax deterministically under a domain style.
 
 use crate::{
     error::RustSyntaxError,
+    style::RustStyle,
     syntax::{RustFile, RustItem},
 };
 
-/// Renders supported Rust syntax from semantic structures.
+/// Renders supported Rust syntax with the canonical domain style.
+///
 /// - `file`: Structured Rust syntax.
 ///
-/// Deterministic Rust source text.
-///
-/// Returns an error when an item cannot be rendered.
 /// # Returns
-/// The operation result.
+/// Deterministic Rust source text in the canonical style.
+///
 /// # Errors
-/// Returns an error when the operation fails.
+/// Returns an error when an item cannot be rendered.
 pub fn render(file: &RustFile) -> Result<String, RustSyntaxError> {
+    render_with_style(file, &RustStyle::default())
+}
+
+/// Renders supported Rust syntax with one exact domain style.
+///
+/// - `file`: Structured Rust syntax.
+/// - `style`: Exact presentation choices for indentation and item spacing.
+///
+/// The semantic structures are unchanged by the style: the same item order,
+/// signatures, and statement tokens are emitted, only their presentation moves.
+///
+/// # Returns
+/// Deterministic Rust source text in the requested style.
+///
+/// # Errors
+/// Returns an error when the style is unsupported or an item cannot be rendered.
+pub fn render_with_style(file: &RustFile, style: &RustStyle) -> Result<String, RustSyntaxError> {
+    style.validate().map_err(RustSyntaxError::Unsupported)?;
+    let separator = "\n".repeat(1 + style.blank_lines_between_items);
+    let indent = style.indentation();
     let mut output = String::new();
     for item in &file.items {
         if !output.is_empty() {
-            output.push_str("\n\n");
+            output.push_str(&separator);
         }
         match item {
             RustItem::Function(function) => {
@@ -41,7 +61,7 @@ pub fn render(file: &RustFile) -> Result<String, RustSyntaxError> {
                 output.push_str(") {");
                 for statement in &function.body.statements {
                     output.push('\n');
-                    output.push_str("    ");
+                    output.push_str(&indent);
                     output.push_str(&statement.tokens);
                 }
                 output.push_str("\n}");
