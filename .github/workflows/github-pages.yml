@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: debian-13
 
     steps:
       - name: Check out repository

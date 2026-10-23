@@ -6,7 +6,7 @@ on:
 
 jobs:
   conventions:
-    runs-on: ubuntu-latest
+    runs-on: debian-13
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -15,7 +15,7 @@ jobs:
       - run: python3 tools/lint_repo.py
 
   rust:
-    runs-on: ubuntu-latest
+    runs-on: debian-13
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -27,7 +27,7 @@ jobs:
       - run: cargo test --workspace
 
   web:
-    runs-on: ubuntu-latest
+    runs-on: debian-13
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -43,7 +43,7 @@ jobs:
 
   product-golden:
     needs: [conventions, rust, web]
-    runs-on: ubuntu-latest
+    runs-on: debian-13
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
