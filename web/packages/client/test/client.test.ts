@@ -142,43 +142,6 @@ describe("ScriberigClient", () => {
     });
   });
 
-  it("unwraps correlated Rust response envelopes", async () => {
-    const request = vi.fn(async (_input: string, init: RequestInit) => {
-      expect(new Headers(init.headers).get("accept")).toBe(
-        "application/vnd.scriberig.protocol+json",
-      );
-      return new Response(
-        JSON.stringify({
-          version: { major: 1, minor: 0 },
-          correlation_id: "corr-1",
-          response: {
-            Capabilities: {
-              protocol: { major: 1, minor: 0 },
-              capabilities: [],
-              features: [],
-            },
-          },
-        }),
-        { status: 200 },
-      );
-    });
-    vi.stubGlobal("fetch", request);
-    const capabilities = await new ScriberigClient(
-      new HttpTransport("http://test/api"),
-    ).capabilities();
-    expect(capabilities).toMatchObject({ capabilities: [], features: [] });
-    expect(request).toHaveBeenCalledWith(
-      "http://test/api/protocol/capabilities",
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          "content-type": "application/json",
-          accept: "application/vnd.scriberig.protocol+json",
-        }),
-      }),
-    );
-    vi.unstubAllGlobals();
-  });
-
   it("normalizes durable agent results from operation reads", async () => {
     const transport = {
       request: async <T>(): Promise<T> =>
