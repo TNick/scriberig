@@ -115,10 +115,9 @@ test("WEB-GOLDEN-03 reviews and validates a candidate without write-through", as
     "Validation: passed",
     { timeout: 30_000 },
   );
-  await expect(page.getByRole("region", { name: "Migration review" })).toContainText(
-    "src/lib.rs",
-    { timeout: 30_000 },
-  );
+  await expect(page.getByRole("region", { name: "Migration review" })).toContainText("src/lib.rs", {
+    timeout: 30_000,
+  });
   await expect(source).toHaveValue(/left\.saturating_add\(right\)/);
   await expect(readFile(join(fixture, "src", "lib.rs"), "utf8")).resolves.toContain("left + right");
   expectHealthyBrowser(diagnostics);
@@ -221,7 +220,9 @@ test("WEB-GOLDEN-07 agent uses semantic scope and enters normal review", async (
     .textContent();
   const snapshot = workspace?.match(/snapshot: (snp_[a-f0-9]+)/)?.[1];
   expect(snapshot).toBeDefined();
-  await page.getByLabel("Prompt").fill("Change add so overflow saturates instead of wrapping.");
+  await page
+    .getByRole("textbox", { name: "Prompt" })
+    .fill("Change add so overflow saturates instead of wrapping.");
   const agentResponse = page.waitForResponse(
     (response) =>
       response.url().endsWith("/api/protocol/project") &&
