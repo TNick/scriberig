@@ -22,6 +22,8 @@ mod service_agent_console;
 mod service_configuration;
 #[path = "service_plans.rs"]
 mod service_plans;
+#[path = "service_projection_style.rs"]
+mod service_projection_style;
 #[path = "service_query_helpers.rs"]
 mod service_query_helpers;
 #[path = "service_sessions.rs"]
@@ -40,6 +42,7 @@ pub struct ApplicationService<B> {
     session_store: Option<Arc<dyn scriberig_session::SessionStore>>,
     model_catalog: rpi_model_runtime::ModelCatalog,
     presentation_preferences: Arc<dyn crate::AgentPresentationPreferenceStore>,
+    projection_style: crate::ProjectionStyleConfiguration,
 }
 
 impl<B> ApplicationService<B> {
@@ -62,6 +65,7 @@ impl<B> ApplicationService<B> {
             presentation_preferences: Arc::new(
                 crate::InMemoryAgentPresentationPreferenceStore::default(),
             ),
+            projection_style: crate::ProjectionStyleConfiguration::default(),
         }
     }
 
@@ -79,35 +83,6 @@ impl<B> ApplicationService<B> {
     #[must_use]
     pub const fn operations(&self) -> &crate::OperationRegistry {
         &self.operations
-    }
-
-    /// Captures the current upstream model rows for trusted runtime composition.
-    ///
-    /// The returned catalog contains request metadata and must remain inside
-    /// trusted runtime composition. It is not a protocol projection.
-    ///
-    /// - `self`: Service owning the injected catalog.
-    ///
-    /// The upstream model catalog used for selection resolution.
-    ///
-    /// # Returns
-    /// Model rows from one coherent catalog revision.
-    #[must_use]
-    pub fn upstream_models(&self) -> Vec<rpi_ai::Model> {
-        self.model_catalog.snapshot().models
-    }
-
-    /// Returns a shared handle to the upstream live model catalog.
-    ///
-    /// - `self`: Service owning the catalog handle.
-    ///
-    /// A cloneable handle observing the same catalog state.
-    ///
-    /// # Returns
-    /// The shared upstream model catalog.
-    #[must_use]
-    pub fn model_catalog(&self) -> rpi_model_runtime::ModelCatalog {
-        self.model_catalog.clone()
     }
 }
 

@@ -28,7 +28,7 @@ use crate::style_schema::StyleSchema;
 ///
 /// # Private members
 /// - None.
-pub trait ProjectionStyleAdapter {
+pub trait ProjectionStyleAdapter: Send + Sync {
     /// Returns the adapter-owned style schema for one projection kind.
     ///
     /// - `self`: Adapter declaring its schema.

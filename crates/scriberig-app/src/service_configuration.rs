@@ -22,6 +22,23 @@ impl<B> ApplicationService<B> {
         self
     }
 
+    /// Installs shared projection style ownership for this service.
+    ///
+    /// - `self`: Service being configured.
+    /// - `configuration`: Style adapter, configuration store, and convention sources.
+    ///
+    /// The service configured with the supplied projection style ownership.
+    #[must_use]
+    /// # Returns
+    /// The operation result.
+    pub fn with_projection_style_configuration(
+        mut self,
+        configuration: crate::ProjectionStyleConfiguration,
+    ) -> Self {
+        self.projection_style = configuration;
+        self
+    }
+
     /// Installs a durable provider-neutral session repository.
     ///
     /// - `self`: Service being configured.
@@ -65,5 +82,27 @@ impl<B> ApplicationService<B> {
     pub fn with_model_catalog(mut self, catalog: rpi_model_runtime::ModelCatalog) -> Self {
         self.model_catalog = catalog;
         self
+    }
+
+    /// The upstream model catalog used for selection resolution.
+    ///
+    /// # Returns
+    /// Model rows from one coherent catalog revision.
+    #[must_use]
+    pub fn upstream_models(&self) -> Vec<rpi_ai::Model> {
+        self.model_catalog.snapshot().models
+    }
+
+    /// Returns a shared handle to the upstream live model catalog.
+    ///
+    /// - `self`: Service owning the catalog handle.
+    ///
+    /// A cloneable handle observing the same catalog state.
+    ///
+    /// # Returns
+    /// The shared upstream model catalog.
+    #[must_use]
+    pub fn model_catalog(&self) -> rpi_model_runtime::ModelCatalog {
+        self.model_catalog.clone()
     }
 }

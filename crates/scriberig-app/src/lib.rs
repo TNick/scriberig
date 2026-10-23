@@ -16,6 +16,7 @@ pub mod operation;
 pub mod operation_backend;
 pub mod operation_store;
 pub mod projection_backend;
+pub mod projection_style;
 pub mod promotion;
 pub mod query;
 pub mod read_backend;
@@ -65,6 +66,13 @@ pub use operation::{
 pub use operation_backend::{ApplicationBackendComposition, OperationProvider};
 pub use operation_store::StoreOperationProvider;
 pub use projection_backend::ProjectionOperationProvider;
+pub use projection_style::{
+    CompatibilityStyleAdapter, EffectiveProjectionStyle, InMemoryProjectionStyleStore,
+    ProjectionStyleBackend, ProjectionStyleConfiguration, ProjectionStyleFidelityRequest,
+    ProjectionStyleSchemaRequest, ProjectionStyleSettingRequest, ProjectionStyleStore,
+    RepositoryConventionSource, StaticRepositoryConvention, StoredStyle, StyleEntryKey,
+    StyleResolution, StyleResolutionRequest, StyleScopeKind,
+};
 pub use promotion::{
     ApprovalEvidence, PromotionDecision, PromotionPolicyEvaluation, PromotionRequest,
     evaluate_promotion, promote_candidate,
