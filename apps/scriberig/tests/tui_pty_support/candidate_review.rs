@@ -26,22 +26,28 @@ pub fn open_candidate_review(tui: &mut TuiPty, validation: &str) {
     );
 }
 
-/// Opens the upstream confirmation dialog for a reviewed candidate.
+/// Opens the confirmation dialog for the active reviewed candidate.
 ///
 /// - `tui`: Active native TUI process displaying candidate review.
 ///
 /// # Panics
 /// Panics when the confirmation dialog does not open after candidate review.
 pub fn open_apply_confirmation(tui: &mut TuiPty) {
-    tui.send(b"\x1b[18~");
+    tui.send(b"\x10");
     assert!(
-        tui.read_until_next("Validation: Passed"),
-        "candidate review did not regain focus: {}",
+        tui.read_until_for("Command palette", Duration::from_secs(120)),
+        "command palette did not open: {}",
         tui.diagnostic()
     );
+    tui.send_slow(b"Confirm");
     tui.send(b"\r");
     assert!(
-        tui.read_until("Confirm reviewed change"),
+        tui.read_until_for("Reviewed base:", Duration::from_secs(120)),
+        "candidate confirmation dialog did not show its reviewed base: {}",
+        tui.diagnostic()
+    );
+    assert!(
+        tui.screen().contains("Confirm reviewed change"),
         "{}",
         tui.diagnostic()
     );
@@ -50,11 +56,17 @@ pub fn open_apply_confirmation(tui: &mut TuiPty) {
 /// Accepts candidate confirmation and the resulting exact commit action.
 ///
 /// - `tui`: Active native TUI process displaying candidate confirmation.
-///
-/// # Panics
-/// Panics when the confirmation dialog remains open after acceptance.
 pub fn confirm_candidate_apply(tui: &mut TuiPty) {
     tui.send(b"\r");
+}
+
+/// Waits for the completed candidate operation to leave the confirmation dialog closed.
+///
+/// - `tui`: Active native TUI process after its candidate operation completed.
+///
+/// # Panics
+/// Panics when the dialog remains visible after the PTY wait timeout.
+pub fn assert_confirmation_closed(tui: &mut TuiPty) {
     assert!(
         tui.read_until_not("Confirm reviewed change"),
         "candidate confirmation did not close: {}",
