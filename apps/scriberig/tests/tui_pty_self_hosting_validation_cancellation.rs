@@ -24,7 +24,7 @@ use tui_pty_support::{TuiPty, test_lock};
 fn tui_cancels_php_validation_without_project_or_live_source_mutation() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_self_hosting();
-    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     let checkout = tui.fixture_path().join("scriberig");
     let manifest = fs::read(checkout.join("Cargo.toml")).expect("baseline manifest");
     let scanner =
@@ -200,7 +200,7 @@ fn is_candidate_validation_workspace(root: &Path) -> bool {
 /// - `tui`: Active product process.
 fn cancel_active_agent(tui: &mut TuiPty) {
     tui.send_slow(b"/operations\r");
-    assert!(tui.read_until("Operations"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Operation:"), "{}", tui.diagnostic());
     assert!(
         tui.read_until_for("Running", Duration::from_secs(10)),
         "{}",

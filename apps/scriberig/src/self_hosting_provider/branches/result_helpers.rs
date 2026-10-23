@@ -49,9 +49,47 @@ pub(super) fn child_summary(message: &str) -> Result<String, HostConfigurationEr
 /// # Returns
 /// `true` when output contains a passed validation ID for this candidate.
 pub(super) fn is_successful_candidate_validation(message: &str, candidate: &str) -> bool {
-    message.contains("object_type=Some(\"candidate_validation\")")
-        && message.contains(&format!(
-            "summary=Some(\"candidate {candidate} validation passed\""
-        ))
-        && message.contains(&format!("validation_id:{candidate}:"))
+    let Some(value) = super::parse_tool_result(message) else {
+        return false;
+    };
+    let summary = value.get("summary").and_then(serde_json::Value::as_str);
+    let handles = value.get("handles").and_then(serde_json::Value::as_array);
+    value.get("object_type").and_then(serde_json::Value::as_str) == Some("candidate_validation")
+        && summary.is_some_and(|summary| {
+            summary.contains(&format!("candidate {candidate} validation passed"))
+        })
+        && handles.is_some_and(|handles| {
+            handles.iter().any(|handle| {
+                handle.as_str().is_some_and(|handle| {
+                    handle.starts_with(&format!("validation_id:{candidate}:"))
+                })
+            })
+        })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_successful_candidate_validation;
+
+    /// Verifies JSON validation results advance the registered profile sequence.
+    #[test]
+    fn recognizes_json_candidate_validation_evidence() {
+        let result = serde_json::json!({
+            "object_type": "candidate_validation",
+            "summary": "candidate cand_123 validation passed",
+            "handles": ["validation_id:cand_123:php-domain-focused"]
+        });
+        let quoted =
+            serde_json::to_string(&result.to_string()).expect("serialize quoted validation result");
+
+        assert!(is_successful_candidate_validation(
+            &result.to_string(),
+            "cand_123"
+        ));
+        assert!(is_successful_candidate_validation(&quoted, "cand_123"));
+        assert!(!is_successful_candidate_validation(
+            &quoted,
+            "other-candidate"
+        ));
+    }
 }

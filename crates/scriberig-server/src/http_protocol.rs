@@ -82,6 +82,10 @@ pub(super) fn dispatch<S: ApplicationService + 'static>(
     })
 }
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "keeping the stable HTTP operation mapping in one audited match"
+)]
 /// Decodes one stable operation identifier into a protocol request variant.
 ///
 /// - `operation`: Stable operation identifier from the URL.

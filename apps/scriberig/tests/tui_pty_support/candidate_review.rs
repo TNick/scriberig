@@ -5,24 +5,34 @@ use super::TuiPty;
 /// Opens the normal shared candidate review for the active agent result.
 ///
 /// - `tui`: Active native TUI process.
-pub fn open_candidate_review(tui: &mut TuiPty) {
+/// - `validation`: Expected terminal validation status to display.
+///
+/// # Panics
+/// Panics when the candidate review or expected validation status does not appear.
+pub fn open_candidate_review(tui: &mut TuiPty, validation: &str) {
     tui.send_slow(b"/changes\r");
     assert!(tui.read_until("Candidate review"), "{}", tui.diagnostic());
+    assert!(
+        tui.read_until(validation),
+        "candidate review did not finish loading: {}",
+        tui.diagnostic()
+    );
 }
 
 /// Opens the upstream confirmation dialog for a reviewed candidate.
 ///
 /// - `tui`: Active native TUI process displaying candidate review.
+///
+/// # Panics
+/// Panics when the confirmation dialog does not open after candidate review.
 pub fn open_apply_confirmation(tui: &mut TuiPty) {
-    tui.send(b"\r");
+    tui.send(b"\x1b[18~");
     assert!(
-        tui.read_until("Confirmation: required"),
-        "{}",
+        tui.read_until_next("Validation: Passed"),
+        "candidate review did not regain focus: {}",
         tui.diagnostic()
     );
-    tui.send(b"\x10");
-    assert!(tui.read_until("Command palette"), "{}", tui.diagnostic());
-    tui.send_slow(b"Confirm");
+    tui.send(b"\r");
     assert!(
         tui.read_until("Confirm reviewed change"),
         "{}",
@@ -33,12 +43,14 @@ pub fn open_apply_confirmation(tui: &mut TuiPty) {
 /// Accepts candidate confirmation and the resulting exact commit action.
 ///
 /// - `tui`: Active native TUI process displaying candidate confirmation.
+///
+/// # Panics
+/// Panics when the confirmation dialog remains open after acceptance.
 pub fn confirm_candidate_apply(tui: &mut TuiPty) {
     tui.send(b"\r");
     assert!(
-        tui.read_until("Action: commit change"),
-        "{}",
+        tui.read_until_not("Confirm reviewed change"),
+        "candidate confirmation did not close: {}",
         tui.diagnostic()
     );
-    tui.send(b"\r");
 }

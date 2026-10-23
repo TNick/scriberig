@@ -228,16 +228,16 @@ fn invoke_semantic_tool<B: ApplicationBackend + Sync>(
         result
     })?;
     let mut handles = result.handles;
-    if handles.len() > 32 {
+    if handles.len() > 64 {
         if let Some(index) = handles
             .iter()
             .position(|handle| handle.starts_with("next_offset:"))
         {
             let continuation = handles.remove(index);
-            handles.truncate(31);
+            handles.truncate(63);
             handles.push(continuation);
         } else {
-            handles.truncate(32);
+            handles.truncate(64);
         }
     }
     let summary = result.summary.map(|summary| {

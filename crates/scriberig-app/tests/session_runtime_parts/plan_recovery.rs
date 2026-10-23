@@ -2,6 +2,10 @@
 
 use super::*;
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "the test exercises recovery and replan as one persisted scenario"
+)]
 /// Recovers and repairs a failed plan through revision-checked app operations.
 #[test]
 fn failed_plan_recovery_and_replan_use_shared_mutations() {

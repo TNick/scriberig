@@ -5,9 +5,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use super::TuiPty;
-use super::candidate_review::{
-    confirm_candidate_apply, open_apply_confirmation, open_candidate_review,
-};
+use super::candidate_review::{confirm_candidate_apply, open_apply_confirmation};
 use scriberig_app::{ApplicationContext, HistoryRequest, OperationProvider, SnapshotSelector};
 use scriberig_project::ProjectService;
 use scriberig_project::ProjectSourceEffectKind;
@@ -169,13 +167,31 @@ pub(super) fn assert_candidate_conflicts_are_visible(
 ///
 /// - `tui`: Active native TUI process.
 fn reopen_candidate_review(tui: &mut TuiPty) {
-    tui.send(b"\x1b");
+    tui.send(b"\x1b[18~");
     assert!(
-        tui.read_until_for("Enter send", Duration::from_secs(20)),
-        "{}",
+        tui.read_until_next("Candidate review"),
+        "candidate review did not return focus to the composer: {}",
         tui.diagnostic()
     );
-    open_candidate_review(tui);
+    assert!(
+        tui.read_until_next("Candidate review"),
+        "candidate review focus handoff did not settle: {}",
+        tui.diagnostic()
+    );
+    tui.send(b"\x10");
+    assert!(tui.read_until("Command palette"), "{}", tui.diagnostic());
+    tui.send_slow(b"Review candidate");
+    tui.send(b"\r");
+    assert!(
+        tui.read_until_not("operation_failed"),
+        "candidate review did not clear its previous operation error: {}",
+        tui.diagnostic()
+    );
+    assert!(
+        tui.read_until("Validation: Passed"),
+        "candidate review did not finish refreshing: {}",
+        tui.diagnostic()
+    );
 }
 
 /// Verifies a conflict leaves the authoritative project at its exact base.

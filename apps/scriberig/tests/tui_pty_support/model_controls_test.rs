@@ -21,5 +21,10 @@ fn tui_pty_uses_upstream_model_controls() {
     tui.send(b"\r");
     assert!(tui.read_until("Fake A"), "{}", tui.diagnostic());
     tui.send(b"\x1b");
+    assert!(
+        tui.read_until_not("Select provider model"),
+        "{}",
+        tui.diagnostic()
+    );
     assert!(tui.shutdown());
 }

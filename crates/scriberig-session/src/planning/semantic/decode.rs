@@ -109,7 +109,10 @@ pub(super) fn into_plan(
                         },
                     )? != object.entity
                     || structures
-                        .insert(payload.child, (payload.ordinal, payload.parent))
+                        .insert(
+                            payload.child,
+                            (payload.ordinal, payload.parent, payload.root_ordinal),
+                        )
                         .is_some()
                 {
                     return Err(invalid("duplicate or unsupported structure relation"));
@@ -246,14 +249,16 @@ pub(super) fn into_plan(
         let node = nodes
             .remove(&node_id)
             .ok_or_else(|| invalid("membership points to a missing node"))?;
-        let (structure_ordinal, parent) = structures
+        let (structure_ordinal, parent, root_ordinal) = structures
             .remove(&node_id)
             .ok_or_else(|| invalid("node has no structural relation"))?;
         if structure_ordinal != ordinal {
             return Err(invalid("membership and structure order disagree"));
         }
         if matches!(parent, Some(PlanNodeParent::Branch(_)) | None) {
-            root_nodes.push(node_id);
+            root_nodes.push((root_ordinal.unwrap_or(structure_ordinal), node_id));
+        } else if root_ordinal.is_some() {
+            return Err(invalid("non-root node has a root ordinal"));
         }
         plan_nodes.push(PlanNode {
             id: node_id,
@@ -273,6 +278,15 @@ pub(super) fn into_plan(
             claim_generation: node.claim_generation,
         });
     }
+    root_nodes.sort_by_key(|(ordinal, _)| *ordinal);
+    if root_nodes
+        .iter()
+        .enumerate()
+        .any(|(expected, (actual, _))| u64::try_from(expected).ok() != Some(*actual))
+    {
+        return Err(invalid("duplicate or incomplete root node order"));
+    }
+    let root_nodes = root_nodes.into_iter().map(|(_, node)| node).collect();
     if !nodes.is_empty() || !structures.is_empty() {
         return Err(invalid("unreferenced node or structure relation"));
     }

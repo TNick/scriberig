@@ -4,39 +4,17 @@ use scriberig_core::EntityId;
 use scriberig_session::{
     ContinuationAnchor, Plan, PlanEvidenceAssociation, PlanEvidenceKind, PlanEvidenceOwner,
     PlanEvidenceReference, PlanEvidenceRole, PlanGate, PlanGatePhase, PlanGateRequirement,
-    PlanGateStatus, PlanGateWaiver, PlanNode, PlanNodeParent, PlanNodeRollupIndex, PlanNodeStatus,
+    PlanGateStatus, PlanGateWaiver, PlanNodeParent, PlanNodeRollupIndex, PlanNodeStatus,
     PlanNodeSummary, PlanSemanticReference, PlanSemanticSnapshot, PlanStatus,
 };
+#[path = "plan_semantic/node_fixture.rs"]
+mod node_fixture;
+use node_fixture::node;
 
-/// Creates a valid unstarted plan node with a stable identity.
-///
-/// # Parameters
-/// - `id`: Stable node identity byte repeated across the ID.
-/// - `branch`: Existing branch used as the structural parent.
-/// - `title`: Human-readable node title and purpose.
-///
-/// # Returns
-/// A planned node with no execution attempt.
-fn node(id: u8, branch: EntityId, title: &str) -> PlanNode {
-    PlanNode {
-        id: EntityId::from_bytes([id; 16]),
-        parent: Some(PlanNodeParent::Branch(branch)),
-        title: title.to_owned(),
-        purpose: title.to_owned(),
-        expected_result: None,
-        semantic_scope: Vec::new(),
-        status: PlanNodeStatus::Planned,
-        branch: None,
-        result: None,
-        superseded_by: None,
-        abandon_reason: None,
-        last_failure: None,
-        assignment: None,
-        claim: None,
-        claim_generation: 0,
-    }
-}
-
+#[allow(
+    clippy::too_many_lines,
+    reason = "the test covers the complete persisted gate and evidence contract"
+)]
 /// Round-trips independent gate, evidence, and summary records.
 #[test]
 fn semantic_plan_requirement_records_round_trip_and_block_entry() {
@@ -214,7 +192,7 @@ fn failed_validation_evidence_fails_entry_gate() {
         1
     );
     assert_eq!(plan.nodes[0].status, PlanNodeStatus::Planned);
-    assert!(plan.ready_nodes_from_results(&[]).is_empty());
+    assert_eq!(plan.ready_nodes_from_results(&[]).len(), 0);
 }
 
 /// Derives effective parent status and ignored/abandoned descendant flags.

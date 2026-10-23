@@ -6,6 +6,10 @@ use queries::{ARCHITECTURE_QUERIES, IMPLEMENTATION_QUERIES, PHP_CANDIDATE_PROFIL
 #[path = "branches/result_helpers.rs"]
 mod result_helpers;
 use result_helpers::{child_summary, is_child_result, is_successful_candidate_validation};
+#[path = "branches/result_parsing.rs"]
+mod result_parsing;
+use result_parsing::is_semantic_find;
+pub(super) use result_parsing::parse_tool_result;
 
 use super::{
     SemanticScope, ValidationMode, candidate, delegate, final_response, handle_with_prefix,
@@ -370,18 +374,19 @@ fn semantic_step(
             "project":scope.project,
             "snapshot":scope.snapshot,
             "query":queries[searched],
-            "limit":50
+            "limit":10
         }),
     )))
 }
 
-/// Checks whether one tool result is a semantic-find projection.
-///
-/// - `message`: Provider-normalized tool result text.
-///
-/// # Returns
-/// `true` for the current JSON shape or the legacy debug shape.
-fn is_semantic_find(message: &str) -> bool {
-    message.contains("\"object_type\":\"semantic_find\"")
-        || message.contains("object_type=Some(\"semantic_find\")")
+/// Verifies truncated find handles retain their exact primary entity.
+#[cfg(test)]
+#[test]
+fn semantic_entity_falls_back_to_primary_find_entity() {
+    let result = r#"{"entity":"ent_primary","object_type":"semantic_find","handles":[]}"#;
+
+    assert_eq!(
+        semantic_entity(result).expect("find primary entity"),
+        "ent_primary"
+    );
 }

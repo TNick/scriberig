@@ -148,7 +148,7 @@ fn historical_plan_snapshot_loads_exact_revision() {
     .expect("compact snapshot belongs to plan history");
     assert_eq!(compact.status, scriberig_session::PlanStatus::Running);
     assert_eq!(compact.source_snapshot, Some(snapshot));
-    assert!(compact.history.is_empty());
+    assert_eq!(compact.history.len(), 0);
     let branch_results =
         scriberig_session::repository::SessionStore::load_plan_branch_results(&store, session_id)
             .expect("load plan branch results")

@@ -57,7 +57,7 @@ impl NativeScenario {
         // Each scenario step is context-driven, so keep a bounded pool of
         // factories available for the full tool loop instead of consuming a
         // single one-shot response.
-        let steps = (0..64)
+        let steps = (0..256)
             .map(|_| {
                 let scenario = Arc::clone(&scenario);
                 let scenario_model = scenario_model.clone();

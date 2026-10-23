@@ -70,25 +70,24 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         let results = if snapshot.is_some() {
             None
         } else if let Some(store) = &self.session_store {
-            match store
+            if let Some(results) = store
                 .load_plan_branch_results(session)
                 .map_err(|message| ApplicationError::Internal { message })?
             {
-                Some(results) => Some(results),
-                None => {
-                    session_state = Some(SessionBackend::read_session(
-                        self,
-                        context,
-                        &SessionRequest { session },
-                    )?);
-                    session_state.as_ref().map(|state| {
-                        state
-                            .branches
-                            .iter()
-                            .filter_map(|branch| branch.result.clone())
-                            .collect()
-                    })
-                }
+                Some(results)
+            } else {
+                session_state = Some(SessionBackend::read_session(
+                    self,
+                    context,
+                    &SessionRequest { session },
+                )?);
+                session_state.as_ref().map(|state| {
+                    state
+                        .branches
+                        .iter()
+                        .filter_map(|branch| branch.result.clone())
+                        .collect()
+                })
             }
         } else {
             session_state.as_ref().map(|state| {

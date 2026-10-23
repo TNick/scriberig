@@ -110,6 +110,15 @@ pub(super) fn from_plan(plan: &Plan) -> Result<PlanSemanticSnapshot, PlanSemanti
             child: node.id,
             parent: node.parent,
             ordinal,
+            root_ordinal: plan
+                .root_nodes
+                .iter()
+                .position(|root| *root == node.id)
+                .map(u64::try_from)
+                .transpose()
+                .map_err(|error| {
+                    PlanSemanticError::Serialization(format!("invalid root ordinal: {error}"))
+                })?,
         };
         push_relation(
             &mut objects,

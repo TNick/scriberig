@@ -75,7 +75,10 @@ pub(in crate::planning::semantic) fn node_refs(
                         },
                     )? != object.entity
                     || structures
-                        .insert(payload.child, (payload.ordinal, payload.parent))
+                        .insert(
+                            payload.child,
+                            (payload.ordinal, payload.parent, payload.root_ordinal),
+                        )
                         .is_some()
                 {
                     return Err(invalid("duplicate or mismatched plan structure"));
@@ -96,7 +99,7 @@ pub(in crate::planning::semantic) fn node_refs(
         if !seen_ordinals.insert(ordinal) {
             return Err(invalid("duplicate plan membership ordinal"));
         }
-        let Some((structure_ordinal, parent)) = structures.remove(&entity) else {
+        let Some((structure_ordinal, parent, _root_ordinal)) = structures.remove(&entity) else {
             return Err(invalid("PlanNode has no structural relation"));
         };
         if structure_ordinal != ordinal {

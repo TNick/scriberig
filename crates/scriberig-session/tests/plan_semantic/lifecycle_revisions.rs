@@ -19,6 +19,10 @@ fn node_revision(snapshot: &PlanSemanticSnapshot, node: EntityId) -> scriberig_c
         .revision
 }
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "the test verifies identity and revisions across one ordered lifecycle"
+)]
 /// Preserves node identity and distinct revisions through retry and completion.
 #[test]
 fn lifecycle_transitions_keep_identity_and_advance_content_revisions() {

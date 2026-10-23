@@ -62,7 +62,7 @@ pub(crate) fn onboard_project(implementation: bool) -> OnboardingEvidence {
     } else {
         TuiPty::start_self_hosting_discovery_cancellation()
     };
-    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     let database = tui.fixture_path().join("scriberig.sqlite");
     tui.send(b"Onboard the current project.\r");
     let session = visible_session(&tui);
@@ -204,7 +204,7 @@ pub(crate) fn assert_provider_gate_waiting(tui: &TuiPty) {
 /// - `tui`: Active TUI process.
 pub(crate) fn cancel_active_agent(tui: &mut TuiPty) {
     tui.send_slow(b"/operations\r");
-    assert!(tui.read_until("Operations"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Operation:"), "{}", tui.diagnostic());
     assert!(
         tui.read_until_for("Running", Duration::from_secs(10)),
         "{}",

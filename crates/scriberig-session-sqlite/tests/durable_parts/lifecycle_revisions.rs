@@ -24,7 +24,7 @@ fn commit_and_resolve_node(
     store: &SqliteSessionStore,
     semantic: &SqliteStore,
     session: &mut Session,
-    plan: Plan,
+    plan: &Plan,
     node: EntityId,
 ) -> scriberig_core::RevisionId {
     let current = store
@@ -48,7 +48,7 @@ fn commit_and_resolve_node(
         .expect("session exists");
 
     let stored_revision = resolve_node_revision(semantic, session.id, plan.id, node);
-    let encoded = scriberig_session::PlanSemanticSnapshot::from_plan(&plan)
+    let encoded = scriberig_session::PlanSemanticSnapshot::from_plan(plan)
         .expect("encode proposed plan")
         .objects
         .into_iter()
@@ -91,6 +91,10 @@ fn resolve_node_revision(
     revision
 }
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "the test verifies one ordered lifecycle and its revision changes"
+)]
 /// Resolves exact immutable node revisions for all required lifecycle states.
 #[test]
 fn stored_node_revision_follows_retry_lifecycle_without_changing_identity() {
@@ -202,7 +206,7 @@ fn stored_node_revision_follows_retry_lifecycle_without_changing_identity() {
         &store,
         &semantic,
         &mut session,
-        plan.clone(),
+        &plan,
         node_id,
     ));
     assert_eq!(session.plans[0].nodes[0].status, PlanNodeStatus::Ready);
@@ -216,7 +220,7 @@ fn stored_node_revision_follows_retry_lifecycle_without_changing_identity() {
         &store,
         &semantic,
         &mut session,
-        plan.clone(),
+        &plan,
         node_id,
     ));
     plan = session.plans[0].clone();
@@ -226,7 +230,7 @@ fn stored_node_revision_follows_retry_lifecycle_without_changing_identity() {
         &store,
         &semantic,
         &mut session,
-        plan.clone(),
+        &plan,
         node_id,
     ));
     plan = session.plans[0].clone();
@@ -236,7 +240,7 @@ fn stored_node_revision_follows_retry_lifecycle_without_changing_identity() {
         &store,
         &semantic,
         &mut session,
-        plan.clone(),
+        &plan,
         node_id,
     ));
 
@@ -249,7 +253,7 @@ fn stored_node_revision_follows_retry_lifecycle_without_changing_identity() {
         &store,
         &semantic,
         &mut session,
-        plan.clone(),
+        &plan,
         node_id,
     ));
     plan = session.plans[0].clone();
@@ -276,7 +280,7 @@ fn stored_node_revision_follows_retry_lifecycle_without_changing_identity() {
         &store,
         &semantic,
         &mut session,
-        plan,
+        &plan,
         node_id,
     ));
 

@@ -15,7 +15,7 @@ use tui_pty_support::TuiPty;
 #[test]
 fn tui_cancellation_persists_abandoned_branch_without_project_or_source_mutation() {
     let mut tui = TuiPty::start_self_hosting_cancellation();
-    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     let checkout = tui.fixture_path().join("scriberig");
     let manifest = fs::read(checkout.join("Cargo.toml")).expect("baseline manifest");
     let scanner =

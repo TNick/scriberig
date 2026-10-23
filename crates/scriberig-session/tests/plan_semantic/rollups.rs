@@ -136,6 +136,10 @@ fn incremental_rollup_matches_all_direct_status_combinations() {
     }
 }
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "the test compares all affected rollup cases in one fixture"
+)]
 /// Compares incremental rollups for ignored/abandoned and gated child changes.
 #[test]
 fn incremental_rollup_matches_ignored_gate_and_abandoned_cases() {

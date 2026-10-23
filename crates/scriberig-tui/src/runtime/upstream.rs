@@ -130,12 +130,14 @@ pub(super) enum ComposerInput {
 ///
 /// - `input_sender`: Channel receiving the application quit intent.
 /// - `keybindings`: Upstream bindings including the `ScribeRig` quit action.
+/// - `state`: Shared presentation state for operation cancellation routing.
 ///
 /// # Returns
 /// A thread-safe upstream input callback.
 fn global_quit_handler(
     input_sender: mpsc::Sender<ComposerInput>,
     keybindings: Arc<Keybindings>,
+    state: Arc<Mutex<TuiState>>,
 ) -> Arc<dyn Fn(&rpi_tui::InputEvent) -> bool + Send + Sync> {
     Arc::new(move |event| {
         let rpi_tui::InputEvent::Key(key) = event else {
@@ -144,6 +146,33 @@ fn global_quit_handler(
         if keybindings.matches(key, controls::QUIT) {
             let _ = input_sender.send(ComposerInput::Quit);
             true
+        } else if keybindings.matches(key, controls::CANCEL_OPERATION)
+            && let Ok(state) = state.lock()
+            && state.primary_view == crate::selection::PrimaryView::Operations
+            && let Some(operation) = state
+                .operations
+                .get(state.cursor)
+                .filter(|operation| operation.cancellable())
+                .or_else(|| {
+                    state
+                        .operations
+                        .iter()
+                        .rev()
+                        .find(|operation| operation.kind == "Agent" && operation.cancellable())
+                })
+                .or_else(|| {
+                    state
+                        .operations
+                        .iter()
+                        .rev()
+                        .find(|operation| operation.cancellable())
+                })
+        {
+            input_sender
+                .send(ComposerInput::PresentationAction(Box::new(
+                    crate::action::Action::OperationCancelRequested(operation.id.clone()),
+                )))
+                .is_ok()
         } else {
             false
         }
@@ -253,6 +282,7 @@ pub(super) fn run<S: TuiService + Sync>(
     screen.set_global_input_handler(Some(global_quit_handler(
         input_sender.clone(),
         Arc::clone(&keybindings),
+        Arc::clone(&shared_state),
     )));
     screen.set_layout_root(Some(root));
     composer.set_focused(true);

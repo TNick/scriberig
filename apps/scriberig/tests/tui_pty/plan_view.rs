@@ -8,6 +8,7 @@ use scriberig_session::SessionStore;
 fn tui_pty_shows_a_session_plan_in_the_conversation_tree() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_with_arithmetic_model();
+    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     let session_id = scriberig_core::EntityId::new();
     let root_id = scriberig_core::EntityId::new();
     let mut root = scriberig_session::Branch::new(root_id, "Planned conversation")
@@ -57,7 +58,6 @@ fn tui_pty_shows_a_session_plan_in_the_conversation_tree() {
         .expect("seed planned conversation");
     drop(store);
 
-    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     tui.send_slow(format!("/switch {session_id}\r").as_bytes());
     assert!(
         tui.read_until("Historical acceptance plan"),

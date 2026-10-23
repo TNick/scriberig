@@ -95,9 +95,14 @@ pub(super) fn wait_for_branch_completion(
             }
             assert!(
                 branch.status == scriberig_session::BranchStatus::Active,
-                "branch {title:?} terminated as {:?}: {:?}",
+                "branch {title:?} terminated as {:?}: {:?}; tools: {:?}",
                 branch.status,
-                branch.outcome
+                branch.outcome,
+                branch
+                    .tool_invocations
+                    .iter()
+                    .map(|invocation| invocation.name.as_str())
+                    .collect::<Vec<_>>()
             );
         }
         let branches = saved

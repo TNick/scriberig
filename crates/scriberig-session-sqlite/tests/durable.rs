@@ -377,6 +377,8 @@ mod part1;
 #[path = "durable_parts/request_provenance.rs"]
 mod request_provenance;
 
+#[path = "durable_parts/busy_timeout.rs"]
+mod busy_timeout;
 #[path = "durable_parts/incremental_rollup.rs"]
 mod incremental_rollup;
 #[path = "durable_parts/lifecycle_revisions.rs"]

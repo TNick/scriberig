@@ -52,7 +52,7 @@ struct StaleScenario {
 /// The operation result.
 fn start_stale_scenario() -> StaleScenario {
     let mut tui = TuiPty::start_self_hosting();
-    assert!(tui.read_until("no active project"), "{}", tui.diagnostic());
+    assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     tui.send(b"Onboard the current project.\r");
     let session = visible_session(&tui);
     wait_for_onboarding(&mut tui, session);
@@ -136,7 +136,7 @@ fn advance_canonical_project(
 ///
 /// - `tui`: Active native TUI with the agent candidate in its session.
 fn attempt_stale_apply(tui: &mut TuiPty) {
-    candidate_review::open_candidate_review(tui);
+    candidate_review::open_candidate_review(tui, "Validation: Passed");
     assert!(
         tui.screen().contains("Validation: Passed"),
         "{}",

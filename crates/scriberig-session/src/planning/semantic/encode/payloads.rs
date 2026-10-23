@@ -57,6 +57,7 @@ pub(super) struct StructurePayload {
     pub(super) child: EntityId,
     pub(super) parent: Option<super::super::super::PlanNodeParent>,
     pub(super) ordinal: u64,
+    pub(super) root_ordinal: Option<u64>,
 }
 /// Converts or evaluates `DependencyPayload`.
 

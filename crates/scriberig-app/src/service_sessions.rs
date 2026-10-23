@@ -25,7 +25,7 @@ pub(super) use service_session_authorization::{
 /// Authorizes a compact plan read with the session-tree capability.
 ///
 /// - `context`: Authorized caller context.
-/// - `session`: Stable ScribeRig session identity.
+/// - `session`: Stable `ScribeRig` session identity.
 ///
 /// Unit when the caller may inspect the session tree.
 ///

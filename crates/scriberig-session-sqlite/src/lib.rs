@@ -88,6 +88,7 @@ impl SqliteSessionStore {
         connection: Connection,
         semantic_store: SqliteStore,
     ) -> rusqlite::Result<Self> {
+        connection.execute_batch("PRAGMA busy_timeout = 5000;")?;
         connection.execute_batch(
             "CREATE TABLE IF NOT EXISTS session_records (
                  session_id BLOB PRIMARY KEY,

@@ -140,6 +140,12 @@ impl Component for SemanticViewPanel {
         let InputEvent::Key(key) = event else {
             return false;
         };
+        if self.keybindings.matches(key, super::controls::BROWSE) {
+            let _ = self
+                .input_sender
+                .send(super::ComposerInput::TogglePresentationFocus(false));
+            return true;
+        }
         let direction = if self.keybindings.matches(key, keys::SELECT_UP) {
             Some(crate::action::Direction::Previous)
         } else if self.keybindings.matches(key, keys::SELECT_DOWN) {

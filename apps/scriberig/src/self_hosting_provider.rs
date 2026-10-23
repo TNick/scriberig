@@ -222,11 +222,18 @@ pub(super) fn project_scope(context: &Context) -> Result<SemanticScope, HostConf
 /// # Errors
 /// Returns an error when the operation fails.
 pub(super) fn semantic_entity(message: &str) -> Result<String, HostConfigurationError> {
-    parse_handles(message)?
+    let entity = parse_handles(message)?
         .iter()
         .filter_map(|handle| serde_json::from_str::<Value>(handle).ok())
         .find(|value| value.get("kind").and_then(Value::as_str) == Some("source"))
-        .and_then(|value| value.get("entity")?.as_str().map(str::to_owned))
+        .and_then(|value| value.get("entity")?.as_str().map(str::to_owned));
+    entity
+        .or_else(|| {
+            branches::parse_tool_result(message)?
+                .get("entity")?
+                .as_str()
+                .map(str::to_owned)
+        })
         .ok_or_else(|| malformed("semantic source handle missing"))
 }
 

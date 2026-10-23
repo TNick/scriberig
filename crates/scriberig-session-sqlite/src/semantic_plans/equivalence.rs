@@ -50,16 +50,33 @@ pub(super) fn verify_before_promotion(
         .map(|node| decoded.node_view(node.id, None, None, &semantic_rollups))
         .collect::<Result<Vec<_>, _>>()
         .map_err(|error| format!("semantic PlanNodeView assembly failed: {error:?}"))?;
-    if legacy_view != semantic_view
-        || legacy_nodes != semantic_nodes
-        || legacy.nodes != decoded.nodes
-        || legacy.dependencies != decoded.dependencies
-        || legacy.gates != decoded.gates
-        || legacy.evidence != decoded.evidence
-    {
+    let mut differences = Vec::new();
+    if legacy_view != semantic_view {
+        differences.push(format!(
+            "PlanView (legacy={legacy_view:?}, semantic={semantic_view:?})"
+        ));
+    }
+    if legacy_nodes != semantic_nodes {
+        differences.push("PlanNodeView".to_owned());
+    }
+    if legacy.nodes != decoded.nodes {
+        differences.push("PlanNode records".to_owned());
+    }
+    if legacy.dependencies != decoded.dependencies {
+        differences.push("dependencies".to_owned());
+    }
+    if legacy.gates != decoded.gates {
+        differences.push("gates".to_owned());
+    }
+    if legacy.evidence != decoded.evidence {
+        differences.push("evidence".to_owned());
+    }
+    if !differences.is_empty() {
         return Err(format!(
-            "semantic migration changes PlanView semantics for plan {} revision {}",
-            legacy.id, legacy.revision
+            "semantic migration changes {} for plan {} revision {}",
+            differences.join(", "),
+            legacy.id,
+            legacy.revision,
         ));
     }
     Ok(())

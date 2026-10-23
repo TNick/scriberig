@@ -23,7 +23,7 @@ use scriberig_store_sqlite::SqliteStore;
 use tokio::sync::oneshot;
 use tokio_util::sync::CancellationToken;
 
-pub(super) const MAX_TOOL_ARGUMENT_BYTES: usize = 16_384;
+pub(super) const MAX_TOOL_ARGUMENT_BYTES: usize = 256 * 1024;
 pub(super) const MAX_TOOL_OUTPUT_TEXT_BYTES: usize = 12_000;
 
 /// Result of one recursively executed `ScribeRig` branch.

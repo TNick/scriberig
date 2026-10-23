@@ -56,24 +56,6 @@ jobs:
         with:
           version: 12.11.2
 
-      - name: Normalize legacy pnpm registry URLs
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from urllib.parse import unquote
-          import re
-
-          lockfile = Path("web/pnpm-lock.yaml")
-          content = lockfile.read_text(encoding="utf-8")
-          content = re.sub(
-              r"http://127\.0\.0\.1:4873/([^,}\s]+)",
-              lambda match: "https://registry.npmjs.org/" + unquote(match.group(1)),
-              content,
-          )
-          lockfile.write_text(content, encoding="utf-8")
-          PY
-
       - name: Install web dependencies
         run: pnpm --dir web install --frozen-lockfile
 

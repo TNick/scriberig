@@ -2,6 +2,10 @@
 
 use super::*;
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "the test exercises the full plan protocol contract table"
+)]
 /// Verifies plan mutation requests preserve each operation over JSON.
 pub(super) fn session_plan_contracts_round_trip() {
     session_snapshot_contracts_round_trip();

@@ -15,6 +15,7 @@ pub(super) const MODEL_PROPERTIES: KeybindingId = "scriberig.model.properties";
 pub(super) const THEME: KeybindingId = "scriberig.theme.select";
 pub(super) const BROWSE: KeybindingId = "scriberig.view.browse";
 pub(super) const QUIT: KeybindingId = "scriberig.quit";
+pub(super) const CANCEL_OPERATION: KeybindingId = "scriberig.operation.cancel";
 
 /// Adds `ScribeRig` product actions to an upstream keybinding manager.
 ///
@@ -32,6 +33,7 @@ pub(super) fn register_scriberig_bindings(keybindings: &mut Keybindings) -> io::
         HELP,
         vec![
             KeyCombo::from_code(KeyCode::F(1)),
+            KeyCombo::from_code(KeyCode::Char('?')),
             KeyCombo::new(KeyCode::Char('?'), KeyModifiers::SHIFT),
         ],
         "Help",
@@ -83,6 +85,12 @@ pub(super) fn register_scriberig_bindings(keybindings: &mut Keybindings) -> io::
         QUIT,
         vec![KeyCombo::new(KeyCode::Char('c'), KeyModifiers::CONTROL)],
         "Quit",
+    )?;
+    register(
+        keybindings,
+        CANCEL_OPERATION,
+        vec![KeyCombo::from_code(KeyCode::Char('x'))],
+        "Cancel operation",
     )
 }
 

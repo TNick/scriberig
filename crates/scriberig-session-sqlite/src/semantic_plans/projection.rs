@@ -155,6 +155,9 @@ fn read_projection_objects(
         .collect()
 }
 
+/// Raw SQLite columns needed to construct a semantic plan revision.
+type RawPlanRevision = (Vec<u8>, Vec<u8>, String, Vec<u8>);
+
 /// Reads one raw semantic revision row from SQLite.
 ///
 /// # Parameters
@@ -165,9 +168,7 @@ fn read_projection_objects(
 ///
 /// # Errors
 /// Returns a SQLite conversion error when any selected column is malformed.
-fn raw_plan_revision(
-    row: &rusqlite::Row<'_>,
-) -> rusqlite::Result<(Vec<u8>, Vec<u8>, String, Vec<u8>)> {
+fn raw_plan_revision(row: &rusqlite::Row<'_>) -> rusqlite::Result<RawPlanRevision> {
     Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
 }
 
@@ -254,8 +255,8 @@ mod tests {
             .expect("load compact projection")
             .expect("plan remains present");
 
-        assert!(compact.history.is_empty());
-        assert!(compact.gates.is_empty());
-        assert!(compact.evidence.is_empty());
+        assert_eq!(compact.history.len(), 0);
+        assert_eq!(compact.gates.len(), 0);
+        assert_eq!(compact.evidence.len(), 0);
     }
 }

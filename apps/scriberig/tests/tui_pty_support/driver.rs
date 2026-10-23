@@ -25,8 +25,20 @@ impl TuiPty {
     #[must_use]
     pub fn stored_session_id(&self) -> EntityId {
         let database = self.fixture_path().join("scriberig.sqlite");
-        let store = SqliteSessionStore::open(database).expect("open PTY session store");
         let deadline = Instant::now() + Duration::from_secs(20);
+        let store = loop {
+            match SqliteSessionStore::open(&database) {
+                Ok(store) => break store,
+                Err(error) if error.to_string().contains("database is locked") => {
+                    assert!(
+                        Instant::now() < deadline,
+                        "PTY session database stayed locked"
+                    );
+                    std::thread::sleep(Duration::from_millis(50));
+                }
+                Err(error) => panic!("open PTY session store: {error}"),
+            }
+        };
         loop {
             let sessions = match store.list() {
                 Ok(sessions) => sessions,

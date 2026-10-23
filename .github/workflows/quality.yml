@@ -36,20 +36,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 12.11.2
-      - name: Normalize legacy pnpm registry URLs
-        shell: bash
-        run: |
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const lockfile = 'web/pnpm-lock.yaml';
-          let content = fs.readFileSync(lockfile, 'utf8');
-          content = content.replace(
-            /http:\/\/127\.0\.0\.1:4873\/([^,}\s]+)/g,
-            (_, suffix) => `https://registry.npmjs.org/${decodeURIComponent(suffix)}`,
-          );
-          fs.writeFileSync(lockfile, content);
-          NODE
-      - run: pnpm --dir web install --no-frozen-lockfile
+      - run: pnpm --dir web install --frozen-lockfile
       - run: pnpm --dir web format:check
       - run: pnpm --dir web typecheck
       - run: pnpm --dir web test
@@ -68,19 +55,6 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 12.11.2
-      - name: Normalize legacy pnpm registry URLs
-        shell: bash
-        run: |
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const lockfile = 'web/pnpm-lock.yaml';
-          let content = fs.readFileSync(lockfile, 'utf8');
-          content = content.replace(
-            /http:\/\/127\.0\.0\.1:4873\/([^,}\s]+)/g,
-            (_, suffix) => `https://registry.npmjs.org/${decodeURIComponent(suffix)}`,
-          );
-          fs.writeFileSync(lockfile, content);
-          NODE
-      - run: pnpm --dir web install --no-frozen-lockfile
+      - run: pnpm --dir web install --frozen-lockfile
       - run: pnpm --dir web exec playwright install --with-deps chrome
       - run: python3 tools/product_golden.py

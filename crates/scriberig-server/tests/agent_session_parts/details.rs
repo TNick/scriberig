@@ -2,6 +2,10 @@
 
 use super::*;
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "the test verifies one remote paging flow end to end"
+)]
 /// Reads typed gate and evidence detail pages from the exact plan revision.
 #[test]
 fn remote_client_reads_bounded_plan_details() {

@@ -1,9 +1,13 @@
 //! Verifies the native TUI semantic-agent golden path.
 
+#[path = "tui_pty_support/onboarding_wait.rs"]
+#[allow(dead_code)]
+mod onboarding_wait;
 #[allow(dead_code)]
 mod tui_pty_support;
 
 use scriberig_session::SessionStore;
+use std::time::Duration;
 use tui_pty_support::{TuiPty, test_lock};
 
 /// TUI-GOLDEN-05 runs the deterministic agent through exact semantic scope.
@@ -44,5 +48,11 @@ fn tui_golden_05_agent_uses_exact_semantic_scope_and_returns_compact_result() {
     }));
     drop(store);
     assert!(tui.source().contains("left + right"));
+    onboarding_wait::wait_for_branch_completion(
+        &tui,
+        session,
+        "agent root",
+        Duration::from_secs(30),
+    );
     assert!(tui.shutdown());
 }

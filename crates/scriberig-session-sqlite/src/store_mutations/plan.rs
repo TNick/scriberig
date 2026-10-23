@@ -61,7 +61,7 @@ impl SqliteSessionStore {
             });
         }
         let previous_plan = current_plan.clone();
-        self.merge_session_branches(session, plan_id, expected_revision, proposed.revision)?;
+        self.merge_session_branches(session, &previous_plan, proposed, expected_revision)?;
         self.compare_and_swap_semantic_plan(session.id, proposed, expected_revision)?;
         if let Ok(Some(updated)) = SessionStore::load(self, session.id) {
             if let Some(plan) = updated.plans.iter().find(|plan| plan.id == plan_id) {
@@ -71,14 +71,14 @@ impl SqliteSessionStore {
         Ok(())
     }
 
-    /// Merges new session branches before the canonical plan root is changed.
+    /// Merges branches changed by one plan mutation before promoting its root.
     ///
     /// # Parameters
     /// - `self`: SQLite session repository.
-    /// - `session`: Caller projection containing new branch records.
-    /// - `plan_id`: Plan whose expected mutation is being persisted.
+    /// - `session`: Caller projection containing the affected branch records.
+    /// - `previous_plan`: Plan revision currently stored by the repository.
+    /// - `proposed_plan`: Plan revision being committed.
     /// - `expected_revision`: Plan revision observed before the mutation.
-    /// - `proposed_revision`: Plan revision proposed by the caller.
     ///
     /// # Returns
     /// Unit after the compatibility session projection transaction commits.
@@ -88,9 +88,9 @@ impl SqliteSessionStore {
     fn merge_session_branches(
         &self,
         session: &Session,
-        plan_id: EntityId,
+        previous_plan: &scriberig_session::Plan,
+        proposed_plan: &scriberig_session::Plan,
         expected_revision: u64,
-        proposed_revision: u64,
     ) -> Result<(), PlanStoreError> {
         let mut connection = self
             .connection
@@ -114,9 +114,9 @@ impl SqliteSessionStore {
         stored
             .plans
             .iter()
-            .find(|plan| plan.id == plan_id)
+            .find(|plan| plan.id == proposed_plan.id)
             .ok_or_else(|| PlanStoreError::Persistence("plan is not stored".to_owned()))?;
-        if proposed_revision
+        if proposed_plan.revision
             != expected_revision.checked_add(1).ok_or_else(|| {
                 PlanStoreError::Persistence("plan revision is exhausted".to_owned())
             })?
@@ -125,11 +125,38 @@ impl SqliteSessionStore {
                 "proposed plan has an unexpected revision".to_owned(),
             ));
         }
+
+        let changed_worker_branches = proposed_plan
+            .nodes
+            .iter()
+            .filter(|proposed_node| {
+                previous_plan
+                    .nodes
+                    .iter()
+                    .find(|previous_node| previous_node.id == proposed_node.id)
+                    != Some(*proposed_node)
+            })
+            .filter_map(|node| node.branch)
+            .collect::<std::collections::BTreeSet<_>>();
+
         for branch in &session.branches {
-            if stored.branches.iter().any(|known| known.id == branch.id) {
-                continue;
+            if let Some(index) = stored
+                .branches
+                .iter()
+                .position(|known| known.id == branch.id)
+            {
+                if changed_worker_branches.contains(&branch.id) {
+                    let mut updated = branch.clone();
+                    for child in &stored.branches[index].children {
+                        if !updated.children.contains(child) {
+                            updated.children.push(*child);
+                        }
+                    }
+                    stored.branches[index] = updated;
+                }
+            } else {
+                stored.branches.push(branch.clone());
             }
-            stored.branches.push(branch.clone());
             if let Some(parent_id) = branch.parent
                 && let Some(parent) = stored
                     .branches
