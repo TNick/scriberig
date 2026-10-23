@@ -164,6 +164,8 @@ fn first_conversation_message_runs_and_persists_fake_provider_answer() {
 mod decomposition;
 #[path = "native_tui_agent_tests/failed_message.rs"]
 mod failed_message;
+#[path = "native_tui_agent_tests/model_property_request.rs"]
+mod model_property_request;
 #[path = "native_tui_agent_tests_part1.rs"]
 mod part1;
 #[path = "native_tui_agent_plan_tests.rs"]

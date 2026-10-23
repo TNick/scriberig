@@ -19,6 +19,9 @@ mod components;
 mod controls;
 #[path = "upstream/event_loop.rs"]
 mod event_loop;
+#[cfg(test)]
+#[path = "upstream/lifecycle_tests.rs"]
+mod lifecycle_tests;
 #[path = "upstream/modal_overlay.rs"]
 mod modal_overlay;
 #[path = "upstream/property_editor.rs"]
