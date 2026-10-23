@@ -33,6 +33,7 @@ scriberig-session = { path = "../../crates/scriberig-session" }
 scriberig-tui = { path = "../../crates/scriberig-tui" }
 scriberig-client = { path = "../../crates/scriberig-client" }
 scriberig-core = { path = "../../crates/scriberig-core" }
+scriberig-domain-ecma = { path = "../../crates/domains/scriberig-domain-ecma" }
 scriberig-domain-rust = { path = "../../crates/domains/scriberig-domain-rust" }
 scriberig-style-sqlite = { path = "../../crates/scriberig-style-sqlite" }
 sr-projection = { path = "../../crates/sr-projection" }

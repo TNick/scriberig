@@ -3060,6 +3060,7 @@ dependencies = [
  "scriberig-cli",
  "scriberig-client",
  "scriberig-core",
+ "scriberig-domain-ecma",
  "scriberig-domain-rust",
  "scriberig-project",
  "scriberig-protocol",
@@ -3126,6 +3127,7 @@ dependencies = [
  "rpi-model-runtime",
  "scriberig-core",
  "scriberig-derive",
+ "scriberig-domain-ecma",
  "scriberig-graph",
  "scriberig-migration",
  "scriberig-query",
@@ -3262,6 +3264,7 @@ dependencies = [
  "oxc_span",
  "serde",
  "serde_json",
+ "sr-projection",
 ]
 
 [[package]]

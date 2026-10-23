@@ -8,6 +8,7 @@ description = "JavaScript and TypeScript syntax parsing adapter."
 repository.workspace = true
 
 [dependencies]
+sr-projection = { path = "../../sr-projection" }
 oxc_allocator = "0.153"
 oxc_ast = "0.153"
 oxc_ast_visit = { version = "0.153", features = ["serialize"] }

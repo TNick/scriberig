@@ -8,7 +8,7 @@ pub mod style;
 
 pub use extract::parse_source;
 pub use render::{render, render_with_style};
-pub use style::{ECMA_SOURCE_KINDS, EcmaIndent, EcmaQuote, EcmaStyle};
+pub use style::{ECMA_SOURCE_KINDS, EcmaIndent, EcmaQuote, EcmaStyle, EcmaStyleAdapter};
 
 use std::path::Path;
 

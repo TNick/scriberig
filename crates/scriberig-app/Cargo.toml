@@ -23,6 +23,7 @@ rpi-ai = { workspace = true }
 rpi-model-runtime = { workspace = true }
 
 [dev-dependencies]
+scriberig-domain-ecma = { path = "../domains/scriberig-domain-ecma" }
 scriberig-store-memory = { path = "../scriberig-store-memory" }
 scriberig-session-sqlite = { path = "../scriberig-session-sqlite" }
 scriberig-style-sqlite = { path = "../scriberig-style-sqlite" }

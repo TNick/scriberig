@@ -2,15 +2,9 @@
 //!
 //! The style changes presentation only. Every supported value is implemented by
 //! `crate::render`, so selecting one never changes the semantic source model.
-//! Slice two adds the `ProjectionStyleAdapter` wrapper; the field set, canonical
-//! encoding, and validation live here so the adapter only delegates.
-
-/// Projection kinds whose source text this domain renders.
-///
-/// These are the adapter identifiers `scriberig-project` selects from a file
-/// extension, so a style adapter registered for them covers every ECMAScript
-/// source this domain can parse.
-pub const ECMA_SOURCE_KINDS: &[&str] = &["javascript", "typescript"];
+//! The adapter wrapper that exposes these fields to the shared projection layer
+//! lives in `super::adapter`; the field set, canonical encoding, and validation
+//! live here so the adapter only delegates.
 
 /// Indentation characters the ECMAScript renderer may emit.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

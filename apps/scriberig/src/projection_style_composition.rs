@@ -10,10 +10,12 @@ use sr_projection::ProjectionStyleAdapter;
 /// Builds the projection style configuration for this executable composition.
 ///
 /// Each registered projection kind keeps its own domain style meaning: the Rust
-/// domain owns indentation and item spacing, and an unregistered kind is
-/// reported as unsupported rather than receiving a generic style. Settings live
-/// in the same SQLite file as the rest of the local state, so a preference or a
-/// workspace materialization policy survives a process restart.
+/// domain owns indentation and item spacing, the ECMAScript domain owns
+/// indentation and string quoting for both `javascript` and `typescript`, and an
+/// unregistered kind is reported as unsupported rather than receiving a generic
+/// style. Settings live in the same SQLite file as the rest of the local state,
+/// so a preference or a workspace materialization policy survives a process
+/// restart.
 ///
 /// - `database_path`: SQLite database path holding local style settings.
 ///
@@ -28,8 +30,13 @@ pub fn domain_projection_style_configuration(
 ) -> Result<ProjectionStyleConfiguration, std::io::Error> {
     let rust_adapter: Arc<dyn ProjectionStyleAdapter> =
         Arc::new(scriberig_domain_rust::RustStyleAdapter);
-    let dispatcher = KindDispatchStyleAdapter::new()
+    let ecma_adapter: Arc<dyn ProjectionStyleAdapter> =
+        Arc::new(scriberig_domain_ecma::EcmaStyleAdapter);
+    let mut dispatcher = KindDispatchStyleAdapter::new()
         .with_adapter(scriberig_domain_rust::RUST_SOURCE_KIND, rust_adapter);
+    for kind in scriberig_domain_ecma::ECMA_SOURCE_KINDS {
+        dispatcher = dispatcher.with_adapter(*kind, Arc::clone(&ecma_adapter));
+    }
     let store = SqliteProjectionStyleStore::open(database_path)
         .map_err(|error| std::io::Error::other(error.to_string()))?;
     Ok(ProjectionStyleConfiguration::new(
@@ -37,3 +44,7 @@ pub fn domain_projection_style_configuration(
         Arc::new(store),
     ))
 }
+
+#[cfg(test)]
+#[path = "projection_style_composition_tests.rs"]
+mod tests;
