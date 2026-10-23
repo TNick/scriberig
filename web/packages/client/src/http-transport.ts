@@ -297,7 +297,11 @@ export class HttpTransport implements SemanticTransport {
     try {
       response = await fetch(`${this.baseUrl}/protocol/${operation}`, {
         method: "POST",
-        headers: { "content-type": "application/json", ...this.headers() },
+        headers: {
+          "content-type": "application/json",
+          accept: "application/vnd.scriberig.protocol+json",
+          ...this.headers(),
+        },
         body: JSON.stringify(payload),
         ...(signal === undefined ? {} : { signal }),
       });
