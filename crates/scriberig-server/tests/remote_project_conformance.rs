@@ -168,6 +168,64 @@ fn golden_conformance_remote_public_project_path() {
     );
 }
 
+/// Keeps the server's deterministic project agent proposal limited to the changed expression.
+#[test]
+fn server_project_agent_returns_a_validated_expression_candidate() {
+    let (root, store) = fixture("agent-expression");
+    let project_service = ProjectService::new(Arc::clone(&store));
+    let scanned = project_service
+        .scan(Some("agent-expression".to_owned()), &root)
+        .expect("scan agent fixture");
+    let imported = project_service
+        .import(scanned.project.id)
+        .expect("import agent fixture");
+    let entity = project_service
+        .symbols(scanned.project.id)
+        .expect("agent fixture symbols")
+        .into_iter()
+        .find(|symbol| symbol.name.as_deref() == Some("add"))
+        .expect("add symbol")
+        .entity;
+    let sessions = Arc::new(SqliteSessionStore::open_in_memory().expect("session store"));
+    let state = Arc::new(state(Arc::clone(&store), sessions));
+    let client = Client::new(InProcessProjectTransport::new(state));
+
+    let candidate = client
+        .project(
+            "agent",
+            json!({
+                "project": scanned.project.id.to_string(),
+                "entity": entity.to_string(),
+                "snapshot": imported.snapshot.to_string(),
+                "prompt": "Saturate addition on overflow."
+            }),
+        )
+        .expect("server project agent candidate");
+
+    assert_eq!(candidate["scope"]["entity"], entity.to_string());
+    assert_eq!(
+        candidate["scope"]["snapshot"],
+        imported.snapshot.to_string()
+    );
+    assert_eq!(candidate["validation"], "passed");
+    assert!(
+        candidate["old"]
+            .as_str()
+            .expect("old source")
+            .contains("left + right")
+    );
+    assert!(
+        candidate["new"]
+            .as_str()
+            .expect("new source")
+            .contains("left.saturating_add(right)")
+    );
+    assert_eq!(
+        fs::read_to_string(root.join("src/lib.rs")).expect("live source"),
+        "pub mod math { pub struct Calculator; impl Calculator { pub fn add(&self, left: i32, right: i32) -> i32 { left + right } } }\n"
+    );
+}
+
 /// Verifies public workspace, history, and candidate references describe one transition.
 ///
 /// - `client`: Public project client.
