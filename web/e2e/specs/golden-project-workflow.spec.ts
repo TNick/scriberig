@@ -115,10 +115,9 @@ test("WEB-GOLDEN-03 reviews and validates a candidate without write-through", as
     "Validation: passed",
     { timeout: 30_000 },
   );
-  await expect(page.getByRole("region", { name: "Migration review" })).toContainText(
-    "src/lib.rs",
-    { timeout: 30_000 },
-  );
+  await expect(page.getByRole("region", { name: "Migration review" })).toContainText("src/lib.rs", {
+    timeout: 30_000,
+  });
   await expect(source).toHaveValue(/left\.saturating_add\(right\)/);
   await expect(readFile(join(fixture, "src", "lib.rs"), "utf8")).resolves.toContain("left + right");
   expectHealthyBrowser(diagnostics);
@@ -221,16 +220,21 @@ test("WEB-GOLDEN-07 agent uses semantic scope and enters normal review", async (
     .textContent();
   const snapshot = workspace?.match(/snapshot: (snp_[a-f0-9]+)/)?.[1];
   expect(snapshot).toBeDefined();
-  await page.getByLabel("Prompt").fill("Change add so overflow saturates instead of wrapping.");
+  await page
+    .getByRole("textbox", { name: "Prompt" })
+    .fill("Change add so overflow saturates instead of wrapping.");
   const agentResponse = page.waitForResponse(
     (response) =>
       response.url().endsWith("/api/protocol/project") &&
       response.request().postData()?.includes('"agent"'),
   );
   await page.getByRole("button", { name: "Start agent" }).click();
-  const agentBody = await (await agentResponse).json();
-  expect(agentBody.scope.entity).toBe(entity);
-  expect(agentBody.scope.snapshot).toBe(snapshot);
+  const response = await agentResponse;
+  const agentBody = await response.json();
+  expect(response.status(), `agent response: ${JSON.stringify(agentBody)}`).toBe(200);
+  expect(agentBody, `agent response: ${JSON.stringify(agentBody)}`).toMatchObject({
+    scope: { entity, snapshot },
+  });
   await expect(page.getByRole("button", { name: "projection", exact: true })).toBeVisible();
   await expect(page.getByRole("region", { name: "Migration review" })).toContainText("src/lib.rs");
   await expect(page.getByRole("region", { name: "Migration review" })).toContainText(

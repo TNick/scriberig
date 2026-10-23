@@ -16,6 +16,17 @@ import type {
 } from "@scriberig/protocol";
 import { SseParser } from "./sse-parser";
 
+const LEGACY_HTTP_OPERATIONS = new Set([
+  "capabilities",
+  "command",
+  "inspect",
+  "list",
+  "migration",
+  "project",
+  "session",
+  "subscribe",
+]);
+
 type WireEvent = {
   sequence?: unknown;
   kind?: unknown;
@@ -297,7 +308,13 @@ export class HttpTransport implements SemanticTransport {
     try {
       response = await fetch(`${this.baseUrl}/protocol/${operation}`, {
         method: "POST",
-        headers: { "content-type": "application/json", ...this.headers() },
+        headers: {
+          "content-type": "application/json",
+          accept: LEGACY_HTTP_OPERATIONS.has(operation)
+            ? "application/json"
+            : "application/vnd.scriberig.protocol+json",
+          ...this.headers(),
+        },
         body: JSON.stringify(payload),
         ...(signal === undefined ? {} : { signal }),
       });

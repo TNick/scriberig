@@ -6,6 +6,7 @@ use scriberig_project::ProjectService;
 use scriberig_session::{BranchStatus, SessionStore};
 use scriberig_session_sqlite::SqliteSessionStore;
 use scriberig_store_sqlite::SqliteStore;
+use std::time::{Duration, Instant};
 
 /// Verifies failed import after manifest review leaves the project inactive and source unchanged.
 #[test]
@@ -26,8 +27,7 @@ fn tui_bootstrap_import_failure_does_not_activate_partial_project() {
     let source = std::fs::read(checkout.join("crates/scriberig-project/src/scan.rs"))
         .expect("baseline scanner");
 
-    let database = tui.fixture_path().join("scriberig.sqlite");
-    wait_for_import_failure(&database, session);
+    wait_for_import_failure(&tui, session);
 
     tui.send_slow(b"/project\r");
     assert!(
@@ -66,11 +66,7 @@ fn tui_bootstrap_import_failure_does_not_activate_partial_project() {
         .is_err()
     );
 
-    let saved = SqliteSessionStore::open(&database)
-        .expect("session store")
-        .load(session)
-        .expect("durable session")
-        .expect("session exists");
+    let saved = tui.load_session(session);
     let branch = saved
         .branches
         .iter()
@@ -107,10 +103,7 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
     tui.send_slow(b"Onboard the current project.\r");
     let session = tui.stored_session_id();
     let onboarded = tui.read_until("current project is onboarded");
-    let saved = SqliteSessionStore::open(tui.fixture_path().join("scriberig.sqlite"))
-        .expect("open diagnostic session store")
-        .load(session)
-        .expect("read diagnostic session");
+    let saved = tui.load_session(session);
     assert!(onboarded, "{}; saved session: {saved:?}", tui.diagnostic());
     wait_for_onboarding_completion(&tui, session);
 
@@ -154,14 +147,9 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
 /// - `tui`: Active native TUI process owning the session database.
 /// - `session`: Exact onboarding session identity.
 fn wait_for_onboarding_completion(tui: &TuiPty, session: EntityId) {
-    let store = SqliteSessionStore::open(tui.fixture_path().join("scriberig.sqlite"))
-        .expect("open onboarding session store");
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+    let deadline = Instant::now() + Duration::from_secs(60);
     loop {
-        let saved = store
-            .load(session)
-            .expect("read onboarding session")
-            .expect("onboarding session exists");
+        let saved = tui.load_session(session);
         if saved.branches.iter().any(|branch| {
             branch.status == BranchStatus::Completed
                 && branch.turns.iter().any(|turn| {
@@ -173,25 +161,21 @@ fn wait_for_onboarding_completion(tui: &TuiPty, session: EntityId) {
             return;
         }
         assert!(
-            std::time::Instant::now() < deadline,
+            Instant::now() < deadline,
             "onboarding branch did not complete"
         );
-        std::thread::sleep(std::time::Duration::from_millis(50));
+        std::thread::sleep(Duration::from_millis(50));
     }
 }
 
 /// Waits until the invalid reviewed manifest is durably rejected.
 ///
-/// - `database`: Product database containing the durable session.
+/// - `tui`: Active PTY owning the database containing the durable session.
 /// - `session`: Exact session identity for the bootstrap attempt.
-fn wait_for_import_failure(database: &std::path::Path, session: EntityId) {
-    let store = SqliteSessionStore::open(database).expect("open failed onboarding store");
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(120);
+fn wait_for_import_failure(tui: &TuiPty, session: EntityId) {
+    let deadline = Instant::now() + Duration::from_secs(120);
     loop {
-        let saved = store
-            .load(session)
-            .expect("read failed onboarding session")
-            .expect("failed onboarding session exists");
+        let saved = tui.load_session(session);
         if saved.branches.iter().any(|branch| {
             branch
                 .result
@@ -201,10 +185,10 @@ fn wait_for_import_failure(database: &std::path::Path, session: EntityId) {
             return;
         }
         assert!(
-            std::time::Instant::now() < deadline,
+            Instant::now() < deadline,
             "invalid onboarding import did not fail"
         );
-        std::thread::sleep(std::time::Duration::from_millis(50));
+        std::thread::sleep(Duration::from_millis(50));
     }
 }
 

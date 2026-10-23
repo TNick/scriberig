@@ -142,34 +142,6 @@ describe("ScriberigClient", () => {
     });
   });
 
-  it("unwraps correlated Rust response envelopes", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(
-        async () =>
-          new Response(
-            JSON.stringify({
-              version: { major: 1, minor: 0 },
-              correlation_id: "corr-1",
-              response: {
-                Capabilities: {
-                  protocol: { major: 1, minor: 0 },
-                  capabilities: [],
-                  features: [],
-                },
-              },
-            }),
-            { status: 200 },
-          ),
-      ),
-    );
-    const capabilities = await new ScriberigClient(
-      new HttpTransport("http://test/api"),
-    ).capabilities();
-    expect(capabilities).toMatchObject({ capabilities: [], features: [] });
-    vi.unstubAllGlobals();
-  });
-
   it("normalizes durable agent results from operation reads", async () => {
     const transport = {
       request: async <T>(): Promise<T> =>

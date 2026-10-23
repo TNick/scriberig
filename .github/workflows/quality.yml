@@ -1,87 +1,54 @@
+# Run all project quality checks in one prebuilt toolchain container.
 name: quality
 
 on:
   push:
+    branches:
+      - main
   pull_request:
 
 jobs:
-  conventions:
+  quality:
+    timeout-minutes: 120
     runs-on: debian-13
+    container:
+      image: 10.225.224.10/ci/debian:13
     steps:
       - uses: actions/checkout@v4
+      - name: Record Rust compiler version
+        id: rust-version
+        run: echo "version=$(rustc -V | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+      - name: Cache Rust dependencies and build output
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/debug/build
+            target/debug/.fingerprint
+            target/debug/deps/*.rlib
+            target/debug/deps/*.rmeta
+            target/debug/deps/*.so
+          key: rust-${{ runner.os }}-${{ runner.arch }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ forgejo.sha }}
+          restore-keys: |
+            rust-${{ runner.os }}-${{ runner.arch }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-
+      - name: Configure pnpm package store
+        id: pnpm-store
+        run: |
+          pnpm config set store-dir "$GITHUB_WORKSPACE/.pnpm-store"
+          echo "version=$(pnpm --version)" >> "$GITHUB_OUTPUT"
+      - name: Cache pnpm packages
+        uses: actions/cache@v4
+        with:
+          path: .pnpm-store
+          key: pnpm-${{ runner.os }}-${{ runner.arch }}-${{ steps.pnpm-store.outputs.version }}-${{ hashFiles('web/pnpm-lock.yaml') }}
       - run: python3 tools/lint_repo.py
-
-  rust:
-    runs-on: debian-13
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install native build tools
-        shell: bash
-        run: |
-          if [ "$(id -u)" -eq 0 ]; then
-            apt-get update
-            DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential pkg-config libssl-dev perl
-          elif command -v sudo >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential pkg-config libssl-dev perl
-          else
-            echo "The Debian runner needs build-essential, pkg-config, libssl-dev, and perl." >&2
-            exit 1
-          fi
-      - name: Install Rust stable, rustfmt, and Clippy
-        shell: bash
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable --component rustfmt --component clippy
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
       - run: cargo fmt --all -- --check
       - run: cargo check --workspace --all-targets
       - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
       - run: cargo test --workspace
-
-  web:
-    runs-on: debian-13
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 12.11.2
       - run: pnpm --dir web install --frozen-lockfile
       - run: pnpm --dir web format:check
       - run: pnpm --dir web typecheck
       - run: pnpm --dir web test
-
-  product-golden:
-    needs: [conventions, rust, web]
-    runs-on: debian-13
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install native build tools
-        shell: bash
-        run: |
-          if [ "$(id -u)" -eq 0 ]; then
-            apt-get update
-            DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential pkg-config libssl-dev perl
-          elif command -v sudo >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential pkg-config libssl-dev perl
-          else
-            echo "The Debian runner needs build-essential, pkg-config, libssl-dev, and perl." >&2
-            exit 1
-          fi
-      - name: Install Rust stable and rustfmt
-        shell: bash
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable --component rustfmt
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 12.11.2
-      - run: pnpm --dir web install --frozen-lockfile
-      - run: pnpm --dir web exec playwright install --with-deps chrome
       - run: python3 tools/product_golden.py
