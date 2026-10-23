@@ -8,7 +8,7 @@ jobs:
   conventions:
     runs-on: debian-13
     container:
-      image: docker.advaita.ro/ci/debian:13
+      image: 10.225.224.10/ci/debian:13
     steps:
       - uses: actions/checkout@v4
       - run: python3 tools/lint_repo.py
@@ -16,7 +16,7 @@ jobs:
   rust:
     runs-on: debian-13
     container:
-      image: docker.advaita.ro/ci/debian:13
+      image: 10.225.224.10/ci/debian:13
     steps:
       - uses: actions/checkout@v4
       - run: cargo fmt --all -- --check
@@ -27,7 +27,7 @@ jobs:
   web:
     runs-on: debian-13
     container:
-      image: docker.advaita.ro/ci/debian:13
+      image: 10.225.224.10/ci/debian:13
     steps:
       - uses: actions/checkout@v4
       - run: pnpm --dir web install --frozen-lockfile
@@ -39,7 +39,7 @@ jobs:
     needs: [conventions, rust, web]
     runs-on: debian-13
     container:
-      image: docker.advaita.ro/ci/debian:13
+      image: 10.225.224.10/ci/debian:13
     steps:
       - uses: actions/checkout@v4
       - run: pnpm --dir web install --frozen-lockfile
