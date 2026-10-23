@@ -82,7 +82,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                         action,
                     )
                 });
-            scriberig_server::serve_with_model_catalog_and_plan_lifecycle(
+            scriberig_server::serve_with_projection_style(
                 &args.host,
                 args.port,
                 &args.db,
@@ -93,6 +93,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     model_catalog,
                     provider_readiness_handler: Some(provider_readiness_handler),
                 },
+                projection_style_composition::domain_projection_style_configuration(),
             )?;
         }
         scriberig_cli::Command::Tui(args) => tui_command::run(&args)?,

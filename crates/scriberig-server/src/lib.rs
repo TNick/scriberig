@@ -177,6 +177,46 @@ pub fn serve_with_model_catalog_and_plan_lifecycle(
     plan_lifecycle_handler: Option<Arc<PlanLifecycleHandler>>,
     model_catalog: ServerModelCatalog,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    serve_with_projection_style(
+        host,
+        port,
+        database_path,
+        allowed_origin,
+        project_roots,
+        plan_lifecycle_handler,
+        model_catalog,
+        scriberig_app::ProjectionStyleConfiguration::default(),
+    )
+}
+
+/// Serves a local API with an explicit projection style configuration.
+///
+/// - `host`: Listener host.
+/// - `port`: Listener port.
+/// - `database_path`: SQLite database path.
+/// - `allowed_origin`: Exact CORS origin, when allowed.
+/// - `project_roots`: Host-authorized project roots for file operations.
+/// - `plan_lifecycle_handler`: Optional host-authorized plan lifecycle handler.
+/// - `model_catalog`: Host-authorized model catalog handle.
+/// - `projection_style`: Domain style adapters and settings the surfaces share.
+///
+/// # Returns
+/// Unit after the listener stops accepting connections.
+///
+/// # Errors
+/// Returns an error for invalid origin configuration, database failure, or
+/// listener initialization failure.
+#[allow(clippy::too_many_arguments)] // Keeps one serve entry point beside the existing variants.
+pub fn serve_with_projection_style(
+    host: &str,
+    port: u16,
+    database_path: &Path,
+    allowed_origin: Option<&str>,
+    project_roots: &[std::path::PathBuf],
+    plan_lifecycle_handler: Option<Arc<PlanLifecycleHandler>>,
+    model_catalog: ServerModelCatalog,
+    projection_style: scriberig_app::ProjectionStyleConfiguration,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
     if allowed_origin.is_some_and(|origin| origin.is_empty() || origin == "*") {
         return Err("allowed origin must be a non-empty exact origin".into());
     }
@@ -190,7 +230,8 @@ pub fn serve_with_model_catalog_and_plan_lifecycle(
     )?);
     let service = scriberig_app::ApplicationService::new(backend)
         .with_session_store(session_store)
-        .with_model_catalog(model_catalog.model_catalog);
+        .with_model_catalog(model_catalog.model_catalog)
+        .with_projection_style_configuration(projection_style);
     let state = http::HttpState {
         service,
         principal: scriberig_app::Principal::new("local-user"),
