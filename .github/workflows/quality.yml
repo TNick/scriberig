@@ -21,19 +21,23 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target/debug
+            target/debug/build
+            target/debug/.fingerprint
+            target/debug/deps/*.rlib
+            target/debug/deps/*.rmeta
+            target/debug/deps/*.so
           key: rust-${{ runner.os }}-${{ runner.arch }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ forgejo.sha }}
           restore-keys: |
             rust-${{ runner.os }}-${{ runner.arch }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-
-      - name: Locate pnpm package store
+      - name: Configure pnpm package store
         id: pnpm-store
         run: |
-          echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+          pnpm config set store-dir "$GITHUB_WORKSPACE/.pnpm-store"
           echo "version=$(pnpm --version)" >> "$GITHUB_OUTPUT"
       - name: Cache pnpm packages
         uses: actions/cache@v4
         with:
-          path: ${{ steps.pnpm-store.outputs.path }}
+          path: .pnpm-store
           key: pnpm-${{ runner.os }}-${{ runner.arch }}-${{ steps.pnpm-store.outputs.version }}-${{ hashFiles('web/pnpm-lock.yaml') }}
       - run: python3 tools/lint_repo.py
       - run: cargo fmt --all -- --check
