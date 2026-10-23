@@ -12,6 +12,29 @@ jobs:
       image: 10.225.224.10/ci/debian:13
     steps:
       - uses: actions/checkout@v4
+      - name: Record Rust compiler version
+        id: rust-version
+        run: echo "version=$(rustc -V | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+      - name: Cache Rust dependencies and build output
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/debug
+          key: rust-${{ runner.os }}-${{ runner.arch }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ forgejo.sha }}
+          restore-keys: |
+            rust-${{ runner.os }}-${{ runner.arch }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-
+      - name: Locate pnpm package store
+        id: pnpm-store
+        run: |
+          echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+          echo "version=$(pnpm --version)" >> "$GITHUB_OUTPUT"
+      - name: Cache pnpm packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ runner.os }}-${{ runner.arch }}-${{ steps.pnpm-store.outputs.version }}-${{ hashFiles('web/pnpm-lock.yaml') }}
       - run: python3 tools/lint_repo.py
       - run: cargo fmt --all -- --check
       - run: cargo check --workspace --all-targets

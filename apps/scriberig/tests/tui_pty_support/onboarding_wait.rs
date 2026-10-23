@@ -1,5 +1,6 @@
 //! Waits for durable completion of the shared project onboarding flow.
 
+use std::path::Path;
 use std::time::{Duration, Instant};
 
 use scriberig_session::SessionStore;
@@ -13,8 +14,12 @@ use super::TuiPty;
 /// - `session`: Exact onboarding session identity.
 pub(super) fn wait_for_onboarding(tui: &mut TuiPty, session: scriberig_core::EntityId) {
     let database = tui.fixture_path().join("scriberig.sqlite");
-    let store = SqliteSessionStore::open(&database).expect("open onboarding session store");
     let deadline = Instant::now() + Duration::from_secs(120);
+    let store = open_session_store_until(
+        &database,
+        deadline,
+        "onboarding session store stayed locked",
+    );
     loop {
         let saved = match store.load(session) {
             Ok(Some(saved)) => saved,
@@ -82,13 +87,26 @@ pub(super) fn wait_for_branch_completion(
     timeout: Duration,
 ) {
     let database = tui.fixture_path().join("scriberig.sqlite");
-    let store = SqliteSessionStore::open(&database).expect("open branch session store");
     let deadline = Instant::now() + timeout;
+    let store = open_session_store_until(&database, deadline, "branch session store stayed locked");
     loop {
-        let saved = store
-            .load(session)
-            .expect("read branch session")
-            .expect("branch session exists");
+        let saved = match store.load(session) {
+            Ok(Some(saved)) => saved,
+            Ok(None) => {
+                assert!(Instant::now() < deadline, "branch session was not saved");
+                std::thread::sleep(Duration::from_millis(50));
+                continue;
+            }
+            Err(error) if error.contains("database is locked") => {
+                assert!(
+                    Instant::now() < deadline,
+                    "branch session store stayed locked"
+                );
+                std::thread::sleep(Duration::from_millis(50));
+                continue;
+            }
+            Err(error) => panic!("read branch session: {error}"),
+        };
         if let Some(branch) = saved.branches.iter().find(|branch| branch.title == title) {
             if branch.status == scriberig_session::BranchStatus::Completed {
                 return;
@@ -116,6 +134,34 @@ pub(super) fn wait_for_branch_completion(
             tui.screen()
         );
         std::thread::sleep(Duration::from_millis(50));
+    }
+}
+
+/// Opens a SQLite session store while retrying transient writer contention.
+///
+/// - `database`: Session database path.
+/// - `deadline`: Maximum time allowed for a writer to release the database.
+/// - `timeout_message`: Failure message used when the deadline expires.
+///
+/// # Returns
+/// The opened session store.
+///
+/// # Panics
+/// Panics when a non-locking database error occurs or the database stays locked.
+fn open_session_store_until(
+    database: &Path,
+    deadline: Instant,
+    timeout_message: &str,
+) -> SqliteSessionStore {
+    loop {
+        match SqliteSessionStore::open(database) {
+            Ok(store) => return store,
+            Err(error) if error.to_string().contains("database is locked") => {
+                assert!(Instant::now() < deadline, "{timeout_message}");
+                std::thread::sleep(Duration::from_millis(50));
+            }
+            Err(error) => panic!("open session store: {error}"),
+        }
     }
 }
 

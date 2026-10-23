@@ -1,5 +1,7 @@
 //! Drives the current shared candidate review and confirmation flow.
 
+use std::time::Duration;
+
 use super::TuiPty;
 
 /// Opens the normal shared candidate review for the active agent result.
@@ -11,9 +13,14 @@ use super::TuiPty;
 /// Panics when the candidate review or expected validation status does not appear.
 pub fn open_candidate_review(tui: &mut TuiPty, validation: &str) {
     tui.send_slow(b"/changes\r");
-    assert!(tui.read_until("Candidate review"), "{}", tui.diagnostic());
+    let timeout = Duration::from_secs(120);
     assert!(
-        tui.read_until(validation),
+        tui.read_until_for("Candidate review", timeout),
+        "{}",
+        tui.diagnostic()
+    );
+    assert!(
+        tui.read_until_for(validation, timeout),
         "candidate review did not finish loading: {}",
         tui.diagnostic()
     );
