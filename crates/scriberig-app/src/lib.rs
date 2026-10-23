@@ -68,10 +68,10 @@ pub use operation_store::StoreOperationProvider;
 pub use projection_backend::ProjectionOperationProvider;
 pub use projection_style::{
     CompatibilityStyleAdapter, EffectiveProjectionStyle, InMemoryProjectionStyleStore,
-    ProjectionStyleBackend, ProjectionStyleConfiguration, ProjectionStyleFidelityRequest,
-    ProjectionStyleSchemaRequest, ProjectionStyleSettingRequest, ProjectionStyleStore,
-    RepositoryConventionSource, StaticRepositoryConvention, StoredStyle, StyleEntryKey,
-    StyleResolution, StyleResolutionRequest, StyleScopeKind,
+    KindDispatchStyleAdapter, ProjectionStyleBackend, ProjectionStyleConfiguration,
+    ProjectionStyleFidelityRequest, ProjectionStyleSchemaRequest, ProjectionStyleSettingRequest,
+    ProjectionStyleStore, RepositoryConventionSource, StaticRepositoryConvention, StoredStyle,
+    StyleEntryKey, StyleResolution, StyleResolutionRequest, StyleScopeKind,
 };
 pub use promotion::{
     ApprovalEvidence, PromotionDecision, PromotionPolicyEvaluation, PromotionRequest,

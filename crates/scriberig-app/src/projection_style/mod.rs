@@ -7,6 +7,7 @@
 
 pub mod backend;
 pub mod convention;
+pub mod dispatch;
 pub mod resolver;
 pub mod store;
 
@@ -22,6 +23,7 @@ pub use backend::{
     ProjectionStyleSchemaRequest, ProjectionStyleSettingRequest,
 };
 pub use convention::{RepositoryConventionSource, StaticRepositoryConvention};
+pub use dispatch::{KindDispatchStyleAdapter, RegisteredStyleAdapter};
 pub use resolver::{
     StyleResolution, StyleResolutionRequest, resolve_effective_style, resolve_fidelity,
 };

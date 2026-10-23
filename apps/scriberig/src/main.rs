@@ -22,6 +22,7 @@ mod doctor_command;
 mod main_agent_execution;
 mod native_scenario;
 mod native_tui_agent;
+mod projection_style_composition;
 mod remote_commands;
 mod scenario_helpers;
 mod secrets_command;
@@ -194,7 +195,11 @@ fn run_shared_agent(
     let session_store = Arc::new(scriberig_session_sqlite::SqliteSessionStore::open(
         &args.db,
     )?);
-    let service = ApplicationService::new(backend).with_session_store(session_store);
+    let service = ApplicationService::new(backend)
+        .with_session_store(session_store)
+        .with_projection_style_configuration(
+            projection_style_composition::domain_projection_style_configuration(),
+        );
     let session = fresh_session_id()?;
     let context = ApplicationContext {
         capabilities: scriberig_app::CapabilityContext::with_grants([Capability {
