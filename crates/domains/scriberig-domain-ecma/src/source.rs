@@ -21,7 +21,8 @@
 //! Anything else is refused with a structured [`crate::EcmaError`] naming the
 //! construct instead of being approximated or dropped: TypeScript type
 //! annotations, type-only imports and exports, namespaces, decorators, `export
-//! default`, `export` specifiers and re-exports, namespace imports, generators,
+//! default`, `export` specifiers and re-exports, namespace imports, quoted
+//! import names such as `import { "a-b" as a } from "m"`, generators,
 //! async functions, classes with heritage or property members, computed or
 //! private members, object, array, template, regexp, and bigint literals,
 //! compound assignment, `this`, `new`, spread, optional chaining, loops, `try`,

@@ -209,6 +209,99 @@ fn refuses_constructs_outside_the_subset() {
     );
 }
 
+/// A named import whose exported name is a string literal is refused.
+///
+/// Rendering such a name unquoted emits invalid ECMAScript, and re-parsing the
+/// rendered text cannot reproduce the model, so the construct is refused
+/// instead of approximated.
+#[test]
+fn refuses_string_literal_import_names() {
+    let error = parse_source(
+        Path::new("named.js"),
+        "import { \"foo-bar\" as foo } from \"pkg\";",
+    )
+    .expect_err("string-literal import names are outside the subset");
+    assert!(error.fatal);
+    assert!(
+        error
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("string-literal import name")),
+        "{error}"
+    );
+}
+
+/// Constructs that can appear inside supported nodes are refused by name.
+#[test]
+fn refuses_constructs_nested_in_supported_nodes() {
+    let cases = [
+        (
+            "chain.js",
+            "const value = source?.field;",
+            "optional chain expression",
+        ),
+        (
+            "decorated.ts",
+            "@logged\nclass Ledger {\n  load() {}\n}\n",
+            "class heritage or decorated class",
+        ),
+        (
+            "strict.js",
+            "\"use strict\";\nconst ready = true;",
+            "directive",
+        ),
+        (
+            "strict-fn.js",
+            "function load() {\n  \"use strict\";\n  return ready;\n}",
+            "directive",
+        ),
+        (
+            "specifiers.js",
+            "const ready = true;\nexport { ready };",
+            "export specifier list",
+        ),
+        (
+            "template.js",
+            "const message = `ready ${flag}`;",
+            "unsupported ECMAScript construct: template literal",
+        ),
+        (
+            "destructure.js",
+            "const { count } = counter;",
+            "object binding pattern",
+        ),
+        (
+            "array-pattern.js",
+            "const [first] = items;",
+            "array binding pattern",
+        ),
+        ("compound.js", "counter += 1;", "compound assignment +="),
+        ("newable.js", "const store = new Map();", "new expression"),
+        (
+            "getter.js",
+            "class Ledger {\n  get size() {\n    return count;\n  }\n}",
+            "class getter or setter",
+        ),
+        (
+            "static-member.js",
+            "class Ledger {\n  static open() {}\n}",
+            "static or computed class member",
+        ),
+    ];
+    for (name, source, fragment) in cases {
+        let error =
+            parse_source(Path::new(name), source).expect_err("{source} is outside the subset");
+        assert!(error.fatal, "{name} reported a non-fatal refusal");
+        assert!(
+            error
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.contains(fragment)),
+            "{name} refused with {error}, expected a diagnostic containing {fragment}"
+        );
+    }
+}
+
 /// An unsupported style value is refused with an error naming the field.
 #[test]
 fn refuses_unsupported_style_values() {
@@ -235,4 +328,21 @@ fn refuses_unsupported_style_values() {
     assert!(unknown.contains("quote"), "{unknown}");
     let missing = EcmaStyle::decode(b"semicolons=always").expect_err("unknown field");
     assert!(missing.contains("semicolons"), "{missing}");
+}
+
+/// Style decoding accepts canonical bytes only, never a repeated field.
+#[test]
+fn refuses_duplicate_style_fields() {
+    let duplicate = EcmaStyle::decode(b"indent=spaces,indent-width=2,quote=double,quote=single")
+        .expect_err("a repeated field is not canonical");
+    assert!(duplicate.contains("quote"), "{duplicate}");
+    assert!(duplicate.contains("duplicate"), "{duplicate}");
+    let repeated_width = EcmaStyle::decode(b"indent-width=2,indent-width=4")
+        .expect_err("a repeated field is not canonical");
+    assert!(repeated_width.contains("indent-width"), "{repeated_width}");
+    let canonical = EcmaStyle::decode(b"indent=tabs,indent-width=8,quote=single")
+        .expect("canonical bytes decode");
+    assert_eq!(canonical.indent, EcmaIndent::Tabs);
+    assert_eq!(canonical.indent_width, 8);
+    assert_eq!(canonical.quote, EcmaQuote::Single);
 }

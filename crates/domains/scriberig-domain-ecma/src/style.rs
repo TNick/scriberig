@@ -141,11 +141,16 @@ impl EcmaStyle {
     ///
     /// - `bytes`: Exact style bytes produced by a caller or encoder.
     ///
+    /// Canonical bytes carry each field at most once, so a repeated field is
+    /// rejected instead of silently overridden: an input whose last write wins
+    /// would hide a conflicting style choice.
+    ///
     /// # Returns
-    /// The decoded style when every field is recognized.
+    /// The decoded style when every field is recognized and no field repeats.
     ///
     /// # Errors
-    /// Returns the unrecognized field or value when decoding fails.
+    /// Returns the unrecognized or repeated field, or the unsupported value,
+    /// naming the field when decoding fails.
     pub fn decode(bytes: &[u8]) -> Result<Self, String> {
         let text =
             std::str::from_utf8(bytes).map_err(|_| "style bytes are not utf-8".to_owned())?;
@@ -153,11 +158,17 @@ impl EcmaStyle {
         if text.trim().is_empty() {
             return Ok(style);
         }
+        let mut seen: Vec<&str> = Vec::new();
         for entry in text.split(',') {
             let (key, value) = entry
                 .split_once('=')
                 .ok_or_else(|| format!("style field {entry} has no value"))?;
-            match key.trim() {
+            let key = key.trim();
+            if seen.contains(&key) {
+                return Err(format!("duplicate style field {key}"));
+            }
+            seen.push(key);
+            match key {
                 "indent" => {
                     style.indent = match value.trim() {
                         "spaces" => EcmaIndent::Spaces,

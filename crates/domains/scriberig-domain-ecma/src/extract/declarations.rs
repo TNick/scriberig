@@ -89,7 +89,7 @@ fn exported(declaration: &Declaration<'_>) -> Result<EcmaDeclaration, EcmaError>
 ///
 /// # Errors
 /// Returns a structured error for namespace imports, type-only imports, import
-/// attributes, or an import phase.
+/// attributes, an import phase, or a quoted exported name.
 fn import(declaration: &ImportDeclaration<'_>) -> Result<EcmaImport, EcmaError> {
     if declaration.import_kind != ImportOrExportKind::Value {
         return Err(unsupported("type-only import", declaration.span));
@@ -119,7 +119,10 @@ fn import(declaration: &ImportDeclaration<'_>) -> Result<EcmaImport, EcmaError> 
                         name.name.as_str().to_owned()
                     }
                     oxc_ast::ast::ModuleExportName::StringLiteral(literal) => {
-                        literal.value.as_str().to_owned()
+                        // A quoted exported name needs its quotes kept, and the
+                        // model stores only identifier names, so rendering it
+                        // unquoted would emit invalid ECMAScript.
+                        return Err(unsupported("string-literal import name", literal.span));
                     }
                 };
                 let alias = (value.local.name.as_str() != imported)
