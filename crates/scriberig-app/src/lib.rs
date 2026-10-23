@@ -16,6 +16,7 @@ pub mod operation;
 pub mod operation_backend;
 pub mod operation_store;
 pub mod projection_backend;
+pub mod projection_materialization;
 pub mod projection_style;
 pub mod promotion;
 pub mod query;
@@ -66,6 +67,7 @@ pub use operation::{
 pub use operation_backend::{ApplicationBackendComposition, OperationProvider};
 pub use operation_store::StoreOperationProvider;
 pub use projection_backend::ProjectionOperationProvider;
+pub use projection_materialization::{MaterializedProjection, ProjectionMaterializationRequest};
 pub use projection_style::{
     CompatibilityStyleAdapter, EffectiveProjectionStyle, InMemoryProjectionStyleStore,
     KindDispatchStyleAdapter, ProjectionStyleBackend, ProjectionStyleConfiguration,

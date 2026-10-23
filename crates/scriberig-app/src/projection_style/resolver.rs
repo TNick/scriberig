@@ -368,7 +368,10 @@ impl<'a> LayeredStyle<'a> {
 /// A schema violation when the domain rejected input, an unsupported-operation
 /// error when the adapter declares no meaning for the request, otherwise an
 /// internal error naming the operation and adapter code.
-fn style_error(operation: &str, diagnostic: Box<ProjectionDiagnostic>) -> ApplicationError {
+pub(crate) fn style_error(
+    operation: &str,
+    diagnostic: Box<ProjectionDiagnostic>,
+) -> ApplicationError {
     if diagnostic.kind == sr_projection::DiagnosticKind::InvalidConfiguration {
         return ApplicationError::SchemaViolation {
             message: diagnostic

@@ -17,6 +17,7 @@ scriberig-query = { path = "../scriberig-query" }
 scriberig-session = { path = "../scriberig-session" }
 scriberig-store = { path = "../scriberig-store" }
 sr-change = { path = "../sr-change" }
+sr-projection-fs = { path = "../sr-projection-fs" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 rpi-ai = { workspace = true }
@@ -27,7 +28,6 @@ scriberig-domain-ecma = { path = "../domains/scriberig-domain-ecma" }
 scriberig-store-memory = { path = "../scriberig-store-memory" }
 scriberig-session-sqlite = { path = "../scriberig-session-sqlite" }
 scriberig-style-sqlite = { path = "../scriberig-style-sqlite" }
-sr-projection-fs = { path = "../sr-projection-fs" }
 tempfile = "3"
 
 [lints]
