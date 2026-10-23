@@ -81,7 +81,7 @@ pub use query::{DetailLevel, InspectRequest, InspectResult, QueryService, Snapsh
 pub use read_backend::UniversalReadBackend;
 pub use request::{
     ApplicationRequest, ApplyRequest, BranchRequest, CommitRequest, DiffRequest, HistoryRequest,
-    MergeRequest, RenderRequest, SnapshotSelector,
+    MergeRequest, RenderRequest, RenderStylePurpose, RenderStyleSelection, SnapshotSelector,
 };
 pub use result::{
     ApplicationResult, MigrationDelta, MigrationDetail, OperationStarted, OperationSummary,

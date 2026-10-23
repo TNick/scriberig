@@ -303,6 +303,12 @@ fn query_and_command_requests_preserve_structured_errors() {
             serde_json::to_value(RenderRequest {
                 snapshot: SnapshotSelector::Exact(SnapshotId::new([1; 32])),
                 view: "markdown".to_owned(),
+                style: scriberig_app::RenderStyleSelection::configured(
+                    "markdown",
+                    "lifecycle-project",
+                    "lifecycle-workspace",
+                    scriberig_app::RenderStylePurpose::InteractiveView,
+                ),
             })
             .expect("render payload"),
         )

@@ -36,6 +36,7 @@ pub fn parse_edit(change: &str) -> Option<(EntityId, &str)> {
 ///
 /// - `projection`: Snapshot-bound source projection data.
 /// - `view`: View suffix containing the selected entity identity.
+/// - `style`: Exact style the application resolved for this render.
 ///
 /// A rendered application result.
 ///
@@ -47,7 +48,16 @@ pub fn parse_edit(change: &str) -> Option<(EntityId, &str)> {
 pub fn render(
     projection: &ProjectProjection,
     view: &str,
+    style: &scriberig_app::RenderStyleSelection,
 ) -> Result<ApplicationResult, ApplicationError> {
+    let Some(style) = style.applied_value() else {
+        // Reaching this point unresolved means a surface tried to render without
+        // asking the application for a style.
+        return Err(ApplicationError::InvalidRequest {
+            operation: "render".to_owned(),
+            message: "the application must resolve the render style first".to_owned(),
+        });
+    };
     let entity = view.parse().map_err(|_| ApplicationError::InvalidRequest {
         operation: "render".to_owned(),
         message: "invalid project source entity".to_owned(),
@@ -66,8 +76,8 @@ pub fn render(
             revision: None,
         },
         base_state: sr_projection::SemanticStateRef(projection.snapshot),
-        kind: sr_projection::ProjectionKind::new("rust.source").expect("static projection kind"),
-        style: sr_projection::ResolvedStyle::inline(sr_projection::StyleValue::new(vec![1])),
+        kind: sr_projection::ProjectionKind::new("rust").expect("static projection kind"),
+        style: sr_projection::ResolvedStyle::inline(sr_projection::StyleValue::new(style.to_vec())),
         renderer: sr_projection::RendererVersion::new("scriberig-tui-project-v1"),
         context: sr_projection::RenderingContext {
             extensions: std::collections::BTreeMap::from([(

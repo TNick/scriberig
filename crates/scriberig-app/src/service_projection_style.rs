@@ -262,7 +262,7 @@ impl<B> ApplicationService<B> {
 /// # Returns
 /// The personal principal when the trusted runtime supplied one.
 ///
-fn personal_principal(context: &ApplicationContext) -> Option<&str> {
+pub(crate) fn personal_principal(context: &ApplicationContext) -> Option<&str> {
     context.user_preferences_principal.as_deref().or_else(|| {
         context
             .principal

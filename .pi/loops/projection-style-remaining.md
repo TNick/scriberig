@@ -33,7 +33,7 @@ grow.
       file past the limit. Update the task-152 checklist item to Done with the
       evidence and commands.
 
-- [ ] **2. Style selection on the render operation.** Add an explicit style
+- [x] **2. Style selection on the render operation.** Add an explicit style
       selection to `scriberig_app::RenderRequest` (currently `{ snapshot, view }`,
       `crates/scriberig-app/src/request.rs`) as a variant/enum with at least:
       use the resolved effective style, exact inline `StyleValue`, or explicit

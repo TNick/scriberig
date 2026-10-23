@@ -98,10 +98,10 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             reduce(
                 state,
                 Action::ProjectionRequested {
-                    request: scriberig_app::RenderRequest {
-                        snapshot: scriberig_app::SnapshotSelector::Exact(snapshot),
-                        view: format!("project-source:{}", selection.entity),
-                    },
+                    request: super::project_source_request::project_source_request(
+                        snapshot,
+                        selection.entity,
+                    ),
                 },
             )
         }

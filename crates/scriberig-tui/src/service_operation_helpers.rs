@@ -151,7 +151,12 @@ pub(super) fn execute_operation<B: ApplicationBackend>(
     if let ApplicationRequest::Render(render) = request
         && let Some(view) = render.view.strip_prefix("project-source:")
     {
-        return render_project_source(projection, view).map(Some);
+        // The application resolves the style for this surface's purpose; this
+        // module never chooses a style itself.
+        let style = adapter
+            .service
+            .resolve_render_style(context, &render.style)?;
+        return render_project_source(projection, view, &style).map(Some);
     }
     let _ = context;
     projected::execute_projected_change(adapter, projection, request)

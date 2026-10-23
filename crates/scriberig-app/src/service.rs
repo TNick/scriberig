@@ -26,6 +26,8 @@ mod service_plans;
 mod service_projection_style;
 #[path = "service_query_helpers.rs"]
 mod service_query_helpers;
+#[path = "service_render_style.rs"]
+mod service_render_style;
 #[path = "service_sessions.rs"]
 mod service_sessions;
 #[path = "session_failures.rs"]
@@ -373,6 +375,15 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         context: &ApplicationContext,
         request: &ApplicationRequest,
     ) -> Result<ApplicationResult, ApplicationError> {
-        self.backend.execute(context, request)
+        match request {
+            ApplicationRequest::Render(render) => {
+                let style = self.resolve_render_style(context, &render.style)?;
+                let mut resolved = render.clone();
+                resolved.style = style;
+                self.backend
+                    .execute(context, &ApplicationRequest::Render(resolved))
+            }
+            _ => self.backend.execute(context, request),
+        }
     }
 }
