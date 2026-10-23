@@ -67,7 +67,7 @@ pub fn render(
         },
         base_state: sr_projection::SemanticStateRef(projection.snapshot),
         kind: sr_projection::ProjectionKind::new("rust.source").expect("static projection kind"),
-        style: sr_projection::StyleRef::Value(sr_projection::StyleValue::new(vec![1])),
+        style: sr_projection::ResolvedStyle::inline(sr_projection::StyleValue::new(vec![1])),
         renderer: sr_projection::RendererVersion::new("scriberig-tui-project-v1"),
         context: sr_projection::RenderingContext {
             extensions: std::collections::BTreeMap::from([(

@@ -109,8 +109,8 @@ fn concurrent_changes_have_first_class_conflict_kind() {
 #[test]
 fn deterministic_render_identity_includes_style() {
     use sr_projection::{
-        RenderRequest, RenderedProjection, RendererVersion, RenderingContext, SemanticScopeRef,
-        SemanticStateRef, StyleRef, StyleValue,
+        RenderRequest, RenderedProjection, RendererVersion, RenderingContext, ResolvedStyle,
+        SemanticScopeRef, SemanticStateRef, StyleValue,
     };
     let entity = EntityId::from_bytes([3; 16]);
     let request = RenderRequest {
@@ -121,7 +121,7 @@ fn deterministic_render_identity_includes_style() {
         },
         base_state: SemanticStateRef(SnapshotId::new([4; 32])),
         kind: ProjectionKind::new("text/plain").unwrap(),
-        style: StyleRef::Value(StyleValue::new(vec![1])),
+        style: ResolvedStyle::inline(StyleValue::new(vec![1])),
         renderer: RendererVersion::new("1"),
         context: RenderingContext::default(),
     };
@@ -134,7 +134,7 @@ fn deterministic_render_identity_includes_style() {
 /// Checks style and exact context participate in the render cache identity.
 #[test]
 fn render_cache_identity_includes_exact_inputs() {
-    use sr_projection::{RenderCacheKey, StyleRef, StyleValue};
+    use sr_projection::{RenderCacheKey, ResolvedStyle, StyleValue};
     let entity = EntityId::from_bytes([4; 16]);
     let mut request = RenderRequest {
         specification: ProjectionSpecRef(entity),
@@ -144,12 +144,12 @@ fn render_cache_identity_includes_exact_inputs() {
         },
         base_state: SemanticStateRef(SnapshotId::new([5; 32])),
         kind: ProjectionKind::new("text/plain").unwrap(),
-        style: StyleRef::Value(StyleValue::new(vec![1])),
+        style: ResolvedStyle::inline(StyleValue::new(vec![1])),
         renderer: RendererVersion::new("1"),
         context: RenderingContext::default(),
     };
     let first = RenderCacheKey::from_request(&request);
-    request.style = StyleRef::Value(StyleValue::new(vec![2]));
+    request.style = ResolvedStyle::inline(StyleValue::new(vec![2]));
     let second = RenderCacheKey::from_request(&request);
     assert_ne!(first, second);
 }
@@ -167,7 +167,7 @@ fn rendered_output_carries_reusable_fragments() {
         },
         base_state: SemanticStateRef(SnapshotId::new([7; 32])),
         kind: ProjectionKind::new("text/plain").unwrap(),
-        style: sr_projection::StyleRef::Value(sr_projection::StyleValue::new(vec![1])),
+        style: sr_projection::ResolvedStyle::inline(sr_projection::StyleValue::new(vec![1])),
         renderer: RendererVersion::new("1"),
         context: RenderingContext::default(),
     };

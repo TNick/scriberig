@@ -4,7 +4,8 @@ use crate::coordinator::SyncCoordinator;
 use crate::{FailureStage, FileSystem, ImportCompletion, ImportRequest, IoError};
 use sr_projection::{
     ProjectionAdapter, ProjectionDiagnostic, ProjectionRef, ReconciliationContext,
-    ReconciliationOutcome, RenderRequest, RenderingContext, SemanticStateRef,
+    ReconciliationOutcome, RenderRequest, RenderingContext, ResolvedStyle, SemanticStateRef,
+    StyleResolutionError, invalid_style_diagnostic,
 };
 
 /// Error returned when adapter rendering or filesystem synchronization fails.
@@ -14,6 +15,8 @@ pub enum RenderError {
     Io(IoError),
     /// The adapter rejected the render request.
     Diagnostic(Box<ProjectionDiagnostic>),
+    /// The stored style reference could not be resolved to an exact value.
+    Style(StyleResolutionError),
 }
 
 impl std::fmt::Display for RenderError {
@@ -35,6 +38,7 @@ impl std::fmt::Display for RenderError {
             Self::Diagnostic(diagnostic) => {
                 write!(formatter, "adapter render failed: {diagnostic:?}")
             }
+            Self::Style(error) => write!(formatter, "projection style resolution failed: {error}"),
         }
     }
 }
@@ -60,12 +64,13 @@ impl<F: FileSystem> SyncCoordinator<F> {
             .find_projection(projection)
             .cloned()
             .ok_or(RenderError::Io(IoError::OwnershipDenied))?;
+        let style = ResolvedStyle::from_reference(&state.style).map_err(RenderError::Style)?;
         let request = RenderRequest {
             specification: state.specification,
             scope: state.scope,
             base_state: state.current,
             kind: state.kind,
-            style: state.style,
+            style,
             renderer: state.renderer,
             context: RenderingContext::default(),
         };
@@ -190,12 +195,32 @@ impl<F: FileSystem> SyncCoordinator<F> {
         adapter: &A,
         base: SemanticStateRef,
     ) -> Result<(), IoError> {
+        let resolved_style = ResolvedStyle::from_reference(&request.style);
+        let style = match resolved_style {
+            Ok(style) => style,
+            Err(error) => {
+                let diagnostic = invalid_style_diagnostic(
+                    &request.kind,
+                    "unresolved-style-reference",
+                    &error.to_string(),
+                    Vec::new(),
+                );
+                return self.complete_import(
+                    request.projection,
+                    ImportCompletion::Failed {
+                        request,
+                        stage: FailureStage::Rerender,
+                        diagnostic,
+                    },
+                );
+            }
+        };
         let render_request = RenderRequest {
             specification: request.specification,
             scope: request.scope,
             base_state: base,
             kind: request.kind.clone(),
-            style: request.style.clone(),
+            style,
             renderer: request.renderer.clone(),
             context: RenderingContext::default(),
         };
