@@ -6,6 +6,7 @@ use scriberig_project::ProjectService;
 use scriberig_session::{BranchStatus, SessionStore};
 use scriberig_session_sqlite::SqliteSessionStore;
 use scriberig_store_sqlite::SqliteStore;
+use std::time::{Duration, Instant};
 
 /// Verifies failed import after manifest review leaves the project inactive and source unchanged.
 #[test]
@@ -156,12 +157,28 @@ fn tui_bootstraps_project_and_reopens_exact_workspace() {
 fn wait_for_onboarding_completion(tui: &TuiPty, session: EntityId) {
     let store = SqliteSessionStore::open(tui.fixture_path().join("scriberig.sqlite"))
         .expect("open onboarding session store");
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+    let deadline = Instant::now() + Duration::from_secs(60);
     loop {
-        let saved = store
-            .load(session)
-            .expect("read onboarding session")
-            .expect("onboarding session exists");
+        let saved = match store.load(session) {
+            Ok(Some(saved)) => saved,
+            Ok(None) => {
+                assert!(
+                    Instant::now() < deadline,
+                    "onboarding session was not saved"
+                );
+                std::thread::sleep(Duration::from_millis(50));
+                continue;
+            }
+            Err(error) if error.contains("database is locked") => {
+                assert!(
+                    Instant::now() < deadline,
+                    "onboarding database stayed locked"
+                );
+                std::thread::sleep(Duration::from_millis(50));
+                continue;
+            }
+            Err(error) => panic!("read onboarding session: {error}"),
+        };
         if saved.branches.iter().any(|branch| {
             branch.status == BranchStatus::Completed
                 && branch.turns.iter().any(|turn| {
@@ -173,10 +190,10 @@ fn wait_for_onboarding_completion(tui: &TuiPty, session: EntityId) {
             return;
         }
         assert!(
-            std::time::Instant::now() < deadline,
+            Instant::now() < deadline,
             "onboarding branch did not complete"
         );
-        std::thread::sleep(std::time::Duration::from_millis(50));
+        std::thread::sleep(Duration::from_millis(50));
     }
 }
 
@@ -186,12 +203,28 @@ fn wait_for_onboarding_completion(tui: &TuiPty, session: EntityId) {
 /// - `session`: Exact session identity for the bootstrap attempt.
 fn wait_for_import_failure(database: &std::path::Path, session: EntityId) {
     let store = SqliteSessionStore::open(database).expect("open failed onboarding store");
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(120);
+    let deadline = Instant::now() + Duration::from_secs(120);
     loop {
-        let saved = store
-            .load(session)
-            .expect("read failed onboarding session")
-            .expect("failed onboarding session exists");
+        let saved = match store.load(session) {
+            Ok(Some(saved)) => saved,
+            Ok(None) => {
+                assert!(
+                    Instant::now() < deadline,
+                    "failed onboarding session was not saved"
+                );
+                std::thread::sleep(Duration::from_millis(50));
+                continue;
+            }
+            Err(error) if error.contains("database is locked") => {
+                assert!(
+                    Instant::now() < deadline,
+                    "onboarding database stayed locked"
+                );
+                std::thread::sleep(Duration::from_millis(50));
+                continue;
+            }
+            Err(error) => panic!("read failed onboarding session: {error}"),
+        };
         if saved.branches.iter().any(|branch| {
             branch
                 .result
@@ -201,10 +234,10 @@ fn wait_for_import_failure(database: &std::path::Path, session: EntityId) {
             return;
         }
         assert!(
-            std::time::Instant::now() < deadline,
+            Instant::now() < deadline,
             "invalid onboarding import did not fail"
         );
-        std::thread::sleep(std::time::Duration::from_millis(50));
+        std::thread::sleep(Duration::from_millis(50));
     }
 }
 
