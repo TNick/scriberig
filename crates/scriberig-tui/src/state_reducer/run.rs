@@ -101,6 +101,7 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
                     request: super::project_source_request::project_source_request(
                         snapshot,
                         selection.entity,
+                        state.project.as_deref(),
                     ),
                 },
             )
