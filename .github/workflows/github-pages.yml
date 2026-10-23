@@ -25,45 +25,14 @@ concurrency:
 jobs:
   publish:
     runs-on: debian-13
+    container:
+      image: docker.advaita.ro/ci/debian:13
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Install native build tools
-        shell: bash
-        run: |
-          if [ "$(id -u)" -eq 0 ]; then
-            apt-get update
-            DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential pkg-config libssl-dev perl
-          elif command -v sudo >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential pkg-config libssl-dev perl
-          else
-            echo "The Debian runner needs build-essential, pkg-config, libssl-dev, and perl." >&2
-            exit 1
-          fi
-
-      - name: Install documentation tooling
-        run: python3 -m pip install --user --break-system-packages "mkdocs-material>=9,<10"
-
-      - name: Set up Rust
-        shell: bash
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 12.11.2
 
       - name: Install web dependencies
         run: pnpm --dir web install --frozen-lockfile

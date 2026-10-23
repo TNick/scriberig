@@ -7,32 +7,18 @@ on:
 jobs:
   conventions:
     runs-on: debian-13
+    container:
+      image: docker.advaita.ro/ci/debian:13
     steps:
       - uses: actions/checkout@v4
       - run: python3 tools/lint_repo.py
 
   rust:
     runs-on: debian-13
+    container:
+      image: docker.advaita.ro/ci/debian:13
     steps:
       - uses: actions/checkout@v4
-      - name: Install native build tools
-        shell: bash
-        run: |
-          if [ "$(id -u)" -eq 0 ]; then
-            apt-get update
-            DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential pkg-config libssl-dev perl
-          elif command -v sudo >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential pkg-config libssl-dev perl
-          else
-            echo "The Debian runner needs build-essential, pkg-config, libssl-dev, and perl." >&2
-            exit 1
-          fi
-      - name: Install Rust stable, rustfmt, and Clippy
-        shell: bash
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable --component rustfmt --component clippy
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
       - run: cargo fmt --all -- --check
       - run: cargo check --workspace --all-targets
       - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
@@ -40,14 +26,10 @@ jobs:
 
   web:
     runs-on: debian-13
+    container:
+      image: docker.advaita.ro/ci/debian:13
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 12.11.2
       - run: pnpm --dir web install --frozen-lockfile
       - run: pnpm --dir web format:check
       - run: pnpm --dir web typecheck
@@ -56,32 +38,9 @@ jobs:
   product-golden:
     needs: [conventions, rust, web]
     runs-on: debian-13
+    container:
+      image: docker.advaita.ro/ci/debian:13
     steps:
       - uses: actions/checkout@v4
-      - name: Install native build tools
-        shell: bash
-        run: |
-          if [ "$(id -u)" -eq 0 ]; then
-            apt-get update
-            DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential pkg-config libssl-dev perl
-          elif command -v sudo >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential pkg-config libssl-dev perl
-          else
-            echo "The Debian runner needs build-essential, pkg-config, libssl-dev, and perl." >&2
-            exit 1
-          fi
-      - name: Install Rust stable and rustfmt
-        shell: bash
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable --component rustfmt
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 12.11.2
       - run: pnpm --dir web install --frozen-lockfile
-      - run: pnpm --dir web exec playwright install --with-deps chrome
       - run: python3 tools/product_golden.py
