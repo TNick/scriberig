@@ -17,7 +17,7 @@ grow.
 
 ## Tasks
 
-- [ ] **1. Durable projection style settings store.** Implement a SQLite-backed
+- [x] **1. Durable projection style settings store.** Implement a SQLite-backed
       `ProjectionStyleStore` (scope, scope identity, projection kind, canonical
       style bytes, monotonic revision with optimistic compare-and-swap and clear)
       in a crate that already owns durable state (`scriberig-store-sqlite` or a

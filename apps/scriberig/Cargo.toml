@@ -34,6 +34,7 @@ scriberig-tui = { path = "../../crates/scriberig-tui" }
 scriberig-client = { path = "../../crates/scriberig-client" }
 scriberig-core = { path = "../../crates/scriberig-core" }
 scriberig-domain-rust = { path = "../../crates/domains/scriberig-domain-rust" }
+scriberig-style-sqlite = { path = "../../crates/scriberig-style-sqlite" }
 sr-projection = { path = "../../crates/sr-projection" }
 rpi-ai = { workspace = true }
 rpi-agent = { workspace = true }

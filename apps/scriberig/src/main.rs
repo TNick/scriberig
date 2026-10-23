@@ -93,7 +93,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     model_catalog,
                     provider_readiness_handler: Some(provider_readiness_handler),
                 },
-                projection_style_composition::domain_projection_style_configuration(),
+                projection_style_composition::domain_projection_style_configuration(&args.db)?,
             )?;
         }
         scriberig_cli::Command::Tui(args) => tui_command::run(&args)?,
@@ -199,7 +199,7 @@ fn run_shared_agent(
     let service = ApplicationService::new(backend)
         .with_session_store(session_store)
         .with_projection_style_configuration(
-            projection_style_composition::domain_projection_style_configuration(),
+            projection_style_composition::domain_projection_style_configuration(&args.db)?,
         );
     let session = fresh_session_id()?;
     let context = ApplicationContext {
