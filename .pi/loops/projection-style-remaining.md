@@ -56,7 +56,7 @@ grow.
       generic style. Keep existing protocol tests green; update
       `design/level-3/152. …md` checklist.
 
-- [ ] **3. Materialization style in the filesystem projection path.** In
+- [x] **3. Materialization style in the filesystem projection path.** In
       `crates/sr-projection-fs/src/import.rs` (render requests around lines 68 and
       218), take the exact `ResolvedStyle` from the caller instead of any local
       default, and at the product call site resolve it once with purpose

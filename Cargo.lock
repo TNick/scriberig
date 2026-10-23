@@ -3138,6 +3138,7 @@ dependencies = [
  "serde_json",
  "sr-change",
  "sr-projection",
+ "sr-projection-fs",
  "tempfile",
 ]
 
