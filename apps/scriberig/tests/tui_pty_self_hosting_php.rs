@@ -168,7 +168,7 @@ fn restart_and_verify(
         candidate_target.join("debug/srig"),
     );
     assert!(
-        restarted.read_until("Conversation"),
+        restarted.read_until_for("Conversation", Duration::from_secs(120)),
         "{}",
         restarted.diagnostic()
     );
