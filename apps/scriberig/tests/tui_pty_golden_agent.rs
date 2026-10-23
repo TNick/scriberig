@@ -6,7 +6,6 @@ mod onboarding_wait;
 #[allow(dead_code)]
 mod tui_pty_support;
 
-use scriberig_session::SessionStore;
 use std::time::Duration;
 use tui_pty_support::{TuiPty, test_lock};
 
@@ -23,14 +22,7 @@ fn tui_golden_05_agent_uses_exact_semantic_scope_and_returns_compact_result() {
         tui.diagnostic()
     );
     let session = tui.stored_session_id();
-    let store = scriberig_session_sqlite::SqliteSessionStore::open(
-        tui.fixture_path().join("scriberig.sqlite"),
-    )
-    .expect("open golden agent session store");
-    let saved = store
-        .load(session)
-        .expect("read golden agent session")
-        .expect("golden agent session exists");
+    let saved = tui.load_session(session);
     let tool_names: Vec<&str> = saved
         .branches
         .iter()
@@ -46,7 +38,6 @@ fn tui_golden_05_agent_uses_exact_semantic_scope_and_returns_compact_result() {
             .and_then(|result| result.summary.as_deref())
             .is_some_and(|summary| summary.contains("shared code domain"))
     }));
-    drop(store);
     assert!(tui.source().contains("left + right"));
     onboarding_wait::wait_for_branch_completion(
         &tui,

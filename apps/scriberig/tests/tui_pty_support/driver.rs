@@ -10,6 +10,47 @@ use scriberig_session_sqlite::SqliteSessionStore;
 use super::TuiPty;
 
 impl TuiPty {
+    /// Loads one durable session while retrying transient SQLite contention.
+    ///
+    /// - `self`: Active PTY owning the fixture database.
+    /// - `session`: Exact session identity to load.
+    ///
+    /// # Returns
+    /// The persisted session value.
+    ///
+    /// # Panics
+    /// Panics when the session is absent, another database error occurs, or the
+    /// session remains unavailable for 120 seconds.
+    #[must_use]
+    pub fn load_session(&self, session: EntityId) -> scriberig_session::Session {
+        let database = self.fixture_path().join("scriberig.sqlite");
+        let deadline = Instant::now() + Duration::from_secs(120);
+        loop {
+            let store = match SqliteSessionStore::open(&database) {
+                Ok(store) => store,
+                Err(error) if error.to_string().contains("database is locked") => {
+                    assert!(
+                        Instant::now() < deadline,
+                        "PTY session database stayed locked"
+                    );
+                    std::thread::sleep(Duration::from_millis(50));
+                    continue;
+                }
+                Err(error) => panic!("open PTY session store: {error}"),
+            };
+            let loaded = store.load(session);
+            drop(store);
+            match loaded {
+                Ok(Some(saved)) => return saved,
+                Ok(None) => {}
+                Err(error) if error.contains("database is locked") => {}
+                Err(error) => panic!("read PTY session: {error}"),
+            }
+            assert!(Instant::now() < deadline, "PTY session was not readable");
+            std::thread::sleep(Duration::from_millis(50));
+        }
+    }
+
     /// Reads the sole durable session identity created by this fresh fixture.
     ///
     /// The TUI deliberately keeps identifiers out of ordinary conversation
