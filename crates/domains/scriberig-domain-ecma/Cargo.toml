@@ -9,6 +9,7 @@ repository.workspace = true
 
 [dependencies]
 oxc_allocator = "0.153"
+oxc_ast = "0.153"
 oxc_ast_visit = { version = "0.153", features = ["serialize"] }
 oxc_parser = "0.153"
 oxc_span = "0.153"
