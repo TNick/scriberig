@@ -5,6 +5,16 @@ use rpi_tui::TreeItem;
 use super::projection::TreeProjection;
 use crate::state::TuiState;
 
+#[cfg(test)]
+#[path = "tree_render_tests.rs"]
+mod render_tests;
+#[cfg(test)]
+#[path = "tree_test_support.rs"]
+mod test_support;
+#[cfg(test)]
+#[path = "tree_tests.rs"]
+mod tests;
+
 /// Builds reusable tree items and details for the active semantic view.
 ///
 /// - `state`: Current `ScribeRig` view and cursor.
@@ -13,7 +23,11 @@ use crate::state::TuiState;
 /// # Returns
 /// A tree projection when the active view has ready semantic rows.
 pub(super) fn projection(state: &TuiState) -> Option<TreeProjection> {
-    let rows = semantic_rows(state)?;
+    let mut rows = semantic_rows(state)?;
+    // Upstream tree validation rejects a duplicate item ID and discards the whole
+    // item set, so a semantic identity projected onto several rows must keep one
+    // exact key and give later occurrences bounded occurrence keys.
+    super::common::unique_row_ids(rows.iter_mut().map(|row| &mut row.id));
     let details = match state.primary_view {
         crate::selection::PrimaryView::Conversation => super::details::conversation_details(state),
         crate::selection::PrimaryView::Session => super::details::session_details(state),

@@ -184,3 +184,42 @@ fn tree_and_details_share_fallback_plan_selection() {
     assert_eq!(tree.selected_id(), Some(plan_row_id(plan_id, Some(second))));
     assert!(details.contains(&format!("## Node {second}")));
 }
+
+/// Verifies repeated durable plan and node identities still project distinct
+/// upstream rows, so one repeated identity cannot blank the whole plan tree.
+#[test]
+fn duplicate_plan_identities_keep_distinct_plan_tree_rows() {
+    let plan_id = EntityId::from_bytes([1; 16]);
+    let branch = EntityId::from_bytes([2; 16]);
+    let first = EntityId::from_bytes([3; 16]);
+    let second = EntityId::from_bytes([4; 16]);
+    let plan = sample_plan(plan_id, branch, first, second);
+    let state = TuiState {
+        session_snapshot: Some(scriberig_session::Session {
+            id: EntityId::from_bytes([9; 16]),
+            branches: Vec::new(),
+            goals: Vec::new(),
+            tasks: Vec::new(),
+            plans: vec![plan.clone(), plan],
+            execution: scriberig_session::SessionExecutionSelection::default(),
+        }),
+        plan_cursor: Some(PlanSelection {
+            plan: plan_id,
+            node: Some(first),
+        }),
+        ..TuiState::default()
+    };
+
+    let (tree, details, rows) = plan_tree(&state).expect("plan tree with repeated identities");
+    let ids = rows.iter().map(|row| row.id.as_str()).collect::<Vec<_>>();
+    let unique = ids.iter().collect::<std::collections::BTreeSet<_>>();
+
+    assert_eq!(unique.len(), ids.len(), "{ids:?}");
+    assert_eq!(tree.items().len(), ids.len());
+    assert_eq!(
+        tree.selected_id(),
+        Some(plan_row_id(plan_id, Some(first))),
+        "the first projected row keeps the exact selection key"
+    );
+    assert!(details.contains(&format!("## Node {first}")));
+}

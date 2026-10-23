@@ -169,6 +169,7 @@ fn rows_for_plans(plans: &[Plan]) -> Vec<PlanTreeRow> {
         });
         append_plan_nodes(plan, &plan_id, &mut rows);
     }
+    super::common::unique_row_ids(rows.iter_mut().map(|row| &mut row.id));
     rows
 }
 
