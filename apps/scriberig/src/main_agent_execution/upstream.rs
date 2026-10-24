@@ -108,21 +108,10 @@ pub(crate) fn execute_model<B: ApplicationBackend + Sync>(
         Some(provider_id),
         output_callback,
     );
-    result.map_err(|failure| {
-        let error = match failure.failure.error {
-            scriberig_agent_runtime::upstream_invocation::UpstreamBranchError::Cancelled => {
-                scriberig_agent_runtime::AgentError::Cancelled
-            }
-            scriberig_agent_runtime::upstream_invocation::UpstreamBranchError::Authentication(
-                message,
-            ) => scriberig_agent_runtime::AgentError::Authentication(message),
-            error => scriberig_agent_runtime::AgentError::Provider(error.to_string()),
-        };
-        ComposedAgentFailure {
-            error,
-            model_requests: failure.failure.model_requests,
-            tool_evidence: failure.tool_evidence,
-        }
+    result.map_err(|failure| ComposedAgentFailure {
+        error: failure.failure.error.into(),
+        model_requests: failure.failure.model_requests,
+        tool_evidence: failure.tool_evidence,
     })
 }
 

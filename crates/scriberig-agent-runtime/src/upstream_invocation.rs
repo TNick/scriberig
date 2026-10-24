@@ -23,6 +23,9 @@ pub use blocking::run_upstream_branch_invocation_blocking;
 
 #[path = "upstream_invocation/applied_settings.rs"]
 mod applied_settings;
+#[path = "upstream_invocation/failure.rs"]
+mod failure;
+use failure::{classify_agent_state, classify_loop_failure};
 #[path = "upstream_invocation/provider_stream.rs"]
 mod provider_stream;
 use provider_stream::build_provider_stream;
@@ -104,7 +107,7 @@ pub async fn run_upstream_branch_invocation_with_continuation(
                 break Err(UpstreamBranchError::Cancelled);
             }
             result = &mut run => {
-                break result.map_err(|error| UpstreamBranchError::Agent(error.to_string()));
+                break result.map_err(|error| classify_loop_failure(&error));
             }
             event = events.recv(), if events_open => {
                 match event {
@@ -144,8 +147,11 @@ pub async fn run_upstream_branch_invocation_with_continuation(
     run_result.map_err(failure)?;
 
     let state = built.agent.state();
-    if let Some(error) = state.error_message {
-        return Err(failure(UpstreamBranchError::Agent(error)));
+    // Upstream owns provider transport and authorization classification. The
+    // typed terminal reason it records on agent state is the only input used to
+    // choose the public ScribeRig category.
+    if let Some(error) = classify_agent_state(&state) {
+        return Err(failure(error));
     }
     let assistant = state
         .messages
@@ -153,17 +159,6 @@ pub async fn run_upstream_branch_invocation_with_continuation(
         .rev()
         .find_map(|message| message.as_assistant())
         .ok_or_else(|| failure(UpstreamBranchError::MissingFinalAssistant))?;
-    if let Some(error) = &assistant.error_message {
-        return Err(failure(UpstreamBranchError::Agent(error.clone())));
-    }
-    if matches!(
-        assistant.stop_reason,
-        rpi_ai::types::StopReason::Error | rpi_ai::types::StopReason::Aborted
-    ) {
-        return Err(failure(UpstreamBranchError::Agent(
-            "provider response did not complete successfully".to_owned(),
-        )));
-    }
     let output = assistant
         .content
         .iter()

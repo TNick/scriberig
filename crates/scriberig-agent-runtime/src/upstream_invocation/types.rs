@@ -132,3 +132,23 @@ impl std::fmt::Display for UpstreamBranchError {
 }
 
 impl std::error::Error for UpstreamBranchError {}
+
+impl From<UpstreamBranchError> for crate::AgentError {
+    /// Projects one branch invocation failure onto the public runtime category.
+    ///
+    /// Authentication and cancellation stay distinct from an ordinary provider
+    /// failure so callers never have to classify provider transport text.
+    ///
+    /// # Parameters
+    /// - `error`: Branch invocation failure to project.
+    ///
+    /// # Returns
+    /// The public `ScribeRig` agent-runtime failure.
+    fn from(error: UpstreamBranchError) -> Self {
+        match error {
+            UpstreamBranchError::Authentication(message) => Self::Authentication(message),
+            UpstreamBranchError::Cancelled => Self::Cancelled,
+            error => Self::Provider(error.to_string()),
+        }
+    }
+}
