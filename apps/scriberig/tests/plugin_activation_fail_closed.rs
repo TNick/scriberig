@@ -143,6 +143,73 @@ fn configured_native_extension_inputs_stop_the_one_shot_agent() {
     }
 }
 
+/// Seeds one upstream-style project package registration beneath the project.
+///
+/// The layout and `packages.json` record shape match the project package
+/// registry that the pinned upstream `rpi-extensions` package library owns, and
+/// the artifact is a planted file that no loader can map. The point of the
+/// registration is that a real upstream registry entry exists on disk while
+/// `ScribeRig` runs, so a package-directory scan or auto-discovery path would
+/// reach it and report or fail instead of running the deterministic provider.
+///
+/// - `root`: Temporary project root that holds `.rpi`.
+///
+/// # Panics
+/// Panics when the registry or planted artifact cannot be written.
+fn seed_upstream_project_package(root: &Path) {
+    let package_dir = root.join(".rpi/packages/demo-provider/extensions");
+    std::fs::create_dir_all(&package_dir).expect("upstream package directory");
+    std::fs::write(
+        root.join(".rpi/packages.json"),
+        r#"{"packages":[{"name":"demo-provider","version":"0.1.0","source":"local","cargo_package":"demo-provider","artifacts":["libdemo_provider.so"]}]}"#,
+    )
+    .expect("upstream package registry");
+    std::fs::write(
+        package_dir.join("libdemo_provider.so"),
+        b"not a loadable artifact",
+    )
+    .expect("planted package artifact");
+}
+
+/// Verifies an upstream-registered project package is neither discovered nor
+/// loaded.
+///
+/// Task 145 §9 assigns package discovery to the upstream registry and artifact
+/// APIs, and the product gate stays deny-by-default because no upstream API yet
+/// replaces a live extension session and its model-catalog rows as one
+/// generation, so discovery must stay absent even when the working project
+/// already carries a well-formed upstream registration whose planted artifact no
+/// loader could map. The run is judged on its exit status and the durable
+/// operation/session lines because the streamed `agent output:` delta line is not
+/// emitted on every stream settlement.
+#[test]
+fn an_upstream_registered_package_is_not_discovered() {
+    let directory = tempfile::tempdir().expect("temporary project");
+    seed_upstream_project_package(directory.path());
+    let output = run_one_shot(directory.path(), None);
+    let text = combined_text(&output);
+    assert!(
+        output.status.success(),
+        "the upstream package registration failed the run: {text}"
+    );
+    assert!(
+        text.contains("operation:") && text.contains("session:"),
+        "the one-shot run recorded no operation or session: {text}"
+    );
+    assert!(
+        !text.contains("package roots are unsupported")
+            && !text.contains(expected_plugin_rejection()),
+        "the plugin gate fired without configured native code: {text}"
+    );
+    let lowered = text.to_lowercase();
+    for marker in ["plugin", "extension", "package", ".so"] {
+        assert!(
+            !lowered.contains(marker),
+            "the run reported {marker} about the upstream-registered package: {text}"
+        );
+    }
+}
+
 /// Verifies the rejection is specific to configured native code.
 #[test]
 fn a_clean_environment_still_reaches_the_deterministic_agent() {
