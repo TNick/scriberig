@@ -1,5 +1,9 @@
 //! Covers one focused group of TUI regression tests.
 
+use super::candidate_review_support::{
+    CANDIDATE, SUPERSEDING_CANDIDATE, review_response, session_identity, session_projection,
+    state_before_candidate,
+};
 use super::*;
 
 /// Verifies a stale operation failure remains visible and is not retried.
@@ -139,99 +143,6 @@ fn submitted_agent_operation_id_is_stable() {
     assert_eq!(state.agent_handles[0].operation, operation);
 }
 
-/// Candidate handle shared by the session projection and its review response.
-const CANDIDATE: &str = "cnd_review";
-
-/// Session identity used by the overlapping candidate review requests.
-///
-/// # Returns
-/// The stable session identity shared by the request generations.
-fn session_identity() -> scriberig_core::EntityId {
-    scriberig_core::EntityId::from_bytes([21; 16])
-}
-
-/// Builds the session projection returned by one session-read generation.
-///
-/// - `candidate_snapshot`: Exact base snapshot for the durable candidate row, or
-///   `None` to return a projection without any reviewable candidate row.
-///
-/// # Returns
-/// A session projection for the shared session identity.
-fn session_projection(
-    candidate_snapshot: Option<scriberig_core::SnapshotId>,
-) -> crate::view::session::SessionModel {
-    let branch = scriberig_core::EntityId::from_bytes([22; 16]);
-    let mut rows = vec![crate::view::session::SessionRow {
-        reference: branch,
-        depth: 1,
-        label: "implementation branch".to_owned(),
-        kind: crate::view::session::SessionRowKind::Branch,
-        candidate: None,
-        snapshot: None,
-        transient: false,
-    }];
-    if let Some(snapshot) = candidate_snapshot {
-        rows.push(crate::view::session::SessionRow {
-            reference: branch,
-            depth: 2,
-            label: "Review candidate cnd_review".to_owned(),
-            kind: crate::view::session::SessionRowKind::Candidate,
-            candidate: Some(CANDIDATE.to_owned()),
-            snapshot: Some(snapshot),
-            transient: false,
-        });
-    }
-    crate::view::session::SessionModel {
-        rows,
-        execution: scriberig_session::SessionExecutionSelection::default(),
-        tool_invocation_details: std::collections::BTreeMap::default(),
-    }
-}
-
-/// Builds one candidate review response.
-///
-/// - `base_snapshot`: Exact base snapshot carried by the reviewed candidate.
-///
-/// # Returns
-/// A passing review model for the shared candidate handle.
-fn review_response(
-    base_snapshot: scriberig_core::SnapshotId,
-) -> crate::view::changes::ChangeReviewModel {
-    crate::view::changes::ChangeReviewModel {
-        base_snapshot,
-        candidate_snapshot: None,
-        change: CANDIDATE.to_owned(),
-        branch: None,
-        affected_entities: Vec::new(),
-        deltas: Vec::new(),
-        details: vec!["scope: entity=ent_review snapshot=snp_base".to_owned()],
-        conflicts: Vec::new(),
-        validation: crate::view::changes::ReviewValidation::Passed,
-        validation_profile: Some("project-review".to_owned()),
-        requires_confirmation: true,
-    }
-}
-
-/// Prepares the state a finished agent run leaves when a candidate review starts.
-///
-/// # Returns
-/// A state with one durable agent handle and a loaded session that has no candidate yet.
-fn state_before_candidate() -> TuiState {
-    TuiState {
-        primary_view: crate::selection::PrimaryView::Conversation,
-        session: crate::inspector::LoadState::Ready(session_projection(None)),
-        agent_handles: vec![crate::service::AgentHandle {
-            operation: scriberig_core::OperationId::new("candidate-implementation")
-                .expect("operation identity"),
-            session: session_identity(),
-            branch: None,
-            workspace: None,
-            failure: None,
-        }],
-        ..TuiState::default()
-    }
-}
-
 /// Verifies the candidate review request survives a competing session refresh.
 ///
 /// The Review candidate command marks the session loading and reads it, while a
@@ -275,7 +186,7 @@ fn candidate_review_opens_after_a_superseding_session_refresh() {
         &mut state,
         Action::SessionSucceeded {
             request_id: 1,
-            model: session_projection(Some(base)),
+            model: session_projection(Some((CANDIDATE, base))),
             conversation: crate::view::conversation::ConversationModel::default(),
             session_snapshot: None,
         },
@@ -295,7 +206,7 @@ fn candidate_review_opens_after_a_superseding_session_refresh() {
         &mut state,
         Action::SessionSucceeded {
             request_id: 2,
-            model: session_projection(Some(base)),
+            model: session_projection(Some((CANDIDATE, base))),
             conversation: crate::view::conversation::ConversationModel::default(),
             session_snapshot: None,
         },
@@ -313,7 +224,7 @@ fn candidate_review_opens_after_a_superseding_session_refresh() {
         &mut state,
         Action::ReviewSucceeded {
             request_id: 3,
-            model: review_response(base),
+            model: review_response(CANDIDATE, base),
         },
     );
     assert_eq!(settled, vec![Effect::None]);
@@ -325,12 +236,13 @@ fn candidate_review_opens_after_a_superseding_session_refresh() {
 
 /// Verifies an older review response cannot settle the newest review generation.
 ///
-/// Two review generations can overlap when a session refresh reopens the candidate
-/// before the first Apply response lands. Only the newest generation's response may
-/// replace the loading notice.
+/// Two review generations overlap when a durable session refresh publishes a newer
+/// candidate before the first Apply response lands. Only the newest generation's
+/// response may replace the loading notice.
 #[test]
 fn superseded_review_response_cannot_settle_the_newest_generation() {
     let base = scriberig_core::SnapshotId::new([4; 32]);
+    let revised = scriberig_core::SnapshotId::new([5; 32]);
     let mut state = state_before_candidate();
     let first = crate::state::activate_palette_item(&mut state, "review-candidate");
     assert!(matches!(
@@ -341,7 +253,7 @@ fn superseded_review_response_cannot_settle_the_newest_generation() {
         &mut state,
         Action::SessionSucceeded {
             request_id: 1,
-            model: session_projection(Some(base)),
+            model: session_projection(Some((CANDIDATE, base))),
             conversation: crate::view::conversation::ConversationModel::default(),
             session_snapshot: None,
         },
@@ -351,7 +263,7 @@ fn superseded_review_response_cannot_settle_the_newest_generation() {
         [Effect::Apply { request_id: 2, .. }]
     ));
 
-    // A durable session event reopens the review for a newer generation.
+    // A durable session event publishes a newer candidate and reopens the review.
     reduce(
         &mut state,
         Action::SessionRequested {
@@ -363,21 +275,22 @@ fn superseded_review_response_cannot_settle_the_newest_generation() {
         &mut state,
         Action::SessionSucceeded {
             request_id: 3,
-            model: session_projection(Some(base)),
+            model: session_projection(Some((SUPERSEDING_CANDIDATE, revised))),
             conversation: crate::view::conversation::ConversationModel::default(),
             session_snapshot: None,
         },
     );
     assert!(matches!(
         reopened.as_slice(),
-        [Effect::Apply { request_id: 4, .. }]
+        [Effect::Apply { request_id: 4, request }]
+            if request.change == SUPERSEDING_CANDIDATE && request.base_snapshot == revised
     ));
 
     let stale_effects = reduce(
         &mut state,
         Action::ReviewSucceeded {
             request_id: 2,
-            model: review_response(base),
+            model: review_response(CANDIDATE, base),
         },
     );
     assert_eq!(stale_effects, vec![Effect::None]);
@@ -390,7 +303,7 @@ fn superseded_review_response_cannot_settle_the_newest_generation() {
         &mut state,
         Action::ReviewSucceeded {
             request_id: 4,
-            model: review_response(base),
+            model: review_response(SUPERSEDING_CANDIDATE, revised),
         },
     );
     assert!(matches!(

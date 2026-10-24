@@ -327,6 +327,11 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             let request_id = state.next_request_id;
             state.next_request_id += 1;
             state.review = LoadState::Loading { request_id };
+            state.review_request = Some(scriberig_app::ApplyRequest {
+                base_snapshot: commit.base_snapshot,
+                branch: commit.branch.clone(),
+                change: commit.change.clone(),
+            });
             vec![Effect::Commit {
                 request_id,
                 request: scriberig_app::CommitRequest {
@@ -382,14 +387,8 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             }]
         }
         Action::ReviewRequested { request } => {
-            let request_id = state.next_request_id;
-            state.next_request_id += 1;
             state.primary_view = crate::selection::PrimaryView::Changes;
-            state.review = LoadState::Loading { request_id };
-            vec![Effect::Apply {
-                request_id,
-                request,
-            }]
+            crate::state::state_actions::request_candidate_review(state, request)
         }
         Action::ConnectionRestored => connection_restored::reduce(state),
         _ => state_reducer_tail::reduce_tail(state, action).unwrap_or_default(),

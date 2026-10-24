@@ -294,6 +294,10 @@ pub struct TuiState {
     pub projection: LoadState<crate::view::projection::ProjectionModel>,
     /// Change review request/result state.
     pub review: LoadState<crate::view::changes::ChangeReviewModel>,
+    /// Candidate handle and exact base snapshot the current review generation was
+    /// requested from. Kept while that generation is outstanding or settled so a
+    /// superseding session refresh can reuse it instead of orphaning its response.
+    pub review_request: Option<scriberig_app::ApplyRequest>,
     /// Last operation failure retained for review and refresh feedback.
     pub operation_error: Option<(String, String)>,
     /// Last reviewed proposal retained after a failed confirmation.

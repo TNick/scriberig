@@ -69,6 +69,7 @@ pub(super) fn operation_failed(
     mark_failed(&mut state.diff, request_id, category, message, false);
     mark_failed(&mut state.projection, request_id, category, message, false);
     let review_is_stale = state.review_proposal.is_some();
+    let review_generation_failed = matches!(&state.review, LoadState::Loading { request_id: current } if *current == request_id);
     mark_failed(
         &mut state.review,
         request_id,
@@ -76,6 +77,10 @@ pub(super) fn operation_failed(
         message,
         review_is_stale,
     );
+    if review_generation_failed {
+        // The failed generation has no outstanding request a refresh could reuse.
+        state.review_request = None;
+    }
     vec![Effect::None]
 }
 

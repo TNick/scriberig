@@ -58,6 +58,7 @@ impl Default for TuiState {
             diff: LoadState::NotRequested,
             projection: LoadState::NotRequested,
             review: LoadState::NotRequested,
+            review_request: None,
             operation_error: None,
             review_proposal: None,
             transient_agent_activities: Vec::new(),
