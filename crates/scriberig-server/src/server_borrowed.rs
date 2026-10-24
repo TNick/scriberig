@@ -149,6 +149,18 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
         (**self).model_library(context)
     }
 
+    /// Delegates the model-catalog generation read to the borrowed service.
+    ///
+    /// The generation binds model rows to the credential readiness rows a host
+    /// projection resolved from the same upstream catalog state.
+    ///
+    /// # Returns
+    /// The borrowed service's current upstream catalog generation, when it has
+    /// an upstream model catalog.
+    fn model_catalog_generation(&self) -> Option<scriberig_app::ModelCatalogGeneration> {
+        (**self).model_catalog_generation()
+    }
+
     /// Delegates shared presentation reads to the borrowed service.
     ///
     /// - `context`: Trusted caller identity and capabilities.

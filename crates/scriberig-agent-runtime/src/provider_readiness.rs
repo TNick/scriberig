@@ -7,13 +7,23 @@
 //! those rows were resolved from. The result is credential availability only:
 //! it never claims that a provider accepted a credential, and no credential
 //! material, endpoint, or header value leaves this module.
+//!
+//! `ProviderReadinessProjection::aligned_rows_for` is the single rule surfaces
+//! use to decide whether these rows may be paired with a model-library response,
+//! so no transport or terminal adapter re-implements the generation comparison.
+
+use std::collections::BTreeSet;
 
 use rpi_model_runtime::{CredentialSource as UpstreamCredentialSource, ModelCatalog};
 use scriberig_app::ModelCatalogGeneration;
-use scriberig_protocol::{ProviderCredentialReadiness, ProviderReadiness};
+use scriberig_protocol::{ModelLibraryResponse, ProviderCredentialReadiness, ProviderReadiness};
 use scriberig_secrets::CredentialProvider;
 
 use crate::protected_credential::credential_source_for_model;
+
+#[cfg(test)]
+#[path = "provider_readiness/tests.rs"]
+mod tests;
 
 /// Safe credential readiness rows bound to one upstream catalog generation.
 ///
@@ -43,6 +53,46 @@ impl ProviderReadinessProjection {
     #[must_use]
     pub fn is_aligned_to(&self, generation: &ModelCatalogGeneration) -> bool {
         &self.generation == generation
+    }
+
+    /// Returns the rows a surface may pair with one model-library response.
+    ///
+    /// A host catalog reload can replace a model's endpoint between the
+    /// model-library read and this projection, so a caller supplies the
+    /// generation its model rows were read from. Upstream catalog revisions only
+    /// advance, so an aligned projection proves no reload superseded those rows.
+    /// Rows naming a provider/model pair absent from the response are dropped.
+    ///
+    /// - `response`: Model-library response being displayed.
+    /// - `generation`: Catalog generation those model rows came from.
+    ///
+    /// The credential-safe rows for that generation, filtered to the response's
+    /// provider/model pairs.
+    /// # Returns
+    /// `None` when a reload superseded the displayed model rows.
+    #[must_use]
+    pub fn aligned_rows_for(
+        &self,
+        response: &ModelLibraryResponse,
+        generation: &ModelCatalogGeneration,
+    ) -> Option<Vec<ProviderReadiness>> {
+        if !self.is_aligned_to(generation) {
+            return None;
+        }
+        let displayed = response
+            .models
+            .iter()
+            .map(|model| (model.provider_id.as_str(), model.provider_model_id.as_str()))
+            .collect::<BTreeSet<_>>();
+        Some(
+            self.rows
+                .iter()
+                .filter(|row| {
+                    displayed.contains(&(row.provider_id.as_str(), row.model_id.as_str()))
+                })
+                .cloned()
+                .collect(),
+        )
     }
 }
 
@@ -120,207 +170,5 @@ fn classify_credential(
         Ok(UpstreamCredentialSource::Headers) => ProviderCredentialReadiness::CatalogHeader,
         Ok(UpstreamCredentialSource::Anonymous) => ProviderCredentialReadiness::NotRequired,
         Ok(UpstreamCredentialSource::Missing) => ProviderCredentialReadiness::Missing,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    //! Verifies credential-safe readiness stays bound to one catalog generation.
-
-    use super::*;
-    use rpi_ai::{Api, Model};
-    use scriberig_secrets::{SecretError, SecretValue};
-
-    /// Credential sentinel that must never reach a readiness row.
-    const SENTINEL: &str = "sentinel-credential-material";
-
-    /// Fixed host credential behaviour for readiness fixtures.
-    enum FixtureCredentials {
-        /// The host authority denies or fails to resolve the reference.
-        Denied,
-        /// No credential is configured for this destination.
-        Absent,
-        /// An authorized credential is available.
-        Present,
-    }
-
-    /// Host credential stub returning one fixed outcome.
-    struct StubCredentialProvider {
-        /// Fixed outcome for every authorized destination.
-        outcome: FixtureCredentials,
-    }
-
-    impl CredentialProvider for StubCredentialProvider {
-        /// Returns the fixed outcome without inspecting the endpoint value.
-        ///
-        /// # Parameters
-        /// - `_endpoint`: Exact provider endpoint for the request.
-        ///
-        /// # Returns
-        /// The fixture credential outcome.
-        ///
-        /// # Errors
-        /// Returns a denial when the fixture models host authorization failure.
-        fn credential(&self, _endpoint: &str) -> Result<Option<SecretValue>, SecretError> {
-            match self.outcome {
-                FixtureCredentials::Denied => Err(SecretError::Denied),
-                FixtureCredentials::Absent => Ok(None),
-                FixtureCredentials::Present => Ok(Some(
-                    SecretValue::new(SENTINEL.to_owned()).expect("valid secret"),
-                )),
-            }
-        }
-    }
-
-    /// Builds one credential-free upstream model row.
-    ///
-    /// - `provider_id`: Upstream provider identity.
-    /// - `model_id`: Provider-native model identity.
-    ///
-    /// The upstream model row for catalog fixtures.
-    /// # Returns
-    /// The credential-free upstream model row.
-    fn model(provider_id: &str, model_id: &str) -> Model {
-        let mut model = Model::new(
-            model_id,
-            model_id,
-            Api::OpenaiCompletions,
-            provider_id,
-            "https://provider.example.test/v1",
-        );
-        model.headers = None;
-        model
-    }
-
-    /// Builds a two-provider catalog.
-    ///
-    /// - `models`: Complete rows to publish.
-    ///
-    /// The shared live catalog for a readiness fixture.
-    /// # Returns
-    /// The catalog publishing the supplied rows.
-    fn catalog_with(models: Vec<Model>) -> ModelCatalog {
-        let catalog = ModelCatalog::new();
-        catalog.reconcile_models(models);
-        catalog
-    }
-
-    /// Verifies a host denial is reported as denied, never as a missing source.
-    #[test]
-    fn authorization_denial_is_not_degraded_to_missing() {
-        let catalog = catalog_with(vec![model("provider-a", "model-a")]);
-        let denied = StubCredentialProvider {
-            outcome: FixtureCredentials::Denied,
-        };
-
-        let projection = project_readiness(&catalog, Some(&denied));
-
-        assert_eq!(projection.rows.len(), 1);
-        assert_eq!(
-            projection.rows[0].credential,
-            ProviderCredentialReadiness::Denied
-        );
-        assert_eq!(projection.rows[0].provider_id, "provider-a");
-        assert_eq!(projection.rows[0].model_id, "model-a");
-    }
-
-    /// Verifies an unconfigured credential reports a safe missing source.
-    #[test]
-    fn absent_credential_reports_missing() {
-        let catalog = catalog_with(vec![model("provider-a", "model-a")]);
-        let absent = StubCredentialProvider {
-            outcome: FixtureCredentials::Absent,
-        };
-
-        let projection = project_readiness(&catalog, Some(&absent));
-
-        assert_eq!(
-            projection.rows[0].credential,
-            ProviderCredentialReadiness::Missing
-        );
-    }
-
-    /// Verifies an authorized credential reports availability without material.
-    #[test]
-    fn available_credential_projects_no_material() {
-        let catalog = catalog_with(vec![model("provider-a", "model-a")]);
-        let present = StubCredentialProvider {
-            outcome: FixtureCredentials::Present,
-        };
-
-        let projection = project_readiness(&catalog, Some(&present));
-
-        assert_eq!(
-            projection.rows[0].credential,
-            ProviderCredentialReadiness::Available
-        );
-        let serialized = serde_json::to_string(&projection.rows).expect("serializable rows");
-        assert!(!serialized.contains(SENTINEL));
-        assert!(!serialized.contains("provider.example.test"));
-    }
-
-    /// Verifies a host with no credential path still reports header auth.
-    #[test]
-    fn catalog_header_auth_stays_distinguishable_without_a_host_credential() {
-        let mut header_model = model("provider-a", "model-a");
-        header_model.headers = Some(std::collections::BTreeMap::from([(
-            "authorization".to_owned(),
-            SENTINEL.to_owned(),
-        )]));
-        let catalog = catalog_with(vec![header_model]);
-
-        let projection = project_readiness(&catalog, None);
-
-        assert_eq!(
-            projection.rows[0].credential,
-            ProviderCredentialReadiness::CatalogHeader
-        );
-        let serialized = serde_json::to_string(&projection.rows).expect("serializable rows");
-        assert!(!serialized.contains(SENTINEL));
-    }
-
-    /// Verifies readiness rows carry the generation of their own snapshot.
-    #[test]
-    fn readiness_rows_are_bound_to_one_catalog_generation() {
-        let catalog = catalog_with(vec![model("provider-a", "model-a")]);
-        let observed = project_readiness(&catalog, None);
-        let current = scriberig_app::catalog_generation(&catalog);
-
-        assert!(observed.is_aligned_to(&current));
-
-        let reloaded = scriberig_app::reconcile_model_catalog(
-            &catalog,
-            vec![
-                model("provider-b", "model-b"),
-                model("provider-a", "model-a"),
-            ],
-        );
-
-        assert!(reloaded.revision() > observed.generation.revision());
-        assert!(!observed.is_aligned_to(&reloaded));
-        assert_eq!(reloaded, scriberig_app::catalog_generation(&catalog));
-        let refreshed = project_readiness(&catalog, None);
-        assert!(refreshed.is_aligned_to(&reloaded));
-        assert_eq!(
-            refreshed
-                .rows
-                .iter()
-                .map(|row| (row.provider_id.as_str(), row.model_id.as_str()))
-                .collect::<Vec<_>>(),
-            vec![("provider-b", "model-b"), ("provider-a", "model-a")]
-        );
-    }
-
-    /// Verifies an idempotent reload does not advance the generation.
-    #[test]
-    fn unchanged_reload_keeps_the_generation() {
-        let models = vec![model("provider-a", "model-a")];
-        let catalog = catalog_with(models.clone());
-        let before = scriberig_app::catalog_generation(&catalog);
-
-        let after = scriberig_app::reconcile_model_catalog(&catalog, models);
-
-        assert_eq!(after, before);
-        assert_eq!(after, scriberig_app::catalog_generation(&catalog));
     }
 }

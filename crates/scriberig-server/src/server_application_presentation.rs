@@ -2,6 +2,17 @@
 
 macro_rules! agent_presentation_impl_methods {
     () => {
+        /// Names the generation published by the service's shared upstream catalog.
+        ///
+        /// The value is upstream's own catalog revision, so the transport can
+        /// detect a reload that happened while a model-library response was
+        /// being assembled.
+        /// # Returns
+        /// The current upstream model catalog generation.
+        fn model_catalog_generation(&self) -> Option<scriberig_app::ModelCatalogGeneration> {
+            Some(scriberig_app::catalog_generation(&self.model_catalog()))
+        }
+
         /// Reads safe model descriptors and preserves the legacy profiles
         /// field.
         ///

@@ -38,6 +38,12 @@ pub(super) fn dispatch<S: ApplicationService + 'static>(
         });
     }
     let is_model_library = matches!(&request, scriberig_protocol::Request::ModelLibrary(_));
+    // Read the generation before dispatch: upstream catalog revisions only
+    // advance, so a readiness projection aligned to this value proves no reload
+    // replaced the model rows while this response was being assembled.
+    let observed_generation = is_model_library
+        .then(|| state.service.model_catalog_generation())
+        .flatten();
     let lifecycle_handler = state.plan_lifecycle_handler.as_ref().map(|handler| {
         let handler = std::sync::Arc::clone(handler);
         std::sync::Arc::new(
@@ -64,15 +70,7 @@ pub(super) fn dispatch<S: ApplicationService + 'static>(
             &mut response.response,
         )
     {
-        let model_ids = library
-            .models
-            .iter()
-            .map(|model| (model.provider_id.as_str(), model.provider_model_id.as_str()))
-            .collect::<std::collections::BTreeSet<_>>();
-        library.provider_readiness = handler()
-            .into_iter()
-            .filter(|row| model_ids.contains(&(row.provider_id.as_str(), row.model_id.as_str())))
-            .collect();
+        super::http_readiness::attach_provider_readiness(library, handler(), observed_generation);
     }
     serde_json::to_value(response).map_err(|error| {
         (

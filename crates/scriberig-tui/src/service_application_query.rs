@@ -74,7 +74,8 @@ pub(in crate::service) fn model_library_response(
 /// A completed catalog reload can replace a model's endpoint between the
 /// model-library read and the host readiness projection. Readiness rows
 /// resolved from a different upstream catalog generation are omitted instead of
-/// pairing a credential status with a superseded model row.
+/// pairing a credential status with a superseded model row, and rows for models
+/// the response does not display are dropped.
 ///
 /// - `response`: Model-library response to update in place.
 /// - `readiness`: Host readiness projection, when this runtime has one.
@@ -84,8 +85,8 @@ pub(in crate::service) fn attach_provider_readiness(
     readiness: Option<scriberig_agent_runtime::provider_readiness::ProviderReadinessProjection>,
     generation: scriberig_app::ModelCatalogGeneration,
 ) {
-    if let Some(readiness) = readiness.filter(|rows| rows.is_aligned_to(&generation)) {
-        response.provider_readiness = readiness.rows;
+    if let Some(rows) = readiness.and_then(|rows| rows.aligned_rows_for(response, &generation)) {
+        response.provider_readiness = rows;
     }
 }
 

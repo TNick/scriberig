@@ -63,7 +63,6 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     scriberig_tui::AgentCommandRunner::<
                         scriberig_server::LocalApplicationBackend,
                     >::provider_readiness(readiness_runner.as_ref())
-                    .map_or_else(Vec::new, |readiness| readiness.rows)
                 });
             let plan_lifecycle_handler: Arc<scriberig_server::PlanLifecycleHandler> =
                 Arc::new(move |service, context, request, action| {

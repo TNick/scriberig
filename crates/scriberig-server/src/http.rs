@@ -26,6 +26,8 @@ mod http_migration;
 mod http_project_transport;
 #[path = "http_protocol.rs"]
 mod http_protocol;
+#[path = "http_readiness.rs"]
+mod http_readiness;
 pub use http_project_transport::InProcessProjectTransport;
 #[path = "http_request.rs"]
 mod http_request;
@@ -58,10 +60,13 @@ pub struct HttpState<S> {
 
 /// Projects current host-authorized credential sources for model display.
 ///
-/// This reports credential readiness only; it does not imply provider
+/// The projection carries the upstream catalog generation it resolved, so the
+/// transport can omit it when a reload superseded the model rows in the same
+/// response. This reports credential readiness only; it does not imply provider
 /// authentication or endpoint connectivity succeeded.
-pub type ProviderReadinessHandler =
-    dyn Fn() -> Vec<scriberig_protocol::ProviderReadiness> + Send + Sync;
+pub type ProviderReadinessHandler = dyn Fn() -> Option<scriberig_agent_runtime::provider_readiness::ProviderReadinessProjection>
+    + Send
+    + Sync;
 
 /// Runs one durable plan lifecycle transition with the configured model runtime.
 ///
