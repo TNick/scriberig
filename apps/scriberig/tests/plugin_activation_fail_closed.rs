@@ -97,7 +97,7 @@ fn combined_text(output: &Output) -> String {
 /// The fail-closed message emitted when extension or plugin paths are set.
 fn expected_plugin_rejection() -> &'static str {
     if cfg!(feature = "isolated-plugin-worker") {
-        "isolated plugin workers are not yet registered"
+        "isolated plugin worker composition is not activated"
     } else {
         "isolated plugin support is not enabled in this build"
     }

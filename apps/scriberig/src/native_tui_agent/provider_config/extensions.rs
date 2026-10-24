@@ -6,15 +6,17 @@ use scriberig_agent_runtime::plugin_worker::PluginWorkerConfiguration;
 
 /// Validates isolated plugin configuration and rejects unsupported package roots.
 ///
-/// Worker configuration is checked through the upstream adapter, but the
-/// worker is not yet composed into branch tool catalogs. Configured plugins
-/// therefore remain disabled until that production boundary exists.
+/// The pinned upstream API and the `ScribeRig` composition seam can now attach
+/// an authorized worker to one branch catalog, but no product path starts a
+/// worker: the host has no verified OS sandbox launcher on every platform and
+/// no runtime evidence that a launcher's self-reported guarantees hold. Every
+/// configured native-code input therefore stays rejected.
 ///
 /// # Returns
 /// `Ok(())` when no plugin or package paths are configured.
 ///
 /// # Errors
-/// Returns a safe configuration error for invalid or uncomposed extensions.
+/// Returns a safe configuration error for invalid or unactivated extensions.
 pub(crate) fn validate_isolated_plugin_configuration() -> Result<(), HostConfigurationError> {
     if path_list_is_nonempty("SCRIBE_AGENT_PACKAGE_ROOTS") {
         return Err(HostConfigurationError::Configuration(
@@ -32,7 +34,7 @@ pub(crate) fn validate_isolated_plugin_configuration() -> Result<(), HostConfigu
         .is_some()
     {
         return Err(HostConfigurationError::Configuration(
-            "isolated plugin workers are not yet registered in the branch tool catalog".to_owned(),
+            "isolated plugin worker composition is not activated in this build".to_owned(),
         ));
     }
     #[cfg(not(feature = "isolated-plugin-worker"))]

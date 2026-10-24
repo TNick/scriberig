@@ -12,6 +12,11 @@ publish = false
 default = []
 isolated-plugin-worker = ["dep:rpi-extensions"]
 
+[[bin]]
+name = "plugin-worker-fixture"
+path = "tests/fixtures/plugin_worker.rs"
+required-features = ["isolated-plugin-worker"]
+
 [dependencies]
 scriberig-secrets = { path = "../scriberig-secrets" }
 zeroize = "1"

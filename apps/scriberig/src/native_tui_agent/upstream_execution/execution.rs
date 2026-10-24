@@ -158,11 +158,14 @@ where
 /// - `branch`: Canonical `ScribeRig` branch identity.
 /// - `sender`: Owned channel captured by upstream `'static` tool adapters.
 ///
-/// This boundary intentionally accepts only `ToolCatalog` descriptors. Do not
-/// merge `rpi-extensions` registrations here: native plugins run in process at
-/// the pinned API and can bypass `ScribeRig`'s broker through ambient access.
-/// The host currently rejects their activation before they can reach this
-/// broker; keep this type restriction when an isolated upstream worker arrives.
+/// This boundary intentionally accepts only `ToolCatalog` descriptors. An
+/// `rpi-extensions` registration never enters here: the only worker-tool path
+/// into a branch tool set is
+/// `scriberig_agent_runtime::plugin_worker::PluginToolBridge`, which merges
+/// host-stamped worker descriptors, reauthorizes each call against the branch
+/// capability snapshot, and requires an OS-sandbox attestation. Product
+/// composition stays closed until the host verifies a platform sandbox launcher,
+/// so keep this parameter list semantic-only.
 ///
 /// # Returns
 /// Upstream adapters for every visible descriptor.
