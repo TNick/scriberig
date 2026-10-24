@@ -3106,6 +3106,7 @@ dependencies = [
  "scriberig-agent-core",
  "scriberig-app",
  "scriberig-core",
+ "scriberig-protocol",
  "scriberig-query",
  "scriberig-secrets",
  "scriberig-session",

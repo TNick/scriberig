@@ -69,6 +69,26 @@ pub(in crate::service) fn model_library_response(
     }
 }
 
+/// Attaches host credential readiness only when it matches the model rows.
+///
+/// A completed catalog reload can replace a model's endpoint between the
+/// model-library read and the host readiness projection. Readiness rows
+/// resolved from a different upstream catalog generation are omitted instead of
+/// pairing a credential status with a superseded model row.
+///
+/// - `response`: Model-library response to update in place.
+/// - `readiness`: Host readiness projection, when this runtime has one.
+/// - `generation`: Catalog generation the response's model rows came from.
+pub(in crate::service) fn attach_provider_readiness(
+    response: &mut scriberig_protocol::ModelLibraryResponse,
+    readiness: Option<scriberig_agent_runtime::provider_readiness::ProviderReadinessProjection>,
+    generation: scriberig_app::ModelCatalogGeneration,
+) {
+    if let Some(readiness) = readiness.filter(|rows| rows.is_aligned_to(&generation)) {
+        response.provider_readiness = readiness.rows;
+    }
+}
+
 impl<S: QueryService> TuiService for S {
     /// Delegates inspection through a public query service.
     ///
@@ -101,3 +121,104 @@ impl<S: QueryService> TuiService for S {
 }
 
 impl<S: QueryService> TuiModelRequestService for S {}
+
+#[cfg(test)]
+mod tests {
+    //! Verifies readiness rows stay bound to the displayed model generation.
+
+    use super::*;
+
+    /// Builds a one-row model-library response.
+    ///
+    /// # Returns
+    /// A response containing one provider/model display row.
+    fn response() -> scriberig_protocol::ModelLibraryResponse {
+        scriberig_protocol::ModelLibraryResponse {
+            models: vec![scriberig_protocol::PublicModelDescriptor {
+                id: scriberig_protocol::model_row_id("provider-a", "model-a"),
+                display_name: "Model A".to_owned(),
+                provider_id: "provider-a".to_owned(),
+                provider_model_id: "model-a".to_owned(),
+                thinking_levels: Vec::new(),
+                metadata_snapshot: scriberig_protocol::PublicModelMetadataSnapshot {
+                    schema_version: "rpi-safe-model-snapshot-v1".to_owned(),
+                    api_id: "openai-completions".to_owned(),
+                    reasoning: false,
+                    input: Vec::new(),
+                    cost: scriberig_protocol::PublicModelCostSnapshot {
+                        input: 0.0,
+                        output: 0.0,
+                        cache_read: 0.0,
+                        cache_write: 0.0,
+                        tiers: Vec::new(),
+                    },
+                    cost_configured: false,
+                    context_window: 0,
+                    max_tokens: 0,
+                },
+            }],
+            provider_readiness: Vec::new(),
+        }
+    }
+
+    /// Builds a readiness projection carrying one status row.
+    ///
+    /// - `revision`: Catalog generation the rows were resolved from.
+    ///
+    /// # Returns
+    /// The projection used by the attachment rule.
+    fn readiness(
+        revision: u64,
+    ) -> scriberig_agent_runtime::provider_readiness::ProviderReadinessProjection {
+        scriberig_agent_runtime::provider_readiness::ProviderReadinessProjection {
+            generation: scriberig_app::ModelCatalogGeneration::from_revision(revision),
+            rows: vec![scriberig_protocol::ProviderReadiness {
+                provider_id: "provider-a".to_owned(),
+                model_id: "model-a".to_owned(),
+                credential: scriberig_protocol::ProviderCredentialReadiness::Available,
+            }],
+        }
+    }
+
+    /// Verifies aligned readiness rows are attached to the model rows.
+    #[test]
+    fn aligned_readiness_is_attached() {
+        let mut response = response();
+
+        attach_provider_readiness(
+            &mut response,
+            Some(readiness(3)),
+            scriberig_app::ModelCatalogGeneration::from_revision(3),
+        );
+
+        assert_eq!(response.provider_readiness, readiness(3).rows);
+    }
+
+    /// Verifies rows from a superseded generation are not attached.
+    #[test]
+    fn superseded_readiness_is_omitted() {
+        let mut response = response();
+
+        attach_provider_readiness(
+            &mut response,
+            Some(readiness(2)),
+            scriberig_app::ModelCatalogGeneration::from_revision(3),
+        );
+
+        assert_eq!(response.provider_readiness, Vec::new());
+    }
+
+    /// Verifies a runtime without a host readiness source leaves the field empty.
+    #[test]
+    fn absent_host_readiness_stays_empty() {
+        let mut response = response();
+
+        attach_provider_readiness(
+            &mut response,
+            None,
+            scriberig_app::ModelCatalogGeneration::from_revision(0),
+        );
+
+        assert_eq!(response.provider_readiness, Vec::new());
+    }
+}

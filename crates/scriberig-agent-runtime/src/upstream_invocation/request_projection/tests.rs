@@ -111,3 +111,49 @@ fn model_execution_properties_change_identity_without_secrets() {
             .contains("transport-secret")
     );
 }
+
+/// Verifies an invocation-level selection override changes captured provenance
+/// without changing the profile reference used for the invocation.
+///
+/// The narrower invocation scope supplies a different exact upstream model
+/// while the compiled context keeps the same profile identity and revision, so
+/// the historical request identity moves and the profile reference does not.
+#[test]
+fn invocation_model_override_changes_provenance_without_changing_the_profile() {
+    let provider = FauxProvider::new(FauxScript::new());
+    let profile_model = provider.default_model().clone();
+    let compiled = ContextCompiler::new(ContextPolicy::default()).compile(
+        &BranchExecutionContext::new("session", "branch", "goal", "safe prompt"),
+    );
+    let context = Context::new(vec![Message::User(UserMessage::new("safe prompt", 1))]);
+    let mut override_model = profile_model.clone();
+    override_model.id = "invocation-override-model".to_owned();
+
+    let preferred = capture_provider_request(
+        &profile_model,
+        &context,
+        None,
+        &compiled,
+        ThinkingLevel::High,
+    );
+    let overridden = capture_provider_request(
+        &override_model,
+        &context,
+        None,
+        &compiled,
+        ThinkingLevel::High,
+    );
+
+    assert_eq!(preferred.model, profile_model.id);
+    assert_eq!(overridden.model, "invocation-override-model");
+    assert_eq!(preferred.thinking_level, overridden.thinking_level);
+    assert!(
+        preferred.profile.is_some(),
+        "the captured profile reference must remain exact"
+    );
+    assert_eq!(preferred.profile, overridden.profile);
+    assert_ne!(
+        preferred.request_fingerprint, overridden.request_fingerprint,
+        "an invocation override must move the captured request identity"
+    );
+}

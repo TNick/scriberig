@@ -11,6 +11,7 @@ pub mod plan_context;
 pub mod plugin_worker;
 pub mod profile;
 pub mod protected_credential;
+pub mod provider_readiness;
 pub mod scheduler;
 pub mod tools;
 pub mod upstream_invocation;

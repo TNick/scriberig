@@ -126,4 +126,108 @@ mod tests {
             })
         );
     }
+
+    /// Builds one credential-free upstream model row for resolution fixtures.
+    ///
+    /// - `provider_id`: Upstream provider identity.
+    /// - `model_id`: Provider-native model identity.
+    ///
+    /// The upstream model row.
+    /// # Returns
+    /// The upstream catalog row for the fixture.
+    fn upstream_model(provider_id: &str, model_id: &str) -> rpi_ai::Model {
+        rpi_ai::Model::new(
+            model_id,
+            model_id,
+            rpi_ai::Api::OpenaiCompletions,
+            provider_id,
+            "https://provider.example.test/v1",
+        )
+    }
+
+    /// Builds the exact profile whose preference is the lower default.
+    ///
+    /// - `thinking_level`: Canonical upstream thinking level to prefer.
+    ///
+    /// A bootstrap profile with a provider-a preference and its computed
+    /// revision reference.
+    /// # Returns
+    /// The profile descriptor with its content-derived revision.
+    fn profile_preferring_model_a(thinking_level: &str) -> AgentProfileDescriptor {
+        let mut profile = crate::profile::bootstrap_default_agent_profile();
+        profile.preferred_execution = Some(AgentProfileExecutionPreference {
+            provider_id: "provider-a".to_owned(),
+            model_id: "model-a".to_owned(),
+            thinking_level: Some(thinking_level.to_owned()),
+        });
+        profile.reference = crate::profile::agent_profile_revision(&profile);
+        profile
+    }
+
+    /// Verifies an invocation override changes the effective selection only.
+    ///
+    /// The narrower invocation scope resolves to its own provider/model pair
+    /// against the host catalog, while the profile's own preferred selection
+    /// and content-derived revision stay exactly as they were.
+    #[test]
+    fn invocation_override_resolves_without_revising_the_profile() {
+        let profile = profile_preferring_model_a("high");
+        let profile_revision_before = profile.reference.clone();
+        let preference_before = profile.preferred_execution.clone();
+        let invocation = SessionExecutionSelection {
+            revision: 0,
+            provider_id: Some("provider-b".to_owned()),
+            model_id: Some("model-b".to_owned()),
+            thinking_level: None,
+            history: Vec::new(),
+        };
+        let models = vec![
+            upstream_model("provider-a", "model-a"),
+            upstream_model("provider-b", "model-b"),
+        ];
+
+        let overridden = resolve_profile_execution_selection(
+            &profile,
+            ExecutionSelectionSources {
+                invocation: Some(&invocation),
+                plan_node: None,
+                branch: None,
+                session: None,
+                project: None,
+                user_profile: None,
+            },
+            &models,
+            "model-a",
+        )
+        .expect("invocation override resolves upstream");
+        let preferred = resolve_profile_execution_selection(
+            &profile,
+            ExecutionSelectionSources {
+                invocation: None,
+                plan_node: None,
+                branch: None,
+                session: None,
+                project: None,
+                user_profile: None,
+            },
+            &models,
+            "model-a",
+        )
+        .expect("profile preference resolves upstream");
+
+        assert_eq!(
+            (overridden.0.as_str(), overridden.1.as_str()),
+            ("provider-b", "model-b")
+        );
+        assert_eq!(
+            (preferred.0.as_str(), preferred.1.as_str()),
+            ("provider-a", "model-a")
+        );
+        assert_eq!(profile.reference, profile_revision_before);
+        assert_eq!(profile.preferred_execution, preference_before);
+        assert_eq!(
+            crate::profile::agent_profile_revision(&profile).revision,
+            profile_revision_before.revision
+        );
+    }
 }

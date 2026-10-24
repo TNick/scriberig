@@ -70,15 +70,20 @@ pub trait AgentCommandRunner<B: ApplicationBackend>: Send + Sync {
     /// Reports credential readiness for the configured provider models.
     ///
     /// Product runtimes may resolve readiness through their host-authorized
-    /// credential boundary. The result contains no secret material.
+    /// credential boundary. The result contains no secret material and carries
+    /// the catalog generation those rows were resolved from, so a surface can
+    /// avoid pairing readiness rows with model rows from another generation.
     ///
     /// - `self`: Runtime adapter owning provider configuration.
     ///
-    /// Safe per-model credential status rows, or an empty set when unavailable.
+    /// Safe per-model credential status with its catalog generation, or `None`
+    /// when this runtime has no host readiness source.
     /// # Returns
     /// Credential readiness rows safe for the model controls.
-    fn provider_readiness(&self) -> Vec<scriberig_protocol::ProviderReadiness> {
-        Vec::new()
+    fn provider_readiness(
+        &self,
+    ) -> Option<scriberig_agent_runtime::provider_readiness::ProviderReadinessProjection> {
+        None
     }
 
     /// Applies a plan lifecycle transition and advances it when supported.

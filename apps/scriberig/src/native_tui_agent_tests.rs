@@ -176,6 +176,8 @@ mod model_property_request;
 mod part1;
 #[path = "native_tui_agent_plan_tests.rs"]
 mod plan;
+#[path = "native_tui_agent_tests/readiness_generation.rs"]
+mod readiness_generation;
 #[path = "native_tui_agent_tests/upstream_activity.rs"]
 mod upstream_activity;
 #[path = "native_tui_agent_tests/upstream_cancellation.rs"]

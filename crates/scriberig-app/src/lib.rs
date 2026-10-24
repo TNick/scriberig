@@ -19,6 +19,7 @@ pub mod projection_backend;
 pub mod projection_materialization;
 pub mod projection_style;
 pub mod promotion;
+pub mod provider_lifecycle;
 pub mod query;
 pub mod read_backend;
 pub mod request;
@@ -79,6 +80,7 @@ pub use promotion::{
     ApprovalEvidence, PromotionDecision, PromotionPolicyEvaluation, PromotionRequest,
     evaluate_promotion, promote_candidate,
 };
+pub use provider_lifecycle::{ModelCatalogGeneration, catalog_generation, reconcile_model_catalog};
 pub use query::{DetailLevel, InspectRequest, InspectResult, QueryService, SnapshotResolution};
 pub use read_backend::UniversalReadBackend;
 pub use request::{

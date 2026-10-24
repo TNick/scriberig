@@ -74,9 +74,12 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
     /// Resolves safe per-model credential status from upstream and host policy.
     ///
     /// # Returns
-    /// Credential readiness rows without resolved credential material.
-    fn provider_readiness(&self) -> Vec<scriberig_protocol::ProviderReadiness> {
-        super::provider_readiness::project(self)
+    /// Credential readiness rows with their catalog generation, and no resolved
+    /// credential material.
+    fn provider_readiness(
+        &self,
+    ) -> Option<scriberig_agent_runtime::provider_readiness::ProviderReadinessProjection> {
+        Some(super::provider_readiness::project(self))
     }
 
     /// Persists a plan transition and runs newly started work to its next idle point.

@@ -18,6 +18,7 @@ zeroize = "1"
 scriberig-agent-core = { path = "../scriberig-agent-core" }
 scriberig-app = { path = "../scriberig-app" }
 scriberig-core = { path = "../scriberig-core" }
+scriberig-protocol = { path = "../scriberig-protocol" }
 scriberig-query = { path = "../scriberig-query" }
 scriberig-session = { path = "../scriberig-session" }
 serde_json = "1.0"
