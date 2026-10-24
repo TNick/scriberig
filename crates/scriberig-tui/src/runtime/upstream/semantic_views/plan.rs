@@ -150,11 +150,15 @@ pub fn reconcile_cursor(state: &mut TuiState) {
 /// Plan headers and nodes in bounded structural order.
 fn rows_for_plans(plans: &[Plan]) -> Vec<PlanTreeRow> {
     let mut rows = Vec::new();
+    // Upstream tree validation rejects a duplicate item ID and discards the whole
+    // item set. Keys are reserved while the copy is projected so a repeated plan
+    // identity re-parents its own nodes instead of pointing at the first copy.
+    let mut used = std::collections::HashSet::new();
     for plan in plans {
         if rows.len() >= super::common::MAX_ROWS {
             break;
         }
-        let plan_id = plan_row_id(plan.id, None);
+        let plan_id = super::common::unique_row_key(&mut used, plan_row_id(plan.id, None));
         rows.push(PlanTreeRow {
             id: plan_id.clone(),
             label: bounded_label(&format!(
@@ -167,21 +171,26 @@ fn rows_for_plans(plans: &[Plan]) -> Vec<PlanTreeRow> {
                 node: None,
             },
         });
-        append_plan_nodes(plan, &plan_id, &mut rows);
+        append_plan_nodes(plan, &plan_id, &mut rows, &mut used);
     }
-    super::common::unique_row_ids(rows.iter_mut().map(|row| &mut row.id));
     rows
 }
 
 /// Adds plan nodes in parent-before-child order, with malformed parents bounded.
 ///
 /// - `plan`: Durable plan supplying structural parent references.
-/// - `plan_id`: Stable tree ID for the plan header.
+/// - `plan_id`: Reserved tree ID for the plan header.
 /// - `rows`: Ordered rows receiving the plan's nodes.
-fn append_plan_nodes(plan: &Plan, plan_id: &str, rows: &mut Vec<PlanTreeRow>) {
+/// - `used`: Reserved upstream keys, updated with each projected node.
+fn append_plan_nodes(
+    plan: &Plan,
+    plan_id: &str,
+    rows: &mut Vec<PlanTreeRow>,
+    used: &mut std::collections::HashSet<String>,
+) {
     let remaining = super::common::MAX_ROWS.saturating_sub(rows.len());
     let mut pending = plan.nodes.iter().take(remaining).collect::<Vec<_>>();
-    let mut emitted = std::collections::BTreeSet::new();
+    let mut emitted = std::collections::BTreeMap::new();
     while !pending.is_empty() {
         let mut deferred = Vec::new();
         let mut progressed = false;
@@ -191,12 +200,28 @@ fn append_plan_nodes(plan: &Plan, plan_id: &str, rows: &mut Vec<PlanTreeRow>) {
                 deferred.push(node);
                 continue;
             }
-            append_node_row(plan, node, parent_id, rows, &mut emitted);
+            append_node_row(
+                plan,
+                node,
+                plan_id,
+                parent_id.clone(),
+                rows,
+                &mut emitted,
+                used,
+            );
             progressed = true;
         }
         if !progressed {
             for node in deferred {
-                append_node_row(plan, node, Some(plan_id.to_owned()), rows, &mut emitted);
+                append_node_row(
+                    plan,
+                    node,
+                    plan_id,
+                    Some(plan_id.to_owned()),
+                    rows,
+                    &mut emitted,
+                    used,
+                );
             }
             break;
         }
@@ -207,8 +232,8 @@ fn append_plan_nodes(plan: &Plan, plan_id: &str, rows: &mut Vec<PlanTreeRow>) {
 /// Resolves a node's structural parent when that parent is already projected.
 ///
 /// - `node`: Durable plan node being projected.
-/// - `plan_id`: Stable plan header row ID.
-/// - `emitted`: Node IDs already projected beneath the plan.
+/// - `plan_id`: Reserved plan header row ID.
+/// - `emitted`: Reserved row keys for nodes already projected beneath the plan.
 ///
 /// The structural tree parent; branch parents attach under the plan header.
 /// # Returns
@@ -216,13 +241,10 @@ fn append_plan_nodes(plan: &Plan, plan_id: &str, rows: &mut Vec<PlanTreeRow>) {
 fn node_parent_id(
     node: &PlanNode,
     plan_id: &str,
-    emitted: &std::collections::BTreeSet<EntityId>,
+    emitted: &std::collections::BTreeMap<EntityId, String>,
 ) -> Option<String> {
     match node.parent {
-        Some(PlanNodeParent::Node(parent)) if emitted.contains(&parent) => {
-            Some(plan_row_id_for_node(plan_id, parent))
-        }
-        Some(PlanNodeParent::Node(_)) => None,
+        Some(PlanNodeParent::Node(parent)) => emitted.get(&parent).cloned(),
         Some(PlanNodeParent::Branch(_)) | None => Some(plan_id.to_owned()),
     }
 }
@@ -231,18 +253,24 @@ fn node_parent_id(
 ///
 /// - `plan`: Durable plan containing the node.
 /// - `node`: Node being projected.
+/// - `plan_key`: Reserved tree key for this plan copy's header row.
 /// - `parent_id`: Structural tree parent row.
 /// - `rows`: Ordered rows receiving the node.
-/// - `emitted`: Node identities receiving the new row.
+/// - `emitted`: Reserved row keys for projected nodes of this plan copy.
+/// - `used`: Reserved upstream keys, updated with the new node key.
 fn append_node_row(
     plan: &Plan,
     node: &PlanNode,
+    plan_key: &str,
     parent_id: Option<String>,
     rows: &mut Vec<PlanTreeRow>,
-    emitted: &mut std::collections::BTreeSet<EntityId>,
+    emitted: &mut std::collections::BTreeMap<EntityId, String>,
+    used: &mut std::collections::HashSet<String>,
 ) {
+    let id = super::common::unique_row_key(used, format!("{plan_key}:node:{}", node.id));
+    emitted.entry(node.id).or_insert_with(|| id.clone());
     rows.push(PlanTreeRow {
-        id: plan_row_id(plan.id, Some(node.id)),
+        id,
         label: node_label(node, plan.coordinator_cursor),
         parent_id,
         selection: PlanSelection {
@@ -250,7 +278,6 @@ fn append_node_row(
             node: Some(node.id),
         },
     });
-    emitted.insert(node.id);
 }
 
 /// Builds a safe node label that exposes its structural parent category.
@@ -291,18 +318,6 @@ fn plan_row_id(plan: EntityId, node: Option<EntityId>) -> String {
         Some(node) => format!("plan:{plan}:node:{node}"),
         None => format!("plan:{plan}"),
     }
-}
-
-/// Names a node row using its plan's already-namespaced tree ID.
-///
-/// - `plan_id`: Stable plan header row ID.
-/// - `node`: Durable node identity.
-///
-/// A stable tree key for the node.
-/// # Returns
-/// Stable key under the plan header.
-fn plan_row_id_for_node(plan_id: &str, node: EntityId) -> String {
-    format!("{plan_id}:node:{node}")
 }
 
 /// Sanitizes and bounds one untrusted plan tree label.

@@ -223,3 +223,47 @@ fn duplicate_plan_identities_keep_distinct_plan_tree_rows() {
     );
     assert!(details.contains(&format!("## Node {first}")));
 }
+
+/// Verifies each projected copy of a repeated plan keeps its own structural
+/// parent rows instead of re-parenting nodes under the first copy.
+#[test]
+fn repeated_plan_identity_keeps_each_copy_under_its_own_plan_header() {
+    let plan_id = EntityId::from_bytes([1; 16]);
+    let branch = EntityId::from_bytes([2; 16]);
+    let first = EntityId::from_bytes([3; 16]);
+    let second = EntityId::from_bytes([4; 16]);
+    let plan = sample_plan(plan_id, branch, first, second);
+    let rows = rows_for_plans(&[plan.clone(), plan]);
+    let headers = rows
+        .iter()
+        .filter(|row| row.selection.node.is_none())
+        .collect::<Vec<_>>();
+    assert_eq!(headers.len(), 2);
+
+    let parent_rows = rows
+        .iter()
+        .filter(|row| row.selection.node == Some(first))
+        .collect::<Vec<_>>();
+    let node_rows = rows
+        .iter()
+        .filter(|row| row.selection.node == Some(second))
+        .collect::<Vec<_>>();
+    assert_eq!(node_rows.len(), 2);
+    let parents = node_rows
+        .iter()
+        .map(|row| row.parent_id.clone().expect("structural parent"))
+        .collect::<Vec<_>>();
+    assert_ne!(parents[0], parents[1], "{parents:?}");
+    for (index, parent) in parents.iter().enumerate() {
+        assert!(
+            parent.starts_with(&headers[index].id),
+            "copy {index} parent {parent} is not under {} (structural identity was reused)",
+            headers[index].id
+        );
+        assert_eq!(
+            parent.as_str(),
+            parent_rows[index].id.as_str(),
+            "copy {index} must nest under its own projected structural parent row"
+        );
+    }
+}

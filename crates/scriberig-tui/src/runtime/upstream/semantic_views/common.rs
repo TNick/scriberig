@@ -265,18 +265,36 @@ pub(super) fn optional_id<T: std::fmt::Display>(value: Option<T>) -> String {
 pub(super) fn unique_row_ids<'a>(ids: impl Iterator<Item = &'a mut String>) {
     let mut used = std::collections::HashSet::new();
     for id in ids {
-        if used.contains(id.as_str()) {
-            let semantic_key = id.clone();
-            let mut occurrence = 1_usize;
-            let mut candidate = format!("{semantic_key}#{occurrence}");
-            while used.contains(&candidate) {
-                occurrence = occurrence.saturating_add(1);
-                candidate = format!("{semantic_key}#{occurrence}");
-            }
-            *id = candidate;
-        }
-        used.insert(id.clone());
+        *id = unique_row_key(&mut used, id.clone());
     }
+}
+
+/// Reserves one unused upstream key, keeping the first occurrence exact.
+///
+/// A caller that builds child rows while it projects parents needs the reserved
+/// key immediately, because the child's parent reference must name the same row
+/// the parent actually got. `unique_row_ids` can only rewrite a finished key
+/// sequence.
+///
+/// - `used`: Keys already reserved, updated with the returned key.
+/// - `key`: Semantic upstream key for the projected row.
+///
+/// # Returns
+/// The exact semantic key when unused, otherwise a bounded occurrence key.
+pub(super) fn unique_row_key(used: &mut std::collections::HashSet<String>, key: String) -> String {
+    if used.contains(&key) {
+        let semantic_key = key;
+        let mut occurrence = 1_usize;
+        let mut candidate = format!("{semantic_key}#{occurrence}");
+        while used.contains(&candidate) {
+            occurrence = occurrence.saturating_add(1);
+            candidate = format!("{semantic_key}#{occurrence}");
+        }
+        used.insert(candidate.clone());
+        return candidate;
+    }
+    used.insert(key.clone());
+    key
 }
 
 #[cfg(test)]
