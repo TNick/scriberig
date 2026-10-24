@@ -30,6 +30,9 @@ mod property_editor;
 mod selector_factory;
 #[path = "upstream/semantic_views.rs"]
 mod semantic_views;
+#[cfg(test)]
+#[path = "upstream/transcript_follow_tests.rs"]
+mod transcript_follow_tests;
 
 use components::{ComposerAdapter, SelectionStatusPanel};
 use semantic_views::SemanticViewPanel;
@@ -267,15 +270,7 @@ pub(super) fn run<S: TuiService + Sync>(
     ));
     let transcript = Arc::new(ScrollView::primary(conversation.clone()));
     let root = Arc::new(VStack::new());
-    root.add_child_with_options(
-        selection_status,
-        StackEntryOptions::with_basis(3).min_size(2),
-    );
-    root.add_child_with_options(transcript, StackEntryOptions::default().grow(1).min_size(1));
-    root.add_child_with_options(
-        composer.clone(),
-        StackEntryOptions::with_basis(5).min_size(3),
-    );
+    arrange_shell_panes(&root, selection_status, &transcript, composer.clone());
 
     let screen = Arc::new(TuiAltScreen::new(
         Box::new(ProcessTerminal::new()),
@@ -297,6 +292,7 @@ pub(super) fn run<S: TuiService + Sync>(
         config,
         state: &shared_state,
         screen: &screen,
+        transcript: &transcript,
         editor: &editor,
         composer: &composer,
         semantic_view: &conversation,
@@ -304,4 +300,58 @@ pub(super) fn run<S: TuiService + Sync>(
         input_receiver: &input_receiver,
         debug_log,
     })
+}
+
+/// Arranges the fixed status pane, the transcript viewport, and the composer pane.
+///
+/// The transcript must receive only the terminal rows left over by the fixed panes. An
+/// auto-basis stack entry measures the scroll view at its full content height, which
+/// pushes the composer off the terminal and leaves the scroll viewport as tall as the
+/// content, so the visible transcript stays pinned to its oldest rows.
+///
+/// - `root`: Shell stack receiving the panes in visible order.
+/// - `status`: Fixed status and key-hint pane.
+/// - `transcript`: Primary transcript scroll view.
+/// - `composer`: Fixed composer pane.
+fn arrange_shell_panes(
+    root: &VStack,
+    status: Arc<dyn Component>,
+    transcript: &Arc<ScrollView>,
+    composer: Arc<dyn Component>,
+) {
+    root.add_child_with_options(status, StackEntryOptions::with_basis(3).min_size(2));
+    root.add_child_with_options(
+        Arc::clone(transcript) as Arc<dyn Component>,
+        StackEntryOptions::with_basis(0)
+            .grow(1)
+            .shrink(1)
+            .min_size(1),
+    );
+    root.add_child_with_options(composer, StackEntryOptions::with_basis(5).min_size(3));
+}
+
+/// Re-anchors the transcript pane when the active semantic view changes.
+///
+/// The conversation home reads from its newest rows, so it follows the end of the
+/// transcript. The auxiliary markdown views read from their first line, so they return
+/// to the start until the reader scrolls them. A view that did not change keeps the
+/// reader's current scroll position, including a manual scroll back through history.
+///
+/// - `transcript`: Primary transcript scroll view.
+/// - `view`: Active semantic view.
+/// - `anchored_view`: View used by the previous anchor, updated in place.
+fn synchronize_transcript_anchor(
+    transcript: &ScrollView,
+    view: crate::selection::PrimaryView,
+    anchored_view: &mut Option<crate::selection::PrimaryView>,
+) {
+    if anchored_view.is_some_and(|previous| previous == view) {
+        return;
+    }
+    *anchored_view = Some(view);
+    if view == crate::selection::PrimaryView::Conversation {
+        transcript.scroll_to_end();
+    } else {
+        transcript.scroll_to_start();
+    }
 }
