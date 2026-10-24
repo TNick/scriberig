@@ -3114,6 +3114,7 @@ dependencies = [
  "scriberig-store-memory",
  "serde",
  "serde_json",
+ "tempfile",
  "tokio",
  "tokio-util",
  "zeroize",

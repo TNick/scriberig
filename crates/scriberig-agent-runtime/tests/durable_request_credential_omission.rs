@@ -121,10 +121,12 @@ fn serialized_contains_credential<T: serde::Serialize>(value: &T, subject: &str)
 #[test]
 #[allow(clippy::too_many_lines)] // Keeps capture, persistence, reload, and detail in one scenario.
 fn credential_sentinels_never_reach_durable_model_request_detail() {
-    let path = std::env::temp_dir().join(format!(
-        "scriberig-credential-omission-{}.sqlite",
-        EntityId::new()
-    ));
+    // The temporary directory owns the SQLite file and any sidecar journals, so
+    // cleanup still runs when an assertion below panics.
+    let directory = tempfile::tempdir().expect("temporary session directory");
+    let path = directory
+        .path()
+        .join("scriberig-credential-omission.sqlite");
     let provider = FauxProvider::new(FauxScript::new().with_text("safe completed answer"));
     let mut model = provider.default_model().clone();
     model.base_url = format!("https://example.invalid/v1?token={CREDENTIAL_SENTINEL}");
@@ -265,5 +267,4 @@ fn credential_sentinels_never_reach_durable_model_request_detail() {
         !String::from_utf8_lossy(&stored_bytes).contains(CREDENTIAL_SENTINEL),
         "the durable SQLite payload leaked the provider credential sentinel"
     );
-    let _ = std::fs::remove_file(path);
 }
