@@ -1,5 +1,7 @@
 //! Verifies upstream provider, model, and thinking controls in the live TUI.
 
+use std::time::{Duration, Instant};
+
 use super::{TuiPty, test_lock};
 use scriberig_session::SessionStore;
 
@@ -30,11 +32,13 @@ fn tui_pty_uses_upstream_model_controls() {
     assert!(tui.shutdown());
 }
 
-/// Verifies the thinking selector is an upstream list showing the selected model's levels.
+/// Verifies the thinking selector is an upstream list and a model switch clamps its level.
 ///
-/// The scenario assigns one upstream model, reads the thinking rows the upstream
-/// runtime advertises for it, then reassigns a model whose upstream thinking map
-/// removes levels and requires the visible rows to change with it.
+/// The scenario assigns one upstream model, commits the `low` row that the upstream
+/// runtime advertises for it, then reassigns a model whose upstream `thinkingLevelMap`
+/// nulls `minimal` and `low`. The durable session selection and the upstream footer
+/// must then carry the clamped level, and the reopened list must offer only levels the
+/// reassigned model advertises.
 #[test]
 fn tui_pty_thinking_selector_follows_the_selected_upstream_model() {
     let _lock = test_lock();
@@ -58,9 +62,19 @@ fn tui_pty_thinking_selector_follows_the_selected_upstream_model() {
 
     tui.send_slow(b"/thinking\r");
     assert!(tui.read_until("minimal"), "{}", tui.diagnostic());
+    assert!(tui.screen().contains("low"), "{}", tui.diagnostic());
     assert!(tui.screen().contains("high"), "{}", tui.diagnostic());
-    tui.send(b"\x1b");
-    assert!(tui.read_until_not("minimal"), "{}", tui.diagnostic());
+    // The upstream `SelectList` cursor starts on the first advertised level and paints
+    // it with the `\u{2192}` marker, so two Down keys move it onto the `low` row that the
+    // reassigned model cannot accept.
+    tui.send(b"\x1b[B");
+    tui.send(b"\x1b[B");
+    assert!(tui.read_until("\u{2192} low"), "{}", tui.diagnostic());
+    tui.send(b"\r");
+    assert!(tui.read_until("thinking low"), "{}", tui.diagnostic());
+
+    let selected = wait_for_selection(&tui, session, Some("fake-a"), Some("low"));
+    assert_eq!(selected.execution.provider_id.as_deref(), Some("local"));
 
     tui.send_slow(b"/model\r");
     assert!(tui.read_until("Select model"), "{}", tui.diagnostic());
@@ -68,10 +82,57 @@ fn tui_pty_thinking_selector_follows_the_selected_upstream_model() {
     tui.send(b"\r");
     assert!(tui.read_until("model fake-b"), "{}", tui.diagnostic());
 
+    // Upstream `Model::clamp_thinking_level` retains a level only when the newly
+    // selected model supports it and otherwise falls to the nearest lower supported
+    // level. `fake-b` nulls `minimal` and `low`, so the durable selection must move to
+    // `off`, the level `fake-b` still advertises at or below `low`.
+    let clamped = wait_for_selection(&tui, session, Some("fake-b"), Some("off"));
+    assert_eq!(clamped.execution.provider_id.as_deref(), Some("local"));
+
+    assert!(tui.read_until("thinking off"), "{}", tui.diagnostic());
     tui.send_slow(b"/thinking\r");
-    assert!(tui.read_until("high"), "{}", tui.diagnostic());
+    assert!(tui.read_until("\u{2192} off"), "{}", tui.diagnostic());
+    assert!(tui.screen().contains("high"), "{}", tui.diagnostic());
     assert!(!tui.screen().contains("minimal"), "{}", tui.diagnostic());
+    assert!(!tui.screen().contains("low"), "{}", tui.diagnostic());
     assert!(tui.shutdown());
+}
+
+/// Reads the durable session selection written by the running TUI.
+///
+/// - `tui`: Active PTY whose private database the TUI mutates.
+/// - `session`: Seeded conversation the TUI switched to.
+/// - `model`: Expected upstream model identity, or `None` when unset.
+/// - `thinking_level`: Expected selected thinking level, or `None` when unset.
+///
+/// # Panics
+/// Panics when the database cannot be read or the expected selection is not
+/// persisted within 20 seconds.
+/// # Returns
+/// The persisted durable session.
+#[must_use]
+fn wait_for_selection(
+    tui: &TuiPty,
+    session: scriberig_core::EntityId,
+    model: Option<&str>,
+    thinking_level: Option<&str>,
+) -> scriberig_session::Session {
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        let saved = tui.load_session(session);
+        if saved.execution.model_id.as_deref() == model
+            && saved.execution.thinking_level.as_deref() == thinking_level
+        {
+            return saved;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "selection was not persisted: expected model {model:?} and thinking level \
+             {thinking_level:?}, got {:?}",
+            saved.execution
+        );
+        std::thread::sleep(Duration::from_millis(50));
+    }
 }
 
 /// Seeds one durable conversation the running TUI can switch to.
