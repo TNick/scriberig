@@ -18,6 +18,12 @@ use crate::state::TuiState;
 use details::plan_details;
 
 #[cfg(test)]
+#[path = "plan_relation_tests.rs"]
+mod relation_tests;
+#[cfg(test)]
+#[path = "plan_test_support.rs"]
+mod test_support;
+#[cfg(test)]
 #[path = "plan_tests.rs"]
 mod tests;
 

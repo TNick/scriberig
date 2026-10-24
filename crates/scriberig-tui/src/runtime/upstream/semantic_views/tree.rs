@@ -6,6 +6,9 @@ use super::projection::TreeProjection;
 use crate::state::TuiState;
 
 #[cfg(test)]
+#[path = "tree_refresh_tests.rs"]
+mod refresh_tests;
+#[cfg(test)]
 #[path = "tree_render_tests.rs"]
 mod render_tests;
 #[cfg(test)]
