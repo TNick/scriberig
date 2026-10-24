@@ -1,8 +1,10 @@
-//! Per-manifest dependency ownership rules and the inheritance probe.
+//! Per-manifest dependency ownership rules and the inheritance probes.
 //!
 //! The rules consume the resolved package identities from `manifest`, so a
 //! forbidden or upstream crate reached through `workspace = true` inheritance
-//! or a `package = "..."` alias fails just like a directly written key.
+//! or a `package = "..."` alias fails just like a directly written key, and an
+//! inherited request the workspace table cannot resolve fails on its own rather
+//! than passing as a clean declaration under an allowed key.
 
 use std::collections::BTreeSet;
 
@@ -10,7 +12,8 @@ use toml::Value;
 
 use crate::manifest::{
     Declaration, member_declarations, parse_workspace_dependencies, read_toml,
-    workspace_declarations, workspace_dependency_table, workspace_members, workspace_root,
+    unresolved_inheritances, workspace_declarations, workspace_dependency_table, workspace_members,
+    workspace_root,
 };
 
 /// Workspace members allowed to consume upstream `rpi-*` runtime crates.
@@ -48,6 +51,21 @@ const PROBE_FORBIDDEN_INHERITED_KEY: &str = r"
 [dependencies]
 crossterm = { workspace = true }
 ";
+
+/// Probe workspace manifest declaring the crate the clean member inherits.
+const PROBE_CLEAN_WORKSPACE: &str = r#"
+[workspace.dependencies]
+scriberig-core = { path = "crates/scriberig-core" }
+"#;
+
+/// Probe member manifest inheriting an allowed key the workspace table lacks.
+const PROBE_UNRESOLVED_MEMBER: &str = r#"
+[dependencies]
+scratch-helper = { workspace = true }
+
+[dev-dependencies]
+scratch-dev-helper = { workspace = true, features = ["test-util"] }
+"#;
 
 /// Probe member manifest whose only request is a ScribeRig-owned crate.
 const PROBE_CLEAN_MEMBER: &str = r"
@@ -202,6 +220,75 @@ fn inherited_forbidden_dependency_fails_the_guard() {
         &member_declarations(&probe(PROBE_CLEAN_MEMBER), &workspace_deps),
     );
     assert!(clean.is_empty(), "clean probe reported {clean:?}");
+}
+
+/// Verifies every inherited request in the workspace resolves to an entry.
+#[test]
+fn every_inherited_dependency_resolves_in_the_workspace_table() {
+    let root = workspace_root();
+    let workspace_deps = workspace_dependency_table(&root);
+    let mut failures = unresolved_inheritances(
+        "workspace dependency table",
+        &workspace_declarations(&workspace_deps),
+    );
+    for member in workspace_members(&root) {
+        let manifest = read_toml(&root.join(&member).join("Cargo.toml"));
+        failures.extend(unresolved_inheritances(
+            &member,
+            &member_declarations(&manifest, &workspace_deps),
+        ));
+    }
+    assert!(
+        failures.is_empty(),
+        "unresolved workspace inheritance: {failures:?}"
+    );
+}
+
+/// Proves an unresolved `workspace = true` request fails even under an allowed key.
+///
+/// An inherited request the `[workspace.dependencies]` table does not declare
+/// carries no resolvable package identity, so scoring it by its written key
+/// would accept any key that happens not to be forbidden. The probe covers such
+/// an allowed key in both a normal and a dev-dependency table, the same
+/// unresolved request on a forbidden key, and a clean member whose inherited key
+/// the workspace table does declare.
+#[test]
+fn unresolved_workspace_inheritance_fails_the_guard() {
+    let workspace_deps = parse_workspace_dependencies(&probe(PROBE_FORBIDDEN_WORKSPACE));
+    // Set comparison: failure order follows dependency-table iteration, not key order.
+    let unresolved: BTreeSet<String> = unresolved_inheritances(
+        "probe",
+        &member_declarations(&probe(PROBE_UNRESOLVED_MEMBER), &workspace_deps),
+    )
+    .into_iter()
+    .collect();
+    assert_eq!(
+        unresolved,
+        BTreeSet::from([
+            "probe inherits scratch-dev-helper from [workspace.dependencies], which does not declare it".to_owned(),
+            "probe inherits scratch-helper from [workspace.dependencies], which does not declare it".to_owned(),
+        ])
+    );
+
+    let forbidden_unresolved = unresolved_inheritances(
+        "probe",
+        &member_declarations(&probe(PROBE_FORBIDDEN_INHERITED_KEY), &workspace_deps),
+    );
+    assert_eq!(
+        forbidden_unresolved,
+        vec![
+            "probe inherits crossterm from [workspace.dependencies], which does not declare it"
+                .to_owned()
+        ]
+    );
+
+    let clean_deps = parse_workspace_dependencies(&probe(PROBE_CLEAN_WORKSPACE));
+    let clean = member_declarations(&probe(PROBE_CLEAN_MEMBER), &clean_deps);
+    let clean_unresolved = unresolved_inheritances("probe", &clean);
+    assert!(
+        clean_unresolved.is_empty(),
+        "clean probe reported {clean_unresolved:?}"
+    );
 }
 
 /// Proves the upstream-boundary rules see an aliased inherited upstream crate.

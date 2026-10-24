@@ -8,7 +8,9 @@
 //! build, and target-specific) against the workspace table and hand the rules
 //! the package identities a manifest actually declares. An inherited entry the
 //! workspace table does not declare is still judged by the key the member
-//! wrote, so resolution failure never widens what the guard accepts.
+//! wrote, so resolution failure never widens what the guard accepts, and that
+//! unresolvable request is reported on its own so an allowed key cannot hide a
+//! dependency the guard never identified.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -28,6 +30,8 @@ pub(crate) struct Declaration {
     pub(crate) key: String,
     /// Whether the entry requests its settings from `[workspace.dependencies]`.
     pub(crate) inherited: bool,
+    /// Whether that request names a key `[workspace.dependencies]` lacks.
+    pub(crate) unresolved: bool,
     /// Every package name the declaration can resolve to: the written key, the
     /// member-level `package` rename, and the inherited entry's rename.
     pub(crate) names: BTreeSet<String>,
@@ -42,7 +46,8 @@ impl Declaration {
     /// - `workspace_deps`: workspace `[workspace.dependencies]` table.
     ///
     /// # Returns
-    /// The declaration together with every package name it resolves to.
+    /// The declaration together with every package name it resolves to, plus
+    /// whether an inherited request has no matching workspace entry.
     pub(crate) fn resolve(
         key: &str,
         entry: &Value,
@@ -52,14 +57,14 @@ impl Declaration {
         names.insert(key.to_owned());
         add_renamed_package(entry, &mut names);
         let inherited = entry.get("workspace").and_then(Value::as_bool) == Some(true);
-        if inherited {
-            if let Some(inherited_entry) = workspace_deps.get(key) {
-                add_renamed_package(inherited_entry, &mut names);
-            }
+        let inherited_entry = inherited.then(|| workspace_deps.get(key)).flatten();
+        if let Some(inherited_entry) = inherited_entry {
+            add_renamed_package(inherited_entry, &mut names);
         }
         Self {
             key: key.to_owned(),
             inherited,
+            unresolved: inherited && inherited_entry.is_none(),
             names,
         }
     }
@@ -103,6 +108,21 @@ impl Declaration {
             "declares"
         };
         format!("{owner} {kind} {name}")
+    }
+
+    /// Names an inherited request the workspace table cannot resolve.
+    ///
+    /// # Parameters
+    /// - `owner`: manifest the declaration belongs to.
+    ///
+    /// # Returns
+    /// A message naming the owner and the inherited key, which
+    /// `[workspace.dependencies]` does not declare.
+    pub(crate) fn unresolved_violation(&self, owner: &str) -> String {
+        format!(
+            "{owner} inherits {} from [workspace.dependencies], which does not declare it",
+            self.key
+        )
     }
 }
 
@@ -256,6 +276,26 @@ fn dependency_entries(document: &Value) -> Vec<(String, Value)> {
         }
     }
     entries
+}
+
+/// Collects the inherited requests `[workspace.dependencies]` cannot resolve.
+///
+/// Unlike a written key, an unresolved `workspace = true` request has no
+/// package identity for the rules to judge, so it must fail on its own instead
+/// of being scored as a clean declaration under an allowed key.
+///
+/// # Parameters
+/// - `owner`: manifest the declarations belong to, used in the messages.
+/// - `declarations`: resolved dependency declarations to inspect.
+///
+/// # Returns
+/// One message per declaration inheriting a key the workspace table lacks.
+pub(crate) fn unresolved_inheritances(owner: &str, declarations: &[Declaration]) -> Vec<String> {
+    declarations
+        .iter()
+        .filter(|declaration| declaration.unresolved)
+        .map(|declaration| declaration.unresolved_violation(owner))
+        .collect()
 }
 
 /// Returns the single git source revision pinned for the `rpi-*` crates.
