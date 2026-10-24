@@ -140,7 +140,14 @@ pub(super) fn copy_repository_checkout(source: &Path, destination: &Path) {
     copy_tracked_serena_configuration(source, destination);
 }
 
-/// Copies Git-visible repository entries while excluding generated state.
+/// Copies the Git-indexed repository entries while excluding generated state.
+///
+/// The self-hosting gates onboard this copy through the real import path, so the
+/// copied project surface must be reproducible. Only Git-indexed entries are
+/// copied because untracked local scratch in the developer checkout (logs,
+/// editor scripts, work-in-progress sources) otherwise enters the scanned
+/// project and the scripted onboarding agent exhausts its provider response
+/// pool before any project is imported.
 ///
 /// - `source`: Directory whose repository entries are copied.
 /// - `destination`: Isolated directory receiving the copied entries.
@@ -152,15 +159,9 @@ fn copy_repository_entries(source: &Path, destination: &Path) {
     let output = Command::new("git")
         .arg("-C")
         .arg(source)
-        .args([
-            "ls-files",
-            "--cached",
-            "--others",
-            "--exclude-standard",
-            "-z",
-        ])
+        .args(["ls-files", "--cached", "-z"])
         .output()
-        .expect("enumerate Git-visible repository files");
+        .expect("enumerate Git-indexed repository files");
     assert!(
         output.status.success(),
         "Git could not enumerate repository files"
