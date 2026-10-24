@@ -1,6 +1,7 @@
 //! Refreshes native model rows and credential readiness from one live catalog.
 
 use super::*;
+use scriberig_agent_runtime::continuation::EphemeralContinuationOwner;
 use scriberig_tui::service::TuiService;
 
 /// Native TUI adapter composed over the SQLite-backed shared application backend.
@@ -39,7 +40,7 @@ fn native_adapter(
         model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
-        continuations: std::sync::Mutex::default(),
+        continuations: EphemeralContinuationOwner::default(),
     };
     (
         ApplicationOperationAdapter::new(service).with_agent_runner(runner),

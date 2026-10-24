@@ -3,6 +3,7 @@
 use scriberig_core::EntityId;
 
 pub mod context;
+pub mod continuation;
 pub mod coordinator;
 pub mod host_configuration;
 pub mod orchestration;

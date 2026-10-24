@@ -8,6 +8,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use scriberig_agent_runtime::continuation::EphemeralContinuationOwner;
 use scriberig_app::{
     AgentCommandRequest, ApplicationBackendComposition, ApplicationContext, ApplicationError,
     ApplicationService, CapabilityContext, CapabilityId, LocalAgentHandle, SessionBackend,
@@ -100,7 +101,7 @@ impl UpstreamFixture {
             model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
             project_store,
             active_coordinators: std::sync::Mutex::default(),
-            continuations: std::sync::Mutex::default(),
+            continuations: EphemeralContinuationOwner::default(),
         };
         SessionBackend::save_session(
             &service,

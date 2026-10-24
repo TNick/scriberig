@@ -255,6 +255,15 @@ impl Provider for ContinuationProvider {
     }
 }
 
+/// Returns the canonical branch identity the fixture invocation runs as.
+///
+/// # Returns
+/// The `ScribeRig` branch identity bound to every fixture invocation.
+#[must_use]
+pub(super) fn invocation_branch() -> EntityId {
+    EntityId::from_bytes([91; 16])
+}
+
 /// Builds one compiled branch invocation bound to the fixture provider.
 ///
 /// # Parameters
@@ -272,7 +281,7 @@ pub(super) fn invocation(provider: Arc<dyn Provider>, model: Model) -> UpstreamB
             "continue the same branch",
         ));
     UpstreamBranchInvocation {
-        branch: EntityId::from_bytes([91; 16]),
+        branch: invocation_branch(),
         provider,
         model,
         request_secret: None,

@@ -4,6 +4,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use scriberig_agent_runtime::continuation::EphemeralContinuationOwner;
 use scriberig_app::{
     ApplicationBackendComposition, ApplicationContext, ApplicationError, ApplicationService,
     CapabilityContext, CapabilityId, SessionBackend, SessionExecutionSelection,
@@ -116,7 +117,7 @@ pub(super) fn lifecycle_fixture(
         model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
-        continuations: std::sync::Mutex::default(),
+        continuations: EphemeralContinuationOwner::default(),
     };
     let context = LifecycleFixture::context(&[]);
     SessionBackend::save_session(
@@ -173,7 +174,7 @@ impl LifecycleFixture {
             model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
             project_store: Arc::clone(&self.project_store),
             active_coordinators: std::sync::Mutex::default(),
-            continuations: std::sync::Mutex::default(),
+            continuations: EphemeralContinuationOwner::default(),
         }
     }
 
@@ -237,16 +238,7 @@ impl LifecycleFixture {
     /// # Returns
     /// Sorted canonical root-branch keys holding an ephemeral handle.
     pub(super) fn cached_branches(&self) -> Vec<EntityId> {
-        let mut keys = self
-            .runner
-            .continuations
-            .lock()
-            .expect("continuation cache")
-            .keys()
-            .copied()
-            .collect::<Vec<_>>();
-        keys.sort();
-        keys
+        self.runner.continuations.branches()
     }
 
     /// Replaces the durable session execution selection.

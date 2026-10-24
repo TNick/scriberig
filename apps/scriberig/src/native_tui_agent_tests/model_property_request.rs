@@ -2,6 +2,7 @@
 
 use super::*;
 use rpi_ai::providers::faux::FauxScript;
+use scriberig_agent_runtime::continuation::EphemeralContinuationOwner;
 use scriberig_tui::service::TuiService;
 
 /// Provider identity of the file-backed fixture row.
@@ -119,7 +120,7 @@ fn upstream_property_edit_reaches_the_resolved_provider_request() {
         model_config: std::sync::Mutex::new((property_fixture_config(), Some(config_path.clone()))),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
-        continuations: std::sync::Mutex::default(),
+        continuations: EphemeralContinuationOwner::default(),
     };
     let adapter = ApplicationOperationAdapter::new(service).with_agent_runner(runner);
     let context = ApplicationContext {

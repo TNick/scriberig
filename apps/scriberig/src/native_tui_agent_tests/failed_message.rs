@@ -3,6 +3,7 @@
 use super::model_catalog_from_models;
 use super::*;
 use rpi_ai::providers::faux::{FauxScript, FauxStep};
+use scriberig_agent_runtime::continuation::EphemeralContinuationOwner;
 
 #[expect(
     clippy::too_many_lines,
@@ -43,7 +44,7 @@ fn first_conversation_failure_remains_in_tree_with_error() {
         model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
-        continuations: std::sync::Mutex::default(),
+        continuations: EphemeralContinuationOwner::default(),
     };
     let adapter = ApplicationOperationAdapter::new(service).with_agent_runner(runner);
     let context = ApplicationContext {

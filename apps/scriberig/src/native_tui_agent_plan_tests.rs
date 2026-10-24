@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::native_tui_agent::tests::model_catalog_from_models;
+use scriberig_agent_runtime::continuation::EphemeralContinuationOwner;
 
 #[path = "native_tui_agent_plan_tests/support.rs"]
 mod support;
@@ -212,7 +213,7 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
         model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
-        continuations: std::sync::Mutex::default(),
+        continuations: EphemeralContinuationOwner::default(),
     };
     let adapter = ApplicationOperationAdapter::new(service).with_agent_runner(runner);
     let session_snapshot = session_store

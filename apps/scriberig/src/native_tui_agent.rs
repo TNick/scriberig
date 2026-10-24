@@ -1,6 +1,6 @@
 //! Composes the native TUI with the shared provider and agent orchestration runtime.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -81,23 +81,7 @@ pub(super) struct NativeTuiAgentRunner {
     /// In-process guard against starting two coordinator loops for one plan.
     active_coordinators: Mutex<HashSet<EntityId>>,
     /// Root-only ephemeral continuation handles keyed by canonical branch.
-    continuations: Mutex<HashMap<EntityId, RootContinuationCacheEntry>>,
-}
-
-/// Holds one opaque continuation with the exact execution identity it belongs to.
-struct RootContinuationCacheEntry {
-    /// Exact resolved provider descriptor selected by the host.
-    provider_id: String,
-    /// Exact resolved model configuration used to create the handle.
-    model: Model,
-    /// Host connection/profile identity selected with the model.
-    profile: String,
-    /// Exact upstream thinking level used by the provider chain.
-    thinking_level: rpi_ai::ThinkingLevel,
-    /// Fingerprint of the durable branch context after the completed turn.
-    provider_context_fingerprint: String,
-    /// Opaque provider-owned, process-local continuation state.
-    handle: rpi_ai::ProviderContinuation,
+    continuations: scriberig_agent_runtime::continuation::EphemeralContinuationOwner,
 }
 
 impl NativeTuiAgentRunner {
@@ -161,7 +145,7 @@ impl NativeTuiAgentRunner {
             model_config: Mutex::new((catalog.config, catalog.config_path)),
             project_store,
             active_coordinators: Mutex::new(HashSet::new()),
-            continuations: Mutex::new(HashMap::new()),
+            continuations: scriberig_agent_runtime::continuation::EphemeralContinuationOwner::new(),
         })
     }
 

@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use rpi_ai::providers::faux::FauxScript;
+use scriberig_agent_runtime::continuation::EphemeralContinuationOwner;
 use scriberig_app::{
     AgentCommandRequest, ApplicationBackendComposition, ApplicationContext, ApplicationService,
     CapabilityContext, CapabilityId, PlanCreateRequest, PlanLifecycleAction, PlanLifecycleRequest,
@@ -81,7 +82,7 @@ fn first_conversation_message_runs_and_persists_fake_provider_answer() {
         model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
-        continuations: std::sync::Mutex::default(),
+        continuations: EphemeralContinuationOwner::default(),
     };
     let adapter = ApplicationOperationAdapter::new(service).with_agent_runner(runner);
     let context = ApplicationContext {

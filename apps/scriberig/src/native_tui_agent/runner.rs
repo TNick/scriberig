@@ -16,6 +16,9 @@ use super::{
     NativePlanWorkerExecutor, NativeTuiAgentRunner, previous_workspace_selection,
     selected_runtime_model,
 };
+use scriberig_agent_runtime::continuation::{
+    CompletedContinuation, ContinuationBinding, ContinuationOutcome,
+};
 use scriberig_app::{
     AgentCommandRequest, ApplicationBackend, ApplicationContext, ApplicationError,
     ApplicationService, SessionBackend, SessionRequest,
@@ -261,11 +264,6 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
         let thinking_level = selected.thinking_level;
         let connection = selected.connection;
         let cancelled = service.operations().cancellation_flag(&handle.operation)?;
-        let cached = self
-            .continuations
-            .lock()
-            .ok()
-            .and_then(|mut entries| entries.remove(&handle.root_branch));
         let runtime_context = selection.as_ref().map_or_else(
             || context.clone(),
             |selection| context.clone().with_snapshot(selection.snapshot),
@@ -273,24 +271,25 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
         let upstream_provider = match self.upstream_provider_for(&selected.model, &connection) {
             Ok(provider) => provider,
             Err(error) => {
+                self.continuations.discard(handle.root_branch);
                 let message = error.to_string();
                 service.fail_local_agent(handle, &message)?;
                 return Err(ApplicationError::UnsupportedOperation { operation: message });
             }
         };
         let Some((upstream, upstream_model, request_secret)) = upstream_provider else {
+            self.continuations.discard(handle.root_branch);
             let message = "configure an upstream provider before starting agent work";
             service.fail_local_agent(handle, message)?;
             return Err(ApplicationError::UnsupportedOperation {
                 operation: message.to_owned(),
             });
         };
-        let provider_id = upstream.id().to_owned();
         // The submitted human turn is already durable when this candidate is
         // compiled, so the prompt must be supplied for the compiler to omit it.
         // That makes this fingerprint name the completed lineage, which is what
-        // the post-completion entry below records with nothing to omit.
-        let context_fingerprint = super::upstream_execution::completed_root_context_fingerprint(
+        // the post-completion binding below records with nothing to omit.
+        let candidate_fingerprint = super::upstream_execution::completed_root_context_fingerprint(
             service,
             &runtime_context,
             session,
@@ -299,19 +298,19 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
             selection.as_ref(),
         )
         .ok();
-        let continuation = cached.and_then(|entry| {
-            let exact_identity = entry.provider_id == upstream.id()
-                && entry.model == upstream_model
-                && entry.profile == connection
-                && entry.thinking_level == thinking_level.unwrap_or_default();
-            let exact_context = context_fingerprint
-                .as_ref()
-                .is_some_and(|fingerprint| fingerprint == &entry.provider_context_fingerprint);
-            (exact_identity
-                && exact_context
-                && upstream.supports_response_continuation()
-                && entry.handle.is_scoped_to(upstream.id(), &upstream_model.id))
-            .then_some((entry.handle, entry.provider_context_fingerprint))
+        // The handle is consumed before the attempt, so a divergent, failed, or
+        // cancelled turn cannot leave it reusable.
+        let continuation = candidate_fingerprint.and_then(|fingerprint| {
+            let binding = ContinuationBinding::new(
+                upstream.id(),
+                upstream_model.clone(),
+                connection.clone(),
+                thinking_level.unwrap_or_default(),
+                fingerprint,
+            );
+            self.continuations
+                .take_if_current(upstream.as_ref(), handle.root_branch, &binding)
+                .map(|cached| (cached, binding.context_fingerprint))
         });
         let summary_activity = ReasoningSummaryActivity::new(
             service.operations().clone(),
@@ -340,6 +339,7 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
         let result = match result {
             Ok(result) => result,
             Err(failure) => {
+                self.continuations.discard(handle.root_branch);
                 let message = failure.failure.error.to_string();
                 service.fail_local_agent_with_evidence(
                     handle,
@@ -356,33 +356,42 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
         let continuation = result.continuation;
         let completed =
             complete_accepted_result(service, handle, session, selection.as_ref(), result.result)?;
-        if !cancelled.load(std::sync::atomic::Ordering::Acquire)
-            && upstream.supports_response_continuation()
-            && let Some(continuation) = continuation
-            && continuation.is_scoped_to(upstream.id(), &upstream_model.id)
-            && let Ok(fingerprint) = super::upstream_execution::completed_root_context_fingerprint(
-                service,
-                &runtime_context,
-                session,
-                handle.root_branch,
-                "",
-                selection.as_ref(),
-            )
-            && !cancelled.load(std::sync::atomic::Ordering::Acquire)
-            && let Ok(mut entries) = self.continuations.lock()
-        {
-            entries.insert(
-                handle.root_branch,
-                super::RootContinuationCacheEntry {
-                    provider_id,
-                    model: upstream_model,
-                    profile: connection,
-                    thinking_level: thinking_level.unwrap_or_default(),
-                    provider_context_fingerprint: fingerprint,
-                    handle: continuation,
-                },
-            );
-        }
+        let outcome = if cancelled.load(std::sync::atomic::Ordering::Acquire) {
+            ContinuationOutcome::Cancelled
+        } else {
+            match (
+                continuation,
+                super::upstream_execution::completed_root_context_fingerprint(
+                    service,
+                    &runtime_context,
+                    session,
+                    handle.root_branch,
+                    "",
+                    selection.as_ref(),
+                ),
+            ) {
+                // Cancellation is rechecked after the recompile so a turn
+                // cancelled while it settled retains nothing.
+                (Some(extracted), Ok(fingerprint))
+                    if !cancelled.load(std::sync::atomic::Ordering::Acquire) =>
+                {
+                    ContinuationOutcome::Completed(Box::new(CompletedContinuation {
+                        binding: ContinuationBinding::new(
+                            upstream.id(),
+                            upstream_model,
+                            connection,
+                            thinking_level.unwrap_or_default(),
+                            fingerprint,
+                        ),
+                        handle: extracted,
+                    }))
+                }
+                (Some(_), Ok(_)) => ContinuationOutcome::Cancelled,
+                _ => ContinuationOutcome::NoHandle,
+            }
+        };
+        self.continuations
+            .settle(upstream.as_ref(), handle.root_branch, outcome);
         Ok(completed)
     }
 }

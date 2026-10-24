@@ -2,6 +2,7 @@
 
 use super::model_catalog_from_models;
 use super::*;
+use scriberig_agent_runtime::continuation::EphemeralContinuationOwner;
 
 /// Verifies historical tui continuation compiles exact provider context.
 #[test]
@@ -57,7 +58,7 @@ fn historical_tui_continuation_compiles_exact_provider_context() {
         model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
-        continuations: std::sync::Mutex::default(),
+        continuations: EphemeralContinuationOwner::default(),
     };
     let context = ApplicationContext {
         capabilities: CapabilityContext::new([

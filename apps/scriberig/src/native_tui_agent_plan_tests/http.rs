@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::native_tui_agent::tests::model_catalog_from_models;
+use scriberig_agent_runtime::continuation::EphemeralContinuationOwner;
 
 type HttpBackend = ApplicationBackendComposition<
     StoreInspectionBackend<Arc<SqliteStore>>,
@@ -93,7 +94,7 @@ fn http_plan_start_runs_the_native_fake_provider_worker() {
         model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
-        continuations: std::sync::Mutex::default(),
+        continuations: EphemeralContinuationOwner::default(),
     };
     let handler = move |service: &&ApplicationService<HttpBackend>,
                         request_context: &ApplicationContext,
