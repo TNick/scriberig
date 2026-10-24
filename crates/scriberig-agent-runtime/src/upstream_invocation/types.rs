@@ -24,6 +24,8 @@ use crate::upstream_tool::SemanticAgentTool;
 /// - `context`: `ScribeRig`-compiled context for this branch.
 /// - `tools`: Unique semantic adapters built from this branch's capability-
 ///   filtered tool catalog.
+/// - `activity`: Shared `ScribeRig` activity sequence ordering this branch's
+///   captured model requests and settled tool calls.
 ///
 /// # Private members
 /// None.
@@ -50,6 +52,10 @@ pub struct UpstreamBranchInvocation {
     /// upstream plugin adapters unrepresentable here until an isolated host
     /// can mediate and constrain their process capabilities.
     pub tools: Vec<Arc<SemanticAgentTool>>,
+    /// Shared `ScribeRig` ordering identity for this branch's execution
+    /// activities. Request capture and tool settlement draw from one sequence
+    /// so durable activity order reflects real execution order.
+    pub activity: Arc<crate::orchestration::ActivitySequence>,
 }
 
 /// Compact output from one upstream invocation on a `ScribeRig` branch.

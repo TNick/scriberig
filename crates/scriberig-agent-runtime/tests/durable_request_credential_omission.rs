@@ -95,6 +95,7 @@ fn capture_requests(
         thinking_level: rpi_ai::ThinkingLevel::Off,
         context: compiled_context,
         tools: Vec::new(),
+        activity: Arc::new(scriberig_agent_runtime::orchestration::ActivitySequence::default()),
     };
     run_upstream_branch_invocation_blocking(invocation, "review the bounded request")
         .expect("upstream branch invocation")

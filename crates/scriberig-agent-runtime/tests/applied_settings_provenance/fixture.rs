@@ -302,6 +302,7 @@ pub(super) fn invocation(
         thinking_level: rpi_ai::ThinkingLevel::Off,
         context: compiled_context(),
         tools: Vec::new(),
+        activity: Arc::new(scriberig_agent_runtime::orchestration::ActivitySequence::default()),
     }
 }
 

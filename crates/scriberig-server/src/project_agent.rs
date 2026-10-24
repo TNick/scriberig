@@ -254,6 +254,9 @@ pub(super) fn agent<S: ApplicationService>(
         thinking_level: rpi_ai::ThinkingLevel::Off,
         context: compiled_context,
         tools,
+        activity: std::sync::Arc::new(
+            scriberig_agent_runtime::orchestration::ActivitySequence::default(),
+        ),
     };
     let result = run_upstream_branch_invocation_blocking(invocation, input.prompt)
         .map_err(|failure| (500, json!({"message": failure.error.to_string()})))?;

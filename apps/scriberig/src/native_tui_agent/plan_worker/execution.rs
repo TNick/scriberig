@@ -98,6 +98,8 @@ where
             thinking_level: execution.thinking_level.unwrap_or_default(),
             context: worker_context.compiled.clone(),
             tools: Vec::new(),
+            // A durable plan worker branch owns its own activity sequence.
+            activity: Arc::new(scriberig_agent_runtime::orchestration::ActivitySequence::default()),
         };
         let outcome = super::super::upstream_execution::execute_precompiled_branch(
             self.service,

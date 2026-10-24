@@ -211,7 +211,8 @@ fn child_request(request: &ToolRequest) -> Result<ChildRequest, AgentError> {
 /// - `context`: `ScribeRig`-compiled child context.
 ///
 /// # Returns
-/// A new branch invocation with no parent branch tools.
+/// A new branch invocation with no parent branch tools and its own branch
+/// activity sequence, because durable activity order is per branch.
 pub(super) fn invocation_for_child(
     parent: &UpstreamBranchInvocation,
     branch: EntityId,
@@ -228,9 +229,13 @@ pub(super) fn invocation_for_child(
         thinking_level: parent.thinking_level,
         context,
         tools: Vec::new(),
+        activity: Arc::new(scriberig_agent_runtime::orchestration::ActivitySequence::default()),
     }
 }
 /// Creates a branch invocation template without its parent-specific tool set.
+///
+/// The template stays on the same branch, so it shares that branch's activity
+/// sequence with the model loop it feeds.
 ///
 /// # Parameters
 /// - `invocation`: Invocation whose provider policy is inherited by children.
@@ -240,5 +245,8 @@ pub(super) fn invocation_for_child(
 pub(super) fn invocation_without_tools(
     invocation: &UpstreamBranchInvocation,
 ) -> UpstreamBranchInvocation {
-    invocation_for_child(invocation, invocation.branch, invocation.context.clone())
+    UpstreamBranchInvocation {
+        activity: Arc::clone(&invocation.activity),
+        ..invocation_for_child(invocation, invocation.branch, invocation.context.clone())
+    }
 }

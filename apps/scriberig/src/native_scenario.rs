@@ -29,6 +29,9 @@ pub(super) enum NativeScenario {
             crate::native_tui_agent::continuation_scenario::ContinuationScenarioProvider,
         >,
     ),
+    /// Scripted upstream provider supplied by a focused execution test.
+    #[cfg(test)]
+    Provider(std::sync::Arc<dyn rpi_ai::Provider>),
 }
 
 impl NativeScenario {
@@ -61,6 +64,11 @@ impl NativeScenario {
         #[cfg(test)]
         if let Self::Continuation(provider) = self {
             return provider as std::sync::Arc<dyn Provider>;
+        }
+
+        #[cfg(test)]
+        if let Self::Provider(provider) = self {
+            return provider;
         }
 
         let scenario = Arc::new(self);
@@ -114,6 +122,11 @@ impl NativeScenario {
             Self::Continuation(_) => Ok(crate::scenario_helpers::error_response(
                 model,
                 "continuation scenario provider is used directly".to_owned(),
+            )),
+            #[cfg(test)]
+            Self::Provider(_) => Ok(crate::scenario_helpers::error_response(
+                model,
+                "scripted provider is used directly".to_owned(),
             )),
         };
         result.unwrap_or_else(|message| crate::scenario_helpers::error_response(model, message))

@@ -282,6 +282,7 @@ pub(super) fn invocation(provider: Arc<dyn Provider>, model: Model) -> UpstreamB
         thinking_level: rpi_ai::ThinkingLevel::Off,
         context,
         tools: Vec::new(),
+        activity: Arc::new(scriberig_agent_runtime::orchestration::ActivitySequence::default()),
     }
 }
 

@@ -29,6 +29,7 @@ pub(super) fn build_provider_stream(
     let compiled_context = invocation.context.clone();
     let provider_profile = invocation.provider_profile.clone();
     let thinking_level = invocation.thinking_level;
+    let activity = Arc::clone(&invocation.activity);
     let continuation_enabled = provider.supports_response_continuation();
     Arc::new(
         move |requested_model, context, options, continuation, cancellation| {
@@ -60,7 +61,10 @@ pub(super) fn build_provider_stream(
             );
             let request_index = if let Ok(mut requests) = captured_requests.lock() {
                 let mut projection = projection;
-                projection.ordinal = u64::try_from(requests.len()).unwrap_or(u64::MAX);
+                // One ScribeRig sequence orders this branch's activities, so a
+                // captured request and a settled tool call never compete for the
+                // same position and correlation stays exact.
+                projection.ordinal = activity.next();
                 requests.push(projection);
                 Some(requests.len() - 1)
             } else {

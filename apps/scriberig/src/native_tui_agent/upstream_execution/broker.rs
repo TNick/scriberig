@@ -68,7 +68,6 @@ pub(super) async fn dispatch_tools<B: ApplicationBackend + Sync>(
     output_callback: Option<scriberig_agent_runtime::OutputCallback>,
 ) -> Result<(), String> {
     let local_tool = LocalAgentTool::new(service).with_project_store(Arc::clone(&project_store));
-    let mut ordinal = 0_u64;
     let mut tool_calls = 0_usize;
     let mut child_branches = 0_usize;
     while let Some(request) = receiver.recv().await {
@@ -126,14 +125,16 @@ pub(super) async fn dispatch_tools<B: ApplicationBackend + Sync>(
             invoke_semantic_tool(&local_tool, context, &request)
         };
         let failed = result.is_err();
+        // The branch activity sequence is shared with request capture, so this
+        // settlement keeps the real order relative to the model request that
+        // produced it and to the following request.
         let evidence_record = evidence::tool_evidence(
-            ordinal,
+            invocation.activity.next(),
             descriptor,
             &request.arguments,
             result.as_ref().ok(),
             failed,
         );
-        ordinal = ordinal.saturating_add(1);
         if let Ok(mut records) = evidence.lock() {
             records.push(evidence_record);
         }

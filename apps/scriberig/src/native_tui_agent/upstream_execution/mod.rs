@@ -212,6 +212,7 @@ pub(crate) fn execute_root_branch_with_continuation<B: ApplicationBackend + Sync
         thinking_level: thinking_level.unwrap_or_default(),
         context: compiled,
         tools: Vec::new(),
+        activity: Arc::new(scriberig_agent_runtime::orchestration::ActivitySequence::default()),
     };
     let scope = ChildExecutionScope {
         session,
