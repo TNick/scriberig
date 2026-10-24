@@ -9,8 +9,11 @@ do not cover. `fix.sh` applies safe automatic repairs and formatters.
 `precommit_web_format.py` formats only staged web source files with Prettier
 through Node and re-stages those exact files, without invoking Bash or WSL.
 
-The repository linter excludes `third_party/` because those files retain their
-upstream ownership and formatting. Review vendor changes against `UPSTREAM.md`
-and `PATCHES.md` instead of applying Scriberig declaration or file-size rules.
+The repository linter still ignores a `third_party/` path defensively, but the
+repository vendors no upstream source tree: the `rpi-*` runtime crates arrive as
+pinned Cargo git dependencies, and
+`crates/scriberig-conformance/tests/upstream_ownership.rs` fails if a vendored
+directory, a `[patch]`/`[replace]` section, a Cargo config override, or an
+`rpi-*` workspace member returns.
 
 Tooling may inspect all workspace layers, but product crates must never depend on `tools/`. Keep automation deterministic and conservative: automatic fixes may repair formatting and structure, but must not invent semantic documentation or rewrite behavior.
