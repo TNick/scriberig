@@ -12,9 +12,13 @@ mod tui_pty_conversation;
 mod tui_pty_lifecycle;
 #[path = "tui_pty_support/model_controls_test.rs"]
 mod tui_pty_model_controls;
+#[path = "tui_pty/plan_relations.rs"]
+mod tui_pty_plan_relations;
 #[path = "tui_pty/plan_view.rs"]
 mod tui_pty_plan_view;
 mod tui_pty_support;
+#[path = "tui_pty/tree_identity.rs"]
+mod tui_pty_tree_identity;
 
 use portable_pty::PtySize;
 use tui_pty_support::{TuiPty, test_lock};

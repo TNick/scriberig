@@ -161,6 +161,39 @@ impl TuiPty {
         false
     }
 
+    /// Reads PTY frames until the child stops emitting output or a bound expires.
+    ///
+    /// `read_until` stops at the first generated frame, so an interaction that
+    /// redraws several times can be observed before the terminal is current. This
+    /// wait bounds both the quiet window between frames and the whole interaction.
+    ///
+    /// - `quiet`: Inactivity gap that counts as a settled frame stream.
+    /// - `timeout`: Maximum total wait for the interaction to settle.
+    ///
+    /// `true` when the frame stream went quiet before `timeout` elapsed.
+    /// # Returns
+    /// Whether the terminal settled within the bound.
+    pub fn settle_for(&mut self, quiet: Duration, timeout: Duration) -> bool {
+        let deadline = Instant::now() + timeout;
+        while Instant::now() < deadline {
+            if !self.receive_frame(quiet) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Settles one interaction with the default quiet window and bound.
+    ///
+    /// `self`: Active PTY whose frame stream is drained.
+    ///
+    /// `true` when the frame stream settled within the default bound.
+    /// # Returns
+    /// Whether the terminal settled.
+    pub fn settle(&mut self) -> bool {
+        self.settle_for(Duration::from_millis(250), Duration::from_secs(5))
+    }
+
     /// Reads a fresh PTY frame until a visible string disappears.
     ///
     /// - `unexpected`: Visible text that must disappear from the screen.
