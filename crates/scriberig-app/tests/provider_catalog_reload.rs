@@ -7,7 +7,8 @@ use support::{Fixture, session_context};
 
 use rpi_ai::{Api, Model};
 use scriberig_app::{
-    AgentCommandRequest, AgentConsoleBackend, ApplicationError, ApplicationService, SessionBackend,
+    AgentCommandRequest, AgentConsoleBackend, ApplicationError, ApplicationService,
+    PlanAssignmentRequest, PlanCreateRequest, PlanNodeDraft, SessionBackend,
     SessionModelSelectionRequest, SessionRequest, SessionThinkingSelectionRequest,
 };
 use scriberig_core::EntityId;
@@ -32,6 +33,22 @@ fn model_row(provider_id: &str, model_id: &str, endpoint: &str) -> Model {
         provider_id,
         endpoint,
     )
+}
+
+/// Builds one credential-free upstream plan assignment.
+///
+/// - `provider_id`: Upstream provider identity.
+/// - `model_id`: Provider-native model identity.
+///
+/// The plan-node assignment for the reload fixtures.
+/// # Returns
+/// The upstream provider/model assignment with no thinking override.
+fn model_assignment(provider_id: &str, model_id: &str) -> scriberig_session::ModelAssignment {
+    scriberig_session::ModelAssignment {
+        provider_id: provider_id.to_owned(),
+        model_id: model_id.to_owned(),
+        thinking_level: None,
+    }
 }
 
 /// Reports whether any credential sentinel appears in a serialized value.
@@ -160,7 +177,110 @@ fn reload_fails_closed_for_a_stale_selection_and_accepts_the_new_generation() {
     );
 }
 
-/// Verifies one reload keeps captured request provenance inspectable and keeps
+/// Verifies a host reload leaves a plan node's stale assignment unresolvable at
+/// the durable plan boundary and lets an operator move it to a current pair.
+#[test]
+fn reload_rejects_a_stale_plan_assignment_and_accepts_the_new_generation() {
+    let service = ApplicationService::new(Fixture).with_upstream_models(vec![
+        model_row("local", "native-a", "https://local.example.test/v1"),
+        model_row("local", "native-b", "https://local.example.test/v1"),
+    ]);
+    let context = session_context();
+    let session = EntityId::from_bytes([43; 16]);
+    service
+        .start_agent(&context, session, "plan anchor")
+        .expect("seed session");
+    let branch = SessionBackend::read_session(&service, &context, &SessionRequest { session })
+        .expect("read the seeded session")
+        .branches[0]
+        .id;
+    let plan = service
+        .create_plan(
+            &context,
+            &PlanCreateRequest {
+                session,
+                anchor: scriberig_session::ContinuationAnchor::BranchHead { branch },
+                goal: "finish the feature".to_owned(),
+                nodes: vec![PlanNodeDraft {
+                    key: "design".to_owned(),
+                    parent_index: None,
+                    title: "Design".to_owned(),
+                    purpose: "define the interface".to_owned(),
+                    expected_result: None,
+                    semantic_scope: Vec::new(),
+                    assignment: Some(model_assignment("local", "native-a")),
+                }],
+                dependencies: Vec::new(),
+            },
+        )
+        .expect("plan assigned to a current model");
+
+    let reloaded = service.reload_model_catalog(vec![model_row(
+        "local",
+        "native-b",
+        "https://local.example.test/v1",
+    )]);
+    assert!(reloaded.revision() > 0);
+
+    let rejected = service.set_plan_node_assignment(
+        &context,
+        &PlanAssignmentRequest {
+            session,
+            plan: plan.id,
+            node: plan.nodes[0].id,
+            expected_revision: plan.revision,
+            assignment: Some(model_assignment("local", "native-a")),
+        },
+    );
+    assert!(
+        matches!(
+            &rejected,
+            Err(ApplicationError::InvalidRequest { operation, .. })
+                if operation.as_str() == "plan"
+        ),
+        "a removed pair may not be stamped onto a node again: {rejected:?}"
+    );
+    let retained = SessionBackend::read_session(&service, &context, &SessionRequest { session })
+        .expect("read the session after the rejected plan write");
+    let retained_plan = retained
+        .plans
+        .iter()
+        .find(|candidate| candidate.id == plan.id)
+        .expect("the plan survives the rejected write");
+    assert_eq!(retained_plan.revision, plan.revision);
+    assert_eq!(
+        retained_plan.nodes[0]
+            .assignment
+            .as_ref()
+            .expect("stored assignment")
+            .model_id,
+        "native-a",
+        "a rejected plan write must leave the stored assignment inspectable"
+    );
+
+    let reassigned = service
+        .set_plan_node_assignment(
+            &context,
+            &PlanAssignmentRequest {
+                session,
+                plan: plan.id,
+                node: plan.nodes[0].id,
+                expected_revision: plan.revision,
+                assignment: Some(model_assignment("local", "native-b")),
+            },
+        )
+        .expect("reassign the node to the new generation");
+    assert_eq!(
+        reassigned.nodes[0]
+            .assignment
+            .as_ref()
+            .expect("reassigned node")
+            .model_id,
+        "native-b"
+    );
+}
+
+/// Verifies a reload keeps captured request provenance inspectable and keeps
 /// credential material out of the catalog view, the session graph, and the
 /// authorized historical detail.
 #[test]
