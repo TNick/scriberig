@@ -93,6 +93,7 @@ fn tui_self_hosts_php_candidate_without_changing_live_checkout() {
         &checkout,
         &database,
         project.id,
+        session,
         base.snapshot,
         &candidate,
     );
@@ -217,6 +218,7 @@ fn restart_and_verify(
 /// - `checkout`: Copied source checkout.
 /// - `database`: Durable product database path.
 /// - `project`: Onboarded project identity.
+/// - `session`: Durable agent session carrying the candidate result.
 /// - `base_snapshot`: Exact candidate base.
 /// - `candidate`: Durable candidate handle returned by the agent.
 ///
@@ -228,9 +230,11 @@ fn review_and_apply(
     checkout: &std::path::Path,
     database: &std::path::Path,
     project: scriberig_core::ProjectId,
+    session: scriberig_core::EntityId,
     base_snapshot: scriberig_core::SnapshotId,
     candidate: &str,
 ) -> scriberig_core::SnapshotId {
+    candidate_review::wait_for_durable_candidate_projection(tui, session, candidate, base_snapshot);
     candidate_review::open_candidate_review(tui, "Validation: Passed");
     let review = tui.screen();
     assert!(review.contains("Validation: Passed"), "{review}");
