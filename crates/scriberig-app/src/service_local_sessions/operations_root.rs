@@ -1,6 +1,6 @@
 //! Implements root agent session completion operations.
 
-use super::super::persist_execution_evidence;
+use super::super::{persist_execution_evidence, require_open_branch};
 use crate::{ApplicationError, ApplicationService};
 use scriberig_session::{BranchResult, Turn};
 
@@ -92,6 +92,7 @@ impl<B> ApplicationService<B> {
             .ok_or_else(|| ApplicationError::NotFound {
                 subject: handle.root_branch.to_string(),
             })?;
+        require_open_branch(branch, "local_agent_complete")?;
         persist_execution_evidence(self, branch, tool_evidence, model_requests);
         let output_turn = if let Some(turn) = branch.turns.iter_mut().rev().find(|turn| {
             turn.agent.is_none()

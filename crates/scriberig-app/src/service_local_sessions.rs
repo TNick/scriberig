@@ -1,9 +1,10 @@
 //! Provides local session lifecycle operations for the application service.
 
 use super::ApplicationService;
+use crate::ApplicationError;
 use scriberig_session::{
-    Branch, CacheDisposition, ExecutionActivity, ModelInvocation, ModelRequestProjection,
-    ToolInvocation, ToolResult,
+    Branch, BranchStatus, CacheDisposition, ExecutionActivity, ModelInvocation,
+    ModelRequestProjection, ToolInvocation, ToolResult,
 };
 
 #[path = "service_local_sessions/operations.rs"]
@@ -84,6 +85,38 @@ impl<B> ApplicationService<B> {
     ) {
         persist_execution_evidence(self, branch, tool_evidence, model_requests);
     }
+}
+
+/// Rejects a settlement for a branch that already settled.
+///
+/// A completion or failure replay must not append a second copy of durable
+/// activity, model invocations, or tool pairs for one semantic execution. The
+/// check runs before any mutation so the stored graph stays exactly as the
+/// first settlement recorded it.
+///
+/// # Parameters
+/// - `branch`: Branch about to be settled.
+/// - `operation`: Operation name reported by the rejection.
+///
+/// # Returns
+/// Success while the branch is still active.
+///
+/// # Errors
+/// Returns invalid-request when the branch already holds a terminal status.
+pub(crate) fn require_open_branch(
+    branch: &Branch,
+    operation: &str,
+) -> Result<(), ApplicationError> {
+    if branch.status == BranchStatus::Active {
+        return Ok(());
+    }
+    Err(ApplicationError::InvalidRequest {
+        operation: operation.to_owned(),
+        message: format!(
+            "branch {} already settled as {:?}",
+            branch.id, branch.status
+        ),
+    })
 }
 
 /// Persists ordered model requests and tool invocation/result pairs.

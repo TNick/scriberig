@@ -8,7 +8,7 @@ use scriberig_core::EntityId;
 use scriberig_session::Session;
 
 #[path = "service_local_sessions.rs"]
-mod service_local_sessions;
+pub(crate) mod service_local_sessions;
 
 #[path = "service_sessions/management.rs"]
 mod management;

@@ -6,6 +6,8 @@ use super::super::persist_execution_evidence;
 use crate::{ApplicationError, ApplicationService};
 use scriberig_core::EntityId;
 use scriberig_session::{BranchResult, Turn};
+
+use super::super::require_open_branch;
 impl<B> ApplicationService<B> {
     /// Creates a child branch and leaves its shared operation running.
     ///
@@ -184,6 +186,7 @@ impl<B> ApplicationService<B> {
             .ok_or_else(|| ApplicationError::NotFound {
                 subject: handle.child_branch.to_string(),
             })?;
+        require_open_branch(branch, "local_child_agent_complete")?;
         persist_execution_evidence(self, branch, tool_evidence, model_requests);
         let output_turn = if let Some(turn) = branch.turns.iter_mut().rev().find(|turn| {
             turn.agent.is_none()
