@@ -22,6 +22,13 @@ pub(super) enum NativeScenario {
     /// Upstream-owned faux script used by deterministic runtime tests.
     #[cfg(test)]
     Faux(FauxScript),
+    /// Continuation-capable fixture provider used by root continuation tests.
+    #[cfg(test)]
+    Continuation(
+        std::sync::Arc<
+            crate::native_tui_agent::continuation_scenario::ContinuationScenarioProvider,
+        >,
+    ),
 }
 
 impl NativeScenario {
@@ -49,6 +56,11 @@ impl NativeScenario {
         #[cfg(test)]
         if let Self::Faux(script) = self {
             return FauxProvider::with_models(script, vec![model]);
+        }
+
+        #[cfg(test)]
+        if let Self::Continuation(provider) = self {
+            return provider as std::sync::Arc<dyn Provider>;
         }
 
         let scenario = Arc::new(self);
@@ -97,6 +109,11 @@ impl NativeScenario {
             Self::Faux(_) => Ok(crate::scenario_helpers::error_response(
                 model,
                 "faux script was exhausted".to_owned(),
+            )),
+            #[cfg(test)]
+            Self::Continuation(_) => Ok(crate::scenario_helpers::error_response(
+                model,
+                "continuation scenario provider is used directly".to_owned(),
             )),
         };
         result.unwrap_or_else(|message| crate::scenario_helpers::error_response(model, message))

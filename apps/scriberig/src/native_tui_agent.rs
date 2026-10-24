@@ -15,6 +15,10 @@ use scriberig_store_sqlite::SqliteStore;
 
 use crate::native_scenario::NativeScenario;
 
+#[cfg(test)]
+#[path = "native_tui_agent/continuation_scenario.rs"]
+pub(crate) mod continuation_scenario;
+
 /// Provider, exact model, and optional protected request credential.
 type UpstreamProviderBinding = (Arc<dyn Provider>, Model, Option<RequestSecret>);
 

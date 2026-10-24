@@ -160,6 +160,12 @@ fn first_conversation_message_runs_and_persists_fake_provider_answer() {
     std::fs::remove_dir_all(root).expect("remove fixture");
 }
 
+#[path = "native_tui_agent_tests/continuation_divergence.rs"]
+mod continuation_divergence;
+#[path = "native_tui_agent_tests/continuation_fixture.rs"]
+mod continuation_fixture;
+#[path = "native_tui_agent_tests/continuation_lifecycle.rs"]
+mod continuation_lifecycle;
 #[path = "native_tui_agent_tests/decomposition.rs"]
 mod decomposition;
 #[path = "native_tui_agent_tests/failed_message.rs"]

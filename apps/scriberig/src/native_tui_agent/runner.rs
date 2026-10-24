@@ -283,12 +283,16 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
             });
         };
         let provider_id = upstream.id().to_owned();
+        // The submitted human turn is already durable when this candidate is
+        // compiled, so the prompt must be supplied for the compiler to omit it.
+        // That makes this fingerprint name the completed lineage, which is what
+        // the post-completion entry below records with nothing to omit.
         let context_fingerprint = super::upstream_execution::completed_root_context_fingerprint(
             service,
             &runtime_context,
             session,
             handle.root_branch,
-            "",
+            &handle.prompt,
             selection.as_ref(),
         )
         .ok();
