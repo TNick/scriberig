@@ -24,7 +24,7 @@ fn structural_tree_and_dependency_edges_remain_distinct() {
         gates: Vec::new(),
         reason: Some("Split the root work into focused nodes".to_owned()),
     });
-    let rows = rows_for_plans(std::slice::from_ref(&plan));
+    let rows = rows_for_session(&session_with_plans(vec![plan.clone()]));
     let first_row = rows
         .iter()
         .find(|row| row.selection.node == Some(first))
@@ -75,7 +75,7 @@ fn dependency_edges_never_become_structural_tree_parents() {
         fulfilled_by: Some(result),
     }];
 
-    let rows = rows_for_plans(std::slice::from_ref(&plan));
+    let rows = rows_for_session(&session_with_plans(vec![plan.clone()]));
     let header = rows
         .iter()
         .find(|row| row.selection.node.is_none())
@@ -115,7 +115,7 @@ fn dependency_edges_never_become_structural_tree_parents() {
     // the same parentage while the explicit edge stays in the selected details.
     let mut reordered = plan.clone();
     reordered.nodes.reverse();
-    let reordered_rows = rows_for_plans(&[reordered]);
+    let reordered_rows = rows_for_session(&session_with_plans(vec![reordered]));
     let reordered_dependent = reordered_rows
         .iter()
         .find(|row| row.selection.node == Some(dependent))
@@ -167,7 +167,7 @@ fn structural_parent_is_resolved_from_plan_knowledge_not_row_order() {
         fulfilled_by: None,
     }];
 
-    let rows = rows_for_plans(std::slice::from_ref(&plan));
+    let rows = rows_for_session(&session_with_plans(vec![plan.clone()]));
     let header = rows
         .iter()
         .find(|row| row.selection.node.is_none())

@@ -15,11 +15,12 @@
 //! `workspace = true` inheritance and `package = "..."` renames; `dependencies`
 //! holds the per-manifest ownership rules; `ledger` holds the `Cargo.lock` and
 //! deleted-path rules; `package_lifecycle` holds the task-145 §9 package,
-//! extension, and catalog-publication ownership rules; and `pinning` holds the
-//! upstream pin and feature-gate rules. The `#[path]` attributes keep this
-//! documented entry-point file and its focused modules together, because rustc
-//! looks for the submodules of a `tests/<name>.rs` crate root in `tests/`
-//! itself rather than in a directory of the same stem.
+//! extension, and catalog-publication ownership rules; `pinning` holds the
+//! upstream pin and feature-gate rules; and `storage` holds the task-150 rule
+//! that keeps durable storage behind the shared operation owners. The `#[path]`
+//! attributes keep this documented entry-point file and its focused modules
+//! together, because rustc looks for the submodules of a `tests/<name>.rs` crate
+//! root in `tests/` itself rather than in a directory of the same stem.
 
 #[path = "upstream_ownership/dependencies.rs"]
 mod dependencies;
@@ -31,3 +32,5 @@ mod manifest;
 mod package_lifecycle;
 #[path = "upstream_ownership/pinning.rs"]
 mod pinning;
+#[path = "upstream_ownership/storage.rs"]
+mod storage;

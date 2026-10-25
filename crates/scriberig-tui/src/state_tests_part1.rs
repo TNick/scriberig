@@ -117,6 +117,8 @@ fn closing_overlay_does_not_cancel_operation() {
 
 #[path = "state_late_tests.rs"]
 mod state_late_tests;
+#[path = "state_plan_command_tests.rs"]
+mod state_plan_command_tests;
 #[path = "state_refresh_tests.rs"]
 mod state_refresh_tests;
 #[path = "state_session_composer_tests.rs"]

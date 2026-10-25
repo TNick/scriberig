@@ -169,7 +169,7 @@ fn repeated_plan_identity_keeps_each_copy_under_its_own_plan_header() {
     let first = EntityId::from_bytes([3; 16]);
     let second = EntityId::from_bytes([4; 16]);
     let plan = sample_plan(plan_id, branch, first, second);
-    let rows = rows_for_plans(&[plan.clone(), plan]);
+    let rows = rows_for_session(&session_with_plans(vec![plan.clone(), plan]));
     let headers = rows
         .iter()
         .filter(|row| row.selection.node.is_none())

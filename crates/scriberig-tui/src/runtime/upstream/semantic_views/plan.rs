@@ -1,25 +1,39 @@
 //! Projects durable `ScribeRig` plans through upstream tree and Markdown APIs.
 
+use std::sync::Arc;
+
 use rpi_tui::TreeItem;
 #[cfg(test)]
 use rpi_tui::TreeList;
 use scriberig_core::EntityId;
-use scriberig_session::{Plan, PlanNode, PlanNodeParent};
+use scriberig_session::{BranchResult, Plan, PlanNode, PlanNodeParent};
 
 #[path = "plan/details.rs"]
 mod details;
+#[path = "plan/labels.rs"]
+mod labels;
 #[path = "plan/status.rs"]
 mod status;
+#[path = "plan/views.rs"]
+mod views;
 use super::projection::TreeProjection;
 #[cfg(test)]
 use super::projection::tree_from_items;
 use crate::selection::PlanSelection;
 use crate::state::TuiState;
 use details::plan_details;
+use labels::{node_label, plan_label};
+use views::SharedPlanViews;
 
 #[cfg(test)]
 #[path = "plan_relation_tests.rs"]
 mod relation_tests;
+#[cfg(test)]
+#[path = "plan_requirements_tests.rs"]
+mod requirements_tests;
+#[cfg(test)]
+#[path = "plan_semantics_tests.rs"]
+mod semantics_tests;
 #[cfg(test)]
 #[path = "plan_test_support.rs"]
 mod test_support;
@@ -28,15 +42,26 @@ mod test_support;
 mod tests;
 
 /// One stable plan or node row in the upstream tree.
+///
+/// # Public members
+/// - `id`: Namespaced upstream row ID.
+/// - `parent_id`: Structural tree parent, never a dependency edge.
+/// - `selection`: Durable `ScribeRig` selection represented by the row.
+///
+/// # Private members
+/// - `label`: Safe bounded label projected from the shared plan views.
+/// - `semantics`: Shared plan views for the plan copy this row belongs to.
 pub(super) struct PlanTreeRow {
     /// Namespaced upstream row ID.
     pub(super) id: String,
-    /// Safe bounded label projected from durable plan metadata.
+    /// Safe bounded label projected from the shared plan views.
     label: String,
     /// Structural tree parent, never a dependency edge.
     pub(super) parent_id: Option<String>,
     /// Durable `ScribeRig` selection represented by the row.
     pub(super) selection: PlanSelection,
+    /// Shared plan views for the plan copy this row belongs to.
+    semantics: Arc<SharedPlanViews>,
 }
 
 /// Builds reusable plan tree items, selection, details, and stable rows.
@@ -48,7 +73,7 @@ pub(super) struct PlanTreeRow {
 /// Plan projection when a session snapshot with plans is available.
 pub(super) fn projection(state: &TuiState) -> Option<(TreeProjection, Vec<PlanTreeRow>)> {
     let session = state.session_snapshot.as_ref()?;
-    let rows = rows_for_plans(&session.plans);
+    let rows = rows_for_session(session);
     if rows.is_empty() {
         return None;
     }
@@ -119,7 +144,7 @@ pub fn retain_cursor_identity(state: &mut TuiState) {
         state.plan_cursor = None;
         return;
     };
-    state.plan_cursor = rows_for_plans(&session.plans)
+    state.plan_cursor = rows_for_session(session)
         .get(state.cursor)
         .map(|row| row.selection);
 }
@@ -133,7 +158,7 @@ pub fn reconcile_cursor(state: &mut TuiState) {
         state.plan_cursor = None;
         return;
     };
-    let rows = rows_for_plans(&session.plans);
+    let rows = rows_for_session(session);
     if rows.is_empty() {
         state.cursor = 0;
         state.plan_cursor = None;
@@ -147,14 +172,31 @@ pub fn reconcile_cursor(state: &mut TuiState) {
     state.plan_cursor = rows.get(index).map(|row| row.selection);
 }
 
-/// Projects structural plan parents without using dependency edges as parents.
+/// Projects every durable plan copy in one canonical session snapshot.
 ///
-/// - `plans`: Durable plans from the canonical session snapshot.
+/// - `session`: Session snapshot supplying the plans and their visible branch results.
 ///
 /// Stable rows in plan and structural-node order.
 /// # Returns
-/// Plan headers and nodes in bounded structural order.
-fn rows_for_plans(plans: &[Plan]) -> Vec<PlanTreeRow> {
+/// Plan headers and nodes carrying the shared views of their plan copy.
+fn rows_for_session(session: &scriberig_session::Session) -> Vec<PlanTreeRow> {
+    let results = session
+        .branches
+        .iter()
+        .filter_map(|branch| branch.result.clone())
+        .collect::<Vec<_>>();
+    rows_for_plans(&session.plans, &results)
+}
+
+/// Projects structural plan parents without using dependency edges as parents.
+///
+/// - `plans`: Durable plans from the canonical session snapshot.
+/// - `results`: Exact branch results visible in the same snapshot.
+///
+/// Stable rows in plan and structural-node order.
+/// # Returns
+/// Plan headers and nodes carrying the shared views of their plan copy.
+fn rows_for_plans(plans: &[Plan], results: &[BranchResult]) -> Vec<PlanTreeRow> {
     let mut rows = Vec::new();
     // Upstream tree validation rejects a duplicate item ID and discards the whole
     // item set. Keys are reserved while the copy is projected so a repeated plan
@@ -164,70 +206,58 @@ fn rows_for_plans(plans: &[Plan]) -> Vec<PlanTreeRow> {
         if rows.len() >= super::common::MAX_ROWS {
             break;
         }
-        let plan_id = super::common::unique_row_key(&mut used, plan_row_id(plan.id, None));
+        let semantics = Arc::new(SharedPlanViews::assemble(plan, results));
+        let plan_key = super::common::unique_row_key(&mut used, plan_row_id(plan.id, None));
         rows.push(PlanTreeRow {
-            id: plan_id.clone(),
-            label: bounded_label(&format!(
-                "Plan · {} · {:?} · r{}",
-                plan.goal, plan.status, plan.revision
-            )),
+            id: plan_key.clone(),
+            label: plan_label(&semantics, plan.id),
             parent_id: None,
             selection: PlanSelection {
                 plan: plan.id,
                 node: None,
             },
+            semantics: Arc::clone(&semantics),
         });
-        append_plan_nodes(plan, &plan_id, &mut rows, &mut used);
+        let mut sink = PlanRowSink {
+            rows: &mut rows,
+            used: &mut used,
+            emitted: std::collections::BTreeMap::new(),
+        };
+        append_plan_nodes(plan, &plan_key, &semantics, &mut sink);
     }
     rows
 }
 
 /// Adds plan nodes in parent-before-child order, with malformed parents bounded.
 ///
-/// - `plan`: Durable plan supplying structural parent references.
-/// - `plan_id`: Reserved tree ID for the plan header.
-/// - `rows`: Ordered rows receiving the plan's nodes.
-/// - `used`: Reserved upstream keys, updated with each projected node.
+/// - `plan`: Durable plan supplying the projected node identities.
+/// - `plan_key`: Reserved tree key for the plan header.
+/// - `semantics`: Shared views for this plan copy.
+/// - `sink`: Ordered rows, reserved keys, and projected-node keys for this copy.
 fn append_plan_nodes(
     plan: &Plan,
-    plan_id: &str,
-    rows: &mut Vec<PlanTreeRow>,
-    used: &mut std::collections::HashSet<String>,
+    plan_key: &str,
+    semantics: &Arc<SharedPlanViews>,
+    sink: &mut PlanRowSink<'_>,
 ) {
-    let remaining = super::common::MAX_ROWS.saturating_sub(rows.len());
+    let remaining = super::common::MAX_ROWS.saturating_sub(sink.rows.len());
     let mut pending = plan.nodes.iter().take(remaining).collect::<Vec<_>>();
-    let mut emitted = std::collections::BTreeMap::new();
     while !pending.is_empty() {
         let mut deferred = Vec::new();
         let mut progressed = false;
         for node in pending {
-            let parent_id = node_parent_id(node, plan_id, &emitted);
-            if parent_id.is_none() && matches!(node.parent, Some(PlanNodeParent::Node(_))) {
+            let structural_parent = structural_parent(semantics, node);
+            let parent_id = node_parent_id(structural_parent, plan_key, &sink.emitted);
+            if parent_id.is_none() && matches!(structural_parent, Some(PlanNodeParent::Node(_))) {
                 deferred.push(node);
                 continue;
             }
-            append_node_row(
-                plan,
-                node,
-                plan_id,
-                parent_id.clone(),
-                rows,
-                &mut emitted,
-                used,
-            );
+            sink.node_row(plan, node, plan_key, parent_id, semantics);
             progressed = true;
         }
         if !progressed {
             for node in deferred {
-                append_node_row(
-                    plan,
-                    node,
-                    plan_id,
-                    Some(plan_id.to_owned()),
-                    rows,
-                    &mut emitted,
-                    used,
-                );
+                sink.node_row(plan, node, plan_key, Some(plan_key.to_owned()), semantics);
             }
             break;
         }
@@ -235,80 +265,86 @@ fn append_plan_nodes(
     }
 }
 
+/// Reads one node's structural parent from its shared node view.
+///
+/// - `semantics`: Shared views for the projected plan copy.
+/// - `node`: Durable plan node being projected.
+///
+/// The parent relation named by `PlanNodeView::parent`. A plan copy the shared
+/// assembly rejected has no validated structural relation, so its rows stay
+/// under the plan header instead of the projection inventing parentage.
+/// # Returns
+/// Structural parent relation for this node.
+fn structural_parent(semantics: &SharedPlanViews, node: &PlanNode) -> Option<PlanNodeParent> {
+    semantics.node(node.id).and_then(|view| view.parent)
+}
+
 /// Resolves a node's structural parent when that parent is already projected.
 ///
-/// - `node`: Durable plan node being projected.
-/// - `plan_id`: Reserved plan header row ID.
+/// - `parent`: Structural parent relation from the shared node view.
+/// - `plan_key`: Reserved plan header row ID.
 /// - `emitted`: Reserved row keys for nodes already projected beneath the plan.
 ///
-/// The structural tree parent; branch parents attach under the plan header.
+/// The structural tree parent; branch parents and roots attach under the plan header.
 /// # Returns
 /// Parent row identity for this node.
 fn node_parent_id(
-    node: &PlanNode,
-    plan_id: &str,
+    parent: Option<PlanNodeParent>,
+    plan_key: &str,
     emitted: &std::collections::BTreeMap<EntityId, String>,
 ) -> Option<String> {
-    match node.parent {
+    match parent {
         Some(PlanNodeParent::Node(parent)) => emitted.get(&parent).cloned(),
-        Some(PlanNodeParent::Branch(_)) | None => Some(plan_id.to_owned()),
+        Some(PlanNodeParent::Branch(_)) | None => Some(plan_key.to_owned()),
     }
 }
 
-/// Appends one node row after its structural parent is available.
+/// Reserved upstream keys and ordered rows for one projected plan copy.
 ///
-/// - `plan`: Durable plan containing the node.
-/// - `node`: Node being projected.
-/// - `plan_key`: Reserved tree key for this plan copy's header row.
-/// - `parent_id`: Structural tree parent row.
-/// - `rows`: Ordered rows receiving the node.
-/// - `emitted`: Reserved row keys for projected nodes of this plan copy.
-/// - `used`: Reserved upstream keys, updated with the new node key.
-fn append_node_row(
-    plan: &Plan,
-    node: &PlanNode,
-    plan_key: &str,
-    parent_id: Option<String>,
-    rows: &mut Vec<PlanTreeRow>,
-    emitted: &mut std::collections::BTreeMap<EntityId, String>,
-    used: &mut std::collections::HashSet<String>,
-) {
-    let id = super::common::unique_row_key(used, format!("{plan_key}:node:{}", node.id));
-    emitted.entry(node.id).or_insert_with(|| id.clone());
-    rows.push(PlanTreeRow {
-        id,
-        label: node_label(node, plan.coordinator_cursor),
-        parent_id,
-        selection: PlanSelection {
-            plan: plan.id,
-            node: Some(node.id),
-        },
-    });
+/// # Public members
+/// - `rows`: Ordered rows receiving the plan's node rows.
+/// - `emitted`: Reserved row keys for nodes already projected beneath the plan.
+///
+/// # Private members
+/// - `used`: Reserved upstream keys shared across every plan copy.
+struct PlanRowSink<'a> {
+    /// Ordered rows receiving the plan's node rows.
+    rows: &'a mut Vec<PlanTreeRow>,
+    /// Reserved upstream keys shared across every plan copy.
+    used: &'a mut std::collections::HashSet<String>,
+    /// Reserved row keys for nodes already projected beneath the plan.
+    emitted: std::collections::BTreeMap<EntityId, String>,
 }
 
-/// Builds a safe node label that exposes its structural parent category.
-///
-/// - `node`: Durable plan node represented by the row.
-/// - `coordinator_cursor`: Plan node currently owned by the coordinator.
-///
-/// A bounded label including node identity and parent type.
-/// # Returns
-/// Human-readable bounded node label.
-fn node_label(node: &PlanNode, coordinator_cursor: Option<EntityId>) -> String {
-    let parent = match node.parent {
-        Some(PlanNodeParent::Branch(branch)) => format!(" · branch parent {branch}"),
-        Some(PlanNodeParent::Node(parent)) => format!(" · node parent {parent}"),
-        None => " · root node".to_owned(),
-    };
-    let coordinator = if coordinator_cursor == Some(node.id) {
-        " · coordinator cursor"
-    } else {
-        ""
-    };
-    bounded_label(&format!(
-        "{:?} · {} · {}{}{}",
-        node.status, node.title, node.id, parent, coordinator
-    ))
+impl PlanRowSink<'_> {
+    /// Appends one node row after its structural parent is available.
+    ///
+    /// - `plan`: Durable plan containing the node.
+    /// - `node`: Node being projected.
+    /// - `plan_key`: Reserved tree key for this plan copy's header row.
+    /// - `parent_id`: Structural tree parent row.
+    /// - `semantics`: Shared views for this plan copy.
+    fn node_row(
+        &mut self,
+        plan: &Plan,
+        node: &PlanNode,
+        plan_key: &str,
+        parent_id: Option<String>,
+        semantics: &Arc<SharedPlanViews>,
+    ) {
+        let id = super::common::unique_row_key(self.used, format!("{plan_key}:node:{}", node.id));
+        self.emitted.entry(node.id).or_insert_with(|| id.clone());
+        self.rows.push(PlanTreeRow {
+            id,
+            label: node_label(semantics, node),
+            parent_id,
+            selection: PlanSelection {
+                plan: plan.id,
+                node: Some(node.id),
+            },
+            semantics: Arc::clone(semantics),
+        });
+    }
 }
 
 /// Creates a stable upstream key for a plan header or node.
