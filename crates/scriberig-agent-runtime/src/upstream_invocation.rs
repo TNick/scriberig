@@ -111,30 +111,28 @@ pub async fn run_upstream_branch_invocation_with_continuation(
             }
             event = events.recv(), if events_open => {
                 match event {
-                    Ok(AgentEvent::MessageUpdate {
-                        assistant_message_event: AssistantMessageEvent::TextDelta { delta, .. },
-                        ..
-                    }) => {
-                        if let Some(callback) = &output_callback {
-                            callback(&delta);
-                        }
-                    }
-                    Ok(AgentEvent::MessageUpdate {
-                        assistant_message_event:
-                            AssistantMessageEvent::ReasoningSummaryDelta { delta, .. },
-                        ..
-                    }) => {
-                        if let Some(callback) = &summary_callback {
-                            summary_ordinal = summary_ordinal.saturating_add(1);
-                            callback(summary_ordinal, &delta);
-                        }
-                    }
-                    Ok(_) | Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
+                    Ok(event) => forward_event(
+                        event,
+                        output_callback.as_ref(),
+                        summary_callback.as_ref(),
+                        &mut summary_ordinal,
+                    ),
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
                     Err(tokio::sync::broadcast::error::RecvError::Closed) => events_open = false,
                 }
             }
         }
     };
+    // A cancellation deliberately stops forwarding: the host already abandoned
+    // this branch and must not receive text that arrived after it did.
+    if !matches!(&run_result, Err(UpstreamBranchError::Cancelled)) {
+        drain_buffered_events(
+            &mut events,
+            output_callback.as_ref(),
+            summary_callback.as_ref(),
+            &mut summary_ordinal,
+        );
+    }
     let model_requests = built
         .captured_requests
         .lock()
@@ -181,6 +179,77 @@ pub async fn run_upstream_branch_invocation_with_continuation(
         },
         continuation,
     ))
+}
+
+/// Forwards provider-visible text from one upstream subscription event.
+///
+/// Assistant text deltas and reasoning-summary deltas are the only events the
+/// host observes; raw thinking, tool, and lifecycle events never reach a sink.
+///
+/// # Parameters
+/// - `event`: Event received from the branch's upstream broadcast.
+/// - `output_callback`: Optional assistant text sink.
+/// - `summary_callback`: Optional reasoning-summary sink with a per-invocation
+///   arrival ordinal.
+/// - `summary_ordinal`: Arrival ordinal advanced for each summary delta.
+fn forward_event(
+    event: AgentEvent,
+    output_callback: Option<&crate::OutputCallback>,
+    summary_callback: Option<&crate::ReasoningSummaryCallback>,
+    summary_ordinal: &mut u64,
+) {
+    match event {
+        AgentEvent::MessageUpdate {
+            assistant_message_event: AssistantMessageEvent::TextDelta { delta, .. },
+            ..
+        } => {
+            if let Some(callback) = output_callback {
+                callback(&delta);
+            }
+        }
+        AgentEvent::MessageUpdate {
+            assistant_message_event: AssistantMessageEvent::ReasoningSummaryDelta { delta, .. },
+            ..
+        } => {
+            if let Some(callback) = summary_callback {
+                *summary_ordinal = summary_ordinal.saturating_add(1);
+                callback(*summary_ordinal, &delta);
+            }
+        }
+        _ => {}
+    }
+}
+
+/// Forwards events still buffered when the upstream loop settles.
+///
+/// The prompt future and the subscription receiver are polled by the same
+/// `select!`, and the upstream loop emits its closing deltas in the poll that
+/// settles the run, so the loop can settle with those deltas unread. They are
+/// already in the broadcast once the run resolves, so this drain is bounded.
+///
+/// # Parameters
+/// - `events`: Subscription receiver of the settled branch run.
+/// - `output_callback`: Optional assistant text sink.
+/// - `summary_callback`: Optional reasoning-summary sink.
+/// - `summary_ordinal`: Arrival ordinal advanced for each summary delta.
+fn drain_buffered_events(
+    events: &mut tokio::sync::broadcast::Receiver<AgentEvent>,
+    output_callback: Option<&crate::OutputCallback>,
+    summary_callback: Option<&crate::ReasoningSummaryCallback>,
+    summary_ordinal: &mut u64,
+) {
+    loop {
+        match events.try_recv() {
+            Ok(event) => forward_event(event, output_callback, summary_callback, summary_ordinal),
+            // A lagged receiver already dropped whole events; keep draining the
+            // events that are still buffered.
+            Err(tokio::sync::broadcast::error::TryRecvError::Lagged(_)) => {}
+            Err(
+                tokio::sync::broadcast::error::TryRecvError::Empty
+                | tokio::sync::broadcast::error::TryRecvError::Closed,
+            ) => return,
+        }
+    }
 }
 
 /// Builds a fresh upstream agent after validating branch tool ownership.

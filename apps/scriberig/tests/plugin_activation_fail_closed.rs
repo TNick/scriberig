@@ -32,6 +32,9 @@ const PROVIDER_PROPERTIES: [&str; 8] = [
     "no_stream",
 ];
 
+/// Assistant text the deterministic Echo fallback streams and renders.
+const ECHO_OUTPUT: &str = "No provider endpoint configured.";
+
 /// Builds one `srig agent` command isolated from the caller's configuration.
 ///
 /// - `root`: Temporary directory holding the SQLite store and config home.
@@ -180,8 +183,9 @@ fn seed_upstream_project_package(root: &Path) {
 /// generation, so discovery must stay absent even when the working project
 /// already carries a well-formed upstream registration whose planted artifact no
 /// loader could map. The run is judged on its exit status and the durable
-/// operation/session lines because the streamed `agent output:` delta line is not
-/// emitted on every stream settlement.
+/// operation/session lines because those are the stable completion markers; the
+/// streamed `agent output:` line is one line per provider delta fragment and its
+/// boundaries are upstream-owned.
 #[test]
 fn an_upstream_registered_package_is_not_discovered() {
     let directory = tempfile::tempdir().expect("temporary project");
@@ -220,6 +224,17 @@ fn a_clean_environment_still_reaches_the_deterministic_agent() {
     assert!(
         text.contains("agent output"),
         "the deterministic agent did not run: {text}"
+    );
+    // One `agent output:` line is printed per streamed delta, so the joined
+    // fragments must reproduce the deterministic provider text. A delta dropped
+    // at stream settlement changes the join even when some deltas arrived.
+    let streamed: String = text
+        .lines()
+        .filter_map(|line| line.strip_prefix("agent output: "))
+        .collect();
+    assert_eq!(
+        streamed, ECHO_OUTPUT,
+        "the streamed deltas did not reproduce the deterministic output: {text}"
     );
     assert!(
         !text.contains("package roots are unsupported")
