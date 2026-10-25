@@ -367,5 +367,7 @@ fn navigation_and_presentation_changes_do_not_cancel_operations() {
     assert!(state.operations[0].cancellable());
 }
 
+#[path = "state_presentation_tests/navigation.rs"]
+mod navigation;
 #[path = "state_presentation_tests/prompt.rs"]
 mod prompt;

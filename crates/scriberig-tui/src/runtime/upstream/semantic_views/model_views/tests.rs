@@ -1,9 +1,11 @@
-//! Tests semantic candidate and projection view rendering.
+//! Tests semantic candidate, history, diff, and projection view rendering.
 
-use super::{changes, projection};
+use super::{changes, diff, history, projection};
 use crate::inspector::LoadState;
 use crate::state::TuiState;
 use crate::view::changes::{ChangeReviewModel, ReviewValidation};
+use crate::view::diff::{DiffModel, DiffRow};
+use crate::view::history::{HistoryModel, HistoryRow};
 use scriberig_core::{EntityId, RevisionId, SnapshotId};
 
 /// Keeps exact candidate identity and evidence visible in review Markdown.
@@ -126,4 +128,79 @@ fn projection_shows_exact_metadata_and_safe_content() {
     assert!(output.contains(&snapshot.to_string()));
     assert!(output.contains("safe content"));
     assert!(!output.contains("synchronized"));
+}
+
+/// Keeps both exact diff sides and every entity revision transition in the diff document.
+#[test]
+fn diff_document_names_both_exact_snapshots_and_each_entity_transition() {
+    let base = SnapshotId::new([20; 32]);
+    let target = SnapshotId::new([21; 32]);
+    let changed = EntityId::from_bytes([22; 16]);
+    let removed = EntityId::from_bytes([23; 16]);
+    let before = RevisionId::new([24; 32]);
+    let after = RevisionId::new([25; 32]);
+    let state = TuiState {
+        diff: LoadState::Ready(DiffModel {
+            left: base,
+            right: target,
+            rows: vec![
+                DiffRow {
+                    entity: changed,
+                    before: Some(before),
+                    after: Some(after),
+                },
+                DiffRow {
+                    entity: removed,
+                    before: Some(before),
+                    after: None,
+                },
+            ],
+        }),
+        ..TuiState::default()
+    };
+
+    let output = diff(&state);
+
+    assert!(
+        output.contains(&format!("Base snapshot: {base}")),
+        "the exact base snapshot is missing: {output}"
+    );
+    assert!(
+        output.contains(&format!("Target snapshot: {target}")),
+        "the exact target snapshot is missing: {output}"
+    );
+    assert!(output.contains(&format!("{changed} · {before} → {after}")));
+    assert!(output.contains(&format!("{removed} · {before} → none")));
+}
+
+/// Keeps the requested snapshot and each migration's exact identities in history.
+#[test]
+fn history_document_names_the_snapshot_and_each_migration_identity() {
+    let snapshot = SnapshotId::new([30; 32]);
+    let migration_base = SnapshotId::new([31; 32]);
+    let entity = EntityId::from_bytes([32; 16]);
+    let revision = RevisionId::new([33; 32]);
+    let state = TuiState {
+        history: LoadState::Ready(HistoryModel {
+            snapshot,
+            rows: vec![HistoryRow {
+                id: "migration-7".to_owned(),
+                base: migration_base,
+                result: snapshot,
+                entities: vec![(entity, Some(revision))],
+                workspace: None,
+                source_change_id: Some("candidate-7".to_owned()),
+            }],
+        }),
+        ..TuiState::default()
+    };
+
+    let output = history(&state);
+
+    assert!(
+        output.contains(&format!("Snapshot: {snapshot}")),
+        "the requested snapshot identity is missing: {output}"
+    );
+    assert!(output.contains(&format!("migration-7 · {migration_base} → {snapshot}")));
+    assert!(output.contains(&format!("{entity} · revision {revision}")));
 }

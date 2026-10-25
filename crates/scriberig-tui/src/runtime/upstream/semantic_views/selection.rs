@@ -6,6 +6,9 @@ use crate::state::TuiState;
 
 #[path = "selection/details.rs"]
 mod details;
+#[cfg(test)]
+#[path = "selection/selection_tests.rs"]
+mod tests;
 
 /// Carries an existing reducer row identity into an upstream selectable list.
 pub(super) struct SelectableRow {
