@@ -391,5 +391,7 @@ mod part2;
 mod plan_history_migration;
 #[path = "durable_parts/plan_projection.rs"]
 mod plan_projection;
+#[path = "durable_parts/plan_scope/mod.rs"]
+mod plan_scope;
 #[path = "durable_parts/rollup_index.rs"]
 mod rollup_index;
