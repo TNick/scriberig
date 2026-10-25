@@ -16,6 +16,7 @@ mod sandbox;
 
 pub use composition::{
     ComposedPluginTools, PluginCompositionError, PluginToolBridge, PluginToolRequest,
+    PluginWorkerAdmission, compose_branch_plugin_tools,
 };
 pub use dispatcher::{ApplicationDomainDispatcher, PluginHostPolicy, PluginSemanticDispatcher};
 use sandbox::validate_worker_launch;

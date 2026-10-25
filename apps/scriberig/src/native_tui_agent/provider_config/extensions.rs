@@ -8,9 +8,11 @@ use scriberig_agent_runtime::plugin_worker::PluginWorkerConfiguration;
 ///
 /// The pinned upstream API and the `ScribeRig` composition seam can now attach
 /// an authorized worker to one branch catalog, but no product path starts a
-/// worker: the host has no verified OS sandbox launcher on every platform and
-/// no runtime evidence that a launcher's self-reported guarantees hold. Every
-/// configured native-code input therefore stays rejected.
+/// worker: `compose_branch_plugin_tools` takes an injected verified OS sandbox
+/// launcher plus a host tool allowlist, and the host has neither on every
+/// platform, with no runtime evidence that a launcher's self-reported guarantees
+/// hold. Every configured native-code input therefore stays rejected, and a
+/// configured plugin root cannot reach that entry point by itself.
 ///
 /// # Returns
 /// `Ok(())` when no plugin or package paths are configured.

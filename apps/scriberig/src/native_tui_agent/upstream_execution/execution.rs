@@ -161,9 +161,11 @@ where
 /// This boundary intentionally accepts only `ToolCatalog` descriptors. An
 /// `rpi-extensions` registration never enters here: the only worker-tool path
 /// into a branch tool set is
-/// `scriberig_agent_runtime::plugin_worker::PluginToolBridge`, which merges
-/// host-stamped worker descriptors, reauthorizes each call against the branch
-/// capability snapshot, and requires an OS-sandbox attestation. Product
+/// `scriberig_agent_runtime::plugin_worker::compose_branch_plugin_tools`, which
+/// starts a worker only under an explicitly injected verified sandbox launcher
+/// and a host tool allowlist, then uses `PluginToolBridge` to merge
+/// host-stamped worker descriptors, reauthorize each call against the branch
+/// capability snapshot, and require an OS-sandbox attestation. Product
 /// composition stays closed until the host verifies a platform sandbox launcher,
 /// so keep this parameter list semantic-only.
 ///

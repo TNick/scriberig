@@ -27,6 +27,8 @@ pub enum PluginCompositionError {
     InvalidToolSchema(String),
     /// The merged catalog refused the worker descriptor.
     Registration(String),
+    /// The admitted worker could not start under the injected launcher.
+    WorkerStart(String),
     /// The plugin capability name is not a safe identifier.
     InvalidCapability(String),
     /// The upstream adapter refused the composed definition.
@@ -55,6 +57,9 @@ impl std::fmt::Display for PluginCompositionError {
             }
             Self::Registration(reason) => {
                 write!(formatter, "plugin tool registration refused: {reason}")
+            }
+            Self::WorkerStart(reason) => {
+                write!(formatter, "plugin worker start refused: {reason}")
             }
             Self::InvalidCapability(capability) => {
                 write!(formatter, "plugin capability name is invalid: {capability}")
