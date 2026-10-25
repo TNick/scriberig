@@ -311,6 +311,39 @@ fn tui_pty_keeps_conversation_tree_identity_across_collapse_and_expand() {
         "collapse must keep the stable branch row selected:\n{collapsed}"
     );
 
+    // The deepest leaf branch has no structural child row, so it projects no child
+    // at all until the semantic reducer expands it. The retained upstream tree must
+    // reveal the activity rows that expansion materializes instead of keeping the
+    // pre-existing row collapsed, and must still hide them when it collapses again.
+    assert!(
+        select_row(&mut tui, "Deepest leaf branch", b"\x1b[B"),
+        "{}",
+        tui.diagnostic()
+    );
+    tui.send(b"\x1b[C");
+    tui.settle();
+    let leaf_opened = tui.screen();
+    assert!(
+        leaf_opened.contains("You: deepest leaf question"),
+        "expanding a completed leaf branch reveals its activity rows:\n{leaf_opened}"
+    );
+    assert!(
+        is_selected(&leaf_opened, "Deepest leaf branch"),
+        "leaf expansion must keep the stable branch row selected:\n{leaf_opened}"
+    );
+    tui.send(b"\x1b[D");
+    tui.settle();
+    let leaf_closed = tui.screen();
+    assert!(
+        !leaf_closed.contains("You: deepest leaf question"),
+        "collapsing the leaf branch again hides only its own activity rows:\n{leaf_closed}"
+    );
+    assert!(
+        leaf_closed.contains("Nested grandchild branch")
+            && leaf_closed.contains("You: nested child question"),
+        "an ancestor collapse and its sibling rows survive a leaf collapse:\n{leaf_closed}"
+    );
+
     assert!(
         select_row(&mut tui, "Nested child branch", b"\x1b[A"),
         "{}",
