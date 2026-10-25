@@ -3,9 +3,10 @@
 use std::sync::{Arc, Mutex};
 
 use rpi_tui::layout::render_layout_frame;
-use rpi_tui::{Component, Keybindings, ScrollView, Text, VStack};
+use rpi_tui::{Keybindings, Text};
 
-use super::super::{SemanticViewPanel, arrange_shell_panes};
+use super::super::SemanticViewPanel;
+use super::super::shell_panes::ShellPanes;
 use crate::state::TuiState;
 use scriberig_core::EntityId;
 
@@ -13,6 +14,12 @@ use scriberig_core::EntityId;
 pub(super) const NEWEST_ROW: &str = "NEWEST continuation result";
 /// Text identifying the fixed composer pane at the bottom of the shell.
 pub(super) const COMPOSER_ROW: &str = "COMPOSER pane";
+/// Heading of the candidate review document.
+pub(super) const CANDIDATE_REVIEW: &str = "Candidate review";
+/// Exact candidate handle the review document must keep visible.
+pub(super) const CHANGE_HANDLE: &str = "cand_0f0f0f0f-1111-2222-3333-444444444444";
+/// Text in the last durable candidate effect, below the painted viewport.
+pub(super) const CANDIDATE_DIFF_TAIL: &str = "TAIL crates/domains/scriberig-domain-php/src/tail.rs";
 /// Painted terminal geometry used by the native PTY gates.
 pub(super) const TERMINAL_ROWS: usize = 40;
 
@@ -184,6 +191,44 @@ pub(super) fn session_with_newest_continuation(
     session
 }
 
+/// Builds the durable candidate review the self-hosting PHP gate shows.
+///
+/// The application returns a candidate review without a semantic diff, so the review
+/// document is its status lines followed by one multi-line detail per candidate effect.
+///
+/// - `effects`: Number of numbered file effects the candidate carries.
+///
+/// # Returns
+/// The passed candidate review model with a diff taller than one terminal page.
+pub(super) fn candidate_review_model(effects: usize) -> crate::view::changes::ChangeReviewModel {
+    let mut details = vec![format!(
+        "scope: entity={} snapshot={}",
+        EntityId::from_bytes([9; 16]),
+        scriberig_core::SnapshotId::new([4; 32])
+    )];
+    details.extend((0..effects).map(|index| {
+        format!(
+            "create crates/domains/scriberig-domain-php/src/effect{index}.rs\nold:\n\nnew:\nPHP domain source for effect {index}"
+        )
+    }));
+    details.push(format!(
+        "create crates/domains/scriberig-domain-php/src/tail.rs\nold:\n\nnew:\n{CANDIDATE_DIFF_TAIL}"
+    ));
+    crate::view::changes::ChangeReviewModel {
+        base_snapshot: scriberig_core::SnapshotId::new([4; 32]),
+        candidate_snapshot: Some(scriberig_core::SnapshotId::new([5; 32])),
+        change: CHANGE_HANDLE.to_owned(),
+        branch: None,
+        affected_entities: Vec::new(),
+        deltas: Vec::new(),
+        details,
+        conflicts: Vec::new(),
+        validation: crate::view::changes::ReviewValidation::Passed,
+        validation_profile: Some("project-ingestion-e2e".to_owned()),
+        requires_confirmation: true,
+    }
+}
+
 /// Builds presentation state selecting the newest continuation branch.
 ///
 /// - `session`: Durable session to project into the conversation home.
@@ -209,36 +254,47 @@ pub(super) fn following_state(
     }
 }
 
-/// Builds the production shell: status pane, transcript scroll view, and composer pane.
+/// Builds the production shell: status pane, the scroll pane the active view needs, and
+/// the composer pane.
 ///
 /// - `state`: Shared presentation state rendered by the semantic panel.
 ///
 /// # Returns
-/// The layout root and the transcript scroll view it contains.
-pub(super) fn shell(state: Arc<Mutex<TuiState>>) -> (Arc<dyn Component>, Arc<ScrollView>) {
+/// The shell panes, whose stack is painted by `paint`.
+pub(super) fn shell(state: &Arc<Mutex<TuiState>>) -> ShellPanes {
     let (sender, _receiver) = std::sync::mpsc::channel();
+    let initial_view = state.lock().expect("presentation state").primary_view;
     let panel = Arc::new(SemanticViewPanel::new(
-        state,
+        Arc::clone(state),
         sender,
         Arc::new(Keybindings::new()),
     ));
-    let transcript = Arc::new(ScrollView::primary(panel));
-    let root = Arc::new(VStack::new());
-    arrange_shell_panes(
-        &root,
+    ShellPanes::new(
+        &panel,
         Arc::new(Text::new("status pane", 0, 0)),
-        &transcript,
         Arc::new(Text::new(COMPOSER_ROW, 0, 0)),
-    );
-    (root, transcript)
+        initial_view,
+    )
 }
 
 /// Paints one frame of the shell at the native PTY terminal size.
 ///
-/// - `root`: Shell layout root retained between frames.
+/// - `panes`: Shell panes retained between frames.
 ///
 /// # Returns
 /// The painted rows.
-pub(super) fn paint(root: &Arc<dyn Component>) -> Vec<String> {
-    render_layout_frame(Arc::clone(root), 140, TERMINAL_ROWS).lines
+pub(super) fn paint(panes: &ShellPanes) -> Vec<String> {
+    paint_at(panes, 140, TERMINAL_ROWS)
+}
+
+/// Paints one frame of the shell at one terminal geometry.
+///
+/// - `panes`: Shell panes retained between frames.
+/// - `columns`: Terminal width in cells.
+/// - `rows`: Terminal height in rows.
+///
+/// # Returns
+/// The painted rows.
+pub(super) fn paint_at(panes: &ShellPanes, columns: usize, rows: usize) -> Vec<String> {
+    render_layout_frame(panes.root(), columns, rows).lines
 }

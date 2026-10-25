@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 
 use rpi_tui::tui::{OverlayOptions, SizeValue};
-use rpi_tui::{Component, Editor, Focusable, ScrollView, TUI, TuiAltScreen};
+use rpi_tui::{Component, Editor, Focusable, TUI, TuiAltScreen};
 
 use crate::action::Action;
 use crate::debug_log::TuiDebugLog;
@@ -27,7 +27,7 @@ use super::ComposerInput;
 use super::components::SessionListPanel;
 use super::modal_overlay::ModalOverlayController;
 use super::selector_factory::open_control_selector;
-use super::synchronize_transcript_anchor;
+use super::shell_panes::ShellPanes;
 
 /// Borrows all inputs needed by the upstream-owned `ScribeRig` event loop.
 ///
@@ -40,7 +40,7 @@ use super::synchronize_transcript_anchor;
 /// - `config`: Initial selection and project scope.
 /// - `state`: Shared presentation state.
 /// - `screen`: Upstream terminal runtime.
-/// - `transcript`: Primary transcript scroll view.
+/// - `panes`: Shell panes owning the active scroll pane.
 /// - `editor`: Upstream composer editor.
 /// - `composer`: Upstream-focusable `ScribeRig` composer adapter.
 /// - `semantic_view`: Upstream-focusable semantic navigation component.
@@ -58,8 +58,8 @@ pub(super) struct EventLoopContext<'a, S> {
     pub(super) state: &'a Arc<Mutex<TuiState>>,
     /// Upstream terminal runtime.
     pub(super) screen: &'a Arc<TuiAltScreen>,
-    /// Primary transcript scroll view owning the semantic panel.
-    pub(super) transcript: &'a Arc<ScrollView>,
+    /// Shell panes owning the scroll pane that displays the active semantic view.
+    pub(super) panes: &'a mut ShellPanes,
     /// Upstream composer editor.
     pub(super) editor: &'a Editor,
     /// Upstream-focusable `ScribeRig` composer adapter.
@@ -92,7 +92,7 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
         config,
         state,
         screen,
-        transcript,
+        panes,
         editor,
         composer,
         semantic_view,
@@ -118,7 +118,6 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
         let mut pending_effects = std::collections::VecDeque::new();
         let mut pending_events = std::collections::VecDeque::new();
         let mut pending_selector = None;
-        let mut anchored_view = None;
         let mut modal_overlay = ModalOverlayController::new();
         let mut focus_before_overlay: Option<Arc<dyn Component>> = None;
         let mut session_list_open = false;
@@ -285,7 +284,9 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
                     .lock()
                     .map_err(|_| io::Error::other("TUI state lock poisoned"))?
                     .primary_view;
-                synchronize_transcript_anchor(transcript, active_view, &mut anchored_view);
+                if panes.synchronize(active_view) {
+                    screen.request_render(false);
+                }
                 Ok(should_quit)
             })();
             match result {
