@@ -5,7 +5,9 @@
 //! holds the cache: same-lineage root reuse, failed and cancelled
 //! non-reinsertion, and restart statelessness. Per-component divergence reseed
 //! lives in `continuation_divergence`. No provider handle material may reach
-//! durable session state.
+//! durable session state, while the applied-settings report the fixture publishes
+//! only from the continuation-aware request seam must reach durable request
+//! provenance.
 
 use std::sync::Arc;
 
@@ -126,6 +128,77 @@ fn cached_continuation_handles_stay_out_of_durable_session_state() {
     fixture.cleanup();
 }
 
+/// The continuation-aware request seam reports applied settings durably.
+///
+/// The fixture publishes its applied-settings report only from
+/// `stream_simple_with_continuation_and_applied_settings`, which is the seam
+/// `rpi_ai` selects for a provider that advertises continuation. A report
+/// captured on the continued request therefore proves the reused handle travels
+/// that audited seam instead of the unreported simple request path.
+#[test]
+fn the_continued_root_turn_reports_applied_settings_through_the_continuation_seam() {
+    let fixture = local_fixture();
+    let context = LifecycleFixture::context(&[]);
+
+    let first = fixture
+        .submit(&context, None, "first instruction")
+        .expect("first root turn");
+    let root = first.branch.expect("root branch handle");
+
+    fixture.reactivate(root);
+    fixture
+        .submit(&context, Some(root), "second instruction")
+        .expect("continued root turn");
+
+    let requests = fixture.provider.requests();
+    assert_eq!(requests.len(), 2, "each root turn dispatches one request");
+    assert!(
+        requests[1].0,
+        "the reported request must be the continued one"
+    );
+
+    let durable = fixture.durable();
+    let branch = durable
+        .branches
+        .iter()
+        .find(|candidate| candidate.id == root)
+        .expect("root branch");
+    assert_eq!(
+        branch.model_invocations.len(),
+        2,
+        "each root turn persists one model invocation"
+    );
+    let continued = branch.model_invocations[1]
+        .request
+        .as_ref()
+        .expect("continued request projection");
+    let report = continued
+        .applied_settings
+        .as_ref()
+        .expect("the continuation seam must report its applied settings");
+    assert_eq!(
+        report["schemaVersion"],
+        serde_json::json!("rpi-applied-request-settings-v1")
+    );
+    assert_eq!(report["providerId"], serde_json::json!(PROVIDER_ID));
+    assert_eq!(report["modelId"], serde_json::json!(MODEL_ID));
+    assert_eq!(report["apiId"], serde_json::json!("openai-completions"));
+    assert_eq!(
+        report["appliedValues"]["temperature"],
+        serde_json::json!(0.25),
+        "an applied setting must survive the continuation request boundary"
+    );
+    let fingerprint = continued
+        .applied_settings_fingerprint
+        .as_deref()
+        .expect("versioned applied-settings digest");
+    assert!(
+        fingerprint.len() == 64 && fingerprint.bytes().all(|byte| byte.is_ascii_hexdigit()),
+        "applied-settings digest must be a hex digest: {fingerprint}"
+    );
+    fixture.cleanup();
+}
+
 /// A failed root turn leaves no cached handle for the next turn.
 #[test]
 fn failed_root_turn_does_not_reinsert_a_continuation_handle() {
@@ -150,6 +223,62 @@ fn failed_root_turn_does_not_reinsert_a_continuation_handle() {
         "a failed root turn must not cache a continuation handle"
     );
     assert_eq!(fixture.provider.requests().len(), 1);
+    fixture.cleanup();
+}
+
+/// A failed follow-up turn drops the handle retained by the completed turn.
+///
+/// The retained handle is consumed before the attempt, so the failed attempt
+/// must carry the exact marker of the prior response and cannot leave a reusable
+/// handle behind; the next root turn must seed again from canonical `ScribeRig`
+/// context.
+#[test]
+fn failed_follow_up_turn_drops_the_retained_continuation_handle() {
+    let fixture = local_fixture();
+    let context = LifecycleFixture::context(&[]);
+
+    let first = fixture
+        .submit(&context, None, "first instruction")
+        .expect("first root turn");
+    let root = first.branch.expect("root branch handle");
+    assert_eq!(
+        fixture.cached_branches(),
+        vec![root],
+        "the completed first turn retains exactly one handle"
+    );
+
+    fixture.reactivate(root);
+    fixture
+        .provider
+        .queue_outcomes(vec![ScenarioOutcome::Failed]);
+    fixture
+        .submit(&context, Some(root), "second instruction")
+        .expect_err("failed follow-up root turn");
+    assert!(
+        fixture.cached_branches().is_empty(),
+        "a failed follow-up turn must not keep the consumed handle"
+    );
+
+    fixture.reactivate(root);
+    fixture
+        .submit(&context, Some(root), "third instruction")
+        .expect("root turn after a failed continuation");
+    let requests = fixture.provider.requests();
+    assert_eq!(
+        requests.len(),
+        3,
+        "each root turn dispatches exactly one provider request"
+    );
+    assert!(!requests[0].0, "the cold root turn sends no handle");
+    assert_eq!(
+        requests[1].1.as_deref(),
+        fixture.provider.response_marker(0).as_deref(),
+        "the failed follow-up attempt must consume the exact prior response handle"
+    );
+    assert!(
+        !requests[2].0,
+        "the turn after a failed continuation must seed from canonical context"
+    );
     fixture.cleanup();
 }
 

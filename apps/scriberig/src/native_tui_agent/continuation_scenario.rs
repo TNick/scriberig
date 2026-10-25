@@ -3,9 +3,12 @@
 //!
 //! `ScribeRig`'s root runner owns the ephemeral handle cache; this fixture only
 //! records whether a validated handle reached the provider request so the
-//! ownership boundary stays observable from the app side. The opaque response
-//! marker inside the handle must never reach durable state.
+//! ownership boundary stays observable from the app side. It publishes its
+//! applied-settings report only through the continuation-aware request seam, so
+//! a captured report also proves that seam carried the request. The opaque
+//! response marker inside the handle must never reach durable state.
 
+use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -17,7 +20,8 @@ use rpi_ai::provider::ProviderContinuation;
 use rpi_ai::providers::faux::faux_text;
 use rpi_ai::types::{AssistantMessage, AssistantMessageEvent, DoneReason, ErrorReason, StopReason};
 use rpi_ai::{
-    AppliedRequestSettingsCallback, Context, Model, Provider, RequestSecret, SimpleStreamOptions,
+    AppliedRequestSettings, AppliedRequestSettingsCallback, Context, Model, Provider,
+    RequestSecret, SimpleStreamOptions,
 };
 
 /// Terminal provider behavior for one scenario request.
@@ -143,6 +147,37 @@ impl ContinuationScenarioProvider {
             });
         }
         marker
+    }
+
+    /// Publishes one attested applied-settings report for a continuation request.
+    ///
+    /// The report is published only from the continuation-aware request seam, so
+    /// a captured report proves that seam carried the request. The fixture has
+    /// no HTTP body, so it attests nominal scalar settings and names the
+    /// categories it cannot attest.
+    ///
+    /// # Parameters
+    /// - `self`: Scenario provider holding the fixture provider identity.
+    /// - `model`: Exact model bound to the current request.
+    /// - `callback`: Upstream sink for sanitized final-request settings.
+    fn publish_applied_settings(&self, model: &Model, callback: &AppliedRequestSettingsCallback) {
+        let mut applied_values = BTreeMap::new();
+        applied_values.insert("model".to_owned(), serde_json::json!(model.id));
+        applied_values.insert("stream".to_owned(), serde_json::json!(true));
+        applied_values.insert("temperature".to_owned(), serde_json::json!(0.25));
+        callback(AppliedRequestSettings {
+            schema_version: "rpi-applied-request-settings-v1".to_owned(),
+            provider_id: self.provider_id.clone(),
+            model_id: model.id.clone(),
+            api_id: model.api.as_str().to_owned(),
+            applied_values,
+            omitted_categories: vec![
+                "endpoint".to_owned(),
+                "headers_and_credentials".to_owned(),
+                "prompt_and_transcript".to_owned(),
+            ],
+            complete: false,
+        });
     }
 
     /// Consumes the next queued outcome.
@@ -335,7 +370,7 @@ impl Provider for ContinuationScenarioProvider {
     /// - `continuation`: Handle offered by the host after its own validation.
     /// - `_opts`: Stream options, unused by the fixture.
     /// - `_request_secret`: Protected credential, unused by the fixture.
-    /// - `_callback`: Applied-settings sink, unused by the fixture.
+    /// - `callback`: Applied-settings sink the fixture reports into.
     ///
     /// # Returns
     /// The response event stream.
@@ -346,8 +381,9 @@ impl Provider for ContinuationScenarioProvider {
         continuation: Option<&ProviderContinuation>,
         _opts: &SimpleStreamOptions,
         _request_secret: Option<(&RequestSecret, bool)>,
-        _callback: AppliedRequestSettingsCallback,
+        callback: AppliedRequestSettingsCallback,
     ) -> rpi_ai::AssistantMessageEventStream {
+        self.publish_applied_settings(model, &callback);
         let marker = self.record(continuation);
         self.stream_outcome(model, &marker)
     }
