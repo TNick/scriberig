@@ -147,6 +147,7 @@ fn attempt_stale_apply(tui: &mut TuiPty) {
         "{}",
         tui.diagnostic()
     );
+    candidate_review::assert_confirmation_closed(tui);
 }
 
 /// Verifies the stale Apply receipt and protects the newer project state.

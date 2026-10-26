@@ -209,6 +209,7 @@ pub(super) fn agent<S: ApplicationService>(
         .snapshot
         .parse::<SnapshotId>()
         .map_err(|_| (400, json!({"message": "invalid snapshot"})))?;
+    let accepted = "left.saturating_add(right)";
     let observed = Arc::new(Mutex::new(None));
     let candidate_id: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
     let branch = EntityId::new();
@@ -238,7 +239,7 @@ pub(super) fn agent<S: ApplicationService>(
         selection: Some(entity.to_string()),
     });
     let compiled_context = ContextCompiler::new(ContextPolicy::default()).compile(&context_inputs);
-    let (provider, model) = faux_provider(entity, snapshot, "left.saturating_add(right)");
+    let (provider, model) = faux_provider(entity, snapshot, accepted);
     let tools = project_tools(Arc::clone(&tool), branch, context.clone())
         .map_err(|error| (500, json!({"message": error})))?;
     let invocation = UpstreamBranchInvocation {

@@ -275,6 +275,7 @@ fn review_and_apply(
             .workspace(project)
             .expect("applied project workspace");
         if file_exists && current.snapshot != base_snapshot {
+            candidate_review::assert_confirmation_closed(tui);
             return assert_materialized_php_fixture(checkout, database, project, base_snapshot);
         }
         assert!(std::time::Instant::now() < deadline, "{}", tui.diagnostic());

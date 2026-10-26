@@ -116,8 +116,8 @@ pub(crate) fn onboard_project(implementation: bool) -> OnboardingEvidence {
 /// - `database`: Product database owned by the PTY fixture.
 /// - `session`: Exact session identity to inspect.
 pub(crate) fn wait_for_onboarding(tui: &TuiPty, database: &std::path::Path, session: EntityId) {
-    let store = SqliteSessionStore::open(database).expect("session store");
     let deadline = Instant::now() + Duration::from_secs(120);
+    let store = open_session_store_until(database, deadline);
     loop {
         let saved = match store.load(session) {
             Ok(saved) => saved,
@@ -129,7 +129,7 @@ pub(crate) fn wait_for_onboarding(tui: &TuiPty, database: &std::path::Path, sess
                 thread::sleep(Duration::from_millis(50));
                 continue;
             }
-            Err(error) => panic!("load session: {error}"),
+            Err(error) => panic!("load session: {error}; {}", tui.diagnostic()),
         };
         let Some(saved) = saved else {
             assert!(
@@ -175,9 +175,36 @@ pub(crate) fn wait_for_onboarding(tui: &TuiPty, database: &std::path::Path, sess
             .collect::<Vec<_>>();
         assert!(
             Instant::now() < deadline,
-            "onboarding did not complete: {branches:?}"
+            "onboarding did not complete: {branches:?}; {}",
+            tui.diagnostic()
         );
         thread::sleep(Duration::from_millis(50));
+    }
+}
+
+/// Opens the onboarding session store while its owner finishes initializing SQLite.
+///
+/// - `database`: Product database owned by the PTY fixture.
+/// - `deadline`: Maximum time to wait for transient writer contention to clear.
+///
+/// # Returns
+/// The initialized session store.
+///
+/// # Panics
+/// Panics when opening fails for another reason or the database stays locked.
+fn open_session_store_until(database: &std::path::Path, deadline: Instant) -> SqliteSessionStore {
+    loop {
+        match SqliteSessionStore::open(database) {
+            Ok(store) => return store,
+            Err(error) if error.to_string().contains("database is locked") => {
+                assert!(
+                    Instant::now() < deadline,
+                    "onboarding session store stayed locked"
+                );
+                thread::sleep(Duration::from_millis(50));
+            }
+            Err(error) => panic!("open onboarding session store: {error}"),
+        }
     }
 }
 

@@ -217,14 +217,17 @@ test("WEB-GOLDEN-07 agent uses semantic scope and enters normal review", async (
       response.request().postData()?.includes('"agent"'),
   );
   await page.getByRole("button", { name: "Start agent" }).click();
-  const agentBody = (await (await agentResponse).json()) as {
+  const response = await agentResponse;
+  const agentBody = (await response.json()) as {
     response?: {
       Project?: {
         result?: { scope?: { entity?: string; snapshot?: string } };
       };
     };
+    scope?: { entity?: string; snapshot?: string };
   };
-  const scope = agentBody.response?.Project?.result?.scope;
+  expect(response.status(), `agent response: ${JSON.stringify(agentBody)}`).toBe(200);
+  const scope = agentBody.response?.Project?.result?.scope ?? agentBody.scope;
   expect(scope, JSON.stringify(agentBody)).toEqual({ entity, snapshot });
   await expect(page.getByRole("button", { name: "projection", exact: true })).toBeVisible();
   await expect(page.getByRole("region", { name: "Migration review" })).toContainText("src/lib.rs");
