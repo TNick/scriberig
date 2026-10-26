@@ -9,8 +9,14 @@ repository.workspace = true
 publish = false
 
 [features]
-default = ["isolated-plugin-worker"]
+default = ["isolated-plugin-worker", "provider-package-worker-tests"]
 isolated-plugin-worker = ["scriberig-agent-runtime/isolated-plugin-worker"]
+provider-package-worker-tests = ["isolated-plugin-worker"]
+
+[[test]]
+name = "provider_package_worker"
+path = "tests/provider_package_worker.rs"
+required-features = ["provider-package-worker-tests"]
 
 [[bin]]
 name = "srig"

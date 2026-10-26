@@ -9,14 +9,28 @@ on:
 
 jobs:
   product-tests:
-    if: ${{ !contains(github.event.repository.html_url, 'git.advaita.ro') }}
     timeout-minutes: 120
     runs-on: docker-host
     steps:
       - uses: actions/checkout@v4
-      - name: Test product application in isolated container
+      - name: Test product application
         run: |
           set -euxo pipefail
+          if [ -n "${FORGEJO_SERVER_URL:-}" ]; then
+            echo "Forgejo detected at $FORGEJO_SERVER_URL; running product tests supported by the host runner."
+            if ! command -v cargo >/dev/null 2>&1; then
+              timeout --foreground 5m curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+                | sh -s -- -y --profile minimal --default-toolchain stable
+            fi
+            if [ -f "$HOME/.cargo/env" ]; then
+              . "$HOME/.cargo/env"
+            fi
+            rustc --version
+            cargo --version
+            cargo test --locked -p scriberig --no-default-features \
+              --features isolated-plugin-worker
+            exit 0
+          fi
           timeout --foreground 30s docker info --format 'Docker daemon: {{.ServerVersion}}'
           timeout --foreground 5m docker pull 10.225.224.10/ci/debian:13
           timeout --foreground 45s docker run --pull=never --rm --privileged --network host \
@@ -39,7 +53,6 @@ jobs:
             '
 
   quality:
-    if: ${{ !contains(github.event.repository.html_url, 'git.advaita.ro') }}
     timeout-minutes: 120
     runs-on: docker-host
     steps:
@@ -69,15 +82,12 @@ jobs:
               python3 tools/product_golden.py
             '
 
-  forgejo-tests-disabled:
+  forgejo-test-scope:
+    if: ${{ contains(github.event.repository.html_url, 'git.advaita.ro') }}
     runs-on: docker-host
     steps:
-      - name: Report CI platform
+      - name: Report Forgejo product test scope
         run: |
-          if [ -n "${FORGEJO_SERVER_URL:-}" ]; then
-            echo "Forgejo detected at $FORGEJO_SERVER_URL."
-            echo "Skipping container-dependent product and quality jobs because this runner pool cannot reliably start their required containers and namespaces."
-          else
-            echo "FORGEJO_SERVER_URL is not set."
-            echo "GITHUB_SERVER_URL=${GITHUB_SERVER_URL:-unset}"
-          fi
+          echo "Forgejo detected at ${FORGEJO_SERVER_URL:-unknown server}."
+          echo "The normal quality job and host-compatible product tests run on Forgejo."
+          echo "Only provider_package_worker is excluded because it requires sandbox namespace support unavailable on these workers."
