@@ -32,6 +32,18 @@ pub(super) fn operation_failed(
     );
     if request_id == 0 {
         state.conversation_composer.pending = false;
+        if let Some(pending) = state.conversation_composer.pending_prompt.take() {
+            if state.conversation_composer.draft.is_empty() {
+                state.conversation_composer.draft = pending;
+            } else {
+                state.conversation_composer.draft =
+                    format!("{pending}\n{}", state.conversation_composer.draft);
+            }
+            state
+                .conversation_composer
+                .editor
+                .replace_text(&state.conversation_composer.draft);
+        }
         state.conversation_composer.error = Some(message.to_owned());
     }
     if request_id == 0

@@ -193,7 +193,11 @@ fn conversation_home_types_and_submits_without_allocating_local_identity() {
 
     let effects = reduce(&mut state, Action::InputSubmitted);
 
-    assert_eq!(state.conversation_composer.draft, "hello");
+    assert_eq!(state.conversation_composer.draft, "");
+    assert_eq!(
+        state.conversation_composer.pending_prompt.as_deref(),
+        Some("hello")
+    );
     assert!(state.conversation_composer.pending);
     assert_eq!(
         state.conversation_composer.target,
@@ -217,6 +221,7 @@ fn conversation_home_types_and_submits_without_allocating_local_identity() {
     );
 
     assert_eq!(state.conversation_composer.draft, "hello");
+    assert!(state.conversation_composer.pending_prompt.is_none());
     assert!(!state.conversation_composer.pending);
     assert_eq!(
         state.conversation_composer.error.as_deref(),
@@ -358,8 +363,15 @@ fn conversation_session_commands_are_local_and_exact() {
 #[test]
 fn conversation_auxiliary_command_is_available_while_agent_is_pending() {
     let mut state = TuiState::default();
-    state.conversation_composer.pending = true;
-    state.conversation_composer.draft = "/operations".to_owned();
+    state.conversation_composer.draft = "request currently running".to_owned();
+
+    reduce(&mut state, Action::InputSubmitted);
+    assert_eq!(state.conversation_composer.draft, "");
+    assert_eq!(
+        state.conversation_composer.pending_prompt.as_deref(),
+        Some("request currently running")
+    );
+    reduce(&mut state, Action::InputChanged("/operations".to_owned()));
 
     let effects = reduce(&mut state, Action::InputSubmitted);
 
@@ -369,6 +381,10 @@ fn conversation_auxiliary_command_is_available_while_agent_is_pending() {
     );
     assert!(matches!(effects.as_slice(), [Effect::ListOperations]));
     assert!(state.conversation_composer.pending);
+    assert_eq!(
+        state.conversation_composer.pending_prompt.as_deref(),
+        Some("request currently running")
+    );
 }
 
 #[path = "state_session_composer_tests_part1.rs"]

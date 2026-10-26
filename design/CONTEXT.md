@@ -941,6 +941,10 @@ For the current agent work:
 - Level 2 `023` controls baseline runtime orchestration.
 - Level 2 `024` controls cross-surface agent protocol.
 - Level 2 `025` refines provider continuation/model observability.
+- Level 2 `032` supersedes the prior local commodity-ownership target: Scriberig
+  retains semantic session, branch, plan, context, and change semantics, while
+  upstream `rpi` owns generic provider/model/agent/plugin/package/TUI machinery.
+  Task 144 records the exact ownership and deletion boundary.
 - Task 133 controls the shared agent console/model/thinking/trace baseline.
 - Task 134 controls recursive TUI product behavior.
 - Task 135 controls the main recursive semantic plan/tree implementation.

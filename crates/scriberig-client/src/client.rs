@@ -73,7 +73,7 @@ impl<T: ProtocolTransport> Client<T> {
         });
         match self.send(request)?.response {
             Response::Inspect(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -93,7 +93,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::Capabilities(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -122,7 +122,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::OperationStatus(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -150,7 +150,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::Session(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -179,7 +179,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::OperationCancelled(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -221,7 +221,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::Events(events) => Ok(events),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -248,7 +248,7 @@ impl<T: ProtocolTransport> Client<T> {
             Response::Query(response) => {
                 serde_json::from_value(response.result).map_err(|_| ClientError::UnexpectedResponse)
             }
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -279,7 +279,7 @@ impl<T: ProtocolTransport> Client<T> {
             Response::List(response) => {
                 serde_json::from_value(response.result).map_err(|_| ClientError::UnexpectedResponse)
             }
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -310,7 +310,7 @@ impl<T: ProtocolTransport> Client<T> {
             Response::Find(response) => {
                 serde_json::from_value(response.result).map_err(|_| ClientError::UnexpectedResponse)
             }
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -340,7 +340,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::CommandAccepted(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }

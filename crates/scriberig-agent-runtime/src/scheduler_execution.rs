@@ -14,9 +14,9 @@ impl PlanScheduler {
     /// - `dispatch`: Stable nodes selected by one scheduler tick.
     /// - `results`: Existing durable results used for readiness checks.
     /// - `executor`: Shared worker factory/provider boundary.
-    /// - `model_library`: Existing validated application model library.
+    /// - `upstream_models`: Host-owned upstream model catalog.
     /// - `selection`: Session-level model defaults.
-    /// - `runtime_fallback`: Runtime model used when no profile is selected.
+    /// - `runtime_fallback`: Runtime model used when no assignment is selected.
     /// - `next_id`: Allocates branch and claim identities.
     ///
     /// Completed and failed nodes with result records for persistence.
@@ -33,7 +33,7 @@ impl PlanScheduler {
         dispatch: &[EntityId],
         results: &[BranchResult],
         executor: &impl PlanWorkerExecutor,
-        model_library: &scriberig_app::ModelLibrary,
+        upstream_models: &[rpi_ai::Model],
         selection: &scriberig_session::SessionExecutionSelection,
         runtime_fallback: &str,
         next_id: impl FnMut() -> EntityId,
@@ -43,7 +43,7 @@ impl PlanScheduler {
             dispatch,
             results,
             executor,
-            model_library,
+            upstream_models,
             selection,
             runtime_fallback,
             next_id,
@@ -57,9 +57,9 @@ impl PlanScheduler {
     /// - `dispatch`: Stable nodes selected by one scheduler tick.
     /// - `results`: Existing durable results used for readiness checks.
     /// - `executor`: Shared worker factory/provider boundary.
-    /// - `model_library`: Existing validated application model library.
+    /// - `upstream_models`: Host-owned upstream model catalog.
     /// - `selection`: Session-level model defaults.
-    /// - `runtime_fallback`: Runtime model used when no profile is selected.
+    /// - `runtime_fallback`: Runtime model used when no assignment is selected.
     /// - `next_id`: Allocates branch and claim identities.
     /// - `persist_claims`: Durably records running states before worker calls.
     ///
@@ -77,7 +77,7 @@ impl PlanScheduler {
         dispatch: &[EntityId],
         results: &[BranchResult],
         executor: &impl PlanWorkerExecutor,
-        model_library: &scriberig_app::ModelLibrary,
+        upstream_models: &[rpi_ai::Model],
         selection: &scriberig_session::SessionExecutionSelection,
         runtime_fallback: &str,
         next_id: impl FnMut() -> EntityId,
@@ -88,7 +88,7 @@ impl PlanScheduler {
             dispatch,
             results,
             executor,
-            model_library,
+            upstream_models,
             selection,
             runtime_fallback,
             next_id,
@@ -107,7 +107,7 @@ impl PlanScheduler {
     /// - `dispatch`: Stable nodes selected by one scheduler tick.
     /// - `results`: Existing durable results used for readiness checks.
     /// - `executor`: Shared worker factory/provider boundary.
-    /// - `model_library`: Existing validated application model library.
+    /// - `upstream_models`: Host-owned upstream model catalog.
     /// - `selection`: Session-level model defaults.
     /// - `runtime_fallback`: Runtime model used when a node has no assignment.
     /// - `next_id`: Allocates branch and claim identities.
@@ -128,7 +128,7 @@ impl PlanScheduler {
         dispatch: &[EntityId],
         results: &[BranchResult],
         executor: &impl PlanWorkerExecutor,
-        model_library: &scriberig_app::ModelLibrary,
+        upstream_models: &[rpi_ai::Model],
         selection: &scriberig_session::SessionExecutionSelection,
         runtime_fallback: &str,
         mut next_id: impl FnMut() -> EntityId,
@@ -142,7 +142,7 @@ impl PlanScheduler {
         let resolved = execution_helpers::resolve_assignments(
             plan,
             dispatch,
-            model_library,
+            upstream_models,
             selection,
             runtime_fallback,
         )?;

@@ -16,13 +16,13 @@ type ClaimedWorker = (
     PlanWorkerContext,
 );
 
-/// Resolves each dispatched node through the shared model library.
+/// Resolves each dispatched node through the upstream model catalog.
 ///
 /// - `plan`: Durable plan snapshot being scheduled.
 /// - `dispatch`: Stable IDs of selected ready nodes.
-/// - `model_library`: Existing validated model and profile catalog.
+/// - `upstream_models`: Host-owned upstream model catalog.
 /// - `selection`: Session-level defaults for unassigned nodes.
-/// - `runtime_fallback`: Runtime model used when no profile is selected.
+/// - `runtime_fallback`: Runtime model used when no assignment is selected.
 ///
 /// One resolved execution assignment per dispatched node, in dispatch order.
 /// # Returns
@@ -32,7 +32,7 @@ type ClaimedWorker = (
 pub(super) fn resolve_assignments(
     plan: &Plan,
     dispatch: &[EntityId],
-    model_library: &scriberig_app::ModelLibrary,
+    upstream_models: &[rpi_ai::Model],
     selection: &scriberig_session::SessionExecutionSelection,
     runtime_fallback: &str,
 ) -> Result<Vec<scriberig_app::ResolvedPlanExecution>, String> {
@@ -47,7 +47,7 @@ pub(super) fn resolve_assignments(
             scriberig_app::resolve_plan_node_execution(
                 node,
                 selection,
-                model_library,
+                upstream_models,
                 runtime_fallback,
             )
             .map_err(|error| format!("plan node assignment resolution failed: {error}"))

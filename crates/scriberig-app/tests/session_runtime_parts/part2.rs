@@ -6,7 +6,9 @@ use super::*;
 #[test]
 #[allow(clippy::too_many_lines)]
 fn application_replan_preserves_history_and_publishes_latest_projection() {
-    let service = ApplicationService::new(Fixture).with_model_library(session_model_library());
+    let service = ApplicationService::new(Fixture)
+        .with_model_library(session_model_library())
+        .with_upstream_models(session_upstream_models());
     let context = session_context();
     let session = EntityId::from_bytes([111; 16]);
     service
@@ -139,7 +141,9 @@ fn application_replan_preserves_history_and_publishes_latest_projection() {
 #[test]
 #[allow(clippy::too_many_lines)]
 fn application_completion_persists_final_plan_and_releases_operation() {
-    let service = ApplicationService::new(Fixture).with_model_library(session_model_library());
+    let service = ApplicationService::new(Fixture)
+        .with_model_library(session_model_library())
+        .with_upstream_models(session_upstream_models());
     let context = session_context();
     let session_id = EntityId::from_bytes([118; 16]);
     service
@@ -254,71 +258,70 @@ fn application_completion_persists_final_plan_and_releases_operation() {
     );
 }
 
-/// Resolves sibling plan assignments independently through the shared model library.
+/// Resolves sibling plan assignments independently through the upstream catalog.
 #[test]
-fn plan_assignments_resolve_distinct_profiles_and_reject_unsupported_thinking() {
-    let library = session_model_library();
+fn plan_assignments_resolve_distinct_models_and_reject_unsupported_thinking() {
     let session_default = scriberig_session::SessionExecutionSelection::default();
-    let node = |profile: &str, model: &str, thinking: Option<&str>| scriberig_session::PlanNode {
-        id: EntityId::from_bytes([111; 16]),
-        parent: None,
-        title: profile.to_owned(),
-        purpose: "assigned work".to_owned(),
-        expected_result: None,
-        semantic_scope: Vec::new(),
-        status: scriberig_session::PlanNodeStatus::Ready,
-        branch: None,
-        result: None,
-        superseded_by: None,
-        assignment: Some(scriberig_session::ModelAssignment {
-            profile: profile.to_owned(),
-            model: model.to_owned(),
-            thinking_level: thinking.map(str::to_owned),
-        }),
-        claim: None,
-        claim_generation: 0,
-    };
+    let node =
+        |provider_id: &str, model_id: &str, thinking: Option<&str>| scriberig_session::PlanNode {
+            id: EntityId::from_bytes([111; 16]),
+            parent: None,
+            title: model_id.to_owned(),
+            purpose: "assigned work".to_owned(),
+            expected_result: None,
+            semantic_scope: Vec::new(),
+            status: scriberig_session::PlanNodeStatus::Ready,
+            branch: None,
+            result: None,
+            superseded_by: None,
+            assignment: Some(scriberig_session::ModelAssignment {
+                provider_id: provider_id.to_owned(),
+                model_id: model_id.to_owned(),
+                thinking_level: thinking.map(str::to_owned),
+            }),
+            claim: None,
+            claim_generation: 0,
+        };
     let first = scriberig_app::resolve_plan_node_execution(
-        &node("profile-a", "model-a", Some("careful")),
+        &node("local", "native-a", Some("high")),
         &session_default,
-        &library,
+        &session_upstream_models(),
         "fallback",
     )
     .expect("resolve first worker");
     let second = scriberig_app::resolve_plan_node_execution(
-        &node("profile-b", "model-b", Some("steady")),
+        &node("local", "native-b", Some("low")),
         &session_default,
-        &library,
+        &session_upstream_models(),
         "fallback",
     )
     .expect("resolve second worker");
-    assert_eq!(first.provider_model_id, "native-a");
-    assert_eq!(second.provider_model_id, "native-b");
-    assert_eq!(first.provider_profile.as_deref(), Some("local"));
-    assert_ne!(first.model_profile, second.model_profile);
+    assert_eq!(first.model_id, "native-a");
+    assert_eq!(second.model_id, "native-b");
+    assert_eq!(first.provider_id, "local");
     assert!(
         scriberig_app::resolve_plan_node_execution(
-            &node("profile-a", "model-a", Some("not-advertised")),
+            &node("local", "native-a", Some("not-advertised")),
             &session_default,
-            &library,
+            &session_upstream_models(),
             "fallback",
         )
         .is_err()
     );
     assert!(
         scriberig_app::resolve_plan_node_execution(
-            &node("not-advertised", "model-a", Some("careful")),
+            &node("not-advertised", "native-a", Some("high")),
             &session_default,
-            &library,
+            &session_upstream_models(),
             "fallback",
         )
         .is_err()
     );
     assert!(
         scriberig_app::resolve_plan_node_execution(
-            &node("profile-a", "not-advertised", Some("careful")),
+            &node("local", "not-advertised", Some("high")),
             &session_default,
-            &library,
+            &session_upstream_models(),
             "fallback",
         )
         .is_err()

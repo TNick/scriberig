@@ -16,8 +16,8 @@ export interface ModelCapabilities {
 export interface ModelDescriptor {
   id: string;
   displayName: string;
-  providerProfile: string;
-  providerModelId: string;
+  providerId: string;
+  modelId: string;
   capabilities: ModelCapabilities;
   thinkingLevels: readonly ThinkingLevelDescriptor[];
   defaultThinkingLevel?: string;
@@ -45,7 +45,8 @@ export interface ModelLibraryResponse {
 export interface SessionModelSelectionRequest {
   session: { id: string };
   expectedRevision: number;
-  modelProfile: string;
+  providerId: string;
+  modelId: string;
 }
 /** Session thinking mutation with its independent optimistic revision. */
 export interface SessionThinkingSelectionRequest {

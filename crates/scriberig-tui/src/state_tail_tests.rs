@@ -87,7 +87,11 @@ fn authoritative_session_refresh_preserves_transient_output() {
     completed.result_handles = vec!["branch-result:durable".to_owned()];
     reduce(
         &mut state,
-        Action::AgentOutputObserved("working".to_owned()),
+        Action::AgentOutputObserved {
+            operation: scriberig_core::OperationId::new("durable-result").expect("operation"),
+            text: "working".to_owned(),
+            complete: false,
+        },
     );
     reduce(
         &mut state,
@@ -105,7 +109,7 @@ fn authoritative_session_refresh_preserves_transient_output() {
             session_snapshot: None,
         },
     );
-    assert_eq!(state.agent_output_observations, vec!["working".to_owned()]);
+    assert_eq!(state.transient_agent_outputs[0].text, "working");
     assert_eq!(
         state.operations[0].result_handles,
         vec!["branch-result:durable".to_owned()]
@@ -119,7 +123,11 @@ fn selecting_session_clears_prior_transient_output() {
     let session = scriberig_core::EntityId::from_bytes([9; 16]);
     reduce(
         &mut state,
-        Action::AgentOutputObserved("prior answer".to_owned()),
+        Action::AgentOutputObserved {
+            operation: scriberig_core::OperationId::new("prior-operation").expect("operation"),
+            text: "prior answer".to_owned(),
+            complete: false,
+        },
     );
 
     assert!(matches!(
@@ -133,7 +141,7 @@ fn selecting_session_clears_prior_transient_output() {
         .as_slice(),
         [Effect::ReadSession { session: requested, .. }] if *requested == session
     ));
-    assert_eq!(state.agent_output_observations, Vec::<String>::new());
+    assert_eq!(state.transient_agent_outputs.len(), 0);
 }
 
 /// Verifies entering the session view requests the selected session entity.

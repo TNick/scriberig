@@ -15,6 +15,21 @@ use scriberig_session::{
 use scriberig_store::{RootStore, SnapshotChange, SnapshotStore};
 use scriberig_store_memory::MemoryStore;
 
+/// Creates the upstream catalog entry used by coordinator fallback fixtures.
+///
+/// The model catalog containing the test fallback model.
+/// # Returns
+/// The operation result.
+fn runtime_fallback_models() -> Vec<rpi_ai::Model> {
+    vec![rpi_ai::Model::new(
+        "fallback-model",
+        "Fallback model",
+        rpi_ai::Api::AnthropicMessages,
+        "fallback-provider",
+        "https://example.test",
+    )]
+}
+
 /// Supplies merge operations for deterministic candidate integration tests.
 struct Backend {
     /// Immutable snapshot store shared with candidate-producing workers.
@@ -172,11 +187,8 @@ impl PlanWorkerExecutor for FakeWorkers<'_> {
             self.barrier.wait();
         }
         let mut result_handles = vec![
-            format!(
-                "profile:{}",
-                execution.model_profile.as_deref().unwrap_or("default")
-            ),
-            format!("model:{}", execution.model.as_deref().unwrap_or("fallback")),
+            format!("provider:{}", execution.provider_id),
+            format!("model:{}", execution.model_id),
         ];
         if node.title == "analyze" {
             result_handles.push("entity:api-contract".to_owned());

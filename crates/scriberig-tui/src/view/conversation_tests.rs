@@ -1,6 +1,8 @@
 //! Verifies stable conversation projections over durable session and plan state.
 
-use super::{ConversationModel, ConversationRowKind, ConversationSource};
+use super::{
+    ConversationModel, ConversationRowKind, ConversationSource, bounded_conversation_text,
+};
 use scriberig_core::EntityId;
 use scriberig_session::{
     Branch, BranchResult, BranchStatus, ContinuationAnchor, ContinuationOrigin, Plan, PlanNode,
@@ -73,6 +75,17 @@ fn failed_first_turn_projects_message_followed_by_readable_error() {
             .contains("Error: provider connection failed")
     );
     assert!(message < error);
+}
+
+/// Clips a huge unbroken message before terminal rendering allocates its text.
+#[test]
+fn long_conversation_tokens_are_bounded_with_a_marker() {
+    let input = "x".repeat(100_000);
+
+    let label = bounded_conversation_text("You", &input);
+
+    assert!(label.ends_with("… truncated …"));
+    assert!(label.chars().count() <= 540);
 }
 
 /// Projects plan state as stable rows while keeping the session canonical.

@@ -1,5 +1,6 @@
 //! Verifies concurrent console clients cannot overwrite newer selections.
 
+use rpi_ai::{Api, Model, ThinkingLevel, ThinkingLevelMap};
 use scriberig_app::{
     ApplicationBackend, ApplicationContext, ApplicationError, ApplicationRequest,
     ApplicationResult, ApplicationService, ModelCapabilities, ModelDescriptor, ModelId,
@@ -54,7 +55,18 @@ fn envelope(correlation_id: &str, request: Request) -> RequestEnvelope {
 /// Verifies stale model and thinking writes conflict across two clients.
 #[test]
 fn stale_model_and_thinking_writes_conflict_between_clients() {
-    let service = ApplicationService::new(Fixture).with_model_library(model_library());
+    let service = ApplicationService::new(Fixture)
+        .with_model_library(model_library())
+        .with_upstream_models(vec![
+            Model::new(
+                "wire-a",
+                "Model A",
+                Api::AnthropicMessages,
+                "provider-a",
+                "https://example.test",
+            ),
+            model_b(),
+        ]);
     let tui_client = Dispatcher::new(&service);
     let web_client = Dispatcher::new(&service);
     let session = SessionReference {
@@ -66,7 +78,8 @@ fn stale_model_and_thinking_writes_conflict_between_clients() {
         Request::SessionModelSelection(scriberig_protocol::SessionModelSelectionRequest {
             session: session.clone(),
             expected_revision: 0,
-            model_profile: "profile-a".to_owned(),
+            provider_id: "provider-a".to_owned(),
+            model_id: "wire-a".to_owned(),
         }),
     ));
     let Response::SessionExecution(selected) = selected.response else {
@@ -91,7 +104,7 @@ fn stale_model_and_thinking_writes_conflict_between_clients() {
         Request::SessionThinkingSelection(scriberig_protocol::SessionThinkingSelectionRequest {
             session: session.clone(),
             expected_revision: selected.revision,
-            thinking_level: "extended".to_owned(),
+            thinking_level: "high".to_owned(),
         }),
     ));
     let Response::SessionExecution(changed) = changed.response else {
@@ -104,7 +117,7 @@ fn stale_model_and_thinking_writes_conflict_between_clients() {
         Request::SessionThinkingSelection(scriberig_protocol::SessionThinkingSelectionRequest {
             session: session.clone(),
             expected_revision: selected.revision,
-            thinking_level: "careful".to_owned(),
+            thinking_level: "medium".to_owned(),
         }),
     ));
     assert!(matches!(stale_thinking.response, Response::Error(_)));
@@ -114,15 +127,16 @@ fn stale_model_and_thinking_writes_conflict_between_clients() {
         Request::SessionModelSelection(scriberig_protocol::SessionModelSelectionRequest {
             session: session.clone(),
             expected_revision: changed.revision,
-            model_profile: "profile-b".to_owned(),
+            provider_id: "provider-b".to_owned(),
+            model_id: "wire-b".to_owned(),
         }),
     ));
     let Response::SessionExecution(switched) = switched.response else {
         panic!("unexpected switched model response: {switched:?}");
     };
     assert_eq!(switched.revision, 3);
-    assert_eq!(switched.model.as_deref(), Some("model-b"));
-    assert_eq!(switched.thinking_level.as_deref(), Some("steady"));
+    assert_eq!(switched.model_id.as_deref(), Some("model-b"));
+    assert_eq!(switched.thinking_level.as_deref(), Some("low"));
 
     let observed_by_web = web_client.dispatch(envelope(
         "web-observes-model-b",
@@ -163,19 +177,19 @@ fn model_library() -> ModelLibrary {
                 capabilities: ModelCapabilities::default(),
                 thinking_levels: vec![
                     ThinkingLevelDescriptor {
-                        id: ThinkingLevelId::new("careful").expect("level id"),
+                        id: ThinkingLevelId::new("medium").expect("level id"),
                         label: "Careful".to_owned(),
                         description: None,
                         order: 0,
                     },
                     ThinkingLevelDescriptor {
-                        id: ThinkingLevelId::new("extended").expect("level id"),
+                        id: ThinkingLevelId::new("high").expect("level id"),
                         label: "Extended".to_owned(),
                         description: None,
                         order: 1,
                     },
                 ],
-                default_thinking_level: Some(ThinkingLevelId::new("careful").expect("level id")),
+                default_thinking_level: Some(ThinkingLevelId::new("medium").expect("level id")),
             },
             ModelDescriptor {
                 id: model_b.clone(),
@@ -184,12 +198,12 @@ fn model_library() -> ModelLibrary {
                 provider_model_id: "wire-b".to_owned(),
                 capabilities: ModelCapabilities::default(),
                 thinking_levels: vec![ThinkingLevelDescriptor {
-                    id: ThinkingLevelId::new("steady").expect("level id"),
+                    id: ThinkingLevelId::new("low").expect("level id"),
                     label: "Steady".to_owned(),
                     description: None,
                     order: 0,
                 }],
-                default_thinking_level: Some(ThinkingLevelId::new("steady").expect("level id")),
+                default_thinking_level: Some(ThinkingLevelId::new("low").expect("level id")),
             },
         ],
         vec![
@@ -216,6 +230,28 @@ fn model_library() -> ModelLibrary {
     .expect("model library")
 }
 
+/// Creates the upstream model whose low-only support clamps earlier choices.
+///
+/// The provider-b model used by selection tests.
+/// # Returns
+/// The operation result.
+fn model_b() -> Model {
+    let mut model = Model::new(
+        "wire-b",
+        "Model B",
+        Api::AnthropicMessages,
+        "provider-b",
+        "https://example.test",
+    );
+    model.thinking_level_map = Some(ThinkingLevelMap::from([
+        (ThinkingLevel::Minimal, None),
+        (ThinkingLevel::Low, Some("low".to_owned())),
+        (ThinkingLevel::Medium, None),
+        (ThinkingLevel::High, None),
+    ]));
+    model
+}
+
 /// Applies the second client's update and verifies stale writes are rejected.
 ///
 /// - `tui_client`: First protocol dispatcher.
@@ -235,7 +271,8 @@ fn assert_web_model_write_and_stale_rejection(
         Request::SessionModelSelection(scriberig_protocol::SessionModelSelectionRequest {
             session: session.clone(),
             expected_revision: switched.revision,
-            model_profile: "profile-a".to_owned(),
+            provider_id: "provider-a".to_owned(),
+            model_id: "wire-a".to_owned(),
         }),
     ));
     let Response::SessionExecution(selected_by_web) = selected_by_web.response else {
@@ -260,7 +297,8 @@ fn assert_web_model_write_and_stale_rejection(
         Request::SessionModelSelection(scriberig_protocol::SessionModelSelectionRequest {
             session,
             expected_revision: changed.revision,
-            model_profile: "profile-a".to_owned(),
+            provider_id: "provider-a".to_owned(),
+            model_id: "wire-a".to_owned(),
         }),
     ));
     assert!(matches!(stale_model.response, Response::Error(_)));

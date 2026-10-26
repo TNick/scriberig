@@ -66,10 +66,10 @@ pub(super) fn set_preferences<S: ApplicationService>(
         )
 }
 
-/// Selects a model profile for future invocations.
+/// Selects an upstream provider/model pair for future invocations.
 ///
 /// - `service`: Application service handling session selection.
-/// - `request`: Session, observed revision, and selected profile.
+/// - `request`: Session, observed revision, and upstream provider/model IDs.
 /// - `correlation_id`: Request correlation identity.
 ///
 /// Updated execution selection or a structured protocol error.
@@ -83,7 +83,8 @@ pub(super) fn set_model<S: ApplicationService>(
             &super::session_selection_context(&request.session.id),
             &request.session.id,
             request.expected_revision,
-            &request.model_profile,
+            &request.provider_id,
+            &request.model_id,
         )
         .map_or_else(
             |error| Response::Error(helpers::map_error(&error, correlation_id)),

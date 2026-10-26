@@ -8,7 +8,7 @@ pub enum ClientError {
     /// The protocol request could not reach its transport endpoint.
     Transport(String),
     /// Server returned a structured protocol error.
-    Protocol(ProtocolError),
+    Protocol(Box<ProtocolError>),
     /// A typed request could not be encoded for transport.
     Encoding(String),
     /// Server returned a response variant unrelated to the request.
@@ -39,3 +39,16 @@ impl std::fmt::Display for ClientError {
 }
 
 impl std::error::Error for ClientError {}
+
+impl From<ProtocolError> for ClientError {
+    /// Boxes a protocol failure for compact client result values.
+    ///
+    /// - `error`: Structured protocol failure received from the server.
+    ///
+    /// A compact client error.
+    /// # Returns
+    /// The boxed protocol failure.
+    fn from(error: ProtocolError) -> Self {
+        Self::Protocol(Box::new(error))
+    }
+}

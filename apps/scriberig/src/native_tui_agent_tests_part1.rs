@@ -18,7 +18,9 @@ fn historical_tui_continuation_compiles_exact_provider_context() {
             .expect("session store"),
     );
     let session_repository: Arc<dyn scriberig_session::SessionStore> = session_store.clone();
-    let service = ApplicationService::new(backend).with_session_store(session_repository);
+    let service = ApplicationService::new(backend)
+        .with_session_store(session_repository)
+        .with_upstream_models(native_test_upstream_models());
     let session_id = EntityId::from_bytes([81; 16]);
     let root_id = EntityId::from_bytes([82; 16]);
     let turn_ids = [
@@ -56,6 +58,7 @@ fn historical_tui_continuation_compiles_exact_provider_context() {
         )]),
         model: "fake-model".to_owned(),
         model_library: ModelLibrary::default(),
+        upstream_models: native_test_upstream_models(),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
     };
@@ -273,45 +276,27 @@ fn native_context_uses_exact_anchor_and_current_branch_history() {
 /// Resolves the selected safe descriptor into provider request settings.
 #[test]
 fn session_model_and_thinking_selection_resolve_for_native_runtime() {
-    let level = ThinkingLevelId::new("deliberate").expect("thinking id");
-    let model = ModelDescriptor {
-        id: ModelId::new("scriberig-model").expect("model id"),
-        display_name: "Scriberig model".to_owned(),
-        provider_profile: "openai_compatible".to_owned(),
-        provider_model_id: "provider-model-2".to_owned(),
-        capabilities: ModelCapabilities::default(),
-        thinking_levels: vec![ThinkingLevelDescriptor {
-            id: level.clone(),
-            label: "Deliberate".to_owned(),
-            description: None,
-            order: 1,
-        }],
-        default_thinking_level: Some(level.clone()),
-    };
-    let profile = ModelProfile {
-        id: "alternate-profile".to_owned(),
-        display_name: "Alternate profile".to_owned(),
-        model: model.id.clone(),
-        connection: "alternate-connection".to_owned(),
-        credential: None,
-        default_thinking_level: None,
-        enabled: true,
-    };
-    let library = ModelLibrary::new(vec![model], vec![profile]).expect("model library");
     let selection = SessionExecutionSelection {
         revision: 2,
-        model_profile: Some("alternate-profile".to_owned()),
-        model: Some("scriberig-model".to_owned()),
-        thinking_level: Some("deliberate".to_owned()),
+        provider_id: Some("openai_compatible".to_owned()),
+        model_id: Some("provider-model-2".to_owned()),
+        thinking_level: Some("high".to_owned()),
         history: Vec::new(),
     };
+    let upstream_model = rpi_ai::Model::new(
+        "provider-model-2",
+        "Scriberig model",
+        rpi_ai::Api::AnthropicMessages,
+        "openai_compatible",
+        "https://example.test",
+    );
 
-    let resolved = resolve_selected_runtime_model(&library, &selection, "runtime-default")
+    let resolved = resolve_selected_runtime_model(&[upstream_model], &selection, "runtime-default")
         .expect("resolve selected settings");
 
     assert_eq!(resolved.0, "provider-model-2");
-    assert_eq!(resolved.1.as_deref(), Some("deliberate"));
-    assert_eq!(resolved.2, "alternate-connection");
+    assert_eq!(resolved.1.as_deref(), Some("high"));
+    assert_eq!(resolved.2, "rpi1:17:openai_compatible16:provider-model-2");
 }
 
 #[path = "native_tui_agent_tests_part1_part2.rs"]

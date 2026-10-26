@@ -107,6 +107,7 @@ mod tests {
             validation: None,
             validation_profile: None,
             validation_diagnostics: Vec::new(),
+            review_details: Vec::new(),
             conflicts: Vec::new(),
         };
         let model = HistoryModel::from_summary(snapshot, &summary);

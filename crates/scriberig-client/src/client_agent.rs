@@ -25,16 +25,17 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::ModelLibrary(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
 
-    /// Selects a model profile for future invocations in one session.
+    /// Selects an upstream provider/model for future invocations in one session.
     ///
     /// - `session`: Stable session identity.
     /// - `expected_revision`: Selection revision observed by the caller.
-    /// - `model_profile`: Curated profile identity to select.
+    /// - `provider_id`: Upstream provider identity to select.
+    /// - `model_id`: Provider-scoped upstream model identity to select.
     ///
     /// Updated session execution selection.
     ///
@@ -47,20 +48,22 @@ impl<T: ProtocolTransport> Client<T> {
         &self,
         session: impl Into<String>,
         expected_revision: u64,
-        model_profile: impl Into<String>,
+        provider_id: impl Into<String>,
+        model_id: impl Into<String>,
     ) -> Result<SessionExecutionSelection, ClientError> {
         match self
             .send(Request::SessionModelSelection(
                 SessionModelSelectionRequest {
                     session: SessionReference { id: session.into() },
                     expected_revision,
-                    model_profile: model_profile.into(),
+                    provider_id: provider_id.into(),
+                    model_id: model_id.into(),
                 },
             ))?
             .response
         {
             Response::SessionExecution(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -95,7 +98,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::SessionExecution(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -174,7 +177,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::AgentAccepted(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -206,7 +209,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::AgentAccepted(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -244,7 +247,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::AgentAccepted(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }
@@ -301,7 +304,7 @@ impl<T: ProtocolTransport> Client<T> {
             .response
         {
             Response::AgentAccepted(response) => Ok(response),
-            Response::Error(error) => Err(ClientError::Protocol(error)),
+            Response::Error(error) => Err(error.into()),
             _ => Err(ClientError::UnexpectedResponse),
         }
     }

@@ -1,6 +1,7 @@
 /** @file Verifies authoritative session and branch projections. */
 import { describe, expect, it } from "vitest";
 import { ScriberigClient } from "../src";
+import { normalizeSession } from "../src/session-views.js";
 
 describe("session client projections", () => {
   it("reads and revision-checks shared presentation preferences", async () => {
@@ -74,8 +75,8 @@ describe("session client projections", () => {
         }
         return {
           revision: 5,
-          model_profile: "profile-a",
-          model: "model-a",
+          provider_id: "provider-a",
+          model_id: "model-a",
           thinking_level: "extended",
         } as T;
       },
@@ -84,12 +85,21 @@ describe("session client projections", () => {
     const client = new ScriberigClient(transport);
 
     const library = await client.getModelLibrary();
-    const selection = await client.setSessionModel("session-a" as never, 4, "profile-a");
+    const selection = await client.setSessionModel(
+      "session-a" as never,
+      4,
+      "provider-a",
+      "model-a",
+    );
     await client.setSessionThinkingLevel("session-a" as never, 5, "extended");
 
     expect(library.models[0]?.thinkingLevels[0]?.id).toBe("extended");
     expect(library.profiles[0]?.credential).toEqual({ id: "secret-reference-only" });
-    expect(selection).toMatchObject({ revision: 5, modelProfile: "profile-a" });
+    expect(selection).toMatchObject({
+      revision: 5,
+      providerId: "provider-a",
+      modelId: "model-a",
+    });
     expect(requests).toEqual([
       { operation: "model_library", payload: {} },
       {
@@ -97,7 +107,8 @@ describe("session client projections", () => {
         payload: {
           session: { id: "session-a" },
           expected_revision: 4,
-          model_profile: "profile-a",
+          provider_id: "provider-a",
+          model_id: "model-a",
         },
       },
       {
@@ -170,12 +181,20 @@ describe("session client projections", () => {
               status: "Completed",
               children: [],
               turns: [],
-              result: { id: "result-1", references: ["migration-1"] },
+              result: {
+                id: "result-1",
+                references: ["migration-1"],
+                result_handles: ["artifact-1"],
+              },
             },
           ],
           plans: [
             {
               id: "plan-1",
+              revision: 4,
+              goal: "Implement parser and tests",
+              status: "Running",
+              anchor: { BranchHead: { branch: "root" } },
               root_branch: "root",
               nodes: [
                 {
@@ -186,10 +205,21 @@ describe("session client projections", () => {
                   status: "Completed",
                   branch: "parser-branch",
                   result: "parser-result",
+                  superseded_by: "parser-v2",
+                  expected_result: { kind: "semantic_changes", requires_handle: true },
+                  semantic_scope: ["entity-parser"],
                   assignment: {
                     profile: "profile-a",
                     model: "model-a",
                     thinking_level: "careful",
+                  },
+                  claim: {
+                    id: "claim-parser",
+                    node: "plan-parser",
+                    branch: "parser-branch",
+                    owner: "worker-1",
+                    generation: 2,
+                    assignment: { profile: "profile-a", model: "model-a" },
                   },
                 },
               ],
@@ -202,6 +232,22 @@ describe("session client projections", () => {
               ],
               coordinator: "root",
               coordinator_cursor: "plan-tests",
+              coordinator_claim: {
+                id: "coordinator-1",
+                operation: "operation-1",
+                owner: "runtime-1",
+                generation: 3,
+              },
+              history: [
+                {
+                  revision: 3,
+                  goal: "Earlier goal",
+                  status: "Planned",
+                  nodes: [],
+                  dependencies: [],
+                  reason: "Clarified scope",
+                },
+              ],
             },
           ],
         }) as T,
@@ -228,7 +274,13 @@ describe("session client projections", () => {
     expect(session.branches[0]?.turns[0]?.hasHumanInput).toBe(true);
     expect(session.plans[0]).toMatchObject({
       id: "plan-1",
+      revision: 4,
+      goal: "Implement parser and tests",
+      status: "Running",
       coordinator: "root",
+      anchor: { BranchHead: { branch: "root" } },
+      coordinatorClaim: { id: "coordinator-1", generation: 3 },
+      history: [{ revision: 3, goal: "Earlier goal", reason: "Clarified scope" }],
       dependencies: [
         {
           prerequisite: "plan-parser",
@@ -239,6 +291,16 @@ describe("session client projections", () => {
       nodes: [
         {
           id: "plan-parser",
+          supersededBy: "parser-v2",
+          expectedResult: { kind: "semantic_changes", requiresHandle: true },
+          semanticScope: ["entity-parser"],
+          claim: {
+            id: "claim-parser",
+            node: "plan-parser",
+            branch: "parser-branch",
+            owner: "worker-1",
+            generation: 2,
+          },
           assignment: {
             profile: "profile-a",
             model: "model-a",
@@ -246,6 +308,11 @@ describe("session client projections", () => {
           },
         },
       ],
+    });
+    expect(session.branches[1]?.result).toEqual({
+      id: "result-1",
+      references: ["migration-1"],
+      resultHandles: ["artifact-1"],
     });
     expect(await client.getBranch("session-1" as never, "child" as never)).toMatchObject({
       branchId: "child",
@@ -274,7 +341,7 @@ describe("session client projections", () => {
     expect(await client.getBranchResult("session-1" as never, "result-1")).toEqual({
       branchId: "child",
       resultId: "result-1",
-      handles: ["migration-1"],
+      handles: ["migration-1", "artifact-1"],
     });
   });
 });

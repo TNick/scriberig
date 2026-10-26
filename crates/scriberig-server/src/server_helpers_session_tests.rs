@@ -35,8 +35,8 @@ fn session_response_preserves_plan_dependencies_and_safe_assignments() {
                     result: Some(result),
                     superseded_by: None,
                     assignment: Some(ModelAssignment {
-                        profile: "profile-a".to_owned(),
-                        model: "model-a".to_owned(),
+                        provider_id: "provider-a".to_owned(),
+                        model_id: "model-a".to_owned(),
                         thinking_level: Some("focused".to_owned()),
                     }),
                     claim: None,
@@ -87,8 +87,7 @@ fn session_response_preserves_plan_dependencies_and_safe_assignments() {
     assert_eq!(plan.coordinator.as_deref(), Some(root.to_string().as_str()));
     assert_eq!(plan.revision, 0);
     assert_eq!(plan.status, scriberig_protocol::SessionPlanStatus::Draft);
-    assert_eq!(
-        plan.nodes[0].assignment.as_ref().unwrap().profile,
-        "profile-a"
-    );
+    let assignment = plan.nodes[0].assignment.as_ref().unwrap();
+    assert_eq!(assignment.provider_id, "provider-a");
+    assert_eq!(assignment.model_id, "model-a");
 }

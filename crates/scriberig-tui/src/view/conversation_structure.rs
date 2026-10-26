@@ -215,7 +215,11 @@ pub(super) fn append_plan_children(
             .collect::<Vec<_>>();
         let mut label = format!("{:?} · {}", node.status, node.title);
         if let Some(assignment) = &node.assignment {
-            let _ = write!(label, " · {}", assignment.profile);
+            let _ = write!(
+                label,
+                " · {}/{}",
+                assignment.provider_id, assignment.model_id
+            );
         }
         if let Some(result_id) = node.result {
             if let Some(summary) = session

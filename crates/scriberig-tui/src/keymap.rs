@@ -286,6 +286,27 @@ pub fn action_for(state: &TuiState, key: &Key) -> Option<Action> {
             KeyCode::Esc => Some(Action::ConversationBrowsing(true)),
             KeyCode::Enter => Some(Action::InputSubmitted),
             KeyCode::Backspace => Some(Action::InputChanged(String::new())),
+            KeyCode::Delete => Some(Action::ComposerCursorMoved(
+                scriberig_tui_kit::CursorMotion::DeleteForward,
+            )),
+            KeyCode::Left => Some(Action::ComposerCursorMoved(
+                scriberig_tui_kit::CursorMotion::Left,
+            )),
+            KeyCode::Right => Some(Action::ComposerCursorMoved(
+                scriberig_tui_kit::CursorMotion::Right,
+            )),
+            KeyCode::Up => Some(Action::ComposerCursorMoved(
+                scriberig_tui_kit::CursorMotion::Up,
+            )),
+            KeyCode::Down => Some(Action::ComposerCursorMoved(
+                scriberig_tui_kit::CursorMotion::Down,
+            )),
+            KeyCode::Home => Some(Action::ComposerCursorMoved(
+                scriberig_tui_kit::CursorMotion::Start,
+            )),
+            KeyCode::End => Some(Action::ComposerCursorMoved(
+                scriberig_tui_kit::CursorMotion::End,
+            )),
             KeyCode::Char('j')
                 if key.modifiers.control && !key.modifiers.alt && !key.modifiers.shift =>
             {

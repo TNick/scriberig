@@ -46,12 +46,13 @@ pub(super) fn reduce_input(state: &mut TuiState, action: Action) -> Vec<Effect> 
             } else if state.primary_view == crate::selection::PrimaryView::Conversation
                 && !state.conversation_browsing
             {
-                edit_composer(
-                    &mut state.conversation_composer.draft,
-                    &mut state.conversation_composer.error,
-                    &text,
-                );
+                state.conversation_composer.error = None;
+                state.conversation_composer.insert_text(&text);
             }
+            vec![Effect::None]
+        }
+        Action::ComposerCursorMoved(motion) => {
+            state.conversation_composer.move_cursor(motion);
             vec![Effect::None]
         }
         Action::Paste(text) => {
@@ -68,7 +69,8 @@ pub(super) fn reduce_input(state: &mut TuiState, action: Action) -> Vec<Effect> 
             } else if state.primary_view == crate::selection::PrimaryView::Conversation
                 && !state.conversation_browsing
             {
-                state.conversation_composer.draft.push_str(&text);
+                state.conversation_composer.error = None;
+                state.conversation_composer.paste_text(&text);
             }
             vec![Effect::None]
         }
@@ -118,7 +120,7 @@ fn submit_input(state: &mut TuiState) -> Vec<Effect> {
             state.conversation_composer.error = None;
             if let Some(effects) = commands::console_command(state, &prompt) {
                 if state.conversation_composer.error.is_none() {
-                    state.conversation_composer.draft.clear();
+                    state.conversation_composer.clear_draft();
                 }
                 return effects;
             }
@@ -126,9 +128,11 @@ fn submit_input(state: &mut TuiState) -> Vec<Effect> {
                 return vec![Effect::None];
             }
         }
+        state.conversation_composer.pending_prompt = Some(prompt.clone());
         state.conversation_composer.pending = true;
         state.conversation_composer.error = None;
-        state.agent_output_observations.clear();
+        state.conversation_composer.clear_draft();
+        state.transient_agent_outputs.clear();
         return match state.conversation_composer.target {
             crate::state::ConversationTarget::NewSession => {
                 vec![Effect::StartNewConversation {
@@ -158,7 +162,7 @@ fn submit_input(state: &mut TuiState) -> Vec<Effect> {
             return effects;
         }
         state.session_branch_focus = composer.branch;
-        state.agent_output_observations.clear();
+        state.transient_agent_outputs.clear();
         return vec![Effect::SubmitAgent {
             session: composer.session,
             branch: composer.branch,
@@ -193,7 +197,7 @@ fn submit_input(state: &mut TuiState) -> Vec<Effect> {
             (composer.session, composer.branch, prompt)
         };
         state.session_branch_focus = branch;
-        state.agent_output_observations.clear();
+        state.transient_agent_outputs.clear();
         return vec![Effect::SubmitAgent {
             session,
             branch,

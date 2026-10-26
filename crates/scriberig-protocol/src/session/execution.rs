@@ -9,12 +9,12 @@ use serde::{Deserialize, Serialize};
 pub struct SessionExecutionSelection {
     /// Mutation revision for optimistic concurrency.
     pub revision: u64,
-    /// Curated model profile identity, when selected.
+    /// Upstream provider identity, when selected.
     #[serde(default)]
-    pub model_profile: Option<String>,
-    /// Provider-neutral model identity, when selected.
+    pub provider_id: Option<String>,
+    /// Provider-scoped upstream model identity, when selected.
     #[serde(default)]
-    pub model: Option<String>,
+    pub model_id: Option<String>,
     /// Model-advertised thinking level, when selected.
     #[serde(default)]
     pub thinking_level: Option<String>,
@@ -32,8 +32,10 @@ pub struct SessionExecutionChange {
     pub kind: SessionActivityKind,
     /// Safe concise description of the resulting selection.
     pub summary: String,
-    /// Resolved model identity after the change, when selected.
-    pub model: Option<String>,
+    /// Resolved upstream provider identity after the change, when selected.
+    pub provider_id: Option<String>,
+    /// Resolved provider-scoped model identity after the change, when selected.
+    pub model_id: Option<String>,
     /// Resolved thinking level after the change, when selected.
     pub thinking_level: Option<String>,
 }

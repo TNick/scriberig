@@ -237,11 +237,11 @@ export function SessionAgentView({
     }
   };
 
-  const selectModel = async (profileId: string): Promise<void> => {
-    if (profileId.length === 0) return;
+  const selectModel = async (providerId: string, modelId: string): Promise<void> => {
+    if (providerId.length === 0 || modelId.length === 0) return;
     setStatus("Updating model");
     try {
-      await executionSelection.selectModel(profileId);
+      await executionSelection.selectModel(providerId, modelId);
       setStatus("Model updated for the next invocation");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Model selection failed");
@@ -297,7 +297,7 @@ export function SessionAgentView({
         <AgentModelControls
           library={modelLibrary}
           selection={agentState.execution}
-          onModelChange={(profileId) => void selectModel(profileId)}
+          onModelChange={(providerId, modelId) => void selectModel(providerId, modelId)}
           onThinkingChange={(level) => void selectThinkingLevel(level)}
           disabled={executionSelection.mutating || !canStartAgent}
         />

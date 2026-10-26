@@ -104,6 +104,8 @@ pub enum ReasoningVisibility {
 pub struct TransientAgentActivity {
     /// Stable operation/category key used to update or clear this observation.
     pub key: u64,
+    /// Local arrival order shared with streamed output presentation.
+    pub sequence: u64,
     /// Runtime branch associated with the activity.
     pub branch: String,
     /// Provider-neutral activity category.
@@ -112,6 +114,29 @@ pub struct TransientAgentActivity {
     pub state: scriberig_session::AgentActivityState,
     /// Safe bounded user-facing summary.
     pub summary: String,
+}
+
+/// Holds bounded, operation-scoped assistant output until durable refresh.
+///
+/// Public members
+/// - `operation`: Shared operation producing the output.
+/// - `branch`: Durable branch location when known.
+/// - `text`: Bounded output currently shown while streaming.
+/// - `complete`: Whether `text` is a complete shared output value.
+///
+/// Private members: None.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TransientAgentOutput {
+    /// Shared operation producing the output.
+    pub operation: scriberig_core::OperationId,
+    /// Local arrival order shared with live activity presentation.
+    pub sequence: u64,
+    /// Durable branch location when known.
+    pub branch: Option<scriberig_core::EntityId>,
+    /// Bounded output currently shown while streaming.
+    pub text: String,
+    /// Whether `text` is a complete shared output value.
+    pub complete: bool,
 }
 
 /// Persistent draft and target displayed on the session surface.
@@ -144,16 +169,79 @@ pub enum ConversationTarget {
 }
 
 /// Persistent composer state owned by the conversation home.
+///
+/// # Public members
+/// - `target`: Stable session or continuation target.
+/// - `draft`: Current complete safe user draft.
+/// - `editor`: Upstream-backed cursor and editing state.
+/// - `pending_prompt`: Submitted text retained for failure recovery.
+/// - `pending`: Whether submission awaits refresh.
+/// - `error`: Safe submission error for display.
+///
+/// # Private members
+/// None.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConversationComposerState {
     /// Stable semantic target, separate from navigation and coordinator cursors.
     pub target: ConversationTarget,
     /// Multiline user-authored draft.
     pub draft: String,
+    /// Upstream-backed editor state for cursor, selection, and safe rendering.
+    pub editor: scriberig_tui_kit::Composer,
+    /// Submitted prompt retained while a new conversation is being accepted.
+    pub pending_prompt: Option<String>,
     /// Whether an accepted submission is awaiting session refresh.
     pub pending: bool,
     /// Safe submission failure shown beside the composer.
     pub error: Option<String>,
+}
+
+impl ConversationComposerState {
+    /// Inserts ordinary text at the editor cursor and synchronizes the draft.
+    ///
+    /// # Parameters
+    /// - `text`: Text entered by the user.
+    pub fn insert_text(&mut self, text: &str) {
+        self.sync_editor();
+        if text.is_empty() {
+            self.editor.delete_backward();
+        } else {
+            self.editor.insert_text(text);
+        }
+        self.editor.text().as_str().clone_into(&mut self.draft);
+    }
+
+    /// Inserts a paste payload as data and synchronizes the full draft.
+    ///
+    /// # Parameters
+    /// - `text`: Pasted text, including any line breaks.
+    pub fn paste_text(&mut self, text: &str) {
+        self.sync_editor();
+        self.editor.paste_text(text);
+        self.editor.text().as_str().clone_into(&mut self.draft);
+    }
+
+    /// Moves the editor cursor without changing the semantic reply target.
+    ///
+    /// # Parameters
+    /// - `motion`: Requested cursor movement.
+    pub fn move_cursor(&mut self, motion: scriberig_tui_kit::CursorMotion) {
+        self.sync_editor();
+        self.editor.move_cursor(motion);
+    }
+
+    /// Clears the draft and resets the editor cursor.
+    pub fn clear_draft(&mut self) {
+        self.draft.clear();
+        self.editor.clear();
+    }
+
+    /// Restores editor text when tests or application transitions replace draft.
+    fn sync_editor(&self) {
+        if self.editor.text().as_str() != self.draft {
+            self.editor.replace_text(&self.draft);
+        }
+    }
 }
 
 /// Retains one stable selected node while its model assignment picker is open.
@@ -165,19 +253,6 @@ pub struct PlanAssignmentTarget {
     pub node: scriberig_core::EntityId,
     /// Plan revision observed before opening the picker.
     pub expected_revision: u64,
-}
-
-impl Focus {
-    /// Moves focus through the shell's stable pane order.
-    /// - `reverse`: Argument named `reverse`.
-    ///
-    /// # Returns
-    /// The operation result.
-    fn next(self, reverse: bool) -> Self {
-        let panes = [Self::Explorer, Self::Primary, Self::Inspector];
-        let index = panes.iter().position(|pane| *pane == self).unwrap_or(1);
-        panes[(index + if reverse { 2 } else { 1 }) % panes.len()]
-    }
 }
 
 /// Runtime and presentation state for the initial TUI shell.
@@ -264,8 +339,10 @@ pub struct TuiState {
     pub session_branch_focus: Option<scriberig_core::EntityId>,
     /// Operation identities with an authoritative refresh already requested.
     pub pending_operation_refresh: Vec<scriberig_core::OperationId>,
-    /// Bounded stream/output handles shown as in-progress observations.
-    pub agent_output_observations: Vec<String>,
+    /// Bounded streamed assistant output keyed by shared operation identity.
+    pub transient_agent_outputs: Vec<TransientAgentOutput>,
+    /// Next local sequence for transient rows received from the shared stream.
+    pub next_transient_sequence: u64,
     /// Stable session, branch, and operation handles for active agent work.
     pub agent_handles: Vec<crate::service::AgentHandle>,
     /// Persistent session composer draft, when an agent session is active.
@@ -296,7 +373,9 @@ pub struct TuiState {
     >,
 }
 
-pub(crate) use behavior::conversation_projection;
+pub(crate) use behavior::{
+    conversation_projection, output_is_durable, refresh_conversation_projection,
+};
 #[path = "state_actions.rs"]
 mod state_actions;
 #[path = "state_cursor_reducer.rs"]

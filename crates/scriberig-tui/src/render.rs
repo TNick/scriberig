@@ -71,20 +71,16 @@ fn render_overlay(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
         }
         crate::overlay::Overlay::Palette(palette) => {
             let rows = palette
-                .filtered()
+                .selector(area.height.saturating_sub(4).into())
+                .render(area.width.into())
                 .into_iter()
-                .enumerate()
-                .map(|(index, item)| {
-                    let marker = if index == palette.selected {
-                        "> "
-                    } else {
-                        "  "
-                    };
-                    format!("{marker}{}", item.label)
-                })
+                .map(|line| line.as_str().to_owned())
                 .collect::<Vec<_>>()
                 .join("\n");
-            format!("Search: {}\n{rows}", palette.query)
+            format!(
+                "Search: {}\n{rows}",
+                scriberig_tui_kit::ExternalText::new(&palette.query).as_str()
+            )
         }
         crate::overlay::Overlay::Input(input) => format!(
             "{}: {}{}",
@@ -94,7 +90,7 @@ fn render_overlay(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
                 crate::overlay::input::InputPurpose::FindQuery => "Find",
                 crate::overlay::input::InputPurpose::ProjectionEdit => "Edit source",
             },
-            input.text,
+            input.editor.text().as_str(),
             input
                 .error
                 .as_deref()
@@ -117,7 +113,7 @@ fn render_overlay(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
         ),
     };
     frame.render_widget(
-        Paragraph::new(text).block(
+        Paragraph::new(render_helpers::safe_external_text(&text)).block(
             Block::default()
                 .title(" Overlay [Esc close] ")
                 .borders(Borders::ALL),
@@ -138,14 +134,21 @@ fn render_context(frame: &mut Frame<'_>, area: Rect, state: &TuiState) {
         .as_ref()
         .map(|session| &session.execution);
     let model = selection
-        .and_then(|value| value.model_profile.as_deref().or(value.model.as_deref()))
-        .unwrap_or("default model");
+        .and_then(|value| {
+            Some(format!(
+                "{}/{}",
+                value.provider_id.as_deref()?,
+                value.model_id.as_deref()?
+            ))
+        })
+        .unwrap_or_else(|| "default model".to_owned());
     let thinking = selection
         .and_then(|value| value.thinking_level.as_deref())
         .unwrap_or("default thinking");
     let text = format!(" scriberig · {project} · {model} · {thinking} ");
     frame.render_widget(
-        Paragraph::new(text).block(Block::default().borders(Borders::BOTTOM)),
+        Paragraph::new(render_helpers::safe_external_text(&text))
+            .block(Block::default().borders(Borders::BOTTOM)),
         area,
     );
 }
@@ -179,9 +182,13 @@ fn render_body(frame: &mut Frame<'_>, layout: &ShellLayout, state: &TuiState) {
         let regions =
             Layout::vertical([Constraint::Min(2), Constraint::Length(5)]).split(layout.primary);
         frame.render_widget(
-            Paragraph::new(primary_view_text(state, regions[0].width))
-                .scroll(primary_scroll(state, regions[0].height))
-                .block(panel_block(" Session ", state.focus == Focus::Primary)),
+            Paragraph::new(primary_view_text(
+                state,
+                regions[0].width,
+                regions[0].height,
+            ))
+            .scroll(primary_scroll(state, regions[0].height))
+            .block(panel_block(" Session ", state.focus == Focus::Primary)),
             regions[0],
         );
         let title = if state.session_composer_focused {
@@ -202,7 +209,7 @@ fn render_body(frame: &mut Frame<'_>, layout: &ShellLayout, state: &TuiState) {
             .as_ref()
             .map_or_else(|| draft.to_owned(), |error| format!("{draft}\n{error}"));
         frame.render_widget(
-            Paragraph::new(content)
+            Paragraph::new(render_helpers::safe_external_text(&content))
                 .wrap(Wrap { trim: false })
                 .block(panel_block(&title, state.session_composer_focused)),
             regions[1],
@@ -211,16 +218,23 @@ fn render_body(frame: &mut Frame<'_>, layout: &ShellLayout, state: &TuiState) {
         let regions =
             Layout::vertical([Constraint::Min(2), Constraint::Length(4)]).split(layout.primary);
         frame.render_widget(
-            Paragraph::new(primary_view_text(state, regions[0].width))
-                .scroll(primary_scroll(state, regions[0].height))
-                .block(panel_block(" Conversation ", true)),
+            Paragraph::new(primary_view_text(
+                state,
+                regions[0].width,
+                regions[0].height,
+            ))
+            .scroll(primary_scroll(state, regions[0].height))
+            .block(panel_block(" Conversation ", true)),
             regions[0],
         );
         let composer = &state.conversation_composer;
-        let draft = if composer.draft.is_empty() {
-            "_"
+        let editor_width = regions[1].width.saturating_sub(2).into();
+        let editor_lines = if composer.editor.text().as_str() == composer.draft {
+            composer.editor.render(editor_width)
         } else {
-            composer.draft.as_str()
+            let editor = scriberig_tui_kit::Composer::new();
+            editor.replace_text(&composer.draft);
+            editor.render(editor_width)
         };
         let target = match composer.target {
             crate::state::ConversationTarget::NewSession => "New conversation".to_owned(),
@@ -242,24 +256,36 @@ fn render_body(frame: &mut Frame<'_>, layout: &ShellLayout, state: &TuiState) {
         let error = composer
             .error
             .as_ref()
-            .map_or_else(String::new, |message| format!("\n{message}"));
+            .map_or_else(Vec::new, |message| vec![message.clone()]);
         let completion = crate::slash_commands::suggestions(&composer.draft)
             .first()
             .map_or_else(String::new, |command| format!(" · {}", command.name));
+        let content = std::iter::once(format!("{target} · {status}{completion}"))
+            .chain(
+                editor_lines
+                    .into_iter()
+                    .map(|line| line.as_str().to_owned()),
+            )
+            .chain(error)
+            .collect::<Vec<_>>();
         frame.render_widget(
-            Paragraph::new(format!("{target} · {status}\n> {draft}{completion}{error}"))
+            Paragraph::new(render_helpers::safe_external_text(&content.join("\n")))
                 .wrap(Wrap { trim: false })
                 .block(panel_block(" Message ", true)),
             regions[1],
         );
     } else {
         frame.render_widget(
-            Paragraph::new(primary_view_text(state, layout.primary.width))
-                .scroll(primary_scroll(state, layout.primary.height))
-                .block(panel_block(
-                    primary_view_title(state.primary_view),
-                    state.focus == Focus::Primary,
-                )),
+            Paragraph::new(primary_view_text(
+                state,
+                layout.primary.width,
+                layout.primary.height,
+            ))
+            .scroll(primary_scroll(state, layout.primary.height))
+            .block(panel_block(
+                render_helpers::primary_view_title(state.primary_view),
+                state.focus == Focus::Primary,
+            )),
             layout.primary,
         );
     }
@@ -272,51 +298,37 @@ fn render_body(frame: &mut Frame<'_>, layout: &ShellLayout, state: &TuiState) {
     }
 }
 
-/// Returns the stable title for the selected auxiliary primary view.
-///
-/// - `view`: Current semantic product surface.
-///
-/// A user-facing view name for the primary panel.
-/// # Returns
-/// The selected view's title.
-fn primary_view_title(view: crate::selection::PrimaryView) -> &'static str {
-    match view {
-        crate::selection::PrimaryView::Conversation => "Conversation",
-        crate::selection::PrimaryView::Overview => "Overview",
-        crate::selection::PrimaryView::Explorer => "Explorer",
-        crate::selection::PrimaryView::History => "History",
-        crate::selection::PrimaryView::Find => "Find",
-        crate::selection::PrimaryView::Diff => "Diff",
-        crate::selection::PrimaryView::Projection => "Projection",
-        crate::selection::PrimaryView::Changes => "Changes",
-        crate::selection::PrimaryView::Session => "Session",
-        crate::selection::PrimaryView::Operations => "Operations",
-    }
-}
-
 /// Builds the active primary view with depth-aware session rail styles.
 ///
 /// - `state`: Cached presentation state.
 /// - `width`: Available primary view width.
+/// - `height`: Available primary view height.
 ///
 /// Styled session rows or plain text for other primary views.
 /// # Returns
 /// The operation result.
-fn primary_view_text(state: &TuiState, width: u16) -> Text<'static> {
+fn primary_view_text(state: &TuiState, width: u16, height: u16) -> Text<'static> {
     match state.primary_view {
-        crate::selection::PrimaryView::Session => {
-            render_session::session_text(state, width.saturating_sub(2) as usize)
-        }
+        crate::selection::PrimaryView::Session => render_session::session_text(
+            state,
+            width.saturating_sub(2) as usize,
+            height.saturating_sub(2) as usize,
+        ),
         crate::selection::PrimaryView::Conversation => {
             render_conversation::conversation_text(state, width.saturating_sub(2) as usize)
         }
         crate::selection::PrimaryView::Explorer => {
             Text::from(render_explorer::explorer_text(state))
         }
-        _ => Text::from(primary_text(state)),
+        _ => Text::from(render_helpers::safe_external_text(&primary_text(state))),
     }
 }
 
+/// Converts external terminal content to visible safe text at the render edge.
+///
+/// - `text`: Content assembled from shared or user-provided values.
+///
+/// Plain text with terminal controls displayed as visible escapes.
 /// Keeps the selected row visible in the active primary session list.
 ///
 /// - `state`: Presentation state with the active row cursor.
@@ -332,16 +344,10 @@ fn primary_scroll(state: &TuiState, height: u16) -> (u16, u16) {
     if state.focus != Focus::Primary {
         return (0, 0);
     }
-    let visible_rows = height.saturating_sub(2).max(1) as usize;
     if state.primary_view == crate::selection::PrimaryView::Conversation {
-        return conversation_scroll(state, visible_rows);
+        return conversation_scroll(state, height.saturating_sub(2).max(1) as usize);
     }
-    if state.primary_view != crate::selection::PrimaryView::Session {
-        return (0, 0);
-    }
-    // The session heading occupies the first paragraph row before the cursor-indexed rows.
-    let first_visible = state.cursor.saturating_add(2).saturating_sub(visible_rows);
-    (u16::try_from(first_visible).unwrap_or(u16::MAX), 0)
+    (0, 0)
 }
 
 /// Keeps the active semantic conversation location inside the visible tree.

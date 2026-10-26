@@ -288,8 +288,8 @@ fn execution_from_response(
 ) -> scriberig_session::SessionExecutionSelection {
     scriberig_session::SessionExecutionSelection {
         revision: selection.revision,
-        model_profile: selection.model_profile,
-        model: selection.model,
+        provider_id: selection.provider_id,
+        model_id: selection.model_id,
         thinking_level: selection.thinking_level,
         history: selection
             .history
@@ -298,7 +298,8 @@ fn execution_from_response(
                 revision: change.revision,
                 kind: change.kind,
                 summary: change.summary,
-                model: change.model,
+                provider_id: change.provider_id,
+                model_id: change.model_id,
                 thinking_level: change.thinking_level,
             })
             .collect(),

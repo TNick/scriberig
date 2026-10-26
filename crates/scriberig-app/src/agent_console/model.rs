@@ -1,7 +1,5 @@
 //! Defines provider-neutral model library descriptors and thinking capabilities.
 
-use std::collections::BTreeSet;
-
 pub use super::library::ModelLibrary;
 
 #[derive(
@@ -51,44 +49,44 @@ impl ModelId {
 #[derive(
     Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, serde::Deserialize, serde::Serialize,
 )]
-/// Identifies one thinking capability advertised by a specific model.
+/// Wraps an upstream thinking level for Scriberig assignment storage.
 ///
 /// # Public members
-/// - `new`: Creates a validated thinking identity.
-/// - `as_str`: Returns the stable thinking identity text.
+/// - `new`: Parses an upstream thinking-level name.
+/// - `as_str`: Returns its canonical upstream name.
 ///
 /// # Private members
-/// - The wrapped string stores the stable identity.
-pub struct ThinkingLevelId(String);
+/// - The wrapped upstream enum stores the canonical level.
+#[serde(transparent)]
+pub struct ThinkingLevelId(rpi_ai::ThinkingLevel);
 
 impl ThinkingLevelId {
-    /// Creates a non-empty model-specific thinking identifier.
+    /// Parses a canonical upstream thinking-level name.
     ///
-    /// - `value`: Stable thinking capability identity.
+    /// - `value`: Upstream thinking-level name.
     ///
     /// The validated thinking identifier.
     ///
-    /// Returns an error when the identifier is empty or whitespace-only.
+    /// Returns an error when the name is not supported upstream.
     /// # Returns
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
     pub fn new(value: impl Into<String>) -> Result<Self, &'static str> {
         let value = value.into();
-        if value.trim().is_empty() {
-            return Err("thinking level id must not be empty");
-        }
-        Ok(Self(value))
+        rpi_ai::ThinkingLevel::parse_name(&value)
+            .map(Self)
+            .ok_or("thinking level id is not supported by upstream")
     }
 
-    /// Returns the stable thinking identifier text.
+    /// Returns the canonical upstream thinking-level name.
     ///
     /// The identifier value.
     #[must_use]
     /// # Returns
     /// The operation result.
-    pub fn as_str(&self) -> &str {
-        &self.0
+    pub fn as_str(&self) -> &'static str {
+        self.0.as_str()
     }
 }
 
@@ -135,40 +133,6 @@ pub struct ModelDescriptor {
     pub default_thinking_level: Option<ThinkingLevelId>,
 }
 
-impl ModelDescriptor {
-    /// Validates model identity and thinking capability consistency.
-    ///
-    /// Returns an error for duplicate or unordered thinking levels, or when
-    /// the declared default is not advertised by this model.
-    ///
-    /// Unit when the descriptor is internally consistent.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn validate(&self) -> Result<(), &'static str> {
-        let mut ids = BTreeSet::new();
-        let mut previous_order = None;
-        for level in &self.thinking_levels {
-            if !ids.insert(&level.id) {
-                return Err("thinking level ids must be unique within a model");
-            }
-            if previous_order.is_some_and(|order| order >= level.order) {
-                return Err("thinking levels must have increasing order values");
-            }
-            previous_order = Some(level.order);
-        }
-        if self
-            .default_thinking_level
-            .as_ref()
-            .is_some_and(|default| !ids.contains(default))
-        {
-            return Err("default thinking level must be advertised by the model");
-        }
-        Ok(())
-    }
-}
-
 /// References a configured credential without containing its resolved value.
 #[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct CredentialRef {
@@ -196,12 +160,12 @@ pub struct ModelProfile {
 }
 
 impl ModelProfile {
-    /// Validates profile model and thinking defaults against its descriptor.
+    /// Validates the profile's model identity against its descriptor.
     ///
     /// - `model`: Descriptor selected by this profile.
     ///
-    /// Returns an error when the profile references another model or declares
-    /// a thinking default that the descriptor does not advertise.
+    /// Returns an error when the profile references another model. Thinking
+    /// support and fallback are handled by the upstream model runtime.
     ///
     /// Unit when the profile matches the descriptor.
     /// # Returns
@@ -209,17 +173,8 @@ impl ModelProfile {
     /// # Errors
     /// Returns an error when the operation fails.
     pub fn validate_for_model(&self, model: &ModelDescriptor) -> Result<(), &'static str> {
-        model.validate()?;
         if self.model != model.id {
             return Err("profile model must match the supplied descriptor");
-        }
-        if self.default_thinking_level.as_ref().is_some_and(|default| {
-            !model
-                .thinking_levels
-                .iter()
-                .any(|level| &level.id == default)
-        }) {
-            return Err("profile thinking default must be advertised by the model");
         }
         Ok(())
     }
@@ -265,14 +220,12 @@ mod tests {
     /// Verifies thinking levels are model-specific and need not share names.
     #[test]
     fn models_advertise_independent_thinking_levels() {
-        let first = model("model-a", &["brief", "deliberate"]);
-        let second = model("model-b", &["steady", "explore", "deep-dive"]);
+        let first = model("model-a", &["minimal", "low"]);
+        let second = model("model-b", &["off", "medium", "max"]);
 
-        assert!(first.validate().is_ok());
-        assert!(second.validate().is_ok());
         assert_eq!(first.thinking_levels.len(), 2);
         assert_eq!(second.thinking_levels.len(), 3);
-        assert_eq!(second.thinking_levels[2].id.as_str(), "deep-dive");
+        assert_eq!(second.thinking_levels[2].id.as_str(), "max");
     }
 
     /// Verifies a profile serializes references without resolved credential data.
@@ -296,43 +249,27 @@ mod tests {
         assert!(!format!("{profile:?}").contains("resolved-secret-marker"));
     }
 
-    /// Verifies unsupported defaults are rejected at descriptor boundaries.
+    /// Verifies profile defaults are not validated against local support lists.
     #[test]
-    fn descriptor_rejects_unadvertised_default() {
-        let mut descriptor = model("model-a", &["brief"]);
-        descriptor.default_thinking_level =
-            Some(ThinkingLevelId::new("deep").expect("valid thinking id"));
-
-        assert_eq!(
-            descriptor.validate(),
-            Err("default thinking level must be advertised by the model")
-        );
-    }
-
-    /// Verifies profile defaults are constrained by the selected model.
-    #[test]
-    fn profile_rejects_unadvertised_thinking_default() {
-        let descriptor = model("model-a", &["brief"]);
+    fn profile_accepts_upstream_level_outside_presentation_list() {
+        let descriptor = model("model-a", &["low"]);
         let profile = ModelProfile {
             id: "work-profile".to_owned(),
             display_name: "Work model".to_owned(),
             model: descriptor.id.clone(),
             connection: "work-endpoint".to_owned(),
             credential: None,
-            default_thinking_level: Some(ThinkingLevelId::new("deep").expect("valid thinking id")),
+            default_thinking_level: Some(ThinkingLevelId::new("max").expect("valid thinking id")),
             enabled: true,
         };
 
-        assert_eq!(
-            profile.validate_for_model(&descriptor),
-            Err("profile thinking default must be advertised by the model")
-        );
+        assert!(profile.validate_for_model(&descriptor).is_ok());
     }
 
     /// Verifies library entries reference known models and unique identities.
     #[test]
     fn model_library_validates_profile_references() {
-        let descriptor = model("model-a", &["brief"]);
+        let descriptor = model("model-a", &["low"]);
         let profile = ModelProfile {
             id: "profile-a".to_owned(),
             display_name: "Profile A".to_owned(),

@@ -6,6 +6,7 @@ use support::{Fixture, session_context};
 #[path = "session_runtime_access_tests/mod.rs"]
 mod access_tests;
 
+use rpi_ai::{Api, Model, ThinkingLevel, ThinkingLevelMap};
 use scriberig_app::{
     AgentCommandRequest, AgentConsoleBackend, ApplicationContext, ApplicationError,
     ApplicationService, CredentialRef, ModelCapabilities, ModelDescriptor, ModelId, ModelLibrary,
@@ -14,6 +15,37 @@ use scriberig_app::{
     ThinkingLevelDescriptor, ThinkingLevelId,
 };
 use scriberig_core::EntityId;
+
+/// Creates upstream runtime models corresponding to the safe test projection.
+///
+/// The provider models used by session selection tests.
+/// # Returns
+/// The operation result.
+fn session_upstream_models() -> Vec<Model> {
+    let mut model_b = Model::new(
+        "native-b",
+        "Model B",
+        Api::AnthropicMessages,
+        "local",
+        "https://example.test",
+    );
+    model_b.thinking_level_map = Some(ThinkingLevelMap::from([
+        (ThinkingLevel::Minimal, None),
+        (ThinkingLevel::Low, Some("low".to_owned())),
+        (ThinkingLevel::Medium, None),
+        (ThinkingLevel::High, None),
+    ]));
+    vec![
+        Model::new(
+            "native-a",
+            "Model A",
+            Api::AnthropicMessages,
+            "local",
+            "https://example.test",
+        ),
+        model_b,
+    ]
+}
 
 /// Creates model profiles with independent thinking-level capabilities.
 ///
@@ -32,19 +64,19 @@ fn session_model_library() -> ModelLibrary {
         capabilities: ModelCapabilities::default(),
         thinking_levels: vec![
             ThinkingLevelDescriptor {
-                id: ThinkingLevelId::new("careful").expect("thinking id"),
+                id: ThinkingLevelId::new("medium").expect("thinking id"),
                 label: "Careful".to_owned(),
                 description: None,
                 order: 0,
             },
             ThinkingLevelDescriptor {
-                id: ThinkingLevelId::new("extended").expect("thinking id"),
+                id: ThinkingLevelId::new("high").expect("thinking id"),
                 label: "Extended".to_owned(),
                 description: None,
                 order: 1,
             },
         ],
-        default_thinking_level: Some(ThinkingLevelId::new("careful").expect("thinking id")),
+        default_thinking_level: Some(ThinkingLevelId::new("medium").expect("thinking id")),
     };
     let second = ModelDescriptor {
         id: ModelId::new("model-b").expect("model id"),
@@ -53,12 +85,12 @@ fn session_model_library() -> ModelLibrary {
         provider_model_id: "native-b".to_owned(),
         capabilities: ModelCapabilities::default(),
         thinking_levels: vec![ThinkingLevelDescriptor {
-            id: ThinkingLevelId::new("steady").expect("thinking id"),
+            id: ThinkingLevelId::new("low").expect("thinking id"),
             label: "Steady".to_owned(),
             description: None,
             order: 0,
         }],
-        default_thinking_level: Some(ThinkingLevelId::new("steady").expect("thinking id")),
+        default_thinking_level: Some(ThinkingLevelId::new("low").expect("thinking id")),
     };
     let profiles = vec![
         ModelProfile {
@@ -69,7 +101,7 @@ fn session_model_library() -> ModelLibrary {
             credential: Some(CredentialRef {
                 id: "secret-ref-a".to_owned(),
             }),
-            default_thinking_level: None,
+            default_thinking_level: Some(ThinkingLevelId::new("medium").expect("thinking id")),
             enabled: true,
         },
         ModelProfile {
@@ -78,7 +110,7 @@ fn session_model_library() -> ModelLibrary {
             model: second.id.clone(),
             connection: "local".to_owned(),
             credential: None,
-            default_thinking_level: None,
+            default_thinking_level: Some(ThinkingLevelId::new("low").expect("thinking id")),
             enabled: true,
         },
     ];
@@ -88,7 +120,9 @@ fn session_model_library() -> ModelLibrary {
 /// Verifies session model operations validate thinking levels and reject stale writes.
 #[test]
 fn session_model_selection_uses_library_and_mutation_revision() {
-    let service = ApplicationService::new(Fixture).with_model_library(session_model_library());
+    let service = ApplicationService::new(Fixture)
+        .with_model_library(session_model_library())
+        .with_upstream_models(session_upstream_models());
     let context = session_context();
     let session = EntityId::from_bytes([24; 16]);
     service
@@ -101,13 +135,15 @@ fn session_model_selection_uses_library_and_mutation_revision() {
             &SessionModelSelectionRequest {
                 session,
                 expected_revision: 0,
-                model_profile: "profile-a".to_owned(),
+                provider_id: "local".to_owned(),
+                model_id: "native-a".to_owned(),
             },
         )
         .expect("select first model");
     assert_eq!(selected.revision, 1);
-    assert_eq!(selected.model.as_deref(), Some("model-a"));
-    assert_eq!(selected.thinking_level.as_deref(), Some("careful"));
+    assert_eq!(selected.provider_id.as_deref(), Some("local"));
+    assert_eq!(selected.model_id.as_deref(), Some("native-a"));
+    assert_eq!(selected.thinking_level.as_deref(), Some("medium"));
 
     let selected = service
         .set_session_thinking_level(
@@ -115,7 +151,7 @@ fn session_model_selection_uses_library_and_mutation_revision() {
             &SessionThinkingSelectionRequest {
                 session,
                 expected_revision: 1,
-                thinking_level: "extended".to_owned(),
+                thinking_level: "high".to_owned(),
             },
         )
         .expect("select advertised thinking level");
@@ -127,12 +163,13 @@ fn session_model_selection_uses_library_and_mutation_revision() {
             &SessionModelSelectionRequest {
                 session,
                 expected_revision: 2,
-                model_profile: "profile-b".to_owned(),
+                provider_id: "local".to_owned(),
+                model_id: "native-b".to_owned(),
             },
         )
         .expect("switch model and fall back");
     assert_eq!(selected.revision, 3);
-    assert_eq!(selected.thinking_level.as_deref(), Some("steady"));
+    assert_eq!(selected.thinking_level.as_deref(), Some("low"));
 
     let conflict = service
         .set_session_model(
@@ -140,7 +177,8 @@ fn session_model_selection_uses_library_and_mutation_revision() {
             &SessionModelSelectionRequest {
                 session,
                 expected_revision: 2,
-                model_profile: "profile-a".to_owned(),
+                provider_id: "local".to_owned(),
+                model_id: "native-a".to_owned(),
             },
         )
         .expect_err("stale selection must not overwrite current state");
@@ -196,7 +234,7 @@ fn assert_selection_events(service: &ApplicationService<Fixture>, session: Entit
     }));
     assert!(selection_events.iter().any(|(kind, summary)| {
         *kind == scriberig_session::AgentActivityKind::ThinkingLevelChanged
-            && summary == "Thinking level selected: steady"
+            && summary == "Thinking level selected: low"
     }));
 }
 
@@ -218,17 +256,17 @@ fn assert_replayed_selection_history(
     assert_eq!(reloaded.execution.history, selected.history);
     assert!(reloaded.execution.history.iter().any(|change| {
         change.kind == scriberig_session::AgentActivityKind::ThinkingLevelChanged
-            && change.thinking_level.as_deref() == Some("steady")
+            && change.thinking_level.as_deref() == Some("low")
     }));
     assert!(reloaded.execution.history.iter().any(|change| {
         change.revision == 3
             && change.kind == scriberig_session::AgentActivityKind::ModelSelectionChanged
-            && change.model.as_deref() == Some("model-b")
+            && change.model_id.as_deref() == Some("model-b")
     }));
     assert!(reloaded.execution.history.iter().any(|change| {
         change.revision == 3
             && change.kind == scriberig_session::AgentActivityKind::ThinkingLevelChanged
-            && change.thinking_level.as_deref() == Some("steady")
+            && change.thinking_level.as_deref() == Some("low")
     }));
 }
 

@@ -5,6 +5,28 @@ use super::tool_call;
 use scriberig_agent_runtime::provider::ModelResponse;
 use serde_json::{Value, json};
 
+const PHP_WORKSPACE_MEMBER: &str = "  \"crates/domains/scriberig-domain-php\",\n";
+const PHP_LOCK_PACKAGES: &str = r#"
+[[package]]
+name = "scriberig-domain-php"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "tree-sitter",
+ "tree-sitter-php",
+]
+
+[[package]]
+name = "tree-sitter-php"
+version = "0.25.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9779e392d38af4254f48be0e57b7eed4d50ec7a6e55a7e5e2e74df8f8f032d3"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+"#;
+
 /// Builds the project-wide PHP candidate from checked-in source-reference data.
 ///
 /// - `scope`: Exact project and immutable base snapshot.
@@ -113,20 +135,8 @@ fn candidate_create_effects() -> Vec<Value> {
 /// The ordered source update effects.
 fn candidate_update_effects() -> Vec<Value> {
     vec![
-        effect(
-            "update",
-            "Cargo.toml",
-            include_str!(
-                "../../../../tests/self-hosting/php-extension/candidate/changes/Cargo.toml"
-            ),
-        ),
-        effect(
-            "update",
-            "Cargo.lock",
-            include_str!(
-                "../../../../tests/self-hosting/php-extension/candidate/changes/Cargo.lock"
-            ),
-        ),
+        effect("update", "Cargo.toml", candidate_workspace_manifest()),
+        effect("update", "Cargo.lock", candidate_workspace_lock()),
         effect(
             "update",
             "crates/scriberig-project/Cargo.toml",
@@ -158,6 +168,59 @@ fn candidate_update_effects() -> Vec<Value> {
     ]
 }
 
+/// Derives the candidate workspace manifest from the exact compiled checkout.
+///
+/// The current workspace manifest with only the PHP domain member inserted.
+/// # Returns
+/// The operation result.
+fn candidate_workspace_manifest() -> String {
+    let manifest = include_str!("../../../../Cargo.toml");
+    assert!(
+        !manifest.contains(PHP_WORKSPACE_MEMBER),
+        "base workspace already contains the PHP member"
+    );
+    let anchor = "  \"crates/domains/scriberig-domain-python\",\n";
+    manifest.replacen(anchor, &format!("{anchor}{PHP_WORKSPACE_MEMBER}"), 1)
+}
+
+/// Derives the candidate lockfile from the exact compiled checkout.
+///
+/// The current workspace lock graph plus the PHP package and dependency edge.
+/// # Returns
+/// The operation result.
+fn candidate_workspace_lock() -> String {
+    let mut lock = include_str!("../../../../Cargo.lock").to_owned();
+    assert!(
+        !lock.contains("name = \"scriberig-domain-php\""),
+        "base lock already contains the PHP package"
+    );
+    let project_marker = "[[package]]\nname = \"scriberig-project\"\n";
+    let project_start = lock
+        .find(project_marker)
+        .expect("scriberig-project lock package exists");
+    let project_tail = project_start + project_marker.len();
+    let project_end = lock[project_tail..]
+        .find("\n[[package]]")
+        .map_or(lock.len(), |offset| project_tail + offset);
+    let project_block = &lock[project_start..project_end];
+    let dependency_anchor = " \"scriberig-domain-python\",\n";
+    assert!(
+        project_block.contains(dependency_anchor),
+        "scriberig-project lock package contains the Python domain dependency"
+    );
+    let updated_project = project_block.replacen(
+        dependency_anchor,
+        &format!("{dependency_anchor} \"scriberig-domain-php\",\n"),
+        1,
+    );
+    lock.replace_range(project_start..project_end, &updated_project);
+    if !lock.ends_with('\n') {
+        lock.push('\n');
+    }
+    lock.push_str(PHP_LOCK_PACKAGES);
+    lock
+}
+
 /// Encodes one UTF-8 candidate source effect.
 ///
 /// - `kind`: Candidate create/update operation.
@@ -167,6 +230,32 @@ fn candidate_update_effects() -> Vec<Value> {
 /// Provider-neutral structured effect value.
 /// # Returns
 /// The operation result.
-fn effect(kind: &str, path: &str, content: &str) -> Value {
-    json!({"kind":kind,"path":path,"content":content})
+fn effect(kind: &str, path: &str, content: impl Into<String>) -> Value {
+    json!({"kind":kind,"path":path,"content":content.into()})
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{candidate_workspace_lock, candidate_workspace_manifest};
+
+    /// Verifies PHP workspace metadata stays based on the current checkout graph.
+    #[test]
+    fn php_candidate_derives_workspace_metadata_from_current_checkout() {
+        let manifest = candidate_workspace_manifest();
+        assert!(manifest.contains("crates/scriberig-tui-kit"));
+        assert!(manifest.contains("crates/domains/scriberig-domain-php"));
+        assert!(manifest.contains("exclude = [\"third_party/rpi-tui/crate\"]"));
+
+        let lock = candidate_workspace_lock();
+        assert!(lock.contains("name = \"rpi-tui\""));
+        assert!(lock.contains("name = \"scriberig-tui-kit\""));
+        assert!(lock.contains("name = \"scriberig-domain-php\""));
+        assert!(lock.contains("name = \"tree-sitter-php\""));
+        let project = lock
+            .split("[[package]]\nname = \"scriberig-project\"\n")
+            .nth(1)
+            .and_then(|tail| tail.split("\n[[package]]").next())
+            .expect("scriberig-project lock package");
+        assert!(project.contains("\"scriberig-domain-php\""));
+    }
 }

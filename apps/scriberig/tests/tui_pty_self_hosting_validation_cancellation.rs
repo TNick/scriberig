@@ -170,9 +170,14 @@ fn candidate_target_root() -> PathBuf {
 fn candidate_target_observer_uses_the_spawned_tui_target_directory() {
     assert_eq!(
         candidate_target_root(),
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../..")
-            .join("target")
+        std::env::var_os("CARGO_TARGET_DIR").map_or_else(
+            || {
+                PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("../..")
+                    .join("target")
+            },
+            PathBuf::from,
+        )
     );
 }
 

@@ -23,14 +23,15 @@ fn http_plan_start_runs_the_native_fake_provider_worker() {
     );
     let model_library = scriberig_app::model_library_from_json(
         Some(
-            r#"{"models":[{"id":"http-plan-model","display_name":"HTTP Plan Model","provider_model_id":"wire-http-plan-model","thinking_levels":[{"id":"deep","label":"Deep"}]}]}"#,
+            r#"{"models":[{"id":"http-plan-model","display_name":"HTTP Plan Model","provider_model_id":"wire-http-plan-model","thinking_levels":[{"id":"high","label":"Deep"}]}]}"#,
         ),
         "http-plan-model",
     )
     .expect("worker model library");
     let service = ApplicationService::new(backend)
         .with_session_store(session_store.clone())
-        .with_model_library(model_library.clone());
+        .with_model_library(model_library.clone())
+        .with_upstream_models(upstream_model_catalog("local", &["wire-http-plan-model"]));
     let session_id = EntityId::new();
     let root_branch = EntityId::new();
     let mut branch = Branch::new(root_branch, "root").expect("root branch");
@@ -73,9 +74,9 @@ fn http_plan_start_runs_the_native_fake_provider_worker() {
                 expected_result: None,
                 semantic_scope: Vec::new(),
                 assignment: Some(ModelAssignment {
-                    profile: "http-plan-model-profile".to_owned(),
-                    model: "http-plan-model".to_owned(),
-                    thinking_level: Some("deep".to_owned()),
+                    provider_id: "local".to_owned(),
+                    model_id: "http-plan-model".to_owned(),
+                    thinking_level: Some("high".to_owned()),
                 }),
             }],
             dependencies: Vec::new(),
@@ -90,6 +91,7 @@ fn http_plan_start_runs_the_native_fake_provider_worker() {
         )]),
         model: "http-plan-model".to_owned(),
         model_library,
+        upstream_models: upstream_model_catalog("local", &["wire-http-plan-model"]),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
     };
@@ -137,7 +139,7 @@ fn http_plan_start_runs_the_native_fake_provider_worker() {
     assert_eq!(provider.requests()[0].model, "wire-http-plan-model");
     assert_eq!(
         provider.requests()[0].thinking_level.as_deref(),
-        Some("deep")
+        Some("high")
     );
     let durable = session_store
         .load(session_id)

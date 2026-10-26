@@ -19,6 +19,7 @@ serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
 blake3 = "1.8"
+rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "4a52baf41a19a889ca96c0f38369f7482f26973e" }
 
 [lints]
 workspace = true

@@ -70,7 +70,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         let mut additions = Vec::with_capacity(request.additions.len());
         for (index, draft) in request.additions.iter().enumerate() {
             if let Some(assignment) = &draft.assignment {
-                validate_assignment(&self.model_library, assignment)?;
+                validate_assignment(&self.upstream_models, assignment)?;
             }
             additions.push(PlanNode {
                 id: node_ids[index],
@@ -119,7 +119,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
             .collect::<Result<Vec<_>, _>>()?;
         for (_, assignment) in &request.assignment_changes {
             if let Some(assignment) = assignment {
-                validate_assignment(&self.model_library, assignment)?;
+                validate_assignment(&self.upstream_models, assignment)?;
             }
         }
         plan.replan(
@@ -189,7 +189,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
             .collect::<Vec<_>>();
         for (index, draft) in request.nodes.iter().enumerate() {
             if let Some(assignment) = &draft.assignment {
-                validate_assignment(&self.model_library, assignment)?;
+                validate_assignment(&self.upstream_models, assignment)?;
             }
             let parent = draft
                 .parent_index
@@ -252,7 +252,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         request: &crate::PlanAssignmentRequest,
     ) -> Result<Plan, ApplicationError> {
         if let Some(assignment) = &request.assignment {
-            validate_assignment(&self.model_library, assignment)?;
+            validate_assignment(&self.upstream_models, assignment)?;
         }
         let mut session = self.read_session(
             context,

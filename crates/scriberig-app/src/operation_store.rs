@@ -192,6 +192,7 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             validation: None,
             validation_profile: None,
             validation_diagnostics: Vec::new(),
+            review_details: Vec::new(),
             conflicts: Vec::new(),
         })
     }
@@ -235,6 +236,7 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             validation: None,
             validation_profile: None,
             validation_diagnostics: Vec::new(),
+            review_details: Vec::new(),
             conflicts: Vec::new(),
         })
     }
@@ -298,6 +300,7 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             validation: None,
             validation_profile: None,
             validation_diagnostics: Vec::new(),
+            review_details: Vec::new(),
             conflicts: Vec::new(),
         })
     }
@@ -338,6 +341,7 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             validation: None,
             validation_profile: None,
             validation_diagnostics: Vec::new(),
+            review_details: Vec::new(),
             conflicts: Vec::new(),
         })
     }
@@ -385,6 +389,7 @@ impl<S: SnapshotStore + RootStore> OperationProvider for StoreOperationProvider<
             validation: None,
             validation_profile: None,
             validation_diagnostics: Vec::new(),
+            review_details: Vec::new(),
             conflicts: Vec::new(),
         })
     }

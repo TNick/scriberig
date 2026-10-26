@@ -34,8 +34,8 @@ fn coordinator_persists_claims_results_and_dependency_completion() {
             first,
             "analyze",
             Some(scriberig_session::ModelAssignment {
-                profile: "alpha".to_owned(),
-                model: "model-a".to_owned(),
+                provider_id: "provider".to_owned(),
+                model_id: "wire-a".to_owned(),
                 thinking_level: None,
             }),
         ),
@@ -43,8 +43,8 @@ fn coordinator_persists_claims_results_and_dependency_completion() {
             parallel,
             "document",
             Some(scriberig_session::ModelAssignment {
-                profile: "beta".to_owned(),
-                model: "model-b".to_owned(),
+                provider_id: "provider".to_owned(),
+                model_id: "wire-b".to_owned(),
                 thinking_level: None,
             }),
         ),
@@ -133,7 +133,7 @@ fn coordinator_persists_claims_results_and_dependency_completion() {
         plan_id,
         coordinator_claim,
         &workers,
-        &worker_library(),
+        &runtime_fallback_models(),
         "fallback-model",
         2,
         || {
@@ -231,4 +231,3 @@ fn coordinator_persists_claims_results_and_dependency_completion() {
 
 #[path = "part1.rs"]
 mod part1;
-use part1::worker_library;

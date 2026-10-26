@@ -11,7 +11,6 @@ pub(super) mod catalog;
 ///
 /// - `provider_kind`: Trusted provider selection from process configuration.
 /// - `model`: Configured model name.
-/// - `catalog`: Safe model descriptors and provider-private thinking mappings.
 /// - `shared_config`: Provider resolved from the shared application config.
 /// - `super`: Parent native agent runtime module.
 ///
@@ -25,7 +24,6 @@ pub(super) mod catalog;
 pub(super) fn from_environment(
     provider_kind: &str,
     model: &str,
-    catalog: &catalog::ProviderCatalog,
     shared_config: Option<ProviderConfig>,
 ) -> Result<Option<NativeProvider>, ProviderError> {
     match provider_kind {
@@ -37,9 +35,7 @@ pub(super) fn from_environment(
                 model,
                 shared_config,
             );
-            config
-                .map(|config| openai_compatible(config, catalog))
-                .transpose()
+            config.map(openai_compatible).transpose()
         }
         unknown => Err(ProviderError::Configuration(format!(
             "unsupported SCRIBE_AGENT_PROVIDER: {unknown}"
@@ -77,10 +73,9 @@ fn configured_provider_config(
         })
 }
 
-/// Builds an OpenAI-compatible adapter with catalog-specific thinking mappings.
+/// Builds an OpenAI-compatible adapter from shared provider settings.
 ///
 /// - `config`: Effective endpoint, model, and indirect credential reference.
-/// - `catalog`: Safe descriptors and provider-private thinking mappings.
 ///
 /// The configured native provider adapter.
 ///
@@ -89,26 +84,15 @@ fn configured_provider_config(
 /// The configured provider.
 /// # Errors
 /// Returns an error when the operation fails.
-fn openai_compatible(
-    config: ProviderConfig,
-    catalog: &catalog::ProviderCatalog,
-) -> Result<NativeProvider, ProviderError> {
-    let mut provider =
-        scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider::new(config)?;
-    for (model, level, parameters) in &catalog.thinking_parameters {
-        provider = provider.with_model_thinking_parameters(
-            model.clone(),
-            level.clone(),
-            parameters.clone(),
-        );
-    }
-    Ok(NativeProvider::OpenAiCompatible(Box::new(provider)))
+fn openai_compatible(config: ProviderConfig) -> Result<NativeProvider, ProviderError> {
+    Ok(NativeProvider::OpenAiCompatible(Box::new(
+        scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider::new(config)?,
+    )))
 }
 
 /// Builds one named OpenAI-compatible adapter from credential-free references.
 ///
-/// - `connection`: Safe adapter ID and environment variable names.
-/// - `catalog`: Model descriptors and adapter-only request mappings.
+/// - `connection`: Safe adapter identity and resolved endpoint.
 /// - `fallback_model`: Model name used for provider configuration defaults.
 ///
 /// A configured provider adapter for that connection.
@@ -120,7 +104,6 @@ fn openai_compatible(
 /// Returns an error when the operation fails.
 pub(super) fn from_connection(
     connection: &catalog::ProviderConnection,
-    catalog: &catalog::ProviderCatalog,
     fallback_model: &str,
 ) -> Result<NativeProvider, ProviderError> {
     if connection.provider != "openai_compatible" {
@@ -129,46 +112,16 @@ pub(super) fn from_connection(
             connection.id
         )));
     }
-    let base_url = std::env::var(&connection.base_url_env).map_err(|_| {
-        ProviderError::Configuration(format!(
-            "provider endpoint environment variable is unavailable for {}",
-            connection.id
-        ))
-    })?;
-    let credential = connection
-        .api_key_env
-        .as_ref()
-        .map_or(CredentialSource::None, |name| {
-            CredentialSource::Environment(name.clone())
-        });
+    let base_url = connection.base_url.clone();
     let config = ProviderConfig::new(
         connection.id.clone(),
         base_url,
         fallback_model.to_owned(),
-        credential,
+        CredentialSource::None,
     );
-    let mut provider =
-        scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider::new(config)?;
-    for model in &catalog.library.models {
-        let uses_connection = catalog
-            .library
-            .profiles
-            .iter()
-            .any(|profile| profile.model == model.id && profile.connection == connection.id);
-        if !uses_connection {
-            continue;
-        }
-        for (provider_model, level, parameters) in &catalog.thinking_parameters {
-            if provider_model == &model.provider_model_id {
-                provider = provider.with_model_thinking_parameters(
-                    provider_model.clone(),
-                    level.clone(),
-                    parameters.clone(),
-                );
-            }
-        }
-    }
-    Ok(NativeProvider::OpenAiCompatible(Box::new(provider)))
+    Ok(NativeProvider::OpenAiCompatible(Box::new(
+        scriberig_agent_runtime::openai_compatible::OpenAiCompatibleProvider::new(config)?,
+    )))
 }
 
 /// Selects a registered deterministic provider scenario.

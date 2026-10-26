@@ -8,6 +8,45 @@ use super::{
 };
 use std::collections::BTreeSet;
 
+impl Focus {
+    /// Moves focus through the shell's stable pane order.
+    ///
+    /// - `reverse`: Whether focus moves to the previous pane.
+    ///
+    /// The next pane in the stable focus order.
+    /// # Returns
+    /// The new focus target.
+    pub(super) fn next(self, reverse: bool) -> Self {
+        let panes = [Self::Explorer, Self::Primary, Self::Inspector];
+        let index = panes.iter().position(|pane| *pane == self).unwrap_or(1);
+        panes[(index + if reverse { 2 } else { 1 }) % panes.len()]
+    }
+}
+
+impl ConversationComposerState {
+    /// Creates a synchronized composer for one exact conversation target.
+    ///
+    /// - `target`: Session and continuation anchor receiving the draft.
+    /// - `draft`: Initial user-authored composer text.
+    ///
+    /// A composer whose editor and canonical draft begin synchronized.
+    /// # Returns
+    /// The initialized conversation composer.
+    #[must_use]
+    pub fn new(target: ConversationTarget, draft: String) -> Self {
+        let editor = scriberig_tui_kit::Composer::new();
+        editor.replace_text(&draft);
+        Self {
+            target,
+            draft,
+            editor,
+            pending_prompt: None,
+            pending: false,
+            error: None,
+        }
+    }
+}
+
 impl Default for TuiState {
     /// Creates an empty, deterministic shell state.
     ///
@@ -47,6 +86,8 @@ impl Default for TuiState {
             conversation_composer: ConversationComposerState {
                 target: ConversationTarget::NewSession,
                 draft: String::new(),
+                editor: scriberig_tui_kit::Composer::new(),
+                pending_prompt: None,
                 pending: false,
                 error: None,
             },
@@ -60,7 +101,8 @@ impl Default for TuiState {
             plan_assignment_target: None,
             session_branch_focus: None,
             pending_operation_refresh: Vec::new(),
-            agent_output_observations: Vec::new(),
+            transient_agent_outputs: Vec::new(),
+            next_transient_sequence: 1,
             agent_handles: Vec::new(),
             session_composer: None,
             session_composer_focused: false,
@@ -154,6 +196,28 @@ impl TuiState {
     }
 }
 
+/// One ordered transient row waiting for authoritative session data.
+enum TransientConversationRow {
+    /// Activity status row correlated to a branch.
+    Activity {
+        /// Structural parent branch.
+        branch: scriberig_core::EntityId,
+        /// Stable activity identity.
+        key: u64,
+        /// Safe user-facing label.
+        label: String,
+    },
+    /// Partial or complete assistant output correlated to an operation.
+    Output {
+        /// Structural parent branch.
+        branch: scriberig_core::EntityId,
+        /// Stable shared operation identity.
+        operation: scriberig_core::OperationId,
+        /// Safe bounded output text.
+        text: String,
+    },
+}
+
 /// Projects durable conversation state with active observations attached to branches.
 ///
 /// - `state`: TUI state containing presentation-only active activity.
@@ -170,6 +234,34 @@ pub(crate) fn conversation_projection(
         session,
         &state.expanded_branches,
     );
+    attach_transient_rows(state, &mut conversation, Some(session));
+    conversation
+}
+
+/// Rebuilds the active conversation from durable state and live observations.
+///
+/// - `state`: Presentation state receiving the rebuilt projection.
+pub(crate) fn refresh_conversation_projection(state: &mut TuiState) {
+    if let Some(session) = state.session_snapshot.clone() {
+        state.conversation = Some(conversation_projection(state, &session));
+    } else {
+        let mut conversation = crate::view::conversation::ConversationModel::default();
+        attach_transient_rows(state, &mut conversation, None);
+        state.conversation = Some(conversation);
+    }
+}
+
+/// Adds ordered live rows to a durable or temporary conversation projection.
+///
+/// - `state`: Presentation state containing bounded transient observations.
+/// - `conversation`: Projection receiving live rows.
+/// - `session`: Authoritative snapshot used to suppress already durable output.
+pub(crate) fn attach_transient_rows(
+    state: &TuiState,
+    conversation: &mut crate::view::conversation::ConversationModel,
+    session: Option<&scriberig_session::Session>,
+) {
+    let mut transient_rows = Vec::new();
     for activity in &state.transient_agent_activities {
         let Ok(branch) = activity.branch.parse::<scriberig_core::EntityId>() else {
             continue;
@@ -182,11 +274,72 @@ pub(crate) fn conversation_projection(
         } else {
             crate::inspector::sanitize(&activity.summary)
         };
-        conversation.insert_transient_activity(
-            branch,
-            activity.key,
-            format!("Live {:?}: {}", activity.activity_kind, summary),
-        );
+        transient_rows.push((
+            activity.sequence,
+            TransientConversationRow::Activity {
+                branch,
+                key: activity.key,
+                label: format!("Live {:?}: {}", activity.activity_kind, summary),
+            },
+        ));
     }
-    conversation
+    for output in &state.transient_agent_outputs {
+        let Some(branch) = output.branch else {
+            continue;
+        };
+        if session.is_some_and(|session| output_is_durable(session, output)) {
+            continue;
+        }
+        transient_rows.push((
+            output.sequence,
+            TransientConversationRow::Output {
+                branch,
+                operation: output.operation.clone(),
+                text: output.text.clone(),
+            },
+        ));
+    }
+    transient_rows.sort_by_key(|(sequence, _)| *sequence);
+    for (_, row) in transient_rows {
+        match row {
+            TransientConversationRow::Activity { branch, key, label } => {
+                conversation.insert_transient_activity(branch, key, label);
+            }
+            TransientConversationRow::Output {
+                branch,
+                operation,
+                text,
+            } => conversation.insert_transient_output(branch, &operation, &text),
+        }
+    }
+}
+
+/// Reports whether a complete transient output now exists in durable session data.
+///
+/// - `session`: Authoritative session snapshot.
+/// - `output`: Operation-scoped transient output to compare.
+///
+/// Whether the latest assistant output on the associated branch matches exactly.
+/// # Returns
+/// Whether the observed output is now durably represented.
+pub(crate) fn output_is_durable(
+    session: &scriberig_session::Session,
+    output: &super::TransientAgentOutput,
+) -> bool {
+    let Some(branch) = output.branch else {
+        return false;
+    };
+    output.complete
+        && session
+            .branches
+            .iter()
+            .find(|candidate| candidate.id == branch)
+            .and_then(|candidate| {
+                candidate
+                    .turns
+                    .iter()
+                    .rev()
+                    .find_map(|turn| turn.agent.as_ref())
+            })
+            .is_some_and(|agent| crate::inspector::sanitize(&agent.text) == output.text)
 }

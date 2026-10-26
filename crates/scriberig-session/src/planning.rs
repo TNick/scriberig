@@ -57,16 +57,16 @@ pub struct ExpectedResult {
     pub requires_handle: bool,
 }
 
-/// Selects a safe model-library configuration for one plan node.
+/// Selects an upstream provider and model for one plan node.
 ///
-/// Provider credentials are deliberately excluded; `profile` and `model` are
-/// stable identifiers resolved by the configured model library at execution.
+/// Provider credentials are deliberately excluded. The provider and model IDs
+/// are resolved by upstream runtime machinery at execution.
 #[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct ModelAssignment {
-    /// Curated model profile identity.
-    pub profile: String,
-    /// Model identity within the profile.
-    pub model: String,
+    /// Upstream provider identity.
+    pub provider_id: String,
+    /// Upstream provider-scoped model identity.
+    pub model_id: String,
     /// Optional advertised thinking-level identity.
     pub thinking_level: Option<String>,
 }

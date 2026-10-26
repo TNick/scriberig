@@ -42,7 +42,8 @@ fn run_candidate_plan(conflict: bool) {
         .expect("worker model library");
     let service = ApplicationService::new(backend)
         .with_session_store(session_store.clone())
-        .with_model_library(library.clone());
+        .with_model_library(library.clone())
+        .with_upstream_models(upstream_model_catalog("local", &["integration-model"]));
     let session_id = EntityId::new();
     let root_branch = EntityId::new();
     let mut root = Branch::new(root_branch, "root").expect("root branch");
@@ -68,8 +69,8 @@ fn run_candidate_plan(conflict: bool) {
     )
     .expect("save session");
     let assignment = Some(ModelAssignment {
-        profile: "integration-model-profile".to_owned(),
-        model: "integration-model".to_owned(),
+        provider_id: "integration-provider".to_owned(),
+        model_id: "integration-model".to_owned(),
         thinking_level: None,
     });
     let integration = Some(ExpectedResult {
@@ -145,7 +146,7 @@ fn run_candidate_plan(conflict: bool) {
             .expect("coordinator claim")
             .id,
         &executor,
-        &library,
+        service.upstream_models(),
         "integration-model",
         2,
         EntityId::new,
@@ -223,7 +224,7 @@ fn run_candidate_plan(conflict: bool) {
 ///
 /// - `key`: Stable plan-local reference.
 /// - `title`: Durable worker display label and deterministic fixture target.
-/// - `assignment`: Model-library assignment used by scheduler resolution.
+/// - `assignment`: Provider/model pair resolved against the upstream catalog.
 ///
 /// A structured source candidate proposal node.
 /// # Returns
@@ -284,7 +285,7 @@ impl PlanWorkerExecutor for CandidatePlanExecutor<'_> {
     ///
     /// - `node`: Durable worker identity and semantic result contract.
     /// - `claim`: Exclusive branch and claim identity.
-    /// - `execution`: Resolved model assignment from the existing library.
+    /// - `execution`: Provider/model pair resolved against the upstream catalog.
     /// - `context`: Exact branch, anchor, and dependency result context.
     ///
     /// A candidate result or production merge result on the claimed branch.

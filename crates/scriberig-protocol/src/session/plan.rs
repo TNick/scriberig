@@ -21,13 +21,13 @@ pub enum SessionPlanNodeStatus {
     Abandoned,
 }
 
-/// Safe model-library selection assigned to a plan node.
+/// Upstream provider/model selection assigned to a plan node.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct SessionModelAssignment {
-    /// Curated profile identity, without provider credentials.
-    pub profile: String,
-    /// Provider-neutral model identity.
-    pub model: String,
+    /// Upstream provider identity, without provider credentials.
+    pub provider_id: String,
+    /// Provider-scoped upstream model identity.
+    pub model_id: String,
     /// Advertised thinking level, when selected.
     #[serde(default)]
     pub thinking_level: Option<String>,

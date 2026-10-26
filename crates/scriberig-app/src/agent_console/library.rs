@@ -28,8 +28,8 @@ impl ModelLibrary {
     ///
     /// A library ordered as supplied by its configuration.
     ///
-    /// Returns an error for duplicate ids, invalid descriptors, or profiles
-    /// that reference missing models or unsupported thinking defaults.
+    /// Returns an error for duplicate ids or profiles that reference missing
+    /// models.
     /// # Returns
     /// The operation result.
     /// # Errors
@@ -40,7 +40,6 @@ impl ModelLibrary {
     ) -> Result<Self, &'static str> {
         let mut model_map = BTreeMap::new();
         for model in &models {
-            model.validate()?;
             if model_map.insert(&model.id, model).is_some() {
                 return Err("model ids must be unique");
             }

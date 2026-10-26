@@ -18,7 +18,7 @@ export function createAgentExecutionSelectionController(
   model: Pick<WorkspaceModel, "getAgentState" | "setAgentSession">,
   sessionId: SessionId,
 ): {
-  selectModel: (profileId: string) => Promise<void>;
+  selectModel: (providerId: string, modelId: string) => Promise<void>;
   selectThinkingLevel: (levelId: string) => Promise<void>;
 } {
   const refresh = async (): Promise<void> => {
@@ -28,10 +28,10 @@ export function createAgentExecutionSelectionController(
       // Keep the last authoritative session snapshot when refresh is unavailable.
     }
   };
-  const selectModel = async (profileId: string): Promise<void> => {
+  const selectModel = async (providerId: string, modelId: string): Promise<void> => {
     const revision = model.getAgentState().execution.revision;
     try {
-      await client.setSessionModel(sessionId, revision, profileId);
+      await client.setSessionModel(sessionId, revision, providerId, modelId);
       await refresh();
     } catch (error) {
       await refresh();
@@ -56,7 +56,7 @@ export function createAgentExecutionSelectionController(
  * @returns Selection actions and whether one is in flight.
  */
 export function useAgentExecutionSelection(sessionId: SessionId): {
-  selectModel: (profileId: string) => Promise<void>;
+  selectModel: (providerId: string, modelId: string) => Promise<void>;
   selectThinkingLevel: (levelId: string) => Promise<void>;
   mutating: boolean;
 } {
@@ -67,10 +67,10 @@ export function useAgentExecutionSelection(sessionId: SessionId): {
     [client, model, sessionId],
   );
   const selectModel = useCallback(
-    async (profileId: string): Promise<void> => {
+    async (providerId: string, modelId: string): Promise<void> => {
       setMutating(true);
       try {
-        await controller.selectModel(profileId);
+        await controller.selectModel(providerId, modelId);
       } finally {
         setMutating(false);
       }

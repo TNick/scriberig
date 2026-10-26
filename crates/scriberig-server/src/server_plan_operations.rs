@@ -145,7 +145,7 @@ fn node_draft(value: &scriberig_protocol::SessionPlanNodeDraft) -> scriberig_app
 
 /// Converts one safe model assignment.
 ///
-/// - `value`: Credential-free profile, model, and thinking identifiers.
+/// - `value`: Credential-free provider, model, and thinking identifiers.
 ///
 /// Shared application assignment.
 /// # Returns
@@ -154,8 +154,8 @@ fn assignment(
     value: scriberig_protocol::SessionModelAssignment,
 ) -> scriberig_session::ModelAssignment {
     scriberig_session::ModelAssignment {
-        profile: value.profile,
-        model: value.model,
+        provider_id: value.provider_id,
+        model_id: value.model_id,
         thinking_level: value.thinking_level,
     }
 }

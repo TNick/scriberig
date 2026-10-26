@@ -49,4 +49,19 @@ impl<B> ApplicationService<B> {
         self.model_library = library;
         self
     }
+
+    /// Installs the host-owned upstream model catalog for selection resolution.
+    ///
+    /// - `self`: Service being configured.
+    /// - `models`: Upstream model catalog, including request-only metadata.
+    ///
+    /// The service configured to resolve selections against upstream models.
+    ///
+    /// # Returns
+    /// The configured service with the supplied model catalog.
+    #[must_use]
+    pub fn with_upstream_models(mut self, models: Vec<rpi_ai::Model>) -> Self {
+        self.upstream_models = models;
+        self
+    }
 }

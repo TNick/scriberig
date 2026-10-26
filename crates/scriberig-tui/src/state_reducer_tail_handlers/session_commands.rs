@@ -79,6 +79,7 @@ pub(in crate::state::state_reducer_tail) fn session_switched(
         },
     };
     state.conversation_composer.pending = false;
+    state.conversation_composer.pending_prompt = None;
     state.conversation_composer.error = None;
     state.overlay = None;
     state.follow_coordinator = false;
@@ -123,6 +124,7 @@ pub(in crate::state::state_reducer_tail) fn session_removed(
         state.conversation_cursor = None;
         state.conversation_composer.target = crate::state::ConversationTarget::NewSession;
         state.conversation_composer.pending = false;
+        state.conversation_composer.pending_prompt = None;
         state.cursor = 0;
         state.coordinator_cursor = None;
         state.follow_coordinator = true;

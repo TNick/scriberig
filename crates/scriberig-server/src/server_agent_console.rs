@@ -68,13 +68,14 @@ pub(super) fn model_library<B: ApplicationBackend>(
     })
 }
 
-/// Selects a model profile for future invocations.
+/// Selects an upstream provider/model pair for future invocations.
 ///
 /// - `self`: Shared application service.
 /// - `context`: Trusted capability context.
 /// - `session`: Serialized stable session identity.
 /// - `expected_revision`: Selection revision observed by the client.
-/// - `model_profile`: Curated profile identity.
+/// - `provider_id`: Exact upstream provider identity.
+/// - `model_id`: Provider-scoped upstream model identity.
 ///
 /// Updated provider-neutral session selection.
 ///
@@ -84,7 +85,8 @@ pub(super) fn set_session_model<B: ApplicationBackend>(
     context: &ApplicationContext,
     session: &str,
     expected_revision: u64,
-    model_profile: &str,
+    provider_id: &str,
+    model_id: &str,
 ) -> Result<SessionExecutionSelection, scriberig_app::ApplicationError> {
     let session = parse_session(session)?;
     let selection = AgentConsoleBackend::set_session_model(
@@ -93,7 +95,8 @@ pub(super) fn set_session_model<B: ApplicationBackend>(
         &scriberig_app::SessionModelSelectionRequest {
             session,
             expected_revision,
-            model_profile: model_profile.to_owned(),
+            provider_id: provider_id.to_owned(),
+            model_id: model_id.to_owned(),
         },
     )?;
     Ok(selection_response(selection))
@@ -285,8 +288,8 @@ pub(super) fn selection_response(
 ) -> SessionExecutionSelection {
     SessionExecutionSelection {
         revision: selection.revision,
-        model_profile: selection.model_profile,
-        model: selection.model,
+        provider_id: selection.provider_id,
+        model_id: selection.model_id,
         thinking_level: selection.thinking_level,
         history: selection
             .history
@@ -295,7 +298,8 @@ pub(super) fn selection_response(
                 revision: change.revision,
                 kind: change.kind,
                 summary: change.summary,
-                model: change.model,
+                provider_id: change.provider_id,
+                model_id: change.model_id,
                 thinking_level: change.thinking_level,
             })
             .collect(),

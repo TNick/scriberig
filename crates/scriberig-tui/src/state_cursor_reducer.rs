@@ -85,7 +85,11 @@ fn cursor_limit(state: &TuiState) -> usize {
             },
             crate::selection::PrimaryView::Operations => state.operations.len().saturating_sub(1),
             crate::selection::PrimaryView::Changes => match &state.review {
-                LoadState::Ready(model) => model.conflicts.len().saturating_sub(1),
+                LoadState::Ready(model) => model
+                    .conflicts
+                    .len()
+                    .saturating_add(model.details.len())
+                    .saturating_sub(1),
                 _ => 0,
             },
             _ => 0,

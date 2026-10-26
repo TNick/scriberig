@@ -46,6 +46,8 @@ pub(super) struct NativeTuiAgentRunner {
     model: String,
     /// Safe models and selectable profiles exposed to the application service.
     model_library: scriberig_app::ModelLibrary,
+    /// Upstream catalog retained as the model selection authority.
+    upstream_models: Vec<rpi_ai::Model>,
     /// Shared project store used by application-backed agent tools.
     project_store: Arc<SqliteStore>,
     /// In-process guard against starting two coordinator loops for one plan.
@@ -85,18 +87,19 @@ impl NativeTuiAgentRunner {
         let catalog = provider_config::catalog::from_environment(&model)?;
         let mut providers = std::collections::BTreeMap::new();
         if let Some(provider) =
-            provider_config::from_environment(&provider_kind, &model, &catalog, shared_config)?
+            provider_config::from_environment(&provider_kind, &model, shared_config)?
         {
             providers.insert("local".to_owned(), provider);
         }
         for connection in &catalog.connections {
-            let provider = provider_config::from_connection(connection, &catalog, &model)?;
+            let provider = provider_config::from_connection(connection, &model)?;
             providers.insert(connection.id.clone(), provider);
         }
         Ok(Self {
             providers,
             model,
             model_library: catalog.library,
+            upstream_models: catalog.models,
             project_store,
             active_coordinators: Mutex::new(HashSet::new()),
         })
@@ -109,6 +112,14 @@ impl NativeTuiAgentRunner {
     /// The operation result.
     pub(super) fn model_library(&self) -> scriberig_app::ModelLibrary {
         self.model_library.clone()
+    }
+
+    /// Returns the upstream catalog used for model resolution.
+    ///
+    /// # Returns
+    /// A copy of the upstream model catalog.
+    pub(super) fn upstream_models(&self) -> Vec<rpi_ai::Model> {
+        self.upstream_models.clone()
     }
 }
 
