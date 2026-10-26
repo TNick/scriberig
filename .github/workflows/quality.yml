@@ -18,6 +18,8 @@ jobs:
           set -euxo pipefail
           timeout --foreground 30s docker info --format 'Docker daemon: {{.ServerVersion}}'
           timeout --foreground 5m docker pull 10.225.224.10/ci/debian:13
+          timeout --foreground 45s docker run --pull=never --rm --privileged --network host \
+            10.225.224.10/ci/debian:13 /bin/echo 'Privileged container startup passed'
           timeout --foreground 110m docker run --pull=never --rm --privileged --network host \
             --volume "$GITHUB_WORKSPACE:/workspace" --workdir /workspace \
             10.225.224.10/ci/debian:13 \
@@ -45,6 +47,8 @@ jobs:
           set -euxo pipefail
           timeout --foreground 30s docker info --format 'Docker daemon: {{.ServerVersion}}'
           timeout --foreground 5m docker pull 10.225.224.10/ci/debian:13
+          timeout --foreground 45s docker run --pull=never --rm --network host \
+            10.225.224.10/ci/debian:13 /bin/echo 'Quality container startup passed'
           timeout --foreground 110m docker run --pull=never --rm --network host \
             --volume "$GITHUB_WORKSPACE:/workspace" --workdir /workspace \
             10.225.224.10/ci/debian:13 \
