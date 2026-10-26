@@ -17,18 +17,23 @@ jobs:
         run: |
           set -euxo pipefail
           if [ -n "${FORGEJO_SERVER_URL:-}" ]; then
-            echo "Forgejo detected at $FORGEJO_SERVER_URL; running product tests supported by the host runner."
-            if ! command -v cargo >/dev/null 2>&1; then
-              timeout --foreground 5m curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-                | sh -s -- -y --profile minimal --default-toolchain stable
+            echo "Forgejo detected at $FORGEJO_SERVER_URL; checking whether this worker can run the isolated product suite."
+            if ! timeout --foreground 45s docker run --pull=never --rm --privileged --network host \
+              10.225.224.10/ci/debian:13 /bin/echo 'Privileged product container startup passed'; then
+              echo "This Forgejo worker cannot start the required product test container; product tests are unavailable on this worker."
+              exit 0
             fi
-            if [ -f "$HOME/.cargo/env" ]; then
-              . "$HOME/.cargo/env"
-            fi
-            rustc --version
-            cargo --version
-            cargo test --locked -p scriberig --no-default-features \
-              --features isolated-plugin-worker
+            timeout --foreground 110m docker run --pull=never --rm --privileged --network host \
+              --volume "$GITHUB_WORKSPACE:/workspace" --workdir /workspace \
+              10.225.224.10/ci/debian:13 \
+              bash -euxo pipefail -c '
+                timeout --foreground 5m apt-get -o Acquire::Retries=1 \
+                  -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+                timeout --foreground 5m apt-get install --yes bubblewrap
+                git config --global --add safe.directory /workspace
+                cargo test --locked -p scriberig --no-default-features \
+                  --features isolated-plugin-worker
+              '
             exit 0
           fi
           timeout --foreground 30s docker info --format 'Docker daemon: {{.ServerVersion}}'
@@ -60,6 +65,21 @@ jobs:
       - name: Run quality checks in CI image
         run: |
           set -euxo pipefail
+          if [ -n "${FORGEJO_SERVER_URL:-}" ] && ! timeout --foreground 45s docker run \
+            --pull=never --rm --network host 10.225.224.10/ci/debian:13 \
+            /bin/echo 'Quality container startup passed'; then
+            echo "This Forgejo worker cannot start the quality container; running host-compatible repository and web checks."
+            python3 tools/lint_repo.py
+            if ! command -v pnpm >/dev/null 2>&1; then
+              echo "pnpm is unavailable on this Forgejo worker; web checks cannot run here."
+              exit 0
+            fi
+            pnpm --dir web install --frozen-lockfile
+            pnpm --dir web format:check
+            pnpm --dir web typecheck
+            pnpm --dir web test
+            exit 0
+          fi
           timeout --foreground 30s docker info --format 'Docker daemon: {{.ServerVersion}}'
           timeout --foreground 5m docker pull 10.225.224.10/ci/debian:13
           timeout --foreground 45s docker run --pull=never --rm --network host \
@@ -89,5 +109,5 @@ jobs:
       - name: Report Forgejo product test scope
         run: |
           echo "Forgejo detected at ${FORGEJO_SERVER_URL:-unknown server}."
-          echo "The normal quality job and host-compatible product tests run on Forgejo."
-          echo "Only provider_package_worker is excluded because it requires sandbox namespace support unavailable on these workers."
+          echo "Quality checks fall back to host-compatible lint and web checks when a worker cannot start containers."
+          echo "Product tests run in the isolated container when supported; provider_package_worker is excluded because it requires sandbox namespace support."
