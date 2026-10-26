@@ -23,6 +23,12 @@ jobs:
           apt-get install --yes --no-install-recommends bubblewrap
       - name: Verify isolated worker namespaces
         run: |
+          id
+          grep -E '^(CapEff|NoNewPrivs):' /proc/self/status
+          cat /proc/self/attr/current
+          stat -c '%A %a %u:%g %n' /usr/bin/bwrap
+          cat /proc/sys/user/max_user_namespaces
+          cat /proc/sys/kernel/unprivileged_userns_clone || true
           bwrap --unshare-all --cap-drop ALL --clearenv --dev /dev --tmpfs /tmp \
             --ro-bind /usr /usr --ro-bind /bin /bin --ro-bind /lib /lib \
             --ro-bind /lib64 /lib64 --chdir /tmp -- /usr/bin/true
