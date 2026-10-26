@@ -13,8 +13,13 @@ jobs:
     runs-on: debian-13
     container:
       image: 10.225.224.10/ci/debian:13
+      options: --cap-add=SYS_ADMIN --security-opt seccomp=unconfined
     steps:
       - uses: actions/checkout@v4
+      - name: Install bubblewrap for isolated provider tests
+        run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends bubblewrap
       - name: Record Rust compiler version
         id: rust-version
         run: echo "version=$(rustc -V | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
