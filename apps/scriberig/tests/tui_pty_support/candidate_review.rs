@@ -102,13 +102,18 @@ pub fn open_apply_confirmation(tui: &mut TuiPty) {
         "{}",
         tui.diagnostic()
     );
+    assert!(
+        tui.settle(),
+        "candidate confirmation did not settle: {}",
+        tui.diagnostic()
+    );
 }
 
 /// Accepts candidate confirmation and the resulting exact commit action.
 ///
 /// - `tui`: Active native TUI process displaying candidate confirmation.
 pub fn confirm_candidate_apply(tui: &mut TuiPty) {
-    tui.send(b"\r");
+    tui.send_slow(b"\r");
 }
 
 /// Waits for the completed candidate operation to leave the confirmation dialog closed.
