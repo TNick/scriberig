@@ -14,7 +14,7 @@ jobs:
     container:
       image: 10.225.224.10/ci/debian:13
       # The worker sandbox integration tests need nested Linux namespaces.
-      options: --privileged
+      options: --privileged --userns=host
     steps:
       - uses: actions/checkout@v4
       - name: Install bubblewrap for isolated provider tests
