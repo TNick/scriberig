@@ -102,7 +102,7 @@ impl TuiPty {
                 .join("golden-rust-project"),
             &project,
         );
-        Self::start_configured(fixture, Some(project), true, None, true)
+        Self::start_configured(fixture, Some(project.clone()), true, Some(project), true)
     }
 
     /// Restarts the native TUI against an existing golden fixture.
