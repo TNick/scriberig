@@ -74,10 +74,10 @@ jobs:
             echo "This Forgejo worker cannot start the quality container; running host-compatible repository and web checks."
             python3 tools/lint_repo.py
             corepack prepare pnpm@12.11.2 --activate
-            pnpm --dir web install --frozen-lockfile
-            pnpm --dir web format:check
-            pnpm --dir web typecheck
-            pnpm --dir web test
+            corepack pnpm --dir web install --frozen-lockfile
+            corepack pnpm --dir web format:check
+            corepack pnpm --dir web typecheck
+            corepack pnpm --dir web test
             exit 0
           fi
           timeout --foreground 30s docker info --format 'Docker daemon: {{.ServerVersion}}'
