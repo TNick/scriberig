@@ -42,6 +42,7 @@ members = [
   "crates/domains/test-support",
   "crates/scriberig-conformance",
   "apps/scriberig",
+  "tests/fixtures/provider-worker-plugin",
 ]
 
 [workspace.package]
@@ -51,19 +52,25 @@ rust-version = "1.85"
 repository = "https://github.com/TNick/scriberig"
 
 [workspace.dependencies]
-# Controlled TNick fork on `fix/stale-rpi-tui-mock`, based on the reviewed
-# upstream-ownership pin. This pin also carries the stale RecordingTerminal
-# mock fix so the upstream rpi-tui suite verifies terminal restoration.
-rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "587c63f3a521567b2ef8fe9ce038fd35e3896f15" }
-rpi-agent = { git = "https://github.com/TNick/pi-rust", rev = "587c63f3a521567b2ef8fe9ce038fd35e3896f15" }
-rpi-extensions = { git = "https://github.com/TNick/pi-rust", rev = "587c63f3a521567b2ef8fe9ce038fd35e3896f15" }
-rpi-model-runtime = { git = "https://github.com/TNick/pi-rust", rev = "587c63f3a521567b2ef8fe9ce038fd35e3896f15" }
-rpi-tui = { git = "https://github.com/TNick/pi-rust", rev = "587c63f3a521567b2ef8fe9ce038fd35e3896f15" }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+# Controlled TNick fork on `codex/extension-session-generations`, based on the
+# reviewed upstream-ownership pin. It adds provider lifecycle events, atomic
+# extension-session/catalog publication, plugin command UI continuation,
+# reusable text-panel rendering, safe model/request fingerprints including
+# prepared-body/allowlisted-header digests, safe typed model-configuration
+# fingerprints, persistent Faux factories for concurrent deterministic runs,
+# and retains the terminal fix.
+rpi-ai = { git = "https://github.com/TNick/pi-rust", rev = "278cde7d20db1a5424153633b1808bc8c3928655" }
+rpi-agent = { git = "https://github.com/TNick/pi-rust", rev = "278cde7d20db1a5424153633b1808bc8c3928655" }
+rpi-extensions = { git = "https://github.com/TNick/pi-rust", rev = "278cde7d20db1a5424153633b1808bc8c3928655" }
+rpi-model-runtime = { git = "https://github.com/TNick/pi-rust", rev = "278cde7d20db1a5424153633b1808bc8c3928655" }
+rpi-tui = { git = "https://github.com/TNick/pi-rust", rev = "278cde7d20db1a5424153633b1808bc8c3928655" }
+rpi-plugin-sdk = { git = "https://github.com/TNick/pi-rust", rev = "278cde7d20db1a5424153633b1808bc8c3928655" }
 
 [workspace.lints.rust]
 warnings = "deny"
 missing_docs = "warn"
-unsafe_code = "forbid"
+unsafe_code = "deny"
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }

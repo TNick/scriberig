@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 
 use rpi_tui::{
     Component, Editor, EditorOptions, EditorStyle, Focusable, Keybindings, ProcessTerminal, TUI,
-    TuiAltScreen,
+    TuiAltScreen, VStack,
 };
 
 use crate::debug_log::TuiDebugLog;
@@ -24,6 +24,8 @@ mod event_loop;
 mod lifecycle_tests;
 #[path = "upstream/modal_overlay.rs"]
 mod modal_overlay;
+#[path = "upstream/plugin_overlays.rs"]
+mod plugin_overlays;
 #[path = "upstream/property_editor.rs"]
 mod property_editor;
 #[path = "upstream/selector_factory.rs"]
@@ -36,7 +38,8 @@ mod shell_panes;
 #[path = "upstream/transcript_follow_tests.rs"]
 mod transcript_follow_tests;
 
-use components::{ComposerAdapter, SelectionStatusPanel};
+use components::{ComposerAdapter, ExtensionFooterPanels, SelectionStatusPanel};
+use plugin_overlays::PluginOverlays;
 use semantic_views::SemanticViewPanel;
 use shell_panes::ShellPanes;
 
@@ -119,6 +122,15 @@ pub(super) enum ComposerInput {
     CloseHelp,
     /// Apply a selected command palette row.
     PaletteSelected(String),
+    /// Continue a plugin command after its upstream UI returned an action.
+    PluginCommandAction {
+        /// Exact host-authorized plugin command identity.
+        command: String,
+        /// Original arguments supplied with the command.
+        arguments: String,
+        /// Structured action selected or submitted by the user.
+        action: serde_json::Value,
+    },
     /// Apply a selected upstream model control row.
     Selected(SelectorChoice),
     /// Cancel the active selector.
@@ -272,9 +284,23 @@ pub(super) fn run<S: TuiService + Sync>(
         Arc::clone(&shared_state),
         controls::control_hints(&keybindings),
     ));
-    let status_pane: Arc<dyn Component> = selection_status;
+    let extension_mailbox = service.extension_component_mailbox();
+    let status_pane: Arc<dyn Component> = if let Some(mailbox) = extension_mailbox.as_ref() {
+        let status_stack = Arc::new(VStack::new());
+        status_stack.add_child(selection_status);
+        status_stack.add_child(Arc::new(ExtensionFooterPanels::new(mailbox.clone())));
+        status_stack
+    } else {
+        selection_status
+    };
     let composer_pane: Arc<dyn Component> = Arc::clone(&composer) as Arc<dyn Component>;
-    let mut panes = ShellPanes::new(&conversation, status_pane, composer_pane, initial_view);
+    let mut panes = ShellPanes::new(
+        &conversation,
+        status_pane,
+        composer_pane,
+        initial_view,
+        extension_mailbox,
+    );
 
     let screen = Arc::new(TuiAltScreen::new(
         Box::new(ProcessTerminal::new()),

@@ -33,7 +33,7 @@ use super::{NativeScenario, upstream_execution};
 /// # Errors
 /// Returns a safe upstream provider or execution failure.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn execute_agent<B: ApplicationBackend + Sync>(
+pub(crate) fn execute_agent<B: ApplicationBackend + Send + Sync + 'static>(
     provider: NativeScenario,
     model: &str,
     _provider_id: Option<&str>,

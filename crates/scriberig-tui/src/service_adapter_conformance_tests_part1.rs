@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::service::TuiModelRequestService;
+use crate::service::TuiRuntimeService;
 
 /// Verifies local and remote session adapters share semantics.
 ///
@@ -269,6 +270,32 @@ fn local_and_remote_operation_adapters_share_lifecycle_semantics() {
         .expect("remote operation status");
 
     assert_eq!(local, remote);
+}
+
+/// Verifies a TUI cancellation request updates the shared application registry.
+#[test]
+fn local_operation_cancellation_uses_shared_registry() {
+    let operation =
+        scriberig_core::OperationId::new("operation-cancel-conformance").expect("operation id");
+    let service = scriberig_app::ApplicationService::new(LocalSessionFixture {
+        session: session_fixture(),
+    });
+    service
+        .operations()
+        .start(operation.clone(), scriberig_app::OperationKind::Agent)
+        .expect("start shared operation");
+    let adapter = crate::service::ApplicationOperationAdapter::new(service.clone());
+
+    let observed = adapter
+        .cancel_operation(&ApplicationContext::empty(), &operation)
+        .expect("cancel through TUI service");
+    let shared = service
+        .operations()
+        .get(&operation)
+        .expect("read shared operation");
+
+    assert_eq!(observed.status, scriberig_app::OperationStatus::Cancelled);
+    assert_eq!(shared, observed);
 }
 
 /// Verifies both service paths enforce the same agent-start capability.

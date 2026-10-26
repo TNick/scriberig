@@ -1,7 +1,5 @@
 //! Verifies failed PHP candidate validation remains reviewable and unapplied.
 
-#[path = "tui_pty_support/onboarding_wait.rs"]
-mod onboarding_wait;
 #[allow(dead_code)]
 mod tui_pty_support;
 
@@ -10,12 +8,12 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use onboarding_wait::{wait_for_branch_completion, wait_for_onboarding};
 use scriberig_core::{EntityId, ProjectId, SnapshotId};
 use scriberig_project::{CandidateValidation, ProjectService};
 use scriberig_session::SessionStore;
 use scriberig_session_sqlite::SqliteSessionStore;
 use scriberig_store_sqlite::SqliteStore;
+use tui_pty_support::onboarding_wait::{wait_for_branch_completion, wait_for_onboarding};
 use tui_pty_support::{TuiPty, candidate_review, test_lock};
 
 /// Drives an intentionally invalid PHP candidate through the native TUI.

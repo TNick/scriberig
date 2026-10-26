@@ -43,6 +43,43 @@ pub(super) fn projection(state: &TuiState) -> Option<TreeProjection> {
     })
 }
 
+/// Refreshes cursor-dependent fields without rebuilding semantic tree rows.
+///
+/// - `state`: Current `ScribeRig` cursor and selected-row details.
+/// - `projection`: Cached tree structure receiving the current selection.
+pub(super) fn refresh_cursor_projection(state: &TuiState, projection: &mut TreeProjection) {
+    let selected = selected_cursor_id(state, projection);
+    if projection.selected_id != selected {
+        projection.selected_id = selected;
+        if state.primary_view == crate::selection::PrimaryView::Session {
+            projection.details = super::details::session_details(state);
+        }
+    }
+}
+
+/// Resolves the current cursor to a projected stable row ID in constant time.
+///
+/// - `state`: Current `ScribeRig` cursor identity.
+/// - `projection`: Cached rows used only for numeric-index fallback.
+///
+/// # Returns
+/// The selected stable row ID when one is available.
+pub(super) fn selected_cursor_id(state: &TuiState, projection: &TreeProjection) -> Option<String> {
+    match state.primary_view {
+        crate::selection::PrimaryView::Conversation => {
+            state.conversation_cursor.map(conversation_source_id)
+        }
+        crate::selection::PrimaryView::Session => state.session_cursor.map(session_row_id),
+        _ => None,
+    }
+    .or_else(|| {
+        projection
+            .items
+            .get(state.cursor)
+            .map(|item| item.id.clone())
+    })
+}
+
 /// Projects current visible conversation or session rows to stable tree IDs.
 ///
 /// - `state`: `ScribeRig` view state supplying the visible rows.

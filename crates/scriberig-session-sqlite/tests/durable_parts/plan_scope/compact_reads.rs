@@ -120,6 +120,24 @@ fn compact_plan_read_hydrates_only_view_required_objects() {
         .expect("save plan fixture");
 
     let stored = store.load(session).expect("load").expect("fixture");
+    let read_projection = store
+        .load_read_projection(session)
+        .expect("compact session read projection")
+        .expect("fixture projection");
+    assert!(
+        read_projection.plans[0].history.is_empty(),
+        "routine read projections must not reconstruct plan ancestors"
+    );
+    assert_eq!(read_projection.plans[0].gates.len(), 0);
+    assert_eq!(read_projection.plans[0].evidence.len(), 0);
+    assert_eq!(
+        read_projection.plans[0].summaries, stored.plans[0].summaries,
+        "compact reads retain current summaries needed by shared node views"
+    );
+    assert!(
+        !stored.plans[0].history.is_empty(),
+        "full load remains available for detail and mutation paths"
+    );
     let mut running = stored.clone();
     running.plans[0]
         .start_with_coordinator_claim(EntityId::from_bytes([211; 16]), "coordinator-a", None)

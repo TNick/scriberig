@@ -1,6 +1,7 @@
 //! Provides private conversions shared by guarded application read methods.
 
 use crate::ApplicationError;
+use crate::guarded_query::GuardedQueryService;
 use crate::{ApplicationContext, CapabilityAction, CapabilityScope, OperationKind};
 use scriberig_core::EntityId;
 use scriberig_query::{FindResult, NavigationEntry, QueryError, QueryResult, TargetRef};
@@ -126,4 +127,61 @@ pub(crate) fn filter_find_hits(context: &ApplicationContext, result: &mut FindRe
         .page
         .items
         .retain(|hit| can_expose(context, hit.target));
+}
+
+/// Authorizes every entity named by a query scope before evaluation.
+///
+/// - `context`: Caller grants to evaluate.
+/// - `scope`: Exact query scope to authorize.
+/// - `action`: Action required by the query.
+/// - `operation`: Universal operation kind.
+///
+/// `Ok(())` when the complete scope is authorized.
+///
+/// Returns a denial or schema error before the provider is evaluated.
+/// # Returns
+/// The operation result.
+/// # Errors
+/// Returns an error when the operation fails.
+pub(super) fn authorize_query_scope(
+    context: &ApplicationContext,
+    scope: &scriberig_query::QueryScope,
+    action: &CapabilityAction,
+    operation: OperationKind,
+) -> Result<(), ApplicationError> {
+    match scope {
+        scriberig_query::QueryScope::Snapshot(snapshot) => GuardedQueryService::<()>::authorize(
+            context,
+            action,
+            &CapabilityScope::Project,
+            Some(*snapshot),
+            operation,
+        ),
+        scriberig_query::QueryScope::Entity { snapshot, entity } => {
+            GuardedQueryService::<()>::authorize(
+                context,
+                action,
+                &CapabilityScope::Entity(*entity),
+                Some(*snapshot),
+                operation,
+            )
+        }
+        scriberig_query::QueryScope::ExplicitEntities { snapshot, entities } => {
+            if entities.is_empty() {
+                return Err(ApplicationError::SchemaViolation {
+                    message: "query scope must contain an entity".to_owned(),
+                });
+            }
+            for entity in entities {
+                GuardedQueryService::<()>::authorize(
+                    context,
+                    action,
+                    &CapabilityScope::Entity(*entity),
+                    Some(*snapshot),
+                    operation,
+                )?;
+            }
+            Ok(())
+        }
+    }
 }

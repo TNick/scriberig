@@ -85,6 +85,7 @@ fn session_graph_survives_reopen() {
         root.model_invocations.push(ModelInvocation {
             id: EntityId::from_bytes([4; 16]),
             branch: root_id,
+            operation: None,
             ordinal: 1,
             agent_profile: None,
             context_fingerprint: Some("context-fingerprint".to_owned()),
@@ -302,6 +303,7 @@ fn plan_dependencies_and_assignments_survive_reopen() {
         .expect("session exists");
     let loaded_plan = &loaded.plans[0];
     assert_eq!(loaded_plan.status, scriberig_session::PlanStatus::Running);
+    assert_eq!(loaded_plan.root_nodes, vec![first, second, downstream]);
     assert!(loaded_plan.coordinator_claim.is_some());
     assert_eq!(loaded_plan.nodes[0].status, PlanNodeStatus::Completed);
     assert_eq!(loaded_plan.nodes[1].status, PlanNodeStatus::Ready);

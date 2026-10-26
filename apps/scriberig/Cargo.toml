@@ -9,7 +9,7 @@ repository.workspace = true
 publish = false
 
 [features]
-default = []
+default = ["isolated-plugin-worker"]
 isolated-plugin-worker = ["scriberig-agent-runtime/isolated-plugin-worker"]
 
 [[bin]]
@@ -39,6 +39,7 @@ scriberig-style-sqlite = { path = "../../crates/scriberig-style-sqlite" }
 sr-projection = { path = "../../crates/sr-projection" }
 rpi-ai = { workspace = true }
 rpi-agent = { workspace = true }
+rpi-extensions = { workspace = true }
 rpi-model-runtime = { workspace = true }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 async-trait = "0.1"
@@ -48,8 +49,13 @@ scriberig-query = { path = "../../crates/scriberig-query" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 ctrlc = "3.4"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing = "0.1"
 
 [dev-dependencies]
+scriberig-test-provider-plugin = { path = "../../tests/fixtures/provider-worker-plugin" }
+scriberig-store-memory = { path = "../../crates/scriberig-store-memory" }
+sr-change = { path = "../../crates/sr-change" }
 tempfile = "3"
 portable-pty = "0.9"
 vt100 = "0.15.2"

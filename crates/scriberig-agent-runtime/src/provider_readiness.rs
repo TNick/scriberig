@@ -117,6 +117,44 @@ pub fn project_readiness(
     catalog: &ModelCatalog,
     credentials: Option<&dyn CredentialProvider>,
 ) -> ProviderReadinessProjection {
+    project_readiness_classified(catalog, |model| classify_credential(model, credentials))
+}
+
+/// Projects credential readiness with a host-selected authority per model.
+///
+/// This keeps connection lookup and destination policy at the composition
+/// boundary while preserving one coherent upstream catalog snapshot.
+///
+/// # Parameters
+/// - `catalog`: Shared live upstream model catalog.
+/// - `credential_for_model`: Host resolver returning the safe readiness class
+///   for each exact catalog model.
+///
+/// The generation-aligned, credential-safe readiness projection.
+/// # Returns
+/// One readiness row per distinct provider/model pair in catalog order.
+#[must_use]
+pub fn project_readiness_with(
+    catalog: &ModelCatalog,
+    mut credential_for_model: impl FnMut(&rpi_ai::Model) -> Result<UpstreamCredentialSource, ()>,
+) -> ProviderReadinessProjection {
+    project_readiness_classified(catalog, |model| {
+        classify_source(&credential_for_model(model))
+    })
+}
+
+/// Builds readiness rows from one catalog snapshot and classified host results.
+///
+/// - `catalog`: Shared live upstream model catalog.
+/// - `classify`: Host-selected safe readiness projection for each model.
+///
+/// A generation-aligned, credential-safe readiness projection.
+/// # Returns
+/// One readiness row per distinct provider/model pair in catalog order.
+fn project_readiness_classified(
+    catalog: &ModelCatalog,
+    mut classify: impl FnMut(&rpi_ai::Model) -> ProviderCredentialReadiness,
+) -> ProviderReadinessProjection {
     let snapshot = catalog.snapshot();
     let mut seen = std::collections::BTreeSet::new();
     let rows = snapshot
@@ -126,7 +164,8 @@ pub fn project_readiness(
         .map(|model| ProviderReadiness {
             provider_id: model.provider.clone(),
             model_id: model.id.clone(),
-            credential: classify_credential(model, credentials),
+            credential: classify(model),
+            authentication: None,
         })
         .collect();
     ProviderReadinessProjection {
@@ -157,6 +196,17 @@ fn classify_credential(
             std::slice::from_ref(model),
         )),
     };
+    classify_source(&source)
+}
+
+/// Maps upstream credential-source evidence to the safe public readiness row.
+///
+/// - `source`: Upstream source classification or a host authorization failure.
+///
+/// The corresponding safe credential-readiness category.
+/// # Returns
+/// The non-secret readiness value.
+fn classify_source(source: &Result<UpstreamCredentialSource, ()>) -> ProviderCredentialReadiness {
     match source {
         Err(()) => ProviderCredentialReadiness::Denied,
         Ok(

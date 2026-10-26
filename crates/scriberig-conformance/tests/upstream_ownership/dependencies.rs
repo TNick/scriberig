@@ -25,6 +25,9 @@ const UPSTREAM_RUNTIME_CONSUMERS: [&str; 5] = [
     "crates/scriberig-tui",
 ];
 
+/// Test-only package fixture allowed to implement the pinned plugin ABI.
+const UPSTREAM_ABI_FIXTURES: [&str; 1] = ["tests/fixtures/provider-worker-plugin"];
+
 /// Dependency names that would re-establish a deleted local commodity owner.
 const FORBIDDEN_DEPENDENCIES: [&str; 5] = [
     "crossterm",
@@ -165,7 +168,9 @@ fn semantic_crates_stay_independent_of_upstream_runtime() {
     let workspace_deps = workspace_dependency_table(&root);
     let mut failures: Vec<String> = Vec::new();
     for member in workspace_members(&root) {
-        if UPSTREAM_RUNTIME_CONSUMERS.contains(&member.as_str()) {
+        if UPSTREAM_RUNTIME_CONSUMERS.contains(&member.as_str())
+            || UPSTREAM_ABI_FIXTURES.contains(&member.as_str())
+        {
             continue;
         }
         let manifest = read_toml(&root.join(&member).join("Cargo.toml"));

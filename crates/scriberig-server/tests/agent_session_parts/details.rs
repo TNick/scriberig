@@ -9,11 +9,12 @@ use super::*;
 /// Reads typed gate and evidence detail pages from the exact plan revision.
 #[test]
 fn remote_client_reads_bounded_plan_details() {
-    let store = std::sync::Arc::new(
-        scriberig_session_sqlite::SqliteSessionStore::open_in_memory().expect("open store"),
-    );
+    let store: std::sync::Arc<dyn scriberig_session::repository::SessionStore> =
+        std::sync::Arc::new(
+            scriberig_session_sqlite::SqliteSessionStore::open_in_memory().expect("open store"),
+        );
     let client = scriberig_client::Client::new(scriberig_server::InProcessTransport::new(
-        ApplicationService::new(Fixture).with_session_store(store),
+        ApplicationService::new(Fixture).with_session_store(std::sync::Arc::clone(&store)),
     ));
     let session = "ent_72727272727272727272727272727272";
     let started = client
@@ -112,6 +113,21 @@ fn remote_client_reads_bounded_plan_details() {
         details.evidence[0].evidence.reference.snapshot,
         plan.evidence[0].evidence.reference.snapshot
     );
+    let tree = client
+        .read_session(session)
+        .expect("read compact session tree");
+    let tree_plan = tree.plans.iter().find(|value| value.id == plan.id).unwrap();
+    assert_eq!(tree_plan.gates.len(), 0);
+    assert_eq!(tree_plan.evidence.len(), 0);
+    assert_eq!(tree_plan.history.len(), 0);
+    assert_eq!(
+        tree_plan.nodes[0].entry_gates.pending
+            + tree_plan.nodes[0].entry_gates.satisfied
+            + tree_plan.nodes[0].entry_gates.failed
+            + tree_plan.nodes[0].entry_gates.waived,
+        1
+    );
+    assert_eq!(tree_plan.nodes[0].evidence_count, 1);
 
     let historical_snapshot = plan.snapshot.clone().expect("plan snapshot");
     let historical_revision = plan.revision;
@@ -156,10 +172,19 @@ fn remote_client_reads_bounded_plan_details() {
             session: SessionReference {
                 id: session.to_owned(),
             },
-            plan: updated.id,
+            plan: updated.id.clone(),
             snapshot: Some(historical_snapshot.clone()),
         })
         .expect("read compact historical plan view");
+    let expected: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../tests/conformance/fixtures/plan-view.json"
+    ))
+    .expect("shared plan view fixture");
+    assert_eq!(
+        serde_json::to_value(&compact).expect("serialize server plan view"),
+        expected,
+        "server plan view remains aligned with the shared cross-surface fixture"
+    );
     assert_eq!(compact.plan.revision, plan.exact_revision.unwrap());
     assert_eq!(
         compact.plan.snapshot.as_deref(),
@@ -174,4 +199,18 @@ fn remote_client_reads_bounded_plan_details() {
             + compact.nodes[0].entry_gates.waived,
         1
     );
+
+    let reconnected = scriberig_client::Client::new(scriberig_server::InProcessTransport::new(
+        ApplicationService::new(Fixture).with_session_store(store),
+    ));
+    let reloaded = reconnected
+        .plan_view(scriberig_protocol::SessionPlanViewRequest {
+            session: SessionReference {
+                id: session.to_owned(),
+            },
+            plan: updated.id,
+            snapshot: Some(historical_snapshot),
+        })
+        .expect("rebuild the compact plan view after reconnect");
+    assert_eq!(reloaded, compact);
 }

@@ -18,8 +18,10 @@ DATABASE = Path(
         str(RUNTIME / "scriberig.sqlite"),
     )
 ).expanduser()
-API_URL = "http://127.0.0.1:7337/api/health"
-WEB_URL = "http://127.0.0.1:5173"
+API_PORT = str(int(os.environ.get("SCRIBE_API_PORT", "7337")))
+WEB_PORT = str(int(os.environ.get("SCRIBE_WEB_PORT", "5173")))
+API_URL = f"http://127.0.0.1:{API_PORT}/api/health"
+WEB_URL = f"http://127.0.0.1:{WEB_PORT}"
 SERVICES = ("api", "web")
 def service_paths(name: str) -> dict[str, Path]:
     """Return PID and output paths for one development service.
@@ -311,7 +313,7 @@ def start() -> None:
             "--host",
             "127.0.0.1",
             "--port",
-            "7337",
+            API_PORT,
             "--db",
             str(DATABASE),
             *project_root_arguments,
@@ -330,7 +332,7 @@ def start() -> None:
             "--host",
             "127.0.0.1",
             "--port",
-            "5173",
+            WEB_PORT,
         ],
     )
     del api_pid, web_pid

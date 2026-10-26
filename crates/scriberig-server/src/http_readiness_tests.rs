@@ -164,6 +164,7 @@ fn projection(revision: u64, pairs: &[(&str, &str)]) -> ProviderReadinessProject
                 provider_id: (*provider_id).to_owned(),
                 model_id: (*model_id).to_owned(),
                 credential: ProviderCredentialReadiness::Available,
+                authentication: None,
             })
             .collect(),
     }
@@ -187,6 +188,7 @@ fn state(
         allowed_origin: None,
         project_store: None,
         allowed_project_roots: Vec::new(),
+        agent_execution_handler: None,
         plan_lifecycle_handler: None,
         provider_readiness_handler: handler,
         fixture: crate::development::DevelopmentFixture {

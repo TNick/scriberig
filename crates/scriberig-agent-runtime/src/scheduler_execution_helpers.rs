@@ -22,6 +22,7 @@ type ClaimedWorker = (
 /// - `dispatch`: Stable IDs of selected ready nodes.
 /// - `upstream_models`: Host-owned upstream model catalog.
 /// - `selection`: Session-level defaults for unassigned nodes.
+/// - `profile`: Optional agent profile used for profile-specific plan assignments.
 /// - `runtime_fallback`: Runtime model used when no assignment is selected.
 ///
 /// One resolved execution assignment per dispatched node, in dispatch order.
@@ -34,6 +35,7 @@ pub(super) fn resolve_assignments(
     dispatch: &[EntityId],
     upstream_models: &[rpi_ai::Model],
     selection: &scriberig_session::SessionExecutionSelection,
+    profile: Option<&scriberig_agent_core::AgentProfileDescriptor>,
     runtime_fallback: &str,
 ) -> Result<Vec<scriberig_app::ResolvedPlanExecution>, String> {
     dispatch
@@ -44,13 +46,29 @@ pub(super) fn resolve_assignments(
                 .iter()
                 .find(|node| node.id == *node_id)
                 .ok_or_else(|| format!("dispatched plan node {node_id} is missing"))?;
-            scriberig_app::resolve_plan_node_execution(
-                node,
-                selection,
-                upstream_models,
-                runtime_fallback,
-            )
-            .map_err(|error| format!("plan node assignment resolution failed: {error}"))
+            let resolved = match profile {
+                Some(profile) => crate::profile::resolve_profile_plan_node_execution(
+                    profile,
+                    node,
+                    scriberig_app::ExecutionSelectionSources {
+                        invocation: None,
+                        plan_node: None,
+                        branch: None,
+                        session: Some(selection),
+                        project: None,
+                        user_profile: None,
+                    },
+                    upstream_models,
+                    runtime_fallback,
+                ),
+                None => scriberig_app::resolve_plan_node_execution(
+                    node,
+                    selection,
+                    upstream_models,
+                    runtime_fallback,
+                ),
+            };
+            resolved.map_err(|error| format!("plan node assignment resolution failed: {error}"))
         })
         .collect()
 }
@@ -245,4 +263,76 @@ pub(super) fn settle_workers(
     plan.settle_workers(&completed, &failed, &available_results)
         .map_err(|error| format!("plan worker settlement failed: {error:?}"))?;
     Ok(batch)
+}
+
+#[cfg(test)]
+mod tests {
+    //! Verifies scheduler assignment resolution includes semantic profile defaults.
+
+    use super::resolve_assignments;
+    use scriberig_agent_core::AgentProfileExecutionPreference;
+    use scriberig_core::EntityId;
+    use scriberig_session::{
+        ContinuationAnchor, Plan, PlanNode, PlanNodeParent, PlanNodeStatus,
+        SessionExecutionSelection,
+    };
+
+    /// Resolves an unassigned worker from its captured profile preference.
+    #[test]
+    fn worker_assignment_uses_profile_preference() {
+        let session = EntityId::from_bytes([201; 16]);
+        let root = EntityId::from_bytes([202; 16]);
+        let node_id = EntityId::from_bytes([203; 16]);
+        let mut plan = Plan::new(
+            EntityId::from_bytes([204; 16]),
+            session,
+            ContinuationAnchor::BranchHead { branch: root },
+            "profile worker selection",
+        )
+        .expect("plan");
+        plan.nodes.push(PlanNode {
+            id: node_id,
+            parent: Some(PlanNodeParent::Branch(root)),
+            title: "worker".to_owned(),
+            purpose: "worker purpose".to_owned(),
+            expected_result: None,
+            semantic_scope: Vec::new(),
+            status: PlanNodeStatus::Planned,
+            branch: None,
+            result: None,
+            superseded_by: None,
+            assignment: None,
+            claim: None,
+            claim_generation: 0,
+            abandon_reason: None,
+            last_failure: None,
+        });
+        let mut profile = crate::profile::bootstrap_default_agent_profile();
+        profile.preferred_execution = Some(AgentProfileExecutionPreference {
+            provider_id: "preferred-provider".to_owned(),
+            model_id: "preferred-model".to_owned(),
+            thinking_level: None,
+        });
+        let models = vec![rpi_ai::Model::new(
+            "preferred-model",
+            "Preferred model",
+            rpi_ai::Api::AnthropicMessages,
+            "preferred-provider",
+            "https://example.test",
+        )];
+
+        let resolved = resolve_assignments(
+            &plan,
+            &[node_id],
+            &models,
+            &SessionExecutionSelection::default(),
+            Some(&profile),
+            "preferred-model",
+        )
+        .expect("worker selection resolves");
+
+        assert_eq!(resolved[0].provider_id, "preferred-provider");
+        assert_eq!(resolved[0].model_id, "preferred-model");
+        assert!(!resolved[0].uses_runtime_fallback);
+    }
 }

@@ -15,6 +15,7 @@ scriberig-agent-runtime = { path = "../scriberig-agent-runtime" }
 rpi-ai = { workspace = true }
 rpi-agent = { workspace = true }
 rpi-model-runtime = { workspace = true }
+rpi-extensions = { workspace = true }
 scriberig-core = { path = "../scriberig-core" }
 scriberig-app = { path = "../scriberig-app" }
 scriberig-client = { path = "../scriberig-client" }

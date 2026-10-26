@@ -4,6 +4,7 @@ use scriberig_app::{
     ApplicationBackend, ApplicationContext, ApplicationError, ApplicationRequest,
     ApplicationResult, CapabilityContext, CapabilityId,
 };
+use scriberig_session::{ModelRequestMessage, ModelRequestProjection};
 
 /// Backend fixture that leaves session and agent ownership to the application.
 pub struct Fixture;
@@ -52,5 +53,43 @@ pub fn session_context() -> ApplicationContext {
             CapabilityId::new("session_model_selection").expect("capability"),
         ]),
         ..ApplicationContext::empty()
+    }
+}
+
+#[allow(
+    dead_code,
+    reason = "shared support module is compiled by integration targets with different fixtures"
+)]
+#[must_use]
+/// Creates safe request evidence for a completed child branch.
+///
+/// # Returns
+/// A bounded projection containing one safe user message.
+pub fn child_model_request() -> ModelRequestProjection {
+    ModelRequestProjection {
+        ordinal: 0,
+        model: "child-model".to_owned(),
+        provider_id: None,
+        provider_profile: None,
+        thinking_level: None,
+        profile: None,
+        active_components: Vec::new(),
+        context_fingerprint: None,
+        request_fingerprint: None,
+        catalog_revision: None,
+        upstream_runtime_revision: None,
+        provider_response_id: None,
+        model_execution_configuration: None,
+        messages: vec![ModelRequestMessage {
+            role: "user".to_owned(),
+            content: "safe request".to_owned(),
+        }],
+        full_messages: None,
+        tools: Vec::new(),
+        full_tools: None,
+        content_complete: false,
+        applied_settings: None,
+        applied_settings_fingerprint: None,
+        truncated: false,
     }
 }

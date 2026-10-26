@@ -1,7 +1,14 @@
-//! Defines provider-neutral, revision-bound agent context components.
+//! Defines reusable semantic context-component values.
 
 /// Identifies one exact immutable context-component revision.
-#[derive(Clone, Debug, Eq, PartialEq)]
+///
+/// # Public members
+/// - `identity`: Stable component identity.
+/// - `revision`: Exact immutable component revision.
+///
+/// # Private members
+/// None.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct ContextComponentRevisionRef {
     /// Stable component identity independent of display text.
     pub identity: String,
@@ -10,7 +17,10 @@ pub struct ContextComponentRevisionRef {
 }
 
 /// Classifies the intended semantic use of a context component.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+///
+/// The variants describe where the component's guidance applies.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ContextComponentKind {
     /// Always-applicable `ScribeRig` behavioral invariant.
     CoreInvariant,
@@ -27,7 +37,10 @@ pub enum ContextComponentKind {
 }
 
 /// Declares the branch-role condition for activating a component.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+///
+/// The variants express activation against actual invocation topology.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ContextActivationRule {
     /// Activate for every invocation using the profile.
     Always,
@@ -38,7 +51,17 @@ pub enum ContextActivationRule {
 }
 
 /// Describes one provider-neutral instructional context component.
-#[derive(Clone, Debug, Eq, PartialEq)]
+///
+/// # Public members
+/// - `reference`: Stable component identity and exact revision.
+/// - `kind`: Semantic purpose.
+/// - `content`: Provider-neutral instructional content.
+/// - `activation`: Branch-role activation rule.
+/// - `priority`: Stable ordering priority.
+///
+/// # Private members
+/// None.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct ContextComponentDescriptor {
     /// Stable identity and exact immutable revision of the component.
     pub reference: ContextComponentRevisionRef,

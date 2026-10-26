@@ -61,6 +61,8 @@ fn gate_evidence_summary_and_blocker_summaries_match_the_shared_view() {
             EntityId::from_bytes([32; 16]),
         ),
     ];
+    let evidence_snapshot = scriberig_core::SnapshotId::from_bytes([178; 32]);
+    plan.evidence[0].evidence.reference.snapshot = Some(evidence_snapshot);
     plan.summaries = vec![summary(
         EntityId::from_bytes([30; 16]),
         work,
@@ -91,6 +93,10 @@ fn gate_evidence_summary_and_blocker_summaries_match_the_shared_view() {
         "Evidence: 2",
         &format!("Blocked by: {prerequisite}"),
         "Summary: Parser is half merged; blockers tracked.",
+        &format!(
+            "inspect \\`/inspect {} --snapshot {evidence_snapshot}\\`",
+            plan.evidence[0].evidence.reference.entity
+        ),
         &format!(
             "Summary identity: {}",
             view.summary_id.expect("summary identity")
@@ -262,6 +268,54 @@ fn a_waived_gate_is_rendered_as_waived_from_the_shared_view() {
         work_row.label.contains("1 gate"),
         "the visible row keeps the waived gate count: {:?}",
         work_row.label
+    );
+}
+
+/// Exposes pending and failed gate definitions and evaluator reasons in node details.
+#[test]
+fn pending_and_failed_gate_details_include_typed_requirements() {
+    let plan_id = EntityId::from_bytes([111; 16]);
+    let branch = EntityId::from_bytes([112; 16]);
+    let root = EntityId::from_bytes([113; 16]);
+    let child = EntityId::from_bytes([114; 16]);
+    let pending_gate = EntityId::from_bytes([115; 16]);
+    let failed_gate = EntityId::from_bytes([116; 16]);
+
+    let mut plan = sample_plan(plan_id, branch, root, child);
+    plan.nodes = vec![
+        node_with_status(root, None, PlanNodeStatus::Ready),
+        node_with_status(
+            child,
+            Some(PlanNodeParent::Node(root)),
+            PlanNodeStatus::Failed,
+        ),
+    ];
+    plan.root_nodes = vec![root];
+    plan.dependencies.clear();
+    plan.gates = vec![
+        validation_entry_gate(pending_gate, root),
+        required_child_gate(failed_gate, root, child),
+    ];
+    let (rows, session) = plan_rows(plan);
+
+    let details = selected_details(&session, &rows, plan_id, Some(root));
+
+    assert!(
+        details.contains(&format!("Entry gate {pending_gate} · Pending")),
+        "{details}"
+    );
+    assert!(details.contains("validation passed"), "{details}");
+    assert!(
+        details.contains(&format!("Completion gate {failed_gate} · Failed")),
+        "{details}"
+    );
+    assert!(
+        details.contains("required child is not complete"),
+        "{details}"
+    );
+    assert!(
+        details.contains(&format!("required child completed: {child}")),
+        "{details}"
     );
 }
 

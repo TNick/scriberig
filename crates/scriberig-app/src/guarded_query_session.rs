@@ -63,6 +63,26 @@ impl<S: crate::SessionBackend> crate::SessionBackend for GuardedQueryService<S> 
         self.inner.read_session(context, request)
     }
 
+    /// Delegates compact session projection reads through the guarded service.
+    ///
+    /// - `context`: Caller authorization and snapshot context.
+    /// - `request`: Stable session identity to read.
+    ///
+    /// The wrapped session projection.
+    ///
+    /// # Returns
+    /// The compact projection when supported by the wrapped service.
+    ///
+    /// # Errors
+    /// Returns the wrapped session backend error.
+    fn read_session_projection(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::SessionRequest,
+    ) -> Result<scriberig_session::Session, ApplicationError> {
+        self.inner.read_session_projection(context, request)
+    }
+
     /// Delegates durable plan creation through the guarded service.
     ///
     /// - `context`: Caller authorization and snapshot context.

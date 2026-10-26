@@ -87,7 +87,12 @@ impl<B> ApplicationService<B> {
                 subject: handle.root_branch.to_string(),
             })?;
         require_open_branch(branch, "local_agent_fail")?;
-        self.persist_execution_evidence(branch, tool_evidence, model_requests);
+        self.persist_execution_evidence_for_operation(
+            branch,
+            &handle.operation,
+            tool_evidence,
+            model_requests,
+        );
         branch.outcome = Some(failure.clone());
         let result_id = self.next_entity(0xB8);
         branch.result = Some(BranchResult {
@@ -202,7 +207,12 @@ impl<B> ApplicationService<B> {
                 subject: handle.child_branch.to_string(),
             })?;
         require_open_branch(branch, "local_child_agent_fail")?;
-        self.persist_execution_evidence(branch, tool_evidence, model_requests);
+        self.persist_execution_evidence_for_operation(
+            branch,
+            &handle.operation,
+            tool_evidence,
+            model_requests,
+        );
         branch.outcome = Some(failure.clone());
         let result_id = self.next_entity(0xB7);
         branch.result = Some(BranchResult {

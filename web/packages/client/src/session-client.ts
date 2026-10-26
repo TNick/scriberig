@@ -45,14 +45,14 @@ import type { TransportConnectionState } from "./transport";
 import { normalizeSessionPlan } from "./session-plan-views";
 import { planMutationToWire } from "./session-plan-mutation-wire";
 import { normalizePlanAttempts } from "./session-plan-attempts";
-import { SessionPlanReadClient } from "./session-plan-read-client";
+import { LegacyExecutionRecoveryClient } from "./legacy-execution-recovery-client";
 
 /** Durable agent and session operations on top of semantic operations.
  *
  * Public members: agent, session, model, branch, and event methods.
  * Private members: inherited semantic transport.
  */
-export class SessionClient extends SessionPlanReadClient {
+export class SessionClient extends LegacyExecutionRecoveryClient {
   /** Starts an agent operation and returns durable accepted handles. */
   startAgent(request: AgentStartRequest, signal?: AbortSignal): Promise<AgentAcceptedResponse> {
     return this.transport

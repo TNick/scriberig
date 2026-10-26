@@ -1,6 +1,8 @@
 //! Defines shared semantic operations consumed by every product surface.
 
 pub mod agent_console;
+pub mod agent_profile;
+pub mod agent_tools;
 pub mod capability;
 pub mod capability_registry;
 pub mod command;
@@ -41,6 +43,15 @@ pub use agent_console::resolution::{
     resolve_plan_node_execution, resolve_plan_node_execution_with_profile_preference,
     resolve_plan_node_execution_with_sources,
 };
+pub use agent_profile::types::{
+    AgentProfileDescriptor, AgentProfileExecutionPreference, AgentProfileRevisionRef,
+    ContextActivationRule, ContextComponentDescriptor, ContextComponentKind,
+    ContextComponentRevisionRef, LegacyProfileMappingRequest,
+};
+pub use agent_profile::{
+    AgentProfileError, AgentProfileProvider, AgentProfileService, AgentProfileStoreResult,
+    ProfileCandidate, ProfileInspection,
+};
 pub use capability::{
     AuthorizationDenial, BranchContext, Capability, CapabilityAction, CapabilityConstraints,
     CapabilityDescriptor, CapabilityId, CapabilityKind, CapabilityScope, DomainOperationRequest,
@@ -80,6 +91,7 @@ pub use promotion::{
     ApprovalEvidence, PromotionDecision, PromotionPolicyEvaluation, PromotionRequest,
     evaluate_promotion, promote_candidate,
 };
+pub use provider_lifecycle::ProviderExtensionRuntime;
 pub use provider_lifecycle::{ModelCatalogGeneration, catalog_generation, reconcile_model_catalog};
 pub use query::{DetailLevel, InspectRequest, InspectResult, QueryService, SnapshotResolution};
 pub use read_backend::UniversalReadBackend;
@@ -95,7 +107,8 @@ pub use service::{ApplicationBackend, ApplicationService};
 pub use service_store::StoreInspectionBackend;
 pub use session::{
     AgentCommandRequest, AgentConsoleBackend, AgentContinuationAccepted, AgentContinueAtRequest,
-    AgentResult, AgentSelection, CandidateChange, LocalAgentHandle, LocalChildAgentHandle,
+    AgentResult, AgentSelection, CandidateChange, LegacyExecutionMappingRequest,
+    LegacyPlanAssignmentMappingRequest, LocalAgentHandle, LocalChildAgentHandle,
     NewSessionAgentRequest, NewSessionAgentStart, PlanAssignmentRequest, PlanCreateRequest,
     PlanLifecycleAction, PlanLifecycleRequest, PlanMutation, PlanMutationRequest, PlanNodeDraft,
     PlanNodeReference, PlanReplanRequest, SessionBackend, SessionModelSelectionRequest,

@@ -201,6 +201,9 @@ fn model_requests() -> Vec<ModelRequestProjection> {
         active_components: Vec::new(),
         context_fingerprint: None,
         request_fingerprint: None,
+        catalog_revision: None,
+        upstream_runtime_revision: None,
+        provider_response_id: None,
         model_execution_configuration: None,
         messages: vec![scriberig_session::ModelRequestMessage {
             role: "user".to_owned(),

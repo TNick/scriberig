@@ -15,6 +15,7 @@ import type {
   SessionActivityItem,
 } from "@scriberig/protocol";
 import { SseParser } from "./sse-parser";
+import { encodeRequest } from "./protocol-wire-requests";
 
 type WireEvent = {
   sequence?: unknown;
@@ -297,8 +298,12 @@ export class HttpTransport implements SemanticTransport {
     try {
       response = await fetch(`${this.baseUrl}/protocol/${operation}`, {
         method: "POST",
-        headers: { "content-type": "application/json", ...this.headers() },
-        body: JSON.stringify(payload),
+        headers: {
+          "content-type": "application/json",
+          "x-scriberig-protocol": "1",
+          ...this.headers(),
+        },
+        body: JSON.stringify(encodeRequest(operation, payload)),
         ...(signal === undefined ? {} : { signal }),
       });
     } catch (error) {

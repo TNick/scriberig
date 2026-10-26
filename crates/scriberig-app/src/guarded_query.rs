@@ -1,8 +1,8 @@
 //! Provides one application authorization boundary for universal read queries.
 
 use crate::guarded_query_support::{
-    filter_find_hits, filter_navigation, filter_query_rows, query_error_to_application,
-    target_entity, target_snapshot,
+    authorize_query_scope, filter_find_hits, filter_navigation, filter_query_rows,
+    query_error_to_application, target_entity, target_snapshot,
 };
 use crate::{
     ApplicationContext, ApplicationError, CapabilityAction, CapabilityScope, InspectRequest,
@@ -68,7 +68,7 @@ impl<S> GuardedQueryService<S> {
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
-    fn authorize(
+    pub(super) fn authorize(
         context: &ApplicationContext,
         action: &CapabilityAction,
         scope: &CapabilityScope,
@@ -118,6 +118,40 @@ impl<S: QueryService> QueryService for GuardedQueryService<S> {
         )?;
         let result = self.inner.inspect(context, request)?;
         Ok(result)
+    }
+
+    /// Authorizes and delegates an inspection while preserving cancellation.
+    ///
+    /// - `self`: Guarded provider.
+    /// - `context`: Caller grants and exact request context.
+    /// - `request`: Entity inspection request.
+    /// - `cancelled`: Caller-owned cancellation flag.
+    ///
+    /// The authorized inspection result when the read completes.
+    ///
+    /// # Returns
+    /// The inspection result.
+    ///
+    /// # Errors
+    /// Returns cancellation, authorization denial, or the inner query error.
+    fn inspect_cancellable(
+        &self,
+        context: &ApplicationContext,
+        request: &InspectRequest,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> Result<InspectResult, ApplicationError> {
+        let scope = CapabilityScope::Entity(request.entity);
+        Self::authorize(
+            context,
+            &CapabilityAction::Inspect,
+            &scope,
+            match request.snapshot {
+                crate::SnapshotResolution::At(snapshot) => Some(snapshot),
+                _ => context.snapshot,
+            },
+            crate::OperationKind::Inspect,
+        )?;
+        self.inner.inspect_cancellable(context, request, cancelled)
     }
 }
 
@@ -309,62 +343,5 @@ impl<S: StructuredQueryService> GuardedQueryService<S> {
             .map_err(query_error_to_application)?;
         filter_query_rows(context, &mut result);
         Ok(result)
-    }
-}
-
-/// Authorizes every entity named by a query scope before evaluation.
-///
-/// - `context`: Caller grants to evaluate.
-/// - `scope`: Exact query scope to authorize.
-/// - `action`: Action required by the query.
-/// - `operation`: Universal operation kind.
-///
-/// `Ok(())` when the complete scope is authorized.
-///
-/// Returns a denial or schema error before the provider is evaluated.
-/// # Returns
-/// The operation result.
-/// # Errors
-/// Returns an error when the operation fails.
-fn authorize_query_scope(
-    context: &ApplicationContext,
-    scope: &scriberig_query::QueryScope,
-    action: &CapabilityAction,
-    operation: OperationKind,
-) -> Result<(), ApplicationError> {
-    match scope {
-        scriberig_query::QueryScope::Snapshot(snapshot) => GuardedQueryService::<()>::authorize(
-            context,
-            action,
-            &CapabilityScope::Project,
-            Some(*snapshot),
-            operation,
-        ),
-        scriberig_query::QueryScope::Entity { snapshot, entity } => {
-            GuardedQueryService::<()>::authorize(
-                context,
-                action,
-                &CapabilityScope::Entity(*entity),
-                Some(*snapshot),
-                operation,
-            )
-        }
-        scriberig_query::QueryScope::ExplicitEntities { snapshot, entities } => {
-            if entities.is_empty() {
-                return Err(ApplicationError::SchemaViolation {
-                    message: "query scope must contain an entity".to_owned(),
-                });
-            }
-            for entity in entities {
-                GuardedQueryService::<()>::authorize(
-                    context,
-                    action,
-                    &CapabilityScope::Entity(*entity),
-                    Some(*snapshot),
-                    operation,
-                )?;
-            }
-            Ok(())
-        }
     }
 }

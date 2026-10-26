@@ -54,7 +54,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         if plan.revision != request.expected_revision {
             return Err(revision_conflict(request.plan));
         }
-        let catalog = self.model_catalog.snapshot();
+        let catalog = self.provider_extension_runtime.model_catalog().snapshot();
         apply_mutation(
             self,
             plan,

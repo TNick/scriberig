@@ -19,6 +19,7 @@ use super::{UpstreamBranchExecutionFailure, UpstreamBranchFailure};
 /// - `branch`: Canonical root branch identity.
 /// - `prompt`: Instruction whose pending human turn the compiler omits.
 /// - `selection`: Exact selected workspace scope, when present.
+/// - `profile`: Exact semantic profile revision captured for this invocation.
 ///
 /// # Returns
 /// A fingerprint of the durable post-completion provider context.
@@ -32,6 +33,7 @@ pub(crate) fn completed_root_context_fingerprint<B: ApplicationBackend>(
     branch: EntityId,
     prompt: &str,
     selection: Option<&scriberig_app::AgentSelection>,
+    profile: &scriberig_app::AgentProfileDescriptor,
 ) -> Result<String, UpstreamBranchExecutionFailure> {
     let semantic_scope =
         selection.map(
@@ -48,13 +50,14 @@ pub(crate) fn completed_root_context_fingerprint<B: ApplicationBackend>(
         || context.clone(),
         |selection| context.clone().with_snapshot(selection.snapshot),
     );
-    let compiled = crate::agent_context::compile_branch_context(
+    let compiled = crate::agent_context::compile_branch_context_with_profile(
         service,
         &runtime_context,
         session,
         branch,
         prompt,
         semantic_scope,
+        profile,
     )
     .map_err(|_| UpstreamBranchExecutionFailure {
         failure: UpstreamBranchFailure {

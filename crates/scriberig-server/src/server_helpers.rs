@@ -120,6 +120,43 @@ pub(super) fn session_response(
     })
 }
 
+/// Converts a session into a protocol response with bounded plan summaries.
+///
+/// # Parameters
+/// - `session`: Compact durable session projection.
+/// - `read_views`: Shared application read for each plan's exact current view.
+///
+/// # Returns
+/// A session tree with compact plan/node summaries and no embedded histories.
+///
+/// # Errors
+/// Returns an application error when a plan view or protocol projection fails.
+pub(super) fn session_response_compact(
+    session: scriberig_session::Session,
+    mut read_views: impl FnMut(
+        scriberig_core::EntityId,
+        scriberig_core::EntityId,
+    ) -> Result<
+        (
+            scriberig_session::PlanView,
+            Vec<scriberig_session::PlanNodeView>,
+        ),
+        scriberig_app::ApplicationError,
+    >,
+) -> Result<scriberig_protocol::SessionReadResponse, scriberig_app::ApplicationError> {
+    let session_id = session.id;
+    let mut response = session_response(session.clone())?;
+    response.plans = session
+        .plans
+        .into_iter()
+        .map(|plan| {
+            let (view, nodes) = read_views(session_id, plan.id)?;
+            session_plan::project_compact(plan, &view, nodes)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(response)
+}
+
 /// Extracts stable result handles without exposing canonical result payloads.
 /// - `super`: Parent-module imports used by this helper.
 /// - `result`: Argument named `result`.

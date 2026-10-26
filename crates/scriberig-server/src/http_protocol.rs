@@ -55,13 +55,25 @@ pub(super) fn dispatch<S: ApplicationService + 'static>(
             },
         ) as std::sync::Arc<crate::http::PlanLifecycleHandler<&S>>
     });
+    let agent_handler = state.agent_execution_handler.as_ref().map(|handler| {
+        let handler = std::sync::Arc::clone(handler);
+        std::sync::Arc::new(
+            move |service: &&S,
+                  context: &scriberig_app::ApplicationContext,
+                  request: &scriberig_app::AgentCommandRequest,
+                  accepted: Option<&scriberig_protocol::AgentAcceptedResponse>| {
+                handler(*service, context, request, accepted)
+            },
+        ) as std::sync::Arc<crate::http::AgentExecutionHandler<&S>>
+    });
     let mut response = Dispatcher::for_principal(&state.service, state.principal.clone())
-        .dispatch_with_plan_lifecycle(
+        .dispatch_with_runtime_handlers(
             scriberig_protocol::RequestEnvelope {
                 version: scriberig_protocol::ProtocolVersion::default(),
                 correlation_id,
                 request,
             },
+            agent_handler.as_deref(),
             lifecycle_handler.as_deref(),
         );
     if is_model_library
@@ -192,6 +204,17 @@ fn decode_request(
         "session_thinking_selection" => scriberig_protocol::Request::SessionThinkingSelection(
             serde_json::from_str(body).map_err(invalid)?,
         ),
+        "legacy_execution_records" => scriberig_protocol::Request::LegacyExecutionRecords(
+            serde_json::from_str(body).map_err(invalid)?,
+        ),
+        "legacy_execution_mapping" => scriberig_protocol::Request::LegacyExecutionMapping(
+            serde_json::from_str(body).map_err(invalid)?,
+        ),
+        "legacy_plan_assignment_mapping" => {
+            scriberig_protocol::Request::LegacyPlanAssignmentMapping(
+                serde_json::from_str(body).map_err(invalid)?,
+            )
+        }
         "project" => {
             scriberig_protocol::Request::Project(serde_json::from_str(body).map_err(invalid)?)
         }
@@ -246,6 +269,27 @@ mod tests {
                 r#"{"session":{"id":"session-1"},"expected_revision":3,"thinking_level":"deep-dive"}"#
             ),
             Ok(scriberig_protocol::Request::SessionThinkingSelection(_))
+        ));
+        assert!(matches!(
+            decode_request(
+                "legacy_execution_records",
+                r#"{"session":{"id":"session-1"}}"#
+            ),
+            Ok(scriberig_protocol::Request::LegacyExecutionRecords(_))
+        ));
+        assert!(matches!(
+            decode_request(
+                "legacy_execution_mapping",
+                r#"{"session":{"id":"session-1"},"expected_revision":3,"legacy_path":"/execution","provider_id":"provider-1","model_id":"model-1"}"#
+            ),
+            Ok(scriberig_protocol::Request::LegacyExecutionMapping(_))
+        ));
+        assert!(matches!(
+            decode_request(
+                "legacy_plan_assignment_mapping",
+                r#"{"session":{"id":"session-1"},"legacy_path":"/plans/0/nodes/0/assignment","expected_plan_revision":4,"provider_id":"provider-1","model_id":"model-1"}"#
+            ),
+            Ok(scriberig_protocol::Request::LegacyPlanAssignmentMapping(_))
         ));
         assert!(matches!(
             decode_request(

@@ -105,7 +105,7 @@ impl<'a, B> NativePlanWorkerExecutor<'a, B> {
 
 impl<B> PlanWorkerExecutor for NativePlanWorkerExecutor<'_, B>
 where
-    B: ApplicationBackend + Sync,
+    B: ApplicationBackend + Send + Sync + 'static,
 {
     /// Rejects execution that lacks the exact plan worker context.
     ///

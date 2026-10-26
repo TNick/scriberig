@@ -141,6 +141,13 @@ impl PlanCoordinator {
         require_coordinator(&plan, coordinator_claim)?;
         let results = branch_results(&session);
         let selection = session.execution.clone();
+        let profile = service
+            .resolve_agent_profile(context, crate::profile::DEFAULT_AGENT_PROFILE_IDENTITY)
+            .map_err(|error| ApplicationError::InvalidRequest {
+                operation: "plan_advance".to_owned(),
+                message: error.to_string(),
+            })?
+            .unwrap_or_else(crate::profile::bootstrap_default_agent_profile);
         let schedule = PlanScheduler::tick(&plan, &results, concurrency_budget, |_| true);
         if schedule.dispatch.is_empty() {
             return Ok(PlanAdvanceResult {
@@ -159,23 +166,25 @@ impl PlanCoordinator {
         let expected_revision = plan.revision;
         let mut persisted_revision = None;
         let mut persistence_error = None;
-        let workers = PlanScheduler::execute_dispatch_with_context_persisted(
+        let workers = PlanScheduler::execute_dispatch_with_profile_context_persisted(
             &mut plan,
             &schedule.dispatch,
             &results,
             executor,
             upstream_models,
             &selection,
+            Some(&profile),
             runtime_fallback,
             next_id,
             |claimed_plan, node, claim| {
                 let mut worker_session = session.clone();
                 ensure_worker_branches(&mut worker_session, claimed_plan)?;
-                crate::plan_context::PlanWorkerContext::from_plan(
+                crate::plan_context::PlanWorkerContext::from_plan_with_profile(
                     &worker_session,
                     claimed_plan,
                     node,
                     claim,
+                    Some(&profile),
                 )
             },
             |claimed| {

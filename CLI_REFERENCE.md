@@ -37,6 +37,7 @@ The executable requires a subcommand. Standard Clap help and version flags are a
 | `config` | `srig config show [--format <human\|json>]` | Prints effective local-agent settings and their sources. |
 | `secrets` | `srig secrets <set\|list\|status\|delete\|bind\|unbind> ...` | Manages local OS credentials and exact destination bindings. |
 | `doctor` | `srig doctor [--format <human\|json>]` | Sends a bounded provider request using the effective credential policy. |
+| `recover-profile` | `srig recover-profile <SESSION> --revision <N> --profile <JSON> --provider <ID> --model <ID> [OPTIONS]` | Migrates one preserved legacy profile selection from an explicit operator template. |
 
 Each subcommand also supports `-h` / `--help`.
 
@@ -169,6 +170,42 @@ never accepts a value argument. `list` reads secret-free registry metadata;
 may be managed keyring aliases or typed environment/file references. Management
 is local CLI only. See [Managing secrets](SECRETS.md) for storage locations,
 deployment guidance, stable error statuses, rotation, and exposure recovery.
+
+## `srig recover-profile`
+
+Migrate a legacy `/execution` profile selection using a complete operator
+authored semantic profile and an explicit current upstream model selection:
+
+```text
+srig recover-profile <SESSION> --inspect [--db <PATH>]
+srig recover-profile <SESSION> --revision <N> --profile <JSON> --provider <ID> --model <ID> [--thinking-level <ID>] [--db <PATH>] [--yes]
+```
+
+Run `--inspect` first to read the exact preserved profile identity and current
+execution-selection revision for the session. Then author a complete profile
+template and run the apply form with an explicit current upstream selection.
+The JSON file must contain an `AgentProfileDescriptor`, including the exact
+legacy profile identity in `reference.identity`, the profile name, and its
+complete context-component policy. The command does not infer profile content
+or provider/model identity from the retired profile name, history, or catalog.
+It validates the requested model against the active upstream catalog, prints
+the candidate identity and revision, and prompts before promoting it. After
+promotion, it resolves the matching legacy session record using the supplied
+selection revision. If the revision is stale or the record is absent, the
+command reports the failure and leaves the recovery record available for
+review.
+
+| Argument | Meaning |
+| --- | --- |
+| `<SESSION>` | Exact `ent_` session identifier containing the legacy record. |
+| `--inspect` | Show the legacy identity, preserved selection, and observed revision. |
+| `--revision <N>` | Execution-selection revision observed during recovery inspection. |
+| `--profile <JSON>` | Operator-authored complete semantic profile descriptor. |
+| `--provider <ID>` | Current upstream provider identifier. |
+| `--model <ID>` | Current upstream provider-scoped model identifier. |
+| `--thinking-level <ID>` | Optional advertised thinking-level identifier. |
+| `--db <PATH>` | SQLite database; defaults to `playground/dev-app-runtime/scriberig.sqlite`. |
+| `--yes` | Skip interactive confirmation. |
 
 ## `srig doctor`
 

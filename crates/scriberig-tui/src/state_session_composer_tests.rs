@@ -382,3 +382,5 @@ fn project_command_reports_missing_project() {
 
 #[path = "state_session_composer_tests_part1.rs"]
 mod part1;
+#[path = "state_recovery_tests.rs"]
+mod recovery_tests;

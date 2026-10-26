@@ -116,11 +116,15 @@ impl RustStyle {
     ///
     /// - `bytes`: Exact style bytes produced by a caller or encoder.
     ///
+    /// Each field may appear at most once. Repeated fields are rejected rather
+    /// than silently applying a last-write-wins interpretation.
+    ///
     /// # Returns
-    /// The decoded style when every field is recognized.
+    /// The decoded style when every field is recognized and unique.
     ///
     /// # Errors
-    /// Returns the unrecognized field or value when decoding fails.
+    /// Returns the unrecognized or repeated field, or the unsupported value,
+    /// naming the field when decoding fails.
     pub fn decode(bytes: &[u8]) -> Result<Self, String> {
         let text =
             std::str::from_utf8(bytes).map_err(|_| "style bytes are not utf-8".to_owned())?;
@@ -128,11 +132,17 @@ impl RustStyle {
         if text.trim().is_empty() {
             return Ok(style);
         }
+        let mut seen: Vec<&str> = Vec::new();
         for entry in text.split(',') {
             let (key, value) = entry
                 .split_once('=')
                 .ok_or_else(|| format!("style field {entry} has no value"))?;
-            match key.trim() {
+            let key = key.trim();
+            if seen.contains(&key) {
+                return Err(format!("duplicate style field {key}"));
+            }
+            seen.push(key);
+            match key {
                 "indent" => {
                     style.indent = match value.trim() {
                         "spaces" => RustIndent::Spaces,

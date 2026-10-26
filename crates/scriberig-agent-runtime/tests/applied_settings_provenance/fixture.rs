@@ -4,9 +4,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use rpi_ai::event_stream::create_assistant_message_event_stream;
-use rpi_ai::providers::faux::faux_text;
-use rpi_ai::types::{Api, AssistantMessage, AssistantMessageEvent, DoneReason, StopReason};
+use rpi_ai::types::Api;
 use rpi_ai::{AppliedRequestSettings, Context, Model, Provider, SimpleStreamOptions};
 use scriberig_agent_runtime::context::{BranchExecutionContext, ContextCompiler, ContextPolicy};
 use scriberig_agent_runtime::upstream_invocation::{
@@ -14,27 +12,17 @@ use scriberig_agent_runtime::upstream_invocation::{
 };
 use scriberig_core::EntityId;
 
+#[path = "fixture/mode.rs"]
+mod mode;
+#[path = "fixture/report.rs"]
+mod report;
+#[path = "fixture/stream.rs"]
+mod stream;
+pub(super) use mode::ReportMode;
+use stream::completed_stream;
+
 /// Credential text that must never enter an upstream applied-settings report.
 pub(super) const CREDENTIAL_SENTINEL: &str = "applied-settings-credential-sentinel-2c7a";
-
-/// Report the fixture publishes after it prepares its final request body.
-#[derive(Clone, Copy, Debug)]
-pub(super) enum ReportMode {
-    /// A versioned partial report naming the exact bound model.
-    Attested,
-    /// A report naming a model other than the one bound to the branch.
-    OtherModel,
-    /// A report naming a provider other than the selected provider.
-    OtherProvider,
-    /// A report naming an API other than the bound model API.
-    OtherApi,
-    /// A report from an unsupported report contract version.
-    UnknownSchema,
-    /// An incomplete report that names no omitted category.
-    Unattested,
-    /// A provider that prepares a body but publishes no report.
-    Silent,
-}
 
 /// Deterministic provider that publishes one applied-settings report per request.
 pub(super) struct SettingsProvider {
@@ -94,35 +82,7 @@ impl SettingsProvider {
             "reasoning".to_owned(),
             serde_json::json!({ "effort": "medium" }),
         );
-        Some(AppliedRequestSettings {
-            schema_version: if matches!(self.mode, ReportMode::UnknownSchema) {
-                "rpi-applied-request-settings-v2".to_owned()
-            } else {
-                "rpi-applied-request-settings-v1".to_owned()
-            },
-            provider_id: if matches!(self.mode, ReportMode::OtherProvider) {
-                "other-provider".to_owned()
-            } else {
-                model.provider.clone()
-            },
-            model_id: if matches!(self.mode, ReportMode::OtherModel) {
-                "other-model".to_owned()
-            } else {
-                model.id.clone()
-            },
-            api_id: if matches!(self.mode, ReportMode::OtherApi) {
-                "other-api".to_owned()
-            } else {
-                model.api.as_str().to_owned()
-            },
-            applied_values,
-            omitted_categories: if matches!(self.mode, ReportMode::Unattested) {
-                Vec::new()
-            } else {
-                omitted_categories()
-            },
-            complete: false,
-        })
+        Some(report::build(self.mode, model, applied_values))
     }
 }
 
@@ -184,63 +144,6 @@ impl Provider for SettingsProvider {
     }
 }
 
-/// Categories an upstream partial report is expected to name.
-///
-/// # Returns
-/// The upstream omission category names for a v1 partial report.
-fn omitted_categories() -> Vec<String> {
-    [
-        "endpoint",
-        "headers_and_credentials",
-        "prompt_and_transcript",
-        "tools_and_schemas",
-        "opaque_provider_options",
-        "unrecognized_request_fields",
-    ]
-    .into_iter()
-    .map(str::to_owned)
-    .collect()
-}
-
-/// Streams one completed text response for the bound model.
-///
-/// # Parameters
-/// - `model`: Exact model that produced the response.
-/// - `provider_id`: Provider identity carried by the response.
-///
-/// # Returns
-/// The completed response event stream.
-fn completed_stream(model: &Model, provider_id: &str) -> rpi_ai::AssistantMessageEventStream {
-    let (mut producer, stream) = create_assistant_message_event_stream();
-    let message = AssistantMessage {
-        content: vec![faux_text("safe completed answer")],
-        stop_reason: StopReason::Stop,
-        ..AssistantMessage::empty(
-            model.api.clone(),
-            provider_id.to_owned(),
-            model.id.clone(),
-            0,
-        )
-    };
-    producer.push(AssistantMessageEvent::Start {
-        partial: Arc::new(message.clone()),
-    });
-    producer.push(AssistantMessageEvent::TextStart {
-        content_index: 0,
-        partial: Arc::new(message.clone()),
-    });
-    producer.push(AssistantMessageEvent::TextEnd {
-        content_index: 0,
-        content: "safe completed answer".to_owned(),
-        partial: Arc::new(message.clone()),
-    });
-    producer.push(AssistantMessageEvent::Done {
-        reason: DoneReason::Stop,
-        message,
-    });
-    stream
-}
-
 /// Builds one fixture model row carrying credential-bearing catalog metadata.
 ///
 /// # Parameters
@@ -257,6 +160,19 @@ pub(super) fn fixture_model(provider_id: &str, model_id: &str) -> Model {
         provider_id,
         format!("https://provider.invalid/v1?token={CREDENTIAL_SENTINEL}"),
     );
+    model.provider_options_schema = Some(rpi_ai::ProviderOptionsSchema {
+        version: 1,
+        schema: serde_json::json!({
+            "type": "object",
+            "properties": {
+                "future_vendor_mode": {"type": "string", "enum": ["fast", "accurate"]}
+            },
+            "additionalProperties": false
+        }),
+    });
+    model
+        .provider_options
+        .insert("future_vendor_mode".to_owned(), serde_json::json!("fast"));
     model.headers = Some(BTreeMap::from([(
         "authorization".to_owned(),
         format!("Bearer {CREDENTIAL_SENTINEL}"),
@@ -303,6 +219,7 @@ pub(super) fn invocation(
         context: compiled_context(),
         tools: Vec::new(),
         activity: Arc::new(scriberig_agent_runtime::orchestration::ActivitySequence::default()),
+        provider_lifecycle: None,
     }
 }
 

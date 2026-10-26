@@ -2,7 +2,6 @@
 
 use std::sync::atomic::Ordering;
 
-use super::super::persist_execution_evidence;
 use crate::{ApplicationError, ApplicationService};
 use scriberig_core::EntityId;
 use scriberig_session::{BranchResult, Turn};
@@ -149,8 +148,13 @@ impl<B> ApplicationService<B> {
         )
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "One settlement records ordered evidence, output, branch result, and operation completion under a single session mutation."
+    )]
     /// Completes a child branch and persists its executed tool evidence.
     ///
+    /// # Parameters
     /// - `self`: Application service owning local session state.
     /// - `handle`: Pending child operation handle.
     /// - `final_output`: Complete externally meaningful child output.
@@ -160,11 +164,11 @@ impl<B> ApplicationService<B> {
     ///
     /// The structured application agent result for the child.
     ///
-    /// Returns an application error when the child branch is unavailable.
     /// # Returns
-    /// The operation result.
+    /// The structured result of the completed child operation.
+    ///
     /// # Errors
-    /// Returns an error when the operation fails.
+    /// Returns an error when the child branch or pending operation is unavailable.
     pub fn complete_local_child_agent_with_evidence(
         &self,
         handle: &crate::LocalChildAgentHandle,
@@ -187,7 +191,12 @@ impl<B> ApplicationService<B> {
                 subject: handle.child_branch.to_string(),
             })?;
         require_open_branch(branch, "local_child_agent_complete")?;
-        persist_execution_evidence(self, branch, tool_evidence, model_requests);
+        self.persist_execution_evidence_for_operation(
+            branch,
+            &handle.operation,
+            tool_evidence,
+            model_requests,
+        );
         let output_turn = if let Some(turn) = branch.turns.iter_mut().rev().find(|turn| {
             turn.agent.is_none()
                 && turn

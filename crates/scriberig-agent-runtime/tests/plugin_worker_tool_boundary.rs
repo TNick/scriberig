@@ -1,16 +1,10 @@
-//! Proves a plugin worker's advertised tool cannot enter a default-build branch
-//! tool set.
+//! Proves a worker-advertised tool needs explicit host registration.
 //!
-//! Task 146 §11 keeps extension and plugin tools deny-by-default until an
-//! isolated worker is activated in production. Two gates keep that boundary
-//! closed in every supported build: `SemanticAgentTool::new` adapts only a
-//! definition already visible in the branch's `ToolCatalog`, and
-//! `ToolCatalog::authorize_for_context` admits only a registered name. The only
-//! registration path for a worker tool is `ToolCatalog::merge_authorized`,
-//! which exists inside the opt-in `isolated-plugin-worker` composition seam and
-//! has no production caller, so a worker tool stays unrepresentable in a default
-//! build even when the branch is explicitly granted the plugin's capability
-//! name.
+//! Production can compose an isolated worker tool only after its configured
+//! allowlist, sandbox admission, and branch capability checks succeed. This
+//! negative case omits that registration: a capability name alone cannot add a
+//! provider-advertised name to the trusted branch catalog, and
+//! `SemanticAgentTool::new` cannot adapt a tool absent from that catalog.
 
 use rpi_ai::types::Tool;
 use scriberig_agent_runtime::tools::{

@@ -77,6 +77,7 @@ fn append_activity(branch: &mut scriberig_session::Branch, index: u32) {
         .push(scriberig_session::ModelInvocation {
             id: invocation,
             branch: branch.id,
+            operation: None,
             ordinal: u64::from(index),
             agent_profile: None,
             context_fingerprint: None,
@@ -274,6 +275,7 @@ pub(super) fn shell(state: &Arc<Mutex<TuiState>>) -> ShellPanes {
         Arc::new(Text::new("status pane", 0, 0)),
         Arc::new(Text::new(COMPOSER_ROW, 0, 0)),
         initial_view,
+        None,
     )
 }
 

@@ -1,23 +1,32 @@
 //! Bridges `ScribeRig` host policy to upstream isolated plugin workers.
 
+use rpi_ai::Provider;
 use std::collections::BTreeSet;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use rpi_extensions::isolated::{
     AllowlistedHostHandler, IsolatedWorker, WorkerError, WorkerLaunchSpec, WorkerLauncher,
-    WorkerSandboxPolicy, WorkerToolSpec,
+    WorkerProvider, WorkerToolSpec,
 };
+pub use rpi_extensions::isolated::{WorkerNetworkPolicy, WorkerSandboxPolicy};
 use tokio_util::sync::CancellationToken;
 
+mod components;
 mod composition;
+#[path = "configuration.rs"]
+mod configuration;
 mod dispatcher;
+#[path = "packages.rs"]
+mod packages;
 mod sandbox;
 
+pub use components::PluginComponentDispatcher;
 pub use composition::{
     ComposedPluginTools, PluginCompositionError, PluginToolBridge, PluginToolRequest,
     PluginWorkerAdmission, compose_branch_plugin_tools,
 };
+pub use configuration::{PluginWorkerConfiguration, run_worker_mode};
 pub use dispatcher::{ApplicationDomainDispatcher, PluginHostPolicy, PluginSemanticDispatcher};
 use sandbox::validate_worker_launch;
 pub use sandbox::{WorkerSandboxAttestation, sandboxed_launcher};
@@ -35,16 +44,23 @@ pub use sandbox::{WorkerSandboxAttestation, sandboxed_launcher};
 /// - `allows`: Reports one host-allowlisted tool identifier.
 /// - `call_tool`: Executes one authorized worker tool.
 /// - `call_tool_cancellable`: Executes one authorized tool under cancellation.
+/// - `provider_adapters`: Builds authorized upstream Provider adapters.
+/// - `advertised_commands`: Returns host-allowlisted slash commands.
+/// - `call_command`: Executes one host-allowlisted slash command.
+/// - `call_command_action`: Continues an allowlisted command with a structured UI action.
 ///
 /// # Private members
 /// - `worker`: Upstream-owned worker process and IPC state.
 /// - `allowed_tools`: Tool identifiers authorized for this branch.
+/// - `allowed_commands`: Slash command identifiers authorized by the host.
 /// - `attestation`: Launcher-reported isolation recorded at startup.
 pub struct AuthorizedPluginWorker {
     /// Retained upstream worker process and IPC state.
-    worker: IsolatedWorker,
+    worker: Arc<Mutex<IsolatedWorker>>,
     /// Tool identifiers authorized for this branch.
     allowed_tools: BTreeSet<String>,
+    /// Slash command identifiers authorized by the host.
+    allowed_commands: BTreeSet<String>,
     /// Launcher-reported OS restrictions enforced for this worker process.
     attestation: WorkerSandboxAttestation,
 }
@@ -97,10 +113,128 @@ impl AuthorizedPluginWorker {
         let host = Arc::new(AllowlistedHostHandler::new(allowed_operations, dispatcher));
         let worker = IsolatedWorker::start(&spec, launcher, Some(host))?;
         Ok(Self {
-            worker,
+            worker: Arc::new(Mutex::new(worker)),
             allowed_tools,
+            allowed_commands: BTreeSet::new(),
             attestation,
         })
+    }
+
+    /// Starts a worker with separate tool and slash-command allowlists.
+    ///
+    /// - `spec`: Host-selected worker executable and environment.
+    /// - `allowed_tools`: Tool names the host is willing to invoke.
+    /// - `allowed_commands`: Slash command names the host is willing to invoke.
+    /// - `allowed_operations`: Semantic operations the worker may request.
+    /// - `dispatcher`: Host semantic operation route.
+    /// - `launcher`: Host-injected OS sandbox launcher.
+    /// - `sandbox`: Host-selected filesystem, network, and secret restrictions.
+    /// - `protected_roots`: Canonical store, secret, and configuration paths the worker must not reach.
+    ///
+    /// # Returns
+    /// A running isolated worker with its recorded sandbox attestation.
+    ///
+    /// # Errors
+    /// Returns a sandbox, startup, or protocol error.
+    #[allow(clippy::too_many_arguments)]
+    pub fn start_with_commands(
+        spec: &WorkerLaunchSpec,
+        allowed_tools: BTreeSet<String>,
+        allowed_commands: BTreeSet<String>,
+        allowed_operations: BTreeSet<String>,
+        dispatcher: Arc<dyn PluginSemanticDispatcher>,
+        launcher: &dyn WorkerLauncher,
+        sandbox: WorkerSandboxPolicy,
+        protected_roots: &[PathBuf],
+    ) -> Result<Self, WorkerError> {
+        let mut worker = Self::start(
+            spec,
+            allowed_tools,
+            allowed_operations,
+            dispatcher,
+            launcher,
+            sandbox,
+            protected_roots,
+        )?;
+        worker.allowed_commands = allowed_commands;
+        Ok(worker)
+    }
+
+    /// Returns commands advertised by the worker and allowed by host policy.
+    ///
+    /// # Returns
+    /// Authorized slash command descriptors in worker order.
+    ///
+    /// # Errors
+    /// Returns a sandbox error when the worker process is not OS-isolated.
+    pub fn advertised_commands(
+        &self,
+    ) -> Result<Vec<rpi_extensions::isolated::WorkerCommandSpec>, WorkerError> {
+        self.require_sandbox()?;
+        let worker = self
+            .worker
+            .lock()
+            .map_err(|_| WorkerError::Closed("worker state is poisoned".to_owned()))?;
+        Ok(worker
+            .commands()
+            .iter()
+            .filter(|command| self.allowed_commands.contains(&command.name))
+            .cloned()
+            .collect())
+    }
+
+    /// Reports whether the retained upstream worker connection has closed.
+    ///
+    /// # Returns
+    /// `true` when the worker cannot accept further commands or tools.
+    #[must_use]
+    pub fn is_closed(&self) -> bool {
+        self.worker.lock().map_or(true, |worker| worker.is_closed())
+    }
+
+    /// Executes one slash command authorized by the host.
+    ///
+    /// - `command`: Worker-advertised command name.
+    /// - `arguments`: Raw arguments after the command name.
+    ///
+    /// # Returns
+    /// The plugin's structured command response.
+    ///
+    /// # Errors
+    /// Returns a sandbox, authorization, timeout, or worker failure.
+    pub fn call_command(
+        &self,
+        command: &str,
+        arguments: &str,
+    ) -> Result<serde_json::Value, WorkerError> {
+        self.call_command_action(command, arguments, None)
+    }
+
+    /// Executes one authorized command with a structured UI action.
+    ///
+    /// - `command`: Worker-advertised command name.
+    /// - `arguments`: Raw arguments after the command name.
+    /// - `action`: Optional response action from the command's prior UI result.
+    ///
+    /// # Returns
+    /// The plugin's structured command response.
+    ///
+    /// # Errors
+    /// Returns a sandbox, authorization, timeout, or worker failure.
+    pub fn call_command_action(
+        &self,
+        command: &str,
+        arguments: &str,
+        action: Option<serde_json::Value>,
+    ) -> Result<serde_json::Value, WorkerError> {
+        self.require_sandbox()?;
+        if !self.allowed_commands.contains(command) {
+            return Err(WorkerError::Unauthorized(command.to_owned()));
+        }
+        self.worker
+            .lock()
+            .map_err(|_| WorkerError::Closed("worker state is poisoned".to_owned()))?
+            .call_command_action(command, arguments, action)
     }
 
     /// Returns tools advertised by the worker and allowed by host policy.
@@ -112,8 +246,11 @@ impl AuthorizedPluginWorker {
     /// Returns a sandbox error when the worker process is not OS-isolated.
     pub fn advertised_tools(&self) -> Result<Vec<WorkerToolSpec>, WorkerError> {
         self.require_sandbox()?;
-        Ok(self
+        let worker = self
             .worker
+            .lock()
+            .map_err(|_| WorkerError::Closed("worker state is poisoned".to_owned()))?;
+        Ok(worker
             .tools()
             .iter()
             .filter(|tool| self.allowed_tools.contains(&tool.name))
@@ -128,11 +265,14 @@ impl AuthorizedPluginWorker {
     ///
     /// # Returns
     /// `true` when this worker advertises the exact name.
+    #[must_use]
     pub fn advertises(&self, tool: &str) -> bool {
-        self.worker
-            .tools()
-            .iter()
-            .any(|tool_spec| tool_spec.name == tool)
+        self.worker.lock().is_ok_and(|worker| {
+            worker
+                .tools()
+                .iter()
+                .any(|tool_spec| tool_spec.name == tool)
+        })
     }
 
     /// Reports whether host policy allows one tool name.
@@ -142,6 +282,7 @@ impl AuthorizedPluginWorker {
     ///
     /// # Returns
     /// `true` when the host allowlist contains the exact name.
+    #[must_use]
     pub fn allows(&self, tool: &str) -> bool {
         self.allowed_tools.contains(tool)
     }
@@ -150,6 +291,7 @@ impl AuthorizedPluginWorker {
     ///
     /// # Returns
     /// The guarantee set recorded when the worker started.
+    #[must_use]
     pub fn sandbox_attestation(&self) -> WorkerSandboxAttestation {
         self.attestation
     }
@@ -198,7 +340,30 @@ impl AuthorizedPluginWorker {
             return Err(WorkerError::Unauthorized(tool.to_owned()));
         }
         self.worker
+            .lock()
+            .map_err(|_| WorkerError::Closed("worker state is poisoned".to_owned()))?
             .call_tool_cancellable(tool, arguments, cancellation)
+    }
+
+    /// Creates upstream provider adapters that match the host allowlist.
+    ///
+    /// # Parameters
+    /// - `allowed_providers`: Provider ids the host explicitly authorizes.
+    ///
+    /// # Returns
+    /// Adapters for advertised providers in worker order.
+    ///
+    /// # Errors
+    /// Returns a sandbox error when the worker did not start under OS isolation.
+    pub fn provider_adapters(
+        &self,
+        allowed_providers: &BTreeSet<String>,
+    ) -> Result<Vec<Arc<dyn Provider>>, WorkerError> {
+        self.require_sandbox()?;
+        Ok(WorkerProvider::from_worker(Arc::clone(&self.worker))
+            .into_iter()
+            .filter(|provider| allowed_providers.contains(provider.id()))
+            .collect())
     }
 
     /// Fails closed when the running worker is not OS-isolated.
@@ -217,186 +382,4 @@ impl AuthorizedPluginWorker {
             self.attestation.platform
         )))
     }
-}
-
-/// Host configuration for an isolated plugin worker.
-///
-/// # Public members
-/// - `allowed_tools`: Worker tool IDs the host may invoke.
-/// - `allowed_operations`: Semantic operations the worker may request.
-/// - `launch`: Executable and bounded environment for the worker process.
-///
-/// # Private members
-/// None.
-pub struct PluginWorkerConfiguration {
-    /// Allowed worker tool identifiers.
-    pub allowed_tools: BTreeSet<String>,
-    /// Allowed worker semantic operation identifiers.
-    pub allowed_operations: BTreeSet<String>,
-    /// Launch specification without inherited host environment.
-    pub launch: WorkerLaunchSpec,
-}
-
-impl PluginWorkerConfiguration {
-    /// Reads the host's isolated plugin configuration.
-    ///
-    /// # Returns
-    /// `None` when no plugin roots are configured.
-    ///
-    /// # Errors
-    /// Returns a configuration error when roots are configured without a safe
-    /// worker invocation.
-    pub fn from_environment() -> Result<Option<Self>, String> {
-        let directories = path_list("SCRIBE_AGENT_EXTENSION_DIRS");
-        let files = path_list("SCRIBE_AGENT_PLUGIN_FILES");
-        if directories.is_empty() && files.is_empty() {
-            return Ok(None);
-        }
-        let executable = std::env::var_os("SCRIBE_AGENT_PLUGIN_WORKER")
-            .map(PathBuf::from)
-            .map_or_else(std::env::current_exe, Ok)
-            .map_err(|error| error.to_string())?;
-        if !executable.is_file() {
-            return Err("configured plugin worker executable is not a file".to_owned());
-        }
-        let mut environment = std::collections::BTreeMap::new();
-        environment.insert(
-            "SCRIBE_AGENT_EXTENSION_DIRS".to_owned(),
-            join_paths(&directories)?,
-        );
-        environment.insert("SCRIBE_AGENT_PLUGIN_FILES".to_owned(), join_paths(&files)?);
-        let mut launch = WorkerLaunchSpec {
-            executable,
-            args: vec!["--scriberig-plugin-worker".to_owned()],
-            environment,
-            working_directory: None,
-            inherit_environment: false,
-            ..WorkerLaunchSpec::default()
-        };
-        if let Some(timeout) = std::env::var("SCRIBE_AGENT_PLUGIN_TIMEOUT_SECS")
-            .ok()
-            .and_then(|value| value.parse::<u64>().ok())
-        {
-            launch.request_timeout = std::time::Duration::from_secs(timeout);
-        }
-        Ok(Some(Self {
-            allowed_tools: name_set("SCRIBE_AGENT_PLUGIN_TOOLS"),
-            allowed_operations: name_set("SCRIBE_AGENT_PLUGIN_CAPABILITIES"),
-            launch,
-        }))
-    }
-
-    /// Starts the configured worker.
-    ///
-    /// # Parameters
-    /// - `dispatcher`: Host semantic operation route.
-    /// - `launcher`: Host-injected OS sandbox launcher.
-    /// - `sandbox`: Host-selected filesystem, network, and secret restrictions.
-    /// - `protected_roots`: Canonical store, secret, and configuration paths the
-    ///   worker must not reach.
-    ///
-    /// # Returns
-    /// A running isolated worker.
-    ///
-    /// # Errors
-    /// Returns a sandbox, startup, or protocol error.
-    pub fn start(
-        self,
-        dispatcher: Arc<dyn PluginSemanticDispatcher>,
-        launcher: &dyn WorkerLauncher,
-        sandbox: WorkerSandboxPolicy,
-        protected_roots: &[PathBuf],
-    ) -> Result<AuthorizedPluginWorker, WorkerError> {
-        let Self {
-            allowed_tools,
-            allowed_operations,
-            launch,
-        } = self;
-        AuthorizedPluginWorker::start(
-            &launch,
-            allowed_tools,
-            allowed_operations,
-            dispatcher,
-            launcher,
-            sandbox,
-            protected_roots,
-        )
-    }
-}
-
-/// Runs the isolated worker mode selected by the host launcher.
-///
-/// # Parameters
-/// - `arguments`: Process arguments inspected for the worker marker.
-///
-/// # Returns
-/// `true` after serving the worker protocol.
-///
-/// # Errors
-/// Returns a plugin load or worker protocol error.
-pub fn run_worker_mode(arguments: &[String]) -> Result<bool, String> {
-    if !arguments
-        .iter()
-        .any(|argument| argument == "--scriberig-plugin-worker")
-    {
-        return Ok(false);
-    }
-    let directories = path_list("SCRIBE_AGENT_EXTENSION_DIRS");
-    let files = path_list("SCRIBE_AGENT_PLUGIN_FILES");
-    rpi_extensions::isolated::run_worker(&directories, &files)?;
-    Ok(true)
-}
-
-/// Splits one host path-list environment variable.
-///
-/// # Parameters
-/// - `name`: Environment variable name.
-///
-/// # Returns
-/// Non-empty configured paths.
-fn path_list(name: &str) -> Vec<PathBuf> {
-    std::env::var_os(name)
-        .map(|value| {
-            std::env::split_paths(&value)
-                .filter(|path| !path.as_os_str().is_empty())
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
-/// Splits one host identifier-list environment variable.
-///
-/// # Parameters
-/// - `name`: Environment variable name.
-///
-/// # Returns
-/// Non-empty identifiers.
-fn name_set(name: &str) -> BTreeSet<String> {
-    std::env::var(name)
-        .ok()
-        .map(|value| {
-            value
-                .split(',')
-                .map(str::trim)
-                .filter(|name| !name.is_empty())
-                .map(str::to_owned)
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
-/// Joins paths for transfer into the isolated worker environment.
-///
-/// # Parameters
-/// - `paths`: Host-authorized plugin paths.
-///
-/// # Returns
-/// A platform-encoded path-list string.
-///
-/// # Errors
-/// Returns an error when a path cannot be represented as an environment value.
-fn join_paths(paths: &[PathBuf]) -> Result<String, String> {
-    std::env::join_paths(paths)
-        .map(|paths| paths.to_string_lossy().into_owned())
-        .map_err(|error| error.to_string())
 }

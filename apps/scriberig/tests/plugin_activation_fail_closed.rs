@@ -1,12 +1,9 @@
-//! Proves native plugin and package roots stay rejected before any provider runs.
+//! Proves native plugin inputs require valid opt-in worker admission.
 //!
 //! Task 144 G10 and task 149 §§4 and 12 keep native extension activation
-//! deny-by-default until an upstream isolated worker is composed into the branch
-//! tool catalog. This target runs the real executable so the fail-closed gate is
-//! verified on the product path instead of by source inspection: every
-//! configured native-code input must stop the one-shot agent before provider
-//! setup, and a clean environment must still reach the deterministic Echo
-//! provider.
+//! deny-by-default unless the feature, valid package roots, capability grant,
+//! and runtime-verified launcher are all present. This target runs the real
+//! executable so the product gate is verified on the one-shot path.
 
 use std::path::Path;
 use std::process::Output;
@@ -100,7 +97,7 @@ fn combined_text(output: &Output) -> String {
 /// The fail-closed message emitted when extension or plugin paths are set.
 fn expected_plugin_rejection() -> &'static str {
     if cfg!(feature = "isolated-plugin-worker") {
-        "isolated plugin worker composition is not activated"
+        "unavailable"
     } else {
         "isolated plugin support is not enabled in this build"
     }
@@ -112,12 +109,23 @@ fn configured_package_root_stops_the_one_shot_agent() {
     let directory = tempfile::tempdir().expect("temporary project");
     let output = run_one_shot(directory.path(), Some("SCRIBE_AGENT_PACKAGE_ROOTS"));
     let text = combined_text(&output);
+    if cfg!(feature = "isolated-plugin-worker") {
+        assert!(
+            !output.status.success(),
+            "nonexistent package root bypassed validation: {text}"
+        );
+        assert!(
+            text.contains("package project root is unavailable"),
+            "package root was not rejected by canonical root validation: {text}"
+        );
+        return;
+    }
     assert!(
         !output.status.success(),
         "package root was accepted: {text}"
     );
     assert!(
-        text.contains("package roots are unsupported"),
+        text.contains("isolated plugin support is not enabled in this build"),
         "package root rejection is missing: {text}"
     );
     assert!(
@@ -174,24 +182,31 @@ fn seed_upstream_project_package(root: &Path) {
     .expect("planted package artifact");
 }
 
-/// Verifies an upstream-registered project package is neither discovered nor
-/// loaded.
+/// Verifies a registered project package cannot bypass plugin capability setup.
 ///
-/// Task 145 §9 assigns package discovery to the upstream registry and artifact
-/// APIs, and the product gate stays deny-by-default because no upstream API yet
-/// replaces a live extension session and its model-catalog rows as one
-/// generation, so discovery must stay absent even when the working project
-/// already carries a well-formed upstream registration whose planted artifact no
-/// loader could map. The run is judged on its exit status and the durable
-/// operation/session lines because those are the stable completion markers; the
-/// streamed `agent output:` line is one line per provider delta fragment and its
-/// boundaries are upstream-owned.
+/// A feature build recognizes the upstream project registry but must stop until
+/// the host has supplied its explicit plugin capability. The default build does
+/// not consume package registrations. The planted artifact is intentionally
+/// invalid, so this test also guards against loading it before authorization.
 #[test]
-fn an_upstream_registered_package_is_not_discovered() {
+fn registered_package_requires_explicit_worker_capability() {
     let directory = tempfile::tempdir().expect("temporary project");
     seed_upstream_project_package(directory.path());
     let output = run_one_shot(directory.path(), None);
     let text = combined_text(&output);
+    if cfg!(feature = "isolated-plugin-worker") {
+        assert!(
+            !output.status.success(),
+            "registered package bypassed the explicit capability gate: {text}"
+        );
+        assert!(
+            text.contains(
+                "configured plugins require an explicit tool, command, or provider allowlist"
+            ),
+            "registered package did not require an explicit activation allowlist: {text}"
+        );
+        return;
+    }
     assert!(
         output.status.success(),
         "the upstream package registration failed the run: {text}"
@@ -214,7 +229,7 @@ fn an_upstream_registered_package_is_not_discovered() {
     }
 }
 
-/// Verifies the rejection is specific to configured native code.
+/// Verifies invalid configured native-code paths fail before a provider runs.
 #[test]
 fn a_clean_environment_still_reaches_the_deterministic_agent() {
     let directory = tempfile::tempdir().expect("temporary project");
@@ -225,9 +240,8 @@ fn a_clean_environment_still_reaches_the_deterministic_agent() {
         text.contains("agent output"),
         "the deterministic agent did not run: {text}"
     );
-    // One `agent output:` line is printed per streamed delta, so the joined
-    // fragments must reproduce the deterministic provider text. A delta dropped
-    // at stream settlement changes the join even when some deltas arrived.
+    // Each callback prints one delta, so their concatenation checks that the
+    // settlement drain preserved the exact final deterministic output.
     let streamed: String = text
         .lines()
         .filter_map(|line| line.strip_prefix("agent output: "))

@@ -3,12 +3,14 @@
 use crate::{
     AgentContinueAtRequest, AgentContinueRequest, AgentNewSessionRequest,
     AgentPresentationPreferencesReadRequest, AgentPresentationPreferencesSetRequest,
-    AgentStartRequest, CancelOperationRequest, CommandRequest, Event, FindRequest, ListRequest,
-    ModelLibraryRequest, ModelRequestDetailRequest, ProjectRequest, QueryRequest,
-    SessionModelSelectionRequest, SessionPlanAssignmentRequest, SessionPlanAttemptsRequest,
-    SessionPlanCreateRequest, SessionPlanDetailsRequest, SessionPlanLifecycleRequest,
-    SessionPlanMutationRequest, SessionPlanReplanRequest, SessionPlanViewRequest,
-    SessionReadRequest, SessionThinkingSelectionRequest, SubscribeRequest, ToolResultDetailRequest,
+    AgentStartRequest, CancelOperationRequest, CommandRequest, Event, FindRequest,
+    LegacyExecutionMappingRequest, LegacyExecutionRecordsRequest,
+    LegacyPlanAssignmentMappingRequest, ListRequest, ModelLibraryRequest,
+    ModelRequestDetailRequest, ProjectRequest, QueryRequest, SessionModelSelectionRequest,
+    SessionPlanAssignmentRequest, SessionPlanAttemptsRequest, SessionPlanCreateRequest,
+    SessionPlanDetailsRequest, SessionPlanLifecycleRequest, SessionPlanMutationRequest,
+    SessionPlanReplanRequest, SessionPlanViewRequest, SessionReadRequest,
+    SessionThinkingSelectionRequest, SubscribeRequest, ToolResultDetailRequest,
 };
 use crate::{
     CapabilitiesResponse, InspectEntityRequest, InspectEntityResponse, OperationStatusRequest,
@@ -75,6 +77,12 @@ pub enum Request {
     SessionModelSelection(SessionModelSelectionRequest),
     /// Select a thinking level for future invocations.
     SessionThinkingSelection(SessionThinkingSelectionRequest),
+    /// Inspect preserved legacy execution values for explicit recovery.
+    LegacyExecutionRecords(LegacyExecutionRecordsRequest),
+    /// Resolve one preserved session-level legacy execution selection.
+    LegacyExecutionMapping(LegacyExecutionMappingRequest),
+    /// Map one preserved current plan-node assignment to active upstream IDs.
+    LegacyPlanAssignmentMapping(LegacyPlanAssignmentMappingRequest),
     /// Read shared presentation defaults for the authenticated principal.
     AgentPresentationPreferencesRead(AgentPresentationPreferencesReadRequest),
     /// Replace shared presentation defaults using an expected revision.
@@ -124,6 +132,8 @@ pub enum Response {
     ModelLibrary(crate::ModelLibraryResponse),
     /// Updated session execution selection.
     SessionExecution(crate::SessionExecutionSelection),
+    /// Preserved, sanitized legacy execution values.
+    LegacyExecutionRecords(Vec<crate::LegacyExecutionRecordView>),
     /// Shared presentation defaults for the authenticated principal.
     AgentPresentationPreferences(crate::AgentPresentationPreferencesResponse),
     /// Project onboarding result.

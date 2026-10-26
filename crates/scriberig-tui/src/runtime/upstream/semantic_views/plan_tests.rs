@@ -1,8 +1,22 @@
 //! Verifies stable plan and node identity through the upstream plan tree.
 
-use super::super::projection::sync_tree;
+use super::super::projection::sync_tree_for_view;
 use super::test_support::{sample_plan, session_with_plans};
 use super::*;
+
+/// Keeps plan tree row keys distinct from conversation plan-source keys.
+#[test]
+fn plan_row_keys_have_a_view_specific_namespace() {
+    let plan = EntityId::from_bytes([21; 16]);
+    let node = EntityId::from_bytes([22; 16]);
+
+    assert_eq!(plan_row_id(plan, None), format!("plan-view:header:{plan}"));
+    assert_eq!(
+        plan_row_id(plan, Some(node)),
+        format!("plan-view:header:{plan}:node:{node}")
+    );
+    assert_ne!(plan_row_id(plan, None), format!("plan:{plan}"));
+}
 
 /// Verifies node selection resolves by stable plan/node identity after reorder.
 #[test]
@@ -99,7 +113,9 @@ fn plan_view_reveals_nodes_under_a_header_the_conversation_view_left_childless()
     host.status = scriberig_session::BranchStatus::Completed;
     session.branches.push(host);
 
-    let header_key = plan_row_id(plan_id, None);
+    let conversation_header_key = format!("plan:{plan_id}");
+    let plan_header_key = plan_row_id(plan_id, None);
+    assert_ne!(conversation_header_key, plan_header_key);
     let conversation_state = TuiState {
         primary_view: crate::selection::PrimaryView::Conversation,
         conversation: Some(crate::view::conversation::ConversationModel::from_session(
@@ -111,19 +127,16 @@ fn plan_view_reveals_nodes_under_a_header_the_conversation_view_left_childless()
     let before = super::super::tree::projection(&conversation_state)
         .expect("conversation tree projection with a plan row");
     assert!(
-        before.items.iter().any(|item| item.id == header_key),
-        "both views key the durable plan by the same stable row identity: {:?}",
         before
             .items
             .iter()
-            .map(|item| item.id.as_str())
-            .collect::<Vec<_>>()
+            .any(|item| item.id == conversation_header_key)
     );
     assert!(
         before
             .items
             .iter()
-            .all(|item| item.parent_id.as_deref() != Some(header_key.as_str())),
+            .all(|item| item.parent_id.as_deref() != Some(conversation_header_key.as_str())),
         "the conversation view leaves that plan header childless"
     );
 
@@ -135,21 +148,27 @@ fn plan_view_reveals_nodes_under_a_header_the_conversation_view_left_childless()
     let (after, rows) = projection(&plan_state).expect("plan tree projection");
     assert_eq!(rows.len(), 3, "one header and two structural node rows");
 
-    // One retained tree serves both views, so the inherited collapsed header must
-    // still reveal the node rows the Plans view projects beneath it.
-    let mut slot = None;
-    sync_tree(&mut slot, &before).expect("tree accepts the conversation projection");
-    sync_tree(&mut slot, &after).expect("the retained tree accepts the plan projection");
-    let visible = slot
-        .as_ref()
-        .expect("retained tree")
+    // Each semantic view keeps its own upstream component and row-key namespace.
+    let mut trees = std::collections::HashMap::new();
+    sync_tree_for_view(
+        &mut trees,
+        crate::selection::PrimaryView::Conversation,
+        &before,
+    )
+    .expect("tree accepts the conversation projection");
+    sync_tree_for_view(&mut trees, crate::selection::PrimaryView::Plan, &after)
+        .expect("separate tree accepts the plan projection");
+    let visible = trees
+        .get(&crate::selection::PrimaryView::Plan)
+        .and_then(Option::as_ref)
+        .expect("retained plan tree")
         .tree
         .visible_rows()
         .iter()
         .map(|row| row.id.clone())
         .collect::<Vec<_>>();
     for expected in [
-        header_key,
+        plan_header_key,
         plan_row_id(plan_id, Some(first)),
         plan_row_id(plan_id, Some(second)),
     ] {

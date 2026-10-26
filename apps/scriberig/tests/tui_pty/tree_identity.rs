@@ -355,6 +355,23 @@ fn tui_pty_keeps_conversation_tree_identity_across_collapse_and_expand() {
         "{}",
         tui.diagnostic()
     );
+    assert!(is_selected(&tui.screen(), "Nested child branch"));
+    tui.resize(PtySize {
+        rows: 28,
+        cols: 80,
+        pixel_width: 0,
+        pixel_height: 0,
+    });
+    assert!(
+        tui.read_until("Nested child branch"),
+        "{}",
+        tui.diagnostic()
+    );
+    let resized = tui.screen();
+    assert!(
+        is_selected(&resized, "Nested child branch"),
+        "terminal resize must retain the selected semantic branch row:\n{resized}"
+    );
 
     let loaded = tui.load_session(fixture.session);
     let durable = |id: scriberig_core::EntityId| -> scriberig_session::Branch {

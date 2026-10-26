@@ -10,6 +10,8 @@ mod projection;
 
 use std::collections::BTreeMap;
 
+use rusqlite::Transaction;
+
 use scriberig_core::{EncodingVersion, EntityId, RootName, SnapshotId};
 use scriberig_session::{Plan, PlanStoreError, Session};
 use scriberig_store::{
@@ -86,6 +88,8 @@ impl SqliteSessionStore {
     /// - `session`: Owning session identity.
     /// - `proposed`: New plan state to promote.
     /// - `expected_revision`: Plan-local revision observed by the caller.
+    /// - `related_write`: Session projection update run before the root
+    ///   promotion transaction commits.
     ///
     /// # Errors
     /// Returns a plan revision conflict or bounded persistence diagnostic.
@@ -97,6 +101,7 @@ impl SqliteSessionStore {
         session: EntityId,
         proposed: &Plan,
         expected_revision: u64,
+        related_write: impl FnOnce(&Transaction<'_>) -> Result<(), String>,
     ) -> Result<(), PlanStoreError> {
         let root = plan_root(session, proposed.id).map_err(plan_persistence)?;
         if self.semantic_store.read_root(&root).is_none() {
@@ -151,12 +156,13 @@ impl SqliteSessionStore {
                 changes.push(SnapshotChange::Remove(entity));
             }
         }
-        match self.semantic_store.apply_revisions_and_promote(
+        match self.semantic_store.apply_revisions_and_promote_with(
             root,
             Some(current_snapshot),
             current_snapshot,
             &revisions,
             &changes,
+            related_write,
         ) {
             Ok(_) => Ok(()),
             Err(PromotionError::Root(scriberig_store::RootError::Conflict { actual, .. })) => {
@@ -187,7 +193,11 @@ impl SqliteSessionStore {
     ///
     /// # Returns
     /// The value described by the return type.
-    fn migrate_plan_history(&self, session: EntityId, plan: &Plan) -> Result<(), String> {
+    pub(super) fn migrate_plan_history(
+        &self,
+        session: EntityId,
+        plan: &Plan,
+    ) -> Result<(), String> {
         let root = plan_root(session, plan.id)?;
         let mut expected = self.semantic_store.read_root(&root);
         let mut base = expected.unwrap_or_else(|| Snapshot::empty().id());

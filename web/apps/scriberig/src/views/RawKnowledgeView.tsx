@@ -3,41 +3,37 @@ import { useCallback, type ReactElement } from "react";
 import { useScriberig } from "@scriberig/react";
 import { MuiObjectTree } from "@scriberig/components-mui";
 import type { TreeNode } from "@scriberig/editor-core";
+import type { AppRuntime } from "../runtime";
 /** Renders the shared semantic tree when available. */
 /**
  * @returns The rendered RawKnowledgeView view or runtime value.
  * @throws When rendered outside the shared Scriberig provider.
  */
 export function RawKnowledgeView(): ReactElement {
-  const { client, selection, tree } = useScriberig();
+  const { selection, tree } = useScriberig();
+  const runtime = useScriberig() as unknown as AppRuntime;
   const loadChildren = useCallback(
     async (node: TreeNode) => {
       if (!tree || !tree.beginLoading(node.id)) return;
-      try {
-        const result = await client.list({
-          entityId: node.entityId,
-          snapshot: { kind: "exact", snapshotId: node.snapshotId },
-          relation: "children",
-        });
-        if (!("items" in result)) throw new Error("server returned an invalid list response");
-        tree.appendChildren(
-          node.id,
-          result.items.map((summary) => ({
-            id: summary.ref.entityId,
-            entityId: summary.ref.entityId,
-            snapshotId: summary.ref.snapshotId,
-            summary,
-            expanded: false,
-            loading: false,
-            children: [],
-          })),
-          result.nextCursor,
-        );
-      } catch (error) {
-        tree.appendChildren(node.id, [], undefined);
-      }
+      const children = runtime.symbols.map((symbol) => ({
+        id: symbol.entityId,
+        entityId: symbol.entityId as never,
+        snapshotId: symbol.snapshotId as never,
+        summary: {
+          ref: {
+            entityId: symbol.entityId as never,
+            snapshotId: symbol.snapshotId as never,
+          },
+          typeId: symbol.kind as never,
+          label: `${symbol.name} · ${symbol.kind}`,
+        },
+        expanded: false,
+        loading: false,
+        children: [],
+      }));
+      tree.appendChildren(node.id, children, undefined);
     },
-    [client, tree],
+    [runtime.symbols, tree],
   );
   return (
     <section aria-label="Raw Knowledge">

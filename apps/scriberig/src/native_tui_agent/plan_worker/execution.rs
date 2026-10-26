@@ -10,7 +10,7 @@ use super::{NativePlanWorkerExecutor, PlanNode, WorkerClaim};
 
 impl<B> NativePlanWorkerExecutor<'_, B>
 where
-    B: super::ApplicationBackend + Sync,
+    B: super::ApplicationBackend + Send + Sync + 'static,
 {
     /// Attempts the upstream provider path when production composition exists.
     ///
@@ -100,6 +100,9 @@ where
             tools: Vec::new(),
             // A durable plan worker branch owns its own activity sequence.
             activity: Arc::new(scriberig_agent_runtime::orchestration::ActivitySequence::default()),
+            provider_lifecycle: self
+                .runner
+                .map(super::super::NativeTuiAgentRunner::provider_lifecycle_context),
         };
         let outcome = super::super::upstream_execution::execute_precompiled_branch(
             self.service,
@@ -111,6 +114,8 @@ where
             invocation,
             worker_context.inputs.project_scope.clone(),
             cancelled,
+            self.runner
+                .map(|runner| runner.child_provider_resolver(self.service)),
         );
         outcome
             .map(|result| {

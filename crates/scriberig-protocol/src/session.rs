@@ -16,9 +16,10 @@ pub use plan_view::{
     SessionPlanGraphView, SessionPlanNodeView, SessionPlanView, SessionPlanViewRequest,
 };
 pub use requests::{
-    ModelContextRevisionReference, ModelRequestDetailFragment, ModelRequestDetailRequest,
-    ModelRequestDetailResponse, ModelRequestMessageDetail, ModelRequestToolDetail,
-    SessionReadRequest, ToolResultDetailRequest, ToolResultDetailResponse,
+    LegacyExecutionRecordView, LegacyExecutionTargetView, ModelContextRevisionReference,
+    ModelRequestDetailFragment, ModelRequestDetailRequest, ModelRequestDetailResponse,
+    ModelRequestMessageDetail, ModelRequestToolDetail, SessionReadRequest, ToolResultDetailRequest,
+    ToolResultDetailResponse,
 };
 #[path = "session/activity.rs"]
 mod activity;

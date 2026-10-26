@@ -1,7 +1,9 @@
 //! Reuses one upstream tree across changing `ScribeRig` semantic projections.
 
+use std::collections::HashMap;
 use std::collections::HashSet;
 
+use crate::selection::PrimaryView;
 use rpi_tui::{TreeItem, TreeList};
 
 /// One reusable upstream tree projection for the active semantic view.
@@ -13,6 +15,7 @@ use rpi_tui::{TreeItem, TreeList};
 /// - `items`: Stable tree items for the current semantic projection.
 /// - `selected_id`: Stable upstream item ID selected by `ScribeRig`.
 /// - `details`: Markdown supplementary details for the selected row.
+#[derive(Clone)]
 pub(super) struct TreeProjection {
     /// Stable tree items for the current semantic projection.
     pub(super) items: Vec<TreeItem>,
@@ -50,11 +53,11 @@ pub(super) fn tree_from_items(items: &[TreeItem]) -> Option<TreeList> {
         .iter()
         .filter_map(|item| item.parent_id.as_deref())
         .collect();
-    for item in items {
-        if parent_ids.contains(item.id.as_str()) {
-            let _ = tree.set_expanded(&item.id, true);
-        }
-    }
+    let parent_ids = parent_ids
+        .into_iter()
+        .map(str::to_owned)
+        .collect::<Vec<_>>();
+    let _ = tree.set_expanded_many(&parent_ids, true);
     Some(tree)
 }
 
@@ -74,9 +77,7 @@ pub(super) fn sync_tree(
         if retained.items != projection.items {
             let revealed = revealed_parents(&retained.items, &projection.items);
             retained.tree.replace_items(projection.items.clone()).ok()?;
-            for id in revealed {
-                let _ = retained.tree.set_expanded(&id, true);
-            }
+            let _ = retained.tree.set_expanded_many(&revealed, true);
             retained.items.clone_from(&projection.items);
         }
     } else {
@@ -96,6 +97,22 @@ pub(super) fn sync_tree(
         let _ = tree.select(selected_id);
     }
     Some(())
+}
+
+/// Synchronizes one retained tree without sharing state across semantic views.
+///
+/// - `trees`: Per-view retained tree slots.
+/// - `view`: Semantic view whose upstream tree is being updated.
+/// - `projection`: Current rows, stable selection, and details for that view.
+///
+/// # Returns
+/// `Some(())` when the view tree is ready, otherwise `None` for invalid rows.
+pub(super) fn sync_tree_for_view(
+    trees: &mut HashMap<PrimaryView, Option<RetainedTree>>,
+    view: PrimaryView,
+    projection: &TreeProjection,
+) -> Option<()> {
+    sync_tree(trees.entry(view).or_default(), projection)
 }
 
 /// Lists the rows whose children a semantic projection has just materialized.

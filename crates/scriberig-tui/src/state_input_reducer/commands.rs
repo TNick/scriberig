@@ -7,6 +7,8 @@ mod session_argument;
 
 #[path = "commands/plan_command.rs"]
 mod plan_command;
+#[path = "commands/recovery.rs"]
+mod recovery;
 
 /// Routes supported console commands to shared picker and preference actions.
 ///
@@ -81,6 +83,21 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
                 }
                 Err(message) => {
                     state.conversation_composer.error = Some(message.to_owned());
+                    Some(vec![Effect::None])
+                }
+            }
+        }
+        _ if descriptor.name == "/recover" => {
+            state.recovery_message = None;
+            let Some(session) = state.session_snapshot.as_ref() else {
+                state.conversation_composer.error =
+                    Some("Load a session before inspecting legacy choices.".to_owned());
+                return Some(vec![Effect::None]);
+            };
+            match recovery::parse(command, session) {
+                Ok(effect) => Some(vec![effect]),
+                Err(message) => {
+                    state.conversation_composer.error = Some(message);
                     Some(vec![Effect::None])
                 }
             }
@@ -199,16 +216,47 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
             Action::FindRequested(command[name.len()..].trim().to_owned()),
         )),
         _ if descriptor.name == "/inspect" => {
-            let entity = command
-                .split_whitespace()
-                .nth(1)
-                .and_then(|value| value.parse().ok())
-                .or_else(|| state.selection.map(|selection| selection.entity));
+            let mut arguments = command.split_whitespace().skip(1);
+            let entity_argument = arguments.next();
+            let entity = match entity_argument {
+                Some(value) => {
+                    if let Ok(entity) = value.parse() {
+                        Some(entity)
+                    } else {
+                        state.conversation_composer.error =
+                            Some("The entity identity is invalid.".to_owned());
+                        return Some(vec![Effect::None]);
+                    }
+                }
+                None => state.selection.map(|selection| selection.entity),
+            };
             let Some(entity) = entity else {
                 state.conversation_composer.error =
                     Some("Select an entity or provide its identifier.".to_owned());
                 return Some(vec![Effect::None]);
             };
+            let snapshot = match arguments.next() {
+                None => None,
+                Some("--snapshot") => {
+                    if let Some(snapshot) = arguments.next().and_then(|value| value.parse().ok()) {
+                        Some(snapshot)
+                    } else {
+                        state.conversation_composer.error =
+                            Some("Use /inspect <entity> --snapshot <snapshot-id>.".to_owned());
+                        return Some(vec![Effect::None]);
+                    }
+                }
+                Some(_) => {
+                    state.conversation_composer.error =
+                        Some("Use /inspect <entity> [--snapshot <snapshot-id>].".to_owned());
+                    return Some(vec![Effect::None]);
+                }
+            };
+            if arguments.next().is_some() {
+                state.conversation_composer.error =
+                    Some("Use /inspect <entity> [--snapshot <snapshot-id>].".to_owned());
+                return Some(vec![Effect::None]);
+            }
             let request_id = state.next_request_id;
             state.next_request_id = state.next_request_id.saturating_add(1);
             Some(super::reduce(
@@ -216,7 +264,7 @@ pub(super) fn console_command(state: &mut TuiState, text: &str) -> Option<Vec<Ef
                 Action::InspectRequested {
                     request_id,
                     entity,
-                    snapshot: None,
+                    snapshot,
                     switch_view: true,
                 },
             ))

@@ -110,3 +110,40 @@ fn deletion_ledger_entries_stay_absent() {
         "deletion ledger regressions: {failures:?}"
     );
 }
+
+/// Verifies the product composes exactly one upstream terminal event loop.
+#[test]
+fn upstream_tui_owns_one_terminal_render_loop() {
+    let root = workspace_root();
+    let source_paths = source_files(&root.join("crates/scriberig-tui/src"))
+        .into_iter()
+        .chain(source_files(&root.join("apps/scriberig/src")));
+    let mut runtime_constructions = 0;
+    let mut render_loops = 0;
+    for path in source_paths {
+        let file_stem = path
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .unwrap_or("");
+        if path
+            .components()
+            .any(|component| component.as_os_str() == "tests")
+            || file_stem.ends_with("_tests")
+            || file_stem.ends_with("_test")
+        {
+            continue;
+        }
+        let source = std::fs::read_to_string(&path)
+            .unwrap_or_else(|error| panic!("cannot read {}: {error}", path.display()));
+        runtime_constructions += source.matches("TuiAltScreen::new(").count();
+        render_loops += source.matches(".run_until_with_tick(").count();
+    }
+    assert_eq!(
+        runtime_constructions, 1,
+        "ScribeRig must compose one upstream terminal runtime"
+    );
+    assert_eq!(
+        render_loops, 1,
+        "one upstream lifecycle loop owns terminal rendering and input"
+    );
+}

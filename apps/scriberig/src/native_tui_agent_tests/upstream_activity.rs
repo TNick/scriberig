@@ -64,7 +64,7 @@ fn activity_kinds(branch: &scriberig_session::Branch) -> Vec<String> {
 #[test]
 fn upstream_model_and_tool_activity_keeps_scribe_rig_order_and_correlation() {
     let fixture = UpstreamFixture::new(tool_then_answer());
-    fixture
+    let handle = fixture
         .submit(&UpstreamFixture::context(&[]), "review the branch")
         .expect("upstream-backed root turn");
 
@@ -84,6 +84,11 @@ fn upstream_model_and_tool_activity_keeps_scribe_rig_order_and_correlation() {
         "the model request that produced a tool call must precede that tool call"
     );
     assert_eq!(root.model_invocations.len(), 2);
+    assert!(
+        root.model_invocations
+            .iter()
+            .all(|invocation| { invocation.operation.as_ref() == Some(&handle.operation) })
+    );
     assert_eq!(root.tool_invocations.len(), 1);
     assert_eq!(root.tool_results.len(), 1);
     assert_eq!(
@@ -116,12 +121,21 @@ fn upstream_model_and_tool_activity_keeps_scribe_rig_order_and_correlation() {
 #[test]
 fn durable_activity_identity_never_reuses_an_upstream_identity() {
     let fixture = UpstreamFixture::new(tool_then_answer());
-    fixture
+    let handle = fixture
         .submit(&UpstreamFixture::context(&[]), "review the branch")
         .expect("upstream-backed root turn");
 
     let session = fixture.durable();
     let root = &session.branches[0];
+    assert_eq!(handle.session, fixture.session);
+    assert_eq!(handle.branch, Some(root.id));
+    assert_eq!(fixture.session, session.id);
+    assert!(
+        "upstream-response-1"
+            .parse::<scriberig_core::EntityId>()
+            .is_err(),
+        "provider-owned response identifiers are not valid Scriberig session or branch IDs"
+    );
     let activity = serde_json::to_string(&root.activity).expect("serialize activity");
     for upstream_identity in ["upstream-response-1", "upstream-response-2", "call-1"] {
         assert!(
@@ -151,6 +165,48 @@ fn durable_activity_identity_never_reuses_an_upstream_identity() {
             .expect("serialize request")
             .contains("call-1"),
         "the provider call identity stays inside the captured request provenance"
+    );
+    fixture.cleanup();
+}
+
+/// Prevents an unadvertised provider tool name from reaching semantic dispatch.
+#[test]
+fn upstream_rejects_unadvertised_provider_tool_names() {
+    let model = UpstreamFixture::catalog()
+        .into_iter()
+        .next()
+        .expect("catalog row exists");
+    let fixture = UpstreamFixture::new(vec![
+        step(tool_use(
+            &model,
+            "unknown-tool",
+            "unknown-call",
+            "unadvertised_semantic_operation",
+            serde_json::json!({}),
+        )),
+        step(answer(&model, "recovered", "unknown tool was rejected")),
+    ]);
+    let handle = fixture
+        .submit(
+            &UpstreamFixture::context(&[]),
+            "try an unadvertised operation",
+        )
+        .expect("upstream loop returns a bounded tool error to the provider");
+
+    let durable = fixture.durable();
+    let root = &durable.branches[0];
+    assert_eq!(
+        root.turns
+            .iter()
+            .find_map(|turn| turn.agent.as_ref())
+            .map(|output| output.text.as_str()),
+        Some("unknown tool was rejected")
+    );
+    assert_eq!(root.id, handle.branch.expect("accepted Scriberig branch"));
+    assert_eq!(fixture.provider.request_count(), 2);
+    assert!(
+        root.tool_invocations.is_empty(),
+        "an unknown provider tool name must not enter Scriberig semantic dispatch"
     );
     fixture.cleanup();
 }

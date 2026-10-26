@@ -13,7 +13,7 @@ const repositoryRoot = resolve(process.cwd(), "..");
  * @returns Resolves after the stop request is issued.
  */
 export default async function globalTeardown(_config: FullConfig): Promise<void> {
-  spawnSync("python", ["tools/dev.py", "stop"], {
+  spawnSync("python3", ["tools/dev.py", "stop"], {
     cwd: repositoryRoot,
     stdio: "ignore",
     windowsHide: true,

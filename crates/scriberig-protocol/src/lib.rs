@@ -27,8 +27,8 @@ pub use model::{
     ModelCostSnapshot as PublicModelCostSnapshot,
     ModelCostTierSnapshot as PublicModelCostTierSnapshot, ModelDescriptor as PublicModelDescriptor,
     ModelInputModality as PublicModelInputModality, ModelLibraryResponse,
-    ModelMetadataSnapshot as PublicModelMetadataSnapshot, ProviderCredentialReadiness,
-    ProviderReadiness, model_row_id,
+    ModelMetadataSnapshot as PublicModelMetadataSnapshot, ProviderAuthenticationStatus,
+    ProviderCredentialReadiness, ProviderReadiness, model_row_id,
 };
 pub use operation::{Operation, OperationProgress, OperationStatus};
 pub use presentation::{
@@ -42,8 +42,9 @@ pub use presentation::{
 pub use refs::{EntityReference, OperationReference, RevisionReference, SnapshotReference};
 pub use request::{
     CancelOperationRequest, CommandRequest, DomainOperationCommand, FindRequest,
-    InspectEntityRequest, ListRequest, ModelLibraryRequest, OperationStatusRequest, ProjectRequest,
-    QueryRequest, RuntimeCapabilitiesRequest, SessionModelSelectionRequest,
+    InspectEntityRequest, LegacyExecutionMappingRequest, LegacyExecutionRecordsRequest,
+    LegacyPlanAssignmentMappingRequest, ListRequest, ModelLibraryRequest, OperationStatusRequest,
+    ProjectRequest, QueryRequest, RuntimeCapabilitiesRequest, SessionModelSelectionRequest,
     SessionThinkingSelectionRequest, SnapshotSelector, SubscribeRequest,
 };
 pub use response::{
@@ -51,18 +52,18 @@ pub use response::{
     QueryResponse,
 };
 pub use session::{
-    ModelContextRevisionReference, ModelRequestDetailFragment, ModelRequestDetailRequest,
-    ModelRequestDetailResponse, ModelRequestMessageDetail, ModelRequestToolDetail,
-    SessionActivityItem, SessionActivityKind, SessionActivityState, SessionBranch,
-    SessionBranchResult, SessionBranchStatus, SessionContinuationAnchor, SessionCoordinatorClaim,
-    SessionExecutionChange, SessionExecutionSelection, SessionExpectedResult,
-    SessionModelAssignment, SessionPlan, SessionPlanAbandonReason, SessionPlanAction,
-    SessionPlanAssignmentRequest, SessionPlanAttempt, SessionPlanAttemptsRequest,
-    SessionPlanAttemptsResponse, SessionPlanCreateRequest, SessionPlanDependency,
-    SessionPlanDetailsRequest, SessionPlanDetailsResponse, SessionPlanEvidenceAssociation,
-    SessionPlanEvidenceKind, SessionPlanEvidenceOwner, SessionPlanEvidenceReference,
-    SessionPlanEvidenceRole, SessionPlanGate, SessionPlanGateCounts, SessionPlanGatePhase,
-    SessionPlanGateRequirement, SessionPlanGateWaiver, SessionPlanGraphView,
+    LegacyExecutionRecordView, LegacyExecutionTargetView, ModelContextRevisionReference,
+    ModelRequestDetailFragment, ModelRequestDetailRequest, ModelRequestDetailResponse,
+    ModelRequestMessageDetail, ModelRequestToolDetail, SessionActivityItem, SessionActivityKind,
+    SessionActivityState, SessionBranch, SessionBranchResult, SessionBranchStatus,
+    SessionContinuationAnchor, SessionCoordinatorClaim, SessionExecutionChange,
+    SessionExecutionSelection, SessionExpectedResult, SessionModelAssignment, SessionPlan,
+    SessionPlanAbandonReason, SessionPlanAction, SessionPlanAssignmentRequest, SessionPlanAttempt,
+    SessionPlanAttemptsRequest, SessionPlanAttemptsResponse, SessionPlanCreateRequest,
+    SessionPlanDependency, SessionPlanDetailsRequest, SessionPlanDetailsResponse,
+    SessionPlanEvidenceAssociation, SessionPlanEvidenceKind, SessionPlanEvidenceOwner,
+    SessionPlanEvidenceReference, SessionPlanEvidenceRole, SessionPlanGate, SessionPlanGateCounts,
+    SessionPlanGatePhase, SessionPlanGateRequirement, SessionPlanGateWaiver, SessionPlanGraphView,
     SessionPlanLifecycleRequest, SessionPlanMutation, SessionPlanMutationRequest, SessionPlanNode,
     SessionPlanNodeDraft, SessionPlanNodeReference, SessionPlanNodeStatus, SessionPlanNodeView,
     SessionPlanReplanRequest, SessionPlanRevision, SessionPlanSemanticPredicate, SessionPlanStatus,

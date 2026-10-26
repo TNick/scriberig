@@ -2,9 +2,144 @@
 import type {
   AgentAcceptedResponse,
   ModelRequestDetailResponse,
+  ObjectDescription,
   Operation,
   SnapshotId,
 } from "@scriberig/protocol";
+
+/** Converts the pinned inspect response to the shared object-description model.
+ * @param value Untrusted response from an inspect operation.
+ * @returns The normalized semantic object description.
+ * @throws When required entity or snapshot identities are absent.
+ */
+export function normalizeObjectDescription(value: unknown): ObjectDescription {
+  if (!isObject(value)) throw new Error("server returned an invalid inspection");
+  if (isObject(value.summary) && isObject(value.summary.ref)) {
+    return value as unknown as ObjectDescription;
+  }
+  const entity = value.entity;
+  const revision = value.revision;
+  const snapshot = value.snapshot;
+  if (
+    !isObject(entity) ||
+    typeof entity.id !== "string" ||
+    !isObject(revision) ||
+    typeof revision.id !== "string" ||
+    !isObject(snapshot) ||
+    typeof snapshot.id !== "string"
+  ) {
+    throw new Error("server returned an incomplete inspection");
+  }
+  const summary = typeof value.summary === "string" ? value.summary : undefined;
+  return {
+    summary: {
+      ref: {
+        entityId: entity.id as ObjectDescription["summary"]["ref"]["entityId"],
+        snapshotId: snapshot.id as ObjectDescription["summary"]["ref"]["snapshotId"],
+        ...(revision.id === undefined
+          ? {}
+          : {
+              revisionId: revision.id as NonNullable<
+                ObjectDescription["summary"]["ref"]["revisionId"]
+              >,
+            }),
+      },
+      typeId: (canonicalText(value.object_type) ??
+        "unknown") as ObjectDescription["summary"]["typeId"],
+      ...(summary === undefined ? {} : { label: summary }),
+    },
+    ...(summary === undefined ? {} : { text: summary }),
+  };
+}
+
+/** Converts a pinned list response into a bounded browser collection page.
+ * @param value Untrusted response from a list operation.
+ * @returns The normalized collection page.
+ * @throws When a result does not carry a typed semantic target.
+ */
+export function normalizeCollectionPage(value: unknown): {
+  items: ObjectDescription["summary"][];
+  nextCursor?: string;
+} {
+  if (!isObject(value)) throw new Error("server returned an invalid list response");
+  if (Array.isArray(value.items))
+    return value as unknown as ReturnType<typeof normalizeCollectionPage>;
+  const envelope = isObject(value.result) ? value.result : undefined;
+  const page = envelope !== undefined && isObject(envelope.page) ? envelope.page : undefined;
+  if (page === undefined || !Array.isArray(page.items)) {
+    throw new Error("server returned an incomplete list response");
+  }
+  const items = page.items.map((item) => {
+    if (!isObject(item) || !isObject(item.target)) {
+      throw new Error("server returned a list item without a semantic target");
+    }
+    const target = isObject(item.target.Snapshot)
+      ? item.target.Snapshot
+      : isObject(item.target.Revision)
+        ? item.target.Revision
+        : undefined;
+    if (target === undefined) {
+      throw new Error("server returned an unsupported list target");
+    }
+    const entityId = canonicalId(target.entity, "ent_", 16);
+    if (entityId === undefined) throw new Error("server returned a list target without an entity");
+    const snapshotId =
+      canonicalId(target.snapshot, "snp_", 32) ?? canonicalId(envelope?.snapshot, "snp_", 32);
+    if (snapshotId === undefined)
+      throw new Error("server returned a list target without a snapshot");
+    return {
+      ref: {
+        entityId: entityId as ObjectDescription["summary"]["ref"]["entityId"],
+        snapshotId: snapshotId as ObjectDescription["summary"]["ref"]["snapshotId"],
+        ...(canonicalId(target.revision, "rev_", 32) !== undefined
+          ? {
+              revisionId: canonicalId(target.revision, "rev_", 32) as NonNullable<
+                ObjectDescription["summary"]["ref"]["revisionId"]
+              >,
+            }
+          : {}),
+      },
+      typeId: (canonicalText(item.entity_type) ??
+        "unknown") as ObjectDescription["summary"]["typeId"],
+      ...(typeof item.label === "string" ? { label: item.label } : {}),
+    };
+  });
+  const cursor = page.next;
+  return {
+    items,
+    ...(typeof cursor === "string" ? { nextCursor: cursor } : {}),
+  };
+}
+
+/** Converts a Rust fixed-width ID byte array to its canonical text identity.
+ * @param value Wire value containing a string or byte array.
+ * @param prefix Type prefix to add for byte arrays.
+ * @param byteLength Expected byte array width.
+ * @returns The canonical ID string, when the value has a supported form.
+ */
+function canonicalId(value: unknown, prefix: string, byteLength: number): string | undefined {
+  if (typeof value === "string") return value;
+  if (isObject(value)) value = value.bytes;
+  if (
+    !Array.isArray(value) ||
+    value.length !== byteLength ||
+    !value.every((byte) => Number.isInteger(byte) && byte >= 0 && byte <= 255)
+  ) {
+    return undefined;
+  }
+  const hex = value.map((byte: number) => byte.toString(16).padStart(2, "0")).join("");
+  return `${prefix}${hex}`;
+}
+
+/** Reads a string wrapper emitted by a Rust protocol newtype.
+ * @param value Untrusted string or newtype wrapper.
+ * @returns The wrapped string, when present.
+ */
+function canonicalText(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (isObject(value) && typeof value.value === "string") return value.value;
+  return undefined;
+}
 
 /** Normalizes legacy and current operation response shapes.
  *
@@ -18,6 +153,9 @@ export function normalizeOperation(value: unknown): Operation {
   }
   const record = value as Record<string, unknown>;
   if (typeof record.operationId === "string") return record as unknown as Operation;
+  if (!isObject(record.reference) && isObject(record.operation)) {
+    return normalizeOperation(record.operation);
+  }
   const reference = record.reference as Record<string, unknown> | undefined;
   const progress = record.progress as Record<string, unknown> | undefined;
   const result = record.result_snapshot as Record<string, unknown> | undefined;
@@ -122,7 +260,8 @@ export function normalizeAcceptedAgent(value: unknown): AgentAcceptedResponse {
     throw new Error("server returned an invalid agent acceptance");
   const record = value as Record<string, unknown>;
   const operation = record.operation as Record<string, unknown> | undefined;
-  const reference = operation?.reference as Record<string, unknown> | undefined;
+  const statusOperation = isObject(operation?.operation) ? operation.operation : operation;
+  const reference = statusOperation?.reference as Record<string, unknown> | undefined;
   const operationId = record.operationId ?? reference?.id;
   const session = record.session as Record<string, unknown> | undefined;
   const branch = record.branch as Record<string, unknown> | undefined;
@@ -158,6 +297,9 @@ export function normalizeModelRequestDetail(value: unknown): ModelRequestDetailR
   }
   const providerId = value.provider_id ?? value.providerId;
   const thinkingLevel = value.thinking_level ?? value.thinkingLevel;
+  const catalogRevision = value.catalog_revision ?? value.catalogRevision;
+  const upstreamRuntimeRevision = value.upstream_runtime_revision ?? value.upstreamRuntimeRevision;
+  const providerResponseId = value.provider_response_id ?? value.providerResponseId;
   const profileValue = value.profile;
   const profile =
     isObject(profileValue) &&
@@ -182,6 +324,9 @@ export function normalizeModelRequestDetail(value: unknown): ModelRequestDetailR
     model,
     ...(typeof providerId === "string" ? { providerId } : {}),
     ...(typeof thinkingLevel === "string" ? { thinkingLevel } : {}),
+    ...(typeof catalogRevision === "number" ? { catalogRevision } : {}),
+    ...(typeof upstreamRuntimeRevision === "string" ? { upstreamRuntimeRevision } : {}),
+    ...(typeof providerResponseId === "string" ? { providerResponseId } : {}),
     ...(profile ? { profile } : {}),
     ...(activeComponents ? { activeComponents } : {}),
     ...(appliedSettings !== undefined ? { appliedSettings } : {}),

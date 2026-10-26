@@ -146,3 +146,46 @@ pub struct SessionThinkingSelectionRequest {
     /// Advertised thinking id to select.
     pub thinking_level: String,
 }
+
+/// Requests preserved legacy execution records for one session.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct LegacyExecutionRecordsRequest {
+    /// Stable session identity.
+    pub session: crate::SessionReference,
+}
+
+/// Requests explicit mapping of one preserved legacy execution selection.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct LegacyExecutionMappingRequest {
+    /// Stable session identity.
+    pub session: crate::SessionReference,
+    /// Selection revision observed by the caller.
+    pub expected_revision: u64,
+    /// Exact preserved legacy record path to resolve.
+    pub legacy_path: String,
+    /// Active upstream provider identity selected by the operator.
+    pub provider_id: String,
+    /// Provider-scoped upstream model identity selected by the operator.
+    pub model_id: String,
+    /// Advertised thinking-level identity selected by the operator.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub thinking_level: Option<String>,
+}
+
+/// Requests explicit mapping of one current legacy plan-node assignment.
+#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+pub struct LegacyPlanAssignmentMappingRequest {
+    /// Stable session identity containing the plan.
+    pub session: crate::SessionReference,
+    /// Exact legacy recovery record path returned by inspection.
+    pub legacy_path: String,
+    /// Plan revision observed by the operator.
+    pub expected_plan_revision: u64,
+    /// Active upstream provider identity selected by the operator.
+    pub provider_id: String,
+    /// Provider-scoped active model identity selected by the operator.
+    pub model_id: String,
+    /// Advertised thinking-level identity selected by the operator.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub thinking_level: Option<String>,
+}

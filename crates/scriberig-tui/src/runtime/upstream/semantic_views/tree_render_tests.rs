@@ -104,6 +104,63 @@ fn projected_labels_are_clipped_to_the_requested_width() {
     }
 }
 
+/// Verifies upstream width handling clips wide and combining Unicode safely.
+#[test]
+fn unicode_tree_labels_follow_upstream_display_width() {
+    let mut row = session_row(SessionRowKind::Branch, EntityId::from_bytes([59; 16]), 0);
+    row.label = "界e\u{301} wide label".to_owned();
+    let state = session_state(vec![row]);
+    let projection = projection(&state).expect("Unicode session projection");
+    let mut slot = None;
+    sync_tree(&mut slot, &projection).expect("upstream tree accepts Unicode label");
+
+    for width in [MIN_LABEL_WIDTH, 12, 20] {
+        let rendered = slot.as_ref().expect("retained tree").tree.render(width);
+        assert!(
+            within_width(&rendered, width),
+            "width {width} overflowed for wide/combining text: {rendered:?}"
+        );
+    }
+}
+
+/// Renders streamed output through upstream `TreeList` without mutating session state.
+#[test]
+fn streamed_output_is_a_transient_upstream_tree_row() {
+    let session_id = EntityId::from_bytes([77; 16]);
+    let branch_id = EntityId::from_bytes([78; 16]);
+    let session = conversation_session(session_id, branch_id, &[]);
+    let operation =
+        scriberig_core::OperationId::new("streamed-output-row").expect("valid operation identity");
+    let mut conversation = ConversationModel::from_session(&session);
+    conversation.insert_transient_output(branch_id, &operation, "live delta");
+    let state = TuiState {
+        primary_view: crate::selection::PrimaryView::Conversation,
+        conversation: Some(conversation),
+        session_snapshot: Some(session.clone()),
+        ..TuiState::default()
+    };
+
+    let projection = projection(&state).expect("conversation projection");
+    let tree = super::super::projection::tree_from_items(&projection.items)
+        .expect("upstream tree accepts streamed rows");
+    let rendered = tree.render(120).join("\n");
+
+    assert!(rendered.contains("Assistant: live delta"), "{rendered}");
+    assert!(
+        state
+            .session_snapshot
+            .as_ref()
+            .expect("authoritative session snapshot")
+            .branches
+            .iter()
+            .find(|branch| branch.id == branch_id)
+            .expect("owning branch")
+            .turns
+            .is_empty(),
+        "the streamed presentation row must not become a durable turn"
+    );
+}
+
 /// Builds one deep recursive session chain of the supplied length.
 ///
 /// - `depths`: Number of nested session rows, each one level deeper than its

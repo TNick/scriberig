@@ -4,13 +4,20 @@
 //! `scriberig-session`, the same assembly the shared application plan read and
 //! the server plan view consume.
 
-use scriberig_session::{PlanNodeParent, PlanNodeStatus, PlanRevision, PlanStatus};
+use std::str::FromStr;
+
+use scriberig_session::{
+    PlanEvidenceOwner, PlanEvidenceRole, PlanNodeParent, PlanNodeStatus, PlanRevision, PlanStatus,
+};
 
 use super::test_support::{
-    abandoned_node, node_with_status, plan_rows, required_child_gate, sample_plan,
-    selected_details, shared_node_view, status_total,
+    abandoned_node, evidence, node_with_status, plan_rows, required_child_gate, sample_plan,
+    selected_details, session_with_plans, shared_node_view, status_total, validation_entry_gate,
 };
 use super::*;
+
+#[path = "plan_semantics_tests/attempt_history.rs"]
+mod attempt_history;
 
 /// Verifies a deep required-child failure reaches the parent as the shared view's
 /// effective status, which a scan of the parent's own projected children cannot
@@ -84,6 +91,92 @@ fn deep_required_child_failure_shares_the_effective_status_not_a_row_scan() {
     assert!(
         details.contains(&format!("Effective status: {:?}", view.effective_status)),
         "{details}"
+    );
+}
+
+/// Verifies the upstream TUI projection agrees with the shared plan-view fixture.
+#[test]
+fn tui_node_projection_matches_shared_plan_view_fixture() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../../../tests/conformance/fixtures/plan-view.json"
+    ))
+    .expect("shared plan-view fixture");
+    let plan_fixture = &fixture["plan"];
+    let node_fixture = &fixture["nodes"][0];
+    let id = |value: &serde_json::Value| {
+        EntityId::from_str(value.as_str().expect("entity id")).expect("valid entity id")
+    };
+    let plan_id = id(&plan_fixture["id"]);
+    let node_id = id(&node_fixture["id"]);
+    let branch = EntityId::from_str(
+        node_fixture["parent"]
+            .as_str()
+            .expect("node parent")
+            .strip_prefix("branch:")
+            .expect("branch parent prefix"),
+    )
+    .expect("valid branch identity");
+    let snapshot = scriberig_core::SnapshotId::from_str(
+        plan_fixture["snapshot"].as_str().expect("plan snapshot"),
+    )
+    .expect("valid snapshot identity");
+    let mut plan = sample_plan(plan_id, branch, node_id, EntityId::from_bytes([99; 16]));
+    plan.status = PlanStatus::Planned;
+    plan.source_snapshot = Some(snapshot);
+    plan.nodes = vec![node_with_status(
+        node_id,
+        Some(PlanNodeParent::Branch(branch)),
+        PlanNodeStatus::Ready,
+    )];
+    plan.root_nodes = vec![node_id];
+    plan.dependencies.clear();
+    let gate_id = EntityId::from_bytes([98; 16]);
+    plan.gates = vec![validation_entry_gate(gate_id, node_id)];
+    let mut validation = evidence(
+        EntityId::from_bytes([97; 16]),
+        PlanEvidenceOwner::Gate(gate_id),
+        PlanEvidenceRole::Supports,
+        EntityId::from_bytes([96; 16]),
+    );
+    validation
+        .evidence
+        .attributes
+        .insert("passed".to_owned(), "true".to_owned());
+    plan.evidence = vec![validation];
+    let session = session_with_plans(vec![plan.clone()]);
+    let actual = shared_node_view(&session, &plan, node_id);
+
+    assert_eq!(actual.id, node_id);
+    assert_eq!(actual.plan, plan_id);
+    assert_eq!(actual.snapshot, Some(snapshot));
+    assert_eq!(actual.parent, Some(PlanNodeParent::Branch(branch)));
+    assert_eq!(actual.direct_status, PlanNodeStatus::Ready);
+    assert_eq!(actual.effective_status, PlanNodeStatus::Ready);
+    assert_eq!(actual.entry_gates.satisfied, 1);
+    assert_eq!(actual.evidence_count, 1);
+    assert!(!actual.can_retry);
+    assert_eq!(actual.dependency_blockers.len(), 0);
+    assert_eq!(actual.id.to_string(), node_fixture["id"]);
+    assert_eq!(
+        format!("{:?}", actual.direct_status),
+        node_fixture["direct_status"]
+    );
+    assert_eq!(
+        format!("{:?}", actual.effective_status),
+        node_fixture["effective_status"]
+    );
+    assert_eq!(
+        actual.entry_gates.satisfied,
+        node_fixture["entry_gates"]["satisfied"]
+    );
+    assert_eq!(actual.evidence_count, node_fixture["evidence_count"]);
+    assert_eq!(actual.can_retry, node_fixture["can_retry"]);
+    assert_eq!(
+        actual.dependency_blockers.len(),
+        node_fixture["dependency_blockers"]
+            .as_array()
+            .expect("dependency blocker list")
+            .len()
     );
 }
 

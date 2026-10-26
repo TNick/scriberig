@@ -75,6 +75,41 @@ pub trait QueryService {
         context: &ApplicationContext,
         request: &InspectRequest,
     ) -> Result<InspectResult, ApplicationError>;
+
+    /// Inspects one entity while observing caller cancellation.
+    ///
+    /// - `self`: Application query service.
+    /// - `context`: Caller, capability, and snapshot context.
+    /// - `request`: Snapshot-aware inspection request.
+    /// - `cancelled`: Caller-owned cancellation flag.
+    ///
+    /// Snapshot-bound inspection metadata when the read completes.
+    ///
+    /// # Returns
+    /// The inspection result.
+    ///
+    /// # Errors
+    /// Returns `OperationCancelled` when cancellation is observed, or a
+    /// structured application failure when inspection fails.
+    fn inspect_cancellable(
+        &self,
+        context: &ApplicationContext,
+        request: &InspectRequest,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> Result<InspectResult, ApplicationError> {
+        if cancelled.load(std::sync::atomic::Ordering::Acquire) {
+            return Err(ApplicationError::OperationCancelled {
+                operation: "inspect".to_owned(),
+            });
+        }
+        let result = self.inspect(context, request)?;
+        if cancelled.load(std::sync::atomic::Ordering::Acquire) {
+            return Err(ApplicationError::OperationCancelled {
+                operation: "inspect".to_owned(),
+            });
+        }
+        Ok(result)
+    }
 }
 
 impl<S: QueryService + ?Sized> QueryService for &S {
@@ -97,5 +132,28 @@ impl<S: QueryService + ?Sized> QueryService for &S {
         request: &InspectRequest,
     ) -> Result<InspectResult, ApplicationError> {
         (*self).inspect(context, request)
+    }
+
+    /// Delegates a cancellable inspection through a borrowed query service.
+    ///
+    /// - `self`: Borrowed application query service.
+    /// - `context`: Caller, capability, and snapshot context.
+    /// - `request`: Snapshot-aware inspection request.
+    /// - `cancelled`: Caller-owned cancellation flag.
+    ///
+    /// Snapshot-bound inspection metadata when the read completes.
+    ///
+    /// # Returns
+    /// The delegated inspection result.
+    ///
+    /// # Errors
+    /// Returns cancellation or the delegated application failure.
+    fn inspect_cancellable(
+        &self,
+        context: &ApplicationContext,
+        request: &InspectRequest,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> Result<InspectResult, ApplicationError> {
+        (**self).inspect_cancellable(context, request, cancelled)
     }
 }

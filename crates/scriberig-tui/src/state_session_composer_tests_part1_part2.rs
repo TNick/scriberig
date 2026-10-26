@@ -2,6 +2,68 @@
 
 use super::*;
 
+/// Keeps branch activation separate from the explicitly pinned reply anchor.
+#[test]
+fn conversation_branch_activation_does_not_move_reply_anchor() {
+    let session = scriberig_core::EntityId::from_bytes([35; 16]);
+    let root = scriberig_core::EntityId::from_bytes([36; 16]);
+    let selected = scriberig_core::EntityId::from_bytes([37; 16]);
+    let turn = scriberig_core::EntityId::from_bytes([38; 16]);
+    let anchor = scriberig_session::ContinuationAnchor::HumanInput { branch: root, turn };
+    let mut state = TuiState {
+        primary_view: crate::selection::PrimaryView::Conversation,
+        conversation: Some(crate::view::conversation::ConversationModel {
+            rows: vec![crate::view::conversation::ConversationRow {
+                source: crate::view::conversation::ConversationSource::Branch(selected),
+                reply_anchor: Some(scriberig_session::ContinuationAnchor::BranchHead {
+                    branch: selected,
+                }),
+                depth: 1,
+                label: "Selected branch".to_owned(),
+                kind: crate::view::conversation::ConversationRowKind::Branch,
+            }],
+            coordinator_cursor: Some((
+                scriberig_core::EntityId::from_bytes([39; 16]),
+                scriberig_core::EntityId::from_bytes([40; 16]),
+            )),
+        }),
+        conversation_cursor: Some(crate::view::conversation::ConversationSource::Branch(
+            selected,
+        )),
+        conversation_composer: crate::state::ConversationComposerState {
+            target: crate::state::ConversationTarget::Existing {
+                session,
+                reply_anchor: anchor,
+            },
+            draft: String::new(),
+            pending_prompt: None,
+            pending: false,
+            error: None,
+        },
+        cursor: 0,
+        ..TuiState::default()
+    };
+
+    assert_eq!(reduce(&mut state, Action::Activated), vec![Effect::None]);
+    assert_eq!(
+        state.conversation_composer.target,
+        crate::state::ConversationTarget::Existing {
+            session,
+            reply_anchor: anchor,
+        }
+    );
+    assert_eq!(
+        state
+            .conversation
+            .as_ref()
+            .and_then(|model| model.coordinator_cursor),
+        Some((
+            scriberig_core::EntityId::from_bytes([39; 16]),
+            scriberig_core::EntityId::from_bytes([40; 16]),
+        ))
+    );
+}
+
 /// Verifies composer slash commands open shared controls.
 #[test]
 fn composer_slash_commands_open_shared_controls() {

@@ -2,13 +2,59 @@
 import type {
   ModelLibraryResponse,
   ModelDescriptor,
+  ProviderAuthenticationStatus,
   ProviderCredentialReadiness,
   ProviderReadiness,
   SessionExecutionSelection,
   SessionExecutionChange,
+  LegacyExecutionRecordView,
 } from "@scriberig/protocol";
 
 const SAFE_MODEL_SNAPSHOT_SCHEMA = "rpi-safe-model-snapshot-v1";
+
+/** Validates preserved legacy record views from the protocol.
+ * @param value Unknown wire response.
+ * @returns Sanitized records with exact source paths.
+ * @throws When a record or path is malformed.
+ */
+export function normalizeLegacyExecutionRecords(
+  value: unknown,
+): readonly LegacyExecutionRecordView[] {
+  if (!Array.isArray(value)) throw new Error("invalid legacy execution records");
+  return value.map((item) => {
+    if (typeof item !== "object" || item === null)
+      throw new Error("invalid legacy execution record");
+    const record = item as Record<string, unknown>;
+    if (typeof record.path !== "string" || record.path.length === 0 || !("value" in record)) {
+      throw new Error("invalid legacy execution record");
+    }
+    const targetValue = record.target;
+    if (targetValue === undefined) return { path: record.path, value: record.value };
+    if (typeof targetValue !== "object" || targetValue === null) {
+      throw new Error("invalid legacy execution target");
+    }
+    const target = targetValue as Record<string, unknown>;
+    if (
+      typeof target.plan_id !== "string" ||
+      typeof target.node_id !== "string" ||
+      typeof target.claim !== "boolean" ||
+      (target.revision !== undefined &&
+        (typeof target.revision !== "number" || !Number.isSafeInteger(target.revision)))
+    ) {
+      throw new Error("invalid legacy execution target");
+    }
+    return {
+      path: record.path,
+      value: record.value,
+      target: {
+        planId: target.plan_id,
+        nodeId: target.node_id,
+        claim: target.claim,
+        ...(target.revision === undefined ? {} : { revision: target.revision }),
+      },
+    };
+  });
+}
 
 /** Normalizes the versioned Rust model-library wire contract.
  * Unknown fields are discarded; required wire fields are validated strictly.
@@ -61,10 +107,21 @@ function normalizeProviderReadiness(value: unknown): ProviderReadiness {
   if (!supported.includes(credential as ProviderCredentialReadiness)) {
     throw new Error("invalid credential readiness");
   }
+  const authentication = record.authentication;
+  if (
+    authentication !== undefined &&
+    authentication !== "accepted" &&
+    authentication !== "rejected"
+  ) {
+    throw new Error("invalid provider authentication status");
+  }
   return {
     providerId: requiredString(record.provider_id, "provider id"),
     modelId: requiredString(record.model_id, "model id"),
     credential: credential as ProviderCredentialReadiness,
+    ...(authentication === undefined
+      ? {}
+      : { authentication: authentication as ProviderAuthenticationStatus }),
   };
 }
 

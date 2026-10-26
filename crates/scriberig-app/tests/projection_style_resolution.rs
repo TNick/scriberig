@@ -182,6 +182,7 @@ fn effective_provenance_names_every_applied_source() {
         "proj-1",
         &[("emphasis", "italic")],
     );
+    store_style(&store, StyleScopeKind::User, "alice", &[("width", "70")]);
     store_style(&store, StyleScopeKind::User, "alice", &[("width", "80")]);
     store_style(
         &store,
@@ -215,6 +216,14 @@ fn effective_provenance_names_every_applied_source() {
             .map(|source| source.identity.as_str())
             .collect::<Vec<_>>(),
         vec!["adapter-domain-default", "proj-1", "alice", "view-a"]
+    );
+    assert_eq!(
+        effective
+            .applied
+            .iter()
+            .map(|source| source.generation)
+            .collect::<Vec<_>>(),
+        vec![None, Some(1), Some(2), Some(1)]
     );
     assert_eq!(
         effective.resolved.reference(),

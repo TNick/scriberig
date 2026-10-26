@@ -3,14 +3,13 @@
 import { AppShell } from "../pages/app-shell";
 import { expect, expectHealthyBrowser, test } from "../fixtures/app";
 
-test("boots into the connected current raw knowledge view", async ({ page, diagnostics }) => {
+test("boots into the connected project catalog", async ({ page, diagnostics }) => {
   const shell = new AppShell(page);
   await shell.open();
 
   await expect(shell.snapshotStatus()).toHaveText("View state: current");
-  await expect(page.getByRole("tree")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Expand" })).toBeVisible();
-  await expect(page.getByText("No knowledge tree is connected.")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
+  await expect(page.getByLabel("Server filesystem path")).toBeVisible();
   expectHealthyBrowser(diagnostics);
 });
 

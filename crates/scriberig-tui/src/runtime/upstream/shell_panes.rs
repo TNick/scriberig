@@ -1,11 +1,18 @@
 //! Places the shared semantic panel in the upstream scroll pane its view needs.
 
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rpi_tui::{Component, FollowMode, ScrollView, ScrollViewOptions, StackEntryOptions, VStack};
+use rpi_tui::{
+    Component, FollowMode, HStack, ScrollView, ScrollViewOptions, StackEntryOptions, VStack,
+};
 
+use super::components::{ExtensionSidebarPanels, SidebarSide};
+#[path = "shell_panes/layout.rs"]
+mod layout;
 use super::semantic_views::SemanticViewPanel;
 use crate::selection::PrimaryView;
+use layout::{stack_composer_options, stack_status_options, stack_viewport_options, status_rows};
 
 /// Upstream scroll pane that displays the shared semantic panel.
 ///
@@ -32,6 +39,13 @@ use crate::selection::PrimaryView;
 /// - `stack`: Shell stack rebuilt when the active pane changes.
 /// - `anchored_view`: View used by the previous anchor.
 /// - `active_pane`: Pane currently placed between the fixed panes.
+/// - `extension_mailbox`: Optional plugin component registry used for footer sizing.
+/// - `extension_revision`: Last mailbox revision reflected in the shell layout.
+/// - `status_rows`: Fixed status area height, including visible plugin footer rows.
+/// - `left_sidebar`: Dynamic plugin panels anchored to the left edge.
+/// - `right_sidebar`: Dynamic plugin panels anchored to the right edge.
+/// - `viewport_width`: Whole-terminal width shared with the sidebars.
+/// - `sized_width`: Width reflected by the last shell arrangement.
 pub(super) struct ShellPanes {
     /// Fixed status and key-hint pane.
     status: Arc<dyn Component>,
@@ -47,6 +61,20 @@ pub(super) struct ShellPanes {
     anchored_view: Option<PrimaryView>,
     /// Pane currently placed between the fixed panes.
     active_pane: ScrollPane,
+    /// Optional plugin component registry used for footer sizing.
+    extension_mailbox: Option<rpi_extensions::ExtensionStatusMailbox>,
+    /// Last mailbox revision reflected in the shell layout.
+    extension_revision: Option<u64>,
+    /// Fixed status area height, including visible plugin footer rows.
+    status_rows: usize,
+    /// Dynamic plugin panels anchored to the left edge.
+    left_sidebar: Option<Arc<ExtensionSidebarPanels>>,
+    /// Dynamic plugin panels anchored to the right edge.
+    right_sidebar: Option<Arc<ExtensionSidebarPanels>>,
+    /// Whole-terminal width shared with the sidebars.
+    viewport_width: Arc<AtomicUsize>,
+    /// Width reflected by the last shell arrangement.
+    sized_width: Option<usize>,
 }
 
 /// Which of the two scroll panes the active view occupies.
@@ -82,6 +110,7 @@ impl ShellPanes {
     /// - `status`: Fixed status and key-hint pane.
     /// - `composer`: Fixed composer pane.
     /// - `initial_view`: View the shell opens with.
+    /// - `extension_mailbox`: Optional registry of host-mediated UI panels.
     ///
     /// # Returns
     /// The panes with the status pane, the matching scroll pane, and the composer.
@@ -90,7 +119,27 @@ impl ShellPanes {
         status: Arc<dyn Component>,
         composer: Arc<dyn Component>,
         initial_view: PrimaryView,
+        extension_mailbox: Option<rpi_extensions::ExtensionStatusMailbox>,
     ) -> Self {
+        let viewport_width = Arc::new(AtomicUsize::new(80));
+        let status_rows = status_rows(extension_mailbox.as_ref(), 80);
+        let extension_revision = extension_mailbox
+            .as_ref()
+            .map(rpi_extensions::ExtensionStatusMailbox::revision);
+        let left_sidebar = extension_mailbox.as_ref().map(|mailbox| {
+            Arc::new(ExtensionSidebarPanels::new(
+                mailbox.clone(),
+                SidebarSide::Left,
+                Arc::clone(&viewport_width),
+            ))
+        });
+        let right_sidebar = extension_mailbox.as_ref().map(|mailbox| {
+            Arc::new(ExtensionSidebarPanels::new(
+                mailbox.clone(),
+                SidebarSide::Right,
+                Arc::clone(&viewport_width),
+            ))
+        });
         let shell = Self {
             status,
             composer,
@@ -108,6 +157,13 @@ impl ShellPanes {
             stack: Arc::new(VStack::new()),
             anchored_view: Some(initial_view),
             active_pane: ScrollPane::for_view(initial_view),
+            extension_mailbox,
+            extension_revision,
+            status_rows,
+            left_sidebar,
+            right_sidebar,
+            viewport_width,
+            sized_width: None,
         };
         shell.arrange();
         shell
@@ -139,6 +195,14 @@ impl ShellPanes {
         &self.document
     }
 
+    /// Returns the plugin component registry for upstream overlay composition.
+    ///
+    /// # Returns
+    /// The active mailbox, or `None` for a product session without plugins.
+    pub(super) fn extension_mailbox(&self) -> Option<&rpi_extensions::ExtensionStatusMailbox> {
+        self.extension_mailbox.as_ref()
+    }
+
     /// Re-anchors the shell for the active view and swaps the pane when needed.
     ///
     /// The conversation home resumes following its newest row, and an auxiliary view
@@ -167,6 +231,27 @@ impl ShellPanes {
         rearranged
     }
 
+    /// Rebuilds the fixed status area when plugin footer registrations change.
+    ///
+    /// # Returns
+    /// `true` when the shell height allocation changed and requires repainting.
+    /// - `screen_width`: Current terminal width used for panel layout.
+    pub(super) fn synchronize_extension_components(&mut self, screen_width: usize) -> bool {
+        self.viewport_width.store(screen_width, Ordering::Relaxed);
+        let revision = self
+            .extension_mailbox
+            .as_ref()
+            .map(rpi_extensions::ExtensionStatusMailbox::revision);
+        if self.extension_revision == revision && self.sized_width == Some(screen_width) {
+            return false;
+        }
+        self.extension_revision = revision;
+        self.sized_width = Some(screen_width);
+        self.status_rows = status_rows(self.extension_mailbox.as_ref(), screen_width);
+        self.arrange();
+        true
+    }
+
     /// Rebuilds the stack so only the active scroll pane takes the leftover rows.
     ///
     /// The scroll pane must receive only the terminal rows left over by the fixed panes.
@@ -175,42 +260,106 @@ impl ShellPanes {
     /// content, so the visible document stays pinned to its oldest rows.
     fn arrange(&self) {
         self.stack.clear();
-        self.stack
-            .add_child_with_options(Arc::clone(&self.status), stack_status_options());
+        self.stack.add_child_with_options(
+            Arc::clone(&self.status),
+            stack_status_options(self.status_rows),
+        );
         let active: Arc<dyn Component> = match self.active_pane {
             ScrollPane::Transcript => Arc::clone(&self.transcript) as Arc<dyn Component>,
             ScrollPane::Document => Arc::clone(&self.document) as Arc<dyn Component>,
         };
+        let viewport = Arc::new(HStack::new());
+        if let Some(sidebar) = self
+            .left_sidebar
+            .as_ref()
+            .filter(|sidebar| sidebar.width() > 0)
+        {
+            viewport.add_child_with_options(
+                Arc::clone(sidebar) as Arc<dyn Component>,
+                StackEntryOptions::with_basis(sidebar.width()).min_size(1),
+            );
+        }
+        viewport
+            .add_child_with_options(active, StackEntryOptions::with_basis(0).grow(1).min_size(1));
+        if let Some(sidebar) = self
+            .right_sidebar
+            .as_ref()
+            .filter(|sidebar| sidebar.width() > 0)
+        {
+            viewport.add_child_with_options(
+                Arc::clone(sidebar) as Arc<dyn Component>,
+                StackEntryOptions::with_basis(sidebar.width()).min_size(1),
+            );
+        }
         self.stack
-            .add_child_with_options(active, stack_viewport_options());
+            .add_child_with_options(viewport as Arc<dyn Component>, stack_viewport_options());
         self.stack
             .add_child_with_options(Arc::clone(&self.composer), stack_composer_options());
     }
 }
 
-/// Layout options for the fixed status and key-hint pane.
-///
-/// # Returns
-/// A fixed three-row entry that never shrinks below two rows.
-fn stack_status_options() -> StackEntryOptions {
-    StackEntryOptions::with_basis(3).min_size(2)
-}
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+    use std::sync::Mutex;
+    use std::sync::mpsc;
 
-/// Layout options for the active scroll pane.
-///
-/// # Returns
-/// A growable entry that claims exactly the rows the fixed panes leave.
-fn stack_viewport_options() -> StackEntryOptions {
-    StackEntryOptions::with_basis(0)
-        .grow(1)
-        .shrink(1)
-        .min_size(1)
-}
+    use rpi_extensions::ExtensionStatusMailbox;
+    use rpi_tui::{Keybindings, Text};
 
-/// Layout options for the fixed composer pane.
-///
-/// # Returns
-/// A fixed five-row entry that never shrinks below three rows.
-fn stack_composer_options() -> StackEntryOptions {
-    StackEntryOptions::with_basis(5).min_size(3)
+    use super::ShellPanes;
+    use crate::runtime::upstream::semantic_views::SemanticViewPanel;
+    use crate::selection::PrimaryView;
+    use crate::state::TuiState;
+
+    /// Confirms the shell places plugin sidebars around its semantic pane and responds to resize.
+    #[test]
+    fn shell_composes_sidebars_in_the_upstream_horizontal_layout() {
+        let mailbox = ExtensionStatusMailbox::new();
+        mailbox
+            .component(
+                4,
+                serde_json::json!({
+                    "op":"register","id":"left","type":"text",
+                    "slot":"sidebar.left","width":20,"maxHeight":2,
+                    "minScreenWidth":90,"border":false
+                }),
+            )
+            .expect("register sidebar");
+        mailbox
+            .component(
+                4,
+                serde_json::json!({"op":"update","id":"left","text":"side status"}),
+            )
+            .expect("update sidebar");
+        let state = Arc::new(Mutex::new(TuiState::default()));
+        let (sender, _receiver) = mpsc::channel();
+        let semantic_panel = Arc::new(SemanticViewPanel::new(
+            state,
+            sender,
+            Arc::new(Keybindings::new()),
+        ));
+        let mut panes = ShellPanes::new(
+            &semantic_panel,
+            Arc::new(Text::new("status", 0, 0)),
+            Arc::new(Text::new("composer", 0, 0)),
+            PrimaryView::Conversation,
+            Some(mailbox),
+        );
+        assert!(
+            !panes
+                .root()
+                .render(100)
+                .iter()
+                .any(|row| row.contains("side status"))
+        );
+        assert!(panes.synchronize_extension_components(100));
+        assert!(
+            panes
+                .root()
+                .render(100)
+                .iter()
+                .any(|row| row.contains("side status"))
+        );
+    }
 }

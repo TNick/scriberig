@@ -1,6 +1,7 @@
 //! Provides temporary fixture helpers for native TUI tests.
 
 use std::{
+    collections::HashSet,
     fs,
     io::Read,
     path::{Path, PathBuf},
@@ -137,17 +138,30 @@ pub(super) fn copy_directory(source: &PathBuf, destination: &PathBuf) {
 #[allow(dead_code)]
 pub(super) fn copy_repository_checkout(source: &Path, destination: &Path) {
     copy_repository_entries(source, destination);
+    let provider_fixture = source.join("tests/fixtures/provider-worker-plugin");
+    if provider_fixture.is_dir() {
+        copy_directory(
+            &provider_fixture,
+            &destination.join("tests/fixtures/provider-worker-plugin"),
+        );
+    }
+    let conformance_fixtures = source.join("tests/conformance/fixtures");
+    if conformance_fixtures.is_dir() {
+        copy_directory(
+            &conformance_fixtures,
+            &destination.join("tests/conformance/fixtures"),
+        );
+    }
     copy_tracked_serena_configuration(source, destination);
 }
 
-/// Copies the Git-indexed repository entries while excluding generated state.
+/// Copies Git-indexed entries and their explicit Rust path modules.
 ///
 /// The self-hosting gates onboard this copy through the real import path, so the
-/// copied project surface must be reproducible. Only Git-indexed entries are
-/// copied because untracked local scratch in the developer checkout (logs,
-/// editor scripts, work-in-progress sources) otherwise enters the scanned
-/// project and the scripted onboarding agent exhausts its provider response
-/// pool before any project is imported.
+/// copied project surface must be reproducible. Untracked scratch is excluded;
+/// an untracked Rust file is included only when an indexed Rust source names it
+/// with `#[path = "..."]`, so a newly added module can still compile in the
+/// copied checkout before it is staged.
 ///
 /// - `source`: Directory whose repository entries are copied.
 /// - `destination`: Isolated directory receiving the copied entries.
@@ -166,6 +180,8 @@ fn copy_repository_entries(source: &Path, destination: &Path) {
         output.status.success(),
         "Git could not enumerate repository files"
     );
+    let mut rust_sources = Vec::new();
+    let mut manifests = Vec::new();
     for relative in output
         .stdout
         .split(|byte| *byte == 0)
@@ -192,10 +208,134 @@ fn copy_repository_entries(source: &Path, destination: &Path) {
         }
         let source_file = source.join(relative_path);
         if source_file.is_file() {
+            if relative_path
+                .file_name()
+                .is_some_and(|name| name == "Cargo.toml")
+            {
+                manifests.push(relative_path.to_path_buf());
+            }
+            if relative_path
+                .extension()
+                .is_some_and(|extension| extension == "rs")
+            {
+                rust_sources.push(relative_path.to_path_buf());
+            }
             let destination_file = destination.join(relative_path);
             fs::create_dir_all(destination_file.parent().expect("repository file parent"))
                 .expect("create repository directory");
             fs::copy(source_file, destination_file).expect("copy repository source file");
+        }
+    }
+    copy_untracked_rust_modules(source, destination, rust_sources);
+    copy_untracked_build_scripts(source, destination, manifests);
+}
+
+/// Copies unindexed build scripts declared by copied Cargo manifests.
+///
+/// A build script is an explicit package input even before it is staged, so
+/// isolated product checkouts must preserve that input while excluding other
+/// untracked workspace files.
+///
+/// - `source`: Repository checkout containing indexed and working-tree files.
+/// - `destination`: Isolated checkout receiving required build scripts.
+/// - `manifests`: Indexed Cargo manifests copied into the isolated checkout.
+///
+/// # Panics
+/// Panics when a declared build script cannot be copied.
+fn copy_untracked_build_scripts(source: &Path, destination: &Path, manifests: Vec<PathBuf>) {
+    for manifest in manifests {
+        let Ok(contents) = fs::read_to_string(source.join(&manifest)) else {
+            continue;
+        };
+        let Some(script) = contents.lines().find_map(|line| {
+            let line = line.trim();
+            line.strip_prefix("build = \"")
+                .and_then(|value| value.strip_suffix('\"'))
+        }) else {
+            continue;
+        };
+        let Some(package) = manifest.parent() else {
+            continue;
+        };
+        let relative_script = package.join(script);
+        let source_script = source.join(&relative_script);
+        if !source_script.is_file() || destination.join(&relative_script).is_file() {
+            continue;
+        }
+        let destination_script = destination.join(relative_script);
+        fs::create_dir_all(destination_script.parent().expect("build script parent"))
+            .expect("create build script directory");
+        fs::copy(source_script, destination_script).expect("copy package build script");
+    }
+}
+
+/// Copies unindexed Rust modules referenced by indexed Rust source files.
+///
+/// This keeps the fixture independent of Git staging for both `#[path]` and
+/// ordinary out-of-line `mod` declarations while excluding unrelated files.
+///
+/// - `source`: Repository checkout containing indexed and working-tree files.
+/// - `destination`: Isolated checkout receiving the module dependencies.
+/// - `pending`: Indexed Rust sources whose explicit modules should be inspected.
+///
+/// # Panics
+/// Panics when a referenced source cannot be read or copied.
+fn copy_untracked_rust_modules(source: &Path, destination: &Path, mut pending: Vec<PathBuf>) {
+    let mut inspected = HashSet::new();
+    while let Some(relative) = pending.pop() {
+        if !inspected.insert(relative.clone()) {
+            continue;
+        }
+        let Ok(contents) = fs::read_to_string(source.join(&relative)) else {
+            continue;
+        };
+        for line in contents.lines() {
+            let Some(parent) = relative.parent() else {
+                continue;
+            };
+            let line = line.trim();
+            let path_module = line
+                .strip_prefix("#[path = \"")
+                .and_then(|path| path.split_once('\"').map(|(name, _)| parent.join(name)));
+            let declared_module = line
+                .split_once("mod ")
+                .and_then(|(_, rest)| rest.split_once(';').map(|(name, _)| name.trim()))
+                .filter(|name| {
+                    !name.is_empty() && name.chars().all(|c| c == '_' || c.is_ascii_alphanumeric())
+                });
+            let ordinary_module = declared_module.and_then(|name| {
+                let file_name = relative.file_name()?.to_str()?;
+                let module_parent = if matches!(file_name, "lib.rs" | "main.rs" | "mod.rs") {
+                    parent.to_path_buf()
+                } else {
+                    parent.join(relative.file_stem()?)
+                };
+                let flat = module_parent.join(format!("{name}.rs"));
+                let nested = module_parent.join(name).join("mod.rs");
+                [flat, nested]
+                    .into_iter()
+                    .find(|candidate| source.join(candidate).is_file())
+            });
+            let Some(module_path) = path_module.or(ordinary_module) else {
+                continue;
+            };
+            if !module_path.components().all(|component| {
+                !matches!(
+                    component,
+                    std::path::Component::ParentDir | std::path::Component::RootDir
+                )
+            }) {
+                continue;
+            }
+            let module_source = source.join(&module_path);
+            if !module_source.is_file() || inspected.contains(&module_path) {
+                continue;
+            }
+            let module_destination = destination.join(&module_path);
+            fs::create_dir_all(module_destination.parent().expect("module parent"))
+                .expect("create module directory");
+            fs::copy(&module_source, &module_destination).expect("copy explicit Rust module");
+            pending.push(module_path);
         }
     }
 }

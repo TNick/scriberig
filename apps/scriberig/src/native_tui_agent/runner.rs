@@ -5,27 +5,87 @@ use std::sync::Arc;
 #[path = "runner/completion.rs"]
 mod completion;
 use completion::complete_accepted_result;
-#[path = "runner/validation.rs"]
-mod validation;
-use validation::validate_plan_provider;
 #[path = "runner/summary_activity.rs"]
 mod summary_activity;
+#[path = "runner/validation.rs"]
+mod validation;
 use summary_activity::ReasoningSummaryActivity;
+#[path = "runner/plan_lifecycle.rs"]
+mod plan_lifecycle;
+#[path = "runner/plugin_command_logging.rs"]
+mod plugin_command_logging;
+#[path = "runner/plugin_commands.rs"]
+mod plugin_commands;
 
-use super::{
-    NativePlanWorkerExecutor, NativeTuiAgentRunner, previous_workspace_selection,
-    selected_runtime_model,
-};
+use super::{NativeTuiAgentRunner, previous_workspace_selection, selected_runtime_model};
 use scriberig_agent_runtime::continuation::{
     CompletedContinuation, ContinuationBinding, ContinuationOutcome,
 };
 use scriberig_app::{
     AgentCommandRequest, ApplicationBackend, ApplicationContext, ApplicationError,
-    ApplicationService, SessionBackend, SessionRequest,
+    ApplicationService, SessionBackend,
 };
 use scriberig_core::EntityId;
 
-impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for NativeTuiAgentRunner {
+impl NativeTuiAgentRunner {
+    /// Returns the upstream mailbox used by isolated plugin UI actions.
+    ///
+    /// # Returns
+    /// A clone sharing this runner's component registry.
+    pub(crate) fn extension_component_mailbox(&self) -> rpi_extensions::ExtensionStatusMailbox {
+        self.extension_component_mailbox.clone()
+    }
+}
+
+impl<B: ApplicationBackend + Send + Sync + 'static> scriberig_tui::AgentCommandRunner<B>
+    for NativeTuiAgentRunner
+{
+    /// Returns allowlisted command descriptors from the upstream worker.
+    ///
+    /// # Returns
+    /// The command descriptors currently admitted by the isolated worker.
+    fn plugin_commands(&self) -> Vec<rpi_extensions::isolated::WorkerCommandSpec> {
+        plugin_commands::plugin_commands(self)
+    }
+
+    /// Invokes one allowlisted command through its upstream isolated worker.
+    ///
+    /// - `command`: Exact normalized command identity.
+    /// - `arguments`: Raw text following the command name.
+    ///
+    /// # Returns
+    /// The structured plugin response.
+    ///
+    /// # Errors
+    /// Returns a safe error when the command is unavailable or execution fails.
+    fn invoke_plugin_command(
+        &self,
+        command: &str,
+        arguments: &str,
+    ) -> Result<serde_json::Value, String> {
+        plugin_commands::invoke_plugin_command(self, command, arguments)
+    }
+
+    /// Continues an allowlisted command with a structured upstream UI action.
+    ///
+    /// - `command`: Exact normalized command identity.
+    /// - `arguments`: Raw text following the command name.
+    /// - `action`: Structured selection or text submitted to the plugin.
+    ///
+    /// # Returns
+    /// The next structured plugin response.
+    ///
+    /// # Errors
+    /// Returns a safe error when the command is unavailable or execution fails.
+    fn invoke_plugin_command_action(
+        &self,
+        command: &str,
+        arguments: &str,
+        action: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        plugin_commands::invoke_plugin_command_action(self, command, arguments, action)
+    }
+
     /// Reads provider-schema-backed properties for the selected model.
     ///
     /// # Parameters
@@ -74,11 +134,10 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
         )
     }
 
-    /// Resolves safe per-model credential status from upstream and host policy.
+    /// Resolves secret-free provider credential readiness.
     ///
     /// # Returns
-    /// Credential readiness rows with their catalog generation, and no resolved
-    /// credential material.
+    /// Readiness rows paired with their catalog generation.
     fn provider_readiness(
         &self,
     ) -> Option<scriberig_agent_runtime::provider_readiness::ProviderReadinessProjection> {
@@ -114,85 +173,7 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
     where
         ApplicationService<B>: SessionBackend,
     {
-        let previous = SessionBackend::read_session(
-            service,
-            context,
-            &SessionRequest {
-                session: request.session,
-            },
-        )?;
-        let previous_plan = previous.plans.iter().find(|plan| plan.id == request.plan);
-        let was_running = previous_plan.is_some_and(|plan| {
-            plan.status == scriberig_session::PlanStatus::Running
-                && plan.coordinator_claim.is_some()
-        });
-        validate_plan_provider(self, previous_plan, action)?;
-        let plan = SessionBackend::plan_lifecycle(service, context, request, action)?;
-        if was_running
-            || !matches!(
-                action,
-                scriberig_app::PlanLifecycleAction::Start
-                    | scriberig_app::PlanLifecycleAction::Resume
-            )
-        {
-            return Ok(plan);
-        }
-        let claim = plan
-            .coordinator_claim
-            .as_ref()
-            .ok_or_else(|| ApplicationError::Internal {
-                message: "running plan has no coordinator claim".to_owned(),
-            })?;
-        {
-            let mut active =
-                self.active_coordinators
-                    .lock()
-                    .map_err(|_| ApplicationError::Internal {
-                        message: "plan coordinator guard is unavailable".to_owned(),
-                    })?;
-            if !active.insert(plan.id) {
-                return Ok(plan);
-            }
-        }
-        let executor = NativePlanWorkerExecutor::with_upstream_runner(
-            self,
-            service,
-            context,
-            request.session,
-            std::sync::Arc::clone(&self.project_store),
-            claim.operation.clone(),
-        );
-        let upstream_models = service.upstream_models();
-        let execution = scriberig_agent_runtime::coordinator::PlanCoordinator::run_until_idle(
-            service,
-            context,
-            request.session,
-            plan.id,
-            claim.id,
-            &executor,
-            &upstream_models,
-            &self.model,
-            4,
-            EntityId::new,
-        );
-        if let Ok(mut active) = self.active_coordinators.lock() {
-            active.remove(&plan.id);
-        }
-        execution?;
-        let latest = SessionBackend::read_session(
-            service,
-            context,
-            &SessionRequest {
-                session: request.session,
-            },
-        )?;
-        latest
-            .plans
-            .into_iter()
-            .find(|candidate| candidate.id == plan.id)
-            .ok_or_else(|| ApplicationError::NotFound {
-                subject: plan.id.to_string(),
-            })
+        plan_lifecycle::run(self, service, context, request, action)
     }
 
     /// Executes one TUI agent request through the trusted shared runtime.
@@ -260,7 +241,13 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
             || previous_workspace_selection(service, context, session),
             |value| Ok(Some(value)),
         )?;
+        if let Err(error) = self.refresh_provider_packages() {
+            let message = error.to_string();
+            service.fail_local_agent(handle, &message)?;
+            return Err(ApplicationError::UnsupportedOperation { operation: message });
+        }
         let selected = selected_runtime_model(service, context, session, &self.model)?;
+        let profile = selected.profile;
         let thinking_level = selected.thinking_level;
         let connection = selected.connection;
         let cancelled = service.operations().cancellation_flag(&handle.operation)?;
@@ -296,6 +283,7 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
             handle.root_branch,
             &handle.prompt,
             selection.as_ref(),
+            &profile,
         )
         .ok();
         // The handle is consumed before the attempt, so a divergent, failed, or
@@ -324,6 +312,7 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
             handle.root_branch,
             &handle.prompt,
             selection.as_ref(),
+            Some(&profile),
             Arc::clone(&self.project_store),
             Arc::clone(&upstream),
             upstream_model.clone(),
@@ -334,12 +323,21 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
             None,
             Some(summary_activity.callback()),
             continuation,
+            Some(self.provider_lifecycle_context()),
+            Some(self.child_provider_resolver(service)),
         );
         summary_activity.settle();
         let result = match result {
             Ok(result) => result,
             Err(failure) => {
                 self.continuations.discard(handle.root_branch);
+                tracing::warn!(
+                    operation_id = %handle.operation,
+                    session_id = %handle.session,
+                    branch_id = %handle.root_branch,
+                    error = %failure.failure.error,
+                    "agent root branch execution failed"
+                );
                 let message = failure.failure.error.to_string();
                 service.fail_local_agent_with_evidence(
                     handle,
@@ -368,6 +366,7 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
                     handle.root_branch,
                     "",
                     selection.as_ref(),
+                    &profile,
                 ),
             ) {
                 // Cancellation is rechecked after the recompile so a turn
@@ -395,3 +394,6 @@ impl<B: ApplicationBackend + Sync> scriberig_tui::AgentCommandRunner<B> for Nati
         Ok(completed)
     }
 }
+
+#[path = "runner/provider_packages.rs"]
+mod provider_packages;

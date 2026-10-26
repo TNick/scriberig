@@ -3,8 +3,8 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use rpi_agent::{Agent, AgentBuilder, AgentEvent, AgentTool, ToolExecutionMode};
-use rpi_ai::{AssistantMessageEvent, ProviderContinuation};
+use rpi_agent::{Agent, AgentBuilder, AgentTool, ToolExecutionMode};
+use rpi_ai::ProviderContinuation;
 use tokio_util::sync::CancellationToken;
 
 #[path = "upstream_invocation/request_projection.rs"]
@@ -14,7 +14,8 @@ type CapturedRequestSink = Arc<std::sync::Mutex<Vec<scriberig_session::ModelRequ
 
 mod types;
 pub use types::{
-    UpstreamBranchError, UpstreamBranchFailure, UpstreamBranchInvocation, UpstreamBranchResult,
+    ProviderLifecycleContext, UpstreamBranchError, UpstreamBranchFailure, UpstreamBranchInvocation,
+    UpstreamBranchResult,
 };
 
 #[path = "upstream_invocation/blocking.rs"]
@@ -25,10 +26,16 @@ pub use blocking::run_upstream_branch_invocation_blocking;
 mod applied_settings;
 #[path = "upstream_invocation/failure.rs"]
 mod failure;
-use failure::{classify_agent_state, classify_loop_failure};
+use failure::classify_agent_state;
 #[path = "upstream_invocation/provider_stream.rs"]
 mod provider_stream;
 use provider_stream::build_provider_stream;
+mod event_forwarding;
+mod response_identity;
+
+#[cfg(test)]
+#[path = "upstream_invocation/observability.rs"]
+mod observability;
 
 /// Executes one compiled branch using upstream provider streaming and tool settlement.
 ///
@@ -93,58 +100,55 @@ pub async fn run_upstream_branch_invocation_with_continuation(
     summary_callback: Option<crate::ReasoningSummaryCallback>,
     continuation: Option<ProviderContinuation>,
 ) -> Result<(UpstreamBranchResult, Option<ProviderContinuation>), UpstreamBranchFailure> {
+    // A provider response id may be the bearer material from which continuation is
+    // reconstructed, so keep it out of durable provenance for continuation providers.
+    let provider_supports_continuation = invocation.provider.supports_response_continuation();
     let built = build_agent(&invocation, continuation)?;
-    let prompt = prompt.into();
-    let mut events = built.agent.subscribe();
-    let run = built.agent.prompt(prompt);
-    tokio::pin!(run);
-    let mut events_open = true;
-    let mut summary_ordinal = 0_u64;
-    let run_result = loop {
-        tokio::select! {
-            () = cancellation.cancelled() => {
-                built.agent.abort();
-                break Err(UpstreamBranchError::Cancelled);
-            }
-            result = &mut run => {
-                break result.map_err(|error| classify_loop_failure(&error));
-            }
-            event = events.recv(), if events_open => {
-                match event {
-                    Ok(event) => forward_event(
-                        event,
-                        output_callback.as_ref(),
-                        summary_callback.as_ref(),
-                        &mut summary_ordinal,
-                    ),
-                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
-                    Err(tokio::sync::broadcast::error::RecvError::Closed) => events_open = false,
-                }
-            }
-        }
-    };
-    // A cancellation deliberately stops forwarding: the host already abandoned
-    // this branch and must not receive text that arrived after it did.
-    if !matches!(&run_result, Err(UpstreamBranchError::Cancelled)) {
-        drain_buffered_events(
-            &mut events,
-            output_callback.as_ref(),
-            summary_callback.as_ref(),
-            &mut summary_ordinal,
-        );
-    }
-    let model_requests = built
+    let initial_message_count = built.agent.state().messages.len();
+    let run_result = event_forwarding::run_agent_and_forward(
+        &built.agent,
+        prompt.into(),
+        &cancellation,
+        output_callback.as_ref(),
+        summary_callback.as_ref(),
+        invocation.provider_lifecycle.as_ref(),
+    )
+    .await;
+    let state = built.agent.state();
+    let response_ids = state
+        .messages
+        .iter()
+        .skip(initial_message_count)
+        .filter_map(|message| message.as_assistant())
+        .map(|message| {
+            (!provider_supports_continuation)
+                .then(|| {
+                    message
+                        .response_id
+                        .as_deref()
+                        .and_then(response_identity::safe_provider_response_id)
+                })
+                .flatten()
+        });
+    let mut model_requests = built
         .captured_requests
         .lock()
         .map(|requests| requests.clone())
         .unwrap_or_default();
+    for (request, response_id) in model_requests.iter_mut().zip(response_ids) {
+        request.catalog_revision = invocation
+            .provider_lifecycle
+            .as_ref()
+            .map(|lifecycle| lifecycle.catalog_revision);
+        request.upstream_runtime_revision = Some(crate::UPSTREAM_MODEL_RUNTIME_REVISION.to_owned());
+        request.provider_response_id = response_id;
+    }
     let failure = |error| UpstreamBranchFailure {
         error,
         model_requests: model_requests.clone(),
     };
     run_result.map_err(failure)?;
 
-    let state = built.agent.state();
     // Upstream owns provider transport and authorization classification. The
     // typed terminal reason it records on agent state is the only input used to
     // choose the public ScribeRig category.
@@ -181,87 +185,15 @@ pub async fn run_upstream_branch_invocation_with_continuation(
     ))
 }
 
-/// Forwards provider-visible text from one upstream subscription event.
+/// Holds the fresh upstream agent and transient request capture outputs.
 ///
-/// Assistant text deltas and reasoning-summary deltas are the only events the
-/// host observes; raw thinking, tool, and lifecycle events never reach a sink.
+/// # Public members
+/// None.
 ///
-/// # Parameters
-/// - `event`: Event received from the branch's upstream broadcast.
-/// - `output_callback`: Optional assistant text sink.
-/// - `summary_callback`: Optional reasoning-summary sink with a per-invocation
-///   arrival ordinal.
-/// - `summary_ordinal`: Arrival ordinal advanced for each summary delta.
-fn forward_event(
-    event: AgentEvent,
-    output_callback: Option<&crate::OutputCallback>,
-    summary_callback: Option<&crate::ReasoningSummaryCallback>,
-    summary_ordinal: &mut u64,
-) {
-    match event {
-        AgentEvent::MessageUpdate {
-            assistant_message_event: AssistantMessageEvent::TextDelta { delta, .. },
-            ..
-        } => {
-            if let Some(callback) = output_callback {
-                callback(&delta);
-            }
-        }
-        AgentEvent::MessageUpdate {
-            assistant_message_event: AssistantMessageEvent::ReasoningSummaryDelta { delta, .. },
-            ..
-        } => {
-            if let Some(callback) = summary_callback {
-                *summary_ordinal = summary_ordinal.saturating_add(1);
-                callback(*summary_ordinal, &delta);
-            }
-        }
-        _ => {}
-    }
-}
-
-/// Forwards events still buffered when the upstream loop settles.
-///
-/// The prompt future and the subscription receiver are polled by the same
-/// `select!`, and the upstream loop emits its closing deltas in the poll that
-/// settles the run, so the loop can settle with those deltas unread. They are
-/// already in the broadcast once the run resolves, so this drain is bounded.
-///
-/// # Parameters
-/// - `events`: Subscription receiver of the settled branch run.
-/// - `output_callback`: Optional assistant text sink.
-/// - `summary_callback`: Optional reasoning-summary sink.
-/// - `summary_ordinal`: Arrival ordinal advanced for each summary delta.
-fn drain_buffered_events(
-    events: &mut tokio::sync::broadcast::Receiver<AgentEvent>,
-    output_callback: Option<&crate::OutputCallback>,
-    summary_callback: Option<&crate::ReasoningSummaryCallback>,
-    summary_ordinal: &mut u64,
-) {
-    loop {
-        match events.try_recv() {
-            Ok(event) => forward_event(event, output_callback, summary_callback, summary_ordinal),
-            // A lagged receiver already dropped whole events; keep draining the
-            // events that are still buffered.
-            Err(tokio::sync::broadcast::error::TryRecvError::Lagged(_)) => {}
-            Err(
-                tokio::sync::broadcast::error::TryRecvError::Empty
-                | tokio::sync::broadcast::error::TryRecvError::Closed,
-            ) => return,
-        }
-    }
-}
-
-/// Builds a fresh upstream agent after validating branch tool ownership.
-///
-/// # Parameters
-/// - `invocation`: Exact provider, model, branch context, and approved tools.
-///
-/// # Returns
-/// The branch-local agent and its safe request projection sink.
-///
-/// # Errors
-/// Returns a scoped-tool or upstream agent-construction failure.
+/// # Private members
+/// - `agent`: Branch-local upstream agent.
+/// - `captured_requests`: Safe provider request projections.
+/// - `captured_continuation`: Opaque provider continuation kept in process memory.
 struct BuiltAgent {
     /// Fresh upstream agent configured for one branch invocation.
     agent: Agent,

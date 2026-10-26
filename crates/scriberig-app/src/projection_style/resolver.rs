@@ -134,6 +134,7 @@ pub fn resolve_effective_style(
         StyleSourceKind::DomainDefault,
         "adapter-domain-default",
         default.value(),
+        None,
     );
 
     for source in conventions {
@@ -144,6 +145,7 @@ pub fn resolve_effective_style(
                 &value,
                 StyleSourceKind::RepositoryConvention,
                 "repository-convention",
+                None,
             )?;
         }
     }
@@ -177,6 +179,7 @@ pub fn resolve_effective_style(
             explicit,
             StyleSourceKind::ExplicitExportOverride,
             "caller-explicit-export",
+            None,
         )?;
     }
 
@@ -256,13 +259,19 @@ impl<'a> LayeredStyle<'a> {
     /// - `kind`: Source class contributed.
     /// - `identity`: Stable identity of the contributing source.
     /// - `value`: Canonical value that source contributed.
-    fn record(&mut self, kind: StyleSourceKind, identity: &str, value: &StyleValue) {
-        self.applied.push(StyleSource::new(
-            kind,
-            identity.to_owned(),
-            None,
-            value.clone(),
-        ));
+    /// - `generation`: Exact mutable-source generation, when applicable.
+    fn record(
+        &mut self,
+        kind: StyleSourceKind,
+        identity: &str,
+        value: &StyleValue,
+        generation: Option<u64>,
+    ) {
+        let source = StyleSource::new(kind, identity.to_owned(), None, value.clone());
+        self.applied.push(match generation {
+            Some(generation) => source.with_generation(generation),
+            None => source,
+        });
     }
 
     /// Reads one scope's stored setting and applies it when one exists.
@@ -291,7 +300,7 @@ impl<'a> LayeredStyle<'a> {
         else {
             return Ok(());
         };
-        self.apply_value(&entry.value, source_kind, identity)
+        self.apply_value(&entry.value, source_kind, identity, Some(entry.revision))
     }
 
     /// Normalizes and merges one candidate value into the accumulation.
@@ -299,6 +308,7 @@ impl<'a> LayeredStyle<'a> {
     /// - `value`: Raw candidate contributed by this source.
     /// - `source_kind`: Source class being applied.
     /// - `identity`: Stable identity of the contributing source.
+    /// - `generation`: Exact mutable-source generation, when applicable.
     ///
     /// # Returns
     /// Unit once the candidate has been merged into the accumulation.
@@ -310,6 +320,7 @@ impl<'a> LayeredStyle<'a> {
         value: &StyleValue,
         source_kind: StyleSourceKind,
         identity: &str,
+        generation: Option<u64>,
     ) -> Result<(), ApplicationError> {
         let normalized = self
             .adapter
@@ -319,7 +330,7 @@ impl<'a> LayeredStyle<'a> {
             .adapter
             .merge(&self.request.projection_kind, &self.current, &normalized)
             .map_err(|diagnostic| style_error("projection style merge", diagnostic))?;
-        self.record(source_kind, identity, &normalized);
+        self.record(source_kind, identity, &normalized, generation);
         Ok(())
     }
 

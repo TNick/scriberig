@@ -3,6 +3,7 @@
 #![allow(clippy::wildcard_imports)]
 
 use super::*;
+use scriberig_app::RuntimeCapability;
 
 #[path = "service_operation_helpers/projected.rs"]
 mod projected;

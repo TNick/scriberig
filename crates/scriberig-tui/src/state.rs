@@ -254,6 +254,8 @@ pub struct TuiState {
     pub should_quit: bool,
     /// A short status message rendered in the shell.
     pub shell_message: String,
+    /// Sanitized multiline output from the latest `/recover` inspection.
+    pub recovery_message: Option<String>,
     /// Stable active project identity, when selected.
     pub project: Option<String>,
     /// Current semantic-service connection state.
@@ -282,6 +284,8 @@ pub struct TuiState {
     pub capabilities: Vec<RuntimeCapability>,
     /// Next request identifier.
     pub next_request_id: u64,
+    /// Monotonic presentation-state revision for cached upstream projections.
+    pub render_revision: u64,
     /// Selected primary view.
     pub primary_view: crate::selection::PrimaryView,
     /// History request/result state.

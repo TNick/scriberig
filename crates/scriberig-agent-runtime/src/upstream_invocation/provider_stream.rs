@@ -74,17 +74,21 @@ pub(super) fn build_provider_stream(
             let expected_provider = model.provider.clone();
             let expected_model = model.id.clone();
             let expected_api = model.api.as_str().to_owned();
+            let expected_model_descriptor = model.clone();
             let forwarded_settings = applied_settings.clone();
             let callback: AppliedRequestSettingsCallback =
                 Arc::new(move |settings: AppliedRequestSettings| {
                     capture_applied_settings(
                         settings,
-                        request_index,
-                        &captured_settings,
-                        &expected_provider,
-                        &expected_model,
-                        &expected_api,
-                        forwarded_settings.as_ref(),
+                        super::applied_settings::AppliedSettingsCapture {
+                            request_index,
+                            captured_requests: &captured_settings,
+                            expected_provider: &expected_provider,
+                            expected_model: &expected_model,
+                            expected_api: &expected_api,
+                            expected_model_descriptor: &expected_model_descriptor,
+                            forwarded_settings: forwarded_settings.as_ref(),
+                        },
                     );
                 });
             rpi_ai::stream_provider_cancellable(

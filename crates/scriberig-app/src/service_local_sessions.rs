@@ -2,6 +2,7 @@
 
 use super::ApplicationService;
 use crate::ApplicationError;
+use scriberig_core::OperationId;
 use scriberig_session::{
     Branch, BranchStatus, CacheDisposition, ExecutionActivity, ModelInvocation,
     ModelRequestProjection, ToolInvocation, ToolResult,
@@ -68,7 +69,7 @@ impl<B> ApplicationService<B> {
         branch: &mut Branch,
         model_requests: Vec<ModelRequestProjection>,
     ) {
-        persist_execution_evidence(self, branch, Vec::new(), model_requests);
+        persist_execution_evidence(self, branch, None, Vec::new(), model_requests);
     }
 
     /// Persists ordered tool and model evidence on one mutable branch.
@@ -83,7 +84,24 @@ impl<B> ApplicationService<B> {
         tool_evidence: Vec<crate::ToolExecutionEvidence>,
         model_requests: Vec<ModelRequestProjection>,
     ) {
-        persist_execution_evidence(self, branch, tool_evidence, model_requests);
+        persist_execution_evidence(self, branch, None, tool_evidence, model_requests);
+    }
+
+    /// Persists evidence with the application operation that owns execution.
+    ///
+    /// - `self`: Application identity allocator.
+    /// - `branch`: Session branch receiving the evidence.
+    /// - `operation`: Exact root or child operation owning the execution.
+    /// - `tool_evidence`: Ordered tool inputs and bounded outputs.
+    /// - `model_requests`: Ordered provider-neutral requests.
+    pub(crate) fn persist_execution_evidence_for_operation(
+        &self,
+        branch: &mut Branch,
+        operation: &OperationId,
+        tool_evidence: Vec<crate::ToolExecutionEvidence>,
+        model_requests: Vec<ModelRequestProjection>,
+    ) {
+        persist_execution_evidence(self, branch, Some(operation), tool_evidence, model_requests);
     }
 }
 
@@ -123,11 +141,13 @@ pub(crate) fn require_open_branch(
 ///
 /// - `service`: Application identity allocator.
 /// - `branch`: Session branch that owns the execution evidence.
+/// - `operation`: Owning root or child operation, when available.
 /// - `tool_evidence`: Ordered tool inputs and bounded outputs from the runtime.
 /// - `model_requests`: Ordered provider-neutral request projections.
 fn persist_execution_evidence<B>(
     service: &ApplicationService<B>,
     branch: &mut Branch,
+    operation: Option<&OperationId>,
     tool_evidence: Vec<crate::ToolExecutionEvidence>,
     model_requests: Vec<ModelRequestProjection>,
 ) {
@@ -181,7 +201,12 @@ fn persist_execution_evidence<B>(
                 branch.activity.push(ExecutionActivity::ToolResult(result));
             }
             ExecutionEvidence::Model(request) => {
-                parent_model_invocation = Some(persist_model_request(service, branch, *request));
+                parent_model_invocation = Some(persist_model_request(
+                    service,
+                    branch,
+                    operation.cloned(),
+                    *request,
+                ));
             }
         }
     }
@@ -191,16 +216,19 @@ fn persist_execution_evidence<B>(
 ///
 /// - `service`: Application identity allocator.
 /// - `branch`: Branch that owns the invocation.
+/// - `operation`: Owning root or child operation, when available.
 /// - `request`: Bounded provider-neutral request projection.
 fn persist_model_request<B>(
     service: &ApplicationService<B>,
     branch: &mut Branch,
+    operation: Option<OperationId>,
     request: ModelRequestProjection,
 ) -> scriberig_core::EntityId {
     let invocation = service.next_entity(0xB6);
     branch.model_invocations.push(ModelInvocation {
         id: invocation,
         branch: branch.id,
+        operation,
         ordinal: request.ordinal,
         agent_profile: request
             .profile

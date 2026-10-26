@@ -9,9 +9,12 @@ mod presentation_methods;
 #[macro_use]
 #[path = "server_application_plan_view.rs"]
 mod plan_view_method;
+#[macro_use]
+#[path = "server_application_event_methods.rs"]
+mod event_methods;
 use super::server_agent_console;
 use super::server_helpers::{
-    event_from_application, event_matches, operation_from_record, session_response,
+    event_from_application, event_matches, operation_from_record, session_response_compact,
 };
 use super::{
     ApplicationContext, ApplicationError, ApplicationService, InspectRequest, InspectResult,
@@ -96,14 +99,16 @@ where
                 operation: "session read".to_owned(),
                 message: format!("invalid session identifier: {error}"),
             })?;
-        let value = scriberig_app::SessionBackend::read_session(
+        let value = scriberig_app::SessionBackend::read_session_projection(
             self,
             context,
             &scriberig_app::SessionRequest {
                 session: session_id,
             },
         )?;
-        session_response(value)
+        session_response_compact(value, |session, plan| {
+            self.read_plan_views(context, session, plan, None)
+        })
     }
 
     /// Reads a bounded attempt page from the authorized semantic session.
@@ -334,48 +339,7 @@ where
         Ok(operation_from_record(self.operations().cancel(&id)?))
     }
 
-    /// Exposes buffered lifecycle events as stable protocol envelopes.
-    /// - `event_kinds`: Argument named `event_kinds`.
-    ///
-    ///
-    /// Returns an error when the operation cannot complete.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn events(&self, event_kinds: &[String]) -> Result<Vec<Event>, ApplicationError> {
-        Ok(self
-            .operations()
-            .events_with_sequences()
-            .into_iter()
-            .map(|(sequence, event)| {
-                let mut event = event_from_application(event);
-                event.sequence = sequence;
-                event
-            })
-            .filter(|event| event_matches(event, event_kinds))
-            .collect())
-    }
-
-    /// Returns retained application events after a reconnect cursor.
-    ///
-    /// - `event_kinds`: Event kind filters.
-    /// - `after`: Last cursor already processed by the caller.
-    ///
-    /// Events newer than `after`.
-    ///
-    /// Returns `cursor_too_old` when replay history has expired.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn events_after(
-        &self,
-        event_kinds: &[String],
-        after: u64,
-    ) -> Result<Vec<Event>, ApplicationError> {
-        filter_events_after(self.events(event_kinds)?, after)
-    }
+    server_application_event_methods!();
 
     /// Decodes and executes one command through the shared application boundary.
     ///

@@ -4,8 +4,6 @@
 mod assertions;
 #[path = "tui_pty_support/branch_assertions.rs"]
 mod branch_assertions;
-#[path = "tui_pty_support/onboarding_wait.rs"]
-mod onboarding_wait;
 #[allow(dead_code)]
 mod tui_pty_support;
 
@@ -19,12 +17,14 @@ use assertions::{
     assert_unrelated_source_unchanged,
 };
 use branch_assertions::assert_nested_branch_results;
-use onboarding_wait::{visible_session, wait_for_branch_completion, wait_for_onboarding};
 use scriberig_project::ProjectService;
 use scriberig_session::SessionStore;
 use scriberig_session_sqlite::SqliteSessionStore;
 use scriberig_store::SnapshotStore;
 use scriberig_store_sqlite::SqliteStore;
+use tui_pty_support::onboarding_wait::{
+    visible_session, wait_for_branch_completion, wait_for_onboarding,
+};
 use tui_pty_support::{TuiPty, candidate_review, test_lock};
 
 /// Drives onboarding and PHP candidate construction through the native product process.

@@ -140,6 +140,30 @@ pub enum Effect {
         /// Stable model-invocation identity.
         invocation: scriberig_core::EntityId,
     },
+    /// List preserved legacy execution choices for the active session.
+    LegacyRecoveryList {
+        /// Session whose sanitized recovery records are requested.
+        session: scriberig_core::EntityId,
+        /// Session-selection revision to use for an `/execution` record.
+        selection_revision: u64,
+        /// Current plan identities and revisions visible to the operator.
+        plan_revisions: Vec<(scriberig_core::EntityId, u64)>,
+    },
+    /// Map one preserved legacy execution choice to an active upstream model.
+    LegacyRecoveryMap {
+        /// Session containing the preserved choice.
+        session: scriberig_core::EntityId,
+        /// Exact path returned by the recovery listing.
+        path: String,
+        /// Selection or plan revision observed by the operator.
+        expected_revision: u64,
+        /// Active upstream provider identity supplied by the operator.
+        provider_id: String,
+        /// Provider-scoped model identity supplied by the operator.
+        model_id: String,
+        /// Optional advertised thinking level supplied by the operator.
+        thinking_level: Option<String>,
+    },
     /// Select a model profile for future invocations in one session.
     SetSessionModel(scriberig_app::SessionModelSelectionRequest),
     /// Select a thinking level for future invocations in one session.
@@ -180,6 +204,8 @@ pub enum Effect {
         /// Requested lifecycle transition.
         action: scriberig_app::PlanLifecycleAction,
     },
+    /// Applies one typed plan-domain mutation through shared application semantics.
+    PlanMutation(scriberig_app::PlanMutationRequest),
     /// Changes one plan node's credential-safe model-library assignment.
     SetPlanNodeAssignment(scriberig_app::PlanAssignmentRequest),
     /// Run the deterministic semantic project agent for the selected entity.

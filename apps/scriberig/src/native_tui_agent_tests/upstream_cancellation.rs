@@ -9,7 +9,7 @@
 //! interrupt an inspect query once it has started.
 
 use scriberig_app::ApplicationError;
-use scriberig_session::BranchStatus;
+use scriberig_session::{BranchStatus, SessionStore};
 
 use super::upstream_fixture::fixture::UpstreamFixture;
 use super::upstream_fixture::provider::{Step, step, tool_use};
@@ -74,11 +74,15 @@ fn cancelled_root_branch_keeps_a_structured_durable_outcome() {
     fixture.cleanup();
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "cancellation regression asserts the complete durable child outcome"
+)]
+#[test]
 /// Cancels one delegated child and keeps both branch outcomes structured.
 ///
 /// The cancellation is raised when the child's own provider request starts, so
 /// the child branch is already durable and executing before it is stopped.
-#[test]
 fn cancelled_child_branch_keeps_a_structured_durable_outcome() {
     let model = UpstreamFixture::catalog()
         .into_iter()
@@ -108,8 +112,26 @@ fn cancelled_child_branch_keeps_a_structured_durable_outcome() {
         .operations()
         .cancellation_flag(&accepted.operation)
         .expect("operation cancellation flag");
+    let session_store = std::sync::Arc::clone(&fixture.session_store);
+    let session_id = fixture.session;
+    let child_was_durable_before_invocation =
+        std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let observed_child = std::sync::Arc::clone(&child_was_durable_before_invocation);
     fixture.provider.set_hook(move |index| {
         if index == 2 {
+            let child_is_prepared =
+                session_store
+                    .load(session_id)
+                    .ok()
+                    .flatten()
+                    .is_some_and(|session| {
+                        session.branches.iter().any(|branch| {
+                            branch.parent.is_some()
+                                && branch.model_invocations.is_empty()
+                                && branch.status == BranchStatus::Active
+                        })
+                    });
+            observed_child.store(child_is_prepared, std::sync::atomic::Ordering::Release);
             cancellation.store(true, std::sync::atomic::Ordering::Release);
         }
     });
@@ -120,6 +142,10 @@ fn cancelled_child_branch_keeps_a_structured_durable_outcome() {
     assert_eq!(session.branches.len(), 2, "the child branch is durable");
     let root = &session.branches[0];
     let child = &session.branches[1];
+    assert!(
+        child_was_durable_before_invocation.load(std::sync::atomic::Ordering::Acquire),
+        "the child branch is durable and has no model invocation at provider dispatch"
+    );
     assert_eq!(
         child.parent,
         Some(root.id),

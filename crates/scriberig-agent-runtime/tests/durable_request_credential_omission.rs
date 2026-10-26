@@ -3,15 +3,16 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use rpi_ai::providers::faux::{FauxProvider, FauxScript};
+use rpi_ai::StopReason;
+use rpi_ai::providers::faux::{FauxProvider, FauxScript, FauxStep, faux_assistant_message};
 use scriberig_agent_runtime::context::{BranchExecutionContext, ContextCompiler, ContextPolicy};
 use scriberig_agent_runtime::upstream_invocation::{
-    UpstreamBranchInvocation, run_upstream_branch_invocation_blocking,
+    ProviderLifecycleContext, UpstreamBranchInvocation, run_upstream_branch_invocation_blocking,
 };
 use scriberig_app::{
     AgentCommandRequest, AgentConsoleBackend, ApplicationBackend, ApplicationContext,
     ApplicationError, ApplicationRequest, ApplicationResult, ApplicationService, CapabilityContext,
-    CapabilityId, SessionBackend, SessionRequest,
+    CapabilityId, SessionBackend, SessionModelSelectionRequest, SessionRequest,
 };
 use scriberig_core::EntityId;
 use scriberig_session::ModelRequestProjection;
@@ -66,7 +67,9 @@ fn authorized_context() -> ApplicationContext {
 /// Runs one real upstream branch invocation whose model carries credentials.
 ///
 /// - `provider`: Deterministic upstream provider for the branch invocation.
-/// - `model`: Exact upstream model carrying the credential sentinel.
+/// - `model`: Exact upstream model selected for the branch.
+/// - `request_secret`: Optional opaque host-resolved request credential.
+/// - `bearer`: Whether the request secret uses bearer authorization.
 ///
 /// The request projections captured before provider serialization.
 /// # Returns
@@ -76,6 +79,8 @@ fn authorized_context() -> ApplicationContext {
 fn capture_requests(
     provider: Arc<dyn rpi_ai::Provider>,
     model: &rpi_ai::Model,
+    request_secret: Option<rpi_ai::RequestSecret>,
+    bearer: bool,
 ) -> Vec<ModelRequestProjection> {
     let compiled_context =
         ContextCompiler::new(ContextPolicy::default()).compile(&BranchExecutionContext::new(
@@ -88,14 +93,18 @@ fn capture_requests(
         branch: EntityId::from_bytes([61; 16]),
         provider,
         model: model.clone(),
-        request_secret: None,
-        bearer: false,
+        request_secret,
+        bearer,
         applied_settings: None,
         provider_profile: Some("host-provider-profile".to_owned()),
         thinking_level: rpi_ai::ThinkingLevel::Off,
         context: compiled_context,
         tools: Vec::new(),
         activity: Arc::new(scriberig_agent_runtime::orchestration::ActivitySequence::default()),
+        provider_lifecycle: Some(ProviderLifecycleContext {
+            events: rpi_model_runtime::ProviderLifecycleEvents::new(),
+            catalog_revision: 17,
+        }),
     };
     run_upstream_branch_invocation_blocking(invocation, "review the bounded request")
         .expect("upstream branch invocation")
@@ -128,8 +137,13 @@ fn credential_sentinels_never_reach_durable_model_request_detail() {
     let path = directory
         .path()
         .join("scriberig-credential-omission.sqlite");
-    let provider = FauxProvider::new(FauxScript::new().with_text("safe completed answer"));
-    let mut model = provider.default_model().clone();
+    let mut response = faux_assistant_message("safe completed answer", StopReason::Stop);
+    response.response_id = Some("durable-response-safe-123".to_owned());
+    let script = FauxScript::new();
+    script.append_responses(vec![FauxStep::message(response)]);
+    let model = FauxProvider::new(FauxScript::new()).default_model().clone();
+    let provider = FauxProvider::with_models(script, vec![model.clone()]);
+    let mut model = model;
     model.base_url = format!("https://example.invalid/v1?token={CREDENTIAL_SENTINEL}");
     model.headers = Some(BTreeMap::from([(
         "authorization".to_owned(),
@@ -138,8 +152,38 @@ fn credential_sentinels_never_reach_durable_model_request_detail() {
     let catalog = rpi_model_runtime::ModelCatalog::new();
     catalog.reconcile_models(vec![model.clone()]);
 
-    let captured = capture_requests(provider.clone(), &model);
+    let captured = capture_requests(provider.clone(), &model, None, false);
     assert_eq!(captured.len(), 1);
+    assert_eq!(captured[0].catalog_revision, Some(17));
+    assert_eq!(
+        captured[0].upstream_runtime_revision.as_deref(),
+        Some(scriberig_agent_runtime::UPSTREAM_MODEL_RUNTIME_REVISION)
+    );
+    assert_eq!(
+        captured[0].provider_response_id.as_deref(),
+        Some("durable-response-safe-123")
+    );
+    assert_eq!(
+        captured[0]
+            .profile
+            .as_ref()
+            .map(|profile| profile.identity.as_str()),
+        Some(scriberig_agent_runtime::profile::DEFAULT_AGENT_PROFILE_IDENTITY)
+    );
+    assert_ne!(
+        captured[0]
+            .profile
+            .as_ref()
+            .expect("profile revision")
+            .revision
+            .as_str(),
+        ""
+    );
+    assert_ne!(
+        captured[0].active_components.len(),
+        0,
+        "compiled bootstrap components must be captured by exact revision"
+    );
     assert!(
         !serialized_contains_credential(&captured, "captured request projection"),
         "request capture leaked the provider credential sentinel"
@@ -204,6 +248,8 @@ fn credential_sentinels_never_reach_durable_model_request_detail() {
     )
     .expect("authorized historical request detail");
     assert_eq!(detail, captured[0]);
+    assert_eq!(detail.profile, captured[0].profile);
+    assert_eq!(detail.active_components, captured[0].active_components);
     assert_eq!(detail.provider_id.as_deref(), Some(model.provider.as_str()));
     assert_eq!(detail.model, model.id);
     assert!(detail.request_fingerprint.is_some());
@@ -259,6 +305,29 @@ fn credential_sentinels_never_reach_durable_model_request_detail() {
         after_mutation.provider_id.as_deref(),
         Some(model.provider.as_str())
     );
+    let selection_context = ApplicationContext {
+        capabilities: CapabilityContext::new([
+            CapabilityId::new("session_model_selection").expect("selection capability")
+        ]),
+        ..ApplicationContext::empty()
+    };
+    let historical_selection = reader.set_session_model(
+        &selection_context,
+        &SessionModelSelectionRequest {
+            session,
+            expected_revision: 0,
+            provider_id: model.provider.clone(),
+            model_id: model.id.clone(),
+        },
+    );
+    assert!(
+        matches!(
+            historical_selection,
+            Err(ApplicationError::InvalidRequest { ref operation, .. })
+                if operation.as_str() == "session model selection"
+        ),
+        "historical safe request data must not revive a removed live catalog row: {historical_selection:?}"
+    );
 
     drop(reader);
     drop(writer);
@@ -269,3 +338,11 @@ fn credential_sentinels_never_reach_durable_model_request_detail() {
         "the durable SQLite payload leaked the provider credential sentinel"
     );
 }
+
+#[cfg(test)]
+#[path = "durable_request_credential_omission/resolved_secret.rs"]
+mod resolved_secret;
+
+#[cfg(test)]
+#[path = "durable_request_credential_omission/continuation.rs"]
+mod continuation;

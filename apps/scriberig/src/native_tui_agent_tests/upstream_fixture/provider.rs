@@ -216,7 +216,13 @@ impl Provider for ScriptedProvider {
             .unwrap_or_else(|| step(answer(model, "exhausted", "scripted provider is exhausted")));
         match step {
             Step::HoldUntilCancelled => Self::held_stream(model, opts.signal.clone()),
-            Step::Message(message) => Self::scripted_stream(&message),
+            Step::Message(message) => {
+                let mut message = *message;
+                message.api.clone_from(&model.api);
+                message.provider.clone_from(&model.provider);
+                message.model.clone_from(&model.id);
+                Self::scripted_stream(&message)
+            }
         }
     }
 }

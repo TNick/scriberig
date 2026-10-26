@@ -21,7 +21,7 @@ type NativeAdapter = ApplicationOperationAdapter<
 /// The composed adapter and its project store handle for teardown.
 fn native_adapter(
     root: &std::path::Path,
-    catalog: rpi_model_runtime::ModelCatalog,
+    catalog: &rpi_model_runtime::ModelCatalog,
 ) -> (NativeAdapter, Arc<SqliteStore>) {
     let project_store = Arc::new(
         SqliteStore::open(root.join("project.sqlite")).expect("native readiness project store"),
@@ -30,13 +30,21 @@ fn native_adapter(
         StoreInspectionBackend::new(Arc::clone(&project_store)),
         StoreOperationProvider::new(Arc::clone(&project_store)),
     );
-    let service = ApplicationService::new(backend).with_model_catalog(catalog.clone());
+    let provider_extension_runtime =
+        scriberig_app::ProviderExtensionRuntime::with_model_catalog(catalog.clone());
+    let service = ApplicationService::new(backend)
+        .with_provider_extension_runtime(provider_extension_runtime.clone());
     let runner = NativeTuiAgentRunner {
         providers: std::collections::BTreeMap::new(),
         model: "model-before".to_owned(),
         upstream_credentials: None,
         upstream_enabled: false,
-        model_catalog: catalog,
+        model_catalog: catalog.clone(),
+        provider_extension_runtime,
+        plugin_command_worker: std::sync::Mutex::new(None),
+        extension_component_mailbox: rpi_extensions::ExtensionStatusMailbox::new(),
+        provider_lifecycle:
+            crate::native_tui_agent::provider_readiness::ProviderLifecycleState::new(),
         model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
@@ -87,7 +95,7 @@ fn native_model_library_refreshes_models_and_readiness_after_a_reload() {
         "local",
         &["model-before"],
     ));
-    let (adapter, project_store) = native_adapter(&root, catalog.clone());
+    let (adapter, project_store) = native_adapter(&root, &catalog);
     let context = readiness_context();
 
     let before = TuiService::model_library(&adapter, &context).expect("initial model library");

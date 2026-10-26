@@ -46,7 +46,7 @@ pub const COMMANDS: &[SlashCommandDescriptor] = &[
     SlashCommandDescriptor {
         name: "/plan",
         summary: "Create or control a durable plan",
-        argument_hint: " <goal|action>",
+        argument_hint: " <goal|show|next|child|retry|waive|action>",
     },
     SlashCommandDescriptor {
         name: "/session",
@@ -61,7 +61,7 @@ pub const COMMANDS: &[SlashCommandDescriptor] = &[
     SlashCommandDescriptor {
         name: "/inspect",
         summary: "Inspect the selected entity",
-        argument_hint: " [entity]",
+        argument_hint: " [entity] [--snapshot <id>]",
     },
     SlashCommandDescriptor {
         name: "/find",
@@ -127,6 +127,11 @@ pub const COMMANDS: &[SlashCommandDescriptor] = &[
         name: "/remove-session",
         summary: "Remove an idle saved conversation by ID",
         argument_hint: " <session-id>",
+    },
+    SlashCommandDescriptor {
+        name: "/recover",
+        summary: "Inspect or map preserved legacy model selections",
+        argument_hint: " [map <path> <revision> <provider> <model> [thinking]]",
     },
 ];
 

@@ -12,6 +12,14 @@ mod connection_restored;
 /// # Returns
 /// The operation result.
 pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
+    if !matches!(action, Action::CursorMoved(_))
+        || !matches!(
+            state.primary_view,
+            crate::selection::PrimaryView::Conversation | crate::selection::PrimaryView::Session
+        )
+    {
+        state.render_revision = state.render_revision.wrapping_add(1);
+    }
     if super::tail_actions::handles_tail_action(&action) {
         return reduce_tail(state, action).unwrap_or_default();
     }

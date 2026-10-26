@@ -158,5 +158,6 @@ fn project_invocation(
         context,
         tools,
         activity: Arc::new(scriberig_agent_runtime::orchestration::ActivitySequence::default()),
+        provider_lifecycle: None,
     }
 }

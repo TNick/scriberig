@@ -1,6 +1,7 @@
 //! Implements generic query service adapters for the TUI.
 
 use super::*;
+use super::{TuiRecoveryService, TuiRuntimeService};
 
 /// Converts upstream safe model snapshots into protocol DTOs.
 ///
@@ -123,6 +124,10 @@ impl<S: QueryService> TuiService for S {
 
 impl<S: QueryService> TuiModelRequestService for S {}
 
+impl<S: QueryService> TuiRecoveryService for S {}
+
+impl<S: QueryService> TuiRuntimeService for S {}
+
 #[cfg(test)]
 mod tests {
     //! Verifies readiness rows stay bound to the displayed model generation.
@@ -177,6 +182,7 @@ mod tests {
                 provider_id: "provider-a".to_owned(),
                 model_id: "model-a".to_owned(),
                 credential: scriberig_protocol::ProviderCredentialReadiness::Available,
+                authentication: None,
             }],
         }
     }

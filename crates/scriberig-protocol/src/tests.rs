@@ -77,6 +77,42 @@ fn shared_agent_session_fixture_preserves_cross_surface_semantics() {
     round_trip(&operation);
 }
 
+/// Ensures remote agent requests carry no provider credential material.
+#[test]
+fn remote_agent_requests_never_serialize_provider_credentials() {
+    let requests = [
+        serde_json::to_value(AgentStartRequest {
+            session: SessionReference {
+                id: "session-1".to_owned(),
+            },
+            prompt: "inspect this branch".to_owned(),
+            selection: None,
+        })
+        .expect("serialize start request"),
+        serde_json::to_value(AgentContinueRequest {
+            session: SessionReference {
+                id: "session-1".to_owned(),
+            },
+            branch: BranchReference {
+                id: "branch-1".to_owned(),
+            },
+            prompt: "continue".to_owned(),
+            selection: None,
+        })
+        .expect("serialize continuation request"),
+    ];
+
+    for request in requests {
+        let object = request.as_object().expect("typed request object");
+        assert!(object.keys().all(|key| {
+            !key.to_ascii_lowercase().contains("credential")
+                && !key.to_ascii_lowercase().contains("secret")
+                && !key.to_ascii_lowercase().contains("api_key")
+        }));
+        assert!(!request.to_string().contains("sentinel-provider-secret"));
+    }
+}
+
 /// Verifies stable references and snapshot-aware requests round trip.
 #[test]
 fn references_and_requests_round_trip() {

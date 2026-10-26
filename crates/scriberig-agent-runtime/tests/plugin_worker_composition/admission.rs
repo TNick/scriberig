@@ -46,7 +46,9 @@ fn admission<'launcher>(
         launcher,
         configuration: PluginWorkerConfiguration {
             allowed_tools: allowed.iter().map(|name| (*name).to_owned()).collect(),
+            allowed_commands: BTreeSet::new(),
             allowed_operations: BTreeSet::new(),
+            allowed_providers: BTreeSet::new(),
             launch: launch_spec(advertised, root, None),
         },
         dispatcher: Arc::new(NoOperationDispatcher),

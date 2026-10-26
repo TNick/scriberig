@@ -209,7 +209,14 @@ fn plan_start_runs_claimed_branch_with_the_fake_provider() {
         model: "fake-model".to_owned(),
         upstream_credentials: None,
         upstream_enabled: false,
-        model_catalog: model_catalog_from_models(upstream_models),
+        model_catalog: model_catalog_from_models(upstream_models.clone()).clone(),
+        provider_extension_runtime: scriberig_app::ProviderExtensionRuntime::with_model_catalog(
+            model_catalog_from_models(upstream_models.clone()).clone(),
+        ),
+        plugin_command_worker: std::sync::Mutex::new(None),
+        extension_component_mailbox: rpi_extensions::ExtensionStatusMailbox::new(),
+        provider_lifecycle:
+            crate::native_tui_agent::provider_readiness::ProviderLifecycleState::new(),
         model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),

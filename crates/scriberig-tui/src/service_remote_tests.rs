@@ -16,6 +16,8 @@ use scriberig_protocol::{
     SessionBranchStatus, SessionReadResponse, SessionReference, SessionTurn, SnapshotReference,
 };
 
+#[path = "service_remote_plan_mutation_tests.rs"]
+mod plan_mutation_tests;
 #[path = "service_remote_reconnect_tests.rs"]
 mod reconnect_tests;
 #[path = "service_remote_session_event_tests.rs"]

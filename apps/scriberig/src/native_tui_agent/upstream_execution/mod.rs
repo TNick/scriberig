@@ -5,8 +5,14 @@ mod delegation;
 mod evidence;
 mod execution;
 mod lineage;
+#[cfg(feature = "isolated-plugin-worker")]
+mod plugin_execution;
 pub(crate) use lineage::completed_root_context_fingerprint;
 use lineage::provider_context_fingerprint;
+#[cfg(feature = "isolated-plugin-worker")]
+pub(super) use plugin_execution::{
+    canonical_roots, include_runtime_loader_aliases, plugin_read_roots, protected_roots,
+};
 
 use std::sync::Arc;
 
@@ -61,6 +67,7 @@ pub(crate) struct UpstreamBranchExecutionFailure {
 /// - `branch`: Canonical `ScribeRig` branch receiving the turn.
 /// - `prompt`: User-authored instruction for this turn.
 /// - `selection`: Exact selected workspace scope, when present.
+/// - `profile`: Exact semantic profile captured for this root invocation.
 /// - `project_store`: Durable project store for application tools.
 /// - `provider`: Upstream provider bound to the selected model.
 /// - `model`: Exact selected upstream model.
@@ -77,7 +84,7 @@ pub(crate) struct UpstreamBranchExecutionFailure {
 /// Returns a provider, context, budget, or cancellation failure with captured
 /// evidence retained for terminal persistence.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn execute_root_branch_with_options<B: ApplicationBackend + Sync>(
+pub(crate) fn execute_root_branch_with_options<B: ApplicationBackend + Send + Sync + 'static>(
     service: &ApplicationService<B>,
     context: &ApplicationContext,
     session: EntityId,
@@ -100,6 +107,7 @@ pub(crate) fn execute_root_branch_with_options<B: ApplicationBackend + Sync>(
         branch,
         prompt,
         selection,
+        None,
         project_store,
         provider,
         model,
@@ -108,6 +116,8 @@ pub(crate) fn execute_root_branch_with_options<B: ApplicationBackend + Sync>(
         cancelled,
         provider_profile,
         output_callback,
+        None,
+        None,
         None,
         None,
     )
@@ -137,6 +147,8 @@ pub(crate) fn execute_root_branch_with_options<B: ApplicationBackend + Sync>(
 /// - `output_callback`: Optional provider-visible text observer.
 /// - `summary_callback`: Optional provider-visible reasoning-summary observer.
 /// - `continuation`: Candidate provider handle and its prior context fingerprint.
+/// - `provider_lifecycle`: Optional upstream lifecycle sink bound to the
+///   catalog generation used by this invocation.
 ///
 /// # Returns
 /// The root result and extracted continuation.
@@ -144,13 +156,16 @@ pub(crate) fn execute_root_branch_with_options<B: ApplicationBackend + Sync>(
 /// # Errors
 /// Returns a provider, context, budget, or cancellation failure with evidence.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn execute_root_branch_with_continuation<B: ApplicationBackend + Sync>(
+pub(crate) fn execute_root_branch_with_continuation<
+    B: ApplicationBackend + Send + Sync + 'static,
+>(
     service: &ApplicationService<B>,
     context: &ApplicationContext,
     session: EntityId,
     branch: EntityId,
     prompt: &str,
     selection: Option<&scriberig_app::AgentSelection>,
+    profile: Option<&scriberig_app::AgentProfileDescriptor>,
     project_store: Arc<SqliteStore>,
     provider: Arc<dyn rpi_ai::Provider>,
     model: rpi_ai::Model,
@@ -161,6 +176,10 @@ pub(crate) fn execute_root_branch_with_continuation<B: ApplicationBackend + Sync
     output_callback: Option<scriberig_agent_runtime::OutputCallback>,
     summary_callback: Option<scriberig_agent_runtime::ReasoningSummaryCallback>,
     continuation: Option<(rpi_ai::ProviderContinuation, String)>,
+    provider_lifecycle: Option<
+        scriberig_agent_runtime::upstream_invocation::ProviderLifecycleContext,
+    >,
+    child_provider_resolver: Option<scriberig_agent_runtime::ChildProviderResolver>,
 ) -> Result<RootBranchRun, UpstreamBranchExecutionFailure> {
     let semantic_scope =
         selection.map(
@@ -177,15 +196,26 @@ pub(crate) fn execute_root_branch_with_continuation<B: ApplicationBackend + Sync
         || context.clone(),
         |selection| context.clone().with_snapshot(selection.snapshot),
     );
-    let compiled = crate::agent_context::compile_branch_context(
-        service,
-        &runtime_context,
-        session,
-        branch,
-        prompt,
-        semantic_scope.clone(),
-    )
-    .map_err(|_| UpstreamBranchExecutionFailure {
+    let compiled_context = match profile {
+        Some(profile) => crate::agent_context::compile_branch_context_with_profile(
+            service,
+            &runtime_context,
+            session,
+            branch,
+            prompt,
+            semantic_scope.clone(),
+            profile,
+        ),
+        None => crate::agent_context::compile_branch_context(
+            service,
+            &runtime_context,
+            session,
+            branch,
+            prompt,
+            semantic_scope.clone(),
+        ),
+    };
+    let compiled = compiled_context.map_err(|_| UpstreamBranchExecutionFailure {
         failure: UpstreamBranchFailure {
             error: scriberig_agent_runtime::upstream_invocation::UpstreamBranchError::Agent(
                 "branch context compilation failed".to_owned(),
@@ -213,6 +243,7 @@ pub(crate) fn execute_root_branch_with_continuation<B: ApplicationBackend + Sync
         context: compiled,
         tools: Vec::new(),
         activity: Arc::new(scriberig_agent_runtime::orchestration::ActivitySequence::default()),
+        provider_lifecycle,
     };
     let scope = ChildExecutionScope {
         session,
@@ -220,6 +251,7 @@ pub(crate) fn execute_root_branch_with_continuation<B: ApplicationBackend + Sync
         depth: 0,
         active_branches: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
         semantic_scope,
+        provider_resolver: child_provider_resolver,
     };
     let cancellation = CancellationToken::new();
     let run_cancellation = cancellation.clone();
@@ -288,7 +320,7 @@ pub(crate) fn execute_root_branch_with_continuation<B: ApplicationBackend + Sync
 /// # Errors
 /// Returns a provider, budget, or cancellation failure with captured evidence.
 #[allow(clippy::too_many_arguments)]
-pub(super) fn execute_precompiled_branch<B: ApplicationBackend + Sync>(
+pub(super) fn execute_precompiled_branch<B: ApplicationBackend + Send + Sync + 'static>(
     service: &ApplicationService<B>,
     context: &ApplicationContext,
     session: EntityId,
@@ -298,6 +330,7 @@ pub(super) fn execute_precompiled_branch<B: ApplicationBackend + Sync>(
     invocation: UpstreamBranchInvocation,
     semantic_scope: Option<scriberig_agent_runtime::context::ProjectSemanticScope>,
     cancelled: &std::sync::atomic::AtomicBool,
+    child_provider_resolver: Option<scriberig_agent_runtime::ChildProviderResolver>,
 ) -> Result<UpstreamBranchExecution, UpstreamBranchExecutionFailure> {
     let scope = ChildExecutionScope {
         session,
@@ -305,6 +338,7 @@ pub(super) fn execute_precompiled_branch<B: ApplicationBackend + Sync>(
         depth: 0,
         active_branches: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
         semantic_scope,
+        provider_resolver: child_provider_resolver,
     };
     let cancellation = CancellationToken::new();
     let run = execution::run_branch_with_semantic_broker(

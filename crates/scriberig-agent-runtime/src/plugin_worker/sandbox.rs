@@ -9,10 +9,12 @@
 //! does not claim every enforced restriction.
 
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
+use std::time::{Duration, Instant};
 
 use rpi_extensions::isolated::{
     LinuxBubblewrapLauncher, WorkerFilesystemPolicy, WorkerIsolation, WorkerLaunchSpec,
-    WorkerLauncher, WorkerSandboxGuarantees, WorkerSecretPolicy,
+    WorkerLauncher, WorkerSandboxGuarantees, WorkerSandboxPolicy, WorkerSecretPolicy,
 };
 
 /// Launcher-attested OS restrictions for one started worker.
@@ -79,12 +81,114 @@ pub fn sandboxed_launcher() -> Option<&'static dyn WorkerLauncher> {
     #[cfg(target_os = "linux")]
     {
         static BUBBLEWRAP: LinuxBubblewrapLauncher = LinuxBubblewrapLauncher;
-        Some(&BUBBLEWRAP)
+        static VERIFIED: OnceLock<bool> = OnceLock::new();
+        VERIFIED
+            .get_or_init(|| verify_bubblewrap(BUBBLEWRAP))
+            .then_some(&BUBBLEWRAP as &dyn WorkerLauncher)
     }
     #[cfg(not(target_os = "linux"))]
     {
         None
     }
+}
+
+/// Verifies the actual bubblewrap launch against filesystem, environment, and namespace checks.
+///
+/// A successful guarantee report alone cannot admit a worker. This probe starts
+/// a restricted shell and confirms that unbound host paths and `/proc` are not
+/// visible, only declared environment values survive, and the process enters a
+/// distinct network namespace.
+///
+/// # Parameters
+/// - `launcher`: Platform launcher selected by the host.
+///
+/// # Returns
+/// `true` only when every runtime check succeeds.
+fn verify_bubblewrap(launcher: LinuxBubblewrapLauncher) -> bool {
+    let executable = PathBuf::from("/bin/sh");
+    if !executable.is_file() {
+        return false;
+    }
+    let read_roots = ["/usr", "/bin", "/lib", "/lib64", "/etc"]
+        .into_iter()
+        .map(PathBuf::from)
+        .filter(|root| root.exists())
+        .collect();
+    let spec = WorkerLaunchSpec {
+        executable,
+        args: vec![
+            "-c".to_owned(),
+            "test ! -e /proc/self/status && test ! -e /root && test \"$SCRIBE_SANDBOX_PROBE\" = allowed && test -z \"${SCRIBE_SANDBOX_HOST_CANARY:-}\" && exec /usr/bin/sleep 2".to_owned(),
+        ],
+        environment: std::collections::BTreeMap::from([(
+            "SCRIBE_SANDBOX_PROBE".to_owned(),
+            "allowed".to_owned(),
+        )]),
+        working_directory: Some(PathBuf::from("/tmp")),
+        inherit_environment: false,
+        sandbox: WorkerSandboxPolicy {
+            isolation: WorkerIsolation::Sandboxed,
+            filesystem: WorkerFilesystemPolicy {
+                read_roots,
+                write_roots: Vec::new(),
+            },
+            network: rpi_extensions::isolated::WorkerNetworkPolicy::Deny,
+            secrets: WorkerSecretPolicy::DeclaredOnly,
+        },
+        startup_timeout: Duration::from_secs(3),
+        request_timeout: Duration::from_secs(3),
+    };
+    let Ok(mut command) = launcher.command(&spec) else {
+        return false;
+    };
+    command.env("SCRIBE_SANDBOX_HOST_CANARY", "must-not-inherit");
+    let Ok(mut child) = command.spawn() else {
+        return false;
+    };
+    let host_namespace = std::fs::read_link("/proc/self/ns/net");
+    let deadline = Instant::now() + Duration::from_secs(1);
+    let isolated_network = loop {
+        if host_namespace
+            .as_ref()
+            .is_ok_and(|host| has_isolated_network_descendant(child.id(), host))
+        {
+            break true;
+        }
+        if Instant::now() >= deadline || child.try_wait().ok().flatten().is_some() {
+            break false;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    let output = child.wait_with_output();
+    isolated_network && output.is_ok_and(|result| result.status.success())
+}
+
+/// Finds a bubblewrap child running in a distinct network namespace.
+///
+/// Bubblewrap keeps a supervisor outside the new PID namespace, so verification
+/// follows the host-visible child tree until it finds the sandboxed process.
+///
+/// # Parameters
+/// - `parent`: Host-visible process ID to inspect.
+/// - `host_namespace`: Host network namespace identity.
+///
+/// # Returns
+/// `true` when a descendant belongs to a different network namespace.
+fn has_isolated_network_descendant(parent: u32, host_namespace: &Path) -> bool {
+    let children_path = format!("/proc/{parent}/task/{parent}/children");
+    let Ok(children) = std::fs::read_to_string(children_path) else {
+        return false;
+    };
+    children.split_whitespace().any(|child| {
+        let Ok(child) = child.parse::<u32>() else {
+            return false;
+        };
+        let namespace_path = format!("/proc/{child}/ns/net");
+        if std::fs::read_link(&namespace_path).is_ok_and(|namespace| namespace != host_namespace) {
+            return true;
+        }
+        has_isolated_network_descendant(child, host_namespace)
+    })
 }
 
 /// Rejects a worker launch that could read protected `ScribeRig` state.

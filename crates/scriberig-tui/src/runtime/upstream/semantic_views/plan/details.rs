@@ -8,6 +8,13 @@ use scriberig_session::{Plan, PlanGateCounts, PlanNodeView, PlanView, Session};
 
 use super::views::SharedPlanViews;
 
+#[path = "details/attempts.rs"]
+mod attempts;
+#[path = "details/evidence.rs"]
+mod evidence;
+#[path = "details/gates.rs"]
+mod gates;
+
 /// Builds bounded details for a plan and its explicit dependency graph.
 ///
 /// # Parameters
@@ -44,6 +51,9 @@ pub(super) fn plan_details(
             row.semantics.node(node_id),
             row.semantics.plan.as_ref(),
         );
+        gates::append_node_gates(&mut output, plan, node_id);
+        evidence::append_node_evidence(&mut output, plan, node_id);
+        attempts::append_node_attempts(&mut output, plan, node_id);
     }
     // History follows the selection: the bounded details pane must keep the
     // selected node's shared semantics visible instead of scrolling them off a

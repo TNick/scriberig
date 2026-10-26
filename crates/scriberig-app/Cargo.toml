@@ -8,6 +8,7 @@ description = "Shared application-operation boundary used by all product and cli
 repository.workspace = true
 
 [dependencies]
+scriberig-agent-core = { path = "../scriberig-agent-core" }
 scriberig-core = { path = "../scriberig-core" }
 scriberig-derive = { path = "../scriberig-derive" }
 scriberig-graph = { path = "../scriberig-graph" }
@@ -21,13 +22,15 @@ sr-projection-fs = { path = "../sr-projection-fs" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 rpi-ai = { workspace = true }
+rpi-extensions = { workspace = true }
 rpi-model-runtime = { workspace = true }
 
 [dev-dependencies]
 scriberig-domain-ecma = { path = "../domains/scriberig-domain-ecma" }
 scriberig-store-memory = { path = "../scriberig-store-memory" }
-scriberig-session-sqlite = { path = "../scriberig-session-sqlite" }
+scriberig-session-sqlite = { path = "../scriberig-session-sqlite", features = ["test-support"] }
 scriberig-style-sqlite = { path = "../scriberig-style-sqlite" }
+scriberig-store-sqlite = { path = "../scriberig-store-sqlite" }
 tempfile = "3"
 
 [lints]

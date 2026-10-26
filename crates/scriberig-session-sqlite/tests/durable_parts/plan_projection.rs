@@ -62,6 +62,91 @@ fn whole_session_save_cannot_overwrite_semantic_plan_revision() {
     assert_eq!(reloaded.plans[0].revision, initial_revision + 1);
 }
 
+/// Leaves no worker branch persisted when semantic plan promotion is rejected.
+#[test]
+fn rejected_semantic_plan_promotion_does_not_persist_worker_branch() {
+    let session_id = EntityId::from_bytes([71; 16]);
+    let root_branch = EntityId::from_bytes([72; 16]);
+    let worker_branch = EntityId::from_bytes([73; 16]);
+    let plan_id = EntityId::from_bytes([74; 16]);
+    let node_id = EntityId::from_bytes([75; 16]);
+    let store = SqliteSessionStore::open_in_memory().expect("open store");
+    let mut plan = Plan::new(
+        plan_id,
+        session_id,
+        scriberig_session::ContinuationAnchor::BranchHead {
+            branch: root_branch,
+        },
+        "atomic plan settlement",
+    )
+    .expect("create plan");
+    plan.transition(scriberig_session::PlanStatus::Planned)
+        .expect("plan plan");
+    plan.transition(scriberig_session::PlanStatus::Running)
+        .expect("start plan");
+    plan.add_node(PlanNode {
+        id: node_id,
+        parent: Some(scriberig_session::PlanNodeParent::Branch(root_branch)),
+        title: "worker".to_owned(),
+        purpose: "perform work".to_owned(),
+        expected_result: None,
+        semantic_scope: Vec::new(),
+        status: scriberig_session::PlanNodeStatus::Planned,
+        branch: None,
+        result: None,
+        superseded_by: None,
+        abandon_reason: None,
+        last_failure: None,
+        assignment: None,
+        claim: None,
+        claim_generation: 0,
+    })
+    .expect("add worker node");
+    let expected_revision = plan.revision;
+    store
+        .save(&Session {
+            id: session_id,
+            branches: vec![Branch::new(root_branch, "root").expect("root branch")],
+            goals: Vec::new(),
+            tasks: Vec::new(),
+            plans: vec![plan],
+            execution: scriberig_session::SessionExecutionSelection::default(),
+        })
+        .expect("save initial plan");
+
+    let mut proposed = store
+        .load(session_id)
+        .expect("load session")
+        .expect("stored session");
+    let mut duplicate = proposed.plans[0].nodes[0].clone();
+    duplicate.status = scriberig_session::PlanNodeStatus::Running;
+    duplicate.branch = Some(worker_branch);
+    proposed.plans[0].nodes.push(duplicate);
+    proposed.plans[0].revision += 1;
+    proposed
+        .branches
+        .push(Branch::new_child(worker_branch, root_branch, "worker", "work").expect("branch"));
+
+    assert!(
+        store
+            .compare_and_swap_plan(&proposed, plan_id, expected_revision)
+            .is_err()
+    );
+
+    let reloaded = store
+        .load(session_id)
+        .expect("reload session")
+        .expect("stored session");
+    assert!(
+        !reloaded
+            .branches
+            .iter()
+            .any(|branch| branch.id == worker_branch),
+        "a rejected semantic plan mutation cannot leave a worker branch behind"
+    );
+    assert_eq!(reloaded.plans[0].revision, expected_revision);
+}
+
 /// Resolves an earlier plan revision by its exact semantic snapshot identity.
 #[test]
 fn historical_plan_snapshot_loads_exact_revision() {

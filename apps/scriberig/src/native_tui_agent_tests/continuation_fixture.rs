@@ -113,7 +113,14 @@ pub(super) fn lifecycle_fixture(
         model: runtime_model.to_owned(),
         upstream_credentials: None,
         upstream_enabled: false,
-        model_catalog: model_catalog_from_models(catalog.clone()),
+        model_catalog: model_catalog_from_models(catalog.clone()).clone(),
+        provider_extension_runtime: scriberig_app::ProviderExtensionRuntime::with_model_catalog(
+            model_catalog_from_models(catalog.clone()).clone(),
+        ),
+        plugin_command_worker: std::sync::Mutex::new(None),
+        extension_component_mailbox: rpi_extensions::ExtensionStatusMailbox::new(),
+        provider_lifecycle:
+            crate::native_tui_agent::provider_readiness::ProviderLifecycleState::new(),
         model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
@@ -170,7 +177,14 @@ impl LifecycleFixture {
             model: self.runtime_model.clone(),
             upstream_credentials: None,
             upstream_enabled: false,
-            model_catalog: model_catalog_from_models(self.catalog.clone()),
+            model_catalog: model_catalog_from_models(self.catalog.clone()).clone(),
+            provider_extension_runtime: scriberig_app::ProviderExtensionRuntime::with_model_catalog(
+                model_catalog_from_models(self.catalog.clone()).clone(),
+            ),
+            plugin_command_worker: std::sync::Mutex::new(None),
+            extension_component_mailbox: rpi_extensions::ExtensionStatusMailbox::new(),
+            provider_lifecycle:
+                crate::native_tui_agent::provider_readiness::ProviderLifecycleState::new(),
             model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
             project_store: Arc::clone(&self.project_store),
             active_coordinators: std::sync::Mutex::default(),

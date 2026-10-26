@@ -7,6 +7,7 @@ license = "AGPL-3.0-only"
 description = "Integrated agent execution, orchestration, and model-provider runtime."
 repository.workspace = true
 publish = false
+build = "build.rs"
 
 [features]
 default = []
@@ -34,7 +35,7 @@ rpi-model-runtime = { workspace = true }
 rpi-agent = { workspace = true }
 rpi-extensions = { workspace = true, optional = true }
 async-trait = "0.1"
-tokio = { version = "1", features = ["rt", "macros"] }
+tokio = { version = "1", features = ["rt", "macros", "time", "net"] }
 tokio-util = { version = "0.7", features = ["rt"] }
 
 [lints]
@@ -45,3 +46,4 @@ scriberig-store = { path = "../scriberig-store" }
 scriberig-store-memory = { path = "../scriberig-store-memory" }
 scriberig-session-sqlite = { path = "../scriberig-session-sqlite" }
 tempfile = "3"
+reqwest = { workspace = true }

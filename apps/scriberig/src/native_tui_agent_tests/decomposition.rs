@@ -58,7 +58,14 @@ fn autonomous_decomposition_persists_children_and_compact_parent_results() {
         model: "fake-model".to_owned(),
         upstream_credentials: None,
         upstream_enabled: false,
-        model_catalog: model_catalog_from_models(native_test_upstream_models()),
+        model_catalog: model_catalog_from_models(native_test_upstream_models()).clone(),
+        provider_extension_runtime: scriberig_app::ProviderExtensionRuntime::with_model_catalog(
+            model_catalog_from_models(native_test_upstream_models()).clone(),
+        ),
+        plugin_command_worker: std::sync::Mutex::new(None),
+        extension_component_mailbox: rpi_extensions::ExtensionStatusMailbox::new(),
+        provider_lifecycle:
+            crate::native_tui_agent::provider_readiness::ProviderLifecycleState::new(),
         model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),

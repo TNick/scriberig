@@ -2,6 +2,11 @@
 
 use scriberig_core::EntityId;
 
+include!(concat!(
+    env!("OUT_DIR"),
+    "/upstream_model_runtime_revision.rs"
+));
+
 pub mod context;
 pub mod continuation;
 pub mod coordinator;
@@ -40,10 +45,46 @@ pub struct ChildRequest {
     pub capabilities: Vec<String>,
     /// Compact result shape expected from the child.
     pub expected_result: String,
+    /// Optional upstream execution assignment requested for the child.
+    pub execution: Option<scriberig_session::ModelAssignment>,
 }
 
+/// Provider binding resolved for one explicit child execution assignment.
+///
+/// # Public members
+/// - `provider`: Host-created upstream provider.
+/// - `model`: Exact upstream model validated against the current catalog.
+/// - `request_secret`: Optional credential authorized for this model.
+/// - `bearer`: Whether the credential uses bearer authorization.
+/// - `thinking_level`: Upstream-supported thinking level for the child.
+/// - `provider_profile`: Safe connection identity used for provenance.
+///
+/// # Private members
+/// None.
+pub struct ChildProviderBinding {
+    /// Host-created upstream provider.
+    pub provider: std::sync::Arc<dyn rpi_ai::Provider>,
+    /// Exact upstream model validated against the current catalog.
+    pub model: rpi_ai::Model,
+    /// Optional credential authorized for this model.
+    pub request_secret: Option<rpi_ai::RequestSecret>,
+    /// Whether the credential uses bearer authorization.
+    pub bearer: bool,
+    /// Upstream-supported thinking level for the child.
+    pub thinking_level: rpi_ai::ThinkingLevel,
+    /// Safe connection identity used for provenance.
+    pub provider_profile: Option<String>,
+}
+
+/// Resolves a Scriberig assignment into a host-authorized upstream binding.
+pub type ChildProviderResolver = std::sync::Arc<
+    dyn Fn(&scriberig_session::ModelAssignment) -> Result<ChildProviderBinding, String>
+        + Send
+        + Sync,
+>;
+
 /// Identifies the durable parent branch for delegated work.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ChildExecutionScope {
     /// Session containing the parent branch.
     pub session: EntityId,
@@ -55,6 +96,8 @@ pub struct ChildExecutionScope {
     pub active_branches: std::sync::Arc<std::sync::atomic::AtomicUsize>,
     /// Exact semantic project scope inherited by this branch tree.
     pub semantic_scope: Option<context::ProjectSemanticScope>,
+    /// Optional host resolver for child-specific provider/model assignments.
+    pub provider_resolver: Option<ChildProviderResolver>,
 }
 
 /// Structured failure returned by the agent orchestration boundary.

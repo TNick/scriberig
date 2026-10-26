@@ -19,6 +19,9 @@ web/**/.turbo/
 __pycache__/
 *.pyc
 .pre-commit-cache/
+/memory/
+/.pi/workflows/
+*.log
 
 # Generated documentation site and staging tree
 .pages/

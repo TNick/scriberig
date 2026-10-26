@@ -17,6 +17,9 @@ pub use storage::{RegistryGuard, RegistryLocations};
 pub struct Registry {
     /// Registry schema version.
     pub version: u32,
+    /// Monotonic metadata revision used to notify running hosts of changes.
+    #[serde(default)]
+    pub credential_revision: u64,
     /// Managed OS-store aliases; no value hashes or credential contents.
     pub names: BTreeSet<String>,
     /// Deployment paths retained as sensitive even after a binding is removed.
@@ -35,6 +38,7 @@ impl Default for Registry {
     fn default() -> Self {
         Self {
             version: 1,
+            credential_revision: 0,
             names: BTreeSet::new(),
             protected_files: BTreeSet::new(),
             policy: SecretPolicy::default(),

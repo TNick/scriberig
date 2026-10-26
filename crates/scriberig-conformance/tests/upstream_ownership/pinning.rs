@@ -1,4 +1,4 @@
-//! Upstream pin reproducibility and fail-closed feature-gate rules.
+//! Upstream pin reproducibility and fail-closed plugin composition rules.
 
 use toml::Value;
 
@@ -52,29 +52,27 @@ fn upstream_crates_are_pinned_to_one_reproducible_git_revision() {
     }
 }
 
-/// Verifies the isolated plugin worker stays excluded from every default build.
+/// Verifies the native product enables isolated plugins with runtime fail-closed admission.
 #[test]
-fn isolated_plugin_worker_feature_stays_opt_in() {
+fn native_product_enables_isolated_plugins_by_default() {
     let root = workspace_root();
-    let mut failures: Vec<String> = Vec::new();
-    for member in workspace_members(&root) {
-        let document = read_toml(&root.join(&member).join("Cargo.toml"));
-        let Some(features) = document.get("features").and_then(Value::as_table) else {
-            continue;
-        };
-        let Some(default) = features.get("default").and_then(Value::as_array) else {
-            continue;
-        };
-        for entry in default {
-            let text = entry.as_str().unwrap_or("");
-            if text.contains("plugin") || text.contains("extension") {
-                failures.push(format!("{member} enables {text} by default"));
-            }
-        }
-    }
+    let document = read_toml(&root.join("apps/scriberig/Cargo.toml"));
+    let features = document["features"].as_table().expect("app features");
+    let default = features["default"]
+        .as_array()
+        .expect("app default features");
     assert!(
-        failures.is_empty(),
-        "fail-closed plugin gates: {failures:?}"
+        default
+            .iter()
+            .any(|feature| feature.as_str() == Some("isolated-plugin-worker")),
+        "the native product must activate the isolated provider/tool paths"
+    );
+    assert_eq!(
+        features["isolated-plugin-worker"].as_array(),
+        Some(&vec![Value::String(
+            "scriberig-agent-runtime/isolated-plugin-worker".to_owned()
+        )]),
+        "native plugin support must still use the isolated runtime implementation"
     );
 }
 

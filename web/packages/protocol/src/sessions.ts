@@ -64,6 +64,7 @@ export interface SessionActivityItem {
   session: string;
   sequence: number;
   branch: string;
+  operation?: string;
   parent?: string;
   kind:
     | "HumanInput"
@@ -171,6 +172,12 @@ export interface ModelRequestDetailResponse {
   model: string;
   providerId?: string;
   thinkingLevel?: string;
+  /** Upstream catalog generation used to resolve the request, when available. */
+  catalogRevision?: number;
+  /** Exact upstream model-runtime Git revision used for this product build. */
+  upstreamRuntimeRevision?: string;
+  /** Safe public provider response identity, when supplied by the provider. */
+  providerResponseId?: string;
   profile?: ModelContextRevisionReference;
   activeComponents?: readonly ModelContextRevisionReference[];
   messages: readonly ModelRequestMessageDetail[];

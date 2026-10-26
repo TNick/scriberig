@@ -5,6 +5,9 @@ use std::sync::{Arc, Mutex};
 use super::*;
 use scriberig_protocol::{ProtocolVersion, RequestEnvelope, ResponseEnvelope};
 
+#[path = "client_agent_recovery_tests.rs"]
+mod recovery_tests;
+
 /// Returns a fixed response and records the semantic request.
 #[derive(Clone)]
 struct FixtureTransport {

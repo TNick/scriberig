@@ -6,19 +6,19 @@
 //! registry, the project resource lookup, activation of an already-built
 //! artifact, uninstall, the generic native-package registry primitives, the
 //! reload predicates, and the in-process `ExtensionSession` loader; the pinned
-//! `rpi-model-runtime` crate owns atomic catalog publication and the
-//! configuration refresh transaction. Nothing in that inventory makes package
-//! reload available to `ScribeRig`: the fork has no API that stages a replacement
-//! extension session and its model-catalog rows as one generation, publishes
-//! them atomically, and keeps the previous generation alive for in-flight
-//! calls, so the product gate keeps every native-code input rejected.
+//! `rpi-model-runtime` crate owns atomic catalog publication, configuration
+//! refresh, and staged extension-session/catalog refresh. Nothing in that
+//! inventory activates plugins through an isolated worker when the product's
+//! opt-in feature, selected roots, branch capability, and runtime-verified
+//! launcher are present. The product consumes only upstream registry metadata;
+//! it does not own package formats or load extensions into its address space.
 //!
 //! These rules keep the rejected state from silently turning into a local
 //! substitute. They reject a `ScribeRig`-owned package registry, package
-//! manifest format, package-directory scan, or in-process loader call, and they
-//! confine complete catalog publication to the one shared reload entry that
-//! names the upstream generation. They prove source ownership only; the
-//! upstream lifecycle gap itself stays recorded in task 145 §9 and §17.6.
+//! manifest format, and in-process loader call, constrain upstream resource
+//! lookup to the authorized worker configuration boundary, and confine complete
+//! catalog publication to the shared reload entry that names the upstream
+//! generation.
 
 use std::path::{Path, PathBuf};
 
@@ -42,7 +42,7 @@ const GUARD_DIRECTORY: &str = "crates/scriberig-conformance/tests/upstream_owner
 /// the pinned `rpi-extensions` API. A `ScribeRig` source file that names one is
 /// re-establishing the registry, manifest format, or package-directory scan
 /// that task 145 §9 assigns upstream.
-const PACKAGE_OWNERSHIP_PATTERNS: [&str; 13] = [
+const PACKAGE_OWNERSHIP_PATTERNS: [&str; 12] = [
     "ProjectPackageRegistry",
     "ProjectPackage",
     "PackageRegistry",
@@ -50,7 +50,6 @@ const PACKAGE_OWNERSHIP_PATTERNS: [&str; 13] = [
     ".rpi/packages",
     "read_project_registry",
     "write_project_registry",
-    "project_package_resource_dirs",
     "package_resource_dirs",
     "install_project_artifact",
     "uninstall_project_package",
@@ -82,8 +81,16 @@ const SNAPSHOT_PUBLICATION: &str = "reconcile_models_snapshot";
 /// The one production owner allowed to publish a complete catalog snapshot.
 const SNAPSHOT_PUBLICATION_OWNER: &str = "crates/scriberig-app/src/provider_lifecycle.rs";
 
+/// App integration fixture that exercises the upstream publication contract.
+const PROVIDER_EXTENSION_REFRESH_FIXTURE: &str =
+    "crates/scriberig-app/tests/provider_extension_refresh.rs";
+
 /// Provider-keyed reconciliation that would create a second reload path.
 const PROVIDER_KEYED_RECONCILIATION: &str = "reconcile_providers";
+
+/// The sole source that resolves upstream project package resource directories.
+const UPSTREAM_PACKAGE_LOOKUP_OWNER: &str =
+    "crates/scriberig-agent-runtime/src/plugin_worker/packages.rs";
 
 /// Collects every Rust source file below one directory.
 ///
@@ -205,6 +212,7 @@ fn violations(path: &str, text: &str, patterns: &[&str]) -> Vec<String> {
 fn no_source_owns_a_package_registry_or_manifest_format() {
     let failures: Vec<String> = owned_sources(true)
         .iter()
+        .filter(|(path, _)| path != UPSTREAM_PACKAGE_LOOKUP_OWNER)
         .flat_map(|(path, text)| violations(path, text, &PACKAGE_OWNERSHIP_PATTERNS))
         .collect();
     assert!(
@@ -213,11 +221,29 @@ fn no_source_owns_a_package_registry_or_manifest_format() {
     );
 }
 
+/// Verifies package resource discovery uses only the upstream registry API.
+#[test]
+fn package_resource_discovery_has_one_upstream_policy_adapter() {
+    let sources = owned_sources(false);
+    let consumers = sources
+        .iter()
+        .filter(|(_, text)| text.contains("project_package_resource_dirs"))
+        .map(|(path, _)| path.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(consumers, [UPSTREAM_PACKAGE_LOOKUP_OWNER]);
+    let adapter = read_source(&workspace_root().join(UPSTREAM_PACKAGE_LOOKUP_OWNER));
+    assert!(adapter.contains("rpi_extensions::packages::project_package_resource_dirs"));
+    assert!(adapter.contains("starts_with(&canonical_store)"));
+    assert!(!adapter.contains("ProjectPackageRegistry::from_json"));
+    assert!(!adapter.contains("serde_json::from_str"));
+}
+
 /// Verifies no `ScribeRig` source consumes the upstream in-process extension host.
 #[test]
 fn no_source_consumes_the_in_process_extension_host() {
     let failures: Vec<String> = owned_sources(false)
         .iter()
+        .filter(|(path, _)| path != PROVIDER_EXTENSION_REFRESH_FIXTURE)
         .flat_map(|(path, text)| violations(path, text, &IN_PROCESS_EXTENSION_PATTERNS))
         .collect();
     assert!(
@@ -237,6 +263,9 @@ fn no_source_consumes_the_in_process_extension_host() {
 fn one_owner_publishes_each_complete_catalog_snapshot() {
     let mut failures: Vec<String> = Vec::new();
     for (path, text) in owned_sources(false) {
+        if path == PROVIDER_EXTENSION_REFRESH_FIXTURE {
+            continue;
+        }
         if text.contains(SNAPSHOT_PUBLICATION) && path != SNAPSHOT_PUBLICATION_OWNER {
             failures.push(format!("{path} publishes a complete catalog snapshot"));
         }
@@ -252,20 +281,24 @@ fn one_owner_publishes_each_complete_catalog_snapshot() {
     );
 }
 
-/// Verifies the product package-lifecycle gate documents its upstream reason.
+/// Verifies the product package-lifecycle gate requires a verified sandbox.
 ///
 /// The gate is the fail-closed boundary for every configured native-code input;
-/// its rejection text must keep naming the upstream lifecycle gap so a caller
-/// learns which upstream API is missing instead of being told a local switch is
-/// off.
+/// its rejection text must name the required caller and launcher contracts.
 #[test]
-fn the_package_root_gate_names_the_upstream_lifecycle_gap() {
+fn the_package_root_gate_requires_the_injected_verified_launcher() {
     let root = workspace_root();
     let gate = root.join("apps/scriberig/src/native_tui_agent/provider_config/extensions.rs");
     let text = read_source(&gate);
     assert!(
-        text.contains("package roots are unsupported until upstream package lifecycle"),
-        "the package-root gate no longer names the upstream lifecycle gate: {}",
+        text.contains("runtime-verified isolated worker launcher"),
+        "the package gate no longer requires the verified launcher: {}",
         gate.display()
     );
+    let product = read_source(
+        &root.join("apps/scriberig/src/native_tui_agent/upstream_execution/plugin_execution.rs"),
+    );
+    assert!(product.contains("compose_branch_plugin_tools"));
+    assert!(product.contains("PluginWorkerAdmission"));
+    assert!(product.contains("sandboxed_launcher()"));
 }

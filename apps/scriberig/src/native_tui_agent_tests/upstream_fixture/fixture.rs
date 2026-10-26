@@ -19,7 +19,7 @@ use scriberig_session::{Session, SessionStore};
 use scriberig_store_sqlite::SqliteStore;
 use scriberig_tui::{AgentCommandRunner, AgentHandle};
 
-use super::provider::{ScriptedProvider, Step};
+use super::provider::{ScriptedProvider, Step, answer, step};
 use crate::native_scenario::NativeScenario;
 use crate::native_tui_agent::NativeTuiAgentRunner;
 
@@ -88,16 +88,50 @@ impl UpstreamFixture {
             .into_iter()
             .next()
             .expect("catalog row exists");
+        let alternate_model = Self::catalog()
+            .into_iter()
+            .nth(1)
+            .expect("alternate catalog row exists");
         let provider = Arc::new(ScriptedProvider::new("local", model, steps));
-        let runner = NativeTuiAgentRunner {
-            providers: std::collections::BTreeMap::from([(
+        let alternate_provider = Arc::new(ScriptedProvider::new(
+            &alternate_model.provider,
+            alternate_model.clone(),
+            vec![step(answer(
+                &alternate_model,
+                "alternate",
+                "alternate child done",
+            ))],
+        ));
+        let alternate_connection =
+            super::super::super::provider_config::catalog::connection_identity(
+                &alternate_model.provider,
+                &alternate_model.id,
+            );
+        let providers = std::collections::BTreeMap::from([
+            (
                 "local".to_owned(),
                 NativeScenario::Provider(Arc::clone(&provider) as Arc<dyn rpi_ai::Provider>),
-            )]),
+            ),
+            (
+                alternate_connection,
+                NativeScenario::Provider(
+                    Arc::clone(&alternate_provider) as Arc<dyn rpi_ai::Provider>
+                ),
+            ),
+        ]);
+        let runner = NativeTuiAgentRunner {
+            providers,
             model: "fake-model".to_owned(),
             upstream_credentials: None,
             upstream_enabled: false,
-            model_catalog: super::super::model_catalog_from_models(Self::catalog()),
+            model_catalog: super::super::model_catalog_from_models(Self::catalog()).clone(),
+            provider_extension_runtime: scriberig_app::ProviderExtensionRuntime::with_model_catalog(
+                super::super::model_catalog_from_models(Self::catalog()).clone(),
+            ),
+            plugin_command_worker: std::sync::Mutex::new(None),
+            extension_component_mailbox: rpi_extensions::ExtensionStatusMailbox::new(),
+            provider_lifecycle:
+                crate::native_tui_agent::provider_readiness::ProviderLifecycleState::new(),
             model_config: std::sync::Mutex::new((rpi_model_runtime::ModelsConfig::default(), None)),
             project_store,
             active_coordinators: std::sync::Mutex::default(),
@@ -131,7 +165,12 @@ impl UpstreamFixture {
     /// # Returns
     /// The upstream catalog rows the runner may resolve.
     pub(crate) fn catalog() -> Vec<rpi_ai::Model> {
-        super::super::plan::upstream_model_catalog("local", &["fake-model"])
+        let mut models = super::super::plan::upstream_model_catalog("local", &["fake-model"]);
+        models.extend(super::super::plan::upstream_model_catalog(
+            "alternate-provider",
+            &["alternate-model"],
+        ));
+        models
     }
 
     /// Builds one authorized context, adding any extra grants.

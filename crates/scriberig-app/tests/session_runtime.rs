@@ -312,6 +312,8 @@ fn fallback_agent_acceptance_retains_session_activity() {
     );
 }
 
+#[path = "session_runtime_parts/compact_session_projection.rs"]
+mod compact_session_projection;
 #[path = "session_runtime_parts/part1.rs"]
 mod part1;
 #[path = "session_runtime_parts/plan_recovery.rs"]

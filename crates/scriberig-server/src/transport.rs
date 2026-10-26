@@ -8,6 +8,7 @@ use crate::server::ApplicationService;
 /// In-process transport used by integration tests and embedded deployments.
 pub struct InProcessTransport<S> {
     dispatcher: Dispatcher<S>,
+    agent_execution_handler: Option<std::sync::Arc<crate::AgentExecutionHandler<S>>>,
 }
 
 impl<S> InProcessTransport<S> {
@@ -22,6 +23,7 @@ impl<S> InProcessTransport<S> {
     pub fn new(service: S) -> Self {
         Self {
             dispatcher: Dispatcher::new(service),
+            agent_execution_handler: None,
         }
     }
 
@@ -37,7 +39,29 @@ impl<S> InProcessTransport<S> {
     pub fn for_principal(service: S, principal: scriberig_app::Principal) -> Self {
         Self {
             dispatcher: Dispatcher::for_principal(service, principal),
+            agent_execution_handler: None,
         }
+    }
+
+    /// Attaches the trusted runtime used to execute accepted agent requests.
+    ///
+    /// This mirrors the HTTP composition path while keeping requests in process,
+    /// which lets embedded protocol clients exercise the same host runtime.
+    ///
+    /// - `self`: In-process transport receiving the runtime.
+    /// - `handler`: Host-owned agent execution handler.
+    ///
+    /// The transport configured to run accepted requests through `handler`.
+    ///
+    /// # Returns
+    /// The transport configured with the host-owned runtime.
+    #[must_use]
+    pub fn with_agent_execution_handler(
+        mut self,
+        handler: std::sync::Arc<crate::AgentExecutionHandler<S>>,
+    ) -> Self {
+        self.agent_execution_handler = Some(handler);
+        self
     }
 }
 
@@ -50,6 +74,10 @@ impl<S: ApplicationService> ProtocolTransport for InProcessTransport<S> {
     /// # Returns
     /// The operation result.
     fn send(&self, request: RequestEnvelope) -> ResponseEnvelope {
-        self.dispatcher.dispatch(request)
+        self.dispatcher.dispatch_with_runtime_handlers(
+            request,
+            self.agent_execution_handler.as_deref(),
+            None,
+        )
     }
 }

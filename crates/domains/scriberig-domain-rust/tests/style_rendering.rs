@@ -167,6 +167,28 @@ fn the_adapter_rejects_an_unknown_style_field() {
     );
 }
 
+/// Verifies repeated style fields are rejected instead of being silently overridden.
+#[test]
+fn the_adapter_rejects_a_repeated_style_field() {
+    let diagnostic = ProjectionStyleAdapter::normalize(
+        &RustStyleAdapter,
+        &rust_kind(),
+        &StyleValue::new(b"indent-width=2,indent-width=8".to_vec()),
+    )
+    .expect_err("the adapter rejects ambiguous repeated values");
+
+    assert_eq!(diagnostic.detail.code, "rust-style-field-rejected");
+    assert!(
+        diagnostic
+            .message
+            .clone()
+            .unwrap_or_default()
+            .contains("indent-width"),
+        "diagnostic: {:?}",
+        diagnostic.message
+    );
+}
+
 /// Verifies the declared default style is the domain default and is editable.
 #[test]
 fn the_declared_default_style_is_the_domain_default() {

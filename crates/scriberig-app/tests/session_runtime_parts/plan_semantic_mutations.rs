@@ -2,9 +2,21 @@
 
 use super::*;
 
-/// Verifies compact views preserve gate and evidence summaries from SQLite.
+#[path = "plan_semantic_mutations/revision_boundary.rs"]
+mod revision_boundary;
+
 #[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "This regression compares the SQLite compact projection with the shared semantic fixture while proving exact-snapshot detail remains available."
+)]
+/// Verifies compact views preserve gate and evidence summaries from SQLite.
 fn compact_plan_view_reads_cached_gate_summaries() {
+    let conformance: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../tests/conformance/fixtures/plan-view.json"
+    ))
+    .expect("shared plan view fixture");
+    let expected_node = &conformance["nodes"][0];
     let path = std::env::temp_dir().join(format!(
         "scriberig-compact-plan-view-{}.sqlite",
         EntityId::new()
@@ -15,9 +27,9 @@ fn compact_plan_view_reads_cached_gate_summaries() {
     let session_store: std::sync::Arc<dyn scriberig_session::SessionStore> = store.clone();
     let service = ApplicationService::new(Fixture).with_session_store(session_store);
     let context = session_context();
-    let session = EntityId::from_bytes([132; 16]);
+    let session = EntityId::from_bytes([0x72; 16]);
     service
-        .start_agent(&context, session, "compact plan view")
+        .start_agent(&context, session, "seed plan details")
         .expect("seed session");
     let state = service
         .read_session(&context, &SessionRequest { session })
@@ -30,12 +42,12 @@ fn compact_plan_view_reads_cached_gate_summaries() {
                 anchor: scriberig_session::ContinuationAnchor::BranchHead {
                     branch: state.branches[0].id,
                 },
-                goal: "inspect compactly".to_owned(),
+                goal: "bounded requirement details".to_owned(),
                 nodes: vec![PlanNodeDraft {
-                    key: "root".to_owned(),
+                    key: "work".to_owned(),
                     parent_index: None,
-                    title: "Root".to_owned(),
-                    purpose: "verify compact projection".to_owned(),
+                    title: "Work".to_owned(),
+                    purpose: "inspect requirements".to_owned(),
                     expected_result: None,
                     semantic_scope: Vec::new(),
                     assignment: None,
@@ -56,7 +68,7 @@ fn compact_plan_view_reads_cached_gate_summaries() {
                     owner,
                     phase: scriberig_session::PlanGatePhase::Entry,
                     requirement: scriberig_session::PlanGateRequirement::EvidencePresent {
-                        kind: scriberig_session::PlanEvidenceKind::BranchResult,
+                        kind: scriberig_session::PlanEvidenceKind::ValidationResult,
                     },
                 },
             },
@@ -74,11 +86,11 @@ fn compact_plan_view_reads_cached_gate_summaries() {
                     owner: scriberig_session::PlanEvidenceOwner::Gate(gate),
                     role: scriberig_session::PlanEvidenceRole::Supports,
                     evidence: scriberig_session::PlanEvidenceReference {
-                        kind: scriberig_session::PlanEvidenceKind::BranchResult,
+                        kind: scriberig_session::PlanEvidenceKind::ValidationResult,
                         reference: scriberig_session::PlanSemanticReference {
-                            entity: EntityId::from_bytes([133; 16]),
-                            revision: None,
-                            snapshot: None,
+                            entity: state.branches[0].id,
+                            revision: Some(scriberig_core::RevisionId::from_bytes([73; 32])),
+                            snapshot: Some(scriberig_core::SnapshotId::from_bytes([74; 32])),
                         },
                         attributes: std::collections::BTreeMap::new(),
                     },
@@ -95,262 +107,81 @@ fn compact_plan_view_reads_cached_gate_summaries() {
     assert_eq!(view.node_count, 1);
     assert_eq!(nodes.len(), 1);
     assert_eq!(nodes[0].id, owner);
+    assert_eq!(view.id.to_string(), conformance["plan"]["id"]);
+    assert_eq!(nodes[0].id.to_string(), expected_node["id"]);
+    assert_eq!(
+        nodes[0].direct_status,
+        scriberig_session::PlanNodeStatus::Ready
+    );
+    assert_eq!(
+        nodes[0].effective_status,
+        scriberig_session::PlanNodeStatus::Ready
+    );
     assert_eq!(nodes[0].entry_gates.satisfied, 1);
     assert_eq!(nodes[0].entry_gates.pending, 0);
     assert_eq!(nodes[0].evidence_count, 1);
+    assert_eq!(
+        serde_json::to_value(nodes[0].entry_gates.satisfied).expect("serialize gate count"),
+        expected_node["entry_gates"]["satisfied"]
+    );
+    assert_eq!(
+        serde_json::to_value(nodes[0].evidence_count).expect("serialize evidence count"),
+        expected_node["evidence_count"]
+    );
+    assert_eq!(
+        serde_json::to_value(nodes[0].can_retry).expect("serialize retry outcome"),
+        expected_node["can_retry"]
+    );
+    assert_eq!(
+        serde_json::to_value(&nodes[0].dependency_blockers).expect("serialize dependency blockers"),
+        expected_node["dependency_blockers"]
+    );
+    let node = &nodes[0];
+    let parent = node.parent.map(|parent| match parent {
+        scriberig_session::PlanNodeParent::Branch(id) => format!("branch:{id}"),
+        scriberig_session::PlanNodeParent::Node(id) => format!("node:{id}"),
+    });
+    let application_projection = serde_json::json!({
+        "plan": {
+            "id": view.id.to_string(),
+            "revision": view.revision.to_string(),
+            "snapshot": view.snapshot.map(|snapshot| snapshot.to_string()),
+            "mutation_revision": view.mutation_revision,
+            "goal": view.goal,
+            "status": format!("{:?}", view.status),
+            "coordinator": view.coordinator.map(|id| id.to_string()),
+            "coordinator_cursor": view.coordinator_cursor.map(|id| id.to_string()),
+            "root_nodes": view.root_nodes.iter().map(ToString::to_string).collect::<Vec<_>>(),
+            "node_count": view.node_count,
+            "status_counts": serde_json::to_value(view.status_counts).expect("status counts"),
+        },
+        "nodes": [{
+            "id": node.id.to_string(),
+            "revision": node.revision.to_string(),
+            "snapshot": node.snapshot.map(|snapshot| snapshot.to_string()),
+            "plan": node.plan.to_string(),
+            "parent": parent,
+            "title": node.title,
+            "purpose": node.purpose,
+            "direct_status": format!("{:?}", node.direct_status),
+            "effective_status": format!("{:?}", node.effective_status),
+            "contains_ignored": node.contains_ignored,
+            "contains_abandoned": node.contains_abandoned,
+            "summary_id": node.summary_id.map(|id| id.to_string()),
+            "summary_preview": node.summary_preview,
+            "branch": node.branch.map(|id| id.to_string()),
+            "result": node.result.map(|id| id.to_string()),
+            "assignment": serde_json::to_value(&node.assignment).expect("assignment"),
+            "dependency_blockers": node.dependency_blockers.iter().map(ToString::to_string).collect::<Vec<_>>(),
+            "entry_gates": serde_json::to_value(node.entry_gates).expect("entry gate counts"),
+            "completion_gates": serde_json::to_value(node.completion_gates).expect("completion gate counts"),
+            "evidence_count": node.evidence_count,
+            "can_retry": node.can_retry,
+            "last_failure": serde_json::to_value(&node.last_failure).expect("last failure"),
+        }]
+    });
+    assert_eq!(application_projection, conformance);
     drop(service);
     drop(store);
     let _ = std::fs::remove_file(path);
-}
-
-/// Verifies typed plan mutations use optimistic revisions and preserve structure.
-#[test]
-/// These operations share one revision boundary and intentionally assert the
-/// full lifecycle from gate creation through stale-request rejection.
-#[allow(clippy::too_many_lines)]
-fn application_plan_semantic_mutations_share_one_revision_boundary() {
-    let service = ApplicationService::new(Fixture).with_upstream_models(session_upstream_models());
-    let actor = EntityId::from_bytes([115; 16]);
-    let mut context = session_context();
-    context.principal = Some(scriberig_app::Principal::new(actor.to_string()));
-    let session = EntityId::from_bytes([112; 16]);
-    service
-        .start_agent(&context, session, "plan anchor")
-        .expect("seed session");
-    let state = service
-        .read_session(&context, &SessionRequest { session })
-        .expect("session");
-    let mut plan = service
-        .create_plan(
-            &context,
-            &PlanCreateRequest {
-                session,
-                anchor: scriberig_session::ContinuationAnchor::BranchHead {
-                    branch: state.branches[0].id,
-                },
-                goal: "complete semantic work".to_owned(),
-                nodes: vec![PlanNodeDraft {
-                    key: "root".to_owned(),
-                    parent_index: None,
-                    title: "Root".to_owned(),
-                    purpose: "coordinate work".to_owned(),
-                    expected_result: None,
-                    semantic_scope: Vec::new(),
-                    assignment: None,
-                }],
-                dependencies: Vec::new(),
-            },
-        )
-        .expect("plan");
-    plan = service
-        .start_plan(
-            &context,
-            &PlanLifecycleRequest {
-                session,
-                plan: plan.id,
-                expected_revision: plan.revision,
-            },
-        )
-        .expect("start plan");
-    let observed_revision = plan.revision;
-    let parent = plan.nodes[0].id;
-    plan = service
-        .mutate_plan(
-            &context,
-            &PlanMutationRequest {
-                session,
-                plan: plan.id,
-                expected_revision: plan.revision,
-                mutation: PlanMutation::AddNextStep(PlanNodeDraft {
-                    key: "next".to_owned(),
-                    parent_index: None,
-                    title: "Next".to_owned(),
-                    purpose: "continue the work".to_owned(),
-                    expected_result: None,
-                    semantic_scope: Vec::new(),
-                    assignment: None,
-                }),
-            },
-        )
-        .expect("next step");
-    assert_eq!(plan.revision, observed_revision + 1);
-    assert_eq!(plan.nodes.len(), 2);
-    plan = service
-        .mutate_plan(
-            &context,
-            &PlanMutationRequest {
-                session,
-                plan: plan.id,
-                expected_revision: plan.revision,
-                mutation: PlanMutation::AddGate {
-                    owner: parent,
-                    phase: scriberig_session::PlanGatePhase::Completion,
-                    requirement: scriberig_session::PlanGateRequirement::EvidencePresent {
-                        kind: scriberig_session::PlanEvidenceKind::BranchResult,
-                    },
-                },
-            },
-        )
-        .expect("add typed gate");
-    let gate = plan.gates[0].id;
-    plan = service
-        .mutate_plan(
-            &context,
-            &PlanMutationRequest {
-                session,
-                plan: plan.id,
-                expected_revision: plan.revision,
-                mutation: PlanMutation::AttachEvidence {
-                    owner: scriberig_session::PlanEvidenceOwner::Gate(gate),
-                    role: scriberig_session::PlanEvidenceRole::Supports,
-                    evidence: scriberig_session::PlanEvidenceReference {
-                        kind: scriberig_session::PlanEvidenceKind::BranchResult,
-                        reference: scriberig_session::PlanSemanticReference {
-                            entity: EntityId::from_bytes([113; 16]),
-                            revision: None,
-                            snapshot: None,
-                        },
-                        attributes: std::collections::BTreeMap::new(),
-                    },
-                    note: Some("verified output".to_owned()),
-                },
-            },
-        )
-        .expect("attach exact evidence");
-    assert_eq!(
-        plan.evaluate_gate(gate).unwrap().status,
-        scriberig_session::PlanGateStatus::Satisfied
-    );
-    assert_eq!(plan.evidence[0].actor, Some(actor));
-    plan = service
-        .mutate_plan(
-            &context,
-            &PlanMutationRequest {
-                session,
-                plan: plan.id,
-                expected_revision: plan.revision,
-                mutation: PlanMutation::WaiveGate {
-                    gate,
-                    reason: "approved by the session owner".to_owned(),
-                },
-            },
-        )
-        .expect("waive typed gate");
-    let waiver = plan.gates[0].waiver.as_ref().expect("inspectable waiver");
-    assert_eq!(plan.gates[0].id, gate);
-    assert_eq!(waiver.reason, "approved by the session owner");
-    assert_eq!(waiver.actor, Some(actor));
-    assert_eq!(plan.evidence.len(), 1);
-    assert_eq!(
-        plan.evaluate_gate(gate).expect("waived gate").status,
-        scriberig_session::PlanGateStatus::Waived
-    );
-    plan = service
-        .mutate_plan(
-            &context,
-            &PlanMutationRequest {
-                session,
-                plan: plan.id,
-                expected_revision: plan.revision,
-                mutation: PlanMutation::UpdateSummary {
-                    node: parent,
-                    text: "Coordination is underway.".to_owned(),
-                    sources: vec![scriberig_session::PlanSemanticReference {
-                        entity: EntityId::from_bytes([114; 16]),
-                        revision: None,
-                        snapshot: None,
-                    }],
-                },
-            },
-        )
-        .expect("update summary");
-    plan = service
-        .mutate_plan(
-            &context,
-            &PlanMutationRequest {
-                session,
-                plan: plan.id,
-                expected_revision: plan.revision,
-                mutation: PlanMutation::Decompose {
-                    parent,
-                    children: vec![PlanNodeDraft {
-                        key: "child".to_owned(),
-                        parent_index: None,
-                        title: "Child".to_owned(),
-                        purpose: "complete a required subtask".to_owned(),
-                        expected_result: None,
-                        semantic_scope: Vec::new(),
-                        assignment: None,
-                    }],
-                    required: true,
-                },
-            },
-        )
-        .expect("decompose parent");
-    assert_eq!(plan.nodes.len(), 3);
-    assert_eq!(plan.dependencies.len(), 0);
-    assert!(plan.summaries.iter().any(|summary| summary.node == parent));
-    assert!(plan.gates.iter().any(|item| {
-        matches!(
-            item.requirement,
-            scriberig_session::PlanGateRequirement::RequiredChildCompleted { .. }
-        )
-    }));
-    let parent_rollup = plan.node_rollups().expect("plan rollups")[&parent];
-    assert_eq!(parent_rollup.unsatisfied_completion_gates, 1);
-    assert_ne!(
-        parent_rollup.effective_status,
-        scriberig_session::PlanNodeStatus::Completed
-    );
-    let child = plan
-        .nodes
-        .iter()
-        .find(|node| node.parent == Some(scriberig_session::PlanNodeParent::Node(parent)))
-        .expect("decomposed child")
-        .id;
-    let parent_summary = plan
-        .summaries
-        .iter()
-        .find(|summary| summary.node == parent)
-        .expect("parent summary")
-        .text
-        .clone();
-    plan = service
-        .mutate_plan(
-            &context,
-            &PlanMutationRequest {
-                session,
-                plan: plan.id,
-                expected_revision: plan.revision,
-                mutation: PlanMutation::UpdateSummary {
-                    node: child,
-                    text: "The child change has its own summary.".to_owned(),
-                    sources: Vec::new(),
-                },
-            },
-        )
-        .expect("summarize child separately");
-    assert_eq!(
-        plan.summaries
-            .iter()
-            .find(|summary| summary.node == parent)
-            .expect("unchanged parent summary")
-            .text,
-        parent_summary
-    );
-    assert!(plan.summaries.iter().any(|summary| summary.node == child));
-    let stale_request = service.mutate_plan(
-        &context,
-        &PlanMutationRequest {
-            session,
-            plan: plan.id,
-            expected_revision: 1,
-            mutation: PlanMutation::WaiveGate {
-                gate: EntityId::new(),
-                reason: "stale request".to_owned(),
-            },
-        },
-    );
-    assert!(stale_request.is_err());
-    assert_eq!(plan.nodes[0].id, parent);
 }

@@ -46,6 +46,9 @@ pub struct SessionActivityItem {
     pub sequence: u64,
     /// Branch containing this activity.
     pub branch: String,
+    /// Owning application operation for model execution activity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operation: Option<String>,
     /// Causal parent activity, when one is known.
     #[serde(default)]
     pub parent: Option<String>,

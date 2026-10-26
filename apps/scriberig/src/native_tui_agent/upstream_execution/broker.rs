@@ -54,7 +54,7 @@ impl Drop for CancellationMonitorGuard {
 /// # Errors
 /// Returns a safe broker settlement error.
 #[allow(clippy::too_many_arguments)]
-pub(super) async fn dispatch_tools<B: ApplicationBackend + Sync>(
+pub(super) async fn dispatch_tools<B: ApplicationBackend + Send + Sync + 'static>(
     service: &ApplicationService<B>,
     context: &ApplicationContext,
     session: EntityId,
@@ -72,55 +72,46 @@ pub(super) async fn dispatch_tools<B: ApplicationBackend + Sync>(
     let mut child_branches = 0_usize;
     while let Some(request) = receiver.recv().await {
         tool_calls = tool_calls.saturating_add(1);
-        if tool_calls
-            > scriberig_agent_runtime::orchestration::RuntimeLimits::default().max_tool_calls
-        {
-            let _ = request
-                .response
-                .send(Err(AgentError::tool("tool call limit reached")));
-            continue;
-        }
-        if serde_json::to_vec(&request.arguments)
-            .is_ok_and(|arguments| arguments.len() > MAX_TOOL_ARGUMENT_BYTES)
-        {
-            let _ = request.response.send(Err(AgentError::tool(
-                "tool arguments exceed the branch limit",
-            )));
-            continue;
-        }
-        if cancellation.is_cancelled() || request.cancellation.is_cancelled() {
-            let _ = request
-                .response
-                .send(Err(AgentError::tool("semantic operation cancelled")));
-            continue;
-        }
         let descriptor = descriptors
             .iter()
             .find(|descriptor| descriptor.definition.name == request.name)
             .ok_or_else(|| "tool descriptor disappeared from branch catalog".to_owned())?;
-        let result = if request.name == "delegate" {
+        let rejected = if tool_calls
+            > scriberig_agent_runtime::orchestration::RuntimeLimits::default().max_tool_calls
+        {
+            Some("tool call limit reached")
+        } else if serde_json::to_vec(&request.arguments)
+            .is_ok_and(|arguments| arguments.len() > MAX_TOOL_ARGUMENT_BYTES)
+        {
+            Some("tool arguments exceed the branch limit")
+        } else if cancellation.is_cancelled() || request.cancellation.is_cancelled() {
+            Some("semantic operation cancelled")
+        } else {
+            None
+        };
+        let result = if let Some(reason) = rejected {
+            Err(AgentError::tool(reason))
+        } else if request.name == "delegate" {
             child_branches = child_branches.saturating_add(1);
             if child_branches
                 > scriberig_agent_runtime::orchestration::RuntimeLimits::default()
                     .max_child_branches
             {
-                let _ = request
-                    .response
-                    .send(Err(AgentError::tool("child branch limit reached")));
-                continue;
+                Err(AgentError::tool("child branch limit reached"))
+            } else {
+                delegation::dispatch_child(
+                    service,
+                    context,
+                    session,
+                    &scope,
+                    &invocation,
+                    &request,
+                    Arc::clone(&project_store),
+                    cancellation.child_token(),
+                    output_callback.clone(),
+                )
+                .await
             }
-            delegation::dispatch_child(
-                service,
-                context,
-                session,
-                &scope,
-                &invocation,
-                &request,
-                Arc::clone(&project_store),
-                cancellation.child_token(),
-                output_callback.clone(),
-            )
-            .await
         } else {
             invoke_semantic_tool(&local_tool, context, &request)
         };
@@ -178,55 +169,31 @@ fn invoke_semantic_tool<B: ApplicationBackend + Sync>(
         let _completion_guard = CancellationMonitorGuard {
             finished: Arc::clone(&finished),
         };
-        let result = (|| -> Result<_, AgentError> {
-            let operation = if request.name == "inspect" {
-                let entity = request.arguments["entity"]
-                    .as_str()
-                    .ok_or_else(|| AgentError::tool("invalid entity argument"))?
-                    .parse::<EntityId>()
-                    .map_err(|_| AgentError::tool("invalid entity argument"))?;
-                let snapshot = request.arguments["snapshot"]
-                    .as_str()
-                    .map(str::parse::<scriberig_core::SnapshotId>)
-                    .transpose()
-                    .map_err(|_| AgentError::tool("invalid snapshot argument"))?;
-                let detail = match request.arguments["detail"].as_str() {
-                    Some("detailed") => scriberig_agent_core::ToolDetail::Detailed,
-                    _ => scriberig_agent_core::ToolDetail::Compact,
-                };
-                scriberig_agent_core::Tool::invoke(
-                    tool,
-                    context,
-                    scriberig_agent_core::ToolInput {
-                        entity,
-                        snapshot,
-                        detail,
-                    },
-                )
-            } else {
-                scriberig_agent_core::Tool::invoke_named_cancellable(
-                    tool,
-                    context,
-                    &request.name,
-                    &request.arguments,
-                    cancelled.as_ref(),
-                )
+        let operation = scriberig_agent_core::Tool::invoke_named_cancellable(
+            tool,
+            context,
+            &request.name,
+            &request.arguments,
+            cancelled.as_ref(),
+        );
+        let result = operation.map_err(|error| {
+            let message = match error {
+                scriberig_agent_core::ToolError::CapabilityDenied { action, scope } => {
+                    format!("capability denied: {action} ({scope})")
+                }
+                scriberig_agent_core::ToolError::Application { category, message } => {
+                    format!("{category}: {message}")
+                }
             };
-            operation.map_err(|error| {
-                let message = match error {
-                    scriberig_agent_core::ToolError::CapabilityDenied { action, scope } => {
-                        format!("capability denied: {action} ({scope})")
-                    }
-                    scriberig_agent_core::ToolError::Application { category, message } => {
-                        format!("{category}: {message}")
-                    }
-                };
-                AgentError::tool(message.chars().take(500).collect::<String>())
-            })
-        })();
+            AgentError::tool(message.chars().take(500).collect::<String>())
+        });
         finished.store(true, std::sync::atomic::Ordering::Release);
         let _ = monitor.join();
-        result
+        if request.cancellation.is_cancelled() {
+            Err(AgentError::Abort)
+        } else {
+            result
+        }
     })?;
     let mut handles = result.handles;
     if handles.len() > 64 {

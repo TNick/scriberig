@@ -250,7 +250,22 @@ fn assert_tool_trace(branch: &Branch, required: &[&str]) {
             .tool_invocations
             .iter()
             .find(|invocation| invocation.name == *name)
-            .unwrap_or_else(|| panic!("branch {} omitted tool {name}", branch.title));
+            .unwrap_or_else(|| {
+                let observed = branch
+                    .tool_invocations
+                    .iter()
+                    .map(|invocation| invocation.name.as_str())
+                    .collect::<Vec<_>>();
+                let results = branch
+                    .tool_results
+                    .iter()
+                    .map(|result| (result.invocation, String::from_utf8_lossy(&result.output)))
+                    .collect::<Vec<_>>();
+                panic!(
+                    "branch {} omitted tool {name}; observed calls: {observed:?}; results: {results:?}",
+                    branch.title
+                )
+            });
         let result = branch
             .tool_results
             .iter()

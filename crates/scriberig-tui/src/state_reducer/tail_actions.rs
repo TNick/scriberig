@@ -12,7 +12,9 @@ use crate::action::Action;
 pub(super) fn handles_tail_action(action: &Action) -> bool {
     matches!(
         action,
-        Action::SessionSucceeded { .. }
+        Action::StatusMessage(_)
+            | Action::RecoveryRecordsLoaded(_)
+            | Action::SessionSucceeded { .. }
             | Action::SessionsListed(_)
             | Action::SessionSwitched(_)
             | Action::SessionRemoved(_)

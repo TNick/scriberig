@@ -85,6 +85,7 @@ pub(super) fn invocation_on(
         context,
         tools: Vec::new(),
         activity: Arc::new(scriberig_agent_runtime::orchestration::ActivitySequence::default()),
+        provider_lifecycle: None,
     }
 }
 

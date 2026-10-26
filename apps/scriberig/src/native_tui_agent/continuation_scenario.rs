@@ -171,6 +171,10 @@ impl ContinuationScenarioProvider {
             model_id: model.id.clone(),
             api_id: model.api.as_str().to_owned(),
             applied_values,
+            request_body_sha256: None,
+            request_header_sha256: None,
+            request_effect_sha256: None,
+            provider_options: rpi_ai::ProviderOptionsAttestation::default(),
             omitted_categories: vec![
                 "endpoint".to_owned(),
                 "headers_and_credentials".to_owned(),

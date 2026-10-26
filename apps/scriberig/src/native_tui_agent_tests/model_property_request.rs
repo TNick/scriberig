@@ -11,6 +11,8 @@ const FIXTURE_PROVIDER: &str = "local";
 const FIXTURE_MODEL: &str = "property-model";
 /// Upstream schema-declared property edited through the property surface.
 const FIXTURE_PROPERTY: &str = "region";
+/// Provider-defined property with no product-specific schema handling.
+const FUTURE_PROPERTY: &str = "future_vendor_tuning_v3";
 
 /// Builds upstream configuration declaring one editor-safe provider property.
 ///
@@ -32,6 +34,10 @@ fn property_fixture_config() -> rpi_model_runtime::ModelsConfig {
                                 FIXTURE_PROPERTY: {
                                     "type": "string",
                                     "enum": ["east", "west"]
+                            },
+                            FUTURE_PROPERTY: {
+                                "type": "integer",
+                                "minimum": 1
                                 }
                             },
                             "additionalProperties": false
@@ -105,9 +111,11 @@ fn upstream_property_edit_reaches_the_resolved_provider_request() {
     );
     let session_repository: Arc<dyn scriberig_session::SessionStore> = session_store.clone();
     let model_catalog = live_catalog(&property_fixture_config());
+    let provider_extension_runtime =
+        scriberig_app::ProviderExtensionRuntime::with_model_catalog(model_catalog.clone());
     let service = ApplicationService::new(backend)
         .with_session_store(session_repository)
-        .with_model_catalog(model_catalog.clone());
+        .with_provider_extension_runtime(provider_extension_runtime.clone());
     let runner = NativeTuiAgentRunner {
         providers: std::collections::BTreeMap::from([(
             "local".to_owned(),
@@ -117,6 +125,11 @@ fn upstream_property_edit_reaches_the_resolved_provider_request() {
         upstream_credentials: None,
         upstream_enabled: false,
         model_catalog: model_catalog.clone(),
+        provider_extension_runtime: provider_extension_runtime.clone(),
+        plugin_command_worker: std::sync::Mutex::new(None),
+        extension_component_mailbox: rpi_extensions::ExtensionStatusMailbox::new(),
+        provider_lifecycle:
+            crate::native_tui_agent::provider_readiness::ProviderLifecycleState::new(),
         model_config: std::sync::Mutex::new((property_fixture_config(), Some(config_path.clone()))),
         project_store: Arc::clone(&project_store),
         active_coordinators: std::sync::Mutex::default(),
@@ -143,6 +156,15 @@ fn upstream_property_edit_reaches_the_resolved_provider_request() {
         serde_json::json!("west"),
     )
     .expect("authorized upstream property edit");
+    TuiService::set_model_property(
+        &adapter,
+        &context,
+        FIXTURE_PROVIDER,
+        FIXTURE_MODEL,
+        FUTURE_PROPERTY,
+        serde_json::json!(7),
+    )
+    .expect("provider-defined future property edit");
 
     let persisted =
         rpi_model_runtime::ModelsConfigFile::load(&config_path).expect("persisted configuration");
@@ -150,6 +172,11 @@ fn upstream_property_edit_reaches_the_resolved_provider_request() {
         persisted.providers[FIXTURE_PROVIDER].models[0].provider_options[FIXTURE_PROPERTY],
         serde_json::json!("west"),
         "upstream validation must persist the edited property"
+    );
+    assert_eq!(
+        persisted.providers[FIXTURE_PROVIDER].models[0].provider_options[FUTURE_PROPERTY],
+        serde_json::json!(7),
+        "an unrecognized provider property key must persist without product-specific handling"
     );
     let published = model_catalog
         .snapshot()
@@ -162,6 +189,17 @@ fn upstream_property_edit_reaches_the_resolved_provider_request() {
         serde_json::json!("west"),
         "the live catalog row handed to provider construction must carry the property"
     );
+    assert_eq!(
+        published.provider_options[FUTURE_PROPERTY],
+        serde_json::json!(7),
+        "the live catalog must retain provider-defined future properties"
+    );
+    let paired = provider_extension_runtime.extension_catalog_snapshot();
+    assert_eq!(
+        paired.extension.catalog_revision(),
+        Some(paired.catalog.revision)
+    );
+    assert_eq!(paired.catalog.models, model_catalog.snapshot().models);
 
     let mut state = TuiState::default();
     state.conversation_composer.draft = "Use the configured region.".to_owned();
@@ -205,6 +243,11 @@ fn upstream_property_edit_reaches_the_resolved_provider_request() {
         execution["providerOptions"][FIXTURE_PROPERTY],
         serde_json::json!("west"),
         "the resolved provider request must carry the edited upstream property"
+    );
+    assert_eq!(
+        execution["providerOptions"][FUTURE_PROPERTY],
+        serde_json::json!(7),
+        "the prepared request must retain provider-defined future properties"
     );
 
     drop(adapter);

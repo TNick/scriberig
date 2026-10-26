@@ -7,6 +7,10 @@ use std::sync::{Arc, Mutex};
 #[path = "service_backend.rs"]
 mod service_backend;
 pub use service_backend::ApplicationBackend;
+#[path = "service_clone.rs"]
+mod service_clone;
+#[path = "service_facade.rs"]
+mod service_facade;
 #[path = "service_query.rs"]
 mod service_query;
 use crate::{
@@ -18,8 +22,12 @@ use scriberig_session::Session;
 
 #[path = "service_agent_console.rs"]
 mod service_agent_console;
+#[path = "service_agent_profile.rs"]
+mod service_agent_profile;
 #[path = "service_configuration.rs"]
 mod service_configuration;
+#[path = "service_execution.rs"]
+mod service_execution;
 #[path = "service_plans.rs"]
 mod service_plans;
 #[path = "service_projection_style.rs"]
@@ -36,56 +44,36 @@ mod session_failures;
 mod session_persistence;
 
 /// Facade that delegates every application operation to one injected backend.
+///
+/// Clones share the backend, operation registry, sessions, and agent identity
+/// counter so host adapters can retain the same application boundary.
+///
+/// # Public members
+/// None.
+///
+/// # Private members
+/// - `backend`: Shared semantic backend.
+/// - `operations`: Shared operation lifecycle registry.
+/// - `sessions`: In-process session cache.
+/// - `next_agent_handle`: Shared local agent identity counter.
+/// - `session_store`: Optional durable session store.
+/// - `agent_profile_provider`: Optional semantic agent-profile reader.
+/// - `provider_extension_runtime`: Shared provider and extension generation.
+/// - `extension_component_mailbox`: Optional upstream plugin UI registry.
+/// - `presentation_preferences`: Agent presentation preference store.
+/// - `projection_style`: Projection style configuration.
 pub struct ApplicationService<B> {
-    backend: B,
+    backend: Arc<B>,
     operations: crate::OperationRegistry,
     sessions: Arc<Mutex<BTreeMap<EntityId, Session>>>,
-    next_agent_handle: AtomicU64,
+    next_agent_handle: Arc<AtomicU64>,
     session_store: Option<Arc<dyn scriberig_session::SessionStore>>,
-    model_catalog: rpi_model_runtime::ModelCatalog,
+    /// Optional shared semantic profile provider used by all invocation surfaces.
+    agent_profile_provider: Option<Arc<dyn crate::AgentProfileProvider>>,
+    pub(super) provider_extension_runtime: crate::ProviderExtensionRuntime,
+    extension_component_mailbox: Option<rpi_extensions::ExtensionStatusMailbox>,
     presentation_preferences: Arc<dyn crate::AgentPresentationPreferenceStore>,
     projection_style: crate::ProjectionStyleConfiguration,
-}
-
-impl<B> ApplicationService<B> {
-    /// Creates an application service around canonical subsystem providers.
-    ///
-    /// - `backend`: Backend implementing universal operation execution.
-    ///
-    /// A transport-independent application service.
-    #[must_use]
-    /// # Returns
-    /// The operation result.
-    pub fn new(backend: B) -> Self {
-        Self {
-            backend,
-            operations: crate::OperationRegistry::new(),
-            sessions: Arc::new(Mutex::new(BTreeMap::new())),
-            next_agent_handle: AtomicU64::new(1),
-            session_store: None,
-            model_catalog: rpi_model_runtime::ModelCatalog::new(),
-            presentation_preferences: Arc::new(
-                crate::InMemoryAgentPresentationPreferenceStore::default(),
-            ),
-            projection_style: crate::ProjectionStyleConfiguration::default(),
-        }
-    }
-
-    /// Returns the injected backend by shared reference.
-    ///
-    /// - `self`: Application service to inspect.
-    ///
-    /// The backend used for semantic execution.
-    #[must_use]
-    pub const fn backend(&self) -> &B {
-        &self.backend
-    }
-
-    /// Returns the lifecycle registry used by this application service.
-    #[must_use]
-    pub const fn operations(&self) -> &crate::OperationRegistry {
-        &self.operations
-    }
 }
 
 impl<B: ApplicationBackend> ApplicationService<B> {
@@ -355,35 +343,5 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         id: &str,
     ) -> Result<MigrationDetail, ApplicationError> {
         self.backend.migration_detail(context, id)
-    }
-
-    /// Executes one universal application request.
-    ///
-    /// - `self`: Application service.
-    /// - `context`: Caller and capability context.
-    /// - `request`: Universal request to execute.
-    ///
-    /// The structured result returned by the owning subsystem.
-    ///
-    /// Returns a structured application failure.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    pub fn execute(
-        &self,
-        context: &ApplicationContext,
-        request: &ApplicationRequest,
-    ) -> Result<ApplicationResult, ApplicationError> {
-        match request {
-            ApplicationRequest::Render(render) => {
-                let style = self.resolve_render_style(context, &render.style)?;
-                let mut resolved = render.clone();
-                resolved.style = style;
-                self.backend
-                    .execute(context, &ApplicationRequest::Render(resolved))
-            }
-            _ => self.backend.execute(context, request),
-        }
     }
 }

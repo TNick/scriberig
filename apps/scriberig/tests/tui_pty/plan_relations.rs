@@ -13,6 +13,7 @@ use scriberig_session::SessionStore;
 /// - `prerequisite`: Node whose result the dependency edge requires.
 /// - `dependent`: Node that must wait for that result.
 /// - `nested`: Node whose structural parent is `dependent`.
+/// - `parentless`: Node without an explicit structural parent.
 struct Fixture {
     /// Owning session identity.
     session: scriberig_core::EntityId,
@@ -26,6 +27,8 @@ struct Fixture {
     dependent: scriberig_core::EntityId,
     /// Node whose structural parent is `dependent`.
     nested: scriberig_core::EntityId,
+    /// Node without an explicit structural parent.
+    parentless: scriberig_core::EntityId,
 }
 
 impl Fixture {
@@ -43,6 +46,7 @@ impl Fixture {
             prerequisite: scriberig_core::EntityId::new(),
             dependent: scriberig_core::EntityId::new(),
             nested: scriberig_core::EntityId::new(),
+            parentless: scriberig_core::EntityId::new(),
         }
     }
 }
@@ -58,12 +62,12 @@ impl Fixture {
 /// A durable `PlanNode` value.
 fn plan_node(
     id: scriberig_core::EntityId,
-    parent: scriberig_session::PlanNodeParent,
+    parent: Option<scriberig_session::PlanNodeParent>,
     title: &str,
 ) -> scriberig_session::PlanNode {
     scriberig_session::PlanNode {
         id,
-        parent: Some(parent),
+        parent,
         title: title.to_owned(),
         purpose: "Keep structural parentage separate from dependency edges".to_owned(),
         expected_result: None,
@@ -106,22 +110,32 @@ fn seed_plan(tui: &TuiPty, fixture: &Fixture) {
     // would nest these rows differently from `PlanNodeParent`.
     plan.add_node(plan_node(
         fixture.dependent,
-        scriberig_session::PlanNodeParent::Branch(fixture.root_branch),
+        Some(scriberig_session::PlanNodeParent::Branch(
+            fixture.root_branch,
+        )),
         "Dependent work item",
     ))
     .expect("add dependent node");
     plan.add_node(plan_node(
         fixture.prerequisite,
-        scriberig_session::PlanNodeParent::Branch(fixture.root_branch),
+        Some(scriberig_session::PlanNodeParent::Branch(
+            fixture.root_branch,
+        )),
         "Prerequisite work item",
     ))
     .expect("add prerequisite node");
     plan.add_node(plan_node(
         fixture.nested,
-        scriberig_session::PlanNodeParent::Node(fixture.dependent),
+        Some(scriberig_session::PlanNodeParent::Node(fixture.dependent)),
         "Nested structural child",
     ))
     .expect("add nested node");
+    plan.add_node(plan_node(
+        fixture.parentless,
+        None,
+        "Unparented structural root",
+    ))
+    .expect("add node without an explicit parent");
     plan.dependencies.push(scriberig_session::PlanDependency {
         prerequisite: fixture.prerequisite,
         dependent: fixture.dependent,
@@ -236,13 +250,16 @@ fn tui_pty_keeps_plan_dependency_edges_out_of_the_tree_structure() {
     let header_column = label_column(&tree, "Plan · Structural and dependency separation");
     let dependent_column = label_column(&tree, "Dependent work item");
     let prerequisite_column = label_column(&tree, "Prerequisite work item");
+    let parentless_column = label_column(&tree, "Unparented structural root");
     let nested_column = label_column(&tree, "Nested structural child");
     assert!(
         dependent_column == prerequisite_column,
         "a dependency edge must not nest the dependent node beneath its prerequisite:\n{tree}"
     );
     assert!(
-        dependent_column > header_column && nested_column > dependent_column,
+        dependent_column > header_column
+            && parentless_column == dependent_column
+            && nested_column > dependent_column,
         "structural parentage from `PlanNodeParent` must stay visible:\n{tree}"
     );
     assert!(
@@ -318,6 +335,7 @@ fn tui_pty_keeps_plan_dependency_edges_out_of_the_tree_structure() {
                 fixture.nested,
                 Some(scriberig_session::PlanNodeParent::Node(fixture.dependent))
             ),
+            (fixture.parentless, None),
         ],
         "the durable structural parents must be unchanged by presentation"
     );

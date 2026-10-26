@@ -1,6 +1,7 @@
 //! Covers one focused group of TUI regression tests.
 
 use super::*;
+use crate::service::TuiRuntimeService;
 
 /// Verifies remote nested branch references become the shared session graph.
 #[test]

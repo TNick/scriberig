@@ -10,6 +10,9 @@ use scriberig_query::{FindRequest, FindResult, ListRequest, ListResult, QueryRes
 #[macro_use]
 #[path = "server_borrowed_plan_view.rs"]
 mod plan_view_method;
+#[macro_use]
+#[path = "server_borrowed_recovery.rs"]
+mod recovery_methods;
 impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// Delegates migration detail to the borrowed application service.
     ///
@@ -248,6 +251,8 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     ) -> Result<scriberig_protocol::SessionExecutionSelection, ApplicationError> {
         (**self).set_session_thinking_level(context, session, expected_revision, thinking_level)
     }
+
+    server_borrowed_recovery_methods!();
 
     /// Delegates operation status to the borrowed application service.
     /// - `operation_id`: Argument named `operation_id`.

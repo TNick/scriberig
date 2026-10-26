@@ -61,6 +61,7 @@ impl fmt::Display for StyleSourceKind {
 /// - `kind`: Source class this input came from.
 /// - `identity`: Stable caller-owned name such as a configuration document id.
 /// - `revision`: Exact revision when the source is revisioned knowledge.
+/// - `generation`: Exact mutable-source generation when the source is not semantic knowledge.
 /// - `value`: Exact style input contributed by this source.
 ///
 /// # Private members
@@ -73,6 +74,8 @@ pub struct StyleSource {
     pub identity: String,
     /// Exact revision when the source is revisioned canonical knowledge.
     pub revision: Option<RevisionId>,
+    /// Exact generation for a mutable identified source such as a stored setting.
+    pub generation: Option<u64>,
     /// Exact style input contributed by this source.
     pub value: StyleValue,
 }
@@ -98,8 +101,22 @@ impl StyleSource {
             kind,
             identity: identity.into(),
             revision,
+            generation: None,
             value,
         }
+    }
+
+    /// Attaches the exact generation of a mutable style source.
+    ///
+    /// - `self`: Source record to update.
+    /// - `generation`: Exact source generation observed during resolution.
+    ///
+    /// # Returns
+    /// The source record with its generation attached.
+    #[must_use]
+    pub fn with_generation(mut self, generation: u64) -> Self {
+        self.generation = Some(generation);
+        self
     }
 }
 

@@ -68,6 +68,138 @@ fn attested_report_is_captured_with_explicit_omissions_and_completeness() {
     );
 }
 
+/// Captures versioned provider-body and safe-header identity.
+#[test]
+fn versioned_report_identity_is_captured_and_changes_request_identity() {
+    let version_one = super::fixture::capture(ReportMode::Attested);
+    let version_two = super::fixture::capture(ReportMode::AttestedV2);
+    let version_three = super::fixture::capture(ReportMode::AttestedV3);
+    let report = version_two[0]
+        .applied_settings
+        .as_ref()
+        .expect("version-2 report captured");
+
+    assert_eq!(
+        report["schemaVersion"],
+        serde_json::json!("rpi-applied-request-settings-v2")
+    );
+    assert_eq!(
+        report["requestBodySha256"],
+        serde_json::json!("a".repeat(64))
+    );
+    assert_ne!(
+        version_one[0].request_fingerprint,
+        version_two[0].request_fingerprint
+    );
+    let report = version_three[0]
+        .applied_settings
+        .as_ref()
+        .expect("version-three report captured");
+    assert_eq!(
+        report["schemaVersion"],
+        serde_json::json!("rpi-applied-request-settings-v3")
+    );
+    assert_eq!(
+        report["requestHeaderSha256"],
+        serde_json::json!("b".repeat(64))
+    );
+    assert_ne!(
+        version_two[0].request_fingerprint,
+        version_three[0].request_fingerprint
+    );
+}
+
+/// Captures v4 option evidence only when it matches the selected model schema.
+#[test]
+fn version_four_option_evidence_is_schema_bound_and_secret_free() {
+    let valid = super::fixture::capture(ReportMode::AttestedV4);
+    let report = valid[0]
+        .applied_settings
+        .as_ref()
+        .expect("valid v4 report captured");
+    assert_eq!(
+        report["schemaVersion"],
+        serde_json::json!("rpi-applied-request-settings-v4")
+    );
+    assert_eq!(
+        report["providerOptions"]["options"]
+            .as_array()
+            .expect("provider options")
+            .len(),
+        1
+    );
+    assert_eq!(
+        report["providerOptions"]["omittedCount"],
+        serde_json::json!(0)
+    );
+    let encoded = serde_json::to_string(report).expect("serialize report");
+    assert!(!encoded.contains("future_vendor_mode"));
+    assert!(!encoded.contains("fast"));
+
+    let transformed = super::fixture::capture(ReportMode::AttestedV4Transformed);
+    let transformed_report = transformed[0]
+        .applied_settings
+        .as_ref()
+        .expect("transformed v4 report captured");
+    assert_eq!(
+        transformed_report["providerOptions"]["options"][0]["disposition"],
+        serde_json::json!("transformed")
+    );
+    assert_ne!(
+        valid[0].request_fingerprint,
+        transformed[0].request_fingerprint
+    );
+
+    let invalid = super::fixture::capture(ReportMode::InvalidV4);
+    assert!(invalid[0].applied_settings.is_none());
+}
+
+/// Captures v5 only when its exact final-request digest is valid.
+#[test]
+fn version_five_effect_identity_requires_a_valid_digest() {
+    let valid = super::fixture::capture(ReportMode::AttestedV5);
+    let report = valid[0]
+        .applied_settings
+        .as_ref()
+        .expect("valid v5 report captured");
+    assert_eq!(
+        report["schemaVersion"],
+        serde_json::json!("rpi-applied-request-settings-v5")
+    );
+    assert_eq!(
+        report["requestEffectSha256"],
+        serde_json::json!("c".repeat(64))
+    );
+    assert_eq!(report["omittedCategories"], serde_json::json!([]));
+    assert_ne!(
+        valid[0].request_fingerprint,
+        super::fixture::capture(ReportMode::AttestedV4)[0].request_fingerprint
+    );
+
+    let partial = super::fixture::capture(ReportMode::PartialV5);
+    let partial_report = partial[0]
+        .applied_settings
+        .as_ref()
+        .expect("incomplete v5 report captured");
+    assert_eq!(partial_report["complete"], serde_json::json!(false));
+    assert!(partial_report.get("requestEffectSha256").is_none());
+    assert!(
+        partial_report["omittedCategories"]
+            .as_array()
+            .expect("incomplete categories")
+            .iter()
+            .any(|category| category == "request_effect_identity")
+    );
+
+    let invalid = super::fixture::capture(ReportMode::InvalidV5);
+    assert!(invalid[0].applied_settings.is_none());
+    assert!(invalid[0].applied_settings_fingerprint.is_none());
+
+    let contradictory = super::fixture::capture(ReportMode::CompleteWithOmissionsV5);
+    assert!(contradictory[0].applied_settings.is_none());
+    assert!(contradictory[0].applied_settings_fingerprint.is_none());
+}
+
 /// Rejects reports that do not attest the exact bound request.
 #[test]
 fn reports_outside_the_bound_request_are_not_captured() {
@@ -76,6 +208,10 @@ fn reports_outside_the_bound_request_are_not_captured() {
         ReportMode::OtherProvider,
         ReportMode::OtherApi,
         ReportMode::UnknownSchema,
+        ReportMode::InvalidV2,
+        ReportMode::InvalidV3,
+        ReportMode::InvalidV4,
+        ReportMode::CompleteWithOmissionsV5,
         ReportMode::Unattested,
     ] {
         let requests = super::fixture::capture(mode);
@@ -111,7 +247,12 @@ fn catalog_metadata_is_never_reported_as_applied() {
 /// Forwards only a validated report to the host observer.
 #[test]
 fn the_host_observer_receives_only_a_validated_report() {
-    for (mode, expected) in [(ReportMode::Attested, 1_usize), (ReportMode::OtherModel, 0)] {
+    for (mode, expected) in [
+        (ReportMode::Attested, 1_usize),
+        (ReportMode::AttestedV2, 1),
+        (ReportMode::AttestedV3, 1),
+        (ReportMode::OtherModel, 0),
+    ] {
         let received: Arc<Mutex<Vec<AppliedRequestSettings>>> = Arc::new(Mutex::new(Vec::new()));
         let sink = Arc::clone(&received);
         let callback: rpi_ai::AppliedRequestSettingsCallback = Arc::new(move |report| {
@@ -138,7 +279,12 @@ fn the_host_observer_receives_only_a_validated_report() {
             "the host observer must mirror capture for {mode:?}",
         );
         if expected == 1 {
-            assert_eq!(reports[0].schema_version, "rpi-applied-request-settings-v1");
+            assert!(matches!(
+                reports[0].schema_version.as_str(),
+                "rpi-applied-request-settings-v1"
+                    | "rpi-applied-request-settings-v2"
+                    | "rpi-applied-request-settings-v3"
+            ));
             assert_eq!(reports[0].model_id, "applied-settings-model");
             assert!(!reports[0].complete);
             assert!(

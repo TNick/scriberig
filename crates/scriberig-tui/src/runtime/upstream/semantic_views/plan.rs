@@ -26,6 +26,9 @@ use labels::{node_label, plan_label};
 use views::SharedPlanViews;
 
 #[cfg(test)]
+#[path = "plan_assignment_tests.rs"]
+mod assignment_tests;
+#[cfg(test)]
 #[path = "plan_relation_tests.rs"]
 mod relation_tests;
 #[cfg(test)]
@@ -321,7 +324,7 @@ impl PlanRowSink<'_> {
     ///
     /// - `plan`: Durable plan containing the node.
     /// - `node`: Node being projected.
-    /// - `plan_key`: Reserved tree key for this plan copy's header row.
+    /// - `plan_key`: Namespaced row key for this projected plan copy.
     /// - `parent_id`: Structural tree parent row.
     /// - `semantics`: Shared views for this plan copy.
     fn node_row(
@@ -357,8 +360,8 @@ impl PlanRowSink<'_> {
 /// Stable namespaced row identity.
 fn plan_row_id(plan: EntityId, node: Option<EntityId>) -> String {
     match node {
-        Some(node) => format!("plan:{plan}:node:{node}"),
-        None => format!("plan:{plan}"),
+        Some(node) => format!("{}:node:{node}", plan_row_id(plan, None)),
+        None => format!("plan-view:header:{plan}"),
     }
 }
 

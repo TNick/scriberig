@@ -12,6 +12,8 @@ use scriberig_core::{EntityId, RootName};
 use scriberig_query::{QueryValue, Selection};
 use serde_json::Value;
 
+use super::PluginComponentDispatcher;
+
 const MAX_DOMAIN_ARGUMENT_BYTES: usize = 65_536;
 const MAX_CHANGE_HANDLE_BYTES: usize = 16_384;
 
@@ -50,6 +52,7 @@ pub trait PluginSemanticDispatcher: Send + Sync {
 /// - `service`: Application service owning semantic operation execution.
 /// - `context`: Immutable host capability context for this branch.
 /// - `branch`: Trusted branch context for candidate creation.
+/// - `components`: Optional upstream component mailbox adapter.
 pub struct ApplicationDomainDispatcher<B> {
     /// Application service that routes through `ScribeRig` semantic operations.
     service: Arc<ApplicationService<B>>,
@@ -57,6 +60,8 @@ pub struct ApplicationDomainDispatcher<B> {
     context: ApplicationContext,
     /// Host-selected branch context for candidate creation.
     branch: Option<RootName>,
+    /// Optional upstream component mailbox adapter.
+    components: Option<PluginComponentDispatcher>,
 }
 
 impl<B> ApplicationDomainDispatcher<B> {
@@ -69,6 +74,7 @@ impl<B> ApplicationDomainDispatcher<B> {
     ///
     /// # Returns
     /// A dispatcher that admits only authorized domain-operation requests.
+    #[must_use]
     pub fn new(
         service: Arc<ApplicationService<B>>,
         context: ApplicationContext,
@@ -78,7 +84,24 @@ impl<B> ApplicationDomainDispatcher<B> {
             service,
             context,
             branch,
+            components: None,
         }
+    }
+
+    /// Routes isolated plugin component updates to the upstream TUI mailbox.
+    ///
+    /// # Parameters
+    /// - `mailbox`: Session-scoped upstream component registry.
+    ///
+    /// # Returns
+    /// The dispatcher configured to accept `ui_component` host calls.
+    #[must_use]
+    pub fn with_extension_components(
+        mut self,
+        mailbox: rpi_extensions::ExtensionStatusMailbox,
+    ) -> Self {
+        self.components = Some(PluginComponentDispatcher::new(mailbox));
+        self
     }
 }
 
@@ -101,6 +124,9 @@ where
     /// # Errors
     /// Returns a safe denial or semantic-operation failure.
     fn dispatch(&self, operation: &str, arguments: &Value) -> Result<Value, String> {
+        if operation == "ui_component" {
+            return self.dispatch_ui_component(arguments);
+        }
         if operation != "domain_operation" {
             return Err("plugin host operation is not authorized".to_owned());
         }
@@ -146,6 +172,25 @@ where
             return Err("ScribeRig change handle exceeds the size limit".to_owned());
         }
         Ok(serde_json::json!({ "change": result.change }))
+    }
+}
+
+impl<B> ApplicationDomainDispatcher<B> {
+    /// Applies one worker UI update to its host-scoped mailbox owner.
+    ///
+    /// # Parameters
+    /// - `arguments`: Worker-local owner and component operation payload.
+    ///
+    /// # Returns
+    /// The upstream mailbox acknowledgement.
+    ///
+    /// # Errors
+    /// Returns a denial for malformed input, missing mailbox, or invalid update.
+    fn dispatch_ui_component(&self, arguments: &Value) -> Result<Value, String> {
+        self.components
+            .as_ref()
+            .ok_or_else(|| "plugin UI components are unavailable in this host".to_owned())?
+            .dispatch(arguments)
     }
 }
 

@@ -1672,6 +1672,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "matchers"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1525a2a28c7f4fa0fc98bb91ae755d1e2d1505079e05539e35bc876b5d65ae9"
+dependencies = [
+ "regex-automata",
+]
+
+[[package]]
 name = "matches"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1794,6 +1803,15 @@ name = "nonmax"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "610a5acd306ec67f907abe5567859a3c693fb9886eb1f012ab8f2a47bef3db51"
+
+[[package]]
+name = "nu-ansi-term"
+version = "0.50.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
+dependencies = [
+ "windows-sys 0.59.0",
+]
 
 [[package]]
 name = "num"
@@ -2781,7 +2799,7 @@ dependencies = [
 [[package]]
 name = "rpi-agent"
 version = "0.7.1"
-source = "git+https://github.com/TNick/pi-rust?rev=587c63f3a521567b2ef8fe9ce038fd35e3896f15#587c63f3a521567b2ef8fe9ce038fd35e3896f15"
+source = "git+https://github.com/TNick/pi-rust?rev=278cde7d20db1a5424153633b1808bc8c3928655#278cde7d20db1a5424153633b1808bc8c3928655"
 dependencies = [
  "async-trait",
  "futures",
@@ -2799,7 +2817,7 @@ dependencies = [
 [[package]]
 name = "rpi-ai"
 version = "0.7.1"
-source = "git+https://github.com/TNick/pi-rust?rev=587c63f3a521567b2ef8fe9ce038fd35e3896f15#587c63f3a521567b2ef8fe9ce038fd35e3896f15"
+source = "git+https://github.com/TNick/pi-rust?rev=278cde7d20db1a5424153633b1808bc8c3928655#278cde7d20db1a5424153633b1808bc8c3928655"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -2813,6 +2831,7 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror 1.0.69",
  "tokio",
  "tokio-util",
@@ -2824,13 +2843,14 @@ dependencies = [
 [[package]]
 name = "rpi-extensions"
 version = "0.7.1"
-source = "git+https://github.com/TNick/pi-rust?rev=587c63f3a521567b2ef8fe9ce038fd35e3896f15#587c63f3a521567b2ef8fe9ce038fd35e3896f15"
+source = "git+https://github.com/TNick/pi-rust?rev=278cde7d20db1a5424153633b1808bc8c3928655#278cde7d20db1a5424153633b1808bc8c3928655"
 dependencies = [
  "async-trait",
  "dirs",
  "fs2",
  "futures",
  "libloading",
+ "reqwest",
  "rpi-agent",
  "rpi-ai",
  "rpi-plugin-sdk",
@@ -2841,13 +2861,14 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+ "url",
  "uuid",
 ]
 
 [[package]]
 name = "rpi-model-runtime"
 version = "0.7.1"
-source = "git+https://github.com/TNick/pi-rust?rev=587c63f3a521567b2ef8fe9ce038fd35e3896f15#587c63f3a521567b2ef8fe9ce038fd35e3896f15"
+source = "git+https://github.com/TNick/pi-rust?rev=278cde7d20db1a5424153633b1808bc8c3928655#278cde7d20db1a5424153633b1808bc8c3928655"
 dependencies = [
  "async-trait",
  "fs2",
@@ -2866,7 +2887,7 @@ dependencies = [
 [[package]]
 name = "rpi-plugin-sdk"
 version = "0.7.1"
-source = "git+https://github.com/TNick/pi-rust?rev=587c63f3a521567b2ef8fe9ce038fd35e3896f15#587c63f3a521567b2ef8fe9ce038fd35e3896f15"
+source = "git+https://github.com/TNick/pi-rust?rev=278cde7d20db1a5424153633b1808bc8c3928655#278cde7d20db1a5424153633b1808bc8c3928655"
 dependencies = [
  "libc",
  "serde_json",
@@ -2876,7 +2897,7 @@ dependencies = [
 [[package]]
 name = "rpi-telemetry"
 version = "0.7.1"
-source = "git+https://github.com/TNick/pi-rust?rev=587c63f3a521567b2ef8fe9ce038fd35e3896f15#587c63f3a521567b2ef8fe9ce038fd35e3896f15"
+source = "git+https://github.com/TNick/pi-rust?rev=278cde7d20db1a5424153633b1808bc8c3928655#278cde7d20db1a5424153633b1808bc8c3928655"
 dependencies = [
  "async-trait",
  "serde",
@@ -2887,7 +2908,7 @@ dependencies = [
 [[package]]
 name = "rpi-tui"
 version = "0.7.1"
-source = "git+https://github.com/TNick/pi-rust?rev=587c63f3a521567b2ef8fe9ce038fd35e3896f15#587c63f3a521567b2ef8fe9ce038fd35e3896f15"
+source = "git+https://github.com/TNick/pi-rust?rev=278cde7d20db1a5424153633b1808bc8c3928655#278cde7d20db1a5424153633b1808bc8c3928655"
 dependencies = [
  "base64 0.22.1",
  "crossterm",
@@ -3053,6 +3074,7 @@ dependencies = [
  "rpassword",
  "rpi-agent",
  "rpi-ai",
+ "rpi-extensions",
  "rpi-model-runtime",
  "scriberig-agent-core",
  "scriberig-agent-runtime",
@@ -3070,15 +3092,20 @@ dependencies = [
  "scriberig-session",
  "scriberig-session-sqlite",
  "scriberig-store",
+ "scriberig-store-memory",
  "scriberig-store-sqlite",
  "scriberig-style-sqlite",
+ "scriberig-test-provider-plugin",
  "scriberig-tui",
  "serde",
  "serde_json",
+ "sr-change",
  "sr-projection",
  "tempfile",
  "tokio",
  "tokio-util",
+ "tracing",
+ "tracing-subscriber",
  "vt100",
 ]
 
@@ -3086,10 +3113,8 @@ dependencies = [
 name = "scriberig-agent-core"
 version = "0.1.0"
 dependencies = [
- "scriberig-app",
  "scriberig-core",
- "scriberig-protocol",
- "scriberig-session",
+ "serde",
  "serde_json",
 ]
 
@@ -3099,6 +3124,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "blake3",
+ "reqwest",
  "rpi-agent",
  "rpi-ai",
  "rpi-extensions",
@@ -3126,7 +3152,9 @@ name = "scriberig-app"
 version = "0.1.0"
 dependencies = [
  "rpi-ai",
+ "rpi-extensions",
  "rpi-model-runtime",
+ "scriberig-agent-core",
  "scriberig-core",
  "scriberig-derive",
  "scriberig-domain-ecma",
@@ -3137,6 +3165,7 @@ dependencies = [
  "scriberig-session-sqlite",
  "scriberig-store",
  "scriberig-store-memory",
+ "scriberig-store-sqlite",
  "scriberig-style-sqlite",
  "serde",
  "serde_json",
@@ -3531,11 +3560,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "scriberig-test-provider-plugin"
+version = "0.1.0"
+dependencies = [
+ "rpi-ai",
+ "rpi-plugin-sdk",
+ "serde_json",
+]
+
+[[package]]
 name = "scriberig-tui"
 version = "0.1.0"
 dependencies = [
  "rpi-agent",
  "rpi-ai",
+ "rpi-extensions",
  "rpi-model-runtime",
  "rpi-tui",
  "scriberig-agent-core",
@@ -3789,6 +3828,15 @@ dependencies = [
  "cfg-if",
  "cpufeatures 0.2.17",
  "digest",
+]
+
+[[package]]
+name = "sharded-slab"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
+dependencies = [
+ "lazy_static",
 ]
 
 [[package]]
@@ -4141,6 +4189,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "thread_local"
+version = "1.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ad99c4c6d32803332c548b1af0540b357b3f5fc0be8f6c6bfe8b2e6ae784070"
+dependencies = [
+ "cfg-if",
+]
+
+[[package]]
 name = "time"
 version = "0.3.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4382,6 +4439,36 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a"
 dependencies = [
  "once_cell",
+ "valuable",
+]
+
+[[package]]
+name = "tracing-log"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee855f1f400bd0e5c02d150ae5de3840039a3f54b025156404e34c23c03f47c3"
+dependencies = [
+ "log",
+ "once_cell",
+ "tracing-core",
+]
+
+[[package]]
+name = "tracing-subscriber"
+version = "0.3.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb7f578e5945fb242538965c2d0b04418d38ec25c79d160cd279bf0731c8d319"
+dependencies = [
+ "matchers",
+ "nu-ansi-term",
+ "once_cell",
+ "regex-automata",
+ "sharded-slab",
+ "smallvec",
+ "thread_local",
+ "tracing",
+ "tracing-core",
+ "tracing-log",
 ]
 
 [[package]]
@@ -4551,6 +4638,12 @@ dependencies = [
  "js-sys",
  "wasm-bindgen",
 ]
+
+[[package]]
+name = "valuable"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
 
 [[package]]
 name = "vcpkg"

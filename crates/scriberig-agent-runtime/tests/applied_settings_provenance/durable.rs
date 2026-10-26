@@ -62,7 +62,7 @@ impl DurableCapture {
     fn new() -> Self {
         let directory = tempfile::tempdir().expect("temporary session directory");
         let path = directory.path().join("scriberig-applied-settings.sqlite");
-        let captured = capture(ReportMode::Attested);
+        let captured = capture(ReportMode::AttestedV3);
         let report = captured[0]
             .applied_settings
             .as_ref()
@@ -208,6 +208,16 @@ fn applied_settings_survive_durable_capture_and_authorized_detail() {
         serde_json::json!(false),
         "an upstream partial report must stay explicitly incomplete"
     );
+    assert_eq!(
+        persisted["applied_settings"]["requestBodySha256"],
+        serde_json::json!("a".repeat(64)),
+        "the provider-prepared body digest must survive durable persistence"
+    );
+    assert_eq!(
+        persisted["applied_settings"]["requestHeaderSha256"],
+        serde_json::json!("b".repeat(64)),
+        "the safe prepared-header digest must survive durable persistence"
+    );
     assert!(
         persisted["applied_settings"]["omittedCategories"]
             .as_array()
@@ -246,7 +256,7 @@ fn applied_settings_detail_requires_the_session_read_grant() {
     let stored = std::fs::read(&fixture.path).expect("read the durable SQLite file");
     let stored = String::from_utf8_lossy(&stored);
     assert!(
-        stored.contains("rpi-applied-request-settings-v1"),
+        stored.contains("rpi-applied-request-settings-v3"),
         "the report and its contract version must be durable"
     );
     assert!(

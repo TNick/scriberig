@@ -6,8 +6,12 @@ use scriberig_core::EntityId;
 use scriberig_protocol::{SessionActivityItem, SessionActivityKind, SessionActivityState};
 use scriberig_session::{Branch, Session};
 
-/// Verifies remote hydration retains model, tool, result, and child causality.
 #[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "This fixture verifies the complete model/tool/result/child causal chain during remote hydration."
+)]
+/// Verifies remote hydration retains model, tool, result, and child causality.
 fn restored_tool_activity_keeps_model_parent_chain() {
     let model = EntityId::new();
     let tool = EntityId::new();
@@ -23,6 +27,7 @@ fn restored_tool_activity_keeps_model_parent_chain() {
                 session: "session-1".to_owned(),
                 sequence: 0,
                 branch: branch_id.clone(),
+                operation: Some("op_agent-run".to_owned()),
                 parent: None,
                 kind: SessionActivityKind::ModelInvocation,
                 state: SessionActivityState::Completed,
@@ -40,6 +45,7 @@ fn restored_tool_activity_keeps_model_parent_chain() {
                 session: "session-1".to_owned(),
                 sequence: 1,
                 branch: branch_id.clone(),
+                operation: None,
                 parent: Some(model.to_string()),
                 kind: SessionActivityKind::ToolInvocation,
                 state: SessionActivityState::Completed,
@@ -57,6 +63,7 @@ fn restored_tool_activity_keeps_model_parent_chain() {
                 session: "session-1".to_owned(),
                 sequence: 2,
                 branch: branch_id.clone(),
+                operation: None,
                 parent: Some(tool.to_string()),
                 kind: SessionActivityKind::ToolResult,
                 state: SessionActivityState::Completed,
@@ -74,6 +81,7 @@ fn restored_tool_activity_keeps_model_parent_chain() {
                 session: "session-1".to_owned(),
                 sequence: 3,
                 branch: branch_id,
+                operation: None,
                 parent: Some(tool.to_string()),
                 kind: SessionActivityKind::BranchStarted,
                 state: SessionActivityState::Running,
@@ -93,6 +101,13 @@ fn restored_tool_activity_keeps_model_parent_chain() {
     assert_eq!(
         branch.tool_invocations[0].parent_model_invocation,
         Some(model)
+    );
+    assert_eq!(
+        branch.model_invocations[0]
+            .operation
+            .as_ref()
+            .map(scriberig_core::OperationId::as_str),
+        Some("agent-run")
     );
     assert_eq!(
         branch.tool_invocations[0].presentation_label.as_deref(),

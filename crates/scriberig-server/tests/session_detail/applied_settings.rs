@@ -7,11 +7,13 @@ use scriberig_app::{
 
 use super::fixture::{Fixture, dispatch_detail, projection_with_settings};
 
-/// Keeps the upstream report shape, omissions, and completeness in the API read.
-#[test]
-fn applied_settings_report_round_trips_through_the_protocol_detail_operation() {
-    let report = serde_json::to_value(rpi_ai::AppliedRequestSettings {
-        schema_version: "rpi-applied-request-settings-v1".to_owned(),
+/// Builds an incomplete upstream v3 applied-settings report for wire coverage.
+///
+/// # Returns
+/// A report containing safe values, digests, and explicit omissions.
+fn applied_settings_fixture() -> serde_json::Value {
+    serde_json::to_value(rpi_ai::AppliedRequestSettings {
+        schema_version: "rpi-applied-request-settings-v3".to_owned(),
         provider_id: "provider-a".to_owned(),
         model_id: "model-a".to_owned(),
         api_id: "openai-completions".to_owned(),
@@ -19,6 +21,10 @@ fn applied_settings_report_round_trips_through_the_protocol_detail_operation() {
             "temperature".to_owned(),
             serde_json::json!(0.25),
         )]),
+        request_body_sha256: Some("a".repeat(64)),
+        request_header_sha256: Some("b".repeat(64)),
+        request_effect_sha256: None,
+        provider_options: rpi_ai::ProviderOptionsAttestation::default(),
         omitted_categories: vec![
             "endpoint".to_owned(),
             "headers_and_credentials".to_owned(),
@@ -26,7 +32,13 @@ fn applied_settings_report_round_trips_through_the_protocol_detail_operation() {
         ],
         complete: false,
     })
-    .expect("serialize the upstream report");
+    .expect("serialize the upstream report")
+}
+
+/// Keeps the upstream report shape, omissions, and completeness in the API read.
+#[test]
+fn applied_settings_report_round_trips_through_the_protocol_detail_operation() {
+    let report = applied_settings_fixture();
     let service = ApplicationService::new(Fixture);
     let handle = service
         .start_local_agent(&scriberig_app::AgentCommandRequest {
@@ -86,6 +98,16 @@ fn applied_settings_report_round_trips_through_the_protocol_detail_operation() {
             .and_then(serde_json::Value::as_bool),
         Some(false),
         "the report must stay explicitly incomplete across the transport"
+    );
+    let expected_body_digest = "a".repeat(64);
+    assert_eq!(
+        detail
+            .applied_settings
+            .as_ref()
+            .and_then(|value| value.get("requestBodySha256"))
+            .and_then(serde_json::Value::as_str),
+        Some(expected_body_digest.as_str()),
+        "the prepared-body identity must survive protocol projection"
     );
     assert_eq!(
         detail

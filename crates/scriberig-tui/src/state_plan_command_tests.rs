@@ -77,6 +77,7 @@ fn plan_commands_emit_shared_requests_and_never_write_the_durable_projection() {
                     Effect::CreatePlan(_)
                         | Effect::Replan(_)
                         | Effect::PlanLifecycle { .. }
+                        | Effect::PlanMutation(_)
                         | Effect::SetPlanNodeAssignment(_)
                 )
             }),
@@ -96,4 +97,96 @@ fn plan_commands_emit_shared_requests_and_never_write_the_durable_projection() {
             "{draft} must not mutate the durable plan projection locally"
         );
     }
+}
+
+/// Verifies plan node actions carry selected identities through shared mutation requests.
+#[test]
+fn plan_node_actions_emit_shared_mutation_requests() {
+    let gate = scriberig_core::EntityId::from_bytes([175; 16]);
+    let actions = [
+        (
+            "/plan next Follow up: inspect the result".to_owned(),
+            "next",
+        ),
+        (
+            "/plan child Detail: inspect the selected node".to_owned(),
+            "child",
+        ),
+        ("/plan retry".to_owned(), "retry"),
+        (format!("/plan waive {gate} reviewed exception"), "waive"),
+    ];
+    for (draft, expected) in actions {
+        let mut state = state_with_planned_plan(&draft);
+        let plan = state.session_snapshot.as_ref().unwrap().plans[0].id;
+        let selected_node = scriberig_core::EntityId::from_bytes([174; 16]);
+        state.plan_cursor = Some(crate::selection::PlanSelection {
+            plan,
+            node: Some(selected_node),
+        });
+        let before = state.session_snapshot.as_ref().unwrap().plans.clone();
+
+        let effects = reduce(&mut state, Action::InputSubmitted);
+
+        let [Effect::PlanMutation(request)] = effects.as_slice() else {
+            panic!("{expected} must emit one shared mutation request: {effects:?}");
+        };
+        assert_eq!(request.plan, plan);
+        assert_eq!(request.session, state.session_snapshot.as_ref().unwrap().id);
+        assert_eq!(request.expected_revision, before[0].revision);
+        match (expected, &request.mutation) {
+            ("next", scriberig_app::PlanMutation::AddNextStep(node)) => {
+                assert_eq!(node.title, "Follow up");
+                assert_eq!(node.purpose, "inspect the result");
+            }
+            (
+                "child",
+                scriberig_app::PlanMutation::Decompose {
+                    parent,
+                    children,
+                    required: true,
+                },
+            ) => {
+                assert_eq!(*parent, selected_node);
+                assert_eq!(children[0].title, "Detail");
+            }
+            ("retry", scriberig_app::PlanMutation::RetryFailedNode { node }) => {
+                assert_eq!(*node, selected_node);
+            }
+            ("waive", scriberig_app::PlanMutation::WaiveGate { reason, .. }) => {
+                assert_eq!(reason, "reviewed exception");
+            }
+            _ => panic!("unexpected mutation for {expected}: {:?}", request.mutation),
+        }
+        assert_eq!(state.session_snapshot.as_ref().unwrap().plans, before);
+    }
+    let mut state =
+        state_with_planned_plan("/plan next Add a validation step: run the requested check");
+    let plan = state.session_snapshot.as_ref().unwrap().plans[0].id;
+    state.plan_cursor = Some(crate::selection::PlanSelection { plan, node: None });
+    assert!(matches!(
+        reduce(&mut state, Action::InputSubmitted).as_slice(),
+        [Effect::PlanMutation(scriberig_app::PlanMutationRequest {
+            mutation: scriberig_app::PlanMutation::AddNextStep(_),
+            ..
+        })]
+    ));
+}
+
+/// Verifies an evidence inspection command preserves its exact snapshot identity.
+#[test]
+fn inspect_command_accepts_an_exact_snapshot_reference() {
+    let entity = scriberig_core::EntityId::from_bytes([176; 16]);
+    let snapshot = scriberig_core::SnapshotId::from_bytes([177; 32]);
+    let mut state = state_with_planned_plan(&format!("/inspect {entity} --snapshot {snapshot}"));
+
+    let effects = reduce(&mut state, Action::InputSubmitted);
+
+    assert!(matches!(
+        effects.as_slice(),
+        [Effect::InspectEntity {
+            entity: requested_entity,
+            snapshot: Some(requested_snapshot),
+            ..
+        }] if *requested_entity == entity && *requested_snapshot == snapshot
+    ));
 }

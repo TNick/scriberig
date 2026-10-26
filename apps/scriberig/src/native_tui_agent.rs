@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::Mutex;
 
-use rpi_ai::{Model, Provider, RequestSecret};
+use rpi_ai::{Model, Provider};
 use scriberig_agent_runtime::host_configuration::HostConfigurationError;
 use scriberig_app::{
     AgentSelection, ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService,
@@ -19,12 +19,11 @@ use crate::native_scenario::NativeScenario;
 #[path = "native_tui_agent/continuation_scenario.rs"]
 pub(crate) mod continuation_scenario;
 
-/// Provider, exact model, and optional protected request credential.
-type UpstreamProviderBinding = (Arc<dyn Provider>, Model, Option<RequestSecret>);
-
 #[path = "native_tui_agent/workspace.rs"]
 mod workspace;
 use workspace::workspace_from_result;
+#[path = "native_tui_agent/child_selection.rs"]
+mod child_selection;
 #[path = "native_tui_agent/model_properties.rs"]
 mod model_properties;
 #[path = "native_tui_agent/model_selection.rs"]
@@ -41,7 +40,34 @@ mod runner;
 pub(crate) mod upstream_execution;
 use model_selection::selected_runtime_model;
 use plan_worker::NativePlanWorkerExecutor;
-pub(crate) use provider_config::extensions::validate_isolated_plugin_configuration;
+pub(crate) use provider_config::extensions::{
+    grant_configured_plugin_capability, validate_isolated_plugin_configuration,
+};
+
+/// Activates provider packages for a headless one-shot operation.
+///
+/// The private mailbox is retained by the worker for the duration of the
+/// operation and discarded when its worker generation is released.
+///
+/// # Parameters
+/// - `runtime`: Shared provider and catalog generation runtime.
+/// - `project_store`: Durable store the worker must not access.
+///
+/// # Returns
+/// The admitted provider worker, when configured.
+///
+/// # Errors
+/// Returns a safe configuration error when package admission fails.
+pub(crate) fn activate_provider_packages(
+    runtime: &scriberig_app::ProviderExtensionRuntime,
+    project_store: &SqliteStore,
+) -> Result<
+    Option<Arc<scriberig_agent_runtime::plugin_worker::AuthorizedPluginWorker>>,
+    HostConfigurationError,
+> {
+    let mailbox = rpi_extensions::ExtensionStatusMailbox::new();
+    provider_config::extensions::activate_provider_packages(runtime, project_store, &mailbox)
+}
 
 /// Builds the upstream adapter for the configured one-shot Echo fallback.
 ///
@@ -74,6 +100,15 @@ pub(super) struct NativeTuiAgentRunner {
     upstream_enabled: bool,
     /// Upstream catalog retained as the model selection authority.
     model_catalog: rpi_model_runtime::ModelCatalog,
+    /// Shared catalog and extension publication generation used by app surfaces.
+    provider_extension_runtime: scriberig_app::ProviderExtensionRuntime,
+    /// Explicitly allowlisted plugin command worker shared with TUI surfaces.
+    plugin_command_worker:
+        Mutex<Option<Arc<scriberig_agent_runtime::plugin_worker::AuthorizedPluginWorker>>>,
+    /// Session-scoped mailbox for isolated plugin terminal components.
+    extension_component_mailbox: rpi_extensions::ExtensionStatusMailbox,
+    /// Shared upstream provider lifecycle event source for active invocations.
+    provider_lifecycle: provider_readiness::ProviderLifecycleState,
     /// Sanitized host model configuration updated through upstream validators.
     model_config: Mutex<(rpi_model_runtime::ModelsConfig, Option<std::path::PathBuf>)>,
     /// Shared project store used by application-backed agent tools.
@@ -129,6 +164,7 @@ impl NativeTuiAgentRunner {
         });
         let catalog =
             provider_config::catalog::from_environment(&model, endpoint_override.as_deref())?;
+        let provider_lifecycle = provider_readiness::ProviderLifecycleState::new();
         let mut providers = std::collections::BTreeMap::new();
         if !upstream_enabled
             && let Some(provider) = provider_config::from_environment(&provider_kind)?
@@ -136,12 +172,26 @@ impl NativeTuiAgentRunner {
             providers.insert("local".to_owned(), provider);
         }
         provider_config::extensions::validate_isolated_plugin_configuration()?;
+        let provider_extension_runtime =
+            scriberig_app::ProviderExtensionRuntime::with_model_catalog(
+                catalog.model_catalog.clone(),
+            );
+        let extension_component_mailbox = rpi_extensions::ExtensionStatusMailbox::new();
+        let plugin_command_worker = provider_config::extensions::activate_provider_packages(
+            &provider_extension_runtime,
+            &project_store,
+            &extension_component_mailbox,
+        )?;
         Ok(Self {
             providers,
             model,
             upstream_credentials,
             upstream_enabled,
-            model_catalog: catalog.model_catalog,
+            model_catalog: provider_extension_runtime.model_catalog().clone(),
+            provider_extension_runtime,
+            plugin_command_worker: Mutex::new(plugin_command_worker),
+            extension_component_mailbox,
+            provider_lifecycle,
             model_config: Mutex::new((catalog.config, catalog.config_path)),
             project_store,
             active_coordinators: Mutex::new(HashSet::new()),
@@ -149,60 +199,32 @@ impl NativeTuiAgentRunner {
         })
     }
 
-    /// Returns the shared live catalog used by application compositions.
+    /// Returns the shared provider and extension publication runtime.
     ///
     /// # Returns
-    /// A cloneable handle to the runner's model catalog.
-    pub(super) fn model_catalog(&self) -> rpi_model_runtime::ModelCatalog {
-        self.model_catalog.clone()
+    /// A cloneable runtime handle sharing catalog and generation state.
+    pub(super) fn provider_extension_runtime(&self) -> scriberig_app::ProviderExtensionRuntime {
+        self.provider_extension_runtime.clone()
     }
 
-    /// Creates an upstream provider bound to one exact selected model.
-    ///
-    /// # Parameters
-    /// - `model`: Exact model retained from the resolved catalog snapshot.
-    /// - `connection`: Host-owned provider connection selected with the model.
+    /// Returns a lifecycle event sink bound to the current provider catalog.
     ///
     /// # Returns
-    /// The upstream provider, exact model, and protected request secret when
-    /// this composition supports the selected built-in API.
-    ///
-    /// # Errors
-    /// Returns a safe configuration or credential authorization failure.
-    pub(super) fn upstream_provider_for(
+    /// An invocation context that reports provider results against the exact
+    /// upstream model catalog revision observed at creation time.
+    pub(super) fn provider_lifecycle_context(
         &self,
-        model: &Model,
-        connection: &str,
-    ) -> Result<Option<UpstreamProviderBinding>, HostConfigurationError> {
-        if let Some(provider) = self.providers.get(connection) {
-            return Ok(Some((
-                provider.clone().into_provider(model.clone()),
-                model.clone(),
-                None,
-            )));
+    ) -> scriberig_agent_runtime::upstream_invocation::ProviderLifecycleContext {
+        let snapshot = self.model_catalog.snapshot();
+        if let Ok(locations) = scriberig_secrets::registry::RegistryLocations::from_process()
+            && let Ok(registry) = locations.load()
+        {
+            self.provider_lifecycle.observe_registry_revision(
+                registry.credential_revision,
+                snapshot.models.iter().map(|model| model.provider.clone()),
+            );
         }
-        if !self.upstream_enabled {
-            return Ok(None);
-        }
-        let provider = rpi_model_runtime::create_builtin_provider(
-            &model.provider,
-            vec![model.clone()],
-            reqwest::Client::new(),
-        )
-        .map_err(|error| HostConfigurationError::Configuration(error.to_string()))?;
-        let request_secret = self
-            .upstream_credentials
-            .as_deref()
-            .map(|credentials| {
-                scriberig_agent_runtime::protected_credential::request_secret_for_model(
-                    credentials,
-                    model,
-                )
-            })
-            .transpose()
-            .map_err(|error| HostConfigurationError::Configuration(error.to_string()))?
-            .flatten();
-        Ok(Some((provider, model.clone(), request_secret)))
+        self.provider_lifecycle.context(snapshot.revision)
     }
 }
 

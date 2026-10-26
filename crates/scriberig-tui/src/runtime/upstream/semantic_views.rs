@@ -1,6 +1,7 @@
 //! Renders `ScribeRig` semantic projections through upstream tree and Markdown components.
 
 use std::any::Any;
+use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 
@@ -8,7 +9,8 @@ use rpi_tui::keybindings::keys;
 use rpi_tui::{Component, InputEvent, Keybindings, Markdown, SelectList};
 
 use crate::state::TuiState;
-use projection::{RetainedTree, TreeProjection, sync_tree};
+use projection::RetainedTree;
+use projection_cache::ProjectionCache;
 
 #[path = "semantic_views/common.rs"]
 mod common;
@@ -22,6 +24,8 @@ mod model_views;
 mod plan;
 #[path = "semantic_views/projection.rs"]
 mod projection;
+#[path = "semantic_views/projection_cache.rs"]
+mod projection_cache;
 #[path = "semantic_views/runtime_views.rs"]
 mod runtime_views;
 #[path = "semantic_views/selection.rs"]
@@ -43,6 +47,7 @@ pub(super) use selection::{reconcile_cursor, retain_cursor_identity};
 /// - `state`: Shared `ScribeRig` navigation and semantic view projections.
 /// - `markdown`: Upstream Markdown renderer for supplementary details.
 /// - `tree`: Upstream tree of the already-filtered visible `ScribeRig` rows.
+/// - `projection_cache`: Last semantic projection keyed by presentation revision.
 /// - `select_list`: Upstream list of stable non-tree semantic references.
 /// - `keybindings`: Upstream keybinding manager shared with the active runtime.
 /// - `input_sender`: Channel for `ScribeRig` navigation intents.
@@ -51,8 +56,10 @@ pub(super) struct SemanticViewPanel {
     state: Arc<Mutex<TuiState>>,
     /// Upstream Markdown renderer for supplementary details.
     markdown: Markdown,
-    /// Upstream tree of the current visible semantic rows.
-    tree: Mutex<Option<RetainedTree>>,
+    /// Upstream tree retained independently for each tree-backed semantic view.
+    tree: Mutex<HashMap<crate::selection::PrimaryView, Option<RetainedTree>>>,
+    /// Cached semantic rows and details reused between state updates.
+    projection_cache: Mutex<ProjectionCache>,
     /// Upstream selectable list for stable non-tree semantic rows.
     select_list: Mutex<Option<SelectList>>,
     /// Upstream keybinding manager shared with the active runtime.
@@ -78,7 +85,8 @@ impl SemanticViewPanel {
         Self {
             state,
             markdown: Markdown::new("# Conversation\n\nType a message to start.", 1, 0),
-            tree: Mutex::new(None),
+            tree: Mutex::new(HashMap::new()),
+            projection_cache: Mutex::new(ProjectionCache::default()),
             select_list: Mutex::new(None),
             keybindings,
             input_sender,
@@ -90,42 +98,49 @@ impl Component for SemanticViewPanel {
     /// Renders conversation/session rows with `TreeList` and other details with Markdown.
     ///
     /// - `width`: Available render width in terminal columns.
+    /// - `view`: Semantic tree whose rows should be rendered.
     ///
     /// # Returns
     /// Rendered lines from the active upstream component.
     fn render(&self, width: usize) -> Vec<String> {
-        let projection = match self.state.lock() {
-            Ok(state) => Self::projection_for(&state),
-            Err(_) => None,
-        };
-        if let Some(projection) = projection {
-            self.markdown.set_content(projection.details.clone());
-            let mut rows = self.render_tree(&projection, width);
+        let projection = self.state.lock().ok().and_then(|state| {
+            let view = state.primary_view;
+            self.projection_for_state(&state)
+                .map(|projection| (view, projection))
+        });
+        if let Some((view, projection)) = projection {
+            self.render_details_for_projection(&projection);
+            let mut rows = if self.sync_tree_for_projection(view, &projection) {
+                self.render_tree(view, width)
+            } else {
+                Vec::new()
+            };
             rows.extend(self.markdown.render(width));
             return rows;
         }
-        if let Ok(state) = self.state.lock() {
-            if let Some((list, details)) = selection::semantic_list(&state) {
-                if let Ok(mut current) = self.select_list.lock() {
-                    *current = Some(list);
-                }
-                self.markdown.set_content(details);
-                let mut rows = self
-                    .select_list
-                    .lock()
-                    .ok()
-                    .and_then(|list| list.as_ref().map(|list| list.render(width)))
-                    .unwrap_or_default();
-                rows.extend(self.markdown.render(width));
-                return rows;
+        let Ok(state) = self.state.lock() else {
+            return self.markdown.render(width);
+        };
+        if let Some((list, details)) = selection::semantic_list(&state) {
+            if let Ok(mut current) = self.select_list.lock() {
+                *current = Some(list);
             }
-            let content = content::render_view(&state);
-            if self.markdown.get_content() != content {
-                self.markdown.set_content(content);
-            }
-            if let Ok(mut list) = self.select_list.lock() {
-                *list = None;
-            }
+            self.markdown.set_content(details);
+            let mut rows = self
+                .select_list
+                .lock()
+                .ok()
+                .and_then(|list| list.as_ref().map(|list| list.render(width)))
+                .unwrap_or_default();
+            rows.extend(self.markdown.render(width));
+            return rows;
+        }
+        let content = content::render_view(&state);
+        if self.markdown.get_content() != content {
+            self.markdown.set_content(content);
+        }
+        if let Ok(mut list) = self.select_list.lock() {
+            *list = None;
         }
         self.markdown.render(width)
     }
@@ -218,10 +233,10 @@ impl Component for SemanticViewPanel {
     /// Invalidates upstream Markdown's cached frame.
     fn invalidate(&self) {
         self.markdown.invalidate();
-        if let Ok(tree) = self.tree.lock()
-            && let Some(tree) = tree.as_ref()
-        {
-            tree.tree.invalidate();
+        if let Ok(trees) = self.tree.lock() {
+            for tree in trees.values().flatten() {
+                tree.tree.invalidate();
+            }
         }
         if let Ok(list) = self.select_list.lock()
             && let Some(list) = list.as_ref()
@@ -240,39 +255,20 @@ impl Component for SemanticViewPanel {
 }
 
 impl SemanticViewPanel {
-    /// Selects the reusable tree projection for the active semantic view.
+    /// Renders the already-synchronized upstream semantic tree.
     ///
-    /// - `state`: Current `ScribeRig` presentation state.
-    ///
-    /// Tree items, selection, and details when the view is tree-backed.
-    /// # Returns
-    /// A projection for conversation, session, and plan views.
-    fn projection_for(state: &TuiState) -> Option<TreeProjection> {
-        match state.primary_view {
-            crate::selection::PrimaryView::Conversation
-            | crate::selection::PrimaryView::Session => tree::projection(state),
-            crate::selection::PrimaryView::Plan => {
-                plan::projection(state).map(|(projection, _)| projection)
-            }
-            _ => None,
-        }
-    }
-
-    /// Reuses the retained tree and renders the current projection.
-    ///
-    /// - `projection`: Current semantic tree projection.
+    /// - `view`: Semantic tree whose rows should be rendered.
     /// - `width`: Available render width in terminal columns.
     ///
     /// # Returns
-    /// Rendered tree rows, or no rows when validation fails.
-    fn render_tree(&self, projection: &TreeProjection, width: usize) -> Vec<String> {
-        let Ok(mut slot) = self.tree.lock() else {
+    /// Rendered tree rows, or no rows when the tree is unavailable.
+    fn render_tree(&self, view: crate::selection::PrimaryView, width: usize) -> Vec<String> {
+        let Ok(trees) = self.tree.lock() else {
             return Vec::new();
         };
-        if sync_tree(&mut slot, projection).is_none() {
-            return Vec::new();
-        }
-        slot.as_ref()
+        trees
+            .get(&view)
+            .and_then(Option::as_ref)
             .map(|tree| tree.tree.render(width))
             .unwrap_or_default()
     }
@@ -332,28 +328,28 @@ impl SemanticViewPanel {
         event: &InputEvent,
         direction: crate::action::Direction,
     ) -> bool {
-        let projection = match self.state.lock() {
-            Ok(state) => Self::projection_for(&state),
-            Err(_) => None,
-        };
-        let Some(projection) = projection else {
+        let active = self.state.lock().ok().and_then(|state| {
+            let view = state.primary_view;
+            self.projection_for_state(&state)
+                .map(|projection| (view, projection))
+        });
+        let Some((view, projection)) = active else {
             return self.send_cursor_action(direction);
         };
-        let Ok(mut slot) = self.tree.lock() else {
-            return false;
-        };
-        if sync_tree(&mut slot, &projection).is_none() {
-            drop(slot);
+        if !self.sync_tree_for_projection(view, &projection) {
             return self.send_cursor_action(direction);
         }
-        let Some(tree) = slot.as_ref() else {
-            drop(slot);
+        let Ok(trees) = self.tree.lock() else {
+            return false;
+        };
+        let Some(tree) = trees.get(&view).and_then(Option::as_ref) else {
+            drop(trees);
             return self.send_cursor_action(direction);
         };
         let before = tree.tree.selected_id();
         let _ = tree.tree.handle_event(event);
         let after = tree.tree.selected_id();
-        drop(slot);
+        drop(trees);
         let old_index =
             before.and_then(|id| projection.items.iter().position(|item| item.id == id));
         let new_index = after.and_then(|id| projection.items.iter().position(|item| item.id == id));

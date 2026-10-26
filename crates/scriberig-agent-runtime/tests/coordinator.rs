@@ -163,6 +163,7 @@ impl PlanWorkerExecutor for FakeWorkers<'_> {
             branch.model_invocations.push(ModelInvocation {
                 id: private_model,
                 branch: claim.branch,
+                operation: None,
                 ordinal: 1,
                 agent_profile: None,
                 context_fingerprint: None,

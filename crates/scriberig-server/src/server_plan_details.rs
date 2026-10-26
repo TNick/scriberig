@@ -25,7 +25,7 @@ pub(super) fn read<B: scriberig_app::ApplicationBackend>(
 ) -> Result<SessionPlanDetailsResponse, ApplicationError> {
     let session_id = parse_identity(&request.session.id, "session")?;
     let plan_id = parse_identity(&request.plan, "plan")?;
-    let plan = if let Some(snapshot) = request.snapshot.as_deref() {
+    let (plan, revision, source_snapshot) = if let Some(snapshot) = request.snapshot.as_deref() {
         let snapshot =
             snapshot
                 .parse::<SnapshotId>()
@@ -33,23 +33,33 @@ pub(super) fn read<B: scriberig_app::ApplicationBackend>(
                     operation: "plan details".to_owned(),
                     message: format!("invalid snapshot identifier: {error}"),
                 })?;
-        service.read_plan_at_snapshot(context, session_id, plan_id, snapshot)?
+        let plan = service.read_plan_at_snapshot(context, session_id, plan_id, snapshot)?;
+        let revision = plan.revision;
+        let source_snapshot = plan.source_snapshot;
+        (plan, revision, source_snapshot)
     } else {
-        SessionBackend::read_session(
-            service,
-            context,
-            &SessionRequest {
-                session: session_id,
-            },
-        )?
-        .plans
-        .into_iter()
-        .find(|plan| plan.id == plan_id)
-        .ok_or_else(|| ApplicationError::NotFound {
-            subject: request.plan.clone(),
-        })?
+        let (view, _) = service.read_plan_views(context, session_id, plan_id, None)?;
+        let plan = match view.snapshot {
+            Some(snapshot) => {
+                service.read_plan_at_snapshot(context, session_id, plan_id, snapshot)?
+            }
+            None => SessionBackend::read_session(
+                service,
+                context,
+                &SessionRequest {
+                    session: session_id,
+                },
+            )?
+            .plans
+            .into_iter()
+            .find(|plan| plan.id == plan_id)
+            .ok_or_else(|| ApplicationError::NotFound {
+                subject: request.plan.clone(),
+            })?,
+        };
+        (plan, view.mutation_revision, view.snapshot)
     };
-    if plan.revision != request.expected_revision {
+    if revision != request.expected_revision {
         return Err(ApplicationError::Conflict {
             subject: request.plan.clone(),
             details: Box::new(scriberig_app::ConflictDetails {
@@ -68,8 +78,8 @@ pub(super) fn read<B: scriberig_app::ApplicationBackend>(
         page(&evidence, request.evidence_offset, limit);
     Ok(SessionPlanDetailsResponse {
         plan: request.plan.clone(),
-        revision: plan.revision,
-        snapshot: plan.source_snapshot.map(|snapshot| snapshot.to_string()),
+        revision,
+        snapshot: source_snapshot.map(|snapshot| snapshot.to_string()),
         gate_total,
         gate_offset: request.gate_offset,
         gates: gates

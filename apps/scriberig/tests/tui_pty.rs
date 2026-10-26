@@ -8,10 +8,16 @@ mod tui_pty_bootstrap;
 mod tui_pty_branch;
 #[path = "tui_pty/conversation.rs"]
 mod tui_pty_conversation;
+#[path = "tui_pty/diff.rs"]
+mod tui_pty_diff;
 #[path = "tui_pty_support/lifecycle_test.rs"]
 mod tui_pty_lifecycle;
 #[path = "tui_pty_support/model_controls_test.rs"]
 mod tui_pty_model_controls;
+#[path = "tui_pty/model_properties.rs"]
+mod tui_pty_model_properties;
+#[path = "tui_pty/observability.rs"]
+mod tui_pty_observability;
 #[path = "tui_pty/plan_relations.rs"]
 mod tui_pty_plan_relations;
 #[path = "tui_pty/plan_view.rs"]
@@ -19,6 +25,8 @@ mod tui_pty_plan_view;
 mod tui_pty_support;
 #[path = "tui_pty/tree_identity.rs"]
 mod tui_pty_tree_identity;
+#[path = "tui_pty/tree_scroll.rs"]
+mod tui_pty_tree_scroll;
 
 use portable_pty::PtySize;
 use tui_pty_support::{TuiPty, test_lock};

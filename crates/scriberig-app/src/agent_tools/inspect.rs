@@ -1,12 +1,13 @@
-//! Implements the provider-neutral inspect tool over `scriberig-app`.
+//! Implements the application-backed inspect tool over the shared query boundary.
 
-use scriberig_app::{
+use crate::{
     ApplicationContext, ApplicationError, DetailLevel, InspectRequest, QueryService,
     SnapshotResolution,
 };
 
+use scriberig_agent_core::{Tool, ToolDetail, ToolError, ToolInput, ToolResult};
+
 use crate::capability::inspect_available;
-use crate::tool::{Tool, ToolDetail, ToolError, ToolInput, ToolResult};
 
 /// Application-backed inspect tool with no model-provider assumptions.
 pub struct InspectTool<S> {
@@ -26,7 +27,7 @@ impl<S> InspectTool<S> {
     }
 }
 
-impl<S: QueryService> Tool for InspectTool<S> {
+impl<S: QueryService> Tool<ApplicationContext> for InspectTool<S> {
     /// Returns the stable inspect tool name.
     ///
     /// Stable inspect tool identifier.
@@ -53,6 +54,31 @@ impl<S: QueryService> Tool for InspectTool<S> {
         context: &ApplicationContext,
         input: ToolInput,
     ) -> Result<ToolResult, ToolError> {
+        self.invoke_cancellable(context, input, &std::sync::atomic::AtomicBool::new(false))
+    }
+}
+
+impl<S: QueryService> InspectTool<S> {
+    /// Invokes inspection while forwarding branch cancellation to the app query.
+    ///
+    /// - `self`: Application-backed inspect tool.
+    /// - `context`: Trusted application context.
+    /// - `input`: Entity, optional snapshot, and detail selection.
+    /// - `cancelled`: Shared cancellation state for the executing branch.
+    ///
+    /// Compact structured inspection result with stable handles.
+    ///
+    /// # Returns
+    /// The inspect tool result.
+    ///
+    /// # Errors
+    /// Returns capability, cancellation, or application failures.
+    pub fn invoke_cancellable(
+        &self,
+        context: &ApplicationContext,
+        input: ToolInput,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> Result<ToolResult, ToolError> {
         if !inspect_available(context) {
             return Err(ToolError::CapabilityDenied {
                 action: "inspect".to_owned(),
@@ -76,7 +102,7 @@ impl<S: QueryService> Tool for InspectTool<S> {
         };
         let result = self
             .service
-            .inspect(context, &request)
+            .inspect_cancellable(context, &request, cancelled)
             .map_err(map_application_error)?;
         let summary = result.description.clone().or(result.label.clone());
         Ok(ToolResult {

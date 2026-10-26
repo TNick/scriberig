@@ -2,6 +2,23 @@
 
 macro_rules! shared_session_plan_read_methods {
     () => {
+        /// Loads one compact read projection without reconstructing plan history.
+        ///
+        /// # Parameters
+        /// - `session`: Stable identity of the requested session.
+        ///
+        /// # Returns
+        /// The compact projection, or `None` when the session is absent.
+        ///
+        /// # Errors
+        /// Returns a persistence diagnostic when the session cannot be decoded.
+        fn load_read_projection(
+            &self,
+            session: scriberig_core::EntityId,
+        ) -> Result<Option<scriberig_session::Session>, String> {
+            self.load_session_read_projection(session)
+        }
+
         /// Loads one exact plan revision from the plan root's snapshot history.
         ///
         /// # Parameters

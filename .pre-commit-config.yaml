@@ -28,7 +28,7 @@ repos:
         pass_filenames: false
       - id: web-format
         name: web prettier write and restage
-        entry: python tools/precommit_web_format.py
+        entry: python3 tools/precommit_web_format.py
         language: system
         files: '^web/.*\.(ts|tsx|js|jsx)$'
         require_serial: true

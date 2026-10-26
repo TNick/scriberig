@@ -133,6 +133,34 @@ fn available_credential_projects_no_material() {
     assert!(!serialized.contains("provider.example.test"));
 }
 
+/// Verifies a host may resolve credential readiness independently per model.
+#[test]
+fn per_model_credential_sources_remain_bound_to_their_catalog_rows() {
+    let catalog = catalog_with(vec![
+        model("provider-a", "model-a"),
+        model("provider-a", "model-b"),
+    ]);
+
+    let projection = project_readiness_with(&catalog, |model| {
+        Ok(if model.id == "model-a" {
+            UpstreamCredentialSource::HostSelected
+        } else {
+            UpstreamCredentialSource::Missing
+        })
+    });
+
+    assert_eq!(projection.rows[0].model_id, "model-a");
+    assert_eq!(
+        projection.rows[0].credential,
+        ProviderCredentialReadiness::Available
+    );
+    assert_eq!(projection.rows[1].model_id, "model-b");
+    assert_eq!(
+        projection.rows[1].credential,
+        ProviderCredentialReadiness::Missing
+    );
+}
+
 /// Verifies a host with no credential path still reports header auth.
 #[test]
 fn catalog_header_auth_stays_distinguishable_without_a_host_credential() {
@@ -243,6 +271,7 @@ fn projection(revision: u64, pairs: &[(&str, &str)]) -> ProviderReadinessProject
                 provider_id: (*provider_id).to_owned(),
                 model_id: (*model_id).to_owned(),
                 credential: ProviderCredentialReadiness::Available,
+                authentication: None,
             })
             .collect(),
     }

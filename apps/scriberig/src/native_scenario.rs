@@ -71,20 +71,8 @@ impl NativeScenario {
             return provider;
         }
 
-        let scenario = Arc::new(self);
-        let scenario_model = model.clone();
         let script = FauxScript::new();
-        // Each scenario step is context-driven, so keep a bounded pool of
-        // factories available for the full tool loop instead of consuming a
-        // single one-shot response.
-        let steps = (0..256)
-            .map(|_| {
-                let scenario = Arc::clone(&scenario);
-                let scenario_model = scenario_model.clone();
-                FauxStep::factory(move |context| scenario.respond(context, &scenario_model))
-            })
-            .collect();
-        script.set_responses(steps);
+        script.set_responses(vec![scenario_response_step(Arc::new(self), model.clone())]);
         FauxProvider::with_models(script, vec![model])
     }
 
@@ -130,5 +118,38 @@ impl NativeScenario {
             )),
         };
         result.unwrap_or_else(|message| crate::scenario_helpers::error_response(model, message))
+    }
+}
+
+/// Creates a persistent context-driven faux response for every scenario request.
+///
+/// The upstream repeating factory remains queued while several provider calls
+/// are active, avoiding a queue-empty race between concurrent requests.
+///
+/// # Parameters
+/// - `scenario`: Scenario used to produce the next assistant message.
+/// - `model`: Exact model descriptor attached to the response.
+///
+/// # Returns
+/// An upstream repeating factory step.
+fn scenario_response_step(scenario: Arc<NativeScenario>, model: Model) -> FauxStep {
+    FauxStep::repeating_factory(move |context| scenario.respond(context, &model))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{NativeScenario, scenario_response_step};
+    use rpi_ai::Model;
+    use rpi_ai::providers::faux::{FauxProvider, FauxScript, FauxStep};
+    use std::sync::Arc;
+
+    /// Selects the upstream repeating factory for a deterministic scenario.
+    #[test]
+    fn scenario_response_factory_remains_available_without_queue_replenishment() {
+        let model: Model = FauxProvider::new(FauxScript::new()).default_model().clone();
+        let step = scenario_response_step(Arc::new(NativeScenario::Echo), model);
+        let FauxStep::RepeatingFactory(_) = step else {
+            panic!("scenario response must be an upstream repeating factory");
+        };
     }
 }

@@ -103,6 +103,17 @@ fn restore_activity_record(
             branch.model_invocations.push(ModelInvocation {
                 id,
                 branch: branch.id,
+                operation: item
+                    .operation
+                    .map(|value| {
+                        value
+                            .parse()
+                            .map_err(|error| ApplicationError::InvalidRequest {
+                                operation: "session activity".to_owned(),
+                                message: format!("invalid model operation identity: {error}"),
+                            })
+                    })
+                    .transpose()?,
                 ordinal: item.sequence,
                 agent_profile: None,
                 context_fingerprint: None,

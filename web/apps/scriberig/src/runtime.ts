@@ -224,26 +224,26 @@ export function createRuntime(baseUrl = "/api"): AppRuntime {
       const capabilities = await client.capabilities();
       discovered = capabilities;
       commands = commandsFor(capabilities);
-      if (!capabilities.root) throw new Error("server did not advertise a knowledge root");
-      const entityId = capabilities.root.entityId;
-      const snapshotId = capabilities.root.snapshotId;
-      const description = await client.inspect({
-        entityId,
-        snapshot: { kind: "exact", snapshotId },
-        detail: "compact",
-      });
-      if (!("summary" in description)) throw new Error("server returned an invalid inspection");
-      const node: TreeNode = {
-        id: "root",
-        entityId,
-        snapshotId,
-        summary: description.summary,
-        expanded: false,
-        loading: false,
-        children: [],
-        nextCursor: "",
-      };
-      tree.setRoot(node);
+      if (capabilities.root !== undefined) {
+        const { entityId, snapshotId } = capabilities.root;
+        const description = await client.inspect({
+          entityId,
+          snapshot: { kind: "exact", snapshotId },
+          detail: "compact",
+        });
+        if (!("summary" in description)) throw new Error("server returned an invalid inspection");
+        const node: TreeNode = {
+          id: "root",
+          entityId,
+          snapshotId,
+          summary: description.summary,
+          expanded: false,
+          loading: false,
+          children: [],
+          nextCursor: "",
+        };
+        tree.setRoot(node);
+      }
       model.setDisconnected(false);
       client.events(
         (event: ProtocolEvent) => {
@@ -311,6 +311,7 @@ export function createRuntime(baseUrl = "/api"): AppRuntime {
         expanded: false,
         loading: false,
         children: [],
+        nextCursor: "",
       });
     }
     listeners.forEach((listener) => listener());

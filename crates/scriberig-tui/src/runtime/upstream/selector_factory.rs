@@ -8,10 +8,16 @@ use rpi_tui::{Component, SearchableSelectList, SelectItem, SelectList, TUI};
 use crate::state::TuiState;
 
 use super::{ComposerInput, ControlKind, SelectorChoice};
+#[cfg(test)]
+#[path = "selector_factory/large_catalog_tests.rs"]
+mod large_catalog_tests;
+#[path = "selector_factory/model_items.rs"]
+mod model_items;
 #[path = "selector_factory/readiness.rs"]
 mod readiness;
 
-use readiness::{model_status, provider_status, safe_selector_text};
+use model_items::model_selector_items;
+use readiness::{provider_status, safe_selector_text};
 
 /// Opens the built-in upstream theme presets in the upstream selector widget.
 ///
@@ -61,6 +67,7 @@ pub(super) fn open_theme_selector(
 /// - `screen`: Upstream TUI that owns the overlay lifecycle.
 /// - `state`: `ScribeRig` presentation state containing the capability-filtered palette.
 /// - `input_sender`: Channel receiving selected or cancelled actions.
+/// - `plugin_commands`: Admitted extension commands included in the palette.
 ///
 /// # Returns
 /// `true` when an overlay was opened.
@@ -68,6 +75,7 @@ pub(super) fn open_palette_selector(
     screen: &Arc<rpi_tui::TuiAltScreen>,
     state: &Arc<Mutex<TuiState>>,
     input_sender: &Sender<ComposerInput>,
+    plugin_commands: &[rpi_extensions::isolated::WorkerCommandSpec],
 ) -> bool {
     let items = {
         let Ok(state) = state.lock() else {
@@ -83,6 +91,8 @@ pub(super) fn open_palette_selector(
             .map(|item| SelectItem::new(&item.id, &safe_selector_text(&item.label)))
             .collect::<Vec<_>>()
     };
+    let mut items = items;
+    items.extend(plugin_palette_items(plugin_commands));
     if items.is_empty() {
         return false;
     }
@@ -111,6 +121,45 @@ pub(super) fn open_palette_selector(
         }),
     );
     true
+}
+
+/// Projects upstream-registered plugin commands into safe palette rows.
+///
+/// - `commands`: Host-authorized registrations from the isolated extension worker.
+///
+/// # Returns
+/// Stable, sanitized selector rows excluding names reserved by product commands.
+fn plugin_palette_items(
+    commands: &[rpi_extensions::isolated::WorkerCommandSpec],
+) -> Vec<SelectItem> {
+    commands
+        .iter()
+        .filter(|command| {
+            valid_plugin_command_name(&command.name)
+                && crate::slash_commands::find(&format!("/{}", command.name)).is_none()
+        })
+        .map(|command| {
+            SelectItem::new(
+                &format!("plugin-command:{}", command.name),
+                &safe_selector_text(&format!("/{} — {}", command.name, command.description)),
+            )
+        })
+        .collect()
+}
+
+/// Checks whether an upstream command can be represented as one slash token.
+///
+/// - `name`: Host-advertised command identity without a leading slash.
+///
+/// # Returns
+/// `true` when the name is safe for palette and composer routing.
+pub(super) fn valid_plugin_command_name(name: &str) -> bool {
+    let mut chars = name.chars();
+    chars
+        .next()
+        .is_some_and(|first| first.is_ascii_alphabetic())
+        && chars
+            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '-' | '_'))
 }
 
 /// Opens an upstream selector populated from credential-safe model metadata.
@@ -232,33 +281,7 @@ fn selector_items(
             )
         }
         ControlKind::Model | ControlKind::PlanAssignment => {
-            items.extend(
-                library
-                    .models
-                    .iter()
-                    .filter(|model| {
-                        provider_filter.is_none_or(|provider| model.provider_id == provider)
-                    })
-                    .map(|model| {
-                        let label = safe_selector_text(&model.display_name);
-                        let status =
-                            model_status(library, &model.provider_id, &model.provider_model_id);
-                        let provider_model = format!(
-                            "{}/{} · {status}",
-                            safe_selector_text(&model.provider_id),
-                            safe_selector_text(&model.provider_model_id)
-                        );
-                        let search = format!(
-                            "{} {} {}",
-                            safe_selector_text(&model.display_name),
-                            safe_selector_text(&model.provider_id),
-                            safe_selector_text(&model.provider_model_id)
-                        );
-                        SelectItem::new(&model.id, &label)
-                            .with_description(&provider_model)
-                            .with_search_text(&search)
-                    }),
-            );
+            items.extend(model_selector_items(library, provider_filter));
             let title = match (kind, provider_filter.is_some()) {
                 (ControlKind::PlanAssignment, _) => "Assign plan node model",
                 (_, true) => "Select provider model",
@@ -326,4 +349,36 @@ struct SelectorDefinition {
     description: &'static str,
     /// Whether to wrap rows in upstream search behavior.
     searchable: bool,
+}
+
+#[cfg(test)]
+mod plugin_command_tests {
+    use super::{plugin_palette_items, valid_plugin_command_name};
+
+    /// Restricts plugin command routing to one unambiguous slash token.
+    #[test]
+    fn plugin_command_name_validation_rejects_path_and_ambiguous_tokens() {
+        assert!(valid_plugin_command_name("status_check-2"));
+        assert!(!valid_plugin_command_name("../status"));
+        assert!(!valid_plugin_command_name("2status"));
+        assert!(!valid_plugin_command_name("two words"));
+    }
+
+    /// Includes upstream commands in the palette while avoiding built-in aliases.
+    #[test]
+    fn plugin_commands_share_the_palette_and_respect_builtin_names() {
+        let rows = plugin_palette_items(&[
+            rpi_extensions::isolated::WorkerCommandSpec {
+                name: "fixture-status".to_owned(),
+                description: "Show status".to_owned(),
+            },
+            rpi_extensions::isolated::WorkerCommandSpec {
+                name: "model".to_owned(),
+                description: "Reserved product command".to_owned(),
+            },
+        ]);
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].value, "plugin-command:fixture-status");
+        assert!(rows[0].label.contains("Show status"));
+    }
 }

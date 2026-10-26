@@ -64,7 +64,7 @@ impl From<scriberig_agent_runtime::AgentError> for ComposedAgentFailure {
 /// # Errors
 /// Returns provider setup, credential authorization, semantic, budget, or
 /// cancellation failures.
-pub(crate) fn execute_model<B: ApplicationBackend + Sync>(
+pub(crate) fn execute_model<B: ApplicationBackend + Send + Sync + 'static>(
     args: &scriberig_cli::RunArgs,
     service: &ApplicationService<B>,
     project_store: &Arc<SqliteStore>,
@@ -75,9 +75,25 @@ pub(crate) fn execute_model<B: ApplicationBackend + Sync>(
 ) -> Result<scriberig_agent_runtime::AgentResult, ComposedAgentFailure> {
     crate::native_tui_agent::validate_isolated_plugin_configuration()
         .map_err(|error| scriberig_agent_runtime::AgentError::Provider(error.to_string()))?;
+    let provider_runtime = service.provider_extension_runtime();
+    crate::native_tui_agent::activate_provider_packages(&provider_runtime, project_store.as_ref())
+        .map_err(|error| scriberig_agent_runtime::AgentError::Provider(error.to_string()))?;
     let (model, provider, request_secret) = if let Some(base_url) = &args.base_url {
         let model = configured_model(args, base_url);
         let provider = create_provider(&model)?;
+        let request_secret = request_secret(args, &model)?;
+        (model, provider, request_secret)
+    } else if let Some(provider) = provider_runtime.provider(&args.provider) {
+        let model = provider
+            .models()
+            .iter()
+            .find(|model| model.id == args.model)
+            .cloned()
+            .ok_or_else(|| {
+                scriberig_agent_runtime::AgentError::Provider(
+                    "selected package provider does not advertise the configured model".to_owned(),
+                )
+            })?;
         let request_secret = request_secret(args, &model)?;
         (model, provider, request_secret)
     } else {
@@ -152,8 +168,12 @@ fn request_secret(
     args: &scriberig_cli::RunArgs,
     model: &Model,
 ) -> Result<Option<RequestSecret>, scriberig_agent_runtime::AgentError> {
-    let source = crate::agent_config::authorized_credential_provider(args)
-        .map_err(|error| scriberig_agent_runtime::AgentError::Provider(error.to_string()))?;
+    let source = if args.base_url.is_some() {
+        crate::agent_config::authorized_credential_provider(args)
+    } else {
+        crate::agent_config::authorized_credential_provider_for_check(args.credential.as_ref())
+    }
+    .map_err(|error| scriberig_agent_runtime::AgentError::Provider(error.to_string()))?;
     match source {
         None => Ok(None),
         Some(credentials) => {

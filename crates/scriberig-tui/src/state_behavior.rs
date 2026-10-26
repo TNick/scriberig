@@ -38,6 +38,7 @@ impl Default for TuiState {
         Self {
             should_quit: false,
             shell_message: "No semantic service is attached in this runtime.".to_owned(),
+            recovery_message: None,
             project: None,
             connection: ConnectionState::Connecting,
             stale: false,
@@ -52,6 +53,7 @@ impl Default for TuiState {
             inspector: LoadState::NotRequested,
             capabilities: Vec::new(),
             next_request_id: 1,
+            render_revision: 0,
             primary_view: crate::selection::PrimaryView::Conversation,
             history: LoadState::NotRequested,
             find: LoadState::NotRequested,
@@ -130,6 +132,7 @@ impl TuiState {
         &mut self,
         event: &scriberig_app::ApplicationEvent,
     ) -> Vec<Effect> {
+        self.render_revision = self.render_revision.wrapping_add(1);
         reduce_application_event(self, event)
     }
 

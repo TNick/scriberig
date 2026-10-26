@@ -5,6 +5,23 @@ use std::sync::Arc;
 use crate::ApplicationService;
 
 impl<B> ApplicationService<B> {
+    /// Installs the shared semantic profile provider used by agent invocations.
+    ///
+    /// # Parameters
+    /// - `self`: Service being configured.
+    /// - `provider`: Provider backed by universal revision/snapshot/root storage.
+    ///
+    /// # Returns
+    /// The service configured to resolve exact persisted profile revisions.
+    #[must_use]
+    pub fn with_agent_profile_provider(
+        mut self,
+        provider: Arc<dyn crate::AgentProfileProvider>,
+    ) -> Self {
+        self.agent_profile_provider = Some(provider);
+        self
+    }
+
     /// Installs the shared user presentation-preference store.
     ///
     /// - `self`: Service being configured.
@@ -65,7 +82,9 @@ impl<B> ApplicationService<B> {
     /// The configured service with the supplied model catalog.
     #[must_use]
     pub fn with_upstream_models(self, models: Vec<rpi_ai::Model>) -> Self {
-        self.model_catalog.reconcile_models(models);
+        self.provider_extension_runtime
+            .model_catalog()
+            .reconcile_models(models);
         self
     }
 
@@ -80,8 +99,41 @@ impl<B> ApplicationService<B> {
     /// The configured service.
     #[must_use]
     pub fn with_model_catalog(mut self, catalog: rpi_model_runtime::ModelCatalog) -> Self {
-        self.model_catalog = catalog;
+        self.provider_extension_runtime =
+            crate::ProviderExtensionRuntime::with_model_catalog(catalog);
         self
+    }
+
+    /// Installs shared provider-extension state across product application surfaces.
+    ///
+    /// This handle keeps the upstream model catalog and extension generation
+    /// slot together, so all surfaces capture and publish the same pair.
+    ///
+    /// # Parameters
+    /// - `self`: Service being configured.
+    /// - `runtime`: Shared provider-extension runtime.
+    ///
+    /// # Returns
+    /// The configured service using the shared runtime.
+    #[must_use]
+    pub fn with_provider_extension_runtime(
+        mut self,
+        runtime: crate::ProviderExtensionRuntime,
+    ) -> Self {
+        self.provider_extension_runtime = runtime;
+        self
+    }
+
+    /// Returns the shared provider-extension state handle.
+    ///
+    /// Product compositions should pass this handle to every service instance
+    /// that must share catalog reloads and extension-session generations.
+    ///
+    /// # Returns
+    /// A cloneable provider-extension runtime handle.
+    #[must_use]
+    pub fn provider_extension_runtime(&self) -> crate::ProviderExtensionRuntime {
+        self.provider_extension_runtime.clone()
     }
 
     /// The upstream model catalog used for selection resolution.
@@ -90,7 +142,10 @@ impl<B> ApplicationService<B> {
     /// Model rows from one coherent catalog revision.
     #[must_use]
     pub fn upstream_models(&self) -> Vec<rpi_ai::Model> {
-        self.model_catalog.snapshot().models
+        self.provider_extension_runtime
+            .model_catalog()
+            .snapshot()
+            .models
     }
 
     /// Returns a shared handle to the upstream live model catalog.
@@ -103,6 +158,6 @@ impl<B> ApplicationService<B> {
     /// The shared upstream model catalog.
     #[must_use]
     pub fn model_catalog(&self) -> rpi_model_runtime::ModelCatalog {
-        self.model_catalog.clone()
+        self.provider_extension_runtime.model_catalog()
     }
 }
