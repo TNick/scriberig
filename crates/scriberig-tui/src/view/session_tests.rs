@@ -35,6 +35,46 @@ fn builds_nested_session_rows() {
     assert!(model.rows[1].transient);
 }
 
+/// Projects a very deep branch chain without recursive traversal or quadratic scans.
+#[test]
+fn projects_deep_branch_chains_iteratively() {
+    let depth = 12_000_usize;
+    let identity = |value: u64| {
+        let mut bytes = [0_u8; 16];
+        bytes[8..].copy_from_slice(&value.to_be_bytes());
+        EntityId::from_bytes(bytes)
+    };
+    let root_id = identity(1);
+    let mut branches = vec![Branch::new(root_id, "root").expect("root branch")];
+    let mut parent = root_id;
+    for index in 0..depth {
+        let id = identity(u64::try_from(index + 2).expect("bounded branch identity"));
+        branches.push(
+            Branch::new_child(id, parent, format!("child {index}"), "deep chain")
+                .expect("child branch"),
+        );
+        parent = id;
+    }
+    let session = Session {
+        id: identity(0),
+        branches,
+        goals: Vec::new(),
+        tasks: Vec::new(),
+        plans: Vec::new(),
+        execution: scriberig_session::SessionExecutionSelection::default(),
+    };
+
+    let model = SessionModel::from_session(&session);
+
+    assert_eq!(model.rows.len(), depth + 2);
+    assert_eq!(model.rows[1].reference, root_id);
+    assert_eq!(model.rows[1].depth, 1);
+    assert_eq!(
+        model.rows.last().expect("deepest branch row").depth,
+        depth + 1
+    );
+}
+
 /// Verifies durable assistant output remains visible in the session projection.
 #[test]
 fn shows_durable_agent_output_in_turn_row() {
@@ -123,6 +163,7 @@ fn renders_durable_model_and_tool_activity_without_raw_tool_output() {
     branch.model_invocations.push(ModelInvocation {
         id: invocation_id,
         branch: branch_id,
+        operation: None,
         ordinal: 0,
         agent_profile: None,
         context_fingerprint: None,

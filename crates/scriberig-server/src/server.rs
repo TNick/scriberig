@@ -7,14 +7,14 @@ mod server_query_contract;
 #[path = "server_presentation_contract.rs"]
 mod server_presentation_contract;
 #[path = "server_agent_command.rs"]
-mod server_agent_command;
+pub(crate) mod server_agent_command;
 #[path = "server_agent_console.rs"]
 mod server_agent_console;
 #[path = "server_agent_preferences.rs"]
 mod server_agent_preferences;
 #[macro_use]
 #[path = "server_session_operations.rs"]
-mod server_session_operations;
+pub(crate) mod server_session_operations;
 #[macro_use]
 #[path = "server_plan_operations.rs"]
 mod server_plan_operations;
@@ -26,6 +26,10 @@ use scriberig_app::{
 };
 use scriberig_protocol::{Event, EventKind, Operation};
 use scriberig_query::{FindRequest, FindResult, ListRequest, ListResult, QueryResult, QuerySpec};
+
+#[macro_use]
+#[path = "server_recovery_contract.rs"]
+mod recovery_contract;
 
 /// Application semantics supplied to protocol dispatch.
 pub trait ApplicationService {
@@ -246,59 +250,7 @@ pub trait ApplicationService {
 
     agent_presentation_methods!();
 
-    /// Changes the upstream provider/model used by future invocations.
-    ///
-    /// - `_context`: Trusted caller context.
-    /// - `_session`: Stable session identity.
-    /// - `_expected_revision`: Selection revision observed by the caller.
-    /// - `_provider_id`: Exact upstream provider identity.
-    /// - `_model_id`: Provider-scoped upstream model identity.
-    ///
-    /// Updated session execution selection.
-    ///
-    /// Returns unsupported-operation when selection mutation is unavailable.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn set_session_model(
-        &self,
-        _context: &ApplicationContext,
-        _session: &str,
-        _expected_revision: u64,
-        _provider_id: &str,
-        _model_id: &str,
-    ) -> Result<scriberig_protocol::SessionExecutionSelection, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "session model selection".to_owned(),
-        })
-    }
-
-    /// Changes the thinking level used by future session invocations.
-    ///
-    /// - `_context`: Trusted caller context.
-    /// - `_session`: Stable session identity.
-    /// - `_expected_revision`: Selection revision observed by the caller.
-    /// - `_thinking_level`: Advertised thinking id to select.
-    ///
-    /// Updated session execution selection.
-    ///
-    /// Returns unsupported-operation when selection mutation is unavailable.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn set_session_thinking_level(
-        &self,
-        _context: &ApplicationContext,
-        _session: &str,
-        _expected_revision: u64,
-        _thinking_level: &str,
-    ) -> Result<scriberig_protocol::SessionExecutionSelection, ApplicationError> {
-        Err(ApplicationError::UnsupportedOperation {
-            operation: "session thinking selection".to_owned(),
-        })
-    }
+    server_recovery_contract_methods!();
 
     /// Returns one operation status in protocol-independent form.
     ///

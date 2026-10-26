@@ -10,6 +10,9 @@ use crate::{action::Action, effect::Effect, inspector::InspectorModel, service::
 use scriberig_core::EntityId;
 use scriberig_session::Session;
 
+#[path = "service_effects_recovery.rs"]
+mod recovery;
+
 /// Supplies shared application operations to semantic TUI views.
 pub trait TuiOperationService {
     /// Executes one public application operation without exposing storage.
@@ -136,6 +139,9 @@ pub fn execute_effect<S: TuiService>(
                 category: error.category().to_owned(),
                 message: crate::inspector::sanitize(&error.to_string()),
             }),
+        effect @ (Effect::LegacyRecoveryList { .. } | Effect::LegacyRecoveryMap { .. }) => {
+            recovery::execute(service, context, effect)
+        }
         Effect::ListSessions => service
             .list_sessions(context)
             .map(Action::SessionsListed)
@@ -269,6 +275,14 @@ pub fn execute_effect<S: TuiService>(
             }),
         Effect::PlanLifecycle { request, action } => service
             .plan_lifecycle(context, &request, action)
+            .map(Action::PlanUpdated)
+            .unwrap_or_else(|error| Action::OperationFailed {
+                request_id: 0,
+                category: error.category().to_owned(),
+                message: crate::inspector::sanitize(&error.to_string()),
+            }),
+        Effect::PlanMutation(request) => service
+            .mutate_plan(context, &request)
             .map(Action::PlanUpdated)
             .unwrap_or_else(|error| Action::OperationFailed {
                 request_id: 0,

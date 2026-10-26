@@ -2,6 +2,34 @@
 use crate::branch::Branch;
 use crate::execution::SessionExecutionSelection;
 use scriberig_core::{EntityId, Provenance};
+
+/// Retains one sanitized legacy model choice for explicit operator recovery.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct LegacyExecutionRecord {
+    /// JSON pointer locating the original value in the prior session payload.
+    pub path: String,
+    /// Allowlisted historical selection fields; arbitrary properties are removed.
+    pub value: serde_json::Value,
+    /// Stable semantic owner, when this value came from a plan assignment.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target: Option<LegacyExecutionTarget>,
+}
+
+/// Identifies the semantic plan location represented by a legacy assignment.
+#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct LegacyExecutionTarget {
+    /// Stable plan identity encoded by the legacy payload.
+    pub plan_id: EntityId,
+    /// Stable plan node identity encoded by the legacy payload.
+    pub node_id: EntityId,
+    /// Historical plan revision, or `None` for the current assignment.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub revision: Option<u64>,
+    /// Whether the legacy value was a captured worker-claim assignment.
+    #[serde(default)]
+    pub claim: bool,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 /// Session-domain structured value.
 pub struct Session {

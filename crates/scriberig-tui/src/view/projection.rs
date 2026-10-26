@@ -31,6 +31,28 @@ pub struct ProjectionModel {
     pub base_snapshot: scriberig_core::SnapshotId,
 }
 
+/// Builds a short safe identity label for one resolved projection style.
+///
+/// - `style`: Exact resolved style consumed by the renderer.
+///
+/// A label a terminal may display. It names the adapter schema when the
+/// resolution carried one, and otherwise shows a stable digest prefix of the
+/// canonical style bytes. Raw style bytes are never shown.
+#[must_use]
+/// # Returns
+/// The presentation label.
+fn style_identity(style: &sr_projection::ResolvedStyle) -> String {
+    if let Some(schema) = style.schema() {
+        return format!("{} v{}", schema.adapter_id(), schema.version());
+    }
+    let digest = style.value_digest();
+    let prefix: String = digest[..6].iter().fold(String::new(), |mut text, byte| {
+        use std::fmt::Write as _;
+        let _ = write!(text, "{byte:02x}");
+        text
+    });
+    format!("style-{prefix}")
+}
 impl ProjectionModel {
     /// Builds a safe projection model from a public rendered result.
     #[must_use]
@@ -49,7 +71,7 @@ impl ProjectionModel {
                 .get("scriberig.project.source_path")
                 .map(|path| sanitize(&String::from_utf8_lossy(path))),
             source_revision: rendered.cache_key.scope.revision,
-            style: format!("{:?}", rendered.style),
+            style: style_identity(&rendered.style),
             renderer: rendered.renderer.0.clone(),
             content: bounded_content(&rendered.bytes),
             synchronization: None,
@@ -80,7 +102,7 @@ mod tests {
     use scriberig_core::{EntityId, SnapshotId};
     use sr_projection::{
         ProjectionKind, RenderRequest, RenderedProjection, RendererVersion, RenderingContext,
-        SemanticScopeRef, SemanticStateRef, StyleRef, StyleValue,
+        ResolvedStyle, SemanticScopeRef, SemanticStateRef, StyleValue,
     };
 
     /// Verifies rendered terminal control characters are made harmless.
@@ -94,7 +116,7 @@ mod tests {
             },
             base_state: SemanticStateRef(SnapshotId::new([3; 32])),
             kind: ProjectionKind::new("text").expect("kind"),
-            style: StyleRef::Value(StyleValue::new(vec![1])),
+            style: ResolvedStyle::inline(StyleValue::new(vec![1])),
             renderer: RendererVersion::new("v1"),
             context: RenderingContext {
                 extensions: std::collections::BTreeMap::from([(
@@ -123,7 +145,7 @@ mod tests {
             },
             base_state: SemanticStateRef(SnapshotId::new([3; 32])),
             kind: ProjectionKind::new("text").expect("kind"),
-            style: StyleRef::Value(StyleValue::new(vec![1])),
+            style: ResolvedStyle::inline(StyleValue::new(vec![1])),
             renderer: RendererVersion::new("v1"),
             context: RenderingContext {
                 extensions: std::collections::BTreeMap::new(),

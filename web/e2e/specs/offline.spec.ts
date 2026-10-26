@@ -1,8 +1,6 @@
 /** @file Covers explicit disconnected behavior at the browser boundary. */
 
 import { expect, expectHealthyBrowser, test } from "../fixtures/app";
-import { AppShell } from "../pages/app-shell";
-
 test("reports disconnected state when bootstrap requests cannot reach the API", async ({
   page,
   diagnostics,
@@ -11,7 +9,8 @@ test("reports disconnected state when bootstrap requests cannot reach the API", 
   await page.goto("/");
 
   await expect(page.getByRole("status").first()).toHaveText("disconnected");
-  await expect(page.getByText("No objects loaded")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText("TransportError");
   diagnostics.consoleErrors.length = 0;
   expectHealthyBrowser({
     ...diagnostics,
@@ -38,7 +37,8 @@ test("returns to connected state after a failed bootstrap is retried by reload",
   blocked = false;
   await page.reload();
   await expect(page.getByRole("status").first()).toHaveText("connected");
-  await expect(page.getByRole("tree")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Projects" })).toBeVisible();
   expectHealthyBrowser({
     ...diagnostics,
     failedRequests: [],

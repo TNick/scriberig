@@ -2,6 +2,10 @@
 
 use super::*;
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "This protocol contract regression verifies the complete model request and presentation payload family in one round-trip matrix."
+)]
 /// Verifies model, prompt, and presentation contracts round trip.
 pub(super) fn model_contracts_round_trip() {
     round_trip(&ModelRequestDetailRequest {
@@ -31,6 +35,9 @@ pub(super) fn model_contracts_round_trip() {
         }],
         context_fingerprint: None,
         request_fingerprint: None,
+        catalog_revision: None,
+        upstream_runtime_revision: None,
+        provider_response_id: None,
         model_execution_configuration: None,
         messages: vec![ModelRequestMessageDetail {
             role: "user".to_owned(),
@@ -78,6 +85,69 @@ pub(super) fn model_contracts_round_trip() {
         expected_revision: 8,
         thinking_level: "extended".to_owned(),
     });
+    round_trip(&LegacyExecutionRecordsRequest {
+        session: SessionReference {
+            id: "session-legacy".to_owned(),
+        },
+    });
+    round_trip(&LegacyExecutionMappingRequest {
+        session: SessionReference {
+            id: "session-legacy".to_owned(),
+        },
+        expected_revision: 9,
+        legacy_path: "/execution".to_owned(),
+        provider_id: "provider-1".to_owned(),
+        model_id: "model-1".to_owned(),
+        thinking_level: None,
+    });
+    round_trip(&LegacyExecutionRecordView {
+        path: "/execution".to_owned(),
+        value: serde_json::json!({"model": "retained"}),
+        target: Some(LegacyExecutionTargetView {
+            plan_id: "plan-1".to_owned(),
+            node_id: "node-1".to_owned(),
+            revision: Some(2),
+            claim: false,
+        }),
+    });
+    round_trip(&Request::LegacyExecutionRecords(
+        LegacyExecutionRecordsRequest {
+            session: SessionReference {
+                id: "session-legacy".to_owned(),
+            },
+        },
+    ));
+    round_trip(&Request::LegacyExecutionMapping(
+        LegacyExecutionMappingRequest {
+            session: SessionReference {
+                id: "session-legacy".to_owned(),
+            },
+            expected_revision: 2,
+            legacy_path: "/execution".to_owned(),
+            provider_id: "provider-1".to_owned(),
+            model_id: "model-1".to_owned(),
+            thinking_level: None,
+        },
+    ));
+    round_trip(&Request::LegacyPlanAssignmentMapping(
+        LegacyPlanAssignmentMappingRequest {
+            session: SessionReference {
+                id: "session-legacy".to_owned(),
+            },
+            legacy_path: "/plans/0/nodes/0/assignment".to_owned(),
+            expected_plan_revision: 4,
+            provider_id: "provider-1".to_owned(),
+            model_id: "model-1".to_owned(),
+            thinking_level: None,
+        },
+    ));
+    round_trip(&Response::LegacyExecutionRecords(vec![
+        LegacyExecutionRecordView {
+            path: "/execution".to_owned(),
+            value: serde_json::json!({"model": "legacy"}),
+            target: None,
+        },
+    ]));
     round_trip(&ModelLibraryResponse {
         provider_readiness: Vec::new(),
         models: vec![PublicModelDescriptor {

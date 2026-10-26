@@ -21,6 +21,11 @@ pub enum ReadOperation {
 /// Reports semantic read failures without exposing storage details.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum QueryError {
+    /// Inspection stopped after its caller requested cancellation.
+    Cancelled {
+        /// Operation that observed cancellation.
+        operation: ReadOperation,
+    },
     /// Requested subject or capability does not exist.
     NotFound {
         /// Operation that failed.

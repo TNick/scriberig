@@ -186,6 +186,44 @@ where
                 operation: "current snapshot resolution".to_owned(),
             })
     }
+
+    /// Dispatches cancellable inspection through the composed read provider.
+    ///
+    /// - `self`: Composite application backend.
+    /// - `context`: Authorized caller context.
+    /// - `request`: Universal application request.
+    /// - `cancelled`: Caller-owned cancellation flag.
+    ///
+    /// Structured application result when the operation completes.
+    ///
+    /// # Returns
+    /// The operation result.
+    ///
+    /// # Errors
+    /// Returns cancellation or a structured provider failure.
+    fn execute_cancellable(
+        &self,
+        context: &ApplicationContext,
+        request: &ApplicationRequest,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> Result<ApplicationResult, ApplicationError> {
+        if let ApplicationRequest::Inspect(value) = request {
+            let mut inspection = self
+                .read
+                .inspect_cancellable(value, cancelled)
+                .map_err(map_query_error)?;
+            if cancelled.load(std::sync::atomic::Ordering::Acquire) {
+                return Err(ApplicationError::OperationCancelled {
+                    operation: "inspect".to_owned(),
+                });
+            }
+            if let Some(capabilities) = &self.capabilities {
+                capabilities.enrich_inspection(&mut inspection);
+            }
+            return Ok(ApplicationResult::Inspect(inspection));
+        }
+        self.execute(context, request)
+    }
 }
 
 /// Resolves a history selector exactly once before delegation.
@@ -203,9 +241,18 @@ fn resolve_render<O: OperationProvider>(
     provider: &O,
     request: &RenderRequest,
 ) -> Result<RenderRequest, ApplicationError> {
+    if !request.style.is_applied() {
+        // A provider holds no style configuration, so an unresolved selection
+        // here would mean a surface invented a style of its own.
+        return Err(ApplicationError::InvalidRequest {
+            operation: "render".to_owned(),
+            message: "the application must resolve the render style first".to_owned(),
+        });
+    }
     Ok(RenderRequest {
         snapshot: resolve_selector(provider, &request.snapshot)?,
         view: request.view.clone(),
+        style: request.style.clone(),
     })
 }
 
@@ -242,6 +289,9 @@ fn resolve_selector<O: OperationProvider>(
 /// The operation result.
 fn map_query_error(error: QueryError) -> ApplicationError {
     match error {
+        QueryError::Cancelled { operation } => ApplicationError::OperationCancelled {
+            operation: format!("{operation:?}").to_lowercase(),
+        },
         QueryError::NotFound { target, .. } => ApplicationError::NotFound {
             subject: format!("{target:?}"),
         },

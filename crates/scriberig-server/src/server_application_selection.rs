@@ -64,5 +64,59 @@ macro_rules! server_execution_selection_methods {
                 thinking_level,
             )
         }
+
+        /// Reads preserved legacy execution records for explicit recovery.
+        ///
+        /// - `context`: Trusted caller context.
+        /// - `session`: Stable session identity.
+        ///
+        /// Sanitized legacy records retained by the importer.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when authorization or storage fails.
+        fn legacy_execution_records(
+            &self,
+            context: &ApplicationContext,
+            session: &str,
+        ) -> Result<Vec<scriberig_protocol::LegacyExecutionRecordView>, ApplicationError> {
+            server_agent_console::legacy_execution_records(self, context, session)
+        }
+
+        /// Maps one preserved session execution record to an active upstream model.
+        ///
+        /// - `context`: Trusted caller context.
+        /// - `request`: Exact record path, observed revision, and explicit selection.
+        ///
+        /// Updated session execution selection.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when validation, authorization, or storage fails.
+        fn map_legacy_execution_selection(
+            &self,
+            context: &ApplicationContext,
+            request: &scriberig_protocol::LegacyExecutionMappingRequest,
+        ) -> Result<scriberig_protocol::SessionExecutionSelection, ApplicationError> {
+            server_agent_console::map_legacy_execution_selection(self, context, request)
+        }
+
+        /// Maps one current legacy plan assignment to active upstream IDs.
+        ///
+        /// - `context`: Trusted session and plan mutation context.
+        /// - `request`: Exact legacy path, plan revision, and selected model.
+        ///
+        /// Updated protocol plan projection.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when authorization, validation, or persistence fails.
+        fn map_legacy_plan_assignment(
+            &self,
+            context: &ApplicationContext,
+            request: &scriberig_protocol::LegacyPlanAssignmentMappingRequest,
+        ) -> Result<scriberig_protocol::SessionPlan, ApplicationError> {
+            server_agent_console::map_legacy_plan_assignment(self, context, request)
+        }
     };
 }

@@ -16,7 +16,7 @@ pub mod views;
 pub mod repository {
     use std::collections::BTreeMap;
 
-    use crate::{Plan, PlanNodeRollup, Session};
+    use crate::{LegacyExecutionTarget, Plan, PlanNodeRollup, Session};
     use scriberig_core::{EntityId, SnapshotId};
 
     /// Reports durable execution-selection update failures.
@@ -24,6 +24,8 @@ pub mod repository {
     pub enum SelectionStoreError {
         /// The stored selection has moved past the caller's observed revision.
         RevisionConflict { expected: u64, actual: u64 },
+        /// The named unresolved legacy selection does not exist.
+        LegacyRecordNotFound,
         /// The repository could not perform an atomic update.
         Persistence(String),
     }
@@ -66,6 +68,27 @@ pub mod repository {
         /// # Errors
         /// Returns an error when the operation fails.
         fn load(&self, session: EntityId) -> Result<Option<Session>, String>;
+
+        /// Loads one read projection with compact semantic plan state.
+        ///
+        /// Storage backends with semantic plan projections should omit
+        /// unbounded plan history, gates, and evidence from this read. The
+        /// complete `load` contract remains available for mutation/recovery
+        /// paths that need the aggregate detail.
+        ///
+        /// - `self`: Session repository to query.
+        /// - `session`: Stable identity of the requested session.
+        ///
+        /// The session projection, or `None` when it does not exist.
+        ///
+        /// # Returns
+        /// The compact read projection.
+        ///
+        /// # Errors
+        /// Returns a bounded diagnostic when the session cannot be read.
+        fn load_read_projection(&self, session: EntityId) -> Result<Option<Session>, String> {
+            self.load(session)
+        }
 
         /// Loads one plan projection from an exact historical semantic snapshot.
         ///
@@ -206,6 +229,70 @@ pub mod repository {
             ))
         }
 
+        /// Lists sanitized unresolved legacy execution choices for operator review.
+        ///
+        /// - `_session`: Stable identity of the session to inspect.
+        ///
+        /// Unresolved choices with their exact source paths.
+        ///
+        /// # Returns
+        /// The unresolved choices or a backend diagnostic.
+        ///
+        /// # Errors
+        /// Returns an error when the backend does not support recovery or cannot read the record.
+        fn legacy_execution_records(
+            &self,
+            _session: EntityId,
+        ) -> Result<Vec<crate::LegacyExecutionRecord>, String> {
+            Err("legacy execution recovery is unsupported".to_owned())
+        }
+
+        /// Atomically applies a validated session selection and clears its matching legacy record.
+        ///
+        /// - `_session`: Complete session carrying the proposed execution selection.
+        /// - `_expected_revision`: Selection revision observed by the caller.
+        /// - `_legacy_path`: Exact source path of the legacy session selection.
+        ///
+        /// Unit after the mapped selection is persisted and its recovery record removed.
+        ///
+        /// # Returns
+        /// Unit on success.
+        ///
+        /// # Errors
+        /// Returns a revision conflict, missing legacy record, or persistence error.
+        fn resolve_legacy_execution_selection(
+            &self,
+            _session: &Session,
+            _expected_revision: u64,
+            _legacy_path: &str,
+        ) -> Result<(), SelectionStoreError> {
+            Err(SelectionStoreError::Persistence(
+                "legacy execution recovery is unsupported".to_owned(),
+            ))
+        }
+
+        /// Removes one current plan-assignment recovery record after its assignment is saved.
+        ///
+        /// - `_session`: Session containing the preserved record.
+        /// - `_legacy_path`: Exact source path of the mapped assignment.
+        /// - `_target`: Exact stable target observed before the plan mutation.
+        ///
+        /// Unit after the recovery envelope no longer lists the mapped record.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the record is absent or storage fails.
+        fn resolve_legacy_plan_assignment(
+            &self,
+            _session: EntityId,
+            _legacy_path: &str,
+            _target: &LegacyExecutionTarget,
+        ) -> Result<(), SelectionStoreError> {
+            Err(SelectionStoreError::Persistence(
+                "legacy plan assignment recovery is unsupported".to_owned(),
+            ))
+        }
+
         /// Atomically replaces one plan at its observed revision.
         ///
         /// The repository must preserve unrelated session and branch updates.
@@ -264,7 +351,7 @@ pub use turn::{
     ResolvedContinuationAnchor, ToolInvocation, ToolResult, Turn,
 };
 pub use types::{
-    BranchCandidateContext, BranchResult, Decision, Goal, Observation, Question, Session, Summary,
-    Task,
+    BranchCandidateContext, BranchResult, Decision, Goal, LegacyExecutionRecord,
+    LegacyExecutionTarget, Observation, Question, Session, Summary, Task,
 };
 pub use views::{BranchDescriptor, ChildBranchSummary, DecisionEntry, SessionViews, TurnView};

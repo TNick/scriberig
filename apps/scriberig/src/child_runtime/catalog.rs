@@ -51,7 +51,16 @@ pub(crate) fn inspect_catalog() -> scriberig_agent_runtime::tools::ToolCatalog {
                         "purpose": {"type": "string"},
                         "prompt": {"type": "string"},
                         "capabilities": {"type": "array", "items": {"type": "string"}},
-                        "expected_result": {"type": "string"}
+                        "expected_result": {"type": "string"},
+                        "execution": {
+                            "type": "object",
+                            "properties": {
+                                "provider_id": {"type": "string"},
+                                "model_id": {"type": "string"},
+                                "thinking_level": {"type": ["string", "null"]}
+                            },
+                            "required": ["provider_id", "model_id"]
+                        }
                     },
                     "required": ["purpose", "prompt", "capabilities", "expected_result"]
                 })

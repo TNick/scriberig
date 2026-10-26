@@ -13,13 +13,13 @@ export class AppShell {
    */
   public constructor(private readonly page: Page) {}
 
-  /** Opens the application and waits for the connected root view. */
-  /** @returns Resolves when the root view is visible. */
+  /** Opens the application and waits for the connected project catalog. */
+  /** @returns Resolves when the projects view is visible. */
   public async open(): Promise<void> {
     await this.page.goto("/");
     await expect(this.page).toHaveTitle("Scriberig");
     await expect(this.page.getByRole("status").first()).toHaveText("connected");
-    await expect(this.page.getByRole("heading", { name: "Raw Knowledge" })).toBeVisible();
+    await expect(this.page.getByRole("heading", { name: "Projects" })).toBeVisible();
   }
 
   /** Navigates to a top-level view by its accessible navigation name. */

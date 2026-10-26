@@ -7,6 +7,8 @@ import { join, resolve } from "node:path";
 import type { FullConfig } from "@playwright/test";
 
 const repositoryRoot = resolve(process.cwd(), "..");
+const apiPort = process.env.SCRIBE_API_PORT ?? "7337";
+const webPort = process.env.SCRIBE_WEB_PORT ?? "5173";
 
 /** Waits until the managed service responds successfully. */
 /**
@@ -42,12 +44,12 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
   await mkdir(resolve(repositoryRoot, "output/playwright"), { recursive: true });
   await writeFile(resolve(repositoryRoot, "output/playwright/golden-fixture-root"), fixtureRoot);
   await writeFile(resolve(repositoryRoot, "output/playwright/golden-database-root"), databaseRoot);
-  spawnSync("python", ["tools/dev.py", "stop"], {
+  spawnSync("python3", ["tools/dev.py", "stop"], {
     cwd: repositoryRoot,
     stdio: "ignore",
     windowsHide: true,
   });
-  const child = spawn("python", ["tools/dev.py", "start"], {
+  const child = spawn("python3", ["tools/dev.py", "start"], {
     cwd: repositoryRoot,
     detached: true,
     env: {
@@ -55,11 +57,13 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
       SCRIBERIG_NO_BROWSER: "1",
       SCRIBERIG_PROJECT_ROOT: fixtureRoot,
       SCRIBE_DATABASE_PATH: databasePath,
+      SCRIBE_AGENT_PROVIDER: "deterministic",
+      SCRIBE_AGENT_SCENARIO: "arithmetic",
     },
     stdio: "ignore",
     windowsHide: true,
   });
   child.unref();
-  await waitFor("http://127.0.0.1:7337/api/health");
-  await waitFor("http://127.0.0.1:5173");
+  await waitFor(`http://127.0.0.1:${apiPort}/api/health`);
+  await waitFor(`http://127.0.0.1:${webPort}`);
 }

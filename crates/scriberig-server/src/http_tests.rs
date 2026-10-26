@@ -69,11 +69,18 @@ impl ApplicationService for Fixture {
     /// # Returns
     /// The operation result.
     fn capabilities(&self) -> Vec<RuntimeCapability> {
-        vec![RuntimeCapability::new(
-            scriberig_app::CapabilityId::new("agent_plan").expect("plan capability"),
-            "durable plan lifecycle",
-            true,
-        )]
+        vec![
+            RuntimeCapability::new(
+                scriberig_app::CapabilityId::new("agent_plan").expect("plan capability"),
+                "durable plan lifecycle",
+                true,
+            ),
+            RuntimeCapability::new(
+                scriberig_app::CapabilityId::new("agent_start").expect("agent capability"),
+                "agent execution",
+                true,
+            ),
+        ]
     }
 
     /// Rejects operation status because it is outside this adapter test.
@@ -135,6 +142,7 @@ fn migration_route_maps_canonical_detail() {
         allowed_origin: None,
         project_store: None,
         allowed_project_roots: Vec::new(),
+        agent_execution_handler: None,
         plan_lifecycle_handler: None,
         provider_readiness_handler: None,
         fixture: DevelopmentFixture {
@@ -162,6 +170,7 @@ fn typed_operation_route_preserves_correlation() {
         allowed_origin: None,
         project_store: None,
         allowed_project_roots: Vec::new(),
+        agent_execution_handler: None,
         plan_lifecycle_handler: None,
         provider_readiness_handler: None,
         fixture: DevelopmentFixture {
@@ -187,6 +196,7 @@ fn typed_plan_lifecycle_route_invokes_runtime_handler() {
         allowed_origin: None,
         project_store: None,
         allowed_project_roots: Vec::new(),
+        agent_execution_handler: None,
         plan_lifecycle_handler: Some(std::sync::Arc::new(
             move |_service, _context, request, action| {
                 assert_eq!(request.expected_revision, 7);
@@ -223,6 +233,60 @@ fn typed_plan_lifecycle_route_invokes_runtime_handler() {
     );
 }
 
+/// Verifies HTTP agent requests reach the injected shared execution runtime.
+#[test]
+fn typed_agent_route_invokes_runtime_handler() {
+    let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let observed = std::sync::Arc::clone(&calls);
+    let state = HttpState {
+        service: Fixture,
+        principal: scriberig_app::Principal::new("test-user"),
+        allowed_origin: None,
+        project_store: None,
+        allowed_project_roots: Vec::new(),
+        agent_execution_handler: Some(std::sync::Arc::new(
+            move |_, _context, request, accepted| {
+                assert!(accepted.is_none());
+                assert_eq!(request.session, EntityId::from_bytes([8; 16]));
+                assert_eq!(request.prompt, "inspect the selected project");
+                observed.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                Ok(scriberig_protocol::Operation {
+                    reference: scriberig_protocol::OperationReference {
+                        id: "agent-runtime-1".to_owned(),
+                    },
+                    kind: scriberig_protocol::operation::OperationKind::Agent,
+                    status: scriberig_protocol::OperationStatus::Completed,
+                    progress: None,
+                    result_snapshot: None,
+                    result_handles: Vec::new(),
+                    agent_result: None,
+                    error: None,
+                })
+            },
+        )),
+        plan_lifecycle_handler: None,
+        provider_readiness_handler: None,
+        fixture: DevelopmentFixture {
+            root_entity: EntityId::from_bytes([1; 16]),
+            child_entities: Vec::new(),
+            snapshot: SnapshotId::new([1; 32]),
+        },
+    };
+    let body = serde_json::json!({
+        "session": {"id": EntityId::from_bytes([8; 16]).to_string()},
+        "prompt": "inspect the selected project"
+    })
+    .to_string();
+    let response = dispatch(&state, "agent_start", &body, "agent-start".to_owned())
+        .expect("typed agent response");
+    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+    assert_eq!(response["correlation_id"], "agent-start");
+    assert_eq!(
+        response["response"]["AgentAccepted"]["operation"]["operation"]["status"],
+        "Completed"
+    );
+}
+
 /// Verifies HTTP preference operations carry the trusted local principal.
 #[test]
 fn typed_preference_operations_use_the_http_principal() {
@@ -232,6 +296,7 @@ fn typed_preference_operations_use_the_http_principal() {
         allowed_origin: None,
         project_store: None,
         allowed_project_roots: Vec::new(),
+        agent_execution_handler: None,
         plan_lifecycle_handler: None,
         provider_readiness_handler: None,
         fixture: DevelopmentFixture {
@@ -274,6 +339,7 @@ fn typed_operation_route_rejects_unknown_operation() {
         allowed_origin: None,
         project_store: None,
         allowed_project_roots: Vec::new(),
+        agent_execution_handler: None,
         plan_lifecycle_handler: None,
         provider_readiness_handler: None,
         fixture: DevelopmentFixture {
@@ -297,6 +363,7 @@ fn direct_project_route_preserves_project_errors() {
         allowed_origin: None,
         project_store: None,
         allowed_project_roots: Vec::new(),
+        agent_execution_handler: None,
         plan_lifecycle_handler: None,
         provider_readiness_handler: None,
         fixture: DevelopmentFixture {

@@ -49,7 +49,7 @@ function RuntimeSnapshotStatus({ connection }: { connection: string }): ReactEle
  */
 export function App(): ReactElement {
   const runtime = useMemo(() => createRuntime(), []);
-  const [route, setRoute] = useState<AppRoute>("raw");
+  const [route, setRoute] = useState<AppRoute>("projects");
   const [reviewMigrationId, setReviewMigrationId] = useState<string>();
   const [connection, setConnection] = useState(runtime.connection);
   const [workspace, setWorkspace] = useState(runtime.activeWorkspace);

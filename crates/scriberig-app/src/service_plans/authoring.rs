@@ -30,7 +30,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         request: &PlanReplanRequest,
     ) -> Result<Plan, ApplicationError> {
         validate_replan_drafts(&request.additions)?;
-        let catalog_snapshot = self.model_catalog.snapshot();
+        let catalog_snapshot = self.provider_extension_runtime.model_catalog().snapshot();
         let mut session = self.read_session(
             context,
             &crate::SessionRequest {
@@ -167,7 +167,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         request: &PlanCreateRequest,
     ) -> Result<Plan, ApplicationError> {
         validate_proposal(request)?;
-        let catalog_snapshot = self.model_catalog.snapshot();
+        let catalog_snapshot = self.provider_extension_runtime.model_catalog().snapshot();
         let mut session = self.read_session(
             context,
             &crate::SessionRequest {
@@ -257,7 +257,7 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         context: &ApplicationContext,
         request: &crate::PlanAssignmentRequest,
     ) -> Result<Plan, ApplicationError> {
-        let catalog_snapshot = self.model_catalog.snapshot();
+        let catalog_snapshot = self.provider_extension_runtime.model_catalog().snapshot();
         if let Some(assignment) = &request.assignment {
             validate_assignment(&catalog_snapshot.models, assignment)?;
         }

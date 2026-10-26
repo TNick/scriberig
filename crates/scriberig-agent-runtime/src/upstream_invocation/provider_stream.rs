@@ -29,6 +29,7 @@ pub(super) fn build_provider_stream(
     let compiled_context = invocation.context.clone();
     let provider_profile = invocation.provider_profile.clone();
     let thinking_level = invocation.thinking_level;
+    let activity = Arc::clone(&invocation.activity);
     let continuation_enabled = provider.supports_response_continuation();
     Arc::new(
         move |requested_model, context, options, continuation, cancellation| {
@@ -60,7 +61,10 @@ pub(super) fn build_provider_stream(
             );
             let request_index = if let Ok(mut requests) = captured_requests.lock() {
                 let mut projection = projection;
-                projection.ordinal = u64::try_from(requests.len()).unwrap_or(u64::MAX);
+                // One ScribeRig sequence orders this branch's activities, so a
+                // captured request and a settled tool call never compete for the
+                // same position and correlation stays exact.
+                projection.ordinal = activity.next();
                 requests.push(projection);
                 Some(requests.len() - 1)
             } else {
@@ -70,17 +74,21 @@ pub(super) fn build_provider_stream(
             let expected_provider = model.provider.clone();
             let expected_model = model.id.clone();
             let expected_api = model.api.as_str().to_owned();
+            let expected_model_descriptor = model.clone();
             let forwarded_settings = applied_settings.clone();
             let callback: AppliedRequestSettingsCallback =
                 Arc::new(move |settings: AppliedRequestSettings| {
                     capture_applied_settings(
                         settings,
-                        request_index,
-                        &captured_settings,
-                        &expected_provider,
-                        &expected_model,
-                        &expected_api,
-                        forwarded_settings.as_ref(),
+                        super::applied_settings::AppliedSettingsCapture {
+                            request_index,
+                            captured_requests: &captured_settings,
+                            expected_provider: &expected_provider,
+                            expected_model: &expected_model,
+                            expected_api: &expected_api,
+                            expected_model_descriptor: &expected_model_descriptor,
+                            forwarded_settings: forwarded_settings.as_ref(),
+                        },
                     );
                 });
             rpi_ai::stream_provider_cancellable(

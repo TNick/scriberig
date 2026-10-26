@@ -8,8 +8,12 @@ use scriberig_session::{
     WorkerClaim,
 };
 
-/// Uses persisted branch parents even when plan-node nesting differs.
 #[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "The regression checks the full compiled context boundary for one claimed plan worker and its exact branch role."
+)]
+/// Uses persisted branch parents even when plan-node nesting differs.
 fn plan_worker_role_comes_from_claimed_branch_parent() {
     let session_id = EntityId::from_bytes([1; 16]);
     let root_branch = EntityId::from_bytes([2; 16]);
@@ -83,12 +87,24 @@ fn plan_worker_role_comes_from_claimed_branch_parent() {
     let root_claim = worker_claim(root_worker_node, root_worker_branch);
     let child_claim = worker_claim(child_worker_node, child_worker_branch);
 
-    let root_context = PlanWorkerContext::from_plan(&session, &plan, &plan.nodes[1], &root_claim)
-        .expect("root worker context");
+    let mut exact_profile = crate::profile::bootstrap_default_agent_profile();
+    exact_profile.reference.revision = "captured-profile-revision".to_owned();
+    let root_context = PlanWorkerContext::from_plan_with_profile(
+        &session,
+        &plan,
+        &plan.nodes[1],
+        &root_claim,
+        Some(&exact_profile),
+    )
+    .expect("root worker context");
     let child_context = PlanWorkerContext::from_plan(&session, &plan, &plan.nodes[2], &child_claim)
         .expect("child worker context");
 
     assert_eq!(root_context.inputs.branch_role, BranchRole::Root);
+    assert_eq!(
+        root_context.compiled.profile, exact_profile.reference,
+        "plan-worker context must retain the profile revision captured by its coordinator"
+    );
     assert_eq!(
         child_context.inputs.branch_role,
         BranchRole::NonRoot {

@@ -97,6 +97,23 @@ pub(super) fn authorize_session_read(
     })
 }
 
+/// Authorizes a compact plan read using the session-tree capability.
+///
+/// - `context`: Authorized caller context.
+/// - `session`: Stable session identity.
+///
+/// Unit when the caller may inspect the session's plans.
+/// # Returns
+/// The authorization result.
+/// # Errors
+/// Returns an authorization construction or permission error.
+pub(crate) fn authorize_plan_read(
+    context: &ApplicationContext,
+    session: scriberig_core::EntityId,
+) -> Result<(), ApplicationError> {
+    authorize_session_read(context, &crate::SessionRequest { session })
+}
+
 /// Authorizes one durable session mutation.
 ///
 /// - `context`: Caller capabilities and request context.
@@ -109,7 +126,7 @@ pub(super) fn authorize_session_read(
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
-pub(super) fn authorize_session_mutation(
+pub(crate) fn authorize_session_mutation(
     context: &ApplicationContext,
     session: scriberig_core::EntityId,
 ) -> Result<(), ApplicationError> {

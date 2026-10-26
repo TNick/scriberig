@@ -13,6 +13,8 @@ use state_input_reducer::reduce_input;
 #[path = "state_reducer_commit.rs"]
 mod state_reducer_commit;
 use state_reducer_commit::commit_succeeded;
+#[path = "state_reducer/project_source_request.rs"]
+mod project_source_request;
 #[path = "state_reducer/run.rs"]
 mod run;
 #[path = "state_reducer_failure.rs"]

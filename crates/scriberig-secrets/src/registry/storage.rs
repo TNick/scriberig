@@ -148,9 +148,10 @@ impl RegistryGuard {
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
-    pub fn save(&self) -> Result<(), SecretError> {
+    pub fn save(&mut self) -> Result<(), SecretError> {
         static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let id = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.registry.credential_revision = self.registry.credential_revision.saturating_add(1);
         let temporary = self
             .directory
             .join(format!("registry-{}-{id}.tmp", std::process::id()));

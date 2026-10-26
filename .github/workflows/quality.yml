@@ -8,6 +8,35 @@ on:
   pull_request:
 
 jobs:
+  product-tests:
+    timeout-minutes: 120
+    runs-on: debian-13
+    container:
+      image: 10.225.224.10/ci/debian:13
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test product application
+        run: |
+          set -euxo pipefail
+          echo "Starting product tests in the prebuilt CI container"
+          timeout --foreground 5m apt-get -o Acquire::Retries=1 \
+            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          timeout --foreground 5m apt-get install --yes bubblewrap
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          rustc --version
+          cargo --version
+          if [ -z "${FORGEJO_SERVER_URL:-}" ]; then
+            bwrap --unshare-all --cap-drop ALL --clearenv --dev /dev --tmpfs /tmp \
+              --ro-bind /usr /usr --ro-bind /bin /bin --ro-bind /lib /lib \
+              --ro-bind /lib64 /lib64 --chdir /tmp -- /usr/bin/true
+            cargo test --locked -p scriberig
+          else
+            echo "Forgejo detected; excluding the sandbox-dependent provider_package_worker target."
+            cargo test --locked -p scriberig --no-default-features \
+              --features isolated-plugin-worker
+          fi
+
   quality:
     timeout-minutes: 120
     runs-on: debian-13
@@ -15,40 +44,18 @@ jobs:
       image: 10.225.224.10/ci/debian:13
     steps:
       - uses: actions/checkout@v4
-      - name: Record Rust compiler version
-        id: rust-version
-        run: echo "version=$(rustc -V | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
-      - name: Cache Rust dependencies and build output
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target/debug/build
-            target/debug/.fingerprint
-            target/debug/deps/*.rlib
-            target/debug/deps/*.rmeta
-            target/debug/deps/*.so
-          key: rust-${{ runner.os }}-${{ runner.arch }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ forgejo.sha }}
-          restore-keys: |
-            rust-${{ runner.os }}-${{ runner.arch }}-${{ steps.rust-version.outputs.version }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-
-      - name: Configure pnpm package store
-        id: pnpm-store
+      - name: Run quality checks in CI image
         run: |
-          pnpm config set store-dir "$GITHUB_WORKSPACE/.pnpm-store"
-          echo "version=$(pnpm --version)" >> "$GITHUB_OUTPUT"
-      - name: Cache pnpm packages
-        uses: actions/cache@v4
-        with:
-          path: .pnpm-store
-          key: pnpm-${{ runner.os }}-${{ runner.arch }}-${{ steps.pnpm-store.outputs.version }}-${{ hashFiles('web/pnpm-lock.yaml') }}
-      - run: python3 tools/lint_repo.py
-      - run: cargo fmt --all -- --check
-      - run: cargo check --workspace --all-targets
-      - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-      - run: cargo test --workspace
-      - run: pnpm --dir web install --frozen-lockfile
-      - run: pnpm --dir web format:check
-      - run: pnpm --dir web typecheck
-      - run: pnpm --dir web test
-      - run: python3 tools/product_golden.py
+          set -euxo pipefail
+          echo "Starting repository quality checks in the prebuilt CI container"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          python3 tools/lint_repo.py
+          cargo fmt --all -- --check
+          cargo check --workspace --all-targets
+          cargo clippy --workspace --all-targets --all-features -- -D warnings
+          cargo test --workspace --exclude scriberig
+          pnpm --dir web install --frozen-lockfile
+          pnpm --dir web format:check
+          pnpm --dir web typecheck
+          pnpm --dir web test
+          python3 tools/product_golden.py

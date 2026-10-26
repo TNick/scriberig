@@ -73,7 +73,7 @@ export interface SessionPlanView {
   snapshot?: string;
   mutationRevision: number;
   goal: string;
-  status: "Active" | "Completed" | "Cancelled";
+  status: "Draft" | "Planned" | "Running" | "Paused" | "Completed" | "Failed" | "Cancelled";
   coordinator?: string;
   coordinatorCursor?: string;
   rootNodes: readonly string[];
@@ -97,13 +97,13 @@ export interface SessionPlanNodeView {
   summaryPreview?: string;
   branch?: BranchId;
   result?: string;
-  assignment?: string;
+  assignment?: SessionModelAssignment;
   dependencyBlockers: readonly string[];
   entryGates: SessionPlanGateCounts;
   completionGates: SessionPlanGateCounts;
   evidenceCount: number;
   canRetry: boolean;
-  lastFailure?: string;
+  lastFailure?: SessionPlanEvidenceReference;
 }
 /** Safe model-library configuration assigned to one plan node. */
 export interface SessionModelAssignment {

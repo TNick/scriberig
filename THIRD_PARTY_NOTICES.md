@@ -11,14 +11,35 @@ central notice, add the exact required text here or in the package that
 distributes it. Do not invent attribution requirements for material that does
 not require them.
 
-## rpi-tui
+## rpi-* upstream runtime crates
 
-ScribeRig uses the `rpi-*` crates from `TNick/pi-rust`, pinned in Cargo
-manifests to commit `b2fc63c78ae85044eb78e7ac9af184bd7fbfbc95`. This fork
-revision includes official `bigfish1913/pi-rust` 0.7.1 main commit
-`281dfddfa39ac063d86de57b75370974c4d75e6c`, the host-injected model catalog
-refresh, transactional model configuration, cancellable provider stream, TUI
-component event/focus extractions, application-registered keybindings, a host
-tick callback, and upstream-owned theme preset metadata. The crates are
-licensed under the MIT License; their license and notice are available from
-the pinned upstream repository.
+ScribeRig uses the `rpi-ai`, `rpi-agent`, `rpi-extensions`, `rpi-model-runtime`,
+`rpi-plugin-sdk`, and `rpi-tui` crates from `TNick/pi-rust`, pinned in
+`Cargo.toml` and `Cargo.lock` to commit
+`278cde7d20db1a5424153633b1808bc8c3928655` (`fix(tui): clip tree prefixes to viewport width`). This
+controlled-fork revision includes provider HTTP mediation through the host,
+which lets isolated providers make requests without direct worker network
+access, fixes narrow terminal rendering for deep trees, and includes the prior lifecycle, catalog, provenance, and plugin
+runtime contracts. It also merges official
+`bigfish1913/pi-rust` 0.7.1 main commit
+`281dfddfa39ac063d86de57b75370974c4d75e6c` and adds the upstream-ownership
+contributions ScribeRig consumes: secret-free provider auth and credential
+lifecycle events, staged atomic extension-session/catalog refresh and
+generation-preserving catalog reconciliation, safe normalized endpoint
+fingerprints, reusable repeating faux response factories, host-injected model
+catalog refresh, versioned provider-prepared body and allowlisted-header digests,
+opaque fingerprints over safe typed sampling/provider-option configuration,
+version-4 secret-free provider-option application attestations, and
+version-5 keyed effective provider-request identity reports, isolated-worker
+transport for sanitized applied-settings callbacks,
+transactional model configuration, cancellable provider stream lifecycle,
+focused-component event routing and application-registered keybindings,
+structured plugin command UI action continuation, a reusable sanitized
+text-panel component, a host tick callback, upstream-owned theme preset
+metadata, validated tree item
+replacement, ConPTY key-release pairing, and the isolated plugin worker/sandbox
+launcher boundary. The crates are licensed under the MIT License; that pinned
+revision carries the `LICENSE` and `NOTICE` texts, including the notice that the
+`rpi-*` family is a Rust re-implementation of the MIT-licensed TypeScript `pi`
+SDK, so no repository-level copy is required. ScribeRig vendors no upstream
+source tree.

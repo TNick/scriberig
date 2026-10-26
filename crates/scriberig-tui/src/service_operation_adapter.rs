@@ -11,6 +11,10 @@ mod accepted_agent;
 #[macro_use]
 #[path = "service_operation_adapter/agent_methods.rs"]
 mod agent_methods;
+#[path = "service_operation_adapter/recovery.rs"]
+mod recovery;
+#[path = "service_operation_adapter/runtime.rs"]
+mod runtime;
 
 /// Optional local project labels keyed by stable entity identity.
 pub type ExplorerLabels = std::collections::HashMap<EntityId, String>;
@@ -141,6 +145,59 @@ impl<B: ApplicationBackend> ApplicationOperationAdapter<B> {
 impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
     operation_agent_methods!();
 
+    /// Returns the runner's active upstream component registry.
+    /// # Returns
+    /// The active component mailbox when configured.
+    fn extension_component_mailbox(&self) -> Option<rpi_extensions::ExtensionStatusMailbox> {
+        self.service.extension_component_mailbox()
+    }
+
+    /// Returns plugin slash commands admitted by the local runtime runner.
+    /// # Returns
+    /// The active plugin command descriptors.
+    fn plugin_commands(&self) -> Vec<rpi_extensions::isolated::WorkerCommandSpec> {
+        self.agent_runner.plugin_commands()
+    }
+
+    /// Invokes a plugin slash command through the host-authorized runner.
+    ///
+    /// - `command`: Exact normalized plugin command identity.
+    /// - `arguments`: Raw text following the command name.
+    ///
+    /// # Returns
+    /// The plugin's structured command response.
+    ///
+    /// # Errors
+    /// Returns a safe failure when the host runner rejects the command.
+    fn invoke_plugin_command(
+        &self,
+        command: &str,
+        arguments: &str,
+    ) -> Result<serde_json::Value, String> {
+        self.agent_runner.invoke_plugin_command(command, arguments)
+    }
+
+    /// Continues a plugin command with a structured action from its response UI.
+    ///
+    /// - `command`: Exact normalized command identity.
+    /// - `arguments`: Raw arguments from the initial invocation.
+    /// - `action`: Structured plugin UI submission.
+    ///
+    /// # Returns
+    /// The next structured plugin UI response.
+    ///
+    /// # Errors
+    /// Returns the injected agent runner's safe failure.
+    fn invoke_plugin_command_action(
+        &self,
+        command: &str,
+        arguments: &str,
+        action: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        self.agent_runner
+            .invoke_plugin_command_action(command, arguments, action)
+    }
+
     /// Reads upstream property descriptors for one locally authorized model.
     ///
     /// - `context`: Local authorization context for model settings.
@@ -186,25 +243,6 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
         require_local_model_config_edit(context)?;
         self.agent_runner
             .set_model_property(provider_id, model_id, key, value)
-    }
-
-    /// Reports the semantic operations exposed by the embedded application.
-    ///
-    /// - `self`: Embedded application adapter.
-    /// - `_context`: Authorization context used by the surrounding runtime.
-    ///
-    /// Capability descriptors used to keep the command palette honest.
-    ///
-    /// This adapter has no separate capability-discovery failure path.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn runtime_capabilities(
-        &self,
-        _context: &ApplicationContext,
-    ) -> Result<Vec<RuntimeCapability>, ApplicationError> {
-        service_operation_helpers::runtime_capabilities(self)
     }
 
     /// Runs the deterministic provider through the selected semantic scope.
@@ -320,46 +358,6 @@ impl<B: ApplicationBackend> TuiService for ApplicationOperationAdapter<B> {
             return Ok(result);
         }
         self.service.execute(context, request)
-    }
-
-    /// Reads an operation record from the shared application registry.
-    ///
-    /// - `_context`: Application context for the lookup.
-    /// - `operation`: Operation identity to resolve.
-    ///
-    /// The current operation record.
-    ///
-    /// Returns a lookup error when the operation is unknown.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn operation_status(
-        &self,
-        _context: &ApplicationContext,
-        operation: &scriberig_core::OperationId,
-    ) -> Result<scriberig_app::OperationRecord, ApplicationError> {
-        service_operation_helpers::operation_status(self, operation)
-    }
-
-    /// Cancels an operation through the shared application registry.
-    ///
-    /// - `_context`: Application context for the cancellation.
-    /// - `operation`: Operation identity to cancel.
-    ///
-    /// The cancelled operation record.
-    ///
-    /// Returns a cancellation error when the operation is unknown.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn cancel_operation(
-        &self,
-        _context: &ApplicationContext,
-        operation: &scriberig_core::OperationId,
-    ) -> Result<scriberig_app::OperationRecord, ApplicationError> {
-        service_operation_helpers::cancel_operation(self, operation)
     }
 
     tui_operation_contract_methods!();

@@ -126,4 +126,256 @@ mod tests {
             })
         );
     }
+
+    /// Builds one credential-free upstream model row for resolution fixtures.
+    ///
+    /// - `provider_id`: Upstream provider identity.
+    /// - `model_id`: Provider-native model identity.
+    ///
+    /// The upstream model row.
+    /// # Returns
+    /// The upstream catalog row for the fixture.
+    fn upstream_model(provider_id: &str, model_id: &str) -> rpi_ai::Model {
+        rpi_ai::Model::new(
+            model_id,
+            model_id,
+            rpi_ai::Api::OpenaiCompletions,
+            provider_id,
+            "https://provider.example.test/v1",
+        )
+    }
+
+    /// Builds the exact profile whose preference is the lower default.
+    ///
+    /// - `thinking_level`: Canonical upstream thinking level to prefer.
+    ///
+    /// A bootstrap profile with a provider-a preference and its computed
+    /// revision reference.
+    /// # Returns
+    /// The profile descriptor with its content-derived revision.
+    fn profile_preferring_model_a(thinking_level: &str) -> AgentProfileDescriptor {
+        let mut profile = crate::profile::bootstrap_default_agent_profile();
+        profile.preferred_execution = Some(AgentProfileExecutionPreference {
+            provider_id: "provider-a".to_owned(),
+            model_id: "model-a".to_owned(),
+            thinking_level: Some(thinking_level.to_owned()),
+        });
+        profile.reference = crate::profile::agent_profile_revision(&profile);
+        profile
+    }
+
+    /// Verifies an invocation override changes the effective selection only.
+    ///
+    /// The narrower invocation scope resolves to its own provider/model pair
+    /// against the host catalog, while the profile's own preferred selection
+    /// and content-derived revision stay exactly as they were.
+    #[test]
+    fn invocation_override_resolves_without_revising_the_profile() {
+        let profile = profile_preferring_model_a("high");
+        let profile_revision_before = profile.reference.clone();
+        let preference_before = profile.preferred_execution.clone();
+        let invocation = SessionExecutionSelection {
+            revision: 0,
+            provider_id: Some("provider-b".to_owned()),
+            model_id: Some("model-b".to_owned()),
+            thinking_level: None,
+            history: Vec::new(),
+        };
+        let models = vec![
+            upstream_model("provider-a", "model-a"),
+            upstream_model("provider-b", "model-b"),
+        ];
+
+        let overridden = resolve_profile_execution_selection(
+            &profile,
+            ExecutionSelectionSources {
+                invocation: Some(&invocation),
+                plan_node: None,
+                branch: None,
+                session: None,
+                project: None,
+                user_profile: None,
+            },
+            &models,
+            "model-a",
+        )
+        .expect("invocation override resolves upstream");
+        let preferred = resolve_profile_execution_selection(
+            &profile,
+            ExecutionSelectionSources {
+                invocation: None,
+                plan_node: None,
+                branch: None,
+                session: None,
+                project: None,
+                user_profile: None,
+            },
+            &models,
+            "model-a",
+        )
+        .expect("profile preference resolves upstream");
+
+        assert_eq!(
+            (overridden.0.as_str(), overridden.1.as_str()),
+            ("provider-b", "model-b")
+        );
+        assert_eq!(
+            (preferred.0.as_str(), preferred.1.as_str()),
+            ("provider-a", "model-a")
+        );
+        assert_eq!(profile.reference, profile_revision_before);
+        assert_eq!(profile.preferred_execution, preference_before);
+        assert_eq!(
+            crate::profile::agent_profile_revision(&profile).revision,
+            profile_revision_before.revision
+        );
+    }
+
+    /// Builds one unassigned or assigned plan node for bridge fixtures.
+    ///
+    /// - `assignment`: Optional provider/model pair assigned to the node.
+    ///
+    /// The plan node whose execution is resolved by the bridge.
+    /// # Returns
+    /// A fixture plan node with the supplied assignment.
+    fn plan_node(assignment: Option<(&str, &str)>) -> scriberig_session::PlanNode {
+        scriberig_session::PlanNode {
+            id: scriberig_core::EntityId::from_bytes([81; 16]),
+            parent: None,
+            title: "work".to_owned(),
+            purpose: "work".to_owned(),
+            expected_result: None,
+            semantic_scope: Vec::new(),
+            status: scriberig_session::PlanNodeStatus::Ready,
+            branch: None,
+            result: None,
+            superseded_by: None,
+            abandon_reason: None,
+            last_failure: None,
+            assignment: assignment.map(|(provider_id, model_id)| {
+                scriberig_session::ModelAssignment {
+                    provider_id: provider_id.to_owned(),
+                    model_id: model_id.to_owned(),
+                    thinking_level: None,
+                }
+            }),
+            claim: None,
+            claim_generation: 0,
+        }
+    }
+
+    /// Verifies a node assignment wins and an unassigned node takes the preference.
+    ///
+    /// The explicit pair belongs to the plan node, while an unassigned node
+    /// resolves the profile's preference against the current catalog, including
+    /// upstream clamping of the preference's thinking identifier.
+    #[test]
+    fn plan_node_assignment_precedes_the_profile_preference() {
+        let profile = profile_preferring_model_a("high");
+        let assigned = plan_node(Some(("provider-b", "model-b")));
+        let unassigned = plan_node(None);
+        let sources = ExecutionSelectionSources {
+            invocation: None,
+            plan_node: None,
+            branch: None,
+            session: None,
+            project: None,
+            user_profile: None,
+        };
+        let models = vec![
+            upstream_model("provider-a", "model-a"),
+            upstream_model("provider-b", "model-b"),
+        ];
+
+        let from_node =
+            resolve_profile_plan_node_execution(&profile, &assigned, sources, &models, "model-b")
+                .expect("explicit node assignment resolves upstream");
+        let from_profile =
+            resolve_profile_plan_node_execution(&profile, &unassigned, sources, &models, "model-b")
+                .expect("profile preference resolves for an unassigned node");
+
+        assert_eq!(from_node.model_id, "model-b");
+        assert!(!from_node.uses_runtime_fallback);
+        assert_eq!(from_profile.model_id, "model-a");
+        assert_eq!(
+            from_profile.thinking_level,
+            Some(rpi_ai::ThinkingLevel::High)
+        );
+        assert!(!from_profile.uses_runtime_fallback);
+    }
+
+    /// Verifies a stale invocation override is not replaced by the preference.
+    ///
+    /// - A reload that removed the overridden pair must fail the resolution
+    ///   rather than silently selecting the profile's still-valid preference.
+    #[test]
+    fn stale_invocation_override_does_not_fall_back_to_the_profile_preference() {
+        let profile = profile_preferring_model_a("high");
+        let override_selection = SessionExecutionSelection {
+            revision: 0,
+            provider_id: Some("provider-b".to_owned()),
+            model_id: Some("model-b".to_owned()),
+            thinking_level: None,
+            history: Vec::new(),
+        };
+        // The reloaded generation no longer publishes the overridden pair.
+        let models = vec![upstream_model("provider-a", "model-a")];
+
+        let error = resolve_profile_execution_selection(
+            &profile,
+            ExecutionSelectionSources {
+                invocation: Some(&override_selection),
+                plan_node: None,
+                branch: None,
+                session: None,
+                project: None,
+                user_profile: None,
+            },
+            &models,
+            "model-a",
+        )
+        .expect_err("a stale invocation override must not resolve");
+
+        assert!(
+            matches!(&error, ApplicationError::InvalidRequest { operation, message }
+                if operation == "agent_start" && message.contains("model-b")),
+            "the failure must name the stale pair instead of substituting one: {error}"
+        );
+    }
+
+    /// Verifies a stale profile preference fails closed without a substitution.
+    ///
+    /// The profile keeps its stored preference and revision; the caller must
+    /// re-resolve or change the profile instead of receiving another model.
+    #[test]
+    fn stale_profile_preference_fails_closed_without_substituting_a_model() {
+        let profile = profile_preferring_model_a("high");
+        let revision_before = profile.reference.clone();
+        let preference_before = profile.preferred_execution.clone();
+        // The reloaded generation publishes only a different provider/model pair.
+        let models = vec![upstream_model("provider-b", "model-b")];
+
+        let error = resolve_profile_execution_selection(
+            &profile,
+            ExecutionSelectionSources {
+                invocation: None,
+                plan_node: None,
+                branch: None,
+                session: None,
+                project: None,
+                user_profile: None,
+            },
+            &models,
+            "model-b",
+        )
+        .expect_err("a stale profile preference must not resolve");
+
+        assert!(
+            matches!(&error, ApplicationError::InvalidRequest { operation, message }
+                if operation == "agent_start" && message.contains("model-a")),
+            "the failure must name the stale preference: {error}"
+        );
+        assert_eq!(profile.reference, revision_before);
+        assert_eq!(profile.preferred_execution, preference_before);
+    }
 }

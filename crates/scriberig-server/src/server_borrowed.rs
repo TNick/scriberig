@@ -10,6 +10,9 @@ use scriberig_query::{FindRequest, FindResult, ListRequest, ListResult, QueryRes
 #[macro_use]
 #[path = "server_borrowed_plan_view.rs"]
 mod plan_view_method;
+#[macro_use]
+#[path = "server_borrowed_recovery.rs"]
+mod recovery_methods;
 impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     /// Delegates migration detail to the borrowed application service.
     ///
@@ -149,6 +152,18 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
         (**self).model_library(context)
     }
 
+    /// Delegates the model-catalog generation read to the borrowed service.
+    ///
+    /// The generation binds model rows to the credential readiness rows a host
+    /// projection resolved from the same upstream catalog state.
+    ///
+    /// # Returns
+    /// The borrowed service's current upstream catalog generation, when it has
+    /// an upstream model catalog.
+    fn model_catalog_generation(&self) -> Option<scriberig_app::ModelCatalogGeneration> {
+        (**self).model_catalog_generation()
+    }
+
     /// Delegates shared presentation reads to the borrowed service.
     ///
     /// - `context`: Trusted caller identity and capabilities.
@@ -236,6 +251,8 @@ impl<S: ApplicationService + ?Sized> ApplicationService for &S {
     ) -> Result<scriberig_protocol::SessionExecutionSelection, ApplicationError> {
         (**self).set_session_thinking_level(context, session, expected_revision, thinking_level)
     }
+
+    server_borrowed_recovery_methods!();
 
     /// Delegates operation status to the borrowed application service.
     /// - `operation_id`: Argument named `operation_id`.

@@ -26,6 +26,8 @@ mod palette;
 mod plan_assignment;
 #[path = "input/selection.rs"]
 mod selection;
+#[path = "input/submit.rs"]
+mod submit;
 #[path = "input/theme_and_edit.rs"]
 mod theme_and_edit;
 pub(super) use context::InputContext;
@@ -121,67 +123,28 @@ pub(super) fn handle<S: TuiService + Sync>(
             *redraw = true;
         }
         Ok(ComposerInput::Submit(prompt)) => {
-            *suppress_composer_restore = true;
-            match prompt.trim() {
-                "/model" => {
-                    let _ = input_sender.send(ComposerInput::OpenControl(ControlKind::Model));
-                    return Ok(true);
-                }
-                "/thinking" => {
-                    let _ = input_sender.send(ComposerInput::OpenControl(ControlKind::Thinking));
-                    return Ok(true);
-                }
-                "/assign" => {
-                    plan_assignment::open(
-                        &mut input_context!((
-                            service,
-                            context,
-                            state,
-                            screen,
-                            editor,
-                            composer,
-                            semantic_view,
-                            input_sender,
-                            work_sender,
-                            &mut *pending_selector,
-                            &mut *pending_effects,
-                            &mut *focus_before_overlay,
-                            shared_state,
-                            &mut *debug_log,
-                            &mut *should_quit,
-                            &mut *redraw,
-                            &mut *suppress_composer_restore
-                        )),
-                        &prompt,
-                    )?;
-                    *redraw = true;
-                    return Ok(true);
-                }
-                "/theme" => {
-                    let _ = input_sender.send(ComposerInput::OpenThemeSelector);
-                    return Ok(true);
-                }
-                value if value.starts_with("/theme ") => {
-                    if let Ok(mut state) = state.lock() {
-                        state.conversation_composer.error =
-                            Some("Use /theme without arguments.".to_owned());
-                    }
-                    screen.request_render(false);
-                    return Ok(true);
-                }
-                _ => {}
-            }
-            let mut state = state
-                .lock()
-                .map_err(|_| io::Error::other("TUI state lock poisoned"))?;
-            state.conversation_composer.draft = prompt;
-            let effects = crate::state::reduce(&mut state, Action::InputSubmitted);
-            if let Some(log) = debug_log.as_deref_mut() {
-                log.record_message("composer-submit", &state)?;
-            }
-            queue_effects(work_sender, pending_effects, effects);
-            *should_quit = state.should_quit;
-            *redraw = true;
+            return submit::handle(
+                input_context!((
+                    service,
+                    context,
+                    state,
+                    screen,
+                    editor,
+                    composer,
+                    semantic_view,
+                    input_sender,
+                    work_sender,
+                    &mut *pending_selector,
+                    &mut *pending_effects,
+                    &mut *focus_before_overlay,
+                    shared_state,
+                    &mut *debug_log,
+                    &mut *should_quit,
+                    &mut *redraw,
+                    &mut *suppress_composer_restore
+                )),
+                prompt,
+            );
         }
         Ok(ComposerInput::DraftChanged(draft)) => {
             if !draft.is_empty() {
@@ -363,6 +326,39 @@ pub(super) fn handle<S: TuiService + Sync>(
             )? {
                 return Ok(true);
             }
+            *redraw = true;
+        }
+        Ok(ComposerInput::PluginCommandAction {
+            command,
+            arguments,
+            action,
+        }) => {
+            screen.hide_overlay();
+            let response = service.invoke_plugin_command_action(&command, &arguments, action);
+            palette::present_plugin_response(
+                &mut input_context!((
+                    service,
+                    context,
+                    state,
+                    screen,
+                    editor,
+                    composer,
+                    semantic_view,
+                    input_sender,
+                    work_sender,
+                    &mut *pending_selector,
+                    &mut *pending_effects,
+                    &mut *focus_before_overlay,
+                    shared_state,
+                    &mut *debug_log,
+                    &mut *should_quit,
+                    &mut *redraw,
+                    &mut *suppress_composer_restore
+                )),
+                &command,
+                &arguments,
+                response,
+            )?;
             *redraw = true;
         }
         Ok(ComposerInput::Selected(choice)) => {

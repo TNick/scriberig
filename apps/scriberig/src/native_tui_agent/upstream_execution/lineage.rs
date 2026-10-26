@@ -7,13 +7,19 @@ use super::{UpstreamBranchExecutionFailure, UpstreamBranchFailure};
 
 /// Recompiles a completed root branch's next provider context.
 ///
+/// The returned fingerprint identifies the durable branch lineage the cached
+/// continuation belongs to. Supply the submitted instruction so the compiler
+/// omits its pending human turn; supply an empty string after that turn is
+/// answered so nothing is omitted. Both forms name the same completed state.
+///
 /// # Parameters
 /// - `service`: Shared application service owning the durable session.
 /// - `context`: Trusted root request context.
 /// - `session`: Canonical `ScribeRig` session identity.
 /// - `branch`: Canonical root branch identity.
-/// - `prompt`: Completed instruction used to select the branch turn.
+/// - `prompt`: Instruction whose pending human turn the compiler omits.
 /// - `selection`: Exact selected workspace scope, when present.
+/// - `profile`: Exact semantic profile revision captured for this invocation.
 ///
 /// # Returns
 /// A fingerprint of the durable post-completion provider context.
@@ -27,6 +33,7 @@ pub(crate) fn completed_root_context_fingerprint<B: ApplicationBackend>(
     branch: EntityId,
     prompt: &str,
     selection: Option<&scriberig_app::AgentSelection>,
+    profile: &scriberig_app::AgentProfileDescriptor,
 ) -> Result<String, UpstreamBranchExecutionFailure> {
     let semantic_scope =
         selection.map(
@@ -43,13 +50,14 @@ pub(crate) fn completed_root_context_fingerprint<B: ApplicationBackend>(
         || context.clone(),
         |selection| context.clone().with_snapshot(selection.snapshot),
     );
-    let compiled = crate::agent_context::compile_branch_context(
+    let compiled = crate::agent_context::compile_branch_context_with_profile(
         service,
         &runtime_context,
         session,
         branch,
         prompt,
         semantic_scope,
+        profile,
     )
     .map_err(|_| UpstreamBranchExecutionFailure {
         failure: UpstreamBranchFailure {

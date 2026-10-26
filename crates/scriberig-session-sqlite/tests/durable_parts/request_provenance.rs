@@ -37,6 +37,9 @@ fn model_request_provenance_survives_reopen() {
         active_components: active_components.clone(),
         context_fingerprint: Some("context-fingerprint-51".to_owned()),
         request_fingerprint: Some("request-fingerprint-52".to_owned()),
+        catalog_revision: None,
+        upstream_runtime_revision: None,
+        provider_response_id: None,
         model_execution_configuration: None,
         messages: vec![ModelRequestMessage {
             role: "user".to_owned(),
@@ -54,6 +57,7 @@ fn model_request_provenance_survives_reopen() {
     branch.model_invocations.push(ModelInvocation {
         id: EntityId::from_bytes([53; 16]),
         branch: branch_id,
+        operation: None,
         ordinal: 1,
         agent_profile: Some(format!("{}@{}", profile.identity, profile.revision)),
         context_fingerprint: request.context_fingerprint.clone(),

@@ -28,6 +28,10 @@ fn operation_dispatch_covers_all_mutating_and_projection_operations() {
         ApplicationRequest::Render(RenderRequest {
             snapshot: SnapshotSelector::Exact(snapshot),
             view: "text".to_owned(),
+            style: scriberig_app::RenderStyleSelection::Applied {
+                value: b"fixture-style".to_vec(),
+                provenance: vec!["test-fixture".to_owned()],
+            },
         }),
         ApplicationRequest::Branch(BranchRequest {
             base: SnapshotSelector::Exact(snapshot),

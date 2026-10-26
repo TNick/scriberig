@@ -85,6 +85,7 @@ fn session_graph_survives_reopen() {
         root.model_invocations.push(ModelInvocation {
             id: EntityId::from_bytes([4; 16]),
             branch: root_id,
+            operation: None,
             ordinal: 1,
             agent_profile: None,
             context_fingerprint: Some("context-fingerprint".to_owned()),
@@ -302,6 +303,7 @@ fn plan_dependencies_and_assignments_survive_reopen() {
         .expect("session exists");
     let loaded_plan = &loaded.plans[0];
     assert_eq!(loaded_plan.status, scriberig_session::PlanStatus::Running);
+    assert_eq!(loaded_plan.root_nodes, vec![first, second, downstream]);
     assert!(loaded_plan.coordinator_claim.is_some());
     assert_eq!(loaded_plan.nodes[0].status, PlanNodeStatus::Completed);
     assert_eq!(loaded_plan.nodes[1].status, PlanNodeStatus::Ready);
@@ -379,6 +381,8 @@ mod request_provenance;
 
 #[path = "durable_parts/busy_timeout.rs"]
 mod busy_timeout;
+#[path = "durable_parts/claim_revision_scope.rs"]
+mod claim_revision_scope;
 #[path = "durable_parts/incremental_rollup.rs"]
 mod incremental_rollup;
 #[path = "durable_parts/lifecycle_revisions.rs"]
@@ -389,5 +393,7 @@ mod part2;
 mod plan_history_migration;
 #[path = "durable_parts/plan_projection.rs"]
 mod plan_projection;
+#[path = "durable_parts/plan_scope/mod.rs"]
+mod plan_scope;
 #[path = "durable_parts/rollup_index.rs"]
 mod rollup_index;

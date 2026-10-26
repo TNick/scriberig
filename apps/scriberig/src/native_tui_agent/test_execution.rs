@@ -33,7 +33,7 @@ use super::{NativeScenario, upstream_execution};
 /// # Errors
 /// Returns a safe upstream provider or execution failure.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn execute_agent<B: ApplicationBackend + Sync>(
+pub(crate) fn execute_agent<B: ApplicationBackend + Send + Sync + 'static>(
     provider: NativeScenario,
     model: &str,
     _provider_id: Option<&str>,
@@ -76,15 +76,7 @@ pub(crate) fn execute_agent<B: ApplicationBackend + Sync>(
     .map_err(
         |failure: upstream_execution::UpstreamBranchExecutionFailure| {
             *model_requests_on_failure = failure.failure.model_requests;
-            match failure.failure.error {
-                scriberig_agent_runtime::upstream_invocation::UpstreamBranchError::Cancelled => {
-                    AgentError::Cancelled
-                }
-                scriberig_agent_runtime::upstream_invocation::UpstreamBranchError::Authentication(
-                    message,
-                ) => AgentError::Authentication(message),
-                error => AgentError::Provider(error.to_string()),
-            }
+            failure.failure.error.into()
         },
     )
 }

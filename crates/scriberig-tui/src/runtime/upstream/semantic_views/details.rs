@@ -6,7 +6,18 @@ use crate::state::TuiState;
 mod model_request;
 #[path = "details/plan_graph.rs"]
 mod plan_graph;
-use model_request::append_model_request;
+use model_request::append_model_request as append_model_request_inner;
+
+/// Appends complete safe request detail to a semantic view.
+///
+/// - `output`: Markdown content receiving request provenance.
+/// - `detail`: Safe effective-request projection for one invocation.
+pub(super) fn append_model_request(
+    output: &mut String,
+    detail: &scriberig_protocol::ModelRequestDetailResponse,
+) {
+    append_model_request_inner(output, detail);
+}
 
 /// Builds request and live details that accompany conversation tree rows.
 ///
@@ -55,6 +66,9 @@ pub(super) fn conversation_details(state: &TuiState) -> String {
     }
     if let Some(error) = state.conversation_composer.error.as_deref() {
         super::common::append_value(&mut output, &format!("Error: {error}"));
+    }
+    if let Some(recovery) = state.recovery_message.as_deref() {
+        super::common::append_value(&mut output, &format!("Legacy recovery:\n{recovery}"));
     }
     plan_graph::append_plan_graphs(&mut output, state);
     output
@@ -237,6 +251,9 @@ mod tests {
                     active_components: Vec::new(),
                     context_fingerprint: None,
                     request_fingerprint: None,
+                    catalog_revision: None,
+                    upstream_runtime_revision: None,
+                    provider_response_id: None,
                     model_execution_configuration: None,
                     messages: vec![scriberig_protocol::ModelRequestMessageDetail {
                         role: "user".to_owned(),

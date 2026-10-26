@@ -113,6 +113,30 @@ pub trait SessionBackend {
         request: &SessionRequest,
     ) -> Result<Session, crate::ApplicationError>;
 
+    /// Reads a compact session projection for routine product tree views.
+    ///
+    /// Implementations with durable semantic projections should omit unbounded
+    /// plan history, gates, and evidence. Exact detail operations remain
+    /// available through their bounded read methods.
+    ///
+    /// # Parameters
+    /// - `context`: Authorized caller context.
+    /// - `request`: Stable session request.
+    ///
+    /// # Returns
+    /// The compact session projection, or the complete session when the
+    /// implementation has no specialized projection.
+    ///
+    /// # Errors
+    /// Returns an authorization, lookup, or persistence error.
+    fn read_session_projection(
+        &self,
+        context: &crate::ApplicationContext,
+        request: &SessionRequest,
+    ) -> Result<Session, crate::ApplicationError> {
+        self.read_session(context, request)
+    }
+
     /// Persists a complete authorized session snapshot.
     ///
     /// - `context`: Authorized caller context.

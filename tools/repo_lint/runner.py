@@ -12,7 +12,7 @@ from .common import (
     effective_line_count,
     parse_args,
 )
-from .config import MAX_SOURCE_LINES
+from .config import MAX_SOURCE_LINES, SOURCE_LINE_EXCEPTIONS
 from .declaration_comments import redundant_comment_lines
 from .languages import check_python, check_rust, check_typescript
 
@@ -50,10 +50,11 @@ def check_file(path: Path, fix: bool) -> list[str]:
 
     issues = check_file_description(path, text)
     count = effective_line_count(path, text)
-    if count > MAX_SOURCE_LINES:
+    exception_limit = SOURCE_LINE_EXCEPTIONS.get(path.as_posix(), MAX_SOURCE_LINES)
+    if count > exception_limit:
         issues.append(
             f"FILE_SIZE: {count} implementation lines exceed the "
-            f"{MAX_SOURCE_LINES}-line limit; split the file."
+            f"{exception_limit}-line limit; split the file."
         )
     if path.suffix == ".rs":
         issues.extend(check_rust(text))

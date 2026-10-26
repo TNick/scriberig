@@ -1,8 +1,5 @@
 //! Verifies the native TUI semantic-agent golden path.
 
-#[path = "tui_pty_support/onboarding_wait.rs"]
-#[allow(dead_code)]
-mod onboarding_wait;
 #[allow(dead_code)]
 mod tui_pty_support;
 
@@ -39,7 +36,7 @@ fn tui_golden_05_agent_uses_exact_semantic_scope_and_returns_compact_result() {
             .is_some_and(|summary| summary.contains("shared code domain"))
     }));
     assert!(tui.source().contains("left + right"));
-    onboarding_wait::wait_for_branch_completion(
+    tui_pty_support::onboarding_wait::wait_for_branch_completion(
         &tui,
         session,
         "agent root",

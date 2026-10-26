@@ -1,16 +1,25 @@
 //! Implements universal reads over a snapshot-bound graph view.
 
 use crate::{
-    ContinuationToken, DetailLevel, EntityInSnapshot, FollowDirection, FollowRequest, FollowResult,
-    InspectRequest, InspectService, Inspection, ListRequest, ListResult, NavigationEntry, Page,
-    QueryError, ReadCapability, TargetRef, TraverseService,
+    ContinuationToken, EntityInSnapshot, FollowDirection, FollowRequest, FollowResult, ListRequest,
+    ListResult, NavigationEntry, Page, QueryError, TargetRef, TraverseService,
 };
 use scriberig_core::{EntityId, SnapshotId};
 use scriberig_graph::{CollectionValue, KnowledgeView};
 
+#[path = "graph_inspect.rs"]
+mod inspect;
+
 /// Provides inspect, list, and follow operations over one graph view.
+///
+/// # Public members
+/// None.
+///
+/// # Private members
+/// - `view`: Snapshot-bound graph provider used for universal reads.
 pub struct GraphReadService<V> {
-    view: V,
+    /// Snapshot-bound graph provider used for universal reads.
+    pub(super) view: V,
 }
 
 impl<V> GraphReadService<V> {
@@ -32,105 +41,6 @@ impl<V> GraphReadService<V> {
     #[must_use]
     pub const fn view(&self) -> &V {
         &self.view
-    }
-}
-
-impl<V: KnowledgeView> InspectService for GraphReadService<V> {
-    /// Inspects one entity at an exact snapshot.
-    ///
-    /// - `self`: Graph-backed read service.
-    /// - `request`: Exact snapshot or revision inspection request.
-    ///
-    /// Compact or structural inspection metadata.
-    ///
-    /// Returns a structured query error when the target cannot be resolved.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn inspect(&self, request: &InspectRequest) -> Result<Inspection, QueryError> {
-        let (snapshot, revision, record) = match request.target {
-            TargetRef::Snapshot(target) => {
-                let revision = self
-                    .view
-                    .resolve(target.snapshot, target.entity)
-                    .map_err(|_| QueryError::SnapshotUnavailable {
-                        operation: crate::ReadOperation::Inspect,
-                        snapshot: target.snapshot,
-                    })?
-                    .ok_or(QueryError::NotFound {
-                        operation: crate::ReadOperation::Inspect,
-                        target: request.target,
-                    })?;
-                let record = self
-                    .view
-                    .read_revision(target.snapshot, target.entity)
-                    .map_err(|_| QueryError::Internal {
-                        operation: crate::ReadOperation::Inspect,
-                        message: "graph view failed to read revision".to_owned(),
-                    })?
-                    .ok_or(QueryError::NotFound {
-                        operation: crate::ReadOperation::Inspect,
-                        target: request.target,
-                    })?;
-                (Some(target.snapshot), revision, record)
-            }
-            TargetRef::Revision(target) => {
-                let record = self
-                    .view
-                    .read_exact_revision(target.entity, target.revision)
-                    .map_err(|_| QueryError::Internal {
-                        operation: crate::ReadOperation::Inspect,
-                        message: "graph view failed to read exact revision".to_owned(),
-                    })?
-                    .ok_or(QueryError::NotFound {
-                        operation: crate::ReadOperation::Inspect,
-                        target: request.target,
-                    })?;
-                (None, target.revision, record)
-            }
-        };
-        let relations: Vec<ReadCapability> = record
-            .relations
-            .keys()
-            .map(|relation| ReadCapability {
-                id: relation.clone(),
-                description: "follow relation".to_owned(),
-            })
-            .collect();
-        let collections: Vec<ReadCapability> = record
-            .collections
-            .keys()
-            .map(|collection| ReadCapability {
-                id: collection.clone(),
-                description: "list collection".to_owned(),
-            })
-            .collect();
-        Ok(Inspection {
-            subject: request.target,
-            snapshot,
-            revision: Some(revision),
-            entity_type: Some(record.entity_type),
-            label: None,
-            description: None,
-            properties: if request.detail == DetailLevel::Identity {
-                Vec::new()
-            } else {
-                record
-                    .properties
-                    .keys()
-                    .map(|key| (key.clone(), "present".to_owned()))
-                    .collect()
-            },
-            counts: vec![("relations".to_owned(), relations.len() as u64)],
-            relations,
-            collections,
-            views: Vec::new(),
-            operations: Vec::new(),
-            provenance: Vec::new(),
-            information_cost: None,
-            detail: request.detail,
-        })
     }
 }
 

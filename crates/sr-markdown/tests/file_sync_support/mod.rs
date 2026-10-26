@@ -10,7 +10,8 @@ use sr_change::Operation;
 use sr_markdown::{CanonicalNode, MarkdownBlock, MarkdownDocument, parse};
 use sr_projection::{
     ProjectionKind, ProjectionRef, ProjectionSpecRef, ProjectionStatus, RenderRequest,
-    RendererVersion, RenderingContext, SemanticScopeRef, SemanticStateRef, StyleRef, StyleValue,
+    RendererVersion, RenderingContext, ResolvedStyle, SemanticScopeRef, SemanticStateRef, StyleRef,
+    StyleValue,
 };
 use sr_projection_fs::{ProjectionLocation, ProjectionOwnership, SyncState, digest_bytes};
 
@@ -179,7 +180,7 @@ pub fn render_request(snapshot: SnapshotId) -> RenderRequest {
         },
         base_state: SemanticStateRef(snapshot),
         kind: ProjectionKind::new("markdown").expect("kind"),
-        style: StyleRef::Value(StyleValue::new(b"default".to_vec())),
+        style: ResolvedStyle::inline(StyleValue::new(b"default".to_vec())),
         renderer: RendererVersion::new("test"),
         context: RenderingContext::default(),
     }

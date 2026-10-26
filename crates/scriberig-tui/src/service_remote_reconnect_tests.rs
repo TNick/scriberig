@@ -1,6 +1,7 @@
 //! Verifies remote cursor recovery refreshes durable session state.
 
 use super::*;
+use crate::service::TuiRuntimeService;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 

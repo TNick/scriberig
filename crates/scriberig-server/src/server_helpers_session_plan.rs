@@ -120,6 +120,67 @@ pub(crate) fn project(
     })
 }
 
+/// Converts a plan and its cached semantic views without embedding detail history.
+///
+/// # Parameters
+/// - `plan`: Compact current plan projection.
+/// - `view`: Shared plan summary carrying exact identity and status counts.
+/// - `node_views`: Shared node summaries carrying gate and evidence counts.
+///
+/// # Returns
+/// A session-tree plan DTO with bounded summaries and empty detail collections.
+///
+/// # Errors
+/// Returns an error when the base plan projection cannot be assembled.
+pub(crate) fn project_compact(
+    plan: Plan,
+    view: &scriberig_session::PlanView,
+    node_views: Vec<PlanNodeView>,
+) -> Result<SessionPlan, scriberig_app::ApplicationError> {
+    let mut projected = project(plan, None)?;
+    projected.revision = view.mutation_revision;
+    projected.exact_revision = Some(view.revision.to_string());
+    projected.snapshot = view.snapshot.map(|snapshot| snapshot.to_string());
+    projected.goal.clone_from(&view.goal);
+    projected.status = plan_status(view.status);
+    projected.status_counts = semantics::status_counts(view.status_counts);
+    let by_id = node_views
+        .into_iter()
+        .map(|node| (node.id.to_string(), node))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    for node in &mut projected.nodes {
+        let Some(view) = by_id.get(&node.id) else {
+            return Err(view_error("shared compact node view is missing"));
+        };
+        node.exact_revision = Some(view.revision.to_string());
+        node.effective_status = Some(node_status(view.effective_status));
+        node.contains_ignored = view.contains_ignored;
+        node.contains_abandoned = view.contains_abandoned;
+        node.branch = view.branch.map(|id| id.to_string());
+        node.result = view.result.map(|id| id.to_string());
+        node.assignment = view.assignment.clone().map(assignment);
+        node.summary_id = view.summary_id.map(|id| id.to_string());
+        node.summary_preview.clone_from(&view.summary_preview);
+        node.dependency_blockers = view
+            .dependency_blockers
+            .iter()
+            .map(ToString::to_string)
+            .collect();
+        node.entry_gates = semantics::gate_counts(view.entry_gates);
+        node.completion_gates = semantics::gate_counts(view.completion_gates);
+        node.evidence_count = view.evidence_count;
+        node.can_retry = view.can_retry;
+        node.last_failure = view
+            .last_failure
+            .as_ref()
+            .map(semantics::evidence_reference);
+    }
+    projected.gates.clear();
+    projected.evidence.clear();
+    projected.history.clear();
+    Ok(projected)
+}
+
 /// Converts one immutable plan revision.
 ///
 /// - `value`: Historical session-domain revision.

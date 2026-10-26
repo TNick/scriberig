@@ -55,6 +55,29 @@ pub enum PromotionError {
 }
 
 impl SqliteStore {
+    /// Returns the main database path when this store is file-backed.
+    ///
+    /// # Parameters
+    /// - `self`: SQLite store to inspect.
+    ///
+    /// # Returns
+    /// The canonical path reported by SQLite, or `None` for an in-memory store.
+    ///
+    /// # Errors
+    /// Returns a SQLite error when the connection cannot inspect its database list.
+    pub fn database_path(&self) -> rusqlite::Result<Option<std::path::PathBuf>> {
+        let connection = self
+            .connection
+            .lock()
+            .map_err(|_| rusqlite::Error::InvalidQuery)?;
+        let path: String = connection.query_row("PRAGMA database_list", [], |row| row.get(2))?;
+        if path.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(std::path::PathBuf::from(path)))
+        }
+    }
+
     /// - `path`: Operation input.
     /// - `rusqlite`: Operation input.
     ///

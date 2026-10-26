@@ -9,6 +9,9 @@ mod application_event;
 pub(super) use application_event::reduce_application_event;
 #[path = "state_actions/agent_activity.rs"]
 mod agent_activity;
+#[path = "state_actions/review_request.rs"]
+mod review_request;
+pub(in crate::state) use review_request::request_candidate_review;
 #[path = "state_actions/session_changed.rs"]
 mod session_changed;
 
@@ -138,18 +141,15 @@ pub(super) fn activate_current(state: &mut TuiState) -> Vec<Effect> {
                                 .clone_into(&mut state.shell_message);
                             return vec![Effect::None];
                         };
-                        let request_id = state.next_request_id;
-                        state.next_request_id += 1;
                         state.primary_view = crate::selection::PrimaryView::Changes;
-                        state.review = LoadState::Loading { request_id };
-                        return vec![Effect::Apply {
-                            request_id,
-                            request: scriberig_app::ApplyRequest {
+                        return request_candidate_review(
+                            state,
+                            scriberig_app::ApplyRequest {
                                 base_snapshot,
                                 branch: None,
                                 change: candidate,
                             },
-                        }];
+                        );
                     }
                     let id = row.reference;
                     if row.kind == crate::view::session::SessionRowKind::Branch {
@@ -239,6 +239,7 @@ pub(crate) fn activate_palette_item(state: &mut TuiState, selected_id: &str) -> 
             state.next_request_id += 1;
             state.primary_view = crate::selection::PrimaryView::Changes;
             state.review = LoadState::Loading { request_id };
+            state.review_request = None;
             return vec![Effect::ProjectAgent {
                 request_id,
                 entity: selection.entity,
@@ -347,18 +348,15 @@ pub(super) fn review_latest_candidate(state: &mut TuiState) -> Vec<Effect> {
         return vec![Effect::None];
     };
     state.overlay = None;
-    let request_id = state.next_request_id;
-    state.next_request_id += 1;
     state.primary_view = crate::selection::PrimaryView::Changes;
-    state.review = LoadState::Loading { request_id };
-    vec![Effect::Apply {
-        request_id,
-        request: scriberig_app::ApplyRequest {
+    request_candidate_review(
+        state,
+        scriberig_app::ApplyRequest {
             base_snapshot,
             branch: None,
             change: candidate,
         },
-    }]
+    )
 }
 
 /// Opens the semantic source edit input for the selected projection.

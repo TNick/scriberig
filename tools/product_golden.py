@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import subprocess
+import os
 import shutil
+import subprocess
 from pathlib import Path
 
 
@@ -13,6 +14,9 @@ def run(command: list[str], cwd: str | None = None) -> None:
     Args:
         command: Process and arguments to execute.
         cwd: Optional working directory for the process.
+
+    On Forgejo, Scriberig product targets omit integration tests that need
+    sandbox namespaces unavailable to the worker environment.
 
     Raises:
         SystemExit: If the required command fails.
@@ -28,6 +32,16 @@ def run(command: list[str], cwd: str | None = None) -> None:
         if rustup is None:
             raise SystemExit("cargo and rustup are unavailable")
         command = [rustup, "run", "stable", *command]
+    if (
+        command
+        and command[0] == "cargo"
+        and "-p" in command
+        and command[command.index("-p") + 1] == "scriberig"
+        and os.environ.get("FORGEJO_SERVER_URL")
+    ):
+        command.extend(
+            ["--no-default-features", "--features", "isolated-plugin-worker"]
+        )
     result = subprocess.run(command, cwd=cwd, check=False)
     if result.returncode:
         raise SystemExit(result.returncode)

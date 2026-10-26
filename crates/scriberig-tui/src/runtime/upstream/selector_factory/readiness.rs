@@ -18,6 +18,18 @@ pub(super) fn provider_status(
         .filter(|status| status.provider_id == provider)
         .map(|status| status.credential)
         .collect::<Vec<_>>();
+    let authentication = library
+        .provider_readiness
+        .iter()
+        .filter(|status| status.provider_id == provider)
+        .filter_map(|status| status.authentication)
+        .collect::<Vec<_>>();
+    if authentication.contains(&scriberig_protocol::ProviderAuthenticationStatus::Rejected) {
+        return "last request rejected by provider";
+    }
+    if authentication.contains(&scriberig_protocol::ProviderAuthenticationStatus::Accepted) {
+        return "last request accepted by provider";
+    }
     if statuses.is_empty() {
         return "credential status unavailable";
     }
@@ -60,6 +72,15 @@ pub(super) fn model_status(
     else {
         return "credential status unavailable";
     };
+    match status.authentication {
+        Some(scriberig_protocol::ProviderAuthenticationStatus::Accepted) => {
+            return "last request accepted by provider";
+        }
+        Some(scriberig_protocol::ProviderAuthenticationStatus::Rejected) => {
+            return "last request rejected by provider";
+        }
+        None => {}
+    }
     match status.credential {
         scriberig_protocol::ProviderCredentialReadiness::NotRequired => {
             "authentication not required"
@@ -88,4 +109,56 @@ pub(super) fn safe_selector_text(value: &str) -> String {
         .chars()
         .take(120)
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{model_status, provider_status};
+    use scriberig_protocol::{
+        ModelLibraryResponse, ProviderAuthenticationStatus, ProviderCredentialReadiness,
+        ProviderReadiness,
+    };
+
+    /// Builds a readiness projection with one upstream-authored outcome.
+    ///
+    /// # Parameters
+    /// - `authentication`: Latest provider-authenticated request outcome.
+    ///
+    /// # Returns
+    /// A one-row safe model-library response.
+    fn library(authentication: ProviderAuthenticationStatus) -> ModelLibraryResponse {
+        ModelLibraryResponse {
+            models: Vec::new(),
+            provider_readiness: vec![ProviderReadiness {
+                provider_id: "provider-a".to_owned(),
+                model_id: "model-a".to_owned(),
+                credential: ProviderCredentialReadiness::Available,
+                authentication: Some(authentication),
+            }],
+        }
+    }
+
+    /// Keeps provider rejection distinct from local credential availability.
+    #[test]
+    fn model_and_provider_rows_show_upstream_authentication_rejection() {
+        let library = library(ProviderAuthenticationStatus::Rejected);
+        assert_eq!(
+            model_status(&library, "provider-a", "model-a"),
+            "last request rejected by provider"
+        );
+        assert_eq!(
+            provider_status(&library, "provider-a"),
+            "last request rejected by provider"
+        );
+    }
+
+    /// Shows successful provider authentication separately from credential presence.
+    #[test]
+    fn model_status_shows_upstream_authentication_acceptance() {
+        let library = library(ProviderAuthenticationStatus::Accepted);
+        assert_eq!(
+            model_status(&library, "provider-a", "model-a"),
+            "last request accepted by provider"
+        );
+    }
 }

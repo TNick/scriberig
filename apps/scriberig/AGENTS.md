@@ -4,4 +4,6 @@ This directory is the Rust executable composition root for the integrated produc
 
 Keep substantive behavior out of this directory. The binary should assemble dependencies and delegate command parsing/mode selection to `scriberig-cli` and runtime behavior to the owning public crates. If logic becomes independently useful, move it into `crates/`.
 
+The shared source-size limit is 400 implementation lines. The lint configuration grants `src/native_tui_agent/runner.rs` a narrow 420-line ceiling because Rust requires the `AgentCommandRunner` trait implementation to remain a single implementation block. Keep its behavior delegated to focused `runner/` modules and do not extend this exception to neighboring files.
+
 The native command surface is expected to expose `tui`, `serve`, `run`, `agent`, and `maintenance` modes. A mode may exist first as a CLI stub, but documentation and help text must not imply that unimplemented runtime behavior is already available.

@@ -19,6 +19,8 @@ pub enum DiagnosticStage {
     Commit,
     /// Updated canonical state could not be rendered again.
     Rerender,
+    /// A projection style could not be resolved, normalized, or merged.
+    StyleResolution,
 }
 
 /// Classifies a projection diagnostic independently of presentation text.

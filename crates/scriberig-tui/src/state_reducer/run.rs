@@ -12,6 +12,14 @@ mod connection_restored;
 /// # Returns
 /// The operation result.
 pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
+    if !matches!(action, Action::CursorMoved(_))
+        || !matches!(
+            state.primary_view,
+            crate::selection::PrimaryView::Conversation | crate::selection::PrimaryView::Session
+        )
+    {
+        state.render_revision = state.render_revision.wrapping_add(1);
+    }
     if super::tail_actions::handles_tail_action(&action) {
         return reduce_tail(state, action).unwrap_or_default();
     }
@@ -98,10 +106,11 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             reduce(
                 state,
                 Action::ProjectionRequested {
-                    request: scriberig_app::RenderRequest {
-                        snapshot: scriberig_app::SnapshotSelector::Exact(snapshot),
-                        view: format!("project-source:{}", selection.entity),
-                    },
+                    request: super::project_source_request::project_source_request(
+                        snapshot,
+                        selection.entity,
+                        state.project.as_deref(),
+                    ),
                 },
             )
         }
@@ -326,6 +335,11 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             let request_id = state.next_request_id;
             state.next_request_id += 1;
             state.review = LoadState::Loading { request_id };
+            state.review_request = Some(scriberig_app::ApplyRequest {
+                base_snapshot: commit.base_snapshot,
+                branch: commit.branch.clone(),
+                change: commit.change.clone(),
+            });
             vec![Effect::Commit {
                 request_id,
                 request: scriberig_app::CommitRequest {
@@ -381,14 +395,8 @@ pub fn reduce(state: &mut TuiState, action: Action) -> Vec<Effect> {
             }]
         }
         Action::ReviewRequested { request } => {
-            let request_id = state.next_request_id;
-            state.next_request_id += 1;
             state.primary_view = crate::selection::PrimaryView::Changes;
-            state.review = LoadState::Loading { request_id };
-            vec![Effect::Apply {
-                request_id,
-                request,
-            }]
+            crate::state::state_actions::request_candidate_review(state, request)
         }
         Action::ConnectionRestored => connection_restored::reduce(state),
         _ => state_reducer_tail::reduce_tail(state, action).unwrap_or_default(),

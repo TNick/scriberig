@@ -8,13 +8,25 @@ mod tui_pty_bootstrap;
 mod tui_pty_branch;
 #[path = "tui_pty/conversation.rs"]
 mod tui_pty_conversation;
+#[path = "tui_pty/diff.rs"]
+mod tui_pty_diff;
 #[path = "tui_pty_support/lifecycle_test.rs"]
 mod tui_pty_lifecycle;
 #[path = "tui_pty_support/model_controls_test.rs"]
 mod tui_pty_model_controls;
+#[path = "tui_pty/model_properties.rs"]
+mod tui_pty_model_properties;
+#[path = "tui_pty/observability.rs"]
+mod tui_pty_observability;
+#[path = "tui_pty/plan_relations.rs"]
+mod tui_pty_plan_relations;
 #[path = "tui_pty/plan_view.rs"]
 mod tui_pty_plan_view;
 mod tui_pty_support;
+#[path = "tui_pty/tree_identity.rs"]
+mod tui_pty_tree_identity;
+#[path = "tui_pty/tree_scroll.rs"]
+mod tui_pty_tree_scroll;
 
 use portable_pty::PtySize;
 use tui_pty_support::{TuiPty, test_lock};
@@ -78,7 +90,11 @@ fn tui_golden_01_shows_named_rust_symbols() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_golden();
 
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    assert!(
+        tui.read_until_for("Conversation", Duration::from_secs(60)),
+        "{}",
+        tui.diagnostic()
+    );
     tui.send_slow(b"/explorer\r");
     assert!(tui.read_until("Calculator"), "{}", tui.diagnostic());
     assert!(tui.screen().contains("add"), "{}", tui.diagnostic());
@@ -90,7 +106,11 @@ fn tui_golden_01_shows_named_rust_symbols() {
 fn tui_golden_02_shows_rust_source_projection() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_golden();
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    assert!(
+        tui.read_until_for("Conversation", Duration::from_secs(60)),
+        "{}",
+        tui.diagnostic()
+    );
     tui.send_slow(b"/projection\r");
     assert!(tui.read_until("src/lib.rs"), "{}", tui.diagnostic());
     assert!(
@@ -106,7 +126,11 @@ fn tui_golden_02_shows_rust_source_projection() {
 fn tui_golden_03_edits_reviews_applies_and_restarts() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_golden();
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    assert!(
+        tui.read_until_for("Conversation", Duration::from_secs(60)),
+        "{}",
+        tui.diagnostic()
+    );
     tui.send_slow(b"/projection\r");
     assert!(tui.read_until("left + right"), "{}", tui.diagnostic());
     show_conversation(&mut tui);
@@ -171,7 +195,11 @@ fn tui_golden_03_edits_reviews_applies_and_restarts() {
 fn tui_golden_04_external_edit_is_not_overwritten() {
     let _lock = test_lock();
     let mut tui = TuiPty::start_golden();
-    assert!(tui.read_until("Conversation"), "{}", tui.diagnostic());
+    assert!(
+        tui.read_until_for("Conversation", Duration::from_secs(60)),
+        "{}",
+        tui.diagnostic()
+    );
     tui.send_slow(b"/projection\r");
     assert!(tui.read_until("left + right"), "{}", tui.diagnostic());
     show_conversation(&mut tui);

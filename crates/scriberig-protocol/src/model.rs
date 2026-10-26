@@ -122,6 +122,16 @@ pub enum ProviderCredentialReadiness {
     CatalogHeader,
 }
 
+/// Reports the latest provider-authenticated result for one model request.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProviderAuthenticationStatus {
+    /// The provider accepted authentication for a completed request.
+    Accepted,
+    /// The provider explicitly rejected authentication for a request.
+    Rejected,
+}
+
 /// Associates a provider identity with its safe credential readiness state.
 #[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 pub struct ProviderReadiness {
@@ -131,6 +141,10 @@ pub struct ProviderReadiness {
     pub model_id: String,
     /// Safe credential status derived from upstream and host authorization.
     pub credential: ProviderCredentialReadiness,
+    /// Latest upstream-authored authentication outcome for this catalog
+    /// generation, when a request has produced one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub authentication: Option<ProviderAuthenticationStatus>,
 }
 
 /// Returns safe model rows projected from the upstream catalog.

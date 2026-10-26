@@ -9,6 +9,54 @@ use scriberig_core::EntityId;
 
 /// Executes an accepted agent request through the composed product runtime.
 pub trait AgentCommandRunner<B: ApplicationBackend>: Send + Sync {
+    /// Returns upstream plugin commands available in the local product runtime.
+    ///
+    /// # Returns
+    /// Host-authorized plugin command metadata in upstream registration order.
+    fn plugin_commands(&self) -> Vec<rpi_extensions::isolated::WorkerCommandSpec> {
+        Vec::new()
+    }
+
+    /// Invokes one host-authorized upstream plugin command.
+    ///
+    /// - `command`: Exact normalized plugin command identity.
+    /// - `arguments`: Raw text following the command name.
+    ///
+    /// # Returns
+    /// The structured upstream plugin command response.
+    ///
+    /// # Errors
+    /// Returns a safe failure when the command is unavailable or rejected.
+    fn invoke_plugin_command(
+        &self,
+        command: &str,
+        arguments: &str,
+    ) -> Result<serde_json::Value, String> {
+        let _ = (command, arguments);
+        Err("plugin commands are unavailable".to_owned())
+    }
+
+    /// Continues one upstream plugin command after a response UI action.
+    ///
+    /// - `command`: Exact normalized plugin command identity.
+    /// - `arguments`: Original raw text following the command name.
+    /// - `action`: Structured selection or submitted text from its UI.
+    ///
+    /// # Returns
+    /// The next structured upstream plugin command response.
+    ///
+    /// # Errors
+    /// Returns a safe failure when the command is unavailable or rejected.
+    fn invoke_plugin_command_action(
+        &self,
+        command: &str,
+        arguments: &str,
+        action: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        let _ = action;
+        self.invoke_plugin_command(command, arguments)
+    }
+
     /// Reads provider-schema-backed model settings from the local runtime.
     ///
     /// This host-only control does not expose model schemas over the public
@@ -70,15 +118,20 @@ pub trait AgentCommandRunner<B: ApplicationBackend>: Send + Sync {
     /// Reports credential readiness for the configured provider models.
     ///
     /// Product runtimes may resolve readiness through their host-authorized
-    /// credential boundary. The result contains no secret material.
+    /// credential boundary. The result contains no secret material and carries
+    /// the catalog generation those rows were resolved from, so a surface can
+    /// avoid pairing readiness rows with model rows from another generation.
     ///
     /// - `self`: Runtime adapter owning provider configuration.
     ///
-    /// Safe per-model credential status rows, or an empty set when unavailable.
+    /// Safe per-model credential status with its catalog generation, or `None`
+    /// when this runtime has no host readiness source.
     /// # Returns
     /// Credential readiness rows safe for the model controls.
-    fn provider_readiness(&self) -> Vec<scriberig_protocol::ProviderReadiness> {
-        Vec::new()
+    fn provider_readiness(
+        &self,
+    ) -> Option<scriberig_agent_runtime::provider_readiness::ProviderReadinessProjection> {
+        None
     }
 
     /// Applies a plan lifecycle transition and advances it when supported.

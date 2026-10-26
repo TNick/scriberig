@@ -131,6 +131,61 @@ impl PlanScheduler {
         upstream_models: &[rpi_ai::Model],
         selection: &scriberig_session::SessionExecutionSelection,
         runtime_fallback: &str,
+        next_id: impl FnMut() -> EntityId,
+        compile_context: impl Fn(
+            &Plan,
+            &PlanNode,
+            &WorkerClaim,
+        ) -> Result<crate::plan_context::PlanWorkerContext, String>,
+        persist_claims: impl FnOnce(&Plan) -> Result<(), String>,
+    ) -> Result<WorkerBatchResult, String> {
+        Self::execute_dispatch_with_profile_context_persisted(
+            plan,
+            dispatch,
+            results,
+            executor,
+            upstream_models,
+            selection,
+            None,
+            runtime_fallback,
+            next_id,
+            compile_context,
+            persist_claims,
+        )
+    }
+
+    /// Executes workers with one exact profile supplied for selection resolution.
+    ///
+    /// - `plan`: Mutable authoritative plan projection.
+    /// - `dispatch`: Stable nodes selected by one scheduler tick.
+    /// - `results`: Existing durable results used for readiness checks.
+    /// - `executor`: Shared worker factory/provider boundary.
+    /// - `upstream_models`: Host-owned upstream model catalog.
+    /// - `selection`: Session-level model defaults.
+    /// - `profile`: Exact semantic profile for worker selection and context.
+    /// - `runtime_fallback`: Runtime model used when no selection is present.
+    /// - `next_id`: Allocates branch and claim identities.
+    /// - `compile_context`: Compiles semantic inputs for each claimed worker.
+    /// - `persist_claims`: Durably records running states before worker calls.
+    ///
+    /// Completed and failed nodes with result records for persistence.
+    ///
+    /// # Returns
+    /// The completed worker batch.
+    ///
+    /// # Errors
+    /// Returns an error before worker execution if resolution, claims, or
+    /// persistence fails.
+    #[allow(clippy::too_many_arguments)]
+    pub fn execute_dispatch_with_profile_context_persisted(
+        plan: &mut Plan,
+        dispatch: &[EntityId],
+        results: &[BranchResult],
+        executor: &impl PlanWorkerExecutor,
+        upstream_models: &[rpi_ai::Model],
+        selection: &scriberig_session::SessionExecutionSelection,
+        profile: Option<&scriberig_agent_core::AgentProfileDescriptor>,
+        runtime_fallback: &str,
         mut next_id: impl FnMut() -> EntityId,
         compile_context: impl Fn(
             &Plan,
@@ -144,6 +199,7 @@ impl PlanScheduler {
             dispatch,
             upstream_models,
             selection,
+            profile,
             runtime_fallback,
         )?;
         let claimed = execution_helpers::claim_workers(

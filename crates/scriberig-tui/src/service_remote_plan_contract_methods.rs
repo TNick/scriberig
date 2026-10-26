@@ -64,6 +64,26 @@ macro_rules! remote_plan_contract_methods {
             plan_operations::lifecycle(self, request, action)
         }
 
+        /// Applies a typed semantic plan mutation through the shared remote operation.
+        ///
+        /// - `_context`: Local context; remote authorization is transport-owned.
+        /// - `request`: Plan identity, observed revision, and typed mutation.
+        ///
+        /// The authoritative updated plan.
+        ///
+        /// Returns a sanitized remote application error.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
+        fn mutate_plan(
+            &self,
+            _context: &ApplicationContext,
+            request: &scriberig_app::PlanMutationRequest,
+        ) -> Result<scriberig_session::Plan, ApplicationError> {
+            plan_operations::mutate(self, request)
+        }
+
         /// Changes one node assignment through the shared remote operation.
         ///
         /// - `_context`: Local context; remote authorization is transport-owned.

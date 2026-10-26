@@ -4,7 +4,8 @@ use crate::coordinator::SyncCoordinator;
 use crate::{FailureStage, FileSystem, ImportCompletion, ImportRequest, IoError};
 use sr_projection::{
     ProjectionAdapter, ProjectionDiagnostic, ProjectionRef, ReconciliationContext,
-    ReconciliationOutcome, RenderRequest, RenderingContext, SemanticStateRef,
+    ReconciliationOutcome, RenderRequest, RenderingContext, ResolvedStyle, SemanticStateRef,
+    StyleRef, StyleResolutionError, invalid_style_diagnostic,
 };
 
 /// Error returned when adapter rendering or filesystem synchronization fails.
@@ -14,6 +15,8 @@ pub enum RenderError {
     Io(IoError),
     /// The adapter rejected the render request.
     Diagnostic(Box<ProjectionDiagnostic>),
+    /// The stored style reference could not be resolved to an exact value.
+    Style(StyleResolutionError),
 }
 
 impl std::fmt::Display for RenderError {
@@ -35,6 +38,7 @@ impl std::fmt::Display for RenderError {
             Self::Diagnostic(diagnostic) => {
                 write!(formatter, "adapter render failed: {diagnostic:?}")
             }
+            Self::Style(error) => write!(formatter, "projection style resolution failed: {error}"),
         }
     }
 }
@@ -42,7 +46,7 @@ impl std::fmt::Display for RenderError {
 impl std::error::Error for RenderError {}
 
 impl<F: FileSystem> SyncCoordinator<F> {
-    /// Renders a managed projection through its adapter and writes it atomically.
+    /// Renders a managed projection using the style recorded in its state.
     ///
     /// - `projection`: Projection to render.
     /// - `adapter`: Domain adapter that owns deterministic rendering.
@@ -60,18 +64,75 @@ impl<F: FileSystem> SyncCoordinator<F> {
             .find_projection(projection)
             .cloned()
             .ok_or(RenderError::Io(IoError::OwnershipDenied))?;
+        let style = ResolvedStyle::from_reference(&state.style).map_err(RenderError::Style)?;
+        self.render_managed_projection_with_style(projection, adapter, &style)
+    }
+
+    /// Renders a managed projection under one exact style supplied by the caller.
+    ///
+    /// Materialization is a shared purpose: the caller resolves the style once
+    /// (workspace materialization policy, never a personal preference or view
+    /// override) and hands the exact value down. The filesystem layer therefore
+    /// never consults configuration state, and personal style cannot reach a
+    /// materialized file through this path.
+    ///
+    /// - `projection`: Projection to render.
+    /// - `adapter`: Domain adapter that owns deterministic rendering.
+    /// - `style`: Exact resolved style the rendered bytes must carry.
+    ///
+    /// Unit after the file and synchronization state are updated. The recorded
+    /// style becomes the one used by later observation and import reconciliation,
+    /// so a style change cannot be reconciled against stale render identity.
+    ///
+    /// # Errors
+    /// Returns an adapter diagnostic or filesystem failure when rendering cannot
+    /// complete.
+    pub fn render_managed_projection_with_style<A: ProjectionAdapter>(
+        &mut self,
+        projection: ProjectionRef,
+        adapter: &A,
+        style: &ResolvedStyle,
+    ) -> Result<(), RenderError> {
+        let state = self
+            .states()
+            .find_projection(projection)
+            .cloned()
+            .ok_or(RenderError::Io(IoError::OwnershipDenied))?;
         let request = RenderRequest {
             specification: state.specification,
             scope: state.scope,
             base_state: state.current,
             kind: state.kind,
-            style: state.style,
+            style: style.clone(),
             renderer: state.renderer,
             context: RenderingContext::default(),
         };
         let rendered = adapter.render(&request).map_err(RenderError::Diagnostic)?;
         self.write_rendered(projection, &rendered.bytes, state.current)
-            .map_err(RenderError::Io)
+            .map_err(RenderError::Io)?;
+        self.record_style(projection, style)
+    }
+
+    /// Records the exact style one successful render used.
+    ///
+    /// - `projection`: Projection whose state recorded the render.
+    /// - `style`: Exact style value the rendered bytes carry.
+    ///
+    /// # Returns
+    /// Unit when the state was updated.
+    ///
+    /// # Errors
+    /// Returns an ownership error when the projection state disappeared.
+    fn record_style(
+        &mut self,
+        projection: ProjectionRef,
+        style: &ResolvedStyle,
+    ) -> Result<(), RenderError> {
+        let Some(state) = self.states_mut().find_projection_mut(projection) else {
+            return Err(RenderError::Io(IoError::OwnershipDenied));
+        };
+        state.style = StyleRef::Value(style.value().clone());
+        Ok(())
     }
 
     /// Runs the adapter import lifecycle and synchronizes an accepted result.
@@ -190,12 +251,32 @@ impl<F: FileSystem> SyncCoordinator<F> {
         adapter: &A,
         base: SemanticStateRef,
     ) -> Result<(), IoError> {
+        let resolved_style = ResolvedStyle::from_reference(&request.style);
+        let style = match resolved_style {
+            Ok(style) => style,
+            Err(error) => {
+                let diagnostic = invalid_style_diagnostic(
+                    &request.kind,
+                    "unresolved-style-reference",
+                    &error.to_string(),
+                    Vec::new(),
+                );
+                return self.complete_import(
+                    request.projection,
+                    ImportCompletion::Failed {
+                        request,
+                        stage: FailureStage::Rerender,
+                        diagnostic,
+                    },
+                );
+            }
+        };
         let render_request = RenderRequest {
             specification: request.specification,
             scope: request.scope,
             base_state: base,
             kind: request.kind.clone(),
-            style: request.style.clone(),
+            style,
             renderer: request.renderer.clone(),
             context: RenderingContext::default(),
         };

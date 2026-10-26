@@ -17,7 +17,7 @@ pub struct ProjectAgentTool {
     pub(super) snapshot: SnapshotId,
 }
 
-impl Tool for ProjectAgentTool {
+impl Tool<ApplicationContext> for ProjectAgentTool {
     /// Returns the project-agent tool name.
     ///
     /// Stable provider-facing tool name.

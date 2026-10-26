@@ -2,42 +2,6 @@
 
 macro_rules! tui_operation_contract_methods {
     () => {
-        /// Lists current shared application operation records.
-        ///
-        /// - `_context`: Application context for operation visibility.
-        ///
-        /// Current application operation records.
-        ///
-        /// This local adapter has no separate listing failure path.
-        /// # Returns
-        /// The operation result.
-        /// # Errors
-        /// Returns an error when the operation fails.
-        fn operation_records(
-            &self,
-            _context: &ApplicationContext,
-        ) -> Result<Vec<scriberig_app::OperationRecord>, ApplicationError> {
-            Ok(self.service.operations().list())
-        }
-
-        /// Returns lifecycle events retained by the shared application registry.
-        ///
-        /// - `_context`: Application context for event access.
-        ///
-        /// Retained application events.
-        ///
-        /// This adapter does not return an event access error.
-        /// # Returns
-        /// The operation result.
-        /// # Errors
-        /// Returns an error when the operation fails.
-        fn application_events(
-            &self,
-            _context: &ApplicationContext,
-        ) -> Result<Vec<scriberig_app::ApplicationEvent>, ApplicationError> {
-            Ok(service_operation_helpers::application_events(self))
-        }
-
         /// Reads a session through the shared application boundary.
         ///
         /// - `context`: Application context for the request.

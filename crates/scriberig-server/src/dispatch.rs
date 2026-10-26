@@ -1,5 +1,7 @@
 //! Dispatches protocol requests through the injected application boundary.
 
+#[path = "dispatch/agent.rs"]
+mod agent;
 mod agent_console;
 mod helpers;
 mod inspect;
@@ -83,9 +85,33 @@ impl<S: ApplicationService> Dispatcher<S> {
         request: RequestEnvelope,
         plan_lifecycle_handler: Option<&crate::http::PlanLifecycleHandler<S>>,
     ) -> ResponseEnvelope {
+        self.dispatch_with_runtime_handlers(request, None, plan_lifecycle_handler)
+    }
+
+    /// Dispatches a request through the configured host agent and plan runtimes.
+    ///
+    /// - `request`: Correlated protocol envelope.
+    /// - `agent_execution_handler`: Trusted product runtime for agent requests.
+    /// - `plan_lifecycle_handler`: Trusted plan worker runtime, when configured.
+    ///
+    /// Correlated typed response or structured error.
+    #[must_use]
+    /// # Returns
+    /// The operation result.
+    pub fn dispatch_with_runtime_handlers(
+        &self,
+        request: RequestEnvelope,
+        agent_execution_handler: Option<&crate::http::AgentExecutionHandler<S>>,
+        plan_lifecycle_handler: Option<&crate::http::PlanLifecycleHandler<S>>,
+    ) -> ResponseEnvelope {
         let correlation_id = request.correlation_id.clone();
         let response = if request.version.major == ProtocolVersion::default().major {
-            self.dispatch_request(request.request, &correlation_id, plan_lifecycle_handler)
+            self.dispatch_request(
+                request.request,
+                &correlation_id,
+                agent_execution_handler,
+                plan_lifecycle_handler,
+            )
         } else {
             Response::Error(ProtocolError {
                 code: ProtocolErrorCode::UnsupportedVersion,
@@ -105,6 +131,7 @@ impl<S: ApplicationService> Dispatcher<S> {
     ///
     /// - `request`: Version-validated typed request.
     /// - `correlation_id`: Request correlation identity.
+    /// - `agent_execution_handler`: Optional trusted host agent runtime.
     /// - `plan_lifecycle_handler`: Optional trusted plan runtime.
     ///
     /// Typed protocol response.
@@ -115,6 +142,7 @@ impl<S: ApplicationService> Dispatcher<S> {
         &self,
         request: Request,
         correlation_id: &str,
+        agent_execution_handler: Option<&crate::http::AgentExecutionHandler<S>>,
         plan_lifecycle_handler: Option<&crate::http::PlanLifecycleHandler<S>>,
     ) -> Response {
         match request {
@@ -169,15 +197,12 @@ impl<S: ApplicationService> Dispatcher<S> {
                     "selection": request.selection,
                 }),
                 None,
+                agent_execution_handler,
                 correlation_id,
             ),
-            Request::AgentNewSession(request) => self
-                .service
-                .agent_new_session(&command_context("agent_start"), &request)
-                .map_or_else(
-                    |error| Response::Error(helpers::map_error(&error, correlation_id)),
-                    Response::AgentAccepted,
-                ),
+            Request::AgentNewSession(request) => {
+                self.agent_new_session(&request, agent_execution_handler, correlation_id)
+            }
             Request::AgentContinue(request) => self.agent_command(
                 "agent_continue",
                 &serde_json::json!({
@@ -187,15 +212,12 @@ impl<S: ApplicationService> Dispatcher<S> {
                     "selection": request.selection,
                 }),
                 Some((&request.session, &request.branch)),
+                agent_execution_handler,
                 correlation_id,
             ),
-            Request::AgentContinueAt(request) => self
-                .service
-                .agent_continue_at(&command_context("agent_continue"), &request)
-                .map_or_else(
-                    |error| Response::Error(helpers::map_error(&error, correlation_id)),
-                    Response::AgentAccepted,
-                ),
+            Request::AgentContinueAt(request) => {
+                self.agent_continue_at(&request, agent_execution_handler, correlation_id)
+            }
             Request::PlanCreate(request) => {
                 self.plan_request(&Request::PlanCreate(request), correlation_id, None)
             }
@@ -265,6 +287,19 @@ impl<S: ApplicationService> Dispatcher<S> {
             Request::SessionThinkingSelection(request) => {
                 agent_console::set_thinking(&self.service, &request, correlation_id)
             }
+            Request::LegacyExecutionRecords(request) => {
+                agent_console::legacy_execution_records(&self.service, &request, correlation_id)
+            }
+            Request::LegacyExecutionMapping(request) => {
+                agent_console::map_legacy_execution_selection(
+                    &self.service,
+                    &request,
+                    correlation_id,
+                )
+            }
+            Request::LegacyPlanAssignmentMapping(request) => {
+                agent_console::map_legacy_plan_assignment(&self.service, &request, correlation_id)
+            }
             Request::Project(_) => Response::Error(ProtocolError {
                 code: ProtocolErrorCode::UnsupportedOperation,
                 message: "project operations require the HTTP project catalog".to_owned(),
@@ -303,71 +338,5 @@ impl<S: ApplicationService> Dispatcher<S> {
                 enabled: true,
             }],
         })
-    }
-
-    /// Dispatches one typed agent request through the shared command boundary.
-    ///
-    /// - `kind`: Stable agent operation identifier.
-    /// - `payload`: Provider-neutral request payload.
-    /// - `references`: Session and optional branch references for the response.
-    /// - `correlation_id`: Request correlation identity.
-    ///
-    /// Typed accepted agent response or protocol error.
-    /// # Returns
-    /// The operation result.
-    fn agent_command(
-        &self,
-        kind: &str,
-        payload: &serde_json::Value,
-        references: Option<(
-            &scriberig_protocol::SessionReference,
-            &scriberig_protocol::BranchReference,
-        )>,
-        correlation_id: &str,
-    ) -> Response {
-        if !self
-            .service
-            .capabilities()
-            .iter()
-            .any(|capability| capability.id.as_str() == kind && capability.available)
-        {
-            return Response::Error(helpers::map_error(
-                &scriberig_app::ApplicationError::UnsupportedOperation {
-                    operation: kind.to_owned(),
-                },
-                correlation_id,
-            ));
-        }
-        let session = references.as_ref().map_or_else(
-            || {
-                payload
-                    .get("session")
-                    .and_then(serde_json::Value::as_str)
-                    .unwrap_or_default()
-                    .to_owned()
-            },
-            |(session, _)| session.id.clone(),
-        );
-        self.service
-            .command(&command_context(kind), kind, payload)
-            .map_or_else(
-                |error| Response::Error(helpers::map_error(&error, correlation_id)),
-                |operation| {
-                    let branch = references.map(|(_, branch)| branch.clone()).or_else(|| {
-                        self.service
-                            .read_session(&command_context("session_branch_tree"), &session)
-                            .ok()
-                            .and_then(|value| value.branches.last().cloned())
-                            .map(|branch| scriberig_protocol::BranchReference {
-                                id: branch.id.clone(),
-                            })
-                    });
-                    Response::AgentAccepted(scriberig_protocol::AgentAcceptedResponse {
-                        operation: OperationStatusResponse { operation },
-                        session: scriberig_protocol::SessionReference { id: session },
-                        branch,
-                    })
-                },
-            )
     }
 }

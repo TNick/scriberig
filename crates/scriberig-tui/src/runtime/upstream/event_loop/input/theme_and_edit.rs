@@ -6,6 +6,8 @@ use std::sync::Arc;
 use rpi_tui::Component;
 use rpi_tui::tui::{OverlayOptions, SizeValue};
 
+use crate::service::TuiService;
+
 use super::super::super::components::HelpPanel;
 use super::{ComposerInput, Focusable, InputContext, TUI};
 
@@ -20,8 +22,12 @@ use super::{ComposerInput, Focusable, InputContext, TUI};
 ///
 /// # Errors
 /// Returns an error when shared state locking fails.
-pub(super) fn handle<S>(context: InputContext<'_, '_, S>, input: ComposerInput) -> io::Result<()> {
+pub(super) fn handle<S: TuiService + Sync>(
+    context: InputContext<'_, '_, S>,
+    input: ComposerInput,
+) -> io::Result<()> {
     let InputContext {
+        service,
         state,
         screen,
         editor,
@@ -67,7 +73,10 @@ pub(super) fn handle<S>(context: InputContext<'_, '_, S>, input: ComposerInput) 
             if focus_before_overlay.is_none() {
                 *focus_before_overlay = screen.get_focus();
             }
-            let panel: Arc<dyn Component> = Arc::new(HelpPanel::new(input_sender.clone()));
+            let panel: Arc<dyn Component> = Arc::new(HelpPanel::new(
+                input_sender.clone(),
+                &service.plugin_commands(),
+            ));
             screen.show_overlay(
                 Arc::clone(&panel),
                 Some(OverlayOptions {

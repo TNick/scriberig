@@ -59,7 +59,7 @@ pub(super) async fn run_branch_with_semantic_broker<'a, B>(
     continuation: Option<rpi_ai::ProviderContinuation>,
 ) -> Result<UpstreamBranchExecution, UpstreamBranchExecutionFailure>
 where
-    B: ApplicationBackend + Sync + 'a,
+    B: ApplicationBackend + Send + Sync + 'static + 'a,
 {
     if invocation.branch != scope.parent_branch || scope.session != session {
         return Err(failure(
@@ -87,6 +87,16 @@ where
         &capabilities,
         invocation.branch,
         &sender,
+    )?;
+    #[cfg(feature = "isolated-plugin-worker")]
+    let tools = super::plugin_execution::append_plugin_tools(
+        tools,
+        service,
+        &context,
+        invocation.branch,
+        &project_store,
+        &invocation,
+        &evidence,
     )?;
     drop(sender);
     let broker_invocation = delegation::invocation_without_tools(&invocation);
@@ -158,11 +168,17 @@ where
 /// - `branch`: Canonical `ScribeRig` branch identity.
 /// - `sender`: Owned channel captured by upstream `'static` tool adapters.
 ///
-/// This boundary intentionally accepts only `ToolCatalog` descriptors. Do not
-/// merge `rpi-extensions` registrations here: native plugins run in process at
-/// the pinned API and can bypass `ScribeRig`'s broker through ambient access.
-/// The host currently rejects their activation before they can reach this
-/// broker; keep this type restriction when an isolated upstream worker arrives.
+/// This boundary intentionally accepts only `ToolCatalog` descriptors. An
+/// `rpi-extensions` registration never enters here: the only worker-tool path
+/// into a branch tool set is
+/// `scriberig_agent_runtime::plugin_worker::compose_branch_plugin_tools`, which
+/// starts a worker only under an explicitly injected verified sandbox launcher
+/// and a host tool allowlist, then uses `PluginToolBridge` to merge
+/// host-stamped worker descriptors, reauthorize each call against the branch
+/// capability snapshot, and require an OS-sandbox attestation. Product
+/// composition stays closed until the host injects the runtime-verified
+/// launcher together with package authorization, host dispatch policy, and
+/// branch grants, so keep this parameter list semantic-only.
 ///
 /// # Returns
 /// Upstream adapters for every visible descriptor.
@@ -227,7 +243,7 @@ fn build_tools(
 ///
 /// # Returns
 /// The branch failure value.
-fn failure(
+pub(super) fn failure(
     error: scriberig_agent_runtime::upstream_invocation::UpstreamBranchError,
     model_requests: Vec<scriberig_session::ModelRequestProjection>,
 ) -> UpstreamBranchExecutionFailure {
@@ -284,3 +300,7 @@ impl Drop for ActiveBranchGuard<'_> {
             .fetch_sub(1, std::sync::atomic::Ordering::AcqRel);
     }
 }
+
+#[cfg(test)]
+#[path = "execution/active_branch_tests.rs"]
+mod active_branch_tests;

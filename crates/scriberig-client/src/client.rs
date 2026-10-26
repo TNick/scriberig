@@ -13,6 +13,8 @@ use scriberig_protocol::{
 
 #[path = "client_agent.rs"]
 mod client_agent;
+#[path = "client_agent_recovery.rs"]
+mod client_agent_recovery;
 #[path = "client_project.rs"]
 mod client_project;
 #[path = "client_session.rs"]

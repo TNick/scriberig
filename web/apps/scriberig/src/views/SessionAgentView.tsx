@@ -26,29 +26,8 @@ import type {
 } from "@scriberig/protocol";
 import { useEffect, useMemo, useState, useSyncExternalStore, type ReactElement } from "react";
 import { capabilityAvailable, type AppRuntime, type ProjectCandidate } from "../runtime";
-
-const SESSION_STORAGE_KEY = "scriberig.agent.session";
 const OPERATION_STORAGE_KEY = "scriberig.agent.operation";
-
-/** Creates one browser-owned session identity for the view lifetime.
- * @returns A transport-safe session identifier.
- */
-function createSessionId(): SessionId {
-  try {
-    const stored = globalThis.sessionStorage?.getItem(SESSION_STORAGE_KEY);
-    if (stored) return stored as SessionId;
-  } catch {
-    // Browser storage may be unavailable; the generated identity remains valid.
-  }
-  const generated = globalThis.crypto?.randomUUID?.();
-  const sessionId = (generated ?? `session-${Date.now().toString(36)}`) as SessionId;
-  try {
-    globalThis.sessionStorage?.setItem(SESSION_STORAGE_KEY, sessionId);
-  } catch {
-    // Browser storage may be unavailable; retain the in-memory identity.
-  }
-  return sessionId;
-}
+import { getOrCreateSessionId } from "../session-id";
 
 /** Converts the shared semantic selection into the agent request shape.
  * @param selection Current semantic selection.
@@ -88,7 +67,7 @@ export function SessionAgentView({
     model.getAgentState.bind(model),
     model.getAgentState.bind(model),
   );
-  const [sessionId] = useState(createSessionId);
+  const [sessionId] = useState(getOrCreateSessionId);
   const [activeOperationId, setActiveOperationId] = useState<OperationId>();
   const [activeBranchId, setActiveBranchId] = useState<BranchId>();
   const [prompt, setPrompt] = useState("");

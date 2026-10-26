@@ -359,6 +359,6 @@ pub use backend::SessionBackend;
 #[path = "session/agent_console.rs"]
 mod agent_console;
 pub use agent_console::{
-    AgentConsoleBackend, SessionModelSelectionRequest, SessionThinkingSelectionRequest,
-    ToolResultDetail,
+    AgentConsoleBackend, LegacyExecutionMappingRequest, LegacyPlanAssignmentMappingRequest,
+    SessionModelSelectionRequest, SessionThinkingSelectionRequest, ToolResultDetail,
 };

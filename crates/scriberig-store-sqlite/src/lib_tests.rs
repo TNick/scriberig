@@ -4,6 +4,26 @@ use super::*;
 use scriberig_core::{EntityId, ProjectId, RevisionId, RootName};
 use scriberig_store::{RootStore, SnapshotChange};
 
+/// Verifies the store exposes its resolved database path to sandbox policy.
+#[test]
+fn database_path_reports_file_backed_and_in_memory_storage() {
+    let path = std::env::temp_dir().join(format!(
+        "scriberig-store-path-{}.sqlite",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_file(&path);
+    let file_store = SqliteStore::open(&path).expect("file-backed store");
+    assert_eq!(
+        file_store.database_path().expect("database path"),
+        Some(path.canonicalize().expect("canonical database path"))
+    );
+    drop(file_store);
+    std::fs::remove_file(&path).expect("remove temporary database");
+
+    let memory_store = SqliteStore::open_in_memory().expect("in-memory store");
+    assert_eq!(memory_store.database_path().expect("database path"), None);
+}
+
 /// Verifies an interrupted transaction does not publish prepared content.
 #[test]
 fn interrupted_promotion_keeps_previous_root() {

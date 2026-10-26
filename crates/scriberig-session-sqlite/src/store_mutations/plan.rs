@@ -1,6 +1,6 @@
 //! Persists plan branches and delegates canonical plan writes to semantic roots.
 
-use rusqlite::{TransactionBehavior, params};
+use rusqlite::{Transaction, params};
 use scriberig_core::EntityId;
 use scriberig_session::{PlanStoreError, Session, SessionStore};
 
@@ -61,8 +61,21 @@ impl SqliteSessionStore {
             });
         }
         let previous_plan = current_plan.clone();
-        self.merge_session_branches(session, &previous_plan, proposed, expected_revision)?;
-        self.compare_and_swap_semantic_plan(session.id, proposed, expected_revision)?;
+        self.compare_and_swap_semantic_plan(
+            session.id,
+            proposed,
+            expected_revision,
+            |transaction| {
+                Self::merge_session_branches_in_transaction(
+                    transaction,
+                    session,
+                    &previous_plan,
+                    proposed,
+                    expected_revision,
+                )
+                .map_err(|error| format!("{error:?}"))
+            },
+        )?;
         if let Ok(Some(updated)) = SessionStore::load(self, session.id) {
             if let Some(plan) = updated.plans.iter().find(|plan| plan.id == plan_id) {
                 let _ = self.update_plan_rollup_index_after_cas(session.id, &previous_plan, plan);
@@ -71,34 +84,28 @@ impl SqliteSessionStore {
         Ok(())
     }
 
-    /// Merges branches changed by one plan mutation before promoting its root.
+    /// Merges changed branches in the transaction that promotes the plan root.
     ///
     /// # Parameters
-    /// - `self`: SQLite session repository.
+    /// - `transaction`: Active semantic-root promotion transaction.
     /// - `session`: Caller projection containing the affected branch records.
     /// - `previous_plan`: Plan revision currently stored by the repository.
     /// - `proposed_plan`: Plan revision being committed.
     /// - `expected_revision`: Plan revision observed before the mutation.
     ///
     /// # Returns
-    /// Unit after the compatibility session projection transaction commits.
+    /// Unit after the compatibility session projection write is staged.
     ///
     /// # Errors
-    /// Returns a persistence diagnostic for an invalid revision or SQL failure.
-    fn merge_session_branches(
-        &self,
+    /// Returns a persistence diagnostic for an invalid revision or SQL failure;
+    /// the outer root-promotion transaction rolls back both writes on error.
+    pub(super) fn merge_session_branches_in_transaction(
+        transaction: &Transaction<'_>,
         session: &Session,
         previous_plan: &scriberig_session::Plan,
         proposed_plan: &scriberig_session::Plan,
         expected_revision: u64,
     ) -> Result<(), PlanStoreError> {
-        let mut connection = self
-            .connection
-            .lock()
-            .map_err(|_| PlanStoreError::Persistence("session lock poisoned".to_owned()))?;
-        let transaction = connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(|error| PlanStoreError::Persistence(error.to_string()))?;
         let payload = transaction
             .query_row(
                 "SELECT payload FROM session_records WHERE session_id=?1",
@@ -175,10 +182,153 @@ impl SqliteSessionStore {
                 params![session.id.as_bytes().as_slice(), payload],
             )
             .map_err(|error| PlanStoreError::Persistence(error.to_string()))?;
-        transaction
-            .commit()
-            .map_err(|error| PlanStoreError::Persistence(error.to_string()))?;
-        drop(connection);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    //! Verifies plan-root and session-branch writes share one transaction.
+
+    use super::SqliteSessionStore;
+    use scriberig_core::EntityId;
+    use scriberig_session::{
+        Branch, Plan, PlanStatus, Session, SessionExecutionSelection, SessionStore,
+    };
+
+    /// Builds a valid running plan and its owning root branch.
+    ///
+    /// - `session_id`: Stable owning session identity.
+    /// - `plan_id`: Stable plan identity.
+    /// - `root_branch`: Existing branch that owns the plan.
+    ///
+    /// # Returns
+    /// A session containing the running plan and its root branch.
+    fn running_session(session_id: EntityId, plan_id: EntityId, root_branch: EntityId) -> Session {
+        let mut plan = Plan::new(
+            plan_id,
+            session_id,
+            scriberig_session::ContinuationAnchor::BranchHead {
+                branch: root_branch,
+            },
+            "atomic settlement",
+        )
+        .expect("create plan");
+        plan.transition(PlanStatus::Planned).expect("plan plan");
+        plan.transition(PlanStatus::Running).expect("start plan");
+        Session {
+            id: session_id,
+            branches: vec![Branch::new(root_branch, "root").expect("root branch")],
+            goals: Vec::new(),
+            tasks: Vec::new(),
+            plans: vec![plan],
+            execution: SessionExecutionSelection::default(),
+        }
+    }
+
+    /// Rolls back branch projection changes when semantic root promotion fails.
+    #[test]
+    fn root_promotion_failure_rolls_back_session_branch_projection() {
+        let session_id = EntityId::from_bytes([81; 16]);
+        let root_branch = EntityId::from_bytes([82; 16]);
+        let worker_branch = EntityId::from_bytes([83; 16]);
+        let plan_id = EntityId::from_bytes([84; 16]);
+        let store = SqliteSessionStore::open_in_memory().expect("open store");
+        store
+            .save(&running_session(session_id, plan_id, root_branch))
+            .expect("save initial session");
+        let mut proposed = store
+            .load(session_id)
+            .expect("load initial session")
+            .expect("stored session");
+        let expected_revision = proposed.plans[0].revision;
+        proposed.plans[0]
+            .transition(PlanStatus::Paused)
+            .expect("pause plan");
+        proposed.branches.push(
+            Branch::new_child(worker_branch, root_branch, "worker", "work").expect("worker branch"),
+        );
+        {
+            let connection = store.connection.lock().expect("session connection");
+            connection
+                .execute_batch(
+                    "CREATE TRIGGER reject_plan_root_update
+                     BEFORE UPDATE ON roots
+                     BEGIN SELECT RAISE(ABORT, 'injected root promotion failure'); END;",
+                )
+                .expect("install root failure trigger");
+        }
+
+        assert!(
+            store
+                .compare_and_swap_plan(&proposed, plan_id, expected_revision)
+                .is_err()
+        );
+
+        let reloaded = store
+            .load(session_id)
+            .expect("reload after rejected promotion")
+            .expect("stored session");
+        assert_eq!(reloaded.plans[0].revision, expected_revision);
+        assert_eq!(reloaded.plans[0].status, PlanStatus::Running);
+        assert!(
+            !reloaded
+                .branches
+                .iter()
+                .any(|branch| branch.id == worker_branch)
+        );
+    }
+
+    /// Rolls back semantic root changes when session projection update fails.
+    #[test]
+    fn session_projection_failure_rolls_back_semantic_root_promotion() {
+        let session_id = EntityId::from_bytes([91; 16]);
+        let root_branch = EntityId::from_bytes([92; 16]);
+        let worker_branch = EntityId::from_bytes([93; 16]);
+        let plan_id = EntityId::from_bytes([94; 16]);
+        let store = SqliteSessionStore::open_in_memory().expect("open store");
+        store
+            .save(&running_session(session_id, plan_id, root_branch))
+            .expect("save initial session");
+        let mut proposed = store
+            .load(session_id)
+            .expect("load initial session")
+            .expect("stored session");
+        let expected_revision = proposed.plans[0].revision;
+        proposed.plans[0]
+            .transition(PlanStatus::Paused)
+            .expect("pause plan");
+        proposed.branches.push(
+            Branch::new_child(worker_branch, root_branch, "worker", "work").expect("worker branch"),
+        );
+        {
+            let connection = store.connection.lock().expect("session connection");
+            connection
+                .execute_batch(
+                    "CREATE TRIGGER reject_session_projection_update
+                     BEFORE UPDATE ON session_records
+                     BEGIN SELECT RAISE(ABORT, 'injected session projection failure'); END;",
+                )
+                .expect("install session failure trigger");
+        }
+
+        assert!(
+            store
+                .compare_and_swap_plan(&proposed, plan_id, expected_revision)
+                .is_err()
+        );
+
+        let reloaded = store
+            .load(session_id)
+            .expect("reload after rejected projection")
+            .expect("stored session");
+        assert_eq!(reloaded.plans[0].revision, expected_revision);
+        assert_eq!(reloaded.plans[0].status, PlanStatus::Running);
+        assert!(
+            !reloaded
+                .branches
+                .iter()
+                .any(|branch| branch.id == worker_branch)
+        );
     }
 }

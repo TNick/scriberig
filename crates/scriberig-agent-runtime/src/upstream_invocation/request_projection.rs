@@ -18,6 +18,10 @@ use fingerprint::{
     RequestFingerprintInput, request_fingerprint_for, request_fingerprint_with_model_execution,
 };
 
+#[path = "request_projection/image_fingerprint.rs"]
+mod image_fingerprint;
+use image_fingerprint::image_fingerprints;
+
 #[cfg(test)]
 #[path = "request_projection/tests.rs"]
 mod tests;
@@ -85,6 +89,7 @@ pub(super) fn capture_provider_request(
         })
         .collect::<Vec<_>>();
     let context_fingerprint = Some(context_fingerprint_for(compiled_context));
+    let image_fingerprints = image_fingerprints(provider_context);
     let provider_profile = provider_profile.map(str::to_owned);
     let thinking_level = thinking_level.as_str().to_owned();
     let request_fingerprint = request_fingerprint_for(&RequestFingerprintInput {
@@ -92,6 +97,7 @@ pub(super) fn capture_provider_request(
         thinking_level: &thinking_level,
         messages: &messages.full,
         tools: &tools.full,
+        image_fingerprints: &image_fingerprints,
         provider_profile: provider_profile.as_deref(),
         profile: profile.as_ref(),
         active_components: &active_components,
@@ -107,6 +113,9 @@ pub(super) fn capture_provider_request(
         active_components,
         context_fingerprint,
         request_fingerprint: Some(request_fingerprint),
+        catalog_revision: None,
+        upstream_runtime_revision: None,
+        provider_response_id: None,
         model_execution_configuration: None,
         messages: messages.durable,
         full_messages: Some(messages.full),

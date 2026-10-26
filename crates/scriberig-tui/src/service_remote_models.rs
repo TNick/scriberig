@@ -1,6 +1,7 @@
 //! Adapts remote model-library and execution-selection protocol calls.
 
 use super::{ApplicationError, RemoteAdapter};
+use scriberig_app::RuntimeCapability;
 use scriberig_protocol::ProtocolTransport;
 
 /// Reads runtime capability descriptors from the remote client.
@@ -12,7 +13,7 @@ use scriberig_protocol::ProtocolTransport;
 /// Returns a protocol capability-discovery error.
 pub(super) fn runtime_capabilities<T: ProtocolTransport>(
     adapter: &RemoteAdapter<T>,
-) -> Result<Vec<super::RuntimeCapability>, ApplicationError> {
+) -> Result<Vec<RuntimeCapability>, ApplicationError> {
     adapter
         .client
         .capabilities()
@@ -22,7 +23,7 @@ pub(super) fn runtime_capabilities<T: ProtocolTransport>(
                 .capabilities
                 .into_iter()
                 .filter_map(|capability| {
-                    Some(super::RuntimeCapability {
+                    Some(RuntimeCapability {
                         id: scriberig_app::CapabilityId::new(capability.id).ok()?,
                         description: capability.description,
                         available: capability.available,

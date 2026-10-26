@@ -331,5 +331,9 @@ fn committed_candidate_refreshes_active_snapshot() {
     );
 }
 
+#[path = "state_late_tests/candidate_review.rs"]
+mod candidate_review;
+#[path = "state_late_tests/candidate_review_support.rs"]
+mod candidate_review_support;
 #[path = "state_late_tests/operations.rs"]
 mod operations;

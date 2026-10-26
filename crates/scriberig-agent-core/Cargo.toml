@@ -8,11 +8,9 @@ description = "Reusable agent-facing tools, capabilities, semantic navigation, a
 repository.workspace = true
 
 [dependencies]
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 scriberig-core = { path = "../scriberig-core" }
-scriberig-app = { path = "../scriberig-app" }
-scriberig-protocol = { path = "../scriberig-protocol" }
-scriberig-session = { path = "../scriberig-session" }
 
 [lints]
 workspace = true

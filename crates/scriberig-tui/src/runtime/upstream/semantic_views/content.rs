@@ -58,7 +58,7 @@ fn conversation(state: &TuiState) -> String {
                 && state.prompt_visibility == crate::state::PromptVisibility::Shown
                 && let Some(detail) = state.model_request_details.get(&invocation)
             {
-                append_model_request(&mut output, detail);
+                super::details::append_model_request(&mut output, detail);
             }
         }
         if model.rows.len() > MAX_ROWS {
@@ -84,6 +84,14 @@ fn conversation(state: &TuiState) -> String {
     }
     if let Some(error) = state.conversation_composer.error.as_deref() {
         append_status(&mut output, "Error", error, SemanticRole::Error);
+    }
+    if let Some(recovery) = state.recovery_message.as_deref() {
+        append_status(
+            &mut output,
+            "Legacy recovery",
+            recovery,
+            SemanticRole::Neutral,
+        );
     }
     if state.conversation.is_none() && state.conversation_composer.pending_prompt.is_none() {
         append_value(&mut output, "Type a message to start a conversation.");
@@ -169,62 +177,24 @@ fn append_plan_graphs(output: &mut String, state: &TuiState) {
     }
 }
 
-/// Shows a safe provider-neutral request only when prompt visibility is enabled.
-///
-/// - `output`: Conversation content receiving the captured request details.
-/// - `detail`: Safe request projection associated with a stable invocation ID.
-fn append_model_request(
-    output: &mut String,
-    detail: &scriberig_protocol::ModelRequestDetailResponse,
-) {
-    append_value(
-        output,
-        &format!(
-            "Effective request · {} · {}",
-            detail.invocation, detail.model
-        ),
-    );
-    if let Some(provider) = &detail.provider_id {
-        append_value(output, &format!("Provider: {provider}"));
-    }
-    if let Some(thinking) = &detail.thinking_level {
-        append_value(output, &format!("Thinking level: {thinking}"));
-    }
-    if let Some(profile) = &detail.profile {
-        append_value(
-            output,
-            &format!(
-                "Profile revision: {} @ {}",
-                profile.identity, profile.revision
-            ),
-        );
-    }
-    for component in detail.active_components.iter().take(64) {
-        append_value(
-            output,
-            &format!(
-                "Context component: {} @ {}",
-                component.identity, component.revision
-            ),
-        );
-    }
-    for message in detail.messages.iter().take(64) {
-        append_value(output, &format!("{}: {}", message.role, message.content));
-    }
-    for tool in detail.tools.iter().take(64) {
-        append_value(
-            output,
-            &format!("Tool: {} · {}", tool.name, tool.description),
-        );
-        if let Some(parameters) = &tool.parameters {
-            append_value(output, &format!("Tool parameters: {parameters}"));
-        }
-    }
-    if let Some(report) = &detail.applied_settings {
-        let summary = serde_json::to_string(report).unwrap_or_else(|_| "{}".to_owned());
-        append_value(output, &format!("Applied settings: {summary}"));
-    }
-    if detail.truncated {
-        append_value(output, "Effective request detail is truncated.");
+#[cfg(test)]
+mod tests {
+    use super::render_view;
+    use crate::state::TuiState;
+
+    /// Keeps every recovery row in the upstream Markdown projection.
+    #[test]
+    fn recovery_listing_is_rendered_in_the_semantic_view() {
+        let state = TuiState {
+            recovery_message: Some("record-one\nrecord-two\nrecord-three".to_owned()),
+            ..TuiState::default()
+        };
+
+        let content = render_view(&state);
+
+        assert!(content.contains("Legacy recovery"));
+        assert!(content.contains("record-one"));
+        assert!(content.contains("record-two"));
+        assert!(content.contains("record-three"));
     }
 }

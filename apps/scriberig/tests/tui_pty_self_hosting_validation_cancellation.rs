@@ -1,7 +1,5 @@
 //! Verifies cancellation terminates isolated candidate validation in the native product.
 
-#[path = "tui_pty_support/onboarding_wait.rs"]
-mod onboarding_wait;
 #[allow(dead_code)]
 mod tui_pty_support;
 
@@ -11,12 +9,12 @@ use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use onboarding_wait::wait_for_onboarding;
 use scriberig_core::EntityId;
 use scriberig_project::ProjectService;
 use scriberig_session::{BranchStatus, SessionStore};
 use scriberig_session_sqlite::SqliteSessionStore;
 use scriberig_store_sqlite::SqliteStore;
+use tui_pty_support::onboarding_wait::wait_for_onboarding;
 use tui_pty_support::{TuiPty, test_lock};
 
 /// Cancels the real TUI while Cargo validates an isolated project candidate.

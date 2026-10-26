@@ -1,0 +1,19 @@
+[package]
+name = "scriberig-style-sqlite"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "Apache-2.0"
+description = "Durable SQLite storage for projection style configuration."
+repository.workspace = true
+
+[dependencies]
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+scriberig-app = { path = "../scriberig-app" }
+sr-projection = { path = "../sr-projection" }
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

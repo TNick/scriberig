@@ -1,5 +1,10 @@
 //! Implements shared model-library reads and session selection operations.
 
+#[path = "service_agent_console/recovery.rs"]
+mod recovery;
+#[macro_use]
+#[path = "service_agent_console/recovery_plan_method.rs"]
+mod recovery_plan_method;
 #[path = "service_agent_console_detail.rs"]
 mod service_agent_console_detail;
 #[path = "service_agent_console_history.rs"]
@@ -18,6 +23,7 @@ use super::service_sessions::{authorize_model_library_read, authorize_session_mo
 use crate::session::ToolResultDetail;
 use crate::{
     ApplicationBackend, ApplicationContext, ApplicationError, ApplicationService,
+    LegacyExecutionMappingRequest, LegacyPlanAssignmentMappingRequest,
     SessionModelSelectionRequest, SessionThinkingSelectionRequest,
 };
 use scriberig_core::EntityId;
@@ -40,7 +46,7 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
         context: &ApplicationContext,
     ) -> Result<Vec<rpi_model_runtime::SafeModelSnapshot>, ApplicationError> {
         authorize_model_library_read(context)?;
-        let catalog_snapshot = self.model_catalog.snapshot();
+        let catalog_snapshot = self.provider_extension_runtime.model_catalog().snapshot();
         Ok(catalog_snapshot
             .models
             .iter()
@@ -210,6 +216,44 @@ impl<B: ApplicationBackend> crate::AgentConsoleBackend for ApplicationService<B>
         self.operations.publish_session_changed(request.session);
         Ok(selection)
     }
+
+    /// Lists sanitized legacy choices retained for explicit operator recovery.
+    ///
+    /// - `context`: Authorized application request context.
+    /// - `session`: Stable session identity to inspect.
+    ///
+    /// # Returns
+    /// Preserved legacy fields and exact source paths.
+    ///
+    /// # Errors
+    /// Returns authorization, unsupported-operation, or persistence errors.
+    fn legacy_execution_records(
+        &self,
+        context: &ApplicationContext,
+        session: EntityId,
+    ) -> Result<Vec<scriberig_session::LegacyExecutionRecord>, ApplicationError> {
+        recovery::legacy_execution_records(self, context, session)
+    }
+
+    /// Maps one legacy session choice to an exact selection from the active upstream catalog.
+    ///
+    /// - `context`: Authorized application request context.
+    /// - `request`: Exact legacy path, observed revision, and operator-selected upstream pair.
+    ///
+    /// # Returns
+    /// The persisted current selection after its recovery record is removed.
+    ///
+    /// # Errors
+    /// Returns authorization, invalid selection, revision, recovery, or persistence errors.
+    fn map_legacy_execution_selection(
+        &self,
+        context: &ApplicationContext,
+        request: &LegacyExecutionMappingRequest,
+    ) -> Result<SessionExecutionSelection, ApplicationError> {
+        recovery::map_legacy_execution_selection(self, context, request)
+    }
+
+    service_legacy_plan_assignment_method!();
 
     /// Changes the thinking level used by future session invocations.
     ///

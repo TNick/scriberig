@@ -15,8 +15,11 @@ use crate::dispatch::Dispatcher;
 use crate::server::ApplicationService;
 use scriberig_store_sqlite::SqliteStore;
 
+#[path = "http_command.rs"]
+mod http_command;
 #[path = "http_helpers.rs"]
 mod http_helpers;
+use http_command::command;
 use http_helpers::{object_description, write_json};
 #[path = "http_events.rs"]
 mod http_events;
@@ -26,6 +29,8 @@ mod http_migration;
 mod http_project_transport;
 #[path = "http_protocol.rs"]
 mod http_protocol;
+#[path = "http_readiness.rs"]
+mod http_readiness;
 pub use http_project_transport::InProcessProjectTransport;
 #[path = "http_request.rs"]
 mod http_request;
@@ -52,16 +57,21 @@ pub struct HttpState<S> {
     pub allowed_project_roots: Vec<PathBuf>,
     /// Optional trusted runner that advances durable plan lifecycle requests.
     pub plan_lifecycle_handler: Option<Arc<PlanLifecycleHandler<S>>>,
+    /// Optional host runtime that executes accepted shared agent operations.
+    pub agent_execution_handler: Option<Arc<AgentExecutionHandler<S>>>,
     /// Optional host projection of live upstream credential readiness.
     pub provider_readiness_handler: Option<Arc<ProviderReadinessHandler>>,
 }
 
 /// Projects current host-authorized credential sources for model display.
 ///
-/// This reports credential readiness only; it does not imply provider
+/// The projection carries the upstream catalog generation it resolved, so the
+/// transport can omit it when a reload superseded the model rows in the same
+/// response. This reports credential readiness only; it does not imply provider
 /// authentication or endpoint connectivity succeeded.
-pub type ProviderReadinessHandler =
-    dyn Fn() -> Vec<scriberig_protocol::ProviderReadiness> + Send + Sync;
+pub type ProviderReadinessHandler = dyn Fn() -> Option<scriberig_agent_runtime::provider_readiness::ProviderReadinessProjection>
+    + Send
+    + Sync;
 
 /// Runs one durable plan lifecycle transition with the configured model runtime.
 ///
@@ -73,6 +83,20 @@ pub type PlanLifecycleHandler<S> = dyn Fn(
         &scriberig_app::PlanLifecycleRequest,
         scriberig_app::PlanLifecycleAction,
     ) -> Result<scriberig_session::Plan, scriberig_app::ApplicationError>
+    + Send
+    + Sync;
+
+/// Executes an agent request through the product's trusted runtime.
+///
+/// `accepted` is present when the server already created a pending operation
+/// for new-session or exact-anchor requests. Existing-session commands leave it
+/// absent so the runtime can begin the operation itself.
+pub type AgentExecutionHandler<S> = dyn Fn(
+        &S,
+        &ApplicationContext,
+        &scriberig_app::AgentCommandRequest,
+        Option<&scriberig_protocol::AgentAcceptedResponse>,
+    ) -> Result<scriberig_protocol::Operation, scriberig_app::ApplicationError>
     + Send
     + Sync;
 
@@ -356,36 +380,6 @@ fn subscribe<S: ApplicationService>(
         )
     })?;
     serde_json::to_value(events).map_err(|error| {
-        (
-            500,
-            json!({"code": "internal", "message": error.to_string()}),
-        )
-    })
-}
-
-/// Executes one declared application command for browser clients.
-fn command<S: ApplicationService>(state: &HttpState<S>, body: &str) -> Result<Value, (u16, Value)> {
-    let value: Value = serde_json::from_str(body).map_err(|error| {
-        (
-            400,
-            json!({"code": "invalid_request", "message": error.to_string()}),
-        )
-    })?;
-    let kind = value
-        .get("kind")
-        .and_then(Value::as_str)
-        .unwrap_or_default();
-    let payload = value.get("payload").unwrap_or(&Value::Null);
-    let operation = state
-        .service
-        .command(&ApplicationContext::empty(), kind, payload)
-        .map_err(|error| {
-            (
-                400,
-                json!({"code": error.category(), "message": error.to_string()}),
-            )
-        })?;
-    serde_json::to_value(operation).map_err(|error| {
         (
             500,
             json!({"code": "internal", "message": error.to_string()}),

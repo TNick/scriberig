@@ -19,6 +19,7 @@ pub(super) mod focus;
 #[path = "event_loop/input.rs"]
 mod input;
 
+use super::super::drain::MAX_MESSAGES_PER_TICK;
 use super::super::{
     MessageDrain, Work, dispatch_pending_events, flush_effects, queue_effects, try_queue,
     worker_loop,
@@ -27,6 +28,7 @@ use super::ComposerInput;
 use super::components::SessionListPanel;
 use super::modal_overlay::ModalOverlayController;
 use super::selector_factory::open_control_selector;
+use super::shell_panes::ShellPanes;
 
 /// Borrows all inputs needed by the upstream-owned `ScribeRig` event loop.
 ///
@@ -39,6 +41,7 @@ use super::selector_factory::open_control_selector;
 /// - `config`: Initial selection and project scope.
 /// - `state`: Shared presentation state.
 /// - `screen`: Upstream terminal runtime.
+/// - `panes`: Shell panes owning the active scroll pane.
 /// - `editor`: Upstream composer editor.
 /// - `composer`: Upstream-focusable `ScribeRig` composer adapter.
 /// - `semantic_view`: Upstream-focusable semantic navigation component.
@@ -56,6 +59,8 @@ pub(super) struct EventLoopContext<'a, S> {
     pub(super) state: &'a Arc<Mutex<TuiState>>,
     /// Upstream terminal runtime.
     pub(super) screen: &'a Arc<TuiAltScreen>,
+    /// Shell panes owning the scroll pane that displays the active semantic view.
+    pub(super) panes: &'a mut ShellPanes,
     /// Upstream composer editor.
     pub(super) editor: &'a Editor,
     /// Upstream-focusable `ScribeRig` composer adapter.
@@ -88,6 +93,7 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
         config,
         state,
         screen,
+        panes,
         editor,
         composer,
         semantic_view,
@@ -114,6 +120,7 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
         let mut pending_events = std::collections::VecDeque::new();
         let mut pending_selector = None;
         let mut modal_overlay = ModalOverlayController::new();
+        let mut plugin_overlays = super::PluginOverlays::new();
         let mut focus_before_overlay: Option<Arc<dyn Component>> = None;
         let mut session_list_open = false;
         let mut poll_in_flight = false;
@@ -166,12 +173,15 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
                             redraw: &mut redraw,
                             debug_log: debug_log.as_deref_mut(),
                         };
-                        super::super::drain::drain_messages(
+                        let drained = super::super::drain::drain_messages(
                             &message_receiver,
                             &mut state,
                             &mut poll_in_flight,
                             &mut drain,
                         )?;
+                        if drained == MAX_MESSAGES_PER_TICK {
+                            redraw = true;
+                        }
                     }
                     dispatch_pending_events(
                         &mut state,
@@ -246,6 +256,9 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
                     input_sender,
                     &mut focus_before_overlay,
                 );
+                if plugin_overlays.synchronize(screen.as_ref(), panes.extension_mailbox()) {
+                    screen.request_render(false);
+                }
 
                 let mut suppress_composer_restore = false;
                 if input::handle(
@@ -273,6 +286,16 @@ pub(super) fn run<S: TuiService + Sync>(event_loop: EventLoopContext<'_, S>) -> 
                     return Ok(false);
                 }
                 if redraw {
+                    screen.request_render(false);
+                }
+                let active_view = state
+                    .lock()
+                    .map_err(|_| io::Error::other("TUI state lock poisoned"))?
+                    .primary_view;
+                if panes.synchronize(active_view) {
+                    screen.request_render(false);
+                }
+                if panes.synchronize_extension_components(screen.terminal().info().columns) {
                     screen.request_render(false);
                 }
                 Ok(should_quit)

@@ -124,11 +124,12 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         Ok((plan_view, node_views))
     }
 
-    /// Reads one plan from the exact semantic snapshot requested.
+    /// Reads one plan projection from the exact semantic snapshot requested.
     ///
     /// The caller must hold the normal session-read capability. Durable stores
-    /// resolve snapshots from the plan root's history. In-memory services can
-    /// serve only their current projection when it carries the same snapshot.
+    /// resolve the projection from the plan root's history without hydrating
+    /// unrelated revisions. In-memory services can serve only their current
+    /// projection when it carries the same snapshot.
     ///
     /// # Parameters
     /// - `self`: Application service owning session persistence.
@@ -149,19 +150,20 @@ impl<B: ApplicationBackend> ApplicationService<B> {
         plan: EntityId,
         snapshot: SnapshotId,
     ) -> Result<Plan, ApplicationError> {
+        super::super::service_sessions::authorize_plan_read(context, session)?;
+        if let Some(store) = &self.session_store {
+            return store
+                .load_plan_projection(session, plan, Some(snapshot))
+                .map_err(|message| ApplicationError::Internal { message })?
+                .ok_or_else(|| ApplicationError::NotFound {
+                    subject: format!("plan {plan} at snapshot {snapshot}"),
+                });
+        }
         let current = SessionBackend::read_session(self, context, &SessionRequest { session })?;
         if !current.plans.iter().any(|candidate| candidate.id == plan) {
             return Err(ApplicationError::NotFound {
                 subject: plan.to_string(),
             });
-        }
-        if let Some(store) = &self.session_store {
-            return store
-                .load_plan_at_snapshot(session, plan, snapshot)
-                .map_err(|message| ApplicationError::Internal { message })?
-                .ok_or_else(|| ApplicationError::NotFound {
-                    subject: format!("plan {plan} at snapshot {snapshot}"),
-                });
         }
         let current_plan = current
             .plans

@@ -118,7 +118,8 @@ impl NativeTuiAgentRunner {
         let endpoint_config = updated_config.clone();
         let previous_models = self.model_catalog.snapshot().models;
         let resolver = super::provider_config::catalog::EnvironmentResolver;
-        self.model_catalog.refresh_from_configuration_with_commit(
+        let candidate_catalog = rpi_model_runtime::ModelCatalog::new();
+        candidate_catalog.refresh_from_configuration_with_commit(
             &mut updated_config,
             &[],
             &resolver,
@@ -143,6 +144,9 @@ impl NativeTuiAgentRunner {
                 })
             },
         )?;
+        let _published_generation = self
+            .provider_extension_runtime
+            .reconcile_model_catalog(candidate_catalog.snapshot().models);
         *config = updated_config;
         Ok(())
     }

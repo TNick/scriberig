@@ -1,6 +1,7 @@
 /** @file Verifies protocol discriminants and opaque identity boundaries. */
 import { describe, expect, it } from "vitest";
 import type { EntityId } from "../src/ids";
+import { newSessionId } from "../src/ids";
 import type { ProtocolEvent } from "../src/operations";
 import type { ConflictSummary, PromotionResult, TrustEvent, ValidationSummary } from "../src/trust";
 
@@ -13,6 +14,11 @@ describe("protocol types", () => {
   it("keeps IDs opaque at boundaries", () => {
     const entity = "entity-1" as EntityId;
     expect(entity).toBe("entity-1");
+  });
+
+  it("creates Rust-compatible random session entity identifiers", () => {
+    const session = newSessionId();
+    expect(session).toMatch(/^ent_[a-f0-9]{32}$/);
   });
 
   it("exposes structured trust states and event handles", () => {

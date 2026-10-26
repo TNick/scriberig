@@ -51,7 +51,7 @@ pub struct PlanSelection {
 pub struct SemanticReference(pub String);
 
 /// The primary view shown for a navigation location.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum PrimaryView {
     /// Default recursive agent conversation surface.
     Conversation,

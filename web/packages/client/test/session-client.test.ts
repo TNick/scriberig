@@ -112,6 +112,7 @@ describe("session client projections", () => {
                 provider_id: "provider-a",
                 model_id: "wire-model-a",
                 credential: "available",
+                authentication: "accepted",
               },
             ],
           } as T;
@@ -138,6 +139,7 @@ describe("session client projections", () => {
         providerId: "provider-a",
         modelId: "wire-model-a",
         credential: "available",
+        authentication: "accepted",
       },
     ]);
     expect(library.models[0]?.thinkingLevels).toEqual(["extended", "off", "high"]);
@@ -344,5 +346,36 @@ describe("session client projections", () => {
         ],
       }),
     ).toThrow("missing provider id");
+    expect(() =>
+      normalizeModelLibrary({
+        models: [
+          {
+            id: "rpi1:10:provider-a12:wire-model-a",
+            display_name: "Model A",
+            provider_id: "provider-a",
+            provider_model_id: "wire-model-a",
+            thinking_levels: [],
+            metadata_snapshot: {
+              schema_version: "rpi-safe-model-snapshot-v1",
+              api_id: "openai-completions",
+              reasoning: false,
+              input: ["text"],
+              cost: { input: 0, output: 0, cache_read: 0, cache_write: 0 },
+              cost_configured: false,
+              context_window: 8192,
+              max_tokens: 2048,
+            },
+          },
+        ],
+        provider_readiness: [
+          {
+            provider_id: "provider-a",
+            model_id: "wire-model-a",
+            credential: "available",
+            authentication: "maybe",
+          },
+        ],
+      }),
+    ).toThrow("invalid provider authentication status");
   });
 });

@@ -1,7 +1,7 @@
 //! Verifies safe server activity projections.
 
 use super::branch_execution_activity;
-use scriberig_core::EntityId;
+use scriberig_core::{EntityId, OperationId};
 use scriberig_session::{
     AgentOutput, Branch, CacheDisposition, ExecutionActivity, HumanInput, ModelInvocation,
     ToolInvocation, ToolResult, Turn,
@@ -18,6 +18,7 @@ fn activity_projection_redacts_tool_payload_bytes() {
     branch.model_invocations.push(ModelInvocation {
         id: model_id,
         branch: branch.id,
+        operation: Some(OperationId::new("agent-run").expect("operation id")),
         ordinal: 0,
         agent_profile: None,
         context_fingerprint: None,
@@ -64,6 +65,7 @@ fn activity_projection_redacts_tool_payload_bytes() {
     let model_reference = model_id.to_string();
 
     assert_eq!(projected.len(), 4);
+    assert_eq!(projected[0].operation.as_deref(), Some("op_agent-run"));
     assert_eq!(projected[1].summary, "Find documents");
     assert_eq!(
         projected[1].durable_ref.as_deref(),

@@ -25,6 +25,8 @@ pub fn run_upstream_branch_invocation_blocking(
     prompt: impl Into<String>,
 ) -> Result<UpstreamBranchResult, UpstreamBranchFailure> {
     let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_io()
+        .enable_time()
         .build()
         .map_err(|error| UpstreamBranchFailure {
             error: super::UpstreamBranchError::Agent(format!(

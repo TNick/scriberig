@@ -16,7 +16,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: 1,
   use: {
-    baseURL: "http://127.0.0.1:5173",
+    baseURL: `http://127.0.0.1:${process.env.SCRIBE_WEB_PORT ?? "5173"}`,
     channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome",
     trace: "on-first-retry",
     screenshot: "only-on-failure",

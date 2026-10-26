@@ -15,6 +15,10 @@ pub enum Direction {
 pub enum Action {
     /// Records that an effect had no stateful result.
     Noop,
+    /// Displays a safe result from an explicit semantic command.
+    StatusMessage(String),
+    /// Replaces the multiline legacy recovery listing in semantic views.
+    RecoveryRecordsLoaded(String),
     /// Request normal runtime termination.
     QuitRequested,
     /// Close the active overlay, if any.

@@ -61,7 +61,7 @@ struct ProjectAgentTool {
     candidate_id: Arc<Mutex<Option<String>>>,
 }
 
-impl Tool for ProjectAgentTool {
+impl Tool<ApplicationContext> for ProjectAgentTool {
     /// Returns the stable provider tool identifier.
     ///
     /// The stable project tool name.
@@ -253,6 +253,10 @@ pub(super) fn agent<S: ApplicationService>(
         thinking_level: rpi_ai::ThinkingLevel::Off,
         context: compiled_context,
         tools,
+        activity: std::sync::Arc::new(
+            scriberig_agent_runtime::orchestration::ActivitySequence::default(),
+        ),
+        provider_lifecycle: None,
     };
     let result = run_upstream_branch_invocation_blocking(invocation, input.prompt)
         .map_err(|failure| (500, json!({"message": failure.error.to_string()})))?;

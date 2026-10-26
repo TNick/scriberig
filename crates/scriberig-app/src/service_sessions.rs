@@ -8,9 +8,10 @@ use scriberig_core::EntityId;
 use scriberig_session::Session;
 
 #[path = "service_local_sessions.rs"]
-mod service_local_sessions;
+pub(crate) mod service_local_sessions;
 
 #[path = "service_sessions/management.rs"]
+#[macro_use]
 mod management;
 #[path = "service_sessions/plan_store.rs"]
 mod plan_store;
@@ -19,7 +20,8 @@ mod plan_store;
 mod service_session_authorization;
 use service_session_authorization::{authorize_agent_command, authorize_session_read};
 pub(super) use service_session_authorization::{
-    authorize_model_library_read, authorize_session_model_selection,
+    authorize_model_library_read, authorize_plan_read, authorize_session_model_selection,
+    authorize_session_mutation,
 };
 
 /// Authorizes a compact plan read with the session-tree capability.
@@ -34,56 +36,11 @@ pub(super) use service_session_authorization::{
 /// The authorization result.
 /// # Errors
 /// Returns an authorization construction or permission error.
-pub(super) fn authorize_plan_read(
-    context: &ApplicationContext,
-    session: EntityId,
-) -> Result<(), ApplicationError> {
-    authorize_session_read(context, &crate::SessionRequest { session })
-}
-
 #[path = "service_agent_execution.rs"]
 mod service_agent_execution;
 
 impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
-    /// Lists complete durable sessions through the application authorization boundary.
-    ///
-    /// - `self`: Shared application service.
-    /// - `context`: Authorized caller context.
-    ///
-    /// Sessions ordered by stable identity.
-    ///
-    /// Returns authorization or persistence failures.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn list_sessions(
-        &self,
-        context: &ApplicationContext,
-    ) -> Result<Vec<Session>, ApplicationError> {
-        management::list_sessions(self, context)
-    }
-
-    /// Removes a durable session through the application authorization boundary.
-    ///
-    /// - `self`: Shared application service.
-    /// - `context`: Authorized caller context.
-    /// - `session`: Stable identity to remove.
-    ///
-    /// Unit after the exact session is removed.
-    ///
-    /// Returns authorization, active-work, or persistence failures.
-    /// # Returns
-    /// The operation result.
-    /// # Errors
-    /// Returns an error when the operation fails.
-    fn remove_session(
-        &self,
-        context: &ApplicationContext,
-        session: EntityId,
-    ) -> Result<(), ApplicationError> {
-        management::remove_session(self, context, session)
-    }
+    service_session_management_methods!();
 
     /// Continues at an exact anchor through the shared application operation.
     ///
@@ -156,6 +113,36 @@ impl<B: ApplicationBackend> crate::SessionBackend for ApplicationService<B> {
                     subject: request.session.to_string(),
                 })
             }
+            Err(error) => Err(error),
+        }
+    }
+
+    /// Reads a compact projection for routine session tree responses.
+    ///
+    /// - `context`: Application context for the request.
+    /// - `request`: Stable session identity to resolve.
+    ///
+    /// The session projection with compact semantic plan state when storage
+    /// supports it.
+    ///
+    /// # Returns
+    /// The authorized session projection.
+    ///
+    /// # Errors
+    /// Returns an authorization, lookup, or persistence error.
+    fn read_session_projection(
+        &self,
+        context: &ApplicationContext,
+        request: &crate::SessionRequest,
+    ) -> Result<Session, ApplicationError> {
+        authorize_session_read(context, request)?;
+        match self.backend.read_session_projection(context, request) {
+            Ok(session) => Ok(session),
+            Err(error) if error.category() == "unsupported_operation" => self
+                .load_session_read_projection_state(request.session)?
+                .ok_or_else(|| ApplicationError::NotFound {
+                    subject: request.session.to_string(),
+                }),
             Err(error) => Err(error),
         }
     }

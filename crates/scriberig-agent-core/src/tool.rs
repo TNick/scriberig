@@ -12,7 +12,7 @@ pub enum ToolDetail {
 }
 
 /// Provider-neutral input for an application-backed tool.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ToolInput {
     /// Entity to inspect.
     pub entity: EntityId,
@@ -59,7 +59,7 @@ pub enum ToolError {
 }
 
 /// Describes and invokes one provider-neutral application tool.
-pub trait Tool {
+pub trait Tool<Context> {
     /// Returns the stable tool identifier.
     ///
     /// Stable provider-neutral tool name.
@@ -80,11 +80,7 @@ pub trait Tool {
     /// The operation result.
     /// # Errors
     /// Returns an error when the operation fails.
-    fn invoke(
-        &self,
-        context: &scriberig_app::ApplicationContext,
-        input: ToolInput,
-    ) -> Result<ToolResult, ToolError>;
+    fn invoke(&self, context: &Context, input: ToolInput) -> Result<ToolResult, ToolError>;
 
     /// Invokes a named provider-facing control tool.
     ///
@@ -102,7 +98,7 @@ pub trait Tool {
     /// Returns an error when the operation fails.
     fn invoke_named(
         &self,
-        _context: &scriberig_app::ApplicationContext,
+        _context: &Context,
         name: &str,
         _arguments: &serde_json::Value,
     ) -> Result<ToolResult, ToolError> {
@@ -129,7 +125,7 @@ pub trait Tool {
     /// Returns an error when the operation fails.
     fn invoke_named_cancellable(
         &self,
-        context: &scriberig_app::ApplicationContext,
+        context: &Context,
         name: &str,
         arguments: &serde_json::Value,
         cancelled: &std::sync::atomic::AtomicBool,

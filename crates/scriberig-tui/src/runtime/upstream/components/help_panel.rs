@@ -28,10 +28,14 @@ impl HelpPanel {
     ///
     /// # Parameters
     /// - `input_sender`: Channel used to report a close request.
+    /// - `plugin_commands`: Host-authorized upstream plugin command registrations.
     ///
     /// # Returns
     /// A panel that renders the current help content through upstream Markdown.
-    pub(crate) fn new(input_sender: Sender<ComposerInput>) -> Self {
+    pub(crate) fn new(
+        input_sender: Sender<ComposerInput>,
+        plugin_commands: &[rpi_extensions::isolated::WorkerCommandSpec],
+    ) -> Self {
         let mut content = String::from("# ScribeRig help\n\n");
         content.push_str("## Composer editing\n\n| Key | Action |\n| --- | --- |\n");
         let keybindings = rpi_tui::get_keybindings().clone();
@@ -50,6 +54,14 @@ impl HelpPanel {
             let argument_hint = crate::inspector::sanitize(command.argument_hint);
             let summary = crate::inspector::sanitize(command.summary);
             let _ = writeln!(content, "- `{name}{argument_hint}`: {summary}");
+        }
+        for command in plugin_commands.iter().filter(|command| {
+            super::super::selector_factory::valid_plugin_command_name(&command.name)
+                && crate::slash_commands::find(&format!("/{}", command.name)).is_none()
+        }) {
+            let name = crate::inspector::sanitize(&format!("/{}", command.name));
+            let summary = crate::inspector::sanitize(&command.description);
+            let _ = writeln!(content, "- `{name}`: {summary}");
         }
         let help_keys = keybindings
             .get_keys(super::super::controls::HELP)
@@ -157,5 +169,29 @@ impl Component for HelpPanel {
     /// A type-erased reference to this component.
     fn as_any(&self) -> &dyn Any {
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::HelpPanel;
+    use crate::runtime::upstream::ComposerInput;
+    use rpi_tui::Component;
+    use std::sync::mpsc;
+
+    /// Shows authorized upstream plugin commands alongside built-in help.
+    #[test]
+    fn help_lists_advertised_plugin_commands() {
+        let (sender, _receiver) = mpsc::channel::<ComposerInput>();
+        let panel = HelpPanel::new(
+            sender,
+            &[rpi_extensions::isolated::WorkerCommandSpec {
+                name: "fixture-status".to_owned(),
+                description: "Show fixture status".to_owned(),
+            }],
+        );
+        let rendered = panel.render(120).join("\n");
+        assert!(rendered.contains("/fixture-status"));
+        assert!(rendered.contains("Show fixture status"));
     }
 }

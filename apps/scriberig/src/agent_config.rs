@@ -1,5 +1,9 @@
 //! Resolves and displays local agent configuration.
 
+mod connection_credentials;
+
+pub(crate) use connection_credentials::authorized_connection_credential_provider;
+
 /// Resolves an explicitly selected `ScribeRig` secret through host policy.
 pub(crate) type AuthorizedCredentialProvider =
     std::sync::Arc<dyn scriberig_secrets::CredentialProvider>;

@@ -7,6 +7,7 @@ import type {
 } from "@scriberig/protocol";
 import { SemanticClient } from "./semantic-client";
 import { normalizePlanDetails } from "./session-plan-details";
+import { normalizePlanGraphView } from "./session-plan-graph";
 
 /** Provides compact and bounded detail reads for durable plans.
  *
@@ -51,14 +52,16 @@ export class SessionPlanReadClient extends SemanticClient {
     request: SessionPlanViewRequest,
     signal?: AbortSignal,
   ): Promise<SessionPlanGraphView> {
-    return this.transport.request<SessionPlanGraphView>(
-      "plan_view",
-      {
-        session: request.session,
-        plan: request.plan,
-        ...(request.snapshot === undefined ? {} : { snapshot: request.snapshot }),
-      },
-      signal,
-    );
+    return this.transport
+      .request<unknown>(
+        "plan_view",
+        {
+          session: request.session,
+          plan: request.plan,
+          ...(request.snapshot === undefined ? {} : { snapshot: request.snapshot }),
+        },
+        signal,
+      )
+      .then(normalizePlanGraphView);
   }
 }

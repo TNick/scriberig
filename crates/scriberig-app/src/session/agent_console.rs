@@ -15,6 +15,40 @@ pub struct SessionModelSelectionRequest {
     pub model_id: String,
 }
 
+/// Maps one preserved legacy session choice to an exact current upstream selection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LegacyExecutionMappingRequest {
+    /// Stable session identity to update.
+    pub session: EntityId,
+    /// Selection revision observed before the mapping.
+    pub expected_revision: u64,
+    /// Exact legacy record path returned by recovery inspection.
+    pub legacy_path: String,
+    /// Current upstream provider identity supplied by the operator.
+    pub provider_id: String,
+    /// Current provider-scoped upstream model identity supplied by the operator.
+    pub model_id: String,
+    /// Optional advertised current thinking-level identity supplied by the operator.
+    pub thinking_level: Option<String>,
+}
+
+/// Maps one current legacy plan-node assignment to a catalog-backed selection.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LegacyPlanAssignmentMappingRequest {
+    /// Stable session identity containing the plan.
+    pub session: EntityId,
+    /// Exact legacy recovery record path.
+    pub legacy_path: String,
+    /// Plan revision observed by the operator.
+    pub expected_plan_revision: u64,
+    /// Current upstream provider identity supplied by the operator.
+    pub provider_id: String,
+    /// Provider-scoped current model identity supplied by the operator.
+    pub model_id: String,
+    /// Optional advertised current thinking-level identity supplied by the operator.
+    pub thinking_level: Option<String>,
+}
+
 /// Identifies one requested thinking-level mutation for a session.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SessionThinkingSelectionRequest {
@@ -124,6 +158,68 @@ pub trait AgentConsoleBackend {
         context: &crate::ApplicationContext,
         request: &SessionModelSelectionRequest,
     ) -> Result<SessionExecutionSelection, crate::ApplicationError>;
+
+    /// Lists preserved legacy selections requiring an explicit current-model mapping.
+    ///
+    /// - `context`: Authorized application request context.
+    /// - `session`: Stable session identity to inspect.
+    ///
+    /// # Returns
+    /// The unresolved records or an application error.
+    ///
+    /// # Errors
+    /// Returns permission, unsupported-operation, or persistence errors.
+    fn legacy_execution_records(
+        &self,
+        context: &crate::ApplicationContext,
+        session: EntityId,
+    ) -> Result<Vec<scriberig_session::LegacyExecutionRecord>, crate::ApplicationError> {
+        let _ = (context, session);
+        Err(crate::ApplicationError::UnsupportedOperation {
+            operation: "legacy execution recovery inspection".to_owned(),
+        })
+    }
+
+    /// Resolves a legacy session choice after validating the operator's exact upstream pair.
+    ///
+    /// - `context`: Authorized application request context.
+    /// - `request`: Legacy path, observed revision, and current upstream selection.
+    ///
+    /// # Returns
+    /// The persisted selection after recovery metadata is removed atomically.
+    ///
+    /// # Errors
+    /// Returns permission, catalog validation, revision, recovery, or persistence errors.
+    fn map_legacy_execution_selection(
+        &self,
+        context: &crate::ApplicationContext,
+        request: &LegacyExecutionMappingRequest,
+    ) -> Result<SessionExecutionSelection, crate::ApplicationError> {
+        let _ = (context, request);
+        Err(crate::ApplicationError::UnsupportedOperation {
+            operation: "legacy execution selection mapping".to_owned(),
+        })
+    }
+
+    /// Maps a current legacy plan-node assignment through the active catalog.
+    ///
+    /// - `context`: Authorized session and plan mutation context.
+    /// - `request`: Exact legacy path, plan revision, and explicit current model.
+    ///
+    /// # Returns
+    /// The operation result.
+    /// # Errors
+    /// Returns authorization, catalog, revision, node-state, or storage errors.
+    fn map_legacy_plan_assignment(
+        &self,
+        context: &crate::ApplicationContext,
+        request: &LegacyPlanAssignmentMappingRequest,
+    ) -> Result<scriberig_session::Plan, crate::ApplicationError> {
+        let _ = (context, request);
+        Err(crate::ApplicationError::UnsupportedOperation {
+            operation: "legacy plan assignment mapping".to_owned(),
+        })
+    }
 
     /// Selects an advertised thinking level for future invocations.
     ///

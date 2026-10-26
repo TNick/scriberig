@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use crate::model::{
     ProjectionKind, ProjectionRef, ProjectionSpecRef, RendererVersion, SemanticScopeRef,
 };
-use crate::{model::SemanticStateRef, style::StyleRef};
+use crate::{model::SemanticStateRef, style::ResolvedStyle};
 
 /// Supplies explicit immutable and contextual inputs to a renderer.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -18,8 +18,8 @@ pub struct RenderRequest {
     pub base_state: SemanticStateRef,
     /// Adapter-defined output format.
     pub kind: ProjectionKind,
-    /// Exact immutable style input.
-    pub style: StyleRef,
+    /// Exact renderer-consumable style, already resolved from any reference.
+    pub style: ResolvedStyle,
     /// Exact renderer implementation version.
     pub renderer: RendererVersion,
     /// Adapter-defined deterministic rendering options.
@@ -44,8 +44,8 @@ pub struct RenderCacheKey {
     pub base_state: SemanticStateRef,
     /// Projection kind.
     pub kind: ProjectionKind,
-    /// Exact style input.
-    pub style: StyleRef,
+    /// Exact resolved style input, including its provenance reference.
+    pub style: ResolvedStyle,
     /// Exact renderer version.
     pub renderer: RendererVersion,
     /// Deterministic adapter rendering context.
@@ -116,8 +116,8 @@ pub struct RenderedProjection {
     pub output_hash: Option<OutputHash>,
     /// Exact semantic snapshot used for rendering.
     pub base_state: SemanticStateRef,
-    /// Exact style input used for rendering.
-    pub style: StyleRef,
+    /// Exact resolved style used for rendering.
+    pub style: ResolvedStyle,
     /// Exact renderer implementation version used for rendering.
     pub renderer: RendererVersion,
     /// Projection kind used for the output.

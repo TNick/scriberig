@@ -19,7 +19,7 @@ pub(super) fn start_new<B: ApplicationBackend>(
     context: &ApplicationContext,
     request: &scriberig_protocol::AgentNewSessionRequest,
 ) -> Result<scriberig_protocol::AgentAcceptedResponse, ApplicationError> {
-    let handle = service.start_new_session_agent_with_selection(
+    let handle = service.begin_new_session_agent(
         context,
         scriberig_app::NewSessionAgentRequest {
             prompt: request.prompt.clone(),
@@ -48,7 +48,7 @@ pub(super) fn continue_at<B: ApplicationBackend>(
     context: &ApplicationContext,
     request: &scriberig_protocol::AgentContinueAtRequest,
 ) -> Result<scriberig_protocol::AgentAcceptedResponse, ApplicationError> {
-    let handle = service.continue_agent_at_request(
+    let handle = service.begin_continue_agent_at(
         context,
         scriberig_app::AgentContinueAtRequest {
             session: parse_entity(&request.session.id, "agent continue at anchor")?,
@@ -61,7 +61,7 @@ pub(super) fn continue_at<B: ApplicationBackend>(
         service,
         &handle.operation,
         handle.session,
-        Some(handle.branch),
+        Some(handle.root_branch),
     )
 }
 
@@ -106,7 +106,7 @@ fn accepted<B: ApplicationBackend>(
 /// The operation result.
 /// # Errors
 /// Returns an error when the operation fails.
-fn selection(
+pub(crate) fn selection(
     value: Option<&scriberig_protocol::AgentSelection>,
 ) -> Result<Option<scriberig_app::AgentSelection>, ApplicationError> {
     value

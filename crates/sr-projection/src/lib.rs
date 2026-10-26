@@ -5,11 +5,16 @@ pub mod adapter;
 pub mod capabilities;
 pub mod conflict;
 pub mod diagnostic;
+pub mod fidelity;
 pub mod model;
+pub mod purpose;
 pub mod reconcile;
 pub mod render;
 pub mod state;
 pub mod style;
+pub mod style_adapter;
+pub mod style_schema;
+pub mod style_source;
 
 // Expose the principal shared identifiers and contracts.
 pub use adapter::{ProjectionAdapter, ProjectionResult, ReconciliationContext};
@@ -21,14 +26,25 @@ pub use conflict::{
 pub use diagnostic::{
     DiagnosticDetail, DiagnosticKind, DiagnosticSource, DiagnosticStage, ProjectionDiagnostic,
 };
+pub use fidelity::{FidelityAssessment, ProjectionFidelity};
 pub use model::{
     ExternalLocation, OwnershipClass, ProjectionClass, ProjectionKind, ProjectionRef,
     ProjectionSpec, ProjectionSpecRef, RendererVersion, SemanticScopeRef, SemanticStateRef,
 };
+pub use purpose::ProjectionPurpose;
 pub use reconcile::ReconciliationOutcome;
 pub use render::{
     OutputHash, RenderCacheKey, RenderRequest, RenderedFragment, RenderedProjection,
     RenderingContext,
 };
 pub use state::ProjectionStatus;
-pub use style::{StyleRef, StyleValue};
+pub use style::{ResolvedStyle, StyleRef, StyleResolutionError, StyleSchemaRef, StyleValue};
+pub use style_adapter::{
+    ProjectionStyleAdapter, invalid_style_diagnostic, unsupported_style_diagnostic,
+};
+pub use style_schema::{
+    StyleApplicability, StylePropertyDescriptor, StyleSchema, StyleSchemaError, StyleValueKind,
+};
+pub use style_source::{
+    ResolvedStyleProvenance, StylePropertyOutcome, StyleSource, StyleSourceKind,
+};

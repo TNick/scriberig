@@ -28,4 +28,41 @@ pub trait InspectService {
     /// # Errors
     /// Returns an error when the operation fails.
     fn inspect(&self, request: &InspectRequest) -> Result<Inspection, QueryError>;
+
+    /// Inspects one target while checking for branch cancellation.
+    ///
+    /// Implementations with multiple read stages should check `cancelled`
+    /// between stages. The default preserves compatibility and observes
+    /// cancellation before and after the synchronous inspection call.
+    ///
+    /// - `self`: Read service implementation.
+    /// - `request`: Exact-target inspection request.
+    /// - `cancelled`: Shared branch cancellation flag.
+    ///
+    /// Exact inspection metadata unless cancellation was requested.
+    ///
+    /// # Returns
+    /// The semantic inspection result.
+    ///
+    /// # Errors
+    /// Returns `Cancelled` when cancellation is observed, or the query error
+    /// returned by `inspect`.
+    fn inspect_cancellable(
+        &self,
+        request: &InspectRequest,
+        cancelled: &std::sync::atomic::AtomicBool,
+    ) -> Result<Inspection, QueryError> {
+        if cancelled.load(std::sync::atomic::Ordering::Acquire) {
+            return Err(QueryError::Cancelled {
+                operation: crate::ReadOperation::Inspect,
+            });
+        }
+        let result = self.inspect(request)?;
+        if cancelled.load(std::sync::atomic::Ordering::Acquire) {
+            return Err(QueryError::Cancelled {
+                operation: crate::ReadOperation::Inspect,
+            });
+        }
+        Ok(result)
+    }
 }

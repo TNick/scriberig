@@ -254,6 +254,8 @@ pub struct TuiState {
     pub should_quit: bool,
     /// A short status message rendered in the shell.
     pub shell_message: String,
+    /// Sanitized multiline output from the latest `/recover` inspection.
+    pub recovery_message: Option<String>,
     /// Stable active project identity, when selected.
     pub project: Option<String>,
     /// Current semantic-service connection state.
@@ -282,6 +284,8 @@ pub struct TuiState {
     pub capabilities: Vec<RuntimeCapability>,
     /// Next request identifier.
     pub next_request_id: u64,
+    /// Monotonic presentation-state revision for cached upstream projections.
+    pub render_revision: u64,
     /// Selected primary view.
     pub primary_view: crate::selection::PrimaryView,
     /// History request/result state.
@@ -294,6 +298,10 @@ pub struct TuiState {
     pub projection: LoadState<crate::view::projection::ProjectionModel>,
     /// Change review request/result state.
     pub review: LoadState<crate::view::changes::ChangeReviewModel>,
+    /// Candidate handle and exact base snapshot the current review generation was
+    /// requested from. Kept while that generation is outstanding or settled so a
+    /// superseding session refresh can reuse it instead of orphaning its response.
+    pub review_request: Option<scriberig_app::ApplyRequest>,
     /// Last operation failure retained for review and refresh feedback.
     pub operation_error: Option<(String, String)>,
     /// Last reviewed proposal retained after a failed confirmation.

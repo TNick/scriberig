@@ -13,7 +13,11 @@ import type {
   ReadResponse,
 } from "@scriberig/protocol";
 import { subscribeEvents, type EventSubscription } from "./event-stream";
-import { normalizeOperation } from "./response-normalizers";
+import {
+  normalizeCollectionPage,
+  normalizeObjectDescription,
+  normalizeOperation,
+} from "./response-normalizers";
 import type { SemanticTransport, TransportConnectionState } from "./transport";
 
 /** Framework-independent semantic operations over an injected transport.
@@ -28,13 +32,13 @@ export class SemanticClient {
     request: InspectRequest,
     signal?: AbortSignal,
   ): Promise<ReadResponse> {
-    return this.transport.request("inspect", request, signal);
+    return this.transport.request("inspect", request, signal).then(normalizeObjectDescription);
   }
   /** Lists or follows relation members. */ list(
     request: ListRequest,
     signal?: AbortSignal,
   ): Promise<ReadResponse> {
-    return this.transport.request("list", request, signal);
+    return this.transport.request("list", request, signal).then(normalizeCollectionPage);
   }
   /** Finds semantic objects. */ find(
     request: FindRequest,
@@ -91,7 +95,9 @@ export class SemanticClient {
     payload: unknown,
     signal?: AbortSignal,
   ): Promise<TResponse> {
-    return this.transport.request("project", { operation, payload }, signal);
+    return this.transport
+      .request<{ result: TResponse }>("project", { operation, payload }, signal)
+      .then((response) => response.result);
   }
   /** Opens or updates a branch through the public application boundary. */
   branch<TPayload>(payload: TPayload, signal?: AbortSignal): Promise<Operation> {

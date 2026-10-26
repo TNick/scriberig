@@ -13,6 +13,11 @@ use super::ComposerInput;
 #[path = "components/help_panel.rs"]
 mod help_panel;
 pub(super) use help_panel::HelpPanel;
+#[path = "components/extension_panels.rs"]
+mod extension_panels;
+pub(super) use extension_panels::{
+    ExtensionFooterPanels, ExtensionSidebarPanels, SidebarSide, text_panel_options,
+};
 #[path = "components/session_list.rs"]
 mod session_list;
 pub(super) use session_list::SessionListPanel;
@@ -249,6 +254,15 @@ impl SelectionStatusPanel {
                     .iter()
                     .find(|status| status.provider_id == provider_id && status.model_id == model_id)
                     .map_or("credential status unavailable", |status| {
+                        match status.authentication {
+                            Some(scriberig_protocol::ProviderAuthenticationStatus::Accepted) => {
+                                return "last request accepted by provider";
+                            }
+                            Some(scriberig_protocol::ProviderAuthenticationStatus::Rejected) => {
+                                return "last request rejected by provider";
+                            }
+                            None => {}
+                        }
                         match status.credential {
                             scriberig_protocol::ProviderCredentialReadiness::NotRequired => {
                                 "authentication not required"

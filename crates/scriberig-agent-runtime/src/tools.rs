@@ -96,6 +96,50 @@ impl ToolCatalog {
             .collect()
     }
 
+    /// Returns a catalog that also holds host-authorized tool additions.
+    ///
+    /// A base catalog never mutates in place, so an unauthorized caller cannot
+    /// widen a branch's tool set through a shared handle. Every addition must
+    /// name an explicit required capability: the branch capability snapshot is
+    /// what decides visibility, and an addition without one would inherit the
+    /// unconditional visibility of a registered semantic tool. A descriptor may
+    /// be added only when the caller can reauthorize that exact name at
+    /// invocation time.
+    ///
+    /// # Parameters
+    /// - `additions`: Trusted descriptors contributed by a host-owned executor.
+    ///
+    /// # Returns
+    /// A new catalog holding the base and added descriptors in stable order.
+    ///
+    /// # Errors
+    /// Returns an error when an addition lacks an explicit required capability
+    /// or when a name is already registered or repeated.
+    pub fn merge_authorized(
+        &self,
+        additions: &[ToolDescriptor],
+    ) -> Result<Self, ToolRegistrationError> {
+        for (index, addition) in additions.iter().enumerate() {
+            let name = addition.definition.name.clone();
+            if addition.required_capability.is_none() {
+                return Err(ToolRegistrationError::MissingCapability(name));
+            }
+            if self
+                .descriptors
+                .iter()
+                .any(|registered| registered.definition.name == addition.definition.name)
+                || additions[..index]
+                    .iter()
+                    .any(|earlier| earlier.definition.name == addition.definition.name)
+            {
+                return Err(ToolRegistrationError::DuplicateTool(name));
+            }
+        }
+        let mut descriptors = self.descriptors.clone();
+        descriptors.extend(additions.iter().cloned());
+        Ok(Self::new(descriptors))
+    }
+
     /// Resolves a provider-selected tool name against trusted descriptors.
     ///
     /// JSON Schema argument validation belongs to `rpi-agent`; this method
@@ -214,6 +258,43 @@ pub enum ToolAuthorizationError {
     /// The branch lacks the capability required by a trusted descriptor.
     CapabilityDenied(String),
 }
+
+/// Safe error returned when host-authorized additions cannot join a catalog.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ToolRegistrationError {
+    /// An addition repeats a tool name already fixed by the catalog.
+    DuplicateTool(String),
+    /// An addition names no explicit required capability.
+    MissingCapability(String),
+}
+
+impl fmt::Display for ToolRegistrationError {
+    /// Formats a safe tool registration error.
+    ///
+    /// - `self`: Registration failure.
+    /// - `formatter`: Destination formatter.
+    ///
+    /// # Returns
+    /// The formatter error when output cannot be written.
+    ///
+    /// # Errors
+    /// Returns the formatter error when output cannot be written.
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::DuplicateTool(tool) => {
+                write!(formatter, "tool name is already registered: {tool}")
+            }
+            Self::MissingCapability(tool) => {
+                write!(
+                    formatter,
+                    "tool addition names no required capability: {tool}"
+                )
+            }
+        }
+    }
+}
+
+impl std::error::Error for ToolRegistrationError {}
 
 impl fmt::Display for ToolAuthorizationError {
     /// Formats a safe tool authorization error.

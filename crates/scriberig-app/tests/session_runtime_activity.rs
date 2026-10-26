@@ -4,7 +4,7 @@
 mod support;
 use scriberig_app::{AgentCommandRequest, ApplicationService, SessionBackend, SessionRequest};
 use scriberig_core::EntityId;
-use support::{Fixture, session_context};
+use support::{Fixture, child_model_request, session_context};
 /// Verifies a local runtime can complete the shared operation with its output.
 #[test]
 fn local_agent_completion_uses_runtime_output() {
@@ -98,6 +98,9 @@ fn local_agent_completion_persists_tool_invocation_and_result() {
                 active_components: Vec::new(),
                 context_fingerprint: None,
                 request_fingerprint: None,
+                catalog_revision: None,
+                upstream_runtime_revision: None,
+                provider_response_id: None,
                 model_execution_configuration: None,
                 messages: vec![scriberig_session::ModelRequestMessage {
                     role: "user".to_owned(),
@@ -122,6 +125,7 @@ fn local_agent_completion_persists_tool_invocation_and_result() {
         )
         .expect("durable session");
     let model_invocation = &session.branches[0].model_invocations[0];
+    assert_eq!(model_invocation.operation.as_ref(), Some(&handle.operation));
     assert_eq!(
         model_invocation.provider_id.as_deref(),
         Some("provider-upstream")
@@ -311,10 +315,12 @@ fn local_child_agent_start_creates_parent_link() {
     );
 
     let completed = service
-        .complete_local_child_agent_with_handles(
+        .complete_local_child_agent_with_evidence(
             &child,
             "child output",
             vec!["project:prj-one".to_owned(), "snapshot:snp-base".to_owned()],
+            Vec::new(),
+            vec![child_model_request()],
         )
         .expect("complete child");
     assert_eq!(completed.root_branch, child.child_branch);
@@ -334,6 +340,10 @@ fn local_child_agent_start_creates_parent_link() {
     assert_eq!(
         child_branch.status,
         scriberig_session::BranchStatus::Completed
+    );
+    assert_eq!(
+        child_branch.model_invocations[0].operation.as_ref(),
+        Some(&child.operation)
     );
     assert!(matches!(
         child_branch.activity.last(),

@@ -96,8 +96,6 @@ fn lifecycle_authorizes_before_read_and_reloads_rotation() {
             .expose(),
         "CANARY_TWO"
     );
-    let bytes = std::fs::read(locations.user_dir.join("registry.json")).expect("metadata");
-    assert!(!String::from_utf8_lossy(&bytes).contains("CANARY"));
     store.fail_delete.store(true, Ordering::Relaxed);
     assert_eq!(
         locations.lock().expect("registry").delete(&*store, "work"),
@@ -109,6 +107,51 @@ fn lifecycle_authorizes_before_read_and_reloads_rotation() {
             .expect_err("revoked despite backend failure"),
         SecretError::Denied
     );
+}
+
+/// Advances safe registry metadata when credentials rotate without storing values.
+#[test]
+fn credential_rotation_advances_revision_without_serializing_secret_values() {
+    let temporary = tempfile::tempdir().expect("temporary directory");
+    let locations = RegistryLocations {
+        user_dir: temporary.path().join("secrets"),
+        system_policy: None,
+    };
+    let store = MemoryStore::default();
+    locations
+        .lock()
+        .expect("registry")
+        .set(
+            &store,
+            "work",
+            &SecretValue::new("CANARY_ONE".to_owned()).expect("secret"),
+            false,
+        )
+        .expect("initial credential");
+    let before = locations
+        .load()
+        .expect("initial credential metadata")
+        .credential_revision;
+
+    locations
+        .lock()
+        .expect("registry")
+        .set(
+            &store,
+            "work",
+            &SecretValue::new("CANARY_TWO".to_owned()).expect("secret"),
+            true,
+        )
+        .expect("credential rotation");
+
+    let after = locations
+        .load()
+        .expect("rotated credential metadata")
+        .credential_revision;
+    let serialized = std::fs::read(locations.user_dir.join("registry.json"))
+        .expect("serialized registry metadata");
+    assert!(after > before, "credential rotation advances its revision");
+    assert!(!String::from_utf8_lossy(&serialized).contains("CANARY"));
 }
 
 /// Administrator restrictions cannot be broadened by a process-local grant.

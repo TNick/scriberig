@@ -70,6 +70,28 @@ macro_rules! tui_plan_methods {
             })
         }
 
+        /// Applies one typed semantic plan mutation through the shared operation.
+        ///
+        /// - `_context`: Authorized application request context.
+        /// - `_request`: Plan identity, observed revision, and typed mutation.
+        ///
+        /// The authoritative updated plan.
+        ///
+        /// Returns unsupported-operation or structured plan errors.
+        /// # Returns
+        /// The operation result.
+        /// # Errors
+        /// Returns an error when the operation fails.
+        fn mutate_plan(
+            &self,
+            _context: &ApplicationContext,
+            _request: &scriberig_app::PlanMutationRequest,
+        ) -> Result<scriberig_session::Plan, ApplicationError> {
+            Err(ApplicationError::UnsupportedOperation {
+                operation: "TUI semantic plan mutation".to_owned(),
+            })
+        }
+
         /// Changes a plan node's credential-safe model assignment.
         ///
         /// - `_context`: Authorized application request context.

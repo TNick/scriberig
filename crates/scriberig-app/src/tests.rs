@@ -110,6 +110,25 @@ fn current_inspection_is_resolved_to_one_exact_snapshot() {
     assert_eq!(result.snapshot, Some(SnapshotId::new([3; 32])));
 }
 
+/// Verifies application inspection cancellation is reported at the query boundary.
+#[test]
+fn cancellable_inspection_stops_before_backend_execution() {
+    let service = ApplicationService::new(Fixture);
+    let request = InspectRequest {
+        entity: EntityId::from_bytes([1; 16]),
+        snapshot: SnapshotResolution::At(SnapshotId::new([3; 32])),
+        detail: DetailLevel::Compact,
+    };
+    let cancelled = std::sync::atomic::AtomicBool::new(true);
+
+    assert_eq!(
+        service.inspect_cancellable(&ApplicationContext::empty(), &request, &cancelled),
+        Err(ApplicationError::OperationCancelled {
+            operation: "inspect".to_owned(),
+        })
+    );
+}
+
 /// Verifies a changed upstream catalog is reflected in safe model snapshots.
 #[test]
 fn safe_model_snapshots_track_recomposed_upstream_catalog() {
