@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["candidate_id","effect_kind","parse_effect","parse_project","parse_snapshot","require_snapshot","validation_name"]};
+window.SIDEBAR_ITEMS = {"fn":["candidate_id","effect_kind","parse_effect","parse_project","parse_snapshot","require_snapshot","validation_name"],"mod":["dependency_resolution"]};

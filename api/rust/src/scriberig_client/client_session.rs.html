@@ -29,7 +29,7 @@
 <a href=#29 id=29 data-nosnippet>29</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;SessionPlan, ClientError&gt; {
 <a href=#30 id=30 data-nosnippet>30</a>        <span class="kw">match </span><span class="self">self</span>.send(Request::PlanCreate(request))<span class="question-mark">?</span>.response {
 <a href=#31 id=31 data-nosnippet>31</a>            Response::Plan(plan) =&gt; <span class="prelude-val">Ok</span>(plan),
-<a href=#32 id=32 data-nosnippet>32</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#32 id=32 data-nosnippet>32</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#33 id=33 data-nosnippet>33</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#34 id=34 data-nosnippet>34</a>        }
 <a href=#35 id=35 data-nosnippet>35</a>    }
@@ -51,7 +51,7 @@
 <a href=#51 id=51 data-nosnippet>51</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;SessionPlan, ClientError&gt; {
 <a href=#52 id=52 data-nosnippet>52</a>        <span class="kw">match </span><span class="self">self</span>.send(Request::PlanLifecycle(request))<span class="question-mark">?</span>.response {
 <a href=#53 id=53 data-nosnippet>53</a>            Response::Plan(plan) =&gt; <span class="prelude-val">Ok</span>(plan),
-<a href=#54 id=54 data-nosnippet>54</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#54 id=54 data-nosnippet>54</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#55 id=55 data-nosnippet>55</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#56 id=56 data-nosnippet>56</a>        }
 <a href=#57 id=57 data-nosnippet>57</a>    }
@@ -73,7 +73,7 @@
 <a href=#73 id=73 data-nosnippet>73</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;SessionPlan, ClientError&gt; {
 <a href=#74 id=74 data-nosnippet>74</a>        <span class="kw">match </span><span class="self">self</span>.send(Request::PlanAssignment(request))<span class="question-mark">?</span>.response {
 <a href=#75 id=75 data-nosnippet>75</a>            Response::Plan(plan) =&gt; <span class="prelude-val">Ok</span>(plan),
-<a href=#76 id=76 data-nosnippet>76</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#76 id=76 data-nosnippet>76</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#77 id=77 data-nosnippet>77</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#78 id=78 data-nosnippet>78</a>        }
 <a href=#79 id=79 data-nosnippet>79</a>    }
@@ -92,7 +92,7 @@
 <a href=#92 id=92 data-nosnippet>92</a>    </span><span class="kw">pub fn </span>replan(<span class="kw-2">&amp;</span><span class="self">self</span>, request: SessionPlanReplanRequest) -&gt; <span class="prelude-ty">Result</span>&lt;SessionPlan, ClientError&gt; {
 <a href=#93 id=93 data-nosnippet>93</a>        <span class="kw">match </span><span class="self">self</span>.send(Request::PlanReplan(request))<span class="question-mark">?</span>.response {
 <a href=#94 id=94 data-nosnippet>94</a>            Response::Plan(plan) =&gt; <span class="prelude-val">Ok</span>(plan),
-<a href=#95 id=95 data-nosnippet>95</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#95 id=95 data-nosnippet>95</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#96 id=96 data-nosnippet>96</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#97 id=97 data-nosnippet>97</a>        }
 <a href=#98 id=98 data-nosnippet>98</a>    }
@@ -118,7 +118,7 @@
 <a href=#118 id=118 data-nosnippet>118</a>            </span>.response
 <a href=#119 id=119 data-nosnippet>119</a>        {
 <a href=#120 id=120 data-nosnippet>120</a>            Response::AgentPresentationPreferences(response) =&gt; <span class="prelude-val">Ok</span>(response),
-<a href=#121 id=121 data-nosnippet>121</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#121 id=121 data-nosnippet>121</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#122 id=122 data-nosnippet>122</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#123 id=123 data-nosnippet>123</a>        }
 <a href=#124 id=124 data-nosnippet>124</a>    }
@@ -151,7 +151,7 @@
 <a href=#151 id=151 data-nosnippet>151</a>            </span>.response
 <a href=#152 id=152 data-nosnippet>152</a>        {
 <a href=#153 id=153 data-nosnippet>153</a>            Response::AgentPresentationPreferences(response) =&gt; <span class="prelude-val">Ok</span>(response),
-<a href=#154 id=154 data-nosnippet>154</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#154 id=154 data-nosnippet>154</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#155 id=155 data-nosnippet>155</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#156 id=156 data-nosnippet>156</a>        }
 <a href=#157 id=157 data-nosnippet>157</a>    }
@@ -182,7 +182,7 @@
 <a href=#182 id=182 data-nosnippet>182</a>            </span>.response
 <a href=#183 id=183 data-nosnippet>183</a>        {
 <a href=#184 id=184 data-nosnippet>184</a>            Response::Session(response) =&gt; <span class="prelude-val">Ok</span>(response),
-<a href=#185 id=185 data-nosnippet>185</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#185 id=185 data-nosnippet>185</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#186 id=186 data-nosnippet>186</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#187 id=187 data-nosnippet>187</a>        }
 <a href=#188 id=188 data-nosnippet>188</a>    }
@@ -216,7 +216,7 @@
 <a href=#216 id=216 data-nosnippet>216</a>            </span>.response
 <a href=#217 id=217 data-nosnippet>217</a>        {
 <a href=#218 id=218 data-nosnippet>218</a>            Response::ModelRequestDetail(response) =&gt; <span class="prelude-val">Ok</span>(response),
-<a href=#219 id=219 data-nosnippet>219</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#219 id=219 data-nosnippet>219</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#220 id=220 data-nosnippet>220</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#221 id=221 data-nosnippet>221</a>        }
 <a href=#222 id=222 data-nosnippet>222</a>    }
@@ -250,7 +250,7 @@
 <a href=#250 id=250 data-nosnippet>250</a>            </span>.response
 <a href=#251 id=251 data-nosnippet>251</a>        {
 <a href=#252 id=252 data-nosnippet>252</a>            Response::ToolResultDetail(response) =&gt; <span class="prelude-val">Ok</span>(response),
-<a href=#253 id=253 data-nosnippet>253</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#253 id=253 data-nosnippet>253</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#254 id=254 data-nosnippet>254</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#255 id=255 data-nosnippet>255</a>        }
 <a href=#256 id=256 data-nosnippet>256</a>    }

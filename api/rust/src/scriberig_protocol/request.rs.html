@@ -123,25 +123,27 @@
 <a href=#123 id=123 data-nosnippet>123</a></span><span class="attr">#[derive(Clone, Debug, Default, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 <a href=#124 id=124 data-nosnippet>124</a></span><span class="kw">pub struct </span>ModelLibraryRequest {}
 <a href=#125 id=125 data-nosnippet>125</a>
-<a href=#126 id=126 data-nosnippet>126</a><span class="doccomment">/// Requests a session model-profile selection mutation.
+<a href=#126 id=126 data-nosnippet>126</a><span class="doccomment">/// Requests an upstream provider/model selection mutation.
 <a href=#127 id=127 data-nosnippet>127</a></span><span class="attr">#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
 <a href=#128 id=128 data-nosnippet>128</a></span><span class="kw">pub struct </span>SessionModelSelectionRequest {
 <a href=#129 id=129 data-nosnippet>129</a>    <span class="doccomment">/// Stable session identity.
 <a href=#130 id=130 data-nosnippet>130</a>    </span><span class="kw">pub </span>session: <span class="kw">crate</span>::SessionReference,
 <a href=#131 id=131 data-nosnippet>131</a>    <span class="doccomment">/// Mutation revision observed by the caller.
 <a href=#132 id=132 data-nosnippet>132</a>    </span><span class="kw">pub </span>expected_revision: u64,
-<a href=#133 id=133 data-nosnippet>133</a>    <span class="doccomment">/// Curated model profile to select.
-<a href=#134 id=134 data-nosnippet>134</a>    </span><span class="kw">pub </span>model_profile: String,
-<a href=#135 id=135 data-nosnippet>135</a>}
-<a href=#136 id=136 data-nosnippet>136</a>
-<a href=#137 id=137 data-nosnippet>137</a><span class="doccomment">/// Requests a session thinking-level mutation.
-<a href=#138 id=138 data-nosnippet>138</a></span><span class="attr">#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
-<a href=#139 id=139 data-nosnippet>139</a></span><span class="kw">pub struct </span>SessionThinkingSelectionRequest {
-<a href=#140 id=140 data-nosnippet>140</a>    <span class="doccomment">/// Stable session identity.
-<a href=#141 id=141 data-nosnippet>141</a>    </span><span class="kw">pub </span>session: <span class="kw">crate</span>::SessionReference,
-<a href=#142 id=142 data-nosnippet>142</a>    <span class="doccomment">/// Mutation revision observed by the caller.
-<a href=#143 id=143 data-nosnippet>143</a>    </span><span class="kw">pub </span>expected_revision: u64,
-<a href=#144 id=144 data-nosnippet>144</a>    <span class="doccomment">/// Advertised thinking id to select.
-<a href=#145 id=145 data-nosnippet>145</a>    </span><span class="kw">pub </span>thinking_level: String,
-<a href=#146 id=146 data-nosnippet>146</a>}
+<a href=#133 id=133 data-nosnippet>133</a>    <span class="doccomment">/// Upstream provider identity to select.
+<a href=#134 id=134 data-nosnippet>134</a>    </span><span class="kw">pub </span>provider_id: String,
+<a href=#135 id=135 data-nosnippet>135</a>    <span class="doccomment">/// Provider-scoped upstream model identity to select.
+<a href=#136 id=136 data-nosnippet>136</a>    </span><span class="kw">pub </span>model_id: String,
+<a href=#137 id=137 data-nosnippet>137</a>}
+<a href=#138 id=138 data-nosnippet>138</a>
+<a href=#139 id=139 data-nosnippet>139</a><span class="doccomment">/// Requests a session thinking-level mutation.
+<a href=#140 id=140 data-nosnippet>140</a></span><span class="attr">#[derive(Clone, Debug, Deserialize, Eq, JsonSchema, PartialEq, Serialize)]
+<a href=#141 id=141 data-nosnippet>141</a></span><span class="kw">pub struct </span>SessionThinkingSelectionRequest {
+<a href=#142 id=142 data-nosnippet>142</a>    <span class="doccomment">/// Stable session identity.
+<a href=#143 id=143 data-nosnippet>143</a>    </span><span class="kw">pub </span>session: <span class="kw">crate</span>::SessionReference,
+<a href=#144 id=144 data-nosnippet>144</a>    <span class="doccomment">/// Mutation revision observed by the caller.
+<a href=#145 id=145 data-nosnippet>145</a>    </span><span class="kw">pub </span>expected_revision: u64,
+<a href=#146 id=146 data-nosnippet>146</a>    <span class="doccomment">/// Advertised thinking id to select.
+<a href=#147 id=147 data-nosnippet>147</a>    </span><span class="kw">pub </span>thinking_level: String,
+<a href=#148 id=148 data-nosnippet>148</a>}
 </code></pre></div></section></main></body></html>

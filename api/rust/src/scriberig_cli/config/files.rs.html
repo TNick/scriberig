@@ -84,38 +84,39 @@
 <a href=#84 id=84 data-nosnippet>84</a>/// The platform system config directory, when one is available.
 <a href=#85 id=85 data-nosnippet>85</a>/// # Returns
 <a href=#86 id=86 data-nosnippet>86</a>/// The operation result.
-<a href=#87 id=87 data-nosnippet>87</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>system_config_dir() -&gt; <span class="prelude-ty">Option</span>&lt;PathBuf&gt; {
-<a href=#88 id=88 data-nosnippet>88</a>    <span class="attr">#[cfg(windows)]
-<a href=#89 id=89 data-nosnippet>89</a>    </span>{
-<a href=#90 id=90 data-nosnippet>90</a>        env::var_os(<span class="string">"PROGRAMDATA"</span>).map(|path| PathBuf::from(path).join(<span class="string">"Scriberig"</span>))
-<a href=#91 id=91 data-nosnippet>91</a>    }
-<a href=#92 id=92 data-nosnippet>92</a>    <span class="attr">#[cfg(not(windows))]
-<a href=#93 id=93 data-nosnippet>93</a>    </span>{
-<a href=#94 id=94 data-nosnippet>94</a>        <span class="prelude-val">Some</span>(PathBuf::from(<span class="string">"/etc/scriberig"</span>))
-<a href=#95 id=95 data-nosnippet>95</a>    }
-<a href=#96 id=96 data-nosnippet>96</a>}
-<a href=#97 id=97 data-nosnippet>97</a>
-<a href=#98 id=98 data-nosnippet>98</a><span class="doccomment">/// Returns the conventional platform user configuration directory.
-<a href=#99 id=99 data-nosnippet>99</a>///
-<a href=#100 id=100 data-nosnippet>100</a>/// The platform user config directory, when one is available.
-<a href=#101 id=101 data-nosnippet>101</a>/// # Returns
-<a href=#102 id=102 data-nosnippet>102</a>/// The operation result.
-<a href=#103 id=103 data-nosnippet>103</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>user_config_dir() -&gt; <span class="prelude-ty">Option</span>&lt;PathBuf&gt; {
-<a href=#104 id=104 data-nosnippet>104</a>    <span class="attr">#[cfg(windows)]
-<a href=#105 id=105 data-nosnippet>105</a>    </span>{
-<a href=#106 id=106 data-nosnippet>106</a>        env::var_os(<span class="string">"APPDATA"</span>).map(|path| PathBuf::from(path).join(<span class="string">"Scriberig"</span>))
-<a href=#107 id=107 data-nosnippet>107</a>    }
-<a href=#108 id=108 data-nosnippet>108</a>    <span class="attr">#[cfg(target_os = <span class="string">"macos"</span>)]
-<a href=#109 id=109 data-nosnippet>109</a>    </span>{
-<a href=#110 id=110 data-nosnippet>110</a>        env::var_os(<span class="string">"HOME"</span>)
-<a href=#111 id=111 data-nosnippet>111</a>            .map(|path| PathBuf::from(path).join(<span class="string">"Library/Application Support/Scriberig"</span>))
-<a href=#112 id=112 data-nosnippet>112</a>    }
-<a href=#113 id=113 data-nosnippet>113</a>    <span class="attr">#[cfg(all(unix, not(target_os = <span class="string">"macos"</span>)))]
-<a href=#114 id=114 data-nosnippet>114</a>    </span>{
-<a href=#115 id=115 data-nosnippet>115</a>        env::var_os(<span class="string">"XDG_CONFIG_HOME"</span>)
-<a href=#116 id=116 data-nosnippet>116</a>            .map(PathBuf::from)
-<a href=#117 id=117 data-nosnippet>117</a>            .or_else(|| env::var_os(<span class="string">"HOME"</span>).map(|path| PathBuf::from(path).join(<span class="string">".config"</span>)))
-<a href=#118 id=118 data-nosnippet>118</a>            .map(|path| path.join(<span class="string">"scriberig"</span>))
-<a href=#119 id=119 data-nosnippet>119</a>    }
-<a href=#120 id=120 data-nosnippet>120</a>}
+<a href=#87 id=87 data-nosnippet>87</a></span><span class="attr">#[allow(clippy::unnecessary_wraps)]
+<a href=#88 id=88 data-nosnippet>88</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>system_config_dir() -&gt; <span class="prelude-ty">Option</span>&lt;PathBuf&gt; {
+<a href=#89 id=89 data-nosnippet>89</a>    <span class="attr">#[cfg(windows)]
+<a href=#90 id=90 data-nosnippet>90</a>    </span>{
+<a href=#91 id=91 data-nosnippet>91</a>        env::var_os(<span class="string">"PROGRAMDATA"</span>).map(|path| PathBuf::from(path).join(<span class="string">"Scriberig"</span>))
+<a href=#92 id=92 data-nosnippet>92</a>    }
+<a href=#93 id=93 data-nosnippet>93</a>    <span class="attr">#[cfg(not(windows))]
+<a href=#94 id=94 data-nosnippet>94</a>    </span>{
+<a href=#95 id=95 data-nosnippet>95</a>        <span class="prelude-val">Some</span>(PathBuf::from(<span class="string">"/etc/scriberig"</span>))
+<a href=#96 id=96 data-nosnippet>96</a>    }
+<a href=#97 id=97 data-nosnippet>97</a>}
+<a href=#98 id=98 data-nosnippet>98</a>
+<a href=#99 id=99 data-nosnippet>99</a><span class="doccomment">/// Returns the conventional platform user configuration directory.
+<a href=#100 id=100 data-nosnippet>100</a>///
+<a href=#101 id=101 data-nosnippet>101</a>/// The platform user config directory, when one is available.
+<a href=#102 id=102 data-nosnippet>102</a>/// # Returns
+<a href=#103 id=103 data-nosnippet>103</a>/// The operation result.
+<a href=#104 id=104 data-nosnippet>104</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>user_config_dir() -&gt; <span class="prelude-ty">Option</span>&lt;PathBuf&gt; {
+<a href=#105 id=105 data-nosnippet>105</a>    <span class="attr">#[cfg(windows)]
+<a href=#106 id=106 data-nosnippet>106</a>    </span>{
+<a href=#107 id=107 data-nosnippet>107</a>        env::var_os(<span class="string">"APPDATA"</span>).map(|path| PathBuf::from(path).join(<span class="string">"Scriberig"</span>))
+<a href=#108 id=108 data-nosnippet>108</a>    }
+<a href=#109 id=109 data-nosnippet>109</a>    <span class="attr">#[cfg(target_os = <span class="string">"macos"</span>)]
+<a href=#110 id=110 data-nosnippet>110</a>    </span>{
+<a href=#111 id=111 data-nosnippet>111</a>        env::var_os(<span class="string">"HOME"</span>)
+<a href=#112 id=112 data-nosnippet>112</a>            .map(|path| PathBuf::from(path).join(<span class="string">"Library/Application Support/Scriberig"</span>))
+<a href=#113 id=113 data-nosnippet>113</a>    }
+<a href=#114 id=114 data-nosnippet>114</a>    <span class="attr">#[cfg(all(unix, not(target_os = <span class="string">"macos"</span>)))]
+<a href=#115 id=115 data-nosnippet>115</a>    </span>{
+<a href=#116 id=116 data-nosnippet>116</a>        env::var_os(<span class="string">"XDG_CONFIG_HOME"</span>)
+<a href=#117 id=117 data-nosnippet>117</a>            .map(PathBuf::from)
+<a href=#118 id=118 data-nosnippet>118</a>            .or_else(|| env::var_os(<span class="string">"HOME"</span>).map(|path| PathBuf::from(path).join(<span class="string">".config"</span>)))
+<a href=#119 id=119 data-nosnippet>119</a>            .map(|path| path.join(<span class="string">"scriberig"</span>))
+<a href=#120 id=120 data-nosnippet>120</a>    }
+<a href=#121 id=121 data-nosnippet>121</a>}
 </code></pre></div></section></main></body></html>

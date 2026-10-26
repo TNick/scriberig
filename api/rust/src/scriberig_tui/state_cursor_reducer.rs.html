@@ -85,27 +85,31 @@
 <a href=#85 id=85 data-nosnippet>85</a>            },
 <a href=#86 id=86 data-nosnippet>86</a>            <span class="kw">crate</span>::selection::PrimaryView::Operations =&gt; state.operations.len().saturating_sub(<span class="number">1</span>),
 <a href=#87 id=87 data-nosnippet>87</a>            <span class="kw">crate</span>::selection::PrimaryView::Changes =&gt; <span class="kw">match </span><span class="kw-2">&amp;</span>state.review {
-<a href=#88 id=88 data-nosnippet>88</a>                LoadState::Ready(model) =&gt; model.conflicts.len().saturating_sub(<span class="number">1</span>),
-<a href=#89 id=89 data-nosnippet>89</a>                <span class="kw">_ </span>=&gt; <span class="number">0</span>,
-<a href=#90 id=90 data-nosnippet>90</a>            },
-<a href=#91 id=91 data-nosnippet>91</a>            <span class="kw">_ </span>=&gt; <span class="number">0</span>,
-<a href=#92 id=92 data-nosnippet>92</a>        },
-<a href=#93 id=93 data-nosnippet>93</a>        Focus::Inspector =&gt; <span class="number">0</span>,
-<a href=#94 id=94 data-nosnippet>94</a>    }
-<a href=#95 id=95 data-nosnippet>95</a>}
-<a href=#96 id=96 data-nosnippet>96</a>
-<a href=#97 id=97 data-nosnippet>97</a><span class="doccomment">/// Advances focus in the requested direction when no overlay is active.
-<a href=#98 id=98 data-nosnippet>98</a>/// - `super`: Parent-module imports used by this helper.
-<a href=#99 id=99 data-nosnippet>99</a>/// - `state`: TUI state to update.
-<a href=#100 id=100 data-nosnippet>100</a>/// - `reverse`: Whether to move backward.
-<a href=#101 id=101 data-nosnippet>101</a>///
-<a href=#102 id=102 data-nosnippet>102</a>/// No-op effect after updating focus.
-<a href=#103 id=103 data-nosnippet>103</a>/// # Returns
-<a href=#104 id=104 data-nosnippet>104</a>/// The operation result.
-<a href=#105 id=105 data-nosnippet>105</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>reduce_focus(state: <span class="kw-2">&amp;mut </span>TuiState, reverse: bool) -&gt; Vec&lt;Effect&gt; {
-<a href=#106 id=106 data-nosnippet>106</a>    <span class="kw">if </span>state.overlay.is_none() {
-<a href=#107 id=107 data-nosnippet>107</a>        state.focus = state.focus.next(reverse);
-<a href=#108 id=108 data-nosnippet>108</a>    }
-<a href=#109 id=109 data-nosnippet>109</a>    <span class="macro">vec!</span>[Effect::None]
-<a href=#110 id=110 data-nosnippet>110</a>}
+<a href=#88 id=88 data-nosnippet>88</a>                LoadState::Ready(model) =&gt; model
+<a href=#89 id=89 data-nosnippet>89</a>                    .conflicts
+<a href=#90 id=90 data-nosnippet>90</a>                    .len()
+<a href=#91 id=91 data-nosnippet>91</a>                    .saturating_add(model.details.len())
+<a href=#92 id=92 data-nosnippet>92</a>                    .saturating_sub(<span class="number">1</span>),
+<a href=#93 id=93 data-nosnippet>93</a>                <span class="kw">_ </span>=&gt; <span class="number">0</span>,
+<a href=#94 id=94 data-nosnippet>94</a>            },
+<a href=#95 id=95 data-nosnippet>95</a>            <span class="kw">_ </span>=&gt; <span class="number">0</span>,
+<a href=#96 id=96 data-nosnippet>96</a>        },
+<a href=#97 id=97 data-nosnippet>97</a>        Focus::Inspector =&gt; <span class="number">0</span>,
+<a href=#98 id=98 data-nosnippet>98</a>    }
+<a href=#99 id=99 data-nosnippet>99</a>}
+<a href=#100 id=100 data-nosnippet>100</a>
+<a href=#101 id=101 data-nosnippet>101</a><span class="doccomment">/// Advances focus in the requested direction when no overlay is active.
+<a href=#102 id=102 data-nosnippet>102</a>/// - `super`: Parent-module imports used by this helper.
+<a href=#103 id=103 data-nosnippet>103</a>/// - `state`: TUI state to update.
+<a href=#104 id=104 data-nosnippet>104</a>/// - `reverse`: Whether to move backward.
+<a href=#105 id=105 data-nosnippet>105</a>///
+<a href=#106 id=106 data-nosnippet>106</a>/// No-op effect after updating focus.
+<a href=#107 id=107 data-nosnippet>107</a>/// # Returns
+<a href=#108 id=108 data-nosnippet>108</a>/// The operation result.
+<a href=#109 id=109 data-nosnippet>109</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>reduce_focus(state: <span class="kw-2">&amp;mut </span>TuiState, reverse: bool) -&gt; Vec&lt;Effect&gt; {
+<a href=#110 id=110 data-nosnippet>110</a>    <span class="kw">if </span>state.overlay.is_none() {
+<a href=#111 id=111 data-nosnippet>111</a>        state.focus = state.focus.next(reverse);
+<a href=#112 id=112 data-nosnippet>112</a>    }
+<a href=#113 id=113 data-nosnippet>113</a>    <span class="macro">vec!</span>[Effect::None]
+<a href=#114 id=114 data-nosnippet>114</a>}
 </code></pre></div></section></main></body></html>

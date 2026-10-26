@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ActionSource"],"fn":["filter"],"struct":["PaletteItem","PaletteState"]};
+window.SIDEBAR_ITEMS = {"enum":["ActionSource"],"struct":["PaletteItem","PaletteState"]};

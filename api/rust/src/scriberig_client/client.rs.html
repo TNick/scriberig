@@ -73,7 +73,7 @@
 <a href=#73 id=73 data-nosnippet>73</a>        });
 <a href=#74 id=74 data-nosnippet>74</a>        <span class="kw">match </span><span class="self">self</span>.send(request)<span class="question-mark">?</span>.response {
 <a href=#75 id=75 data-nosnippet>75</a>            Response::Inspect(response) =&gt; <span class="prelude-val">Ok</span>(response),
-<a href=#76 id=76 data-nosnippet>76</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#76 id=76 data-nosnippet>76</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#77 id=77 data-nosnippet>77</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#78 id=78 data-nosnippet>78</a>        }
 <a href=#79 id=79 data-nosnippet>79</a>    }
@@ -93,7 +93,7 @@
 <a href=#93 id=93 data-nosnippet>93</a>            </span>.response
 <a href=#94 id=94 data-nosnippet>94</a>        {
 <a href=#95 id=95 data-nosnippet>95</a>            Response::Capabilities(response) =&gt; <span class="prelude-val">Ok</span>(response),
-<a href=#96 id=96 data-nosnippet>96</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#96 id=96 data-nosnippet>96</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#97 id=97 data-nosnippet>97</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#98 id=98 data-nosnippet>98</a>        }
 <a href=#99 id=99 data-nosnippet>99</a>    }
@@ -122,7 +122,7 @@
 <a href=#122 id=122 data-nosnippet>122</a>            </span>.response
 <a href=#123 id=123 data-nosnippet>123</a>        {
 <a href=#124 id=124 data-nosnippet>124</a>            Response::OperationStatus(response) =&gt; <span class="prelude-val">Ok</span>(response),
-<a href=#125 id=125 data-nosnippet>125</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#125 id=125 data-nosnippet>125</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#126 id=126 data-nosnippet>126</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#127 id=127 data-nosnippet>127</a>        }
 <a href=#128 id=128 data-nosnippet>128</a>    }
@@ -150,7 +150,7 @@
 <a href=#150 id=150 data-nosnippet>150</a>            </span>.response
 <a href=#151 id=151 data-nosnippet>151</a>        {
 <a href=#152 id=152 data-nosnippet>152</a>            Response::Session(response) =&gt; <span class="prelude-val">Ok</span>(response),
-<a href=#153 id=153 data-nosnippet>153</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#153 id=153 data-nosnippet>153</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#154 id=154 data-nosnippet>154</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#155 id=155 data-nosnippet>155</a>        }
 <a href=#156 id=156 data-nosnippet>156</a>    }
@@ -179,7 +179,7 @@
 <a href=#179 id=179 data-nosnippet>179</a>            </span>.response
 <a href=#180 id=180 data-nosnippet>180</a>        {
 <a href=#181 id=181 data-nosnippet>181</a>            Response::OperationCancelled(response) =&gt; <span class="prelude-val">Ok</span>(response),
-<a href=#182 id=182 data-nosnippet>182</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#182 id=182 data-nosnippet>182</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#183 id=183 data-nosnippet>183</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#184 id=184 data-nosnippet>184</a>        }
 <a href=#185 id=185 data-nosnippet>185</a>    }
@@ -221,7 +221,7 @@
 <a href=#221 id=221 data-nosnippet>221</a>            </span>.response
 <a href=#222 id=222 data-nosnippet>222</a>        {
 <a href=#223 id=223 data-nosnippet>223</a>            Response::Events(events) =&gt; <span class="prelude-val">Ok</span>(events),
-<a href=#224 id=224 data-nosnippet>224</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#224 id=224 data-nosnippet>224</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#225 id=225 data-nosnippet>225</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#226 id=226 data-nosnippet>226</a>        }
 <a href=#227 id=227 data-nosnippet>227</a>    }
@@ -248,7 +248,7 @@
 <a href=#248 id=248 data-nosnippet>248</a>            Response::Query(response) =&gt; {
 <a href=#249 id=249 data-nosnippet>249</a>                serde_json::from_value(response.result).map_err(|<span class="kw">_</span>| ClientError::UnexpectedResponse)
 <a href=#250 id=250 data-nosnippet>250</a>            }
-<a href=#251 id=251 data-nosnippet>251</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#251 id=251 data-nosnippet>251</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#252 id=252 data-nosnippet>252</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#253 id=253 data-nosnippet>253</a>        }
 <a href=#254 id=254 data-nosnippet>254</a>    }
@@ -279,7 +279,7 @@
 <a href=#279 id=279 data-nosnippet>279</a>            Response::List(response) =&gt; {
 <a href=#280 id=280 data-nosnippet>280</a>                serde_json::from_value(response.result).map_err(|<span class="kw">_</span>| ClientError::UnexpectedResponse)
 <a href=#281 id=281 data-nosnippet>281</a>            }
-<a href=#282 id=282 data-nosnippet>282</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#282 id=282 data-nosnippet>282</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#283 id=283 data-nosnippet>283</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#284 id=284 data-nosnippet>284</a>        }
 <a href=#285 id=285 data-nosnippet>285</a>    }
@@ -310,7 +310,7 @@
 <a href=#310 id=310 data-nosnippet>310</a>            Response::Find(response) =&gt; {
 <a href=#311 id=311 data-nosnippet>311</a>                serde_json::from_value(response.result).map_err(|<span class="kw">_</span>| ClientError::UnexpectedResponse)
 <a href=#312 id=312 data-nosnippet>312</a>            }
-<a href=#313 id=313 data-nosnippet>313</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#313 id=313 data-nosnippet>313</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#314 id=314 data-nosnippet>314</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#315 id=315 data-nosnippet>315</a>        }
 <a href=#316 id=316 data-nosnippet>316</a>    }
@@ -340,7 +340,7 @@
 <a href=#340 id=340 data-nosnippet>340</a>            </span>.response
 <a href=#341 id=341 data-nosnippet>341</a>        {
 <a href=#342 id=342 data-nosnippet>342</a>            Response::CommandAccepted(response) =&gt; <span class="prelude-val">Ok</span>(response),
-<a href=#343 id=343 data-nosnippet>343</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(ClientError::Protocol(error)),
+<a href=#343 id=343 data-nosnippet>343</a>            Response::Error(error) =&gt; <span class="prelude-val">Err</span>(error.into()),
 <a href=#344 id=344 data-nosnippet>344</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(ClientError::UnexpectedResponse),
 <a href=#345 id=345 data-nosnippet>345</a>        }
 <a href=#346 id=346 data-nosnippet>346</a>    }

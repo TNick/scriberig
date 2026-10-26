@@ -50,49 +50,51 @@
 <a href=#50 id=50 data-nosnippet>50</a>    </span><span class="kw">pub </span>validation_profile: <span class="prelude-ty">Option</span>&lt;String&gt;,
 <a href=#51 id=51 data-nosnippet>51</a>    <span class="doccomment">/// Safe validation diagnostics associated with the operation.
 <a href=#52 id=52 data-nosnippet>52</a>    </span><span class="kw">pub </span>validation_diagnostics: Vec&lt;String&gt;,
-<a href=#53 id=53 data-nosnippet>53</a>    <span class="doccomment">/// Safe conflict summaries associated with the operation.
-<a href=#54 id=54 data-nosnippet>54</a>    </span><span class="kw">pub </span>conflicts: Vec&lt;String&gt;,
-<a href=#55 id=55 data-nosnippet>55</a>}
-<a href=#56 id=56 data-nosnippet>56</a>
-<a href=#57 id=57 data-nosnippet>57</a><span class="doccomment">/// Identifies a tracked operation that has started.
-<a href=#58 id=58 data-nosnippet>58</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
-<a href=#59 id=59 data-nosnippet>59</a></span><span class="kw">pub struct </span>OperationStarted {
-<a href=#60 id=60 data-nosnippet>60</a>    <span class="doccomment">/// Stable tracked operation identifier.
-<a href=#61 id=61 data-nosnippet>61</a>    </span><span class="kw">pub </span>operation: <span class="kw">crate</span>::OperationId,
-<a href=#62 id=62 data-nosnippet>62</a>    <span class="doccomment">/// Universal operation family.
-<a href=#63 id=63 data-nosnippet>63</a>    </span><span class="kw">pub </span>kind: <span class="kw">crate</span>::OperationKind,
-<a href=#64 id=64 data-nosnippet>64</a>}
-<a href=#65 id=65 data-nosnippet>65</a>
-<a href=#66 id=66 data-nosnippet>66</a><span class="doccomment">/// Returns one structured universal application result.
-<a href=#67 id=67 data-nosnippet>67</a></span><span class="attr">#[derive(Clone, Debug, PartialEq)]
-<a href=#68 id=68 data-nosnippet>68</a></span><span class="kw">pub enum </span>ApplicationResult {
-<a href=#69 id=69 data-nosnippet>69</a>    <span class="doccomment">/// Result of entity inspection.
-<a href=#70 id=70 data-nosnippet>70</a>    </span>Inspect(Inspection),
-<a href=#71 id=71 data-nosnippet>71</a>    <span class="doccomment">/// Result of collection listing.
-<a href=#72 id=72 data-nosnippet>72</a>    </span>List(ListResult),
-<a href=#73 id=73 data-nosnippet>73</a>    <span class="doccomment">/// Result of relation traversal.
-<a href=#74 id=74 data-nosnippet>74</a>    </span>Follow(FollowResult),
-<a href=#75 id=75 data-nosnippet>75</a>    <span class="doccomment">/// Result of semantic discovery.
-<a href=#76 id=76 data-nosnippet>76</a>    </span>Find(FindResult),
-<a href=#77 id=77 data-nosnippet>77</a>    <span class="doccomment">/// Result of structural query evaluation.
-<a href=#78 id=78 data-nosnippet>78</a>    </span>Query(QueryResult),
-<a href=#79 id=79 data-nosnippet>79</a>    <span class="doccomment">/// Result of semantic diff computation.
-<a href=#80 id=80 data-nosnippet>80</a>    </span>Diff(OperationSummary),
-<a href=#81 id=81 data-nosnippet>81</a>    <span class="doccomment">/// Result of explicit semantic candidate integration.
-<a href=#82 id=82 data-nosnippet>82</a>    </span>Merge(sr_change::MergeResult),
-<a href=#83 id=83 data-nosnippet>83</a>    <span class="doccomment">/// Result of history lookup.
-<a href=#84 id=84 data-nosnippet>84</a>    </span>History(OperationSummary),
-<a href=#85 id=85 data-nosnippet>85</a>    <span class="doccomment">/// Result of projection rendering.
-<a href=#86 id=86 data-nosnippet>86</a>    </span>Render(OperationSummary),
-<a href=#87 id=87 data-nosnippet>87</a>    <span class="doccomment">/// Result of a branch operation.
-<a href=#88 id=88 data-nosnippet>88</a>    </span>Branch(OperationSummary),
-<a href=#89 id=89 data-nosnippet>89</a>    <span class="doccomment">/// Result of applying a change.
-<a href=#90 id=90 data-nosnippet>90</a>    </span>Apply(OperationSummary),
-<a href=#91 id=91 data-nosnippet>91</a>    <span class="doccomment">/// Result of committing a change.
-<a href=#92 id=92 data-nosnippet>92</a>    </span>Commit(OperationSummary),
-<a href=#93 id=93 data-nosnippet>93</a>    <span class="doccomment">/// Candidate change handle returned by a registered semantic operation.
-<a href=#94 id=94 data-nosnippet>94</a>    </span>DomainOperation(<span class="kw">crate</span>::CapabilityExecution),
-<a href=#95 id=95 data-nosnippet>95</a>    <span class="doccomment">/// Reference to a long-running operation.
-<a href=#96 id=96 data-nosnippet>96</a>    </span>OperationStarted(OperationStarted),
-<a href=#97 id=97 data-nosnippet>97</a>}
+<a href=#53 id=53 data-nosnippet>53</a>    <span class="doccomment">/// Non-conflicting presentation details for candidate review.
+<a href=#54 id=54 data-nosnippet>54</a>    </span><span class="kw">pub </span>review_details: Vec&lt;String&gt;,
+<a href=#55 id=55 data-nosnippet>55</a>    <span class="doccomment">/// Safe conflict summaries associated with the operation.
+<a href=#56 id=56 data-nosnippet>56</a>    </span><span class="kw">pub </span>conflicts: Vec&lt;String&gt;,
+<a href=#57 id=57 data-nosnippet>57</a>}
+<a href=#58 id=58 data-nosnippet>58</a>
+<a href=#59 id=59 data-nosnippet>59</a><span class="doccomment">/// Identifies a tracked operation that has started.
+<a href=#60 id=60 data-nosnippet>60</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq)]
+<a href=#61 id=61 data-nosnippet>61</a></span><span class="kw">pub struct </span>OperationStarted {
+<a href=#62 id=62 data-nosnippet>62</a>    <span class="doccomment">/// Stable tracked operation identifier.
+<a href=#63 id=63 data-nosnippet>63</a>    </span><span class="kw">pub </span>operation: <span class="kw">crate</span>::OperationId,
+<a href=#64 id=64 data-nosnippet>64</a>    <span class="doccomment">/// Universal operation family.
+<a href=#65 id=65 data-nosnippet>65</a>    </span><span class="kw">pub </span>kind: <span class="kw">crate</span>::OperationKind,
+<a href=#66 id=66 data-nosnippet>66</a>}
+<a href=#67 id=67 data-nosnippet>67</a>
+<a href=#68 id=68 data-nosnippet>68</a><span class="doccomment">/// Returns one structured universal application result.
+<a href=#69 id=69 data-nosnippet>69</a></span><span class="attr">#[derive(Clone, Debug, PartialEq)]
+<a href=#70 id=70 data-nosnippet>70</a></span><span class="kw">pub enum </span>ApplicationResult {
+<a href=#71 id=71 data-nosnippet>71</a>    <span class="doccomment">/// Result of entity inspection.
+<a href=#72 id=72 data-nosnippet>72</a>    </span>Inspect(Inspection),
+<a href=#73 id=73 data-nosnippet>73</a>    <span class="doccomment">/// Result of collection listing.
+<a href=#74 id=74 data-nosnippet>74</a>    </span>List(ListResult),
+<a href=#75 id=75 data-nosnippet>75</a>    <span class="doccomment">/// Result of relation traversal.
+<a href=#76 id=76 data-nosnippet>76</a>    </span>Follow(FollowResult),
+<a href=#77 id=77 data-nosnippet>77</a>    <span class="doccomment">/// Result of semantic discovery.
+<a href=#78 id=78 data-nosnippet>78</a>    </span>Find(FindResult),
+<a href=#79 id=79 data-nosnippet>79</a>    <span class="doccomment">/// Result of structural query evaluation.
+<a href=#80 id=80 data-nosnippet>80</a>    </span>Query(QueryResult),
+<a href=#81 id=81 data-nosnippet>81</a>    <span class="doccomment">/// Result of semantic diff computation.
+<a href=#82 id=82 data-nosnippet>82</a>    </span>Diff(OperationSummary),
+<a href=#83 id=83 data-nosnippet>83</a>    <span class="doccomment">/// Result of explicit semantic candidate integration.
+<a href=#84 id=84 data-nosnippet>84</a>    </span>Merge(sr_change::MergeResult),
+<a href=#85 id=85 data-nosnippet>85</a>    <span class="doccomment">/// Result of history lookup.
+<a href=#86 id=86 data-nosnippet>86</a>    </span>History(OperationSummary),
+<a href=#87 id=87 data-nosnippet>87</a>    <span class="doccomment">/// Result of projection rendering.
+<a href=#88 id=88 data-nosnippet>88</a>    </span>Render(OperationSummary),
+<a href=#89 id=89 data-nosnippet>89</a>    <span class="doccomment">/// Result of a branch operation.
+<a href=#90 id=90 data-nosnippet>90</a>    </span>Branch(OperationSummary),
+<a href=#91 id=91 data-nosnippet>91</a>    <span class="doccomment">/// Result of applying a change.
+<a href=#92 id=92 data-nosnippet>92</a>    </span>Apply(OperationSummary),
+<a href=#93 id=93 data-nosnippet>93</a>    <span class="doccomment">/// Result of committing a change.
+<a href=#94 id=94 data-nosnippet>94</a>    </span>Commit(OperationSummary),
+<a href=#95 id=95 data-nosnippet>95</a>    <span class="doccomment">/// Candidate change handle returned by a registered semantic operation.
+<a href=#96 id=96 data-nosnippet>96</a>    </span>DomainOperation(<span class="kw">crate</span>::CapabilityExecution),
+<a href=#97 id=97 data-nosnippet>97</a>    <span class="doccomment">/// Reference to a long-running operation.
+<a href=#98 id=98 data-nosnippet>98</a>    </span>OperationStarted(OperationStarted),
+<a href=#99 id=99 data-nosnippet>99</a>}
 </code></pre></div></section></main></body></html>

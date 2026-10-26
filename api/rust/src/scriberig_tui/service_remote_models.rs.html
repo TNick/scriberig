@@ -97,7 +97,7 @@
 <a href=#97 id=97 data-nosnippet>97</a>        .map_err(<span class="kw">super</span>::service_remote_mapping::remote_error)
 <a href=#98 id=98 data-nosnippet>98</a>}
 <a href=#99 id=99 data-nosnippet>99</a>
-<a href=#100 id=100 data-nosnippet>100</a><span class="doccomment">/// Applies a revision-checked model-profile selection remotely.
+<a href=#100 id=100 data-nosnippet>100</a><span class="doccomment">/// Applies a revision-checked provider/model selection remotely.
 <a href=#101 id=101 data-nosnippet>101</a>///
 <a href=#102 id=102 data-nosnippet>102</a>/// - `adapter`: Remote service adapter holding the protocol client.
 <a href=#103 id=103 data-nosnippet>103</a>/// - `request`: Session and observed selection revision.
@@ -114,65 +114,67 @@
 <a href=#114 id=114 data-nosnippet>114</a>        .set_session_model(
 <a href=#115 id=115 data-nosnippet>115</a>            request.session.to_string(),
 <a href=#116 id=116 data-nosnippet>116</a>            request.expected_revision,
-<a href=#117 id=117 data-nosnippet>117</a>            request.model_profile.clone(),
-<a href=#118 id=118 data-nosnippet>118</a>        )
-<a href=#119 id=119 data-nosnippet>119</a>        .map_err(<span class="kw">super</span>::service_remote_mapping::remote_error)
-<a href=#120 id=120 data-nosnippet>120</a>        .map(to_session_selection)
-<a href=#121 id=121 data-nosnippet>121</a>}
-<a href=#122 id=122 data-nosnippet>122</a>
-<a href=#123 id=123 data-nosnippet>123</a><span class="doccomment">/// Applies a revision-checked thinking selection remotely.
-<a href=#124 id=124 data-nosnippet>124</a>///
-<a href=#125 id=125 data-nosnippet>125</a>/// - `adapter`: Remote service adapter holding the protocol client.
-<a href=#126 id=126 data-nosnippet>126</a>/// - `request`: Session and observed selection revision.
-<a href=#127 id=127 data-nosnippet>127</a>///
-<a href=#128 id=128 data-nosnippet>128</a>/// The authoritative updated execution selection.
-<a href=#129 id=129 data-nosnippet>129</a>///
-<a href=#130 id=130 data-nosnippet>130</a>/// Returns a sanitized remote protocol error.
-<a href=#131 id=131 data-nosnippet>131</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>set_session_thinking_level&lt;T: ProtocolTransport&gt;(
-<a href=#132 id=132 data-nosnippet>132</a>    adapter: <span class="kw-2">&amp;</span>RemoteAdapter&lt;T&gt;,
-<a href=#133 id=133 data-nosnippet>133</a>    request: <span class="kw-2">&amp;</span>scriberig_app::SessionThinkingSelectionRequest,
-<a href=#134 id=134 data-nosnippet>134</a>) -&gt; <span class="prelude-ty">Result</span>&lt;scriberig_session::SessionExecutionSelection, ApplicationError&gt; {
-<a href=#135 id=135 data-nosnippet>135</a>    adapter
-<a href=#136 id=136 data-nosnippet>136</a>        .client
-<a href=#137 id=137 data-nosnippet>137</a>        .set_session_thinking_level(
-<a href=#138 id=138 data-nosnippet>138</a>            request.session.to_string(),
-<a href=#139 id=139 data-nosnippet>139</a>            request.expected_revision,
-<a href=#140 id=140 data-nosnippet>140</a>            request.thinking_level.clone(),
-<a href=#141 id=141 data-nosnippet>141</a>        )
-<a href=#142 id=142 data-nosnippet>142</a>        .map_err(<span class="kw">super</span>::service_remote_mapping::remote_error)
-<a href=#143 id=143 data-nosnippet>143</a>        .map(to_session_selection)
-<a href=#144 id=144 data-nosnippet>144</a>}
-<a href=#145 id=145 data-nosnippet>145</a>
-<a href=#146 id=146 data-nosnippet>146</a><span class="doccomment">/// Converts a protocol selection into the session-domain value.
-<a href=#147 id=147 data-nosnippet>147</a>///
-<a href=#148 id=148 data-nosnippet>148</a>/// - `selection`: Protocol selection returned by the server.
-<a href=#149 id=149 data-nosnippet>149</a>///
-<a href=#150 id=150 data-nosnippet>150</a>/// Equivalent provider-neutral session selection.
-<a href=#151 id=151 data-nosnippet>151</a>/// # Returns
-<a href=#152 id=152 data-nosnippet>152</a>/// The operation result.
-<a href=#153 id=153 data-nosnippet>153</a></span><span class="kw">fn </span>to_session_selection(
-<a href=#154 id=154 data-nosnippet>154</a>    selection: scriberig_protocol::SessionExecutionSelection,
-<a href=#155 id=155 data-nosnippet>155</a>) -&gt; scriberig_session::SessionExecutionSelection {
-<a href=#156 id=156 data-nosnippet>156</a>    scriberig_session::SessionExecutionSelection {
-<a href=#157 id=157 data-nosnippet>157</a>        revision: selection.revision,
-<a href=#158 id=158 data-nosnippet>158</a>        model_profile: selection.model_profile,
-<a href=#159 id=159 data-nosnippet>159</a>        model: selection.model,
-<a href=#160 id=160 data-nosnippet>160</a>        thinking_level: selection.thinking_level,
-<a href=#161 id=161 data-nosnippet>161</a>        history: selection
-<a href=#162 id=162 data-nosnippet>162</a>            .history
-<a href=#163 id=163 data-nosnippet>163</a>            .into_iter()
-<a href=#164 id=164 data-nosnippet>164</a>            .map(|change| scriberig_session::SessionExecutionChange {
-<a href=#165 id=165 data-nosnippet>165</a>                revision: change.revision,
-<a href=#166 id=166 data-nosnippet>166</a>                kind: change.kind,
-<a href=#167 id=167 data-nosnippet>167</a>                summary: change.summary,
-<a href=#168 id=168 data-nosnippet>168</a>                model: change.model,
-<a href=#169 id=169 data-nosnippet>169</a>                thinking_level: change.thinking_level,
-<a href=#170 id=170 data-nosnippet>170</a>            })
-<a href=#171 id=171 data-nosnippet>171</a>            .collect(),
-<a href=#172 id=172 data-nosnippet>172</a>    }
-<a href=#173 id=173 data-nosnippet>173</a>}
-<a href=#174 id=174 data-nosnippet>174</a>
-<a href=#175 id=175 data-nosnippet>175</a><span class="attr">#[cfg(test)]
-<a href=#176 id=176 data-nosnippet>176</a>#[path = <span class="string">"service_remote_model_tests.rs"</span>]
-<a href=#177 id=177 data-nosnippet>177</a></span><span class="kw">mod </span>tests;
+<a href=#117 id=117 data-nosnippet>117</a>            request.provider_id.clone(),
+<a href=#118 id=118 data-nosnippet>118</a>            request.model_id.clone(),
+<a href=#119 id=119 data-nosnippet>119</a>        )
+<a href=#120 id=120 data-nosnippet>120</a>        .map_err(<span class="kw">super</span>::service_remote_mapping::remote_error)
+<a href=#121 id=121 data-nosnippet>121</a>        .map(to_session_selection)
+<a href=#122 id=122 data-nosnippet>122</a>}
+<a href=#123 id=123 data-nosnippet>123</a>
+<a href=#124 id=124 data-nosnippet>124</a><span class="doccomment">/// Applies a revision-checked thinking selection remotely.
+<a href=#125 id=125 data-nosnippet>125</a>///
+<a href=#126 id=126 data-nosnippet>126</a>/// - `adapter`: Remote service adapter holding the protocol client.
+<a href=#127 id=127 data-nosnippet>127</a>/// - `request`: Session and observed selection revision.
+<a href=#128 id=128 data-nosnippet>128</a>///
+<a href=#129 id=129 data-nosnippet>129</a>/// The authoritative updated execution selection.
+<a href=#130 id=130 data-nosnippet>130</a>///
+<a href=#131 id=131 data-nosnippet>131</a>/// Returns a sanitized remote protocol error.
+<a href=#132 id=132 data-nosnippet>132</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>set_session_thinking_level&lt;T: ProtocolTransport&gt;(
+<a href=#133 id=133 data-nosnippet>133</a>    adapter: <span class="kw-2">&amp;</span>RemoteAdapter&lt;T&gt;,
+<a href=#134 id=134 data-nosnippet>134</a>    request: <span class="kw-2">&amp;</span>scriberig_app::SessionThinkingSelectionRequest,
+<a href=#135 id=135 data-nosnippet>135</a>) -&gt; <span class="prelude-ty">Result</span>&lt;scriberig_session::SessionExecutionSelection, ApplicationError&gt; {
+<a href=#136 id=136 data-nosnippet>136</a>    adapter
+<a href=#137 id=137 data-nosnippet>137</a>        .client
+<a href=#138 id=138 data-nosnippet>138</a>        .set_session_thinking_level(
+<a href=#139 id=139 data-nosnippet>139</a>            request.session.to_string(),
+<a href=#140 id=140 data-nosnippet>140</a>            request.expected_revision,
+<a href=#141 id=141 data-nosnippet>141</a>            request.thinking_level.clone(),
+<a href=#142 id=142 data-nosnippet>142</a>        )
+<a href=#143 id=143 data-nosnippet>143</a>        .map_err(<span class="kw">super</span>::service_remote_mapping::remote_error)
+<a href=#144 id=144 data-nosnippet>144</a>        .map(to_session_selection)
+<a href=#145 id=145 data-nosnippet>145</a>}
+<a href=#146 id=146 data-nosnippet>146</a>
+<a href=#147 id=147 data-nosnippet>147</a><span class="doccomment">/// Converts a protocol selection into the session-domain value.
+<a href=#148 id=148 data-nosnippet>148</a>///
+<a href=#149 id=149 data-nosnippet>149</a>/// - `selection`: Protocol selection returned by the server.
+<a href=#150 id=150 data-nosnippet>150</a>///
+<a href=#151 id=151 data-nosnippet>151</a>/// Equivalent provider-neutral session selection.
+<a href=#152 id=152 data-nosnippet>152</a>/// # Returns
+<a href=#153 id=153 data-nosnippet>153</a>/// The operation result.
+<a href=#154 id=154 data-nosnippet>154</a></span><span class="kw">fn </span>to_session_selection(
+<a href=#155 id=155 data-nosnippet>155</a>    selection: scriberig_protocol::SessionExecutionSelection,
+<a href=#156 id=156 data-nosnippet>156</a>) -&gt; scriberig_session::SessionExecutionSelection {
+<a href=#157 id=157 data-nosnippet>157</a>    scriberig_session::SessionExecutionSelection {
+<a href=#158 id=158 data-nosnippet>158</a>        revision: selection.revision,
+<a href=#159 id=159 data-nosnippet>159</a>        provider_id: selection.provider_id,
+<a href=#160 id=160 data-nosnippet>160</a>        model_id: selection.model_id,
+<a href=#161 id=161 data-nosnippet>161</a>        thinking_level: selection.thinking_level,
+<a href=#162 id=162 data-nosnippet>162</a>        history: selection
+<a href=#163 id=163 data-nosnippet>163</a>            .history
+<a href=#164 id=164 data-nosnippet>164</a>            .into_iter()
+<a href=#165 id=165 data-nosnippet>165</a>            .map(|change| scriberig_session::SessionExecutionChange {
+<a href=#166 id=166 data-nosnippet>166</a>                revision: change.revision,
+<a href=#167 id=167 data-nosnippet>167</a>                kind: change.kind,
+<a href=#168 id=168 data-nosnippet>168</a>                summary: change.summary,
+<a href=#169 id=169 data-nosnippet>169</a>                provider_id: change.provider_id,
+<a href=#170 id=170 data-nosnippet>170</a>                model_id: change.model_id,
+<a href=#171 id=171 data-nosnippet>171</a>                thinking_level: change.thinking_level,
+<a href=#172 id=172 data-nosnippet>172</a>            })
+<a href=#173 id=173 data-nosnippet>173</a>            .collect(),
+<a href=#174 id=174 data-nosnippet>174</a>    }
+<a href=#175 id=175 data-nosnippet>175</a>}
+<a href=#176 id=176 data-nosnippet>176</a>
+<a href=#177 id=177 data-nosnippet>177</a><span class="attr">#[cfg(test)]
+<a href=#178 id=178 data-nosnippet>178</a>#[path = <span class="string">"service_remote_model_tests.rs"</span>]
+<a href=#179 id=179 data-nosnippet>179</a></span><span class="kw">mod </span>tests;
 </code></pre></div></section></main></body></html>

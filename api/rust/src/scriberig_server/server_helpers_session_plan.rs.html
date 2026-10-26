@@ -98,15 +98,15 @@
 <a href=#98 id=98 data-nosnippet>98</a>
 <a href=#99 id=99 data-nosnippet>99</a><span class="doccomment">/// Converts a safe model assignment.
 <a href=#100 id=100 data-nosnippet>100</a>///
-<a href=#101 id=101 data-nosnippet>101</a>/// - `value`: Provider-neutral profile, model, and thinking identities.
+<a href=#101 id=101 data-nosnippet>101</a>/// - `value`: Upstream provider, model, and thinking identities.
 <a href=#102 id=102 data-nosnippet>102</a>///
 <a href=#103 id=103 data-nosnippet>103</a>/// Credential-free protocol assignment.
 <a href=#104 id=104 data-nosnippet>104</a>/// # Returns
 <a href=#105 id=105 data-nosnippet>105</a>/// The operation result.
 <a href=#106 id=106 data-nosnippet>106</a></span><span class="kw">fn </span>assignment(value: scriberig_session::ModelAssignment) -&gt; SessionModelAssignment {
 <a href=#107 id=107 data-nosnippet>107</a>    SessionModelAssignment {
-<a href=#108 id=108 data-nosnippet>108</a>        profile: value.profile,
-<a href=#109 id=109 data-nosnippet>109</a>        model: value.model,
+<a href=#108 id=108 data-nosnippet>108</a>        provider_id: value.provider_id,
+<a href=#109 id=109 data-nosnippet>109</a>        model_id: value.model_id,
 <a href=#110 id=110 data-nosnippet>110</a>        thinking_level: value.thinking_level,
 <a href=#111 id=111 data-nosnippet>111</a>    }
 <a href=#112 id=112 data-nosnippet>112</a>}

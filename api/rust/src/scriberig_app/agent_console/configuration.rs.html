@@ -144,7 +144,7 @@
 <a href=#144 id=144 data-nosnippet>144</a>    </span><span class="kw">fn </span>configured_catalog_projects_safe_model_specific_levels() {
 <a href=#145 id=145 data-nosnippet>145</a>        <span class="kw">let </span>library = model_library_from_json(
 <a href=#146 id=146 data-nosnippet>146</a>            <span class="prelude-val">Some</span>(
-<a href=#147 id=147 data-nosnippet>147</a>                <span class="string">r#"{"models":[{"id":"one","display_name":"One","provider_model_id":"wire-one","thinking_levels":[{"id":"deep","label":"Deep","provider_parameters":{"secret":"fake-secret-marker"}}]},{"id":"two","display_name":"Two","provider_model_id":"wire-two","thinking_levels":[{"id":"deep","label":"Deep"}]}]}"#</span>,
+<a href=#147 id=147 data-nosnippet>147</a>                <span class="string">r#"{"models":[{"id":"one","display_name":"One","provider_model_id":"wire-one","thinking_levels":[{"id":"high","label":"Deep","provider_parameters":{"secret":"fake-secret-marker"}}]},{"id":"two","display_name":"Two","provider_model_id":"wire-two","thinking_levels":[{"id":"high","label":"Deep"}]}]}"#</span>,
 <a href=#148 id=148 data-nosnippet>148</a>            ),
 <a href=#149 id=149 data-nosnippet>149</a>            <span class="string">"fallback"</span>,
 <a href=#150 id=150 data-nosnippet>150</a>        )
@@ -153,8 +153,8 @@
 <a href=#153 id=153 data-nosnippet>153</a>
 <a href=#154 id=154 data-nosnippet>154</a>        <span class="macro">assert_eq!</span>(library.models.len(), <span class="number">2</span>);
 <a href=#155 id=155 data-nosnippet>155</a>        <span class="macro">assert_eq!</span>(library.profiles.len(), <span class="number">2</span>);
-<a href=#156 id=156 data-nosnippet>156</a>        <span class="macro">assert_eq!</span>(library.models[<span class="number">0</span>].thinking_levels[<span class="number">0</span>].id.as_str(), <span class="string">"deep"</span>);
-<a href=#157 id=157 data-nosnippet>157</a>        <span class="macro">assert_eq!</span>(library.models[<span class="number">1</span>].thinking_levels[<span class="number">0</span>].id.as_str(), <span class="string">"deep"</span>);
+<a href=#156 id=156 data-nosnippet>156</a>        <span class="macro">assert_eq!</span>(library.models[<span class="number">0</span>].thinking_levels[<span class="number">0</span>].id.as_str(), <span class="string">"high"</span>);
+<a href=#157 id=157 data-nosnippet>157</a>        <span class="macro">assert_eq!</span>(library.models[<span class="number">1</span>].thinking_levels[<span class="number">0</span>].id.as_str(), <span class="string">"high"</span>);
 <a href=#158 id=158 data-nosnippet>158</a>        <span class="macro">assert!</span>(!serialized.contains(<span class="string">"provider_parameters"</span>));
 <a href=#159 id=159 data-nosnippet>159</a>        <span class="macro">assert!</span>(!serialized.contains(<span class="string">"fake-secret-marker"</span>));
 <a href=#160 id=160 data-nosnippet>160</a>    }

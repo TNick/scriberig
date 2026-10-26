@@ -50,11 +50,11 @@
 <a href=#50 id=50 data-nosnippet>50</a>            (scriberig_app::ValidationStatus::Failed, diagnostics.clone())
 <a href=#51 id=51 data-nosnippet>51</a>        }
 <a href=#52 id=52 data-nosnippet>52</a>    };
-<a href=#53 id=53 data-nosnippet>53</a>    <span class="kw">let </span><span class="kw-2">mut </span>conflicts = <span class="macro">vec!</span>[<span class="macro">format!</span>(
+<a href=#53 id=53 data-nosnippet>53</a>    <span class="kw">let </span><span class="kw-2">mut </span>review_details = <span class="macro">vec!</span>[<span class="macro">format!</span>(
 <a href=#54 id=54 data-nosnippet>54</a>        <span class="string">"scope: entity={} snapshot={}"</span>,
 <a href=#55 id=55 data-nosnippet>55</a>        candidate.entity, candidate.base_snapshot
 <a href=#56 id=56 data-nosnippet>56</a>    )];
-<a href=#57 id=57 data-nosnippet>57</a>    conflicts.extend(
+<a href=#57 id=57 data-nosnippet>57</a>    review_details.extend(
 <a href=#58 id=58 data-nosnippet>58</a>        candidate
 <a href=#59 id=59 data-nosnippet>59</a>            .effects
 <a href=#60 id=60 data-nosnippet>60</a>            .iter()
@@ -80,96 +80,98 @@
 <a href=#80 id=80 data-nosnippet>80</a>        validation: <span class="prelude-val">Some</span>(validation),
 <a href=#81 id=81 data-nosnippet>81</a>        validation_profile: candidate.validation_profile.clone(),
 <a href=#82 id=82 data-nosnippet>82</a>        validation_diagnostics: diagnostics,
-<a href=#83 id=83 data-nosnippet>83</a>        conflicts,
-<a href=#84 id=84 data-nosnippet>84</a>    })))
-<a href=#85 id=85 data-nosnippet>85</a>}
-<a href=#86 id=86 data-nosnippet>86</a>
-<a href=#87 id=87 data-nosnippet>87</a><span class="doccomment">/// Applies one durable project candidate after explicit application confirmation.
-<a href=#88 id=88 data-nosnippet>88</a>///
-<a href=#89 id=89 data-nosnippet>89</a>/// - `workflow`: Shared project candidate service.
-<a href=#90 id=90 data-nosnippet>90</a>/// - `request`: Candidate ID and exact base snapshot from the commit operation.
-<a href=#91 id=91 data-nosnippet>91</a>/// - `super`: Parent TUI service module.
-<a href=#92 id=92 data-nosnippet>92</a>///
-<a href=#93 id=93 data-nosnippet>93</a>/// Canonical successor and materialization receipt in the shared commit result.
-<a href=#94 id=94 data-nosnippet>94</a>///
-<a href=#95 id=95 data-nosnippet>95</a>/// Returns missing, stale, validation, safety, or effect-recovery errors.
-<a href=#96 id=96 data-nosnippet>96</a>/// # Returns
-<a href=#97 id=97 data-nosnippet>97</a>/// The operation result.
-<a href=#98 id=98 data-nosnippet>98</a>/// # Errors
-<a href=#99 id=99 data-nosnippet>99</a>/// Returns an error when the operation fails.
-<a href=#100 id=100 data-nosnippet>100</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>apply_candidate(
-<a href=#101 id=101 data-nosnippet>101</a>    workflow: <span class="kw-2">&amp;</span>ProjectService,
-<a href=#102 id=102 data-nosnippet>102</a>    request: <span class="kw-2">&amp;</span>CommitRequest,
-<a href=#103 id=103 data-nosnippet>103</a>) -&gt; <span class="prelude-ty">Result</span>&lt;ApplicationResult, ApplicationError&gt; {
-<a href=#104 id=104 data-nosnippet>104</a>    <span class="kw">let </span>candidate = workflow
-<a href=#105 id=105 data-nosnippet>105</a>        .candidate(<span class="kw-2">&amp;</span>request.change)
-<a href=#106 id=106 data-nosnippet>106</a>        .map_err(|error| ApplicationError::OperationFailed {
-<a href=#107 id=107 data-nosnippet>107</a>            operation: error.code.to_owned(),
-<a href=#108 id=108 data-nosnippet>108</a>            message: error.message,
-<a href=#109 id=109 data-nosnippet>109</a>        })<span class="question-mark">?
-<a href=#110 id=110 data-nosnippet>110</a>        </span>.ok_or_else(|| ApplicationError::NotFound {
-<a href=#111 id=111 data-nosnippet>111</a>            subject: request.change.clone(),
-<a href=#112 id=112 data-nosnippet>112</a>        })<span class="question-mark">?</span>;
-<a href=#113 id=113 data-nosnippet>113</a>    <span class="kw">if </span>candidate.base_snapshot != request.base_snapshot {
-<a href=#114 id=114 data-nosnippet>114</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(ApplicationError::StaleBaseSnapshot {
-<a href=#115 id=115 data-nosnippet>115</a>            requested: request.base_snapshot,
-<a href=#116 id=116 data-nosnippet>116</a>            current: candidate.base_snapshot,
-<a href=#117 id=117 data-nosnippet>117</a>        });
-<a href=#118 id=118 data-nosnippet>118</a>    }
-<a href=#119 id=119 data-nosnippet>119</a>    <span class="kw">let </span>report = workflow.apply_candidate(<span class="kw-2">&amp;</span>candidate).map_err(|error| {
-<a href=#120 id=120 data-nosnippet>120</a>        ApplicationError::OperationFailed {
-<a href=#121 id=121 data-nosnippet>121</a>            operation: error.code.to_owned(),
-<a href=#122 id=122 data-nosnippet>122</a>            message: error.message,
-<a href=#123 id=123 data-nosnippet>123</a>        }
-<a href=#124 id=124 data-nosnippet>124</a>    })<span class="question-mark">?</span>;
-<a href=#125 id=125 data-nosnippet>125</a>    <span class="prelude-val">Ok</span>(ApplicationResult::Commit(OperationSummary {
-<a href=#126 id=126 data-nosnippet>126</a>        handle: report.candidate,
-<a href=#127 id=127 data-nosnippet>127</a>        snapshot: <span class="prelude-val">Some</span>(report.successor_snapshot),
-<a href=#128 id=128 data-nosnippet>128</a>        revision: <span class="prelude-val">None</span>,
-<a href=#129 id=129 data-nosnippet>129</a>        branch: <span class="prelude-val">None</span>,
-<a href=#130 id=130 data-nosnippet>130</a>        diff: <span class="prelude-val">None</span>,
-<a href=#131 id=131 data-nosnippet>131</a>        history: <span class="prelude-val">None</span>,
-<a href=#132 id=132 data-nosnippet>132</a>        rendered: <span class="prelude-val">None</span>,
-<a href=#133 id=133 data-nosnippet>133</a>        validation: <span class="prelude-val">Some</span>(ValidationStatus::Passed),
-<a href=#134 id=134 data-nosnippet>134</a>        validation_profile: candidate.validation_profile,
-<a href=#135 id=135 data-nosnippet>135</a>        validation_diagnostics: Vec::new(),
-<a href=#136 id=136 data-nosnippet>136</a>        conflicts: <span class="macro">vec!</span>[<span class="macro">format!</span>(<span class="string">"materialized {}"</span>, report.path)],
-<a href=#137 id=137 data-nosnippet>137</a>    }))
-<a href=#138 id=138 data-nosnippet>138</a>}
-<a href=#139 id=139 data-nosnippet>139</a>
-<a href=#140 id=140 data-nosnippet>140</a><span class="doccomment">/// Returns a bounded, readable preview for candidate source bytes.
-<a href=#141 id=141 data-nosnippet>141</a>///
-<a href=#142 id=142 data-nosnippet>142</a>/// - `bytes`: Optional exact source bytes.
+<a href=#83 id=83 data-nosnippet>83</a>        review_details,
+<a href=#84 id=84 data-nosnippet>84</a>        conflicts: Vec::new(),
+<a href=#85 id=85 data-nosnippet>85</a>    })))
+<a href=#86 id=86 data-nosnippet>86</a>}
+<a href=#87 id=87 data-nosnippet>87</a>
+<a href=#88 id=88 data-nosnippet>88</a><span class="doccomment">/// Applies one durable project candidate after explicit application confirmation.
+<a href=#89 id=89 data-nosnippet>89</a>///
+<a href=#90 id=90 data-nosnippet>90</a>/// - `workflow`: Shared project candidate service.
+<a href=#91 id=91 data-nosnippet>91</a>/// - `request`: Candidate ID and exact base snapshot from the commit operation.
+<a href=#92 id=92 data-nosnippet>92</a>/// - `super`: Parent TUI service module.
+<a href=#93 id=93 data-nosnippet>93</a>///
+<a href=#94 id=94 data-nosnippet>94</a>/// Canonical successor and materialization receipt in the shared commit result.
+<a href=#95 id=95 data-nosnippet>95</a>///
+<a href=#96 id=96 data-nosnippet>96</a>/// Returns missing, stale, validation, safety, or effect-recovery errors.
+<a href=#97 id=97 data-nosnippet>97</a>/// # Returns
+<a href=#98 id=98 data-nosnippet>98</a>/// The operation result.
+<a href=#99 id=99 data-nosnippet>99</a>/// # Errors
+<a href=#100 id=100 data-nosnippet>100</a>/// Returns an error when the operation fails.
+<a href=#101 id=101 data-nosnippet>101</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>apply_candidate(
+<a href=#102 id=102 data-nosnippet>102</a>    workflow: <span class="kw-2">&amp;</span>ProjectService,
+<a href=#103 id=103 data-nosnippet>103</a>    request: <span class="kw-2">&amp;</span>CommitRequest,
+<a href=#104 id=104 data-nosnippet>104</a>) -&gt; <span class="prelude-ty">Result</span>&lt;ApplicationResult, ApplicationError&gt; {
+<a href=#105 id=105 data-nosnippet>105</a>    <span class="kw">let </span>candidate = workflow
+<a href=#106 id=106 data-nosnippet>106</a>        .candidate(<span class="kw-2">&amp;</span>request.change)
+<a href=#107 id=107 data-nosnippet>107</a>        .map_err(|error| ApplicationError::OperationFailed {
+<a href=#108 id=108 data-nosnippet>108</a>            operation: error.code.to_owned(),
+<a href=#109 id=109 data-nosnippet>109</a>            message: error.message,
+<a href=#110 id=110 data-nosnippet>110</a>        })<span class="question-mark">?
+<a href=#111 id=111 data-nosnippet>111</a>        </span>.ok_or_else(|| ApplicationError::NotFound {
+<a href=#112 id=112 data-nosnippet>112</a>            subject: request.change.clone(),
+<a href=#113 id=113 data-nosnippet>113</a>        })<span class="question-mark">?</span>;
+<a href=#114 id=114 data-nosnippet>114</a>    <span class="kw">if </span>candidate.base_snapshot != request.base_snapshot {
+<a href=#115 id=115 data-nosnippet>115</a>        <span class="kw">return </span><span class="prelude-val">Err</span>(ApplicationError::StaleBaseSnapshot {
+<a href=#116 id=116 data-nosnippet>116</a>            requested: request.base_snapshot,
+<a href=#117 id=117 data-nosnippet>117</a>            current: candidate.base_snapshot,
+<a href=#118 id=118 data-nosnippet>118</a>        });
+<a href=#119 id=119 data-nosnippet>119</a>    }
+<a href=#120 id=120 data-nosnippet>120</a>    <span class="kw">let </span>report = workflow.apply_candidate(<span class="kw-2">&amp;</span>candidate).map_err(|error| {
+<a href=#121 id=121 data-nosnippet>121</a>        ApplicationError::OperationFailed {
+<a href=#122 id=122 data-nosnippet>122</a>            operation: error.code.to_owned(),
+<a href=#123 id=123 data-nosnippet>123</a>            message: error.message,
+<a href=#124 id=124 data-nosnippet>124</a>        }
+<a href=#125 id=125 data-nosnippet>125</a>    })<span class="question-mark">?</span>;
+<a href=#126 id=126 data-nosnippet>126</a>    <span class="prelude-val">Ok</span>(ApplicationResult::Commit(OperationSummary {
+<a href=#127 id=127 data-nosnippet>127</a>        handle: report.candidate,
+<a href=#128 id=128 data-nosnippet>128</a>        snapshot: <span class="prelude-val">Some</span>(report.successor_snapshot),
+<a href=#129 id=129 data-nosnippet>129</a>        revision: <span class="prelude-val">None</span>,
+<a href=#130 id=130 data-nosnippet>130</a>        branch: <span class="prelude-val">None</span>,
+<a href=#131 id=131 data-nosnippet>131</a>        diff: <span class="prelude-val">None</span>,
+<a href=#132 id=132 data-nosnippet>132</a>        history: <span class="prelude-val">None</span>,
+<a href=#133 id=133 data-nosnippet>133</a>        rendered: <span class="prelude-val">None</span>,
+<a href=#134 id=134 data-nosnippet>134</a>        validation: <span class="prelude-val">Some</span>(ValidationStatus::Passed),
+<a href=#135 id=135 data-nosnippet>135</a>        validation_profile: candidate.validation_profile,
+<a href=#136 id=136 data-nosnippet>136</a>        validation_diagnostics: Vec::new(),
+<a href=#137 id=137 data-nosnippet>137</a>        review_details: <span class="macro">vec!</span>[<span class="macro">format!</span>(<span class="string">"materialized {}"</span>, report.path)],
+<a href=#138 id=138 data-nosnippet>138</a>        conflicts: Vec::new(),
+<a href=#139 id=139 data-nosnippet>139</a>    }))
+<a href=#140 id=140 data-nosnippet>140</a>}
+<a href=#141 id=141 data-nosnippet>141</a>
+<a href=#142 id=142 data-nosnippet>142</a><span class="doccomment">/// Returns a bounded, readable preview for candidate source bytes.
 <a href=#143 id=143 data-nosnippet>143</a>///
-<a href=#144 id=144 data-nosnippet>144</a>/// UTF-8 preview or a stable marker for absent source data.
-<a href=#145 id=145 data-nosnippet>145</a>/// # Returns
-<a href=#146 id=146 data-nosnippet>146</a>/// The operation result.
-<a href=#147 id=147 data-nosnippet>147</a></span><span class="kw">fn </span>review_bytes(bytes: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>[u8]&gt;) -&gt; String {
-<a href=#148 id=148 data-nosnippet>148</a>    bytes.map_or_else(
-<a href=#149 id=149 data-nosnippet>149</a>        || <span class="string">"&lt;absent&gt;"</span>.to_owned(),
-<a href=#150 id=150 data-nosnippet>150</a>        |bytes| {
-<a href=#151 id=151 data-nosnippet>151</a>            <span class="kw">let </span>text = String::from_utf8_lossy(bytes);
-<a href=#152 id=152 data-nosnippet>152</a>            <span class="kw">let </span><span class="kw-2">mut </span>preview = text.chars().take(<span class="number">500</span>).collect::&lt;String&gt;();
-<a href=#153 id=153 data-nosnippet>153</a>            <span class="kw">if </span>text.chars().count() &gt; <span class="number">500 </span>{
-<a href=#154 id=154 data-nosnippet>154</a>                preview.push_str(<span class="string">"\n… truncated …"</span>);
-<a href=#155 id=155 data-nosnippet>155</a>            }
-<a href=#156 id=156 data-nosnippet>156</a>            preview
-<a href=#157 id=157 data-nosnippet>157</a>        },
-<a href=#158 id=158 data-nosnippet>158</a>    )
-<a href=#159 id=159 data-nosnippet>159</a>}
-<a href=#160 id=160 data-nosnippet>160</a>
-<a href=#161 id=161 data-nosnippet>161</a><span class="doccomment">/// Returns the stable source effect label used in review content.
-<a href=#162 id=162 data-nosnippet>162</a>///
-<a href=#163 id=163 data-nosnippet>163</a>/// - `kind`: Candidate source effect kind.
+<a href=#144 id=144 data-nosnippet>144</a>/// - `bytes`: Optional exact source bytes.
+<a href=#145 id=145 data-nosnippet>145</a>///
+<a href=#146 id=146 data-nosnippet>146</a>/// UTF-8 preview or a stable marker for absent source data.
+<a href=#147 id=147 data-nosnippet>147</a>/// # Returns
+<a href=#148 id=148 data-nosnippet>148</a>/// The operation result.
+<a href=#149 id=149 data-nosnippet>149</a></span><span class="kw">fn </span>review_bytes(bytes: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>[u8]&gt;) -&gt; String {
+<a href=#150 id=150 data-nosnippet>150</a>    bytes.map_or_else(
+<a href=#151 id=151 data-nosnippet>151</a>        || <span class="string">"&lt;absent&gt;"</span>.to_owned(),
+<a href=#152 id=152 data-nosnippet>152</a>        |bytes| {
+<a href=#153 id=153 data-nosnippet>153</a>            <span class="kw">let </span>text = String::from_utf8_lossy(bytes);
+<a href=#154 id=154 data-nosnippet>154</a>            <span class="kw">let </span><span class="kw-2">mut </span>preview = text.chars().take(<span class="number">500</span>).collect::&lt;String&gt;();
+<a href=#155 id=155 data-nosnippet>155</a>            <span class="kw">if </span>text.chars().count() &gt; <span class="number">500 </span>{
+<a href=#156 id=156 data-nosnippet>156</a>                preview.push_str(<span class="string">"\n… truncated …"</span>);
+<a href=#157 id=157 data-nosnippet>157</a>            }
+<a href=#158 id=158 data-nosnippet>158</a>            preview
+<a href=#159 id=159 data-nosnippet>159</a>        },
+<a href=#160 id=160 data-nosnippet>160</a>    )
+<a href=#161 id=161 data-nosnippet>161</a>}
+<a href=#162 id=162 data-nosnippet>162</a>
+<a href=#163 id=163 data-nosnippet>163</a><span class="doccomment">/// Returns the stable source effect label used in review content.
 <a href=#164 id=164 data-nosnippet>164</a>///
-<a href=#165 id=165 data-nosnippet>165</a>/// Lowercase effect label.
-<a href=#166 id=166 data-nosnippet>166</a>/// # Returns
-<a href=#167 id=167 data-nosnippet>167</a>/// The operation result.
-<a href=#168 id=168 data-nosnippet>168</a></span><span class="kw">fn </span>effect_kind(kind: scriberig_project::ProjectSourceEffectKind) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
-<a href=#169 id=169 data-nosnippet>169</a>    <span class="kw">match </span>kind {
-<a href=#170 id=170 data-nosnippet>170</a>        scriberig_project::ProjectSourceEffectKind::Create =&gt; <span class="string">"create"</span>,
-<a href=#171 id=171 data-nosnippet>171</a>        scriberig_project::ProjectSourceEffectKind::Update =&gt; <span class="string">"update"</span>,
-<a href=#172 id=172 data-nosnippet>172</a>        scriberig_project::ProjectSourceEffectKind::Delete =&gt; <span class="string">"delete"</span>,
-<a href=#173 id=173 data-nosnippet>173</a>    }
-<a href=#174 id=174 data-nosnippet>174</a>}
+<a href=#165 id=165 data-nosnippet>165</a>/// - `kind`: Candidate source effect kind.
+<a href=#166 id=166 data-nosnippet>166</a>///
+<a href=#167 id=167 data-nosnippet>167</a>/// Lowercase effect label.
+<a href=#168 id=168 data-nosnippet>168</a>/// # Returns
+<a href=#169 id=169 data-nosnippet>169</a>/// The operation result.
+<a href=#170 id=170 data-nosnippet>170</a></span><span class="kw">fn </span>effect_kind(kind: scriberig_project::ProjectSourceEffectKind) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+<a href=#171 id=171 data-nosnippet>171</a>    <span class="kw">match </span>kind {
+<a href=#172 id=172 data-nosnippet>172</a>        scriberig_project::ProjectSourceEffectKind::Create =&gt; <span class="string">"create"</span>,
+<a href=#173 id=173 data-nosnippet>173</a>        scriberig_project::ProjectSourceEffectKind::Update =&gt; <span class="string">"update"</span>,
+<a href=#174 id=174 data-nosnippet>174</a>        scriberig_project::ProjectSourceEffectKind::Delete =&gt; <span class="string">"delete"</span>,
+<a href=#175 id=175 data-nosnippet>175</a>    }
+<a href=#176 id=176 data-nosnippet>176</a>}
 </code></pre></div></section></main></body></html>

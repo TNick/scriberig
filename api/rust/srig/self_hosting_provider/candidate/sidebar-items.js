@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["candidate_create_effects","candidate_effects","candidate_update_effects","effect","project_proposal"]};
+window.SIDEBAR_ITEMS = {"constant":["PHP_LOCK_PACKAGES","PHP_WORKSPACE_MEMBER"],"fn":["candidate_create_effects","candidate_effects","candidate_update_effects","candidate_workspace_lock","candidate_workspace_manifest","effect","project_proposal"]};

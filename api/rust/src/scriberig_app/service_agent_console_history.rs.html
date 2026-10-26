@@ -18,12 +18,13 @@
 <a href=#18 id=18 data-nosnippet>18</a>        revision: selection.revision,
 <a href=#19 id=19 data-nosnippet>19</a>        kind,
 <a href=#20 id=20 data-nosnippet>20</a>        summary,
-<a href=#21 id=21 data-nosnippet>21</a>        model: selection.model.clone(),
-<a href=#22 id=22 data-nosnippet>22</a>        thinking_level: selection.thinking_level.clone(),
-<a href=#23 id=23 data-nosnippet>23</a>    });
-<a href=#24 id=24 data-nosnippet>24</a>    <span class="kw">if </span>selection.history.len() &gt; MAX_SELECTION_HISTORY {
-<a href=#25 id=25 data-nosnippet>25</a>        <span class="kw">let </span>excess = selection.history.len() - MAX_SELECTION_HISTORY;
-<a href=#26 id=26 data-nosnippet>26</a>        selection.history.drain(..excess);
-<a href=#27 id=27 data-nosnippet>27</a>    }
-<a href=#28 id=28 data-nosnippet>28</a>}
+<a href=#21 id=21 data-nosnippet>21</a>        provider_id: selection.provider_id.clone(),
+<a href=#22 id=22 data-nosnippet>22</a>        model_id: selection.model_id.clone(),
+<a href=#23 id=23 data-nosnippet>23</a>        thinking_level: selection.thinking_level.clone(),
+<a href=#24 id=24 data-nosnippet>24</a>    });
+<a href=#25 id=25 data-nosnippet>25</a>    <span class="kw">if </span>selection.history.len() &gt; MAX_SELECTION_HISTORY {
+<a href=#26 id=26 data-nosnippet>26</a>        <span class="kw">let </span>excess = selection.history.len() - MAX_SELECTION_HISTORY;
+<a href=#27 id=27 data-nosnippet>27</a>        selection.history.drain(..excess);
+<a href=#28 id=28 data-nosnippet>28</a>    }
+<a href=#29 id=29 data-nosnippet>29</a>}
 </code></pre></div></section></main></body></html>

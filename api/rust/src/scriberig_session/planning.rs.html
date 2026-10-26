@@ -57,16 +57,16 @@
 <a href=#57 id=57 data-nosnippet>57</a>    </span><span class="kw">pub </span>requires_handle: bool,
 <a href=#58 id=58 data-nosnippet>58</a>}
 <a href=#59 id=59 data-nosnippet>59</a>
-<a href=#60 id=60 data-nosnippet>60</a><span class="doccomment">/// Selects a safe model-library configuration for one plan node.
+<a href=#60 id=60 data-nosnippet>60</a><span class="doccomment">/// Selects an upstream provider and model for one plan node.
 <a href=#61 id=61 data-nosnippet>61</a>///
-<a href=#62 id=62 data-nosnippet>62</a>/// Provider credentials are deliberately excluded; `profile` and `model` are
-<a href=#63 id=63 data-nosnippet>63</a>/// stable identifiers resolved by the configured model library at execution.
+<a href=#62 id=62 data-nosnippet>62</a>/// Provider credentials are deliberately excluded. The provider and model IDs
+<a href=#63 id=63 data-nosnippet>63</a>/// are resolved by upstream runtime machinery at execution.
 <a href=#64 id=64 data-nosnippet>64</a></span><span class="attr">#[derive(Clone, Debug, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 <a href=#65 id=65 data-nosnippet>65</a></span><span class="kw">pub struct </span>ModelAssignment {
-<a href=#66 id=66 data-nosnippet>66</a>    <span class="doccomment">/// Curated model profile identity.
-<a href=#67 id=67 data-nosnippet>67</a>    </span><span class="kw">pub </span>profile: String,
-<a href=#68 id=68 data-nosnippet>68</a>    <span class="doccomment">/// Model identity within the profile.
-<a href=#69 id=69 data-nosnippet>69</a>    </span><span class="kw">pub </span>model: String,
+<a href=#66 id=66 data-nosnippet>66</a>    <span class="doccomment">/// Upstream provider identity.
+<a href=#67 id=67 data-nosnippet>67</a>    </span><span class="kw">pub </span>provider_id: String,
+<a href=#68 id=68 data-nosnippet>68</a>    <span class="doccomment">/// Upstream provider-scoped model identity.
+<a href=#69 id=69 data-nosnippet>69</a>    </span><span class="kw">pub </span>model_id: String,
 <a href=#70 id=70 data-nosnippet>70</a>    <span class="doccomment">/// Optional advertised thinking-level identity.
 <a href=#71 id=71 data-nosnippet>71</a>    </span><span class="kw">pub </span>thinking_level: <span class="prelude-ty">Option</span>&lt;String&gt;,
 <a href=#72 id=72 data-nosnippet>72</a>}

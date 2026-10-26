@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["from_environment","from_json"],"struct":["CatalogInput","ConnectionInput","ModelInput","ProviderCatalog","ProviderConnection","ThinkingLevelInput"]};
+window.SIDEBAR_ITEMS = {"fn":["connection_identity","display_projection","from_environment","insert_fallback_provider","invalid_catalog","strip_unsupported_catalog_auth","unsupported_catalog_auth_error"],"struct":["EnvironmentResolver","ProviderCatalog","ProviderConnection"]};
