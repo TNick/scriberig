@@ -311,6 +311,7 @@ fn tui_pty_opens_history_and_agent_composer() {
 }
 
 /// Verifies repeated provider refreshes leave one plugin command in the live palette.
+#[cfg(feature = "provider-package-worker-tests")]
 #[test]
 fn tui_pty_refreshes_plugin_command_registrations_without_duplicates() {
     let _lock = test_lock();

@@ -37,6 +37,7 @@ mod startup_arithmetic;
 mod startup_model_config;
 #[path = "tui_pty_support/startup_options.rs"]
 mod startup_options;
+#[cfg(feature = "provider-package-worker-tests")]
 #[path = "tui_pty_support/startup_plugin.rs"]
 mod startup_plugin;
 
