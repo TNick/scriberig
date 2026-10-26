@@ -9,6 +9,7 @@ on:
 
 jobs:
   product-tests:
+    if: ${{ !contains(github.server_url, 'git.advaita.ro') }}
     timeout-minutes: 120
     runs-on: docker-host
     steps:
@@ -38,6 +39,7 @@ jobs:
             '
 
   quality:
+    if: ${{ !contains(github.server_url, 'git.advaita.ro') }}
     timeout-minutes: 120
     runs-on: docker-host
     steps:
@@ -66,3 +68,12 @@ jobs:
               pnpm --dir web test
               python3 tools/product_golden.py
             '
+
+  forgejo-tests-disabled:
+    if: ${{ contains(github.server_url, 'git.advaita.ro') }}
+    runs-on: docker-host
+    steps:
+      - name: Report Forgejo runner test limitation
+        run: |
+          echo "Forgejo detected at $GITHUB_SERVER_URL."
+          echo "Skipping container-dependent product and quality jobs because this runner pool cannot reliably start their required containers and namespaces."
