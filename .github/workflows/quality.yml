@@ -10,69 +10,55 @@ on:
 jobs:
   product-tests:
     timeout-minutes: 120
-    runs-on: docker-host
+    runs-on: debian-13
+    container:
+      image: 10.225.224.10/ci/debian:13
+      options: --privileged
     steps:
       - uses: actions/checkout@v4
       - name: Test product application
         run: |
           set -euxo pipefail
-          timeout --foreground 30s docker info --format 'Docker daemon: {{.ServerVersion}}'
-          timeout --foreground 5m docker pull 10.225.224.10/ci/debian:13
-          timeout --foreground 45s docker run --pull=never --rm --privileged --network host \
-            10.225.224.10/ci/debian:13 /bin/echo 'Privileged container startup passed'
-          timeout --foreground 110m docker run --pull=never --rm --privileged --network host \
-            --env FORGEJO_SERVER_URL="${FORGEJO_SERVER_URL:-}" \
-            --volume "$GITHUB_WORKSPACE:/workspace" --workdir /workspace \
-            10.225.224.10/ci/debian:13 \
-            bash -euxo pipefail -c '
-              echo "Starting isolated product tests"
-              timeout --foreground 5m apt-get -o Acquire::Retries=1 \
-                -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-              timeout --foreground 5m apt-get install --yes bubblewrap
-              git config --global --add safe.directory /workspace
-              rustc --version
-              cargo --version
-              if [ -z "$FORGEJO_SERVER_URL" ]; then
-                bwrap --unshare-all --cap-drop ALL --clearenv --dev /dev --tmpfs /tmp \
-                  --ro-bind /usr /usr --ro-bind /bin /bin --ro-bind /lib /lib \
-                  --ro-bind /lib64 /lib64 --chdir /tmp -- /usr/bin/true
-                cargo test --locked -p scriberig
-              else
-                echo "Forgejo detected; excluding the sandbox-dependent provider_package_worker target."
-                cargo test --locked -p scriberig --no-default-features \
-                  --features isolated-plugin-worker
-              fi
-            '
+          echo "Starting product tests in the prebuilt CI container"
+          timeout --foreground 5m apt-get -o Acquire::Retries=1 \
+            -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          timeout --foreground 5m apt-get install --yes bubblewrap
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          rustc --version
+          cargo --version
+          if [ -z "${FORGEJO_SERVER_URL:-}" ]; then
+            bwrap --unshare-all --cap-drop ALL --clearenv --dev /dev --tmpfs /tmp \
+              --ro-bind /usr /usr --ro-bind /bin /bin --ro-bind /lib /lib \
+              --ro-bind /lib64 /lib64 --chdir /tmp -- /usr/bin/true
+            cargo test --locked -p scriberig
+          else
+            echo "Forgejo detected; excluding the sandbox-dependent provider_package_worker target."
+            cargo test --locked -p scriberig --no-default-features \
+              --features isolated-plugin-worker
+          fi
 
   quality:
     timeout-minutes: 120
-    runs-on: docker-host
+    runs-on: debian-13
+    container:
+      image: 10.225.224.10/ci/debian:13
     steps:
       - uses: actions/checkout@v4
       - name: Run quality checks in CI image
         run: |
           set -euxo pipefail
-          timeout --foreground 30s docker info --format 'Docker daemon: {{.ServerVersion}}'
-          timeout --foreground 5m docker pull 10.225.224.10/ci/debian:13
-          timeout --foreground 45s docker run --pull=never --rm --network host \
-            10.225.224.10/ci/debian:13 /bin/echo 'Quality container startup passed'
-          timeout --foreground 110m docker run --pull=never --rm --network host \
-            --volume "$GITHUB_WORKSPACE:/workspace" --workdir /workspace \
-            10.225.224.10/ci/debian:13 \
-            bash -euxo pipefail -c '
-              echo "Starting repository quality checks"
-              git config --global --add safe.directory /workspace
-              python3 tools/lint_repo.py
-              cargo fmt --all -- --check
-              cargo check --workspace --all-targets
-              cargo clippy --workspace --all-targets --all-features -- -D warnings
-              cargo test --workspace --exclude scriberig
-              pnpm --dir web install --frozen-lockfile
-              pnpm --dir web format:check
-              pnpm --dir web typecheck
-              pnpm --dir web test
-              python3 tools/product_golden.py
-            '
+          echo "Starting repository quality checks in the prebuilt CI container"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          python3 tools/lint_repo.py
+          cargo fmt --all -- --check
+          cargo check --workspace --all-targets
+          cargo clippy --workspace --all-targets --all-features -- -D warnings
+          cargo test --workspace --exclude scriberig
+          pnpm --dir web install --frozen-lockfile
+          pnpm --dir web format:check
+          pnpm --dir web typecheck
+          pnpm --dir web test
+          python3 tools/product_golden.py
 
   forgejo-test-scope:
     if: ${{ contains(github.event.repository.html_url, 'git.advaita.ro') }}
@@ -81,5 +67,5 @@ jobs:
       - name: Report Forgejo product test scope
         run: |
           echo "Forgejo detected at ${FORGEJO_SERVER_URL:-unknown server}."
-          echo "Quality and product checks require working container support; container startup failures fail those jobs."
+          echo "Quality and product checks run directly in the prebuilt job container. Container startup failures fail those jobs."
           echo "The product job excludes provider_package_worker because it requires sandbox namespace support unavailable on Forgejo workers."
