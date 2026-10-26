@@ -59,13 +59,3 @@ jobs:
           pnpm --dir web typecheck
           pnpm --dir web test
           python3 tools/product_golden.py
-
-  forgejo-test-scope:
-    if: ${{ contains(github.event.repository.html_url, 'git.advaita.ro') }}
-    runs-on: docker-host
-    steps:
-      - name: Report Forgejo product test scope
-        run: |
-          echo "Forgejo detected at ${FORGEJO_SERVER_URL:-unknown server}."
-          echo "Quality and product checks run directly in the prebuilt job container. Container startup failures fail those jobs."
-          echo "The product job excludes provider_package_worker because it requires sandbox namespace support unavailable on Forgejo workers."
