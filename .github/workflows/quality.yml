@@ -16,7 +16,9 @@ jobs:
       - name: Test product application in isolated container
         run: |
           set -euxo pipefail
-          docker run --rm --privileged --network host \
+          timeout --foreground 30s docker info --format 'Docker daemon: {{.ServerVersion}}'
+          timeout --foreground 5m docker pull 10.225.224.10/ci/debian:13
+          timeout --foreground 110m docker run --pull=never --rm --privileged --network host \
             --volume "$GITHUB_WORKSPACE:/workspace" --workdir /workspace \
             10.225.224.10/ci/debian:13 \
             bash -euo pipefail -c '
