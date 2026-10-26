@@ -60,6 +60,17 @@ fn execution_selection_compare_and_swap_is_atomic() {
             Some("steady".to_owned()),
         )
         .expect("propose competing selection");
+    branch_update
+        .execution
+        .history
+        .push(scriberig_session::SessionExecutionChange {
+            revision: branch_update.execution.revision,
+            kind: scriberig_session::AgentActivityKind::ModelSelectionChanged,
+            summary: "Model selected: model-b".to_owned(),
+            provider_id: branch_update.execution.provider_id.clone(),
+            model_id: branch_update.execution.model_id.clone(),
+            thinking_level: branch_update.execution.thinking_level.clone(),
+        });
 
     let first_store = Arc::clone(&store);
     let first =
