@@ -10,8 +10,10 @@ fn tui_pty_toggles_captured_prompt_and_reasoning_visibility() {
     assert!(tui.read_until("Enter send"), "{}", tui.diagnostic());
     tui.send_slow(b"1+1\r");
     assert!(tui.read_until("You: 1+1"), "{}", tui.diagnostic());
+    assert!(tui.read_until("BranchResult · 2"), "{}", tui.diagnostic());
 
     toggle_presentation_command(&mut tui, "prompt", "Tool 24 name");
+    assert!(tui.settle(), "{}", tui.diagnostic());
     assert!(
         tui.screen().contains("Tool 24 name"),
         "shown request omitted its captured tools: {}",

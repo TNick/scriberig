@@ -244,9 +244,10 @@ fn tui_pty_changes_model_with_fake_profiles() {
     assert!(tui.read_until("Model selection"), "{}", tui.diagnostic());
 
     tui.send_slow(b"/model\r");
+    assert!(tui.read_until("Select model"), "{}", tui.diagnostic());
     tui.send_slow(b"Fake B");
     tui.send(b"\r");
-    assert!(tui.read_until("fake-b"), "{}", tui.diagnostic());
+    assert!(tui.read_until("model fake-b"), "{}", tui.diagnostic());
 
     let store = scriberig_session_sqlite::SqliteSessionStore::open(
         tui.fixture_path().join("scriberig.sqlite"),
