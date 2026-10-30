@@ -5,8 +5,8 @@
     branch: EntityId,
     prompt: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     project_store: <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;SqliteStore&gt;,
-    invocation: UpstreamBranchInvocation,
-    semantic_scope: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;ProjectSemanticScope&gt;,
+    invocation: <a class="struct" href="../../../scriberig_agent_runtime/upstream_invocation/types/struct.UpstreamBranchInvocation.html" title="struct scriberig_agent_runtime::upstream_invocation::types::UpstreamBranchInvocation">UpstreamBranchInvocation</a>,
+    semantic_scope: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="../../../scriberig_agent_runtime/context/struct.ProjectSemanticScope.html" title="struct scriberig_agent_runtime::context::ProjectSemanticScope">ProjectSemanticScope</a>&gt;,
     cancelled: &amp;<a class="type" href="https://doc.rust-lang.org/1.99.1/core/sync/atomic/type.AtomicBool.html" title="type core::sync::atomic::AtomicBool">AtomicBool</a>,
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="struct.UpstreamBranchExecution.html" title="struct srig::native_tui_agent::upstream_execution::UpstreamBranchExecution">UpstreamBranchExecution</a>, <a class="struct" href="struct.UpstreamBranchExecutionFailure.html" title="struct srig::native_tui_agent::upstream_execution::UpstreamBranchExecutionFailure">UpstreamBranchExecutionFailure</a>&gt;</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Executes a plan worker using its already compiled <code>ScribeRig</code> context.</p>
 <ul>

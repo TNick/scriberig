@@ -7746,6 +7746,21 @@ still recomputes changed nodes and their ancestor paths only. The session
 rollup tests, Clippy, and repository lint pass. Sparse staged updates no longer
 clone the full in-memory rollup, parent, or child maps. A cycle regression
 proves a rejected update leaves the index and snapshot unchanged.</p>
+<p>Implementation update (2026-10-30): focused verification after the sparse
+staging change passed <code>cargo test --locked --offline -p scriberig-session
+--test plan_semantic --test session_structure</code> (47 tests), <code>cargo test
+--locked --offline -p scriberig-app --test session_runtime</code> (24 tests), and
+<code>cargo test --locked --offline -p scriberig-agent-runtime --test scheduler
+--test coordinator</code> (11 tests). These cover semantic rollup validation,
+recovery/retry behavior, application operations, and coordinator/scheduler
+dispatch. They do not close the remaining migration/runtime coverage gaps.</p>
+<p>Task 150 remains in progress. Remaining implementation gaps include stale
+runtime/coordinator migration scenarios beyond legacy claim recovery,
+incomplete web operation coverage, direct-node SQLite index replacement on
+plan CAS, and the independent per-node durable settlement requirement. Product
+view parity across the full surface set depends on the upstream-first Task 148
+TUI component path, which is not available on this implementation branch.
+The TUI integration and final completion review therefore remain open.</p>
 <p>Implementation update (2026-10-30): SQLite now persists effective status,
 ignored/abandoned flags, direct-child status counts, unsatisfied completion
 gate count, evaluator version, and source snapshot in a separate session-owned
@@ -8188,8 +8203,8 @@ protocol, client, and server route checks pass:</p>
 </code></pre></div>
 <p>Then write/promote all affected semantic revisions/relations atomically through the existing change/snapshot/root model.</p>
 <ul>
-<li>[ ] No UI/agent code writes plan SQL directly.</li>
-<li>[ ] Partial mutation cannot leave a fulfilled dependency without the matching completed node/result.</li>
+<li>[x] No UI/agent code writes plan SQL directly. <code>plan_writes_stay_behind_shared_storage_operations</code> (<code>crates/scriberig-conformance/tests/plan_storage_boundary.rs</code>) checks production dependencies and scans app, CLI, client, protocol, agent-runtime, and TUI source for the SQLite plan tables; <code>cargo test --locked --offline -p scriberig-conformance --test plan_storage_boundary</code> passes.</li>
+<li>[x] Partial mutation cannot leave a fulfilled dependency without the matching completed node/result. <code>session_plan_completion_requires_persisted_branch_result</code> and <code>plan_completion_waits_for_results_and_releases_coordinator</code> verify domain validation; <code>plan_cas_rolls_back_session_projection_on_semantic_conflict</code> proves failed semantic promotion rolls back the session projection. All three focused tests pass.</li>
 <li>[x] Conflict returns structured stale/conflict information.</li>
 </ul>
 <p>Independent SQLite handles acquire an immediate write reservation before root
@@ -8410,8 +8425,8 @@ from plan, node, branch, and claim generation.</p>
 <h2 id="task-76-optional-sqlite-triggers">Task 7.6 — Optional SQLite triggers<a class="headerlink" href="#task-76-optional-sqlite-triggers" title="Permanent link">&para;</a></h2>
 <p>Use triggers only if they simplify and harden transactional ancestor counter maintenance.</p>
 <ul>
-<li>[ ] Trigger implementation, if used, has equivalence tests against reference rollup.</li>
-<li>[ ] Trigger SQL is not the only specification of status semantics.</li>
+<li>[x] Trigger implementation, if used, has equivalence tests against reference rollup. No production SQLite rollup triggers are used; equivalent reference and SQLite cache behavior is tested in <code>incremental_rollup_matches_reference_for_a_deep_tree</code> and <code>plan_cas_keeps_unrelated_sqlite_rollup_rows_untouched</code>.</li>
+<li>[x] Trigger SQL is not the only specification of status semantics. Production storage contains no rollup trigger SQL; <code>Plan::node_rollups</code> in <code>crates/scriberig-session/src/planning/plan_requirements/rollups.rs</code> remains the executable specification.</li>
 <li>[x] Memory/reference backend passes the same conformance without triggers.</li>
 </ul>
 <p>If triggers are not used initially:</p>
