@@ -367,6 +367,9 @@ fn semantic_encoder_rejects_structural_cycles() {
 #[path = "plan_semantic_parts/rollup_views.rs"]
 mod rollup_views;
 
+#[path = "plan_semantic_parts/rollup_conformance.rs"]
+mod rollup_conformance;
+
 #[path = "plan_semantic_parts/node_details.rs"]
 mod node_details;
 
