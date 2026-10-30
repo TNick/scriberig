@@ -182,16 +182,24 @@
 <a href=#182 id=182 data-nosnippet>182</a>    },
 <a href=#183 id=183 data-nosnippet>183</a>    <span class="doccomment">/// Changes one plan node's credential-safe model-library assignment.
 <a href=#184 id=184 data-nosnippet>184</a>    </span>SetPlanNodeAssignment(scriberig_app::PlanAssignmentRequest),
-<a href=#185 id=185 data-nosnippet>185</a>    <span class="doccomment">/// Run the deterministic semantic project agent for the selected entity.
-<a href=#186 id=186 data-nosnippet>186</a>    </span>ProjectAgent {
-<a href=#187 id=187 data-nosnippet>187</a>        <span class="doccomment">/// Monotonic request identifier.
-<a href=#188 id=188 data-nosnippet>188</a>        </span>request_id: u64,
-<a href=#189 id=189 data-nosnippet>189</a>        <span class="doccomment">/// Selected semantic entity.
-<a href=#190 id=190 data-nosnippet>190</a>        </span>entity: scriberig_core::EntityId,
-<a href=#191 id=191 data-nosnippet>191</a>        <span class="doccomment">/// Exact base snapshot.
-<a href=#192 id=192 data-nosnippet>192</a>        </span>snapshot: scriberig_core::SnapshotId,
-<a href=#193 id=193 data-nosnippet>193</a>        <span class="doccomment">/// User instruction sent to the provider.
-<a href=#194 id=194 data-nosnippet>194</a>        </span>prompt: String,
-<a href=#195 id=195 data-nosnippet>195</a>    },
-<a href=#196 id=196 data-nosnippet>196</a>}
+<a href=#185 id=185 data-nosnippet>185</a>    <span class="doccomment">/// Retries one failed plan node at its observed plan revision.
+<a href=#186 id=186 data-nosnippet>186</a>    </span>RetryPlanNode(scriberig_app::PlanRetryRequest),
+<a href=#187 id=187 data-nosnippet>187</a>    <span class="doccomment">/// Adds ordinary work to a running plan at its observed revision.
+<a href=#188 id=188 data-nosnippet>188</a>    </span>AddPlanNextStep(scriberig_app::PlanNextStepRequest),
+<a href=#189 id=189 data-nosnippet>189</a>    <span class="doccomment">/// Adds required structural children to a selected plan node.
+<a href=#190 id=190 data-nosnippet>190</a>    </span>DecomposePlanNode(scriberig_app::PlanDecomposeRequest),
+<a href=#191 id=191 data-nosnippet>191</a>    <span class="doccomment">/// Applies one typed summary, evidence, gate, or waiver mutation.
+<a href=#192 id=192 data-nosnippet>192</a>    </span>MutatePlanSemantics(scriberig_app::PlanSemanticMutationRequest),
+<a href=#193 id=193 data-nosnippet>193</a>    <span class="doccomment">/// Run the deterministic semantic project agent for the selected entity.
+<a href=#194 id=194 data-nosnippet>194</a>    </span>ProjectAgent {
+<a href=#195 id=195 data-nosnippet>195</a>        <span class="doccomment">/// Monotonic request identifier.
+<a href=#196 id=196 data-nosnippet>196</a>        </span>request_id: u64,
+<a href=#197 id=197 data-nosnippet>197</a>        <span class="doccomment">/// Selected semantic entity.
+<a href=#198 id=198 data-nosnippet>198</a>        </span>entity: scriberig_core::EntityId,
+<a href=#199 id=199 data-nosnippet>199</a>        <span class="doccomment">/// Exact base snapshot.
+<a href=#200 id=200 data-nosnippet>200</a>        </span>snapshot: scriberig_core::SnapshotId,
+<a href=#201 id=201 data-nosnippet>201</a>        <span class="doccomment">/// User instruction sent to the provider.
+<a href=#202 id=202 data-nosnippet>202</a>        </span>prompt: String,
+<a href=#203 id=203 data-nosnippet>203</a>    },
+<a href=#204 id=204 data-nosnippet>204</a>}
 </code></pre></div></section></main></body></html>

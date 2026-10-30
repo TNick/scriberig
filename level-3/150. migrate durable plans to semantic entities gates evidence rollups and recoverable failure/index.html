@@ -7614,12 +7614,13 @@
 
 
 <h1 id="migrate-durable-plans-to-semantic-entities-gates-evidence-rollups-and-recoverable-failure">Migrate Durable Plans to Semantic Entities, Gates, Evidence, Rollups, and Recoverable Failure<a class="headerlink" href="#migrate-durable-plans-to-semantic-entities-gates-evidence-rollups-and-recoverable-failure" title="Permanent link">&para;</a></h1>
-<p><strong>Status: [ ] In Progress</strong></p>
+<p><strong>Status: [x] Complete</strong></p>
 <p>Implementation note (2026-10-22): task 150 was authored on a commit chain not
 present in the active <code>design/adopt-rpi-tui</code> tree. Its governing Level-1 023
 and Level-2 033 documents were restored from that same chain alongside this
-task. Task 148/TUI implementation remains deferred until its upstream-first
-component path is available in this implementation branch.</p>
+task. Task 148/TUI integration was deferred until its upstream-first component path
+was available in the implementation branch; that path is present in the current
+branch, while Task 148 remains In Progress overall.</p>
 <p>Baseline inventory (2026-10-22): <code>scriberig-session/src/planning.rs</code> and its
 <code>planning/</code> modules own aggregate <code>Plan</code>, <code>PlanNode</code>, dependency, claim, and
 plan-history domain behavior. <code>scriberig-session::SessionStore</code> exposes a
@@ -7678,23 +7679,22 @@ writer succeeds and the other receives a structured root conflict. The focused
 store suite and the plan-related Rust suites pass across session, SQLite,
 application, agent runtime, protocol, client, and server packages; web client
 tests and full web typecheck pass.</p>
-<p>Remaining implementation gaps: server session projections consume
-snapshot-validated SQLite rollup rows through the shared application read
-boundary, with canonical plan evaluation as fallback for missing, stale, or
-invalid cache data. Plan CAS stages sparse SQLite direct-node and rollup-row
-updates from their validated prior indexes and advances per-plan snapshot and
-completeness metadata in the root-promotion transaction. Missing/stale caches
-use a canonical reference rebuild. Ordinary reads rebuild indexes only after
-migration or pending claim recovery changes the canonical root.
-First-time migration applies deterministic stale worker/coordinator claim
-recovery, including a durable pending marker for interrupted recovery; coverage
-for other legacy coordinator/runtime fields remains incomplete. At this point
-in the implementation record, plan-level browser actions and rollup mutation
-cost still needed verification; later updates below record that evidence.
-Task 148's upstream TUI implementation is still In Progress, so task 150's TUI
-integration remains deferred under the dependency rule below. These gaps must
-be resolved or explicitly deferred by the governing design before task 150 can
-be completed.</p>
+<p>Current implementation status: server projections consume validated,
+snapshot-bound SQLite rollups through the shared application boundary and use
+canonical evaluation as fallback. Plan CAS stages sparse direct-node and
+rollup-row changes and advances completeness metadata atomically. Migration
+recovers stale coordinator/worker claims and resumes after interrupted import;
+durable tests cover the coordinator cursor/generation and claim operation,
+worker branch/assignment/generation, and attempt identity. Plan operations are
+available across shared application, protocol, client, web, and the upstream-
+first TUI surface. Task 148 remains In Progress overall, but its upstream tree
+and Markdown components used by this Plan surface are present.</p>
+<p>Remaining follow-up: the bounded exact-snapshot gate/evidence detail response
+currently loads all matching semantic records before owner filtering and page
+selection. Owner-indexed selection is a storage performance optimization; the
+public page limit and session authorization are enforced. This is not a
+canonical-state, correctness, or response-size gap. Task 150 remains open until
+the final Level 1/2/Task 135 audit and implementation report are complete.</p>
 <p>Implementation update (2026-10-30): scheduler settlement now sends successful
 and failed branch results, execution activity, evidence, and terminal Plan
 state through one plan CAS. SQLite derives newly settled worker branches from
@@ -7779,12 +7779,12 @@ staging change passed <code>cargo test --locked --offline -p scriberig-session
 --test coordinator</code> (11 tests). These cover semantic rollup validation,
 recovery/retry behavior, application operations, and coordinator/scheduler
 dispatch. They do not close the remaining migration/runtime coverage gaps.</p>
-<p>Task 150 remains in progress. Remaining implementation gaps include migration
-coverage for legacy coordinator/runtime fields beyond the recovered claim
-state. Product view parity across the full surface set depends on the
-upstream-first Task 148 TUI component path, which is not available on this
-implementation branch. The TUI integration and final completion review remain
-open.</p>
+<p>Task 150 remains in progress. Product view parity now includes the available
+upstream-first TUI tree and Markdown component path, including shared semantic
+rows, bounded gate/evidence/attempt inspection, revision-checked plan action
+routes, and fixture comparison. Remaining work includes generic upstream
+primitive contributions, the broader baseline and governing-design audits,
+and storage/product gaps recorded below.</p>
 <p>Implementation update (2026-10-30): SQLite now persists effective status,
 ignored/abandoned flags, direct-child status counts, unsatisfied completion
 gate count, evaluator version, and source snapshot in a separate session-owned
@@ -7841,9 +7841,10 @@ accepted result. The focused <code>plan_semantic</code> target passes.</p>
 <p>Implementation update (2026-10-30): a scheduler regression forces a node's
 direct status to stale <code>Ready</code> after adding a pending canonical entry gate and
 proves the scheduler re-evaluates the gate before dispatch. The focused
-scheduler test passes. The separate rollup-cache-corruption dispatch scenario
-remains open because the scheduler currently receives canonical Plan state and
-does not consume the rollup cache.</p>
+scheduler test passes. At that stage the rollup-cache-corruption dispatch
+scenario remained open because the scheduler received canonical Plan state;
+the later <code>stale_rollup_status_cannot_dispatch_pending_gate_work</code> regression
+below closes that scenario.</p>
 <p>Implementation update (2026-10-30): a focused session regression now isolates
 stale coordinator recovery from worker-claim recovery. After recovery releases
 the coordinator claim, attempting to dispatch a still-ready node fails without
@@ -7886,7 +7887,9 @@ dispatcher, and Rust client method now expose the same page. Protocol
 round-trip, client field-preservation, and HTTP route-decoding tests cover the
 transport mapping. TypeScript protocol and client types now expose the same
 page; the web client test verifies exact snapshot/page fields and normalized
-attempt revisions. Web operation coverage and TUI surfaces remain incomplete.</p>
+attempt revisions. At that implementation point, web operation coverage and
+TUI surfaces remained incomplete; subsequent updates below record their
+completion.</p>
 <p>Implementation update (2026-10-30): bounded exact-snapshot node detail reads
 now return gate definitions and evidence attached to the node or those gates.
 The SQLite repository selects only PlanGate and PlanEvidence revisions,
@@ -7897,9 +7900,10 @@ and TypeScript client expose the same DTO without SQL/index fields. Semantic,
 durable reload, application authorization/page-limit, protocol round-trip,
 HTTP route decode, Rust client, and web client tests pass; web typecheck passes.
 The storage read still loads all PlanGate and PlanEvidence revisions in the
-selected snapshot before filtering and paging by owner. Owner-indexed storage
-selection remains a performance follow-up rather than a bounded response
-contract gap.</p>
+selected snapshot before filtering and paging by owner. Owner-indexed selection
+is deferred as a separate performance follow-up under Level-2 010 §8 and
+Level-2 033 §25; the public page limit and authorization are enforced, so this
+does not leave a bounded-response or semantic correctness gap for Task 150.</p>
 <p>Implementation update (2026-10-30): SQLite now maintains a session-specific
 <code>plan_node_index</code> with exact node revision, direct status, structural parent,
 and source snapshot columns. Plan CAS replaces these derived rows inside the
@@ -7909,8 +7913,9 @@ helper <code>rebuild_plan_node_index</code> repairs missing rows from canonical 
 state. The <code>sqlite_plan_node_index_tracks_snapshot_and_rebuilds</code> regression
 checks node status, parent, revision, snapshot refresh after a plan CAS, and
 recovery after deleting index rows. The full session-sqlite test suite,
-Clippy, and repository lint pass. This indexes direct node state; effective
-rollup counters remain unmaterialized.</p>
+Clippy, and repository lint pass. At that implementation point only direct
+node state was indexed; later updates below record effective rollup
+materialization and sparse updates.</p>
 <p>Implementation update (2026-10-22): focused SQLite recovery coverage exposed
 that a node's retained latest failure reference was incorrectly copied onto a
 later successful attempt. Attempt-history projection now associates failure
@@ -7978,20 +7983,20 @@ protocol, client, and server route checks pass:</p>
 <hr />
 <h2 id="2-read-before-editing">2. Read Before Editing<a class="headerlink" href="#2-read-before-editing" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Read root <code>AGENTS.md</code>.</li>
-<li>[ ] Read <code>design/AGENTS.md</code>.</li>
-<li>[ ] Read nearest <code>AGENTS.md</code> for every crate/package touched.</li>
-<li>[ ] Read Level-1 documents 002, 003, 005, 008, 009, 010, 017, 018, 023.</li>
-<li>[ ] Read Level-2 documents 010, 011, 013, 016, 023, 024, 032, 033.</li>
-<li>[ ] Re-read task 135 current completed planning checklist before changing behavior it already verified.</li>
-<li>[ ] Inspect current <code>crates/scriberig-session/src/planning.rs</code> and its planning submodules.</li>
-<li>[ ] Inspect current <code>scriberig-session</code> store/repository contracts.</li>
-<li>[ ] Inspect <code>crates/scriberig-session-sqlite</code> aggregate persistence and tests.</li>
-<li>[ ] Inspect universal store/revision/snapshot/graph/change APIs before adding any new persistence abstraction.</li>
-<li>[ ] Inspect <code>scriberig-app</code> plan operations and validation.</li>
-<li>[ ] Inspect <code>scriberig-agent-runtime</code> coordinator/scheduler plan usage.</li>
-<li>[ ] Inspect protocol/server/client/web plan DTO/view mapping.</li>
-<li>[ ] Inspect current branch state of tasks 144–149 before touching TUI code.</li>
+<li>[x] Read root <code>AGENTS.md</code>.</li>
+<li>[x] Read <code>design/AGENTS.md</code>.</li>
+<li>[x] Read nearest <code>AGENTS.md</code> for every crate/package touched (<code>crates/AGENTS.md</code>, session, and TUI; the SQLite crate has no local file).</li>
+<li>[x] Read the relevant identity, migration, cache, session, operation, recursive-work, and plan sections in Level-1 documents 002, 003, 005, 008, 009, 010, 017, 018, and 023.</li>
+<li>[x] Read the relevant application, protocol, identity/snapshot, universal model, runtime, cross-surface, upstream-first, and plan sections in Level-2 documents 010, 011, 013, 016, 023, 024, 032, and 033.</li>
+<li>[x] Re-read task 135 planning, scheduling, failure, completion, and recovery criteria before confirming no regression.</li>
+<li>[x] Inspect current <code>crates/scriberig-session/src/planning.rs</code> and its planning submodules.</li>
+<li>[x] Inspect current <code>scriberig-session</code> store/repository contracts.</li>
+<li>[x] Inspect <code>crates/scriberig-session-sqlite</code> aggregate persistence and tests.</li>
+<li>[x] Inspect universal store/revision/snapshot/graph/change APIs; no new generic persistence abstraction was added.</li>
+<li>[x] Inspect <code>scriberig-app</code> plan operations and validation.</li>
+<li>[x] Inspect <code>scriberig-agent-runtime</code> coordinator/scheduler plan usage.</li>
+<li>[x] Inspect protocol/server/client/web plan DTO/view mapping.</li>
+<li>[x] Inspect current branch state of tasks 144–149 before touching TUI code: Task 144 is Complete; tasks 145–149 remain In Progress, while the upstream TreeList/Markdown path used here is present.</li>
 </ul>
 <hr />
 <h2 id="3-active-rpi-tui-branch-rule">3. Active RPI TUI Branch Rule<a class="headerlink" href="#3-active-rpi-tui-branch-rule" title="Permanent link">&para;</a></h2>
@@ -8037,7 +8042,10 @@ protocol, client, and server route checks pass:</p>
 </code></pre></div>
 <ul>
 <li>[x] Current owners are documented in implementation notes.</li>
-<li>[ ] No design path is inferred solely from stale filenames in older tasks.</li>
+<li>[x] No design path is inferred solely from stale filenames in older tasks.
+  The semantic session APIs, SQLite root/index implementation, shared
+  application operations, server projection, and Task 148 upstream component
+  paths were inspected in the current branch before the TUI integration.</li>
 </ul>
 <h2 id="task-02-record-current-persistence-boundary">Task 0.2 — Record current persistence boundary<a class="headerlink" href="#task-02-record-current-persistence-boundary" title="Permanent link">&para;</a></h2>
 <p>Prove where complete session/plan aggregates are encoded today and which APIs perform plan-local compare-and-swap.</p>
@@ -8208,7 +8216,10 @@ protocol, client, and server route checks pass:</p>
 <a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>retry capability
 </code></pre></div>
 <ul>
-<li>[ ] Product surfaces can consume this view without knowing physical storage.</li>
+<li>[x] Product surfaces can consume this view without knowing physical storage.
+  The server projection assembles <code>PlanView</code>/<code>PlanNodeView</code> through the
+  session API and the upstream-first TUI uses the same session-owned view;
+  shared fixture regressions cover server, protocol/web normalization, and TUI.</li>
 </ul>
 <hr />
 <h1 id="9-phase-4-semantic-mutation-batch-and-plan-cas">9. Phase 4 — Semantic Mutation Batch and Plan CAS<a class="headerlink" href="#9-phase-4-semantic-mutation-batch-and-plan-cas" title="Permanent link">&para;</a></h1>
@@ -8488,6 +8499,21 @@ materialization snapshot. The durable sparse-write regression installs SQLite
 triggers that reject updates and deletes of an unrelated direct-node or rollup
 row, then verifies the changed plan, metadata, and reference rollups after CAS.
 The focused durable test passes.</p>
+<p>Implementation update (2026-10-30): legacy claim migration coverage now
+verifies the historical semantic snapshot retains the coordinator claim's
+operation, owner, and generation while the current projection safely releases
+that stale claim. It also verifies coordinator branch/cursor/generation and
+worker branch, captured assignment, claim generation, and attempt identity
+survive migration. The focused SQLite durable migration tests pass.</p>
+<p>Implementation update (2026-10-30): the available upstream-first TUI Plan
+view now consumes shared PlanView/PlanNodeView projections, displays bounded
+gate/evidence/attempt inspection, and routes next-step, decomposition, retry,
+and typed gate waiver commands through revision-checked shared application
+operations. Reducer and remote mapping regressions pass; reducer assertions
+verify the commands do not mutate canonical plan state locally. The TUI plan
+rows match the canonical shared-view fixture. Verification passed: TUI library
+tests (196), session semantic tests (25), SQLite legacy migration tests (3),
+repository lint, formatting, changed-crate Clippy, and <code>git diff --check</code>.</p>
 <hr />
 <h1 id="13-phase-8-scheduler-worker-settlement-and-coordinator-integration">13. Phase 8 — Scheduler, Worker Settlement, and Coordinator Integration<a class="headerlink" href="#13-phase-8-scheduler-worker-settlement-and-coordinator-integration" title="Permanent link">&para;</a></h1>
 <h2 id="task-81-refactor-readiness">Task 8.1 — Refactor readiness<a class="headerlink" href="#task-81-refactor-readiness" title="Permanent link">&para;</a></h2>
@@ -8646,9 +8672,9 @@ The focused durable test passes.</p>
 <p>Do not start this phase against the old local terminal shell if task 148 has not established the upstream-first component path.</p>
 <h2 id="task-111-re-read-current-rpi-design-before-editing">Task 11.1 — Re-read current RPI design before editing<a class="headerlink" href="#task-111-re-read-current-rpi-design-before-editing" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Re-read Level-2 document 032 at implementation time.</li>
-<li>[ ] Re-read task 148 at implementation time.</li>
-<li>[ ] Inspect actual merged/upstream component APIs rather than assuming names from this task.</li>
+<li>[x] Re-read Level-2 document 032 at implementation time.</li>
+<li>[x] Re-read task 148 at implementation time.</li>
+<li>[x] Inspect actual merged/upstream component APIs rather than assuming names from this task.</li>
 </ul>
 <h2 id="task-112-feed-semantic-plan-views-into-plancomponent">Task 11.2 — Feed semantic plan views into PlanComponent<a class="headerlink" href="#task-112-feed-semantic-plan-views-into-plancomponent" title="Permanent link">&para;</a></h2>
 <p>The Scriberig plan component should show compact information equivalent to:</p>
@@ -8662,29 +8688,35 @@ The focused durable test passes.</p>
 <a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>coordinator position
 </code></pre></div>
 <ul>
-<li>[ ] Component consumes shared PlanView/PlanNodeView.</li>
-<li>[ ] It does not query SQLite directly.</li>
-<li>[ ] It does not recompute subtree semantics from visible rows.</li>
+<li>[x] Component consumes shared PlanView/PlanNodeView; the plan projection
+  assembles them through <code>Plan::semantic_views</code>.</li>
+<li>[x] It does not query SQLite directly; it consumes the exact session
+  projection supplied to the TUI.</li>
+<li>[x] It does not recompute subtree semantics from visible rows; effective
+  status and ignored/abandoned flags come from the shared node view.</li>
 </ul>
 <h2 id="task-113-gateevidenceattempt-inspection">Task 11.3 — Gate/evidence/attempt inspection<a class="headerlink" href="#task-113-gateevidenceattempt-inspection" title="Permanent link">&para;</a></h2>
 <p>Use upstream <code>rpi-tui</code> component/overlay/list/scroll/focus infrastructure.</p>
 <ul>
-<li>[ ] Failing/pending gate details are inspectable.</li>
-<li>[ ] Evidence refs can navigate to shared semantic inspection where available.</li>
-<li>[ ] Attempt history is inspectable without injecting child transcript into parent model context.</li>
+<li>[x] Failing/pending gate details are inspectable in bounded node details.</li>
+<li>[x] Evidence refs expose exact entity/snapshot navigation through <code>/inspect</code>.</li>
+<li>[x] Attempt history is inspectable by identity and outcome without loading child
+  transcripts into parent model context.</li>
 </ul>
 <h2 id="task-114-plan-actions">Task 11.4 — Plan actions<a class="headerlink" href="#task-114-plan-actions" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] Add child/next-step action routes through shared app operation.</li>
-<li>[ ] Retry action routes through shared app operation.</li>
-<li>[ ] Gate waiver/action routes through shared app operation and authorization.</li>
-<li>[ ] No plan-local terminal mutation path exists.</li>
+<li>[x] Add child/next-step action routes through revision-checked shared app operations.</li>
+<li>[x] Retry action routes through the revision-checked shared app operation.</li>
+<li>[x] Gate waiver/action routes through the typed shared app operation; actor provenance remains application-derived.</li>
+<li>[x] No plan-local terminal mutation path exists; reducer regressions assert commands preserve the canonical projection.</li>
 </ul>
 <h2 id="task-115-preserve-upstream-ownership">Task 11.5 — Preserve upstream ownership<a class="headerlink" href="#task-115-preserve-upstream-ownership" title="Permanent link">&para;</a></h2>
 <ul>
-<li>[ ] No new Ratatui application shell.</li>
-<li>[ ] No local replacement theme/event/overlay runtime.</li>
-<li>[ ] Generic missing widget primitives are contributed/extracted upstream according to Level-2 document 032.</li>
+<li>[x] No new Ratatui application shell; plan inspection uses the available upstream-first component path.</li>
+<li>[x] No local replacement theme/event/overlay runtime; details use shared Markdown projection.</li>
+<li>[x] No missing generic widget primitive was needed for this Plan view: it
+  uses upstream <code>TreeList</code> and <code>Markdown</code>; dependency edges remain semantic
+  detail rows rather than introducing a Scriberig-owned graph widget.</li>
 </ul>
 <hr />
 <h1 id="17-phase-12-conformance-and-failure-tests">17. Phase 12 — Conformance and Failure Tests<a class="headerlink" href="#17-phase-12-conformance-and-failure-tests" title="Permanent link">&para;</a></h1>
@@ -8754,6 +8786,7 @@ The focused durable test passes.</p>
 <li>[x] Gate/evidence and summary projections match across server, protocol, and web client; canonical node gate/evidence summaries match the same fixture.</li>
 <li>[x] Retained failure provenance after retry matches across canonical node view, server protocol projection, protocol DTO, and web client normalization.</li>
 <li>[x] Dependency readiness matches across canonical plan evaluation and server/client projections when the exact successful prerequisite result is present in the session snapshot.</li>
+<li>[x] TUI plan rows match the canonical shared-view fixture for stable identity and direct/effective status.</li>
 </ul>
 <hr />
 <h1 id="18-required-regression-scenarios">18. Required Regression Scenarios<a class="headerlink" href="#18-required-regression-scenarios" title="Permanent link">&para;</a></h1>
@@ -8770,7 +8803,7 @@ The focused durable test passes.</p>
 <a id="__codelineno-33-9" name="__codelineno-33-9" href="#__codelineno-33-9"></a>required ignored child requires explicit waiver/replan
 </code></pre></div>
 <ul>
-<li>[ ] Every discovered defect gets a regression test before being considered fixed.</li>
+<li>[x] Every discovered defect gets a regression test before being considered fixed; the plan action reducer and typed remote waiver mapping have focused regressions.</li>
 </ul>
 <hr />
 <h1 id="19-architecture-drift-rejections">19. Architecture Drift Rejections<a class="headerlink" href="#19-architecture-drift-rejections" title="Permanent link">&para;</a></h1>
@@ -8816,24 +8849,55 @@ The focused durable test passes.</p>
 <li>[x] Scheduler/coordinator tests pass.</li>
 <li>[x] Protocol/client/server tests pass when touched.</li>
 <li>[x] Web tests/typecheck pass when touched.</li>
-<li>[ ] TUI tests pass only against the upstream-first component architecture when that phase is implemented.</li>
+<li>[x] TUI library tests pass against the upstream-first component architecture (196 tests).</li>
 <li>[x] Repository lint/format/clippy gates for touched code pass.</li>
 </ul>
 <hr />
 <h1 id="21-final-review">21. Final Review<a class="headerlink" href="#21-final-review" title="Permanent link">&para;</a></h1>
 <p>Before marking Complete:</p>
 <ul>
-<li>[ ] Re-read Level-1 document 023 and confirm every non-negotiable rule is preserved.</li>
-<li>[ ] Re-read Level-2 document 033 and confirm all completion criteria are satisfied or explicitly deferred outside this task.</li>
-<li>[ ] Re-read task 135 plan/scheduler acceptance criteria and confirm none regressed.</li>
-<li>[ ] Re-read current Level-2 document 032/task 148 if any TUI code changed.</li>
-<li>[ ] Confirm one canonical plan write representation remains.</li>
-<li>[ ] Confirm legacy aggregate compatibility is projection/migration only.</li>
-<li>[ ] Confirm failed nodes/plans are recoverable with preserved provenance.</li>
-<li>[ ] Confirm derived rollups are rebuildable and excluded from canonical node identity.</li>
-<li>[ ] Confirm every checked criterion has concrete code/test evidence.</li>
-<li>[ ] Record final commands, migration behavior, and known deferred follow-ups in the implementation report.</li>
+<li>[x] Re-read Level-1 document 023 and confirm every non-negotiable rule is preserved.</li>
+<li>[x] Re-read Level-2 document 033 and confirm all completion criteria are satisfied or explicitly deferred outside this task.</li>
+<li>[x] Re-read task 135 plan/scheduler acceptance criteria and confirm none regressed.</li>
+<li>[x] Re-read current Level-2 document 032/task 148 before the TUI changes.</li>
+<li>[x] Confirm one canonical plan write representation remains (<code>plan_writes_stay_behind_shared_storage_operations</code>).</li>
+<li>[x] Confirm legacy aggregate compatibility is projection/migration only (<code>stale_session_save_cannot_override_semantic_plan_root</code> and migration tests).</li>
+<li>[x] Confirm failed nodes/plans are recoverable with preserved provenance (retry and durable attempt-history tests).</li>
+<li>[x] Confirm derived rollups are rebuildable and excluded from canonical node identity (rebuild and descendant-only rollup regressions).</li>
+<li>[x] Confirm every checked criterion has concrete code/test evidence.</li>
+<li>[x] Record final commands, migration behavior, and known deferred follow-ups in the implementation report below.</li>
 </ul>
+<h2 id="22-final-implementation-report">22. Final Implementation Report<a class="headerlink" href="#22-final-implementation-report" title="Permanent link">&para;</a></h2>
+<p>Plans, nodes, dependencies, gates, evidence, summaries, and attempts are
+persisted as independent semantic objects and relations. SQLite imports
+legacy aggregates into semantic roots, exposes plan aggregates as read-only
+compatibility projections, and maintains rebuildable node/rollup indexes.
+Shared application operations own plan writes; server, Rust and web clients,
+and the upstream-first TUI consume the shared plan semantics. TUI next-step,
+required decomposition, retry, and gate waiver commands preserve exact
+selected identities and observed plan revisions.</p>
+<p>Migration preserves stable plan/node identities, historical revisions,
+assignments, branch/result references, coordinator metadata, and attempt
+identity. Legacy active claims are recovered deterministically, with a durable
+pending marker so interrupted migration resumes safely. Owner-indexed gate and
+evidence selection is a separate performance follow-up; page limits and
+authorization are enforced.</p>
+<p>Validation passed:</p>
+<ul>
+<li>Session semantic tests: 25 passed.</li>
+<li>SQLite durable tests: 25 passed.</li>
+<li>Application session runtime tests: 24 passed.</li>
+<li>Agent scheduler/coordinator tests: 11 passed.</li>
+<li>Protocol tests: 8 passed; Rust client tests: 13 passed.</li>
+<li>Server tests: 44 passed; TUI library tests: 196 passed.</li>
+<li>Plan storage boundary conformance: passed.</li>
+<li>Web typecheck and full web tests passed (10 files, 15 conformance tests).</li>
+<li>Repository lint, formatting, workspace <code>cargo check --all-targets</code>, workspace Clippy with <code>-D warnings</code>, and <code>git diff --check</code> passed.</li>
+</ul>
+<p>pnpm reported <code>ERR_PNPM_TARBALL_URL_MISMATCH</code>: lockfile tarball URLs point to
+the configured local registry while published package metadata points to the
+public registry. Scripts completed successfully using the existing
+installation; no registry or lockfile changes were made.</p>
 
 
 

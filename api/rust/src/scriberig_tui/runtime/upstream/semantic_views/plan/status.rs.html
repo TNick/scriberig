@@ -23,16 +23,21 @@
 <a href=#23 id=23 data-nosnippet>23</a><span class="doccomment">/// Appends a durable plan-node status using an upstream theme token.
 <a href=#24 id=24 data-nosnippet>24</a>///
 <a href=#25 id=25 data-nosnippet>25</a>/// - `output`: Markdown content rendered by the upstream component.
-<a href=#26 id=26 data-nosnippet>26</a>/// - `status`: Durable `ScribeRig` plan-node status.
-<a href=#27 id=27 data-nosnippet>27</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>append_node_status(output: <span class="kw-2">&amp;mut </span>String, status: scriberig_session::PlanNodeStatus) {
-<a href=#28 id=28 data-nosnippet>28</a>    <span class="kw">let </span>role = <span class="kw">match </span>status {
-<a href=#29 id=29 data-nosnippet>29</a>        scriberig_session::PlanNodeStatus::Completed =&gt; SemanticRole::Success,
-<a href=#30 id=30 data-nosnippet>30</a>        scriberig_session::PlanNodeStatus::Failed =&gt; SemanticRole::Error,
-<a href=#31 id=31 data-nosnippet>31</a>        scriberig_session::PlanNodeStatus::Abandoned =&gt; SemanticRole::Warning,
-<a href=#32 id=32 data-nosnippet>32</a>        scriberig_session::PlanNodeStatus::Planned
-<a href=#33 id=33 data-nosnippet>33</a>        | scriberig_session::PlanNodeStatus::Ready
-<a href=#34 id=34 data-nosnippet>34</a>        | scriberig_session::PlanNodeStatus::Running =&gt; SemanticRole::Neutral,
-<a href=#35 id=35 data-nosnippet>35</a>    };
-<a href=#36 id=36 data-nosnippet>36</a>    append_status(output, <span class="string">"Status"</span>, <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"{status:?}"</span>), role);
-<a href=#37 id=37 data-nosnippet>37</a>}
+<a href=#26 id=26 data-nosnippet>26</a>/// - `label`: User-facing status field label.
+<a href=#27 id=27 data-nosnippet>27</a>/// - `status`: Durable `ScribeRig` plan-node status.
+<a href=#28 id=28 data-nosnippet>28</a></span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>append_node_status(
+<a href=#29 id=29 data-nosnippet>29</a>    output: <span class="kw-2">&amp;mut </span>String,
+<a href=#30 id=30 data-nosnippet>30</a>    label: <span class="kw-2">&amp;</span>str,
+<a href=#31 id=31 data-nosnippet>31</a>    status: scriberig_session::PlanNodeStatus,
+<a href=#32 id=32 data-nosnippet>32</a>) {
+<a href=#33 id=33 data-nosnippet>33</a>    <span class="kw">let </span>role = <span class="kw">match </span>status {
+<a href=#34 id=34 data-nosnippet>34</a>        scriberig_session::PlanNodeStatus::Completed =&gt; SemanticRole::Success,
+<a href=#35 id=35 data-nosnippet>35</a>        scriberig_session::PlanNodeStatus::Failed =&gt; SemanticRole::Error,
+<a href=#36 id=36 data-nosnippet>36</a>        scriberig_session::PlanNodeStatus::Abandoned =&gt; SemanticRole::Warning,
+<a href=#37 id=37 data-nosnippet>37</a>        scriberig_session::PlanNodeStatus::Planned
+<a href=#38 id=38 data-nosnippet>38</a>        | scriberig_session::PlanNodeStatus::Ready
+<a href=#39 id=39 data-nosnippet>39</a>        | scriberig_session::PlanNodeStatus::Running =&gt; SemanticRole::Neutral,
+<a href=#40 id=40 data-nosnippet>40</a>    };
+<a href=#41 id=41 data-nosnippet>41</a>    append_status(output, label, <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"{status:?}"</span>), role);
+<a href=#42 id=42 data-nosnippet>42</a>}
 </code></pre></div></section></main></body></html>
