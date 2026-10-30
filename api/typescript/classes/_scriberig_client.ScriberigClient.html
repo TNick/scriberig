@@ -16,14 +16,14 @@
 <p>Public members: agent, session, model, branch, and event methods.
 Private members: inherited semantic transport.</p>
 </div></section>
-<section class="tsd-panel tsd-hierarchy" data-refl="2587">
+<section class="tsd-panel tsd-hierarchy" data-refl="2650">
 <h4>Hierarchy</h4>
 <ul class="tsd-hierarchy">
 <li class="tsd-hierarchy-item"><span class="tsd-signature-type">SessionPlanEvolutionClient</span>
 <ul class="tsd-hierarchy">
 <li class="tsd-hierarchy-item"><span class="tsd-hierarchy-target">ScriberigClient</span></li></ul></li></ul></section><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L48">packages/client/src/session-client.ts:48</a></li></ul></aside>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L48">packages/client/src/session-client.ts:48</a></li></ul></aside>
 <section class="tsd-panel-group tsd-index-group">
 <section class="tsd-panel tsd-index-panel">
 <details class="tsd-index-content tsd-accordion" open><summary class="tsd-accordion-summary tsd-index-summary"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
@@ -46,6 +46,7 @@ Private members: inherited semantic transport.</p>
 <a href="#capabilities" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>capabilities</span></a>
 <a href="#command" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>command</span></a>
 <a href="#continueagent" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>continue<wbr/>Agent</span></a>
+<a href="#createplan" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>create<wbr/>Plan</span></a>
 <a href="#decomposeplannode" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>decompose<wbr/>Plan<wbr/>Node</span></a>
 <a href="#diff" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>diff</span></a>
 <a href="#events" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>events</span></a>
@@ -69,11 +70,13 @@ Private members: inherited semantic transport.</p>
 <a href="#listbranchchildren" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>list<wbr/>Branch<wbr/>Children</span></a>
 <a href="#migrate" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>migrate</span></a>
 <a href="#migrationdetail" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>migration<wbr/>Detail</span></a>
+<a href="#mutateplanlifecycle" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>mutate<wbr/>Plan<wbr/>Lifecycle</span></a>
 <a href="#mutateplansemantics" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>mutate<wbr/>Plan<wbr/>Semantics</span></a>
 <a href="#operation" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>operation</span></a>
 <a href="#project" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>project</span></a>
 <a href="#query" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>query</span></a>
 <a href="#render" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>render</span></a>
+<a href="#replan" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>replan</span></a>
 <a href="#retryplannode" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>retry<wbr/>Plan<wbr/>Node</span></a>
 <a href="#session" class="tsd-index-link tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>session</span></a>
 <a href="#setagentpresentationpreferences" class="tsd-index-link"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Agent<wbr/>Presentation<wbr/>Preferences</span></a>
@@ -102,7 +105,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <a href="" class="tsd-signature-type tsd-kind-class">ScriberigClient</a></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.constructor</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L26">packages/client/src/semantic-client.ts:26</a></li></ul></aside></div></li></ul></section></section></details>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L26">packages/client/src/semantic-client.ts:26</a></li></ul></aside></div></li></ul></section></section></details>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="properties-1">Properties<a href="#properties-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
 <section>
@@ -111,7 +114,7 @@ Private members: inherited semantic transport.</p>
 <div class="tsd-signature"><span class="tsd-kind-property">transport</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_scriberig_client.SemanticTransport.html" class="tsd-signature-type tsd-kind-interface">SemanticTransport</a></div><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.transport</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L26">packages/client/src/semantic-client.ts:26</a></li></ul></aside></section></section></details>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L26">packages/client/src/semantic-client.ts:26</a></li></ul></aside></section></section></details>
 <details class="tsd-panel-group tsd-member-group tsd-accordion" open><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>
 <h2 class="tsd-anchor-link" id="methods-1">Methods<a href="#methods-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h2></summary>
 <section>
@@ -136,7 +139,7 @@ Private members: inherited semantic transport.</p>
 <aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.addPlanNextStep</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-plan-evolution-client.ts#L38">packages/client/src/session-plan-evolution-client.ts:38</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-plan-evolution-client.ts#L90">packages/client/src/session-plan-evolution-client.ts:90</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="agent"><span>agent</span><a href="#agent" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -157,7 +160,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_model.Operation.html" class="tsd-signature-type tsd-kind-interface">Operation</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.agent</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L117">packages/client/src/semantic-client.ts:117</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L117">packages/client/src/semantic-client.ts:117</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="branch"><span>branch</span><a href="#branch" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -178,7 +181,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_model.Operation.html" class="tsd-signature-type tsd-kind-interface">Operation</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.branch</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L97">packages/client/src/semantic-client.ts:97</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L97">packages/client/src/semantic-client.ts:97</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="canceloperation"><span>cancel<wbr/>Operation</span><a href="#canceloperation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -194,7 +197,7 @@ Private members: inherited semantic transport.</p>
 <li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">signal</span>: <span class="tsd-signature-type">AbortSignal</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_model.Operation.html" class="tsd-signature-type tsd-kind-interface">Operation</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L96">packages/client/src/session-client.ts:96</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L96">packages/client/src/session-client.ts:96</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="capabilities"><span>capabilities</span><a href="#capabilities" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -210,7 +213,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.CapabilitiesResponse.html" class="tsd-signature-type tsd-kind-interface">CapabilitiesResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.capabilities</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L67">packages/client/src/semantic-client.ts:67</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L67">packages/client/src/semantic-client.ts:67</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="command"><span>command</span><a href="#command" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -232,7 +235,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_model.Operation.html" class="tsd-signature-type tsd-kind-interface">Operation</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.command</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L85">packages/client/src/semantic-client.ts:85</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L85">packages/client/src/semantic-client.ts:85</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="continueagent"><span>continue<wbr/>Agent</span><a href="#continueagent" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -248,7 +251,29 @@ Private members: inherited semantic transport.</p>
 <li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">signal</span>: <span class="tsd-signature-type">AbortSignal</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.AgentAcceptedResponse.html" class="tsd-signature-type tsd-kind-interface">AgentAcceptedResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L71">packages/client/src/session-client.ts:71</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L71">packages/client/src/session-client.ts:71</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member tsd-is-inherited">
+<h3 class="tsd-anchor-link" id="createplan"><span>create<wbr/>Plan</span><a href="#createplan" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures tsd-is-inherited">
+<li class="tsd-is-inherited">
+<div class="tsd-signature tsd-anchor-link" id="createplan-1"><span class="tsd-kind-call-signature">createPlan</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">request</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_scriberig_protocol.SessionPlanCreateRequest.html" class="tsd-signature-type tsd-kind-interface">SessionPlanCreateRequest</a><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">signal</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">AbortSignal</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.SessionPlan.html" class="tsd-signature-type tsd-kind-interface">SessionPlan</a><span class="tsd-signature-symbol">&gt;</span><a href="#createplan-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Creates a durable plan through the shared application route.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">request</span>: <a href="../interfaces/_scriberig_protocol.SessionPlanCreateRequest.html" class="tsd-signature-type tsd-kind-interface">SessionPlanCreateRequest</a></span>
+<div class="tsd-comment tsd-typography"><p>Exact session anchor and structured plan proposal.</p>
+</div></li>
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">signal</span>: <span class="tsd-signature-type">AbortSignal</span></span>
+<div class="tsd-comment tsd-typography"><p>Optional request cancellation signal.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.SessionPlan.html" class="tsd-signature-type tsd-kind-interface">SessionPlan</a><span class="tsd-signature-symbol">&gt;</span></h4><p>The authoritative newly created plan projection.</p>
+<aside class="tsd-sources">
+<p>Inherited from SessionPlanEvolutionClient.createPlan</p>
+<ul>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-plan-evolution-client.ts#L28">packages/client/src/session-plan-evolution-client.ts:28</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="decomposeplannode"><span>decompose<wbr/>Plan<wbr/>Node</span><a href="#decomposeplannode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -270,7 +295,7 @@ Private members: inherited semantic transport.</p>
 <aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.decomposePlanNode</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-plan-evolution-client.ts#L49">packages/client/src/session-plan-evolution-client.ts:49</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-plan-evolution-client.ts#L101">packages/client/src/session-plan-evolution-client.ts:101</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="diff"><span>diff</span><a href="#diff" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -287,7 +312,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../types/_scriberig_protocol.ReadResponse.html" class="tsd-signature-type tsd-kind-type-alias">ReadResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.diff</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L61">packages/client/src/semantic-client.ts:61</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L61">packages/client/src/semantic-client.ts:61</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="events"><span>events</span><a href="#events" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -304,7 +329,7 @@ Private members: inherited semantic transport.</p>
 <li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">onStateChange</span>: <span class="tsd-signature-symbol">(</span><span class="tsd-kind-parameter">state</span><span class="tsd-signature-symbol">:</span> <a href="../types/_scriberig_client.TransportConnectionState.html" class="tsd-signature-type tsd-kind-type-alias">TransportConnectionState</a><span class="tsd-signature-symbol">)</span> <span class="tsd-signature-symbol">=&gt;</span> <span class="tsd-signature-type">void</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="../interfaces/_scriberig_client.EventSubscription.html" class="tsd-signature-type tsd-kind-interface">EventSubscription</a></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L305">packages/client/src/session-client.ts:305</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L305">packages/client/src/session-client.ts:305</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="find"><span>find</span><a href="#find" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -321,7 +346,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../types/_scriberig_protocol.ReadResponse.html" class="tsd-signature-type tsd-kind-type-alias">ReadResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.find</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L39">packages/client/src/semantic-client.ts:39</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L39">packages/client/src/semantic-client.ts:39</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="getagentpresentationpreferences"><span>get<wbr/>Agent<wbr/>Presentation<wbr/>Preferences</span><a href="#getagentpresentationpreferences" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -339,7 +364,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.AgentPresentationPreferencesResponse.html" class="tsd-signature-type tsd-kind-interface">AgentPresentationPreferencesResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><p>Revisioned shared defaults.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L190">packages/client/src/session-client.ts:190</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L190">packages/client/src/session-client.ts:190</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="getagentresult"><span>get<wbr/>Agent<wbr/>Result</span><a href="#getagentresult" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -355,7 +380,7 @@ Private members: inherited semantic transport.</p>
 <li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">signal</span>: <span class="tsd-signature-type">AbortSignal</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.AgentResult.html" class="tsd-signature-type tsd-kind-interface">AgentResult</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L102">packages/client/src/session-client.ts:102</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L102">packages/client/src/session-client.ts:102</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="getbranch"><span>get<wbr/>Branch</span><a href="#getbranch" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -372,7 +397,7 @@ Private members: inherited semantic transport.</p>
 <li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">signal</span>: <span class="tsd-signature-type">AbortSignal</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_model.BranchDescriptor.html" class="tsd-signature-type tsd-kind-interface">BranchDescriptor</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L262">packages/client/src/session-client.ts:262</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L262">packages/client/src/session-client.ts:262</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="getbranchresult"><span>get<wbr/>Branch<wbr/>Result</span><a href="#getbranchresult" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -389,7 +414,7 @@ Private members: inherited semantic transport.</p>
 <li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">signal</span>: <span class="tsd-signature-type">AbortSignal</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.BranchResultReference.html" class="tsd-signature-type tsd-kind-interface">BranchResultReference</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L296">packages/client/src/session-client.ts:296</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L296">packages/client/src/session-client.ts:296</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="getmodellibrary"><span>get<wbr/>Model<wbr/>Library</span><a href="#getmodellibrary" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -407,7 +432,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.ModelLibraryResponse.html" class="tsd-signature-type tsd-kind-interface">ModelLibraryResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><p>Safe upstream-derived model descriptors.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L183">packages/client/src/session-client.ts:183</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L183">packages/client/src/session-client.ts:183</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="getmodelrequestdetail"><span>get<wbr/>Model<wbr/>Request<wbr/>Detail</span><a href="#getmodelrequestdetail" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -425,7 +450,7 @@ Private members: inherited semantic transport.</p>
 <li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">signal</span>: <span class="tsd-signature-type">AbortSignal</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.ModelRequestDetailResponse.html" class="tsd-signature-type tsd-kind-interface">ModelRequestDetailResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L115">packages/client/src/session-client.ts:115</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L115">packages/client/src/session-client.ts:115</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="getmodelrequestdetailpage"><span>get<wbr/>Model<wbr/>Request<wbr/>Detail<wbr/>Page</span><a href="#getmodelrequestdetailpage" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -455,7 +480,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.ModelRequestDetailResponse.html" class="tsd-signature-type tsd-kind-interface">ModelRequestDetailResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><p>Safe request metadata and one bounded text page.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L141">packages/client/src/session-client.ts:141</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L141">packages/client/src/session-client.ts:141</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="getoperation"><span>get<wbr/>Operation</span><a href="#getoperation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -472,7 +497,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_model.Operation.html" class="tsd-signature-type tsd-kind-interface">Operation</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.getOperation</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L81">packages/client/src/semantic-client.ts:81</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L81">packages/client/src/semantic-client.ts:81</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="getplanattempthistory"><span>get<wbr/>Plan<wbr/>Attempt<wbr/>History</span><a href="#getplanattempthistory" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -494,7 +519,7 @@ Private members: inherited semantic transport.</p>
 <aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.getPlanAttemptHistory</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/plan-attempt-history-client.ts#L20">packages/client/src/plan-attempt-history-client.ts:20</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/plan-attempt-history-client.ts#L20">packages/client/src/plan-attempt-history-client.ts:20</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="getplannodedetails"><span>get<wbr/>Plan<wbr/>Node<wbr/>Details</span><a href="#getplannodedetails" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -516,7 +541,7 @@ Private members: inherited semantic transport.</p>
 <aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.getPlanNodeDetails</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/plan-node-details-client.ts#L21">packages/client/src/plan-node-details-client.ts:21</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/plan-node-details-client.ts#L21">packages/client/src/plan-node-details-client.ts:21</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="getsession"><span>get<wbr/>Session</span><a href="#getsession" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -532,7 +557,7 @@ Private members: inherited semantic transport.</p>
 <li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">signal</span>: <span class="tsd-signature-type">AbortSignal</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.SessionReadResponse.html" class="tsd-signature-type tsd-kind-interface">SessionReadResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L109">packages/client/src/session-client.ts:109</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L109">packages/client/src/session-client.ts:109</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="gettoolresultdetail"><span>get<wbr/>Tool<wbr/>Result<wbr/>Detail</span><a href="#gettoolresultdetail" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -550,7 +575,7 @@ Private members: inherited semantic transport.</p>
 <li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">signal</span>: <span class="tsd-signature-type">AbortSignal</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.ToolResultDetailResponse.html" class="tsd-signature-type tsd-kind-interface">ToolResultDetailResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L163">packages/client/src/session-client.ts:163</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L163">packages/client/src/session-client.ts:163</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="history"><span>history</span><a href="#history" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -567,7 +592,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../types/_scriberig_protocol.ReadResponse.html" class="tsd-signature-type tsd-kind-type-alias">ReadResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.history</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L51">packages/client/src/semantic-client.ts:51</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L51">packages/client/src/semantic-client.ts:51</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="inspect"><span>inspect</span><a href="#inspect" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -584,7 +609,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../types/_scriberig_protocol.ReadResponse.html" class="tsd-signature-type tsd-kind-type-alias">ReadResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.inspect</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L27">packages/client/src/semantic-client.ts:27</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L27">packages/client/src/semantic-client.ts:27</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="list"><span>list</span><a href="#list" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -601,7 +626,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../types/_scriberig_protocol.ReadResponse.html" class="tsd-signature-type tsd-kind-type-alias">ReadResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.list</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L33">packages/client/src/semantic-client.ts:33</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L33">packages/client/src/semantic-client.ts:33</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="listbranchactivity"><span>list<wbr/>Branch<wbr/>Activity</span><a href="#listbranchactivity" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -619,7 +644,7 @@ Private members: inherited semantic transport.</p>
 <li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">signal</span>: <span class="tsd-signature-type">AbortSignal</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.BranchActivityPage.html" class="tsd-signature-type tsd-kind-interface">BranchActivityPage</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L284">packages/client/src/session-client.ts:284</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L284">packages/client/src/session-client.ts:284</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="listbranchchildren"><span>list<wbr/>Branch<wbr/>Children</span><a href="#listbranchchildren" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -637,7 +662,7 @@ Private members: inherited semantic transport.</p>
 <li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">signal</span>: <span class="tsd-signature-type">AbortSignal</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.BranchChildrenPage.html" class="tsd-signature-type tsd-kind-interface">BranchChildrenPage</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L272">packages/client/src/session-client.ts:272</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L272">packages/client/src/session-client.ts:272</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="migrate"><span>migrate</span><a href="#migrate" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -658,7 +683,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_model.Operation.html" class="tsd-signature-type tsd-kind-interface">Operation</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.migrate</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L101">packages/client/src/semantic-client.ts:101</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L101">packages/client/src/semantic-client.ts:101</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="migrationdetail"><span>migration<wbr/>Detail</span><a href="#migrationdetail" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -675,7 +700,38 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.MigrationDetail.html" class="tsd-signature-type tsd-kind-interface">MigrationDetail</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.migrationDetail</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L58">packages/client/src/semantic-client.ts:58</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L58">packages/client/src/semantic-client.ts:58</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member tsd-is-inherited">
+<h3 class="tsd-anchor-link" id="mutateplanlifecycle"><span>mutate<wbr/>Plan<wbr/>Lifecycle</span><a href="#mutateplanlifecycle" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures tsd-is-inherited">
+<li class="tsd-is-inherited">
+<div class="tsd-signature tsd-anchor-link" id="mutateplanlifecycle-1"><span class="tsd-kind-call-signature">mutatePlanLifecycle</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">sessionId</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">planId</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">expectedRevision</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">action</span><span class="tsd-signature-symbol">:</span> <a href="../types/_scriberig_protocol.SessionPlanAction.html" class="tsd-signature-type tsd-kind-type-alias">SessionPlanAction</a><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">signal</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">AbortSignal</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.SessionPlan.html" class="tsd-signature-type tsd-kind-interface">SessionPlan</a><span class="tsd-signature-symbol">&gt;</span><a href="#mutateplanlifecycle-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Applies a revision-checked shared plan lifecycle transition.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">sessionId</span>: <span class="tsd-signature-type">string</span></span>
+<div class="tsd-comment tsd-typography"><p>Owning durable session.</p>
+</div></li>
+<li><span><span class="tsd-kind-parameter">planId</span>: <span class="tsd-signature-type">string</span></span>
+<div class="tsd-comment tsd-typography"><p>Stable plan identity.</p>
+</div></li>
+<li><span><span class="tsd-kind-parameter">expectedRevision</span>: <span class="tsd-signature-type">number</span></span>
+<div class="tsd-comment tsd-typography"><p>Plan mutation revision observed by the caller.</p>
+</div></li>
+<li><span><span class="tsd-kind-parameter">action</span>: <a href="../types/_scriberig_protocol.SessionPlanAction.html" class="tsd-signature-type tsd-kind-type-alias">SessionPlanAction</a></span>
+<div class="tsd-comment tsd-typography"><p>Supported lifecycle action.</p>
+</div></li>
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">signal</span>: <span class="tsd-signature-type">AbortSignal</span></span>
+<div class="tsd-comment tsd-typography"><p>Optional request cancellation signal.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.SessionPlan.html" class="tsd-signature-type tsd-kind-interface">SessionPlan</a><span class="tsd-signature-symbol">&gt;</span></h4><p>The authoritative updated plan projection.</p>
+<aside class="tsd-sources">
+<p>Inherited from SessionPlanEvolutionClient.mutatePlanLifecycle</p>
+<ul>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-plan-evolution-client.ts#L42">packages/client/src/session-plan-evolution-client.ts:42</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="mutateplansemantics"><span>mutate<wbr/>Plan<wbr/>Semantics</span><a href="#mutateplansemantics" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -706,7 +762,7 @@ Private members: inherited semantic transport.</p>
 <aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.mutatePlanSemantics</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-plan-evolution-client.ts#L66">packages/client/src/session-plan-evolution-client.ts:66</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-plan-evolution-client.ts#L118">packages/client/src/session-plan-evolution-client.ts:118</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="operation"><span>operation</span><a href="#operation" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -723,7 +779,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_model.Operation.html" class="tsd-signature-type tsd-kind-interface">Operation</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.operation</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L72">packages/client/src/semantic-client.ts:72</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L72">packages/client/src/semantic-client.ts:72</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="project"><span>project</span><a href="#project" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -745,7 +801,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a class="tsd-signature-type tsd-kind-type-parameter" href="#projecttresponse">TResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.project</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L89">packages/client/src/semantic-client.ts:89</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L89">packages/client/src/semantic-client.ts:89</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="query"><span>query</span><a href="#query" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -762,7 +818,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../types/_scriberig_protocol.ReadResponse.html" class="tsd-signature-type tsd-kind-type-alias">ReadResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.query</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L45">packages/client/src/semantic-client.ts:45</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L45">packages/client/src/semantic-client.ts:45</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="render"><span>render</span><a href="#render" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -783,7 +839,29 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_model.Operation.html" class="tsd-signature-type tsd-kind-interface">Operation</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.render</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L109">packages/client/src/semantic-client.ts:109</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L109">packages/client/src/semantic-client.ts:109</a></li></ul></aside></div></li></ul></section>
+<section class="tsd-panel tsd-member tsd-is-inherited">
+<h3 class="tsd-anchor-link" id="replan"><span>replan</span><a href="#replan" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul class="tsd-signatures tsd-is-inherited">
+<li class="tsd-is-inherited">
+<div class="tsd-signature tsd-anchor-link" id="replan-1"><span class="tsd-kind-call-signature">replan</span><span class="tsd-signature-symbol">(</span><br/>    <span class="tsd-kind-parameter">request</span><span class="tsd-signature-symbol">:</span> <a href="../interfaces/_scriberig_protocol.SessionPlanReplanRequest.html" class="tsd-signature-type tsd-kind-interface">SessionPlanReplanRequest</a><span class="tsd-signature-symbol">,</span><br/>    <span class="tsd-kind-parameter">signal</span><span class="tsd-signature-symbol">?:</span> <span class="tsd-signature-type">AbortSignal</span><span class="tsd-signature-symbol">,</span><br/><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.SessionPlan.html" class="tsd-signature-type tsd-kind-interface">SessionPlan</a><span class="tsd-signature-symbol">&gt;</span><a href="#replan-1" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></div>
+<div class="tsd-description">
+<div class="tsd-comment tsd-typography"><p>Applies a structured replan through the shared application route.</p>
+</div>
+<div class="tsd-parameters">
+<h4 class="tsd-parameters-title">Parameters</h4>
+<ul class="tsd-parameter-list">
+<li><span><span class="tsd-kind-parameter">request</span>: <a href="../interfaces/_scriberig_protocol.SessionPlanReplanRequest.html" class="tsd-signature-type tsd-kind-interface">SessionPlanReplanRequest</a></span>
+<div class="tsd-comment tsd-typography"><p>Observed revision, replacement proposal, and preservation set.</p>
+</div></li>
+<li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">signal</span>: <span class="tsd-signature-type">AbortSignal</span></span>
+<div class="tsd-comment tsd-typography"><p>Optional request cancellation signal.</p>
+</div></li></ul></div>
+<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.SessionPlan.html" class="tsd-signature-type tsd-kind-interface">SessionPlan</a><span class="tsd-signature-symbol">&gt;</span></h4><p>The authoritative updated plan projection.</p>
+<aside class="tsd-sources">
+<p>Inherited from SessionPlanEvolutionClient.replan</p>
+<ul>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-plan-evolution-client.ts#L65">packages/client/src/session-plan-evolution-client.ts:65</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="retryplannode"><span>retry<wbr/>Plan<wbr/>Node</span><a href="#retryplannode" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -814,7 +892,7 @@ Private members: inherited semantic transport.</p>
 <aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.retryPlanNode</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-plan-evolution-client.ts#L95">packages/client/src/session-plan-evolution-client.ts:95</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-plan-evolution-client.ts#L147">packages/client/src/session-plan-evolution-client.ts:147</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="session"><span>session</span><a href="#session" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -835,7 +913,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_model.Operation.html" class="tsd-signature-type tsd-kind-interface">Operation</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.session</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L113">packages/client/src/semantic-client.ts:113</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L113">packages/client/src/semantic-client.ts:113</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="setagentpresentationpreferences"><span>set<wbr/>Agent<wbr/>Presentation<wbr/>Preferences</span><a href="#setagentpresentationpreferences" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -859,7 +937,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.AgentPresentationPreferencesResponse.html" class="tsd-signature-type tsd-kind-interface">AgentPresentationPreferencesResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><p>Updated revisioned defaults.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L201">packages/client/src/session-client.ts:201</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L201">packages/client/src/session-client.ts:201</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="setplanassignment"><span>set<wbr/>Plan<wbr/>Assignment</span><a href="#setplanassignment" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -881,7 +959,7 @@ Private members: inherited semantic transport.</p>
 <aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.setPlanAssignment</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-plan-evolution-client.ts#L24">packages/client/src/session-plan-evolution-client.ts:24</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-plan-evolution-client.ts#L76">packages/client/src/session-plan-evolution-client.ts:76</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="setsessionmodel"><span>set<wbr/>Session<wbr/>Model</span><a href="#setsessionmodel" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -911,7 +989,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.SessionExecutionSelection.html" class="tsd-signature-type tsd-kind-interface">SessionExecutionSelection</a><span class="tsd-signature-symbol">&gt;</span></h4><p>Updated shared execution selection.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L216">packages/client/src/session-client.ts:216</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L216">packages/client/src/session-client.ts:216</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="setsessionthinkinglevel"><span>set<wbr/>Session<wbr/>Thinking<wbr/>Level</span><a href="#setsessionthinkinglevel" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -938,7 +1016,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.SessionExecutionSelection.html" class="tsd-signature-type tsd-kind-interface">SessionExecutionSelection</a><span class="tsd-signature-symbol">&gt;</span></h4><p>Updated shared execution selection.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L243">packages/client/src/session-client.ts:243</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L243">packages/client/src/session-client.ts:243</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="startagent"><span>start<wbr/>Agent</span><a href="#startagent" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -954,7 +1032,7 @@ Private members: inherited semantic transport.</p>
 <li><span><code class="tsd-tag">Optional</code><span class="tsd-kind-parameter">signal</span>: <span class="tsd-signature-type">AbortSignal</span></span></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_protocol.AgentAcceptedResponse.html" class="tsd-signature-type tsd-kind-interface">AgentAcceptedResponse</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L50">packages/client/src/session-client.ts:50</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L50">packages/client/src/session-client.ts:50</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member">
 <h3 class="tsd-anchor-link" id="subscribeagentevents"><span>subscribe<wbr/>Agent<wbr/>Events</span><a href="#subscribeagentevents" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures">
@@ -978,7 +1056,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <a href="../interfaces/_scriberig_client.EventSubscription.html" class="tsd-signature-type tsd-kind-interface">EventSubscription</a></h4><p>A closable event subscription.</p>
 <aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/session-client.ts#L318">packages/client/src/session-client.ts:318</a></li></ul></aside></div></li></ul></section>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/session-client.ts#L318">packages/client/src/session-client.ts:318</a></li></ul></aside></div></li></ul></section>
 <section class="tsd-panel tsd-member tsd-is-inherited">
 <h3 class="tsd-anchor-link" id="validate"><span>validate</span><a href="#validate" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="../assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-is-inherited">
@@ -999,7 +1077,7 @@ Private members: inherited semantic transport.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/_scriberig_model.Operation.html" class="tsd-signature-type tsd-kind-interface">Operation</a><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <p>Inherited from SessionPlanEvolutionClient.validate</p>
 <ul>
-<li>Defined in <a href="https://github.com/TNick/scriberig/blob/97970255a4e9bc382748328e87e4cf8514031588/web/packages/client/src/semantic-client.ts#L105">packages/client/src/semantic-client.ts:105</a></li></ul></aside></div></li></ul></section></section></details></div>
+<li>Defined in <a href="https://github.com/TNick/scriberig/blob/6bddaf0a9ea37e56d9e99f15d11fe199216fa57f/web/packages/client/src/semantic-client.ts#L105">packages/client/src/semantic-client.ts:105</a></li></ul></aside></div></li></ul></section></section></details></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -1019,7 +1097,7 @@ Private members: inherited semantic transport.</p>
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Properties"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Properties</summary>
 <div><a href="#transport" class="tsd-is-protected tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Property"><use href="../assets/icons.svg#icon-1024"></use></svg><span>transport</span></a></div></details>
 <details open class="tsd-accordion tsd-page-navigation-section"><summary class="tsd-accordion-summary" data-key="section-Methods"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><use href="../assets/icons.svg#icon-chevronDown"></use></svg>Methods</summary>
-<div><a href="#addplannextstep" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>add<wbr/>Plan<wbr/>Next<wbr/>Step</span></a><a href="#agent" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>agent</span></a><a href="#branch" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>branch</span></a><a href="#canceloperation"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>cancel<wbr/>Operation</span></a><a href="#capabilities" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>capabilities</span></a><a href="#command" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>command</span></a><a href="#continueagent"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>continue<wbr/>Agent</span></a><a href="#decomposeplannode" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>decompose<wbr/>Plan<wbr/>Node</span></a><a href="#diff" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>diff</span></a><a href="#events"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>events</span></a><a href="#find" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>find</span></a><a href="#getagentpresentationpreferences"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Agent<wbr/>Presentation<wbr/>Preferences</span></a><a href="#getagentresult"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Agent<wbr/>Result</span></a><a href="#getbranch"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Branch</span></a><a href="#getbranchresult"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Branch<wbr/>Result</span></a><a href="#getmodellibrary"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Model<wbr/>Library</span></a><a href="#getmodelrequestdetail"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Model<wbr/>Request<wbr/>Detail</span></a><a href="#getmodelrequestdetailpage"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Model<wbr/>Request<wbr/>Detail<wbr/>Page</span></a><a href="#getoperation" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Operation</span></a><a href="#getplanattempthistory" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Plan<wbr/>Attempt<wbr/>History</span></a><a href="#getplannodedetails" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Plan<wbr/>Node<wbr/>Details</span></a><a href="#getsession"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Session</span></a><a href="#gettoolresultdetail"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Tool<wbr/>Result<wbr/>Detail</span></a><a href="#history" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>history</span></a><a href="#inspect" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>inspect</span></a><a href="#list" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>list</span></a><a href="#listbranchactivity"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>list<wbr/>Branch<wbr/>Activity</span></a><a href="#listbranchchildren"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>list<wbr/>Branch<wbr/>Children</span></a><a href="#migrate" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>migrate</span></a><a href="#migrationdetail" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>migration<wbr/>Detail</span></a><a href="#mutateplansemantics" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>mutate<wbr/>Plan<wbr/>Semantics</span></a><a href="#operation" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>operation</span></a><a href="#project" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>project</span></a><a href="#query" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>query</span></a><a href="#render" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>render</span></a><a href="#retryplannode" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>retry<wbr/>Plan<wbr/>Node</span></a><a href="#session" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>session</span></a><a href="#setagentpresentationpreferences"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Agent<wbr/>Presentation<wbr/>Preferences</span></a><a href="#setplanassignment" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Plan<wbr/>Assignment</span></a><a href="#setsessionmodel"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Session<wbr/>Model</span></a><a href="#setsessionthinkinglevel"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Session<wbr/>Thinking<wbr/>Level</span></a><a href="#startagent"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>start<wbr/>Agent</span></a><a href="#subscribeagentevents"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>subscribe<wbr/>Agent<wbr/>Events</span></a><a href="#validate" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>validate</span></a></div></details></div></details></div>
+<div><a href="#addplannextstep" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>add<wbr/>Plan<wbr/>Next<wbr/>Step</span></a><a href="#agent" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>agent</span></a><a href="#branch" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>branch</span></a><a href="#canceloperation"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>cancel<wbr/>Operation</span></a><a href="#capabilities" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>capabilities</span></a><a href="#command" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>command</span></a><a href="#continueagent"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>continue<wbr/>Agent</span></a><a href="#createplan" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>create<wbr/>Plan</span></a><a href="#decomposeplannode" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>decompose<wbr/>Plan<wbr/>Node</span></a><a href="#diff" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>diff</span></a><a href="#events"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>events</span></a><a href="#find" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>find</span></a><a href="#getagentpresentationpreferences"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Agent<wbr/>Presentation<wbr/>Preferences</span></a><a href="#getagentresult"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Agent<wbr/>Result</span></a><a href="#getbranch"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Branch</span></a><a href="#getbranchresult"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Branch<wbr/>Result</span></a><a href="#getmodellibrary"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Model<wbr/>Library</span></a><a href="#getmodelrequestdetail"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Model<wbr/>Request<wbr/>Detail</span></a><a href="#getmodelrequestdetailpage"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Model<wbr/>Request<wbr/>Detail<wbr/>Page</span></a><a href="#getoperation" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Operation</span></a><a href="#getplanattempthistory" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Plan<wbr/>Attempt<wbr/>History</span></a><a href="#getplannodedetails" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Plan<wbr/>Node<wbr/>Details</span></a><a href="#getsession"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Session</span></a><a href="#gettoolresultdetail"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>get<wbr/>Tool<wbr/>Result<wbr/>Detail</span></a><a href="#history" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>history</span></a><a href="#inspect" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>inspect</span></a><a href="#list" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>list</span></a><a href="#listbranchactivity"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>list<wbr/>Branch<wbr/>Activity</span></a><a href="#listbranchchildren"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>list<wbr/>Branch<wbr/>Children</span></a><a href="#migrate" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>migrate</span></a><a href="#migrationdetail" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>migration<wbr/>Detail</span></a><a href="#mutateplanlifecycle" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>mutate<wbr/>Plan<wbr/>Lifecycle</span></a><a href="#mutateplansemantics" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>mutate<wbr/>Plan<wbr/>Semantics</span></a><a href="#operation" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>operation</span></a><a href="#project" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>project</span></a><a href="#query" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>query</span></a><a href="#render" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>render</span></a><a href="#replan" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>replan</span></a><a href="#retryplannode" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>retry<wbr/>Plan<wbr/>Node</span></a><a href="#session" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>session</span></a><a href="#setagentpresentationpreferences"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Agent<wbr/>Presentation<wbr/>Preferences</span></a><a href="#setplanassignment" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Plan<wbr/>Assignment</span></a><a href="#setsessionmodel"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Session<wbr/>Model</span></a><a href="#setsessionthinkinglevel"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>set<wbr/>Session<wbr/>Thinking<wbr/>Level</span></a><a href="#startagent"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>start<wbr/>Agent</span></a><a href="#subscribeagentevents"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>subscribe<wbr/>Agent<wbr/>Events</span></a><a href="#validate" class="tsd-is-inherited"><svg class="tsd-kind-icon" viewBox="0 0 24 24" aria-label="Method"><use href="../assets/icons.svg#icon-2048"></use></svg><span>validate</span></a></div></details></div></details></div>
 <div class="site-menu">
 <nav class="tsd-navigation"><a href="../index.html">Documentation</a>
 <ul class="tsd-small-nested-navigation" id="tsd-nav-container">

@@ -81,7 +81,7 @@
 this composition supports the selected built-in API.</p>
 <h5 id="errors-3"><a class="doc-anchor" href="#errors-3">§</a>Errors</h5>
 <p>Returns a safe configuration or credential authorization failure.</p>
-</div></details></div></details></div><h2 id="trait-implementations" class="section-header">Trait Implementations<a href="#trait-implementations" class="anchor">§</a></h2><div id="trait-implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-AgentCommandRunner%3CB%3E-for-NativeTuiAgentRunner" class="impl"><a class="src rightside" href="../../src/srig/native_tui_agent/runner.rs.html#25-381">Source</a><a href="#impl-AgentCommandRunner%3CB%3E-for-NativeTuiAgentRunner" class="anchor">§</a><h3 class="code-header">impl&lt;B: ApplicationBackend + <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a>&gt; <a class="trait" href="../../scriberig_tui/service/service_agent_runner/trait.AgentCommandRunner.html" title="trait scriberig_tui::service::service_agent_runner::AgentCommandRunner">AgentCommandRunner</a>&lt;B&gt; for <a class="struct" href="struct.NativeTuiAgentRunner.html" title="struct srig::native_tui_agent::NativeTuiAgentRunner">NativeTuiAgentRunner</a></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.model_properties-1" class="method trait-impl"><a class="src rightside" href="../../src/srig/native_tui_agent/runner.rs.html#36-46">Source</a><a href="#method.model_properties-1" class="anchor">§</a><h4 class="code-header">fn <a href="../../scriberig_tui/service/service_agent_runner/trait.AgentCommandRunner.html#method.model_properties" class="fn">model_properties</a>(
+</div></details></div></details></div><h2 id="trait-implementations" class="section-header">Trait Implementations<a href="#trait-implementations" class="anchor">§</a></h2><div id="trait-implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-AgentCommandRunner%3CB%3E-for-NativeTuiAgentRunner" class="impl"><a class="src rightside" href="../../src/srig/native_tui_agent/runner.rs.html#25-381">Source</a><a href="#impl-AgentCommandRunner%3CB%3E-for-NativeTuiAgentRunner" class="anchor">§</a><h3 class="code-header">impl&lt;B: ApplicationBackend + <a class="trait" href="https://doc.rust-lang.org/1.99.1/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a>&gt; AgentCommandRunner&lt;B&gt; for <a class="struct" href="struct.NativeTuiAgentRunner.html" title="struct srig::native_tui_agent::NativeTuiAgentRunner">NativeTuiAgentRunner</a></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.model_properties-1" class="method trait-impl"><a class="src rightside" href="../../src/srig/native_tui_agent/runner.rs.html#36-46">Source</a><a href="#method.model_properties-1" class="anchor">§</a><h4 class="code-header">fn <a class="fn">model_properties</a>(
     &amp;self,
     provider_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     model_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
@@ -95,7 +95,7 @@ this composition supports the selected built-in API.</p>
 <p>Upstream property descriptors for the local settings surface.</p>
 <h5 id="errors-4"><a class="doc-anchor" href="#errors-4">§</a>Errors</h5>
 <p>Returns a safe error if the model schema is unavailable.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_model_property-1" class="method trait-impl"><a class="src rightside" href="../../src/srig/native_tui_agent/runner.rs.html#60-72">Source</a><a href="#method.set_model_property-1" class="anchor">§</a><h4 class="code-header">fn <a href="../../scriberig_tui/service/service_agent_runner/trait.AgentCommandRunner.html#method.set_model_property" class="fn">set_model_property</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_model_property-1" class="method trait-impl"><a class="src rightside" href="../../src/srig/native_tui_agent/runner.rs.html#60-72">Source</a><a href="#method.set_model_property-1" class="anchor">§</a><h4 class="code-header">fn <a class="fn">set_model_property</a>(
     &amp;self,
     provider_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
     model_id: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
@@ -113,10 +113,10 @@ this composition supports the selected built-in API.</p>
 <p>Success after the config and live catalog are updated.</p>
 <h5 id="errors-5"><a class="doc-anchor" href="#errors-5">§</a>Errors</h5>
 <p>Returns a safe validation or config error.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.provider_readiness" class="method trait-impl"><a class="src rightside" href="../../src/srig/native_tui_agent/runner.rs.html#78-80">Source</a><a href="#method.provider_readiness" class="anchor">§</a><h4 class="code-header">fn <a href="../../scriberig_tui/service/service_agent_runner/trait.AgentCommandRunner.html#method.provider_readiness" class="fn">provider_readiness</a>(&amp;self) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../../scriberig_protocol/model/struct.ProviderReadiness.html" title="struct scriberig_protocol::model::ProviderReadiness">ProviderReadiness</a>&gt;</h4></section></summary><div class="docblock"><p>Resolves safe per-model credential status from upstream and host policy.</p>
+</div></details><details class="toggle method-toggle" open><summary><section id="method.provider_readiness" class="method trait-impl"><a class="src rightside" href="../../src/srig/native_tui_agent/runner.rs.html#78-80">Source</a><a href="#method.provider_readiness" class="anchor">§</a><h4 class="code-header">fn <a class="fn">provider_readiness</a>(&amp;self) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.99.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a class="struct" href="../../scriberig_protocol/model/struct.ProviderReadiness.html" title="struct scriberig_protocol::model::ProviderReadiness">ProviderReadiness</a>&gt;</h4></section></summary><div class="docblock"><p>Resolves safe per-model credential status from upstream and host policy.</p>
 <h5 id="returns-7"><a class="doc-anchor" href="#returns-7">§</a>Returns</h5>
 <p>Credential readiness rows without resolved credential material.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.plan_lifecycle" class="method trait-impl"><a class="src rightside" href="../../src/srig/native_tui_agent/runner.rs.html#101-190">Source</a><a href="#method.plan_lifecycle" class="anchor">§</a><h4 class="code-header">fn <a href="../../scriberig_tui/service/service_agent_runner/trait.AgentCommandRunner.html#method.plan_lifecycle" class="fn">plan_lifecycle</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.plan_lifecycle" class="method trait-impl"><a class="src rightside" href="../../src/srig/native_tui_agent/runner.rs.html#101-190">Source</a><a href="#method.plan_lifecycle" class="anchor">§</a><h4 class="code-header">fn <a class="fn">plan_lifecycle</a>(
     &amp;self,
     service: &amp;ApplicationService&lt;B&gt;,
     context: &amp;ApplicationContext,
@@ -140,14 +140,14 @@ loop for the same plan.</p>
 <p>The latest authoritative plan.</p>
 <h5 id="errors-6"><a class="doc-anchor" href="#errors-6">§</a>Errors</h5>
 <p>Returns an error when the lifecycle operation or worker execution fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.submit" class="method trait-impl"><a class="src rightside" href="../../src/srig/native_tui_agent/runner.rs.html#208-226">Source</a><a href="#method.submit" class="anchor">§</a><h4 class="code-header">fn <a href="../../scriberig_tui/service/service_agent_runner/trait.AgentCommandRunner.html#tymethod.submit" class="fn">submit</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.submit" class="method trait-impl"><a class="src rightside" href="../../src/srig/native_tui_agent/runner.rs.html#208-226">Source</a><a href="#method.submit" class="anchor">§</a><h4 class="code-header">fn <a class="fn">submit</a>(
     &amp;self,
     service: &amp;ApplicationService&lt;B&gt;,
     context: &amp;ApplicationContext,
     session: EntityId,
     branch: <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;EntityId&gt;,
     prompt: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.99.1/std/primitive.str.html">str</a>,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_tui/service/agent_handle/struct.AgentHandle.html" title="struct scriberig_tui::service::agent_handle::AgentHandle">AgentHandle</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Executes one TUI agent request through the trusted shared runtime.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentHandle, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Executes one TUI agent request through the trusted shared runtime.</p>
 <ul>
 <li><code>self</code>: Native provider and project-tool composition.</li>
 <li><code>service</code>: Shared application service owning durable sessions.</li>
@@ -162,12 +162,12 @@ loop for the same plan.</p>
 <p>The operation result.</p>
 <h5 id="errors-7"><a class="doc-anchor" href="#errors-7">§</a>Errors</h5>
 <p>Returns an error when the operation fails.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.execute_accepted" class="method trait-impl"><a class="src rightside" href="../../src/srig/native_tui_agent/runner.rs.html#246-380">Source</a><a href="#method.execute_accepted" class="anchor">§</a><h4 class="code-header">fn <a href="../../scriberig_tui/service/service_agent_runner/trait.AgentCommandRunner.html#method.execute_accepted" class="fn">execute_accepted</a>(
+</div></details><details class="toggle method-toggle" open><summary><section id="method.execute_accepted" class="method trait-impl"><a class="src rightside" href="../../src/srig/native_tui_agent/runner.rs.html#246-380">Source</a><a href="#method.execute_accepted" class="anchor">§</a><h4 class="code-header">fn <a class="fn">execute_accepted</a>(
     &amp;self,
     service: &amp;ApplicationService&lt;B&gt;,
     context: &amp;ApplicationContext,
     handle: &amp;LocalAgentHandle,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../../scriberig_tui/service/agent_handle/struct.AgentHandle.html" title="struct scriberig_tui::service::agent_handle::AgentHandle">AgentHandle</a>, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Runs one already persisted operation through the trusted model runtime.</p>
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.99.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;AgentHandle, ApplicationError&gt;</h4></section></summary><div class="docblock"><p>Runs one already persisted operation through the trusted model runtime.</p>
 <ul>
 <li><code>self</code>: Native provider and project-tool composition.</li>
 <li><code>service</code>: Shared application service owning durable sessions.</li>

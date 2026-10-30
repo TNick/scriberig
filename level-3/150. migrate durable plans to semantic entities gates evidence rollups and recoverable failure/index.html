@@ -7688,13 +7688,13 @@ use a canonical reference rebuild. Ordinary reads rebuild indexes only after
 migration or pending claim recovery changes the canonical root.
 First-time migration applies deterministic stale worker/coordinator claim
 recovery, including a durable pending marker for interrupted recovery; coverage
-for other legacy coordinator/runtime fields remains incomplete. The browser
-panel has node-level plan operations, but it lacks plan-level create/lifecycle
-actions. Task 148's upstream TUI implementation is still In Progress, so task
-150's TUI integration remains deferred under the dependency rule below. The
-separate rollup mutation-cost criterion also needs verification. These gaps
-must be resolved or explicitly deferred by the governing design before task
-150 can be completed.</p>
+for other legacy coordinator/runtime fields remains incomplete. At this point
+in the implementation record, plan-level browser actions and rollup mutation
+cost still needed verification; later updates below record that evidence.
+Task 148's upstream TUI implementation is still In Progress, so task 150's TUI
+integration remains deferred under the dependency rule below. These gaps must
+be resolved or explicitly deferred by the governing design before task 150 can
+be completed.</p>
 <p>Implementation update (2026-10-30): scheduler settlement now sends successful
 and failed branch results, execution activity, evidence, and terminal Plan
 state through one plan CAS. SQLite derives newly settled worker branches from
@@ -7716,8 +7716,8 @@ dependency results and failed entry gates; <code>incremental_rollup_rejects_a_st
 covers stale derived-index rejection. <code>concurrent_plan_coordinator_claims_have_one_winner</code>
 proves CAS permits one competing claim, while
 <code>sibling_workers_execute_concurrently_with_distinct_assignments</code> proves
-independent ready siblings remain concurrent. The separate mutation-cost
-criterion remains unverified.</p>
+independent ready siblings remain concurrent. Sparse rollup mutation cost is
+verified by the SQLite trigger regression recorded below.</p>
 <p><code>semantic_worker_claim_preserves_unrelated_node_and_relation_revisions</code>
 verifies a worker claim advances the plan-local mutation revision while
 preserving the sibling node and membership, structure, and dependency
@@ -7781,11 +7781,10 @@ recovery/retry behavior, application operations, and coordinator/scheduler
 dispatch. They do not close the remaining migration/runtime coverage gaps.</p>
 <p>Task 150 remains in progress. Remaining implementation gaps include migration
 coverage for legacy coordinator/runtime fields beyond the recovered claim
-state, browser plan-level create/lifecycle actions, and the separate rollup
-mutation-cost verification. Product view parity across the full surface set
-depends on the upstream-first Task 148 TUI component path, which is not
-available on this implementation branch. The TUI integration and final
-completion review therefore remain open.</p>
+state. Product view parity across the full surface set depends on the
+upstream-first Task 148 TUI component path, which is not available on this
+implementation branch. The TUI integration and final completion review remain
+open.</p>
 <p>Implementation update (2026-10-30): SQLite now persists effective status,
 ignored/abandoned flags, direct-child status counts, unsatisfied completion
 gate count, evaluator version, and source snapshot in a separate session-owned
@@ -8640,6 +8639,7 @@ The focused durable test passes.</p>
 <li>[x] Web retry/gate/evidence actions call shared application operations.</li>
 <li>[x] Web next-step, required decomposition, and assignment actions call shared application operations with observed plan revisions; client wire payload and panel projection tests pass.</li>
 <li>[x] Web node summary updates and typed gate creation call the shared semantic mutation operation; client payload and panel projection tests pass.</li>
+<li>[x] Web plan creation uses an exact branch-head anchor and shared <code>plan_create</code>; lifecycle actions use observed plan revisions and shared <code>plan_lifecycle</code>; repair replanning uses <code>plan_replan</code> while preserving completed terminal nodes. Exact wire payload and form projection tests pass.</li>
 </ul>
 <hr />
 <h1 id="16-phase-11-tui-integration-on-top-of-task-148">16. Phase 11 — TUI Integration on Top of Task 148<a class="headerlink" href="#16-phase-11-tui-integration-on-top-of-task-148" title="Permanent link">&para;</a></h1>
